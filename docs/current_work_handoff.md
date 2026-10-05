@@ -9,11 +9,14 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
-- Checkout: main @ d0fa49ea95928c007a6670f2e2fbfb7b7479441b, P0 source/tests/docs
-  dirty. Root owns P0 integration and Git; Main is stopped following the user's
+- Checkout: main @ 15e99c0ecda000149c3e23f7ad09b8929e687689, reached runtime ABI
+  scalar publication and registry corrections dirty. Root owns P0 integration
+  and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
   worker changes, including the new examples and deleted deployment guide.
-  Preserve/exclude generated gmon.out. This is a checkpoint, not a green claim.
+  All 184 changed files were committed/pushed as checkpoint 4415adf4; the
+  subsequent external documentation commit was fast-forwarded locally.
+  Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
   Native parameter-flow descriptor preservation, source call-preservation and
@@ -34,6 +37,15 @@ SoT registry, admitted contracts, and executable gates override this note.
   .tmp/self_hosted/collection-borrowed-descriptor-read.mNokLy,
   .tmp/inout-array-release-borrowed-read-gate45.log. Inner Break/Continue,
   same-scope reuse, retained raw scalars and shallow-to-owned mutation refuse.
+- Gate46 reached the same 28/41 source rows and imported match/runtime ABI
+  owner admission in C/LLVM, then passed all prior native value controls. The
+  combined run hit its unchanged 300s budget before the final ABI execution;
+  it is incomplete, not a full gate pass. With the source unchanged, the
+  final C artifact and freshly compiled LLVM artifact separately passed exact
+  last-binding/device/missing/malformed-length values using caller copies.
+  .tmp/self_hosted/collection-borrowed-descriptor-read.9GMYnb,
+  .tmp/inout-array-release-borrowed-read-gate46.log,
+  .tmp/inout-array-release-runtime-abi-type.sha256.
 - Latest member gate7: C/LLVM each 5 positives/11 compile-only refusals, exit 0.
   .tmp/self_hosted/member-indexed-read.eXURNt,
   .tmp/inout-array-release-member-read-gate7.log. Composed direct readonly
@@ -92,8 +104,13 @@ SoT registry, admitted contracts, and executable gates override this note.
   match case publication retained raw indexed String payloads. The existing
   match owner now copies retained scalars and validates incoming binding rows
   before destination mutation. Gate45 passed values and unchanged-row guards;
-  destination deep-release authority is not promoted. Seed v37 is not yet run.
+  destination deep-release authority is not promoted. Seed v37 passed that
+  boundary, then refused node 71641 in SelfMirExpressionRuntimeAbiLocalType.
+  The existing owner now reads inventories by ref and copies its selected
+  String. Last-binding lookup and missing/malformed guards remain unchanged.
+  No native ordinary String-result lifetime grant is inferred.
   .tmp/inout-array-release-codegen-bootstrap-v36.log.
+  .tmp/inout-array-release-codegen-bootstrap-v37.log.
   Next falsifier is whole-root admission on the original MIR control, not a
   narrow formal-effect count, native value check or elapsed-time inference.
 - OPEN: full integration10 timed out at its original 60s actual C unit; its
@@ -101,13 +118,19 @@ SoT registry, admitted contracts, and executable gates override this note.
   evidence. A development C whole-MIR-root observer timed out at 300s; the
   LLVM observer reached a semantic refusal. Neither timeout is admission.
   Fresh seed/fixed-point/installed pair, full C/LLVM integration, 16 structural
-  cap failures and current-head CI remain OPEN. All-current-work checkpoint
-  commit/push is the user's immediate instruction; subsequent CI repair remains
-  required. The new user examples are included without an execution claim.
+  cap failures and current-head CI remain OPEN. The all-current-work checkpoint
+  is published; subsequent CI repair remains required. The new user examples
+  are included without an execution claim. Seed v38 is the next original-root
+  falsifier, not yet run.
   The collection cap block was directly rechecked: 17 -> 16 after the reached
   scan/lifetime split, without raising caps; not a full inventory pass.
-  semantic.hashmap_collection_ownership stays ACTIVE; published CI 37244277987
-  failed. Next after seed: serial full integration, official fresh driver,
+  semantic.hashmap_collection_ownership stays ACTIVE. CI 37305685187 was
+  cancelled by the external documentation push; 37305703308 failed a stale
+  derived-fact symbol. The corrected live pin and three existing local-view
+  registrations passed the narrow authority-edge gate: 95 authorities/200
+  derived carriers and 96th-owner refusal. No status/count authority changed.
+  .tmp/inout-array-release-sot-authority-edge-current2.log.
+  Next after seed: serial full integration, official fresh driver,
   public all-lane gate and default C/LLVM execution of Alrescha's
   F:/JDW_project/alrescha/tests/repros/array_inout_release_frontier.pgy.
 - Current official bin hashes are still native 88526595396deba7532991e55d6ae3d74f260e3f34c3c15bea9ecf117a55f3de

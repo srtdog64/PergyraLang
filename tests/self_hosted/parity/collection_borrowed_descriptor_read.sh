@@ -109,8 +109,11 @@ for backend in c llvm; do
     "$observer" tests/self_hosted/fixtures/mir_match_fact_snapshot_probe.pgy \
         >"$WORK/$backend-match-owner-source.log" 2>&1 || fail "$backend match owner source observer failed"
     grep -Fxq 'body_ok=true' "$WORK/$backend-match-owner-source.log" || fail "$backend refused imported match owner"
+    "$observer" tests/self_hosted/fixtures/mir_runtime_abi_local_type_scalar_probe.pgy \
+        >"$WORK/$backend-runtime-abi-source.log" 2>&1 || fail "$backend runtime ABI source observer failed"
+    grep -Fxq 'body_ok=true' "$WORK/$backend-runtime-abi-source.log" || fail "$backend refused imported runtime ABI owner"
 done
-echo "[collection-borrowed-descriptor-read] PASS (C/LLVM analysis: 28 fixture positives, 41 compile-only refusals and imported match owner each; not installed-driver proof); evidence=$REL"
+echo "[collection-borrowed-descriptor-read] PASS (C/LLVM analysis: 28 fixture positives, 41 compile-only refusals and imported match/runtime ABI owners each; not installed-driver proof); evidence=$REL"
 
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
@@ -175,3 +178,16 @@ for backend in c llvm; do
 done
 
 echo "[collection-borrowed-descriptor-read] native C/LLVM match fact snapshot and invalid-case no-mutation PASS; not installed-driver proof"
+
+for backend in c llvm; do
+    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
+        tests/self_hosted/fixtures/mir_runtime_abi_local_type_scalar_probe.pgy \
+        -o "$REL/mir-runtime-abi-$backend.exe" >"$WORK/$backend-mir-runtime-abi.compile.log" 2>&1 ||
+        fail "$backend runtime ABI type scalar did not compile"
+    timeout 30 "$WORK/mir-runtime-abi-$backend.exe" >"$WORK/$backend-mir-runtime-abi.raw" 2>&1 ||
+        fail "$backend runtime ABI type scalar failed"
+    [[ "$(tr -d '\r' <"$WORK/$backend-mir-runtime-abi.raw")" == 'MIR RUNTIME ABI TYPE SCALAR COPY PASS' ]] ||
+        fail "$backend runtime ABI last-binding lookup or missing/malformed guard changed"
+done
+
+echo "[collection-borrowed-descriptor-read] native C/LLVM runtime ABI type values with explicit caller copies and last-binding/missing/malformed guards PASS; not installed-driver proof"

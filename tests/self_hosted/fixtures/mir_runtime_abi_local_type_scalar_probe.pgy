@@ -1,0 +1,24 @@
+import "../../../src/self_hosted/mir/expression_runtime_abi_owner.pgy";
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "slot");
+    ArrayPushOwnedString(names, "slot");
+    ArrayPushOwnedString(names, "device");
+    let types: Array<String> = [];
+    ArrayPushOwnedString(types, "Slot<Int>");
+    ArrayPushOwnedString(types, "Slot<String>");
+    ArrayPushOwnedString(types, "DeviceSlot<Int>");
+    let wrong_types: Array<String> = [];
+    // Native ordinary String results still need an explicit lifetime copy.
+    let slot: String = Concat("", SelfMirExpressionRuntimeAbiLocalType(names, types, "slot"));
+    let device: String = Concat("", SelfMirExpressionRuntimeAbiLocalType(names, types, "device"));
+    let missing: String = Concat("", SelfMirExpressionRuntimeAbiLocalType(names, types, "missing"));
+    let malformed: String = Concat("", SelfMirExpressionRuntimeAbiLocalType(names, wrong_types, "slot"));
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(types);
+    ArrayDropOwnedStrings(wrong_types);
+    if slot != "Slot<String>" || device != "DeviceSlot<Int>" ||
+        missing != "" || malformed != "" { Exit(1); }
+    Log("MIR RUNTIME ABI TYPE SCALAR COPY PASS");
+}

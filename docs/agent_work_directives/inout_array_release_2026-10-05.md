@@ -980,3 +980,35 @@ pushes retain raw indexed Strings. Exact mapping:
   Fresh seed/default installation/full integration/CI remain OPEN. The user
   authorized an all-current-work checkpoint commit/push before those finish,
   including user/other-worker changes, excluding generated `gmon.out`.
+
+## Reached MIR runtime ABI type publication
+
+Official seed v37 passed match publication, then refused node 71641 at
+SelfMirExpressionRuntimeAbiLocalType: a selected raw type String escaped the
+readonly local-type inventory. Mapping:
+`.tmp/inout-array-release-bootstrap-v37-exact-boundary-context.log`.
+
+- Objective/priority: preserve exact last-binding lookup and failure guards;
+  publish only an independent selected scalar; original whole-root admission.
+- Owner/last consumer: expression_runtime_abi_owner selects the binding type;
+  its Slot ABI projection consumes that type through the existing ABI owner.
+- Forbidden fallback: raw indexed String publication, guessed missing type,
+  copied whole inventories, changing shadowing into duplicate rejection.
+- Gate/falsifier: imported owner source admission, native C/LLVM exact last
+  binding/device values after input cleanup using explicit caller copies,
+  missing and malformed-length guards, existing raw-scalar refusal pair,
+  then the same original MIR root. Ordinary String-result lifetime remains
+  unproved by native; the value probe deliberately does not claim that grant.
+- All-current-work checkpoint 4415adf4 was committed/pushed. The subsequent
+  external documentation commit 15e99c0e cancelled its CI. Latest CI failed a
+  stale derived-fact symbol; the registry pin now follows the live generic
+  fact-row producer and three existing collection local views are registered.
+  Narrow authority-edge gate passed 95 authorities/200 derived carriers and
+  96th-owner refusal. No authority count/status or semantic permission changed.
+- Gate46 passed the C/LLVM source rows and both imported owners, then all
+  prior native value controls, but reached its original 300s limit before the
+  last ABI execution. Do not call the combined run green. Its completed C
+  artifact and an independently compiled LLVM artifact passed the new exact
+  value/guard oracle separately on unchanged source. Receipt:
+  `.tmp/inout-array-release-runtime-abi-type.sha256`; source gate evidence:
+  `.tmp/self_hosted/collection-borrowed-descriptor-read.9GMYnb`.
