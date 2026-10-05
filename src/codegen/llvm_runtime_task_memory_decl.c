@@ -26,6 +26,9 @@ llvm_declare_runtime_task_memory(LLVMGenCtx *ctx)
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_async_detach_export", ft);
       llvm_register_function(ctx, "pgy_async_detach_export", fn, ft, ctx->type_void); }
+    { LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_async_drain_detached_export", ft);
+      llvm_register_function(ctx, "pgy_async_drain_detached_export", fn, ft, ctx->type_void); }
     { LLVMTypeRef params[] = { ctx->type_task_handle };
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_await_export", ft);

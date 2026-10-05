@@ -63,6 +63,9 @@ typedef struct {
     PgyCoroTask  *ready_head;
     PgyCoroTask  *ready_tail;
     PgyRuntimeContext *scheduler_runtime_context;
+    /* Detached coroutines that have not finished. Program exit drains them
+     * (pgy_async_drain_detached) instead of dropping their continuation. */
+    size_t        detached_live;
 } PgyCoroRuntime;
 
 PGY_RT_GLOBAL __thread PgyCoroRuntime g_pgy_coro
@@ -346,8 +349,11 @@ pgy_async_progress_one(void)
                           "coroutine scheduler context restore failed");
     }
 
-    if (task->done && task->detached)
+    if (task->done && task->detached) {
+        if (g_pgy_coro.detached_live > 0)
+            g_pgy_coro.detached_live--;
         pgy_coro_destroy(task);
+    }
 
     return true;
 }
@@ -428,9 +434,35 @@ pgy_async_detach(PgyTaskHandle handle)
 
     if (header->model == PGY_TASK_MODEL_COROUTINE) {
         PgyCoroTask *task = (PgyCoroTask *)handle.task;
+        if (!task->detached && !task->done)
+            g_pgy_coro.detached_live++;
         task->detached = true;
         if (!pgy_async_in_coroutine())
             (void)pgy_async_progress_one();
+    }
+}
+#else
+;
+#endif
+
+
+/* Program exit: run detached coroutines until they finish. A detached block
+ * that suspends (await, a channel wait) only advances when some caller
+ * drives the scheduler; without this its continuation was silently dropped
+ * when Main returned. Work that still cannot finish is a lifecycle failure,
+ * not a quiet exit. */
+PGY_RT_DECL void
+pgy_async_drain_detached(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
+    while (g_pgy_coro.detached_live > 0) {
+        if (!pgy_async_progress_one())
+            break;
+    }
+    if (g_pgy_coro.detached_live > 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE,
+                          "detached async block could not finish before program exit");
     }
 }
 #else
@@ -537,6 +569,18 @@ pgy_async_detach(PgyTaskHandle handle)
     }
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                       "detached async requires coroutine runtime support");
+}
+#else
+;
+#endif
+
+
+/* Without coroutine support detach itself panics, so nothing is pending. */
+PGY_RT_DECL void
+pgy_async_drain_detached(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
 }
 #else
 ;

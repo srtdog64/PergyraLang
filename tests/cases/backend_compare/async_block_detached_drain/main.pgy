@@ -1,0 +1,18 @@
+// A detached async block that suspends on an await still finishes: the
+// program drains detached work after Main returns instead of dropping the
+// continuation, and a spawn inside the block lowers on both backends.
+// The block's order relative to Main's later statements is not fixed, so
+// Main logs only before the block.
+
+async func Slow(x: Int) -> Int {
+    return x + 1;
+}
+
+async func Main() -> Void {
+    Log("main start");
+    async {
+        let pending: Future<Int> = spawn Slow(1);
+        let value: Int = await pending;
+        Log("detached done " + ToString(value));
+    }
+}

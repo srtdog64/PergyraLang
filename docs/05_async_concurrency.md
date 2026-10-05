@@ -56,12 +56,15 @@ func Work(x: Int) -> Int {
     return x + 1;
 }
 
-func Main() -> Void {
+async func Main() -> Void {
     let pending: Future<Int> = spawn Work(10);
     let out: Int = await pending;
     Log(out);
 }
 ```
+
+`await` needs an async context, so `Main` is an `async func` here; a plain
+`func Main` is rejected with `'await' used outside of async function`.
 
 Beta intentionally keeps the stable task-producing form named. Anonymous async
 spawn bodies are parser-accepted in some places but semantically rejected for

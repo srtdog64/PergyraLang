@@ -1162,6 +1162,7 @@ main() {
         "tests/cases/backend_compare/async_spawn_await"
         "tests/cases/backend_compare/await_inline_spawn"
         "tests/cases/backend_compare/async_block_runtime"
+        "tests/cases/backend_compare/async_block_detached_drain"
         "tests/cases/backend_compare/future_annotation"
         "tests/cases/backend_compare/future_cancel_state"
         "tests/cases/backend_compare/future_cancel_propagation"

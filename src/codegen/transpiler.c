@@ -620,6 +620,12 @@ emit_program(TranspilerCtx *ctx)
                 transpiler_c_user_callable_symbol(ctx, main_function_name));
         }
 
+        /* Detached async blocks finish before the program exits. */
+        if (ctx->uses_detached_async) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "pgy_async_drain_detached();\n");
+        }
+
         /* Shutdown runtime */
         if (needs_thread_pool) {
             write_indent(ctx);

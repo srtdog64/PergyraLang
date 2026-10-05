@@ -361,6 +361,10 @@ typedef struct
      * 1 none, 2 some. Alias resolution of type names skips the header
      * lookups entirely for a program without aliases. */
     int type_alias_presence;
+
+    /* Set when a detached `async { }` block is emitted: main() then drains
+     * detached coroutines after Main returns. */
+    bool uses_detached_async;
 } TranspilerCtx;
 
 #include "transpiler_inventory_view.h"
