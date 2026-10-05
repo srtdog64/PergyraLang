@@ -1,0 +1,243 @@
+// A compensation runs under the binding of the step it undoes and writes
+// the zone slot back to the canonical participant. The payer's canonical
+// home is Home; every step borrows it into Shop or Bank through using:.
+
+subject Payer {
+    let name: String;
+    let mut gold: Int;
+
+    action Pay(self, amount: Int) -> Int {
+        gold = gold - amount;
+        return gold;
+    }
+
+    action Refund(self, amount: Int) -> Int {
+        gold = gold + amount;
+        return gold;
+    }
+}
+
+object PayerCard {
+    let name: String;
+}
+
+zone Home {
+    subject slot payer: Payer
+    object slot card: PayerCard
+}
+
+zone Shop {
+    subject slot buyer: Payer
+    object slot card: PayerCard
+    shared till: Int = 0
+
+    func Take(self, amount: Int) -> Int {
+        buyer.Pay(amount);
+        till = till + amount;
+        return till;
+    }
+
+    func GiveBack(self, amount: Int) -> Int {
+        buyer.Refund(amount);
+        till = till - amount;
+        return till;
+    }
+}
+
+zone Bank {
+    subject slot client: Payer
+    object slot card: PayerCard
+    shared vault: Int = 0
+
+    func Deposit(self, amount: Int) -> Int {
+        client.Pay(amount);
+        vault = vault + amount;
+        return vault;
+    }
+
+    func Withdraw(self, amount: Int) -> Int {
+        client.Refund(amount);
+        vault = vault - amount;
+        return vault;
+    }
+}
+
+// Refused at the next step's pre: the earlier step is compensated.
+intent RefusedAfterTake(shop: Shop, buyer: Payer, amount: Int) {
+    rollback: full;
+
+    step take {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        on: shop.Take(amount);
+        compensate: shop.GiveBack(amount);
+    }
+
+    step ship {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        pre: false;
+        on: shop.Take(0);
+    }
+
+    success: true;
+    failure: false;
+}
+
+// Refused at the step's own post: that step is compensated.
+intent RefusedAtPost(shop: Shop, buyer: Payer, amount: Int) {
+    rollback: full;
+
+    step take {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        on: shop.Take(amount);
+        compensate: shop.GiveBack(amount);
+        post: false;
+    }
+
+    success: true;
+    failure: false;
+}
+
+// Two zones, compensated in reverse order.
+intent RefusedAcrossZones(shop: Shop, bank: Bank, buyer: Payer, amount: Int) {
+    rollback: full;
+
+    step take {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        on: shop.Take(amount);
+        compensate: shop.GiveBack(amount);
+    }
+
+    step deposit {
+        where: Bank;
+        using: bank;
+        who: buyer;
+        on: bank.Deposit(amount);
+        compensate: bank.Withdraw(amount);
+    }
+
+    step settle {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        pre: false;
+        on: shop.Take(0);
+    }
+
+    success: true;
+    failure: false;
+}
+
+// rollback: current undoes only the latest completed step.
+intent CurrentOnly(shop: Shop, bank: Bank, buyer: Payer, amount: Int) {
+    rollback: current;
+
+    step take {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        on: shop.Take(amount);
+        compensate: shop.GiveBack(amount);
+    }
+
+    step deposit {
+        where: Bank;
+        using: bank;
+        who: buyer;
+        on: bank.Deposit(amount);
+        compensate: bank.Withdraw(amount);
+    }
+
+    step settle {
+        where: Bank;
+        using: bank;
+        who: buyer;
+        pre: false;
+        on: bank.Deposit(0);
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent Inner(shop: Shop, buyer: Payer, amount: Int) {
+    rollback: full;
+
+    step take {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        on: shop.Take(amount);
+        compensate: shop.GiveBack(amount);
+    }
+
+    step refuse {
+        where: Shop;
+        using: shop;
+        who: buyer;
+        pre: false;
+        on: shop.Take(0);
+    }
+
+    success: true;
+    failure: false;
+}
+
+// A refused nested intent compensates itself; the outer step before it is
+// compensated by the outer intent.
+intent Outer(shop: Shop, bank: Bank, buyer: Payer, amount: Int) {
+    rollback: full;
+
+    step deposit {
+        where: Bank;
+        using: bank;
+        who: buyer;
+        on: bank.Deposit(amount);
+        compensate: bank.Withdraw(amount);
+    }
+
+    step nested {
+        intent: Inner(shop, buyer, amount);
+    }
+
+    success: true;
+    failure: false;
+}
+
+world Town {
+    zone home: Home
+    zone shop: Shop
+    zone bank: Bank
+
+    activate home
+    activate shop
+    activate bank
+
+    func Report(self, name: String, ok: Bool) -> Void {
+        Log(name + " ok=" + ToString(ok)
+            + " gold=" + ToString(home.payer.gold)
+            + " till=" + ToString(shop.till)
+            + " vault=" + ToString(bank.vault));
+    }
+
+    func Run(self) -> Void {
+        Report("after-take", RefusedAfterTake(shop, home.payer, 60));
+        Report("at-post", RefusedAtPost(shop, home.payer, 30));
+        Report("across-zones", RefusedAcrossZones(shop, bank, home.payer, 20));
+        Report("nested", Outer(shop, bank, home.payer, 10));
+        Report("current-only", CurrentOnly(shop, bank, home.payer, 25));
+    }
+}
+
+func Main() -> Void {
+    let payer: Payer = Payer("Ana", 100);
+    let town: Town = Town(Home(Clone(payer)), Shop(Clone(payer)), Bank(Clone(payer)));
+    town.Run();
+}

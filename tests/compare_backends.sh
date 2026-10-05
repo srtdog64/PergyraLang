@@ -968,6 +968,7 @@ main() {
         "tests/cases/backend_compare/intent_decl_overlay"
         "tests/cases/backend_compare/intent_conflict_runtime"
         "tests/cases/backend_compare/intent_trace_compensate"
+        "tests/cases/backend_compare/intent_compensation_canonical_writeback"
         "tests/cases/backend_compare/intent_failure_result"
         "tests/cases/backend_compare/intent_failure_observability_strings"
         "tests/cases/backend_compare/intent_observability_rollback"
