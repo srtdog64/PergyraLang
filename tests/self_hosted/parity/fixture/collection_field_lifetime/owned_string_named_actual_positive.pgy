@@ -1,0 +1,10 @@
+func Retire(own text: String) -> Void {
+    let retired: Array<String> = [text];
+    ArrayDropOwnedStrings(retired);
+}
+func Main() -> Void {
+    let text: String = Concat("", "named actual");
+    if text != "named actual" { Exit(1); }
+    Retire(text);
+    Log("NAMED STRING OWN ENTRY PASS");
+}

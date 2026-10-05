@@ -65,13 +65,21 @@ if grep -Eq 'function_tables\.(returns|params)\[table_row\] == ""' "$FACT_OWNER"
     echo '[builtin-argument-retention] non-empty signature fallback remains' >&2
     exit 1
 fi
-for consumer in "$TRANSFER_OWNER" "$FORMAL_OWNER" "$EXCLUSIVITY_OWNER"; do
-    grep -Fq 'SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(' "$consumer"
+grep -Fq 'import "ast_owned_string_actual_exclusivity_owner.pgy";' "$TRANSFER_OWNER"
+grep -Fq 'SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(' "$TRANSFER_OWNER"
+grep -Fq 'SemanticAstOwnedStringLiteralTransferExpressionExclusive(' "$TRANSFER_OWNER"
+grep -Fq 'SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(' "$FORMAL_OWNER"
+grep -Fq 'SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(' "$EXCLUSIVITY_OWNER"
+for consumer in "$FORMAL_OWNER" "$EXCLUSIVITY_OWNER"; do
     if grep -Fq 'SemanticBuiltinArgumentBorrowedForCall(' "$consumer"; then
         echo "[builtin-argument-retention] source-name fallback remains: $consumer" >&2
         exit 1
     fi
 done
+if grep -Fq 'SemanticBuiltinArgumentBorrowedForCall(' "$TRANSFER_OWNER"; then
+    echo "[builtin-argument-retention] transfer bypassed its shared exclusivity owner" >&2
+    exit 1
+fi
 if grep -Eq 'case \(uint32_t\)BUILTIN_(PRINT|LOG|COMPILER_ARTIFACT_WRITE)' "$NATIVE_OWNER"; then
     echo '[builtin-argument-retention] native switch fallback returned' >&2
     exit 1

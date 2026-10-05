@@ -1,0 +1,8 @@
+func Retire(own text: String) -> Void {
+    let retired: Array<String> = [text];
+    ArrayDropOwnedStrings(retired);
+}
+func Main() -> Void {
+    let text: String = "static actual";
+    Retire(text);
+}

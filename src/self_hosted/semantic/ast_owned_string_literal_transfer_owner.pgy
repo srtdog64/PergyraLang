@@ -64,6 +64,7 @@ func SemanticAstOwnedStringLiteralTransferDirectDefinition(
             value == TypedAstKindMatchCaseStmtTag() ||
             value == TypedAstKindMatchDefaultStmtTag() ||
             value == TypedAstKindParallelBlockTag() ||
+            value == TypedAstKindAsyncBlockTag() ||
             value == TypedAstKindTransactionBlockTag() {
             return false;
         }
@@ -477,17 +478,24 @@ func SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
             surfaces.function_node_ids[surface_row],
             surfaces.node_ids[surface_row], lane,
             edge.argument_node, 0);
-    let actual_binding: SemanticAstLocalBindingIdentity =
-        SemanticAstCollectionOwnershipLocalForArgument(
+    let named_actual: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
             artifact, locals, initializer_types.inferred_type_names,
-            surfaces, surface_row, edge.argument_node);
-    if domain.kind != 1 || actual_binding.ok ||
+            surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], surfaces.expression_graph,
+            edge.argument_node);
+    if domain.kind != 1 ||
+        (named_actual.ok &&
+         !SemanticAstOwnedStringLiteralTransferDirectDefinition(
+            artifact, surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row])) ||
         !SemanticAstOwnedStringLiteralTransferExpressionExclusive(
             artifact, signatures, locals, initializer_types,
             surfaces, results, numeric,
             surfaces.function_node_ids[surface_row],
             surfaces.node_ids[surface_row], lane,
-            edge.argument_node, 0) {
+            edge.argument_node, 0,
+            surfaces.node_ids[surface_row], edge.argument_node) {
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",

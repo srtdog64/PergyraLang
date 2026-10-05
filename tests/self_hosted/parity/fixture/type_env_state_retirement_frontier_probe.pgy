@@ -1,0 +1,13 @@
+import "../../../../src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy";
+
+func Main() -> Void {
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("", "");
+    let state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", ""));
+    CodegenTypeEnvStateAppendTypedValueBinding(state, env, "first", "Int", "value", "first_c");
+    CodegenTypeEnvStateAppendTypedValueBinding(state, env, "second", "Bool", "value", "second_c");
+    let view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
+    if LookupKindType(view, "first", "type") != "Int" { Exit(1); }
+    if LookupKindType(view, "second", "type") != "Bool" { Exit(2); }
+    CodegenTypeEnvStateReleaseLocal(state);
+    Log("TYPE ENV STATE RETIREMENT PASS");
+}

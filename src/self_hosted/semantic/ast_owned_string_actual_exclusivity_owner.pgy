@@ -73,7 +73,8 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref binding: SemanticAstLocalBindingIdentity
+    ref binding: SemanticAstLocalBindingIdentity,
+    consuming_syntax_id: Int, consuming_node: Int
 ) -> Bool {
     let slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
@@ -94,6 +95,16 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
                         surfaces.node_ids[slot / 3],
                         surfaces.expression_graph, node);
                 if occurrence.ok && occurrence.row == binding.row {
+                    // The selected own argument is the single consumer being
+                    // proved, not an alias. All other observers must precede it.
+                    let consuming_entry: Bool = consuming_syntax_id > 0 &&
+                        surfaces.node_ids[slot / 3] == consuming_syntax_id &&
+                        node == consuming_node;
+                    if consuming_entry { node = node + 1; continue; }
+                    if consuming_syntax_id > 0 &&
+                        surfaces.node_ids[slot / 3] >= consuming_syntax_id {
+                        return false;
+                    }
                     let return_root: Bool =
                         slot % 3 == AstExpressionLaneAtom() &&
                         node == root &&
@@ -145,7 +156,7 @@ func SemanticAstOwnedStringLiteralTransferFunctionResultExclusive(
                     artifact, signatures, locals, initializer_types,
                     surfaces, results, numeric, function_id,
                     surfaces.node_ids[surface], AstExpressionLaneAtom(),
-                    UnwrapOption(root), depth + 1) {
+                    UnwrapOption(root), depth + 1, 0, -1) {
                 return false;
             }
             saw_return = true;
@@ -163,7 +174,8 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref results: SemanticAstOwnedStringResultFacts,
     ref numeric: SemanticAstNumericStringAllocationCalls,
-    function_id: Int, use_id: Int, lane: Int, root: Int, depth: Int
+    function_id: Int, use_id: Int, lane: Int, root: Int, depth: Int,
+    consuming_syntax_id: Int, consuming_node: Int
 ) -> Bool {
     if depth > 16 { return false; }
     let domain: SemanticAstOwnedStringAllocationDomain =
@@ -190,7 +202,7 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
             !SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
                 artifact, locals,
                 initializer_types.inferred_type_names,
-                surfaces, binding) {
+                surfaces, binding, consuming_syntax_id, consuming_node) {
             return false;
         }
         let initializer: Option<Int> =
@@ -202,7 +214,8 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
                 artifact, signatures, locals, initializer_types,
                 surfaces, results, numeric, function_id,
                 binding.declaration_node_id, AstExpressionLaneValue(),
-                UnwrapOption(initializer), depth + 1);
+                UnwrapOption(initializer), depth + 1,
+                consuming_syntax_id, consuming_node);
     }
     let call: SemanticCallSpineView =
         SemanticCallSpineViewFromGraph(

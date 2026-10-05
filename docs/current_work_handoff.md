@@ -10,8 +10,8 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  151562b324bf52853fb3fb448787e4149242c877. Current dirty candidate closes the
-  reached expression-root classification/consumption seam, with source/native
+  b477912d59f5285cab88150e31ec648d325409b9. Current dirty candidate closes the
+  exact named allocated-String own-entry false refusal, with source/native
   fixtures and navigation refresh. All earlier user/worker changes are already
   published. This card travels with the implementation checkpoint; after its
   commit/push, expect no tracked dirty files. Verify actual HEAD/remote/status.
@@ -40,7 +40,30 @@ SoT registry, admitted contracts, and executable gates override this note.
   untrusted direct-MIR lifetime owners independently supply cleanup evidence.
   Existing definition/order, formal-effect and member-read owners keep their
   facts. No mode-only grant, guessed callee, alias promotion or C fallback.
-- Current reached seam: RewriteSemanticMemberAccess ->
+- Current reached seam: CodegenTypeEnvStateReplaceOwnedLocal's conditional
+  String-field cleanup remains refused. Named allocated-String own arguments
+  are now admitted only at their exact physical consuming node, with all other
+  local uses required before it. An own String is by-value consumption, not a
+  caller binding-slot write; inout/unknown domain exposures remain rejected.
+  Named gate5 passed current C/LLVM values, thirteen semantic refusals/backend
+  and one separate unsupported-async parser refusal/backend:
+  .tmp/inout-array-release-named-string-own-entry-gate5.log,
+  .tmp/self_hosted/named-string-own-entry.l9VhLg. Nine existing observer warnings.
+  The existing collection-effect integration matrix now includes the seven
+  parsed named-entry rows; the full matrix was not rerun in this checkpoint.
+  Retention-registry smoke passed after its stale direct-reader assertions
+  migrated to the actual shared exclusivity/read-context owners; no registry
+  row changed. Expression-root regression gate6 also passed:
+  .tmp/inout-array-release-expression-root-consumption-gate6.log,
+  .tmp/self_hosted/expression-root-consumption.1zhB3w.
+  Both current observers still refuse the imported state probe at syntax 1622
+  / owned_string_drop:
+  .tmp/inout-array-release-type-env-state-frontier-current-c.log,
+  .tmp/inout-array-release-type-env-state-frontier-current-llvm.log.
+  The ignored array-epoch prototype has source/C-native probe evidence only;
+  it is not production state replacement or a memory-cost/driver receipt.
+  Do not remove cleanup, grant Bool-based ownership, or copy and leak inputs.
+- Prior expression-root seam: RewriteSemanticMemberAccess ->
   CodegenCExpressionTextCommitRoot. Signature-owned body availability no longer
   excludes owning formals, including its readiness consumer. Canonical builtin
   consumption identity is shared by formal use, negative storage effects and
@@ -72,7 +95,7 @@ SoT registry, admitted contracts, and executable gates override this note.
   Do not revive 57194, query architecture, optimization or unrelated SoT.
   Full structural inventory ended exit 1 without its final PASS; its exact
   failure remains unidentified, and no full inventory success is claimed.
-  Exact 151562b3 CI 37367618507 failed hosted runner acquisition before tests;
+  Exact b477912d CI 37373270125 failed hosted runner acquisition before tests;
   all dependent jobs skipped. That is not compiler parity or green CI.
 - Current focused evidence: aggregate gate6 passed C/LLVM 6 positive/16
   falsifying source inputs. Gate7 added generation/coverage mutation guards;

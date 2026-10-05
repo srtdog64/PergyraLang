@@ -17,8 +17,12 @@ func SemanticAstOwnedStringCallMayRebindString(
     if !IsSome(signature) { return true; }
     let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(signatures, UnwrapOption(signature), ordinal);
     // Typed source modes are 0=default, 1=inout, 2=own, 3=ref.
+    // An own String transfers the value, not the caller's binding slot.
+    // Consumption/exclusivity remain obligations of their lifetime owner.
     return !IsSome(parameter) || signatures.param_types[UnwrapOption(parameter)] != "String" ||
-        (signatures.param_modes[UnwrapOption(parameter)] != 0 && signatures.param_modes[UnwrapOption(parameter)] != 3);
+        (signatures.param_modes[UnwrapOption(parameter)] != 0 &&
+         signatures.param_modes[UnwrapOption(parameter)] != 2 &&
+         signatures.param_modes[UnwrapOption(parameter)] != 3);
 }
 
 func SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts(

@@ -1637,3 +1637,47 @@ hashes matched through the terminal failure. No seed or installed receipt.
   with the Git path/native binary selected. Individual import check passes;
   the earlier trace ending there did not prove an absent import. Exact full
   failure is still unknown; no cap/budget or gate was loosened to hide it.
+
+### Named allocated String own-entry objective (active candidate)
+
+- Status: implementation candidate, exact base main @
+  b477912d59f5285cab88150e31ec648d325409b9. Root is the sole integration/edit
+  owner; no parallel implementation scope or installed-driver replacement.
+- Objective: distinguish one proved consuming argument from a retained alias
+  when an allocated String actual is a local binding. Preserve allocation,
+  single-use, scope and last-consumer evidence before experimenting with the
+  reached type-env state representation.
+- Priorities: actual exclusivity and one owner, no borrowed/member promotion,
+  retirement ordering, falsifying source gates, then patch size.
+- Fact owner: ast_owned_string_actual_exclusivity_owner.pgy; the existing
+  literal-transfer owner supplies the exact selected own-formal argument.
+  Last consumer: StoreEpochValue(storage, combined) in the bounded epoch
+  reproducer and the corresponding named own-String call boundary.
+- Forbidden fallback: a String/heap domain or own mode alone, ignoring any
+  other owning call, post-consumption comparison, retained alias or deferred
+  capture. Read-literal admission receives no consuming-entry exemption.
+- Integration gate (300s): named_string_own_entry_owner.sh, C/LLVM source
+  observers plus native values on a fresh local passed
+  once; borrowed, aliased, duplicate, after-use, reassigned and deferred
+  inputs must remain refusals. This is not installed-driver or SoT closure.
+- Gate5 PASS on current source: .tmp/inout-array-release-named-string-own-entry-gate5.log,
+  .tmp/self_hosted/named-string-own-entry.l9VhLg. Each backend executed the
+  exact named-owner value and refused thirteen semantic lifetime inputs;
+  detached async source separately failed parsing with
+  statement_kind_unsupported / exit 1, not an ownership verdict. Observers
+  reported nine existing warnings. Own String is now correctly a by-value
+  transfer, not a caller binding-slot write; inout/unknown modes still fail
+  domain preservation. The exact own entry is excluded only by its physical
+  syntax/node identity, with all other local uses required before it.
+- The retention-registry smoke's old direct-reader assertions named owners
+  that already delegated to shared exclusivity/read contexts. Its ratchet now
+  requires those actual imports/calls and still forbids name-only fallback;
+  registry corruption tests passed. No registry semantic row was changed.
+- Both current observers still reproduce owned_string_drop at syntax 1622
+  in the imported type_env_state_retirement_frontier_probe.pgy. The small
+  ignored array-epoch prototype admits a copying/last-consumer alternative,
+  but no type-env production change, memory-cost receipt, fixed point or
+  default installation is claimed. Keep the actual state seam active.
+- Exact b477912d CI 37373270125 ended before any test: classify-changes
+  annotation says the job was not acquired by a hosted runner. Dependents
+  skipped; no green CI. Do not weaken compiler gates to mask runner failure.

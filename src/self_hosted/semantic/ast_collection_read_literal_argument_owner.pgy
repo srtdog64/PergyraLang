@@ -47,7 +47,7 @@ func SemanticAstCollectionReadLiteralArgumentReady(
             !SemanticAstOwnedStringLiteralTransferExpressionExclusive(
                 artifact, signatures, locals, initializer_types, surfaces,
                 results, numeric, surfaces.function_node_ids[surface_row],
-                surfaces.node_ids[surface_row], lane, element, 0) {
+                surfaces.node_ids[surface_row], lane, element, 0, 0, -1) {
             return false;
         }
         row = row + 1;

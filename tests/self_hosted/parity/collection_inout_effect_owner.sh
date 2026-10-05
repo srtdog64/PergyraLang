@@ -29,6 +29,13 @@ INPUTS=(
     numeric_string_reassigned_negative.pgy numeric_string_shadow_negative.pgy
     owned_string_literal_transfer_positive.pgy
     owned_string_literal_transfer_exclusive_result_positive.pgy
+    owned_string_named_actual_positive.pgy
+    owned_string_named_actual_after_negative.pgy
+    owned_string_named_actual_duplicate_negative.pgy
+    owned_string_named_actual_alias_negative.pgy
+    owned_string_named_actual_borrowed_negative.pgy
+    owned_string_named_actual_reassigned_negative.pgy
+    owned_string_named_actual_deferred_negative.pgy
     owned_string_literal_transfer_aliased_result_negative.pgy
     owned_string_literal_transfer_borrowed_negative.pgy
     owned_string_literal_transfer_deferred_borrow_negative.pgy

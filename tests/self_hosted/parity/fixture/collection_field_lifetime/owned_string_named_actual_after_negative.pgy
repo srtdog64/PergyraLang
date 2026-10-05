@@ -1,0 +1,9 @@
+func Retire(own text: String) -> Void {
+    let retired: Array<String> = [text];
+    ArrayDropOwnedStrings(retired);
+}
+func Main() -> Void {
+    let text: String = Concat("", "named actual");
+    Retire(text);
+    if text == "named actual" { Exit(1); }
+}
