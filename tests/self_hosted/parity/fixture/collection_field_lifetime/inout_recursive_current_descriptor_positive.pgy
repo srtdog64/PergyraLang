@@ -1,0 +1,28 @@
+func ContainsCurrent(values: Array<String>, value: String) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(values) {
+        if values[i] == value { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func GrowRecursively(depth: Int, inout values: Array<String>) -> Void {
+    if depth > 0 {
+        GrowRecursively(depth - 1, values);
+        GrowRecursively(depth - 1, values);
+    }
+    if !ContainsCurrent(values, "one") { ArrayPush(values, "one"); }
+    if !ContainsCurrent(values, "two") { ArrayPush(values, "two"); }
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    GrowRecursively(3, values);
+    if ArrayLength(values) != 2 || values[0] != "one" || values[1] != "two" ||
+        !ContainsCurrent(values, "two") || ContainsCurrent(values, "missing") {
+        Exit(1);
+    }
+    // This proves current reads only; recursive caller release is a separate gate.
+    Log("RECURSIVE CURRENT DESCRIPTOR PASS");
+}

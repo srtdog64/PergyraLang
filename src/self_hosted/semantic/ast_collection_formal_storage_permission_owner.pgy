@@ -3,6 +3,7 @@ import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_execution_context_fact_owner.pgy";
 
 // A scalar lookup does not retain a borrowed fact's container descriptor.
 func SemanticAstCollectionFormalPermissionSite(
@@ -33,7 +34,7 @@ func SemanticAstCollectionFormalStorageMutationUnproved(
     return SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id, retiring, non_deep);
 }
 
-func SemanticAstCollectionFormalShallowMutationUnproved(
+func SemanticAstCollectionFormalCurrentDescriptorPermissionUnproved(
     artifact: AstTreeArtifact, syntax_id: Int, source: Int,
     ref effects: SemanticAstCollectionCallEffectFacts
 ) -> Bool {
@@ -41,26 +42,19 @@ func SemanticAstCollectionFormalShallowMutationUnproved(
             artifact, syntax_id, source, effects) {
         return true;
     }
-    return SemanticAstCollectionShallowMutationHasPriorEffect(
-        artifact, syntax_id,
-        SemanticAstCollectionFormalPermissionSite(
-            effects.formal_retiring_sites, source),
-        SemanticAstCollectionFormalPermissionSite(
-            effects.formal_non_deep_drop_sites, source));
-}
-
-func SemanticAstCollectionFormalReadPermissionUnproved(
-    artifact: AstTreeArtifact, syntax_id: Int, source: Int,
-    ref effects: SemanticAstCollectionCallEffectFacts
-) -> Bool {
-    if SemanticAstCollectionFormalStoragePermissionUnproved(
-            artifact, syntax_id, source, effects) {
+    // Current copyout evidence is synchronous; deferred uses retain the old
+    // sibling/reordering fence in addition to actual descriptor retirement.
+    if SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id) &&
+        SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id,
+            SemanticAstCollectionFormalPermissionSite(effects.formal_retiring_sites, source)) {
         return true;
     }
+    // Shallow copyout retires sibling views, not the updated formal descriptor.
+    // Consumption and unproved calls still publish descriptor retirement.
     return SemanticAstCollectionMutableCallMayBeRetired(
         artifact, syntax_id,
         SemanticAstCollectionFormalPermissionSite(
-            effects.formal_retiring_sites, source));
+            effects.formal_descriptor_retiring_sites, source));
 }
 
 func SemanticAstCollectionStorageMutationCall(

@@ -722,9 +722,10 @@ func InspectOwnArgumentOccurrenceOrder(
     let no_formal_unknown: HashMap<String, Int> = MapNew();
     let no_formal_retiring: HashMap<String, Int> = MapNew();
     let no_formal_non_deep: HashMap<String, Int> = MapNew();
+    let no_formal_descriptor_retiring: HashMap<String, Int> = MapNew();
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
         true, [], [], [], [], [], [], [], [], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
-        SemanticAstCollectionConstructorFieldInputsEmpty(), [],
+        SemanticAstCollectionConstructorFieldInputsEmpty(), [], no_formal_descriptor_retiring,
         SemanticAstCollectionFormalDescriptorRetentionEmpty());
     let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
         artifact, analysis.signatures, no_locals, strings, projected, definitions, effects, analysis.statements, analysis.assignments);

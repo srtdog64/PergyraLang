@@ -230,6 +230,7 @@ INPUTS=(
     inout_index_append_drop_negative.pgy inout_index_write_drop_negative.pgy inout_index_deferred_own_negative.pgy
     inout_index_branch_own_negative.pgy inout_index_before_own_positive.pgy inout_index_after_unknown_negative.pgy
     inout_index_after_shallow_positive.pgy
+    inout_index_formal_shallow_positive.pgy inout_recursive_current_descriptor_positive.pgy
     inout_index_before_unknown_positive.pgy inout_index_role_eq_drop_negative.pgy inout_index_role_ne_drop_negative.pgy
     inout_index_after_drop_negative.pgy inout_index_own_formal_drop_negative.pgy inout_index_nested_own_negative.pgy
     inout_index_formal_unknown_negative.pgy inout_index_formal_deferred_unknown_negative.pgy

@@ -1,0 +1,62 @@
+// Inspect the reached formal and call-effect owners; never emit or run input.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    Log("body_ok=" + ToString(bundle.verdict.ok));
+    Log("body_diagnostic=" + bundle.verdict.diagnostic_code);
+    Log("body_syntax=" + ToString(bundle.verdict.first_node_id));
+    let formals: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
+    if !formals.ok { Log("formal owner not reached"); Exit(2); }
+    let proved: HashMap<String, Int> = formals.effects;
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        analysis.assignments, bundle.assignment_types);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    if !definitions.ok || !storage.ok { Log("storage owner not reached"); Exit(2); }
+    let calls: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        formals.inventory.row_by_formal, formals.inventory.modes, formals.effects,
+        definitions, storage);
+    if !SemanticAstCollectionCallEffectFactsReady(calls, definitions.local_count) {
+        Log("call-effect owner not reached"); Exit(2);
+    }
+    let found: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(formals.inventory.formal_nodes) {
+        let function: Int = formals.inventory.function_nodes[row];
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function);
+        if !IsSome(signature) { Exit(2); }
+        let name: Option<String> = SemanticAstFunctionNameAt(analysis.signatures, UnwrapOption(signature));
+        if !IsSome(name) { Exit(2); }
+        if UnwrapOption(name) == "CodegenValueWrapperUsageCollectType" ||
+            UnwrapOption(name) == "CodegenValueWrapperUsageContains" {
+            let formal: Int = formals.inventory.formal_nodes[row];
+            let key: String = ToString(formal);
+            let effect: Int = -1;
+            if MapHas(proved, key) { effect = MapGet(proved, key); }
+            Log("function=" + UnwrapOption(name));
+            Log("formal=" + key);
+            Log("mode=" + ToString(formals.inventory.modes[row]));
+            Log("effect=" + ToString(effect));
+            Log("unknown=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_unknown_sites, formal)));
+            Log("escaped=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_storage_escape_sites, formal)));
+            Log("retiring=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_retiring_sites, formal)));
+            Log("non_deep=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_non_deep_drop_sites, formal)));
+            Log("descriptor_retiring=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_descriptor_retiring_sites, formal)));
+            found = found + 1;
+        }
+        row = row + 1;
+    }
+    if found != 2 { Log("expected exact wrapper formals"); Exit(2); }
+}

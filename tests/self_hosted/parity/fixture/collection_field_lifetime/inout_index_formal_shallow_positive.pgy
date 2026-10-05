@@ -1,0 +1,10 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func AppendBorrowed(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+func Forward(inout values: Array<String>) -> Void {
+    AppendBorrowed(values);
+    Log(Matches(values));
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Forward(values);
+}

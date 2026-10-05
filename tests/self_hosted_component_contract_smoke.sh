@@ -3182,7 +3182,7 @@ require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
     'func SelfDirIntentFactsReady('
 require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
     'SelfDirIntentStepFromArtifact('
-require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
     'signatures.action_contracts'
 require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
     'predecessor = local_step_index - 1'
@@ -28886,6 +28886,16 @@ require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy
     'formal_storage_escape_sites: HashMap<String, Int>;'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
     'formal_non_deep_drop_sites: HashMap<String, Int>;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'formal_descriptor_retiring_sites: HashMap<String, Int>;'
+require_function_text "src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy" \
+    'func SemanticAstCollectionRecordFormalPermissionEffectAtSite(' 'effect.descriptor_retiring'
+require_function_text "src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy" \
+    'func SemanticAstCollectionFormalCurrentDescriptorPermissionUnproved(' 'effects.formal_descriptor_retiring_sites'
+reject_text "src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy" \
+    'func SemanticAstCollectionFormalReadPermissionUnproved('
+reject_text "src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy" \
+    'func SemanticAstCollectionFormalShallowMutationUnproved('
 require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
     'facts.definition_storage_escape_sites[definition]'
 require_text "src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy" \

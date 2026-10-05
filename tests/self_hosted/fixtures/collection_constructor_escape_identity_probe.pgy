@@ -100,11 +100,12 @@ func InspectConstructorEffectFrame(mutation: Int) -> Bool {
     let no_formal_unknown: HashMap<String, Int> = MapNew();
     let no_formal_retiring: HashMap<String, Int> = MapNew();
     let no_formal_non_deep: HashMap<String, Int> = MapNew();
+    let no_formal_descriptor_retiring: HashMap<String, Int> = MapNew();
     let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
         true, [101, 102], [201, 202], [301, 302],
         [101, 102, 103], [201, 202, 203], [301, 302, 303],
         [401, 402], [401, 402, 403], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
-        SemanticAstCollectionConstructorFieldInputsEmpty(), [501, 502, 503],
+        SemanticAstCollectionConstructorFieldInputsEmpty(), [501, 502, 503], no_formal_descriptor_retiring,
         SemanticAstCollectionFormalDescriptorRetentionEmpty());
     if !SemanticAstCollectionCallEffectFactsReady(facts, 2) { return false; }
     if mutation == 26 {

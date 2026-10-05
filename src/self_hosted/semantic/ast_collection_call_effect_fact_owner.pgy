@@ -19,6 +19,7 @@ struct SemanticAstCollectionCallEffectFacts {
     formal_non_deep_drop_sites: HashMap<String, Int>;
     constructor_inputs: SemanticAstCollectionConstructorFieldInputs;
     definition_descriptor_retiring_sites: Array<Int>;
+    formal_descriptor_retiring_sites: HashMap<String, Int>;
     formal_descriptor_retention:
         SemanticAstCollectionFormalDescriptorRetention;
 }

@@ -1,5 +1,8 @@
 func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
-func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+// A callee name alone is not opaque: deferred mutation removes the proof.
+func Opaque(inout values: Array<String>) -> Void {
+    defer { ArrayPush(values, "borrowed"); }
+}
 func Forward(inout values: Array<String>) -> Void
 {
     Opaque(values);

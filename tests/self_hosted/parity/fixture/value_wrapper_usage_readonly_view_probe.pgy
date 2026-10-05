@@ -1,0 +1,17 @@
+import "../../../../src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy";
+
+func Main() -> Void {
+    if !CodegenValueWrapperUsageContractReady() { Exit(1); }
+    let types: Array<String> = [];
+    CodegenValueWrapperUsageCollectType(" Option<Result<T: Payload,E: Failure>> ", types);
+    CodegenValueWrapperUsageCollectType("Option<Result<Payload, Failure>>", types);
+    if ArrayLength(types) != 2 || types[0] != "Result<Payload, Failure>" ||
+        types[1] != "Option<Result<Payload, Failure>>" ||
+        !CodegenValueWrapperUsageContains(types, types[0]) ||
+        CodegenValueWrapperUsageContains(types, "Missing") {
+        Exit(1);
+    }
+    let empty: Array<String> = [];
+    if CodegenValueWrapperUsageContains(empty, "Missing") { Exit(1); }
+    Log("VALUE WRAPPER READONLY VIEW PASS");
+}

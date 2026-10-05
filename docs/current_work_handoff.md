@@ -10,8 +10,9 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  32d2b1a922d0285b57c0a692e191ec5710263a77, reached generic tuple text
-  publication, value/admission/refusal fixtures/gate and navigation dirty.
+  bebfc16440367b68b52af2e8b6e245b291312151, reached synchronous formal current-
+  descriptor permission; the call-effect carrier/consumer, regression fixtures,
+  diagnostic observer, focused gate and navigation are dirty.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -124,8 +125,53 @@ SoT registry, admitted contracts, and executable gates override this note.
   no general returned-String-array cleanup grant is inferred.
   .tmp/inout-array-release-generic-owned-actuals-gate4.log,
   .tmp/self_hosted/generic-owned-actuals.uRErHr.
-  Next exact integration falsifier: fresh official seed v47 on unchanged compiler
-  source/MIR controls, then fixed-point/driver receipts and installed GUI proof.
+  This fix is committed/pushed as bebfc164. Default install remains OPEN.
+- Official seed v47 passed the original MIR root's four controls and eight
+  cycle refusals, then gen1 source admission refused syntax 54263 /
+  unproved_formal_indexed_read_entry. The production parser mapped it to
+  CodegenValueWrapperUsageCollectType calling Contains after recursive inout
+  growth. Source/input/native hashes matched through the terminal failure.
+  .tmp/inout-array-release-codegen-bootstrap-v47.log,
+  .tmp/inout-array-release-bootstrap-v47-boundary.log.
+  Exact-head CI 37345034540 independently failed at the same node/boundary;
+  Windows/macOS/TSAN/Rocq passed, dependent Linux jobs were skipped.
+- Reached formal-effect observation: the recursive formal is mode 1 / effect 6
+  (proved shallow mutation), with no unknown/escape site. Retirement and non-
+  deep site 40176 in the imported owner fixture name the recursive call before
+  membership reading; Contains is mode 0 / effect 3. The argument-effect owner
+  already distinguishes sibling retirement from current descriptor retirement,
+  but the formal call-effect carrier previously discarded that distinction.
+  .tmp/inout-array-release-formal-descriptor-frontier-v1-observe.log,
+  .tmp/inout-array-release-formal-descriptor-frontier-v1-site.log.
+- Current correction carries that bit through the existing physical call pass
+  into formal_descriptor_retiring_sites. One current-descriptor permission owner
+  supplies synchronous read and shallow-forwarding entry; unknown/escape,
+  consumption, deferred/reordered uses and sibling-view refusals stay distinct.
+  No owned-element, deep-drop or recursive caller-release permission is inferred.
+  The Slice membership/common indexed-type trials were completely withdrawn;
+  the original wrapper implementation and original bootstrap/MIR input remain.
+  A former "unknown" fixture contained only a proved synchronous shallow call;
+  that success case is now separate from a genuinely unproved deferred mutator.
+  Next exact integration falsifier: fresh official seed v48 on the unchanged
+  compiler source/MIR controls, then fixed-point/driver/default GUI evidence.
+- Current focused gate4 passed within 300s on native v4: C/LLVM production
+  wrapper and recursive-current-read value oracles, three source positives and
+  twelve preserved refusals per backend. The fresh LLVM owner observer then
+  admitted the actual import-composed wrapper input (body_ok=true), showing
+  the recursive formal's sibling retirement at 40176 and no current descriptor
+  retirement. Input/import/native/executable hashes matched before/after.
+  .tmp/inout-array-release-current-formal-descriptor-gate4.log,
+  .tmp/self_hosted/value-wrapper-view.8K3BIz,
+  .tmp/inout-array-release-formal-descriptor-frontier-v2-observe.log.
+  Recursive caller cleanup was independently refused by native during an
+  initial fixture trial; that extra grant is not part of this read proof.
+  The structural inventory also found an obsolete DIR intent-step read
+  requirement contradicting its explicit borrowed action-contract input. Its
+  existing owner-boundary ratchet is corrected without restoring the old read;
+  this source-only inventory is not a behavioral or green-CI receipt.
+  Its corrected whole inventory rerun reached the unchanged 60s limit without
+  a terminal verdict: .tmp/inout-array-release-current-formal-descriptor-inventory2.log.
+  Keep that omission explicit; no cap or time allowance was raised.
 - Current native v4 SHA-256:
   c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
   Fresh GCC build passed with 12 observed warnings. Native public gate16 passed

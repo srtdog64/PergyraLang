@@ -37,6 +37,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     let formal_unknown: HashMap<String, Int> = MapNew();
     let formal_retiring: HashMap<String, Int> = MapNew();
     let formal_non_deep: HashMap<String, Int> = MapNew();
+    let formal_descriptor_retiring: HashMap<String, Int> = MapNew();
     let constructor_inputs: SemanticAstCollectionConstructorFieldInputs = SemanticAstCollectionConstructorFieldInputsEmpty();
     let retention: SemanticAstCollectionFormalDescriptorRetention =
         SemanticAstCollectionFormalDescriptorRetentionEmpty();
@@ -48,7 +49,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         ArrayLength(storage.producer_source_ids) != count ||
         ArrayLength(inferred_types) != definitions.local_count ||
         !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
-        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, retention);
+        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention);
     }
     let row: Int = 0;
     while row < count {
@@ -72,7 +73,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             while node <= root {
                 if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
                     let call: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
-                    if !call.ok { return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, retention); }
+                    if !call.ok { return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention); }
                     let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
                         artifact, locals, inferred_types, surfaces, slot / 3, call.argument_node);
                     let source: Int = 0;
@@ -94,13 +95,13 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                     }
                     let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffectFromEdge(
                         artifact, signatures, constructors, locals, inferred_types, surfaces, slot / 3, call, formal_rows, formal_modes, proved);
-                    if !effect.ok { return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, retention); }
+                    if !effect.ok { return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention); }
                     if effect.constructor_field.field_syntax_id > 0 && SemanticAstCollectionOwnershipIsStringArray(effect.constructor_field.field_type_name) {
                         let input_binding: Int = -1;
                         if local_array { input_binding = binding.row; }
                         if !SemanticAstCollectionConstructorFieldInputRecord(locals, definitions, surfaces, slot, node, call,
                             effect.constructor_field, input_binding, current, constructor_inputs) {
-                            return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, retention);
+                            return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention);
                         }
                     }
                     if source > 0 || local_array {
@@ -134,7 +135,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                             binding.row, site, terminal);
                         if source > 0 && !terminal {
                             SemanticAstCollectionRecordFormalPermissionEffectAtSite(
-                                source, site, effect, formal_unknown, formal_retiring, formal_non_deep, formal_escape);
+                                source, site, effect, formal_unknown, formal_retiring, formal_non_deep, formal_escape, formal_descriptor_retiring);
                         }
                         if local_array && !terminal {
                             if effect.storage_escape && (escaping[definition] < 0 || site < escaping[definition]) { escaping[definition] = site; }
@@ -174,7 +175,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     }
     if !SemanticAstCollectionFormalDescriptorRetentionSeal(
             retention, formal_escape, escaping, zero_escape) {
-        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, retention);
+        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention);
     }
     row = 0;
     while row < count {
@@ -189,7 +190,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     SemanticAstCollectionDefinitionEffectClosure(
         definitions, storage, parents, unknown, retiring, non_deep_drop, escaping, descriptor_retiring);
     let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
-        true, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, retention);
+        true, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention);
     facts.ok = SemanticAstCollectionConstructorFieldInputsPendingReady(
         artifact, constructor_inputs, constructors, locals, inferred_types, definitions, surfaces);
     row = 0;

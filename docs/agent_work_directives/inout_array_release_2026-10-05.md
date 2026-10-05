@@ -1367,3 +1367,64 @@ hashes matched through the terminal failure. No seed or installed receipt.
 - CI 37340961801 independently passed the original root C controls and then
   refused exactly syntax 49433/ArrayPush in gen1 source admission, matching v46.
   Windows/macOS/TSAN/Rocq passed; current integration/default install remains OPEN.
+
+## Reached readonly wrapper membership boundary (2026-10-06)
+
+- Observed checkout: main @ bebfc16440367b68b52af2e8b6e245b291312151.
+  Seed v47 again passed original MIR C controls, then gen1 source admission
+  refused syntax 54263 / unproved_formal_indexed_read_entry. The production
+  parser mapped it to CodegenValueWrapperUsageCollectType's call to Contains
+  after recursive inout growth. All source/input/native hashes matched.
+- Objective: identify the exact call-effect fact that removes reading permission
+  from the current inout descriptor after synchronous recursive growth. Preserve
+  the existing wrapper inventory and its canonical ordering/deduplication.
+- Priority: one admitted effect owner, current descriptor lifetime, fail-closed
+  consumption/unknown/escape behavior, negative ratchet, then executable replacement.
+- Fact owners: existing collection formal-effects, argument permission effects and
+  call-effect facts. Last consumer: FormalIndexedReadReady at Contains' call entry,
+  then the production wrapper inventory and gen1 source admission.
+- Forbidden fallback: mode-only permission, retaining stale sibling views, copying
+  the inventory merely for lookup, replacing an absent fact with a guess, weakening
+  borrow escape, compiler/runtime ABI changes or a native bypass.
+- Edit scope: first inspect the existing formal effect and unknown/escape/retirement
+  site maps. Root integrates the reached correction; no parallel implementation
+  track or unrelated scalar/type-query migration is active.
+- Exact observation: the production Contains formal has mode 0 / effect 3; the
+  CollectType formal has mode 1 / effect 6, no unknown or escape site, and retiring
+  / non-deep site 40176 in the standalone imported input. The production parser
+  identifies that site as the synchronous recursive CollectType call immediately
+  before the refused membership read. The existing ArgumentPermissionEffect already
+  separates sibling retirement from current descriptor retirement, but the formal
+  call-effect carrier discards that distinction.
+- Reached correction: carry that existing descriptor_retiring bit through the same
+  physical call pass into a formal descriptor-retirement site map. Formal current
+  reads and shallow forwarding consume this map; unknown/escape, consumption,
+  repeat/defer and sibling-view obligations retain their existing owners. This
+  grants neither owned String elements nor deep-drop permission. No new SoT row
+  or family is declared CLOSED. The original seed/MIR inputs are unchanged.
+- Withdrawn trials: Contains' Slice parameter/current-view callers passed native
+  values but source admission refused its index comparison. A common indexed-
+  sequence type query did not repair that refusal. A named-scalar Slice trial then
+  exposed unproved_formal_element_use_entry at the recursive call. All six source
+  files were restored exactly to bebfc164; none of these trials is current code.
+- Baseline fixture retains the original Array<String> implementation. Its native
+  C/LLVM values were observed, but baseline gate3 timed out in the C source observer
+  at 60s before a verdict. This is incomplete evidence, not a semantic failure or
+  a passing gate. .tmp/self_hosted/value-wrapper-view.PEvIKR.
+- Allowed validation: inspect/compile source-only diagnostic observers without
+  emitting or running the supplied unsafe source; focused work remains bounded
+  by 300s and official integration by 1800s. Seed v48 has not started. Fresh source
+  admission/negative evidence must precede another frozen original-input seed.
+- CI 37345034540 for exact bebfc164 passed Windows/macOS/TSAN/Rocq and failed
+  gen1 at the same syntax 54263 / unproved_formal_indexed_read_entry. Dependent
+  Linux jobs were skipped. Current fixed point/default installation remains OPEN.
+- Focused gate4 passed on current native v4 within 300s: production wrapper and
+  recursive-read native C/LLVM values, three source positives and twelve refusal
+  cases per backend. Fresh LLVM production-owner admission also passed, with
+  sibling retirement 40176 and descriptor retirement -1; before/after hashes match.
+  .tmp/inout-array-release-current-formal-descriptor-gate4.log,
+  .tmp/self_hosted/value-wrapper-view.8K3BIz,
+  .tmp/inout-array-release-formal-descriptor-frontier-v2-observe.log.
+  Initial cleanup-added recursive fixtures were refused by native/source; those
+  release claims were removed from the read-only fixture rather than weakening
+  cleanup guards. No recursive release or default installation is claimed.

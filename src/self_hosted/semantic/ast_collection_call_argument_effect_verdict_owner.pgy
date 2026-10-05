@@ -17,7 +17,7 @@ func SemanticAstCollectionFormalIndexedReadReady(
             signatures, surfaces.function_node_ids[surface_row],
             surfaces.expression_graph, argument_node);
     return formal.ok && formal.mode != 2 &&
-        !SemanticAstCollectionFormalReadPermissionUnproved(
+        !SemanticAstCollectionFormalCurrentDescriptorPermissionUnproved(
             artifact, surfaces.node_ids[surface_row],
             formal.syntax_id, call_effects);
 }
@@ -117,7 +117,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
             if !actual_formal.ok ||
                 (actual_formal.mode != 1 && actual_formal.mode != 2) ||
                 !actual_effect_ready ||
-                SemanticAstCollectionFormalShallowMutationUnproved(
+                SemanticAstCollectionFormalCurrentDescriptorPermissionUnproved(
                     artifact, surfaces.node_ids[surface_row],
                     actual_formal.syntax_id, call_effects) {
                 return SemanticAstCollectionOwnershipVerdictError(

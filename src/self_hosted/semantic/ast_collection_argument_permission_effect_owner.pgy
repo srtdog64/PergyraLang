@@ -69,11 +69,13 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
 func SemanticAstCollectionRecordFormalPermissionEffectAtSite(
     source: Int, site: Int, effect: SemanticAstCollectionArgumentPermissionEffect,
     inout unknown: HashMap<String, Int>, inout retiring: HashMap<String, Int>,
-    inout non_deep: HashMap<String, Int>, inout escaping: HashMap<String, Int>
+    inout non_deep: HashMap<String, Int>, inout escaping: HashMap<String, Int>,
+    inout descriptor_retiring: HashMap<String, Int>
 ) -> Void {
     let key: String = ToString(source);
     if effect.unknown && (!MapHas(unknown, key) || site < MapGet(unknown, key)) { MapSet(unknown, key, site); }
     if effect.retiring && (!MapHas(retiring, key) || site < MapGet(retiring, key)) { MapSet(retiring, key, site); }
     if effect.non_deep && (!MapHas(non_deep, key) || site < MapGet(non_deep, key)) { MapSet(non_deep, key, site); }
     if effect.storage_escape && (!MapHas(escaping, key) || site < MapGet(escaping, key)) { MapSet(escaping, key, site); }
+    if effect.descriptor_retiring && (!MapHas(descriptor_retiring, key) || site < MapGet(descriptor_retiring, key)) { MapSet(descriptor_retiring, key, site); }
 }
