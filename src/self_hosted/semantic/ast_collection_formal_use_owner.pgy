@@ -7,6 +7,7 @@ import "ast_builtin_argument_retention_call_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_owned_string_call_result_admission_owner.pgy";
 import "ast_collection_formal_statement_effect_owner.pgy";
+import "ast_collection_builtin_release_identity_owner.pgy";
 
 func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     artifact: AstTreeArtifact,
@@ -289,6 +290,13 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                                     SemanticAstCollectionOwnershipBuiltinCall(
                                         surfaces.expression_graph,
                                         call.call_node, "ArrayLength") {
+                                } else if inventory.modes[used_row] == 2 &&
+                                    SemanticAstCollectionBuiltinReleaseArgument(
+                                        surfaces.expression_graph,
+                                        call.call_node, ordinal) {
+                                    // An own formal has a consumption obligation,
+                                    // not an unresolved user-formal forwarding edge.
+                                    // Caller content and ordered-use checks still apply.
                                 } else if ordinal == 0 &&
                                     SemanticAstCollectionOwnershipBuiltinCall(
                                         surfaces.expression_graph,

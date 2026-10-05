@@ -2,6 +2,7 @@
 // formals. Content and liveness grants remain with their existing owners.
 import "ast_collection_constructor_storage_escape_owner.pgy";
 import "ast_collection_formal_effect_owner.pgy";
+import "ast_collection_builtin_release_identity_owner.pgy";
 
 struct SemanticAstCollectionArgumentPermissionEffect {
     ok: Bool;
@@ -35,9 +36,8 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
     if !identity.ok { return effect; }
     let declared: Bool = identity.kind != SemanticExpressionBindingNone() || identity.syntax_id > 0;
     let deep_drop: Bool = SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDropOwnedStrings");
-    let releasing: Bool = edge.ordinal == 0 && (deep_drop ||
-        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDrop") ||
-        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "CompilerRetireArrayStorage"));
+    let releasing: Bool = SemanticAstCollectionBuiltinReleaseArgument(
+        surfaces.expression_graph, edge.call_node, edge.ordinal);
     if edge.ordinal >= 0 && (UnwrapOption(target) > 0 || declared || releasing) {
         let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
         let key: String = ToString(formal);

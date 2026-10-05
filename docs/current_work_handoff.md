@@ -10,11 +10,12 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  1ea75fa4a9c09440c2af11c67315a013dcef42af, reached expression-root formal
-  observation/consumption. All user/worker and both reached implementation
-  slices are committed and pushed. Current changes are a source-only frontier
-  fixture and this navigation refresh; generated
-  gmon.out remains preserved/excluded.
+  151562b324bf52853fb3fb448787e4149242c877. Current dirty candidate closes the
+  reached expression-root classification/consumption seam, with source/native
+  fixtures and navigation refresh. All earlier user/worker changes are already
+  published. This card travels with the implementation checkpoint; after its
+  commit/push, expect no tracked dirty files. Verify actual HEAD/remote/status.
+  Generated gmon.out remains preserved/excluded.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -39,15 +40,40 @@ SoT registry, admitted contracts, and executable gates override this note.
   untrusted direct-MIR lifetime owners independently supply cleanup evidence.
   Existing definition/order, formal-effect and member-read owners keep their
   facts. No mode-only grant, guessed callee, alias promotion or C fallback.
-- Current reached seam: RewriteSemanticMemberAccess calls
-  CodegenCExpressionTextCommitRoot with owned_fragments. The formal effect is
-  refused as unproved_formal_element_use_entry before caller admission. The
-  callee observes an indexed String, consumes its array, and has distinct
-  result branches. Inspect ast_collection_formal_use_owner, the formal-effect
-  graph and the epoch owner; do not infer safe consumption from own mode or
-  the application's value.owned flag. No implementation change on this new
-  seam has been made. Keep one original-input executable rung, not a general
-  conditional String-move, returned-array or performance track.
+- Current reached seam: RewriteSemanticMemberAccess ->
+  CodegenCExpressionTextCommitRoot. Signature-owned body availability no longer
+  excludes owning formals, including its readiness consumer. Canonical builtin
+  consumption identity is shared by formal use, negative storage effects and
+  ordered transfer. The caller's existing own admission remains the storage/
+  element authority; its exact current entry is not prior retirement.
+  CommitRoot validates, copies either result, then retires once. No Bool-based
+  alias proof, conditional-move grant, name exception or native bypass.
+  Gate5 passed C/LLVM production/copy values, two fatal epoch modes, four source
+  positives with formal_ready=true and fourteen lifetime refusals/backend:
+  .tmp/inout-array-release-expression-root-consumption-gate5.log,
+  .tmp/self_hosted/expression-root-consumption.588HWL.
+  The changed effect owner is 210 lines under its unchanged 210-line cap;
+  comments are excluded by the repository metric, blanks still count.
+  Existing 123 own/indexed source verdicts match baseline/current in both
+  backends. These are not full driver/fixed-point or replacement receipts.
+  Original-input v53 passed four C controls/eight cycle refusals, then gen1
+  source admission refused node 58906 / owned_string_drop. It names
+  CodegenTypeEnvStateReplaceOwnedLocal -> ArrayDropOwnedStrings(retired) inside
+  if retire_old. No gen1/gen2/fixed point/default pair/GUI receipt exists.
+  Source/input/native hashes matched at terminal failure before the two
+  whitespace-only cap wraps; gate5 observes the current bytes.
+  .tmp/inout-array-release-codegen-bootstrap-v53.log,
+  .tmp/inout-array-release-bootstrap-v53-boundary.log,
+  .tmp/inout-array-release-codegen-bootstrap-v53-source.sha256.
+  Next owner: existing type-env state/owned String actual exclusivity, last
+  consumer CodegenTypeEnvStateReplaceOwnedLocal. Reproduce its smallest
+  imported source falsifier; neither retire_old nor a String/heap domain is
+  permission. Then fresh unchanged original-input bootstrap/default pair.
+  Do not revive 57194, query architecture, optimization or unrelated SoT.
+  Full structural inventory ended exit 1 without its final PASS; its exact
+  failure remains unidentified, and no full inventory success is claimed.
+  Exact 151562b3 CI 37367618507 failed hosted runner acquisition before tests;
+  all dependent jobs skipped. That is not compiler parity or green CI.
 - Current focused evidence: aggregate gate6 passed C/LLVM 6 positive/16
   falsifying source inputs. Gate7 added generation/coverage mutation guards;
   its combined 300s run timed out after all C rows and LLVM rows 0..18.

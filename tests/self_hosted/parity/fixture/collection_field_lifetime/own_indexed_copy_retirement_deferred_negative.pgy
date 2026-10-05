@@ -1,0 +1,11 @@
+// Compile/admission only: body availability does not prove deferred execution.
+func CopySelected(own values: Array<String>) -> String {
+    let copied: String = Concat("", values[0]);
+    defer { ArrayDropOwnedStrings(values); }
+    return copied;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    Log(CopySelected(values));
+}

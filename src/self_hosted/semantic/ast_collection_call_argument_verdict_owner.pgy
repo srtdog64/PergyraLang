@@ -94,6 +94,12 @@ func SemanticAstCollectionCallArgumentVerdict(
             ownership, dispositions, origins, transition_states,
             definitions, current_definitions);
     if !owned.ok { return owned; }
+    // The own admission above proved storage entry and any propagated deep
+    // element requirement. Its consumption site is entry, not a prior read fence.
+    let admitted_own_read_entry: Bool = effect == 3 && binding.ok &&
+        SemanticAstCollectionOwnStringArrayParameterNode(
+            signatures, surfaces.expression_graph,
+            edge.call_node, edge.ordinal) > 0;
     let result: SemanticAstCollectionOwnershipVerdict =
         SemanticAstCollectionCallArgumentEffectVerdict(
         artifact, signatures, locals, surfaces, surface_row, edge,
@@ -101,7 +107,8 @@ func SemanticAstCollectionCallArgumentVerdict(
         field_requirements, binding, unknown,
         borrowed_storage, owned_storage, repeated_fresh_generation,
         current_definition, retains_descriptor,
-        ownership, dispositions, origins, transition_states, call_effects);
+        ownership, dispositions, origins, transition_states, call_effects,
+        admitted_own_read_entry);
     if result.ok && binding.ok { SemanticAstCollectionDescriptorRetentionApplyAtCall(
         artifact, surfaces.node_ids[surface_row], retains_descriptor, binding.row, current_definition, retained_definitions,
         ownership, dispositions, transition_states); }

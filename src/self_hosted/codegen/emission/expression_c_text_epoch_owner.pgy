@@ -21,15 +21,13 @@ func CodegenCExpressionTextCommitRoot(
         if ArrayLength(fragments) == 0 {
             Die("owned C expression root is absent from its lifetime epoch");
         }
-        // Copy the selected root before retiring the epoch.  ArrayPop only
-        // changes the container length; it is not an ownership-transfer fact.
-        let root: String = Concat("", fragments[ArrayLength(fragments) - 1]);
-        if root != value.text {
+        if fragments[ArrayLength(fragments) - 1] != value.text {
             Die("owned C expression root is not the final lifetime fragment");
         }
-        ArrayDropOwnedStrings(fragments);
-        return root;
     }
+    // A Bool does not prove text cannot alias this epoch. Both result paths
+    // copy before the one retirement; ArrayPop is not an ownership transfer.
+    let root: String = Concat("", value.text);
     ArrayDropOwnedStrings(fragments);
-    return value.text;
+    return root;
 }

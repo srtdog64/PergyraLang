@@ -5,5 +5,14 @@ func Main() -> Void {
     let selected: CodegenCExpressionText = CodegenCExpressionTextOwned(fragments, "selected");
     let output: String = CodegenCExpressionTextCommitRoot(fragments, selected);
     if output != "selected" { Exit(1); }
+    let empty: Array<String> = [];
+    let borrowed_empty: String = CodegenCExpressionTextCommitRoot(
+        empty, CodegenCExpressionTextBorrowed("empty borrowed"));
+    if borrowed_empty != "empty borrowed" { Exit(2); }
+    let unused: Array<String> = [];
+    ArrayPushOwnedString(unused, "retired unused");
+    let borrowed: String = CodegenCExpressionTextCommitRoot(
+        unused, CodegenCExpressionTextBorrowed("borrowed"));
+    if borrowed != "borrowed" { Exit(3); }
     Log("EXPRESSION ROOT COMMIT PASS");
 }

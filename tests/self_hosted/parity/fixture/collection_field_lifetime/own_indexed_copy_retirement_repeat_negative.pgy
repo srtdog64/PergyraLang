@@ -1,0 +1,12 @@
+// Compile/admission only: an earlier read is not a second-consumption grant.
+func CopySelected(own values: Array<String>) -> String {
+    let copied: String = Concat("", values[0]);
+    ArrayDropOwnedStrings(values);
+    ArrayDropOwnedStrings(values);
+    return copied;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    Log(CopySelected(values));
+}

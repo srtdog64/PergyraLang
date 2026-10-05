@@ -642,10 +642,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   transitions or infer ownership from a descriptor type.
   The strict source-formal fact joins current function, Leaf, exact ID/ordinal,
   type and mode once; own and parameter-mode queries project that fact.
+- `src/self_hosted/semantic/ast_collection_builtin_release_identity_owner.pgy`
+  -- exact builtin release argument identity shared by formal use, negative
+  storage effects and ordered own transfer. It grants no lifetime or contents.
 - `src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy`
   -- exact String-array formal inventory and carried source-call argument join.
   Function/formal syntax IDs, source ordinal and receiver offset stay with the
   admitted signature owner; a mode or type is not a clean-element certificate.
+  Body availability derives from the admitted callable body, not its mode.
 - `src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy`
   -- callable-level completeness for collection-formal use evidence. Deferred,
   spawned, lambda, parallel, and anonymous-async bodies that are not fully
@@ -655,6 +659,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Indexed String elements may reach only primitive equality or a canonical
   synchronous non-retaining builtin argument; unknown calls and cross-storage
   borrowed-element stores remain blocked until an owned transfer exists.
+  A canonical release is consumption of an owning formal, not unresolved
+  user-call forwarding. Caller element requirements and event order remain
+  separate obligations.
 - `src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy` --
   canonical body-owned formal-effect carrier and its empty admission value.
 - `src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy`

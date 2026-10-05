@@ -13085,7 +13085,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" \
     "func CodegenCExpressionTextCommitRoot(" \
-    'let root: String = Concat("", fragments[ArrayLength(fragments) - 1]);'
+    'let root: String = Concat("", value.text);'
 reject_function_text \
     "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" \
     "func CodegenCExpressionTextCommitRoot(" \
@@ -28819,6 +28819,8 @@ for collection_owner_cap in \
 done
 require_file "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy"
 require_file "tests/self_hosted/parity/collection_inout_effect_owner.sh"
+require_file "tests/self_hosted/parity/expression_root_consumption_owner.sh"
+require_file "tests/self_hosted/parity/fixture/codegen_expression_root_commit_invalid_probe.pgy"
 require_file "tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy"
 require_file "tests/self_hosted/fixtures/collection_constructor_escape_identity_probe.pgy"
 require_text "src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy" \
@@ -28829,6 +28831,25 @@ require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
     'SemanticAstCollectionArgumentPermissionEffectFromEdge('
 require_text "src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy" \
     'effect.storage_escape = effect.constructor_field.field_syntax_id > 0;'
+require_file "src/self_hosted/semantic/ast_collection_builtin_release_identity_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_collection_builtin_release_identity_owner.pgy" 16
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/semantic/ast_collection_builtin_release_identity_owner.pgy'
+for release_consumer in \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy \
+    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy; do
+    require_text "$release_consumer" 'SemanticAstCollectionBuiltinReleaseArgument('
+    reject_text "$release_consumer" '"CompilerRetireArrayStorage"'
+done
+reject_text "src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy" \
+    'ArrayPush(bodies, mode != 2'
+reject_text "src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy" \
+    'mode != 2 &&'
+require_function_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'func SemanticAstCollectionCallArgumentVerdict(' 'if !owned.ok { return owned; }'
+require_text "src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy" \
+    '!admitted_own_read_entry'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
     'constructor_inputs: SemanticAstCollectionConstructorFieldInputs;'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \

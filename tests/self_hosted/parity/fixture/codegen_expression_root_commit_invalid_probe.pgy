@@ -1,0 +1,19 @@
+import "../../../../src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy";
+
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let fragments: Array<String> = [];
+    if args[0] == "missing" {
+        Log(CodegenCExpressionTextCommitRoot(
+            fragments, CodegenCExpressionText("absent", true)));
+        Exit(3);
+    }
+    if args[0] == "wrong" {
+        ArrayPushOwnedString(fragments, "final fragment");
+        Log(CodegenCExpressionTextCommitRoot(
+            fragments, CodegenCExpressionText("not the final fragment", true)));
+        Exit(3);
+    }
+    Exit(2);
+}

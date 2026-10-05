@@ -124,6 +124,13 @@ INPUTS=(
     own_storage_formal_forward_positive.pgy own_storage_formal_unknown_negative.pgy
     own_storage_return_duplicate_negative.pgy own_storage_return_distinct_positive.pgy
     own_named_clone_positive.pgy own_wrapper_borrowed_negative.pgy
+    own_indexed_copy_retirement_positive.pgy
+    own_indexed_copy_retirement_borrowed_negative.pgy
+    own_indexed_copy_retirement_after_negative.pgy
+    own_indexed_copy_retirement_repeat_negative.pgy
+    own_indexed_copy_retirement_escape_negative.pgy
+    own_indexed_copy_retirement_deferred_negative.pgy
+    default_indexed_deep_retirement_negative.pgy
     own_formal_read_after_forward_negative.pgy own_formal_double_forward_negative.pgy
     inout_event_push_before_unknown_positive.pgy inout_event_copy_before_unknown_positive.pgy
     inout_event_copy_after_unknown_negative.pgy inout_event_borrowed_push_after_copy_negative.pgy
@@ -475,6 +482,8 @@ for backend in c llvm; do
             member_composed_views_alias_negative.pgy|member_scalar_shallow_accumulator_negative.pgy|member_indexed_read_root_copy_negative.pgy|member_indexed_read_root_own_negative.pgy|member_indexed_read_root_inout_negative.pgy|member_indexed_read_deferred_negative.pgy|member_indexed_read_forwarded_alias_negative.pgy|member_indexed_read_forwarded_move_negative.pgy|member_indexed_read_nested_alias_negative.pgy|member_indexed_read_value_formal_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             inout_borrowed_loop_sibling_negative.pgy|inout_borrowed_push_sibling_indexed_negative.pgy|inout_terminal_owned_mutation_sibling_negative.pgy|own_generation_double_transfer_negative.pgy|own_generation_nonterminal_cleanup_negative.pgy|own_generation_return_use_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            own_indexed_copy_retirement_after_negative.pgy|own_indexed_copy_retirement_repeat_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             ref_formal_let_storage_alias_2026-10-02.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;

@@ -1,5 +1,6 @@
 // Ordered own storage transfer keyed only by admitted SyntaxNodeIds.
 import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_builtin_release_identity_owner.pgy";
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
@@ -96,10 +97,8 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
                         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
                     let source: Int = formal_source;
                     if binding.ok { source = definitions.syntax_ids[current[binding.row]]; }
-                    let releasing: Bool = edge.ordinal == 0 &&
-                        (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDropOwnedStrings") ||
-                         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDrop") ||
-                         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "CompilerRetireArrayStorage"));
+                    let releasing: Bool = SemanticAstCollectionBuiltinReleaseArgument(
+                        surfaces.expression_graph, edge.call_node, edge.ordinal);
                     let mutating: Bool = edge.ordinal == 0 && SemanticAstCollectionStorageMutationCall(
                         surfaces.expression_graph, edge.call_node);
                     if own_parameter > 0 && source > 0 {

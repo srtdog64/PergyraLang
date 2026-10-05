@@ -1560,3 +1560,80 @@ hashes matched through the terminal failure. No seed or installed receipt.
   local 57194 parity or a green receipt. No blind retry was issued while the
   original local source still has an observed semantic refusal. Default pair,
   GUI handoff and whole-compiler substitution remain OPEN.
+
+### Reached builtin consumption classification candidate (2026-10-06)
+
+- Status: IMPLEMENTATION CANDIDATE on main @
+  151562b324bf52853fb3fb448787e4149242c877; root alone owns integration.
+  No parallel implementation scope or successor rung is opened.
+- Observed formal: CommitRoot mode 2, effect 5, no unknown/escape site,
+  known deep/descriptor retirement at syntax 517. Its direct ArrayLength and
+  ArrayDropOwnedStrings edges have no declared user-formal target. That suggested
+  a missing consumption classification, but did not prove the initial blocker.
+  Evidence: .tmp/inout-array-release-expression-root-formal-frontier-v1-observe.log.
+- Objective: classify that same admitted builtin operation once. Priority:
+  stable identity, caller content/liveness obligations, old duplicate removal,
+  negative ratchet, then patch size. Owner: builtin release identity; last
+  consumers: formal use inventory, argument permission, ordered own transfer.
+  This operation fact grants no content ownership or String-result lifetime.
+- Forbidden fallback: no name-only/shadowed callable grant, no own-mode safety
+  assertion, no discarded ordering, no Bool-based result-alias assumption.
+  Native/classic/default installed evidence remain distinct.
+- Verification: current production CommitRoot source admission and native C/LLVM
+  value oracle, plus borrowed/mixed input, use after consume, repeated/deferred
+  consume, element escape and shadowed release refusals. Focused budget 300s;
+  then unchanged original compiler/MIR fixpoint-only input, budget 1800s.
+  Candidate was not verified at this initial card; observations below supersede
+  that checkpoint. No installed/CI green/SoT CLOSED claim is made.
+- Source instrumentation found blocked=true / reads=true with no blocked use
+  edge: inventory body availability excluded mode 2 before the use walk.
+  Body availability now derives from the admitted signature's body fact. The
+  readiness consumer's duplicate mode exclusion is also deleted; v52 caught
+  that omitted consumer at the original MIR root, not the focused verdict.
+  Temporary debug logging was removed. Current diagnostic-mode observers also
+  expose formal_ready and the focused gate requires it on every success row.
+- The caller's own admission already validates live storage and propagated deep
+  element requirements. Only after that success does its read-effect consumer
+  distinguish this same consumption entry from prior retirement. Unknown,
+  retired, borrowed, escaped, ordered-use and callee execution guards remain.
+- Production CommitRoot now validates the selected fragment, copies value.text,
+  and retires at one common point. A Bool grants no alias fact. Both owned and
+  borrowed results survive the epoch, without extending conditional-move rules.
+  Missing/wrong final fragments retain their explicit fatal diagnostics.
+- Gate4 PASS in the unchanged 300s budget: C/LLVM production owned/borrowed
+  values, independent indexed-copy result, two fatal epoch modes, four source
+  positives with valid formal carriers, fourteen lifetime refusals per backend.
+  Nine observer warnings remain. Evidence:
+  .tmp/inout-array-release-expression-root-consumption-gate4.log,
+  .tmp/self_hosted/expression-root-consumption.BDC4Kl.
+  Earlier gate1/2 refused; gate3 lacked the carrier-readiness check and is not
+  whole-stage evidence. Original existing source corpus comparison of 123 own/
+  indexed inputs matched baseline/current verdicts in C and LLVM; these are
+  regression verdicts, not full bundle/driver or substitution receipts.
+- v51 rejected a relative harness output path before compilation. Fresh v52
+  then caught the retained readiness mode exclusion at the original MIR root;
+  hashes matched at failure. Fresh absolute-path v53 on the corrected policy
+  is now running fixpoint-only with unchanged original compiler/MIR input and
+  budget 1800s. No gen1/gen2/default installation/GUI completion exists yet.
+- Exact 151562b3 CI 37367618507 also terminated before tests: hosted runner
+  acquisition failed for classify-changes. Dependent jobs skipped; not green.
+- v53 terminal: original four C controls/eight cycle refusals passed; gen1
+  source admission refused syntax 58906 / owned_string_drop. The parser maps
+  it to CodegenTypeEnvStateReplaceOwnedLocal's ArrayDropOwnedStrings(retired)
+  under if retire_old. Source/input/native hashes matched before two cap-only
+  line wraps; current gate5 passes the same exact focused contract, 210/210
+  changed effect-owner size under the repository's comment-excluded metric.
+  Evidence: .tmp/inout-array-release-codegen-bootstrap-v53.log,
+  .tmp/inout-array-release-bootstrap-v53-boundary.log,
+  .tmp/inout-array-release-expression-root-consumption-gate5.log,
+  .tmp/self_hosted/expression-root-consumption.588HWL.
+  No semantic change on the next reached state replacement has been made.
+- Next falsifier: the actual imported type-env state replacement with a prior
+  owned local. Existing owners retain String exclusivity, retained-field and
+  ordered lifetime facts. A retire_old Bool, heap domain, String type or
+  application-owned flag cannot substitute for them. Root integration remains
+  exclusive; preserve the same focused/integration budgets and original input.
+- Full structural inventory ran but ended status 1 without final PASS, even
+  with the Git path/native binary selected. Individual import check passes;
+  the earlier trace ending there did not prove an absent import. Exact full
+  failure is still unknown; no cap/budget or gate was loosened to hide it.

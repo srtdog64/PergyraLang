@@ -70,7 +70,9 @@ func SemanticAstCollectionFormalEffectInventoryFromSignatures(
                 ArrayPush(functions, function);
                 ArrayPush(ordinals, ordinal);
                 ArrayPush(modes, mode);
-                ArrayPush(bodies, mode != 2 &&
+                // Body availability is independent of the parameter mode.
+                // Consumption permission is proved at the caller and ordered use.
+                ArrayPush(bodies,
                     signatures.action_contracts.body_node_ids[row] > 0);
             }
             ordinal = ordinal + 1;

@@ -38,7 +38,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
     retains_descriptor: Bool,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
-    ref call_effects: SemanticAstCollectionCallEffectFacts
+    ref call_effects: SemanticAstCollectionCallEffectFacts, admitted_own_read_entry: Bool
 ) -> SemanticAstCollectionOwnershipVerdict {
     if effect == SemanticAstCollectionFormalShallowMutationEffect() {
         if binding.ok {
@@ -97,9 +97,8 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                     signatures, surfaces.function_node_ids[surface_row],
                     surfaces.expression_graph, edge.argument_node);
             // An `own` formal is already the exclusive storage authority in
-            // this body. It is intentionally not reusable as a caller-side
-            // formal summary, so absence from `proved` is not missing
-            // evidence here. Borrowed/inout formals still require their exact
+            // this body. That authority is checked independently of a caller-side
+            // element summary. Borrowed/inout formals still require their exact
             // fixed-point effect before they may be forwarded to a shallow
             // mutator.
             let actual_effect_ready: Bool = actual_formal.ok &&
@@ -183,7 +182,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                 (SemanticAstCollectionMutableCallMayBeRetired(
                     artifact, surfaces.node_ids[surface_row],
                     call_effects.first_retiring_sites[binding.row]) &&
-                    !repeated_fresh_generation && !current_borrowed_read) {
+                    !repeated_fresh_generation && !current_borrowed_read && !admitted_own_read_entry) {
                 let boundary: String = "unproved_inout_copy_entry";
                 if effect == 3 { boundary = "unproved_indexed_read_entry"; }
                 return SemanticAstCollectionOwnershipVerdictError(

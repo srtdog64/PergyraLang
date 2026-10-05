@@ -1,0 +1,15 @@
+// A canonical builtin argument consumes its descriptor. This is an operation
+// identity, not permission: contents, escape and event order stay with owners.
+import "ast_collection_ownership_identity_owner.pgy";
+
+func SemanticAstCollectionBuiltinReleaseArgument(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int, ordinal: Int
+) -> Bool {
+    return ordinal == 0 &&
+        (SemanticAstCollectionOwnershipBuiltinCall(
+            graph, call_node, "ArrayDropOwnedStrings") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            graph, call_node, "ArrayDrop") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            graph, call_node, "CompilerRetireArrayStorage"));
+}

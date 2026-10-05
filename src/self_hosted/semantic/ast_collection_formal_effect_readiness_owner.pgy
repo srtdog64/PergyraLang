@@ -72,8 +72,7 @@ func SemanticAstCollectionFormalEffectsReadyFor(
                     return false;
                 }
                 if facts.inventory.body_ready[expected] !=
-                    (mode != 2 &&
-                     signatures.action_contracts.body_node_ids[signature] > 0) {
+                    (signatures.action_contracts.body_node_ids[signature] > 0) {
                     return false;
                 }
                 if !SemanticAstCollectionFormalEffectRowIndexMatches(

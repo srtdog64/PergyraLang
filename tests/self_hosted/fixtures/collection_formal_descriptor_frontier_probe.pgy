@@ -4,7 +4,7 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
-    if ArrayLength(args) != 1 { Exit(2); }
+    if ArrayLength(args) != 1 && ArrayLength(args) != 2 { Exit(2); }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
@@ -39,8 +39,10 @@ func Main() -> Void with caps env, io_read {
         if !IsSome(signature) { Exit(2); }
         let name: Option<String> = SemanticAstFunctionNameAt(analysis.signatures, UnwrapOption(signature));
         if !IsSome(name) { Exit(2); }
-        if UnwrapOption(name) == "CodegenValueWrapperUsageCollectType" ||
-            UnwrapOption(name) == "CodegenValueWrapperUsageContains" {
+        if (ArrayLength(args) == 2 && UnwrapOption(name) == args[1]) ||
+            (ArrayLength(args) == 1 &&
+             (UnwrapOption(name) == "CodegenValueWrapperUsageCollectType" ||
+              UnwrapOption(name) == "CodegenValueWrapperUsageContains")) {
             let formal: Int = formals.inventory.formal_nodes[row];
             let key: String = ToString(formal);
             let effect: Int = -1;
@@ -54,9 +56,43 @@ func Main() -> Void with caps env, io_read {
             Log("retiring=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_retiring_sites, formal)));
             Log("non_deep=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_non_deep_drop_sites, formal)));
             Log("descriptor_retiring=" + ToString(SemanticAstCollectionFormalPermissionSite(calls.formal_descriptor_retiring_sites, formal)));
+            if ArrayLength(args) == 2 {
+                let surface: Int = 0;
+                while surface < ArrayLength(analysis.expression_surfaces.node_ids) {
+                    if analysis.expression_surfaces.function_node_ids[surface] == formals.inventory.function_nodes[row] {
+                        let lane: Int = 0;
+                        while lane < 3 {
+                            let slot: Int = surface * 3 + lane;
+                            if analysis.expression_surfaces.expression_graph.has_roots[slot] {
+                                let start: Option<Int> = SemanticExpressionGraphRootStartAt(analysis.expression_surfaces.expression_graph, slot);
+                                if !IsSome(start) { Exit(2); }
+                                let node: Int = UnwrapOption(start);
+                                while node <= analysis.expression_surfaces.expression_graph.roots[slot] {
+                                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
+                                    if edge.ok {
+                                        let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(analysis.expression_surfaces.expression_graph, edge.argument_node);
+                                        if identity.ok && identity.kind == SemanticExpressionBindingFormalParameter() && identity.syntax_id == formal {
+                                            let target: Option<String> = SemanticExpressionGraphCallTargetName(analysis.expression_surfaces.expression_graph, edge.call_node);
+                                            if !IsSome(target) { Exit(2); }
+                                            Log("direct_call=" + UnwrapOption(target));
+                                            Log("target_formal=" + ToString(SemanticAstCollectionSourceStringSequenceFormalForArgument(
+                                                analysis.signatures, analysis.expression_surfaces.expression_graph, edge.call_node, edge.ordinal)));
+                                        }
+                                    }
+                                    node = node + 1;
+                                }
+                            }
+                            lane = lane + 1;
+                        }
+                    }
+                    surface = surface + 1;
+                }
+            }
             found = found + 1;
         }
         row = row + 1;
     }
-    if found != 2 { Log("expected exact wrapper formals"); Exit(2); }
+    let expected: Int = 2;
+    if ArrayLength(args) == 2 { expected = 1; }
+    if found != expected { Log("expected exact selected formals"); Exit(2); }
 }

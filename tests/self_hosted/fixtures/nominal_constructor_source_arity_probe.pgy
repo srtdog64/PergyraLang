@@ -63,6 +63,9 @@ func Main() -> Void with caps env, io_read {
     Log(Concat("body_ok=", ToString(bundle.verdict.ok)));
     Log(Concat("body_diagnostic=", bundle.verdict.diagnostic_code));
     if diagnostic {
+        Log(Concat("formal_ready=", ToString(
+            SemanticAstCollectionFormalEffectsReadyFor(
+                bundle.collection_formal_effects, analysis.signatures))));
         Log(Concat("body_message=", bundle.verdict.diagnostic_message));
         Log(Concat("body_syntax=", ToString(bundle.verdict.first_node_id)));
         let atom: Option<String> = TypedAstArenaAtomText(artifact.arena, bundle.verdict.first_node_id);

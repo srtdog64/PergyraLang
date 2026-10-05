@@ -1,0 +1,11 @@
+// Compile/admission only: an indexed alias cannot escape the consumed epoch.
+func CopySelected(own values: Array<String>) -> String {
+    let alias: String = values[0];
+    ArrayDropOwnedStrings(values);
+    return alias;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    Log(CopySelected(values));
+}
