@@ -35,6 +35,20 @@ func SemanticAstOwnedStringCallSourceReady(ref call: SemanticCallSpineView, star
     return true;
 }
 
+func SemanticAstOwnedStringFreshConcatCallReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref call: SemanticCallSpineView,
+    start: Int, use_id: Int, lane: Int, root: Int
+) -> Bool {
+    if !SemanticAstOwnedStringCallSourceReady(call, start, root) ||
+        ArrayLength(call.argument_nodes) != 2 { return false; }
+    let identity: Option<String> =
+        SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+            surfaces, call.call_node, start, use_id, lane);
+    // The sealed Concat primitive copies into a fresh heap-or-null result;
+    // this says nothing about exclusivity of a local alias or user result.
+    return IsSome(identity) && UnwrapOption(identity) == "CONCAT";
+}
+
 func SemanticAstOwnedStringAllocatorExpressionDomain(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
@@ -147,16 +161,8 @@ func SemanticAstOwnedStringExpressionAllocationDomain(
     if call_domain.kind > 0 { return call_domain; }
     let builtin_call: SemanticCallSpineView =
         SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
-    // All callers run after expression-identity resolution has sealed and
-    // globally validated the retention facts. Repeating the whole readiness
-    // scan here would turn this per-expression lookup into quadratic work.
-    let builtin_identity: Option<String> =
-        SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
-            surfaces, builtin_call.call_node, start, use_id, lane);
-    if SemanticAstOwnedStringCallSourceReady(builtin_call, start, root) &&
-        ArrayLength(builtin_call.argument_nodes) == 2 &&
-        IsSome(builtin_identity) &&
-        UnwrapOption(builtin_identity) == "CONCAT" {
+    if SemanticAstOwnedStringFreshConcatCallReady(
+            surfaces, builtin_call, start, use_id, lane, root) {
         return SemanticAstOwnedStringDomainHeapOrNull();
     }
     let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(

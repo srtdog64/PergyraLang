@@ -1,0 +1,8 @@
+func Retire(own fragment: String) -> Void {
+    let fragments: Array<String> = [fragment];
+    let copy_text: String = Concat(fragment, "!");
+    ArrayDropOwnedStrings(fragments);
+    Log(copy_text);
+}
+
+func Main() -> Void {}

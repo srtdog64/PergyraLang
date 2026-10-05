@@ -10,9 +10,9 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  b0767df2e6a36ea04e30ea385205b0d453cf46c1, reached qualified-key query
+  276e672503840a1ac7fcc2f73d048eac5790f074, reached own-String borrow-before-transfer
   lifetime. All prior user/worker changes are committed and pushed. Current
-  source/test/navigation changes are the query lifetime slice below; generated
+  source/test/navigation changes are the statement-prefix lifetime slice below; generated
   gmon.out remains preserved/excluded.
   Root owns P0 integration
   and Git; Main is stopped following the user's
@@ -38,13 +38,14 @@ SoT registry, admitted contracts, and executable gates override this note.
   untrusted direct-MIR lifetime owners independently supply cleanup evidence.
   Existing definition/order, formal-effect and member-read owners keep their
   facts. No mode-only grant, guessed callee, alias promotion or C fallback.
-- Current reached seam: aggregate release consumes the generation-bound
-  execution context already carried by formal effects and the member owner's
-  closed non-retaining roots. Exact default/ref target identity alone grants
-  nothing. Caller/callee coverage, current artifact generation and non-opaque
-  execution are required; alias/return/deferred/restoration refusals remain.
-  The context/control fact owner replaces the old schema location; the builder
-  alone scans callable coverage. No unused FromFacts or copied-map read path.
+- Current reached seam: CodegenPrefixOwnedStatementLine completes borrowed
+  Concat reads before transferring its input fragment to the retiring array.
+  The literal-transfer owner now consumes the shared ready-call non-retention
+  fact rather than a CompilerArtifactWrite-only exception. Domain and actual
+  exclusivity consume one exact fresh-Concat primitive predicate. A general
+  heap domain, arbitrary user result or parameter mode grants nothing; alias,
+  reassignment, unknown/deferred/retaining and post-transfer refusals remain.
+  This is a reached gen1 admission repair, not whole-compiler substitution.
 - Current focused evidence: aggregate gate6 passed C/LLVM 6 positive/16
   falsifying source inputs. Gate7 added generation/coverage mutation guards;
   its combined 300s run timed out after all C rows and LLVM rows 0..18.
@@ -206,10 +207,33 @@ SoT registry, admitted contracts, and executable gates override this note.
   output; no allocation-domain or guard verdict was observed. Its diagnostic
   source remains available and never emits or executes the supplied input.
   .tmp/inout-array-release-owned-literal-frontier-v1-observe.log.
-- Next executable falsifier: fresh official v49 on the unchanged original
-  compiler/MIR input, within 1800s, then exact-code-head CI. No gen1/gen2,
-  fixed point, default pair or GUI receipt is inferred from focused gate2.
-  Do not open a general conditional String-move or returned-array cleanup track.
+- Query correction is committed/pushed as 276e6725. Fresh official v49 passed
+  the same original four C controls/eight cycle refusals, then refused gen1
+  syntax 55975 / ArrayPushOwnedString(fragments, terminated) in
+  CodegenPrefixOwnedStatementLine. Source/input/native hashes match. Exact-head
+  CI 37360522726 independently refused the same node; Windows/macOS/TSAN/Rocq
+  passed, dependent Linux jobs skipped. Still RED, no gen1/gen2 or install.
+  .tmp/inout-array-release-codegen-bootstrap-v49.log,
+  .tmp/inout-array-release-bootstrap-v49-boundary.log,
+  .tmp/inout-array-release-ci-37360522726-codegen.log.
+- Statement-prefix gate2 passed within 300s on native v4: actual C/LLVM output
+  values (zero warnings), two source positives and twelve preserved refusals
+  per backend; observer builds have nine warnings. The original caller uses
+  Concat, not a replacement allocation input. Direct Concat freshness uses the
+  exact sealed call/argument context and independent heap-or-null allocation,
+  not a heap-domain or function-name shortcut. One duplicate borrow policy is
+  deleted; no ordering/alias/exposure/return-chain guard is removed. Current
+  observers also admit the earlier query lifetime and preserve its three
+  additional local borrowed/shadow/alias refusals per backend. Hashes match.
+  .tmp/inout-array-release-owned-statement-prefix-gate2.log,
+  .tmp/self_hosted/owned-statement-prefix.5ASIfM.
+  Gate1 refused the direct Concat actual after the callee was admitted; it was
+  not passing evidence. The exact missing fact and blocked executable rung
+  are recorded in the directive before this next supporting proof commit.
+- Next executable falsifier: fresh official v50 on the unchanged original
+  compiler/MIR input within 1800s, then exact-code-head CI. No fixed point,
+  default pair or GUI receipt is inferred from focused gate2. Do not open a
+  general conditional String-move or returned-array cleanup track.
 - Current native v4 SHA-256:
   c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
   Fresh GCC build passed with 12 observed warnings. Native public gate16 passed

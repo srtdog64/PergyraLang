@@ -1472,3 +1472,58 @@ hashes matched through the terminal failure. No seed or installed receipt.
   observer builds nine. .tmp/inout-array-release-qualified-kind-match-gate2.log,
   .tmp/self_hosted/qualified-kind-match.difPMY. Original-input bootstrap and
   exact-head CI have not run on this slice yet; no installed/closure claim.
+
+### Reached own-String borrow-before-transfer (2026-10-06)
+
+- Executable rung status: BLOCKED at main
+  276e672503840a1ac7fcc2f73d048eac5790f074. Official v49 passed the original
+  four C controls/eight cycle refusals, then refused gen1 syntax 55975:
+  ArrayPushOwnedString(fragments, terminated) in CodegenPrefixOwnedStatementLine.
+  Source/input/native hashes match. No gen1 or installation receipt exists.
+- Objective: finish all fragment reads before its singleton ownership transfer,
+  and consume the existing ready-call builtin retention fact for those reads.
+  Priority: exact builtin/argument identity, unique straight-line transfer,
+  preserved refusal, then deletion of duplicate policy. Fact owner:
+  builtin_argument_retention_projection_owner plus generation-bound ready-call
+  facts; the literal-transfer owner owns ordering/consumption, not a second
+  builtin-name exception. Last consumer: the owned-fragment append/deep-drop,
+  followed by original-input gen1 admission.
+- Missing fact: admitted Concat argument non-retention in the own-formal literal
+  borrow-before-transfer proof. Moving the literal after Concat alone still
+  refuses the same append in a source-only observer. A small import-composed
+  production-prefix fixture reproduces the original refusal in both C/LLVM;
+  it does not replace the original integration input. Baseline receipts:
+  .tmp/inout-array-release-owned-statement-prefix-baseline-c.log,
+  .tmp/inout-array-release-owned-statement-prefix-baseline-llvm.log,
+  .tmp/inout-array-release-owned-statement-prefix-reordered-c.log.
+- Root alone edits the text consumer and literal-transfer policy seam. No
+  conditional, repeated, deferred, alias, borrowed-source or mode-only grant;
+  unknown user-function retention and any use after transfer remain refused.
+  No new SoT family, general query architecture or parallel implementation.
+- Falsifying gate: 300s focused actual prefix values and current C/LLVM source
+  admission, retaining/unknown calls, post-transfer and existing ownership
+  refusals. Static budget 60s; integration is the same 1800s original-input
+  official bootstrap. Gate candidates are not closed/install/green evidence.
+- Gate1 admitted the production callee and then refused the fixture caller's
+  direct Concat actual at owned_string_actual_unproved. It did not pass.
+  The same exact ready-call Concat root already supplies fresh heap-or-null
+  allocation provenance; runtime StringConcat/strdup implementations copy into
+  independent storage or null. One shared FreshConcatCallReady predicate now
+  supplies that primitive fact to domain and direct-actual exclusivity, without
+  treating a general heap domain or user String result as exclusive. Local
+  reassignment/exposure/use and recursive result-chain checks remain required.
+  An aliased Concat-result refusal joins the gate. Current candidate has not
+  passed yet. .tmp/inout-array-release-owned-statement-prefix-gate1.log.
+- Observed gate2 PASS within 300s: actual native C/LLVM prefix values (zero
+  warnings), original Concat caller and artifact-write source positives, twelve
+  preserved refusals per backend. Nine observer warnings remain. Fresh current
+  observers also admit the previous query lifetime and preserve its three
+  additional local borrowed/shadow/alias refusals per backend. Source/input/
+  native/binary hashes match. .tmp/inout-array-release-owned-statement-prefix-gate2.log,
+  .tmp/self_hosted/owned-statement-prefix.5ASIfM. Static syntax/diff checks pass;
+  the new source-inventory ratchets do not assert behavior. The domain owner
+  remains 187 code lines under its unchanged 200-line cap (comments excluded).
+- Exact 276e6725 CI 37360522726 terminated with the same 55975 owned append
+  refusal; Windows/macOS/TSAN/Rocq passed and dependent Linux jobs skipped.
+  .tmp/inout-array-release-ci-37360522726-codegen.log. This candidate still needs
+  fresh original-input v50 plus exact-head CI/default installation evidence.

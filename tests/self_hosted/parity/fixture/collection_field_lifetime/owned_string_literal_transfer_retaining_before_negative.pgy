@@ -1,0 +1,7 @@
+func Retire(inout aliases: Array<String>, own fragment: String) -> Void {
+    ArrayPush(aliases, fragment);
+    let fragments: Array<String> = [fragment];
+    ArrayDropOwnedStrings(fragments);
+}
+
+func Main() -> Void {}

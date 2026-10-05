@@ -23614,6 +23614,17 @@ done
 require_max_lines "src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy" 170
 require_max_lines "src/self_hosted/semantic/ast_owned_string_domain_exposure_owner.pgy" 160
 require_max_lines "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" 200
+require_function_text "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" \
+    "func SemanticAstOwnedStringExpressionAllocationDomain(" \
+    "SemanticAstOwnedStringFreshConcatCallReady("
+require_function_text "src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy" \
+    "func SemanticAstOwnedStringLiteralTransferExpressionExclusive(" \
+    "SemanticAstOwnedStringFreshConcatCallReady("
+require_function_text "src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy" \
+    "func SemanticAstOwnedStringLiteralTransferUsesReady(" \
+    "SemanticAstOwnedStringLiteralTransferBorrowUseExclusive("
+reject_text "src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy" \
+    "SemanticAstOwnedStringLiteralTransferBorrowUseReady("
 require_max_lines "src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy" 30
 require_max_lines "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" 100
 require_max_lines "tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy" 175

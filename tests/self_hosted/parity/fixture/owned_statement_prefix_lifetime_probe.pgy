@@ -1,0 +1,11 @@
+import "../../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
+
+func Main() -> Void {
+    let line: String = CodegenPrefixOwnedStatementLine(
+        Concat("", "ready"), "  ", "if ", " {\n");
+    if line != "  if ready {\n" { Exit(1); }
+    let empty_line: String = CodegenPrefixOwnedStatementLine(
+        Concat("", ""), "", "", "\n");
+    if empty_line != "\n" { Exit(1); }
+    Log("OWNED STATEMENT PREFIX PASS");
+}

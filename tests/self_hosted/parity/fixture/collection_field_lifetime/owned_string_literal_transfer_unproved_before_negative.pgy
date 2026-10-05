@@ -1,0 +1,10 @@
+func Observe(fragment: String) -> Int { return StringLength(fragment); }
+
+func Retire(own fragment: String) -> Void {
+    let count: Int = Observe(fragment);
+    let fragments: Array<String> = [fragment];
+    ArrayDropOwnedStrings(fragments);
+    Log(count);
+}
+
+func Main() -> Void {}

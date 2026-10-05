@@ -9,10 +9,11 @@ func CodegenJoinOwnedStringFragments(
     return output;
 }
 func CodegenPrefixOwnedStatementLine(own fragment: String, prefix: String, leader: String, suffix: String) -> String {
-    let fragments: Array<String> = [fragment];
     let terminated: String = Concat(fragment, suffix);
     let statement: String = Concat(leader, terminated);
     let output: String = Concat(prefix, statement);
+    // The singleton transfer follows the final borrowed read of fragment.
+    let fragments: Array<String> = [fragment];
     ArrayPushOwnedString(fragments, terminated);
     ArrayPushOwnedString(fragments, statement);
     ArrayDropOwnedStrings(fragments);

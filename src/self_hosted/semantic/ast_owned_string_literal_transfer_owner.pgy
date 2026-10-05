@@ -13,7 +13,6 @@ import "ast_expression_call_identity_owner.pgy";
 import "ast_owned_string_expression_domain_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "diagnostic_owner.pgy";
-import "ast_builtin_argument_retention_call_fact_owner.pgy";
 import "ast_owned_string_actual_exclusivity_owner.pgy";
 
 struct SemanticAstOwnedStringLiteralTransferFacts {
@@ -74,34 +73,6 @@ func SemanticAstOwnedStringLiteralTransferDirectDefinition(
     return false;
 }
 
-func SemanticAstOwnedStringLiteralTransferBorrowUseReady(
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    start: Int, root: Int, use_node: Int
-) -> Bool {
-    let node: Int = start;
-    while node <= root {
-        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            surfaces.expression_graph, node);
-        if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
-            let edge: SemanticCallArgumentEdgeView =
-                SemanticCallArgumentEdgeFromGraph(
-                    surfaces.expression_graph, node);
-            if !edge.ok { return false; }
-            if edge.argument_node == use_node {
-                let identity: Option<String> =
-                    SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
-                        surfaces, edge.call_node);
-                return IsSome(identity) &&
-                    UnwrapOption(identity) == "COMPILER_ARTIFACT_WRITE" &&
-                    SemanticBuiltinArgumentBorrowedForIdentity(
-                        UnwrapOption(identity), edge.ordinal);
-            }
-        }
-        node = node + 1;
-    }
-    return false;
-}
-
 func SemanticAstOwnedStringLiteralTransferUsesReady(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
@@ -138,7 +109,7 @@ func SemanticAstOwnedStringLiteralTransferUsesReady(
                         !SemanticAstOwnedStringLiteralTransferDirectDefinition(
                             artifact, function_id,
                             surfaces.node_ids[slot / 3]) ||
-                        !SemanticAstOwnedStringLiteralTransferBorrowUseReady(
+                        !SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
                             surfaces, UnwrapOption(start), root, node) {
                         return false;
                     }

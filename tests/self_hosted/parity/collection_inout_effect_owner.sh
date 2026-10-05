@@ -33,6 +33,10 @@ INPUTS=(
     owned_string_literal_transfer_borrowed_negative.pgy
     owned_string_literal_transfer_deferred_borrow_negative.pgy
     owned_string_literal_transfer_after_use_negative.pgy
+    owned_string_literal_transfer_concat_after_negative.pgy
+    owned_string_literal_transfer_retaining_before_negative.pgy
+    owned_string_literal_transfer_unproved_before_negative.pgy
+    owned_string_literal_transfer_aliased_concat_result_negative.pgy
     owned_string_literal_transfer_multi_element_negative.pgy
     owned_string_local_literal_transfer_positive.pgy
     owned_string_local_literal_transfer_reuse_negative.pgy

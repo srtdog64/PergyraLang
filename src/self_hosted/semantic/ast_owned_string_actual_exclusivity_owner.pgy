@@ -212,7 +212,9 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
     if !SemanticAstOwnedStringCallSourceReady(call, start, root) {
         return false;
     }
-    if SemanticAstCollectionOwnershipBuiltinCall(
+    if SemanticAstOwnedStringFreshConcatCallReady(
+            surfaces, call, start, use_id, lane, root) ||
+        SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call.call_node,
             "TextBuilderFinish") {
         return true;
