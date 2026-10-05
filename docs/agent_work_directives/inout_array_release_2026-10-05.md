@@ -1038,3 +1038,27 @@ the routine ABI consumer duplicated the same raw local-type return. Mapping:
   SemanticAstBodyTypeBundleFromAnalysis. Last consumer is the gen0 nominal-root
   codegen boundary; exact falsifier is mir_collection_receiver_root.pgy. The
   next original-input seed tests that boundary; no registry row is closed.
+
+## Reached MIR instruction use publication
+
+Official seed v39 passed routine ABI lookup migration, then refused node 71932:
+SelfMirRoutineAddInstruction forwards uses to SelfMirCfgAddInstruction, whose
+row loop retained raw indexed Strings. Mapping:
+`.tmp/inout-array-release-bootstrap-v39-exact-boundary-context.log`.
+
+- Objective/priority: preserve instruction IDs, use order/ranges and block
+  counts; retain independent use text; same original MIR root admission.
+- Owner/last consumer: SelfMirCfgAddInstruction publishes instruction rows;
+  SelfMirRoutineAddInstruction only forwards readonly use input into that owner.
+- Forbidden fallback: raw use-element publication, destination deep-drop
+  promotion, cloning the whole accumulated instruction table per insertion.
+- Gate/falsifier: native C/LLVM exact use values after source-array cleanup,
+  append of an empty use row preserves offsets/counts, existing copied/raw-row
+  source pair, structural raw-push refusal, original whole-MIR-root seed.
+  The installed rung remains BLOCKED at whole-root body admission; this change
+  does not close a registry row or count as C-path replacement progress.
+- Native C/LLVM exact retained use text after source cleanup and empty-row
+  append IDs/offsets/counts passed. Existing copied/raw-row source controls
+  passed in both observer backends. Source/binary receipt:
+  `.tmp/inout-array-release-instruction-use.sha256`.
+  Whole-root seed v40, fresh installation and CI remain OPEN.

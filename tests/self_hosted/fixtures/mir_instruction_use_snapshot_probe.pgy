@@ -1,0 +1,32 @@
+import "../../../src/self_hosted/mir/program_fact_owner.pgy";
+
+func Main() -> Void {
+    let source_uses: Array<String> = [];
+    ArrayPushOwnedString(source_uses, "value.1");
+    ArrayPushOwnedString(source_uses, "other.2");
+    let cfg: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        SelfMirCfgAddBlock(SelfMirCfgRowsEmpty()), 0, 7,
+        "stmt", "stmt", "", "", "", "Log(value, other)", "",
+        "AST_CALL", source_uses);
+    ArrayDropOwnedStrings(source_uses);
+    if ArrayLength(cfg.instructions.uses) != 2 ||
+        cfg.instructions.uses[0] != "value.1" ||
+        cfg.instructions.uses[1] != "other.2" ||
+        cfg.instructions.use_starts[0] != 0 ||
+        cfg.instructions.use_counts[0] != 2 ||
+        cfg.instructions.ids[0] != 7 ||
+        cfg.blocks.instruction_counts[0] != 1 { Exit(1); }
+    let no_uses: Array<String> = [];
+    let appended: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        cfg, 0, 8, "return", "return", "", "", "", "", "",
+        "AST_RETURN_VOID", no_uses);
+    ArrayDropOwnedStrings(no_uses);
+    if ArrayLength(appended.instructions.uses) != 2 ||
+        appended.instructions.uses[0] != "value.1" ||
+        appended.instructions.uses[1] != "other.2" ||
+        appended.instructions.use_starts[1] != 2 ||
+        appended.instructions.use_counts[1] != 0 ||
+        appended.instructions.ids[1] != 8 ||
+        appended.blocks.instruction_counts[0] != 2 { Exit(1); }
+    Log("MIR INSTRUCTION USE SNAPSHOT PASS");
+}

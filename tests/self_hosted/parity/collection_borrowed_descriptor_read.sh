@@ -191,3 +191,16 @@ for backend in c llvm; do
 done
 
 echo "[collection-borrowed-descriptor-read] native C/LLVM runtime ABI type values with explicit caller copies and last-binding/missing/malformed guards PASS; not installed-driver proof"
+
+for backend in c llvm; do
+    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
+        tests/self_hosted/fixtures/mir_instruction_use_snapshot_probe.pgy \
+        -o "$REL/mir-instruction-use-$backend.exe" >"$WORK/$backend-mir-instruction-use.compile.log" 2>&1 ||
+        fail "$backend MIR instruction use snapshot did not compile"
+    timeout 30 "$WORK/mir-instruction-use-$backend.exe" >"$WORK/$backend-mir-instruction-use.raw" 2>&1 ||
+        fail "$backend MIR instruction use snapshot failed"
+    [[ "$(tr -d '\r' <"$WORK/$backend-mir-instruction-use.raw")" == 'MIR INSTRUCTION USE SNAPSHOT PASS' ]] ||
+        fail "$backend retained uses or instruction/block ranges changed"
+done
+
+echo "[collection-borrowed-descriptor-read] native C/LLVM instruction use snapshot and empty append offsets PASS; no destination deep-drop or installed-driver claim"

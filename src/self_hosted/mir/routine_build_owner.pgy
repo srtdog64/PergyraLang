@@ -122,7 +122,7 @@ func SelfMirRoutineAddInstruction(
     expr0: String,
     expr1: String,
     source_type: String,
-    uses: Array<String>
+    ref uses: Array<String>
 ) -> SelfMirRoutineBuild {
     let cfg: SelfMirCfgRows = SelfMirCfgAddInstruction(
         build.cfg, build.current_block, build.next_instruction_id,
