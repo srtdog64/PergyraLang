@@ -46,7 +46,7 @@ fi
 printf '1\ndeclaration:200:0\n1\nfalse\nfalse\nfalse\n' >"$B/root-expected.txt"
 for producer in native codegen; do
     compile_c_artifact_with_bounded_log "root-$producer" "$B/root-$producer.c" \
-        "$B/root-$producer.exe" || fail "$producer MIR root control did not compile"
+        "$B/root-$producer.exe" || { sed -n '1,80p' "$B/root-${producer}_cc.log" >&2; fail "$producer MIR root control did not compile"; }
     "$B/root-$producer.exe" | tr -d '\r' >"$B/root-$producer.actual"
     cmp "$B/root-expected.txt" "$B/root-$producer.actual" || fail "$producer MIR root identity drifted"
 done

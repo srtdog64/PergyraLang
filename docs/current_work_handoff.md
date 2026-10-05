@@ -10,8 +10,8 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  df0df7a40ee18d32220238724780926f7613a12c, reached Slice length C projection,
-  exact runtime facts, focused fixtures/source pins and navigation dirty.
+  7e054c1ff5da65f1eed9d77f63429225ec1ae285, reached private Slice C namespace,
+  exact ABI consumer, coexistence fixture/gate and navigation dirty.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -26,6 +26,9 @@ SoT registry, admitted contracts, and executable gates override this note.
   LocalRef publication a59c01a6 and owned unique-use accumulation ad4f133a
   were committed/pushed as well.
   Shared readonly aggregate-call context df0df7a4 (26 files) is published.
+  Slice length 004f4f24 was merged with the external async/type-alias/subject-
+  address/intent changes as 7e054c1f and pushed without losing either side.
+  Those external changes are retained, not independently certified by this note.
   Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
@@ -79,9 +82,33 @@ SoT registry, admitted contracts, and executable gates override this note.
   a compound operand whose codegen type fact is absent; no type-text guess.
   .tmp/inout-array-release-slice-length-gate2.log,
   .tmp/self_hosted/slice-length-codegen.bwqMT6.
-  Next exact integration falsifier: official seed v45 on the original MIR root,
-  then fixed-point/driver receipts. No default installation or CLOSED claim.
-- Native v3 SHA-256:
+  This pre-merge receipt was refreshed as gate3 on native v4 and passed.
+- Official seed v45 on merged 7e054c1f passed source admission and emitted the
+  original MIR control, then failed C compilation. Generated PgySlice_Int/String
+  typedefs and public pgy_slice_get/copy/array_slice names collided with the
+  required pgy_runtime.h definitions, whose Array descriptors are not private
+  three-field arrays. All 6963 source/input/native hashes matched at failure.
+  .tmp/inout-array-release-codegen-bootstrap-v45.log,
+  .tmp/self_hosted/codegen_nominal_array_declaration/run.unnwy4/root-codegen_cc.log.
+  Exact-head CI 37337689083 failed that same C compile stage; Windows/macOS,
+  TSAN and Rocq passed, dependent Linux jobs were skipped. Not CI green.
+- Current namespace fix: source SliceRuntimeFact owns pgy_self_slice_Int/String
+  and private get/copy/array-slice symbols; source AbiLayoutCValueType consumes
+  that fact. Compiler ABI rows and the direct-MIR public projection are unchanged.
+  Gate4 passed within 300s on native v4: existing length/fact guards plus native
+  C/LLVM and fresh self-host C HashMap-header coexistence, index/copy and exact
+  values; the gate forbids reopened native Slice typedef/function definitions.
+  .tmp/inout-array-release-slice-length-gate4.log,
+  .tmp/self_hosted/slice-length-codegen.WPgus8.
+  Next exact integration falsifier: fresh official seed v46 on the unchanged
+  original MIR root, then fixed-point/driver receipts. Default install remains OPEN.
+- Current native v4 SHA-256:
+  c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
+  Fresh GCC build passed with 12 observed warnings. Native public gate16 passed
+  15 executed positives/backend and 30 preserved-artifact refusals, no public-
+  driver/default installation claim. .tmp/inout-array-release-native-v4-gcc-build.log,
+  .tmp/inout-array-release-native-public-gate16.log.
+- Prior pre-merge native v3 SHA-256 (not current-head native evidence):
   4bdb8869388dce2a8c02a5791f1670ada26b9e1cacd47c0b7d8195353e4673ce.
   Native public gate passed 15 executed positives/backend and 30 refusals;
   four C/LLVM dev/release inout/drop assertions ran. Not installed evidence.

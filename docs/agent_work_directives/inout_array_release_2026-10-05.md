@@ -1290,3 +1290,38 @@ hashes matched through the terminal failure. No seed or installed receipt.
 - Linux CI 37329776930 independently established v44's Slice<String> failure;
   Windows/macOS/TSAN/Rocq passed. Current-head integration/default installation
   remains OPEN; no CLOSED family or C-path substitution claim is made.
+
+## Reached Slice runtime namespace boundary (2026-10-06)
+
+- Observed checkout: main @ 7e054c1ff5da65f1eed9d77f63429225ec1ae285.
+  Native v4 SHA-256 c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
+  Gate3 lengths and native public gate16 passed. Official seed v45 passed
+  source admission/emission but its original MIR root C failed compilation:
+  private Slice definitions collided with pgy_runtime.h's public type/functions,
+  which expect a distinct four-field Array rather than the private carrier.
+  All 6963 source/input/native hashes matched through failure. CI 37337689083
+  independently failed the same root C compile stage; four other jobs passed.
+- Objective: compile the original MIR-root emission beside its required runtime
+  header without redefining or calling native Array/Slice ABI symbols.
+- Priority: semantic/ABI identity, exact source projection, fail-closed admission,
+  executable negative ratchet, original integration input and budget.
+- Fact owner: existing source SliceRuntimeFact and its private symbol projection.
+  Compiler ABI rows and direct-MIR public Slice facts remain unchanged.
+- Last consumers: source AbiLayoutCValueType, Slice/index/length expression
+  emission, then SliceRuntimeCBlockForFact and the C compiler.
+- Forbidden fallback: passing a private Array to native Slice functions,
+  redefining native Slice types, casting away descriptor mismatch, removing the
+  required runtime include, or accepting missing/unsupported element facts.
+- Edit scope: source Slice fact/type spelling and its exact existing ABI consumer;
+  a HashMap-header coexistence/get/copy fixture and owned diagnostic publication.
+  No runtime/native source change, GUI coupling, new self-host rung or CLOSED row.
+- Gates: existing Slice length/fact refusals plus native C/LLVM and fresh self-host
+  C header coexistence; then official seed v46 on the unchanged original MIR root.
+  Focused 300s and integration 1800s limits remain unchanged.
+- Focused gate4 passed within 300s: existing eight length rows and the seven-row
+  HashMap-header coexistence/get/copy oracle match for native C/LLVM and fresh
+  self-host C. Source fact namespace and unchanged direct-MIR public type are
+  checked; missing/unsupported fact refusals remain. Emission is ratcheted against
+  redefining native Slice type/function names. No original-root/fixed-point claim.
+  `.tmp/inout-array-release-slice-length-gate4.log`,
+  `.tmp/self_hosted/slice-length-codegen.WPgus8`.

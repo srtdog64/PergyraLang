@@ -24,6 +24,12 @@ func Main() -> Void with caps env {
         int_fact.c_slice_len_fn != "pgy_slice_len_Int" ||
         string_fact.c_slice_len_fn != "pgy_slice_len_String" ||
         direct.c_slice_len_fn != string_fact.c_slice_len_fn ||
+        int_fact.c_slice_type != "pgy_self_slice_Int" ||
+        string_fact.c_slice_type != "pgy_self_slice_String" ||
+        string_fact.c_array_slice_fn != "pgy_self_array_slice_String" ||
+        string_fact.c_slice_copy_fn != "pgy_self_slice_copy_String" ||
+        string_fact.c_slice_get_fn != "pgy_self_slice_get_String" ||
+        direct.c_slice_type != CompilerAbiLayoutSliceStringCValueType() ||
         SliceRuntimeFactFromSliceTypeName("Slice<Float>", env).ok ||
         SliceRuntimeFactFromSliceTypeName("Slice<Missing>", env).ok ||
         SliceRuntimeFactFromSliceTypeName("Slice<>", env).ok { Exit(1); }

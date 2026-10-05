@@ -1,0 +1,17 @@
+// HashMap brings the public runtime header beside the private Slice runtime.
+func Numbers() -> Array<Int> { return [2, 5, 7]; }
+func Labels() -> Array<String> { return ["red", "blue", "green"]; }
+func Length(ref view: Slice<Int>) -> Int { return ArrayLength(view); }
+func LabelLength(ref view: Slice<String>) -> Int { return ArrayLength(view); }
+func Main() -> Void {
+    let numbers: Slice<Int> = Numbers().Slice(1, 2);
+    let labels: Slice<String> = Labels().Slice(0, 2);
+    Log(Length(numbers)); Log(LabelLength(labels));
+    Log(numbers[0]); Log(labels[1]);
+    let copied_numbers: Array<Int> = SliceCopy(numbers);
+    let copied_labels: Array<String> = SliceCopy(labels);
+    Log(copied_numbers[1]); Log(copied_labels[0]);
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "owned", 1);
+    Log(MapGet(values, "owned"));
+}

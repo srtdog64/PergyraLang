@@ -1,8 +1,8 @@
 // Self-host C runtime facts for borrowed Slice<T> values.
 //
-// The native runtime already owns the public ABI names. This owner projects
-// exactly the Int/String slice layouts admitted by the compiler ABI table into
-// self-host emission; unsupported element families fail closed.
+// The native runtime owns the public ABI names. This owner projects the
+// admitted Int/String layouts into a private C namespace: its three-field
+// Array carrier must not bind to native's four-field Array functions.
 
 import "collection_runtime_owner.pgy";
 import "../text/text_owner.pgy";
@@ -54,11 +54,11 @@ func SliceRuntimeFactFromElementType(
     );
     let array: CollectionRuntimeFact =
         CollectionRuntimeFactFromTypeName(array_type, env);
-    let c_slice_type: String = CompilerAbiLayoutSliceIntCValueType();
+    let c_slice_type: String = "pgy_self_slice_Int";
     let c_element_type: String = "int32_t";
     let push_fn: String = array.c_push_fn;
     if element_type == "String" {
-        c_slice_type = CompilerAbiLayoutSliceStringCValueType();
+        c_slice_type = "pgy_self_slice_String";
         c_element_type = "const char *";
         // Native SliceCopy<String> owns copies of the pointed-to strings.
         push_fn = CollectionRuntimeCOwnedStringPushFn();
@@ -66,9 +66,9 @@ func SliceRuntimeFactFromElementType(
     return SliceRuntimeFact(
         true, slice_type, array_type, element_type,
         c_slice_type, array.c_array_type, c_element_type,
-        Concat("pgy_array_slice_", element_type),
-        Concat("pgy_slice_copy_", element_type),
-        Concat("pgy_slice_get_", element_type),
+        Concat("pgy_self_array_slice_", element_type),
+        Concat("pgy_self_slice_copy_", element_type),
+        Concat("pgy_self_slice_get_", element_type),
         SliceRuntimeCLengthFn(element_type),
         array.c_new_fn, push_fn
     );
