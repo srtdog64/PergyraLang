@@ -1,0 +1,45 @@
+// domains/forge/policy.pgy — 제작 규칙
+//
+// 수수료와 품질은 화로 상태(heat)에 달려 있다. 화로는 쓸수록 뜨거워져서
+// 수수료(연료비)가 오르고, 과열되면 품질이 떨어진다.
+import "../../commons/types/calling.pgy";
+
+struct ForgeOrder {
+    ore: Int;
+    essence: Int;
+    fee: Int;
+    quality: Int;
+}
+
+// 유물 하나: 광석 3, 정수 1.
+func RelicOre() -> Int {
+    return 3;
+}
+
+func RelicEssence() -> Int {
+    return 1;
+}
+
+func ForgeFee(heat: Int) -> Int {
+    return 12 + heat / 5;
+}
+
+func CraftBonus(calling: Calling) -> Int {
+    match calling {
+        case Smith: return 4;
+        case Mage: return 2;
+        case Warrior | Merchant: return 0;
+    }
+}
+
+func RelicQuality(power: Int, heat: Int, calling: Calling) -> Int {
+    let quality: Int = 10 + power / 3 + CraftBonus(calling) + heat / 10;
+    if heat >= 40 {
+        quality = quality - 6;
+    }
+    return quality;
+}
+
+func PlanForge(power: Int, heat: Int, calling: Calling) -> ForgeOrder {
+    return ForgeOrder(RelicOre(), RelicEssence(), ForgeFee(heat), RelicQuality(power, heat, calling));
+}

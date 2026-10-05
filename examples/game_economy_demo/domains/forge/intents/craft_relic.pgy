@@ -1,0 +1,47 @@
+// domains/forge/intents/craft_relic.pgy — "대장장이가 재료로 유물을 만든다"
+//
+// 성공하면: 재료와 수수료가 빠지고 유물 한 개가 짐에 들어간다. 수수료는
+// 조폐국이 소각한다(sink). 그래서 제작은 통화 공급을 줄인다.
+// 실패하면: 아무것도 바뀌지 않는다. 면허, 재료, 수수료, 빈 칸 중 하나라도
+// 모자라면 smelt의 pre:에서 멈춘다.
+import "../zones/forge.pgy";
+import "../policy.pgy";
+import "../../treasury/zones/treasury.pgy";
+import "../../guild/policy.pgy";
+
+intent CraftRelic(forge: Forge, treasury: Treasury, mint: Mint, smith: Adventurer, order: ForgeOrder) {
+    exclusive;
+    rollback: full;
+    priority: 5;
+
+    step smelt {
+        where: Forge;
+        using: forge;
+        who: smith;
+        requires: Crafter;
+        authorized by: smith;
+        pre: LicensedToCraft(smith.calling)
+            && smith.pack.HasMaterials(order.ore, order.essence)
+            && smith.purse.Has(order.fee)
+            && smith.pack.CanCarry();
+        on: forge.Smelt(order);
+        compensate: forge.Unsmelt(order);
+        post: forge.smith.pack.relic == order.quality;
+    }
+
+    step burn {
+        where: Treasury;
+        using: treasury;
+        who: mint;
+        requires: Minting;
+        authorized by: mint;
+        on: forge.ReleaseFee(order.fee);
+        on: treasury.Burn(order.fee);
+        compensate: treasury.Unburn(order.fee);
+        compensate: forge.RestoreFee(order.fee);
+        expect: forge.feeBox == 0;
+    }
+
+    success: smith.pack.HasRelic();
+    failure: false;
+}

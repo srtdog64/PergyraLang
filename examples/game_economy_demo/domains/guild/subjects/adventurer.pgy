@@ -1,0 +1,106 @@
+// domains/guild/subjects/adventurer.pgy — 길드원
+//
+// 금화와 물건은 subject 안의 vessel에만 산다. 지갑에서 금화를 꺼내거나
+// 유물을 넘기는 길은 주인이 승인한 action뿐이다(authorized by self).
+import "../../../commons/types/calling.pgy";
+
+vessel Purse {
+    let mut gold: Int;
+
+    func Has(self, amount: Int) -> Bool {
+        return amount >= 0 && gold >= amount;
+    }
+}
+
+// 짐에는 재료와 유물 한 칸이 있다. relic은 품질이고 0이면 빈 칸이다.
+vessel Pack {
+    let mut ore: Int;
+    let mut essence: Int;
+    let mut relic: Int;
+
+    func HasMaterials(self, oreNeed: Int, essenceNeed: Int) -> Bool {
+        return ore >= oreNeed && essence >= essenceNeed;
+    }
+
+    func HasRelic(self) -> Bool {
+        return relic > 0;
+    }
+
+    func CanCarry(self) -> Bool {
+        return relic == 0;
+    }
+}
+
+subject Adventurer {
+    let name: String;
+    let calling: Calling;
+    let power: Int;
+    vessel purse: Purse;
+    vessel pack: Pack;
+    let mut renown: Int;
+
+    action Earn(self, amount: Int) -> Int {
+        purse.gold = purse.gold + amount;
+        return purse.gold;
+    }
+
+    action Spend(self, amount: Int) -> Int
+        authorized by self
+    {
+        purse.gold = purse.gold - amount;
+        return purse.gold;
+    }
+
+    // 보상(compensate) 전용: 같은 intent가 앞서 지급한 금화를 되돌린다.
+    action Clawback(self, amount: Int) -> Int {
+        purse.gold = purse.gold - amount;
+        return purse.gold;
+    }
+
+    action Gather(self, ore: Int, essence: Int) -> Int {
+        pack.ore = pack.ore + ore;
+        pack.essence = pack.essence + essence;
+        return pack.ore;
+    }
+
+    action Drop(self, ore: Int, essence: Int) -> Int {
+        pack.ore = pack.ore - ore;
+        pack.essence = pack.essence - essence;
+        return pack.ore;
+    }
+
+    action StowRelic(self, quality: Int) -> Int {
+        pack.relic = quality;
+        return pack.relic;
+    }
+
+    action HandRelic(self) -> Int
+        authorized by self
+    {
+        let quality: Int = pack.relic;
+        pack.relic = 0;
+        return quality;
+    }
+
+    // 보상(compensate) 전용: 같은 intent가 앞서 넣어 준 유물을 거둔다.
+    action DiscardRelic(self) -> Int {
+        let quality: Int = pack.relic;
+        pack.relic = 0;
+        return quality;
+    }
+
+    action Honor(self, points: Int) -> Int {
+        renown = renown + points;
+        return renown;
+    }
+
+    func Card(self) -> String {
+        return name
+            + " " + CallingName(calling)
+            + " gold=" + ToString(purse.gold)
+            + " ore=" + ToString(pack.ore)
+            + " essence=" + ToString(pack.essence)
+            + " relic=" + ToString(pack.relic)
+            + " renown=" + ToString(renown);
+    }
+}

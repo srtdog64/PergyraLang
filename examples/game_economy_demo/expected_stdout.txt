@@ -1,0 +1,60 @@
+=== GUILD ECONOMY: ONE SEASON ===
+[genesis] supply=670 held=670 conserved=true
+  Ana warrior gold=120 ore=1 essence=0 relic=0 renown=0
+  Bo merchant gold=400 ore=0 essence=0 relic=0 renown=0
+  Cy smith gold=90 ore=1 essence=1 relic=0 renown=0
+  Dee mage gold=60 ore=0 essence=0 relic=0 renown=0
+-- raid: Ashen Wyrm hp=90 --
+[plan] damage=40/21/32 total=93 bounty=150 cuts=66/33/51 mvp=0
+[intent] ClearRaid ok
+[books] supply=820 held=820 conserved=true
+[raid] Ashen Wyrm slain=true clears=1 minted=150/200
+-- raid: Storm Titan hp=160 --
+[plan] damage=40/21/32 total=93 bounty=266 cuts=115/60/91 mvp=0
+[intent] ClearRaid refused at pre:engage
+[books] supply=820 held=820 conserved=true
+[raid] Storm Titan slain=false clears=1 minted=150/200
+-- raid: Bone Hydra hp=80 --
+[plan] damage=40/21/32 total=93 bounty=133 cuts=58/30/45 mvp=0
+[intent] ClearRaid refused at pre:mint
+[books] supply=820 held=820 conserved=true
+[raid] Bone Hydra slain=false clears=1 minted=150/200
+-- forge: Cy heat=0 --
+[plan] fee=12 quality=20
+[intent] CraftRelic ok
+[books] supply=808 held=808 conserved=true
+-- forge: Ana heat=25 --
+[plan] fee=17 quality=23
+[intent] CraftRelic refused at pre:smelt
+[books] supply=808 held=808 conserved=true
+-- forge: Dee heat=25 --
+[plan] fee=17 quality=23
+[intent] CraftRelic ok
+[books] supply=791 held=791 conserved=true
+-- auction: Cy lists quality=20 reserve=60 --
+[bids] Ana=186 Bo=280 Dee=0
+[clearing] winner=Bo price=186 tax=14
+[intent] SettleAuction ok
+[books] supply=791 held=791 conserved=true
+[market] Cy -> Bo net=172; Cy paid 14 in auction tax
+-- auction: Cy lists quality=20 reserve=60 --
+[bids] Ana=186 Bo=0 Dee=0
+[clearing] winner=Ana price=60 tax=3
+[intent] SettleAuction refused at pre:open
+[books] supply=791 held=791 conserved=true
+-- auction: Dee lists quality=23 reserve=60 --
+[bids] Ana=186 Bo=0 Cy=184
+[clearing] winner=Ana price=184 tax=14
+[intent] SettleAuction ok
+[books] supply=791 held=791 conserved=true
+[market] Dee -> Ana net=170; Dee paid 14 in auction tax
+-- season report --
+  Ana warrior gold=2 ore=5 essence=1 relic=23 renown=1
+  Bo merchant gold=214 ore=0 essence=0 relic=20 renown=0
+  Cy smith gold=283 ore=0 essence=0 relic=0 renown=4
+  Dee mage gold=264 ore=0 essence=0 relic=0 renown=4
+[supply] genesis=670 minted=150 burned=29 supply=791 inflation=18%
+[treasury] vault=28 pending=0
+[cards] herald=Ana/1 raid-leader=Ana/1 forge-master=Dee/3 auction-board=Dee/4
+[spread] richest=283 poorest=2 relics=2 sales=2
+[books] supply=791 held=791 conserved=true

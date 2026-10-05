@@ -1,0 +1,77 @@
+// domains/treasury/zones/treasury.pgy — 국고
+//
+// 통화 공급의 단일 소유자. supply는 유통 중인 금화 총량이다.
+//   supply = genesis + mint.issued - mint.burned
+// 보존 법칙(world.pgy의 Conserved)은 supply가 지갑·에스크로·수수료 상자·
+// 국고·지급 대기분의 합과 같은지 검사한다.
+// cap은 한 시즌에 새로 발행할 수 있는 금화의 상한이다(통화 정책).
+import "../subjects/mint.pgy";
+
+zone Treasury {
+    subject slot mint: Mint
+
+    shared genesis: Int = 0
+    shared cap: Int = 0
+    shared supply: Int = 0
+    shared vault: Int = 0
+    shared pending: Int = 0
+
+    authority mint requires Minting
+
+    func Open(self, amount: Int, seasonCap: Int) -> Int {
+        genesis = amount;
+        supply = amount;
+        cap = seasonCap;
+        return supply;
+    }
+
+    func CanIssue(self, amount: Int) -> Bool {
+        return mint.issued + amount <= cap;
+    }
+
+    func Issue(self, amount: Int) -> Int {
+        mint.Issue(amount);
+        supply = supply + amount;
+        pending = pending + amount;
+        return pending;
+    }
+
+    func Recall(self, amount: Int) -> Int {
+        mint.Recall(amount);
+        supply = supply - amount;
+        pending = pending - amount;
+        return pending;
+    }
+
+    func Disburse(self, amount: Int) -> Int {
+        pending = pending - amount;
+        return pending;
+    }
+
+    func Undisburse(self, amount: Int) -> Int {
+        pending = pending + amount;
+        return pending;
+    }
+
+    func Burn(self, amount: Int) -> Int {
+        mint.Burn(amount);
+        supply = supply - amount;
+        return supply;
+    }
+
+    func Unburn(self, amount: Int) -> Int {
+        mint.Unburn(amount);
+        supply = supply + amount;
+        return supply;
+    }
+
+    func Deposit(self, amount: Int) -> Int {
+        vault = vault + amount;
+        return vault;
+    }
+
+    func Withdraw(self, amount: Int) -> Int {
+        vault = vault - amount;
+        return vault;
+    }
+}

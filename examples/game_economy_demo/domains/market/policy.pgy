@@ -1,0 +1,76 @@
+// domains/market/policy.pgy — 경매 규칙
+//
+// 감정가 → 입찰가 → 낙찰(2차 가격 경매) → 누진 경매세. 모두 순수 계산이다.
+// "낙찰 없음"은 실패가 아니라 시장의 결과이므로 Result로 돌려준다.
+import "../../commons/types/calling.pgy";
+import "../../commons/ranking.pgy";
+
+enum AuctionError { NoBids, BelowReserve }
+
+struct Clearing {
+    winner: Int;
+    price: Int;
+    tax: Int;
+}
+
+// 누진 세율(%): 100 미만 5, 300 미만 8, 그 이상 12.
+func AuctionTaxRate(price: Int) -> Int {
+    if price < 100 {
+        return 5;
+    }
+    if price < 300 {
+        return 8;
+    }
+    return 12;
+}
+
+func AuctionTax(price: Int) -> Int {
+    return price * AuctionTaxRate(price) / 100;
+}
+
+// 직업마다 유물의 쓸모가 다르다. 상인은 되팔 수 있어서 가장 높게 본다.
+func Appraise(quality: Int, calling: Calling) -> Int {
+    match calling {
+        case Merchant: return quality * 14;
+        case Warrior: return quality * 11;
+        case Mage: return quality * 12;
+        case Smith: return quality * 8;
+    }
+}
+
+// 감정가와 지갑 중 작은 값. 짐에 빈 칸이 없으면 입찰하지 않는다.
+func BidFor(quality: Int, calling: Calling, gold: Int, canCarry: Bool) -> Int {
+    if !canCarry {
+        return 0;
+    }
+    let value: Int = Appraise(quality, calling);
+    if gold < value {
+        return gold;
+    }
+    return value;
+}
+
+// 2차 가격(Vickrey) 경매: 최고 입찰자가 낙찰받고, 차순위 입찰가(최저가 이상)를 낸다.
+// 동점이면 앞선 입찰자가 이긴다(commons/ranking.pgy).
+func ClearAuction(bids: Array<Int>, reserve: Int) -> Result<Clearing, AuctionError> {
+    let top: Int = HighestOf(bids);
+    if top == 0 {
+        return Err(NoBids);
+    }
+    if top < reserve {
+        return Err(BelowReserve);
+    }
+    let winner: Int = FirstIndexOf(bids, top);
+    let price: Int = HighestExcept(bids, winner);
+    if price < reserve {
+        price = reserve;
+    }
+    return Ok(Clearing(winner, price, AuctionTax(price)));
+}
+
+func AuctionErrorName(error: AuctionError) -> String {
+    match error {
+        case NoBids: return "no-bids";
+        case BelowReserve: return "below-reserve";
+    }
+}

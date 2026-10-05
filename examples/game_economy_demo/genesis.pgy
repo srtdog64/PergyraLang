@@ -1,0 +1,23 @@
+// genesis.pgy — 시즌 시작 상태
+//
+// 길드원 넷의 원본은 명부(GuildRoster)에만 있다. 다른 zone의 자리는 처음에
+// 복제로 채워 두고, 각 intent step이 using:으로 원본을 다시 묶는다.
+// subject는 zone 자리에 묶인 핸들이라 함수가 값으로 돌려줄 수 없다. 그래서
+// 여기서 한 번 만들고 Clone으로 자리를 채운다.
+import "world.pgy";
+
+func OpenSeason() -> GuildEconomy {
+    let ana: Adventurer = Adventurer("Ana", Warrior, 34, Purse(120), Pack(1, 0, 0), 0);
+    let bo: Adventurer = Adventurer("Bo", Merchant, 8, Purse(400), Pack(0, 0, 0), 0);
+    let cy: Adventurer = Adventurer("Cy", Smith, 18, Purse(90), Pack(1, 1, 0), 0);
+    let dee: Adventurer = Adventurer("Dee", Mage, 27, Purse(60), Pack(0, 0, 0), 0);
+    let economy: GuildEconomy = GuildEconomy(
+        GuildRoster(Clone(ana), Clone(bo), Clone(cy), Clone(dee)),
+        Treasury(Mint("crown", 0, 0)),
+        RaidHall(Clone(ana), Clone(cy), Clone(dee)),
+        Forge(Clone(cy)),
+        AuctionHall(Clone(cy), Clone(bo))
+    );
+    economy.Open(200);
+    return economy;
+}

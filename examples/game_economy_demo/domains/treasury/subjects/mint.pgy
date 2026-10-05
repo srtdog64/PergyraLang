@@ -1,0 +1,54 @@
+// domains/treasury/subjects/mint.pgy — 왕실 조폐국
+//
+// 금화를 새로 만들거나(발행) 없애는(소각) 권한은 유형 수준 능력 Minting에 있고,
+// 그 능력은 Mint에만 구현된다. 길드원은 금화를 만들 수 없다.
+
+ability Minting {
+    func MintMark() -> String;
+}
+
+subject Mint {
+    let seal: String;
+    let mut issued: Int;
+    let mut burned: Int;
+
+    action Issue(self, amount: Int) -> Int
+        requires Minting
+        authorized by self
+    {
+        issued = issued + amount;
+        return issued;
+    }
+
+    action Recall(self, amount: Int) -> Int
+        requires Minting
+        authorized by self
+    {
+        issued = issued - amount;
+        return issued;
+    }
+
+    action Burn(self, amount: Int) -> Int
+        requires Minting
+        authorized by self
+    {
+        burned = burned + amount;
+        return burned;
+    }
+
+    action Unburn(self, amount: Int) -> Int
+        requires Minting
+        authorized by self
+    {
+        burned = burned - amount;
+        return burned;
+    }
+}
+
+role CrownMint for Mint {
+    impl ability Minting {
+        func MintMark() -> String {
+            return "crown-seal";
+        }
+    }
+}

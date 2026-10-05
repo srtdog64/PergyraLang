@@ -1,0 +1,15 @@
+// commons/types/calling.pgy — 길드 직업
+//
+// 직업은 값이다. 누가 무엇을 할 수 있는지(면허)는 이 값에서
+// domains/guild/policy.pgy의 표가 유도한다.
+
+enum Calling { Warrior, Merchant, Smith, Mage }
+
+func CallingName(calling: Calling) -> String {
+    match calling {
+        case Warrior: return "warrior";
+        case Merchant: return "merchant";
+        case Smith: return "smith";
+        case Mage: return "mage";
+    }
+}

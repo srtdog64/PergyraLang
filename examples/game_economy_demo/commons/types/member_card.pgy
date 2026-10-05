@@ -1,0 +1,9 @@
+// commons/types/member_card.pgy — 길드원의 공개 카드
+//
+// zone이 subject에서 refresh로 투영하는 읽기 모델이다.
+// 지갑과 짐은 담지 않는다. 남에게 보이는 것은 이름과 명성뿐이다.
+
+object MemberCard {
+    let name: String;
+    let renown: Int;
+}

@@ -1,0 +1,80 @@
+// domains/market/intents/settle_auction.pgy — "낙찰자가 값을 치르고 유물을 받는다"
+//
+// 성공하면: 낙찰가가 구매자 지갑에서 빠지고, 유물이 판매자에게서 구매자에게
+// 넘어가고, 세금은 국고로, 나머지는 판매자에게 간다. escrow는 0으로 끝난다.
+// 실패하면: 아무것도 옮겨지지 않는다. 판매자에게 유물이 없거나(이미 판 유물을
+// 다시 올린 경우) 구매자가 값을 치를 수 없으면 open의 pre:에서 멈춘다.
+//
+// 실패할 수 있는 검사는 모두 첫 효과 앞(open)에 있다. intent가 exclusive라서
+// 같은 길드원을 건드리는 다른 intent가 끼어들 수 없고, 그래서 open의 검사는
+// 정산이 끝날 때까지 유효하다. 뒤 step의 compensate는 post/expect가 깨질 때를
+// 위한 안전망이다(README의 "알려진 언어 결함" 참고).
+import "../zones/auction_hall.pgy";
+import "../policy.pgy";
+import "../../treasury/zones/treasury.pgy";
+
+intent SettleAuction(hall: AuctionHall, treasury: Treasury, mint: Mint, seller: Adventurer, buyer: Adventurer, clearing: Clearing) {
+    exclusive;
+    rollback: full;
+    priority: 6;
+
+    step open {
+        where: AuctionHall;
+        using: hall;
+        who: seller, buyer;
+        requires: Tradable;
+        authorized by: seller;
+        pre: seller.pack.HasRelic()
+            && buyer.purse.Has(clearing.price)
+            && buyer.pack.CanCarry();
+        on: hall.Open(clearing.price);
+        compensate: hall.Close();
+        post: hall.settling;
+    }
+
+    step escrow {
+        where: AuctionHall;
+        using: hall;
+        who: buyer;
+        requires: Tradable;
+        authorized by: buyer;
+        on: hall.Escrow(clearing.price);
+        compensate: hall.Refund(clearing.price);
+        post: hall.escrow == clearing.price;
+    }
+
+    step deliver {
+        where: AuctionHall;
+        using: hall;
+        who: seller, buyer;
+        requires: Tradable;
+        authorized by: seller;
+        on: hall.Deliver();
+        compensate: hall.Undeliver();
+        post: hall.buyer.pack.HasRelic();
+    }
+
+    step levy {
+        where: Treasury;
+        using: treasury;
+        who: mint;
+        authorized by: mint;
+        on: hall.Withhold(clearing.tax);
+        on: treasury.Deposit(clearing.tax);
+        compensate: treasury.Withdraw(clearing.tax);
+        compensate: hall.Unwithhold(clearing.tax);
+    }
+
+    step payout {
+        where: AuctionHall;
+        using: hall;
+        who: seller;
+        authorized by: seller;
+        on: hall.Payout();
+        compensate: hall.Unpayout(clearing.price - clearing.tax);
+        expect: hall.escrow == 0 && !hall.settling;
+    }
+
+    success: hall.escrow == 0;
+    failure: false;
+}

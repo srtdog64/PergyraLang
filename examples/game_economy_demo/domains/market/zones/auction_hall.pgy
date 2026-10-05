@@ -1,0 +1,99 @@
+// domains/market/zones/auction_hall.pgy — 경매장
+//
+// 낙찰가는 정산이 끝날 때까지 escrow에 머문다. 세금은 escrow에서 떼어 국고로,
+// 나머지는 판매자에게 간다.
+import "../../guild/subjects/adventurer.pgy";
+import "../../guild/abilities/guild_licenses.pgy";
+import "../../../commons/types/member_card.pgy";
+import "../effects/levy.pgy";
+import "../relations/trade_bond.pgy";
+
+zone AuctionHall {
+    subject slot seller: Adventurer
+    subject slot buyer: Adventurer
+    object slot board: MemberCard
+    effect slot levy: Levy
+    relation slot bond: TradeBond
+
+    shared escrow: Int = 0
+    shared ask: Int = 0
+    shared settling: Bool = false
+    shared lot: Int = 0
+    shared sales: Int = 0
+
+    authority seller requires Tradable
+    authority buyer requires Tradable
+    refresh board from seller by seller
+    apply levy to seller by seller
+    link bond between seller, buyer by seller
+
+    func Open(self, price: Int) -> Int {
+        ask = price;
+        settling = true;
+        return ask;
+    }
+
+    func Close(self) -> Int {
+        ask = 0;
+        settling = false;
+        return ask;
+    }
+
+    func Escrow(self, price: Int) -> Int {
+        buyer.Spend(price);
+        escrow = escrow + price;
+        return escrow;
+    }
+
+    func Refund(self, price: Int) -> Int {
+        buyer.Earn(price);
+        escrow = escrow - price;
+        return escrow;
+    }
+
+    func Deliver(self) -> Int {
+        lot = seller.HandRelic();
+        buyer.StowRelic(lot);
+        return lot;
+    }
+
+    func Undeliver(self) -> Int {
+        buyer.DiscardRelic();
+        seller.StowRelic(lot);
+        lot = 0;
+        return lot;
+    }
+
+    func Withhold(self, tax: Int) -> Int {
+        escrow = escrow - tax;
+        self.levy.paid = tax;
+        return escrow;
+    }
+
+    func Unwithhold(self, tax: Int) -> Int {
+        escrow = escrow + tax;
+        self.levy.paid = 0;
+        return escrow;
+    }
+
+    func Payout(self) -> Int {
+        let net: Int = escrow;
+        seller.Earn(net);
+        seller.Honor(1);
+        escrow = 0;
+        settling = false;
+        sales = sales + 1;
+        self.bond.net = net;
+        return net;
+    }
+
+    func Unpayout(self, net: Int) -> Int {
+        seller.Clawback(net);
+        seller.Honor(-1);
+        escrow = escrow + net;
+        settling = true;
+        sales = sales - 1;
+        self.bond.net = 0;
+        return escrow;
+    }
+}
