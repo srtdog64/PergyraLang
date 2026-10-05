@@ -1,0 +1,13 @@
+// domains/market/effects/levy.pgy — 경매세 납부 사실
+//
+// 판매자가 남긴 도메인 사실이다. 경매장은 그 판의 판매자에게 이 효과를 붙이고,
+// 그 판에서 낸 세금을 기록한다. 누적 세수는 국고(vault)가 소유한다.
+import "../../guild/subjects/adventurer.pgy";
+
+effect Levy for bearer: Adventurer {
+    shared paid: Int = 0
+
+    func Label(self) -> String {
+        return bearer.name + " paid " + ToString(paid) + " in auction tax";
+    }
+}

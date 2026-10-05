@@ -1,0 +1,37 @@
+// domains/guild/abilities/guild_licenses.pgy — 길드원의 유형 수준 능력
+//
+// 모든 길드원은 거래·제작·원정 능력을 유형으로 갖는다. 그 능력을 지금
+// 써도 되는지는 개인 면허(domains/guild/policy.pgy)가 정한다.
+import "../subjects/adventurer.pgy";
+
+ability Tradable {
+    func TradeMark() -> String;
+}
+
+ability Crafter {
+    func CraftMark() -> String;
+}
+
+ability Raider {
+    func RaidMark() -> String;
+}
+
+role GuildMember for Adventurer {
+    impl ability Tradable {
+        func TradeMark() -> String {
+            return "guild-trade";
+        }
+    }
+
+    impl ability Crafter {
+        func CraftMark() -> String {
+            return "guild-forge";
+        }
+    }
+
+    impl ability Raider {
+        func RaidMark() -> String {
+            return "guild-raid";
+        }
+    }
+}

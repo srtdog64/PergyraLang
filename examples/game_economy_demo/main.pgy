@@ -1,105 +1,35 @@
-﻿// main.pgy — 진입점
+// main.pgy — 한 시즌을 처음부터 끝까지 돌린다
 //
-// 단일 책임: 모든 모듈을 합성하고 실행한다.
-import "type/types.pgy";
-import "subject/player.pgy";
-import "subject/enemy.pgy";
-import "ability/tradable.pgy";
-import "ability/combatant.pgy";
-import "effect/effects.pgy";
-import "effect/relations.pgy";
-import "effect/events.pgy";
-import "zone/market_zone.pgy";
-import "zone/battle_zone.pgy";
-import "world/game_world.pgy";
-import "intent/trade_intent.pgy";
-import "intent/battle_intent.pgy";
-import "async/async_lib.pgy";
-import "util/utils.pgy";
-
-func HandleTrade(amount: Int) -> Void {
-    Log("trade.complete=" + ToString(amount));
-}
+// 시즌의 줄거리:
+//   1. 원정대가 보스를 쓰러뜨리고 새로 발행된 금화와 재료를 나눈다(faucet).
+//   2. 더 센 보스에는 피해가 모자라 원정이 거절된다. 아무것도 발행되지 않는다.
+//   3. 약한 보스는 쓰러지지만, 보상이 시즌 발행 한도를 넘어 조폐국이 발행을
+//      거절한다. 처치 기록은 보상(compensate)으로 되돌려진다.
+//   4. 대장장이와 마법사가 유물을 만들고, 수수료는 소각된다(sink).
+//      면허 없는 전사의 제작은 거절된다.
+//   5. 유물이 2차 가격 경매로 팔린다. 이미 판 유물을 다시 올린 경매는
+//      정산을 열기 전에 거절된다.
+//   6. 시즌 보고서: 발행·소각·세수와 보존 법칙을 검사한다.
+import "genesis.pgy";
 
 func Main() -> Void {
-    // ADT: 재귀 + 패턴 매칭
-    let tree: Catalog = Node(Leaf(1), Node(Leaf(2), Leaf(3)));
-    Log(SumCatalog(tree));
+    let economy: GuildEconomy = OpenSeason();
+    Log("=== GUILD ECONOMY: ONE SEASON ===");
+    Log("[genesis] " + economy.Books());
+    economy.Roll();
 
-    let result: GameResult = Victory(100);
-    match result {
-        case Victory(g): Log("victory=" + ToString(g));
-        case Defeat(s): Log("defeat=" + s);
-        case Draw: Log("draw");
-    }
+    economy.Raid("Ashen Wyrm", 90, 20);
+    economy.Raid("Storm Titan", 160, 20);
+    economy.Raid("Bone Hydra", 80, 20);
 
-    // 제네릭
-    Log(Identity(42));
+    economy.Craft(Cy);
+    economy.Craft(Ana);
+    economy.Craft(Dee);
 
-    // subject / vessel
-    let seller: Player = Player("Alice", 200, Vitals(100, 100), 1);
-    let buyer: Player = Player("Bob", 100, Vitals(100, 100), 2);
-    Log(seller.IsAlive());
-    Log(buyer.CanAfford(50));
+    let listed: Int = economy.RelicOf(Cy);
+    economy.Auction(Cy, listed, 60, Ana, Bo, Dee);
+    economy.Auction(Cy, listed, 60, Ana, Bo, Dee);
+    economy.Auction(Dee, economy.RelicOf(Dee), 60, Ana, Bo, Cy);
 
-    // zone / world
-    let market: MarketZone = MarketZone(seller, buyer);
-    let hero: Player = Player("Hero", 100, Vitals(100, 100), 3);
-    let foe: Enemy = Enemy("Goblin", 50);
-    let battle: BattleZone = BattleZone(hero, foe);
-    let game: GameWorld = GameWorld(Clone(market), Clone(battle));
-
-    Log(game.MarketSellerGold());
-
-    // intent 실행
-    let tradeOk: Bool = ExecuteTrade(market, seller, buyer, 50);
-    Log(tradeOk);
-    let battleOk: Bool = RunBattle(battle, hero, foe);
-    Log(battleOk);
-
-    // event 구독/해지 (+= / -=)
-    OnTradeComplete += HandleTrade;
-    OnTradeComplete -= HandleTrade;
-
-    // Slot / SecureSlot / with
-    let s: Slot<Int> = ClaimSlot<Int>();
-    Write(s, 42);
-    Log(Read(s));
-    Release(s);
-
-    let (sec, tok) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);
-    Write(sec, 7, tok);
-    Log(Read(sec, tok));
-    Release(sec, tok);
-
-    with slot<Int> as counter {
-        Write(counter, 100);
-        Log(Read(counter));
-    }
-
-    // defer / unsafe
-    defer { Log("cleanup"); }
-    unsafe { Log("unsafe boundary"); }
-
-    // 제어 흐름
-    let i: Int = 0;
-    loop {
-        i = i + 1;
-        if i == 2 { continue; }
-        if i >= 3 { break; }
-    }
-    for n in 0..3 { Log(n); }
-    let w: Int = 0;
-    while w < 2 { w = w + 1; }
-
-    // Option/Result + 파이프
-    Log(Utils.FindGold(Some(PlayerSnapshot(100, 100))));
-    Log(Unwrap(Utils.SafeDiv(10, 2)));
-    Log(PipelineDemo());
-
-    // 비동기 + 트랜잭션
-    RunAsyncPipeline();
-    TransactionDemo();
-
-    Log("=== Game Economy Demo Complete ===");
+    economy.Report();
 }

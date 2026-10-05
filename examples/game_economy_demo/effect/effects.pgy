@@ -1,8 +1,0 @@
-// effect/effects.pgy — 도메인 효과
-//
-// 단일 책임: 행위가 남긴 도메인 사실(effect).
-import "subject/player.pgy";
-
-effect Earned for bearer: Player { }
-effect Spent for bearer: Player { }
-effect Damaged for bearer: Player { }

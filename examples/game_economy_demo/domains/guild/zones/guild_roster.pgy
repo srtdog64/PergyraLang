@@ -1,0 +1,44 @@
+// domains/guild/zones/guild_roster.pgy — 길드 명부
+//
+// 길드원의 원본이 사는 곳이다. 다른 zone은 intent step의 using:으로
+// 원본을 빌려 쓰고, step이 끝나면 변경이 원본으로 돌아온다.
+// 길드장 Ana가 길드의 공개 카드(herald)를 관리한다.
+import "../subjects/adventurer.pgy";
+import "../abilities/guild_licenses.pgy";
+import "../../../commons/types/member_card.pgy";
+
+// 명부의 자리 이름. subject는 함수 인자로 넘길 수 없으므로(zone 자리에 묶인
+// 핸들), world는 이 값으로 자리를 고른다.
+enum Member { Ana, Bo, Cy, Dee }
+
+func MemberName(member: Member) -> String {
+    match member {
+        case Ana: return "Ana";
+        case Bo: return "Bo";
+        case Cy: return "Cy";
+        case Dee: return "Dee";
+    }
+}
+
+zone GuildRoster {
+    subject slot ana: Adventurer
+    subject slot bo: Adventurer
+    subject slot cy: Adventurer
+    subject slot dee: Adventurer
+    object slot herald: MemberCard
+
+    authority ana requires Tradable
+    refresh herald from ana by ana
+
+    func Wealth(self) -> Int {
+        return ana.purse.gold + bo.purse.gold + cy.purse.gold + dee.purse.gold;
+    }
+
+    func Purses(self) -> Array<Int> {
+        return [ana.purse.gold, bo.purse.gold, cy.purse.gold, dee.purse.gold];
+    }
+
+    func Relics(self) -> Array<Int> {
+        return [ana.pack.relic, bo.pack.relic, cy.pack.relic, dee.pack.relic];
+    }
+}

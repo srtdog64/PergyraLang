@@ -1,0 +1,51 @@
+// domains/forge/zones/forge.pgy — 대장간
+//
+// 화로 하나와 대장장이 한 자리. 수수료는 소각될 때까지 feeBox에 머문다.
+import "../../guild/subjects/adventurer.pgy";
+import "../../guild/abilities/guild_licenses.pgy";
+import "../../../commons/types/member_card.pgy";
+import "../policy.pgy";
+
+zone Forge {
+    subject slot smith: Adventurer
+    object slot master: MemberCard
+
+    shared heat: Int = 0
+    shared feeBox: Int = 0
+    shared forged: Int = 0
+
+    authority smith requires Crafter
+    refresh master from smith by smith
+
+    func Smelt(self, order: ForgeOrder) -> Int {
+        smith.Spend(order.fee);
+        feeBox = feeBox + order.fee;
+        smith.Drop(order.ore, order.essence);
+        smith.StowRelic(order.quality);
+        smith.Honor(2);
+        heat = heat + 25;
+        forged = forged + 1;
+        return order.quality;
+    }
+
+    func Unsmelt(self, order: ForgeOrder) -> Int {
+        smith.DiscardRelic();
+        smith.Gather(order.ore, order.essence);
+        smith.Earn(order.fee);
+        smith.Honor(-2);
+        feeBox = feeBox - order.fee;
+        heat = heat - 25;
+        forged = forged - 1;
+        return feeBox;
+    }
+
+    func ReleaseFee(self, amount: Int) -> Int {
+        feeBox = feeBox - amount;
+        return feeBox;
+    }
+
+    func RestoreFee(self, amount: Int) -> Int {
+        feeBox = feeBox + amount;
+        return feeBox;
+    }
+}

@@ -1,0 +1,67 @@
+// domains/raid/zones/raid_hall.pgy — 원정 집결지
+//
+// 보스와 원정대 세 자리. 보상 지급은 이 zone이 원정대원의 지갑과 짐에 직접 한다.
+import "../../guild/subjects/adventurer.pgy";
+import "../../guild/abilities/guild_licenses.pgy";
+import "../../../commons/types/member_card.pgy";
+import "../policy.pgy";
+
+zone RaidHall {
+    subject slot vanguard: Adventurer
+    subject slot striker: Adventurer
+    subject slot arcanist: Adventurer
+    object slot leader: MemberCard
+
+    shared boss: String = "none"
+    shared bossHp: Int = 0
+    shared slain: Bool = false
+    shared clears: Int = 0
+
+    authority vanguard requires Raider
+    refresh leader from vanguard by vanguard
+
+    func Summon(self, name: String, hp: Int) -> Int {
+        boss = name;
+        bossHp = hp;
+        slain = false;
+        return bossHp;
+    }
+
+    func Slay(self, damage: Int) -> Int {
+        slain = true;
+        clears = clears + 1;
+        return damage - bossHp;
+    }
+
+    func Unslay(self) -> Int {
+        slain = false;
+        clears = clears - 1;
+        return clears;
+    }
+
+    func Reward(self, plan: RaidPlan) -> Int {
+        vanguard.Earn(plan.vanguard.gold);
+        striker.Earn(plan.striker.gold);
+        arcanist.Earn(plan.arcanist.gold);
+        vanguard.Gather(plan.vanguard.ore, plan.vanguard.essence);
+        striker.Gather(plan.striker.ore, plan.striker.essence);
+        arcanist.Gather(plan.arcanist.ore, plan.arcanist.essence);
+        vanguard.Honor(1);
+        striker.Honor(1);
+        arcanist.Honor(1);
+        return plan.vanguard.gold + plan.striker.gold + plan.arcanist.gold;
+    }
+
+    func Unreward(self, plan: RaidPlan) -> Int {
+        vanguard.Clawback(plan.vanguard.gold);
+        striker.Clawback(plan.striker.gold);
+        arcanist.Clawback(plan.arcanist.gold);
+        vanguard.Drop(plan.vanguard.ore, plan.vanguard.essence);
+        striker.Drop(plan.striker.ore, plan.striker.essence);
+        arcanist.Drop(plan.arcanist.ore, plan.arcanist.essence);
+        vanguard.Honor(-1);
+        striker.Honor(-1);
+        arcanist.Honor(-1);
+        return 0;
+    }
+}

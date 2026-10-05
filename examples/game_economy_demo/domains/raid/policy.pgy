@@ -1,0 +1,84 @@
+// domains/raid/policy.pgy — 원정 정산 규칙
+//
+// 순수 계산만 둔다. intent ClearRaid는 여기서 만든 RaidPlan을 값으로 받는다.
+import "../../commons/ranking.pgy";
+
+struct Cut {
+    gold: Int;
+    ore: Int;
+    essence: Int;
+}
+
+struct RaidPlan {
+    total: Int;
+    bounty: Int;
+    mvp: Int;
+    vanguard: Cut;
+    striker: Cut;
+    arcanist: Cut;
+}
+
+func RaidDamage(power: Int, morale: Int) -> Int {
+    return power * (100 + morale) / 100;
+}
+
+// 원정대원 각자의 피해량. join with all은 인덱스 순서 그대로 모은다.
+func PartyDamage(powers: Array<Int>, morale: Int) -> Array<Int> {
+    let damage: Array<Int> = parallel (power in powers) join with all {
+        give RaidDamage(power, morale);
+    };
+    return damage;
+}
+
+// 보스 체력 1당 금화 5/3. 이 금화는 새로 발행된다(faucet).
+func RewardPool(bossHp: Int) -> Int {
+    return bossHp * 5 / 3;
+}
+
+func ShareOf(bounty: Int, damage: Int, total: Int) -> Int {
+    return bounty * damage / total;
+}
+
+// 피해 10당 광석 1, 피해 30 이상이면 정수 1.
+func OreLoot(damage: Int) -> Int {
+    return damage / 10;
+}
+
+func EssenceLoot(damage: Int) -> Int {
+    if damage >= 30 {
+        return 1;
+    }
+    return 0;
+}
+
+func CutFor(bounty: Int, damage: Int, total: Int, bonus: Int) -> Cut {
+    return Cut(ShareOf(bounty, damage, total) + bonus, OreLoot(damage), EssenceLoot(damage));
+}
+
+// 나눗셈 나머지는 MVP에게 간다. 그래서 몫의 합은 언제나 bounty와 같다.
+// 피해 합이 0이면 나눌 것이 없다. 빈 몫을 돌려주고, engage의 pre:가 그 원정을 거절한다.
+func PlanRaid(damage: Array<Int>, bounty: Int) -> RaidPlan {
+    let total: Int = TotalOf(damage);
+    if total <= 0 {
+        return RaidPlan(0, bounty, 0, Cut(0, 0, 0), Cut(0, 0, 0), Cut(0, 0, 0));
+    }
+    let mvp: Int = FirstIndexOf(damage, HighestOf(damage));
+    let base: Int = ShareOf(bounty, damage[0], total) + ShareOf(bounty, damage[1], total) + ShareOf(bounty, damage[2], total);
+    let remainder: Int = bounty - base;
+    let bonus0: Int = 0;
+    let bonus1: Int = 0;
+    let bonus2: Int = 0;
+    match mvp {
+        case 0: bonus0 = remainder;
+        case 1: bonus1 = remainder;
+        default: bonus2 = remainder;
+    }
+    return RaidPlan(
+        total,
+        bounty,
+        mvp,
+        CutFor(bounty, damage[0], total, bonus0),
+        CutFor(bounty, damage[1], total, bonus1),
+        CutFor(bounty, damage[2], total, bonus2)
+    );
+}

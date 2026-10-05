@@ -1,0 +1,60 @@
+// domains/raid/intents/clear_raid.pgy — "원정대가 보스를 쓰러뜨리고 보상을 나눈다"
+//
+// 성공하면: 보스가 쓰러지고, 조폐국이 보상 금화를 새로 발행하고, 그 금화가
+// 기여도대로 원정대원에게 남김없이 지급된다.
+// 실패하면: 아무것도 발행되지 않는다. 피해가 모자라거나 면허 없는 대원이 끼면
+// engage의 pre:에서 멈춘다. 보상이 시즌 발행 한도를 넘으면 mint의 pre:에서 멈추고,
+// 이미 기록된 처치(engage)는 보상으로 되돌려진다. 보상 없는 처치는 장부에 남지 않는다.
+// engage와 mint는 zone이 소유한 상태만 바꾸므로 그 보상은 원본에 그대로 닿는다.
+import "../zones/raid_hall.pgy";
+import "../policy.pgy";
+import "../../treasury/zones/treasury.pgy";
+import "../../guild/policy.pgy";
+
+intent ClearRaid(raid: RaidHall, treasury: Treasury, mint: Mint, vanguard: Adventurer, striker: Adventurer, arcanist: Adventurer, plan: RaidPlan) {
+    exclusive;
+    rollback: full;
+    priority: 7;
+
+    step engage {
+        where: RaidHall;
+        using: raid;
+        who: vanguard, striker, arcanist;
+        requires: Raider;
+        authorized by: vanguard;
+        pre: plan.total >= raid.bossHp
+            && LicensedToRaid(vanguard.calling)
+            && LicensedToRaid(striker.calling)
+            && LicensedToRaid(arcanist.calling);
+        on: raid.Slay(plan.total);
+        compensate: raid.Unslay();
+        post: raid.slain;
+    }
+
+    step mint {
+        where: Treasury;
+        using: treasury;
+        who: mint;
+        requires: Minting;
+        authorized by: mint;
+        pre: treasury.CanIssue(plan.bounty);
+        on: treasury.Issue(plan.bounty);
+        compensate: treasury.Recall(plan.bounty);
+        post: treasury.pending == plan.bounty;
+    }
+
+    step payout {
+        where: RaidHall;
+        using: raid;
+        who: vanguard, striker, arcanist;
+        authorized by: vanguard;
+        on: treasury.Disburse(plan.bounty);
+        on: raid.Reward(plan);
+        compensate: raid.Unreward(plan);
+        compensate: treasury.Undisburse(plan.bounty);
+        expect: treasury.pending == 0;
+    }
+
+    success: raid.slain;
+    failure: false;
+}
