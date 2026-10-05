@@ -51,7 +51,8 @@ func SelfMirUsesAppendUnique(
         if uses[i] == use_name { return; }
         i = i + 1;
     }
-    ArrayPush(uses, use_name);
+    // A use edge outlives the source inventory; duplicate hits need no copy.
+    ArrayPushOwnedString(uses, use_name);
 }
 
 func SelfMirExpressionGraphUses(
@@ -102,7 +103,7 @@ func SelfMirExpressionGraphUsesAppend(
     let graph_uses: Array<String> = SelfMirExpressionGraphUses(build, view);
     let i: Int = 0;
     while i < ArrayLength(graph_uses) {
-        SelfMirUsesAppendUnique(uses, graph_uses[i]);
+        SelfMirUsesAppendUnique(uses, Concat("", graph_uses[i]));
         i = i + 1;
     }
     return true;

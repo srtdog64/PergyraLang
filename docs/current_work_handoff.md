@@ -9,8 +9,9 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
-- Checkout: main @ cf0fe236ec2876db0913d3b321600837b36b2b34, reached LocalRef
-  text publication and its focused oracles/inventory pins dirty. Root owns P0 integration
+- Checkout: main @ a59c01a6c13cd8a9f410db435dcf0c95fee67e98, reached unique-use
+  insertion/selected-scalar consumers and focused oracles/inventory pins dirty.
+  Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
   worker changes, including the new examples and deleted deployment guide.
@@ -21,6 +22,7 @@ SoT registry, admitted contracts, and executable gates override this note.
   Named-use compatibility 057c93c1 was merged with the external guild-economy
   example commit d5f90c54 as cf0fe236 and pushed; example behavior was not
   independently verified here. No local source edits were lost in that merge.
+  LocalRef publication a59c01a6 was committed/pushed as well.
   Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
@@ -163,6 +165,21 @@ SoT registry, admitted contracts, and executable gates override this note.
   This new oracle does not claim numeric version-scratch cleanup: the first
   native draft's ArrayDrop there was refused, and the release rule is unchanged.
   LocalRef owner is 142 effective lines under the existing 180 cap.
+  Seed v42 then refused node 72305 in SelfMirExpressionGraphUsesAppend at
+  unproved_formal_shallow_mutation_entry. Linux CI 37314795454 independently
+  refused that same node/boundary. The first insertion-copy candidate passed
+  native values but not source admission. The existing unique-use owner now
+  uses ArrayPushOwnedString; graph-use and assignment consumers copy selected
+  indexed text before the ordinary String formal. No permission rule changed.
+  New source copied/raw pair passed both C/LLVM observers, with the raw case
+  keeping the exact formal shallow-mutation refusal. Native C/LLVM source-
+  cleanup survival, first-occurrence order/deduplication, invalid-graph no-
+  mutation and original MIR-root six-line values passed. Structural mutation-
+  graph pins and Bash syntax checks passed; not full inventory/integration.
+  .tmp/inout-array-release-bootstrap-v42-exact-boundary-context.log,
+  .tmp/inout-array-release-ci-37314795454-codegen.log,
+  .tmp/inout-array-release-unique-use.sha256,
+  .tmp/inout-array-release-mir-root-unique-use.sha256.
   Next falsifier is whole-root admission on the original MIR control, not a
   narrow formal-effect count, native value check or elapsed-time inference.
 - OPEN: full integration10 timed out at its original 60s actual C unit; its
@@ -172,7 +189,7 @@ SoT registry, admitted contracts, and executable gates override this note.
   Fresh seed/fixed-point/installed pair, full C/LLVM integration, 16 structural
   cap failures and current-head CI remain OPEN. The all-current-work checkpoint
   is published; subsequent CI repair remains required. The new user examples
-  are included without an execution claim. Seed v42 is the next original-root
+  are included without an execution claim. Seed v43 is the next original-root
   falsifier, not yet run.
   Installed P0 rung remains BLOCKED on the admitted whole-root body bundle:
   SemanticAstBodyTypeBundleFromAnalysis is the owner, gen0's nominal-root
@@ -187,10 +204,10 @@ SoT registry, admitted contracts, and executable gates override this note.
   registrations passed the narrow authority-edge gate: 95 authorities/200
   derived carriers and 96th-owner refusal. No status/count authority changed.
   .tmp/inout-array-release-sot-authority-edge-current2.log.
-  Current published CI 37311728995 reached a Linux self-host failure; macOS
+  Current published CI 37314795454 reached the same Linux v42 self-host failure; macOS
   C-only, TSAN and Rocq passed, Windows was still live at the last snapshot.
-  Its failed-job logs were not available yet, so no CI node equivalence is
-  inferred from the local v41 diagnosis alone.
+  Its completed-job logs were retrieved directly and establish node 72305 and
+  the same formal shallow-mutation boundary; this is failure evidence, not green.
   Next after seed: serial full integration, official fresh driver,
   public all-lane gate and default C/LLVM execution of Alrescha's
   F:/JDW_project/alrescha/tests/repros/array_inout_release_frontier.pgy.

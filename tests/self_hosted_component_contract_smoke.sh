@@ -8042,6 +8042,11 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirLocalVer
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'MIR restored local versions exceed local inventory'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUses('
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUsesAppend('
+require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'ArrayPushOwnedString(uses, use_name);'
+reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'ArrayPush(uses, use_name);'
+reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'SelfMirUsesAppendUnique(uses, graph_uses[i]);'
+reject_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'SelfMirUsesAppendUnique(uses, target_uses[target_use_i]);'
+reject_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'SelfMirUsesAppendUnique(uses, value_uses[value_use_i]);'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphLeafIsMemberSelector('
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" '!SelfMirExpressionGraphLeafIsMemberSelector(view, node)'
 require_function_text "src/self_hosted/mir/routine_expression_use_owner.pgy" \

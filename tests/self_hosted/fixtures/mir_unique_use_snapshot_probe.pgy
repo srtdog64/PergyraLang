@@ -1,0 +1,40 @@
+import "../../../src/self_hosted/mir/routine_expression_use_owner.pgy";
+
+func Main() -> Void {
+    let source: Array<String> = [];
+    ArrayPushOwnedString(source, "value.1");
+    ArrayPushOwnedString(source, "value.1");
+    ArrayPushOwnedString(source, "other.2");
+    let uses: Array<String> = [];
+    ArrayPushOwnedString(uses, "prefix.0");
+    let i: Int = 0;
+    while i < ArrayLength(source) {
+        SelfMirUsesAppendUnique(uses, Concat("", source[i]));
+        i = i + 1;
+    }
+    ArrayDropOwnedStrings(source);
+    if ArrayLength(uses) != 3 || uses[0] != "prefix.0" ||
+        uses[1] != "value.1" || uses[2] != "other.2" { Exit(1); }
+    let kinds: Array<Int> = [AstExpressionNodeLeaf()];
+    let texts: Array<String> = ["value"];
+    let edges: Array<Int> = [-1];
+    let zeros: Array<Int> = [0];
+    let empty_text: Array<String> = [""];
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [0], [true], SemanticExpressionGraphArena(
+            AstExpressionArena(kinds, texts, edges, edges), texts,
+            zeros, empty_text, empty_text,
+            SemanticExpressionIdentityRowsUnknown(1), zeros));
+    let view: SemanticExpressionGraphView = SemanticExpressionGraphView(true, 0, graph);
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuild(
+        true, "", SelfMirCfgRowsEmpty(), 0, 0, [0],
+        ["value"], ["Int"], [3], ["declaration:200:0"]);
+    if !SelfMirExpressionGraphUsesAppend(build, uses, view) ||
+        !SelfMirExpressionGraphUsesAppend(build, uses, view) { Exit(1); }
+    if SelfMirExpressionGraphUsesAppend(build, uses,
+        SemanticExpressionGraphView(false, 0, graph)) { Exit(1); }
+    if ArrayLength(uses) != 4 || uses[0] != "prefix.0" ||
+        uses[1] != "value.1" || uses[2] != "other.2" ||
+        uses[3] != "value.3" { Exit(1); }
+    Log("MIR UNIQUE USE SNAPSHOT PASS");
+}

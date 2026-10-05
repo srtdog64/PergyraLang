@@ -49,7 +49,7 @@ for backend in c llvm; do
         member_scalar_owned_accumulator_positive participant_loop_scalar_copy_positive \
         borrow_formal_direct_owned_seed_positive borrow_formal_aggregate_scalar_copy_positive \
         borrow_formal_sync_typed_result_cleanup_positive borrow_formal_member_array_snapshot_positive \
-        borrow_formal_row_scalar_copy_positive; do
+        borrow_formal_row_scalar_copy_positive inout_use_unique_scalar_copy_positive; do
         observe "$name"
         grep -Fxq 'body_ok=true' "$WORK/$backend-$name.log" || fail "$backend refused $name"
     done
@@ -75,11 +75,14 @@ for backend in c llvm; do
         member_scalar_shallow_accumulator_negative participant_loop_scalar_borrow_negative \
         borrow_formal_retained_owned_seed_negative borrow_formal_aggregate_scalar_return_negative \
         borrow_formal_deferred_typed_result_cleanup_negative borrow_formal_member_array_return_negative \
-        borrow_formal_row_scalar_return_negative; do
+        borrow_formal_row_scalar_return_negative inout_use_unique_scalar_raw_negative; do
         observe "$name"
         grep -Fxq 'body_ok=false' "$WORK/$backend-$name.log" || fail "$backend accepted $name"
         grep -Eq '^body_diagnostic=(borrow_boundary_escape|move_from_released)$' "$WORK/$backend-$name.log" || fail "$name lost ownership diagnosis"
         case "$name" in
+            inout_use_unique_scalar_raw_negative)
+                grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$name.log" || fail "$name lost formal mutation diagnosis"
+                grep -Fq 'unproved_formal_shallow_mutation_entry' "$WORK/$backend-$name.log" || fail "$name bypassed raw insertion refusal" ;;
             borrow_formal_member_array_return_negative)
                 grep -Fq -- '- callee: Publish' "$WORK/$backend-$name.log" || fail "$name lost ordinary publication boundary"
                 grep -Fq -- '- argument_index: 0' "$WORK/$backend-$name.log" || fail "$name lost physical argument identity" ;;
@@ -217,3 +220,16 @@ for backend in c llvm; do
 done
 
 echo "[collection-borrowed-descriptor-read] native C/LLVM LocalRef snapshot, shadowing/shape/repeat guards and append ranges PASS; no destination deep-drop or installed-driver claim"
+
+for backend in c llvm; do
+    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
+        tests/self_hosted/fixtures/mir_unique_use_snapshot_probe.pgy \
+        -o "$REL/mir-unique-use-$backend.exe" >"$WORK/$backend-mir-unique-use.compile.log" 2>&1 ||
+        fail "$backend MIR unique-use snapshot did not compile"
+    timeout 30 "$WORK/mir-unique-use-$backend.exe" >"$WORK/$backend-mir-unique-use.raw" 2>&1 ||
+        fail "$backend MIR unique-use snapshot failed"
+    [[ "$(tr -d '\r' <"$WORK/$backend-mir-unique-use.raw")" == 'MIR UNIQUE USE SNAPSHOT PASS' ]] ||
+        fail "$backend use text/order/deduplication or invalid-graph guard changed"
+done
+
+echo "[collection-borrowed-descriptor-read] native C/LLVM unique-use snapshot, deduplication/order and invalid-graph no-mutation PASS; no destination deep-drop or installed-driver claim"

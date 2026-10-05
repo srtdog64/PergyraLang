@@ -1106,3 +1106,48 @@ indexed local-ref text. Mapping:
   `.tmp/inout-array-release-mir-root-local-ref.sha256`.
   Effective owner size is 142 under the unchanged 180 cap. Official seed v42,
   fresh installed-driver proof, full integration/inventory and CI remain OPEN.
+
+## Reached MIR unique-use accumulation
+
+IMPLEMENTATION CANDIDATE, base a59c01a6c13cd8a9f410db435dcf0c95fee67e98.
+Official seed v42 passed LocalRef publication and refused node 72305 in
+SelfMirExpressionGraphUsesAppend at unproved_formal_shallow_mutation_entry.
+Mapping: `.tmp/inout-array-release-bootstrap-v42-exact-boundary-context.log`.
+
+- Objective/priority: retain independent use text, preserve first occurrence
+  order and deduplication, then re-run the same original MIR root.
+- Owner/last consumer: SelfMirUsesAppendUnique owns insertion; graph-use and
+  assignment consumers forward their selected text into that owner.
+- Forbidden fallback: retaining raw borrowed String input, guessing ownership
+  from inout mode, destination deep-drop promotion, or cloning the whole prefix.
+- Edit scope: that existing insertion, focused use-text fixtures, source pins
+  and this navigation evidence only. Root integrates; no parallel rung edits.
+- Gate/falsifier: copied/raw unique-use source pair, native C/LLVM exact order,
+  deduplication and source-cleanup survival plus graph invalid/no-mutation,
+  followed by original MIR-root compatibility and official seed. Existing
+  static/focused/integration budgets stay unchanged.
+- Installed P0 remains BLOCKED at the admitted whole-root body bundle owned by
+  SemanticAstBodyTypeBundleFromAnalysis and consumed by gen0's nominal-root
+  codegen boundary. No CLOSED or C-path substitution claim is made.
+- First candidate (ArrayPush of Concat) passed native values but the focused
+  source pair still refused the copied case at the same formal shallow-mutation
+  entry. It is not source admission. The owner now uses the existing
+  ArrayPushOwnedString insertion contract; fixtures establish their prefix
+  through that same owned insertion. This proves new elements, not arbitrary
+  pre-existing prefix ownership, and introduces no semantic permission rule.
+- That owned-insertion candidate passed the mutation boundary but exposed
+  unproved_formal_element_use_entry for raw indexed text forwarded through an
+  ordinary String formal. Graph-use and assignment consumers now copy their
+  selected scalar before that call, following the existing scalar boundary.
+  The copied source fixture models both obligations; the raw negative retains
+  neither grant. No scalar-formal effect or collection permission is relaxed.
+- Final copied/raw pair passed both C/LLVM observers; raw insertion retains
+  the exact formal shallow-mutation diagnosis. Native C/LLVM source-cleanup
+  survival, order/deduplication, invalid-graph no-mutation and original MIR-root
+  six-line values passed. Structural mutation-graph pins and Bash syntax passed.
+  Receipts: `.tmp/inout-array-release-unique-use.sha256` and
+  `.tmp/inout-array-release-mir-root-unique-use.sha256`. The combined descriptor
+  matrix was extended, not claimed fully rerun. Linux CI 37314795454 separately
+  established the same v42 node 72305/boundary; logs are in
+  `.tmp/inout-array-release-ci-37314795454-codegen.log`.
+  Next falsifier is official seed v43 on the unchanged original MIR control.
