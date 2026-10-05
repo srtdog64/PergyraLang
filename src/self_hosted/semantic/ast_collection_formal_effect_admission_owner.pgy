@@ -13,11 +13,15 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifa
             owned_string_results, signatures) {
         let no_effects: HashMap<String, Int> = MapNew();
         let no_owned_push_leaf_formals: HashMap<String, Int> = MapNew();
+        let candidates: HashMap<String, Int> = MapNew();
+        let unsafe_functions: HashMap<String, Int> = MapNew();
         return SemanticAstCollectionFormalEffects(
             false,
             SemanticAstCollectionFormalEffectInventoryFromSignatures(
                 signatures),
-            no_effects, no_owned_push_leaf_formals);
+            no_effects, no_owned_push_leaf_formals,
+            SemanticAstCollectionFormalExecutionContexts(
+                false, 0, 0, candidates, unsafe_functions));
     }
     return SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         artifact, signatures, scopes, locals, initializer_types, surfaces,

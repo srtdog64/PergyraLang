@@ -39,16 +39,16 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     let inventory: SemanticAstCollectionFormalEffectInventory =
         SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures);
     let effects: HashMap<String, Int> = MapNew();
+    let contexts: SemanticAstCollectionFormalExecutionContexts =
+        SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+            artifact, signatures.function_node_ids, scopes, surfaces, order);
     // An empty, validated String-sequence formal inventory has no element-use
     // obligations. Unrelated plain-array uses belong to their storage owner.
     if inventory.ok && ArrayLength(inventory.formal_nodes) == 0 {
         let no_owned_push: HashMap<String, Int> = MapNew();
-        return SemanticAstCollectionFormalEffects(true, inventory, effects, no_owned_push);
+        return SemanticAstCollectionFormalEffects(
+            contexts.ok, inventory, effects, no_owned_push, contexts);
     }
-    let contexts: SemanticAstCollectionFormalExecutionContexts =
-        SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
-            artifact, inventory, scopes, surfaces, order);
-    let unsafe_functions: HashMap<String, Int> = contexts.unsafe_functions;
     let non_straightline_functions: HashMap<String, Int> =
         SemanticAstCollectionNonStraightLineFunctions(statements);
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
@@ -80,8 +80,8 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     let row: Int = 0;
     while row < count {
         let formal_key: String = ToString(inventory.formal_nodes[row]);
-        let opaque: Bool = MapHas(unsafe_functions,
-            ToString(inventory.function_nodes[row]));
+        let opaque: Bool = !SemanticAstCollectionFormalExecutionContextCallableReady(
+            artifact, contexts, inventory.function_nodes[row]);
         ArrayPush(blocked, !inventory.body_ready[row] || opaque);
         ArrayPush(mutations, MapHas(
             statement_owned_formals, formal_key));
@@ -403,7 +403,8 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
             direct_owned_push_counts[row] == 1 &&
             direct_owned_push_call_nodes[row] >= 0 &&
             !owned_push_leaf_disqualified[row] &&
-            !MapHas(unsafe_functions, function_key) &&
+            SemanticAstCollectionFormalExecutionContextCallableReady(
+                artifact, contexts, inventory.function_nodes[row]) &&
             !MapHas(non_straightline_functions, function_key) &&
             MapHas(effects, formal_key) &&
             MapGet(effects, formal_key) == 2 {
@@ -423,5 +424,5 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     ArrayDrop(owned_push_leaf_disqualified);
     ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(
-        ok, inventory, effects, owned_push_leaf_formals);
+        ok, inventory, effects, owned_push_leaf_formals, contexts);
 }

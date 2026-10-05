@@ -1,0 +1,40 @@
+// Mutate only the derived context; supplied source is never emitted or run.
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy";
+
+func InspectCollectionExecutionContextGeneration(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis) -> Bool {
+    if !AstTreeArtifactReady(artifact) || !analysis.verdict.ok { return false; }
+    let no_roots: Array<Int> = [];
+    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+        analysis.expression_surfaces, no_roots, no_roots);
+    let contexts: SemanticAstCollectionFormalExecutionContexts =
+        SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+            artifact, analysis.signatures.function_node_ids,
+            analysis.function_scopes, analysis.expression_surfaces, order);
+    let main_row: Int = analysis.signatures.entrypoint_selection.signature_index;
+    if main_row < 0 || main_row >= SemanticAstFunctionSignatureCount(analysis.signatures) { return false; }
+    let function_id: Int = analysis.signatures.function_node_ids[main_row];
+    if !SemanticAstCollectionFormalExecutionContextCallableReady(artifact, contexts, function_id) { return false; }
+    let bad: SemanticAstCollectionFormalExecutionContexts = contexts;
+    bad.ok = false;
+    if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) { return false; }
+    bad = contexts;
+    bad.artifact_identity_digest = contexts.artifact_identity_digest + 1;
+    if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) { return false; }
+    bad = contexts;
+    bad.artifact_node_count = contexts.artifact_node_count + 1;
+    if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) { return false; }
+    bad = contexts;
+    let no_candidates: HashMap<String, Int> = MapNew();
+    bad.candidate_functions = no_candidates;
+    if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) { return false; }
+    bad = contexts;
+    let opaque: HashMap<String, Int> = MapNew();
+    MapSet(opaque, ToString(function_id), 1);
+    bad.unsafe_functions = opaque;
+    if SemanticAstCollectionFormalExecutionContextCallableReady(artifact, bad, function_id) ||
+        SemanticAstCollectionFormalExecutionContextCallableReady(artifact, contexts, 0) ||
+        SemanticAstCollectionFormalExecutionContextCallableReady(artifact, contexts, artifact.count) { return false; }
+    return SemanticAstCollectionFormalExecutionContextCallableReady(artifact, contexts, function_id);
+}

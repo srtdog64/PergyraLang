@@ -1,0 +1,16 @@
+struct Table { names: Array<String>; }
+func Observe(ref table: Table) -> Bool {
+    let alias: Table = table;
+    return ArrayLength(alias.names) != 0;
+}
+func Retire(inout table: Table) -> Void {
+    let names: Array<String> = table.names;
+    ArrayDropOwnedStrings(names);
+    table.names = names;
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    let table: Table = Table(names);
+    let observed: Bool = Observe(table);
+    Retire(table);
+}

@@ -1,11 +1,13 @@
 // Canonical body-level formal-effect carrier and empty admission value.
 import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_collection_execution_context_fact_owner.pgy";
 
 struct SemanticAstCollectionFormalEffects {
     ok: Bool;
     inventory: SemanticAstCollectionFormalEffectInventory;
     effects: HashMap<String, Int>;
     owned_push_leaf_formals: HashMap<String, Int>;
+    execution_contexts: SemanticAstCollectionFormalExecutionContexts;
 }
 
 func SemanticAstCollectionFormalEffectsEmpty(
@@ -18,10 +20,14 @@ func SemanticAstCollectionFormalEffectsEmpty(
     let row_by_formal: HashMap<String, Int> = MapNew();
     let effects: HashMap<String, Int> = MapNew();
     let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
+    let candidates: HashMap<String, Int> = MapNew();
+    let unsafe_functions: HashMap<String, Int> = MapNew();
     return SemanticAstCollectionFormalEffects(
         false,
         SemanticAstCollectionFormalEffectInventory(
             false, formal_nodes, function_nodes, ordinals, modes,
             body_ready, row_by_formal),
-        effects, owned_push_leaf_formals);
+        effects, owned_push_leaf_formals,
+        SemanticAstCollectionFormalExecutionContexts(
+            false, 0, 0, candidates, unsafe_functions));
 }

@@ -3,12 +3,14 @@
 // alias or unproved handoff disqualifies this narrow proof for the body.
 import "ast_collection_ownership_member_move_owner.pgy";
 import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_member_read_call_target_owner.pgy";
 
 struct SemanticAstCollectionMemberRootReadOccurrence {
     source: Int;
     target: Int;
     blocked: Bool;
 }
+
 
 func SemanticAstCollectionMemberReadFormalRoot(
     ref artifact: AstTreeArtifact,
@@ -33,6 +35,7 @@ func SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     ref resolved_leaf_types: Array<String>,
     ref graph: SemanticExpressionGraphFacts,
+    ref contexts: SemanticAstCollectionFormalExecutionContexts,
     function_id: Int, node: Int, root: Int
 ) -> SemanticAstCollectionMemberRootReadOccurrence {
     let absent: SemanticAstCollectionMemberRootReadOccurrence = SemanticAstCollectionMemberRootReadOccurrence(0, 0, false);
@@ -44,6 +47,10 @@ func SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
         SemanticCanonicalTypeNameFactFrom(Concat("", resolved_leaf_types[node]));
     if !IsSome(SemanticAstNominalConstructorIndexForName(constructors,
             type_fact.nominal_base_name)) { return absent; }
+    if !SemanticAstCollectionFormalExecutionContextCallableReady(
+            artifact, contexts, function_id) {
+        return SemanticAstCollectionMemberRootReadOccurrence(formal.syntax_id, 0, true);
+    }
     // The parser's direct member occurrence is receiver, selector, member.
     // Only exact topology permits the root leaf to remain a field borrow.
     if node + 2 <= root {
@@ -54,18 +61,11 @@ func SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
         let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, node + 1);
         if edge.ok && edge.argument_node == node {
             let target: SemanticAstCollectionArgumentFormalTarget =
-                SemanticAstCollectionArgumentFormalTargetForArgument(signatures, graph, edge.call_node, edge.ordinal);
-            if target.ok {
-                let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, target.signature_row, target.ordinal);
-                let callee: Int = signatures.function_node_ids[target.signature_row];
-                if IsSome(mode) && (UnwrapOption(mode) == 0 || UnwrapOption(mode) == 3) &&
-                    signatures.action_contracts.body_node_ids[target.signature_row] > 0 &&
-                    callee > 0 && callee < artifact.count &&
-                    ArrayLength(artifact.arena.modes) == artifact.count &&
-                    artifact.arena.modes[callee] >= 0 &&
-                    artifact.arena.modes[callee] != TypedAstModeCallableAsync() {
-                    return SemanticAstCollectionMemberRootReadOccurrence(formal.syntax_id, target.syntax_id, false);
-                }
+                SemanticAstCollectionMemberReadCallTarget(
+                    artifact, signatures, graph, edge.call_node, edge.ordinal);
+            if target.ok && SemanticAstCollectionFormalExecutionContextCallableReady(
+                    artifact, contexts, signatures.function_node_ids[target.signature_row]) {
+                return SemanticAstCollectionMemberRootReadOccurrence(formal.syntax_id, target.syntax_id, false);
             }
         }
     }
@@ -105,5 +105,11 @@ func SemanticAstCollectionMemberIndexedReadReady(
     let key: String = ToString(node);
     if !MapHas(reads, key) { return false; }
     let root: Int = MapGet(reads, key);
-    return root > 0 && !MapHas(blocked_roots, ToString(root));
+    return !SemanticAstCollectionMemberReadRootBlocked(blocked_roots, root);
+}
+
+func SemanticAstCollectionMemberReadRootBlocked(
+    ref blocked_roots: HashMap<String, Int>, root: Int
+) -> Bool {
+    return root <= 0 || MapHas(blocked_roots, ToString(root));
 }

@@ -1,103 +1,7 @@
-// Callable contexts whose complete collection-formal use inventory is visible
-// to the self-host AST. Opaque or deferred bodies fail closed.
-import "ast_collection_formal_effect_identity_owner.pgy";
-import "ast_function_scope_fact_owner.pgy";
-import "ast_statement_fact_owner.pgy";
+// One complete synchronous-execution inventory for the named callable set.
+// Consumers retain its generation-bound coverage instead of rescanning roots.
+import "ast_collection_execution_context_fact_owner.pgy";
 import "ast_expression_graph_surface_order_owner.pgy";
-struct SemanticAstCollectionFormalExecutionContexts {
-    ok: Bool;
-    unsafe_functions: HashMap<String, Int>;
-}
-// The callable body is not a synchronous, fully observed effect program.
-// Calls carrying an Array<String> across this boundary must fail closed.
-func SemanticAstCollectionFormalOpaqueExecutionEffect() -> Int { return 4; }
-
-// One shared predicate owns the control forms that prevent a lexical call
-// site from proving one unconditional synchronous effect. Aggregate field
-// transitions and leaf-formal receipts must agree on this boundary.
-func SemanticAstCollectionSynchronousStraightLineControlKind(
-    kind: Int
-) -> Bool {
-    return kind == TypedAstKindForStmtTag() ||
-        kind == TypedAstKindWhileStmtTag() ||
-        kind == TypedAstKindIfStmtTag() ||
-        kind == TypedAstKindElseStmtTag() ||
-        kind == TypedAstKindDeferStmtTag() ||
-        kind == TypedAstKindBreakStmtTag() ||
-        kind == TypedAstKindContinueStmtTag() ||
-        kind == TypedAstKindMatchStmtTag() ||
-        kind == TypedAstKindMatchCaseStmtTag() ||
-        kind == TypedAstKindMatchDefaultStmtTag() ||
-        kind == TypedAstKindBareReturnStmtTag() ||
-        kind == TypedAstKindValueReturnStmtTag() ||
-        kind == TypedAstKindExitStmtTag() ||
-        kind == TypedAstKindFailStmtTag();
-}
-
-func SemanticAstCollectionSynchronousStraightLineFunction(
-    ref statements: SemanticAstStatementFacts, function_id: Int
-) -> Bool {
-    let count: Int = ArrayLength(statements.node_ids);
-    if !statements.ok || function_id <= 0 ||
-        ArrayLength(statements.kind_tags) != count ||
-        ArrayLength(statements.function_node_ids) != count {
-        return false;
-    }
-    let row: Int = 0;
-    while row < count {
-        if statements.function_node_ids[row] == function_id &&
-            SemanticAstCollectionSynchronousStraightLineControlKind(
-                statements.kind_tags[row]) { return false; }
-        row = row + 1;
-    }
-    return true;
-}
-
-// Build the negative set once for compiler-scale formal inventories. Calling
-// the full statement scan once per candidate is quadratic in program size.
-func SemanticAstCollectionNonStraightLineFunctions(
-    ref statements: SemanticAstStatementFacts
-) -> HashMap<String, Int> {
-    let functions: HashMap<String, Int> = MapNew();
-    let count: Int = ArrayLength(statements.node_ids);
-    if !statements.ok ||
-        ArrayLength(statements.kind_tags) != count ||
-        ArrayLength(statements.function_node_ids) != count {
-        return functions;
-    }
-    let row: Int = 0;
-    while row < count {
-        if SemanticAstCollectionSynchronousStraightLineControlKind(
-                statements.kind_tags[row]) {
-            MapSet(functions,
-                ToString(statements.function_node_ids[row]), 1);
-        }
-        row = row + 1;
-    }
-    return functions;
-}
-func SemanticAstCollectionFormalEffectSyntaxIsDeferred(ref artifact: AstTreeArtifact,
-    syntax_id: Int) -> Bool {
-    if syntax_id < 0 || syntax_id >= artifact.count ||
-        ArrayLength(artifact.arena.parents) != artifact.count ||
-        ArrayLength(artifact.arena.kinds) != artifact.count { return true; }
-    let ancestor: Int = syntax_id;
-    let remaining: Int = artifact.count;
-    while ancestor >= 0 && remaining > 0 {
-        if ancestor >= artifact.count { return true; }
-        let kind: Int = artifact.arena.kinds[ancestor];
-        if kind == TypedAstKindDeferStmtTag() ||
-            kind == TypedAstKindParallelBlockTag() ||
-            kind == TypedAstKindAsyncBlockTag() {
-            return true;
-        }
-        let parent: Int = artifact.arena.parents[ancestor];
-        if parent < 0 { return false; }
-        ancestor = parent;
-        remaining = remaining - 1;
-    }
-    return true;
-}
 func SemanticAstCollectionFormalArtifactNodeOmitsExecution(artifact: AstTreeArtifact, node_id: Int) -> Bool {
     if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
         let mode: Option<Int> = TypedAstArenaMode(artifact.arena, node_id);
@@ -130,19 +34,8 @@ func SemanticAstCollectionFormalGraphNodeOmitsExecution(ref graph: SemanticExpre
     return StartsWith(UnwrapOption(text), "lambda(") ||
         UnwrapOption(text) == "parallel {...}";
 }
-func SemanticAstCollectionFormalExecutionContextsFromFacts(artifact: AstTreeArtifact,
-    ref inventory: SemanticAstCollectionFormalEffectInventory,
-    ref scopes: SemanticAstFunctionScopeFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts
-) -> SemanticAstCollectionFormalExecutionContexts {
-    let no_synthetic_roots: Array<Int> = [];
-    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
-        surfaces, no_synthetic_roots, no_synthetic_roots);
-    return SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
-        artifact, inventory, scopes, surfaces, order);
-}
 func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstTreeArtifact,
-    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref candidate_function_ids: Array<Int>,
     ref scopes: SemanticAstFunctionScopeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref order: SemanticExpressionGraphSurfaceOrder
@@ -150,7 +43,7 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
     let unsafe_functions: HashMap<String, Int> = MapNew();
     let candidate_functions: HashMap<String, Int> = MapNew();
     let surface_count: Int = ArrayLength(surfaces.node_ids);
-    let ok: Bool = inventory.ok && order.ok && artifact.identity_digest > 0 &&
+    let ok: Bool = order.ok && artifact.identity_digest > 0 &&
         TypedAstArenaParallelRowsReady(artifact.arena) &&
         TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
         scopes.ok && scopes.artifact_node_count == artifact.count &&
@@ -168,10 +61,13 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
         ArrayLength(surfaces.expression_graph.has_roots) ==
             ArrayLength(surfaces.expression_graph.roots);
     let row: Int = 0;
-    while ok && row < ArrayLength(inventory.function_nodes) {
-        let function_node_id: Int = inventory.function_nodes[row];
+    while ok && row < ArrayLength(candidate_function_ids) {
+        let function_node_id: Int = candidate_function_ids[row];
         let key: String = ToString(function_node_id);
-        if function_node_id <= 0 { ok = false; break; }
+        if function_node_id <= 0 || function_node_id >= artifact.count ||
+            !TypedAstArenaNodeKindIsCallable(artifact.arena, function_node_id) {
+            ok = false; break;
+        }
         if !MapHas(candidate_functions, key) {
             MapSet(candidate_functions, key, 1);
         }
@@ -227,5 +123,7 @@ func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstT
         root = root + 1;
     }
     ok = ok && last + 1 == SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
-    return SemanticAstCollectionFormalExecutionContexts(ok, unsafe_functions);
+    return SemanticAstCollectionFormalExecutionContexts(
+        ok, artifact.identity_digest, artifact.count,
+        candidate_functions, unsafe_functions);
 }

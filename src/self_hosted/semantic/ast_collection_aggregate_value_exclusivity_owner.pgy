@@ -8,6 +8,7 @@ import "ast_collection_ownership_member_root_identity_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_statement_fact_owner.pgy";
+import "ast_collection_ownership_member_transition_owner.pgy";
 
 func SemanticAstCollectionAggregateValueBindingForNode(
     artifact: AstTreeArtifact,
@@ -140,7 +141,9 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref assignments: SemanticAstAssignmentFacts,
     ref statements: SemanticAstStatementFacts,
-    ref plan: SemanticAstCollectionAggregateReleasePlan
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref contexts: SemanticAstCollectionFormalExecutionContexts,
+    ref moved_use: SemanticAstCollectionMemberMoveUse
 ) -> Bool {
     if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) { return false; }
     let local_row: Int = 0;
@@ -154,6 +157,7 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
                 locals.node_ids[local_row], surfaces, UnwrapOption(initializer));
             if source > 0 && source != locals.node_ids[local_row] &&
                 SemanticAstCollectionAggregateProtectedBinding(plan, source) {
+                plan.diagnostic_syntax_id = locals.node_ids[local_row];
                 return false;
             }
         }
@@ -173,6 +177,7 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
             if SemanticAstCollectionAggregateProtectedBinding(plan, source) &&
                 !SemanticAstCollectionAggregateRestorationForValue(
                     plan, source, syntax_id) {
+                plan.diagnostic_syntax_id = syntax_id;
                 return false;
             }
         }
@@ -185,7 +190,10 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                 surfaces, statements.node_ids[statement],
                 AstExpressionLaneAtom());
-            if !IsSome(root) { return false; }
+            if !IsSome(root) {
+                plan.diagnostic_syntax_id = statements.node_ids[statement];
+                return false;
+            }
             let source: Int =
                 SemanticAstCollectionAggregateValueBindingForNode(
                     artifact, signatures, locals, inferred_types,
@@ -195,6 +203,7 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
                     UnwrapOption(root));
             if SemanticAstCollectionAggregateProtectedBinding(
                     plan, source) {
+                plan.diagnostic_syntax_id = statements.node_ids[statement];
                 return false;
             }
         }
@@ -214,7 +223,10 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
                     let edge: SemanticCallArgumentEdgeView =
                         SemanticCallArgumentEdgeFromGraph(
                             surfaces.expression_graph, node);
-                    if !edge.ok { return false; }
+                    if !edge.ok {
+                        plan.diagnostic_syntax_id = surfaces.node_ids[slot / 3];
+                        return false;
+                    }
                     let source: Int =
                         SemanticAstCollectionAggregateValueBindingForNode(
                             artifact, signatures, locals, inferred_types,
@@ -226,7 +238,21 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
                             plan, source) &&
                         !SemanticAstCollectionAggregateLineageEdge(
                             plan, node) {
-                        return false;
+                        let target: SemanticAstCollectionArgumentFormalTarget =
+                            SemanticAstCollectionMemberReadCallTarget(
+                                artifact, signatures, surfaces.expression_graph,
+                                edge.call_node, edge.ordinal);
+                        let borrowed: Bool = moved_use.read_permission_ready && target.ok &&
+                            SemanticAstCollectionFormalExecutionContextCallableReady(
+                                artifact, contexts, surfaces.function_node_ids[slot / 3]) &&
+                            SemanticAstCollectionFormalExecutionContextCallableReady(
+                                artifact, contexts, signatures.function_node_ids[target.signature_row]) &&
+                            !SemanticAstCollectionMemberReadRootBlocked(
+                                moved_use.unproved_read_roots, target.syntax_id);
+                        if !borrowed {
+                            plan.diagnostic_syntax_id = surfaces.node_ids[slot / 3];
+                            return false;
+                        }
                     }
                 }
                 node = node + 1;

@@ -1151,3 +1151,97 @@ Mapping: `.tmp/inout-array-release-bootstrap-v42-exact-boundary-context.log`.
   established the same v42 node 72305/boundary; logs are in
   `.tmp/inout-array-release-ci-37314795454-codegen.log`.
   Next falsifier is official seed v43 on the unchanged original MIR control.
+
+## Reached aggregate finalization failure location
+
+IMPLEMENTATION CANDIDATE, base ad4f133a895f01b7663132cb5c5c741cba34cf3c.
+Official seed v43 passed unique-use accumulation, then refused the original
+MIR control at aggregate_release_incomplete with node=-1.
+
+- Objective/priority: attribute this existing refusal to its exact field,
+  carrier, alias or call event before changing any safety condition.
+- Fact owner: aggregate release finalization and exclusivity predicates;
+  last consumer: ownership scan's existing typed failure verdict.
+- Forbidden fallback: guessing a guilty field from the first requirement,
+  changing boolean admission, weakening restoration/exclusivity, or adding
+  stdout inside production semantic analysis.
+- Edit scope: existing plan.diagnostic_syntax_id publication on a failed
+  checked event and the focused source diagnostics gate. Root integrates.
+- Gate/falsifier: existing 5-positive/12-negative C/LLVM aggregate source
+  matrix, including concrete syntax/callable evidence for incomplete plans,
+  then exactly one original whole-root observation. Budgets remain unchanged.
+- Installed body-bundle rung remains BLOCKED; no new implementation track,
+  C substitution, registry status or performance claim is introduced.
+- The existing owned-table positive refused its pre-release Ready(facts) call
+  as aggregate_release_incomplete, at Main syntax 796. The unchanged older
+  observer independently reproduced that refusal; diagnostic publication did
+  not introduce it. The full C MIR-root observation returned no verdict before
+  its existing 300s limit; this is incomplete, not semantic evidence.
+  LLVM observes exactly the same original root next, without changing input,
+  safety conditions or the observation budget.
+
+### Shared readonly-call proof objective (implementation candidate)
+
+- Priority: retain exclusive release and alias refusal while allowing a
+  synchronous, completely observed non-retaining aggregate read call.
+- Owners: formal execution-context owner already knows omitted/deferred
+  execution; member-read owner already closes blocked root/forwarding facts.
+  The aggregate finalizer consumes those facts, never reconstructs a second
+  AST use inventory or grants from a parameter mode alone.
+- Proposed carrier boundary: retain the existing context's candidate set and
+  artifact generation with its unsafe set; formal effects carry that admitted
+  context to finalization. Missing candidate/generation/context fails closed.
+- Forbidden fallback: treating absence from an unqualified negative map as
+  proof, granting from ref/default mode, name whitelists, guessed callee IDs,
+  or relaxing alias, return, opaque/deferred or restoration counterexamples.
+- Single integration gate: original MIR-root seed, with existing aggregate
+  and member-read source matrices and new readonly alias/opaque falsifiers
+  as prerequisite evidence. Root owns all edits; no parallel implementation.
+- LLVM observation on unchanged original MIR root returned an exact refusal:
+  syntax 50574 in SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved,
+  at its WithFunctionTables call before final release. Receipt:
+  `.tmp/inout-array-release-aggregate-diagnostic-llvm.sha256`, diagnostic:
+  `.tmp/inout-array-release-bootstrap-v43-aggregate-exact-context-llvm.log`.
+- Context schema/generation readiness and control predicates now have one
+  fact owner; the existing builder alone scans the named callable set. Formal
+  effects retain all signature-callable context coverage for readonly loans;
+  array preservation retains its exact existing inventory subset. The old
+  unused FromFacts wrapper was removed. Empty String-formal inventories do not
+  silently bypass context proof for aggregate formals.
+- Member forwarding seeds blocked roots from this same context before its
+  existing closure. Finalization requires current caller/callee coverage and
+  the closed non-retaining formal fact, never ref/default mode alone. Carrier,
+  alias, return, reserve and restoration checks remain unchanged.
+- C passed all 6 positives/16 negatives in gate4, while LLVM refused direct
+  HashMap-member receivers. Descriptor-local snapshots were then refused by
+  native ref-boundary admission. Neither constraint was relaxed. Named ref
+  row-query owners now consume the same direct map views; generation permission
+  stays solely in CallableReady, and root-block lookup is shared by indexed
+  reads and aggregate loans. No native backend feature or copied map was added.
+- Observed on this implementation candidate: gate6 passed the full C/LLVM
+  6-positive/16-falsifier source matrix. Gate7's added generation unit rejects
+  disabled context, wrong digest/count, absent candidate coverage, an opaque
+  callable and out-of-range callable identities while retaining the original
+  context's permission. The combined gate7 reached 300s after all C rows and
+  LLVM rows 0..18; with every input/import/native hash unchanged, the remaining
+  LLVM rows and guards separately passed and all C/LLVM outputs matched. This
+  does not turn that timed-out combined run into a time-budget pass.
+  `.tmp/inout-array-release-aggregate-release-gate6.log`,
+  `.tmp/self_hosted/aggregate-release-source.iVOx1C`.
+- Current member gate8 passed both backends, 5 positives/11 refusals each;
+  `.tmp/inout-array-release-member-read-gate8.log` and
+  `.tmp/inout-array-release-shared-context-member.sha256`.
+- The original whole MIR root now returned body_ok=true/empty diagnostic in
+  the fresh LLVM observer within its original 300s limit. Native C/LLVM exact
+  six-line receiver identity/invalid graph controls also passed; before/after
+  input/import/executable hashes matched. Existing compiler warnings remain.
+  `.tmp/inout-array-release-shared-context-whole-root-llvm.log`,
+  `.tmp/inout-array-release-shared-context-whole-root.sha256`,
+  `.tmp/inout-array-release-shared-context-mir-root-native.sha256`.
+  Official seed v44 is next; these observations do not admit an installed
+  driver, fixed point, CLOSED family or C-path substitution.
+- Reached context/control separation reduced the direct collection cap block
+  from 16 to 15 failures without raising limits. New fact/builder/target/member
+  owners pass their existing caps; full structural inventory is still OPEN.
+  Current authority-edge attempts 3/4 produced no verdict in 60s. Published
+  CI 37316971496 failed the prior v43 boundary; Windows/macOS/TSAN/Rocq passed.

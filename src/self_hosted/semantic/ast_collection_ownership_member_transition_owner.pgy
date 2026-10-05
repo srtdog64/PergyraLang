@@ -22,6 +22,7 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref contexts: SemanticAstCollectionFormalExecutionContexts,
     own move_destinations: HashMap<String, Int>
 ) -> SemanticAstCollectionMemberMoveUse {
     let active_members: HashMap<String, Int> = MapNew();
@@ -44,7 +45,7 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                 let node: Int = UnwrapOption(start);
                 while node <= root_id {
                     let read_use: SemanticAstCollectionMemberRootReadOccurrence = SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
-                        artifact, signatures, constructors, resolved_leaf_types, surfaces.expression_graph,
+                        artifact, signatures, constructors, resolved_leaf_types, surfaces.expression_graph, contexts,
                         surfaces.function_node_ids[surface], node, root_id);
                     if read_use.blocked { MapSet(unproved_read_roots, ToString(read_use.source), 1); }
                     if read_use.target > 0 {
@@ -147,7 +148,9 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
         }
         root_slot = root_slot + 1;
     }
-    let closed: Bool = SemanticAstCollectionMemberReadBlockedRootsClosure(read_sources, read_targets, unproved_read_roots);
+    let closed: Bool = contexts.ok && contexts.artifact_identity_digest == artifact.identity_digest &&
+        contexts.artifact_node_count == artifact.count &&
+        SemanticAstCollectionMemberReadBlockedRootsClosure(read_sources, read_targets, unproved_read_roots);
     ArrayDrop(read_sources); ArrayDrop(read_targets);
     return SemanticAstCollectionMemberMoveUse(
         false, -1, -1, restored, restoration_sites, readable_members, unproved_read_roots, closed);

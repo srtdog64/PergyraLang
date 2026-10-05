@@ -1,0 +1,28 @@
+// Exact physical readonly aggregate-call target identity; no lifetime grant.
+import "ast_collection_formal_effect_identity_owner.pgy";
+
+// Identity and declared boundary only. A caller must also consume the current
+// execution context and the closed non-retaining root facts.
+func SemanticAstCollectionMemberReadCallTarget(
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, ordinal: Int
+) -> SemanticAstCollectionArgumentFormalTarget {
+    let absent: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTarget(false, 0, -1, -1);
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, call_node, ordinal);
+    if !target.ok { return absent; }
+    let mode: Option<Int> = SemanticAstFunctionParamModeAt(
+        signatures, target.signature_row, target.ordinal);
+    let callee: Int = signatures.function_node_ids[target.signature_row];
+    if !IsSome(mode) || (UnwrapOption(mode) != 0 && UnwrapOption(mode) != 3) ||
+        signatures.action_contracts.body_node_ids[target.signature_row] <= 0 ||
+        callee <= 0 || callee >= artifact.count ||
+        ArrayLength(artifact.arena.modes) != artifact.count ||
+        artifact.arena.modes[callee] < 0 ||
+        artifact.arena.modes[callee] == TypedAstModeCallableAsync() { return absent; }
+    return target;
+}

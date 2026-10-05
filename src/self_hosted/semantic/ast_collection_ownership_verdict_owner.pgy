@@ -261,7 +261,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     let moved_use: SemanticAstCollectionMemberMoveUse =
         SemanticAstCollectionFirstInvalidMemberMoveUse(
             artifact, signatures, constructors, locals, initializer_types.inferred_type_names, resolved_leaf_types,
-            surfaces, assignments, move_destinations);
+            surfaces, assignments, formal_effects.execution_contexts, move_destinations);
     if !moved_use.read_permission_ready {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_member_read_permission"), -1, -1);

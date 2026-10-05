@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-10-05 KST (Asia/Seoul). Navigation only. Current source, the
+Updated: 2026-10-06 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context
@@ -9,8 +9,9 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
-- Checkout: main @ a59c01a6c13cd8a9f410db435dcf0c95fee67e98, reached unique-use
-  insertion/selected-scalar consumers and focused oracles/inventory pins dirty.
+- Checkout observed before this checkpoint commit: main @
+  ad4f133a895f01b7663132cb5c5c741cba34cf3c, reached shared readonly-call context,
+  exact failure locations, focused fixtures/source pins and navigation dirty.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -22,7 +23,8 @@ SoT registry, admitted contracts, and executable gates override this note.
   Named-use compatibility 057c93c1 was merged with the external guild-economy
   example commit d5f90c54 as cf0fe236 and pushed; example behavior was not
   independently verified here. No local source edits were lost in that merge.
-  LocalRef publication a59c01a6 was committed/pushed as well.
+  LocalRef publication a59c01a6 and owned unique-use accumulation ad4f133a
+  were committed/pushed as well.
   Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
@@ -30,13 +32,40 @@ SoT registry, admitted contracts, and executable gates override this note.
   untrusted direct-MIR lifetime owners independently supply cleanup evidence.
   Existing definition/order, formal-effect and member-read owners keep their
   facts. No mode-only grant, guessed callee, alias promotion or C fallback.
+- Current reached seam: aggregate release consumes the generation-bound
+  execution context already carried by formal effects and the member owner's
+  closed non-retaining roots. Exact default/ref target identity alone grants
+  nothing. Caller/callee coverage, current artifact generation and non-opaque
+  execution are required; alias/return/deferred/restoration refusals remain.
+  The context/control fact owner replaces the old schema location; the builder
+  alone scans callable coverage. No unused FromFacts or copied-map read path.
+- Current focused evidence: aggregate gate6 passed C/LLVM 6 positive/16
+  falsifying source inputs. Gate7 added generation/coverage mutation guards;
+  its combined 300s run timed out after all C rows and LLVM rows 0..18.
+  With native/source/input hashes unchanged, LLVM rows 19..21 and generation
+  guards separately passed; all 22 C/LLVM outputs and guard outputs match.
+  This is resumed row evidence, not a combined gate7 time-budget pass.
+  .tmp/inout-array-release-aggregate-release-gate6.log,
+  .tmp/self_hosted/aggregate-release-source.iVOx1C.
+  Member gate8 passed current C/LLVM 5 positives/11 compile-only refusals:
+  .tmp/inout-array-release-member-read-gate8.log,
+  .tmp/inout-array-release-shared-context-member.sha256.
+- Original whole-MIR-root source admission now passed in the fresh LLVM
+  observer: body_ok=true, empty diagnostic, within the unchanged 300s budget.
+  Native C/LLVM executions independently passed the exact six-line receiver
+  identity/invalid-graph oracle, existing 15 warnings. Hashes were checked
+  before/after. This removes the observed v43 aggregate refusal; it is not
+  an official seed, fixed point, default installation or substitution claim.
+  .tmp/inout-array-release-shared-context-whole-root-llvm.log,
+  .tmp/inout-array-release-shared-context-whole-root.sha256,
+  .tmp/inout-array-release-shared-context-mir-root-native.sha256.
 - Native v3 SHA-256:
   4bdb8869388dce2a8c02a5791f1670ada26b9e1cacd47c0b7d8195353e4673ce.
   Native public gate passed 15 executed positives/backend and 30 refusals;
   four C/LLVM dev/release inout/drop assertions ran. Not installed evidence.
   Exact LLVM observer compile passed in 57.46 seconds under original 120s
   budget after the measured development machine-emission fix.
-- Latest scalar/storage gate45: C/LLVM each 28 analyzer positives/41 compile-
+- Before current context migration, scalar/storage gate45: C/LLVM each 28 analyzer positives/41 compile-
   only refusals plus actual copied type and typed success/failure cleanup
   values, independent numeric-array snapshot mutation, binding type guards
   with explicit caller copies, and match fact snapshots/no-mutation, exit 0.
@@ -61,7 +90,7 @@ SoT registry, admitted contracts, and executable gates override this note.
   Its full imported source observer reached the unchanged 60s limit without
   a verdict; do not infer source admission. The original MIR root remains the
   integration falsifier instead of repeatedly validating that cumulative graph.
-- Latest member gate7: C/LLVM each 5 positives/11 compile-only refusals, exit 0.
+- Before current context migration, member gate7: C/LLVM each 5 positives/11 compile-only refusals, exit 0.
   .tmp/self_hosted/member-indexed-read.eXURNt,
   .tmp/inout-array-release-member-read-gate7.log. Composed direct readonly
   views admit; copied/owned/inout/deferred roots and value-formal handoff refuse.
@@ -186,28 +215,34 @@ SoT registry, admitted contracts, and executable gates override this note.
   unchanged isolated unit later passed seven rows in 46.35s, not full-shard
   evidence. A development C whole-MIR-root observer timed out at 300s; the
   LLVM observer reached a semantic refusal. Neither timeout is admission.
-  Fresh seed/fixed-point/installed pair, full C/LLVM integration, 16 structural
+  Fresh seed/fixed-point/installed pair, full C/LLVM integration, 15 structural
   cap failures and current-head CI remain OPEN. The all-current-work checkpoint
   is published; subsequent CI repair remains required. The new user examples
-  are included without an execution claim. Seed v43 is the next original-root
-  falsifier, not yet run.
-  Installed P0 rung remains BLOCKED on the admitted whole-root body bundle:
-  SemanticAstBodyTypeBundleFromAnalysis is the owner, gen0's nominal-root
-  codegen boundary is the last consumer, and mir_collection_receiver_root.pgy
-  is the exact falsifier before seed/driver installation. This is not a CLOSED
-  row or self-host replacement-progress claim.
-  The collection cap block was directly rechecked: 17 -> 16 after the reached
-  scan/lifetime split, without raising caps; not a full inventory pass.
-  semantic.hashmap_collection_ownership stays ACTIVE. CI 37305685187 was
+  are included without an execution claim. Official seed v43 refused aggregate
+  finalization with node=-1; a fresh diagnostic observer identified its exact
+  WithFunctionTables call. Independent whole-root body admission now passes,
+  but the gen0 nominal-root codegen consumer has not yet established official
+  route evidence on this source. Seed v44 is the next exact falsifier, followed
+  by fixed-point/driver receipts; never install from the observer or old seed.
+  SemanticAstBodyTypeBundleFromAnalysis remains the body owner and
+  mir_collection_receiver_root.pgy the unchanged official consumer input.
+  Installed P0 is OPEN, not a CLOSED row or self-host substitution claim.
+  The collection cap block was directly rechecked: 16 -> 15 after the reached
+  context/control split, without raising caps; not a full inventory pass.
+  The new fact/builder/read-target/member owners independently pass their
+  unchanged caps. .tmp/inout-array-release-collection-caps-current.log.
+  semantic.hashmap_collection_ownership stays ACTIVE. Current authority-edge
+  attempts 3/4 returned no verdict in their 60s budget; no current gate pass.
+  CI 37305685187 was
   cancelled by the external documentation push; 37305703308 failed a stale
   derived-fact symbol. The corrected live pin and three existing local-view
   registrations passed the narrow authority-edge gate: 95 authorities/200
   derived carriers and 96th-owner refusal. No status/count authority changed.
   .tmp/inout-array-release-sot-authority-edge-current2.log.
-  Current published CI 37314795454 reached the same Linux v42 self-host failure; macOS
-  C-only, TSAN and Rocq passed, Windows was still live at the last snapshot.
-  Its completed-job logs were retrieved directly and establish node 72305 and
-  the same formal shallow-mutation boundary; this is failure evidence, not green.
+  Current published CI 37316971496 completed with failure at the same Linux
+  v43 aggregate-finalization boundary. Windows, macOS C-only, TSAN and Rocq
+  passed; dependent Linux jobs were skipped. Logs:
+  .tmp/inout-array-release-ci-37316971496-codegen.log. Not current green.
   Next after seed: serial full integration, official fresh driver,
   public all-lane gate and default C/LLVM execution of Alrescha's
   F:/JDW_project/alrescha/tests/repros/array_inout_release_frontier.pgy.

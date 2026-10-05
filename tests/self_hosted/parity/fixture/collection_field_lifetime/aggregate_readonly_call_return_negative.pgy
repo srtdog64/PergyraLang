@@ -1,0 +1,13 @@
+struct Table { names: Array<String>; }
+func Echo(ref table: Table) -> Table { return table; }
+func Retire(inout table: Table) -> Void {
+    let names: Array<String> = table.names;
+    ArrayDropOwnedStrings(names);
+    table.names = names;
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    let table: Table = Table(names);
+    let retained: Table = Echo(table);
+    Retire(table);
+}

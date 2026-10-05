@@ -436,6 +436,7 @@ func SemanticAstCollectionAggregateCarrierRestorationsReady(
         if release_syntax <= local_id ||
             SemanticAstCollectionAggregateReleaseEnclosingBlock(
                 artifact, release_syntax) != plan.carrier_scope_ids[carrier] {
+            plan.diagnostic_syntax_id = local_id;
             return false;
         }
         let restoration_count: Int = 0;
@@ -481,6 +482,7 @@ func SemanticAstCollectionAggregateCarrierRestorationsReady(
             !SemanticAstCollectionAggregateReleaseIntervalStraightLine(
                 statements, function_id, plan.carrier_scope_ids[carrier],
                 release_syntax, restoration_syntax) {
+            plan.diagnostic_syntax_id = local_id;
             return false;
         }
         plan.carrier_restoration_syntax_ids[carrier] = restoration_syntax;
@@ -496,7 +498,10 @@ func SemanticAstCollectionAggregateCarrierRestorationsReady(
                     let start: Option<Int> =
                         SemanticExpressionGraphSubtreeStart(
                             surfaces.expression_graph, root);
-                    if !IsSome(start) { return false; }
+                    if !IsSome(start) {
+                        plan.diagnostic_syntax_id = syntax_id;
+                        return false;
+                    }
                     let node: Int = UnwrapOption(start);
                     while node <= root {
                         let binding_use: SemanticAstLocalBindingIdentity =
@@ -507,6 +512,7 @@ func SemanticAstCollectionAggregateCarrierRestorationsReady(
                             binding_use.declaration_node_id == local_id &&
                             syntax_id > release_syntax &&
                             syntax_id != restoration_syntax {
+                            plan.diagnostic_syntax_id = syntax_id;
                             return false;
                         }
                         let aggregate_use: Int =
@@ -519,6 +525,7 @@ func SemanticAstCollectionAggregateCarrierRestorationsReady(
                             syntax_id != restoration_syntax &&
                             !SemanticAstCollectionAggregateCarrierNestedExtractionUse(
                                 plan, source_id, syntax_id) {
+                            plan.diagnostic_syntax_id = syntax_id;
                             return false;
                         }
                         node = node + 1;
@@ -599,7 +606,8 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
     ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
     ref inputs: SemanticAstCollectionConstructorFieldInputs,
     ref statements: SemanticAstStatementFacts,
-    ref moved_use: SemanticAstCollectionMemberMoveUse
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    ref contexts: SemanticAstCollectionFormalExecutionContexts
 ) -> Bool {
     if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
         !SemanticAstCollectionAggregateFieldEntryRequirementsReady(
@@ -617,12 +625,17 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
     }
     if !SemanticAstCollectionAggregateReleaseAliasesReady(
             artifact, signatures, locals, inferred_types,
-            resolved_leaf_types, surfaces, assignments, statements, plan) {
+            resolved_leaf_types, surfaces, assignments, statements, plan, contexts, moved_use) {
         return false;
     }
     let demand: Int = 0;
     while demand < ArrayLength(plan.reserved) {
-        if !plan.reserved[demand] { return false; }
+        if !plan.reserved[demand] {
+            plan.diagnostic_syntax_id =
+                SemanticAstCollectionAggregateReleaseSyntaxForEdge(
+                    plan, plan.demand_edge_nodes[demand]);
+            return false;
+        }
         demand = demand + 1;
     }
     let requirement: Int = 0;
@@ -637,13 +650,17 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
             SemanticAstCollectionAggregateRequirementHasEffect(
                 effect_mask,
                 SemanticAstCollectionAggregateFieldEntryEffectOwnedPush());
-        if !needs_drop && !needs_owned_push { return false; }
+        if !needs_drop && !needs_owned_push {
+            plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
+            return false;
+        }
         let last_effect_site: Int = -1;
         if needs_drop {
             if plan.drop_syntax_ids[requirement] <= 0 ||
                 plan.drop_expression_nodes[requirement] < 0 ||
                 !SemanticAstCollectionAggregateReleaseFunctionStraightLine(
                     statements, requirements.function_ids[requirement]) {
+                plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
                 return false;
             }
             last_effect_site = plan.drop_syntax_ids[requirement];
@@ -651,6 +668,7 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
         if needs_owned_push {
             if plan.owned_push_syntax_ids[requirement] <= 0 ||
                 plan.owned_push_expression_nodes[requirement] < 0 {
+                plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
                 return false;
             }
             if plan.owned_push_syntax_ids[requirement] > last_effect_site {
@@ -679,6 +697,7 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
              !SemanticAstCollectionAggregateOwnedMutationControlReady(
                 statements, requirements.function_ids[requirement],
                 requirements.local_ids[requirement], restoration_site)) {
+            plan.diagnostic_syntax_id = plan.requirement_local_ids[requirement];
             return false;
         }
         requirement = requirement + 1;

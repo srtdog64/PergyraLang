@@ -279,7 +279,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
             initializer_types.inferred_type_names, resolved_leaf_types,
             surfaces, assignments, aggregate_release_plan,
             field_requirements,
-            call_effects.constructor_inputs, statements, moved_use) {
+            call_effects.constructor_inputs, statements, moved_use, formal_effects.execution_contexts) {
         verdict = SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",

@@ -95,15 +95,16 @@ func SemanticArrayStoragePreservingFormals(
     let inventory: SemanticAstCollectionFormalEffectInventory = SemanticArrayStorageFormalInventory(
         analysis.signatures, analysis.constructors, analysis.enums);
     let contexts: SemanticAstCollectionFormalExecutionContexts = SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
-        artifact, inventory, analysis.function_scopes, analysis.expression_surfaces, order);
+        artifact, inventory.function_nodes, analysis.function_scopes, analysis.expression_surfaces, order);
     if !inventory.ok || !contexts.ok || !analysis.statements.ok { return proved; }
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
-    let unsafe_functions: HashMap<String, Int> = contexts.unsafe_functions;
     let blocked: Array<Bool> = []; let node_rows: Array<Int> = [];
     let sources: Array<Int> = []; let targets: Array<Int> = [];
     let row: Int = 0;
     while row < ArrayLength(inventory.formal_nodes) {
-        ArrayPush(blocked, !inventory.body_ready[row] || MapHas(unsafe_functions, ToString(inventory.function_nodes[row])));
+        ArrayPush(blocked, !inventory.body_ready[row] ||
+            !SemanticAstCollectionFormalExecutionContextCallableReady(
+                artifact, contexts, inventory.function_nodes[row]));
         row = row + 1;
     }
     let ok: Bool = true; let last: Int = -1; let root: Int = 0;

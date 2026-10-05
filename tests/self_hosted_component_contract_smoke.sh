@@ -8041,6 +8041,17 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" 'build.next_instructi
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirLocalVersionsSnapshot('
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'MIR restored local versions exceed local inventory'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUses('
+require_file "src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy" 150
+require_max_lines "src/self_hosted/semantic/ast_collection_member_read_call_target_owner.pgy" 45
+require_text "src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy" 'contexts.artifact_identity_digest != artifact.identity_digest'
+require_text "src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy" 'contexts.artifact_node_count != artifact.count'
+require_text "src/self_hosted/semantic/ast_collection_formal_use_owner.pgy" 'artifact, signatures.function_node_ids, scopes, surfaces, order'
+require_text "src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy" 'moved_use.unproved_read_roots, target.syntax_id'
+reject_text "src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy" 'struct SemanticAstCollectionFormalExecutionContexts'
+reject_text "src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy" 'func SemanticAstCollectionFormalExecutionContextsFromFacts('
+require_file "tests/self_hosted/fixtures/collection_execution_context_generation_probe.pgy"
+require_text "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 'collection-execution-context-generation'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUsesAppend('
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'ArrayPushOwnedString(uses, use_name);'
 reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'ArrayPush(uses, use_name);'
