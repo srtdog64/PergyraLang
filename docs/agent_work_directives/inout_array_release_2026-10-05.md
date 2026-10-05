@@ -1062,3 +1062,15 @@ row loop retained raw indexed Strings. Mapping:
   passed in both observer backends. Source/binary receipt:
   `.tmp/inout-array-release-instruction-use.sha256`.
   Whole-root seed v40, fresh installation and CI remain OPEN.
+- Seed v40's native original-root control rejected two unnamed use-array
+  results at the new routine ref boundary. The two simple-statement consumers
+  now bind their derived uses once for that call; no array clone, new permission
+  or public user syntax was introduced. The original native MIR root is the
+  compatibility/identity falsifier before another official seed.
+- Original native MIR root C/LLVM compilation/execution passed the unchanged
+  six-line identity/mutation oracle after those bindings. Receipts:
+  `.tmp/inout-array-release-mir-root-named-uses.sha256`,
+  `.tmp/inout-array-release-mir-root-named-uses-llvm.sha256`.
+  The nominal gate now exposes the actual native cause at that boundary.
+  Seed v41 on the same original root remains the self-host falsifier; no
+  installed-driver, full inventory, full integration or CI success is inferred.

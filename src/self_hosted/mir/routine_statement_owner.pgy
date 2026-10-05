@@ -90,10 +90,10 @@ func SelfMirLowerSimpleStatement(
             build, "ability bind is missing party/slot/subject/role facts"
         );
     }
+    let uses: Array<String> = SelfMirExpressionGraphUses(build, subject_graph);
     build = SelfMirRoutineAddInstruction(
         build, "stmt", "bind", "", payload, role_name,
-        UnwrapOption(subject_name), "", "AST_BIND_STMT",
-        SelfMirExpressionGraphUses(build, subject_graph)
+        UnwrapOption(subject_name), "", "AST_BIND_STMT", uses
     );
     return SelfMirRoutineWithCfg(
         build,
@@ -123,9 +123,10 @@ func SelfMirLowerGraphOwnedSimpleStatement(
         expression = Concat("Exit(", Concat(payload, ")"));
         arg0 = "Exit";
     }
+    let uses: Array<String> = SelfMirExpressionGraphUses(build, graph);
     build = SelfMirRoutineAddInstruction(
         build, "stmt", "stmt", "", arg0, "", expression, "",
-        "AST_CALL", SelfMirExpressionGraphUses(build, graph)
+        "AST_CALL", uses
     );
     if kind == TypedAstKindExitStmtTag() {
         build = SelfMirRoutineTerminate(build);

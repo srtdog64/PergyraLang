@@ -31,8 +31,12 @@ for producer in native codegen; do
     cmp "$B/expected.txt" "$B/$producer.normalized" || fail "$producer value drifted"
 done
 SOURCE=tests/self_hosted/parity/fixture/mir_collection_receiver_root.pgy
-"$PGY" --native-pipeline --emit-c "$SOURCE" -o "$B/root-native.c" \
-    >"$B/root-native.out" 2>"$B/root-native.err" || fail "native rejected the MIR root control"
+if ! "$PGY" --native-pipeline --emit-c "$SOURCE" -o "$B/root-native.c" \
+        >"$B/root-native.out" 2>"$B/root-native.err"; then
+    # Preserve the native owner's actual cause as well as this wrapper label.
+    tail -n 80 "$B/root-native.err" >&2
+    fail "native rejected the MIR root control"
+fi
 if ! "$CODEGEN" --source "$SOURCE" >"$B/root-codegen.c" 2>"$B/root-codegen.err"; then
     # Keep the actual owned diagnostic visible in CI, as for the first control.
     # The gate label alone does not identify a semantic/ABI rejection cause.

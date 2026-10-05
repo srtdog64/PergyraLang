@@ -9,15 +9,15 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
-- Checkout: main @ 8b1f17ec26d87959d2b59184fe8ce05e151a8bac, reached instruction
-  use publication and negative inventory pins dirty. Root owns P0 integration
+- Checkout: main @ f49be4dd594ea684d6ee13963c603877315fe58d, two instruction
+  use consumer bindings and native diagnostic visibility dirty. Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
   worker changes, including the new examples and deleted deployment guide.
   All 184 changed files were committed/pushed as checkpoint 4415adf4; the
   subsequent external documentation commit was fast-forwarded locally and
   runtime ABI scalar/registry correction 5deb67b4 and routine lookup migration
-  8b1f17ec were committed/pushed.
+  8b1f17ec and instruction use publication f49be4dd were committed/pushed.
   Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
@@ -136,6 +136,15 @@ SoT registry, admitted contracts, and executable gates override this note.
   .tmp/inout-array-release-codegen-bootstrap-v39.log,
   .tmp/inout-array-release-bootstrap-v39-exact-boundary-context.log,
   .tmp/inout-array-release-instruction-use.sha256.
+  Seed v40 stopped before self-host admission: native rejected two unnamed
+  use-array results at the new routine ref boundary. Both simple-statement
+  consumers now bind their uses for the call. Original native MIR root C/LLVM
+  compilation/execution passed its unchanged six-line identity/mutation oracle.
+  .tmp/self_hosted/codegen_nominal_array_declaration/run.Kvgg26/root-native.err,
+  .tmp/inout-array-release-mir-root-named-uses.sha256,
+  .tmp/inout-array-release-mir-root-named-uses-llvm.sha256.
+  The gate now prints the native owner's failure cause instead of only its
+  wrapper label. Self-host root admission has not yet been rerun on this fix.
   Next falsifier is whole-root admission on the original MIR control, not a
   narrow formal-effect count, native value check or elapsed-time inference.
 - OPEN: full integration10 timed out at its original 60s actual C unit; its
@@ -145,7 +154,7 @@ SoT registry, admitted contracts, and executable gates override this note.
   Fresh seed/fixed-point/installed pair, full C/LLVM integration, 16 structural
   cap failures and current-head CI remain OPEN. The all-current-work checkpoint
   is published; subsequent CI repair remains required. The new user examples
-  are included without an execution claim. Seed v40 is the next original-root
+  are included without an execution claim. Seed v41 is the next original-root
   falsifier, not yet run.
   Installed P0 rung remains BLOCKED on the admitted whole-root body bundle:
   SemanticAstBodyTypeBundleFromAnalysis is the owner, gen0's nominal-root
