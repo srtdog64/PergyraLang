@@ -584,6 +584,10 @@ typedef struct LLVMGenCtx
      * enclosing codegen context. Used for callable signatures and other
      * registry-backed arrays that must not be scratch-owned. */
     PgyArena        persistent;
+    /* Whether the program declares any `type` alias: 0 not yet counted,
+     * 1 none, 2 some. Alias resolution of type names skips the header
+     * lookups entirely for a program without aliases. */
+    int             type_alias_presence;
 } LLVMGenCtx;
 
 #include "llvm_type_projection_internal.h"

@@ -6,8 +6,9 @@
 // 보존 법칙: 금화는 발행(faucet)과 소각(sink)으로만 생기고 사라진다.
 //   treasury.supply == 지갑 합 + 경매장 escrow + 대장간 feeBox + 국고 vault + 지급 대기분
 //
-// zone은 world 밖으로 나갈 수 없고, subject는 인자로 넘길 수 없다. 그래서
-// intent 호출은 모두 이 world 안에 있고, 길드원은 Member 값으로 고른다.
+// zone은 world 밖으로 나갈 수 없어서 intent 호출은 모두 이 world 안에 있다.
+// 길드원은 명부 자리의 핸들로 넘겨받는다. 그 핸들로 바꾼 것은 명부의 원본에 남는다.
+import "commons/types/gold.pgy";
 import "domains/guild/zones/guild_roster.pgy";
 import "domains/treasury/zones/treasury.pgy";
 import "domains/raid/intents/clear_raid.pgy";
@@ -27,11 +28,11 @@ world GuildEconomy {
     activate forge
     activate hall
 
-    func Open(self, seasonCap: Int) -> Int {
+    func Open(self, seasonCap: Gold) -> Gold {
         return treasury.Open(guild.Wealth(), seasonCap);
     }
 
-    func Held(self) -> Int {
+    func Held(self) -> Gold {
         return guild.Wealth() + hall.escrow + forge.feeBox + treasury.vault + treasury.pending;
     }
 
@@ -62,15 +63,6 @@ world GuildEconomy {
         return ok;
     }
 
-    func RelicOf(self, member: Member) -> Int {
-        match member {
-            case Ana: return guild.ana.pack.relic;
-            case Bo: return guild.bo.pack.relic;
-            case Cy: return guild.cy.pack.relic;
-            case Dee: return guild.dee.pack.relic;
-        }
-    }
-
     // 원정대: 선봉 Ana, 타격 Cy, 비전 Dee. 상인 Bo는 마을에 남는다.
     func Raid(self, boss: String, hp: Int, morale: Int) -> Bool {
         raid.Summon(boss, hp);
@@ -90,97 +82,45 @@ world GuildEconomy {
         return ok;
     }
 
-    func Order(self, name: String, power: Int, calling: Calling) -> ForgeOrder {
-        let order: ForgeOrder = PlanForge(power, forge.heat, calling);
-        Log("-- forge: " + name + " heat=" + ToString(forge.heat) + " --");
+    func Craft(self, smith: Adventurer) -> Bool {
+        let order: ForgeOrder = PlanForge(smith.power, forge.heat, smith.calling);
+        Log("-- forge: " + smith.name + " heat=" + ToString(forge.heat) + " --");
         Log("[plan] fee=" + ToString(order.fee) + " quality=" + ToString(order.quality));
-        return order;
+        return Outcome("CraftRelic", CraftRelic(forge, treasury, treasury.mint, smith, order));
     }
 
-    func Craft(self, smith: Member) -> Bool {
-        match smith {
-            case Ana:
-                let order: ForgeOrder = Order(guild.ana.name, guild.ana.power, guild.ana.calling);
-                return Outcome("CraftRelic", CraftRelic(forge, treasury, treasury.mint, guild.ana, order));
-            case Bo:
-                let order: ForgeOrder = Order(guild.bo.name, guild.bo.power, guild.bo.calling);
-                return Outcome("CraftRelic", CraftRelic(forge, treasury, treasury.mint, guild.bo, order));
-            case Cy:
-                let order: ForgeOrder = Order(guild.cy.name, guild.cy.power, guild.cy.calling);
-                return Outcome("CraftRelic", CraftRelic(forge, treasury, treasury.mint, guild.cy, order));
-            case Dee:
-                let order: ForgeOrder = Order(guild.dee.name, guild.dee.power, guild.dee.calling);
-                return Outcome("CraftRelic", CraftRelic(forge, treasury, treasury.mint, guild.dee, order));
-        }
+    func Stake(self, bidder: Adventurer, quality: Int) -> Gold {
+        return BidFor(quality, bidder.calling, bidder.purse.gold, bidder.pack.CanCarry());
     }
 
-    func Stake(self, bidder: Member, quality: Int) -> Int {
-        match bidder {
-            case Ana: return BidFor(quality, guild.ana.calling, guild.ana.purse.gold, guild.ana.pack.CanCarry());
-            case Bo: return BidFor(quality, guild.bo.calling, guild.bo.purse.gold, guild.bo.pack.CanCarry());
-            case Cy: return BidFor(quality, guild.cy.calling, guild.cy.purse.gold, guild.cy.pack.CanCarry());
-            case Dee: return BidFor(quality, guild.dee.calling, guild.dee.purse.gold, guild.dee.pack.CanCarry());
+    func Settle(self, seller: Adventurer, buyer: Adventurer, clearing: Clearing) -> Bool {
+        Log("[clearing] winner=" + buyer.name + " price=" + ToString(clearing.price) + " tax=" + ToString(clearing.tax));
+        let ok: Bool = Outcome("SettleAuction", SettleAuction(hall, treasury, treasury.mint, seller, buyer, clearing));
+        if ok {
+            Log("[market] " + hall.bond.Label() + "; " + hall.levy.Label());
+        } else {
+            Log("[market] escrow returned: " + buyer.name + " gold=" + ToString(buyer.purse.gold));
         }
+        return ok;
     }
 
-    // 판매자×구매자 표. 자기 물건을 자기가 사는 칸은 intent까지 가지 않는다.
-    func Settle(self, seller: Member, buyer: Member, clearing: Clearing) -> Bool {
-        if seller == buyer {
-            Log("[market] self-dealing refused");
-            return false;
-        }
-        match seller {
-            case Ana:
-                match buyer {
-                    case Bo: return SettleAuction(hall, treasury, treasury.mint, guild.ana, guild.bo, clearing);
-                    case Cy: return SettleAuction(hall, treasury, treasury.mint, guild.ana, guild.cy, clearing);
-                    default: return SettleAuction(hall, treasury, treasury.mint, guild.ana, guild.dee, clearing);
-                }
-            case Bo:
-                match buyer {
-                    case Ana: return SettleAuction(hall, treasury, treasury.mint, guild.bo, guild.ana, clearing);
-                    case Cy: return SettleAuction(hall, treasury, treasury.mint, guild.bo, guild.cy, clearing);
-                    default: return SettleAuction(hall, treasury, treasury.mint, guild.bo, guild.dee, clearing);
-                }
-            case Cy:
-                match buyer {
-                    case Ana: return SettleAuction(hall, treasury, treasury.mint, guild.cy, guild.ana, clearing);
-                    case Bo: return SettleAuction(hall, treasury, treasury.mint, guild.cy, guild.bo, clearing);
-                    default: return SettleAuction(hall, treasury, treasury.mint, guild.cy, guild.dee, clearing);
-                }
-            case Dee:
-                match buyer {
-                    case Ana: return SettleAuction(hall, treasury, treasury.mint, guild.dee, guild.ana, clearing);
-                    case Bo: return SettleAuction(hall, treasury, treasury.mint, guild.dee, guild.bo, clearing);
-                    default: return SettleAuction(hall, treasury, treasury.mint, guild.dee, guild.cy, clearing);
-                }
-        }
-    }
-
-    func Winner(self, index: Int, first: Member, second: Member, third: Member) -> Member {
-        match index {
-            case 0: return first;
-            case 1: return second;
-            default: return third;
-        }
-    }
-
-    // 판매자 한 명과 입찰자 셋. quality는 경매장 게시판에 올라간 유물 품질이다.
-    func Auction(self, seller: Member, quality: Int, reserve: Int, first: Member, second: Member, third: Member) -> Bool {
-        let bids: Array<Int> = [Stake(first, quality), Stake(second, quality), Stake(third, quality)];
-        Log("-- auction: " + MemberName(seller) + " lists quality=" + ToString(quality) + " reserve=" + ToString(reserve) + " --");
-        Log("[bids] " + MemberName(first) + "=" + ToString(bids[0])
-            + " " + MemberName(second) + "=" + ToString(bids[1])
-            + " " + MemberName(third) + "=" + ToString(bids[2]));
-        match ClearAuction(bids, reserve) {
+    // 판매자 한 명과 입찰자 셋. 입찰가는 경매장 입찰판에 자리 순서로 올라가고,
+    // 낙찰은 그 판을 읽는다. quality는 게시판에 올라간 유물 품질이다.
+    func Auction(self, seller: Adventurer, quality: Int, reserve: Gold, first: Adventurer, second: Adventurer, third: Adventurer) -> Bool {
+        hall.Post(0, Stake(first, quality));
+        hall.Post(1, Stake(second, quality));
+        hall.Post(2, Stake(third, quality));
+        Log("-- auction: " + seller.name + " lists quality=" + ToString(quality) + " reserve=" + ToString(reserve) + " --");
+        Log("[bids] " + first.name + "=" + ToString(hall.book[0])
+            + " " + second.name + "=" + ToString(hall.book[1])
+            + " " + third.name + "=" + ToString(hall.book[2]));
+        match ClearAuction(hall.book, reserve) {
             case Ok(clearing):
-                let buyer: Member = Winner(clearing.winner, first, second, third);
-                Log("[clearing] winner=" + MemberName(buyer) + " price=" + ToString(clearing.price) + " tax=" + ToString(clearing.tax));
-                let ok: Bool = Outcome("SettleAuction", Settle(seller, buyer, clearing));
-                if ok {
-                    Log("[market] " + hall.bond.Label() + "; " + hall.levy.Label());
+                match clearing.winner {
+                    case 0: return Settle(seller, first, clearing);
+                    case 1: return Settle(seller, second, clearing);
+                    default: return Settle(seller, third, clearing);
                 }
-                return ok;
             case Err(error):
                 Log("[clearing] no sale: " + AuctionErrorName(error));
                 return false;
@@ -188,7 +128,7 @@ world GuildEconomy {
     }
 
     func Report(self) -> Void {
-        let purses: Array<Int> = guild.Purses();
+        let purses: Array<Gold> = guild.Purses();
         Log("-- season report --");
         Roll();
         Log("[supply] genesis=" + ToString(treasury.genesis)

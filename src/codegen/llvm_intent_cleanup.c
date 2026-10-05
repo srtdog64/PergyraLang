@@ -171,13 +171,50 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
                     completed_allocas[i], llvm_tmp_name(ctx));
                 LLVMBuildCondBr(ctx->builder, done, do_bb, next_bb);
                 LLVMPositionBuilderAtEnd(ctx->builder, do_bb);
+                /* A compensation runs under the binding of the step it
+                 * undoes: materialize, rebind, compensate, write back. */
+                llvm_emit_intent_step_bind_bound_zone(
+                    ctx, node, zone_type_name, zone_alias, from_alias,
+                    who_aliases, who_alias_count, false);
+                if (ctx->has_error)
+                    return false;
+                LLVMValueRef *saved_participant_ptrs = NULL;
+                bool rebound = false;
+                if (who_alias_count > 0) {
+                    saved_participant_ptrs = pgy_arena_calloc(&ctx->scratch,
+                        who_alias_count * sizeof(LLVMValueRef));
+                    if (saved_participant_ptrs == NULL) {
+                        llvm_set_error_at_with_hints(ctx, step,
+                            PGY_CODE_LLVM_OOM,
+                            PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                            PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                            "LLVM intent compensation rebind allocation failed for step '%s'",
+                            step_name != NULL ? step_name : "(anonymous-step)");
+                        return false;
+                    }
+                    rebound = llvm_emit_intent_step_rebind_bound_zone_aliases(
+                        ctx, node, zone_type_name, zone_alias,
+                        who_aliases, who_alias_count, saved_participant_ptrs);
+                    if (ctx->has_error)
+                        return false;
+                }
                 for (size_t j = compensate_expr_count; j-- > 0;) {
                     if (compensate_exprs[j] != NULL)
                         (void)llvm_emit_expression(compensate_exprs[j], ctx);
                 }
-                llvm_emit_intent_step_bind_bound_zone(
-                    ctx, node, zone_type_name, zone_alias, from_alias,
-                    who_aliases, who_alias_count, false);
+                if (rebound) {
+                    llvm_emit_intent_step_dirty_zone_projections(
+                        ctx, zone_type_name, zone_alias);
+                    llvm_emit_intent_step_sync_effective_zone(
+                        ctx, zone_type_name, zone_alias);
+                    llvm_emit_intent_step_restore_bound_zone_aliases(
+                        ctx, node, zone_type_name, who_aliases,
+                        who_alias_count, saved_participant_ptrs);
+                } else {
+                    llvm_emit_intent_step_bind_bound_zone(
+                        ctx, node, zone_type_name, zone_alias, from_alias,
+                        who_aliases, who_alias_count, false);
+                }
                 if (ctx->has_error)
                     return false;
                 if (ast_intent_decl_rollback_policy(node) == INTENT_ROLLBACK_CURRENT)

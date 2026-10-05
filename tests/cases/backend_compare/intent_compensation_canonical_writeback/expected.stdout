@@ -1,0 +1,5 @@
+after-take ok=false gold=100 till=0 vault=0
+at-post ok=false gold=100 till=0 vault=0
+across-zones ok=false gold=100 till=0 vault=0
+nested ok=false gold=100 till=0 vault=0
+current-only ok=false gold=75 till=25 vault=0

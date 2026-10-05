@@ -13,6 +13,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_func_forward_policy.h"
+#include "transpiler_type_require.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_signature.h"
@@ -71,6 +72,22 @@ transpiler_can_forward_declare_type_name_early(TranspilerCtx *ctx,
 {
     if (ctx == NULL || type_name == NULL)
         return true;
+    /* A type alias is declared early exactly when its target is: the C type
+     * is rendered from the resolved name, not from the alias typedef. */
+    {
+        char alias_buf[256];
+        char head[128];
+        const char *resolved = transpiler_type_name_resolve_aliases(ctx,
+            type_name, alias_buf, sizeof(alias_buf));
+        if (resolved != type_name) {
+            size_t len = strcspn(resolved, "<");
+            if (len == 0 || len >= sizeof(head))
+                return false;
+            memcpy(head, resolved, len);
+            head[len] = '\0';
+            return transpiler_can_forward_declare_type_name_early(ctx, head);
+        }
+    }
     /* A user enum may take a builtin type's spelling (`enum Result`); its
      * typedef is emitted with the user enums, after the early prototypes,
      * so the builtin early-forward row does not cover it. */
@@ -172,6 +189,15 @@ transpiler_forward_type_name_stage(TranspilerCtx *ctx,
 
     if (type_name == NULL || depth > 8)
         return TRANSPILER_FUNC_FORWARD_STAGE_NONE;
+    /* A type alias is spelled in a prototype as its target is. */
+    {
+        char alias_buf[256];
+        const char *resolved = transpiler_type_name_resolve_aliases(ctx,
+            type_name, alias_buf, sizeof(alias_buf));
+        if (resolved != type_name)
+            return transpiler_forward_type_name_stage(ctx, resolved, element,
+                depth + 1);
+    }
     /* A user `enum Result` / `enum Option` takes the enum row below. */
     if (transpiler_forward_type_name_is_allowed(type_name)
         && !transpiler_decl_exists_local(ctx, AST_ENUM_DECL, type_name))

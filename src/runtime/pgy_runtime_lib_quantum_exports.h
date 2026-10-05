@@ -283,6 +283,11 @@ void pgy_async_detach_export(PgyTaskHandle h)
     pgy_lane_detach(h);
 }
 
+void pgy_async_drain_detached_export(void)
+{
+    pgy_async_drain_detached();
+}
+
 void *pgy_await_export(PgyTaskHandle h)
 {
     return pgy_lane_await(h);

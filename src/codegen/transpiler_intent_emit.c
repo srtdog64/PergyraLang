@@ -433,22 +433,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 free((void *)dispatch_aliases);
                 goto intent_emit_fail;
             }
-            rebound_aliases = emit_intent_step_rebind_bound_zone_aliases_with_metadata(
-                ctx->out, ctx, node, step_zone_name, step_zone_alias,
-                who_aliases, who_alias_count, i,
-                &binding_metadata);
-            if (mir_only_intent && ctx->backend_error != NULL) {
-                free(on_exprs);
-                free((void *)who_aliases);
-                free((void *)authorized_aliases);
-                free((void *)dispatch_aliases);
-                goto intent_emit_fail;
-            }
         } else {
             emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step, true);
-            rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
         }
 
+        /* Admission runs after the participants are materialized into the
+         * zone slots and before the aliases are rebound to those slots: the
+         * values are the same either way, and a refused step then leaves
+         * every alias on its canonical participant for the cleanup tail. */
         if (pre_expr != NULL) {
             char *pre = emit_expression(pre_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, pre, "pre",
@@ -464,6 +456,22 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(invariant);
+        }
+
+        if (mir_only_intent) {
+            rebound_aliases = emit_intent_step_rebind_bound_zone_aliases_with_metadata(
+                ctx->out, ctx, node, step_zone_name, step_zone_alias,
+                who_aliases, who_alias_count, i,
+                &binding_metadata);
+            if (mir_only_intent && ctx->backend_error != NULL) {
+                free(on_exprs);
+                free((void *)who_aliases);
+                free((void *)authorized_aliases);
+                free((void *)dispatch_aliases);
+                goto intent_emit_fail;
+            }
+        } else {
+            rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
         }
 
         if (has_outcome_binding) {
@@ -520,11 +528,13 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             }
         }
         if (subintent_expr != NULL) {
+            /* The nested intent's verdict is checked after this step writes
+             * its zone slots back to the canonical participants; failing
+             * here would leave the aliases rebound for the cleanup tail. */
             char *intent_expr = emit_expression(subintent_expr, ctx);
-            emit_intent_step_condition_failure(ctx->out, ctx, intent_expr,
-                "intent", step_name, intent_name,
-                emit_cleanup_from_mir,
-                mir_routine != NULL ? mir_routine->cleanup_block : 0);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "bool __intent_subintent_ok_%zu = (%s);\n",
+                i, intent_expr != NULL ? intent_expr : "false");
             free(intent_expr);
         } else if (on_expr_count == 0) {
             for (size_t j = 0; j < dispatch_alias_count; j++) {
@@ -613,6 +623,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             } else {
                 emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
             }
+        }
+        if (subintent_expr != NULL) {
+            char *subintent_ok = transpiler_scratch_fmt(ctx,
+                "__intent_subintent_ok_%zu", i);
+            emit_intent_step_condition_failure(ctx->out, ctx, subintent_ok,
+                "intent", step_name, intent_name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
         }
         PGY_RESTORE_INTENT_STEP_CONTEXT(saved_host_decl,
                                         saved_overlay_receiver);

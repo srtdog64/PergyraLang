@@ -394,6 +394,21 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             step_ctx.who_aliases, step_ctx.who_alias_count, true);
         if (ctx->has_error)
             goto intent_emit_fail;
+
+        /* Admission runs after the participants are materialized and before
+         * the aliases are rebound, so a refused step leaves every alias on
+         * its canonical participant for the cleanup tail. */
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.pre_expr, "pre", step_name,
+                "intent.pre.ok")) {
+            goto intent_emit_fail;
+        }
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.invariant_pre_expr,
+                "invariant-pre", step_name, "intent.invariant.pre.ok")) {
+            goto intent_emit_fail;
+        }
+
         if (step_ctx.who_alias_count > 0) {
             /* Participant pointer cache for rebind/unrebind window; freed
              * at step end, never escapes. */
@@ -413,17 +428,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 step_ctx.who_aliases, step_ctx.who_alias_count, saved_participant_ptrs);
             if (ctx->has_error)
                 goto intent_emit_fail;
-        }
-
-        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
-                fail_reason_alloca, step_ctx.pre_expr, "pre", step_name,
-                "intent.pre.ok")) {
-            goto intent_emit_fail;
-        }
-        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
-                fail_reason_alloca, step_ctx.invariant_pre_expr,
-                "invariant-pre", step_name, "intent.invariant.pre.ok")) {
-            goto intent_emit_fail;
         }
 
         if (has_outcome_binding) {
@@ -480,20 +484,13 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     (void)llvm_emit_expression(step_ctx.on_exprs[j], ctx);
             }
         }
+        LLVMValueRef subintent_ok = NULL;
         if (step_ctx.subintent_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.subintent.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.subintent_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
-                    "intent", step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+            /* The nested intent's verdict is branched on after this step
+             * writes its zone slots back to the canonical participants. */
+            subintent_ok = llvm_emit_expression(step_ctx.subintent_expr, ctx);
+            if (ctx->has_error || subintent_ok == NULL)
+                goto intent_emit_fail;
         } else if (step_ctx.on_expr_count == 0) {
             size_t alias_count = step_ctx.dispatch_alias_count;
             for (size_t j = 0; j < alias_count; j++) {
@@ -554,6 +551,20 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 step_ctx.who_alias_count, saved_participant_ptrs);
             if (ctx->has_error)
                 goto intent_emit_fail;
+        }
+        if (subintent_ok != NULL) {
+            char reason[256];
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.subintent.ok");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
+                    "intent", step_name))
+                return;
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildGlobalStringPtr(ctx->builder,
+                    reason,
+                    llvm_tmp_name(ctx)),
+                fail_reason_alloca);
+            LLVMBuildCondBr(ctx->builder, subintent_ok, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         }
 
         if (completed_allocas != NULL) {

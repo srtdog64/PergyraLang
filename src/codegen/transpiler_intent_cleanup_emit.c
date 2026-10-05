@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_block_intent_helpers.h"
 #include "transpiler_context.h"
+#include "transpiler_intent_zone_binding_emit.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_intent_query.h"
 #include "transpiler_mir_resource_hook_emit.h"
@@ -17,6 +18,83 @@ transpiler_emit_intent_missing_carrier(TranspilerCtx *ctx, const char *message)
 {
     transpiler_set_mir_intent_carrier_missing(ctx, "%s", message);
     return false;
+}
+
+/*
+ * A compensation runs under the same participant binding as the step it
+ * undoes: materialize the canonical participants into the step's zone
+ * slots, point the aliases at those slots, run the compensate expressions,
+ * then write the slots back to the canonical participants. Without the
+ * write-back a compensation that touches a participant borrowed from another
+ * zone only changes the zone copy, and the canonical participant keeps the
+ * step's effect.
+ */
+static bool
+transpiler_emit_intent_step_compensation_under_binding(
+    TranspilerCtx *ctx,
+    ASTNode *node,
+    ASTNode *step,
+    size_t step_index,
+    bool use_mir_metadata,
+    const char *zone_type_name,
+    const char *zone_alias,
+    const char *from_alias,
+    const char **who_aliases,
+    size_t who_alias_count,
+    const IntentBindingMetadataView *bindings,
+    ASTNode **compensate_exprs,
+    size_t compensate_expr_count)
+{
+    bool rebound;
+
+    if (use_mir_metadata) {
+        emit_intent_step_bind_bound_zone_with_metadata(
+            ctx->out, ctx, node, zone_type_name, zone_alias, from_alias,
+            who_aliases, who_alias_count, bindings, false);
+        if (ctx->backend_error != NULL)
+            return false;
+        rebound = emit_intent_step_rebind_bound_zone_aliases_with_metadata(
+            ctx->out, ctx, node, zone_type_name, zone_alias,
+            who_aliases, who_alias_count, step_index, bindings);
+    } else {
+        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step, false);
+        rebound = emit_intent_step_rebind_bound_zone_aliases(
+            ctx->out, ctx, node, step, step_index);
+    }
+    if (ctx->backend_error != NULL)
+        return false;
+
+    for (size_t j = compensate_expr_count; j-- > 0;) {
+        char *expr = emit_expression(compensate_exprs[j], ctx);
+        if (expr != NULL && expr[0] != '\0') {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s;\n", expr);
+        }
+        free(expr);
+    }
+
+    if (!rebound) {
+        if (use_mir_metadata) {
+            emit_intent_step_bind_bound_zone_with_metadata(
+                ctx->out, ctx, node, zone_type_name, zone_alias, from_alias,
+                who_aliases, who_alias_count, bindings, false);
+        } else {
+            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step, false);
+        }
+        return ctx->backend_error == NULL;
+    }
+    if (use_mir_metadata) {
+        emit_intent_step_sync_effective_zone_with_metadata(
+            ctx->out, ctx, zone_type_name, zone_alias);
+        emit_intent_step_restore_bound_zone_aliases_with_metadata(
+            ctx->out, ctx, node, zone_type_name,
+            who_aliases, who_alias_count, step_index, bindings);
+    } else {
+        emit_intent_step_sync_effective_zone(ctx->out, ctx, step);
+        emit_intent_step_restore_bound_zone_aliases(
+            ctx->out, ctx, node, step, step_index);
+    }
+    return ctx->backend_error == NULL;
 }
 
 static bool
@@ -178,26 +256,16 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     write_indent(ctx);
                     codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
                     ctx->indent++;
-                    for (size_t j = compensate_expr_count; j-- > 0;) {
-                        char *expr = emit_expression(compensate_exprs[j], ctx);
-                        if (expr != NULL && expr[0] != '\0') {
-                            write_indent(ctx);
-                            codebuf_write(ctx->out, "%s;\n", expr);
-                        }
-                        free(expr);
-                    }
-                    if (mir_only_intent) {
-                        emit_intent_step_bind_bound_zone_with_metadata(
-                            ctx->out, ctx, node, zone_type_name, zone_alias, from_alias,
-                            who_aliases, who_alias_count, bindings, false);
-                        if (ctx->backend_error != NULL) {
+                    if (!transpiler_emit_intent_step_compensation_under_binding(
+                            ctx, node, step, i, mir_only_intent,
+                            zone_type_name, zone_alias, from_alias,
+                            who_aliases, who_alias_count, bindings,
+                            compensate_exprs, compensate_expr_count)) {
+                        if (mir_only_intent) {
                             free(compensate_exprs);
                             free((void *)who_aliases);
-                            return false;
                         }
-                    } else {
-                        emit_intent_step_bind_bound_zone(
-                            ctx->out, ctx, node, step, false);
+                        return false;
                     }
                     if (rollback_policy == INTENT_ROLLBACK_CURRENT) {
                         if (mir_routine->has_invalidation_block) {
@@ -261,16 +329,13 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                 write_indent(ctx);
                 codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
                 ctx->indent++;
-                for (size_t j = ast_intent_step_compensate_expr_count(step); j-- > 0;) {
-                    char *expr = emit_expression(ast_intent_step_compensate_exprs(step, NULL)[j], ctx);
-                    if (expr != NULL && expr[0] != '\0') {
-                        write_indent(ctx);
-                        codebuf_write(ctx->out, "%s;\n", expr);
-                    }
-                    free(expr);
+                if (!transpiler_emit_intent_step_compensation_under_binding(
+                        ctx, node, step, i, false,
+                        NULL, NULL, NULL, NULL, 0, bindings,
+                        ast_intent_step_compensate_exprs(step, NULL),
+                        ast_intent_step_compensate_expr_count(step))) {
+                    return false;
                 }
-                emit_intent_step_bind_bound_zone(
-                    ctx->out, ctx, node, step, false);
                 if (rollback_policy == INTENT_ROLLBACK_CURRENT) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");

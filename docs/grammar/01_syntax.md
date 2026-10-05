@@ -15,8 +15,8 @@
 | 구분 | 현재 상태 | 예시 |
 |---|---|---|
 | Stable | parser/semantic/examples/backend smoke로 계속 검증되는 핵심 문법 | `let`, `func`, `if/else`, `for`, `while`, `match`, 배열, 문자열, `slot/view/move`, `spawn/await`, `Channel`, `import/export/namespace`, `enum` |
-| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `object/tobject/vessel/subject/action`, `effect/relation/zone/intent/world`, `event + lambda`, `ability/role`, `party/roster`, structured comment `@effects`, `defer`, `unsafe` |
-| Not Current Surface | AST 흔적이나 설계 문서만 있고 공식 문법으로 보면 안 되는 것 | `type alias`, 고급 DSL 확장 초안, 미문서 실험 노드 |
+| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `type` 별칭, `select`, `object/tobject/vessel/subject/action`, `effect/relation/zone/intent/world`, `event + lambda`, `ability/role`, `party/roster`, structured comment `@effects`, `defer`, `unsafe` |
+| Not Current Surface | AST 흔적이나 설계 문서만 있고 공식 문법으로 보면 안 되는 것 | 고급 DSL 확장 초안, 미문서 실험 노드 |
 
 규칙:
 - 이 문서는 `Stable`과 `Supported but Evolving`만 다룬다.
@@ -257,6 +257,23 @@ Purchase(hero, merchant);
 - `IntentActiveCount()` / `IntentActiveName(i)` / `IntentActiveHandle(i)` / `IntentActiveParentHandle(i)` / `IntentActiveTraceId(i)` / `IntentActivePriority(i)` / `IntentActiveSubjectCount(i)` / `IntentActiveStepCount(i)` / `IntentActiveConcurrent(i)` / `IntentActiveFailed(i)` / `IntentActiveFailure(i)` / `IntentActiveTrace(i)` builtin으로 현재 active intent registry를 읽을 수 있다
 - `transfer: source -> target;`는 intent step에서 cross-zone handoff를 선언한다. 현재 구현은 source/target 양쪽 zone을 live sync하고, `who` participant를 matching subject slot에 materialize하며, trace에 `[transfer] ...`를 남긴다.
 - `using:` step은 현재 `who` participant alias를 live zone subject slot pointer로 재바인딩한 뒤 step body를 실행하고, sync 후 canonical participant로 복구한다. 그래서 zone method가 nested participant state를 직접 바꿔도 intent clause와 최종 participant state가 일관된다.
+- step 절의 평가 순서는 `pre → invariant → on → guard → expect → post → invariant`다.
+  `pre`와 앞쪽 `invariant`는 participant를 zone slot에 materialize한 뒤, alias를
+  재바인딩하기 전에 평가한다. `guard`는 이름과 달리 `on:` 뒤에 평가되는 사후
+  검사다. 동작 자체를 막으려면 `pre:`를 쓴다.
+- `pre:`는 step마다 하나다. 조건이 여럿이면 `&&`로 묶는다.
+- `on:`이 없는 step은 같은 이름의 subject action 계약을 찾는다. 찾지 못하면
+  "declarative only" 경고를 낸다.
+- 권한을 선언한 zone(`authority ...`) 안의 step은 모두 `authorized by:`가 필요하다.
+- step의 `on:`이 실행되면 그 step은 완료로 표시된 뒤 `guard/expect/post`를
+  검사한다. 그래서 사후 검사에서 실패한 step도 자기 `compensate:`로 되돌려진다.
+- 보상은 되돌리는 step과 같은 participant 바인딩 아래에서 실행된다. canonical
+  participant를 그 step의 zone slot에 materialize하고, alias를 slot으로 재바인딩하고,
+  `compensate:` 식을 실행한 뒤, slot을 canonical participant에 되써 넣는다. 다른
+  zone에서 빌려 온 participant의 환불도 원본에 닿는다
+  (`tests/cases/backend_compare/intent_compensation_canonical_writeback`).
+- 중첩 intent step(`intent: Other(...)`)의 성패는 바깥 step이 slot을 되써 넣은 뒤에
+  판정한다. 실패한 중첩 intent는 스스로 보상하고, 바깥 intent는 그 앞의 step을 보상한다.
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
@@ -510,6 +527,23 @@ RemoteFuture<Int>
 Option<Int>
 Result<Int>
 ```
+
+### 3.4 타입 별칭 (Supported but Evolving)
+
+```pergyra
+type Gold = Int
+type Coin = Gold
+type IntArray = Array<Int>
+```
+
+별칭은 투명하다. `Gold`는 새 타입이 아니라 `Int`의 다른 이름이고, 별칭의 별칭도
+같은 타입으로 풀린다. 그래서 `Array<Gold>`, `Option<Gold>`, `Result<Gold, E>`는
+`Array<Int>`, `Option<Int>`, `Result<Int, E>`와 같은 타입이고 같은 C/LLVM
+specialization을 쓴다. 루프에서 `Gold` 변수에 `Int` 식을 다시 대입해도 같은
+타입이다. MIR은 선언된 이름을 유지하고, 백엔드가 MIR 선언 헤더로 별칭을 푼다
+(`tests/cases/backend_compare/type_alias_transparent_flow`,
+`tests/cases/backend_compare/type_alias_array_context`).
+별칭은 단위나 도메인 구분을 강제하지 않는다. `Gold`와 `Int`는 서로 섞인다.
 
 ## 4. 표현식
 
@@ -862,6 +896,17 @@ world GameWorld {
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
 현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`tobject slot`/`refresh`/`publish`/`bind`/`shared`/`func`까지의 최소 표면이 구현돼 있다. Projection slot initializer는 semantic error이며, zone caller admission은 `subject slot`/`binding slot`, relation/effect caller admission은 `for ...` header binding으로만 표현한다. `relation` / `effect` / `zone`은 projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `effect pool damage: DamageEffect capacity 8` 같은 fixed-capacity effect pool slot, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
+zone과 world의 method에 대해 현재 성립하는 규칙:
+- subject는 zone/world slot에 묶인 핸들이다. method의 subject 매개변수는 그
+  slot을 가리키며, 형제 method 호출(`Label(desk.a)`), 바깥에서의 수신자 호출
+  (`office.Raise(office.desk.b)`), intent로 넘기는 경우 모두 그 매개변수를 통한
+  변경이 원래 slot에 남는다 (`tests/cases/backend_compare/world_method_subject_param`).
+  subject를 값으로 반환할 수는 없다.
+- world의 zone은 world 밖으로 꺼낼 수 없다. intent 호출은 world method 안에서 한다.
+- zone method 안에서 이름만 쓴 `shared` 필드는 그 zone의 상태다. `Array` shared
+  필드의 원소도 `balances[i] = v`와 `ArraySet(balances, i, v)`로 바꿀 수 있다
+  (`tests/cases/backend_compare/zone_shared_array_mutation`).
+
 ## 9. 구현 기준 네이밍
 
 - 키워드: 소문자
@@ -917,7 +962,6 @@ owners cannot close.
 
 ## 11. 현재 미지원 / AST 흔적만 있는 것
 
-- `type alias`
 - `task group` 표면 문법
 - standalone `event handler type` 표면 문법
 

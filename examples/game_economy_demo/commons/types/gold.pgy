@@ -1,0 +1,6 @@
+// commons/types/gold.pgy — 금화
+//
+// 별칭은 투명하다. Gold는 Int의 다른 이름이라 Int와 섞여 계산되지만,
+// 시그니처를 읽으면 그 값이 돈이라는 것이 보인다.
+
+type Gold = Int

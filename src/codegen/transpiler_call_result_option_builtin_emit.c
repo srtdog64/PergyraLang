@@ -19,6 +19,7 @@
 #include "transpiler_format.h"
 #include "transpiler_option_context.h"
 #include "codegen_type_mapping.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_result_mapping_helpers.h"
 
 typedef enum TranspilerResultOptionOp {
@@ -151,9 +152,12 @@ emit_call_result_option_builtin(ASTNode *call,
          * (`let a: Int = UnwrapOr(r, 7)` inside a function returning
          * Result<Bool, String>). A constructor takes it from that context. */
         if (is_result_consumer) {
+            char operand_alias[256];
             if (argc >= 1 && arg0 != NULL)
                 have_result_suffix = transpiler_result_suffix_from_type_name(
-                    transpiler_expr_infer_type_name(ctx, arg0),
+                    transpiler_type_name_resolve_aliases(ctx,
+                        transpiler_expr_infer_type_name(ctx, arg0),
+                        operand_alias, sizeof(operand_alias)),
                     result_suffix, sizeof(result_suffix));
         } else if (is_result_ctor) {
             have_result_suffix = transpiler_result_suffix_from_context(
@@ -242,6 +246,7 @@ emit_call_result_option_builtin(ASTNode *call,
                 return NULL;
             const char *inner = transpiler_expr_infer_type_name(ctx, arg0);
             char inner_buf[128];
+            char inner_alias[256];
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
                 if (transpiler_contextual_option_inner_type_copy(ctx,
@@ -249,6 +254,8 @@ emit_call_result_option_builtin(ASTNode *call,
                     inner = inner_buf;
                 }
             }
+            inner = transpiler_type_name_resolve_aliases(ctx, inner,
+                inner_alias, sizeof(inner_alias));
             char suffix[128];
             if (!transpiler_option_suffix_from_inner_type_name(inner,
                     suffix, sizeof(suffix))) {

@@ -262,9 +262,11 @@ step 2):**
   boundary-owned evidence bits, and the task is to expand those producers rather
   than reclassify from source syntax.
   On the self-host side it is also gated by async *lowering*: the self-host
-  parses async but does not lower it (its `mir_lower` carries zero async facts),
-  so the self-host async codegen is tracked with the MIR JSON async fact
-  surface.
+  parses async, but its `mir_lower` carries no async facts, so the self-host
+  async codegen is tracked with the MIR JSON async fact surface. The self-host
+  codegen does emit the bounded scalar-call spawn and named `Future<T>` await
+  (`src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy`); that is not
+  lane-fact lowering.
 - **Full AIR JSON lane matrix.** The policy proof and self-host parity proof
   cover `Inline`, `PinnedZone`, `BlockingPool`, `LocalAsync`, `WorkerPool`,
   `MovableScheduler`, and `Reject`. Clean AIR JSON now covers real intent

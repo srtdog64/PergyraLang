@@ -1,0 +1,95 @@
+// `type Gold = Int` is transparent: a Gold value flows through loops,
+// Result, Option, arrays, struct fields and zone state exactly as its Int
+// target does, and an alias of an alias resolves to the same type.
+
+type Gold = Int
+type Coin = Gold
+
+enum PayError { Negative, Overdrawn }
+
+struct Ledger {
+    owner: String;
+    balance: Gold;
+}
+
+func Sum(xs: Array<Gold>) -> Gold {
+    let total: Gold = 0;
+    for i in 0..ArrayLength(xs) {
+        total = total + xs[i];
+    }
+    return total;
+}
+
+func Pay(balance: Gold, amount: Coin) -> Result<Gold, PayError> {
+    if amount < 0 {
+        return Err(Negative);
+    }
+    if amount > balance {
+        return Err(Overdrawn);
+    }
+    return Ok(balance - amount);
+}
+
+func Find(xs: Array<Gold>, wanted: Int) -> Option<Gold> {
+    for i in 0..ArrayLength(xs) {
+        if xs[i] == wanted {
+            return Some(xs[i]);
+        }
+    }
+    return None;
+}
+
+func Describe(result: Result<Int, PayError>) -> String {
+    match result {
+        case Ok(left): return "ok " + ToString(left);
+        case Err(error):
+            match error {
+                case Negative: return "refused negative";
+                case Overdrawn: return "refused overdrawn";
+            }
+    }
+}
+
+subject Keeper {
+    let name: String;
+    let mut held: Gold;
+
+    action Add(self, amount: Coin) -> Gold {
+        held = held + amount;
+        return held;
+    }
+}
+
+object KeeperCard {
+    let name: String;
+}
+
+zone Vault {
+    subject slot keeper: Keeper
+    object slot card: KeeperCard
+    shared reserve: Gold = 10
+
+    func Deposit(self, amount: Gold) -> Gold {
+        keeper.Add(amount);
+        reserve = reserve + amount;
+        return reserve;
+    }
+}
+
+func Main() -> Void {
+    let xs: Array<Gold> = [3, 4, 5];
+    Log("sum=" + ToString(Sum(xs)));
+    Log(Describe(Pay(Sum(xs), 7)));
+    Log(Describe(Pay(5, 9)));
+    Log(Describe(Pay(5, -1)));
+    match Find(xs, 4) {
+        case Some(v): Log("found " + ToString(v));
+        case None: Log("missing");
+    }
+    let ledger: Ledger = Ledger("Ana", Sum(xs));
+    let plain: Int = ledger.balance + 1;
+    Log("ledger=" + ToString(ledger.balance) + " plain=" + ToString(plain));
+    let vault: Vault = Vault(Keeper("Bo", 2));
+    vault.Deposit(8);
+    Log("reserve=" + ToString(vault.reserve) + " held=" + ToString(vault.keeper.held));
+}

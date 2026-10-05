@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "transpiler_context.h"
+#include "transpiler_expr_type_infer.h"
+#include "transpiler_type_require.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_ssa_map.h"
 
@@ -36,6 +38,24 @@ static bool phi_type_failure(TranspilerCtx *ctx, const char *name,
         "MIR SSA phi type fact invalid for '%s': %s",
         name != NULL ? name : "(missing)", detail);
     return false;
+}
+
+/* `type Gold = Int` is transparent: a value declared Gold and the Int it is
+ * reassigned from in a loop are one type. Incoming edges are compared by the
+ * alias-resolved name, which is also the name the phi carries. */
+static const char *phi_canonical_type_name(TranspilerCtx *ctx,
+                                           const char *type_name)
+{
+    char alias_buf[256];
+    const char *resolved;
+
+    if (type_name == NULL)
+        return NULL;
+    resolved = transpiler_type_name_resolve_aliases(ctx, type_name,
+        alias_buf, sizeof(alias_buf));
+    if (resolved == type_name)
+        return type_name;
+    return transpiler_infer_arena_copy_type_name(ctx, resolved);
 }
 
 bool transpiler_mir_phi_types_from_incomings(
@@ -83,7 +103,7 @@ bool transpiler_mir_phi_types_from_incomings(
             row->instruction = inst;
             if (inst->abi_type_name != NULL && inst->abi_type_name[0] != '\0' &&
                 strcmp(inst->abi_type_name, "Unknown") != 0)
-                row->type_name = inst->abi_type_name;
+                row->type_name = phi_canonical_type_name(ctx, inst->abi_type_name);
             if (inst->kind == MIR_INST_PHI) {
                 out[row->output_row].is_phi = true;
                 phi_count++;
@@ -102,7 +122,7 @@ bool transpiler_mir_phi_types_from_incomings(
             if (param != NULL && param->name != NULL && strcmp(param->name, base) == 0) {
                 const char *type = transpiler_mir_routine_param_type_name(routine, p);
                 if (type != NULL && type[0] != '\0' && strcmp(type, "Unknown") != 0)
-                    rows[i].type_name = type;
+                    rows[i].type_name = phi_canonical_type_name(ctx, type);
                 break;
             }
         }

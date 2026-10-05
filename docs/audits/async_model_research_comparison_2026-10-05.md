@@ -50,7 +50,7 @@ Pergyra는 같은 쪽에 서 있다. 그중 둘은 주류 언어보다 한 걸�
    case가 없다. 교착 분석도 없다. `Channel<T>`는 복사할 수 없는 값이라 이름 있는
    작업 사이에서 공유할 수 없다.
 
-**즉시 고쳐야 할 결함 둘**(§3.2): 분리된 `async { }` 블록이 `await`로 멈추면 남은
+**즉시 고쳐야 할 결함 둘**(§3.2, 같은 날 수정됨 — §4.5): 분리된 `async { }` 블록이 `await`로 멈추면 남은
 일이 아무 신호 없이 사라진다. 같은 블록 안의 `spawn`은 C 백엔드에서 컴파일조차
 되지 않는다.
 
@@ -274,9 +274,10 @@ schedule-independent safety(POPL 2026: 내부 결정적 프로그램은 한 inte
 결정적 부분집합을 증명하고 반례(`write_conflict_is_schedule_dependent`)도 둔다.
 
 **평가.** 연구 흐름과 가장 잘 맞는 축이다. 비결정을 이름(`any`)으로 드러내는 것도
-LVars의 quasi-determinism 같은 "비결정은 명시적으로" 원칙과 같다. 빠진 것은 증명이
-아니라 **실행 증거**다. workers 1/2/4/8에서 바이트가 같은지 보는 게이트가 착지하지
-않았다(`docs/204`). 싸고 강한 게이트다.
+LVars의 quasi-determinism 같은 "비결정은 명시적으로" 원칙과 같다. 실행 증거도 있다.
+`tests/parallel_worker_invariance_smoke.sh`가 같은 프로그램을 `PGY_WORKERS` 1·2·3·16으로
+두 백엔드에서 돌려 바이트 동일을 요구한다. 이 문서의 첫 판은 이 게이트를 놓치고
+"착지하지 않았다"고 적었다(§4.5에서 정정).
 
 ### 2.8 검증
 
@@ -334,7 +335,7 @@ workflow 엔진들이 "workflow 코드는 결정적이어야 하고 I/O는 activ
 - `docs/146`은 self-host가 "async를 lower하지 않는다"고 한다. 기본 경로는 인자 2개 이하의
   Int/String spawn·await를 받는다(`spawn_runtime_owner.pgy`). 일부가 낡았다.
 
-### 3.2 분리된 `async { }` 블록의 두 결함
+### 3.2 분리된 `async { }` 블록의 두 결함 (수정됨 — §4.5)
 
 ```pergyra
 async func Slow(x: Int) -> Int {
@@ -389,13 +390,25 @@ async func Main() -> Void {
 | R1 | `async` 색의 결정 기록 | 런타임은 stackful인데 표면만 색을 강제. `docs/05` 예제도 어긋남 | 결정 기록 하나: (a) 색 유지 + 문서 수정, (b) "멈출 수 있음"을 추론 효과로 바꾸고 pin·intent 검사가 그 요약을 소비. 이 문서는 (b)를 권한다 | (a)면 문서 예제 컴파일 게이트, (b)면 요약 소유자 음성 게이트 |
 | R2 | deadline scope와 실패 정책 | 취소를 일으킬 원인이 없다. Result 형제의 첫 실패를 다룰 join이 없다 | `PgyCancelNode`와 예산을 재사용하는 scope deadline(level-triggered). `await`의 타임아웃은 `Result`로. Result 원소용 join 모드 후보 하나 | 가상 클록 결정 목격자(`PGY_VIRTUAL_CLOCK`) |
 | R3 | 채널 | 이름 있는 작업 사이 공유 불가, 비차단 select뿐 | 불투명 채널 핸들 → 차단 `select` + 타임아웃 case → "모두 park" 탐지기 | 채널·select Rocq 모델 먼저, 그다음 양 백엔드 목격자 |
-| R4 | 결정성 실행 증거 | 증명은 있고 실행 증거가 없다 | workers 1/2/4/8 바이트 동일 게이트 | `PGY_WORKERS` 매트릭스 smoke |
+| R4 | 결정성 실행 증거 | (정정: 이미 있음, §4.5) | — | `tests/parallel_worker_invariance_smoke.sh` |
 | R5 | 경계 증거를 fact family 하나로 | 증거 규칙이 검사기 여러 곳에 흩어져 구성성이 약하다 | `docs/178` 증거를 SoT 레지스트리 행 하나로 등록하고 소비자 이전 | 레지스트리 행 + 음성 래칫 |
 | R6 | 문서 정리 | §3.1의 불일치 셋 | 문서만 | 문서 예제 컴파일 smoke |
 
 R0과 R6은 작고 즉시 할 수 있다. R1은 사용자 의미를 바꾸므로 결정이 먼저다. R2와 R3는
 `docs/204`의 채택 방향과 겹친다. 그 문서의 순서를 따르는 것이 맞다. 모두 현재 self-host
 치환 rung 밖이다. 저장소 규율상 진행 중인 rung을 밀어내지 않는다.
+
+### 4.5 처리 현황 (2026-10-05 후속)
+
+| # | 상태 | 내용 |
+|---|---|---|
+| R0 | 수정됨 | C: 래퍼 본문을 쓰는 동안 파일 범위 정의(안쪽 spawn 래퍼, 안쪽 parallel 래퍼)를 대기 버퍼에 모았다가 바깥 래퍼를 닫은 뒤 붙인다(`transpiler_parallel_wrapper_state_flush`). 분리 블록 안의 `spawn`이 더 이상 함수 안에 중첩되지 않는다. 런타임: 끝나지 않은 분리 코루틴 수를 세고, 생성된 `main`이 `Main()` 뒤에 `pgy_async_drain_detached`로 남은 일을 끝까지 돌린다. 그래도 끝낼 수 없으면 `INVALID_LIFECYCLE_STATE` panic이다. 게이트: `tests/cases/backend_compare/async_block_detached_drain`(수정 전: C 컴파일 실패, LLVM은 `detached done` 유실). 정적 거부 대신 이 쪽을 고른 이유: 멈출 수 있는 지점이 `await`만이 아니라 채널 대기도 있고, 프로세스 범위에서라도 구조를 지키는 것이 "고아 작업 없음" 합의에 맞는다. `docs/204`의 `spawn background` + `PGY_CAP_DETACH` 결정은 그대로 남는다. |
+| R1 | 결정 필요 | 색을 추론 효과로 바꾸는 일은 사용자 의미를 바꾼다. 결정 전까지 `docs/05`는 현재 규칙(async 문맥 필수)대로 고쳤다. |
+| R2 | 결정 필요 | deadline scope와 Result 원소 join 모드는 새 표면이다. `docs/204`의 순서에 붙인다. |
+| R3 | 결정 필요 | 불투명 채널 핸들이 먼저다(`docs/178`). 차단 `select`는 채널·select 모델을 둔 뒤에 연다. |
+| R4 | 이미 있음 | `tests/parallel_worker_invariance_smoke.sh`(workers 1·2·3·16, 두 백엔드). 첫 판의 "착지하지 않았다"는 틀렸다. |
+| R5 | 결정 필요 | SoT 레지스트리 행 추가는 활성 rung 규율(연속 SoT-only 커밋 제한)을 따라야 한다. |
+| R6 | 수정됨 | `docs/05` §2 예제를 `async func Main`으로, `docs/semantics/05`의 read/write overlap을 semantic error로, `docs/146`의 self-host async 문장을 코드 근거대로 고쳤다. |
 
 ### 4.3 하지 말 것
 

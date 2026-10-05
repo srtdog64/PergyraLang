@@ -3,18 +3,19 @@
 // 감정가 → 입찰가 → 낙찰(2차 가격 경매) → 누진 경매세. 모두 순수 계산이다.
 // "낙찰 없음"은 실패가 아니라 시장의 결과이므로 Result로 돌려준다.
 import "../../commons/types/calling.pgy";
+import "../../commons/types/gold.pgy";
 import "../../commons/ranking.pgy";
 
 enum AuctionError { NoBids, BelowReserve }
 
 struct Clearing {
     winner: Int;
-    price: Int;
-    tax: Int;
+    price: Gold;
+    tax: Gold;
 }
 
 // 누진 세율(%): 100 미만 5, 300 미만 8, 그 이상 12.
-func AuctionTaxRate(price: Int) -> Int {
+func AuctionTaxRate(price: Gold) -> Int {
     if price < 100 {
         return 5;
     }
@@ -24,12 +25,12 @@ func AuctionTaxRate(price: Int) -> Int {
     return 12;
 }
 
-func AuctionTax(price: Int) -> Int {
+func AuctionTax(price: Gold) -> Gold {
     return price * AuctionTaxRate(price) / 100;
 }
 
 // 직업마다 유물의 쓸모가 다르다. 상인은 되팔 수 있어서 가장 높게 본다.
-func Appraise(quality: Int, calling: Calling) -> Int {
+func Appraise(quality: Int, calling: Calling) -> Gold {
     match calling {
         case Merchant: return quality * 14;
         case Warrior: return quality * 11;
@@ -39,11 +40,11 @@ func Appraise(quality: Int, calling: Calling) -> Int {
 }
 
 // 감정가와 지갑 중 작은 값. 짐에 빈 칸이 없으면 입찰하지 않는다.
-func BidFor(quality: Int, calling: Calling, gold: Int, canCarry: Bool) -> Int {
+func BidFor(quality: Int, calling: Calling, gold: Gold, canCarry: Bool) -> Gold {
     if !canCarry {
         return 0;
     }
-    let value: Int = Appraise(quality, calling);
+    let value: Gold = Appraise(quality, calling);
     if gold < value {
         return gold;
     }
@@ -52,8 +53,8 @@ func BidFor(quality: Int, calling: Calling, gold: Int, canCarry: Bool) -> Int {
 
 // 2차 가격(Vickrey) 경매: 최고 입찰자가 낙찰받고, 차순위 입찰가(최저가 이상)를 낸다.
 // 동점이면 앞선 입찰자가 이긴다(commons/ranking.pgy).
-func ClearAuction(bids: Array<Int>, reserve: Int) -> Result<Clearing, AuctionError> {
-    let top: Int = HighestOf(bids);
+func ClearAuction(bids: Array<Gold>, reserve: Gold) -> Result<Clearing, AuctionError> {
+    let top: Gold = HighestOf(bids);
     if top == 0 {
         return Err(NoBids);
     }
@@ -61,7 +62,7 @@ func ClearAuction(bids: Array<Int>, reserve: Int) -> Result<Clearing, AuctionErr
         return Err(BelowReserve);
     }
     let winner: Int = FirstIndexOf(bids, top);
-    let price: Int = HighestExcept(bids, winner);
+    let price: Gold = HighestExcept(bids, winner);
     if price < reserve {
         price = reserve;
     }

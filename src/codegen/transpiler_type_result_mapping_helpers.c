@@ -9,6 +9,7 @@
 
 #include "transpiler_specialization_registry.h"
 #include "codegen_type_mapping.h"
+#include "transpiler_type_require.h"
 
 static bool
 transpiler_result_type_ident_char(char c)
@@ -86,15 +87,22 @@ transpiler_result_suffix_from_context(TranspilerCtx *ctx,
         return false;
     }
 
+    /* The context may name the Result through a type alias; the suffix is
+     * the alias-resolved specialization the declarations use. */
+    char alias_buf[256];
     if (ctx->expected_type != NULL
-        && transpiler_result_suffix_from_type_name(ctx->expected_type,
-                                                   out, out_size)) {
+        && transpiler_result_suffix_from_type_name(
+               transpiler_type_name_resolve_aliases(ctx, ctx->expected_type,
+                   alias_buf, sizeof(alias_buf)),
+               out, out_size)) {
         return true;
     }
 
     if (ctx->current_return_type[0] != '\0'
-        && transpiler_result_suffix_from_type_name(ctx->current_return_type,
-                                                   out, out_size)) {
+        && transpiler_result_suffix_from_type_name(
+               transpiler_type_name_resolve_aliases(ctx,
+                   ctx->current_return_type, alias_buf, sizeof(alias_buf)),
+               out, out_size)) {
         return true;
     }
 

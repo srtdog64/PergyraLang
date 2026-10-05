@@ -1,0 +1,76 @@
+// A subject parameter of a world method is the participant's slot handle,
+// on a sibling call, when forwarded into an intent, and on a receiver call
+// from outside the world. Changes through it land on the world's slot.
+
+subject Clerk {
+    let name: String;
+    let mut n: Int;
+
+    action Bump(self) -> Int {
+        n = n + 1;
+        return n;
+    }
+
+    func Card(self) -> String {
+        return name + "#" + ToString(n);
+    }
+}
+
+object ClerkView {
+    let name: String;
+}
+
+zone Desk {
+    subject slot a: Clerk
+    subject slot b: Clerk
+    object slot view: ClerkView
+}
+
+intent Work(desk: Desk, clerk: Clerk) {
+    step bump {
+        where: Desk;
+        using: desk;
+        who: clerk;
+        on: clerk.Bump();
+    }
+
+    success: true;
+    failure: false;
+}
+
+world Office {
+    zone desk: Desk
+
+    activate desk
+
+    func Label(self, clerk: Clerk) -> String {
+        return clerk.Card();
+    }
+
+    func Promote(self, clerk: Clerk) -> Bool {
+        return Work(desk, clerk);
+    }
+
+    func Raise(self, clerk: Clerk) -> Int {
+        return clerk.Bump();
+    }
+
+    func Show(self) -> String {
+        return Label(desk.a) + " " + Label(desk.b);
+    }
+
+    func Run(self) -> Void {
+        Promote(desk.a);
+        Raise(desk.b);
+        Raise(desk.b);
+        Log(Show());
+    }
+}
+
+func Main() -> Void {
+    let office: Office = Office(Desk(Clerk("A", 0), Clerk("B", 0)));
+    office.Run();
+    office.Raise(office.desk.b);
+    office.Promote(office.desk.a);
+    Log(office.Show());
+}

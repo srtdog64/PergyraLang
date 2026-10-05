@@ -295,6 +295,17 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                         : var.alloca;
                     continue;
                 }
+                /* Not a local: an implicit host field, such as a world's
+                 * zone member named inside a world method. */
+                LLVMClassTypeEntry *param_cls = param_type_name != NULL
+                    ? llvm_lookup_class(ctx, param_type_name) : NULL;
+                LLVMValueRef address = param_cls != NULL
+                    ? llvm_subject_argument_address(ctx, arg_node, param_cls)
+                    : NULL;
+                if (address != NULL) {
+                    args[emitted_idx++] = address;
+                    continue;
+                }
             } else if (arg_node->type == AST_MEMBER_ACCESS) {
                 LLVMValueRef ptr = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
                 if (ptr != NULL) {

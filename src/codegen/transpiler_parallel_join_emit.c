@@ -227,8 +227,8 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         "    (void)%s;\n",
         elem_c_type, elem_name, elem_name);
 
+    TranspilerParallelWrapperState wrapper_state;
     {
-        TranspilerParallelWrapperState wrapper_state;
         char no_slots[MAX_SLOT_VARS][64] = {{0}};
         bool saved_give = ctx->in_pjoin_give;
         bool saved_any = ctx->in_pjoin_any;
@@ -247,6 +247,7 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
     codebuf_write(ctx->wrappers,
         "    return NULL;\n"
         "}\n\n");
+    transpiler_parallel_wrapper_state_flush(ctx, &wrapper_state);
 
     /* One direct-call chunk driver per join site. The runtime owns only the
      * remainder-balanced [lo, hi) split; keeping the replicated wrapper name

@@ -28,4 +28,9 @@ const char *transpiler_type_name_apply_generic_bindings(TranspilerCtx *ctx,
                                                         char *buf,
                                                         size_t buf_size);
 
+const char *transpiler_type_name_resolve_aliases(TranspilerCtx *ctx,
+                                                 const char *type_name,
+                                                 char *buf,
+                                                 size_t buf_size);
+
 #endif /* PERGYRA_TRANSPILER_TYPE_REQUIRE_H */

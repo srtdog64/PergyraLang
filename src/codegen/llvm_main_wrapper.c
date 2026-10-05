@@ -194,6 +194,32 @@ llvm_main_emit_user_main(LLVMGenCtx *ctx, LLVMFuncEntry *main_user)
                        main_user->fn, NULL, 0, "");
 }
 
+/* Detached async blocks finish before the program exits. Only a module
+ * that detaches a block references the drain, so a program without one
+ * does not link the async runtime for it. */
+static bool
+llvm_main_emit_detached_async_drain(LLVMGenCtx *ctx)
+{
+    LLVMFuncEntry *detach_fn = llvm_lookup_function(ctx,
+                                   "pgy_async_detach_export");
+    if (detach_fn == NULL || LLVMGetFirstUse(detach_fn->fn) == NULL)
+        return true;
+    LLVMFuncEntry *drain_fn = llvm_lookup_function(ctx,
+                                  "pgy_async_drain_detached_export");
+    if (drain_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM program exit requires registered runtime function '%s'",
+            "pgy_async_drain_detached_export");
+        return false;
+    }
+    LLVMBuildCall2(ctx->builder, drain_fn->fn_type,
+                   drain_fn->fn, NULL, 0, "");
+    return true;
+}
+
 static bool
 llvm_main_emit_top_level_exec(LLVMGenCtx *ctx, bool has_top_level_exec)
 {
@@ -353,6 +379,8 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     scope_pushed = false;
 
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        if (!llvm_main_emit_detached_async_drain(ctx))
+            goto restore_state;
         if (!llvm_main_emit_thread_pool_shutdown(ctx, needs_thread_pool))
             goto restore_state;
         LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));

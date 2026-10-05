@@ -40,8 +40,9 @@
 -- auction: Cy lists quality=20 reserve=60 --
 [bids] Ana=186 Bo=0 Dee=0
 [clearing] winner=Ana price=60 tax=3
-[intent] SettleAuction refused at pre:open
+[intent] SettleAuction refused at pre:deliver
 [books] supply=791 held=791 conserved=true
+[market] escrow returned: Ana gold=186
 -- auction: Dee lists quality=23 reserve=60 --
 [bids] Ana=186 Bo=0 Cy=184
 [clearing] winner=Ana price=184 tax=14

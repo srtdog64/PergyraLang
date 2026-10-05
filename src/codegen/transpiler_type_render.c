@@ -9,6 +9,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "codegen_type_mapping.h"
+#include "transpiler_type_require.h"
 
 static const char *
 transpiler_type_render_lookup_generic_binding(TranspilerCtx *ctx,
@@ -217,7 +218,13 @@ pergyra_ast_type_to_c_copy_in_ctx(TranspilerCtx *ctx,
     }
 
     type_name = render_type_name_in_ctx(ctx, type_node);
-    ok = pergyra_type_to_c_copy(type_name, out, out_size);
+    {
+        char alias_buf[256];
+        ok = pergyra_type_to_c_copy(
+            transpiler_type_name_resolve_aliases(ctx, type_name,
+                alias_buf, sizeof(alias_buf)),
+            out, out_size);
+    }
     free(type_name);
     if (!ok)
         out[0] = '\0';

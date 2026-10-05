@@ -367,8 +367,9 @@ transpiler_expr_infer_type_name(TranspilerCtx *ctx, ASTNode *expr)
      * spelled in the declaration's type parameters ("T", "Option<T>").
      * Every suffix derivation downstream (Some_/IsSome_/UnwrapOption_)
      * consumes this result, so substitute the active bindings HERE — the
-     * one choke point — instead of at each consumer. */
-    if (ctx == NULL || ctx->generic_binding_count <= 0 || name == NULL)
+     * one choke point — instead of at each consumer. Type aliases resolve
+     * at the same point: Array<Gold> is Array<Int> for every consumer. */
+    if (ctx == NULL || name == NULL)
         return name;
     {
         char subst[256];

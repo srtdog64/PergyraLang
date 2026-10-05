@@ -162,7 +162,11 @@ transpiler_parallel_wrapper_state_enter(
     memcpy(state->typed_snapshot, ctx->par_capture_typed_snapshot,
            sizeof(state->typed_snapshot));
 
+    state->wrappers = ctx->wrappers;
+    state->pending = codebuf_create();
     ctx->out = ctx->wrappers;
+    if (state->pending != NULL)
+        ctx->wrappers = state->pending;
     ctx->indent = 1;
     ctx->in_parallel_wrapper = true;
     memcpy(ctx->par_capture_slot_names, capture_slot_names,
@@ -189,6 +193,7 @@ transpiler_parallel_wrapper_state_restore(
         return;
 
     ctx->out = state->out;
+    ctx->wrappers = state->wrappers;
     ctx->indent = state->indent;
     ctx->in_parallel_wrapper = state->in_parallel_wrapper;
     memcpy(ctx->par_capture_slot_names, state->slot_names,
@@ -199,6 +204,20 @@ transpiler_parallel_wrapper_state_restore(
            sizeof(state->typed_snapshot));
     ctx->par_capture_slot_count = state->slot_count;
     ctx->par_capture_typed_count = state->typed_count;
+}
+
+void
+transpiler_parallel_wrapper_state_flush(
+    TranspilerCtx *ctx,
+    TranspilerParallelWrapperState *state)
+{
+    if (ctx == NULL || state == NULL || state->pending == NULL)
+        return;
+    if (state->pending->len > 0)
+        codebuf_write_raw(ctx->wrappers, state->pending->data,
+            state->pending->len);
+    codebuf_destroy(state->pending);
+    state->pending = NULL;
 }
 
 void
@@ -392,6 +411,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->wrappers,
             "    return NULL;\n"
             "}\n\n");
+        transpiler_parallel_wrapper_state_flush(ctx, &wrapper_state);
     }
 
     /* ---------------------------------------------------------------
@@ -512,6 +532,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
 
     codebuf_write(ctx->wrappers, "    return NULL;\n}\n\n");
+    transpiler_parallel_wrapper_state_flush(ctx, &wrapper_state);
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
@@ -526,6 +547,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         pid);
     write_indent(ctx);
     codebuf_write(ctx->out, "pgy_lane_detach(_ah_%u);\n", pid);
+    ctx->uses_detached_async = true;
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
