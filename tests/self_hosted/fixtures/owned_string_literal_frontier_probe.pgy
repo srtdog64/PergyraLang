@@ -1,0 +1,71 @@
+// Inspect one existing transfer obligation; supplied source is never run/emitted.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 3 { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    Log("body_ok=" + ToString(bundle.verdict.ok));
+    Log("body_diagnostic=" + bundle.verdict.diagnostic_code);
+    Log("body_syntax=" + ToString(bundle.verdict.first_node_id));
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        analysis.assignments, bundle.assignment_types);
+    if !definitions.ok || !bundle.owned_string_result_domains.ok { Exit(2); }
+    let selected: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        if analysis.local_bindings.names[row] == args[2] {
+            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                analysis.signatures, analysis.local_bindings.function_node_ids[row]);
+            if IsSome(signature) {
+                let name: Option<String> = SemanticAstFunctionNameAt(analysis.signatures, UnwrapOption(signature));
+                if IsSome(name) && UnwrapOption(name) == args[1] {
+                    if selected >= 0 { Log("ambiguous local"); Exit(2); }
+                    selected = row;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    if selected < 0 { Log("missing local"); Exit(2); }
+    let function: Int = analysis.local_bindings.function_node_ids[selected];
+    let syntax: Int = definitions.syntax_ids[selected];
+    let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(
+        analysis.expression_surfaces.expression_graph, definitions.value_nodes[selected]);
+    let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(analysis.expression_surfaces, syntax);
+    if !literal.ok || ArrayLength(literal.element_nodes) != 1 || !IsSome(surface) { Exit(2); }
+    let leaf: Int = literal.element_nodes[0];
+    let slot: Int = UnwrapOption(surface) * 3 + AstExpressionLaneValue();
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        function, syntax, analysis.expression_surfaces.expression_graph, leaf);
+    if !binding.ok || binding.type_name != "String" { Log("not a local String transfer"); Exit(2); }
+    let domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringExpressionAllocationDomain(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
+        analysis.expression_surfaces, bundle.owned_string_result_domains.writes,
+        bundle.owned_string_result_domains.domain_exposures, bundle.owned_string_result_domains,
+        bundle.numeric_string_allocations, function, syntax, AstExpressionLaneValue(), leaf, 0);
+    Log("source=" + analysis.local_bindings.names[binding.row]);
+    Log("domain=" + ToString(domain.kind));
+    Log("direct_source=" + ToString(SemanticAstOwnedStringLiteralTransferLocalSourceDirect(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, binding)));
+    Log("not_reassigned=" + ToString(SemanticAstOwnedStringLocalNotReassigned(
+        bundle.owned_string_result_domains.writes, binding)));
+    Log("domain_preserved=" + ToString(SemanticAstOwnedStringValueDomainPreserved(
+        bundle.owned_string_result_domains.domain_exposures, binding.declaration_node_id)));
+    Log("direct_definition=" + ToString(SemanticAstOwnedStringLiteralTransferDirectDefinition(artifact, function, syntax)));
+    Log("uses_ready=" + ToString(SemanticAstOwnedStringLiteralTransferLocalUsesReady(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, binding, slot, leaf)));
+    Log("deep_drop_ready=" + ToString(SemanticAstOwnedStringLiteralTransferDeepDropReady(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, selected, slot)));
+}

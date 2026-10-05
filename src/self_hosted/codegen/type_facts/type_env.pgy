@@ -258,6 +258,19 @@ func LookupQualifiedKindType(
     return value;
 }
 
+func LookupQualifiedKindTypeMatches(
+    env: CodegenTypeEnv, owner: String, member: String,
+    kind: String, expected: String
+) -> Bool {
+    let key: String = CodegenTypeOwnedQualifiedKey(owner, member);
+    let retired: Array<String> = [key];
+    // Only a scalar decision escapes this query; the temporary key is retired
+    // before the caller chooses whether to construct an owned result key.
+    let matches: Bool = LookupKindType(env, retired[0], kind) == expected;
+    ArrayDropOwnedStrings(retired);
+    return matches;
+}
+
 func LookupFieldType(env: CodegenTypeEnv, owner: String, field: String) -> String {
     return LookupQualifiedKindType(env, owner, field, "field");
 }

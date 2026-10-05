@@ -10,10 +10,10 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  d2fe7ab6ef5dbfac4589585d6933c669beb7da76, reached branch-local singleton
-  String retirement. All 17 prior source/test/navigation changes are committed
-  and pushed; only this navigation refresh is dirty. Generated gmon.out remains
-  preserved/excluded.
+  b0767df2e6a36ea04e30ea385205b0d453cf46c1, reached qualified-key query
+  lifetime. All prior user/worker changes are committed and pushed. Current
+  source/test/navigation changes are the query lifetime slice below; generated
+  gmon.out remains preserved/excluded.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -189,18 +189,27 @@ SoT registry, admitted contracts, and executable gates override this note.
   and refused the same 55727 / owned_string_drop. Windows/macOS/TSAN/Rocq
   passed, dependent Linux jobs skipped. This is still RED, not whole CI green.
   .tmp/inout-array-release-ci-37355012849-codegen.log.
-- Next missing proof: branch-local String allocation/exclusivity and singleton
-  literal transfer on the continuing path. Inspect existing
-  ast_owned_string_expression_domain_owner, ast_owned_string_result_fact_owner
-  and ast_owned_string_literal_transfer_owner; the latter's DirectDefinition
-  guard currently rejects If ancestors. Verify actual allocation-domain and
-  last-use facts before attributing the entire refusal to that one guard.
-  Last consumer: the retired_variant_key deep-drop, then gen1 source admission.
-  Next falsifier: the same temporary-key/conditional-return/cleanup path, with
-  borrowed/aliased/reassigned/escaping and repeated/deferred negatives. No guessed
-  heap result, copied-and-freed replacement that leaks the original, deleted
-  cleanup, helper-name whitelist, safety weakening or native bypass.
-  Resume from this one reached boundary; source is frozen at published d2fe7ab6.
+- Reached query lifetime correction: LookupQualifiedKindTypeMatches in the
+  existing type-environment owner constructs and retires its temporary key
+  before returning a scalar comparison. The member consumer constructs an
+  escaping key only after success. Original row identity/lookup precedence,
+  result spelling and owned-key construction are unchanged. Domain/transfer
+  proofs have not been relaxed, and no original key is copied then leaked.
+- Focused gate2 passed within 300s on native v4: C/LLVM actual member selection,
+  missing/mismatched queries, global/preseal/local precedence, source admission
+  of the actual query owner's retirement and eight existing refusal fixtures
+  per backend. Input/import/binary hashes match. Native values have 13 warnings;
+  observer builds have nine. Static shell syntax and git diff checks also pass.
+  .tmp/inout-array-release-qualified-kind-match-gate2.log,
+  .tmp/self_hosted/qualified-kind-match.difPMY.
+- The earlier full-root literal guard diagnostic timed out at 180s without any
+  output; no allocation-domain or guard verdict was observed. Its diagnostic
+  source remains available and never emits or executes the supplied input.
+  .tmp/inout-array-release-owned-literal-frontier-v1-observe.log.
+- Next executable falsifier: fresh official v49 on the unchanged original
+  compiler/MIR input, within 1800s, then exact-code-head CI. No gen1/gen2,
+  fixed point, default pair or GUI receipt is inferred from focused gate2.
+  Do not open a general conditional String-move or returned-array cleanup track.
 - Current native v4 SHA-256:
   c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
   Fresh GCC build passed with 12 observed warnings. Native public gate16 passed

@@ -79,15 +79,12 @@ func CodegenExpressionMemberTypeFromGraph(
     );
     if IsSome(receiver_type) {
         let enum_type: String = UnwrapOption(receiver_type);
-        let variant_key: String = CodegenTypeOwnedQualifiedKey(
-            enum_type, UnwrapOption(member_text)
-        );
         if LookupKindType(env, enum_type, "enum") == "tagged" &&
-            LookupKindType(env, variant_key, "etype") == enum_type {
-            return Some(variant_key);
+            LookupQualifiedKindTypeMatches(
+                env, enum_type, UnwrapOption(member_text), "etype", enum_type) {
+            return Some(CodegenTypeOwnedQualifiedKey(
+                enum_type, UnwrapOption(member_text)));
         }
-        let retired_variant_key: Array<String> = [variant_key];
-        ArrayDropOwnedStrings(retired_variant_key);
     }
     return CodegenExpressionMemberFieldTypeFromGraph(graph, node_id, env);
 }

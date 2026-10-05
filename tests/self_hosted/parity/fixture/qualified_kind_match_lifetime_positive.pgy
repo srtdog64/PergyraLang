@@ -1,0 +1,11 @@
+import "../../../../src/self_hosted/codegen/type_facts/type_env.pgy";
+
+func Main() -> Void {
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+        "|Shape.Circle=etype:Shape|", "");
+    if !LookupQualifiedKindTypeMatches(env, "Shape", "Circle", "etype", "Shape") ||
+        LookupQualifiedKindTypeMatches(env, "Shape", "Missing", "etype", "Shape") {
+        Exit(1);
+    }
+    Log("QUALIFIED QUERY LIFETIME PASS");
+}

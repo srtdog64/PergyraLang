@@ -1,0 +1,47 @@
+import "../../../src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy";
+
+func Main() -> Void {
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+        "|Shape=enum:tagged|Shape.Circle=etype:Shape|Shape.Other=etype:Other|Shape.Circle.More=etype:Other|",
+        "|receiver=type:Shape|");
+    if !LookupQualifiedKindTypeMatches(env, "Shape", "Circle", "etype", "Shape") ||
+        LookupQualifiedKindTypeMatches(env, "Shape", "Circle", "etype", "Other") ||
+        LookupQualifiedKindTypeMatches(env, "Shape", "Other", "etype", "Shape") ||
+        LookupQualifiedKindTypeMatches(env, "Shape", "Missing", "etype", "Shape") ||
+        LookupQualifiedKindTypeMatches(env, "Shape", "Circle", "field", "Shape") {
+        Exit(1);
+    }
+    let preseal: CodegenTypeEnv = CodegenTypeEnvAppendPresealRows(
+        env, "|Shape.Circle=etype:Other|Shape.Pending=etype:Shape|");
+    if !LookupQualifiedKindTypeMatches(preseal, "Shape", "Circle", "etype", "Shape") ||
+        !LookupQualifiedKindTypeMatches(preseal, "Shape", "Pending", "etype", "Shape") {
+        Exit(1);
+    }
+    let sealed: CodegenTypeEnv = CodegenTypeEnvSealPresealRows(preseal);
+    if !LookupQualifiedKindTypeMatches(sealed, "Shape", "Pending", "etype", "Shape") {
+        Exit(1);
+    }
+    let local_env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+        "|", "|Shape.Local=etype:Shape|");
+    if !LookupQualifiedKindTypeMatches(local_env, "Shape", "Local", "etype", "Shape") {
+        Exit(1);
+    }
+
+    let kinds: Array<Int> = [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(), AstExpressionNodeMemberAccess()];
+    let texts: Array<String> = ["receiver", "Circle", "receiver.Circle"];
+    let left: Array<Int> = [-1, -1, 0];
+    let right: Array<Int> = [-1, -1, 1];
+    let empty: Array<String> = ["", "", ""];
+    let zeros: Array<Int> = [0, 0, 0];
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [2], [true], SemanticExpressionGraphArena(
+            AstExpressionArena(kinds, texts, left, right), texts,
+            zeros, empty, empty, SemanticExpressionIdentityRowsUnknown(3), zeros));
+    let selected: Option<String> = CodegenExpressionMemberTypeFromGraph(graph, 2, env);
+    if !IsSome(selected) || UnwrapOption(selected) != "Shape.Circle" { Exit(1); }
+    ArraySet(texts, 1, "Other");
+    if IsSome(CodegenExpressionMemberTypeFromGraph(graph, 2, env)) { Exit(1); }
+    ArraySet(texts, 1, "Missing");
+    if IsSome(CodegenExpressionMemberTypeFromGraph(graph, 2, env)) { Exit(1); }
+    Log("QUALIFIED KIND MATCH PASS");
+}

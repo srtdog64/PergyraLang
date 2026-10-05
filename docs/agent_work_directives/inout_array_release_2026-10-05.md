@@ -1442,3 +1442,33 @@ hashes matched through the terminal failure. No seed or installed receipt.
   inspection belongs to existing owned-String domain/literal-transfer owners;
   do not revive the withdrawn Slice trial or infer heap/exclusive ownership from
   a String return type. No fixed point/default GUI completion is claimed.
+
+### Reached qualified-key query lifetime (2026-10-06)
+
+- Status: implementation candidate at main b0767df2e6a36ea04e30ea385205b0d453cf46c1.
+  Root alone edits/integrates this reached seam; no parallel implementation.
+- Objective: preserve member-type selection while ending a temporary query
+  key's lifetime in the existing type-environment owner. Priorities: same row
+  identity/lookup precedence, actual retirement, unchanged fail-closed proof,
+  then patch size. Row serialization/index and LookupKindType still own lookup;
+  CodegenTypeOwnedQualifiedKey still owns qualified-key construction.
+- Last consumer: CodegenExpressionMemberTypeFromGraph asks for a scalar match
+  and constructs its escaping key only on success. The type-env query retires
+  its temporary key before that decision returns. No guessed user-function
+  non-retention, conditional-move grant, copied result leak, or native fallback.
+- Independent edit scope: type_env.pgy query resource lifetime and its one
+  reached expression consumer; ownership/domain/transfer owners are unchanged.
+  The earlier full-root diagnostic timed out at 180s with no verdict. This
+  supplies no guard result or passing evidence.
+- Allowed gates: 60s static, 300s focused C/LLVM current-source values and
+  preserved owned-String refusals, then 1800s original-input official bootstrap.
+  Integration belongs to Root. Fixtures falsify qualified identity, missing
+  row/kind, mismatched enum owner, and global/preseal/local precedence. Only
+  observed terminal gate results may promote this candidate.
+- Observed focused gate2 PASS within 300s: native C/LLVM actual member-selection
+  and row-precedence values, actual source query-lifetime admission, eight
+  preserved ownership refusals per backend. Input/import/native/binary hashes
+  match. Shell syntax and diff checks pass. Value builds retain 13 warnings,
+  observer builds nine. .tmp/inout-array-release-qualified-kind-match-gate2.log,
+  .tmp/self_hosted/qualified-kind-match.difPMY. Original-input bootstrap and
+  exact-head CI have not run on this slice yet; no installed/closure claim.
