@@ -13,6 +13,8 @@
 #include "../semantic/diag_codes.h"
 #include "codegen_channel_runtime_abi.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_specialization_registry.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -92,14 +94,114 @@ transpiler_type_name_apply_generic_bindings(TranspilerCtx *ctx,
                                             char *buf,
                                             size_t buf_size)
 {
+    char subst_buf[256];
+    const char *bound = type_name;
+
     if (ctx == NULL || type_name == NULL || buf == NULL || buf_size == 0)
         return type_name;
-    if (ctx->generic_binding_count <= 0)
+    if (ctx->generic_binding_count > 0
+        && transpiler_subst_generics_in_type_name(ctx, type_name, subst_buf,
+            sizeof(subst_buf))
+        && strcmp(subst_buf, type_name) != 0)
+        bound = subst_buf;
+    /* Constructor and predicate suffixes (Some_/Ok_/IsSome_) name the same
+     * specialization the declarations use, so aliases resolve here too. */
+    bound = transpiler_type_name_resolve_aliases(ctx, bound, buf, buf_size);
+    if (bound == subst_buf && !pergyra_str_copy(buf, buf_size, subst_buf))
         return type_name;
-    if (!transpiler_subst_generics_in_type_name(ctx, type_name, buf,
-            buf_size))
+    return bound == subst_buf ? buf : bound;
+}
+
+/* One token-wise pass replacing each type-alias name by its target. */
+static bool
+transpiler_subst_aliases_in_type_name_once(TranspilerCtx *ctx, const char *in,
+                                           char *out, size_t out_size,
+                                           bool *changed)
+{
+    size_t oi = 0;
+    size_t i = 0;
+
+    *changed = false;
+    while (in[i] != '\0') {
+        char c = in[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_') {
+            size_t start = i;
+            char tok[128];
+            size_t len;
+            const char *target;
+            while (in[i] != '\0'
+                && ((in[i] >= 'A' && in[i] <= 'Z')
+                    || (in[i] >= 'a' && in[i] <= 'z')
+                    || (in[i] >= '0' && in[i] <= '9') || in[i] == '_'))
+                i++;
+            len = i - start;
+            target = NULL;
+            if (len < sizeof(tok)) {
+                memcpy(tok, in + start, len);
+                tok[len] = '\0';
+                target = transpiler_type_alias_target_type_name_from_headers(
+                    ctx, tok);
+            }
+            if (target != NULL)
+                *changed = true;
+            const char *rep = target != NULL ? target : in + start;
+            size_t rep_len = target != NULL ? strlen(target) : len;
+            if (oi + rep_len >= out_size)
+                return false;
+            memcpy(out + oi, rep, rep_len);
+            oi += rep_len;
+        } else {
+            if (oi + 1 >= out_size)
+                return false;
+            out[oi++] = c;
+            i++;
+        }
+    }
+    out[oi] = '\0';
+    return true;
+}
+
+/* `type Gold = Int` is transparent, so Array<Gold> and Result<Gold, E> are
+ * Array<Int> and Result<Int, E>: the same C specializations, not distinct
+ * structs. Returns `buf` holding the type with every alias (also inside an
+ * alias target) replaced, or the original pointer when none occurs. */
+const char *
+transpiler_type_name_resolve_aliases(TranspilerCtx *ctx,
+                                     const char *type_name,
+                                     char *buf,
+                                     size_t buf_size)
+{
+    char scratch[2][256];
+    const char *current = type_name;
+    bool any_change = false;
+
+    if (ctx == NULL || type_name == NULL || buf == NULL || buf_size == 0)
         return type_name;
-    if (strcmp(buf, type_name) == 0)
+    if (ctx->type_alias_presence == 0) {
+        MIRDeclHeaderInventory inventory;
+        transpiler_active_decl_header_inventory(ctx, &inventory);
+        ctx->type_alias_presence = 1;
+        for (size_t i = 0; i < inventory.count; i++) {
+            if (inventory.headers[i].ast_type == AST_TYPE_ALIAS) {
+                ctx->type_alias_presence = 2;
+                break;
+            }
+        }
+    }
+    if (ctx->type_alias_presence == 1)
+        return type_name;
+    for (size_t depth = 0; depth < 8; depth++) {
+        bool changed = false;
+        char *next = scratch[depth % 2];
+        if (!transpiler_subst_aliases_in_type_name_once(ctx, current, next,
+                sizeof(scratch[0]), &changed))
+            return type_name;
+        if (!changed)
+            break;
+        any_change = true;
+        current = next;
+    }
+    if (!any_change || !pergyra_str_copy(buf, buf_size, current))
         return type_name;
     return buf;
 }
@@ -170,11 +272,14 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
     }
 
     char subst_buf[256];
+    char alias_buf[256];
     const char *eff_type_name = type_name;
     if (ctx != NULL && ctx->generic_binding_count > 0
         && transpiler_subst_generics_in_type_name(ctx, type_name,
                subst_buf, sizeof(subst_buf)))
         eff_type_name = subst_buf;
+    eff_type_name = transpiler_type_name_resolve_aliases(ctx, eff_type_name,
+        alias_buf, sizeof(alias_buf));
 
     const char *resolved_type_name =
         transpiler_bound_type_name(ctx, eff_type_name);

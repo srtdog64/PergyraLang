@@ -3,16 +3,18 @@
 // 금화를 새로 만들거나(발행) 없애는(소각) 권한은 유형 수준 능력 Minting에 있고,
 // 그 능력은 Mint에만 구현된다. 길드원은 금화를 만들 수 없다.
 
+import "../../../commons/types/gold.pgy";
+
 ability Minting {
     func MintMark() -> String;
 }
 
 subject Mint {
     let seal: String;
-    let mut issued: Int;
-    let mut burned: Int;
+    let mut issued: Gold;
+    let mut burned: Gold;
 
-    action Issue(self, amount: Int) -> Int
+    action Issue(self, amount: Gold) -> Gold
         requires Minting
         authorized by self
     {
@@ -20,7 +22,7 @@ subject Mint {
         return issued;
     }
 
-    action Recall(self, amount: Int) -> Int
+    action Recall(self, amount: Gold) -> Gold
         requires Minting
         authorized by self
     {
@@ -28,7 +30,7 @@ subject Mint {
         return issued;
     }
 
-    action Burn(self, amount: Int) -> Int
+    action Burn(self, amount: Gold) -> Gold
         requires Minting
         authorized by self
     {
@@ -36,7 +38,7 @@ subject Mint {
         return burned;
     }
 
-    action Unburn(self, amount: Int) -> Int
+    action Unburn(self, amount: Gold) -> Gold
         requires Minting
         authorized by self
     {

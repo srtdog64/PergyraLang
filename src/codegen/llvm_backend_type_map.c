@@ -323,6 +323,14 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (strcmp(type_name, "PgyError") == 0)
         return ctx->type_i8ptr;
 
+    /* A type alias names its target's LLVM type, also inside generic
+     * arguments: Array<Gold> is %PgyArray_Int. */
+    {
+        const char *resolved = llvm_type_name_resolve_aliases(ctx, type_name);
+        if (resolved != type_name)
+            return pergyra_type_to_llvm(ctx, resolved);
+    }
+
     /* Check active type substitution (monomorphization) first */
     for (int i = 0; i < ctx->type_subst_count; i++) {
         if (strcmp(type_name, ctx->type_subst[i].param_name) == 0)

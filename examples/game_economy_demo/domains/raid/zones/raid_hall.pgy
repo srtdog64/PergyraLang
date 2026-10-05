@@ -39,7 +39,7 @@ zone RaidHall {
         return clears;
     }
 
-    func Reward(self, plan: RaidPlan) -> Int {
+    func Reward(self, plan: RaidPlan) -> Gold {
         vanguard.Earn(plan.vanguard.gold);
         striker.Earn(plan.striker.gold);
         arcanist.Earn(plan.arcanist.gold);

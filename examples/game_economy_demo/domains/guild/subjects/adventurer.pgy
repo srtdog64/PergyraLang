@@ -3,11 +3,12 @@
 // 금화와 물건은 subject 안의 vessel에만 산다. 지갑에서 금화를 꺼내거나
 // 유물을 넘기는 길은 주인이 승인한 action뿐이다(authorized by self).
 import "../../../commons/types/calling.pgy";
+import "../../../commons/types/gold.pgy";
 
 vessel Purse {
-    let mut gold: Int;
+    let mut gold: Gold;
 
-    func Has(self, amount: Int) -> Bool {
+    func Has(self, amount: Gold) -> Bool {
         return amount >= 0 && gold >= amount;
     }
 }
@@ -39,12 +40,12 @@ subject Adventurer {
     vessel pack: Pack;
     let mut renown: Int;
 
-    action Earn(self, amount: Int) -> Int {
+    action Earn(self, amount: Gold) -> Gold {
         purse.gold = purse.gold + amount;
         return purse.gold;
     }
 
-    action Spend(self, amount: Int) -> Int
+    action Spend(self, amount: Gold) -> Gold
         authorized by self
     {
         purse.gold = purse.gold - amount;
@@ -52,7 +53,7 @@ subject Adventurer {
     }
 
     // 보상(compensate) 전용: 같은 intent가 앞서 지급한 금화를 되돌린다.
-    action Clawback(self, amount: Int) -> Int {
+    action Clawback(self, amount: Gold) -> Gold {
         purse.gold = purse.gold - amount;
         return purse.gold;
     }

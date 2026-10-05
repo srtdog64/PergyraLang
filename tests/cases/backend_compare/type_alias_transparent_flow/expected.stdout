@@ -1,0 +1,7 @@
+sum=12
+ok 5
+refused overdrawn
+refused negative
+found 4
+ledger=12 plain=13
+reserve=18 held=10

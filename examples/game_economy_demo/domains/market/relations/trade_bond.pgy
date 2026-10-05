@@ -2,9 +2,10 @@
 //
 // 경매장은 판마다 판매자와 구매자를 이 관계로 잇고, 판매자가 받은 금액을 남긴다.
 import "../../guild/subjects/adventurer.pgy";
+import "../../../commons/types/gold.pgy";
 
 relation TradeBond for source: Adventurer, target: Adventurer {
-    shared net: Int = 0
+    shared net: Gold = 0
 
     func Label(self) -> String {
         return source.name + " -> " + target.name + " net=" + ToString(net);

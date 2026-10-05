@@ -356,6 +356,11 @@ typedef struct
         unsigned uses;
     } ordered_args[64];
     size_t ordered_arg_count;
+
+    /* Whether the program declares any `type` alias: 0 not yet counted,
+     * 1 none, 2 some. Alias resolution of type names skips the header
+     * lookups entirely for a program without aliases. */
+    int type_alias_presence;
 } TranspilerCtx;
 
 #include "transpiler_inventory_view.h"

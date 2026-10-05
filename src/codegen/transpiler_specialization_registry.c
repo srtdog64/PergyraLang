@@ -117,6 +117,9 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (ctx == NULL || dst == NULL || inner_type == NULL)
         return;
+    char inner_alias[256];
+    inner_type = transpiler_type_name_resolve_aliases(ctx, inner_type,
+        inner_alias, sizeof(inner_alias));
 
     if (transpiler_specialization_inner_is_unbound_param(
             ctx, &inner_type, inner_subst, sizeof(inner_subst)))
@@ -216,6 +219,12 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
         return;
+    char ok_alias[256];
+    char err_alias[256];
+    ok_type = transpiler_type_name_resolve_aliases(ctx, ok_type,
+        ok_alias, sizeof(ok_alias));
+    err_type = transpiler_type_name_resolve_aliases(ctx, err_type,
+        err_alias, sizeof(err_alias));
 
     if (transpiler_specialization_inner_is_unbound_param(
             ctx, &ok_type, ok_subst, sizeof(ok_subst)))
@@ -350,6 +359,9 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (ctx == NULL || dst == NULL || kind == NULL || inner_type == NULL)
         return;
+    char inner_alias[256];
+    inner_type = transpiler_type_name_resolve_aliases(ctx, inner_type,
+        inner_alias, sizeof(inner_alias));
 
     if (transpiler_specialization_inner_is_unbound_param(
             ctx, &inner_type, inner_subst, sizeof(inner_subst)))

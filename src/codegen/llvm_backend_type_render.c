@@ -144,6 +144,82 @@ llvm_render_alias_target_type_name_from_headers(LLVMGenCtx *ctx,
     return pgy_arena_strdup(arena, current);
 }
 
+/* `type Gold = Int` is transparent, so a rendered name such as Array<Gold>
+ * or Result<Gold, E> names Array<Int> / Result<Int, E>: one LLVM struct, not
+ * a second one with the same layout. Replaces every alias token (also inside
+ * an alias target) and returns the arena copy, or type_name when no alias
+ * occurs. */
+const char *
+llvm_type_name_resolve_aliases(LLVMGenCtx *ctx, const char *type_name)
+{
+    char buffers[2][256];
+    const char *current = type_name;
+    bool any_change = false;
+
+    if (ctx == NULL || type_name == NULL)
+        return type_name;
+    if (ctx->type_alias_presence == 0) {
+        LLVMMIRDeclHeaderInventory inventory;
+        llvm_active_decl_header_inventory(ctx, &inventory);
+        ctx->type_alias_presence = 1;
+        for (size_t i = 0; i < inventory.count; i++) {
+            if (inventory.headers[i].ast_type == AST_TYPE_ALIAS) {
+                ctx->type_alias_presence = 2;
+                break;
+            }
+        }
+    }
+    if (ctx->type_alias_presence == 1)
+        return type_name;
+
+    for (size_t pass = 0; pass < 8; pass++) {
+        char *out = buffers[pass % 2];
+        size_t oi = 0;
+        bool changed = false;
+        for (size_t i = 0; current[i] != '\0';) {
+            char c = current[i];
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_') {
+                size_t start = i;
+                char tok[128];
+                const char *target = NULL;
+                while ((current[i] >= 'A' && current[i] <= 'Z')
+                    || (current[i] >= 'a' && current[i] <= 'z')
+                    || (current[i] >= '0' && current[i] <= '9')
+                    || current[i] == '_')
+                    i++;
+                size_t len = i - start;
+                if (len < sizeof(tok)) {
+                    memcpy(tok, current + start, len);
+                    tok[len] = '\0';
+                    target = mir_decl_header_type_alias_target_type_name(
+                        llvm_find_decl_header_in_context_of_type(
+                            ctx, AST_TYPE_ALIAS, tok));
+                }
+                const char *rep = target != NULL ? target : current + start;
+                size_t rep_len = target != NULL ? strlen(target) : len;
+                if (oi + rep_len >= sizeof(buffers[0]))
+                    return type_name;
+                memcpy(out + oi, rep, rep_len);
+                oi += rep_len;
+                changed = changed || target != NULL;
+            } else {
+                if (oi + 1 >= sizeof(buffers[0]))
+                    return type_name;
+                out[oi++] = c;
+                i++;
+            }
+        }
+        out[oi] = '\0';
+        if (!changed)
+            break;
+        any_change = true;
+        current = out;
+    }
+    if (!any_change)
+        return type_name;
+    return pgy_arena_strdup(&ctx->scratch, current);
+}
+
 char *
 llvm_render_type_name(ASTNode *type_node)
 {

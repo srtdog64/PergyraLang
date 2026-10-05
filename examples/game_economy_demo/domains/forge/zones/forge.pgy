@@ -11,7 +11,7 @@ zone Forge {
     object slot master: MemberCard
 
     shared heat: Int = 0
-    shared feeBox: Int = 0
+    shared feeBox: Gold = 0
     shared forged: Int = 0
 
     authority smith requires Crafter
@@ -28,7 +28,7 @@ zone Forge {
         return order.quality;
     }
 
-    func Unsmelt(self, order: ForgeOrder) -> Int {
+    func Unsmelt(self, order: ForgeOrder) -> Gold {
         smith.DiscardRelic();
         smith.Gather(order.ore, order.essence);
         smith.Earn(order.fee);
@@ -39,12 +39,12 @@ zone Forge {
         return feeBox;
     }
 
-    func ReleaseFee(self, amount: Int) -> Int {
+    func ReleaseFee(self, amount: Gold) -> Gold {
         feeBox = feeBox - amount;
         return feeBox;
     }
 
-    func RestoreFee(self, amount: Int) -> Int {
+    func RestoreFee(self, amount: Gold) -> Gold {
         feeBox = feeBox + amount;
         return feeBox;
     }

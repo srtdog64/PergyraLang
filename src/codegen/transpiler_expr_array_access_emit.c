@@ -9,6 +9,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "codegen_type_mapping.h"
+#include "transpiler_type_require.h"
 
 static char *
 transpiler_array_access_emit_operand(TranspilerCtx *ctx,
@@ -43,7 +44,10 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
         free(array);
         return NULL;
     }
-    const char *array_type = infer_expression_type_name(ctx, array_node);
+    char array_type_alias[256];
+    const char *array_type = transpiler_type_name_resolve_aliases(ctx,
+        infer_expression_type_name(ctx, array_node),
+        array_type_alias, sizeof(array_type_alias));
     char *result;
 
     if (transpiler_type_name_is_array(array_type)) {

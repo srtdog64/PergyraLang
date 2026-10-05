@@ -10,6 +10,7 @@
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
 #include "codegen_type_mapping.h"
+#include "llvm_backend_type_map_internal.h"
 
 bool
 llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind)
@@ -390,6 +391,10 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
 {
     if (ctx == NULL || ok_name == NULL || err_name == NULL)
         return NULL;
+    /* A type alias names the same Result: Result<Gold, E> with
+     * `type Gold = Int` is Result<Int, E>, one specialization and layout. */
+    ok_name = llvm_type_name_resolve_aliases(ctx, ok_name);
+    err_name = llvm_type_name_resolve_aliases(ctx, err_name);
     if (strcmp(ok_name, "Void") == 0) {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
