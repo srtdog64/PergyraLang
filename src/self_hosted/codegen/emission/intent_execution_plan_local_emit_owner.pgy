@@ -21,27 +21,27 @@ func CodegenIntentPlanLocalEnv(
             let failure_name: String =
                 view.plan.steps.failure_payload_names[step];
             env = TypeEnvAppendLocalRows(
-                env, CodegenFunctionValueBindingFactForCExpression(
+                env, CodegenFunctionValueBindingRows(CodegenFunctionValueBindingFactForCExpression(
                     outcome_name, view.plan.steps.outcome_type_names[step],
                     env,
                     CompilerSymbolCBindingName(outcome_name)
-                ).env_rows
+                ))
             );
             env = TypeEnvAppendLocalRows(
-                env, CodegenFunctionValueBindingFactForCExpression(
+                env, CodegenFunctionValueBindingRows(CodegenFunctionValueBindingFactForCExpression(
                     success_name,
                     view.plan.steps.success_payload_type_names[step],
                     env,
                     CompilerSymbolCBindingName(success_name)
-                ).env_rows
+                ))
             );
             env = TypeEnvAppendLocalRows(
-                env, CodegenFunctionValueBindingFactForCExpression(
+                env, CodegenFunctionValueBindingRows(CodegenFunctionValueBindingFactForCExpression(
                     failure_name,
                     view.plan.steps.failure_payload_type_names[step],
                     env,
                     CompilerSymbolCBindingName(failure_name)
-                ).env_rows
+                ))
             );
         }
         step = step + 1;

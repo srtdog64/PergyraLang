@@ -135,7 +135,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                     "self", owner_name, base_env,
                     owner_receiver_c_expression
                 );
-            ArrayPushOwnedString(function_env_rows, self_binding.env_rows);
+            ArrayPushOwnedString(function_env_rows, CodegenFunctionValueBindingRows(self_binding));
         }
     }
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
@@ -242,7 +242,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 p_name, p_type, p_binding.value_kind, c_ref_name
             ));
         } else {
-            ArrayPushOwnedString(function_env_rows, p_env_binding.env_rows);
+            ArrayPushOwnedString(function_env_rows, CodegenFunctionValueBindingRows(p_env_binding));
             let callable_rows: String =
                 CodegenCallableParameterBindingRows(
                     cur[0],

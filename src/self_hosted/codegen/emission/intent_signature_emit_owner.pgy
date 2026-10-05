@@ -124,10 +124,10 @@ func CodegenIntentLocalEnv(
         if !intents.param_is_values[row] {
             c_expression = Concat("(*", Concat(c_name, ")"));
         }
-        ArrayPush(rows, CodegenFunctionValueBindingFactForCExpression(
+        ArrayPush(rows, CodegenFunctionValueBindingRows(CodegenFunctionValueBindingFactForCExpression(
             intents.param_names[row], intents.param_types[row],
             base_env, c_expression
-        ).env_rows);
+        )));
         p = p + 1;
     }
     return TypeEnvAppendLocalRows(base_env, StringJoin(rows, ""));

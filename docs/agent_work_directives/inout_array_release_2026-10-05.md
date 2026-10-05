@@ -40,6 +40,69 @@ cross-root edges and duplicate roots fail closed.
 Results remain implementation candidates until execution and exact published-CI
 evidence exist. Native PASS alone is not installed-driver or GUI readiness.
 
+## Reached type-row storage prerequisite (2026-10-06)
+
+Base: `59a214ff26f9db0beaea0b4a46cfb012f3e2693f`. Exact CI `37377911373`
+independently refused the original gen1 input at node 58906 / owned_string_drop.
+Root alone implements this reached prerequisite; no parallel owner edits.
+
+- Objective: replace Bool-labelled String-field retirement with a scope-owned
+  Array<String> epoch and one explicit terminal deep drop. Captured typed binding
+  facts stay authoritative; serialize their local rows only at the consumer.
+- Priority: actual storage ownership, unchanged layered type identity, no
+  conditional scalar-field ownership grant, original-input bootstrap, then cost.
+- Fact owners: CodegenTypeEnvState and its admitted owned-array storage; existing
+  typed binding and local-row materialization owners; String allocation-domain
+  and actual-exclusivity owners over the sealed physical runtime call.
+- Last consumers: function/statement environment lifetime and the installed
+  self-host driver. No global/local whole-program concatenation is introduced.
+- Forbidden fallback: Bool-based heap or exclusivity claims, copy-and-leak inputs,
+  retaining derived rows in binding facts, native/default seed substitution, or
+  weakening alias, repeated-use, allocator, deferred and foreign-call refusals.
+- Next falsifier: an actual CodegenJoinOwnedStringFragments result cannot enter
+  an owning String formal. StringJoin copies into a fresh heap-or-null value in
+  C inline, LLVM-exported and self-host runtimes, but the current source-domain
+  owner has no result fact for that sealed primitive. Verify exact target,
+  physical root and arity plus retained-result negatives before state migration.
+- Gates: focused join/state C+LLVM value and source negatives (300s); fresh
+  original-input codegen bootstrap/fixed point (1800s). Scope epoch cost must be
+  observed on that same input, not hidden with a cache or increased allowance.
+
+These are implementation candidates, not installed-driver or closure evidence.
+
+### Reached aggregate-demand diagnostic seam
+
+Original-input v55 passed the unchanged MIR controls, then refused gen1 at
+aggregate_release_plan_unproved / node 21859. The parser maps that node to
+SemanticAstGenericParameterFactRowsDrop's names extraction. The existing unique
+plan failure reports requirements.local_ids[0] when it has no failing-demand
+location, so this node alone does not identify the offending lifetime.
+
+- Objective: report the physical offending demand without changing any
+  uniqueness, source-generation or ordered-sharing admission condition.
+- Fact owner: aggregate-release uniqueness over the existing plan and admitted
+  constructor/storage rows. Final plan construction consumes that verdict.
+- Priority: unchanged refusals, exact demand-call diagnostic identity, one owner,
+  unchanged size caps, then the original-input falsifier.
+- Last consumer: PlanFromRequirements -> collection ownership diagnostic.
+- Forbidden fallback: fix the unrelated first extraction by spelling; grant
+  repeated deep release, aliases or unknown constructor generation; rescan AST
+  roots or create a parallel proof inventory.
+- Structure: keep final construction under its existing 160-line cap; one
+  responsibility-named uniqueness owner carries demand order and conflict
+  location under 140. Old implementations must be deleted, not dual-read.
+- Gates: existing aggregate release positives/refusals plus exact repeated/alias
+  caller location, then the unchanged whole-codegen source observation. Root
+  owns integration; no parallel implementation or expanded validation budget.
+- Observed checkpoint: scope/join gate4 and aggregate gate8 passed C/LLVM on
+  current source, with source/input/native hashes rechecked. Aggregate repeated
+  release and duplicate storage retain their refusals and locate Main's call.
+  Construction/uniqueness owners are 113/160 and 118/140 comment-excluded lines;
+  former definitions are deleted. Component-checker units and shell syntax pass.
+  Original-input v55 still refused gen1; the later whole-codegen diagnostic
+  exhausted 300s without output. These checks are not fixed-point, installed-
+  driver, GUI readiness or CI-green receipts. Preserve that OPEN boundary.
+
 ## Reached installation prerequisite
 
 The official codegen seed currently rejects the fresh loop-local environment's

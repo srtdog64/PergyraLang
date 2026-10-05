@@ -4248,6 +4248,7 @@ self-host-json-bounded-string-test-smoke: $(PGY)
 
 self-host-codegen-type-env-preseal-epoch-test-smoke: $(PGY)
 	PGY_NATIVE_LLVM_BIN="$(abspath $(PGY))" PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_type_env_preseal_epoch_owner.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/type_env_state_retirement_owner.sh
 
 self-host-expression-graph-identity-prefix-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh

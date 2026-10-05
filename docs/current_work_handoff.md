@@ -10,9 +10,9 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  b477912d59f5285cab88150e31ec648d325409b9. Current dirty candidate closes the
-  exact named allocated-String own-entry false refusal, with source/native
-  fixtures and navigation refresh. All earlier user/worker changes are already
+  59a214ff26f9db0beaea0b4a46cfb012f3e2693f. Current dirty candidate replaces
+  Bool-labelled type-row retirement with scope-owned String-array epochs and
+  consumer-time serialization of admitted binding facts. All earlier user/worker changes are already
   published. This card travels with the implementation checkpoint; after its
   commit/push, expect no tracked dirty files. Verify actual HEAD/remote/status.
   Generated gmon.out remains preserved/excluded.
@@ -40,11 +40,65 @@ SoT registry, admitted contracts, and executable gates override this note.
   untrusted direct-MIR lifetime owners independently supply cleanup evidence.
   Existing definition/order, formal-effect and member-read owners keep their
   facts. No mode-only grant, guessed callee, alias promotion or C fallback.
-- Current reached seam: CodegenTypeEnvStateReplaceOwnedLocal's conditional
-  String-field cleanup remains refused. Named allocated-String own arguments
-  are now admitted only at their exact physical consuming node, with all other
-  local uses required before it. An own String is by-value consumption, not a
-  caller binding-slot write; inout/unknown domain exposures remain rejected.
+- Current reached seam: the conditional String-field cleanup and
+  owns_local_rows Bool are deleted. CodegenTypeEnvState owns an Array<String>
+  scope epoch, keeps its current local_rows as a view, and retires the array
+  once after its last consumer. Child adoption copies into the parent epoch;
+  the statement consumer then retires the child explicitly. Binding facts hold
+  typed identity only; their formerly eager env_rows field is deleted and every
+  former consumer is migrated. Global/preseal/local lookup order is unchanged.
+  The sealed physical StringJoin call now supplies its actual runtime fresh
+  heap-or-null result fact to the existing domain/exclusivity owners. String
+  type, a Bool, a user return or a foreign target still supplies no authority.
+  Current scope/join gate4 passed C/LLVM exact values, primitive-identity
+  mutations and thirteen lifetime refusals/backend within 300s:
+  .tmp/inout-array-release-type-env-state-gate4.log,
+  .tmp/self_hosted/type-env-state-retirement.QYBasF. Existing nine observer
+  warnings; source/input/native hashes were rechecked. The state owner is 115
+  lines under its 140 cap; domain owner is 200 under its unchanged 200 cap.
+  The preseal smoke target now reaches this executable gate. Structural checks
+  forbid the retired Bool, scalar-field cleanup and eager binding rows.
+  Native full-source C build passed with zero errors / sixteen warnings after
+  six temporary-ref call sites were corrected by giving the resource-free
+  four-String binding value an ordinary by-value serialization interface:
+  .tmp/inout-array-release-type-env-native-gen0-check.log.
+  Fresh original-input v55 terminated after unchanged MIR controls passed:
+  gen1 source admission refused aggregate_release_plan_unproved at node 21859.
+  Its reported GenericParameterFactRowsDrop extraction may be the first-
+  requirement fallback; this is not sufficient evidence identifying the
+  conflicting demand. The
+  existing uniqueness/order policy now lives in one responsibility-named owner
+  and preserves the failed call's syntax. Plan construction is 113/160 lines;
+  the new uniqueness owner is 118/140. Old definitions are deleted. This changes
+  diagnostics only, not alias, generation or repeated-release permission.
+  .tmp/inout-array-release-codegen-bootstrap-v55.log,
+  .tmp/inout-array-release-bootstrap-v55-boundary.log,
+  .tmp/inout-array-release-codegen-bootstrap-v55-source.sha256 were checked at
+  terminal failure before the diagnostic change. The subsequent unchanged
+  whole-codegen diagnostic observer exhausted 300s without output; its wrapper
+  reported exit 1, not a semantic verdict. No larger allowance was introduced.
+  Current aggregate diagnostic/parity gate8 passed six positives, sixteen
+  refusals and generation/coverage mutation guards per C/LLVM. Repeated release
+  and duplicate storage still fail at the same boundary, now naming Main's
+  physical release call rather than the imported field extraction. Input,
+  import and native hashes were verified by the gate:
+  .tmp/inout-array-release-aggregate-release-gate8.log,
+  .tmp/self_hosted/aggregate-release-source.1nSzkj. The original
+  gen1/fixed-point/default-driver/GUI contract remains OPEN. No v56 was started.
+  Next falsifier: the unchanged original compiler input's actual failed demand,
+  then the fresh default C/LLVM synchronous inout/ArrayDrop consumer contract.
+  v54 stopped at the six native unnamed-ref errors, not semantic parity.
+  Component checker unit tests and changed shell syntax checks passed. Full
+  Windows structural3 ended BASH_STATUS=124 under its unchanged 60s budget;
+  earlier silent exit-1 observations were not proof of a missing enum import.
+  The actual enum text_owner import is present. No full inventory PASS is claimed.
+  Exact 59a214ff CI 37377911373 failed gen1 node 58906 / owned_string_drop;
+  Windows/macOS/TSan/Rocq passed and downstream Linux jobs skipped. The earlier
+  hosted runner acquisition issue did not recur. This candidate is not CI green.
+  Named allocated-String own arguments remain admitted only at their exact
+  physical consuming node, with all other local uses before it. An own String
+  is by-value consumption, not a caller binding-slot write; inout/unknown domain
+  exposures remain rejected.
   Named gate5 passed current C/LLVM values, thirteen semantic refusals/backend
   and one separate unsupported-async parser refusal/backend:
   .tmp/inout-array-release-named-string-own-entry-gate5.log,
@@ -56,12 +110,12 @@ SoT registry, admitted contracts, and executable gates override this note.
   row changed. Expression-root regression gate6 also passed:
   .tmp/inout-array-release-expression-root-consumption-gate6.log,
   .tmp/self_hosted/expression-root-consumption.1zhB3w.
-  Both current observers still refuse the imported state probe at syntax 1622
-  / owned_string_drop:
+  Prior 59a214ff observers refused the old imported state probe at syntax 1622
+  / owned_string_drop (superseded by the scope/join gate3 above):
   .tmp/inout-array-release-type-env-state-frontier-current-c.log,
   .tmp/inout-array-release-type-env-state-frontier-current-llvm.log.
-  The ignored array-epoch prototype has source/C-native probe evidence only;
-  it is not production state replacement or a memory-cost/driver receipt.
+  The ignored array-epoch prototype has source/C/LLVM-native probe evidence;
+  it is not an original-input memory-cost or installed-driver receipt.
   Do not remove cleanup, grant Bool-based ownership, or copy and leak inputs.
 - Prior expression-root seam: RewriteSemanticMemberAccess ->
   CodegenCExpressionTextCommitRoot. Signature-owned body availability no longer

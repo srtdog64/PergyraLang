@@ -4393,7 +4393,13 @@ require_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.p
 require_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
     "func CodegenTypeEnvStateView("
 require_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
-    "func CodegenTypeEnvStateReplaceOwnedLocal("
+    "func CodegenTypeEnvStateAppendEpoch("
+require_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
+    "owned_epochs: Array<String>;"
+reject_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
+    "owns_local_rows"
+reject_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
+    "CodegenTypeEnvStateReplaceOwnedLocal("
 require_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
     "func CodegenTypeEnvStateAdoptAfterLastConsumer("
 require_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
@@ -4414,11 +4420,14 @@ reject_text "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pg
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
     "func CodegenTypeEnvStateAdoptAfterLastConsumer(" \
-    "if !next_state.owns_local_rows"
+    "if ArrayLength(next_state.owned_epochs) == 0"
 require_function_text \
     "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
-    "func CodegenTypeEnvStateAdoptAfterLastConsumer(" \
-    "ArrayDropOwnedStrings(retired);"
+    "func CodegenTypeEnvStateReleaseLocal(" \
+    "ArrayDropOwnedStrings(epochs);"
+require_function_text \
+    "src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy" \
+    "func CodegenTypeEnvStateReleaseLocal(" "state.owned_epochs = epochs;"
 raw_type_env_constructor_paths="$(
     grep -RIl --include='*.pgy' 'CodegenTypeEnv(' \
         "$ROOT_DIR/src/self_hosted" || true
@@ -7108,6 +7117,12 @@ require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "struct CodegenFunctionValueBindingFact"
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionValueBindingFactFor("
+require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenFunctionValueBindingRows("
+reject_function_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenFunctionValueBindingFactForCExpression(" "TypeEnvTypedValueBindingRows("
+reject_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "let env_rows: String;"
 require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenFunctionOwnerFieldEnvRows("
 require_text "src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy" \
@@ -12446,6 +12461,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenFunctionVa
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenTypeEnvStateAppendTypedValueBinding("
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func EmitLet(" "binding.semantic_type_name"
+reject_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitLet(" "binding.env_rows"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "loop_env, env, loop_var,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
@@ -12456,6 +12473,8 @@ require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" "let statement_env: CodegenTypeEnvState"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" "env_state, statement_env"
+require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func EmitStmtList(" "CodegenTypeEnvStateReleaseLocal(statement_env);"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'Array<String> = [env_state[0], env_state[1]];'
 reject_function_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
@@ -23620,6 +23639,14 @@ require_function_text "src/self_hosted/semantic/ast_owned_string_expression_doma
 require_function_text "src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy" \
     "func SemanticAstOwnedStringLiteralTransferExpressionExclusive(" \
     "SemanticAstOwnedStringFreshConcatCallReady("
+require_function_text "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" \
+    "func SemanticAstOwnedStringExpressionAllocationDomain(" \
+    "SemanticAstOwnedStringFreshJoinCallReady("
+require_function_text "src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy" \
+    "func SemanticAstOwnedStringLiteralTransferExpressionExclusive(" \
+    "SemanticAstOwnedStringFreshJoinCallReady("
+require_file "tests/self_hosted/fixtures/owned_string_join_identity_unit.pgy"
+require_file "tests/self_hosted/parity/type_env_state_retirement_owner.sh"
 require_function_text "src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy" \
     "func SemanticAstOwnedStringLiteralTransferUsesReady(" \
     "SemanticAstOwnedStringLiteralTransferBorrowUseExclusive("
@@ -28797,6 +28824,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:520 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:520 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
@@ -29134,6 +29162,18 @@ require_max_lines "tests/self_hosted/parity/collection_aggregate_entry_requireme
 require_text "Makefile" 'self-host-collection-aggregate-entry-requirement-test-smoke'
 require_text "src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy" \
     'SemanticAstCollectionAggregateReleasePlanUnique('
+require_text "src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy" \
+    'import "ast_collection_aggregate_release_uniqueness_owner.pgy";'
+reject_text "src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy" \
+    'func SemanticAstCollectionAggregateReleasePlanUnique('
+reject_text "src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy" \
+    'func SemanticAstCollectionAggregateReleaseSharedDemandReady('
+reject_text "src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy" \
+    'func SemanticAstCollectionAggregateReleaseDemandCallRow('
+reject_file "src/self_hosted/semantic/ast_collection_aggregate_release_demand_order_owner.pgy"
+require_function_text "src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy" \
+    'func SemanticAstCollectionAggregateReleasePlanUnique(' \
+    'plan.diagnostic_syntax_id = plan.call_syntax_ids[demand_call]'
 require_text "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" \
     'SemanticAstCollectionAggregateReleaseReserveAtCompletion('
 require_text "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" \

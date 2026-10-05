@@ -875,8 +875,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   original demand edge and refuses aliases, duplicate routes, and unknown
   constructor sources rather than inferring ownership from a nominal type.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy`
-  -- joins entry obligations to one unique constructor/storage generation and
-  rejects duplicate storage reservation or repeated aggregate release plans.
+  -- joins admitted field-entry obligations to constructor/storage demands and
+  delegates the final uniqueness verdict without reconstructing its policy.
+- `src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy`
+  -- unique storage reservation and ordered sharing for one aggregate field
+  generation; refused plans retain the conflicting demand's diagnostic syntax.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy`
   -- event-time reservation, source retirement/use rejection, exact deep-drop,
   same-field writeback, and outer-carrier restoration. This source proof still

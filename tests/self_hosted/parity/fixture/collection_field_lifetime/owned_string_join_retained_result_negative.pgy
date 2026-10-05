@@ -1,0 +1,15 @@
+func MakeJoined(inout retained: Array<String>) -> String {
+    let fragments: Array<String> = ["a", "b"];
+    let joined: String = StringJoin(fragments, "");
+    ArrayPush(retained, joined);
+    return joined;
+}
+func RetireJoined(own value: String) -> Void {
+    let retired: Array<String> = [value];
+    ArrayDropOwnedStrings(retired);
+}
+func Main() -> Void {
+    let retained: Array<String> = [];
+    RetireJoined(MakeJoined(retained));
+    Log(retained[0]);
+}

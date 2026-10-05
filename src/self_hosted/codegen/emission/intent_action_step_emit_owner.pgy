@@ -73,9 +73,9 @@ func CodegenIntentEmitActionStep(
         ))
     ));
     let step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
-        env, CodegenFunctionValueBindingFactForCExpression(
+        env, CodegenFunctionValueBindingRows(CodegenFunctionValueBindingFactForCExpression(
             receiver_alias, binding.actor_type, env, binding.zone_member
-        ).env_rows
+        ))
     );
     let on_graph: SemanticExpressionGraphView =
         CodegenSemanticExpressionGraphOrDie(

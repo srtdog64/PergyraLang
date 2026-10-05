@@ -1,13 +1,34 @@
 import "../../../../src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy";
+import "../../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
 
 func Main() -> Void {
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows("", "");
-    let state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", ""));
+    let initial_rows: Array<String> = [];
+    ArrayPushOwnedString(initial_rows, "");
+    let state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(
+        CodegenJoinOwnedStringFragments(initial_rows, ""));
     CodegenTypeEnvStateAppendTypedValueBinding(state, env, "first", "Int", "value", "first_c");
     CodegenTypeEnvStateAppendTypedValueBinding(state, env, "second", "Bool", "value", "second_c");
     let view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
     if LookupKindType(view, "first", "type") != "Int" { Exit(1); }
     if LookupKindType(view, "second", "type") != "Bool" { Exit(2); }
+    let child: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(state);
+    CodegenTypeEnvStateAppendTypedValueBinding(child, env, "first", "Long", "value", "child_c");
+    let child_view: CodegenTypeEnv = CodegenTypeEnvStateView(child, env);
+    if LookupKindType(child_view, "first", "type") != "Long" { Exit(3); }
+    if LookupKindType(view, "first", "type") != "Int" { Exit(4); }
+    CodegenTypeEnvStateAdoptAfterLastConsumer(state, child);
+    CodegenTypeEnvStateReleaseLocal(child);
+    let adopted: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
+    if LookupKindType(adopted, "first", "type") != "Long" { Exit(5); }
+    if LookupKindType(adopted, "second", "type") != "Bool" { Exit(6); }
+    let unchanged: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(state);
+    CodegenTypeEnvStateAdoptAfterLastConsumer(state, unchanged);
+    CodegenTypeEnvStateReleaseLocal(unchanged);
+    CodegenTypeEnvStateAppendOwnedLocalRows(state, env, Concat("", ""));
+    let final_view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
+    if LookupKindType(final_view, "first", "type") != "Long" { Exit(7); }
+    if LookupKindType(view, "second", "type") != "Bool" { Exit(8); }
     CodegenTypeEnvStateReleaseLocal(state);
     Log("TYPE ENV STATE RETIREMENT PASS");
 }

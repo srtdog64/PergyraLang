@@ -4,7 +4,6 @@ import "ast_owned_string_domain_exposure_owner.pgy";
 import "ast_owned_string_local_reassignment_owner.pgy";
 import "ast_numeric_string_allocation_call_owner.pgy";
 import "ast_builtin_argument_retention_call_fact_owner.pgy";
-
 func SemanticAstOwnedStringExpressionSourceStart(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     function_id: Int, use_id: Int, lane: Int, root: Int
@@ -23,7 +22,6 @@ func SemanticAstOwnedStringExpressionSourceStart(
     }
     return UnwrapOption(start);
 }
-
 func SemanticAstOwnedStringCallSourceReady(ref call: SemanticCallSpineView, start: Int, root: Int) -> Bool {
     if !call.ok || start < 0 || call.call_node < start || call.call_node > root ||
         call.callee_node < start || call.callee_node >= call.call_node { return false; }
@@ -47,6 +45,17 @@ func SemanticAstOwnedStringFreshConcatCallReady(
     // The sealed Concat primitive copies into a fresh heap-or-null result;
     // this says nothing about exclusivity of a local alias or user result.
     return IsSome(identity) && UnwrapOption(identity) == "CONCAT";
+}
+func SemanticAstOwnedStringFreshJoinCallReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref call: SemanticCallSpineView, start: Int, root: Int
+) -> Bool {
+    // Both runtime routes copy even an empty join into fresh heap-or-null.
+    // The sealed direct target excludes declared/foreign call identities.
+    return SemanticAstOwnedStringCallSourceReady(call, start, root) &&
+        ArrayLength(call.argument_nodes) == 2 &&
+        SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringJoin");
 }
 
 func SemanticAstOwnedStringAllocatorExpressionDomain(
@@ -103,7 +112,6 @@ func SemanticAstOwnedStringAllocatorExpressionDomain(
     }
     return SemanticAstOwnedStringDomainUnknown();
 }
-
 func SemanticAstOwnedStringCallAllocationDomain(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
@@ -139,7 +147,6 @@ func SemanticAstOwnedStringCallAllocationDomain(
         artifact, signatures, locals, initializer_types, surfaces, writes, exposures, results,
         function_id, use_id, lane, call.argument_nodes[argument]);
 }
-
 func SemanticAstOwnedStringExpressionAllocationDomain(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
@@ -162,7 +169,9 @@ func SemanticAstOwnedStringExpressionAllocationDomain(
     let builtin_call: SemanticCallSpineView =
         SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
     if SemanticAstOwnedStringFreshConcatCallReady(
-            surfaces, builtin_call, start, use_id, lane, root) {
+            surfaces, builtin_call, start, use_id, lane, root) ||
+        SemanticAstOwnedStringFreshJoinCallReady(
+            surfaces, builtin_call, start, root) {
         return SemanticAstOwnedStringDomainHeapOrNull();
     }
     let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(

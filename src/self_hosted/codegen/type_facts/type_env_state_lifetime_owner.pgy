@@ -4,22 +4,30 @@ import "type_env.pgy";
 import "../text/text_owner.pgy";
 
 struct CodegenTypeEnvState {
-    let local_rows: String;
-    let owns_local_rows: Bool;
+    local_rows: String;
+    owned_epochs: Array<String>;
 }
 
-func CodegenTypeEnvStateOwned(local_rows: String) -> CodegenTypeEnvState {
-    return CodegenTypeEnvState(local_rows, true);
+// Each scope owns its snapshots. Views borrow the current snapshot until the
+// scope's last consumer; a Bool or String field is never retirement authority.
+func CodegenTypeEnvStateOwned(own local_rows: String) -> CodegenTypeEnvState {
+    let retired: Array<String> = [local_rows];
+    let epochs: Array<String> = Clone(retired);
+    ArrayDropOwnedStrings(retired);
+    let state: CodegenTypeEnvState = CodegenTypeEnvState("", epochs);
+    state.local_rows = state.owned_epochs[0];
+    return state;
 }
 
 func CodegenTypeEnvStateBorrow(
-    state: CodegenTypeEnvState
+    ref state: CodegenTypeEnvState
 ) -> CodegenTypeEnvState {
-    return CodegenTypeEnvState(state.local_rows, false);
+    let epochs: Array<String> = [];
+    return CodegenTypeEnvState(state.local_rows, epochs);
 }
 
 func CodegenTypeEnvStateView(
-    state: CodegenTypeEnvState, base_env: CodegenTypeEnv
+    ref state: CodegenTypeEnvState, base_env: CodegenTypeEnv
 ) -> CodegenTypeEnv {
     // The sealed global epoch remains owned by `base_env`; only local rows vary.
     return CodegenTypeEnv(
@@ -28,49 +36,37 @@ func CodegenTypeEnvStateView(
     );
 }
 
-func CodegenTypeEnvStateReplaceOwnedLocal(
-    inout state: CodegenTypeEnvState, env: CodegenTypeEnv
+func CodegenTypeEnvStateAppendEpoch(
+    inout epochs: Array<String>, own rows: String
 ) -> Void {
-    if env.local_rows == state.local_rows { return; }
-    let old_local_rows: String = state.local_rows;
-    let retire_old: Bool = state.owns_local_rows && old_local_rows != "";
-    state = CodegenTypeEnvState(env.local_rows, true);
-    if retire_old {
-        let retired: Array<String> = [old_local_rows];
-        ArrayDropOwnedStrings(retired);
-    }
+    ArrayPushOwnedString(epochs, rows);
+    let retired: Array<String> = [rows];
+    ArrayDropOwnedStrings(retired);
 }
 
 func CodegenTypeEnvStateReleaseLocal(
     inout state: CodegenTypeEnvState
 ) -> Void {
-    let old_local_rows: String = state.local_rows;
-    let retire_old: Bool = state.owns_local_rows && old_local_rows != "";
-    state = CodegenTypeEnvState("", false);
-    if retire_old {
-        let retired: Array<String> = [old_local_rows];
-        ArrayDropOwnedStrings(retired);
-    }
+    let epochs: Array<String> = state.owned_epochs;
+    ArrayDropOwnedStrings(epochs);
+    state.owned_epochs = epochs;
+    state.local_rows = "";
 }
 
 func CodegenTypeEnvStateAdoptAfterLastConsumer(
     inout state: CodegenTypeEnvState,
-    inout next_state: CodegenTypeEnvState
+    ref next_state: CodegenTypeEnvState
 ) -> Void {
-    if next_state.local_rows == state.local_rows {
-        next_state = CodegenTypeEnvState("", false);
-        return;
+    let epochs: Array<String> = state.owned_epochs;
+    if next_state.local_rows != state.local_rows {
+        if ArrayLength(next_state.owned_epochs) == 0 {
+            Die("codegen type environment replacement is not owned");
+        }
+        CodegenTypeEnvStateAppendEpoch(epochs, Concat("", next_state.local_rows));
     }
-    if !next_state.owns_local_rows {
-        Die("codegen type environment replacement is not owned");
-    }
-    let old_local_rows: String = state.local_rows;
-    let retire_old: Bool = state.owns_local_rows && old_local_rows != "";
-    state = next_state;
-    next_state = CodegenTypeEnvState("", false);
-    if retire_old {
-        let retired: Array<String> = [old_local_rows];
-        ArrayDropOwnedStrings(retired);
+    state.owned_epochs = epochs;
+    if ArrayLength(state.owned_epochs) != 0 {
+        state.local_rows = state.owned_epochs[ArrayLength(state.owned_epochs) - 1];
     }
 }
 
@@ -78,22 +74,29 @@ func CodegenTypeEnvStateAppendValueBinding(
     inout state: CodegenTypeEnvState, env: CodegenTypeEnv, source_name: String,
     value_kind: String, c_name: String
 ) -> Void {
-    let next_env: CodegenTypeEnv = TypeEnvAppendValueBinding(
-        CodegenTypeEnvStateView(state, env),
-        source_name, value_kind, c_name
-    );
-    CodegenTypeEnvStateReplaceOwnedLocal(state, next_env);
+    let view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
+    if LookupKindType(view, source_name, "v") == value_kind &&
+        LookupKindType(view, source_name, "cbind") == c_name { return; }
+    let rows: String = TypeEnvValueBindingRows(source_name, value_kind, c_name);
+    let combined: String = Concat(rows, view.local_rows);
+    let epochs: Array<String> = state.owned_epochs;
+    CodegenTypeEnvStateAppendEpoch(epochs, combined);
+    state.owned_epochs = epochs;
+    state.local_rows = state.owned_epochs[ArrayLength(state.owned_epochs) - 1];
+    let retired: Array<String> = [rows];
+    ArrayDropOwnedStrings(retired);
 }
 
 func CodegenTypeEnvStateAppendOwnedLocalRows(
     inout state: CodegenTypeEnvState, env: CodegenTypeEnv,
     own rows: String
 ) -> Void {
-    if rows == "" { return; }
-    let next_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
-        CodegenTypeEnvStateView(state, env), rows
-    );
-    CodegenTypeEnvStateReplaceOwnedLocal(state, next_env);
+    let view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
+    let combined: String = Concat(rows, view.local_rows);
+    let epochs: Array<String> = state.owned_epochs;
+    CodegenTypeEnvStateAppendEpoch(epochs, combined);
+    state.owned_epochs = epochs;
+    state.local_rows = state.owned_epochs[ArrayLength(state.owned_epochs) - 1];
     let retired: Array<String> = [rows];
     ArrayDropOwnedStrings(retired);
 }
@@ -105,5 +108,12 @@ func CodegenTypeEnvStateAppendTypedValueBinding(
     let rows: String = TypeEnvTypedValueBindingRows(
         source_name, value_type, value_kind, c_name
     );
-    CodegenTypeEnvStateAppendOwnedLocalRows(state, env, rows);
+    let view: CodegenTypeEnv = CodegenTypeEnvStateView(state, env);
+    let combined: String = Concat(rows, view.local_rows);
+    let epochs: Array<String> = state.owned_epochs;
+    CodegenTypeEnvStateAppendEpoch(epochs, combined);
+    state.owned_epochs = epochs;
+    state.local_rows = state.owned_epochs[ArrayLength(state.owned_epochs) - 1];
+    let retired: Array<String> = [rows];
+    ArrayDropOwnedStrings(retired);
 }

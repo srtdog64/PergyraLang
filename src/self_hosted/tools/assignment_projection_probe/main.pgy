@@ -112,20 +112,22 @@ func ProbeOptionAssignment(
         name, true, name, carry_place_facts
     );
     let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
-    let local_rows: String = "|";
+    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", "|"));
     if carry_c_binding {
         let binding: CodegenFunctionValueBindingFact =
             CodegenFunctionValueBindingFactFor(
                 name, binding_type, base_env
             );
-        local_rows = Concat(local_rows, binding.env_rows);
+        CodegenTypeEnvStateAppendTypedValueBinding(env_state, base_env,
+            binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
     }
-    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(local_rows);
-    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", local_rows);
-    return EmitAssign(
+    let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state, base_env);
+    let output: String = EmitAssign(
         assignments, 0, expected_type, expected_type,
         env_state, env, graph, target_graph
     );
+    CodegenTypeEnvStateReleaseLocal(env_state);
+    return output;
 }
 
 func ProbeIndexedAssignment(
@@ -143,16 +145,18 @@ func ProbeIndexedAssignment(
         ProbeExpressionGraph(
             "nums[1]", true, "nums", carry_place_facts
         );
-    let local_rows: String = "|nums=v:ArrayInt|";
+    let base_env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
+    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", "|nums=v:ArrayInt|"));
     if carry_c_binding {
-        local_rows = Concat(local_rows, "nums=cbind:nums|");
+        CodegenTypeEnvStateAppendValueBinding(env_state, base_env, "nums", "ArrayInt", "nums");
     }
-    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(local_rows);
-    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", local_rows);
-    return EmitAssign(
+    let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state, base_env);
+    let output: String = EmitAssign(
         assignments, 0, "Int", target_type,
         env_state, env, value_graph, target_graph
     );
+    CodegenTypeEnvStateReleaseLocal(env_state);
+    return output;
 }
 
 func ProbeCollectionCrefOnly() -> String {

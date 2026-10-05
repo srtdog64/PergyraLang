@@ -28,8 +28,8 @@ CASES=(
     "aggregate_release_formal_root_reuse_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
     "aggregate_release_preextract_field_write_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
     "aggregate_release_aggregate_alias_observe_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_duplicate_storage_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
-    "aggregate_release_repeated_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
+    "aggregate_release_duplicate_storage_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved|Main"
+    "aggregate_release_repeated_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved|Main"
     "aggregate_release_outer_restore_missing_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
     "aggregate_release_outer_wrong_field_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
     "aggregate_release_branch_drop_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
@@ -57,7 +57,7 @@ for backend in c llvm; do
         fail "$backend source analyzer did not build"
     case_index=0
     for case_row in "${CASES[@]}"; do
-        IFS='|' read -r fixture verdict expected_diagnostic expected_boundary \
+        IFS='|' read -r fixture verdict expected_diagnostic expected_boundary expected_function \
             <<<"$case_row"
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$fixture" diagnostic \
             >"$WORK/$backend-$case_index.raw" \
@@ -81,6 +81,10 @@ for backend in c llvm; do
             grep -Fxq -- "- boundary: $expected_boundary" \
                 "$WORK/$backend-$case_index.run" || \
                 fail "$backend fixture=$fixture boundary drift"
+            if [[ -n "$expected_function" ]]; then
+                grep -Fxq "body_function=$expected_function" "$WORK/$backend-$case_index.run" || \
+                    fail "$backend fixture=$fixture lost the conflicting call location"
+            fi
             if [[ "$expected_boundary" == aggregate_release_incomplete ]]; then
                 grep -Eq '^body_syntax=[1-9][0-9]*$' "$WORK/$backend-$case_index.run" || \
                     fail "$backend fixture=$fixture lost the failed event identity"

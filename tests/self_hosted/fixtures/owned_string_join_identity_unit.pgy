@@ -1,0 +1,63 @@
+// Mutation guards on the selected primitive; never emit/run the supplied source.
+import "../../../src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy";
+
+func InspectOwnedStringJoinIdentity(
+    inout analysis: SemanticAstArtifactAnalysis
+) -> Bool {
+    let slot: Int = 0;
+    while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
+        if analysis.expression_surfaces.expression_graph.has_roots[slot] {
+            let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                analysis.expression_surfaces.expression_graph, root);
+            if call.ok && SemanticAstCollectionOwnershipBuiltinCall(
+                    analysis.expression_surfaces.expression_graph, call.call_node, "StringJoin") {
+                let start: Option<Int> = SemanticExpressionGraphRootStartAt(
+                    analysis.expression_surfaces.expression_graph, slot);
+                if !IsSome(start) || !SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                let node: Int = call.call_node;
+                let callee: Int = call.callee_node;
+                let first: Int = call.argument_nodes[0];
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, node + 1, root) ||
+                    SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), node - 1) { return false; }
+                call.argument_nodes = [first];
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                call = SemanticCallSpineViewFromGraph(analysis.expression_surfaces.expression_graph, root);
+                call.argument_nodes[0] = UnwrapOption(start) - 1;
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                call = SemanticCallSpineViewFromGraph(analysis.expression_surfaces.expression_graph, root);
+                analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[node] = 1;
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[node] = 0;
+                analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = 1;
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = 0;
+                analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node] = SemanticCallTargetMember();
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node] = SemanticCallTargetDirect();
+                analysis.expression_surfaces.expression_graph.arena.call_target_names[node] = "UserStringJoin";
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                analysis.expression_surfaces.expression_graph.arena.call_target_names[node] = "StringJoin";
+                analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee] = SemanticExpressionBindingDeclaredCallable();
+                analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee] = 1;
+                if SemanticAstOwnedStringFreshJoinCallReady(
+                        analysis.expression_surfaces, call, UnwrapOption(start), root) { return false; }
+                analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee] = SemanticExpressionBindingNone();
+                analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee] = 0;
+                return SemanticAstOwnedStringFreshJoinCallReady(
+                    analysis.expression_surfaces, call, UnwrapOption(start), root);
+            }
+        }
+        slot = slot + 1;
+    }
+    return false;
+}

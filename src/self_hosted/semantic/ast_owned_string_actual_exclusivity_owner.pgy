@@ -227,6 +227,8 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
     }
     if SemanticAstOwnedStringFreshConcatCallReady(
             surfaces, call, start, use_id, lane, root) ||
+        SemanticAstOwnedStringFreshJoinCallReady(
+            surfaces, call, start, root) ||
         SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call.call_node,
             "TextBuilderFinish") {

@@ -1,0 +1,120 @@
+// Unique storage reservations and ordered sharing for one aggregate generation.
+// Failure retains the conflicting demand's syntax, not an unrelated requirement.
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+
+func SemanticAstCollectionAggregateReleaseDemandCallRow(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+) -> Int {
+    if demand < 0 || demand >= ArrayLength(plan.demand_edge_nodes) { return -1; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.call_edge_nodes) {
+        if plan.call_edge_nodes[row] == plan.demand_edge_nodes[demand] {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func SemanticAstCollectionAggregateReleaseSharedDemandReady(
+    artifact: AstTreeArtifact,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current <= prior ||
+        current >= ArrayLength(plan.requirement_rows) ||
+        prior >= ArrayLength(plan.requirement_rows) ||
+        plan.aggregate_origin_ids[prior] != plan.aggregate_origin_ids[current] { return false; }
+    let prior_input: Int = plan.constructor_input_rows[prior];
+    let current_input: Int = plan.constructor_input_rows[current];
+    if prior_input < 0 || current_input < 0 ||
+        prior_input >= ArrayLength(inputs.field_ids) ||
+        current_input >= ArrayLength(inputs.field_ids) ||
+        inputs.field_ids[prior_input] != inputs.field_ids[current_input] { return false; }
+    let prior_requirement: Int = plan.requirement_rows[prior];
+    let current_requirement: Int = plan.requirement_rows[current];
+    if prior_requirement < 0 || current_requirement < 0 ||
+        prior_requirement >= ArrayLength(plan.requirement_effect_masks) ||
+        current_requirement >= ArrayLength(plan.requirement_effect_masks) { return false; }
+    let prior_call: Int = SemanticAstCollectionAggregateReleaseDemandCallRow(plan, prior);
+    let current_call: Int = SemanticAstCollectionAggregateReleaseDemandCallRow(plan, current);
+    if prior_call < 0 || current_call < 0 ||
+        plan.call_function_ids[prior_call] != plan.call_function_ids[current_call] ||
+        plan.call_syntax_ids[prior_call] == plan.call_syntax_ids[current_call] ||
+        SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[prior_call]) <= 0 ||
+        SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[current_call]) <= 0 { return false; }
+    let earlier_requirement: Int = prior_requirement;
+    if plan.call_syntax_ids[current_call] < plan.call_syntax_ids[prior_call] { earlier_requirement = current_requirement; }
+    let earlier_mask: Int = plan.requirement_effect_masks[earlier_requirement];
+    return earlier_mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() && earlier_mask != 3;
+}
+
+func SemanticAstCollectionAggregateReleasePlanUnique(
+    artifact: AstTreeArtifact,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.constructor_input_rows) {
+        let input: Int = plan.constructor_input_rows[row];
+        if input < 0 || input >= ArrayLength(inputs.producer_kinds) {
+            return false;
+        }
+        let demand_call: Int = SemanticAstCollectionAggregateReleaseDemandCallRow(plan, row);
+        let prior: Int = 0;
+        while prior < row {
+            let prior_input: Int = plan.constructor_input_rows[prior];
+            if plan.aggregate_origin_ids[prior] ==
+                    plan.aggregate_origin_ids[row] &&
+                inputs.field_ids[prior_input] == inputs.field_ids[input] &&
+                !SemanticAstCollectionAggregateReleaseSharedDemandReady(
+                    artifact, plan, inputs, prior, row) {
+                if demand_call >= 0 {
+                    plan.diagnostic_syntax_id = plan.call_syntax_ids[demand_call];
+                }
+                return false;
+            }
+            if inputs.producer_kinds[prior_input] == 1 &&
+                inputs.producer_kinds[input] == 1 {
+                let prior_source: Int =
+                    SemanticAstCollectionDefinitionStorageSource(
+                        storage, definitions,
+                        definitions.binding_rows[
+                            inputs.definition_rows[prior_input]],
+                        inputs.definition_rows[prior_input]);
+                let source: Int =
+                    SemanticAstCollectionDefinitionStorageSource(
+                        storage, definitions,
+                        definitions.binding_rows[
+                            inputs.definition_rows[input]],
+                        inputs.definition_rows[input]);
+                if prior_source <= 0 || source <= 0 ||
+                    (prior_source == source &&
+                     ((prior_input != input &&
+                       inputs.function_ids[prior_input] ==
+                            inputs.function_ids[input]) ||
+                      (plan.aggregate_origin_ids[prior] ==
+                            plan.aggregate_origin_ids[row] &&
+                       !SemanticAstCollectionAggregateReleaseSharedDemandReady(
+                            artifact, plan, inputs, prior, row)))) {
+                    if demand_call >= 0 {
+                        plan.diagnostic_syntax_id = plan.call_syntax_ids[demand_call];
+                    }
+                    return false;
+                }
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

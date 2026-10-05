@@ -1,0 +1,7 @@
+import "../../../../src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy";
+func Main() -> Void {
+    let state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(Concat("", ""));
+    let alias: CodegenTypeEnvState = state;
+    CodegenTypeEnvStateReleaseLocal(alias);
+    CodegenTypeEnvStateReleaseLocal(state);
+}

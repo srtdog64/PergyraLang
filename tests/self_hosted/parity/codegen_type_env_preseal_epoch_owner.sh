@@ -82,38 +82,43 @@ grep -Fq 'let row_start: Bool = name_start == 0;' "$LOCAL_SCAN_OWNER" || {
     exit 1
 }
 
-for term in 'TypeEnvAppendLocalRows(' \
-    'CodegenTypeEnvStateReplaceOwnedLocal(' \
+for term in 'Concat(rows, view.local_rows)' \
+    'CodegenTypeEnvStateAppendEpoch(' \
+    'state.owned_epochs = epochs;' \
     'ArrayDropOwnedStrings(retired);'; do
     grep -Fq "$term" <<<"$owned_rows_body" || {
         echo "[self-host-parity:codegen-type-env-preseal] owned local-row lifetime is missing: $term" >&2
         exit 1
     }
 done
-append_line="$(grep -Fn 'TypeEnvAppendLocalRows(' <<<"$owned_rows_body" | head -1 | cut -d: -f1)"
-replace_line="$(grep -Fn 'CodegenTypeEnvStateReplaceOwnedLocal(' <<<"$owned_rows_body" | head -1 | cut -d: -f1)"
+append_line="$(grep -Fn 'Concat(rows, view.local_rows)' <<<"$owned_rows_body" | head -1 | cut -d: -f1)"
+replace_line="$(grep -Fn 'state.owned_epochs = epochs;' <<<"$owned_rows_body" | head -1 | cut -d: -f1)"
 retire_line="$(grep -Fn 'ArrayDropOwnedStrings(retired);' <<<"$owned_rows_body" | head -1 | cut -d: -f1)"
 if (( append_line >= replace_line || replace_line >= retire_line )); then
     echo "[self-host-parity:codegen-type-env-preseal] owned local rows are not copy/install/retire ordered" >&2
     exit 1
 fi
-grep -Fq 'CodegenTypeEnvStateAppendOwnedLocalRows(state, env, rows);' \
+grep -Fq 'CodegenTypeEnvStateAppendEpoch(epochs, combined);' \
     <<<"$typed_rows_body" || {
     echo "[self-host-parity:codegen-type-env-preseal] typed row adapter bypasses the lifetime owner" >&2
     exit 1
 }
-if grep -Fq 'TypeEnvAppendLocalRows(' <<<"$typed_rows_body"; then
+if grep -Eq 'TypeEnvAppendLocalRows\(|CodegenTypeEnvStateAppendOwnedLocalRows\(' <<<"$typed_rows_body"; then
     echo "[self-host-parity:codegen-type-env-preseal] typed row adapter rebuilt the append path" >&2
     exit 1
 fi
-owned_call_count="$(grep -Fc 'CodegenTypeEnvStateAppendOwnedLocalRows(' <<<"$emit_let_body")"
-binding_row_count="$(grep -Fc 'binding.env_rows' <<<"$emit_let_body")"
+owned_call_count="$(grep -Fc 'CodegenTypeEnvStateAppendTypedValueBinding(' <<<"$emit_let_body")"
+binding_row_count="$(grep -Fc 'binding.semantic_type_name' <<<"$emit_let_body")"
 if [[ "$owned_call_count" != "7" || "$binding_row_count" != "7" ]]; then
-    echo "[self-host-parity:codegen-type-env-preseal] EmitLet must consume seven admitted binding rows exactly once" >&2
+    echo "[self-host-parity:codegen-type-env-preseal] EmitLet must materialize seven admitted typed bindings exactly once" >&2
     exit 1
 fi
-if grep -Fq 'CodegenTypeEnvStateAppendTypedValueBinding(' <<<"$emit_let_body"; then
-    echo "[self-host-parity:codegen-type-env-preseal] EmitLet rebuilt admitted binding rows" >&2
+if grep -Fq 'binding.env_rows' <<<"$emit_let_body"; then
+    echo "[self-host-parity:codegen-type-env-preseal] EmitLet retained derived rows in binding facts" >&2
+    exit 1
+fi
+if grep -Eq 'owns_local_rows|CodegenTypeEnvStateReplaceOwnedLocal\(' "$STATE_OWNER"; then
+    echo "[self-host-parity:codegen-type-env-preseal] Bool-labelled scalar retirement reopened" >&2
     exit 1
 fi
 

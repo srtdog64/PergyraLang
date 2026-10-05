@@ -13,7 +13,6 @@ struct CodegenFunctionValueBindingFact {
     let semantic_type_name: String;
     let value_kind: String;
     let c_name: String;
-    let env_rows: String;
 }
 
 func CodegenCallableBindingSyntaxKey(binding_syntax_id: Int) -> String {
@@ -79,11 +78,17 @@ func CodegenFunctionValueBindingFactForCExpression(
         type_name, env
     );
     return CodegenFunctionValueBindingFact(
-        source_name, type_name, value_kind, c_expression,
-        TypeEnvTypedValueBindingRows(
-            source_name, type_name, value_kind, c_expression
-        )
+        source_name, type_name, value_kind, c_expression
     );
+}
+
+// Serialize an admitted binding only where its rows are actually consumed.
+// Replaced receiver/parameter facts and non-row consumers allocate no rows.
+func CodegenFunctionValueBindingRows(
+    binding: CodegenFunctionValueBindingFact
+) -> String {
+    return TypeEnvTypedValueBindingRows(binding.source_name,
+        binding.semantic_type_name, binding.value_kind, binding.c_name);
 }
 
 func CodegenFunctionOwnerFieldEnvRows(

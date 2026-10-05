@@ -54,19 +54,22 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
     if type_name == "Int" || type_name == "Long" || type_name == "Bool" ||
         type_name == "Float" || type_name == "Double" || type_name == "String" ||
         type_name == "Allocator" || type_name == "TextBuilder" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
+        CodegenTypeEnvStateAppendTypedValueBinding(env_state, env,
+            binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if IsBoxType(type_name) && IsSome(BoxArrayElementTypeOpt(type_name)) { return EmitBoxArrayLetDeclaration(name, type_name, c_name, env_state, env, graph); }
     if CompilerRuntimeCallAbiMachineLayerDeviceCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
+        CodegenTypeEnvStateAppendTypedValueBinding(env_state, env,
+            binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
         let value: String = RewriteExpectedValueWithSemanticGraph(expr, type_name, env, graph);
         let declaration: String = Concat(c_name, Concat(" = ", Concat(value, ";")));
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", declaration));
     }
     if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" ||
         SpawnRuntimeCFutureCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
+        CodegenTypeEnvStateAppendTypedValueBinding(env_state, env,
+            binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
         let value: String = RewriteExpectedValueWithSemanticGraph(expr, type_name, env, graph);
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
             Concat(c_name, Concat(" = ", Concat(value, ";")))));
@@ -81,7 +84,8 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         let new_fn: String = array_fact.c_new_fn;
         let push_fn: String = array_fact.c_push_fn;
         let element_type: String = array_fact.element_type;
-        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
+        CodegenTypeEnvStateAppendTypedValueBinding(env_state, env,
+            binding.source_name, binding.semantic_type_name, binding.value_kind, binding.c_name);
         if !graph.ok {
             Die("array initializer expression graph is missing");
         }
@@ -111,8 +115,9 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
     }
     if StartsWith(type_name, "Result<") { return EmitResultLetDeclaration(name, type_name, c_name, expr, env_state, env, graph); }
     if IsSlotType(type_name) {
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, env, binding.source_name, binding.semantic_type_name,
+            binding.value_kind, binding.c_name
         );
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExpectedValueWithSemanticGraph(expr, type_name, env, graph), ";")))));
     }
@@ -131,8 +136,9 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         if StringLength(option_kind) == 0 {
             Die(Concat("unsupported option let payload type: ", type_name));
         }
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, env, binding.source_name, binding.semantic_type_name,
+            binding.value_kind, binding.c_name
         );
         let option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(
             expr, type_name, env, graph
@@ -144,8 +150,9 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         StartsWith(type_name, "Set<") || StartsWith(type_name, "HashMap<") ||
         LookupKindType(env, type_name, "s") == "struct" ||
         LookupKindType(env, type_name, "enum") != "" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
+        CodegenTypeEnvStateAppendTypedValueBinding(
+            env_state, env, binding.source_name, binding.semantic_type_name,
+            binding.value_kind, binding.c_name
         );
         let value: String = RewriteExpectedValueWithSemanticGraph(
             expr, type_name, env, graph
@@ -205,6 +212,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                     local_bindings, arena, idx, statement_env, env, let_graph);
             }
             CodegenTypeEnvStateAdoptAfterLastConsumer(env_state, statement_env);
+            CodegenTypeEnvStateReleaseLocal(statement_env);
             ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(emitted_let, pad, "", "\n"));
             if IsSome(resource_local_index) {
                 let local_name: String =
