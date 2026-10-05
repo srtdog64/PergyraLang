@@ -51,7 +51,7 @@ func SelfMirInstructionLocalRefRowsAttachPrimary(
         return rows;
     }
     let primary: Array<String> = rows.primary_refs;
-    ArraySet(primary, index, local_ref);
+    ArraySet(primary, index, Concat("", local_ref));
     return SelfMirInstructionLocalRefRows(
         primary, rows.source_statement_syntax_ids,
         rows.expr0_starts, rows.expr0_counts,
@@ -62,9 +62,9 @@ func SelfMirInstructionLocalRefRowsAttachPrimary(
 func SelfMirInstructionLocalRefRowsAttachExpr0(
     rows: SelfMirInstructionLocalRefRows,
     view: SemanticExpressionGraphView,
-    local_names: Array<String>,
-    local_versions: Array<Int>,
-    local_refs: Array<String>
+    ref local_names: Array<String>,
+    ref local_versions: Array<Int>,
+    ref local_refs: Array<String>
 ) -> SelfMirInstructionLocalRefRows {
     let instruction: Int = ArrayLength(rows.primary_refs) - 1;
     if instruction < 0 || !view.ok ||
@@ -95,7 +95,8 @@ func SelfMirInstructionLocalRefRowsAttachExpr0(
                 if local_names[local_binding] == UnwrapOption(text) {
                     if local_versions[local_binding] == 0 && local_refs[local_binding] != "" {
                         ArrayPush(nodes, node - start);
-                        ArrayPush(refs, local_refs[local_binding]);
+                        // LocalRef rows survive the source binding inventory.
+                        ArrayPush(refs, Concat("", local_refs[local_binding]));
                     }
                     break;
                 }
@@ -114,7 +115,7 @@ func SelfMirInstructionLocalRefRowsAttachExpr0(
 
 func SelfMirInstructionLocalRefRowsAppendRows(
     target: SelfMirInstructionLocalRefRows,
-    source: SelfMirInstructionLocalRefRows
+    ref source: SelfMirInstructionLocalRefRows
 ) -> SelfMirInstructionLocalRefRows {
     let primary: Array<String> = target.primary_refs;
     let statement_ids: Array<Int> = target.source_statement_syntax_ids;
@@ -124,7 +125,7 @@ func SelfMirInstructionLocalRefRowsAppendRows(
     let refs: Array<String> = target.expr0_refs;
     let row: Int = 0;
     while row < ArrayLength(source.primary_refs) {
-        ArrayPush(primary, source.primary_refs[row]);
+        ArrayPush(primary, Concat("", source.primary_refs[row]));
         ArrayPush(statement_ids, source.source_statement_syntax_ids[row]);
         ArrayPush(starts, ArrayLength(nodes));
         ArrayPush(counts, source.expr0_counts[row]);
@@ -132,7 +133,7 @@ func SelfMirInstructionLocalRefRowsAppendRows(
         while use_entry < source.expr0_counts[row] {
             let source_use: Int = source.expr0_starts[row] + use_entry;
             ArrayPush(nodes, source.expr0_nodes[source_use]);
-            ArrayPush(refs, source.expr0_refs[source_use]);
+            ArrayPush(refs, Concat("", source.expr0_refs[source_use]));
             use_entry = use_entry + 1;
         }
         row = row + 1;

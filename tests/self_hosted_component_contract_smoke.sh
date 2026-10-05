@@ -17333,6 +17333,10 @@ reject_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "Self
 reject_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "return local_types[i]"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'ArrayPush(uses, Concat("", row_uses[i]));'
 reject_text "src/self_hosted/mir/program_fact_owner.pgy" "ArrayPush(uses, row_uses[i]);"
+require_text "src/self_hosted/mir/local_ref_fact_owner.pgy" 'ArrayPush(refs, Concat("", local_refs[local_binding]));'
+reject_text "src/self_hosted/mir/local_ref_fact_owner.pgy" "ArrayPush(refs, local_refs[local_binding]);"
+reject_text "src/self_hosted/mir/local_ref_fact_owner.pgy" "ArrayPush(refs, source.expr0_refs[source_use]);"
+reject_text "src/self_hosted/mir/local_ref_fact_owner.pgy" "ArrayPush(primary, source.primary_refs[row]);"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "SelfMirRoutineExpressionRuntimeAbiAttach("
 require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource"
 require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "SelfMirExpressionRuntimeValueCallProjectionFromGraph(view)"

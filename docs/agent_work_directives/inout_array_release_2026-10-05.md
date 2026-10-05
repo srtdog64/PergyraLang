@@ -1074,3 +1074,35 @@ row loop retained raw indexed Strings. Mapping:
   The nominal gate now exposes the actual native cause at that boundary.
   Seed v41 on the same original root remains the self-host falsifier; no
   installed-driver, full inventory, full integration or CI success is inferred.
+
+## Reached MIR expression LocalRef publication
+
+Official seed v41 passed named instruction-use consumers, then refused node
+71966 in SelfMirRoutineAttachLastExpressionGraph: AttachExpr0 retained raw
+indexed local-ref text. Mapping:
+`.tmp/inout-array-release-bootstrap-v41-exact-boundary-context.log`.
+
+- Objective/priority: preserve exact last-binding/version selection and row
+  ranges; store independent LocalRef text; same original MIR root admission.
+- Owner/last consumer: local_ref_fact_owner publishes instruction-local-ref
+  columns; routine graph attachment and MIR projection consume those columns.
+- Forbidden fallback: borrowed local-ref publication, prior-binding fallback
+  after a shadowing version, whole-prefix cloning, destination deep-drop grants.
+- Gate/falsifier: native C/LLVM shadowing/version selection, source-string
+  cleanup survival, malformed input and repeated attachment leave rows unchanged,
+  append offsets/counts/primary refs, existing copied/raw-row source controls,
+  structural raw-push refusal, then original whole-MIR-root seed.
+  Fresh installed P0 remains BLOCKED on the admitted body bundle, with its
+  existing owner/last-consumer/falsifier; no SoT status change is inferred.
+- The first native value probe refused ArrayDrop of the multiply borrowed
+  numeric version scratch. That remains outside this String-publication oracle:
+  the probe releases its owned source String arrays, not numeric scratch, and
+  makes no numeric cleanup claim. The native release admission rule is unchanged.
+- Native C/LLVM shadowing/version selection, source String cleanup survival,
+  malformed/repeated no-mutation guards and nonempty-prefix append offsets
+  passed. Existing copied/raw-row source controls and the original native MIR
+  root's exact C/LLVM six-line oracle also passed. Receipts:
+  `.tmp/inout-array-release-local-ref.sha256`,
+  `.tmp/inout-array-release-mir-root-local-ref.sha256`.
+  Effective owner size is 142 under the unchanged 180 cap. Official seed v42,
+  fresh installed-driver proof, full integration/inventory and CI remain OPEN.

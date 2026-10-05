@@ -204,3 +204,16 @@ for backend in c llvm; do
 done
 
 echo "[collection-borrowed-descriptor-read] native C/LLVM instruction use snapshot and empty append offsets PASS; no destination deep-drop or installed-driver claim"
+
+for backend in c llvm; do
+    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
+        tests/self_hosted/fixtures/mir_local_ref_snapshot_probe.pgy \
+        -o "$REL/mir-local-ref-$backend.exe" >"$WORK/$backend-mir-local-ref.compile.log" 2>&1 ||
+        fail "$backend MIR LocalRef snapshot did not compile"
+    timeout 30 "$WORK/mir-local-ref-$backend.exe" >"$WORK/$backend-mir-local-ref.raw" 2>&1 ||
+        fail "$backend MIR LocalRef snapshot failed"
+    [[ "$(tr -d '\r' <"$WORK/$backend-mir-local-ref.raw")" == 'MIR LOCAL REF SNAPSHOT PASS' ]] ||
+        fail "$backend LocalRef selection, retained values, guards or append ranges changed"
+done
+
+echo "[collection-borrowed-descriptor-read] native C/LLVM LocalRef snapshot, shadowing/shape/repeat guards and append ranges PASS; no destination deep-drop or installed-driver claim"
