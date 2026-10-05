@@ -1,0 +1,9 @@
+import "../../../../src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy";
+
+func Main() -> Void {
+    let fragments: Array<String> = [];
+    let selected: CodegenCExpressionText = CodegenCExpressionTextOwned(fragments, "selected");
+    let output: String = CodegenCExpressionTextCommitRoot(fragments, selected);
+    if output != "selected" { Exit(1); }
+    Log("EXPRESSION ROOT COMMIT PASS");
+}

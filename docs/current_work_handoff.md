@@ -10,9 +10,10 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  276e672503840a1ac7fcc2f73d048eac5790f074, reached own-String borrow-before-transfer
-  lifetime. All prior user/worker changes are committed and pushed. Current
-  source/test/navigation changes are the statement-prefix lifetime slice below; generated
+  1ea75fa4a9c09440c2af11c67315a013dcef42af, reached expression-root formal
+  observation/consumption. All user/worker and both reached implementation
+  slices are committed and pushed. Current changes are a source-only frontier
+  fixture and this navigation refresh; generated
   gmon.out remains preserved/excluded.
   Root owns P0 integration
   and Git; Main is stopped following the user's
@@ -38,14 +39,15 @@ SoT registry, admitted contracts, and executable gates override this note.
   untrusted direct-MIR lifetime owners independently supply cleanup evidence.
   Existing definition/order, formal-effect and member-read owners keep their
   facts. No mode-only grant, guessed callee, alias promotion or C fallback.
-- Current reached seam: CodegenPrefixOwnedStatementLine completes borrowed
-  Concat reads before transferring its input fragment to the retiring array.
-  The literal-transfer owner now consumes the shared ready-call non-retention
-  fact rather than a CompilerArtifactWrite-only exception. Domain and actual
-  exclusivity consume one exact fresh-Concat primitive predicate. A general
-  heap domain, arbitrary user result or parameter mode grants nothing; alias,
-  reassignment, unknown/deferred/retaining and post-transfer refusals remain.
-  This is a reached gen1 admission repair, not whole-compiler substitution.
+- Current reached seam: RewriteSemanticMemberAccess calls
+  CodegenCExpressionTextCommitRoot with owned_fragments. The formal effect is
+  refused as unproved_formal_element_use_entry before caller admission. The
+  callee observes an indexed String, consumes its array, and has distinct
+  result branches. Inspect ast_collection_formal_use_owner, the formal-effect
+  graph and the epoch owner; do not infer safe consumption from own mode or
+  the application's value.owned flag. No implementation change on this new
+  seam has been made. Keep one original-input executable rung, not a general
+  conditional String-move, returned-array or performance track.
 - Current focused evidence: aggregate gate6 passed C/LLVM 6 positive/16
   falsifying source inputs. Gate7 added generation/coverage mutation guards;
   its combined 300s run timed out after all C rows and LLVM rows 0..18.
@@ -230,10 +232,27 @@ SoT registry, admitted contracts, and executable gates override this note.
   Gate1 refused the direct Concat actual after the callee was admitted; it was
   not passing evidence. The exact missing fact and blocked executable rung
   are recorded in the directive before this next supporting proof commit.
-- Next executable falsifier: fresh official v50 on the unchanged original
-  compiler/MIR input within 1800s, then exact-code-head CI. No fixed point,
-  default pair or GUI receipt is inferred from focused gate2. Do not open a
-  general conditional String-move or returned-array cleanup track.
+- Statement-prefix repair is committed/pushed as 1ea75fa4. Fresh official v50
+  passed the unchanged four C controls/eight cycle refusals, then refused gen1
+  syntax 57194 / unproved_formal_element_use_entry at the expression-root call
+  above. Source/input/native hashes match. No gen1/gen2, fixed point, default
+  pair or GUI receipt exists. .tmp/inout-array-release-codegen-bootstrap-v50.log,
+  .tmp/inout-array-release-bootstrap-v50-boundary.log,
+  .tmp/inout-array-release-codegen-bootstrap-v50-source.sha256.
+- Exact 1ea75fa4 CI 37364141275 terminated before any compiler tests: GitHub's
+  hosted runner failed to acquire classify-changes after multiple attempts;
+  every dependent job was skipped. This is infrastructure failure, not a CI
+  reproduction of 57194, and not green. No blind retry was sent because local
+  original-input admission already has a known semantic refusal.
+- Next falsifying fixture: tests/self_hosted/parity/fixture/
+  codegen_expression_root_commit_frontier_probe.pgy imports the actual epoch
+  owner. Fresh current C/LLVM source-only observers both reproduce
+  unproved_formal_element_use_entry; input/import hashes match. The supplied
+  fixture was never emitted or executed. .tmp/inout-array-release-expression-root-frontier-c.log,
+  .tmp/inout-array-release-expression-root-frontier-llvm.log.
+  Next: identify the actual reached formal-use flags and the missing ordered
+  observation/consumption fact; preserve borrowed, alias, post-drop, repeated,
+  deferred and missing-fact refusal before another frozen original-input run.
 - Current native v4 SHA-256:
   c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
   Fresh GCC build passed with 12 observed warnings. Native public gate16 passed

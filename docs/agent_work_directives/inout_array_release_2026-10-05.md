@@ -1527,3 +1527,36 @@ hashes matched through the terminal failure. No seed or installed receipt.
   refusal; Windows/macOS/TSAN/Rocq passed and dependent Linux jobs skipped.
   .tmp/inout-array-release-ci-37360522726-codegen.log. This candidate still needs
   fresh original-input v50 plus exact-head CI/default installation evidence.
+
+### Reached expression-root observation/consumption (2026-10-06)
+
+- Status: executable rung BLOCKED at published main
+  1ea75fa4a9c09440c2af11c67315a013dcef42af. Original-input v50 passed the four
+  C controls/eight cycle refusals, then gen1 refused syntax 57194 /
+  unproved_formal_element_use_entry. Source/input/native hashes match.
+- Production entry: codegen main's typed-source route; last consumer:
+  RewriteSemanticMemberAccess -> CodegenCExpressionTextCommitRoot(owned_fragments, value).
+  Existing fact owners: ast_collection_formal_use_owner, formal-effect graph,
+  call-argument admission, and expression_c_text_epoch_owner's resource policy.
+- Missing fact: this formal's element observation and owning consumption are
+  not admitted together. Actual cause/flags still need inspection. Keep reads,
+  descriptor retirement and String-result alias lifetime distinct; own mode,
+  an application Bool, a String type or a heap domain is not permission.
+- Shared objective: close only this reached observation/consumption seam,
+  preserve same output identity, fail closed on missing/borrowed/aliased facts,
+  remove duplicate authority only where proven, then minimize the patch.
+  No code change is implemented here yet. Root owns integration; no parallel
+  implementation or unrelated edit scope is opened.
+- Falsifier: codegen_expression_root_commit_frontier_probe.pgy imports the actual
+  epoch owner. Current C/LLVM source-only observers independently reproduce the
+  same boundary; hashes match. No supplied input was emitted/run. Logs:
+  .tmp/inout-array-release-expression-root-frontier-c.log,
+  .tmp/inout-array-release-expression-root-frontier-llvm.log.
+- Allowed budgets: static 60s, focused parity/negative 300s, unchanged original
+  compiler/MIR integration 1800s. No unchecked consumption, helper-name exception,
+  unknown-return alias dismissal, native bypass or raised cap/budget.
+- Exact-code CI 37364141275 did not test this compiler: hosted runner acquisition
+  failed for classify-changes, and all dependent jobs were skipped. It is not
+  local 57194 parity or a green receipt. No blind retry was issued while the
+  original local source still has an observed semantic refusal. Default pair,
+  GUI handoff and whole-compiler substitution remain OPEN.
