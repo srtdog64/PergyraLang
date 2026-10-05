@@ -8052,6 +8052,10 @@ reject_text "src/self_hosted/semantic/ast_collection_formal_execution_context_ow
 reject_text "src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy" 'func SemanticAstCollectionFormalExecutionContextsFromFacts('
 require_file "tests/self_hosted/fixtures/collection_execution_context_generation_probe.pgy"
 require_text "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 'collection-execution-context-generation'
+require_file "tests/self_hosted/parity/slice_length_codegen_source_owner.sh"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" 'return RewriteSemanticSliceLengthCall('
+require_text "src/self_hosted/codegen/emission/expr_semantic_slice_call_emit_owner.pgy" 'fact.c_slice_len_fn == ""'
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_c_slice_expression_owner.pgy" 'SliceRuntimeCLengthFn(element)'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionGraphUsesAppend('
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'ArrayPushOwnedString(uses, use_name);'
 reject_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'ArrayPush(uses, use_name);'

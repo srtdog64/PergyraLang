@@ -1,0 +1,31 @@
+import "../../../src/self_hosted/codegen/runtime_abi/slice_runtime_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_c_slice_expression_owner.pgy";
+
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("", "");
+    if args[0] == "unsupported-symbol" {
+        Log(SliceRuntimeCLengthFn("Float")); Exit(1);
+    }
+    if args[0] == "missing-runtime-length" {
+        let bad: SliceRuntimeFact = SliceRuntimeFactFromElementType("Int", env);
+        bad.c_slice_len_fn = "";
+        Log(SliceRuntimeCBlockForFact(bad, "len", "pgy_ai_new()")); Exit(1);
+    }
+    if args[0] == "missing" {
+        Log(SliceRuntimeCBlockForFact(SliceRuntimeMissingFact(), "len", "pgy_ai_new()")); Exit(1);
+    }
+    if args[0] != "facts" { Exit(2); }
+    let int_fact: SliceRuntimeFact = SliceRuntimeFactFromSliceTypeName("Slice<Int>", env);
+    let string_fact: SliceRuntimeFact = SliceRuntimeFactFromSliceTypeName("Slice<String>", env);
+    let direct: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact("Slice<String>");
+    if !int_fact.ok || !string_fact.ok || !direct.ok ||
+        int_fact.c_slice_len_fn != "pgy_slice_len_Int" ||
+        string_fact.c_slice_len_fn != "pgy_slice_len_String" ||
+        direct.c_slice_len_fn != string_fact.c_slice_len_fn ||
+        SliceRuntimeFactFromSliceTypeName("Slice<Float>", env).ok ||
+        SliceRuntimeFactFromSliceTypeName("Slice<Missing>", env).ok ||
+        SliceRuntimeFactFromSliceTypeName("Slice<>", env).ok { Exit(1); }
+    Log("SLICE LENGTH FACTS PASS");
+}

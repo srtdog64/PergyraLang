@@ -1245,3 +1245,48 @@ MIR control at aggregate_release_incomplete with node=-1.
   owners pass their existing caps; full structural inventory is still OPEN.
   Current authority-edge attempts 3/4 produced no verdict in 60s. Published
   CI 37316971496 failed the prior v43 boundary; Windows/macOS/TSAN/Rocq passed.
+
+### Reached Slice length C projection objective
+
+IMPLEMENTATION CANDIDATE, base df0df7a40ee18d32220238724780926f7613a12c.
+Official seed v44 reached code emission and refused the unchanged whole MIR
+root with `unsupported collection runtime kind: Slice<String>`; source/import
+hashes matched through the terminal failure. No seed or installed receipt.
+
+- Objective/priority: use the existing borrowed Slice ABI for the reached
+  ArrayLength consumer, preserving single evaluation and fail-closed admission.
+- Fact owner: SliceRuntimeFact and compiler-owned data/length layout; last
+  consumer: RewriteSemanticCall's ArrayLength branch. It currently forwards
+  Slice types into the array-only runtime owner.
+- Forbidden fallback: reinterpreting a Slice as an Array, synthesizing array
+  mutation/drop permission, unsupported element defaults, or native bypass.
+- Edit scope: the Slice read-length runtime fact/block, its existing direct-
+  MIR fact constructor, the Slice length projection and focused fixtures/pins.
+  Root alone integrates; no parallel implementation or GUI source edits.
+- Gates: current native C/LLVM and fresh self-host C exact Int/String, empty,
+  value/ref Slice length behavior; missing/unsupported Slice fact refusal;
+  then the original MIR control through official seed v45. Existing static,
+  focused and integration budgets remain unchanged.
+- Initial three-call-site triage guessed for-each. A real source probe instead
+  failed earlier at statement_type_unresolved, and original compiler source
+  inspection identified ArrayLength on Slice formals as the reached path.
+  The for-each trial and its new fixtures were withdrawn before commit; no
+  separate iteration/semantic support track is being opened.
+- The eight-row simple length fixture reaches the old emitter's Slice<Int>
+  refusal and the changed emitter executes all rows. A stronger compound
+  ArrayLength(factory(...).Slice(...)) probe reached a separate missing codegen
+  operand type, not a bad Slice length ABI. It is retained as a fail-closed
+  negative; no type-text reconstruction or second projection track is added.
+- Final focused gate2 passed within the original 300s limit. Fresh native C
+  and LLVM and a freshly built self-host C emitter each execute all eight exact
+  Int/String/default/ref/empty length rows. Both native fact observers passed
+  supported/direct-MIR fact agreement, three unsupported families and three
+  missing/unsupported-symbol refusal modes. The compound missing-type negative
+  remains refused before any C program publication. Input/import hashes match.
+  `.tmp/inout-array-release-slice-length-gate2.log`,
+  `.tmp/self_hosted/slice-length-codegen.bwqMT6`.
+  The initial positive-with-compound probe failed at a different required type
+  fact; it was not counted as a completed gate. Official seed v45 is next.
+- Linux CI 37329776930 independently established v44's Slice<String> failure;
+  Windows/macOS/TSAN/Rocq passed. Current-head integration/default installation
+  remains OPEN; no CLOSED family or C-path substitution claim is made.

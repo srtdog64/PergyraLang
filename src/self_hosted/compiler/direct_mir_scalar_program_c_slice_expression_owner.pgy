@@ -35,6 +35,7 @@ func DirectMirScalarProgramCSliceRuntimeFact(
         Concat("pgy_array_slice_", element),
         Concat("pgy_slice_copy_", element),
         Concat("pgy_slice_get_", element),
+        SliceRuntimeCLengthFn(element),
         CollectionRuntimeCNewFn(kind_code), push
     );
 }

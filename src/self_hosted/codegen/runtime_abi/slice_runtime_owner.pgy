@@ -20,14 +20,23 @@ struct SliceRuntimeFact {
     c_array_slice_fn: String;
     c_slice_copy_fn: String;
     c_slice_get_fn: String;
+    c_slice_len_fn: String;
     c_array_new_fn: String;
     c_array_push_fn: String;
 }
 
 func SliceRuntimeMissingFact() -> SliceRuntimeFact {
     return SliceRuntimeFact(
-        false, "", "", "", "", "", "", "", "", "", "", ""
+        false, "", "", "", "", "", "", "", "", "", "", "", ""
     );
+}
+
+// Private self-host read primitive, not an Array ABI or an ownership grant.
+func SliceRuntimeCLengthFn(element_type: String) -> String {
+    if element_type != "Int" && element_type != "String" {
+        Die("slice length runtime requires an admitted element type");
+    }
+    return Concat("pgy_slice_len_", element_type);
 }
 
 func SliceRuntimeFactFromElementType(
@@ -60,6 +69,7 @@ func SliceRuntimeFactFromElementType(
         Concat("pgy_array_slice_", element_type),
         Concat("pgy_slice_copy_", element_type),
         Concat("pgy_slice_get_", element_type),
+        SliceRuntimeCLengthFn(element_type),
         array.c_new_fn, push_fn
     );
 }
@@ -86,12 +96,16 @@ func SliceRuntimeCBlockForFact(
     fact: SliceRuntimeFact, length_field: String,
     empty_array_expression: String
 ) -> String {
-    if !fact.ok || length_field == "" || empty_array_expression == "" {
+    if !fact.ok || fact.c_slice_len_fn == "" || length_field == "" || empty_array_expression == "" {
         Die("slice runtime fact is missing");
     }
     let block: String = "";
     block = Concat(block,
         "typedef struct { ${fact.c_element_type} *data; long long length; } ${fact.c_slice_type};\n");
+    block = Concat(block,
+        "static long long ${fact.c_slice_len_fn}(${fact.c_slice_type} *slice) {\n"
+        + "    if (slice == NULL || slice->length < 0) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"invalid slice length\"); }\n"
+        + "    return slice->length;\n}\n");
     block = Concat(block,
         "static ${fact.c_element_type} ${fact.c_slice_get_fn}(${fact.c_slice_type} *slice, long long index) {\n"
         + "    if (slice == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice get on null slice\"); }\n"

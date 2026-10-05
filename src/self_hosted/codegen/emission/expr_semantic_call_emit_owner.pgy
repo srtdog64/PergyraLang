@@ -472,6 +472,10 @@ func RewriteSemanticDirectCall(
         if !IsSome(array_type) {
             Die("ArrayLength argument type fact is missing");
         }
+        if StartsWith(UnwrapOption(array_type), "Slice<") {
+            return RewriteSemanticSliceLengthCall(
+                graph, view, UnwrapOption(array_type), env, owned_fragments);
+        }
         let array_kind: String = CodegenBindingEnvKind(
             UnwrapOption(array_type), env
         );

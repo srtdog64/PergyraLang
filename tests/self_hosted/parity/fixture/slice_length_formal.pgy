@@ -1,0 +1,16 @@
+func Numbers() -> Array<Int> { return [2, 5, 7]; }
+func Labels() -> Array<String> { return ["red", "blue", "green"]; }
+func Length(view: Slice<Int>) -> Int { return ArrayLength(view); }
+func LengthRef(ref view: Slice<Int>) -> Int { return ArrayLength(view); }
+func LabelLength(view: Slice<String>) -> Int { return ArrayLength(view); }
+func LabelLengthRef(ref view: Slice<String>) -> Int { return ArrayLength(view); }
+func Main() -> Void {
+    let numbers: Slice<Int> = Numbers().Slice(1, 2);
+    Log(Length(numbers)); Log(LengthRef(numbers));
+    let labels: Slice<String> = Labels().Slice(0, 2);
+    Log(LabelLength(labels)); Log(LabelLengthRef(labels));
+    let empty_numbers: Slice<Int> = Numbers().Slice(2, 0);
+    Log(Length(empty_numbers)); Log(LengthRef(empty_numbers));
+    let empty_labels: Slice<String> = Labels().Slice(1, 0);
+    Log(LabelLength(empty_labels)); Log(LabelLengthRef(empty_labels));
+}

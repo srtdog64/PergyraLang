@@ -10,8 +10,8 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  ad4f133a895f01b7663132cb5c5c741cba34cf3c, reached shared readonly-call context,
-  exact failure locations, focused fixtures/source pins and navigation dirty.
+  df0df7a40ee18d32220238724780926f7613a12c, reached Slice length C projection,
+  exact runtime facts, focused fixtures/source pins and navigation dirty.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -25,6 +25,7 @@ SoT registry, admitted contracts, and executable gates override this note.
   independently verified here. No local source edits were lost in that merge.
   LocalRef publication a59c01a6 and owned unique-use accumulation ad4f133a
   were committed/pushed as well.
+  Shared readonly aggregate-call context df0df7a4 (26 files) is published.
   Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
@@ -59,6 +60,27 @@ SoT registry, admitted contracts, and executable gates override this note.
   .tmp/inout-array-release-shared-context-whole-root-llvm.log,
   .tmp/inout-array-release-shared-context-whole-root.sha256,
   .tmp/inout-array-release-shared-context-mir-root-native.sha256.
+- Official seed v44 built current gen0 and passed two call-argument executions
+  plus twelve pre-emission refusals. It then passed the old ownership boundary
+  and failed C emission of the original MIR control at unsupported collection
+  runtime kind: Slice<String>. Source hashes matched through terminal failure.
+  .tmp/inout-array-release-codegen-bootstrap-v44.log. Linux CI 37329776930
+  independently failed that same kind; all four Windows/macOS/TSAN/Rocq jobs
+  passed and dependent Linux jobs were skipped. Not a green/install receipt.
+- Current reached fix: ArrayLength's Slice operand now consumes SliceRuntimeFact,
+  not the array runtime owner. The private read-length symbol/block and existing
+  direct-MIR constructor carry the same fact; missing length symbols fail closed.
+  A descriptor snapshot evaluates the admitted operand once and retires nothing.
+  Foreach/iteration support is unchanged; an early trial was withdrawn.
+  Focused gate2 passed within 300s: native C/LLVM and freshly built self-host C
+  each execute eight exact Int/String, default/ref and empty length rows; both
+  native fact probes pass unsupported-family/missing-field guards and three
+  fatal missing/unsupported-symbol modes. The self-host negative still refuses
+  a compound operand whose codegen type fact is absent; no type-text guess.
+  .tmp/inout-array-release-slice-length-gate2.log,
+  .tmp/self_hosted/slice-length-codegen.bwqMT6.
+  Next exact integration falsifier: official seed v45 on the original MIR root,
+  then fixed-point/driver receipts. No default installation or CLOSED claim.
 - Native v3 SHA-256:
   4bdb8869388dce2a8c02a5791f1670ada26b9e1cacd47c0b7d8195353e4673ce.
   Native public gate passed 15 executed positives/backend and 30 refusals;
@@ -223,7 +245,9 @@ SoT registry, admitted contracts, and executable gates override this note.
   WithFunctionTables call. Independent whole-root body admission now passes,
   but the gen0 nominal-root codegen consumer has not yet established official
   route evidence on this source. Seed v44 is the next exact falsifier, followed
-  by fixed-point/driver receipts; never install from the observer or old seed.
+  by fixed-point/driver receipts; v44's terminal Slice failure and current
+  focused fix above supersede that earlier next-step note. Never install from
+  an observer or stale seed.
   SemanticAstBodyTypeBundleFromAnalysis remains the body owner and
   mir_collection_receiver_root.pgy the unchanged official consumer input.
   Installed P0 is OPEN, not a CLOSED row or self-host substitution claim.
@@ -243,6 +267,8 @@ SoT registry, admitted contracts, and executable gates override this note.
   v43 aggregate-finalization boundary. Windows, macOS C-only, TSAN and Rocq
   passed; dependent Linux jobs were skipped. Logs:
   .tmp/inout-array-release-ci-37316971496-codegen.log. Not current green.
+  Later df0df7a4 CI 37329776930 reached the Slice emission failure described
+  above; its exact job log is .tmp/inout-array-release-ci-37329776930-codegen.log.
   Next after seed: serial full integration, official fresh driver,
   public all-lane gate and default C/LLVM execution of Alrescha's
   F:/JDW_project/alrescha/tests/repros/array_inout_release_frontier.pgy.

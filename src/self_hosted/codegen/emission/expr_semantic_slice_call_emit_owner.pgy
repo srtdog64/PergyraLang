@@ -1,10 +1,25 @@
-// C expression projection for the two semantic Slice call boundaries.
+// C expression projection for admitted borrowed Slice call boundaries.
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../runtime_abi/slice_runtime_owner.pgy";
 import "../text/text_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
+
+// ArrayLength accepts a borrowed Slice, but its ABI is not an Array value.
+// Snapshot the descriptor once; length reads neither retain nor retire data.
+func RewriteSemanticSliceLengthCall(graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView, slice_type: String, env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>) -> String {
+    if ArrayLength(view.argument_nodes) != 1 { Die("Slice length requires exactly one argument"); }
+    let fact: SliceRuntimeFact = SliceRuntimeFactFromSliceTypeName(slice_type, env);
+    if !fact.ok || fact.c_slice_len_fn == "" { Die("Slice length runtime ABI fact is missing"); }
+    let argument: String = RewriteExprFromSemanticGraphTracked(
+        graph, view.argument_nodes[0], env, owned_fragments).text;
+    let suffix: String = ToString(view.call_node);
+    return "({ ${fact.c_slice_type} __pgy_slice_len_view_${suffix} = ${argument}; "
+        + "${fact.c_slice_len_fn}(&__pgy_slice_len_view_${suffix}); })";
+}
 
 func RewriteSemanticArraySliceMemberCall(
     graph: SemanticExpressionGraphFacts,

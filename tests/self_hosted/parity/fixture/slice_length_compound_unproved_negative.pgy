@@ -1,0 +1,10 @@
+func CountedNumbers(inout calls: Array<Int>) -> Array<Int> {
+    ArraySet(calls, 0, calls[0] + 1);
+    return [2, 5, 7];
+}
+func Main() -> Void {
+    let calls: Array<Int> = [0];
+    // Semantic admission does not supply this compound operand's codegen type.
+    // Length emission must fail closed, not guess Slice<Int> from source text.
+    Log(ArrayLength(CountedNumbers(calls).Slice(1, 2)));
+}
