@@ -5,6 +5,29 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context
 
+### Independent native lexer local checkpoint (2026-10-06)
+
+Base main: 430f0b9103c971ca9bba6dda84140ae73ce81768. Only generated gmon.out
+was dirty before this slice; it is preserved and excluded. This note ships in
+the local lexer commit; inspect git log for the resulting SHA. No push or
+Actions run is authorized by this checkpoint.
+
+Native skip_whitespace now refuses unterminated block comments instead of
+silently returning EOF, matching the existing self-host ScanTokens refusal.
+Error tokens use the existing token-text/stream owner and receive initialized
+stream identity and increasing ordinals. The existing lex diagnostic code,
+reason and fix routing is unchanged. Error location remains the reached EOF.
+Collection/inout owners and the active P0 contract below are unchanged.
+
+Final source checks: GCC and Clang -std=c11 -O2 -Wall -Wextra -Werror builds
+pass six unclosed-comment refusals, six valid controls and a literal-error
+stream/ordinal control. The same test fails on the base lexer (EOF, not error).
+parser_lexer_diagnostic_smoke.sh now reaches the executable regression and
+passes locally; git diff --check passes. No full bootstrap, installed-driver,
+Linux sanitizer, backend matrix or remote CI claim. This is a correctness
+change; no speedup measurement or C-path substitution is claimed.
+
+
 ### P0: caller cleanup after synchronous inout
 
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.

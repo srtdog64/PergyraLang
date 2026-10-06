@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
+"${BASH:-bash}" "$ROOT_DIR/tests/lexer_block_comment_smoke.sh"
+
 require_literal() {
     local rel="$1"
     local term="$2"

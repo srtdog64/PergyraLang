@@ -141,7 +141,7 @@ static char peek_ahead(const Lexer* lexer, size_t offset) {
 static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size_t length);
 
 /* Skip whitespace and comments */
-static void skip_whitespace(Lexer* lexer) {
+static bool skip_whitespace(Lexer* lexer) {
     while (true) {
         char c = peek(lexer);
         
@@ -166,23 +166,26 @@ static void skip_whitespace(Lexer* lexer) {
                     }
                 } else if (peek_next(lexer) == '*') {
                     // Multi-line comment
+                    bool closed = false;
                     advance(lexer); // /
                     advance(lexer); // *
                     while (!is_at_end(lexer)) {
                         if (peek(lexer) == '*' && peek_next(lexer) == '/') {
                             advance(lexer); // *
                             advance(lexer); // /
+                            closed = true;
                             break;
                         }
                         advance(lexer);
                     }
+                    if (!closed) return false;
                 } else {
-                    return;
+                    return true;
                 }
                 break;
                 
             default:
-                return;
+                return true;
         }
     }
 }
@@ -259,18 +262,11 @@ static Token error_token(Lexer* lexer, const char* message) {
         PGY_CAUSE_LEX_INVALID_TOKEN,
         PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER);
     
-    Token token;
-    memset(&token, 0, sizeof(token));
-    token.type = TOKEN_ERROR;
-    token.text = lexer_token_text_copy(lexer, message, strlen(message));
-    token.length = strlen(message);
-    token.line = lexer->line;
+    Token token = make_token(lexer, TOKEN_ERROR, message, strlen(message));
+    /* make_token gives the error token the same stream anchor and ordinal
+     * sequence as every other token; an unset anchor made the parser report
+     * "anchor changed during parse" instead of this diagnostic. */
     token.column = lexer->column;
-    /* An error token belongs to the same stream as every other token; an
-     * unset anchor made the parser report "anchor changed during parse"
-     * instead of the lexer's own diagnostic. */
-    token.stream = lexer->stream;
-    token.ordinal = lexer->token_ordinal++;
     
     return token;
 }
@@ -415,7 +411,8 @@ scan_interpolated_string(Lexer* lexer, const char* start)
 
 /* Get next token */
 Token lexer_next_token(Lexer* lexer) {
-    skip_whitespace(lexer);
+    if (!skip_whitespace(lexer))
+        return error_token(lexer, "Unterminated block comment");
     
     if (is_at_end(lexer)) {
         return make_token(lexer, TOKEN_EOF, "", 0);
