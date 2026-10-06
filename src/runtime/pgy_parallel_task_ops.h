@@ -103,6 +103,13 @@ pgy_await(PgyTaskHandle handle)
 #endif
 
     PgyTask *task = (PgyTask *)handle.task;
+    /* A coroutine awaiting a worker-pool task suspends once before it looks
+     * at the task.  Whether the worker has already finished is thread timing;
+     * reading it first let a detached block's continuation run before or
+     * after its spawner's next statements depending on the race, so the same
+     * lane plan produced different output (docs/146 executor invariance). */
+    if (pgy_async_in_coroutine())
+        pgy_async_yield();
     pthread_mutex_lock(&task->mutex);
     while (atomic_load_explicit(&task->state, memory_order_acquire)
            != PGY_TASK_DONE) {

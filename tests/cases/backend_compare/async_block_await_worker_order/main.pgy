@@ -1,0 +1,31 @@
+// A detached block that awaits a worker-pool task suspends at the await even
+// when the worker has already finished. Before, the block looked at the task
+// first: when the worker won the race (here, while Busy runs) the block's
+// continuation ran before Main's next statement, otherwise after it, so the
+// same program printed two orders. Now Main always reaches "main end" first
+// and the drain at exit finishes the block.
+
+async func Slow(x: Int) -> Int {
+    return x + 1;
+}
+
+func Busy(n: Int) -> Int {
+    let acc = 0;
+    let i = 0;
+    while i < n {
+        acc = (acc + i * 7) % 1000003;
+        i = i + 1;
+    }
+    return acc;
+}
+
+async func Main() -> Void {
+    Log("main start");
+    async {
+        let pending: Future<Int> = spawn Slow(1);
+        let warm: Int = Busy(10000000);
+        let value: Int = await pending;
+        Log("detached done " + ToString(value) + " warm=" + ToString(warm));
+    }
+    Log("main end");
+}
