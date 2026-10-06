@@ -5,33 +5,48 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context
 
-### CI bootstrap analyzer closure (2026-10-06)
+### Collection member places, GUI ArrayDrop and CI bootstrap time (2026-10-06)
 
-Base: origin/main `49f8eaf1` (lexer checkpoint merged). The work is in the
-`/d/pgy-ci` worktree, branch `ci-green`; this card ships in its commit.
+Base: origin/main `18648b8b` (bootstrap analyzer closure, pushed). Three
+commits on top, made in the `/d/pgy-ci` worktree, branch `ci-green`; this card
+ships in the last of them.
 
-- Whole picture: `docs/audits/2026-10-06_self_host_bootstrap_analyzer_census.md`.
-- Closure census: codegen 156 → 0, mir_lower 36 → 0; lexer, parser,
-  semantic, fuzz and the 14 tools at 0. The census instrumentation is removed.
-- Local `tests/self_hosted/parity/codegen_bootstrap.sh` on this checkout:
-  `SELF-HOSTING OK` (fixpoint gen2 == gen3, eight samples, every breadth
-  component, 3170 s).
-- Last green local gates: `collection_bootstrap_closure_rules.sh` (C/LLVM
-  8 positives, 16 refusals), component contract, owner-size policy, build
-  pressure, gate reachability, and the static part of the compiler world
-  contract (its manifest step needs the installed driver, absent locally).
-- Next falsifier: the first CI run in which the Linux jobs behind the
-  bootstrap actually run. Expect hidden reds there. Two are known locally:
-  `collection_borrowed_descriptor_read.sh` expects a boundary name that every
-  observer build reports differently, and
-  `collection_aggregate_entry_requirement_owner.sh` calls a probe with a stale
-  arity.
-- Follow-up (next commit): the member-place analyzer fix described at the end
-  of the audit. It closes pre-existing use-after-free admissions through
-  struct member paths and removes the `IntentSubjectSlotSelect` adapter.
-- Debts recorded in the audit: `EmitStmtList` copies instead of owned
-  transfers, the removed function epoch release, 32 re-pinned caps and 6
-  owners on responsibility caps.
+- `18648b8b`: closure census codegen 156 → 0 and mir_lower 36 → 0; local
+  `codegen_bootstrap.sh` printed `SELF-HOSTING OK`. Its CI run cancelled
+  `self-host-codegen-bootstrap-linux` at the 30-minute limit (last green run
+  26 minutes), so the Linux jobs were skipped again. Whole picture:
+  `docs/audits/2026-10-06_self_host_bootstrap_analyzer_census.md`.
+- Native GUI blocker (P0): Alrescha's `LayoutGui -> ArrayDrop` refused on
+  C/LLVM. Two native defects: `case None: {}` (an empty set literal) was an
+  unmodelled node in the inout preservation transfer, and the preservation
+  summary depended on declaration order. Preservation is now decided after
+  every body is checked. The unmodified `tests/gui_core_contract.pgy` builds
+  and prints `GUI CORE PASS` on C and LLVM; `make test-semantic` 3062/3062;
+  `public_array_drop.sh` native stage passes.
+- Member places: member paths are storage places in collection ownership.
+  This closes eight pre-existing use-after-free admissions after an
+  aggregate release, admits nested readonly reads (the
+  `IntentSubjectSlotSelect` adapter is gone), adds borrow-only String
+  formals, and treats a plain struct parameter as a readonly root for field
+  mutation. Audit: `docs/audits/2026-10-06_collection_member_place_shape_audit.md`.
+- Bootstrap time: `SemanticExpressionGraphRootStartAt` took 87 percent of a
+  gprof run of the codegen closure. Scanning back for the previous root cut
+  that analysis from 553-672 s to 214 s with the same verdict.
+- Gates: `collection_member_place_rules.sh` (C/LLVM, 15 positives and 20
+  refusals) and `collection_bootstrap_closure_rules.sh` (8/16), both manual
+  inventory rows; aggregate release source, entry requirement, member
+  identity, borrowed descriptor read, component contract, owner-size and
+  reachability.
+- Next falsifier: the CI run of these commits, the first in which the Linux
+  jobs behind the bootstrap can run.
+- Open decision: copy-out aliasing. Mutating a copy of a non-String
+  collection or of a struct can reallocate a buffer the source still names.
+  The source has about 545 copy, mutate, restore sites, so the fix is move
+  tracking for every collection type, not a refusal. See the member-place
+  audit.
+- Debts: `EmitStmtList` copies instead of owned transfers, the removed
+  function epoch release, re-pinned caps (now also the formal-use and
+  member-transition owners) and 6 owners on responsibility caps.
 
 ### Independent native lexer local checkpoint (2026-10-06)
 

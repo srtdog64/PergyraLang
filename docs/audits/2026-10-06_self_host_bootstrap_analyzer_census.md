@@ -241,6 +241,23 @@ passed directly:
 
 The fix is the next commit, with its own audit and falsifier gate.
 
+## Bootstrap time
+
+The CI run of `18648b8b` cancelled `self-host-codegen-bootstrap-linux` at its
+30-minute limit; the last green run (`6a846fd4`) took 26 minutes. The job
+analyzes the codegen closure once per generation and again for breadth.
+
+- Release observer of the codegen closure: 553 to 672 s per analysis; the
+  collection ownership stage was 65 to 72 percent of it, and its scan was
+  most of that stage.
+- A gprof build (no ASLR) put 87 percent of samples, 249 s over 4,988,590
+  calls, in `SemanticExpressionGraphRootStartAt`, which found the previous
+  root by visiting every earlier root slot on each call.
+- Scanning back to the nearest earlier slot with a root gives the same slot.
+  The same closure then took 214 s with the same verdict.
+
+The timeout was not raised.
+
 ## Next steps, in order
 
 1. Push and read the first CI run in which the Linux jobs behind the
