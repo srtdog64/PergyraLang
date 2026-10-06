@@ -16,6 +16,13 @@ func LexerScanContentFacts(
     let col: Int = 1;
     let token_count: Int = 0;
 
+    // A leading UTF-8 byte order mark (EF BB BF) is an encoding signature,
+    // not source text. Mirrors the C oracle's lexer_create.
+    if CharCode(content, n, 0) == 239 && CharCode(content, n, 1) == 187
+        && CharCode(content, n, 2) == 191 {
+        i = 3;
+    }
+
     while i < n {
         let c: Int = CharCode(content, n, i);
 

@@ -159,6 +159,7 @@ run_parser_test(const TestCase *test)
 #include "tests/parser/test_parser_special_part_b_1.cases.h"
 #include "tests/parser/test_parser_special_part_b_2.cases.h"
 #include "tests/parser/test_parser_special_part_c.cases.h"
+#include "tests/parser/test_parser_lexer_anchor.cases.h"
 
 int
 main(void)
@@ -187,6 +188,8 @@ main(void)
     failures += run_duplicate_action_clause_diagnostic_test();
     printf("\n");
     failures += run_malformed_effect_clause_diagnostic_test();
+    printf("\n");
+    failures += run_lexer_stream_anchor_tests();
     printf("\n");
     failures += run_authorized_clause_missing_by_test();
     printf("\n");

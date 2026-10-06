@@ -939,6 +939,7 @@ main() {
         "tests/cases/backend_compare/quine_joined_output"
         "tests/cases/backend_compare/type_alias_array_context"
         "tests/cases/backend_compare/type_alias_transparent_flow"
+        "tests/cases/backend_compare/source_utf8_bom"
         "tests/cases/backend_compare/string_concat"
         "tests/cases/backend_compare/string_join"
         "tests/cases/backend_compare/string_split_count"

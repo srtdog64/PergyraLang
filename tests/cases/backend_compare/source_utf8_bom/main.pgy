@@ -1,0 +1,9 @@
+﻿// A UTF-8 byte order mark is an encoding signature, not source text. Both
+// this entry file and its import start with one; before, the lexer read the
+// three bytes as unexpected characters and the parser reported "token stream
+// anchor changed during parse" on every import.
+import "twice.pgy";
+
+func Main() -> Void {
+    Log("bom ok " + ToString(Twice(21)));
+}

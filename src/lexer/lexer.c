@@ -69,6 +69,16 @@ Lexer* lexer_create(const char* source) {
     lexer->hasError = false;
     lexer->stream.source_fingerprint = lexer_source_fingerprint(source);
     lexer->token_ordinal = 0;
+
+    /* A UTF-8 byte order mark is an encoding signature, not source text.
+     * Editors on Windows write one by default; lexing it as three unexpected
+     * bytes broke every file that carried it.  Positions stay byte offsets. */
+    if (source != NULL && (unsigned char)source[0] == 0xEF
+        && (unsigned char)source[1] == 0xBB
+        && (unsigned char)source[2] == 0xBF) {
+        lexer->current = source + 3;
+        lexer->position = 3;
+    }
     
     return lexer;
 }
@@ -250,11 +260,17 @@ static Token error_token(Lexer* lexer, const char* message) {
         PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER);
     
     Token token;
+    memset(&token, 0, sizeof(token));
     token.type = TOKEN_ERROR;
     token.text = lexer_token_text_copy(lexer, message, strlen(message));
     token.length = strlen(message);
     token.line = lexer->line;
     token.column = lexer->column;
+    /* An error token belongs to the same stream as every other token; an
+     * unset anchor made the parser report "anchor changed during parse"
+     * instead of the lexer's own diagnostic. */
+    token.stream = lexer->stream;
+    token.ordinal = lexer->token_ordinal++;
     
     return token;
 }

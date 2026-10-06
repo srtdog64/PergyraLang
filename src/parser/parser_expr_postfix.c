@@ -156,6 +156,18 @@ parser_slice_length_of(Parser *parser, ASTNode *receiver)
     return call;
 }
 
+/* A member or index access is located at the token that selects it (the
+ * member name or `[`).  Without it every diagnostic on `a.b`, `a[i]` and a
+ * method call `a.M()` (whose call node copies the callee location) read 0:0. */
+static void
+parser_mark_member_location(ASTNode *node, Token selector)
+{
+    if (node == NULL || selector.line == 0)
+        return;
+    node->line = selector.line;
+    node->column = selector.column;
+}
+
 ASTNode *
 parser_parse_call(Parser *parser)
 {
@@ -177,6 +189,7 @@ parser_parse_call(Parser *parser)
             name = consume_member_name_token(parser,
                 "Expected property name after '.'");
             expr = ast_create_member_access(expr, name.text);
+            parser_mark_member_location(expr, name);
             /* Generic method call `obj.Method<TypeArgs>(args)`: stash the type
              * arguments so the following call attaches them. The lookahead
              * keeps `obj.field < x` (comparison) from being misparsed. */
@@ -193,7 +206,9 @@ parser_parse_call(Parser *parser)
                 "Reason: optional member provenance is not frozen across semantic, AIR, MIR, and diagnostics.\n"
                 "Fix: use explicit Option matching or helper functions.");
             expr = ast_create_member_access(expr, name.text);
+            parser_mark_member_location(expr, name);
         } else if (parser_match(parser, TOKEN_LBRACKET)) {
+            Token open_bracket = parser->previous_token;
             ASTNode *index;
             if (parser_token_is_range_separator(parser->current_token)) {
                 /* Leading range separator: `xs[..]` (full) or `xs[..end]`
@@ -228,6 +243,7 @@ parser_parse_call(Parser *parser)
             parser_consume(parser, TOKEN_RBRACKET,
                 "Expected ']' after array index");
             expr = ast_create_array_access(expr, index);
+            parser_mark_member_location(expr, open_bracket);
         } else if (parser_match(parser, TOKEN_QUESTION)) {
             ASTNode *try_node = ast_create_node(AST_UNARY);
             if (try_node != NULL) {
