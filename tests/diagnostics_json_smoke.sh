@@ -896,7 +896,8 @@ check_json "own-payload" "$OWN_ERR" \
 # "backend_llvm_native".
 SPEC_SRC="$WORK_DIR/spec.pgy"
 {
-    for i in $(seq 1 33); do echo "enum E${i} { A }"; done
+    # Bare variant names resolve to one declaration, so each enum needs its own.
+    for i in $(seq 1 33); do echo "enum E${i} { E${i}A }"; done
     for i in $(seq 1 33); do
         echo "func f${i}(x: Int) -> Result<Int, E${i}> { return Ok(x); }"
     done
