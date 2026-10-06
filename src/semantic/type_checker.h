@@ -46,6 +46,7 @@ typedef struct CallableCapabilityStore CallableCapabilityStore;
 typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
 typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
 typedef struct CollectionOwnedElementRequirementStore CollectionOwnedElementRequirementStore;
+typedef struct ArrayStorageDeferredPreservationStore ArrayStorageDeferredPreservationStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -194,6 +195,8 @@ struct SemanticContext
     size_t       collection_ownership_fact_capacity;
     /* Ephemeral bootstrap refusal ratchet, consumed once after Pass 2. */
     CollectionOwnedElementRequirementStore *collection_owned_element_requirements;
+    /* Pass 2 inout handoffs to user callees, decided once after Pass 2. */
+    ArrayStorageDeferredPreservationStore *array_storage_deferred_preservations;
 
     /* Semantic-owned domain runtime identities.  Later stages may carry these
      * rows losslessly, but must not reconstruct participant roles or member

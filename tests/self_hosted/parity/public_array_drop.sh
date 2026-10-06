@@ -74,6 +74,35 @@ for lane_backend in "${record_lanes[@]}"; do
         fail "$name $lane $backend output mismatch"
 done
 done
+# Native inout preservation is decided after every body is checked, so a callee
+# declared after its caller, or one that forwards to such a callee, keeps the
+# verdict a same-order program gets; a later retaining callee still refuses.
+for name in inout_forward_declared inout_late_forward; do
+    expected='ARRAY FORWARD DECLARED INOUT RELEASE PASS'
+    [[ "$name" == inout_late_forward ]] && expected=$'1\nARRAY LATE FORWARD INOUT RELEASE PASS'
+    for backend in c llvm; do
+        output="$WORK_REL/$name-native-$backend.exe"
+        (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE "$PGY" --native-pipeline "$FIXTURES/public_array_drop_$name.pgy" \
+            "--backend=$backend" -o "$output") >"$WORK_DIR/$name-native-$backend.build" 2>&1 ||
+            fail "$name native $backend build refused; see evidence"
+        "$ROOT_DIR/$output" >"$WORK_DIR/$name-native-$backend.run"
+        [[ "$(tr -d '\r' <"$WORK_DIR/$name-native-$backend.run")" == "$expected" ]] ||
+            fail "$name native $backend output mismatch"
+    done
+done
+for name in inout_forward_retain_negative inout_map_retain_negative; do
+    output="$WORK_REL/$name-native.c"
+    printf 'preserved:%s:native\n' "$name" >"$ROOT_DIR/$output"
+    if (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE "$PGY" --error-format=json --native-pipeline \
+            "$FIXTURES/public_array_drop_$name.pgy" --backend=c --emit-c -o "$output") \
+        >"$WORK_DIR/$name-native.out" 2>"$WORK_DIR/$name-native.err"; then
+        fail "native accepted $name"
+    fi
+    [[ "$(tr -d '\r\n' <"$ROOT_DIR/$output")" == "preserved:$name:native" ]] ||
+        fail "native replaced rejected artifact $name"
+    grep -Eqi 'ArrayDrop requires one named' "$WORK_DIR/$name-native.out" "$WORK_DIR/$name-native.err" ||
+        fail "native refusal lacked release diagnostic for $name"
+done
 for name in negative double_negative default_negative ref_negative inout_negative \
     alias_negative alias_receiver_negative escape_negative slice_negative temporary_negative \
     owned_string_negative nested_resource_negative conditional_negative private_negative shadow_negative \
@@ -170,5 +199,5 @@ fi
 if [[ "$STAGE" == mir ]]; then
     echo "[$LABEL] PASS stage=mir (5 issued MIR inputs executed and 5 preserved-artifact refusals per C/LLVM backend; no source gate claimed)"
 else
-    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 15 positives each; all-stage source-C: 15 and public LLVM: 12; 30 preserved-artifact refusals per lane; all-stage also executes 5 issued MIR inputs and checks 5 MIR refusals per backend)"
+    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 17 positives each, 2 of them declaration-order; all-stage source-C: 15 and public LLVM: 12; 30 preserved-artifact refusals per lane plus 2 native declaration-order refusals; all-stage also executes 5 issued MIR inputs and checks 5 MIR refusals per backend)"
 fi

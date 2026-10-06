@@ -1,0 +1,14 @@
+struct Cell { value: Int; }
+struct Keeper { cells: Array<Cell>; }
+func Main() -> Void
+{
+    let mut cells: Array<Cell> = [];
+    Keep(cells);
+    ArrayDrop(cells);
+}
+func Keep(inout cells: Array<Cell>) -> Void
+{
+    ArrayPush(cells, Cell(1));
+    let keeper: Keeper = Keeper(cells);
+    if ArrayLength(keeper.cells) == 0 { Exit(1); }
+}

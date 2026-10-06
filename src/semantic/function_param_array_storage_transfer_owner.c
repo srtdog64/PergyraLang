@@ -102,6 +102,16 @@ array_storage_use_unproved(ASTNode *node, const SlotSummaryOrigin *origin,
         for (size_t i = 0; i < node->data.tuple_literal.count; i++)
             if (UNPROVED(node->data.tuple_literal.elements[i])) return true;
         return false;
+    case AST_SET_LITERAL:
+        /* `{}` is also an empty statement body, as in `case None: {}`. */
+        for (size_t i = 0; i < ast_set_literal_count(node); i++)
+            if (UNPROVED(ast_set_literal_element(node, i))) return true;
+        return false;
+    case AST_MAP_LITERAL:
+        for (size_t i = 0; i < ast_map_literal_count(node); i++)
+            if (UNPROVED(ast_map_literal_key(node, i)) || UNPROVED(ast_map_literal_value(node, i)))
+                return true;
+        return false;
     case AST_CALL:
         if (UNPROVED(ast_call_callee(node))) return true;
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {

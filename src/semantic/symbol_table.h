@@ -107,6 +107,8 @@ struct Symbol
     bool       has_exclusive_array_storage;
     /* A recorded descriptor store is distinct from unproved call-result storage. */
     bool       has_escaped_array_storage;
+    /* An inout handoff whose preservation is decided after Pass 2. */
+    bool       has_pending_inout_preservation;
     /* Stable semantic identity for Array storage and String element borrows.
      * These are syntax identities, never Symbol pointers or runtime addresses. */
     uint32_t   collection_storage_source_syntax_id;

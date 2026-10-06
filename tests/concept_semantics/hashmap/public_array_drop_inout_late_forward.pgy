@@ -1,0 +1,36 @@
+struct Cell { value: Int; }
+enum CellError { Missing }
+struct Frame { count: Int; }
+func Layout(inout cells: Array<Cell>) -> Result<Frame, CellError>
+{
+    let result: Result<Frame, CellError> = Arrange(cells);
+    match result
+    {
+        case Err(reason):
+            while ArrayLength(cells) > 0 { ArrayPop(cells); }
+            return Err(reason);
+        case Ok(frame): return Ok(frame);
+    }
+}
+func Arrange(inout cells: Array<Cell>) -> Result<Frame, CellError>
+{
+    let failure: Option<CellError> = None;
+    ArrayPush(cells, Cell(7));
+    match failure
+    {
+        case Some(_): return Err(CellError.Missing);
+        case None: {}
+    }
+    return Ok(Frame(ArrayLength(cells)));
+}
+func Main() -> Void
+{
+    let mut cells: Array<Cell> = [];
+    match Layout(cells)
+    {
+        case Ok(frame): Log(ToString(frame.count));
+        case Err(reason): Exit(1);
+    }
+    ArrayDrop(cells);
+    Log("ARRAY LATE FORWARD INOUT RELEASE PASS");
+}

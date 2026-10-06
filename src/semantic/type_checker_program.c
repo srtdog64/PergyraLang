@@ -1,4 +1,5 @@
-﻿#include <stdlib.h>
+﻿#include "array_storage_deferred_preservation_owner.h"
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -536,6 +537,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     /*
      * Pass 2: full type-check
      */
+    if (!semantic_array_storage_deferral_begin(ctx))
+        return program_report_resolution_oom(ctx, program,
+            "inout preservation deferral");
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
         ASTNode *stmt = ast_program_statement(program, i);
         double t_stmt = timing ? program_timing_now() : 0.0;
@@ -568,7 +572,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         type_check_stmt_debug_visit_report();
     }
 
-    if (!semantic_collection_owned_element_requirements_finalize(ctx)) {
+    if (!semantic_array_storage_deferral_finalize(ctx)
+        || !semantic_collection_owned_element_requirements_finalize(ctx)) {
         free(topo_order);
         return false;
     }

@@ -2,6 +2,7 @@
  * Typed operations record seeds, forwarding edges and caller snapshots once.
  * Finalization after Pass 2 makes source order irrelevant without rescanning
  * callee bodies or turning unknown provenance into ownership permission. */
+#include "array_storage_deferred_preservation_owner.h"
 #include "collection_owned_element_requirement_owner.h"
 
 #include <stdint.h>
@@ -31,6 +32,9 @@ typedef struct
     size_t target;
     PgyStringArrayOwnership element_ownership;
     bool exclusive_storage;
+    /* Nonzero when exclusivity rests on inout handoffs decided after Pass 2. */
+    uint32_t pending_binding_id;
+    size_t pending_sequence;
 } OwnedElementActualSnapshot;
 
 struct CollectionOwnedElementRequirementStore
@@ -238,6 +242,8 @@ semantic_collection_owned_element_requirement_record_argument(
     PgyStringArrayOwnership ownership = PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN;
 
     bool exclusive_storage = false;
+    uint32_t pending_binding_id = 0;
+    size_t pending_sequence = 0;
     if (parameter_mode != PARAM_MODE_OWN || !type_is_constructed_named(argument_type, "Array"))
         return true;
     store = ctx != NULL ? ctx->collection_owned_element_requirements : NULL;
@@ -279,6 +285,10 @@ semantic_collection_owned_element_requirement_record_argument(
         }
         fact = semantic_collection_ownership_fact_find(ctx, caller_id, binding_id);
         exclusive_storage = binding->has_exclusive_array_storage;
+        if (binding->has_pending_inout_preservation) {
+            pending_binding_id = binding->decl_syntax_id;
+            pending_sequence = semantic_array_storage_pending_sequence(ctx);
+        }
         if (fact != NULL) {
             ownership = fact->element_ownership;
         } else if (!binding->is_parameter && is_string_array(argument_type)) {
@@ -312,7 +322,8 @@ semantic_collection_owned_element_requirement_record_argument(
         return requirement_failure(ctx, call, "actual snapshot allocation failed");
     store->actuals = grown;
     store->actuals[store->actual_count++] = (OwnedElementActualSnapshot){
-        argument, target, ownership, exclusive_storage};
+        argument, target, ownership, exclusive_storage, pending_binding_id,
+        pending_sequence};
     return true;
 }
 
@@ -349,7 +360,10 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
         OwnedElementParameter target = store->parameters[actual.target];
         /* UNKNOWN stays bootstrap debt. This ratchet grants no permission:
          * it only falsifies a known borrowed actual at a required boundary. */
-        if ((target.requirements & 2u) != 0 && !actual.exclusive_storage) {
+        bool exclusive = actual.exclusive_storage && (actual.pending_binding_id == 0
+            || semantic_array_storage_pending_preserved(ctx, actual.pending_binding_id,
+                actual.pending_sequence));
+        if ((target.requirements & 2u) != 0 && !exclusive) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                 actual.argument,

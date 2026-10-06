@@ -8,6 +8,7 @@
 #include "builtin_kind.h"
 #include "diag_codes.h"
 #include "slot_summary.h"
+#include "array_storage_deferred_preservation_owner.h"
 
 static void
 array_storage_invalidate_exclusivity(ASTNode *source, const Type *type,
@@ -37,13 +38,21 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     /* An exact no-retention/no-rebind summary preserves existing authority;
      * a missing proof still invalidates it. Resource-bearing results retain
      * their independent conservative guard. */
-    bool preserving_inout = mode == PARAM_MODE_MUT_REF
+    bool exact_user_inout = mode == PARAM_MODE_MUT_REF
         && callee_decl != NULL && ast_node_stable_id(callee_decl) != 0
         && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee_decl)
         && ast_call_semantic_callee_value_binding_id(call) == 0
         && type_is_constructed_named(type, "Array")
-        && semantic_array_storage_plain_element(type_get_constructed_arg(type, 0), ctx)
-        && function_param_flow_preserves_array_storage(ctx, callee_decl, ordinal);
+        && semantic_array_storage_plain_element(type_get_constructed_arg(type, 0), ctx);
+    /* The callee's summary reads call identities that its own body check
+     * records; a later declaration has none yet. Pass 2 records the handoff
+     * and keeps exclusivity provisional until every body is checked. */
+    Symbol *handoff = exact_user_inout && source != NULL && source->type == AST_IDENTIFIER
+        && semantic_array_storage_deferral_active(ctx)
+        ? scope_lookup(ctx->scope, ast_identifier_name(source)) : NULL;
+    bool preserving_inout = exact_user_inout && (handoff != NULL
+        ? semantic_array_storage_record_pending_call(ctx, handoff, call, callee_decl, ordinal)
+        : function_param_flow_preserves_array_storage(ctx, callee_decl, ordinal));
     if (constructor || (mode != PARAM_MODE_OWN && ((mode == PARAM_MODE_MUT_REF && !preserving_inout)
         || (!type_equals(result_type, TYPE_VOID)
             && !semantic_array_storage_plain_element(result_type, ctx)))))
@@ -124,6 +133,15 @@ semantic_array_storage_admit_drop(ASTNode *receiver, Type *array_type,
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             receiver, "ArrayDrop requires plain value elements without independent resource lifetimes; use ArrayDropOwnedStrings for owned strings");
+        return false;
+    }
+    /* Exclusivity that rests on a recorded inout handoff is decided after
+     * Pass 2, which refuses this release there if a handoff is unproved. */
+    if (binding->has_pending_inout_preservation
+        && !semantic_array_storage_record_pending_drop(ctx, receiver, binding)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+            receiver, "ArrayDrop requires one named, exclusive owned Array<T> binding; borrowed or aliased storage cannot be released");
         return false;
     }
     return consume_array_storage_binding(receiver, ctx);

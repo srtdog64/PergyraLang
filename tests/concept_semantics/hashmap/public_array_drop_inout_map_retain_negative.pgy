@@ -1,0 +1,13 @@
+struct Cell { value: Int; }
+func Main() -> Void
+{
+    let mut cells: Array<Cell> = [];
+    Keep(cells);
+    ArrayDrop(cells);
+}
+func Keep(inout cells: Array<Cell>) -> Void
+{
+    ArrayPush(cells, Cell(1));
+    let kept: HashMap<String, Array<Cell>> = {"cells": cells};
+    if !MapHas(kept, "cells") { Exit(1); }
+}

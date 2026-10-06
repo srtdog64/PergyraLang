@@ -6,6 +6,7 @@ cd "$ROOT_DIR"
 PYTHON="${PYTHON_BIN:-python3}"
 "$PYTHON" scripts/source_size_count.py --caps <<'CAPS'
 150	src/semantic/array_storage_release_owner.c
+180	src/semantic/array_storage_deferred_preservation_owner.c
 60	src/semantic/array_storage_element_lifetime_owner.c
 170	src/semantic/function_param_array_storage_transfer_owner.c
 210	src/self_hosted/semantic/array_storage_call_preservation_owner.pgy
@@ -36,6 +37,14 @@ selfhost = pathlib.Path("src/self_hosted/semantic/builtin_shadow_owner.pgy").rea
 release = pathlib.Path("src/semantic/array_storage_release_owner.c").read_text(encoding="utf-8")
 assert "function_param_flow_preserves_array_storage(ctx, callee_decl, ordinal)" in release
 assert "static bool\narray_storage_plain_element" not in release
+# Pass 2 records user-callee inout handoffs; they are decided after every body.
+assert "semantic_array_storage_record_pending_call(ctx, handoff, call, callee_decl, ordinal)" in release
+assert "semantic_array_storage_record_pending_drop(ctx, receiver, binding)" in release
+deferral = pathlib.Path("src/semantic/array_storage_deferred_preservation_owner.c").read_text(encoding="utf-8")
+assert "ctx->function_param_flow_summaries = pass2_store;" in deferral
+program = pathlib.Path("src/semantic/type_checker_program.c").read_text(encoding="utf-8")
+assert program.index("semantic_array_storage_deferral_begin(ctx)") < program.index("type_check_statement(stmt, ctx);")
+assert program.index("semantic_array_storage_deferral_finalize(ctx)") < program.index("semantic_collection_owned_element_requirements_finalize(ctx)")
 summary = pathlib.Path("src/semantic/function_param_flow_summary.c").read_text(encoding="utf-8")
 assert "function_param_array_storage_unproved_in_program_points(" in summary
 assert "array_storage_unproved" in summary

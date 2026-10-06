@@ -1,0 +1,10 @@
+struct Cell { value: Int; }
+func Main() -> Void
+{
+    let mut cells: Array<Cell> = [];
+    Fill(cells);
+    if ArrayLength(cells) != 1 || cells[0].value != 7 { Exit(1); }
+    ArrayDrop(cells);
+    Log("ARRAY FORWARD DECLARED INOUT RELEASE PASS");
+}
+func Fill(inout cells: Array<Cell>) -> Void { ArrayPush(cells, Cell(7)); }

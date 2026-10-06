@@ -1,3 +1,4 @@
+#include "array_storage_deferred_preservation_owner.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,6 +207,7 @@ semantic_context_destroy(SemanticContext *ctx)
     callable_capability_destroy(ctx);
     semantic_collection_owned_element_requirements_destroy(
         ctx->collection_owned_element_requirements);
+    semantic_array_storage_deferral_destroy(ctx);
     scope_destroy(ctx->scope);
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
