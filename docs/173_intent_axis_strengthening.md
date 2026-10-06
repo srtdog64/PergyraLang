@@ -192,6 +192,20 @@ action 개수가 아니라 **목적에 귀속되어 검사되는 계약**이 판
 - **WO-INT-1** — 참여자 declared⊇used semantic pass(+interproc, reject/
   interproc fixture). ★최대 레버리지·기존 capability pass 패턴 이식.
 - **WO-INT-2** — 보상 커버리지 검사 + `irreversible` 표면 마커.
+  **2026-10-06 native 착지 (사용자 지시 "전부 고치고").** 표면은
+  `irreversible: "이유";`(빈 이유 거절, 같은 step의 `compensate:`와 공존 불가,
+  효과 없는 step에서 거절)다. 검사는 `src/semantic/type_checker_intent_compensation_coverage.c`가
+  소유한다. 의무는 intent가 full rollback을 **주장**할 때만 생긴다. 주장이란
+  `rollback: full`을 직접 쓰거나 기본 정책에서 어느 step이든 보상하는 것이다. 그때 뒤에
+  실패가 올 수 있는 effectful step은 보상하거나 `irreversible`이어야 한다. 원래 문장
+  ("모든 effectful step")을 그대로 강제하면 코퍼스 intent 파일 60개 중 44개가 거절됐다. 그
+  intent 55개는 전부 보상을 하나도 쓰지 않았고, 일부만 보상한 intent는 0개였다. 즉
+  R-2의 소음이 측정으로 확인됐다. 주장 기준으로 좁히자 거절은
+  `examples/bsd_packet_server` 하나였다(`rollback: full`을 직접 쓰고 아무것도 보상하지
+  않음). 그 예제에는 이유를 단 `irreversible`을 붙였다. self-host parser는 이 단어를
+  `surface_not_covered`로 거절한다. self-host semantic에 같은 검사가 생기기 전까지
+  기본(DRV-2) 경로가 검사 없이 받아들이지 않게 하려는 것이다. 게이트:
+  `make test-semantic`의 coverage 표, `tests/cases/backend_compare/intent_irreversible_rollback`.
 - **WO-INT-3** — step 의존 DAG 정적 검사(acyclic + dep-closed).
 - **WO-INT-4** — 정적 충돌그래프 → lane 증거(docs/167 WO-N3과 동일 작업 —
   중복 등록 아님, 같은 일의 두 문서 참조).

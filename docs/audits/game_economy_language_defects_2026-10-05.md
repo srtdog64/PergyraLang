@@ -18,6 +18,13 @@ Status: 읽기 전용 탐색 증거다. 컴파일러 의미론의 권위가 아�
 | 3 | LLVM에서 zone shared `Array`의 원소를 바꿀 수 없다 | 배열 대입·`ArraySet` 수신자가 지역 변수만 찾았다 | 이름만 쓴 host 필드를 `llvm_implicit_host_field_ptr`로 찾는다 | `zone_shared_array_mutation` |
 | 4 | `type Gold = Int`: C는 루프 phi 형 충돌, LLVM은 `Result<Gold, E>`를 못 풀고, `Array<Gold>`는 두 백엔드에서 `Array<Int>`와 다른 구조체가 됐다 | 별칭이 투명한데 백엔드가 형 이름 문자열을 그대로 특수화 이름에 썼다 | 각 백엔드의 중심 입구에서 별칭을 토큰 단위로 푼다. C: C 형 요구·형 렌더링·특수화 등록·식 형 추론·phi·전방 선언 단계. LLVM: `pergyra_type_to_llvm`. 별칭이 없는 프로그램은 헤더를 한 번 센 뒤 건너뛴다 | `type_alias_transparent_flow`, 기존 `type_alias_array_context` |
 | 5 | 분리된 `async { }` 블록이 멈추면 남은 일이 종료와 함께 사라진다(LLVM). 블록 안 `spawn`은 C에서 함수가 중첩되어 컴파일되지 않는다 | 이벤트 루프가 없어 누구도 남은 코루틴을 돌리지 않았다. 래퍼 본문을 쓰는 중에 안쪽 래퍼가 같은 버퍼에 끼어들었다 | 생성된 `main`이 `Main()` 뒤에 `pgy_async_drain_detached`를 부르고, 끝내지 못하면 `INVALID_LIFECYCLE_STATE` panic. 래퍼 본문 동안 파일 범위 정의는 대기 버퍼에 모았다가 닫은 뒤 붙인다 | `async_block_detached_drain` |
+| 6 | `examples/pattern_library_basics`가 LLVM에서 `LLVM member access requires concrete receiver type metadata`로 실패한다 | LLVM lambda가 struct 형 매개변수를 scope에만 선언하고 class 바인딩을 등록하지 않아 `ctx.morale`의 수신자 형을 몰랐다 | 매개변수 형을 정하는 owner를 `llvm_stmt_lambda_param_type_node` 하나로 모았다(주석, 기대 callable 형, 같은 매개변수를 돌려주는 반환 형). LLVM 시그니처와 class 바인딩(`llvm_register_typed_var_binding`)이 둘 다 이 노드를 읽는다. 캡처 closure 경로도 같다 | `lambda_param_member_access`. 예제 출력이 C와 같다 |
+| 7 | 파일 맨 앞 UTF-8 BOM이 모든 import 줄을 "parser token stream anchor changed during parse"로 떨어뜨린다 | 렉서가 BOM 세 바이트를 unexpected character로 읽었다. 그런데 오류 토큰은 stream anchor·ordinal을 초기화하지 않은 쓰레기 값을 가져서, 파서가 렉서 진단 대신 anchor 오류를 냈다 | native 렉서와 self-host 렉서가 맨 앞 BOM을 건너뛴다(위치는 byte offset 유지). 오류 토큰은 다른 토큰과 같은 stream에 속한다 | `source_utf8_bom`, `make test-parser`의 lexer anchor 두 경우 |
+| 8 | world 밖으로 zone을 꺼내는 오류의 위치가 `0:0`이다. `a.b`, `a[i]`, 메서드 호출 `a.M()`의 진단도 모두 같다 | 파서가 member·index access 노드에 위치를 주지 않았다. 호출 노드는 callee 위치를 복사하므로 메서드 호출도 `0:0`이 됐다 | member access는 멤버 이름 토큰, index access는 `[` 토큰의 위치를 갖는다 | `make test-semantic`의 member location 두 경우(`11:28`, `6:20`) |
+| 9 | `docs/01`·`docs/173`이 요구하는 `irreversible` 절이 파서에 없고, 보상 커버리지(INT-2) 검사도 없다 | 설계만 있고 구현이 없었다 | `irreversible: "이유";` 절과 커버리지 검사를 native에 넣었다. 의무는 full rollback을 주장하는 intent에만 생긴다(`docs/173` WO-INT-2 착지 메모에 측정 근거). 어휘 레지스트리 147행. self-host parser는 `surface_not_covered`로 거절한다 | `intent_irreversible_rollback`, `make test-semantic`의 coverage 표 10경우 |
+| 10 | 분리 블록 안에서 worker 작업을 `await`할 때 블록과 `Main`의 남은 문장 사이 순서가 실행마다 달랐다. 처음 보고에서 "백엔드 차이"라고 한 것은 틀렸다. 같은 C 바이너리도 순서가 바뀌었다 | 코루틴 안 `await`가 worker 작업의 완료 여부를 먼저 봤다. worker가 이겼으면 블록이 그대로 이어서 실행됐고, 졌으면 양보했다 | 코루틴은 worker 작업을 기다릴 때 항상 한 번 양보한 뒤 결과를 읽는다 | `async_block_await_worker_order` (수정 전 LLVM: `detached done`이 `main end`보다 먼저) |
+| 11 | `examples/order_analytics`가 LLVM에서 `LLVM collection operation 'ListSize' requires an identifier receiver`로 실패한다. #6을 고치자 예제 게이트의 LLVM 경로가 여기서 멈췄다 | LLVM 컬렉션 연산이 수신자로 지역 이름만 받았다(`ListSize(batch.orders)`) | 필드 수신자는 그 필드의 저장소 주소(`llvm_emit_member_lvalue_ptr`)를 쓴다. 원소 형이 필요한 연산은 여전히 이름으로 원소 형을 찾으므로, 필드에서는 원소 메타데이터 거절로 멈춘다 | `collection_field_receiver_size` |
+| 12 | `examples/fsm_factory`가 LLVM에서 `sealed=0`을 낸다(C는 `sealed=30`). 진단 없이 틀린 값이다. #11 뒤에 가려져 있었다 | zone 메서드 안의 맨 이름이 shared 필드와 같으면 LLVM은 항상 필드로 풀었다(필드의 낡은 SSA 사본을 피하려던 규칙). 그래서 `let sealed = ...; self.sealed = self.sealed + sealed;`가 필드를 자기 자신에 더했다 | 의미 단계가 식별자마다 기록한 바인딩(`binding_syntax_id`, `is_host_field`)이 지역 변수나 매개변수를 가리키면, 읽기와 대입 모두 그 지역 변수를 쓴다(`llvm_identifier_may_denote_host_field`). 바인딩 기록이 없는 이름만 예전처럼 필드로 푼다 | `host_field_local_shadow` (수정 전 LLVM: `total=0`, `local=8`) |
 
 ## 측정해서 문서로 옮긴 의미
 
@@ -32,19 +39,20 @@ Status: 읽기 전용 탐색 증거다. 컴파일러 의미론의 권위가 아�
   수 없다. zone shared `Array`의 원소를 바꿀 수 있다.
 - 타입 별칭은 투명하다. 상태 표에서 "Not Current Surface"를 "Supported but Evolving"으로 옮겼다.
 
-## 남은 것 (이번에 고치지 않음)
+#6, #11, #12로 예제 게이트(`tests/example_contract_smoke.sh`)가 C와 LLVM 양쪽에서
+처음으로 끝까지 통과한다(`PGY_EXAMPLE_BACKENDS="c llvm"`). CI는 아직 C 경로만 돌린다.
 
-- `examples/pattern_library_basics`가 LLVM에서 `LLVM member access requires concrete receiver
-  type metadata`로 실패한다. 수정 전 빌드에서도 같다. 지금까지는 앞선 예제의 LLVM 실패에 가려
-  드러나지 않았다. CI 예제 게이트는 C만 돌려서 보이지 않는다.
-- `docs/01_intent_first_design.md`는 `irreversible` 절을 요구하지만 파서에 없다.
-- 파일 맨 앞 UTF-8 BOM이 모든 import 줄을 "parser token stream anchor changed during parse"로
-  떨어뜨린다. 원인을 짚지 못하는 메시지다.
-- world 밖으로 zone을 꺼내는 오류의 위치가 `0:0`으로 나온다.
-- `guard`라는 이름이 사후 검사를 뜻하는 것은 사용자 기대와 다르다. 이름을 바꿀지는 결정 사항이다.
-- 분리 블록 안에서 `spawn`한 작업을 `await`하면, 블록과 `Main`의 남은 문장 사이 순서가
-  백엔드마다 다르다. C에서는 `Main`이 먼저 끝나고, LLVM에서는 블록이 먼저 끝난다. 언어가
-  이 순서를 정하지 않으니 둘 다 허용되는 실행이다. 다만 lane 계획이 같으면 실행도 같아야
-  한다는 실행자 불변성(`docs/146`)에 비추어, 두 백엔드의 코루틴 안 `await` 경로
-  (`pgy_await_take` 대 `pgy_await_export`)를 조사할 가치가 있다.
-  `async_block_detached_drain`은 이 순서에 기대지 않는다.
+## 남은 것
+
+- `guard`라는 이름이 사후 검사를 뜻하는 것은 사용자 기대와 다르다. 코퍼스의
+  `guard:` 31개 중 실패 경로 시험용 `guard: false` 7개를 뺀 24개의 다수(`guard: price > 0`, `guard: buyer.gold > 50`)가 사전 조건처럼
+  쓰였다. 그런 step은 `on:`의 효과가 이미 일어난 뒤 실패한다. 이름을 바꿀지, 평가 위치를
+  `on:` 앞으로 옮길지는 결정 사항이다. 바꾸면 실패 기록과 보상 동작이 달라진다.
+- 형 주석 없는 람다 let: `let f = (x: Int) => x + 1;`은 C("cannot determine C type for
+  MIR local")와 LLVM("missing source-local type metadata") 모두에서 컴파일 오류다. 캡처가
+  있는 경우(`let g = (x: Int) => x + bonus;`)는 C만 통과하고 LLVM은 "missing closure
+  callable metadata"로 실패한다. MIR source-local 형 fact가 람다 리터럴에서 callable
+  시그니처를 만들지 않는다(`src/compiler/mir_source_local_types.c`). `let f: func(Int) -> Int = ...`
+  처럼 형을 쓰면 두 백엔드에서 된다. 이번 테스트를 쓰다가 찾았고 고치지 않았다.
+- self-host semantic에는 보상 커버리지 검사가 없다. 그래서 self-host parser가
+  `irreversible:`을 거절한다. 같은 검사가 self-host에 생기면 거절을 풀 수 있다.

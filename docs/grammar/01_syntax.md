@@ -31,6 +31,8 @@
 - 키워드는 소문자
 - 타입과 내장 API는 PascalCase
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
+- 소스는 UTF-8이다. 파일 맨 앞의 UTF-8 BOM(`EF BB BF`)은 인코딩 표지로 보고 건너뛴다
+  (native front end; `tests/cases/backend_compare/source_utf8_bom`).
 - identity-bearing 타입 (`subject`, `relation`, `effect`, `zone`, `world`)은 함수 파라미터로 **자동 참조 전달** (포인터 은닉)
 - canonical value 타입 (`struct`, `vessel`, `class`, `object`, `tobject`)은 복사 전달
 - nominal family는 lexer 단계에서 이미 분리된다:
@@ -67,9 +69,10 @@
 | `action` | subject identity가 소유하는 관측 가능한 공적 의미의 전이; export visibility와는 별도 |
 | `requires`, `within`, `causes`, `authorized`, `by` | action / intent step clause |
 | `involves`, `step`, `who`, `expect`, `success`, `failure` | intent body clause |
+| `irreversible` | intent step clause: 되돌릴 수 없는 효과와 그 이유 |
 | `fields` | ability field-contract declaration selector |
 
-전체 70개 예약어, 73개 문맥어, 3개 soft word 목록과 소비자 투영 규칙은
+전체 70개 예약어, 74개 문맥어, 3개 soft word 목록과 소비자 투영 규칙은
 [Language Keyword Registry](../semantics/language_keyword_registry.md)가 소유한다.
 이 표는 문법 안내용 부분집합이며 두 번째 전수 어휘 권위가 아니다.
 
@@ -274,6 +277,19 @@ Purchase(hero, merchant);
   (`tests/cases/backend_compare/intent_compensation_canonical_writeback`).
 - 중첩 intent step(`intent: Other(...)`)의 성패는 바깥 step이 slot을 되써 넣은 뒤에
   판정한다. 실패한 중첩 intent는 스스로 보상하고, 바깥 intent는 그 앞의 step을 보상한다.
+- `irreversible: "이유";`는 effectful step의 효과를 되돌릴 수 없다고 선언한다. 런타임
+  동작은 없다. full rollback이 그 step을 건너뛴다는 사실과 이유를 소스에 남긴다.
+  같은 step의 `compensate:`와 함께 쓸 수 없고, 효과가 없는 step에는 쓸 수 없다.
+  이유 문자열은 비어 있으면 안 된다.
+- 보상 커버리지(`docs/173` INT-2): intent가 full rollback을 주장하면, 즉
+  `rollback: full`을 직접 쓰거나 기본 정책에서 어느 step이든 `compensate:`를 쓰면,
+  그 뒤에 실패가 일어날 수 있는 effectful step(`on:`·`transfer:`/`move`·`intent:`)은
+  모두 `compensate:`나 `irreversible:`을 가져야 한다. 없으면 compile error다. 뒤에
+  실패가 일어날 수 있다는 것은 뒤에 step이 더 있거나, 그 step에 상수 `true`가 아닌
+  `guard/expect/post/invariant`가 있거나, intent 완료 조건이 상수 `true`가 아니라는
+  뜻이다. 보상을 하나도 쓰지 않고 정책도 쓰지 않은 intent에는 되돌릴 것이 없으므로
+  의무가 없다(`tests/cases/backend_compare/intent_irreversible_rollback`). 이 절은
+  native front end가 소유하고, self-host parser는 `surface_not_covered`로 거절한다.
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
@@ -454,6 +470,9 @@ enum Color { Red, Green, Blue }
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다. Zone은 외부에서 주입되는 object endpoint를 `binding slot`으로 선언한다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.
+- host 메서드 안에서 `shared` 필드는 맨 이름(`total`)으로 읽고 쓴다. 같은 이름의 `let`
+  지역 변수나 매개변수가 있으면 그 이름은 지역 변수를 가리키고, 필드는 `self.total`로
+  닿는다. C와 LLVM이 같은 규칙을 따른다(`tests/cases/backend_compare/host_field_local_shadow`).
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
 - `authority subjectSlot`은 optional `requires Ability[, Ability]` 절을 붙일 수 있다.
 - `zone`은 `apply/detach/link/unlink/refresh/publish/bind/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
@@ -766,6 +785,11 @@ async func Fetch() -> Int {
 - `await`는 `Future<T>` / `RemoteFuture<T>` completion join만 담당한다.
 - capture-bearing detached `async { ... }` 블록은 파서/런타임 실험 경로가
   남아 있지만, lifetime/cancel/error 경계가 아직 고정되지 않아 베타 안정 태스크 생성 표면이 아니다.
+- 분리 블록(LocalAsync 코루틴) 안의 `await`가 worker-pool 작업을 기다리면, 그 작업이
+  이미 끝났어도 한 번 양보한 뒤 결과를 읽는다. 그래서 블록의 이어지는 문장은 블록을
+  띄운 쪽이 다음 scheduling 지점(뒤의 `await`, 다른 분리 블록, 종료 시 drain)에 닿은
+  뒤에 실행된다. 이 순서는 스레드 경쟁과 무관하고 C와 LLVM에서 같다. 전에는 완료 여부를
+  먼저 봐서 순서가 실행마다 달랐다(`tests/cases/backend_compare/async_block_await_worker_order`).
 
 `spawn blocking`은 블로킹 작업을 별도 스레드에서 실행한다:
 

@@ -296,7 +296,7 @@ run_stable_examples() {
     run_expect_lines "composite_intent_orchestration" "$backend" \
         "$ROOT_DIR/examples/composite_intent_orchestration" "[Intent] ProcessOrder=true" "[CanonicalClerk] reserved=1 charged=1 shipped=1" "[Step] fulfill phase=ok participant=clerk ok=true"
     run_expect_lines "game_economy_demo" "$backend" \
-        "$ROOT_DIR/examples/game_economy_demo" "=== GUILD ECONOMY: ONE SEASON ===" "[intent] ClearRaid refused at pre:mint" "[intent] SettleAuction refused at pre:open" "[books] supply=791 held=791 conserved=true"
+        "$ROOT_DIR/examples/game_economy_demo" "=== GUILD ECONOMY: ONE SEASON ===" "[intent] ClearRaid refused at pre:mint" "[intent] SettleAuction refused at pre:deliver" "[books] supply=791 held=791 conserved=true"
     run_expect_lines "resource_scheduler_async_probe" "$backend" \
         "$ROOT_DIR/examples/resource_scheduler_async_probe" "=== ASYNC RESOURCE SCHEDULER PROBE ===" "[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11" "[Remote] 103 105 207 211" "[Score] 144 147 240 245 total=776" "saving examples/resource_scheduler_async_probe/results.txt"
     run_expect_lines "async_demo" "$backend" \

@@ -340,8 +340,20 @@ intent Checkout(buyer: Member, cart: Cart)
 
 ```
 질문: 각 step이 실패하면 무엇을 보상해야 하는가?
-검사: `rollback: full`인 effectful step은 `compensate` 또는 명시적
-      `irreversible`을 가져야 한다. 순수·무상태 step에는 의례적으로 강제하지 않는다.
+검사: full rollback을 주장하는 intent(`rollback: full`을 쓰거나 어느 step이든
+      `compensate:`를 쓴 intent)에서, 뒤에 실패가 올 수 있는 effectful step은
+      `compensate:` 또는 `irreversible: "이유";`를 가져야 한다. 없으면 compile error다.
+      순수·무상태 step과, 보상도 정책도 쓰지 않은 intent에는 의례적으로 강제하지
+      않는다. 규칙과 근거는 docs/grammar/01_syntax.md §2.2.1과 docs/173 INT-2.
+```
+
+```pergyra
+// 되돌릴 수 없는 효과는 이유와 함께 표시한다
+step notify
+{
+    on: order.Notify();
+    irreversible: "a sent notification cannot be recalled";
+}
 ```
 
 ```pergyra
