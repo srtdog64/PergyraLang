@@ -131,7 +131,7 @@ static char peek_ahead(const Lexer* lexer, size_t offset) {
 static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size_t length);
 
 /* Skip whitespace and comments */
-static void skip_whitespace(Lexer* lexer) {
+static bool skip_whitespace(Lexer* lexer) {
     while (true) {
         char c = peek(lexer);
         
@@ -156,23 +156,26 @@ static void skip_whitespace(Lexer* lexer) {
                     }
                 } else if (peek_next(lexer) == '*') {
                     // Multi-line comment
+                    bool closed = false;
                     advance(lexer); // /
                     advance(lexer); // *
                     while (!is_at_end(lexer)) {
                         if (peek(lexer) == '*' && peek_next(lexer) == '/') {
                             advance(lexer); // *
                             advance(lexer); // /
+                            closed = true;
                             break;
                         }
                         advance(lexer);
                     }
+                    if (!closed) return false;
                 } else {
-                    return;
+                    return true;
                 }
                 break;
                 
             default:
-                return;
+                return true;
         }
     }
 }
@@ -249,11 +252,7 @@ static Token error_token(Lexer* lexer, const char* message) {
         PGY_CAUSE_LEX_INVALID_TOKEN,
         PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER);
     
-    Token token;
-    token.type = TOKEN_ERROR;
-    token.text = lexer_token_text_copy(lexer, message, strlen(message));
-    token.length = strlen(message);
-    token.line = lexer->line;
+    Token token = make_token(lexer, TOKEN_ERROR, message, strlen(message));
     token.column = lexer->column;
     
     return token;
@@ -399,7 +398,8 @@ scan_interpolated_string(Lexer* lexer, const char* start)
 
 /* Get next token */
 Token lexer_next_token(Lexer* lexer) {
-    skip_whitespace(lexer);
+    if (!skip_whitespace(lexer))
+        return error_token(lexer, "Unterminated block comment");
     
     if (is_at_end(lexer)) {
         return make_token(lexer, TOKEN_EOF, "", 0);
