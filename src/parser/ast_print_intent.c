@@ -318,6 +318,11 @@ ast_print_intent_node(ASTNode *node, int indent)
                 ast_print_indent(indent + 1);
                 printf("Causes: %s\n", node->data.intent_step.causes_effect);
             }
+            if (node->data.intent_step.irreversible_reason != NULL) {
+                ast_print_indent(indent + 1);
+                printf("Irreversible: %s\n",
+                       node->data.intent_step.irreversible_reason);
+            }
             if (node->data.intent_step.expect_expr != NULL) {
                 ast_print_indent(indent + 1);
                 printf("Expect: ");

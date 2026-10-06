@@ -451,6 +451,14 @@ ast_intent_step_causes_effect(const ASTNode* node)
     return node->data.intent_step.causes_effect;
 }
 
+const char*
+ast_intent_step_irreversible_reason(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.irreversible_reason;
+}
+
 char**
 ast_intent_step_authorized_by(const ASTNode* node, size_t* count_out)
 {
@@ -603,4 +611,14 @@ ast_intent_step_set_causes_effect_copy(ASTNode* node, const char* causes_effect)
         return false;
     node->data.intent_step.causes_effect = pergyra_strdup(causes_effect);
     return node->data.intent_step.causes_effect != NULL;
+}
+
+bool
+ast_intent_step_set_irreversible_reason_copy(ASTNode* node, const char* reason)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP || reason == NULL)
+        return false;
+    free(node->data.intent_step.irreversible_reason);
+    node->data.intent_step.irreversible_reason = pergyra_strdup(reason);
+    return node->data.intent_step.irreversible_reason != NULL;
 }

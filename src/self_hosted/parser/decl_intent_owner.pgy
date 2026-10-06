@@ -275,6 +275,11 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 if StringLength(clause) == 0 {
                     ParseRefuse(location_context, i, "expected_token", "expected", "intent step clause", "construct", "intent_step");
                 }
+                // The native front end owns `irreversible:` and its compensation-coverage
+                // check (docs/173 INT-2); without that check here, accepting it would be a gap.
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordIrreversible) {
+                    ParseRefuse(location_context, clause_start, "surface_not_covered", "surface", "intent step irreversible clause", "construct", "intent_step");
+                }
                 let is_transfer: Bool = false;
                 if MatchLanguageWord(content, clause_start, LanguageWordId.WordMove) {
                     is_transfer = true;

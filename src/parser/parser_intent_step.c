@@ -375,6 +375,37 @@ parse_intent_step(Parser *parser)
             continue;
         }
 
+        if (parser_intent_match_keyword(parser, "irreversible")) {
+            Token reason;
+            if (step->data.intent_step.irreversible_reason != NULL) {
+                parser_error(parser, "Duplicate 'irreversible' clause in intent step");
+                return step;
+            }
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'irreversible'");
+            reason = parser_consume(parser, TOKEN_STRING,
+                "Expected a reason string after 'irreversible:'");
+            if (reason.type != TOKEN_STRING || reason.text == NULL
+                || reason.length <= 2) {
+                parser_error(parser,
+                    "'irreversible:' needs a non-empty reason string; "
+                    "say why this effect cannot be compensated");
+                return step;
+            }
+            {
+                char *text = pergyra_strndup(reason.text + 1, reason.length - 2);
+                if (text == NULL
+                    || !ast_intent_step_set_irreversible_reason_copy(step, text)) {
+                    free(text);
+                    parser_error(parser,
+                        "Out of memory while recording intent step irreversible reason");
+                    return step;
+                }
+                free(text);
+            }
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step irreversible clause");
+            continue;
+        }
+
         if (parser_intent_match_keyword(parser, "within")) {
             parser_error(parser,
                 "'within' is an action clause, not an intent step clause; "
@@ -403,7 +434,7 @@ parse_intent_step(Parser *parser)
 
         parser_error(parser,
             "Unsupported intent step clause; expected one of: "
-            "where:, who:, using:, intent:, transfer:, move, on:, compensate:, "
+            "where:, who:, using:, intent:, transfer:, move, on:, compensate:, irreversible:, "
             "success:, failure:, pre:, guard:, post:, invariant:, requires:, authorized by:, causes:, expect:. "
             "Action-only clauses such as 'within' and 'with effects' belong on the matching action contract.");
         return step;

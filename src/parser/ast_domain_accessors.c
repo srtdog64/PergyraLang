@@ -124,6 +124,13 @@ ast_intent_decl_rollback_policy(const ASTNode* node)
     return node->data.intent_decl.rollback_policy;
 }
 
+bool
+ast_intent_decl_rollback_declared(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_DECL
+        && node->data.intent_decl.rollback_declared;
+}
+
 ASTNode*
 ast_intent_decl_return_type(const ASTNode* node)
 {

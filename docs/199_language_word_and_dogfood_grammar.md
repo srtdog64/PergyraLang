@@ -8,7 +8,7 @@ Pergyra의 **언어 단어(language word) 레지스트리**와, Pergyra를 Pergy
 
 ## 1. 언어 단어 레지스트리 (단일 권위)
 
-**SoT: `src/lexer/language_keyword_registry.def`** (146개 단어)
+**SoT: `src/lexer/language_keyword_registry.def`** (147개 단어)
 
 X-macro 한 줄이 단어 하나의 **9개 사실**을 동시에 선언한다:
 
@@ -30,7 +30,7 @@ LSP 완성/호버, TextMate 하이라이트. **단어를 추가하려면 이 파
 fact)**이지 구현 완료 증거가 아니다. 실제 대조는
 `docs/semantics/language_word_implementation_inventory.generated.md`가 한다.
 
-### 1.1 클래스 (146)
+### 1.1 클래스 (147)
 
 | 클래스 | 의미 |
 |---|---|
@@ -320,7 +320,7 @@ feature를 대체하는 실제 dogfood다.
 ## 5. 키워드 적정성 감사 (역사적 145행 스냅샷)
 
 이 절은 `channel` 제거 당시 145행에서 144행으로 이동한 결정을 보존하는
-역사 기록이다. 현재 146행 census와 구현 상태는 1절 및 생성된 implementation
+역사 기록이다. 현재 147행 census와 구현 상태는 1절 및 생성된 implementation
 inventory가 소유하며, 아래 수치를 현재 레지스트리 authority로 사용하지 않는다.
 
 `docs/42_keyword_orthogonality.md`의 **키워드 적정성 규칙**은 핵심 키워드가

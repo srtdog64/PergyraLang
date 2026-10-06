@@ -6,10 +6,10 @@ C-only table, generated JSON, editor configuration, or documentation mirror.
 
 ## Registry membership inventory
 
-The registry contains 146 bytewise-sorted, unique spellings:
+The registry contains 147 bytewise-sorted, unique spellings:
 
 - 70 `RESERVED` rows with dedicated native token identities;
-- 73 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
+- 74 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
 - 3 `SOFT` rows (`current`, `full`, and `none`) used as closed values inside an
   already-selected grammar production.
 
@@ -43,11 +43,11 @@ occurrences across 36 language words as migration debt.
   reserved-compatibility owners, each below its responsibility-specific hard
   cap. They
   expose collision-free `LanguageWordId.Word*`
-  identities and metadata for all 146 rows; only the 70 reserved rows affect
+  identities and metadata for all 147 rows; only the 70 reserved rows affect
   lexical classification through the legacy `LanguageKeyword*` compatibility
   view. The split is physical ownership only: every projection is regenerated
   together from the same registry SoT.
-- Native parser selector literals are checked bidirectionally against all 76
+- Native parser selector literals are checked bidirectionally against all 77
   contextual/soft rows. Ordinary identifier data, builtin/type names, effect
   values, and duration suffixes are not language-word rows. The closed values
   of `with caps`/`with effects` are instead owned by
@@ -98,7 +98,7 @@ The executable gates reject:
 
 ## Verification cadence
 
-`language-keyword-registry-test-smoke` is the exhaustive 146-row inventory
+`language-keyword-registry-test-smoke` is the exhaustive 147-row inventory
 gate. It regenerates or checks every registry projection and rescans parser,
 fixture, LSP, and editor evidence, so it is intentionally not part of ordinary
 push CI or the Markdown-only contract path. Run it once for an explicit major

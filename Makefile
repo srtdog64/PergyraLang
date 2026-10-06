@@ -522,6 +522,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_step_sequence.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_compensation_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_intent_typed_outcome.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
                    $(SEMANTIC_DIR)/type_checker_intent_ability.c \

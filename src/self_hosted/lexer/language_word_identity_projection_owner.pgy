@@ -70,6 +70,7 @@ enum LanguageWordId {
     WordIntent,
     WordInvariant,
     WordInvolves,
+    WordIrreversible,
     WordIs,
     WordJoin,
     WordLayer,
@@ -152,7 +153,7 @@ enum LanguageWordId {
 }
 
 func LanguageWordRegistryCount() -> Int {
-    return 146;
+    return 147;
 }
 
 func LanguageWordSpelling(id: LanguageWordId) -> String {
@@ -223,6 +224,7 @@ func LanguageWordSpelling(id: LanguageWordId) -> String {
     if id == LanguageWordId.WordIntent { return "intent"; }
     if id == LanguageWordId.WordInvariant { return "invariant"; }
     if id == LanguageWordId.WordInvolves { return "involves"; }
+    if id == LanguageWordId.WordIrreversible { return "irreversible"; }
     if id == LanguageWordId.WordIs { return "is"; }
     if id == LanguageWordId.WordJoin { return "join"; }
     if id == LanguageWordId.WordLayer { return "layer"; }

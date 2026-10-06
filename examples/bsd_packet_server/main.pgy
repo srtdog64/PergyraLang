@@ -161,16 +161,22 @@ intent HandlePacket(zone: ConnectionZone, client: Client, server: Server) {
         where: ConnectionZone;
         using: zone;
         who: client;
+        authorized by: client;
         on: Log("  [intent] validate: client=" + ToString(client.id));
+        irreversible: "a written log line cannot be taken back";
         guard: client.connected;
         post: true;
     }
 
+    // rollback: full이지만 패킷 수신과 응답 송신은 되돌릴 수 없다.
+    // 보상 대신 그 이유를 irreversible로 적는다.
     step Process {
         where: ConnectionZone;
         using: zone;
         who: server;
+        authorized by: client;
         on: server.Receive(client.id, client.lastSeq, 64);
+        irreversible: "a received packet is already consumed from the client";
         post: server.rxCount > 0;
     }
 
@@ -178,7 +184,9 @@ intent HandlePacket(zone: ConnectionZone, client: Client, server: Server) {
         where: ConnectionZone;
         using: zone;
         who: server;
+        authorized by: client;
         on: server.Respond(client.id, client.lastSeq);
+        irreversible: "a sent acknowledgement cannot be recalled";
         post: server.txCount > 0;
     }
 
@@ -195,6 +203,7 @@ intent ConnectClient(zone: ConnectionZone, client: Client, server: Server) {
         where: ConnectionZone;
         using: zone;
         who: server;
+        authorized by: client;
         on: Log("  [intent] check capacity: active=" + ToString(server.activeClients)
                 + " max=" + ToString(server.maxClients));
         guard: server.activeClients < server.maxClients;
@@ -205,6 +214,7 @@ intent ConnectClient(zone: ConnectionZone, client: Client, server: Server) {
         where: ConnectionZone;
         using: zone;
         who: server;
+        authorized by: client;
         on: server.AcceptClient();
         post: server.activeClients > 0;
     }
@@ -222,7 +232,6 @@ func FormatPacketType(pt: PacketType) -> String {
         case Disconnect: return "DISCONNECT";
         case Heartbeat: return "HEARTBEAT";
     }
-    return "UNKNOWN";
 }
 
 // --- Main ---

@@ -1,0 +1,70 @@
+// `rollback: full` with an `irreversible:` step: when the last step's post
+// check fails, the compensable steps are undone in reverse order and the
+// irreversible one is left applied, as declared. A step that compensates
+// nothing must say why (docs/173 INT-2); without the marker this intent is a
+// compile error.
+
+subject Order {
+    let mut reserved: Int;
+    let mut notified: Int;
+    let mut charged: Int;
+
+    action Reserve(self) -> Void { self.reserved = self.reserved + 1; }
+    action Release(self) -> Void { self.reserved = self.reserved - 1; }
+    action Notify(self) -> Void { self.notified = self.notified + 1; }
+    action Charge(self, amount: Int) -> Void { self.charged = self.charged + amount; }
+    action Refund(self, amount: Int) -> Void { self.charged = self.charged - amount; }
+}
+
+zone Desk {
+    subject slot order: Order
+}
+
+intent PlaceOrder(desk: Desk, order: Order, amount: Int) {
+    rollback: full;
+
+    step reserve {
+        where: Desk;
+        using: desk;
+        who: order;
+        on: order.Reserve();
+        compensate: order.Release();
+    }
+
+    step notify {
+        where: Desk;
+        using: desk;
+        who: order;
+        on: order.Notify();
+        irreversible: "a sent notification cannot be recalled";
+    }
+
+    step charge {
+        where: Desk;
+        using: desk;
+        who: order;
+        on: order.Charge(amount);
+        compensate: order.Refund(amount);
+        post: order.charged <= 100;
+    }
+
+    success: true;
+}
+
+func Report(label: String, ok: Bool, order: Order) -> Void {
+    Log(label + " ok=" + ToString(ok)
+        + " reserved=" + ToString(order.reserved)
+        + " notified=" + ToString(order.notified)
+        + " charged=" + ToString(order.charged));
+}
+
+func Main() -> Void {
+    let desk = Desk();
+    let small = Order(0, 0, 0);
+    let ok = PlaceOrder(desk, small, 40);
+    Report("small", ok, small);
+    let large = Order(0, 0, 0);
+    let failed = PlaceOrder(desk, large, 140);
+    Report("large", failed, large);
+    Log("failure=" + IntentLastFailure());
+}

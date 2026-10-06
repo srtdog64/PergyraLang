@@ -4,6 +4,7 @@
 #include "type_checker_ability_ref_internal.h"
 #include "type_checker_intent_helpers_internal.h"
 #include "type_checker_intent_step_sequence_internal.h"
+#include "type_checker_intent_compensation_coverage_internal.h"
 #include "type_checker_module_contract_internal.h"
 #include "diag_codes.h"
 
@@ -116,6 +117,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     type_check_intent_step_sequence(
         node, ctx, typed_success_payload_types,
         typed_failure_payload_types, &typed_success_scope_count);
+    type_check_intent_compensation_coverage(node, ctx);
 
     if (priority_expr != NULL) {
         Type *priority_type = intent_normalize_type(

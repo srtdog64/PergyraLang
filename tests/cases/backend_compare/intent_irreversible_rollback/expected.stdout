@@ -1,0 +1,3 @@
+small ok=true reserved=1 notified=1 charged=40
+large ok=false reserved=0 notified=1 charged=0
+failure=post:charge

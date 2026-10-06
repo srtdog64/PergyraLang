@@ -182,6 +182,7 @@ ast_destroy_domain_node(ASTNode* node) {
                 ast_destroy(node->data.intent_step.required_abilities[i]);
             free(node->data.intent_step.required_abilities);
             free(node->data.intent_step.causes_effect);
+            free(node->data.intent_step.irreversible_reason);
             for (size_t i = 0; i < node->data.intent_step.authorized_by_count; i++)
                 free(node->data.intent_step.authorized_by[i]);
             free(node->data.intent_step.authorized_by);

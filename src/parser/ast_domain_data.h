@@ -185,6 +185,8 @@ typedef struct {
     size_t step_capacity;
     bool is_concurrent;
     IntentRollbackPolicy rollback_policy;
+    /* The source wrote a `rollback:` clause; false keeps the default. */
+    bool rollback_declared;
     ASTNode* return_type;       /* NULL keeps the legacy Bool intent ABI. */
     ASTNode* priority_expr;
     ASTNode* success_expr;
@@ -241,6 +243,9 @@ typedef struct {
     ASTNode** compensate_exprs;
     size_t compensate_expr_count;
     size_t compensate_expr_capacity;
+    /* `irreversible: "reason";` — the declared reason this effectful step
+       has no compensation under `rollback: full` (docs/173 INT-2). */
+    char* irreversible_reason;
     ASTNode* pre_expr;
     ASTNode* guard_expr;
     ASTNode* post_expr;

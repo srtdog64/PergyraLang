@@ -27,6 +27,7 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.step_capacity = 0;
     node->data.intent_decl.is_concurrent = false;
     node->data.intent_decl.rollback_policy = INTENT_ROLLBACK_FULL;
+    node->data.intent_decl.rollback_declared = false;
     node->data.intent_decl.return_type = NULL;
     node->data.intent_decl.priority_expr = NULL;
     node->data.intent_decl.success_expr = NULL;
@@ -96,6 +97,7 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.required_abilities = NULL;
     node->data.intent_step.required_ability_count = 0;
     node->data.intent_step.causes_effect = NULL;
+    node->data.intent_step.irreversible_reason = NULL;
     node->data.intent_step.authorized_by = NULL;
     node->data.intent_step.authorized_by_count = 0;
     node->data.intent_step.expect_expr = NULL;

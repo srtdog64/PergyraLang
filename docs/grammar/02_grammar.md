@@ -30,7 +30,7 @@
 - Parser-contextual words are matched as identifiers by the owning parser.
   Examples include `action`, `requires`, `within`, `causes`, `authorized`,
   `by`, `involves`, `step`, `who`, `expect`, `success`, and `failure`.
-- The exhaustive 70 reserved + 73 contextual + 3 soft inventory (146 rows) and
+- The exhaustive 70 reserved + 74 contextual + 3 soft inventory (147 rows) and
   consumer projection contract are documented in
   `docs/semantics/language_keyword_registry.md`; this prose list is illustrative.
 - `context`는 현재 ordinary identifier다.

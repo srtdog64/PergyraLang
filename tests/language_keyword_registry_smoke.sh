@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Proves the 146-row language-word registry, full self-host metadata projection,
+# Proves the 147-row language-word registry, full self-host metadata projection,
 # reserved lexer compatibility view, editor scope projection, and generated
 # implementation inventory remain one source-of-truth chain.
 # SoT fallback IDs covered here or by the companion enforcement refs in the
@@ -92,8 +92,8 @@ grep -Fq 'LanguageWordRegistryRowAt(-1).valid' "$PROJECTION" ||
     fail "negative row boundary is not fail-closed"
 grep -Fq 'LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid' \
     "$PROJECTION" || fail "upper row boundary is not fail-closed"
-[[ "$(grep -Fc 'if index ==' "$ROW_PROJECTION")" -eq 146 ]] ||
-    fail "complete language-word row projection must own exactly 146 cases"
+[[ "$(grep -Fc 'if index ==' "$ROW_PROJECTION")" -eq 147 ]] ||
+    fail "complete language-word row projection must own exactly 147 cases"
 for forbidden in 'Array<' 'Set<' 'Map<' 'StringJoin(' 'ToInt('; do
     if grep -Fq -- "$forbidden" "$ROW_PROJECTION"; then
         fail "language-word row projection introduced dynamic authority: $forbidden"
@@ -165,7 +165,8 @@ if reserved & non_reserved:
 
 native_only = {
     "activate", "all", "capacity", "current", "deactivate",
-    "detach", "forbids", "full", "give", "invariant", "involves", "is",
+    "detach", "forbids", "full", "give", "invariant", "involves",
+    "irreversible", "is",
     "layer", "lifecycle", "maintain", "max", "min", "none", "objects",
     "pin", "pool", "pre", "priority", "product", "projection", "relations",
     "rollback", "subjects", "sum", "tobjects", "unlink",
@@ -200,7 +201,7 @@ hover = {
 }
 highlight = {
     "action", "after", "authorized", "binding", "by", "causes", "concurrent", "exclusive",
-    "failure", "guard", "invariant", "involves", "mut", "on", "post",
+    "failure", "guard", "invariant", "involves", "irreversible", "mut", "on", "post",
     "pre", "projection", "requires", "state", "step", "success", "who",
     "within",
 }
@@ -381,5 +382,5 @@ grep -Fq "while TextMate scope is" "$INVENTORY" || {
     exit 1
 }
 
-echo "[language-keyword-registry] ok (146 rows; 70 reserved lexer rows; 76 parser selectors; 9 fixtures;" \
+echo "[language-keyword-registry] ok (147 rows; 70 reserved lexer rows; 77 parser selectors; 9 fixtures;" \
      "no reserved word lacks a parser selector)"

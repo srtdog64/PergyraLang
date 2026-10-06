@@ -215,6 +215,7 @@ parse_intent_declaration(Parser *parser)
                 return intent;
             }
             seen_rollback_clause = true;
+            intent->data.intent_decl.rollback_declared = true;
 
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'rollback'");
             mode = consume_name_token(parser, "Expected rollback policy after 'rollback:'");

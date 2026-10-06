@@ -148,6 +148,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_squiggle.cases.h"
 #include "tests/semantic/test_semantic_callable_capability.cases.h"
 #include "tests/semantic/test_semantic_generic_call_binding.cases.h"
+#include "tests/semantic/test_semantic_intent_compensation_coverage.cases.h"
 #include "tests/semantic/test_semantic_member_location.cases.h"
 
 
@@ -191,6 +192,7 @@ main(void)
     test_b0_provenance_closure_diagnostics();
     test_intent_observability_semantics();
     test_intent_compression_semantics();
+    test_intent_compensation_coverage();
     test_member_access_diagnostic_location();
     test_ability_decl();
     test_role_decl();
