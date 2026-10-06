@@ -66,9 +66,10 @@ func SelfMirRoutineFromInput(
             input.analysis.signatures, signature_index
         );
         if IsSome(return_type) && UnwrapOption(return_type) == "Void" {
+            let return_uses: Array<String> = SelfMirNoUses();
             build = SelfMirRoutineAddInstruction(
                 build, "return", "return", "", "", "", "", "",
-                "AST_RETURN_VOID", SelfMirNoUses()
+                "AST_RETURN_VOID", return_uses
             );
             build = SelfMirRoutineTerminate(build);
         }

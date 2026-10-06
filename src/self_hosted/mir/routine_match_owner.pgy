@@ -259,9 +259,10 @@ func SelfMirLowerMatchCaseBranch(
             build, "MIR match subject expression graph is missing"
         );
     }
+    let match_uses: Array<String> = SelfMirExpressionGraphUses(build, match_graph);
     build = SelfMirRoutineAddInstruction(
         build, "branch", "branch", "", "", "", match_value, "",
-        "AST_MATCH_CASE", SelfMirExpressionGraphUses(build, match_graph)
+        "AST_MATCH_CASE", match_uses
     );
     build = SelfMirRoutineAttachLastExpressionGraph(
         build, match_graph, input.machine_declaration

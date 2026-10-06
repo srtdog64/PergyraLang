@@ -217,10 +217,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     ).ok {
         return false;
     }
+    let member_function_names: Array<String> = ["Box_Get", "Other_Get"];
+    let member_function_returns: Array<String> = ["Int", "Int"];
     let derived_member: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             wrong_member, member_build.root_id, constructors,
-            ["box"], ["Box"], ["Box_Get", "Other_Get"], ["Int", "Int"]
+            ["box"], ["Box"], member_function_names, member_function_returns
         );
     if !derived_member.ok ||
         derived_member.kind != SemanticCallTargetMember() ||
@@ -263,17 +265,19 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let empty_names: Array<String> = [];
     let empty_types: Array<String> = [];
     let missing_returns: Array<String> = [];
+    let chain_function_names: Array<String> = ["MakeBox", "Box_Get"];
+    let chain_function_returns: Array<String> = ["Box", "Int"];
     let chain_target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             chain_graph, chain_build.root_id, constructors,
             empty_names, empty_types,
-            ["MakeBox", "Box_Get"], ["Box", "Int"]
+            chain_function_names, chain_function_returns
         );
     let missing_return_target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             chain_graph, chain_build.root_id, constructors,
             empty_names, empty_types,
-            ["MakeBox", "Box_Get"], missing_returns
+            chain_function_names, missing_returns
         );
     return member_verified.ok && chain_build.ok && chain_target.ok &&
         chain_target.kind == SemanticCallTargetMember() &&

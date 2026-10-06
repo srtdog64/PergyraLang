@@ -38,9 +38,10 @@ func SelfMirLowerControlTransferFromArtifact(
             )
         );
     }
+    let control_uses: Array<String> = SelfMirNoUses();
     build = SelfMirRoutineAddInstruction(
         build, "branch", control_name, "", "", "", control_name, "",
-        source_type, SelfMirNoUses()
+        source_type, control_uses
     );
     if kind == TypedAstKindBreakStmtTag() {
         break_exits = SelfMirLocalPredecessorSnapshotsAppend(

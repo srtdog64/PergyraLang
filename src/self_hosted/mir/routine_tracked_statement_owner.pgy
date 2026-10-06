@@ -133,9 +133,10 @@ func SelfMirLowerTrackedStatementFromArtifact(
             build, value_graph, input.machine_declaration);
     }
     if kind == TypedAstKindBareReturnStmtTag() {
+        let return_uses: Array<String> = SelfMirNoUses();
         build = SelfMirRoutineAddInstruction(
             build, "return", "return", "", "", "", payload, "",
-            "AST_RETURN_VOID", SelfMirNoUses()
+            "AST_RETURN_VOID", return_uses
         );
         return SelfMirRoutineTerminate(build);
     }
@@ -162,10 +163,11 @@ func SelfMirLowerTrackedStatementFromArtifact(
                 build, "MIR value return type fact is missing"
             );
         }
+        let return_uses: Array<String> =
+            SelfMirExpressionGraphUses(build, return_graph);
         build = SelfMirRoutineAddInstruction(
             build, "return", "return", "", "", "", payload, "",
-            return_source_type,
-            SelfMirExpressionGraphUses(build, return_graph)
+            return_source_type, return_uses
         );
         build = SelfMirRoutineAttachLastAbiTypeName(
             build, UnwrapOption(return_type)

@@ -7538,7 +7538,7 @@ require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     "if kind == TypedAstKindBareReturnStmtTag()"
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
-    '"AST_RETURN_VOID", SelfMirNoUses()'
+    'let return_uses: Array<String> = SelfMirNoUses();'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     "let return_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \

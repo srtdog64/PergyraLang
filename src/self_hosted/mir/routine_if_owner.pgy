@@ -172,12 +172,14 @@ func SelfMirLowerIfFromArtifact(
                 build, "MIR if condition expression graph is missing"
             );
         }
+        let condition_uses: Array<String> =
+            SelfMirExpressionGraphUses(build, condition_graph);
         build = SelfMirRoutineAddInstruction(
             build, "branch", "branch", "", "", "", active_condition, "",
             SelfMirExpressionSourceTypeName(
                 SelfMirExpressionKindFromText(active_condition)
             ),
-            SelfMirExpressionGraphUses(build, condition_graph)
+            condition_uses
         );
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, condition_graph, input.machine_declaration

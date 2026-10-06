@@ -75,9 +75,10 @@ func SelfMirLowerForFromArtifact(
     );
     let iteration_local: Int = ArrayLength(build.local_names) - 1;
     let preheader: Int = build.current_block;
+    let init_uses: Array<String> = SelfMirNoUses();
     build = SelfMirRoutineAddInstruction(
         build, "loop-init", "loop-init", "", binding, "",
-        start, stop, "AST_FOR_LOOP", SelfMirNoUses()
+        start, stop, "AST_FOR_LOOP", init_uses
     );
     build = SelfMirRoutineAttachLastPrimaryLocalRef(build, iteration_local);
     if iteration.collection_hoisted {
