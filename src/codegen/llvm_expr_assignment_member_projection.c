@@ -274,7 +274,7 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
         return llvm_assignment_error(ctx, node,
             "LLVM assignment requires an identifier, member, or indexed target");
 
-    {
+    if (llvm_identifier_may_denote_host_field(target)) {
         LLVMValueRef host_field_value =
             llvm_emit_current_host_field_assignment(node, ctx, name, target,
                 value);

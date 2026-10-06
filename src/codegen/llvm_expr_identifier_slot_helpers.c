@@ -191,9 +191,11 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
      * SSA-versioned local. Callees can mutate self->field opaquely and the
      * local mirror won't see it. Without this, RunCampaign's
      * cursor=ToString(choiceCursor+1) after RollChoice(...) reads the
-     * pre-call local copy. */
+     * pre-call local copy. A local or parameter of the same name shadows
+     * the field (the semantic binding says which one the name means). */
     if (llvm_current_host_class_name(ctx) != NULL
-        && strcmp(name, "self") != 0) {
+        && strcmp(name, "self") != 0
+        && llvm_identifier_may_denote_host_field(node)) {
         LLVMClassTypeEntry *cls =
             llvm_lookup_class(ctx, llvm_current_host_class_name(ctx));
         if (cls != NULL) {

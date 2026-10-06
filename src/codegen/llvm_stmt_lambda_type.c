@@ -137,9 +137,13 @@ llvm_stmt_lambda_return_type(LLVMGenCtx *ctx, ASTNode *expr)
     return NULL;
 }
 
-LLVMTypeRef
-llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda, ASTNode *param,
-                            size_t param_index)
+/* The one answer to "which source type does this lambda parameter have":
+ * its annotation, the expected callable's parameter type, or the declared
+ * return type when the body returns the parameter unchanged.  Both the LLVM
+ * signature lowering and the parameter's class binding read this node. */
+ASTNode *
+llvm_stmt_lambda_param_type_node(LLVMGenCtx *ctx, ASTNode *lambda,
+                                 ASTNode *param, size_t param_index)
 {
     ASTNode *param_type;
     ASTNode *return_type;
@@ -152,12 +156,8 @@ llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda, ASTNode *param,
 
     if (param->type == AST_LET_DECL) {
         param_type = ast_let_type(param);
-        if (param_type != NULL) {
-            LLVMTypeRef lowered = ast_type_to_llvm(ctx, param_type);
-            if (ctx->has_error || lowered == NULL)
-                return NULL;
-            return lowered;
-        }
+        if (param_type != NULL)
+            return param_type;
         param_name = ast_let_name(param);
     } else {
         param_name = ast_identifier_name(param);
@@ -165,12 +165,8 @@ llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda, ASTNode *param,
 
     param_type = llvm_stmt_lambda_expected_param_type_at(ctx, lambda,
         param_index);
-    if (param_type != NULL) {
-        LLVMTypeRef lowered = ast_type_to_llvm(ctx, param_type);
-        if (ctx->has_error || lowered == NULL)
-            return NULL;
-        return lowered;
-    }
+    if (param_type != NULL)
+        return param_type;
 
     return_type = ast_lambda_return_type(lambda);
     body = ast_lambda_body(lambda);
@@ -189,13 +185,33 @@ llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda, ASTNode *param,
         && returned->type == AST_IDENTIFIER
         && param_name != NULL
         && ast_identifier_name(returned) != NULL
-        && strcmp(ast_identifier_name(returned), param_name) == 0) {
-        LLVMTypeRef lowered = ast_type_to_llvm(ctx, return_type);
+        && strcmp(ast_identifier_name(returned), param_name) == 0)
+        return return_type;
+    return NULL;
+}
+
+LLVMTypeRef
+llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda, ASTNode *param,
+                            size_t param_index)
+{
+    ASTNode *param_type;
+    LLVMTypeRef lowered;
+    const char *param_name;
+
+    if (ctx == NULL || lambda == NULL || param == NULL)
+        return NULL;
+
+    param_type = llvm_stmt_lambda_param_type_node(ctx, lambda, param,
+        param_index);
+    if (param_type != NULL) {
+        lowered = ast_type_to_llvm(ctx, param_type);
         if (ctx->has_error || lowered == NULL)
             return NULL;
         return lowered;
     }
 
+    param_name = param->type == AST_LET_DECL ? ast_let_name(param)
+        : ast_identifier_name(param);
     llvm_set_error_at_with_hints(ctx, param,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,

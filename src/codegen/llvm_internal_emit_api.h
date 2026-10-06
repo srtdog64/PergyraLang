@@ -15,6 +15,7 @@ LLVMValueRef llvm_current_self_base_ptr(LLVMGenCtx *ctx,
                                         LLVMClassTypeEntry *cls);
 LLVMValueRef llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name,
                                       LLVMClassTypeEntry *cls);
+bool llvm_identifier_may_denote_host_field(const ASTNode *ident);
 LLVMValueRef llvm_implicit_host_field_ptr(LLVMGenCtx *ctx, const char *name,
                                           LLVMTypeRef *field_type_out);
 LLVMValueRef llvm_subject_argument_address(LLVMGenCtx *ctx,

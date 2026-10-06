@@ -60,6 +60,21 @@ llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *
     return llvm_implicit_host_field_ptr(ctx, name, NULL);
 }
 
+/* Whether a bare identifier may denote the current host's field. The semantic
+ * checker records each identifier's binding: one bound to a local or a
+ * parameter (a recorded binding that is not a host field) shadows a host
+ * field of the same name, so `let total = ...; self.total += total;` reads
+ * the local. Only an identifier with no recorded binding keeps resolving to
+ * the field by name. */
+bool
+llvm_identifier_may_denote_host_field(const ASTNode *ident)
+{
+    if (ident == NULL || ident->type != AST_IDENTIFIER)
+        return false;
+    return ast_identifier_binding_syntax_id(ident) == 0
+        || ast_identifier_binding_is_host_field(ident);
+}
+
 /* A bare name inside a host method that is not a local is the host's own
  * field (a zone's shared state, a world's zone member). Returns its storage
  * address and, when asked, its field type; NULL when the host has no such

@@ -1,0 +1,39 @@
+// A collection operation whose receiver is a field (`ListSize(batch.orders)`)
+// reads that field's storage. The LLVM backend accepted only a local name and
+// failed with "requires an identifier receiver"; it broke
+// examples/order_analytics on LLVM. Covers a zone subject-slot field and a
+// struct parameter field.
+
+subject Batch {
+    let orders: List<Int>;
+}
+
+zone Desk {
+    subject slot batch: Batch;
+
+    func Count(self) -> Int {
+        return ListSize(batch.orders);
+    }
+}
+
+struct Holder {
+    let items: List<Int>;
+}
+
+func HolderSize(h: Holder) -> Int {
+    return ListSize(h.items);
+}
+
+func Main() -> Void {
+    let orders: List<Int> = ListNew();
+    ListPush(orders, 3);
+    ListPush(orders, 5);
+    ListPush(orders, 8);
+    let batch = Batch(orders);
+    let desk = Desk(Clone(batch));
+    Log("zone field size=" + ToString(desk.Count()));
+    let items: List<Int> = ListNew();
+    ListPush(items, 1);
+    let holder = Holder(items);
+    Log("struct field size=" + ToString(HolderSize(holder)));
+}

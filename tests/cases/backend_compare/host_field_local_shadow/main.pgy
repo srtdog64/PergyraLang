@@ -1,0 +1,52 @@
+// Inside a zone method a `let` local that shares a shared field's name shadows
+// the field: the bare name is the local, `self.total` is the field. The LLVM
+// backend always resolved the bare name to the field (to avoid stale SSA
+// mirrors of fields), so `self.total = self.total + total` added the field to
+// itself and the local was never read; examples/fsm_factory printed sealed=0
+// on LLVM against sealed=30 on C, with no diagnostic. A bare read and a bare
+// assignment of the local are both covered.
+
+zone Tally {
+    shared total: Int = 0
+    shared heated: Int = 0
+
+    func Add(self, n: Int) -> Void {
+        let total = n * 2;
+        self.total = self.total + total;
+    }
+
+    func Warm(self, n: Int) -> Void {
+        let heated = n + 1;
+        self.heated = self.heated + heated;
+        let total = heated;
+        self.heated = Max(self.heated - total, 0);
+        self.total = self.total + total;
+    }
+
+    func Assign(self, n: Int) -> Int {
+        let total = 1;
+        total = total + n;
+        self.total = self.total + total;
+        return total;
+    }
+
+    func Plain(self, n: Int) -> Void {
+        total = total + n;
+    }
+
+    func Report(self) -> String {
+        return "total=" + ToString(total) + " heated=" + ToString(heated);
+    }
+}
+
+func Main() -> Void {
+    let t = Tally();
+    t.Add(3);
+    t.Add(4);
+    Log(t.Report());
+    t.Warm(5);
+    Log(t.Report());
+    Log("local=" + ToString(t.Assign(4)));
+    t.Plain(1);
+    Log(t.Report());
+}

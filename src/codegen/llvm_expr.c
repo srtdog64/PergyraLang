@@ -135,6 +135,8 @@ llvm_emit_captured_lambda(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef param_alloca = LLVMBuildAlloca(ctx->builder, pty, pname);
         LLVMBuildStore(ctx->builder, param_val, param_alloca);
         llvm_scope_declare(ctx, pname, param_alloca, pty);
+        llvm_register_typed_var_binding(ctx, pname, param_alloca,
+            llvm_stmt_lambda_param_type_node(ctx, node, p, (size_t)j));
     }
 
     if (lambda_body != NULL) {
@@ -460,6 +462,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBuildStore(ctx->builder, LLVMGetParam(lfn, (unsigned)j),
                 alloca);
             llvm_scope_declare(ctx, pname, alloca, lparams[j]);
+            llvm_register_typed_var_binding(ctx, pname, alloca,
+                llvm_stmt_lambda_param_type_node(ctx, node, p, (size_t)j));
         }
 
         if (lambda_body != NULL) {

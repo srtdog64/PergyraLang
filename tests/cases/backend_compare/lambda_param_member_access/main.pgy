@@ -1,0 +1,28 @@
+// A lambda parameter typed with a struct reads that struct's fields. The LLVM
+// backend bound the parameter without its class, so `ctx.morale` failed with
+// "member access requires concrete receiver type metadata" (it broke
+// examples/pattern_library_basics). Annotated and context-typed parameters
+// and a capturing closure all take the same path.
+
+struct Ctx {
+    let morale: Int;
+    let label: String;
+}
+
+func Score(base: Int, c: Ctx, f: func(Int, Ctx) -> Int) -> Int {
+    return f(base, c);
+}
+
+func Tag(c: Ctx, f: func(Ctx) -> String) -> String {
+    return f(c);
+}
+
+func Main() -> Void {
+    let c = Ctx(3, "raid");
+    let annotated = Score(4, c, (base: Int, ctx: Ctx) => Max(base + ctx.morale + 2, 0));
+    Log("annotated=" + ToString(annotated));
+    let bonus = 10;
+    let withBonus: func(Int, Ctx) -> Int = (base: Int, ctx: Ctx) => base + ctx.morale + bonus;
+    Log("captured=" + ToString(withBonus(1, c)));
+    Log("label=" + Tag(c, (ctx: Ctx) => ctx.label + "!"));
+}

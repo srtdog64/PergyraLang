@@ -23,6 +23,8 @@ ASTNode *llvm_stmt_current_return_callable_type(LLVMGenCtx *ctx);
 LLVMTypeRef llvm_stmt_lambda_return_type(LLVMGenCtx *ctx, ASTNode *expr);
 LLVMTypeRef llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda,
                                         ASTNode *param, size_t param_index);
+ASTNode *llvm_stmt_lambda_param_type_node(LLVMGenCtx *ctx, ASTNode *lambda,
+                                          ASTNode *param, size_t param_index);
 LLVMTypeRef llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr);
 /* Closure environment ABI (docs/135 Stage A): a captured lambda's value type is
  * a struct { fn_ptr, env } where fn takes the env pointer as a hidden leading

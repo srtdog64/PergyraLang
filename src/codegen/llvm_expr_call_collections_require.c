@@ -3,6 +3,7 @@
 #include "llvm_expr_call_collections_extended.h"
 
 #include "llvm_internal_api.h"
+#include "llvm_expr_member_lvalue.h"
 
 LLVMTypeRef
 llvm_collection_required_value_type(LLVMGenCtx *ctx, ASTNode *node,
@@ -64,6 +65,34 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
     LLVMVarEntry var;
 
     kind = collection_kind != NULL ? collection_kind : "collection";
+    /* A field receiver (`ListSize(batch.orders)`) is its field storage. The
+     * element type is still read by name, so element-typed operations on a
+     * field stop at the element-metadata refusal instead of guessing. */
+    if (receiver != NULL && receiver->type == AST_MEMBER_ACCESS) {
+        LLVMTypeRef field_type = NULL;
+        LLVMValueRef field_ptr = llvm_emit_member_lvalue_ptr(receiver, ctx,
+            &field_type);
+        if (field_ptr == NULL || field_type == NULL) {
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM %s operation '%s' requires addressable field storage for its receiver",
+                    kind,
+                    callee_name != NULL ? callee_name : "collection operation");
+            }
+            if (out != NULL)
+                *out = NULL;
+            return false;
+        }
+        if (receiver_out != NULL) {
+            receiver_out->name = ast_member_name(receiver);
+            receiver_out->alloca = field_ptr;
+            receiver_out->type = field_type;
+        }
+        return true;
+    }
     if (receiver == NULL || receiver->type != AST_IDENTIFIER) {
         if (ctx != NULL && !ctx->has_error) {
             llvm_set_error_at_with_hints(ctx, node,
