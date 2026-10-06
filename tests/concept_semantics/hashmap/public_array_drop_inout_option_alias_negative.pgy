@@ -1,0 +1,11 @@
+func HoldValues(inout values: Array<Int>) -> Option<Array<Int>> {
+    ArrayPush(values, 1);
+    return Some(values);
+}
+
+func Main() -> Void {
+    let mut values: Array<Int> = [];
+    let held: Option<Array<Int>> = HoldValues(values);
+    ArrayDrop(values);
+    Log(ToString(UnwrapOption(held)[0]));
+}

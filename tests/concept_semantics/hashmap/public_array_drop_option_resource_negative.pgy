@@ -1,0 +1,5 @@
+struct OptionLabel { text: Option<String>; }
+func Main() -> Void {
+    let labels: Array<OptionLabel> = [];
+    ArrayDrop(labels);
+}

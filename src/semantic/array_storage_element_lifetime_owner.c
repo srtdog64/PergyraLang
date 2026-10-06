@@ -15,6 +15,9 @@ array_storage_plain_at_depth(const Type *type, SemanticContext *ctx, unsigned de
     if (type_is_constructed_named(type, "Result"))
         return type_constructed_arg_count(type) == 2 && array_storage_plain_at_depth(type_get_constructed_arg(type, 0), ctx, depth + 1)
             && array_storage_plain_at_depth(type_get_constructed_arg(type, 1), ctx, depth + 1);
+    if (type_is_constructed_named(type, "Option"))
+        return type_constructed_arg_count(type) == 1
+            && array_storage_plain_at_depth(type_get_constructed_arg(type, 0), ctx, depth + 1);
     if (type->kind == TYPE_KIND_ENUM) {
         ASTNode *decl = semantic_find_enum_decl_by_name(ctx, type->name);
         size_t count = 0;

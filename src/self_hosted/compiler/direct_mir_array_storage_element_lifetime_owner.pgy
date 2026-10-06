@@ -15,6 +15,10 @@ func DirectMirArrayStoragePlainType(ref plan: DirectMirScalarCfgGraphPlan,
             DirectMirArrayStoragePlainType(plan, UnwrapOption(result_payload), depth + 1) &&
             DirectMirArrayStoragePlainType(plan, UnwrapOption(result_error), depth + 1);
     }
+    let option_payload: Option<String> = OptionPayloadTypeOpt(type_name);
+    if IsSome(option_payload) {
+        return DirectMirArrayStoragePlainType(plan, UnwrapOption(option_payload), depth + 1);
+    }
     let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
     if record >= 0 {
         let field: Int = plan.program.logical_record.field_starts[record];

@@ -20,6 +20,10 @@ func SemanticArrayStoragePlainElement(type_name: String,
             SemanticArrayStoragePlainElement(UnwrapOption(result_payload), constructors, enums, depth + 1) &&
             SemanticArrayStoragePlainElement(UnwrapOption(result_error), constructors, enums, depth + 1);
     }
+    let option_payload: Option<String> = OptionPayloadTypeOpt(type_name);
+    if IsSome(option_payload) {
+        return SemanticArrayStoragePlainElement(UnwrapOption(option_payload), constructors, enums, depth + 1);
+    }
     let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
     if IsSome(constructor) {
         let row: Int = UnwrapOption(constructor);

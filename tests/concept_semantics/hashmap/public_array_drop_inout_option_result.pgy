@@ -1,0 +1,20 @@
+struct OptionCell { id: Int; live: Bool; }
+struct OptionBuilt { cell: Option<OptionCell>; count: Int; }
+enum OptionBuildError { OptionBuildFull }
+
+func AddOptionCell(id: Int, inout cells: Array<OptionCell>) -> Result<OptionBuilt, OptionBuildError> {
+    if ArrayLength(cells) >= 4 { return Err(OptionBuildError.OptionBuildFull); }
+    let cell: OptionCell = OptionCell(id, true);
+    ArrayPush(cells, cell);
+    return Ok(OptionBuilt(Some(cell), ArrayLength(cells)));
+}
+
+func Main() -> Void {
+    let mut cells: Array<OptionCell> = [];
+    match AddOptionCell(7, cells) {
+        case Ok(built): Log(ToString(built.count));
+        case Err(_): Exit(1);
+    }
+    ArrayDrop(cells);
+    Log("ARRAY OPTION RESULT RELEASE PASS");
+}

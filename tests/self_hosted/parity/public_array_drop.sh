@@ -23,7 +23,8 @@ echo "[$LABEL] stage=$STAGE evidence=$WORK_REL launcher=$PGY driver=$DRIVER"
 lanes=(native)
 [[ "$STAGE" == all ]] && lanes+=(public)
 if [[ "$STAGE" != mir ]]; then
-for name in scalar record_empty early_return own own_bool loop read_borrow own_pair ref_result_plain inout_mutation inout_nested inout_write; do
+for name in scalar record_empty early_return own own_bool loop read_borrow own_pair ref_result_plain inout_mutation inout_nested inout_write \
+    inout_option_result; do
     expected=$'7\ntrue'
     [[ "$name" == record_empty ]] && expected=9
     [[ "$name" == early_return ]] && expected=$'4\n8'
@@ -36,6 +37,7 @@ for name in scalar record_empty early_return own own_bool loop read_borrow own_p
     [[ "$name" == inout_mutation ]] && expected='ARRAY INOUT RELEASE PASS'
     [[ "$name" == inout_nested ]] && expected='ARRAY NESTED INOUT RELEASE PASS'
     [[ "$name" == inout_write ]] && expected=7
+    [[ "$name" == inout_option_result ]] && expected=$'1\nARRAY OPTION RESULT RELEASE PASS'
     for lane in "${lanes[@]}"; do
         for backend in c llvm; do
             command=("$PGY")
@@ -109,7 +111,7 @@ for name in negative double_negative default_negative ref_negative inout_negativ
     own_alias_negative builtin_alias_negative call_result_negative option_escape_negative \
     enum_escape_negative own_conditional_negative return_alias_escape_negative inout_rebind_negative literal_escape_negative \
     own_double_negative own_duplicate_argument_negative own_borrow_argument_negative ref_result_resource_negative \
-    inout_alias_negative inout_nested_rebind_negative; do
+    inout_alias_negative inout_nested_rebind_negative inout_option_alias_negative option_resource_negative; do
     source="$FIXTURES/public_array_drop_$name.pgy"
     [[ "$name" == negative ]] && source="$FIXTURES/public_array_drop_negative.pgy"
     for lane in "${lanes[@]}"; do
@@ -129,7 +131,7 @@ for name in negative double_negative default_negative ref_negative inout_negativ
                 pattern='(move_from_released|MOVE_FROM_RELEASED|ArrayDrop conditional)' ;;
             slice_negative) pattern='(slice_storage_invalidation|SLICE_STORAGE_INVALIDATION|ArrayDrop cannot change Array storage.*Slice)' ;;
             temporary_negative) pattern='(array_drop_storage_requires_binding|ArrayDrop requires one named)' ;;
-            owned_string_negative|nested_resource_negative) pattern='ArrayDrop requires plain value elements' ;;
+            owned_string_negative|nested_resource_negative|option_resource_negative) pattern='ArrayDrop requires plain value elements' ;;
             private_negative) pattern='(compiler_internal_builtin|CompilerRetireArrayStorage is restricted)' ;;
             shadow_negative) pattern='(reserved_builtin_name|builtin_name_reserved|PGY_SEM_REDECLARATION)' ;;
         esac
@@ -199,5 +201,5 @@ fi
 if [[ "$STAGE" == mir ]]; then
     echo "[$LABEL] PASS stage=mir (5 issued MIR inputs executed and 5 preserved-artifact refusals per C/LLVM backend; no source gate claimed)"
 else
-    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 17 positives each, 2 of them declaration-order; all-stage source-C: 15 and public LLVM: 12; 30 preserved-artifact refusals per lane plus 2 native declaration-order refusals; all-stage also executes 5 issued MIR inputs and checks 5 MIR refusals per backend)"
+    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 18 positives each, 2 of them declaration-order; all-stage source-C: 16 and public LLVM: 13; 32 preserved-artifact refusals per lane plus 2 native declaration-order refusals; all-stage also executes 5 issued MIR inputs and checks 5 MIR refusals per backend)"
 fi
