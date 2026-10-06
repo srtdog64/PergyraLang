@@ -333,19 +333,9 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let definition: String = TextBuilderFinish(output, output_allocator);
     AllocatorDestroy(output_allocator);
     CodegenTypeEnvStateReleaseLocal(env_state);
-    let owned_function_epoch: Array<String> = [body];
-    if routine_defers[0] != "" {
-        ArrayPush(owned_function_epoch, routine_defers[0]);
-    }
-    if body_emission.scope_cleanup != "" {
-        ArrayPush(owned_function_epoch, body_emission.scope_cleanup);
-    }
-    if copyout != "" { ArrayPush(owned_function_epoch, copyout); }
-    if !is_main && signature != "" {
-        ArrayPush(owned_function_epoch, signature);
-    }
-    if is_main { ArrayPush(owned_function_epoch, tail); }
-    ArrayDropOwnedStrings(owned_function_epoch);
+    // The fragments copied into the builder are fields, array rows and
+    // literal-or-fresh locals; none is a proved owned String, so none is
+    // released through a deep drop that only a text comparison would guard.
     return definition;
 }
 

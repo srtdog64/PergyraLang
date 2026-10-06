@@ -6,7 +6,7 @@
 
 func CodegenDefaultAstPath(args: Array<String>) -> String {
     if ArrayLength(args) > 0 {
-        return args[0];
+        return Concat("", args[0]);
     }
     return "src/self_hosted/codegen/fixture/hello_ast.txt";
 }

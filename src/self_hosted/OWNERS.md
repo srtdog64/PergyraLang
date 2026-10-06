@@ -33,6 +33,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy` -- Reached call-entry rejection for repeated retention or observed definition-bound reuse, plus the successful continuing-call permission transition.
 - `src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy` -- Terminal tail restriction and the exact unshared current-descriptor proof for an owned-content mutation followed by a read. Consumes definition/storage and constructor-input facts; does not rescan source roots or infer exclusivity from a type.
 - `src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy` -- Borrow-only current formal-field reads and negative whole-root forwarding closure, consumed from the existing member-transition pass.
+- `src/self_hosted/semantic/ast_collection_member_read_local_root_owner.pgy` -- Borrow-only direct `Array<String>` field reads of a local struct root; any whole-root alias, writable or consuming argument, sequence-field copy or deferred use blocks the root for the body, and a returned aggregate may capture it only in the terminal tail.
 - `src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy` -- Current artifact generation, callable coverage and unsafe execution facts; one readiness lookup, with borrowed row views rather than descriptor copies.
 - `src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy` -- Complete omitted/deferred execution inventory for the named callable set. Formal effects retain all signature-callable coverage; storage preservation retains its exact formal subset.
 - `src/self_hosted/semantic/ast_collection_member_read_call_target_owner.pgy` -- Exact physical readonly call-target identity and declared boundary only; no mode-only lifetime grant.
@@ -1988,6 +1989,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/mir_lower/intent_routine_carrier_projection_owner.pgy` --
   bounded role-selected semantic/resource carriers and verification-only typed
   mirror rows; legacy executable mirrors are refused, not selected here.
+- `src/self_hosted/mir_lower/intent_routine_carrier_projection_schema_owner.pgy` --
+  shape of one routine's admitted intent carrier spine; projection owners borrow
+  it whole instead of re-listing its parallel rows.
 - `src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy` -- one routine
   step plan from existing placement, participant/action/outcome, typed transition
   and phase facts. Typed rows come from the admitted indexed topology with exact

@@ -80,10 +80,12 @@ func SemanticAstCollectionOwnRetirementVisibleAtUse(
     ref artifact: AstTreeArtifact, retirement: Int, use_id: Int,
     fresh_generation: Bool
 ) -> Bool {
-    if !fresh_generation || retirement <= 0 || retirement >= use_id {
+    // A fresh generation may leave its loop body; an older binding is scoped
+    // only by a tail that exits the function, so no later iteration exists.
+    let scope: Int = SemanticAstCollectionTerminatingRetirementScope(artifact, retirement, !fresh_generation);
+    if (!fresh_generation && scope < 0) || retirement <= 0 || retirement >= use_id {
         return SemanticAstCollectionMutableCallMayBeRetired(artifact, use_id, retirement);
     }
-    let scope: Int = SemanticAstCollectionTerminatingRetirementScope(artifact, retirement, false);
     if scope < 0 || use_id >= artifact.count { return true; }
     // The transfer still retires every use in this scope, including the return
     // expression. Only another normal path outside its unconditional exit is live.

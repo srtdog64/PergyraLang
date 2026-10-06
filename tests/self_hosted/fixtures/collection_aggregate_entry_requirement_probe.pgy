@@ -70,7 +70,7 @@ func InspectAggregateEntryRequirements(inout analysis: SemanticAstArtifactAnalys
         if local_root <= 0 || local_destination <= 0 || local_function <= 0 { return false; }
         if mutation == 34 { local_function = function_id; local_destination = destinations[0]; }
         let recorded: Bool = SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-            local_function, local_root, fields[0], local_destination, facts);
+            local_function, local_root, fields[0], local_destination, SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
         return recorded == (mutation == 33) && SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) && ArrayLength(facts.local_ids) == 0;
     }
     if mutation >= 1 && mutation <= 4 { analysis.signatures.param_modes[parameter] = mutation - 1; }
@@ -112,12 +112,12 @@ func InspectAggregateEntryRequirements(inout analysis: SemanticAstArtifactAnalys
     }
     if (mutation >= 5 && mutation <= 19) || mutation == 27 {
         return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-            function_id, root, fields[0], destination, facts) && ArrayLength(facts.local_ids) == 0;
+            function_id, root, fields[0], destination, SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts) && ArrayLength(facts.local_ids) == 0;
     }
     row = 0;
     while row < 3 {
         if !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-            function_id, formal, fields[row], destinations[row], facts) { return false; }
+            function_id, formal, fields[row], destinations[row], SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts) { return false; }
         row = row + 1;
     }
     if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) || ArrayLength(facts.local_ids) != 3 { return false; }
@@ -128,7 +128,7 @@ func InspectAggregateEntryRequirements(inout analysis: SemanticAstArtifactAnalys
                 facts.formal_modes[row] != analysis.signatures.param_modes[parameter] || facts.field_ids[row] != fields[row] ||
                 facts.local_ids[row] != destinations[row] ||
                 !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-                    function_id, formal, fields[row], destinations[row], facts) { return false; }
+                    function_id, formal, fields[row], destinations[row], SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts) { return false; }
             row = row + 1;
         }
         return ArrayLength(facts.local_ids) == 3;
@@ -143,17 +143,17 @@ func InspectAggregateEntryRequirements(inout analysis: SemanticAstArtifactAnalys
     if mutation == 23 { facts.local_ids[1] = facts.local_ids[0]; }
     if mutation == 24 {
         return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-            function_id, formal, fields[1], destinations[0], facts);
+            function_id, formal, fields[1], destinations[0], SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
     }
     if mutation == 25 {
         analysis.signatures.param_modes[parameter] = 2;
         return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-            function_id, formal, fields[0], destinations[0], facts);
+            function_id, formal, fields[0], destinations[0], SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
     }
     if mutation == 26 {
         facts.formal_ordinals[0] = 1;
         return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
-            function_id, formal, fields[0], destinations[0], facts);
+            function_id, formal, fields[0], destinations[0], SemanticAstCollectionAggregateFieldEntryEffectDeepDrop(), facts);
     }
     if mutation == 28 { facts.field_ids[0] = 0; }
     if mutation == 29 { facts.ok = false; }

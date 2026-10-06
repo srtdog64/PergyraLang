@@ -137,7 +137,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                 let local_call_ordinal: Int = 0;
                 while node <= root_id && valid {
                     if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
-                        leaf_type_names[node] = EnvLookup(names, types, graph.arena.node_texts[node]);
+                        ArraySet(leaf_type_names, node, EnvLookup(names, types, graph.arena.node_texts[node]));
                     }
                     let carried_call_target_syntax_id: Int =
                         graph.arena.identities.call_target_syntax_ids[node];

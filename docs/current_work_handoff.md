@@ -5,6 +5,34 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context
 
+### CI bootstrap analyzer closure (2026-10-06)
+
+Base: origin/main `49f8eaf1` (lexer checkpoint merged). The work is in the
+`/d/pgy-ci` worktree, branch `ci-green`; this card ships in its commit.
+
+- Whole picture: `docs/audits/2026-10-06_self_host_bootstrap_analyzer_census.md`.
+- Closure census: codegen 156 → 0, mir_lower 36 → 0; lexer, parser,
+  semantic, fuzz and the 14 tools at 0. The census instrumentation is removed.
+- Local `tests/self_hosted/parity/codegen_bootstrap.sh` on this checkout:
+  `SELF-HOSTING OK` (fixpoint gen2 == gen3, eight samples, every breadth
+  component, 3170 s).
+- Last green local gates: `collection_bootstrap_closure_rules.sh` (C/LLVM
+  8 positives, 16 refusals), component contract, owner-size policy, build
+  pressure, gate reachability, and the static part of the compiler world
+  contract (its manifest step needs the installed driver, absent locally).
+- Next falsifier: the first CI run in which the Linux jobs behind the
+  bootstrap actually run. Expect hidden reds there. Two are known locally:
+  `collection_borrowed_descriptor_read.sh` expects a boundary name that every
+  observer build reports differently, and
+  `collection_aggregate_entry_requirement_owner.sh` calls a probe with a stale
+  arity.
+- Follow-up (next commit): the member-place analyzer fix described at the end
+  of the audit. It closes pre-existing use-after-free admissions through
+  struct member paths and removes the `IntentSubjectSlotSelect` adapter.
+- Debts recorded in the audit: `EmitStmtList` copies instead of owned
+  transfers, the removed function epoch release, 32 re-pinned caps and 6
+  owners on responsibility caps.
+
 ### Independent native lexer local checkpoint (2026-10-06)
 
 Base main: 430f0b9103c971ca9bba6dda84140ae73ce81768. Only generated gmon.out

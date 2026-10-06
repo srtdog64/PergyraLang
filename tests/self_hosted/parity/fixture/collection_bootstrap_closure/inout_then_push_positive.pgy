@@ -1,0 +1,21 @@
+func Required(ref source: Array<String>, field: String, inout values: Array<String>) -> Bool {
+    if ArrayLength(source) == 0 { return false; }
+    ArrayPush(values, field);
+    return true;
+}
+
+func Build(ref source: Array<String>) -> Int {
+    let ids: Array<String> = [];
+    let row: Int = 0;
+    while row < 3 {
+        if !Required(source, "program", ids) { return -1; }
+        ArrayPush(ids, "lit");
+        row = row + 1;
+    }
+    return ArrayLength(ids);
+}
+
+func Main() -> Void {
+    let source: Array<String> = ["a", "b"];
+    Log(ToString(Build(source)));
+}

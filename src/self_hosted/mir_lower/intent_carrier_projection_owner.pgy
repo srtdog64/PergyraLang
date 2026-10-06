@@ -1,6 +1,7 @@
 // Canonical binding/step projection from admitted intent semantic carriers.
 import "error_owner.pgy";
 import "routine_fact_index_owner.pgy";
+import "intent_routine_carrier_projection_schema_owner.pgy";
 
 struct MirIntentBindingProjection {
     ok: Bool;
@@ -76,19 +77,16 @@ func MirIntentKnownSemanticCarrier(name: String) -> Bool {
         name == "IntentEval" || name == "IntentMode";
 }
 
+// The carrier spine is borrowed whole; bindings keep owned copies of rows.
 func MirIntentBindingProjectionFromCarriers(
-    carrier_names: Array<String>,
-    carrier_arg0s: Array<String>,
-    carrier_arg1s: Array<String>,
-    carrier_slots: Array<String>,
-    carrier_binding_source_syntax_ids: Array<Int>,
+    ref carriers: MirIntentRoutineCarrierProjection,
     intent_name: String,
     intent_source_syntax_id: Int
 ) -> MirIntentBindingProjection {
-    if intent_source_syntax_id <= 0 || ArrayLength(carrier_names) != ArrayLength(carrier_arg0s) ||
-        ArrayLength(carrier_names) != ArrayLength(carrier_arg1s) ||
-        ArrayLength(carrier_names) != ArrayLength(carrier_slots) ||
-        ArrayLength(carrier_names) != ArrayLength(carrier_binding_source_syntax_ids) {
+    if intent_source_syntax_id <= 0 || ArrayLength(carriers.carrier_names) != ArrayLength(carriers.carrier_arg0s) ||
+        ArrayLength(carriers.carrier_names) != ArrayLength(carriers.carrier_arg1s) ||
+        ArrayLength(carriers.carrier_names) != ArrayLength(carriers.carrier_slots) ||
+        ArrayLength(carriers.carrier_names) != ArrayLength(carriers.carrier_binding_source_syntax_ids) {
         return MirIntentBindingProjectionInvalid();
     }
     let aliases: Array<String> = [];
@@ -97,39 +95,39 @@ func MirIntentBindingProjectionFromCarriers(
     let source_syntax_ids: Array<Int> = [];
     let step_names: Array<String> = [];
     let row: Int = 0;
-    while row < ArrayLength(carrier_names) {
-        if carrier_names[row] == "IntentBinding" {
-            let binding_kind: String = carrier_slots[row];
-            if carrier_arg0s[row] == "" || carrier_arg1s[row] == "" ||
-                carrier_binding_source_syntax_ids[row] <= 0 ||
+    while row < ArrayLength(carriers.carrier_names) {
+        if carriers.carrier_names[row] == "IntentBinding" {
+            let binding_kind: String = Concat("", carriers.carrier_slots[row]);
+            if carriers.carrier_arg0s[row] == "" || carriers.carrier_arg1s[row] == "" ||
+                carriers.carrier_binding_source_syntax_ids[row] <= 0 ||
                 (binding_kind != "participant" && binding_kind != "value") {
                 return MirIntentBindingProjectionInvalid();
             }
             let prior: Int = 0;
             while prior < ArrayLength(aliases) {
-                if aliases[prior] == carrier_arg0s[row] ||
-                    source_syntax_ids[prior] == carrier_binding_source_syntax_ids[row] {
+                if aliases[prior] == carriers.carrier_arg0s[row] ||
+                    source_syntax_ids[prior] == carriers.carrier_binding_source_syntax_ids[row] {
                     return MirIntentBindingProjectionInvalid();
                 }
                 prior = prior + 1;
             }
-            ArrayPush(aliases, carrier_arg0s[row]);
-            ArrayPush(type_names, carrier_arg1s[row]);
+            ArrayPush(aliases, Concat("", carriers.carrier_arg0s[row]));
+            ArrayPush(type_names, Concat("", carriers.carrier_arg1s[row]));
             ArrayPush(kinds, binding_kind);
-            ArrayPush(source_syntax_ids, carrier_binding_source_syntax_ids[row]);
-        } else if carrier_names[row] == "IntentStep" {
-            if carrier_arg0s[row] == "" ||
-                carrier_arg0s[row] != carrier_arg1s[row] ||
-                carrier_slots[row] != carrier_arg0s[row] {
+            ArrayPush(source_syntax_ids, carriers.carrier_binding_source_syntax_ids[row]);
+        } else if carriers.carrier_names[row] == "IntentStep" {
+            if carriers.carrier_arg0s[row] == "" ||
+                carriers.carrier_arg0s[row] != carriers.carrier_arg1s[row] ||
+                carriers.carrier_slots[row] != carriers.carrier_arg0s[row] {
                 return MirIntentBindingProjectionInvalid();
             }
-            ArrayPush(step_names, carrier_arg0s[row]);
+            ArrayPush(step_names, Concat("", carriers.carrier_arg0s[row]));
         }
         row = row + 1;
     }
     if ArrayLength(aliases) == 0 || ArrayLength(step_names) == 0 ||
-        MirIntentCarrierCount(carrier_names, "IntentParticipant") +
-            MirIntentCarrierCount(carrier_names, "IntentValue") != ArrayLength(aliases) {
+        MirIntentCarrierCount(carriers.carrier_names, "IntentParticipant") +
+            MirIntentCarrierCount(carriers.carrier_names, "IntentValue") != ArrayLength(aliases) {
         return MirIntentBindingProjectionInvalid();
     }
     let tree_lines: String = "";
@@ -143,12 +141,12 @@ func MirIntentBindingProjectionFromCarriers(
         }
         let match_count: Int = 0;
         row = 0;
-        while row < ArrayLength(carrier_names) {
-            if carrier_names[row] == expected_carrier &&
-                carrier_arg0s[row] == aliases[binding_index] &&
-                carrier_arg1s[row] == type_names[binding_index] &&
-                carrier_binding_source_syntax_ids[row] == source_syntax_ids[binding_index] &&
-                carrier_slots[row] == intent_name {
+        while row < ArrayLength(carriers.carrier_names) {
+            if carriers.carrier_names[row] == expected_carrier &&
+                carriers.carrier_arg0s[row] == aliases[binding_index] &&
+                carriers.carrier_arg1s[row] == type_names[binding_index] &&
+                carriers.carrier_binding_source_syntax_ids[row] == source_syntax_ids[binding_index] &&
+                carriers.carrier_slots[row] == intent_name {
                 match_count = match_count + 1;
             }
             row = row + 1;

@@ -4,6 +4,7 @@
 import "ast_assignment_fact_owner.pgy";
 import "ast_collection_ownership_member_move_owner.pgy";
 import "ast_collection_member_read_permission_owner.pgy";
+import "ast_collection_member_read_local_root_owner.pgy";
 struct SemanticAstCollectionMemberMoveUse {
     found: Bool;
     syntax_node_id: Int;
@@ -113,6 +114,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                         let read_root: Int = SemanticAstCollectionMemberReadFormalRoot(
                             artifact, signatures, surfaces.expression_graph,
                             surfaces.function_node_ids[surface], syntax_id, node, identity);
+                        if read_root == 0 { read_root = SemanticAstCollectionMemberReadLocalRoot(artifact, locals,
+                            inferred_types, surfaces.expression_graph, surfaces.function_node_ids[surface], syntax_id, node, identity); }
                         if read_root > 0 { MapSet(readable_members, ToString(node), read_root); }
                     }
                     // Postfix graph member selectors are leaves, but they are
@@ -132,6 +135,14 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                 artifact, locals, inferred_types,
                                 surfaces.function_node_ids[surface], syntax_id,
                                 surfaces.expression_graph, node);
+                    }
+                    if binding_use.ok {
+                        let local_use: Int = SemanticAstCollectionMemberReadLocalRootUse(
+                            artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+                            surfaces.expression_graph, contexts, surfaces.function_node_ids[surface], syntax_id,
+                            root_slot % 3 == AstExpressionLaneAtom() && SemanticAstAssignmentContainsNode(assignments, syntax_id),
+                            node, root_id);
+                        if local_use < 0 { MapSet(unproved_read_roots, ToString(binding_use.declaration_node_id), 1); }
                     }
                     if binding_use.ok && MapHas(retired_locals,
                             ToString(binding_use.declaration_node_id)) &&

@@ -32,6 +32,30 @@ func SemanticAstNominalConstructorIndexForName(
     return Some(Unwrap(found));
 }
 
+// The same unique lookup for a name held in a borrowed table row. The row is
+// compared in place, never bound or stored, so a readonly table formal stays
+// a read at every caller.
+func SemanticAstNominalConstructorIndexForNameAt(
+    ref facts: SemanticAstNominalConstructorFacts,
+    ref names: Array<String>, row: Int
+) -> Option<Int> {
+    if !facts.ok || row < 0 || row >= ArrayLength(names) || names[row] == "" ||
+        ArrayLength(facts.names) != ArrayLength(facts.node_ids) {
+        return None;
+    }
+    let found: Int = -1;
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(facts) {
+        if facts.names[i] == names[row] {
+            if found >= 0 { return None; }
+            found = i;
+        }
+        i = i + 1;
+    }
+    if found < 0 { return None; }
+    return Some(found);
+}
+
 // Field identity is scoped by the owning declaration, never by field type.
 func SemanticAstNominalConstructorFieldRowForName(
     ref facts: SemanticAstNominalConstructorFacts,

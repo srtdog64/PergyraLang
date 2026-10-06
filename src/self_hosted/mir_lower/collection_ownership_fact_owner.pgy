@@ -86,7 +86,7 @@ func MirCollectionOwnershipMemberSourceReady(
     let source_row: Int = MirCollectionOwnershipLocalRow(
         local_binding_syntax_ids, source_binding_syntax_id);
     if source_row >= 0 {
-        source_type = local_types[source_row];
+        source_type = Concat("", local_types[source_row]);
     } else {
         source_type = MirCollectionOwnershipParameterType(
             routines.source_json, routine_start, routine_end,

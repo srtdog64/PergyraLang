@@ -283,10 +283,12 @@ func GenerateCUnitFromReadySemanticFacts(
         Die("codegen intent execution facts are missing or crossed");
     }
     if observe_pressure { Log("[codegen-pressure-stage] function-env:start"); }
-    let env_acc: Array<String> = [BuildFunctionEnv(
+    // One fresh exclusive box carries the accumulated rows through each owner.
+    let env_acc: Array<String> = [];
+    ArrayPush(env_acc, BuildFunctionEnv(
         signatures, specializations, receiver_facts,
         semantic_analysis.intent_signatures
-    )];
+    ));
     if observe_pressure { Log("[codegen-pressure-stage] function-env:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] value-wrappers:start"); }
     let value_wrappers: CodegenValueWrapperUsageFacts =
@@ -507,8 +509,9 @@ func GenerateCUnitFromReadySemanticFacts(
         ));
     }
     if usage.uses_slice { TextBuilderAppend(output, SliceRuntimeCBlock(base_env)); }
+    // Usage facts carry nominal_arrays verbatim; read the rows from their owner.
     let record_array_block: String = CollectionRuntimeRecordArrayBlocks(
-        uses_ast_text_node_array, usage.nominal_record_arrays.element_types);
+        uses_ast_text_node_array, nominal_arrays.element_types);
     let hashmap_values: Array<String> = [];
     let hashmap_index: Int = 0;
     while hashmap_index < ArrayLength(usage.hashmap_type_names) {

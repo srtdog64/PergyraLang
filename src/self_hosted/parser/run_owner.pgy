@@ -16,7 +16,7 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
         if ArrayLength(args) < 2 {
             Exit(1);
         }
-        Log(ParseProgramBuildWithImportPolicy(args[1], false).tree_text);
+        Log(ParseProgramBuildWithImportPolicy(Concat("", args[1]), false).tree_text);
         Log("");
         return;
     }
@@ -30,7 +30,7 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
         }
         Log("Phase: import-composition:start");
         let root_build: ParserProgramBuild =
-            ParseObservedRootProgramBuild(args[1]);
+            ParseObservedRootProgramBuild(Concat("", args[1]));
         Log("Phase: import-composition:done");
         if StringLength(root_build.tree_text) > 0 &&
             AstExpressionGraphRowsReady(root_build.expression_graphs) {
@@ -54,7 +54,7 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
             Exit(1);
         }
         let parse_text: String = ParseProgramBuildWithImportPolicy(
-            args[1],
+            Concat("", args[1]),
             false
         ).tree_text;
         if StringLength(parse_text) >= 0 {

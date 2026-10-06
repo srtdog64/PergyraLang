@@ -233,14 +233,14 @@ func LexerTokenFactsText(
         Exit(1);
     }
     let output_lines: Array<String> = [];
-    ArrayPush(output_lines, Concat(Concat("=== tokens: ", source_path), " ==="));
+    ArrayPushOwnedString(output_lines, Concat(Concat("=== tokens: ", source_path), " ==="));
     let index: Int = 0;
     while index < ArrayLength(tokens) {
         let fact: LexerTokenFact = tokens[index];
-        ArrayPush(output_lines, LexerTokenFactLine(fact));
+        ArrayPushOwnedString(output_lines, Concat("", LexerTokenFactLine(fact)));
         index = index + 1;
     }
-    ArrayPush(output_lines, Concat(
+    ArrayPushOwnedString(output_lines, Concat(
         "  ", Concat(ToString(ArrayLength(tokens)), " tokens total")
     ));
     return StringJoin(output_lines, "\n");

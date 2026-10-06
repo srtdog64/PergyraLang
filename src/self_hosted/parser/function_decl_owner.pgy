@@ -94,14 +94,16 @@ func ParserCallableContractAppendName(
     }
     let i: Int = 0;
     while i < ArrayLength(names) {
+        // The appended row is read through an owned copy, never a borrow.
+        let existing_name: String = Concat("", names[i]);
         let existing: Int = CallableContractVocabularyFindIndex(
-            axis, names[i]
+            axis, existing_name
         );
         if existing >= 0 && CallableContractVocabularyZeroPolicyAt(existing) ==
             CallableContractVocabularyZeroExclusive() {
             ParseDiagnosticReportContractName(
                 diagnostic_projection,
-                "callable_contract_exclusive_effect", axis, names[i]
+                "callable_contract_exclusive_effect", axis, existing_name
             );
             return false;
         }

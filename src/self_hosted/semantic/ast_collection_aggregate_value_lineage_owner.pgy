@@ -131,11 +131,19 @@ func SemanticAstCollectionAggregateInputRow(
 func SemanticAstCollectionAggregateRecordDemand(
     requirement_row: Int, demand_edge_node: Int, aggregate_origin_id: Int,
     input_row: Int,
+    ref trace: SemanticAstCollectionAggregateTrace,
     inout plan: SemanticAstCollectionAggregateReleasePlan
 ) -> Bool {
     if requirement_row < 0 || aggregate_origin_id <= 0 || input_row < 0 {
         return false;
     }
+    ArrayPush(plan.demand_chain_starts, ArrayLength(plan.demand_chain_edges));
+    let entry: Int = ArrayLength(trace.entry_edges) - 1;
+    while entry >= 0 {
+        ArrayPush(plan.demand_chain_edges, trace.entry_edges[entry]);
+        entry = entry - 1;
+    }
+    ArrayPush(plan.demand_chain_edges, demand_edge_node);
     ArrayPush(plan.demand_edge_nodes, demand_edge_node);
     ArrayPush(plan.aggregate_origin_ids, aggregate_origin_id);
     ArrayPush(plan.requirement_rows, requirement_row);
@@ -355,7 +363,8 @@ func SemanticAstCollectionAggregateTraceExpression(
                                 plan.call_edge_nodes[row], plan) {
                             return false;
                         }
-                        if !SemanticAstCollectionAggregateTraceExpression(
+                        ArrayPush(trace.entry_edges, plan.call_edge_nodes[row]);
+                        let caller_ok: Bool = SemanticAstCollectionAggregateTraceExpression(
                                 artifact, signatures, constructors, locals,
                                 inferred_types, resolved_leaf_types, surfaces,
                                 statements, assignments, inputs,
@@ -364,15 +373,19 @@ func SemanticAstCollectionAggregateTraceExpression(
                                 plan.call_argument_nodes[row], path_row,
                                 0, aggregate_origin_id,
                                 demand_edge_node, requirement_row, 0,
-                                trace, plan, depth + 1) {
-                            result = false;
-                        }
+                                trace, plan, depth + 1);
+                        ArrayPop(trace.entry_edges);
+                        if !caller_ok { result = false; }
                     }
                     row = row + 1;
                 }
                 // An uncalled conditional formal is safe; every reached caller
                 // is checked above before it may discharge the requirement.
-                if !saw { result = true; }
+                // Its forwarding edge is then accounted lineage, not an alias.
+                if !saw {
+                    result = SemanticAstCollectionAggregateReleaseRecordLineageEdge(
+                        demand_edge_node, plan);
+                }
             }
         }
         return result;
@@ -454,7 +467,8 @@ func SemanticAstCollectionAggregateTraceExpression(
                     inputs, call.call_node,
                     plan.call_argument_nodes[argument_row], field_id);
                 result = SemanticAstCollectionAggregateRecordDemand(
-                    requirement_row, demand_edge_node, origin, input, plan);
+                    requirement_row, demand_edge_node, origin, input, trace,
+                    plan);
             } else {
                 result = SemanticAstCollectionAggregateTraceExpression(
                     artifact, signatures, constructors, locals,

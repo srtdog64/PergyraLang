@@ -140,7 +140,7 @@ for stage in iteration-validation generic-specializations domain-projection rout
 done
 grep -Fq 'observe_pressure, "routine-build", i, "done"' "$MIR_ARTIFACT_OWNER" \
     || { echo "[build-pressure-contract] MIR routine build/append boundary is not observable" >&2; exit 1; }
-grep -Fq '[semantic-body-type-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+grep -Fq '[semantic-body-type-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy" \
     || { echo "[build-pressure-contract] body type pressure stages are not observable" >&2; exit 1; }
 grep -Fq '[semantic-initializer-stage]' "$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     || { echo "[build-pressure-contract] initializer pressure stages are not observable" >&2; exit 1; }

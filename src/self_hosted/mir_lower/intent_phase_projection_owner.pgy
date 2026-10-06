@@ -4,6 +4,7 @@
 // It never reads source or AST text.
 
 import "routine_fact_index_owner.pgy";
+import "intent_routine_carrier_projection_schema_owner.pgy";
 import "intent_expression_carrier_contract_owner.pgy";
 import "../mir/intent_phase_contract_owner.pgy";
 
@@ -41,12 +42,10 @@ func MirIntentPhaseProjectionError(projection: MirIntentPhaseProjection, message
     return projection;
 }
 
+// The carrier spine is borrowed whole; phase rows keep owned text copies.
 func MirIntentPhaseProjectionFromCarriers(ref routines: MirProgramRoutineIndex,
     routine_row: Int, typed_execution: Bool, step_names: Array<String>,
-    carrier_names: Array<String>, carrier_arg0s: Array<String>, carrier_arg1s: Array<String>,
-    carrier_slots: Array<String>, carrier_results: Array<String>,
-    carrier_abi_type_names: Array<String>, carrier_source_types: Array<String>,
-    carrier_expr0s: Array<String>, carrier_rows: Array<Int>) -> MirIntentPhaseProjection {
+    ref carriers: MirIntentRoutineCarrierProjection) -> MirIntentPhaseProjection {
     let strings: Array<String> = [];
     let ints: Array<Int> = [];
     let projection: MirIntentPhaseProjection = MirIntentPhaseProjection(
@@ -75,12 +74,12 @@ func MirIntentPhaseProjectionFromCarriers(ref routines: MirProgramRoutineIndex,
     let compensate_rows: Array<Int> = [];
     let success_text: String = "";
     let success_row: Int = -1;
-    let count: Int = ArrayLength(carrier_names);
-    if ArrayLength(carrier_arg0s) != count || ArrayLength(carrier_arg1s) != count ||
-        ArrayLength(carrier_slots) != count || ArrayLength(carrier_results) != count ||
-        ArrayLength(carrier_abi_type_names) != count ||
-        ArrayLength(carrier_source_types) != count || ArrayLength(carrier_expr0s) != count ||
-        ArrayLength(carrier_rows) != count || ArrayLength(step_names) == 0 {
+    let count: Int = ArrayLength(carriers.carrier_names);
+    if ArrayLength(carriers.carrier_arg0s) != count || ArrayLength(carriers.carrier_arg1s) != count ||
+        ArrayLength(carriers.carrier_slots) != count || ArrayLength(carriers.carrier_results) != count ||
+        ArrayLength(carriers.carrier_abi_type_names) != count ||
+        ArrayLength(carriers.carrier_source_types) != count || ArrayLength(carriers.carrier_expr0s) != count ||
+        ArrayLength(carriers.carrier_rows) != count || ArrayLength(step_names) == 0 {
         return MirIntentPhaseProjectionError(
             projection, "MIR intent phase carrier arrays are misaligned");
     }
@@ -111,45 +110,45 @@ func MirIntentPhaseProjectionFromCarriers(ref routines: MirProgramRoutineIndex,
         return MirIntentPhaseProjectionError(projection, "MIR intent phase purpose identity is invalid");
     }
     while row < count {
-        let name: String = carrier_names[row];
+        let name: String = carriers.carrier_names[row];
         if (name == "IntentCheck" || name == "IntentEval") && !(name == "IntentEval" &&
-              carrier_arg0s[row] == "priority") {
+              carriers.carrier_arg0s[row] == "priority") {
             let shape_error: String = SelfMirIntentPhaseResultDiagnostic(
-                name, carrier_arg0s[row], carrier_results[row], carrier_abi_type_names[row]);
+                name, carriers.carrier_arg0s[row], carriers.carrier_results[row], carriers.carrier_abi_type_names[row]);
             if shape_error != "" {
                 return MirIntentPhaseProjectionError(projection, shape_error);
             }
-            if name == "IntentCheck" && carrier_arg0s[row] == "success" {
-                let global_row: Int = carrier_rows[row];
+            if name == "IntentCheck" && carriers.carrier_arg0s[row] == "success" {
+                let global_row: Int = carriers.carrier_rows[row];
                 if typed_execution || success_row >= 0 || global_row < 0 ||
                     global_row >= ArrayLength(routines.instruction_starts) ||
                     global_row >= ArrayLength(routines.instruction_ends) ||
-                    carrier_arg1s[row] != routines.names[routine_row] ||
-                    carrier_slots[row] != routines.names[routine_row] ||
+                    carriers.carrier_arg1s[row] != routines.names[routine_row] ||
+                    carriers.carrier_slots[row] != routines.names[routine_row] ||
                     routines.instruction_starts[global_row] < routines.starts[routine_row] ||
                     routines.instruction_ends[global_row] > routines.ends[routine_row] {
                     return MirIntentPhaseProjectionError(projection,
                         "MIR intent completion purpose or cardinality is invalid");
                 }
-                success_text = carrier_expr0s[row];
+                success_text = Concat("", carriers.carrier_expr0s[row]);
                 success_row = global_row;
             } else {
                 let step_match_count: Int = 0;
                 step_i = 0;
                 while step_i < ArrayLength(step_names) {
-                    if step_names[step_i] == carrier_arg1s[row] {
+                    if step_names[step_i] == carriers.carrier_arg1s[row] {
                         step_match_count = step_match_count + 1;
                     }
                     step_i = step_i + 1;
                 }
-                if step_match_count != 1 || carrier_arg1s[row] == "" ||
-                    carrier_slots[row] != carrier_arg1s[row] {
+                if step_match_count != 1 || carriers.carrier_arg1s[row] == "" ||
+                    carriers.carrier_slots[row] != carriers.carrier_arg1s[row] {
                     return MirIntentPhaseProjectionError(
                         projection, "MIR intent phase carrier step identity is invalid");
                 }
             }
-            if carrier_source_types[row] == "" || carrier_expr0s[row] == "" ||
-                !MirIntentExpressionCarrierGraphPresent(routines, carrier_rows[row]) {
+            if carriers.carrier_source_types[row] == "" || carriers.carrier_expr0s[row] == "" ||
+                !MirIntentExpressionCarrierGraphPresent(routines, carriers.carrier_rows[row]) {
                 return MirIntentPhaseProjectionError(
                     projection, "MIR intent phase carrier expression graph is missing");
             }
@@ -166,36 +165,36 @@ func MirIntentPhaseProjectionFromCarriers(ref routines: MirProgramRoutineIndex,
         let compensate_count: Int = 0;
         row = 0;
         while row < count {
-            if carrier_arg1s[row] == step_names[step_i] &&
-                carrier_slots[row] == step_names[step_i] {
-                let name: String = carrier_names[row];
-                let phase: String = carrier_arg0s[row];
+            if carriers.carrier_arg1s[row] == step_names[step_i] &&
+                carriers.carrier_slots[row] == step_names[step_i] {
+                let name: String = carriers.carrier_names[row];
+                let phase: String = carriers.carrier_arg0s[row];
                 if name == "IntentEval" && (phase == "on" || phase == "intent") {
                     if on_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(
                             projection, "MIR intent on phase cardinality is invalid");
                     }
-                    ArraySet(on_texts, step_i, carrier_expr0s[row]);
-                    ArraySet(on_results, step_i, carrier_results[row]);
-                    ArraySet(on_type_names, step_i, carrier_abi_type_names[row]);
-                    ArraySet(on_rows, step_i, carrier_rows[row]);
+                    ArraySet(on_texts, step_i, Concat("", carriers.carrier_expr0s[row]));
+                    ArraySet(on_results, step_i, Concat("", carriers.carrier_results[row]));
+                    ArraySet(on_type_names, step_i, Concat("", carriers.carrier_abi_type_names[row]));
+                    ArraySet(on_rows, step_i, carriers.carrier_rows[row]);
                     ArraySet(on_phases, step_i, phase);
                 } else if name == "IntentCheck" && phase == "guard" {
                     if guard_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(
                             projection, "MIR intent guard phase cardinality is invalid");
                     }
-                    ArraySet(guard_texts, step_i, carrier_expr0s[row]);
-                    ArraySet(guard_rows, step_i, carrier_rows[row]);
+                    ArraySet(guard_texts, step_i, Concat("", carriers.carrier_expr0s[row]));
+                    ArraySet(guard_rows, step_i, carriers.carrier_rows[row]);
                 } else if name == "IntentCheck" && phase == "expect" {
                     if expect_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(
                             projection, "MIR intent expect phase cardinality is invalid");
                     }
                     ArraySet(
-                        expect_texts, step_i, carrier_expr0s[row]
+                        expect_texts, step_i, carriers.carrier_expr0s[row]
                     );
-                    ArraySet(expect_rows, step_i, carrier_rows[row]);
+                    ArraySet(expect_rows, step_i, carriers.carrier_rows[row]);
                 } else if name == "IntentCheck" && phase == "post" {
                     if post_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(
@@ -203,34 +202,34 @@ func MirIntentPhaseProjectionFromCarriers(ref routines: MirProgramRoutineIndex,
                         );
                     }
                     ArraySet(
-                        post_texts, step_i, carrier_expr0s[row]
+                        post_texts, step_i, carriers.carrier_expr0s[row]
                     );
-                    ArraySet(post_rows, step_i, carrier_rows[row]);
+                    ArraySet(post_rows, step_i, carriers.carrier_rows[row]);
                 } else if name == "IntentCheck" && phase == "pre" {
                     if pre_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(projection,
                             "MIR intent pre phase cardinality is invalid");
                     }
-                    ArraySet(pre_texts, step_i, carrier_expr0s[row]);
-                    ArraySet(pre_rows, step_i, carrier_rows[row]);
+                    ArraySet(pre_texts, step_i, Concat("", carriers.carrier_expr0s[row]));
+                    ArraySet(pre_rows, step_i, carriers.carrier_rows[row]);
                 } else if name == "IntentCheck" &&
                     (phase == "invariant-pre" || phase == "invariant-post") {
                     if (phase == "invariant-pre" && invariant_pre_rows[step_i] >= 0) ||
                         (phase == "invariant-post" && invariant_post_rows[step_i] >= 0) ||
                         (invariant_texts[step_i] != "" &&
-                         invariant_texts[step_i] != carrier_expr0s[row]) {
+                         invariant_texts[step_i] != carriers.carrier_expr0s[row]) {
                         return MirIntentPhaseProjectionError(projection,
                             "MIR intent invariant phase identity/cardinality is invalid");
                     }
-                    ArraySet(invariant_texts, step_i, carrier_expr0s[row]);
+                    ArraySet(invariant_texts, step_i, Concat("", carriers.carrier_expr0s[row]));
                     if phase == "invariant-pre" {
-                        ArraySet(invariant_pre_rows, step_i, carrier_rows[row]);
+                        ArraySet(invariant_pre_rows, step_i, carriers.carrier_rows[row]);
                     } else {
-                        ArraySet(invariant_post_rows, step_i, carrier_rows[row]);
+                        ArraySet(invariant_post_rows, step_i, carriers.carrier_rows[row]);
                     }
                 } else if name == "IntentEval" && phase == "compensate" {
-                    ArrayPush(compensate_texts, carrier_expr0s[row]);
-                    ArrayPush(compensate_rows, carrier_rows[row]);
+                    ArrayPush(compensate_texts, Concat("", carriers.carrier_expr0s[row]));
+                    ArrayPush(compensate_rows, carriers.carrier_rows[row]);
                     compensate_count = compensate_count + 1;
                 }
             }

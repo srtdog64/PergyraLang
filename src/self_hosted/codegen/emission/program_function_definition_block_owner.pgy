@@ -65,13 +65,15 @@ func CodegenProgramFunctionDefinitionBlock(
                         base_env, machine_startup, uses_args, domain_runtime,
                         observe_pressure, definition_count
                     );
-                    if definition != "" {
-                        let owned_definition: Array<String> = [definition];
+                    // The fresh definition is transferred on every path; only its use is
+                    // conditional, so the release never depends on a text comparison.
+                    let owned_definition: Array<String> = [definition];
+                    if owned_definition[0] != "" {
                         TextBuilderAppend(output, owned_definition[0]);
                         TextBuilderAppend(output, "\n");
-                        ArrayDropOwnedStrings(owned_definition);
                         definition_count = definition_count + 1;
                     }
+                    ArrayDropOwnedStrings(owned_definition);
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
@@ -92,13 +94,15 @@ func CodegenProgramFunctionDefinitionBlock(
                         base_env, machine_startup, uses_args, domain_runtime,
                         observe_pressure, definition_count
                     );
-                    if definition != "" {
-                        let owned_definition: Array<String> = [definition];
+                    // The fresh definition is transferred on every path; only its use is
+                    // conditional, so the release never depends on a text comparison.
+                    let owned_definition: Array<String> = [definition];
+                    if owned_definition[0] != "" {
                         TextBuilderAppend(output, owned_definition[0]);
                         TextBuilderAppend(output, "\n");
-                        ArrayDropOwnedStrings(owned_definition);
                         definition_count = definition_count + 1;
                     }
+                    ArrayDropOwnedStrings(owned_definition);
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
@@ -112,13 +116,15 @@ func CodegenProgramFunctionDefinitionBlock(
                 base_env, machine_startup, uses_args, domain_runtime,
                 observe_pressure, definition_count
             );
-            if definition != "" {
-                let owned_definition: Array<String> = [definition];
+            // The fresh definition is transferred on every path; only its use is
+            // conditional, so the release never depends on a text comparison.
+            let owned_definition: Array<String> = [definition];
+            if owned_definition[0] != "" {
                 TextBuilderAppend(output, owned_definition[0]);
                 TextBuilderAppend(output, "\n");
-                ArrayDropOwnedStrings(owned_definition);
                 definition_count = definition_count + 1;
             }
+            ArrayDropOwnedStrings(owned_definition);
         } else {
             ArraySet(cur, 0, cur[0] + 1);
         }

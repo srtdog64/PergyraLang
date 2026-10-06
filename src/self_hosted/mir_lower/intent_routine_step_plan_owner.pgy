@@ -63,7 +63,7 @@ func MirIntentRoutineStepPlanFromOwners(
     let outcome_result_names: Array<String> = [];
     let step_index: Int = 0;
     while step_index < ArrayLength(step_names) {
-        let step_name: String = step_names[step_index];
+        let step_name: String = Concat("", step_names[step_index]);
         let zone_name: String = "";
         let zone_alias: String = "";
         let who_name: String = "";

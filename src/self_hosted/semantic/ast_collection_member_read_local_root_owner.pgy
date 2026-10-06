@@ -1,0 +1,103 @@
+// Read lending of a direct Array<String> field of a local struct root.
+// A field read is admitted only while no occurrence of the same root in the
+// body can alias, mutate, consume or release that field's storage. Scalar and
+// non-sequence fields carry no descriptor and are not storage effects.
+import "ast_local_binding_identity_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_member_read_call_target_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+
+// The local declaration identity of a direct field read, or 0.
+func SemanticAstCollectionMemberReadLocalRoot(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref graph: SemanticExpressionGraphFacts,
+    function_id: Int, syntax_id: Int, node: Int,
+    identity: SemanticAstCollectionMemberMoveIdentity
+) -> Int {
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+    if !identity.ok || !identity.string_array_field || !member.ok ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id) { return 0; }
+    let root_local: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, syntax_id, graph, member.receiver_node);
+    if !root_local.ok || root_local.declaration_node_id != identity.source_binding_syntax_id { return 0; }
+    return root_local.declaration_node_id;
+}
+
+// One occurrence of a local root leaf. Returns -1 when it may affect a
+// sequence field's storage, or 0 for a read or a readonly lending.
+// Unknown topology or field identity fails closed.
+func SemanticAstCollectionMemberReadLocalRootUse(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref graph: SemanticExpressionGraphFacts, ref contexts: SemanticAstCollectionFormalExecutionContexts,
+    function_id: Int, syntax_id: Int, target_lane: Bool, leaf: Int, root: Int
+) -> Int {
+    let occurrence: Int = leaf;
+    let other_field: Bool = false;
+    if leaf + 2 <= root {
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf + 2);
+        if member.ok && member.receiver_node == leaf {
+            let identity: SemanticAstCollectionMemberMoveIdentity = SemanticAstCollectionMemberMoveIdentityForNode(
+                artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+                function_id, syntax_id, graph, leaf + 2);
+            if !identity.ok { return -1; }
+            other_field = !identity.string_array_field;
+            occurrence = leaf + 2;
+        }
+    }
+    if !other_field && (target_lane || occurrence == root ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id)) { return -1; }
+    let consumer: Int = occurrence + 1;
+    while consumer <= root {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);
+        if (IsSome(left) && UnwrapOption(left) == occurrence) ||
+            (IsSome(right) && UnwrapOption(right) == occurrence) { break; }
+        consumer = consumer + 1;
+    }
+    if consumer > root && other_field { return 0; }
+    if consumer > root { return -1; }
+    let kind: Int = graph.arena.topology.node_kinds[consumer];
+    if other_field {
+        // A nested field may share a sequence descriptor; only a user formal
+        // that may write or consume it is a storage effect on this root.
+        if kind != AstExpressionNodeCallArgument() { return 0; }
+        let other_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+        if !other_edge.ok || other_edge.argument_node != occurrence { return 0; }
+        let other_target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, other_edge.call_node, other_edge.ordinal);
+        if !other_target.ok { return 0; }
+        let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, other_target.signature_row, other_target.ordinal);
+        if !IsSome(mode) || UnwrapOption(mode) == 1 || UnwrapOption(mode) == 2 { return -1; }
+        return 0;
+    }
+    if occurrence != leaf && kind == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        if IsSome(base) && UnwrapOption(base) == occurrence { return 0; }
+        return -1;
+    }
+    if kind != AstExpressionNodeCallArgument() { return -1; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    if !edge.ok || edge.argument_node != occurrence { return -1; }
+    if occurrence != leaf && edge.ordinal == 0 &&
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayLength") { return 0; }
+    // A returned aggregate may capture the root: no statement of this body
+    // runs after the terminal tail, so no later read can observe that alias.
+    let constructor_name: Option<String> = SemanticExpressionGraphCallTargetName(graph, edge.call_node);
+    if IsSome(constructor_name) &&
+        IsSome(SemanticAstNominalConstructorIndexForName(constructors, UnwrapOption(constructor_name))) &&
+        SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) { return 0; }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionMemberReadCallTarget(
+        artifact, signatures, graph, edge.call_node, edge.ordinal);
+    if !target.ok || target.syntax_id <= 0 { return -1; }
+    // A readonly or ref formal cannot write, consume or return the lent
+    // root's sequence storage, so lending the whole root opens no writable
+    // alias. A field read still needs the callee's observed execution.
+    if occurrence == leaf { return 0; }
+    if !SemanticAstCollectionFormalExecutionContextCallableReady(
+            artifact, contexts, signatures.function_node_ids[target.signature_row]) { return -1; }
+    return 0;
+}

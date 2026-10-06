@@ -35,6 +35,12 @@ func SemanticAstBodyTypeBundleAdmissionError(
 ) -> SemanticAstBodyTypeBundle {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
+    // The retaining error row is bound before the terminal aggregate so the
+    // returned bundle carries one completed descriptor, not a nested effect.
+    let specialization_error: SemanticAstGenericSpecializationFacts = SemanticAstGenericSpecializationError(
+        "body_analysis_admission", message,
+        empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
+    );
     return SemanticAstBodyTypeBundle(
         SemanticAstBodyVerdictError("body_analysis_admission", message, -1),
         SemanticAstInitializerTypeStructuralError(artifact),
@@ -53,10 +59,7 @@ func SemanticAstBodyTypeBundleAdmissionError(
         SemanticAstZoneValueCarriageVerdictError(
             "body_analysis_admission", message, -1
         ),
-        SemanticAstGenericSpecializationError(
-            "body_analysis_admission", message,
-            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
-        ),
+        specialization_error,
         SemanticAstCapabilityFactsError(artifact, message),
         SemanticAstNumericStringAllocationCallsEmpty(),
         SemanticAstOwnedStringResultFactsEmpty()

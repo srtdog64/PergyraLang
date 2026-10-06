@@ -21,7 +21,7 @@ fail() { echo "[collection-borrowed-descriptor-read] $*; evidence=$REL" >&2; exi
 170	src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy
 45	src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy
 140	src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy
-80	src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy
+100	src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy
 40	src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy
 110	src/self_hosted/semantic/ast_collection_owned_generation_order_owner.pgy
 110	src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy
@@ -82,7 +82,9 @@ for backend in c llvm; do
         case "$name" in
             inout_use_unique_scalar_raw_negative)
                 grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$name.log" || fail "$name lost formal mutation diagnosis"
-                grep -Fq 'unproved_formal_shallow_mutation_entry' "$WORK/$backend-$name.log" || fail "$name bypassed raw insertion refusal" ;;
+                # The raw insertion makes AppendUnique's text formal retaining, so
+                # the borrowed element is refused where it enters that formal.
+                grep -Fq 'unproved_formal_element_use_entry' "$WORK/$backend-$name.log" || fail "$name bypassed raw insertion refusal" ;;
             borrow_formal_member_array_return_negative)
                 grep -Fq -- '- callee: Publish' "$WORK/$backend-$name.log" || fail "$name lost ordinary publication boundary"
                 grep -Fq -- '- argument_index: 0' "$WORK/$backend-$name.log" || fail "$name lost physical argument identity" ;;

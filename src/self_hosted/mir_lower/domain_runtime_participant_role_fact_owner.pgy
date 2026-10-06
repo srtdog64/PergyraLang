@@ -144,14 +144,6 @@ func MirDomainParticipantRoleFactsFromTable(
                  roles[row_index] == "relation-target")) {
             return EmptyMirDomainParticipantRoleFacts(false);
         }
-        let current: MirDomainParticipantRoleFacts =
-            MirDomainParticipantRoleFacts(
-                true, program_ids, owner_ids, roles, field_ids,
-                owner_names, field_names, field_types
-            );
-        if !MirDomainParticipantOwnerIdentityReady(current, row_index) {
-            return EmptyMirDomainParticipantRoleFacts(false);
-        }
         row_index = row_index + 1;
     }
     let declaration_row: Int = 0;
@@ -193,8 +185,18 @@ func MirDomainParticipantRoleFactsFromTable(
         }
         declaration_row = declaration_row + 1;
     }
-    return MirDomainParticipantRoleFacts(
+    // Owner identity is checked once over the completed rows; no per-row
+    // snapshot aliases the descriptors that the next row still grows.
+    let facts: MirDomainParticipantRoleFacts = MirDomainParticipantRoleFacts(
         true, program_ids, owner_ids, roles, field_ids,
         owner_names, field_names, field_types
     );
+    let identity_row: Int = 0;
+    while identity_row < row_index {
+        if !MirDomainParticipantOwnerIdentityReady(facts, identity_row) {
+            return EmptyMirDomainParticipantRoleFacts(false);
+        }
+        identity_row = identity_row + 1;
+    }
+    return facts;
 }

@@ -26,7 +26,7 @@ func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
 
 func FixturePathFromArgs(args: Array<String>) -> String {
     if ArrayLength(args) > 0 {
-        return args[0];
+        return Concat("", args[0]);
     }
     return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json";
 }

@@ -6,68 +6,67 @@ import "declaration_generic_rows_owner.pgy";
 func SelfMirDeclarationsFromAnalysis(
     artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
     enum_facts: SemanticAstEnumFacts) -> SelfMirDeclarationRows {
-    let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
-    let kinds: Array<String> = rows.kinds;
-    let nominal_kinds: Array<String> = rows.nominal_kinds;
-    let names: Array<String> = rows.names;
-    let source_syntax_ids: Array<Int> = rows.source_syntax_ids;
-    let source_module_paths: Array<String> = rows.source_module_paths;
-    let target_types: Array<String> = rows.target_types;
-    let uses_pointer_self: Array<Int> = rows.uses_pointer_self;
-    let field_starts: Array<Int> = rows.field_starts;
-    let field_counts: Array<Int> = rows.field_counts;
-    let field_names: Array<String> = rows.field_names;
-    let field_kinds: Array<String> = rows.field_kinds;
-    let field_types: Array<String> = rows.field_types;
-    let field_source_syntax_ids: Array<Int> = rows.field_source_syntax_ids;
-    let method_starts: Array<Int> = rows.method_starts;
-    let method_counts: Array<Int> = rows.method_counts;
-    let method_names: Array<String> = rows.method_names;
-    let method_source_syntax_ids: Array<Int> = rows.method_source_syntax_ids;
-    let method_returns: Array<String> = rows.method_returns;
-    let method_is_actions: Array<Int> = rows.method_is_actions;
-    let method_requires_starts: Array<Int> = rows.method_requires_starts;
-    let method_requires_counts: Array<Int> = rows.method_requires_counts;
-    let method_requires_names: Array<String> = rows.method_requires_names;
-    let method_within_zone_names: Array<String> = rows.method_within_zone_names;
-    let method_causes_names: Array<String> = rows.method_causes_names;
-    let method_authorized_by_starts: Array<Int> = rows.method_authorized_by_starts;
-    let method_authorized_by_counts: Array<Int> = rows.method_authorized_by_counts;
-    let method_authorized_by_names: Array<String> = rows.method_authorized_by_names;
-    let method_caps_present: Array<Int> = rows.method_caps_present;
-    let method_cap_starts: Array<Int> = rows.method_cap_starts;
-    let method_cap_counts: Array<Int> = rows.method_cap_counts;
-    let method_cap_names: Array<String> = rows.method_cap_names;
-    let method_effects_present: Array<Int> = rows.method_effects_present;
-    let method_effect_starts: Array<Int> = rows.method_effect_starts;
-    let method_effect_counts: Array<Int> = rows.method_effect_counts;
-    let method_effect_names: Array<String> = rows.method_effect_names;
-    let variant_starts: Array<Int> = rows.variant_starts;
-    let variant_counts: Array<Int> = rows.variant_counts;
-    let variant_names: Array<String> = rows.variant_names;
-    let variant_param_starts: Array<Int> = rows.variant_param_starts;
-    let variant_param_counts: Array<Int> = rows.variant_param_counts;
-    let variant_param_type_names: Array<String> = rows.variant_param_type_names;
-    let generic_starts: Array<Int> = rows.generic_starts;
-    let generic_counts: Array<Int> = rows.generic_counts;
-    let generic_names: Array<String> = rows.generic_names;
-    let generic_constraints: Array<String> =
-        rows.generic_constraint_type_names;
-    let generic_defaults: Array<String> = rows.generic_default_type_names;
-    let method_param_starts: Array<Int> = rows.method_param_starts;
-    let method_param_counts: Array<Int> = rows.method_param_counts;
-    let method_param_names: Array<String> = rows.method_param_names;
-    let method_param_types: Array<String> = rows.method_param_type_names;
-    let role_slot_starts: Array<Int> = rows.role_slot_starts;
-    let role_slot_counts: Array<Int> = rows.role_slot_counts;
-    let role_slot_names: Array<String> = rows.role_slot_names;
-    let role_slot_types: Array<String> = rows.role_slot_type_names;
-    let role_slot_dynamic: Array<Int> = rows.role_slot_dynamic;
-    let role_impl_starts: Array<Int> = rows.role_impl_starts;
-    let role_impl_counts: Array<Int> = rows.role_impl_counts;
-    let role_impl_ability_names: Array<String> = rows.role_impl_ability_names;
-    let role_impl_method_starts: Array<Int> = rows.role_impl_method_starts;
-    let role_impl_method_counts: Array<Int> = rows.role_impl_method_counts;
+    // Each row family owns a fresh descriptor; no family aliases another.
+    let kinds: Array<String> = [];
+    let nominal_kinds: Array<String> = [];
+    let names: Array<String> = [];
+    let source_syntax_ids: Array<Int> = [];
+    let source_module_paths: Array<String> = [];
+    let target_types: Array<String> = [];
+    let uses_pointer_self: Array<Int> = [];
+    let field_starts: Array<Int> = [];
+    let field_counts: Array<Int> = [];
+    let field_names: Array<String> = [];
+    let field_kinds: Array<String> = [];
+    let field_types: Array<String> = [];
+    let field_source_syntax_ids: Array<Int> = [];
+    let method_starts: Array<Int> = [];
+    let method_counts: Array<Int> = [];
+    let method_names: Array<String> = [];
+    let method_source_syntax_ids: Array<Int> = [];
+    let method_returns: Array<String> = [];
+    let method_is_actions: Array<Int> = [];
+    let method_requires_starts: Array<Int> = [];
+    let method_requires_counts: Array<Int> = [];
+    let method_requires_names: Array<String> = [];
+    let method_within_zone_names: Array<String> = [];
+    let method_causes_names: Array<String> = [];
+    let method_authorized_by_starts: Array<Int> = [];
+    let method_authorized_by_counts: Array<Int> = [];
+    let method_authorized_by_names: Array<String> = [];
+    let method_caps_present: Array<Int> = [];
+    let method_cap_starts: Array<Int> = [];
+    let method_cap_counts: Array<Int> = [];
+    let method_cap_names: Array<String> = [];
+    let method_effects_present: Array<Int> = [];
+    let method_effect_starts: Array<Int> = [];
+    let method_effect_counts: Array<Int> = [];
+    let method_effect_names: Array<String> = [];
+    let variant_starts: Array<Int> = [];
+    let variant_counts: Array<Int> = [];
+    let variant_names: Array<String> = [];
+    let variant_param_starts: Array<Int> = [];
+    let variant_param_counts: Array<Int> = [];
+    let variant_param_type_names: Array<String> = [];
+    let generic_starts: Array<Int> = [];
+    let generic_counts: Array<Int> = [];
+    let generic_names: Array<String> = [];
+    let generic_constraints: Array<String> = [];
+    let generic_defaults: Array<String> = [];
+    let method_param_starts: Array<Int> = [];
+    let method_param_counts: Array<Int> = [];
+    let method_param_names: Array<String> = [];
+    let method_param_types: Array<String> = [];
+    let role_slot_starts: Array<Int> = [];
+    let role_slot_counts: Array<Int> = [];
+    let role_slot_names: Array<String> = [];
+    let role_slot_types: Array<String> = [];
+    let role_slot_dynamic: Array<Int> = [];
+    let role_impl_starts: Array<Int> = [];
+    let role_impl_counts: Array<Int> = [];
+    let role_impl_ability_names: Array<String> = [];
+    let role_impl_method_starts: Array<Int> = [];
+    let role_impl_method_counts: Array<Int> = [];
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(analysis.constructors) {
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
@@ -158,7 +157,7 @@ func SelfMirDeclarationsFromAnalysis(
                     return SelfMirDeclarationRowsEmpty();
                 }
                 if !SelfMirDeclarationAppendMethodContract(
-                    analysis.signatures, signature_i,
+                    analysis.signatures.action_contracts, signature_i,
                     method_is_actions,
                     method_requires_starts, method_requires_counts,
                     method_requires_names, method_within_zone_names,
@@ -257,7 +256,7 @@ func SelfMirDeclarationsFromAnalysis(
                 return SelfMirDeclarationRowsEmpty();
             }
             if !SelfMirDeclarationAppendMethodContract(
-                analysis.signatures, signature_i, method_is_actions,
+                analysis.signatures.action_contracts, signature_i, method_is_actions,
                 method_requires_starts, method_requires_counts,
                 method_requires_names, method_within_zone_names,
                 method_causes_names, method_authorized_by_starts,
@@ -391,7 +390,7 @@ func SelfMirDeclarationsFromAnalysis(
                 return SelfMirDeclarationRowsEmpty();
             }
             if !SelfMirDeclarationAppendMethodContract(
-                analysis.signatures, signature_i, method_is_actions,
+                analysis.signatures.action_contracts, signature_i, method_is_actions,
                 method_requires_starts, method_requires_counts,
                 method_requires_names, method_within_zone_names,
                 method_causes_names, method_authorized_by_starts,
@@ -527,7 +526,7 @@ func SelfMirDeclarationsFromAnalysis(
                         return SelfMirDeclarationRowsEmpty();
                     }
                     if !SelfMirDeclarationAppendMethodContract(
-                        analysis.signatures, signature_i, method_is_actions,
+                        analysis.signatures.action_contracts, signature_i, method_is_actions,
                         method_requires_starts, method_requires_counts,
                         method_requires_names, method_within_zone_names,
                         method_causes_names, method_authorized_by_starts,

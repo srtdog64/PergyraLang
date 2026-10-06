@@ -16,5 +16,6 @@
 import "run_owner.pgy";
 
 func Main() -> Void {
-    RunLexerFromArgs(Args());
+    let run_args: Array<String> = Args();
+    RunLexerFromArgs(run_args);
 }

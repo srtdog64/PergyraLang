@@ -192,9 +192,11 @@ func SemanticEnumCallableProjectionContractReady() -> Bool {
     let preserved_names: Array<String> = ["Keep"];
     let preserved_returns: Array<String> = ["Keep"];
     let preserved_params: Array<String> = [""];
-    return !SemanticEnumCallableRowsFromFacts(
+    // The row writer runs before the terminal tail reads its rows.
+    let broken_rows_published: Bool = SemanticEnumCallableRowsFromFacts(
         broken, preserved_names, preserved_returns, preserved_params
-    ) && ArrayLength(preserved_names) == 1 &&
+    );
+    return !broken_rows_published && ArrayLength(preserved_names) == 1 &&
         ArrayLength(preserved_returns) == 1 &&
         ArrayLength(preserved_params) == 1;
 }

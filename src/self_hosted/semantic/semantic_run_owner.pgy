@@ -41,7 +41,7 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
             Log(SemanticError2("input_missing", "expected", "oracle-json-and-code", "actual", "none"));
             Exit(1);
         }
-        EmitSemanticOracleJsonCodeMatch(args[1], args[2]);
+        EmitSemanticOracleJsonCodeMatch(Concat("", args[1]), Concat("", args[2]));
         return;
     }
     if args[0] == "--check" {
@@ -49,9 +49,9 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
             Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
             Exit(1);
         }
-        let check_bundle: SemanticSourceBundle = LoadSemanticSourceCheckBundle(args[1]);
+        let check_bundle: SemanticSourceBundle = LoadSemanticSourceCheckBundle(Concat("", args[1]));
         let check_content: String = check_bundle.content;
-        let check_error: String = CheckProgram(args[1], check_content);
+        let check_error: String = CheckProgram(Concat("", args[1]), check_content);
         if StringLength(check_error) > 0 {
             Log(check_error);
             Exit(1);
@@ -60,8 +60,8 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         return;
     }
 
-    let content: String = LoadSemanticSourceBundle(args[0]);
-    let error: String = CheckProgram(args[0], content);
+    let content: String = LoadSemanticSourceBundle(Concat("", args[0]));
+    let error: String = CheckProgram(Concat("", args[0]), content);
     if StringLength(error) > 0 {
         Log(error);
         return;

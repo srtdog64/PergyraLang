@@ -19,6 +19,42 @@ func SemanticAstCollectionCallRetirementSite(
     return 0;
 }
 
+func SemanticAstCollectionNodeEnclosedBy(
+    ref artifact: AstTreeArtifact, node: Int, ancestor_candidate: Int
+) -> Bool {
+    let ancestor: Int = node;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if ancestor == ancestor_candidate { return true; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return false; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+// A call inside a loop releases one generation per iteration when the
+// aggregate it releases is declared inside that same loop: every loop around
+// the call must also enclose the origin. A defer still never retires.
+func SemanticAstCollectionCallRetirementSiteForOrigin(
+    ref artifact: AstTreeArtifact, syntax_id: Int, origin_syntax_id: Int
+) -> Int {
+    let ancestor: Int = syntax_id;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) { return 0; }
+        if (TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag())) &&
+            !SemanticAstCollectionNodeEnclosedBy(artifact, origin_syntax_id, ancestor) { return 0; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return syntax_id; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return 0;
+}
+
 func SemanticAstCollectionMutableCallMayBeRetired(
     ref artifact: AstTreeArtifact, syntax_id: Int, first_retiring_syntax_id: Int
 ) -> Bool {

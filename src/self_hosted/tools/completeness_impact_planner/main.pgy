@@ -168,7 +168,7 @@ func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
     let unmatched: Int = 0;
     let path_i: Int = 0;
     while path_i < ArrayLength(paths) {
-        let path: String = paths[path_i];
+        let path: String = Concat("", paths[path_i]);
         let path_matched: Bool = false;
         let row_i: Int = 0;
         while row_i < CompilerCompletenessImpactRowCount() {

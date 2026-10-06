@@ -11,5 +11,6 @@
 import "run_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
-    RunParserFromArgs(Args());
+    let run_args: Array<String> = Args();
+    RunParserFromArgs(run_args);
 }

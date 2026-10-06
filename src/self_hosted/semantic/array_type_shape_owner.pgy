@@ -10,6 +10,21 @@ func SemanticArrayElementType(type_name: String) -> Option<String> {
     return None;
 }
 
+// The same Array<...> shape read in place from a borrowed type row. Only
+// character codes are observed, so the row is never bound or forwarded.
+func SemanticArrayTypeNameAt(ref type_names: Array<String>, row: Int) -> Bool {
+    if row < 0 || row >= ArrayLength(type_names) { return false; }
+    let length: Int = StringLength(type_names[row]);
+    if length < 8 || CharCode(type_names[row], length, length - 1) != 62 { return false; }
+    let prefix: String = "Array<";
+    let i: Int = 0;
+    while i < 6 {
+        if CharCode(type_names[row], length, i) != CharCode(prefix, 6, i) { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
 func SemanticOwnedSequenceElementType(type_name: String) -> Option<String> {
     if IsSome(SemanticArrayElementType(type_name)) {
         return SemanticArrayElementType(type_name);

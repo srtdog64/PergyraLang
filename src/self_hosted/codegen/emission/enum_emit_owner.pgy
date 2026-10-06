@@ -290,7 +290,8 @@ func CollectEnums(
         ArrayPush(selected, 1);
         i = i + 1;
     }
-    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(env_box[0], "");
+    // The preseal row text is read through an owned copy of the box slot.
+    let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(Concat("", env_box[0]), "");
     let batch: CodegenEnumDeclarationBatchFact =
         CollectEnumsSelected(facts, selected, env);
     CodegenTypeEnvAdvancePresealRows(env_box, env, batch.env_rows);

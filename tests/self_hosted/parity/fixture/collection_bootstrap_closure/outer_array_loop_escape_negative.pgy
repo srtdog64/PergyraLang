@@ -1,0 +1,35 @@
+struct Facts {
+    names: Array<String>;
+    types: Array<String>;
+}
+
+struct Bindings {
+    names: Array<String>;
+    types: Array<String>;
+}
+
+func Use(ref facts: Bindings) -> Int {
+    return ArrayLength(facts.names);
+}
+
+func Build(ref facts: Facts, count: Int) -> Int {
+    let total: Int = 0;
+    let round: Int = 0;
+    let names: Array<String> = []; let types: Array<String> = [];
+    while round < count {
+        let i: Int = 0;
+        while i < ArrayLength(facts.names) {
+            ArrayPush(names, facts.names[i]); ArrayPush(types, facts.types[i]);
+            i = i + 1;
+        }
+        let bindings: Bindings = Bindings(names, types);
+        total = total + Use(bindings);
+        round = round + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let facts: Facts = Facts(["a"], ["b"]);
+    Log(ToString(Build(facts, 2)));
+}

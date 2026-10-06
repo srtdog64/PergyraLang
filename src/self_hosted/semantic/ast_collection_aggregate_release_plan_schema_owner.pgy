@@ -42,6 +42,10 @@ struct SemanticAstCollectionAggregateReleasePlan {
     carrier_restoration_syntax_ids: Array<Int>;
     protected_binding_ids: Array<Int>;
     lineage_call_edge_nodes: Array<Int>;
+    // Per demand, the call edges from the origin's function down to the
+    // requirement call (outermost first), flattened at demand_chain_starts.
+    demand_chain_starts: Array<Int>;
+    demand_chain_edges: Array<Int>;
 }
 
 struct SemanticAstCollectionAggregateTrace {
@@ -50,6 +54,8 @@ struct SemanticAstCollectionAggregateTrace {
     invocation_call_nodes: Array<Int>;
     invocation_caller_functions: Array<Int>;
     invocation_caller_syntax_ids: Array<Int>;
+    // Caller edges crossed while ascending from a formal (innermost first).
+    entry_edges: Array<Int>;
 }
 
 func SemanticAstCollectionAggregateReleasePlanEmpty(
@@ -80,6 +86,8 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
     let carrier_restoration_syntax_ids: Array<Int> = [];
     let protected_binding_ids: Array<Int> = [];
     let lineage_call_edge_nodes: Array<Int> = [];
+    let demand_chain_starts: Array<Int> = [];
+    let demand_chain_edges: Array<Int> = [];
     return SemanticAstCollectionAggregateReleasePlan(
         true, -1,
         call_surface_rows, call_function_ids, call_syntax_ids,
@@ -93,7 +101,8 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
         carrier_function_ids, carrier_local_ids, carrier_scope_ids,
         carrier_source_binding_ids, carrier_field_ids,
         carrier_release_edge_nodes, carrier_restoration_syntax_ids,
-        protected_binding_ids, lineage_call_edge_nodes
+        protected_binding_ids, lineage_call_edge_nodes,
+        demand_chain_starts, demand_chain_edges
     );
 }
 
@@ -104,9 +113,11 @@ func SemanticAstCollectionAggregateTraceEmpty(
     let invocation_call_nodes: Array<Int> = [];
     let invocation_caller_functions: Array<Int> = [];
     let invocation_caller_syntax_ids: Array<Int> = [];
+    let entry_edges: Array<Int> = [];
     return SemanticAstCollectionAggregateTrace(
         path_field_ids, path_parent_rows, invocation_call_nodes,
-        invocation_caller_functions, invocation_caller_syntax_ids
+        invocation_caller_functions, invocation_caller_syntax_ids,
+        entry_edges
     );
 }
 
@@ -148,6 +159,7 @@ func SemanticAstCollectionAggregateReleasePlanShapeReady(
         ArrayLength(plan.aggregate_origin_ids) == demands &&
         ArrayLength(plan.requirement_rows) == demands &&
         ArrayLength(plan.reserved) == demands &&
+        ArrayLength(plan.demand_chain_starts) == demands &&
         ArrayLength(plan.carrier_function_ids) == carriers &&
         ArrayLength(plan.carrier_scope_ids) == carriers &&
         ArrayLength(plan.carrier_source_binding_ids) == carriers &&

@@ -175,8 +175,7 @@ func DirectMirRoutineSignatureFactAt(
             routines, index, row, routines.names[row]);
         if !carriers.valid { return InvalidDirectMirRoutineSignatureFact(); }
         bindings = MirIntentBindingProjectionFromCarriers(
-            carriers.carrier_names, carriers.carrier_arg0s, carriers.carrier_arg1s,
-            carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
+            carriers,
             routines.names[row], ToInt(routines.source_syntax_ids[row]));
     }
     return DirectMirRoutineSignatureWithGenericEnvelopeAt(

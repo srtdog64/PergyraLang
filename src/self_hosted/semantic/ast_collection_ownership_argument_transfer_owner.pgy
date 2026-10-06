@@ -120,7 +120,10 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
                                 true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, edge.argument_node);
                         }
                         let retirement: Int = SemanticAstCollectionCallRetirementSite(artifact, syntax_id);
-                        if fresh_generation { retirement = syntax_id; }
+                        // A consumption in a function-exit tail retires only its own scope.
+                        if fresh_generation || SemanticAstCollectionTerminatingRetirementScope(artifact, syntax_id, true) >= 0 {
+                            retirement = syntax_id;
+                        }
                         MapSet(retired, ToString(source), retirement);
                     } else if (releasing || mutating) && formal_source > 0 {
                         // Keep local-drop metadata rules separate from own-source retirement.

@@ -48,11 +48,12 @@ func SemanticAstContainmentEmbeddingSlotRow(ref graph: SemanticExpressionGraphFa
     if graph.arena.topology.node_kinds[node] != AstExpressionNodeCallArgument() { return none; }
     if argument < 0 || argument >= node { return SemanticAstContainmentSlotRow(true, false, 0); }
     if graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() { return none; }
-    let argument_type: String = leaf_type_names[argument];
+    // Compare the borrowed element in place; binding it to a named String
+    // would be an element use the formal-effect owner cannot prove.
     let call: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(owner_names) {
-        if slot_types[row] == argument_type {
+        if slot_types[row] == leaf_type_names[argument] {
             if call < 0 {
                 call = graph.arena.topology.left_children[node];
                 while call >= 0 && call < node &&

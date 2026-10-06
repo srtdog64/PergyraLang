@@ -57,8 +57,9 @@ func MirIntentExecutionExactObjectFields(
             return MirIntentExecutionExactFields(false, starts, ends);
         }
         let key_end: Int = UnwrapOption(key_end_opt);
+        let expected_key: String = Concat("", expected[row]);
         if !JsonObjectKeyEqualsWithin(
-            json, cursor, key_end, expected[row]
+            json, cursor, key_end, expected_key
         ) {
             return MirIntentExecutionExactFields(false, starts, ends);
         }

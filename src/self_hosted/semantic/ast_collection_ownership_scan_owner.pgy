@@ -56,7 +56,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
             let statement_transitions: SemanticAstCollectionStatementTransitionResult =
                 SemanticAstCollectionStatementTransitionForSyntax(
                     artifact, signatures, locals, initializer_types, surfaces, statements, assignments,
-                    surfaces.node_ids[root_slot / 3], call_effects, ownership, dispositions, origins,
+                    surfaces.node_ids[root_slot / 3], call_effects, definitions, storage, current_definitions,
+                    ownership, dispositions, origins,
                     transition_states, owned_string_results, receipts);
             if !statement_transitions.ok {
                 verdict = SemanticAstCollectionOwnershipVerdictError(statement_transitions.diagnostic_code,

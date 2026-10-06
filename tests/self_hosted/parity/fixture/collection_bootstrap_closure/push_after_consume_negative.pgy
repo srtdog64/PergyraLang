@@ -1,0 +1,18 @@
+func Required(field: String, inout values: Array<String>) -> Bool {
+    ArrayPush(values, field);
+    return true;
+}
+
+func Consume(own values: Array<String>) -> Int {
+    let n: Int = ArrayLength(values);
+    ArrayDrop(values);
+    return n;
+}
+
+func Main() -> Void {
+    let ids: Array<String> = [];
+    if !Required("a", ids) { return; }
+    let n: Int = Consume(ids);
+    ArrayPush(ids, "late");
+    Log(ToString(n));
+}

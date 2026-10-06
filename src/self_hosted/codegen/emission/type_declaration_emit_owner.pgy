@@ -244,7 +244,7 @@ func CollectTypeDeclarations(
     let requires_bool_header: Bool =
         CodegenSemanticNominalsRequireProjectionReadyBool(nominal_facts);
     let dependency_env: CodegenTypeEnv =
-        CodegenTypeEnvFromPresealRows(env_box[0], "");
+        CodegenTypeEnvFromPresealRows(Concat("", env_box[0]), "");
     if !nominal_arrays.ok { Die("nominal record array usage facts are incomplete"); }
     // Array descriptors require only an element pointer. Completeness remains
     // governed by the emitted masks for direct fields and runtime bodies.
@@ -252,7 +252,7 @@ func CollectTypeDeclarations(
     let array_index: Int = 0;
     while array_index < ArrayLength(nominal_arrays.element_types) {
         let element: String = nominal_arrays.element_types[array_index];
-        ArrayPush(blocks, CollectionRuntimeNominalRecordArrayDeclaration(element));
+        ArrayPushOwnedString(blocks, CollectionRuntimeNominalRecordArrayDeclaration(element));
         ArrayPush(array_rows, Concat(element, "=s:struct|"));
         array_index = array_index + 1;
     }
@@ -279,7 +279,7 @@ func CollectTypeDeclarations(
         if enum_selected_count > 0 {
             let batch: CodegenEnumDeclarationBatchFact =
                 CollectEnumsSelected(enum_facts, enum_selected, dependency_env);
-            ArrayPush(blocks, batch.c_block);
+            ArrayPushOwnedString(blocks, Concat("", batch.c_block));
             dependency_env = CodegenTypeEnvAdvancePresealRows(
                 env_box, dependency_env, batch.env_rows
             );
@@ -314,7 +314,7 @@ func CollectTypeDeclarations(
                     nominal_facts, role_facts, nominal_selected, dependency_env,
                     nominal_arrays.element_types
                 );
-            ArrayPush(blocks, batch.c_block);
+            ArrayPushOwnedString(blocks, Concat("", batch.c_block));
             dependency_env = CodegenTypeEnvAdvancePresealRows(
                 env_box, dependency_env, batch.env_rows
             );
@@ -341,7 +341,7 @@ func CollectTypeDeclarations(
                         dependency_env
                     );
                 if wrapper_block.c_block != "" {
-                    ArrayPush(blocks, wrapper_block.c_block);
+                    ArrayPushOwnedString(blocks, Concat("", wrapper_block.c_block));
                 }
                 if wrapper_block.requires_bool_header {
                     requires_bool_header = true;

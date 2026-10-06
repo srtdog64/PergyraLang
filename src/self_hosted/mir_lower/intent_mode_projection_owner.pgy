@@ -1,4 +1,5 @@
 // Exact MIR IntentMode carrier -> reconstructed AST mode row.
+import "intent_routine_carrier_projection_owner.pgy";
 
 struct MirIntentModeProjection {
     valid: Bool;
@@ -6,25 +7,18 @@ struct MirIntentModeProjection {
     mode: String;
 }
 
+// Carrier rows stay fields of the borrowed projection; the mode is copied out.
 func MirIntentModeProjectionFromCarriers(
-    intent_name: String,
-    carrier_names: Array<String>,
-    carrier_arg0s: Array<String>,
-    carrier_arg1s: Array<String>,
-    carrier_slots: Array<String>,
-    carrier_results: Array<String>,
-    carrier_abi_type_names: Array<String>,
-    carrier_source_types: Array<String>,
-    carrier_expr0s: Array<String>
+    intent_name: String, ref carriers: MirIntentRoutineCarrierProjection
 ) -> MirIntentModeProjection {
-    let count: Int = ArrayLength(carrier_names);
-    if intent_name == "" || ArrayLength(carrier_arg0s) != count ||
-        ArrayLength(carrier_arg1s) != count ||
-        ArrayLength(carrier_slots) != count ||
-        ArrayLength(carrier_results) != count ||
-        ArrayLength(carrier_abi_type_names) != count ||
-        ArrayLength(carrier_source_types) != count ||
-        ArrayLength(carrier_expr0s) != count {
+    let count: Int = ArrayLength(carriers.carrier_names);
+    if intent_name == "" || ArrayLength(carriers.carrier_arg0s) != count ||
+        ArrayLength(carriers.carrier_arg1s) != count ||
+        ArrayLength(carriers.carrier_slots) != count ||
+        ArrayLength(carriers.carrier_results) != count ||
+        ArrayLength(carriers.carrier_abi_type_names) != count ||
+        ArrayLength(carriers.carrier_source_types) != count ||
+        ArrayLength(carriers.carrier_expr0s) != count {
         return MirIntentModeProjection(
             false, "MIR intent mode carrier arrays are misaligned", ""
         );
@@ -33,21 +27,21 @@ func MirIntentModeProjectionFromCarriers(
     let mode: String = "";
     let row: Int = 0;
     while row < count {
-        if carrier_names[row] == "IntentMode" {
+        if carriers.carrier_names[row] == "IntentMode" {
             matches = matches + 1;
-            if (carrier_arg0s[row] != "exclusive" &&
-                carrier_arg0s[row] != "concurrent") ||
-                carrier_arg1s[row] != intent_name ||
-                carrier_slots[row] != intent_name ||
-                carrier_results[row] != "" ||
-                carrier_abi_type_names[row] != "" ||
-                carrier_source_types[row] != "AST_INTENT_DECL" ||
-                carrier_expr0s[row] != "" {
+            if (carriers.carrier_arg0s[row] != "exclusive" &&
+                carriers.carrier_arg0s[row] != "concurrent") ||
+                carriers.carrier_arg1s[row] != intent_name ||
+                carriers.carrier_slots[row] != intent_name ||
+                carriers.carrier_results[row] != "" ||
+                carriers.carrier_abi_type_names[row] != "" ||
+                carriers.carrier_source_types[row] != "AST_INTENT_DECL" ||
+                carriers.carrier_expr0s[row] != "" {
                 return MirIntentModeProjection(
                     false, "MIR intent mode carrier shape is invalid", ""
                 );
             }
-            mode = carrier_arg0s[row];
+            mode = Concat("", carriers.carrier_arg0s[row]);
         }
         row = row + 1;
     }

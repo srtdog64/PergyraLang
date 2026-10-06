@@ -140,7 +140,7 @@ func CodegenIntentObservabilityEmitTypedStepBegin(
 func CodegenIntentObservabilityEmitAttributionRange(
     inout body: Array<String>, enabled: Bool,
     step_name: String, zone_name: String,
-    participant_names: Array<String>, start: Int, count: Int,
+    ref participant_names: Array<String>, start: Int, count: Int,
     slot_name: String
 ) -> Void {
     if start < 0 || count < 0 ||

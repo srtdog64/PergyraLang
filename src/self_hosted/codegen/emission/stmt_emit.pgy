@@ -213,7 +213,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             }
             CodegenTypeEnvStateAdoptAfterLastConsumer(env_state, statement_env);
             CodegenTypeEnvStateReleaseLocal(statement_env);
-            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(emitted_let, pad, "", "\n"));
+            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", emitted_let), pad, "", "\n"));
             if IsSome(resource_local_index) {
                 let local_name: String =
                     CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
@@ -282,7 +282,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                 assignment_target_type, env_state, env, assign_graph,
                 assign_target_graph
             );
-            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(emitted_assignment, pad, "", "\n"));
+            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", emitted_assignment), pad, "", "\n"));
             ArraySet(cur, 0, idx + 1); continue;
         }
         if CodegenSemanticStatementIs(
@@ -300,7 +300,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticStatementInferredTypeOrDie(
                     body_types.statement_types, idx, TypedAstKindLogStmtTag()
                 );
-            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(EmitLog(log_type, env, log_graph), pad, "", "\n"));
+            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", EmitLog(log_type, env, log_graph)), pad, "", "\n"));
             ArraySet(cur, 0, idx + 1); continue;
         }
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) {
@@ -583,7 +583,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             let cond: String = WrapExprWithSemanticGraph(
                 while_expr, env, while_graph
             );
-            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(cond, pad, "while ", " {\n"));
+            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", cond), pad, "while ", " {\n"));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
             let while_env: CodegenTypeEnvState =
@@ -613,7 +613,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             let cond2: String = WrapExprWithSemanticGraph(
                 if_expr, env, if_graph
             );
-            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(cond2, pad, "if ", " {\n"));
+            ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", cond2), pad, "if ", " {\n"));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
             CodegenAstArenaExpectBlock(arena, count, cur);

@@ -16,7 +16,7 @@ func MirJsonInputPath(args: Array<String>) -> String {
     if ArrayLength(args) < 1 {
         MirLowerFailClosed("usage: mir_lower <mir-json-file>");
     }
-    return args[0];
+    return Concat("", args[0]);
 }
 
 func MirJsonInputPressureStage(enabled: Bool, stage: String) -> Void {

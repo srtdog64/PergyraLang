@@ -40,11 +40,20 @@ func SemanticAstOwnedStringLiteralTransferFactsEmpty(
 func SemanticAstOwnedStringTransferFormalSource() -> Int { return 1; }
 func SemanticAstOwnedStringTransferLocalSource() -> Int { return 2; }
 
+// A local source and its literal share their nearest block; a loop
+// iteration re-binds both, so one transfer still pairs with one release.
+func SemanticAstOwnedStringLiteralTransferRegion(artifact: AstTreeArtifact, definition_id: Int) -> Int {
+    let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, definition_id);
+    if !IsSome(parent) || !TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(parent), TypedAstKindBlockTag()) { return 0; }
+    return UnwrapOption(parent);
+}
+
+// The region is the function for a formal source, else the literal's block.
 func SemanticAstOwnedStringLiteralTransferDirectDefinition(
-    artifact: AstTreeArtifact, function_id: Int, definition_id: Int
+    artifact: AstTreeArtifact, region_id: Int, definition_id: Int
 ) -> Bool {
-    if function_id <= 0 || definition_id <= 0 ||
-        function_id >= artifact.count || definition_id >= artifact.count {
+    if region_id <= 0 || definition_id <= 0 ||
+        region_id >= artifact.count || definition_id >= artifact.count {
         return false;
     }
     let parent: Option<Int> = TypedAstArenaParentId(
@@ -52,7 +61,7 @@ func SemanticAstOwnedStringLiteralTransferDirectDefinition(
     let remaining: Int = artifact.count;
     while IsSome(parent) && remaining > 0 {
         let node: Int = UnwrapOption(parent);
-        if node == function_id { return true; }
+        if node == region_id { return true; }
         let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node);
         if !IsSome(kind) { return false; }
         let value: Int = UnwrapOption(kind);
@@ -110,8 +119,10 @@ func SemanticAstOwnedStringLiteralTransferUsesReady(
                         !SemanticAstOwnedStringLiteralTransferDirectDefinition(
                             artifact, function_id,
                             surfaces.node_ids[slot / 3]) ||
-                        !SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
-                            surfaces, UnwrapOption(start), root, node) {
+                        (!SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
+                            surfaces, UnwrapOption(start), root, node) &&
+                         !SemanticAstOwnedStringLiteralTransferComparisonUseExclusive(
+                            surfaces.expression_graph, UnwrapOption(start), root, node)) {
                         return false;
                     }
                 }
@@ -128,7 +139,7 @@ func SemanticAstOwnedStringLiteralTransferDeepDropReady(
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
-    definition_row: Int, definition_slot: Int
+    definition_row: Int, definition_slot: Int, region_id: Int
 ) -> Bool {
     if definition_row < 0 || definition_row >= ArrayLength(locals.node_ids) {
         return false;
@@ -163,8 +174,7 @@ func SemanticAstOwnedStringLiteralTransferDeepDropReady(
                                 slot / 3, edge.argument_node);
                         if binding.ok && binding.row == definition_row {
                             if !SemanticAstOwnedStringLiteralTransferDirectDefinition(
-                                    artifact,
-                                    locals.function_node_ids[definition_row],
+                                    artifact, region_id,
                                     surfaces.node_ids[slot / 3]) {
                                 return false;
                             }
@@ -186,7 +196,7 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesReady(
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref binding: SemanticAstLocalBindingIdentity,
-    definition_slot: Int, element_leaf_node: Int
+    definition_slot: Int, element_leaf_node: Int, region_id: Int
 ) -> Bool {
     let transfer_uses: Int = 0;
     let slot: Int = 0;
@@ -213,8 +223,7 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesReady(
                         transfer_uses = transfer_uses + 1;
                     } else if slot >= definition_slot ||
                         !SemanticAstOwnedStringLiteralTransferDirectDefinition(
-                            artifact,
-                            locals.function_node_ids[binding.row],
+                            artifact, region_id,
                             surfaces.node_ids[slot / 3]) ||
                         (!SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
                             surfaces, UnwrapOption(start), root, node) &&
@@ -306,7 +315,7 @@ func SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
                         SemanticAstOwnedStringLiteralTransferDeepDropReady(
                             artifact, locals,
                             initializer_types.inferred_type_names, surfaces,
-                            definition, slot) {
+                            definition, slot, locals.function_node_ids[definition]) {
                         let existing: Int = 0;
                         while existing < ArrayLength(facts.formal_syntax_ids) {
                             if facts.formal_syntax_ids[existing] == formal.syntax_id {
@@ -339,6 +348,8 @@ func SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
                         IsSome(surface) {
                         let slot: Int = UnwrapOption(surface) * 3 +
                             AstExpressionLaneValue();
+                        let region: Int = SemanticAstOwnedStringLiteralTransferRegion(
+                            artifact, definitions.syntax_ids[definition]);
                         let domain: SemanticAstOwnedStringAllocationDomain =
                             SemanticAstOwnedStringExpressionAllocationDomain(
                                 artifact, signatures, locals,
@@ -358,18 +369,19 @@ func SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
                             SemanticAstOwnedStringValueDomainPreserved(
                                 results.domain_exposures,
                                 binding.declaration_node_id) &&
+                            region > 0 &&
                             SemanticAstOwnedStringLiteralTransferDirectDefinition(
-                                artifact,
-                                locals.function_node_ids[definition],
-                                definitions.syntax_ids[definition]) &&
+                                artifact, region, definitions.syntax_ids[definition]) &&
+                            SemanticAstOwnedStringLiteralTransferDirectDefinition(
+                                artifact, region, binding.declaration_node_id) &&
                             SemanticAstOwnedStringLiteralTransferLocalUsesReady(
                                 artifact, locals,
                                 initializer_types.inferred_type_names,
-                                surfaces, binding, slot, leaf) &&
+                                surfaces, binding, slot, leaf, region) &&
                             SemanticAstOwnedStringLiteralTransferDeepDropReady(
                                 artifact, locals,
                                 initializer_types.inferred_type_names,
-                                surfaces, definition, slot) {
+                                surfaces, definition, slot, region) {
                             let existing: Int = 0;
                             while existing <
                                     ArrayLength(facts.formal_syntax_ids) {

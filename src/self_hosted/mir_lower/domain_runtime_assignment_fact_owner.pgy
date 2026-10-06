@@ -264,11 +264,10 @@ func MirDomainRuntimeProjectionIdentityReady(
 
 func MirDomainRuntimePathJoinReady(
     ref declarations: MirProgramDeclarationIndex,
-    source_declaration_name: String,
     row: Int,
     ref facts: MirDomainProjectionAssignmentFacts
 ) -> Bool {
-    let owner_name: String = source_declaration_name;
+    let owner_name: String = facts.source_declaration_names[row];
     let built_path: String = "";
     let start: Int = facts.source_path_segment_starts[row];
     let count: Int = facts.source_path_segment_counts[row];
@@ -461,23 +460,6 @@ func MirDomainProjectionAssignmentFactsFromTable(
             }
             path_row = path_row + 1;
         }
-        let current: MirDomainProjectionAssignmentFacts =
-            MirDomainProjectionAssignmentFacts(
-                true, program_ids, owner_ids, directive_ids, operations,
-                projection_slot_ids, source_slot_ids, target_decl_ids,
-                target_decl_names, target_field_ids, source_decl_ids,
-                source_decl_names, explicit_maps, owner_names,
-                projection_slot_names, source_slot_names,
-                target_field_names, target_field_types, source_paths,
-                source_leaf_types, path_starts, path_counts,
-                path_field_ids, path_field_names, path_field_types,
-                topology_rows
-            );
-        if !MirDomainRuntimePathJoinReady(
-                declarations, source_decl_name, row_index, current
-            ) || !MirDomainRuntimeProjectionIdentityReady(current, row_index) {
-            return EmptyMirDomainProjectionAssignmentFacts(false);
-        }
         row_index = row_index + 1;
     }
     let topology_row: Int = 0;
@@ -497,16 +479,28 @@ func MirDomainProjectionAssignmentFactsFromTable(
         }
         topology_row = topology_row + 1;
     }
-    return MirDomainProjectionAssignmentFacts(
-        true, program_ids, owner_ids, directive_ids, operations,
-        projection_slot_ids, source_slot_ids, target_decl_ids,
-        target_decl_names, target_field_ids, source_decl_ids,
-        source_decl_names, explicit_maps, owner_names,
-        projection_slot_names, source_slot_names, target_field_names,
-        target_field_types, source_paths, source_leaf_types,
-        path_starts, path_counts, path_field_ids, path_field_names,
-        path_field_types, topology_rows
-    );
+    // Rows are joined once over the completed facts; no per-row snapshot
+    // aliases the descriptors that the next row still grows.
+    let facts: MirDomainProjectionAssignmentFacts =
+        MirDomainProjectionAssignmentFacts(
+            true, program_ids, owner_ids, directive_ids, operations,
+            projection_slot_ids, source_slot_ids, target_decl_ids,
+            target_decl_names, target_field_ids, source_decl_ids,
+            source_decl_names, explicit_maps, owner_names,
+            projection_slot_names, source_slot_names, target_field_names,
+            target_field_types, source_paths, source_leaf_types,
+            path_starts, path_counts, path_field_ids, path_field_names,
+            path_field_types, topology_rows
+        );
+    let joined_row: Int = 0;
+    while joined_row < row_index {
+        if !MirDomainRuntimePathJoinReady(declarations, joined_row, facts) ||
+            !MirDomainRuntimeProjectionIdentityReady(facts, joined_row) {
+            return EmptyMirDomainProjectionAssignmentFacts(false);
+        }
+        joined_row = joined_row + 1;
+    }
+    return facts;
 }
 
 func MirDomainRuntimeAssignmentFactsFromDocumentWithDeclarations(

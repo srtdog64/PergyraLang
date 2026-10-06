@@ -49,7 +49,7 @@ while IFS='|' read -r owner cap; do
     owners+=("$owner"); limits+=("$cap")
     make_lines "$owner" 0
 done <"$MANIFEST"
-[[ "${#owners[@]}" -eq 8 ]] || fail "responsibility migration scope changed"
+[[ "${#owners[@]}" -eq 14 ]] || fail "responsibility migration scope changed"
 for ((index = 0; index < ${#owners[@]}; index++)); do
     owner="${owners[$index]}"; cap="${limits[$index]}"
     [[ "$(lookup "$owner")" == "$cap" ]] || fail "lookup drifted: $owner"

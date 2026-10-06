@@ -57,15 +57,7 @@ func MirIntentRoutinePlanFromOwners(
     }
     let mode_projection: MirIntentModeProjection =
         MirIntentModeProjectionFromCarriers(
-            intent_name, routine_carriers.carrier_names,
-            routine_carriers.carrier_arg0s,
-            routine_carriers.carrier_arg1s,
-            routine_carriers.carrier_slots,
-            routine_carriers.carrier_results,
-            routine_carriers.carrier_abi_type_names,
-            routine_carriers.carrier_source_types,
-            routine_carriers.carrier_expr0s
-        );
+            intent_name, routine_carriers);
     if !mode_projection.valid {
         MirLowerFailClosed(mode_projection.diagnostic_message);
     }
@@ -126,23 +118,13 @@ func MirIntentRoutinePlanFromOwners(
     }
     let priority_projection: MirIntentPriorityProjection =
         MirIntentPriorityProjectionFromCarriers(
-            routines, intent_name, routine_carriers.carrier_names,
-            routine_carriers.carrier_arg0s,
-            routine_carriers.carrier_arg1s,
-            routine_carriers.carrier_slots,
-            routine_carriers.carrier_results,
-            routine_carriers.carrier_abi_type_names,
-            routine_carriers.carrier_source_types,
-            routine_carriers.carrier_expr0s,
-            routine_carriers.carrier_rows
-        );
+                routines, intent_name, routine_carriers);
     if !priority_projection.valid {
         MirLowerFailClosed(priority_projection.diagnostic_message);
     }
     let binding_projection: MirIntentBindingProjection =
         MirIntentBindingProjectionFromCarriers(
-            routine_carriers.carrier_names, routine_carriers.carrier_arg0s, routine_carriers.carrier_arg1s, routine_carriers.carrier_slots,
-            routine_carriers.carrier_binding_source_syntax_ids, intent_name, routine_syntax_id
+            routine_carriers, intent_name, routine_syntax_id
         );
     if !binding_projection.ok {
         MirLowerFailClosed("MIR intent bindings or steps are missing");
@@ -170,11 +152,7 @@ func MirIntentRoutinePlanFromOwners(
     }
     let phase_projection: MirIntentPhaseProjection =
         MirIntentPhaseProjectionFromCarriers(
-            routines, routine_row, typed_execution, step_names, routine_carriers.carrier_names, routine_carriers.carrier_arg0s,
-            routine_carriers.carrier_arg1s, routine_carriers.carrier_slots, routine_carriers.carrier_results,
-            routine_carriers.carrier_abi_type_names, routine_carriers.carrier_source_types, routine_carriers.carrier_expr0s,
-            routine_carriers.carrier_rows
-        );
+            routines, routine_row, typed_execution, step_names, routine_carriers);
     if !phase_projection.ok {
         MirLowerFailClosed(phase_projection.diagnostic_message);
     }

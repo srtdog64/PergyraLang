@@ -86,9 +86,9 @@ func EmitBlockStmtsWithExpressionOrder(
         }
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":resource:done"))))); }
         if ikind == "destructure" {
-            ArrayPush(chunks, RenderDestructureFromFactsWithExpressionOrder(
+            ArrayPush(chunks, Concat("", RenderDestructureFromFactsWithExpressionOrder(
                 json, kp, inst_end, indent, scalar.expr0, routines,
-                instruction.global_row, expression_order));
+                instruction.global_row, expression_order)));
         }
         // Resource-op rows are MIR evidence for an already-owned executable
         // def/stmt row.  Re-emitting expr0 here would manufacture a second
@@ -120,10 +120,10 @@ func EmitBlockStmtsWithExpressionOrder(
                     slot_anchor, " = ", expr0, " as ", arg1, "\n"];
                 ArrayPush(chunks, StringJoin(bind_parts, ""));
             } else if source_type == "AST_DEFER_STMT" {
-                ArrayPush(chunks, RenderDeferFromFactsWithExpressionOrder(
+                ArrayPush(chunks, Concat("", RenderDeferFromFactsWithExpressionOrder(
                     json, kp, inst_end, indent, arg0, arg1, defer_part,
                     instruction.global_row, expression_order
-                ));
+                )));
             } else if (ikind == "return" && StringLength(expr0) == 0) ||
                 source_type == "AST_RETURN_VOID" {
                 ArrayPush(chunks, Concat(indent, "Return\n"));
@@ -280,7 +280,7 @@ func EmitRegionWithExpressionOrder(
             observe_first_block, expression_order, abi_validation
         );
         if observe_first_block { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:block:", Concat(ToString(block_row), ":statements:done"))); }
-        ArrayPush(chunks, stmts);
+        ArrayPush(chunks, Concat("", stmts));
         let cond: String = BlockCondWithExpressionOrder(
             index, routines, routine_row, block_row, expression_order
         );
@@ -307,10 +307,10 @@ func EmitRegionWithExpressionOrder(
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 ArrayPush(chunks, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 ArrayPush(chunks, Concat(indent, "  Block:\n"));
-                ArrayPush(chunks, EmitRegionWithExpressionOrder(
+                ArrayPush(chunks, Concat("", EmitRegionWithExpressionOrder(
                     index, routines, routine_row,
                     t, cur, Concat(indent, "    "), cur, f, observe_first_block,
-                    expression_order, abi_validation));
+                    expression_order, abi_validation)));
                 cur = f;
             } else {
                 let structural_merge: String =
@@ -341,21 +341,21 @@ func EmitRegionWithExpressionOrder(
                 ArrayPush(chunks, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 ArrayPush(chunks, Concat(indent, "  Then:\n"));
                 ArrayPush(chunks, Concat(indent, "    Block:\n"));
-                ArrayPush(chunks, BlockMatchBindingLineWithExpressionOrder(
+                ArrayPush(chunks, Concat("", BlockMatchBindingLineWithExpressionOrder(
                     index, routines, routine_row, block_row,
-                    Concat(indent, "      "), expression_order));
-                ArrayPush(chunks, EmitRegionWithExpressionOrder(
+                    Concat(indent, "      "), expression_order)));
+                ArrayPush(chunks, Concat("", EmitRegionWithExpressionOrder(
                     index, routines, routine_row,
                     t, merge, Concat(indent, "      "), loop_header, loop_exit,
-                    observe_first_block, expression_order, abi_validation));
+                    observe_first_block, expression_order, abi_validation)));
                 if hasElse {
                     ArrayPush(chunks, Concat(indent, "  Else:\n"));
                     ArrayPush(chunks, Concat(indent, "    Block:\n"));
-                    ArrayPush(chunks, EmitRegionWithExpressionOrder(
+                    ArrayPush(chunks, Concat("", EmitRegionWithExpressionOrder(
                         index, routines, routine_row,
                         f, merge, Concat(indent, "      "), loop_header,
                         loop_exit, observe_first_block, expression_order,
-                        abi_validation));
+                        abi_validation)));
                 }
                 cur = merge;
             }
@@ -485,9 +485,11 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     if callable_kind == "action" { callable_label = "Action: "; }
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
-    let chunks: Array<String> = [Concat(
+    // One fresh descriptor owns every rendered row through its single release.
+    let chunks: Array<String> = [];
+    ArrayPushOwnedString(chunks, Concat(
         routine_indent, Concat(callable_label, Concat(routine, "\n"))
-    )];
+    ));
     let generic_count: Int = ArrayLength(header.generic_names);
     let constraint_text: String = "";
     if generic_count > 0 {
@@ -559,7 +561,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     let rtype: String = header.return_type;
     ArrayPushOwnedString(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
     if StringLength(contract_rows) > 0 {
-        ArrayPushOwnedString(chunks, contract_rows);
+        ArrayPushOwnedString(chunks, Concat("", contract_rows));
     }
     ArrayPushOwnedString(chunks, Concat(ppad, "Body:\n"));
     ArrayPushOwnedString(chunks, Concat(item_pad, "Block:\n"));

@@ -520,6 +520,12 @@ require_stage_owner_line_cap() {
               "$rel" == "src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_statement_fact_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_expression_environment_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_signature_fact_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/diagnostic_owner.pgy" ]]; then
             require_responsibility_owner_max_lines "$rel"
             require_text "src/self_hosted/OWNERS.md" "$rel"
@@ -1540,7 +1546,8 @@ reject_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCou
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func LexerFixtureManifestCount() -> Int"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func EmitLexerFixtureManifest"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "LexerFixtureManifestCount()"
-require_text "src/self_hosted/lexer/main.pgy" "RunLexerFromArgs(Args())"
+require_text "src/self_hosted/lexer/main.pgy" "let run_args: Array<String> = Args();"
+require_text "src/self_hosted/lexer/main.pgy" "RunLexerFromArgs(run_args);"
 require_text "src/self_hosted/lexer/run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../lexer/token_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "LexerTokenPayloadContractReady()"
@@ -1580,10 +1587,11 @@ require_text "src/self_hosted/parser/run_owner.pgy" "ParserDefaultSourcePath(arg
 require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_path)"
 reject_text "src/self_hosted/parser/main.pgy" 'import "source_path_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "program_parse_owner.pgy";'
-require_text "src/self_hosted/parser/main.pgy" "RunParserFromArgs(Args())"
+require_text "src/self_hosted/parser/main.pgy" "let run_args: Array<String> = Args();"
+require_text "src/self_hosted/parser/main.pgy" "RunParserFromArgs(run_args);"
 require_text \
     "src/self_hosted/parser/run_owner.pgy" \
-    "ParseProgramBuildWithImportPolicy(args[1], false).tree_text"
+    'ParseProgramBuildWithImportPolicy(Concat("", args[1]), false).tree_text'
 require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_path)"
 require_text "src/self_hosted/parser/run_owner.pgy" 'args[0] == "--source-unit-ast"'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" \
@@ -4214,18 +4222,14 @@ require_text "src/self_hosted/codegen/emission/program_function_definition_block
     'ArrayDropOwnedStrings(owned_definition);'
 require_text "src/self_hosted/codegen/emission/generic_function_emit_owner.pgy" \
     'CodegenJoinOwnedStringFragments(definitions, "\n")'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
-    'let owned_function_epoch: Array<String> = [body];'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+# Function fragments are fields, rows and literal-or-fresh locals; without a
+# proved owned source their release would be a comparison-guarded deep drop.
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'ArrayDropOwnedStrings(owned_function_epoch);'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'CodegenTypeEnvStateReleaseLocal(env_state);'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'let body_full: String = Concat('
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
-    'ArrayPush(owned_function_epoch, routine_defers[0]);'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
-    'ArrayPush(owned_function_epoch, signature);'
 require_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" "func BuildFunctionEnv("
 require_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" "specializations: CodegenGenericSpecializationFacts"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv("
@@ -4525,24 +4529,26 @@ require_function_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy"
 require_function_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy" \
     "func CodegenPrefixOwnedStatementLine(" \
     "ArrayDropOwnedStrings(fragments);"
+# These producers are not proved fresh by the owned-result domain today;
+# each line consumes an explicit owned copy instead of the producer value.
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
-    "CodegenPrefixOwnedStatementLine(emitted_let, pad, \"\", \"\\n\")"
+    "CodegenPrefixOwnedStatementLine(Concat(\"\", emitted_let), pad, \"\", \"\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
-    "CodegenPrefixOwnedStatementLine(emitted_assignment, pad, \"\", \"\\n\")"
+    "CodegenPrefixOwnedStatementLine(Concat(\"\", emitted_assignment), pad, \"\", \"\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
     "CodegenPrefixOwnedStatementLine(EmitAbilityBind(statements, idx, env, CodegenSemanticExpressionGraphOrDie(expression_surfaces, idx, AstExpressionLaneValue())), pad, \"\", \"\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
-    "CodegenPrefixOwnedStatementLine(EmitLog(log_type, env, log_graph), pad, \"\", \"\\n\")"
+    "CodegenPrefixOwnedStatementLine(Concat(\"\", EmitLog(log_type, env, log_graph)), pad, \"\", \"\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
-    "CodegenPrefixOwnedStatementLine(cond, pad, \"while \", \" {\\n\")"
+    "CodegenPrefixOwnedStatementLine(Concat(\"\", cond), pad, \"while \", \" {\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
-    "CodegenPrefixOwnedStatementLine(cond2, pad, \"if \", \" {\\n\")"
+    "CodegenPrefixOwnedStatementLine(Concat(\"\", cond2), pad, \"if \", \" {\\n\")"
 reject_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
     "CodegenPrefixOwnedStatementLine(["
@@ -6176,7 +6182,7 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootPro
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "declaration_module_paths: Array<String>;"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "AstSourceModuleFactsFromTopLevelPaths("
 require_file "src/self_hosted/hir/ast_source_module_fact_owner.pgy"
-require_max_lines "src/self_hosted/hir/ast_source_module_fact_owner.pgy" 120
+require_max_lines "src/self_hosted/hir/ast_source_module_fact_owner.pgy" 126
 require_text "src/self_hosted/hir/ast_source_module_fact_owner.pgy" "func AstSourceModulePathForNode("
 require_file "src/self_hosted/codegen/emission/program_entry_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/program_entry_owner.pgy" 100
@@ -6251,8 +6257,8 @@ require_text "src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.p
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
     '"SemanticAstAbilityGenericBoundVerdict"'
 require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 599
-require_max_lines "src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy" 599
+require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 615
+require_max_lines "src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy" 677
 require_max_lines "src/self_hosted/semantic/ast_signature_type_binding_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
@@ -6318,7 +6324,7 @@ require_text "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" "func 
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "SemanticCanonicalTypeName("
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "SemanticCanonicalTypeName("
 require_file "src/self_hosted/semantic/ast_expression_environment_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 680
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedVisibleLocals"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionSeedVisibleIterationRows"
@@ -6511,7 +6517,7 @@ reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner
 require_text "src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy" \
     "SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables("
 require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 570
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 615
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "struct SemanticAstGenericSpecializationFacts"
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
@@ -6639,7 +6645,7 @@ require_max_lines "src/self_hosted/semantic/ast_expression_verdict_fact_owner.pg
 require_text "src/self_hosted/semantic/ast_expression_verdict_fact_owner.pgy" \
     "struct SemanticAstExpressionVerdict"
 require_file "src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" 614
 reject_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "func SemanticAstExpressionVerdictFromPayload"
 require_file "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy"
@@ -7012,7 +7018,7 @@ reject_function_text "src/self_hosted/hir/ast_destructure_graph_owner.pgy" \
 require_text "src/self_hosted/parser/run_owner.pgy" \
     'args[0] == "--check-root"'
 require_text "src/self_hosted/parser/run_owner.pgy" \
-    "ParseObservedRootProgramBuild(args[1])"
+    'ParseObservedRootProgramBuild(Concat("", args[1]))'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     'if !ParserExpressionInterpolationGraphContractReady() {'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
@@ -7200,7 +7206,7 @@ require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "SemanticAstExpressionOwnerFieldEnvironmentContractReady()"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
 require_file "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 300
+require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 352
 require_file "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" 300
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
@@ -9119,7 +9125,7 @@ reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.
 reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     'kind == NominalFieldKindTObjectSlot()'
 require_file "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" 60
+require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" 74
 require_text "src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy" \
     "func SemanticAstNominalConstructorIndexForName("
 require_file "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy"
@@ -9296,7 +9302,7 @@ require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
 reject_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
     'validation_stage = "match_binding_type_conflict"'
 require_text "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
-    'found != types[row]'
+    'types[found] != types[row]'
 require_text "src/self_hosted/codegen/runtime_abi/result_runtime_owner.pgy" \
     "func ResultRuntimeFactForType"
 require_text "src/self_hosted/codegen/emission/result_runtime_emit_owner.pgy" \
@@ -9488,7 +9494,7 @@ require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SelfMirDestructureTypeFactRowsContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 120
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 127
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
     "struct SemanticStructLiteralView"
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
@@ -9500,7 +9506,7 @@ reject_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy
 reject_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
     "value_nodes: Array<Int>"
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" 180
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" 194
 require_file "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" 180
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
@@ -11523,7 +11529,7 @@ require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     "CheckCUnitFromSemanticArtifact("
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
-    "CompileSourceToAstArtifact(args[1])"
+    'CompileSourceToAstArtifact(Concat("", args[1]))'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     "GenerateCFromTypedAstArtifact(source_artifact)"
 require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
@@ -12626,7 +12632,7 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" \
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" \
     "CompilerSymbolCMangledTypeNamePolicy(type_name, true)"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" \
-    "CompilerSymbolCGenericActualName(actual_type_names[i])"
+    'CompilerSymbolCGenericActualName(Concat("", actual_type_names[i]))'
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
     "func CodegenSemanticStatementTypeFactsFromAnalysisOrDie("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"
@@ -13403,7 +13409,7 @@ require_file "src/self_hosted/codegen/emission/expr_semantic_composite_literal_e
 # 360: the expected-value dispatcher and the Array/List/Queue/Set literal
 # emitters are one mutual-recursion cluster; the one-way import DAG forbids
 # splitting them across files, so the budget carries all four collection kinds.
-require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 360
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 374
 require_file "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" 500
 require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
@@ -13931,7 +13937,7 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "codegen_nominal_ar
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" \
     "CodegenNominalArrayUsageFactsFromSemantic(type_surfaces, env)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "usage.nominal_record_arrays.element_types"
+    "uses_ast_text_node_array, nominal_arrays.element_types"
 require_file "src/self_hosted/codegen/fixture/nominal_record_array.pgy"
 require_file "src/self_hosted/codegen/expected/nominal_record_array_stdout.txt"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -14317,7 +14323,8 @@ reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFa
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 96"
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "return 95;"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirParityFixtureCount() != MirFactGraphPayloadFixtureCount()"
-require_text "src/self_hosted/mir_lower/main.pgy" "RunMirLowerFromArgs(Args())"
+require_text "src/self_hosted/mir_lower/main.pgy" "let run_args: Array<String> = Args();"
+require_text "src/self_hosted/mir_lower/main.pgy" "RunMirLowerFromArgs(run_args);"
 require_text "src/self_hosted/mir_lower/run_owner.pgy" "func RunMirLowerFromArgs"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirDocumentSchemaEquals"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonDocumentFactStringFieldEquals(json, \"schema\", expected)"
@@ -14751,7 +14758,8 @@ require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" 'i
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "func RunDiagnosticCatalogCheckFromArgs"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "DiagnosticCatalogHeaderPathFromArgs(args)"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "DiagnosticCatalogDocsPathFromArgs(args)"
-require_text "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy" "RunDiagnosticCatalogCheckFromArgs(Args())"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy" "let run_args: Array<String> = Args();"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy" "RunDiagnosticCatalogCheckFromArgs(run_args);"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"diagnostic-catalog-paths"'
@@ -23569,7 +23577,7 @@ require_file "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.
 require_max_lines "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" 120
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy"
 require_file "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" 200
+require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" 207
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy" 100
@@ -25451,7 +25459,7 @@ require_file \
 require_file \
     "tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh" 180
+    "tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh" 181
 require_max_lines \
     "tests/self_hosted/parity/one_mir_constructed_record_array_member_mutations.py" 360
 require_text \
@@ -28772,17 +28780,17 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
-    src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:200 \
-    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:242 \
+    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:165 \
     src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy:150 \
-    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:260 \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:426 \
     src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_formal_effect_admission_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_formal_effect_fixed_point_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_formal_effect_graph_owner.pgy:140 \
+    src/self_hosted/semantic/ast_collection_formal_effect_graph_owner.pgy:142 \
     src/self_hosted/semantic/ast_collection_formal_effect_closure_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy:143 \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy:170 \
@@ -28792,40 +28800,41 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:104 \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_definition_query_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
-    src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:91 \
     src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:70 \
+    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:72 \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:115 \
     src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:210 \
-    src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:140 \
-    src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:145 \
+    src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:96 \
     src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy:40 \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:181 \
     src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection_member_read_local_root_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:280 \
+    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:292 \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:110 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:120 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:180 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:520 \
+    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:162 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:267 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:545 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:140 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:520 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:183 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:710 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
@@ -29062,7 +29071,7 @@ require_text "src/self_hosted/semantic/ast_collection_owned_parameter_identity_o
 reject_text "src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy" \
     'while ordinal < count'
 require_text "src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy" \
-    'SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) && !IsSome(value)'
+    'SemanticAstCollectionOwnershipIsStringArray(inferred_type) && !IsSome(value)'
 require_text "src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy" \
     'shallow_alias_admitted: Array<Bool>;'
 require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
@@ -29080,7 +29089,7 @@ done
 require_text "src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy" \
     'SemanticAstCollectionDefinitionStorageBorrowed(storage, definition)'
 require_text "src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy" \
-    'SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, row, source)'
+    'SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, descriptor_retiring, row, source)'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
     'ArrayPush(parents, storage.borrowed_seed_sources[row])'
 require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \

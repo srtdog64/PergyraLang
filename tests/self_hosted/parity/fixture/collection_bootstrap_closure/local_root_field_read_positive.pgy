@@ -1,0 +1,36 @@
+struct Facts {
+    names: Array<String>;
+    count: Int;
+}
+
+func MakeFacts() -> Facts {
+    return Facts(["a", "b"], 2);
+}
+
+func Seed(names: Array<String>) -> Bool {
+    return ArrayLength(names) > 0 && names[0] == "a";
+}
+
+func Resolve(names: Array<String>) -> Bool {
+    if ArrayLength(names) == 0 { return false; }
+    return Seed(names);
+}
+
+
+func Mutate(inout names: Array<String>) -> Void {
+    ArrayPush(names, "m");
+}
+
+func Consume(own facts: Facts) -> Int {
+    return facts.count;
+}
+
+func Peek(ref facts: Facts) -> Int {
+    return facts.count;
+}
+
+func Main() -> Void {
+    let facts: Facts = MakeFacts();
+    if !Resolve(facts.names) { return; }
+    Log(ToString(facts.count));
+}

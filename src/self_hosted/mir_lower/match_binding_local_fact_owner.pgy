@@ -26,16 +26,19 @@ func MirMatchBindingRoutineWideType(
     ref names: Array<String>, ref types: Array<String>, wanted: String
 ) -> String {
     if ArrayLength(names) != ArrayLength(types) { return ""; }
-    let found: String = "";
+    // The borrowed row is compared in place; only the result is copied out.
+    let found: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(names) {
-        if names[row] == wanted && found != "" && found != types[row] {
+        if names[row] == wanted && found >= 0 && types[found] != "" &&
+            types[found] != types[row] {
             return "";
         }
-        if names[row] == wanted { found = types[row]; }
+        if names[row] == wanted { found = row; }
         row = row + 1;
     }
-    return found;
+    if found < 0 { return ""; }
+    return Concat("", types[found]);
 }
 
 // A row in the immutable routine-local view is the binding identity. Its

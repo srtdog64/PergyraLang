@@ -24,6 +24,8 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     syntax_id: Int, ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts, ref current_definitions: Array<Int>,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
@@ -76,9 +78,17 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     }
     let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
         artifact, call_effects, binding.row, syntax_id, ownership, dispositions, transition_states);
+    // A proved shallow call wrote the grown descriptor back to this exclusive
+    // fresh binding; only its own consumption, not sibling invalidation, ends it.
+    let definition: Int = current_definitions[binding.row];
+    let current_descriptor: Bool = origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
+        SemanticAstCollectionDefinitionStorageSource(storage, definitions, binding.row, definition) > 0 &&
+        SemanticAstCollectionCurrentDescriptorLiveAtUse(artifact, call_effects, definition, syntax_id) &&
+        !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id);
     if unknown || SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, syntax_id) ||
-        SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id,
-            call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]) {
+        (SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id,
+            call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]) &&
+         !current_descriptor) {
         return SemanticAstCollectionStatementTransitionResult(false, "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary", operation, "type", "Array<String>"), syntax_id, carried);
     }

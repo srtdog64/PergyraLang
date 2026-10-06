@@ -1,0 +1,22 @@
+// Shape of one routine's admitted intent carrier spine. Projection owners
+// borrow it whole, so no consumer re-lists its parallel rows.
+
+struct MirIntentRoutineCarrierProjection {
+    valid: Bool;
+    diagnostic_message: String;
+    carrier_names: Array<String>;
+    carrier_arg0s: Array<String>;
+    carrier_arg1s: Array<String>;
+    carrier_slots: Array<String>;
+    carrier_results: Array<String>;
+    carrier_abi_type_names: Array<String>;
+    carrier_source_types: Array<String>;
+    carrier_binding_source_syntax_ids: Array<Int>;
+    carrier_expr0s: Array<String>;
+    carrier_rows: Array<Int>;
+    resource_names: Array<String>;
+    resource_arg0s: Array<String>;
+    resource_arg1s: Array<String>;
+    resource_slots: Array<String>;
+    typed_body_mirror_rows: Array<Int>;
+}

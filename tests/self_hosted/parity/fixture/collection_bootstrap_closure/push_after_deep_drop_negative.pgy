@@ -1,0 +1,11 @@
+func Required(field: String, inout values: Array<String>) -> Bool {
+    ArrayPushOwnedString(values, Concat(field, "x"));
+    return true;
+}
+
+func Main() -> Void {
+    let ids: Array<String> = [];
+    if !Required("a", ids) { return; }
+    ArrayDropOwnedStrings(ids);
+    ArrayPush(ids, "late");
+}

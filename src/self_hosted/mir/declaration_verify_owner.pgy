@@ -44,7 +44,7 @@ func SelfMirDeclarationContractVocabularyRangeReady(
     let i: Int = 0;
     while i < count {
         let index: Int = CallableContractVocabularyFindIndex(
-            axis, rows[start + i]
+            axis, Concat("", rows[start + i])
         );
         if index < 0 ||
             CallableContractVocabularyCanonicalRankAt(index) <= previous_rank ||

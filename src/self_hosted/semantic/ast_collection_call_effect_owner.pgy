@@ -114,10 +114,14 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                         if local_array { definition = current[binding.row]; }
                         // A proved loop-local generation is consumed at this
                         // event, not by every iteration's future cleanup.
+                        // An exact constructor field retains only this
+                        // generation; the next iteration binds a fresh one.
                         // Opaque, escaping and nested/reordered events retain
                         // the conservative sentinel and sibling obligations.
-                        if site == 0 && local_array && effect.descriptor_retiring &&
-                            !effect.unknown && !effect.storage_escape &&
+                        let field_escape: Bool = effect.storage_escape && !effect.retiring &&
+                            effect.constructor_field.field_syntax_id > 0;
+                        if site == 0 && local_array && !effect.unknown &&
+                            ((effect.descriptor_retiring && !effect.storage_escape) || field_escape) &&
                             SemanticAstCollectionFreshLocalGenerationAtUse(
                                 artifact, locals, definitions, binding.row,
                                 definition, surfaces.node_ids[slot / 3], false) &&
@@ -126,9 +130,9 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                             site = surfaces.node_ids[slot / 3];
                             // Keep same-scope post-transfer checking with the
                             // ordered owner, without erasing later normal effects.
-                            terminal = terminal ||
+                            terminal = terminal || (!field_escape &&
                                 SemanticAstCollectionTerminatingRetirementScope(
-                                    artifact, site, false) >= 0;
+                                    artifact, site, false) >= 0);
                         }
                         SemanticAstCollectionFormalDescriptorRetentionRecord(retention,
                             source, target_formal, effect.storage_escape, definition,

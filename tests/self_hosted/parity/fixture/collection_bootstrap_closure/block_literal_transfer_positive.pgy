@@ -1,0 +1,42 @@
+func EmitOne(name: String) -> String {
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    TextBuilderAppend(output, name);
+    let definition: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return definition;
+}
+
+func EmitWrapped(name: String) -> String {
+    return EmitOne(name);
+}
+
+func EmitSet(name: String, generic: Bool) -> String {
+    if !generic {
+        let direct_definition: String = EmitWrapped(name);
+        return direct_definition;
+    }
+    let parts: Array<String> = [];
+    ArrayPushOwnedString(parts, EmitOne(name));
+    let joined: String = StringJoin(parts, "\n");
+    ArrayDropOwnedStrings(parts);
+    return joined;
+}
+
+func Main() -> Void {
+    let output: TextBuilder = TextBuilderNew(64);
+    let round: Int = 0;
+    while round < 2 {
+        let definition: String = EmitSet("f", false);
+        let owned_definition: Array<String> = [definition];
+        if owned_definition[0] != "" {
+            TextBuilderAppend(output, owned_definition[0]);
+        }
+        ArrayDropOwnedStrings(owned_definition);
+        round = round + 1;
+    }
+    let allocator: Allocator = AllocatorResult();
+    let text: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    Log(text);
+}

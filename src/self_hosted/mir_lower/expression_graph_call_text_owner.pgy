@@ -13,7 +13,7 @@ import "../hir/ast_text_scan_owner.pgy";
 func MirExpressionGraphCallArgumentTextReady(
     text: String, ref kinds: Array<Int>, ref texts: Array<String>, left: Int
 ) -> Bool {
-    let base: String = texts[left];
+    let base: String = Concat("", texts[left]);
     let length: Int = StringLength(base);
     if length < 1 || CodegenCharAt(base, length - 1) != ")" { return false; }
     let stem: String = Substring(base, 0, length - 1);

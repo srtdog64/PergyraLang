@@ -42,15 +42,19 @@ func CodegenIntentSourceRowOrDie(
     return found;
 }
 
+// The step authority range is read through the step facts formal; the
+// selected name is copied out of the borrowed rows.
 func CodegenIntentOptionalRangeNameOrDie(
-    values: Array<String>, start: Int, count: Int, kind: String
+    ref steps: SelfDirIntentStepFacts, step_row: Int, kind: String
 ) -> String {
+    let start: Int = steps.authorized_starts[step_row];
+    let count: Int = steps.authorized_counts[step_row];
     if start < 0 || count < 0 || count > 1 ||
-        start + count > ArrayLength(values) {
+        start + count > ArrayLength(steps.authorized_names) {
         Die(Concat("codegen DIR intent optional range is invalid: ", kind));
     }
     if count == 0 { return ""; }
-    return values[start];
+    return Concat("", steps.authorized_names[start]);
 }
 
 func CodegenIntentDefinitionBlock(
@@ -99,11 +103,7 @@ func CodegenIntentDefinitionBlock(
             let step_row: Int = step_start + local_step;
             let step_name: String = steps.names[step_row];
             let authority_alias: String =
-                CodegenIntentOptionalRangeNameOrDie(
-                    steps.authorized_names,
-                    steps.authorized_starts[step_row],
-                    steps.authorized_counts[step_row], "authority"
-                );
+                CodegenIntentOptionalRangeNameOrDie(steps, step_row, "authority");
             let outcome_count: Int = 0;
             if steps.outcome_node_ids[step_row] >= 0 {
                 if steps.outcome_names[step_row] == "" {
@@ -132,8 +132,7 @@ func CodegenIntentDefinitionBlock(
                             domain_runtime, intent_node,
                             intents.names[intent_index],
                             steps.receiver_aliases[step_row],
-                            steps.who_names, steps.who_starts[step_row],
-                            steps.who_counts[step_row],
+                            steps, step_row,
                             steps.using_aliases[step_row], authority_alias,
                             steps.where_zone_names[step_row], step_name,
                             expression_surfaces,
@@ -167,8 +166,7 @@ func CodegenIntentDefinitionBlock(
                     CodegenIntentEmitNestedCall(
                         body, expression_surfaces,
                         steps.target_expression_node_ids[step_row], step_name,
-                        steps.who_names, steps.who_starts[step_row],
-                        steps.who_counts[step_row],
+                        steps, step_row,
                         uses_intent_observability, step_env
                     );
                     ArrayPush(step_sync_expressions, "");
@@ -182,8 +180,7 @@ func CodegenIntentDefinitionBlock(
                         domain_runtime, intent_node,
                         intents.names[intent_index],
                         steps.receiver_aliases[step_row],
-                        steps.who_names, steps.who_starts[step_row],
-                        steps.who_counts[step_row],
+                        steps, step_row,
                         steps.using_aliases[step_row],
                         authority_alias, steps.where_zone_names[step_row],
                         step_name, expression_surfaces,

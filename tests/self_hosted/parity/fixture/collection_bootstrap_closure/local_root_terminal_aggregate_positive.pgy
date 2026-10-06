@@ -1,0 +1,29 @@
+struct Facts {
+    names: Array<String>;
+    count: Int;
+}
+
+struct Bundle {
+    facts: Facts;
+    ok: Bool;
+}
+
+func MakeFacts() -> Facts {
+    return Facts(["a", "b"], 2);
+}
+
+func Resolve(names: Array<String>) -> Bool {
+    if ArrayLength(names) == 0 { return false; }
+    return names[0] == "a";
+}
+
+func Build() -> Bundle {
+    let facts: Facts = MakeFacts();
+    let ok: Bool = Resolve(facts.names);
+    return Bundle(facts, ok);
+}
+
+func Main() -> Void {
+    let a: Bundle = Build();
+    Log(ToString(a.ok));
+}

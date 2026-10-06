@@ -348,7 +348,7 @@ func SemanticReleaseClaimedBuiltinRows(
             claimed = names[j] == names[i];
             j = j + 1;
         }
-        if claimed && !SemanticBuiltinNameReservationFor(names[i]).reserved {
+        if claimed && !SemanticBuiltinNameReservationFor(Concat("", names[i])).reserved {
             ArraySet(names, i, "");
         }
         i = i + 1;

@@ -1,0 +1,33 @@
+func Join(own fragments: Array<String>, separator: String) -> String {
+    let output: String = StringJoin(fragments, separator);
+    ArrayDropOwnedStrings(fragments);
+    return output;
+}
+
+func Prefix(own fragment: String, prefix: String) -> String {
+    let output: String = Concat(prefix, fragment);
+    let fragments: Array<String> = [fragment];
+    ArrayDropOwnedStrings(fragments);
+    return output;
+}
+
+func Emit(ref lines: Array<String>) -> String {
+    let result: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(lines) {
+        if lines[i] == "end" {
+            let s: String = Join(result, "");
+            Log(s);
+        }
+        let emitted: String = "";
+        emitted = Concat(lines[i], ";");
+        ArrayPushOwnedString(result, Prefix(Concat("", emitted), "  "));
+        i = i + 1;
+    }
+    return Join(result, "");
+}
+
+func Main() -> Void {
+    let lines: Array<String> = ["a", "end"];
+    Log(Emit(lines));
+}

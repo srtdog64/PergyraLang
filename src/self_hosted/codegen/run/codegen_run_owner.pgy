@@ -41,7 +41,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
         }
         Log("Phase: parse:start");
         let source_artifact: AstTreeArtifact =
-            CompileSourceToAstArtifact(args[1]);
+            CompileSourceToAstArtifact(Concat("", args[1]));
         Log("Phase: semantic:start");
         let semantic_analysis: SemanticAstArtifactAnalysis =
             SemanticAstArtifactAnalyzeTyped(source_artifact, false);
@@ -69,7 +69,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
         if !CompilerTargetCapabilityEnvelopeReady() {
             Die("target capability envelope is not ready for self-host C codegen");
         }
-        let check_tree_text: String = CodegenReadAst(args[1]);
+        let check_tree_text: String = CodegenReadAst(Concat("", args[1]));
         if CheckCUnit(check_tree_text, false) {
             Log("Diagnostic: pgy.selfhost.stage-check.v1");
             Log("Stage: codegen");
@@ -85,7 +85,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
             Die("target capability envelope is not ready for self-host C codegen");
         }
         let source_artifact: AstTreeArtifact =
-            CompileSourceToAstArtifact(args[1]);
+            CompileSourceToAstArtifact(Concat("", args[1]));
         Log(GenerateCFromTypedAstArtifact(source_artifact));
         return;
     }
@@ -98,7 +98,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
         }
         Log("[codegen-pressure-stage] source:start");
         let observed_source_artifact: AstTreeArtifact =
-            CompileSourceToAstArtifact(args[1]);
+            CompileSourceToAstArtifact(Concat("", args[1]));
         Log("[codegen-pressure-stage] source:done");
         Log("[codegen-pressure-stage] semantic:start");
         let observed_source_analysis: SemanticAstArtifactAnalysis =
@@ -118,7 +118,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
             Die("target capability envelope is not ready for self-host C codegen");
         }
         Log("[codegen-pressure-stage] input:start");
-        let observed_text: String = CodegenReadAst(args[1]);
+        let observed_text: String = CodegenReadAst(Concat("", args[1]));
         Log("[codegen-pressure-stage] input:done");
         let observed_artifact: AstTreeArtifact =
             CodegenAstArtifactFromTextObserved(observed_text, true);

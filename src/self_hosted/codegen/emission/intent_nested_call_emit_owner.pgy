@@ -4,6 +4,7 @@
 // called intent owns its participant/zone work and reports Bool success to the
 // enclosing intent cleanup boundary.
 
+import "../../dir/intent_row_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
@@ -15,9 +16,8 @@ func CodegenIntentEmitNestedCall(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     call_node: Int,
     step_name: String,
-    who_names: Array<String>,
-    who_start: Int,
-    who_count: Int,
+    ref steps: SelfDirIntentStepFacts,
+    step_row: Int,
     uses_intent_observability: Bool,
     env: CodegenTypeEnv
 ) -> Void {
@@ -36,7 +36,8 @@ func CodegenIntentEmitNestedCall(
     );
     CodegenIntentObservabilityEmitAttributionRange(
         body, uses_intent_observability, step_name,
-        "<zone>", who_names, who_start, who_count, "<unbound>"
+        "<zone>", steps.who_names, steps.who_starts[step_row],
+        steps.who_counts[step_row], "<unbound>"
     );
     let failure_line: String = CodegenIntentObservabilityFailureLine(
         uses_intent_observability, "intent", step_name

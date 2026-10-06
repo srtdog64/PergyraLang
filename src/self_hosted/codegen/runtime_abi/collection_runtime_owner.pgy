@@ -580,7 +580,7 @@ func CollectionRuntimeRecordArrayBlocks(
         ArrayPush(
             blocks,
             CollectionRuntimeNominalRecordArrayBlock(
-                nominal_element_types[index]
+                Concat("", nominal_element_types[index])
             )
         );
         index = index + 1;

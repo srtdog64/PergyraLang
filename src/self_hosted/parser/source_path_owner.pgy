@@ -7,7 +7,7 @@ import "source_refusal_owner.pgy";
 
 func ParserDefaultSourcePath(args: Array<String>) -> String {
     if ArrayLength(args) > 0 {
-        return args[0];
+        return Concat("", args[0]);
     }
     return "examples/hello.pgy";
 }

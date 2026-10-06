@@ -8,14 +8,14 @@ import "report_owner.pgy";
 
 func DiagnosticCatalogHeaderPathFromArgs(args: Array<String>) -> String {
     if ArrayLength(args) > 0 {
-        return args[0];
+        return Concat("", args[0]);
     }
     return "src/semantic/diag_codes.h";
 }
 
 func DiagnosticCatalogDocsPathFromArgs(args: Array<String>) -> String {
     if ArrayLength(args) > 1 {
-        return args[1];
+        return Concat("", args[1]);
     }
     return "docs/72_diagnostic_codes.md";
 }

@@ -68,14 +68,14 @@ func SelfMirDeclarationAppendMethodParams(
     return true;
 }
 func SelfMirDeclarationCopyStringRange(
-    source: Array<String>, start: Int, count: Int, inout target: Array<String>
+    ref source: Array<String>, start: Int, count: Int, inout target: Array<String>
 ) -> Bool {
     if start < 0 || count < 0 || start + count > ArrayLength(source) {
         return false;
     }
     let i: Int = 0;
     while i < count {
-        ArrayPush(target, source[start + i]);
+        ArrayPush(target, Concat("", source[start + i]));
         i = i + 1;
     }
     return true;
@@ -98,8 +98,10 @@ func SelfMirDeclarationRoleOverrideSuffixReady(
     }
     return true;
 }
+// The contract rows are read through their owning facts formal, so each
+// range copy is a direct formal-field read rather than a local struct view.
 func SelfMirDeclarationAppendMethodContract(
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstActionContractFacts,
     signature_index: Int,
     inout method_is_actions: Array<Int>,
     inout method_requires_starts: Array<Int>,
@@ -119,7 +121,6 @@ func SelfMirDeclarationAppendMethodContract(
     inout method_effect_counts: Array<Int>,
     inout method_effect_names: Array<String>
 ) -> Bool {
-    let facts: SemanticAstActionContractFacts = signatures.action_contracts;
     if signature_index < 0 ||
         signature_index >= ArrayLength(facts.callable_node_ids) {
         return false;

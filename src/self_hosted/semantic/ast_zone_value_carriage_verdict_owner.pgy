@@ -171,7 +171,10 @@ func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalCon
     let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
     if !call_roots.ok { return Some("world-zone call spine is incomplete"); }
     let i: Int = 0;
-    let value_types: Array<String> = [];
+    // Each node carries the nominal declaration its value names (-1: none).
+    // The type text is only ever used to find that declaration, so the
+    // borrowed leaf type is resolved in place instead of being stored.
+    let value_decls: Array<Int> = [];
     let world_field_ids: Array<Int> = [];
     let world_field_names: Array<String> = [];
     let node: Int = 0;
@@ -179,22 +182,25 @@ func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalCon
         let kind: Int = graph.arena.topology.node_kinds[node];
         let left: Int = graph.arena.topology.left_children[node];
         let right: Int = graph.arena.topology.right_children[node];
-        let value_type: String = "";
+        let value_decl: Int = -1;
         let world_field_id: Int = 0;
         let world_field_name: String = "";
         if kind == AstExpressionNodeLeaf() {
-            value_type = leaf_type_names[node];
+            let leaf_declaration: Option<Int> =
+                SemanticAstNominalConstructorIndexForNameAt(constructors, leaf_type_names, node);
+            if IsSome(leaf_declaration) { value_decl = UnwrapOption(leaf_declaration); }
         } else if kind == AstExpressionNodeMemberAccess() {
             if left < 0 || left >= node || right < 0 || right >= node { return Some("world-zone member edge is missing"); }
-            let declaration: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, value_types[left]);
-            if IsSome(declaration) {
-                let index: Int = UnwrapOption(declaration);
+            if value_decls[left] >= 0 {
+                let index: Int = value_decls[left];
                 let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
                     constructors, index, graph.arena.node_texts[right]
                 );
                 if IsSome(field) {
                     let row: Int = UnwrapOption(field);
-                    value_type = constructors.param_type_names[row];
+                    let field_declaration: Option<Int> =
+                        SemanticAstNominalConstructorIndexForNameAt(constructors, constructors.param_type_names, row);
+                    if IsSome(field_declaration) { value_decl = UnwrapOption(field_declaration); }
                     if constructors.nominal_kinds[index] == "world" &&
                         constructors.field_kinds[row] == NominalFieldKindWorldZone() {
                         world_field_id = constructors.field_source_syntax_ids[row];
@@ -203,10 +209,12 @@ func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalCon
                 }
             }
         } else if kind == AstExpressionNodeCall() {
-            value_type = graph.arena.call_return_type_names[node];
+            let call_declaration: Option<Int> =
+                SemanticAstNominalConstructorIndexForName(constructors, Concat("", graph.arena.call_return_type_names[node]));
+            if IsSome(call_declaration) { value_decl = UnwrapOption(call_declaration); }
         } else if kind == AstExpressionNodeCallArgument() {
             if left < 0 || left >= node || right < 0 || right >= node { return Some("world-zone call edge is missing"); }
-            value_type = value_types[left];
+            value_decl = value_decls[left];
             if world_field_ids[right] > 0 {
                 let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, call_roots.root_nodes[node]);
                 if !call.ok { return Some("world-zone call target identity is missing"); }
@@ -217,10 +225,10 @@ func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalCon
                 if !detached_copy {
                     return Some("World-owned zone binding '" + world_field_names[right] + "' cannot escape as a live binding");
                 }
-                value_type = value_types[right];
+                value_decl = value_decls[right];
             }
         }
-        ArrayPush(value_types, value_type);
+        ArrayPush(value_decls, value_decl);
         ArrayPush(world_field_ids, world_field_id);
         ArrayPush(world_field_names, world_field_name);
         node = node + 1;

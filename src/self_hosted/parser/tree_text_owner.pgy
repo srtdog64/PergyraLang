@@ -42,7 +42,8 @@ func AppendImplicitMain(decls: String, body: String) -> String {
 func ParserBlocksDeclareExplicitMain(blocks: Array<String>) -> Bool {
     let i: Int = 0;
     while i < ArrayLength(blocks) {
-        let head: String = blocks[i];
+        // Only StringLength/Concat borrow a block row; the head is an owned copy.
+        let head: String = Concat("", blocks[i]);
         let newline: Int = StringIndexOf(head, "\n");
         if newline >= 0 { head = Substring(head, 0, newline); }
         let at: Int = StringIndexOf(head, "Function: Main");

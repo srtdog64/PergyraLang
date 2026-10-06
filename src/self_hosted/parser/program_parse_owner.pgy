@@ -71,7 +71,9 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     let involve_types: Array<String> = [];
     let import_paths: Set<String> = SetNew();
     SetAdd(import_paths, source_path);
-    let import_chain: Array<String> = [source_path];
+    // A fresh descriptor keeps its exclusive identity across both composition calls.
+    let import_chain: Array<String> = [];
+    ArrayPush(import_chain, source_path);
     let expression_graphs: Array<AstExpressionGraphRows> = [];
     ParserExpressionGraphRowsBoxStart(
         expression_graphs, AstExpressionGraphRowsEmpty()

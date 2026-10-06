@@ -15,5 +15,6 @@ import "run_owner.pgy";
 
 
 func Main() -> Void {
-    RunMirLowerFromArgs(Args());
+    let run_args: Array<String> = Args();
+    RunMirLowerFromArgs(run_args);
 }

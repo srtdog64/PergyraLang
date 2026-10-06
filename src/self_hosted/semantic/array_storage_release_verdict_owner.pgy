@@ -101,7 +101,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
             if !IsSome(start) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop expression range is missing", syntax_id); }
             let node: Int = UnwrapOption(start);
             while node <= graph.roots[slot] {
-                if node < ArrayLength(leaf_types) && IsSome(SemanticArrayElementType(leaf_types[node])) &&
+                if SemanticArrayTypeNameAt(leaf_types, node) &&
                     graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
                     let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names, surface, node);
                     let key: String = ToString(binding);
@@ -127,7 +127,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
                             let argument: Int = call.argument_nodes[0];
                             let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names, surface, argument);
                             let key: String = ToString(binding);
-                            let element: Option<String> = SemanticArrayElementType(leaf_types[argument]);
+                            let element: Option<String> = SemanticArrayElementType(Concat("", leaf_types[argument]));
                             let block: Option<Int> = SemanticAstEnclosingBlockNode(artifact.arena, syntax_id);
                             if !IsSome(block) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop block identity is missing", syntax_id); }
                             if graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() || binding <= 0 {

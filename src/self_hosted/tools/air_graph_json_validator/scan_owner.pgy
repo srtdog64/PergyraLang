@@ -137,7 +137,7 @@ func BuildMissingKeyFindingFacts(content: String, keys: Array<String>, location:
     let i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
-        let key: String = keys[i];
+        let key: String = Concat("", keys[i]);
         if !JsonObjectFactTableReady(root) || !JsonObjectFactHasField(root, key) {
             let entry: String = FindingFact("missing_key", key, location);
             facts = AppendFindingFact(facts, entry);
@@ -152,7 +152,7 @@ func BuildMissingGraphFeatureFindingFacts(content: String, keys: Array<String>, 
     let i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
-        let key: String = keys[i];
+        let key: String = Concat("", keys[i]);
         let values: Array<String> = AirGraphScalarFieldValues(content, key);
         if ArrayLength(values) == 0 {
             let entry: String = FindingFact("missing_key", key, location);

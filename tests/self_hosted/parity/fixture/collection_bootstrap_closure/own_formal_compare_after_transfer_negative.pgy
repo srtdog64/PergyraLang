@@ -1,0 +1,9 @@
+func ReleaseOwnedText(own text: String) -> Void {
+    let owned_text: Array<String> = [text];
+    if text == "" { Log("empty"); }
+    ArrayDropOwnedStrings(owned_text);
+}
+
+func Main() -> Void {
+    ReleaseOwnedText(Concat("a", "b"));
+}

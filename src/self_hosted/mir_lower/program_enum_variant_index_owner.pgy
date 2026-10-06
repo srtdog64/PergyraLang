@@ -113,7 +113,7 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
                         prior = prior + 1;
                     }
                     ArrayPush(names, name);
-                    ArrayPush(owners, declaration_names[declaration_row]);
+                    ArrayPush(owners, Concat("", declaration_names[declaration_row]));
                     ArrayPush(ordinals, ordinal);
                     ArrayPush(param_counts, param_count);
                     ArrayPush(param_type_starts, ArrayLength(param_types));

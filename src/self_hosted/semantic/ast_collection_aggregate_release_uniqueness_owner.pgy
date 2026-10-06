@@ -6,20 +6,81 @@ import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
 
-func SemanticAstCollectionAggregateReleaseDemandCallRow(
-    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+func SemanticAstCollectionAggregateReleaseEdgeCallRow(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, edge: Int
 ) -> Int {
-    if demand < 0 || demand >= ArrayLength(plan.demand_edge_nodes) { return -1; }
     let found: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(plan.call_edge_nodes) {
-        if plan.call_edge_nodes[row] == plan.demand_edge_nodes[demand] {
+        if plan.call_edge_nodes[row] == edge {
             if found >= 0 { return -1; }
             found = row;
         }
         row = row + 1;
     }
     return found;
+}
+
+func SemanticAstCollectionAggregateReleaseDemandCallRow(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+) -> Int {
+    if demand < 0 || demand >= ArrayLength(plan.demand_edge_nodes) { return -1; }
+    return SemanticAstCollectionAggregateReleaseEdgeCallRow(
+        plan, plan.demand_edge_nodes[demand]);
+}
+
+func SemanticAstCollectionAggregateReleaseChainEnd(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+) -> Int {
+    if demand + 1 < ArrayLength(plan.demand_chain_starts) {
+        return plan.demand_chain_starts[demand + 1];
+    }
+    return ArrayLength(plan.demand_chain_edges);
+}
+
+// Two demands of one origin are ordered at the first edge where their caller
+// chains differ: up to there both descend through the same calls, so the two
+// differing edges sit in one function. A chain that is a prefix of the other
+// nests one demand inside the other's call and has no order (-1).
+func SemanticAstCollectionAggregateReleaseChainDivergence(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    prior: Int, current: Int
+) -> Int {
+    if prior < 0 || current < 0 ||
+        current >= ArrayLength(plan.demand_chain_starts) ||
+        prior >= ArrayLength(plan.demand_chain_starts) { return -1; }
+    let a: Int = plan.demand_chain_starts[prior];
+    let b: Int = plan.demand_chain_starts[current];
+    let a_end: Int = SemanticAstCollectionAggregateReleaseChainEnd(plan, prior);
+    let b_end: Int = SemanticAstCollectionAggregateReleaseChainEnd(plan, current);
+    let depth: Int = 0;
+    while a + depth < a_end && b + depth < b_end {
+        if plan.demand_chain_edges[a + depth] != plan.demand_chain_edges[b + depth] {
+            return depth;
+        }
+        depth = depth + 1;
+    }
+    return -1;
+}
+
+// A releasing demand reached through callees must not repeat below the
+// divergence point: every deeper edge of its chain is loop-free.
+func SemanticAstCollectionAggregateReleaseDeepChainLoopFree(
+    artifact: AstTreeArtifact,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    demand: Int, divergence: Int
+) -> Bool {
+    let requirement: Int = plan.requirement_rows[demand];
+    let mask: Int = plan.requirement_effect_masks[requirement];
+    if mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() && mask != 3 { return true; }
+    let edge: Int = plan.demand_chain_starts[demand] + divergence + 1;
+    let end: Int = SemanticAstCollectionAggregateReleaseChainEnd(plan, demand);
+    while edge < end {
+        let row: Int = SemanticAstCollectionAggregateReleaseEdgeCallRow(plan, plan.demand_chain_edges[edge]);
+        if row < 0 || SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[row]) <= 0 { return false; }
+        edge = edge + 1;
+    }
+    return true;
 }
 
 func SemanticAstCollectionAggregateReleaseSharedDemandReady(
@@ -43,13 +104,25 @@ func SemanticAstCollectionAggregateReleaseSharedDemandReady(
     if prior_requirement < 0 || current_requirement < 0 ||
         prior_requirement >= ArrayLength(plan.requirement_effect_masks) ||
         current_requirement >= ArrayLength(plan.requirement_effect_masks) { return false; }
-    let prior_call: Int = SemanticAstCollectionAggregateReleaseDemandCallRow(plan, prior);
-    let current_call: Int = SemanticAstCollectionAggregateReleaseDemandCallRow(plan, current);
+    let divergence: Int = SemanticAstCollectionAggregateReleaseChainDivergence(plan, prior, current);
+    if divergence < 0 { return false; }
+    let prior_call: Int = SemanticAstCollectionAggregateReleaseEdgeCallRow(plan,
+        plan.demand_chain_edges[plan.demand_chain_starts[prior] + divergence]);
+    let current_call: Int = SemanticAstCollectionAggregateReleaseEdgeCallRow(plan,
+        plan.demand_chain_edges[plan.demand_chain_starts[current] + divergence]);
     if prior_call < 0 || current_call < 0 ||
         plan.call_function_ids[prior_call] != plan.call_function_ids[current_call] ||
-        plan.call_syntax_ids[prior_call] == plan.call_syntax_ids[current_call] ||
-        SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[prior_call]) <= 0 ||
+        plan.call_syntax_ids[prior_call] == plan.call_syntax_ids[current_call] { return false; }
+    // Edges in the origin's own function (divergence 0) are judged against the
+    // origin's loop scope; edges deeper in a callee keep the loop-free rule.
+    let origin: Int = plan.aggregate_origin_ids[prior];
+    if divergence == 0 {
+        if SemanticAstCollectionCallRetirementSiteForOrigin(artifact, plan.call_syntax_ids[prior_call], origin) <= 0 ||
+            SemanticAstCollectionCallRetirementSiteForOrigin(artifact, plan.call_syntax_ids[current_call], origin) <= 0 { return false; }
+    } else if SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[prior_call]) <= 0 ||
         SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[current_call]) <= 0 { return false; }
+    if !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, prior, divergence) ||
+        !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, current, divergence) { return false; }
     let earlier_requirement: Int = prior_requirement;
     if plan.call_syntax_ids[current_call] < plan.call_syntax_ids[prior_call] { earlier_requirement = current_requirement; }
     let earlier_mask: Int = plan.requirement_effect_masks[earlier_requirement];

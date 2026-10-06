@@ -22,7 +22,16 @@ func SemanticAstCollectionRepeatedLocalGenerationPrecedesUse(
     if use_kind == TypedAstKindDeferStmtTag() ||
         use_kind == TypedAstKindParallelBlockTag() ||
         use_kind == TypedAstKindAsyncBlockTag() { return false; }
-    let repeated_kind: Int = artifact.arena.kinds[repeated_owner];
-    return repeated_kind == TypedAstKindWhileStmtTag() ||
-        repeated_kind == TypedAstKindForStmtTag();
+    // The scope may sit in a branch of the repeated body: every entry into it
+    // still runs the definition before the use, so each entry is fresh.
+    let owner: Int = repeated_owner;
+    let remaining: Int = artifact.count;
+    while owner >= 0 && owner < artifact.count && remaining > 0 {
+        let kind: Int = artifact.arena.kinds[owner];
+        if kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag() { return true; }
+        if kind != TypedAstKindBlockTag() && kind != TypedAstKindThenTag() &&
+            kind != TypedAstKindElseStmtTag() && kind != TypedAstKindIfStmtTag() { return false; }
+        owner = artifact.arena.parents[owner]; remaining = remaining - 1;
+    }
+    return false;
 }
