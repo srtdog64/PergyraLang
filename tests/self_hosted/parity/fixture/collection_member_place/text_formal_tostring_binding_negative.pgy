@@ -1,0 +1,13 @@
+func Show(text: String) -> Bool {
+    let shown: String = ToString(text);
+    return shown == "owned";
+}
+func Check(ref names: Array<String>) -> Bool {
+    return Show(names[0]);
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("", "owned"));
+    if !Check(names) { Exit(1); }
+    ArrayDropOwnedStrings(names);
+}

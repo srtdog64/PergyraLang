@@ -1,0 +1,73 @@
+// Exact storage place of a member chain: one root binding plus the declared
+// type of the selected field, at any depth. Every selector must name one
+// field of the current non-generic nominal type. A resolved root with an
+// untyped step keeps its root identity with ok=false, so a caller can still
+// fail closed on that root.
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstCollectionMemberPlace {
+    ok: Bool;
+    root_binding_syntax_id: Int;
+    root_node: Int;
+    depth: Int;
+    type_name: String;
+}
+
+func SemanticAstCollectionMemberPlaceForNode(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    function_id: Int, syntax_id: Int, ref graph: SemanticExpressionGraphFacts, node: Int
+) -> SemanticAstCollectionMemberPlace {
+    let absent: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlace(false, 0, -1, 0, "");
+    let depth: Int = 0;
+    let leaf: Int = node;
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf);
+    while member.ok {
+        depth = depth + 1;
+        leaf = member.receiver_node;
+        member = SemanticMemberAccessViewFromGraph(graph, leaf);
+    }
+    let root: SemanticAstCollectionMemberRootIdentity = SemanticAstCollectionMemberRootIdentityForNode(
+        artifact, signatures, locals, inferred_types, resolved_leaf_types, function_id, syntax_id, graph, leaf);
+    if !root.ok || depth == 0 { return absent; }
+    let untyped: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlace(
+        false, root.source_binding_syntax_id, leaf, depth, "");
+    let type_name: String = Concat("", root.type_name);
+    // Selectors resolve from the root outward; the one `level - 1` hops from
+    // the occurrence is the next field of the current type.
+    let level: Int = depth;
+    while level >= 1 {
+        let at: Int = node;
+        let hops: Int = level - 1;
+        while hops > 0 {
+            at = SemanticMemberAccessViewFromGraph(graph, at).receiver_node;
+            hops = hops - 1;
+        }
+        let selector: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, at);
+        let fact: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(graph, selector.member_node);
+        let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, fact.nominal_base_name);
+        if !selector.ok || fact.canonical_name != fact.nominal_base_name || !IsSome(field_name) ||
+            !IsSome(constructor) { return untyped; }
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+            constructors, UnwrapOption(constructor), UnwrapOption(field_name));
+        if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.param_type_names) { return untyped; }
+        type_name = Concat("", constructors.param_type_names[UnwrapOption(field)]);
+        level = level - 1;
+    }
+    return SemanticAstCollectionMemberPlace(true, root.source_binding_syntax_id, leaf, depth, type_name);
+}
+
+// A nominal type carries field descriptors of its own; a sequence or scalar
+// type does not.
+func SemanticAstCollectionMemberTypeIsAggregate(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
+) -> Bool {
+    let fact: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+    return IsSome(SemanticAstNominalConstructorIndexForName(constructors, fact.nominal_base_name));
+}

@@ -5,7 +5,7 @@ import "intent_phase_emission_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
 
 func SelfMirIntentExecutionRoutineAppend(
-    build: SelfMirRoutineBuild, ref input: SelfMirRoutineInput,
+    own build: SelfMirRoutineBuild, ref input: SelfMirRoutineInput,
     ref intents: SelfDirIntentFacts, intent_index: Int
 ) -> SelfMirRoutineBuild {
     let start: Int = intents.step_starts[intent_index];

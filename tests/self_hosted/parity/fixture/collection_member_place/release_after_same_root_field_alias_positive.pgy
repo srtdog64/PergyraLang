@@ -1,0 +1,13 @@
+struct Epochs { current: String; owned: Array<String>; }
+func Retire(inout state: Epochs) -> Void {
+    let owned: Array<String> = state.owned;
+    ArrayDropOwnedStrings(owned);
+    state.owned = owned;
+}
+func Main() -> Void {
+    let owned: Array<String> = [];
+    ArrayPushOwnedString(owned, "x");
+    let state: Epochs = Epochs("", owned);
+    state.current = state.owned[0];
+    Retire(state);
+}

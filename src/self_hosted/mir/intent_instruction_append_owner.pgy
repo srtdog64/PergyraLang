@@ -2,7 +2,7 @@
 import "routine_build_owner.pgy";
 
 func SelfMirIntentAttachBindingSource(
-    build: SelfMirRoutineBuild, source_syntax_id: Int
+    own build: SelfMirRoutineBuild, source_syntax_id: Int
 ) -> SelfMirRoutineBuild {
     if !build.ok { return build; }
     let row: Int = ArrayLength(build.cfg.instructions.ids) - 1;

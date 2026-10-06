@@ -1,0 +1,15 @@
+func Matches(text: String) -> Bool {
+    return text == "owned";
+}
+func Forward(text: String) -> Bool {
+    return Matches(text);
+}
+func Check(ref names: Array<String>) -> Bool {
+    return Forward(names[0]);
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("", "owned"));
+    if !Check(names) { Exit(1); }
+    ArrayDropOwnedStrings(names);
+}

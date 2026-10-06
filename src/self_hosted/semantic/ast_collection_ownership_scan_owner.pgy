@@ -13,6 +13,7 @@ import "ast_collection_definition_transition_owner.pgy";
 import "ast_collection_owned_result_return_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_aggregate_release_element_borrow_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_ownership_receipt_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
@@ -275,6 +276,12 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     SemanticAstCollectionApplyMemberMoveRestorations(
         locals, moved_use, dispositions
     );
+    let element_borrow: Int = SemanticAstCollectionAggregateReleaseElementBorrowSite(aggregate_release_plan, moved_use);
+    if element_borrow > 0 {
+        verdict = SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", "aggregate_release_element_borrow", "type", "String"),
+            element_borrow, -1); return;
+    }
     if !SemanticAstCollectionAggregateReleasePlanFinalized(
             artifact, signatures, constructors, locals,
             initializer_types.inferred_type_names, resolved_leaf_types,

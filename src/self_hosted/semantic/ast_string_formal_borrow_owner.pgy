@@ -1,0 +1,181 @@
+// Borrow-only String formals. A default or ref String formal of a synchronous
+// body with no writable or consuming formal is borrow-only when each of its
+// occurrences is a primitive comparison operand, a borrowed builtin argument,
+// or an argument to another borrow-only String formal. Such a callee cannot
+// retain, return or release the text, so a borrowed element may enter it
+// exactly as it enters a borrowed builtin argument. Any other occurrence
+// retains the text, and retention flows back along forwarding edges.
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+
+func SemanticAstStringFormalBorrowCandidate(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts, row: Int, ordinal: Int
+) -> Bool {
+    if row < 0 || row >= ArrayLength(signatures.function_node_ids) || ordinal < 0 ||
+        ArrayLength(signatures.param_starts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_counts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.action_contracts.body_node_ids) != ArrayLength(signatures.function_node_ids) ||
+        ordinal >= signatures.param_counts[row] || signatures.param_starts[row] < 0 ||
+        signatures.param_starts[row] + signatures.param_counts[row] > ArrayLength(signatures.param_types) ||
+        ArrayLength(signatures.param_modes) != ArrayLength(signatures.param_types) ||
+        signatures.action_contracts.body_node_ids[row] <= 0 { return false; }
+    let callee: Int = signatures.function_node_ids[row];
+    if callee <= 0 || callee >= artifact.count || ArrayLength(artifact.arena.modes) != artifact.count ||
+        artifact.arena.modes[callee] < 0 || artifact.arena.modes[callee] == TypedAstModeCallableAsync() {
+        return false;
+    }
+    let start: Int = signatures.param_starts[row];
+    if signatures.param_types[start + ordinal] != "String" ||
+        (signatures.param_modes[start + ordinal] != 0 && signatures.param_modes[start + ordinal] != 3) {
+        return false;
+    }
+    let parameter: Int = 0;
+    while parameter < signatures.param_counts[row] {
+        let mode: Int = signatures.param_modes[start + parameter];
+        if mode == 1 || mode == 2 { return false; }
+        parameter = parameter + 1;
+    }
+    return true;
+}
+
+// A borrowed text operand that its consumer only reads: a primitive
+// comparison operand, a primitive concatenation operand (concatenation and
+// interpolation copy into a fresh String), or a borrowed builtin argument.
+func SemanticAstBorrowedTextPrimitiveConsumer(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, root_start: Int, consumer: Int, node: Int
+) -> Bool {
+    let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[consumer];
+    let call_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(surfaces.expression_graph, consumer);
+    if IsSome(call_kind) && UnwrapOption(call_kind) == SemanticCallTargetNone() &&
+        (kind == AstExpressionNodeEquality() || kind == AstExpressionNodeInequality() ||
+         kind == AstExpressionNodeAdd()) { return true; }
+    if kind != AstExpressionNodeCallArgument() { return false; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+    if !edge.ok || edge.argument_node != node { return false; }
+    let identity: Option<String> = SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+        surfaces, edge.call_node, root_start, surfaces.node_ids[slot / 3], slot % 3);
+    return IsSome(identity) && SemanticBuiltinArgumentBorrowedForIdentity(UnwrapOption(identity), edge.ordinal);
+}
+
+// Interpolation lowers `${text}` to ToString(text) inside a concatenation.
+// ToString of a String may return its argument, so its result stays the same
+// borrow and the result's own consumer decides.
+func SemanticAstBorrowedTextThroughToString(
+    ref graph: SemanticExpressionGraphFacts, consumer: Int, node: Int
+) -> Bool {
+    if graph.arena.topology.node_kinds[consumer] != AstExpressionNodeCallArgument() { return false; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    return edge.ok && edge.argument_node == node && edge.ordinal == 0 &&
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ToString");
+}
+
+func SemanticAstBorrowedTextConsumer(ref graph: SemanticExpressionGraphFacts, node: Int, root: Int) -> Int {
+    let consumer: Int = node + 1;
+    while consumer <= root {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);
+        if (IsSome(left) && UnwrapOption(left) == node) || (IsSome(right) && UnwrapOption(right) == node) { return consumer; }
+        consumer = consumer + 1;
+    }
+    return -1;
+}
+
+// One occurrence of a String formal: 0 keeps it borrowed, -1 retains it, and
+// a positive value is the borrow-only candidate formal that receives it.
+func SemanticAstStringFormalOccurrence(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, root_start: Int, node: Int, root: Int
+) -> Int {
+    let text: Int = node;
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    while consumer >= 0 && SemanticAstBorrowedTextThroughToString(surfaces.expression_graph, consumer, text) {
+        text = consumer;
+        consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    }
+    if consumer < 0 { return -1; }
+    if SemanticAstBorrowedTextPrimitiveConsumer(surfaces, slot, root_start, consumer, text) { return 0; }
+    if surfaces.expression_graph.arena.topology.node_kinds[consumer] != AstExpressionNodeCallArgument() { return -1; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+    if !edge.ok || edge.argument_node != text { return -1; }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    if !target.ok || target.syntax_id <= 0 ||
+        !SemanticAstStringFormalBorrowCandidate(artifact, signatures, target.signature_row, target.ordinal) { return -1; }
+    return target.syntax_id;
+}
+
+// Formal syntax id -> 1 for every borrow-only String formal. A formal that is
+// absent may retain its text.
+func SemanticAstStringFormalBorrowOnlyFacts(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> HashMap<String, Int> {
+    let retaining: HashMap<String, Int> = MapNew();
+    let sources: Array<Int> = []; let targets: Array<Int> = [];
+    // An unreadable expression cannot prove any formal it mentions.
+    let readable: Bool = true;
+    let slot: Int = 0;
+    while readable && slot < ArrayLength(surfaces.expression_graph.roots) {
+        let start: Option<Int> = None;
+        if surfaces.expression_graph.has_roots[slot] {
+            start = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, surfaces.expression_graph.roots[slot]);
+            readable = IsSome(start);
+        }
+        if readable && IsSome(start) {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = UnwrapOption(start);
+            while node <= root {
+                let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+                    signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, node);
+                if formal.ok && formal.declared_type_name == "String" {
+                    let occurrence: Int = SemanticAstStringFormalOccurrence(
+                        artifact, signatures, surfaces, slot, UnwrapOption(start), node, root);
+                    if occurrence < 0 { MapSet(retaining, ToString(formal.syntax_id), 1); }
+                    if occurrence > 0 { ArrayPush(sources, formal.syntax_id); ArrayPush(targets, occurrence); }
+                }
+                node = node + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    let changed: Bool = true;
+    let remaining: Int = ArrayLength(sources) + 1;
+    while changed && remaining > 0 {
+        changed = false;
+        let edge: Int = 0;
+        while edge < ArrayLength(sources) {
+            if !MapHas(retaining, ToString(sources[edge])) && MapHas(retaining, ToString(targets[edge])) {
+                MapSet(retaining, ToString(sources[edge]), 1); changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    ArrayDrop(sources); ArrayDrop(targets);
+    let borrow_only: HashMap<String, Int> = MapNew();
+    if changed || !readable { return borrow_only; }
+    let row: Int = 0;
+    while row < ArrayLength(signatures.function_node_ids) {
+        let ordinal: Int = 0;
+        while ordinal < signatures.param_counts[row] {
+            let formal_id: Int = signatures.param_node_ids[signatures.param_starts[row] + ordinal];
+            if SemanticAstStringFormalBorrowCandidate(artifact, signatures, row, ordinal) &&
+                !MapHas(retaining, ToString(formal_id)) { MapSet(borrow_only, ToString(formal_id), 1); }
+            ordinal = ordinal + 1;
+        }
+        row = row + 1;
+    }
+    return borrow_only;
+}
+
+// A user call argument that enters a borrow-only String formal.
+func SemanticAstStringFormalBorrowedArgument(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts,
+    borrow_only: HashMap<String, Int>, call_node: Int, ordinal: Int
+) -> Bool {
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, graph, call_node, ordinal);
+    return target.ok && target.syntax_id > 0 && MapHas(borrow_only, ToString(target.syntax_id));
+}

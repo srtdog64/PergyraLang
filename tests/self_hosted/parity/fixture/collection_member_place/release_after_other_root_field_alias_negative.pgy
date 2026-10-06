@@ -1,0 +1,16 @@
+struct Epochs { current: String; owned: Array<String>; }
+struct Label { text: String; }
+func Retire(inout state: Epochs) -> Void {
+    let owned: Array<String> = state.owned;
+    ArrayDropOwnedStrings(owned);
+    state.owned = owned;
+}
+func Main() -> Void {
+    let owned: Array<String> = [];
+    ArrayPushOwnedString(owned, "x");
+    let state: Epochs = Epochs("", owned);
+    let label: Label = Label("");
+    label.text = state.owned[0];
+    Retire(state);
+    Log(label.text);
+}

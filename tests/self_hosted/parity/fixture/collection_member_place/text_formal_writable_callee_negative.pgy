@@ -1,0 +1,14 @@
+func Mark(text: String, inout seen: Array<Int>) -> Bool {
+    ArrayPush(seen, 1);
+    return text == "owned";
+}
+func Check(ref names: Array<String>) -> Bool {
+    let seen: Array<Int> = [];
+    return Mark(names[0], seen);
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("", "owned"));
+    if !Check(names) { Exit(1); }
+    ArrayDropOwnedStrings(names);
+}

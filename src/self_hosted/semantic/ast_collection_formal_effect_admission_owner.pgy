@@ -21,7 +21,7 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifa
                 signatures),
             no_effects, no_owned_push_leaf_formals,
             SemanticAstCollectionFormalExecutionContexts(
-                false, 0, 0, candidates, unsafe_functions));
+                false, 0, 0, candidates, unsafe_functions), no_effects);
     }
     return SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         artifact, signatures, scopes, locals, initializer_types, surfaces,

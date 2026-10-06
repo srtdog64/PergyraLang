@@ -1,0 +1,34 @@
+struct Table { names: Array<String>; count: Int; }
+struct Outer { table: Table; label: String; }
+func MakeTable() -> Table {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("", "owned"));
+    return Table(names, 1);
+}
+func Has(ref names: Array<String>, wanted: String) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == wanted { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+func HasTable(ref table: Table, wanted: String) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(table.names) {
+        if table.names[row] == wanted { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+func Retire(inout table: Table) -> Void {
+    let names: Array<String> = table.names;
+    ArrayDropOwnedStrings(names);
+    table.names = names;
+}
+func Main() -> Void {
+    let table: Table = MakeTable();
+    let picked: String = table.names[0];
+    Retire(table);
+    Log(picked);
+}

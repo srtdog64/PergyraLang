@@ -8,6 +8,8 @@ struct SemanticAstCollectionFormalEffects {
     effects: HashMap<String, Int>;
     owned_push_leaf_formals: HashMap<String, Int>;
     execution_contexts: SemanticAstCollectionFormalExecutionContexts;
+    // Borrow-only String formal syntax id -> 1; absent formals may retain.
+    borrowed_text_formals: HashMap<String, Int>;
 }
 
 func SemanticAstCollectionFormalEffectsEmpty(
@@ -22,6 +24,7 @@ func SemanticAstCollectionFormalEffectsEmpty(
     let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
     let candidates: HashMap<String, Int> = MapNew();
     let unsafe_functions: HashMap<String, Int> = MapNew();
+    let borrowed_text_formals: HashMap<String, Int> = MapNew();
     return SemanticAstCollectionFormalEffects(
         false,
         SemanticAstCollectionFormalEffectInventory(
@@ -29,5 +32,5 @@ func SemanticAstCollectionFormalEffectsEmpty(
             body_ready, row_by_formal),
         effects, owned_push_leaf_formals,
         SemanticAstCollectionFormalExecutionContexts(
-            false, 0, 0, candidates, unsafe_functions));
+            false, 0, 0, candidates, unsafe_functions), borrowed_text_formals);
 }

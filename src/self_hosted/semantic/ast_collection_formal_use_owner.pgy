@@ -8,6 +8,7 @@ import "ast_statement_fact_owner.pgy";
 import "ast_owned_string_call_result_admission_owner.pgy";
 import "ast_collection_formal_statement_effect_owner.pgy";
 import "ast_collection_builtin_release_identity_owner.pgy";
+import "ast_string_formal_borrow_owner.pgy";
 
 func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     artifact: AstTreeArtifact,
@@ -45,10 +46,11 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
             artifact, signatures.function_node_ids, scopes, surfaces, order);
     // An empty, validated String-sequence formal inventory has no element-use
     // obligations. Unrelated plain-array uses belong to their storage owner.
+    let borrowed_text: HashMap<String, Int> = SemanticAstStringFormalBorrowOnlyFacts(artifact, signatures, surfaces);
     if inventory.ok && ArrayLength(inventory.formal_nodes) == 0 {
         let no_owned_push: HashMap<String, Int> = MapNew();
         return SemanticAstCollectionFormalEffects(
-            contexts.ok, inventory, effects, no_owned_push, contexts);
+            contexts.ok, inventory, effects, no_owned_push, contexts, borrowed_text);
     }
     let non_straightline_functions: HashMap<String, Int> =
         SemanticAstCollectionNonStraightLineFunctions(statements);
@@ -252,16 +254,29 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                                 SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
                                     surfaces, argument.call_node, last + 1,
                                     surfaces.node_ids[slot / 3], slot % 3);
-                            observed_element = argument.ok &&
+                            // Interpolation's ToString of the element keeps
+                            // the same borrow; its own consumer decides.
+                            if argument.ok && argument.argument_node == child_node &&
+                                SemanticAstBorrowedTextThroughToString(
+                                    surfaces.expression_graph, node, child_node) {
+                                element_rows[node] = borrowed_row;
+                            }
+                            // A borrow-only user String formal admits the
+                            // element exactly as a borrowed builtin argument.
+                            observed_element = element_rows[node] == borrowed_row || (argument.ok &&
                                 argument.argument_node == child_node &&
-                                IsSome(identity) &&
+                                ((IsSome(identity) &&
                                 SemanticBuiltinArgumentBorrowedForIdentity(
-                                    UnwrapOption(identity), argument.ordinal);
+                                    UnwrapOption(identity), argument.ordinal)) ||
+                                SemanticAstStringFormalBorrowedArgument(signatures,
+                                    surfaces.expression_graph, borrowed_text,
+                                    argument.call_node, argument.ordinal)));
                         }
                         if borrowed_row >= 0 && !observed_element &&
                             (!primitive ||
                              (kind != AstExpressionNodeEquality() &&
-                              kind != AstExpressionNodeInequality())) {
+                              kind != AstExpressionNodeInequality() &&
+                              kind != AstExpressionNodeAdd())) {
                             blocked[borrowed_row] = true;
                         }
                         if used_row >= 0 {
@@ -432,5 +447,5 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     ArrayDrop(owned_push_leaf_disqualified);
     ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(
-        ok, inventory, effects, owned_push_leaf_formals, contexts);
+        ok, inventory, effects, owned_push_leaf_formals, contexts, borrowed_text);
 }

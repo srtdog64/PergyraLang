@@ -1,0 +1,230 @@
+// One occurrence of a member place and what it may do to the root's member
+// storage. A String element read stays inside its expression only as a
+// primitive comparison operand or a borrowed builtin argument; a nominal
+// sub-place stays only as a selector prefix or a user-formal lending. Any
+// other consumer may outlive a later deep release of the root, which is an
+// escape. A nested Array<String> place (depth >= 2) of a readonly formal or a
+// local is a read candidate; any occurrence that may write, alias, consume or
+// release a nested path is a hazard for every nested read of that root.
+import "ast_collection_member_place_owner.pgy";
+import "ast_collection_member_read_call_target_owner.pgy";
+import "ast_collection_execution_context_fact_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+import "ast_string_formal_borrow_owner.pgy";
+
+struct SemanticAstCollectionMemberPlaceUse {
+    root: Int;
+    escapes: Bool;
+    lent_target: Int;
+    lent_function: Int;
+    nested_read: Bool;
+    nested_hazard: Bool;
+}
+
+func SemanticAstCollectionMemberPlaceConsumer(
+    ref graph: SemanticExpressionGraphFacts, node: Int, root: Int
+) -> Int {
+    let consumer: Int = node + 1;
+    while consumer <= root {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);
+        if (IsSome(left) && UnwrapOption(left) == node) ||
+            (IsSome(right) && UnwrapOption(right) == node) { return consumer; }
+        consumer = consumer + 1;
+    }
+    return -1;
+}
+
+// A user formal receiving the place: always an escape edge; a readonly formal
+// is a lending whose callee context the caller must still observe.
+func SemanticAstCollectionMemberPlaceLending(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, consumer: Int, node: Int, root: Int
+) -> SemanticAstCollectionMemberPlaceUse {
+    let hazard: SemanticAstCollectionMemberPlaceUse = SemanticAstCollectionMemberPlaceUse(root, true, 0, 0, false, true);
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    if !edge.ok || edge.argument_node != node { return hazard; }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, graph, edge.call_node, edge.ordinal);
+    if !target.ok || target.syntax_id <= 0 { return hazard; }
+    let readonly: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionMemberReadCallTarget(
+        artifact, signatures, graph, edge.call_node, edge.ordinal);
+    if !readonly.ok {
+        return SemanticAstCollectionMemberPlaceUse(root, true, target.syntax_id, 0, false, true);
+    }
+    return SemanticAstCollectionMemberPlaceUse(root, false, target.syntax_id,
+        signatures.function_node_ids[readonly.signature_row], false, false);
+}
+
+func SemanticAstCollectionMemberPlaceUseAt(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, borrowed_text: HashMap<String, Int>,
+    slot: Int, root_start: Int, node: Int, root: Int, target_lane: Bool
+) -> SemanticAstCollectionMemberPlaceUse {
+    let none: SemanticAstCollectionMemberPlaceUse = SemanticAstCollectionMemberPlaceUse(0, false, 0, 0, false, false);
+    let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[node];
+    let place_node: Int = node;
+    if kind == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+        if !IsSome(base) { return none; }
+        place_node = UnwrapOption(base);
+    } else if kind != AstExpressionNodeMemberAccess() && kind != AstExpressionNodeLeaf() { return none; }
+    let consumer: Int = SemanticAstCollectionMemberPlaceConsumer(surfaces.expression_graph, node, root);
+    let consumer_kind: Int = -1;
+    if consumer >= 0 { consumer_kind = surfaces.expression_graph.arena.topology.node_kinds[consumer]; }
+    if kind == AstExpressionNodeMemberAccess() && consumer_kind == AstExpressionNodeMemberAccess() {
+        let selector: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+        if selector.ok && selector.receiver_node == node { return none; }
+    }
+    let function_id: Int = surfaces.function_node_ids[slot / 3];
+    let syntax_id: Int = surfaces.node_ids[slot / 3];
+    if kind == AstExpressionNodeLeaf() {
+        // A whole root carries no element read of its own; only its lending
+        // edge matters here. Other whole-root aliases have their own owners.
+        if consumer_kind != AstExpressionNodeCallArgument() { return none; }
+        let leaf_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+        if !leaf_edge.ok || leaf_edge.argument_node != node { return none; }
+        let leaf_root: SemanticAstCollectionMemberRootIdentity = SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types, resolved_leaf_types, function_id, syntax_id,
+            surfaces.expression_graph, node);
+        if !leaf_root.ok || !SemanticAstCollectionMemberTypeIsAggregate(constructors, leaf_root.type_name) { return none; }
+        let leaf_target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, leaf_edge.call_node, leaf_edge.ordinal);
+        if !leaf_target.ok || leaf_target.syntax_id <= 0 { return none; }
+        return SemanticAstCollectionMemberPlaceUse(leaf_root.source_binding_syntax_id, false, leaf_target.syntax_id, 0, false, false);
+    }
+    if surfaces.expression_graph.arena.topology.node_kinds[place_node] != AstExpressionNodeMemberAccess() { return none; }
+    let place: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlaceForNode(
+        artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+        function_id, syntax_id, surfaces.expression_graph, place_node);
+    let owner: Int = place.root_binding_syntax_id;
+    if owner <= 0 { return none; }
+    let escape: SemanticAstCollectionMemberPlaceUse = SemanticAstCollectionMemberPlaceUse(owner, true, 0, 0, false, true);
+    let write: SemanticAstCollectionMemberPlaceUse = SemanticAstCollectionMemberPlaceUse(owner, false, 0, 0, false, true);
+    if kind == AstExpressionNodeIndex() {
+        // A borrowed element may outlive a later release, but it neither
+        // aliases nor writes a descriptor, so nested reads stay admitted.
+        let element_escape: SemanticAstCollectionMemberPlaceUse = SemanticAstCollectionMemberPlaceUse(owner, true, 0, 0, false, false);
+        // A typed non-String sequence element carries no String storage. An
+        // element write keeps the descriptor in its place.
+        if (place.ok && place.type_name != "Array<String>") || (target_lane && node == root) { return none; }
+        let text: Int = node;
+        let text_consumer: Int = consumer;
+        while text_consumer >= 0 && SemanticAstBorrowedTextThroughToString(surfaces.expression_graph, text_consumer, text) {
+            text = text_consumer;
+            text_consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+        }
+        if text_consumer < 0 {
+            // An element stored into a field of its own root stays inside that
+            // root's lifetime; the release retires both together.
+            if slot % 3 == AstExpressionLaneValue() && text == root {
+                let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+                if IsSome(target) && surfaces.expression_graph.arena.topology.node_kinds[UnwrapOption(target)] ==
+                        AstExpressionNodeMemberAccess() &&
+                    SemanticAstCollectionMemberPlaceForNode(artifact, signatures, constructors, locals, inferred_types,
+                        resolved_leaf_types, function_id, syntax_id, surfaces.expression_graph,
+                        UnwrapOption(target)).root_binding_syntax_id == owner { return none; }
+            }
+            return element_escape;
+        }
+        if SemanticAstBorrowedTextPrimitiveConsumer(surfaces, slot, root_start, text_consumer, text) { return none; }
+        if surfaces.expression_graph.arena.topology.node_kinds[text_consumer] != AstExpressionNodeCallArgument() { return element_escape; }
+        let argument: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, text_consumer);
+        if !argument.ok || argument.argument_node != text { return element_escape; }
+        if SemanticAstStringFormalBorrowedArgument(signatures, surfaces.expression_graph, borrowed_text,
+            argument.call_node, argument.ordinal) { return none; }
+        return element_escape;
+    }
+    if place.ok && place.type_name == "Array<String>" {
+        // Depth one is the direct-field read owner's place. A nested sequence
+        // stays readable only through index reads and readonly lending.
+        if place.depth < 2 { return none; }
+        let root_formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+            signatures, function_id, surfaces.expression_graph, place.root_node);
+        let readable: Bool = (!root_formal.ok || root_formal.mode == 0 || root_formal.mode == 3) &&
+            !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id);
+        let candidate: SemanticAstCollectionMemberPlaceUse = SemanticAstCollectionMemberPlaceUse(owner, false, 0, 0, readable, false);
+        if target_lane && node == root { return write; }
+        if consumer_kind == AstExpressionNodeIndex() {
+            let indexed: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, consumer);
+            if IsSome(indexed) && UnwrapOption(indexed) == node { return candidate; }
+            return write;
+        }
+        if consumer_kind != AstExpressionNodeCallArgument() { return write; }
+        let sequence_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+        if !sequence_edge.ok || sequence_edge.argument_node != node { return write; }
+        if sequence_edge.ordinal == 0 &&
+            SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, sequence_edge.call_node, "ArrayLength") {
+            return candidate;
+        }
+        if SemanticAstCollectionMemberReadCallTarget(artifact, signatures, surfaces.expression_graph,
+                sequence_edge.call_node, sequence_edge.ordinal).ok { return candidate; }
+        return write;
+    }
+    // A typed scalar field is not a nominal sub-place.
+    if place.ok && !SemanticAstCollectionMemberTypeIsAggregate(constructors, place.type_name) { return none; }
+    if target_lane && node == root { return write; }
+    // Binding a direct field moves its descriptors out; the carrier and
+    // restoration owners decide that move, and reads of the moved value are
+    // that local root's own occurrences.
+    if place.ok && place.depth == 1 && node == root && slot % 3 == AstExpressionLaneValue() { return write; }
+    if consumer_kind != AstExpressionNodeCallArgument() { return escape; }
+    return SemanticAstCollectionMemberPlaceLending(artifact, signatures, surfaces.expression_graph, consumer, node, owner);
+}
+
+// A root escapes when a lent callee formal escapes. Each edge can introduce
+// its source at most once, so the closure is bounded by the edge count; the
+// first lending site stands for the callee's escape at the caller.
+func SemanticAstCollectionMemberElementEscapeClosure(
+    ref sources: Array<Int>, ref targets: Array<Int>, ref sites: Array<Int>,
+    inout escaped: HashMap<String, Int>
+) -> Bool {
+    let count: Int = ArrayLength(sources);
+    if ArrayLength(targets) != count || ArrayLength(sites) != count { return false; }
+    let changed: Bool = true;
+    let remaining: Int = count + 1;
+    while changed && remaining > 0 {
+        changed = false;
+        let edge: Int = 0;
+        while edge < count {
+            if sources[edge] <= 0 || targets[edge] <= 0 { return false; }
+            if !MapHas(escaped, ToString(sources[edge])) && MapHas(escaped, ToString(targets[edge])) {
+                MapSet(escaped, ToString(sources[edge]), sites[edge]); changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return !changed;
+}
+
+// Nested read admission after every occurrence and the read-root closure are
+// known. A readonly sub-place lending to a callee that may alias or mutate its
+// formal blocks the root's nested reads, as does any recorded hazard.
+func SemanticAstCollectionMemberNestedReadAdmit(
+    ref nodes: Array<Int>, ref roots: Array<Int>,
+    ref lend_sources: Array<Int>, ref lend_targets: Array<Int>,
+    unproved_roots: HashMap<String, Int>, inout blocked: HashMap<String, Int>,
+    inout readable: HashMap<String, Int>
+) -> Bool {
+    if ArrayLength(nodes) != ArrayLength(roots) || ArrayLength(lend_sources) != ArrayLength(lend_targets) {
+        return false;
+    }
+    let edge: Int = 0;
+    while edge < ArrayLength(lend_sources) {
+        if MapHas(unproved_roots, ToString(lend_targets[edge])) { MapSet(blocked, ToString(lend_sources[edge]), 1); }
+        edge = edge + 1;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(nodes) {
+        if !MapHas(blocked, ToString(roots[row])) && !MapHas(unproved_roots, ToString(roots[row])) {
+            MapSet(readable, ToString(nodes[row]), roots[row]);
+        }
+        row = row + 1;
+    }
+    return true;
+}

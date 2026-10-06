@@ -1,0 +1,39 @@
+// A deep-released aggregate field's String elements must not stay borrowed
+// past the release. The member transition owner records, per root binding,
+// the first site where member storage may escape its reading expression,
+// including an escape reached through a lent callee formal. A root that this
+// release plan protects with such a site keeps the release unproved.
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_ownership_member_transition_owner.pgy";
+
+// A scalar lookup does not retain the escape map's container descriptor.
+func SemanticAstCollectionAggregateElementBorrowSiteIn(
+    ref bindings: Array<Int>, escaped: HashMap<String, Int>
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(bindings) {
+        if bindings[row] > 0 && MapHas(escaped, ToString(bindings[row])) {
+            return MapGet(escaped, ToString(bindings[row]));
+        }
+        row = row + 1;
+    }
+    return 0;
+}
+
+// The first borrow site of a protected root, or 0.
+func SemanticAstCollectionAggregateReleaseElementBorrowSite(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref moved_use: SemanticAstCollectionMemberMoveUse
+) -> Int {
+    let site: Int = SemanticAstCollectionAggregateElementBorrowSiteIn(
+        plan.aggregate_origin_ids, moved_use.element_escape_roots);
+    if site > 0 { return site; }
+    site = SemanticAstCollectionAggregateElementBorrowSiteIn(
+        plan.carrier_local_ids, moved_use.element_escape_roots);
+    if site > 0 { return site; }
+    site = SemanticAstCollectionAggregateElementBorrowSiteIn(
+        plan.carrier_source_binding_ids, moved_use.element_escape_roots);
+    if site > 0 { return site; }
+    return SemanticAstCollectionAggregateElementBorrowSiteIn(
+        plan.protected_binding_ids, moved_use.element_escape_roots);
+}

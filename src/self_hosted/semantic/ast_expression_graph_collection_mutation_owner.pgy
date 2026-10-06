@@ -132,7 +132,9 @@ func SemanticExpressionGraphArrayStorageMutationFact(
 }
 
 // Statement intrinsics and call expressions consume the same receiver path.
-// A member projection cannot turn a readonly root into mutable storage.
+// A member projection cannot turn a readonly root into mutable storage. A
+// plain parameter is such a root: its fields share the caller's descriptors,
+// so a field mutation would be caller-visible without an inout boundary.
 func SemanticExpressionGraphCollectionReceiverMutationFact(
     callee: String, ref graph: SemanticExpressionGraphFacts,
     receiver_id: Int, names: Slice<String>, types: Slice<String>,
@@ -158,12 +160,15 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
         } else if UnwrapOption(kind) == AstExpressionNodeLeaf() &&
             IsIdentText(UnwrapOption(text)) {
             let receiver: String = UnwrapOption(text);
+            let root_mode: String = EnvSliceMode(names, modes, receiver);
             if node != receiver_id &&
-                EnvSliceMode(names, modes, receiver) == "ref_param" {
+                (root_mode == "ref_param" || root_mode == "default_param") {
+                let mode_name: String = "ref";
+                if root_mode == "default_param" { mode_name = "default"; }
                 return SemanticExpressionGraphCollectionMutationError(
                     "value_param_collection_mutation", SemanticError3(
                         "value_param_collection_mutation", "func", callee,
-                        "param", receiver, "mode", "ref"));
+                        "param", receiver, "mode", mode_name));
             }
             let message: String = SemanticCollectionMutationError(
                 callee, receiver, names, types, modes, internal_caller_ready);
