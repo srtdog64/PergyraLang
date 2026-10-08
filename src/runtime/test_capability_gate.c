@@ -21,7 +21,7 @@ int
 main(int argc, char **argv)
 {
     int fail = 0;
-    int t;
+    int64_t t;
 
     if (argc > 1 && strcmp(argv[1], "deny-clock") == 0) {
         /* Sandbox: grant file-read only; CLOCK is NOT granted. */
@@ -89,7 +89,7 @@ main(int argc, char **argv)
 
     /* CLOCK is granted in the current manifest, so the gated op must NOT panic. */
     t = pgy_now_ms();
-    printf("  [PASS] clock op under CLOCK grant returned %d (not denied)\n", t);
+    printf("  [PASS] clock op under CLOCK grant returned %lld (not denied)\n", (long long)t);
 
     /* Media gate (headless stub): granted -> the call records, not denied. */
     pgy_cap_grant_all_export();

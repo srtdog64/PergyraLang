@@ -9,8 +9,9 @@
   distinct axes commute (axis_updates_commute). This file proves the READ
   side: a *reading* of a program is the order in which a reader (human,
   verifier pass, tool) visits the axes to assemble the judgment. Because
-  fact-ownership is functional (exactly one axis owns each fact), the
-  assembled judgment is independent of the visiting order:
+  every producer reads the same immutable `st f`, the assembled judgment is
+  independent of visiting order. That theorem alone cannot detect duplicate
+  ownership; producer-specific values and their negative case appear below:
 
     1. reading_reads_owner    -- a reading that visits the owner of a fact
                                  reads exactly the state's value for it,
@@ -26,8 +27,8 @@
                                  dropping an axis admits readings that
                                  disagree. (Witness, not a scare quote.)
 
-  The file is standalone (one-file-per-proof convention): it re-declares the
-  minimal axis/fact/ownership config of AxisOwnership.v verbatim.
+  AxisOwnership.v owns the axis/fact/ownership table. This consumer imports
+  that owner rather than maintaining another authoritative copy.
 
   Negative scope: this models the ownership TABLE's consequences for reading
   order; it does not model the C verifier's actual pass order, nor claim the
@@ -35,43 +36,15 @@
   passes stays with the parity/smoke gates.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
+Require Import AxisOwnership.
 Import ListNotations.
 
 Section ReadingConfluence.
 
 (* ================================================================ *)
-(* Minimal config re-declaration (verbatim slice of AxisOwnership.v) *)
+(* Canonical config imported from AxisOwnership.v.                  *)
 (* ================================================================ *)
-
-Inductive Axis : Type :=
-  | AxResource
-  | AxExecution
-  | AxDomain
-  | AxTypeContract.
-
-Inductive Fact : Type :=
-  | FWho
-  | FWhere
-  | FRequires
-  | FAuthorizedBy
-  | FCauses
-  | FResourceHeld
-  | FExecutionPlan
-  | FShape.
-
-Inductive Owns : Axis -> Fact -> Prop :=
-  | OwnWho          : Owns AxDomain       FWho
-  | OwnWhere        : Owns AxDomain       FWhere
-  | OwnRequires     : Owns AxTypeContract FRequires
-  | OwnAuthorizedBy : Owns AxDomain       FAuthorizedBy
-  | OwnCauses       : Owns AxDomain       FCauses
-  | OwnResource     : Owns AxResource     FResourceHeld
-  | OwnExecution    : Owns AxExecution    FExecutionPlan
-  | OwnShape        : Owns AxTypeContract FShape.
-
-Definition Value := nat.
-Definition FactState := Fact -> Value.
 
 (* The unique owner, as a function (the docs/42 SS2 table read column-wise). *)
 Definition owner (f : Fact) : Axis :=
@@ -218,6 +191,57 @@ Theorem incomplete_readings_can_disagree :
 Proof.
   exists [AxDomain], [], (fun _ => 0), FWho.
   simpl. discriminate.
+Qed.
+
+(* Producer-specific values make the ownership premise observable. The
+   admitted path takes its predicate from the canonical Owns table. *)
+Fixpoint read_producers (claims : Axis -> Fact -> bool)
+  (values : Axis -> Fact -> Value) (order : list Axis) (f : Fact) : option Value :=
+  match order with
+  | [] => None
+  | a :: rest => if claims a f then Some (values a f)
+                 else read_producers claims values rest f
+  end.
+
+Theorem admitted_read_reads_unique_owner : forall order values f,
+  In (owner f) order ->
+  read_producers owns_b values order f = Some (values (owner f) f).
+Proof.
+  intros order values f. induction order as [| a rest IH]; intros Hin.
+  - contradiction.
+  - simpl. destruct (owns_b a f) eqn:E.
+    + assert (a = owner f).
+      { apply owns_owner. apply owns_b_true_iff. exact E. }
+      subst a. reflexivity.
+    + apply IH. destruct Hin as [Heq | Hin]; [| exact Hin].
+      subst a. rewrite owns_b_owner in E. discriminate.
+Qed.
+
+Theorem admitted_producer_read_order_irrelevant : forall first second values,
+  complete first -> complete second -> forall f,
+  read_producers owns_b values first f = read_producers owns_b values second f.
+Proof.
+  intros first second values Hfirst Hsecond f.
+  rewrite (admitted_read_reads_unique_owner first values f (Hfirst (owner f))).
+  rewrite (admitted_read_reads_unique_owner second values f (Hsecond (owner f))).
+  reflexivity.
+Qed.
+
+Theorem duplicate_producers_can_disagree :
+  exists claims values first second,
+    complete first /\ complete second /\
+    claims AxDomain FWho = true /\ claims AxResource FWho = true /\
+    read_producers claims values first FWho <>
+    read_producers claims values second FWho.
+Proof.
+  exists (fun _ _ => true),
+         (fun a _ => match a with AxDomain => 1 | _ => 2 end),
+         [AxDomain; AxResource; AxExecution; AxTypeContract],
+         [AxResource; AxDomain; AxExecution; AxTypeContract].
+  repeat split; try reflexivity.
+  - intros a. destruct a; simpl; auto.
+  - intros a. destruct a; simpl; auto.
+  - simpl. discriminate.
 Qed.
 
 End ReadingConfluence.

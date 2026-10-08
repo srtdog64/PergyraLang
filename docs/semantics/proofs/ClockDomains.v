@@ -18,15 +18,18 @@
         a signed 64-bit reading is the value itself for every reading a
         program can see (below 2^63 ms), so monotonic stays monotonic.
 
-  So `Now() -> Long` (monotonic) and `UnixTimeMs() -> Long` (wall) are two
-  units; neither can be recovered from the other.
+  The adopted Now contract is Long milliseconds from a monotonic host clock.
+  pgy_runtime_host_clock.h is the shared C/linked sample owner. This model
+  checks range/unit properties, not host hardware or runtime refinement.
+  A separate UnixTimeMs wall-clock API remains a proposal, not implemented
+  merely by this theorem; neither clock can be recovered from the other.
 
   Honest scope: readings are integers in milliseconds; a trace is a pair
   of functions from event index to reading.
 *)
 
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.ZArith.ZArith.
+Require Import Stdlib.micromega.Lia.
 Open Scope Z_scope.
 
 Record Trace := {

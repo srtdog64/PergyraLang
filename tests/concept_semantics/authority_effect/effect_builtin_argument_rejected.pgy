@@ -1,2 +1,2 @@
-func Values() -> Array<Int> { return [Now()]; }
+func Values() -> Array<Long> { return [Now()]; }
 func Main() -> Void with effects local { Log(ArrayLength(Values())); }

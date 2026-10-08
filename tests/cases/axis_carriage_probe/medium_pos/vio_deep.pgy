@@ -7,7 +7,7 @@ object Order {
 }
 
 func ExecuteRefund(o: Order) -> Int {
-    let stamp: Int = Now();
+    let stamp: Long = Now();
     return o.amount;
 }
 

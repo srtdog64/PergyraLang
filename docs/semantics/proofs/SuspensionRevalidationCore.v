@@ -46,9 +46,9 @@
   resume-time resolve: that is the rung docs/204 §4 item 5 asks for.
 *)
 
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Bool.Bool.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.micromega.Lia.
 
 Definition SlotId := nat.
 Definition Gen    := nat.

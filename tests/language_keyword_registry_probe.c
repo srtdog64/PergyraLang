@@ -46,6 +46,8 @@ main(void)
         seen_word_ids[row->word_id] = true;
         if (row->context_mask == 0
             || (row->context_mask & ~known_contexts) != 0
+            || row->axis < PGY_KEYWORD_AXIS_GENERAL
+            || row->axis > PGY_KEYWORD_AXIS_TYPE_CONTRACT
             || (row->implementation_support != 0
                 && (row->implementation_support & PGY_KEYWORD_SUPPORT_NATIVE) == 0)
             || (row->implementation_support == 0

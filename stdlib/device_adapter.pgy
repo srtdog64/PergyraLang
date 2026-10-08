@@ -8,7 +8,7 @@ class DeviceSample
 {
     let source: DeviceRegister;
     let value: Int;
-    let capturedAtMs: Int;
+    let capturedAtMs: Long;
 }
 
 class DeviceCommand
@@ -22,7 +22,7 @@ func Register(name: String, address: Int) -> DeviceRegister
     return DeviceRegister(name, address);
 }
 
-func SampleDevice(source: DeviceRegister, value: Int, capturedAtMs: Int) -> DeviceSample
+func SampleDevice(source: DeviceRegister, value: Int, capturedAtMs: Long) -> DeviceSample
 {
     return DeviceSample(source, value, capturedAtMs);
 }

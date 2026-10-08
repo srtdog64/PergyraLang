@@ -28,7 +28,7 @@ from pathlib import Path
 registry = Path(sys.argv[1]).read_text(encoding="utf-8")
 owner = Path(sys.argv[2]).read_text(encoding="utf-8")
 retention_names = set(re.findall(
-    r'PGY_BUILTIN_ARGUMENT_RETENTION\([^,]+,\s*"([^"]+)"', registry))
+    r'PGY_(?:BUILTIN|STDLIB)_ARGUMENT_RETENTION\([^,]+,\s*"([^"]+)"', registry))
 signature_rows = {
     name: (returns, params)
     for name, returns, params in re.findall(
@@ -48,6 +48,10 @@ matches = {
 }
 if known != set(expected) or matches != expected:
     raise SystemExit("retention signature projection drifted from canonical builtin rows")
+for name, arity in re.findall(
+        r'PGY_STDLIB_ARGUMENT_RETENTION\([^,]+,\s*"([^"]+)",[^\n]+,\s*([0-9]+)\)', registry):
+    if name not in expected or len(expected[name][1].split("|")) != int(arity):
+        raise SystemExit("stdlib retention arity drifted from its canonical signature")
 PY
 
 grep -Fq '#include "builtin_argument_retention_registry.def"' "$NATIVE_OWNER"
@@ -106,5 +110,9 @@ expect_registry_rejected duplicate-identity \
     'PGY_BUILTIN_ARGUMENT_RETENTION(PRINT, "OtherPrint", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)'
 expect_registry_rejected duplicate-source-name \
     'PGY_BUILTIN_ARGUMENT_RETENTION(OTHER_PRINT, "Print", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)'
+expect_registry_rejected invalid-stdlib-arity \
+    'PGY_STDLIB_ARGUMENT_RETENTION(OTHER_SCAN, "OtherScan", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 0)'
+expect_registry_rejected invalid-stdlib-ordinal \
+    'PGY_STDLIB_ARGUMENT_RETENTION(OTHER_SCAN, "OtherScan", 3, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 3)'
 
 echo 'builtin argument retention registry smoke: ok'

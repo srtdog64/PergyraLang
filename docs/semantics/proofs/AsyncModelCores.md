@@ -18,7 +18,10 @@ relevant events. It proves:
 - a retired handle cannot be consumed a second time;
 - every trace from `Live` to a scope-closed state contains await or transfer;
 - disagreeing alternative CFG paths fail closed as `Diverged`;
-- alternative-path and simultaneous-parallel merge are deliberately distinct.
+- alternative-path and simultaneous-parallel merge are deliberately distinct;
+- a parallel join is admitted against the **entry** lifecycle snapshot: two
+  new consumptions of one Live handle fail closed, while an already Retired
+  handle remaining Retired is not falsely classified as double consumption.
 
 The trace theorem is the bounded structured-task containment result. It covers
 named `Future<T>` and `RemoteFuture<T>` bindings admitted by the current
@@ -27,8 +30,11 @@ detach, or hidden runtime finalization.
 
 ## Context core
 
-`AsyncContextCore.v` models parent task capture, the six execution lanes,
-coroutine yield/await resume, and execution-boundary restoration. It proves:
+`AsyncContextCore.v` is an **interface specification** of parent task capture,
+the six execution lanes, coroutine yield/await resume, and boundary restoration.
+Capture is a record copy and its transition relations admit equality by
+definition. The following theorems fix that required contract; they are not
+derived from a TLS/task execution machine:
 
 - both capability masks are copied exactly, so capture cannot widen them;
 - the child shares the exact parent budget owner and instance identity;
@@ -43,7 +49,8 @@ These are model theorems, not implementation verification. The live owners are
 `src/semantic/type_checker_future_lifecycle.c`, the Future state carrier and
 flow merge, and `src/runtime/pgy_runtime_context.h`. The static
 `tests/async_model_adequacy_smoke.sh` gate binds every modeled decision back to
-those owners. Existing structured-spawn and runtime-context execution gates
+those owners. These text anchors are not a semantic simulation. Existing
+structured-spawn and runtime-context execution gates
 provide positive and fail-closed runtime evidence.
 
 Neither core proves termination, scheduler fairness, C11 happens-before,

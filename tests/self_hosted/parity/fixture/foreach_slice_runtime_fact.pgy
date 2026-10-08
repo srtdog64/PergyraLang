@@ -1,0 +1,24 @@
+import "../../../../src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy";
+
+func Main() -> Void
+{
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("", "");
+    let text: CodegenForEachCollectionRuntimeFact =
+        CodegenForEachCollectionRuntimeFactFromTypeName("Slice<String>", env);
+    Log(text.ok);
+    Log(text.collection_c_type);
+    Log(text.element_c_type);
+    Log(CodegenForEachCollectionCLengthCall(text, "view"));
+    Log(CodegenForEachCollectionCGetCall(text, "view", "index"));
+    let numbers: CodegenForEachCollectionRuntimeFact =
+        CodegenForEachCollectionRuntimeFactFromTypeName("Slice<Int>", env);
+    Log(numbers.ok);
+    Log(numbers.collection_c_type);
+    Log(numbers.element_c_type);
+    let unsupported: CodegenForEachCollectionRuntimeFact =
+        CodegenForEachCollectionRuntimeFactFromTypeName("Slice<Float>", env);
+    Log(unsupported.ok);
+    let missing: CodegenForEachCollectionRuntimeFact =
+        CodegenForEachCollectionRuntimeFactFromTypeName("Slice<Unknown>", env);
+    Log(missing.ok);
+}

@@ -29,6 +29,12 @@ bool semantic_region_retention_summary_for_builtin(
     size_t argument_index,
     PgyRegionRetentionKind *kind_out);
 
+/* Only a semantic-owner-selected stdlib target can join a stdlib row. */
+bool semantic_region_retention_summary_for_stdlib(
+    const struct ASTNode *call,
+    size_t argument_index,
+    PgyRegionRetentionKind *kind_out);
+
 /* Resolve one user-callee parameter through the semantic owner. */
 bool semantic_region_retention_summary_for_user_call(
     const struct ASTNode *call,

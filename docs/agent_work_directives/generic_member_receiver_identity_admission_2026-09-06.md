@@ -1,5 +1,7 @@
 # Generic member receiver identity admission
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: IMPLEMENTATION COMPLETE AND PUBLISHED; regular CI SUCCESS 30/30
 Base: `426cd694c03107d462f47f1050e9a5dab83e6278`
 Publication: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`; CI `33998401657` SUCCESS (`930d14`).

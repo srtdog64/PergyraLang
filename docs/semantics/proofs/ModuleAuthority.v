@@ -4,14 +4,15 @@
   Scope: the semantic core of the planned `use MODULE;` surface (docs/202),
   proven before any compiler code exists. A link is an ordered list of
   modules whose imports may only reach earlier positions, so import cycles
-  are impossible by construction; a name resolves only when exactly one
-  module in the link exports it; a module may re-export only authority it
-  owns or received from its imports, so linking can never amplify
-  authority; and every authority visible on any re-export surface of a
-  well-formed link is rooted in some owning module.
+  are rejected by the structural checker. Public resolution additionally
+  admits each claimed owner against a separately supplied authority registry
+  and resolves only a unique export visible to the requesting module through
+  itself or a direct import. A module's own m_owns declaration is not a grant.
+  Registry issuance remains a separate trusted-boundary refinement obligation.
 
   Load surface: the chain and fanout generators build links of any size n;
-  well-formedness and resolution are proven for all n, and executable
+  structural well-formedness and export inventory are proven for all n;
+  admitted requester-specific resolution has independent positive/negative
   witnesses at n = 16 evaluate the boolean checkers by computation.
   Rejection witnesses show a cycle, an authority-from-nowhere, and an
   ambiguous export each fail the same checkers.
@@ -22,11 +23,11 @@
   docs/202.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Arith.Wf_nat.
-Require Import Coq.Bool.Bool.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Arith.Wf_nat.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 Definition Name := nat.
@@ -125,7 +126,7 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------- *)
-(* Resolution: a name resolves iff exactly one module exports it.   *)
+(* Global export inventory, NOT a requester's name-resolution path. *)
 (* ---------------------------------------------------------------- *)
 
 Definition module_exports (m : PgyModule) (n : Name) : bool :=
@@ -140,7 +141,7 @@ Definition exports_at (l : Link) (i : nat) (n : Name) : bool :=
 Definition exporters (l : Link) (n : Name) : list nat :=
   filter (fun i => exports_at l i n) (seq 0 (length l)).
 
-Definition resolve (l : Link) (n : Name) : option nat :=
+Definition resolve_inventory (l : Link) (n : Name) : option nat :=
   match exporters l n with
   | [i] => Some i
   | _ => None
@@ -181,13 +182,13 @@ Proof.
   pose proof (exports_at_bound l i n H). lia.
 Qed.
 
-Theorem resolve_sound :
+Theorem inventory_resolve_sound :
   forall l n i,
-    resolve l n = Some i ->
+    resolve_inventory l n = Some i ->
     exports_at l i n = true.
 Proof.
   intros l n i H.
-  unfold resolve in H.
+  unfold resolve_inventory in H.
   destruct (exporters l n) as [| a rest] eqn:He; [discriminate H |].
   destruct rest; [| discriminate H].
   inversion H; subst.
@@ -214,14 +215,14 @@ Proof.
       exfalso. apply H1. left. reflexivity.
 Qed.
 
-Theorem resolve_finds :
+Theorem inventory_resolve_finds :
   forall l n i,
     exports_at l i n = true ->
     (forall j, exports_at l j n = true -> j = i) ->
-    resolve l n = Some i.
+    resolve_inventory l n = Some i.
 Proof.
   intros l n i Hi Huniq.
-  unfold resolve.
+  unfold resolve_inventory.
   assert (Hxs : exporters l n = [i]).
   { apply singleton_of_unique.
     - apply NoDup_filter. apply seq_NoDup.
@@ -234,10 +235,10 @@ Qed.
 Theorem hidden_name_unresolvable :
   forall l n,
     (forall i, exports_at l i n = false) ->
-    resolve l n = None.
+    resolve_inventory l n = None.
 Proof.
   intros l n Hnone.
-  unfold resolve.
+  unfold resolve_inventory.
   assert (He : exporters l n = []).
   { unfold exporters.
     induction (seq 0 (length l)) as [| a rest IH]; simpl.
@@ -252,10 +253,10 @@ Theorem ambiguous_name_unresolvable :
     i <> j ->
     exports_at l i n = true ->
     exports_at l j n = true ->
-    resolve l n = None.
+    resolve_inventory l n = None.
 Proof.
   intros l n i j Hne Hi Hj.
-  unfold resolve.
+  unfold resolve_inventory.
   destruct (exporters l n) as [| a rest] eqn:He; [reflexivity |].
   destruct rest as [| b rest']; [| reflexivity].
   exfalso.
@@ -293,13 +294,13 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem resolve_extension_stable :
+Theorem inventory_resolve_extension_stable :
   forall l m n,
     module_exports m n = false ->
-    resolve (l ++ [m]) n = resolve l n.
+    resolve_inventory (l ++ [m]) n = resolve_inventory l n.
 Proof.
   intros l m n Hfresh.
-  unfold resolve.
+  unfold resolve_inventory.
   assert (He : exporters (l ++ [m]) n = exporters l n).
   { unfold exporters.
     rewrite app_length. simpl.
@@ -343,27 +344,27 @@ Definition module_authority_wf (l : Link) (m : PgyModule) : bool :=
              || existsb (fun x => Nat.eqb x a) (received l m))
           (m_reexports m).
 
-Definition link_wf (l : Link) : bool :=
+Definition link_structure_wf (l : Link) : bool :=
   link_stratified l && forallb (module_authority_wf l) l.
 
 Definition rooted (l : Link) (a : Authority) : bool :=
   existsb (fun m => owns_auth m a) l.
 
 Lemma link_wf_stratified :
-  forall l, link_wf l = true -> link_stratified l = true.
+  forall l, link_structure_wf l = true -> link_stratified l = true.
 Proof.
-  intros l H. unfold link_wf in H.
+  intros l H. unfold link_structure_wf in H.
   apply andb_true_iff in H. destruct H as [Hs _]. exact Hs.
 Qed.
 
 Lemma link_wf_module :
   forall l i m,
-    link_wf l = true ->
+    link_structure_wf l = true ->
     nth_error l i = Some m ->
     module_authority_wf l m = true.
 Proof.
   intros l i m H Hn.
-  unfold link_wf in H.
+  unfold link_structure_wf in H.
   apply andb_true_iff in H. destruct H as [_ Ha].
   rewrite forallb_forall in Ha.
   apply Ha. eapply nth_error_In. exact Hn.
@@ -383,7 +384,7 @@ Qed.
 
 Theorem authority_rooted :
   forall l,
-    link_wf l = true ->
+    link_structure_wf l = true ->
     forall i, forall m a,
       nth_error l i = Some m ->
       reexports_auth m a = true ->
@@ -427,7 +428,7 @@ Qed.
 (* surface anywhere in a well-formed link.                          *)
 Theorem unrooted_invisible :
   forall l a,
-    link_wf l = true ->
+    link_structure_wf l = true ->
     rooted l a = false ->
     forall i m,
       nth_error l i = Some m ->
@@ -488,10 +489,10 @@ Proof.
     + apply IH.
 Qed.
 
-Theorem chain_wf : forall n, link_wf (chain n) = true.
+Theorem chain_wf : forall n, link_structure_wf (chain n) = true.
 Proof.
   intros n.
-  unfold link_wf. apply andb_true_iff. split.
+  unfold link_structure_wf. apply andb_true_iff. split.
   - unfold link_stratified, chain. apply chain_stratified_from.
   - apply forallb_forall.
     intros m Hm.
@@ -512,7 +513,7 @@ Qed.
 Theorem chain_resolves_every_name :
   forall n i,
     i < n ->
-    resolve (chain n) i = Some i.
+    resolve_inventory (chain n) i = Some i.
 Proof.
   intros n i Hi.
   assert (Hexp : forall j, exports_at (chain n) j i = true -> j = i).
@@ -532,7 +533,7 @@ Proof.
     apply Nat.eqb_eq in Hxeq; subst x.
     destruct j as [| k]; simpl in Hxin;
       destruct Hxin as [Hx | []]; lia. }
-  apply resolve_finds.
+  apply inventory_resolve_finds.
   - unfold exports_at, chain.
     rewrite nth_error_seq_map by exact Hi.
     replace (0 + i) with i by lia.
@@ -563,10 +564,10 @@ Proof.
   apply H. lia.
 Qed.
 
-Theorem fanout_wf : forall n, link_wf (fanout n) = true.
+Theorem fanout_wf : forall n, link_structure_wf (fanout n) = true.
 Proof.
   intros n.
-  unfold link_wf. apply andb_true_iff. split.
+  unfold link_structure_wf. apply andb_true_iff. split.
   - apply fanout_stratified.
   - apply forallb_forall.
     intros m Hm.
@@ -581,19 +582,19 @@ Qed.
 
 (* Executable witnesses at n = 16: the checkers hold by evaluation *)
 (* on links past the ten-module load line.                          *)
-Example chain_16_wf : link_wf (chain 16) = true.
+Example chain_16_wf : link_structure_wf (chain 16) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Example chain_16_deep_resolution : resolve (chain 16) 15 = Some 15.
+Example chain_16_deep_resolution : resolve_inventory (chain 16) 15 = Some 15.
 Proof. vm_compute. reflexivity. Qed.
 
 Example chain_16_rooted : rooted (chain 16) 0 = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Example fanout_16_wf : link_wf (fanout 16) = true.
+Example fanout_16_wf : link_structure_wf (fanout 16) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Example fanout_16_wide_resolution : resolve (fanout 16) 16 = Some 16.
+Example fanout_16_wide_resolution : resolve_inventory (fanout 16) 16 = Some 16.
 Proof. vm_compute. reflexivity. Qed.
 
 (* Rejection witnesses: the same checkers refuse the three failure *)
@@ -604,9 +605,143 @@ Example cycle_rejected :
 Proof. vm_compute. reflexivity. Qed.
 
 Example authority_from_nowhere_rejected :
-  link_wf [ mkModule [] [] [] [7] ] = false.
+  link_structure_wf [ mkModule [] [] [] [7] ] = false.
 Proof. vm_compute. reflexivity. Qed.
 
 Example ambiguous_export_unresolvable :
-  resolve [ mkModule [] [5] [] [] ; mkModule [] [5] [] [] ] 5 = None.
+  resolve_inventory [ mkModule [] [5] [] [] ; mkModule [] [5] [] [] ] 5 = None.
 Proof. vm_compute. reflexivity. Qed.
+
+(* The registry is an independent boundary input, not reconstructed from
+   module declarations. One authority has one admitted owner identity. *)
+Definition AuthorityRegistry := Authority -> option nat.
+
+Definition claims_admitted (registry : AuthorityRegistry) (i : nat)
+  (m : PgyModule) : bool :=
+  forallb (fun a => match registry a with
+                   | Some owner => Nat.eqb owner i
+                   | None => false end) (m_owns m).
+
+Definition link_wf (registry : AuthorityRegistry) (l : Link) : bool :=
+  link_structure_wf l &&
+  forallb (fun i => match nth_error l i with
+                   | Some m => claims_admitted registry i m
+                   | None => false end) (seq 0 (length l)).
+
+Theorem admitted_owner_is_registered : forall registry l i m a,
+  link_wf registry l = true -> nth_error l i = Some m ->
+  In a (m_owns m) -> registry a = Some i.
+Proof.
+  intros registry l i m a Hwf Hmodule Howns.
+  unfold link_wf in Hwf. apply andb_true_iff in Hwf as [_ Hclaims].
+  apply forallb_forall with (x := i) in Hclaims.
+  - rewrite Hmodule in Hclaims. unfold claims_admitted in Hclaims.
+    apply forallb_forall with (x := a) in Hclaims; [| exact Howns].
+    destruct (registry a) as [owner|] eqn:Hreg; [| discriminate].
+    apply Nat.eqb_eq in Hclaims. subst owner. reflexivity.
+  - apply in_seq. split; [lia |].
+    apply nth_error_Some. rewrite Hmodule. discriminate.
+Qed.
+
+Theorem admitted_owner_unique : forall registry l i j m_i m_j a,
+  link_wf registry l = true ->
+  nth_error l i = Some m_i -> nth_error l j = Some m_j ->
+  In a (m_owns m_i) -> In a (m_owns m_j) -> i = j.
+Proof.
+  intros registry l i j mi mj a Hwf Hi Hj Hai Haj.
+  pose proof (admitted_owner_is_registered registry l i mi a Hwf Hi Hai).
+  pose proof (admitted_owner_is_registered registry l j mj a Hwf Hj Haj).
+  congruence.
+Qed.
+
+Theorem missing_root_refuses_link : forall registry l i m a,
+  registry a = None -> nth_error l i = Some m -> In a (m_owns m) ->
+  link_wf registry l = false.
+Proof.
+  intros registry l i m a Hmissing Hmodule Howns.
+  destruct (link_wf registry l) eqn:Hwf; [| reflexivity].
+  pose proof (admitted_owner_is_registered registry l i m a Hwf Hmodule Howns).
+  congruence.
+Qed.
+
+Definition visible_exporters (l : Link) (requester : nat) (n : Name) : list nat :=
+  filter (fun i => (Nat.eqb i requester || imports_edge l requester i) &&
+                   exports_at l i n) (seq 0 (length l)).
+
+Definition resolve (registry : AuthorityRegistry) (l : Link)
+  (requester : nat) (n : Name) : option nat :=
+  if link_wf registry l then
+    match nth_error l requester with
+    | None => None
+    | Some _ => match visible_exporters l requester n with
+                | [i] => Some i | _ => None end
+    end
+  else None.
+
+Theorem resolve_requires_admitted_link : forall registry l requester n i,
+  resolve registry l requester n = Some i -> link_wf registry l = true.
+Proof.
+  intros registry l requester n i Hresolve. unfold resolve in Hresolve.
+  destruct (link_wf registry l) eqn:Hwf; [reflexivity | discriminate].
+Qed.
+
+Theorem resolve_sound : forall registry l requester n i,
+  resolve registry l requester n = Some i ->
+  exports_at l i n = true /\
+  (i = requester \/ imports_edge l requester i = true).
+Proof.
+  intros registry l requester n i Hresolve. unfold resolve in Hresolve.
+  destruct (link_wf registry l); [| discriminate].
+  destruct (nth_error l requester); [| discriminate].
+  destruct (visible_exporters l requester n) as [| x xs] eqn:Hex;
+    [discriminate |]. destruct xs; [| discriminate].
+  inversion Hresolve; subst x.
+  assert (Hin : In i (visible_exporters l requester n)).
+  { rewrite Hex. left. reflexivity. }
+  unfold visible_exporters in Hin. apply filter_In in Hin as [_ Hb].
+  apply andb_true_iff in Hb as [Hvisible Hexport]. split; [exact Hexport |].
+  apply orb_true_iff in Hvisible as [Hself | Himport].
+  - left. apply Nat.eqb_eq. exact Hself.
+  - right. exact Himport.
+Qed.
+
+Theorem nonimported_export_inaccessible : forall registry l requester n i,
+  i <> requester -> imports_edge l requester i = false ->
+  resolve registry l requester n <> Some i.
+Proof.
+  intros registry l requester n i Hother Hhidden Hresolve.
+  destruct (resolve_sound registry l requester n i Hresolve) as [_ [Hself | Hi]].
+  - contradiction.
+  - rewrite Hhidden in Hi. discriminate.
+Qed.
+
+Definition no_authority_registry : AuthorityRegistry := fun _ => None.
+Definition root_zero_registry : AuthorityRegistry :=
+  fun a => if Nat.eqb a 0 then Some 0 else None.
+
+Example requester_without_import_refused :
+  resolve no_authority_registry
+    [mkModule [] [] [] []; mkModule [] [5] [] []] 0 5 = None.
+Proof. vm_compute. reflexivity. Qed.
+
+Example requester_with_import_resolves :
+  resolve no_authority_registry
+    [mkModule [] [5] [] []; mkModule [0] [] [] []] 1 5 = Some 0.
+Proof. vm_compute. reflexivity. Qed.
+
+Example duplicate_authority_owners_refused :
+  link_wf (fun _ => Some 0)
+    [mkModule [] [] [7] [7]; mkModule [] [] [7] [7]] = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example self_declared_unregistered_authority_refused :
+  link_wf no_authority_registry [mkModule [] [] [7] [7]] = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example chain_16_admitted : link_wf root_zero_registry (chain 16) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example chain_16_requester_resolution :
+  resolve root_zero_registry (chain 16) 15 14 = Some 14 /\
+  resolve root_zero_registry (chain 16) 0 15 = None.
+Proof. vm_compute. split; reflexivity. Qed.

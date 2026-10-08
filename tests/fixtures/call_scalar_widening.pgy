@@ -1,0 +1,50 @@
+func EchoLong(value: Long) -> Long { return value; }
+func EchoDouble(value: Double) -> Double { return value; }
+
+class ScalarEcho {
+    func EchoValue(self, value: Long) -> Long { return value; }
+}
+
+subject ScalarWorker {
+    func EchoValue(self, value: Long) -> Long { return value; }
+    func Hosted(self, value: Int) -> Long { return EchoValue(value); }
+    action Accept(self, value: Long) -> Bool
+        within ScalarZone
+        authorized by self {
+        return value == -7L;
+    }
+}
+
+zone ScalarZone {
+    subject slot worker: ScalarWorker
+    authority worker
+}
+
+intent WidenIntent(scalar_zone: ScalarZone, worker: ScalarWorker, value: Long) {
+    step CheckValue {
+        using: scalar_zone;
+        on accepted: worker.Accept(value);
+        expect: accepted;
+    }
+    success: value == -7L;
+    failure: false;
+}
+
+func Main() -> Void {
+    let negative: Int = -7;
+    let positive: Int = 2147483647;
+    let fraction: Float = 1.25;
+    let expected: Double = 1.25;
+    let echo: ScalarEcho = ScalarEcho();
+    let scalar_zone: ScalarZone = ScalarZone(ScalarWorker());
+    let worker: ScalarWorker = Clone(scalar_zone.worker);
+    let callback: func(Long) -> Long = EchoLong;
+    Log(EchoLong(negative) == -7L);
+    Log(EchoLong(positive) == 2147483647L);
+    Log(EchoDouble(fraction) == expected);
+    Log(echo.EchoValue(negative) == -7L);
+    Log(worker.EchoValue(negative) == -7L);
+    Log(worker.Hosted(negative) == -7L);
+    Log(callback(negative) == -7L);
+    Log(WidenIntent(scalar_zone, worker, negative));
+}

@@ -43,6 +43,9 @@ typedef enum {
     PGY_KEYWORD_CONTEXT_PARAMETER   = 1u << 9
 } PgyLanguageKeywordContext;
 
+/* Stable spelling-level primary categories; not semantic fact-owner dispatch.
+ * Module syntax already has PGY_KEYWORD_CONTEXT_MODULE. Overloaded words keep
+ * their grammatical use's fact owner rather than inheriting this category. */
 typedef enum {
     PGY_KEYWORD_AXIS_GENERAL = 0,
     PGY_KEYWORD_AXIS_RESOURCE,
@@ -80,7 +83,7 @@ typedef struct {
     PgyTokenType token_type;
     const char *debug_identity;
     uint32_t context_mask;
-    PgyLanguageKeywordAxis axis;
+    PgyLanguageKeywordAxis axis; /* Primary category; wire/enum identity retained. */
     uint32_t implementation_support;
     uint32_t tooling_flags;
     PgyLanguageKeywordHighlightScope highlight_scope;

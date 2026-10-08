@@ -1,4 +1,4 @@
 func Main() -> Void {
-    let t: Int = Now();
+    let t: Long = Now();
     Log(ToString(t >= 0));
 }

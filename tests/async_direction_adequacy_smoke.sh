@@ -52,6 +52,10 @@ done
 for term in \
     "Theorem contained_no_orphan" \
     "Theorem no_running_task_in_closed_scope" \
+    "Theorem no_pending_task_in_closed_scope" \
+    "Theorem cancellation_does_not_admit_close" \
+    "Theorem reopened_scope_has_only_current_parent" \
+    "Theorem run_preserves_unique_task_identities" \
     "Theorem run_no_orphan" \
     "Theorem cancel_reaches_descendants" \
     "Theorem background_only_via_detach" \
@@ -115,6 +119,8 @@ require_text "docs/113_memory_concurrency_model.md" \
 # The dormant runtime skeleton the structured scope will consume.
 require_text "src/runtime/async/async_scope.h" "AsyncScopeWaitAll" \
     "AsyncScopeCore's close rule is this join"
+require_text "src/runtime/async/async_scope.c" "AsyncScopeWaitAll(scope);" \
+    "scope destruction must drain completion after cancellation"
 
 # CapabilityFlowCore: the per-thread binding is the tls_step refutation's
 # world; the parent-capture owner is the structured world. Both must exist,

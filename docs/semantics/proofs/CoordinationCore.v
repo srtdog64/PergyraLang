@@ -14,17 +14,20 @@
     - Readiness soundness / fail-closed: a step runs only when every dependency is
       already done (`run_requires_deps`) -- no step executes before its
       prerequisites.
-    - Coordination determinism invariant (the KPN/dataflow core): any reachable
+    - Dependency-closure invariant (the KPN/dataflow core): any reachable
       done-set is dependency-closed -- a completed step always has all of its
       dependencies completed (`reachable_dep_closed`). The execution order respects
       the dependency graph regardless of which ready step is picked.
+    - At-most-once execution: Run excludes a previously completed step;
+      every reachable done-set is NoDup. This is not value determinism,
+      schedule confluence or a proof that the runtime scheduler refines crun.
 
   Negative scope: a flat done-set + a static dependency map; no data values on the
   edges, no per-step effect/authority gating (that is the other corners), no
   binding to live AIR/MIR intent-step facts yet (task #45 / docs/18).
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Section CoordinationCore.
@@ -46,6 +49,7 @@ Definition ready (d : deps) (done : done_set) (s : step) : Prop :=
 Inductive crun (d : deps) : done_set -> done_set -> Prop :=
 | Run : forall done s,
     ready d done s ->
+    ~ In s done ->
     crun d done (s :: done).
 
 Inductive cruns (d : deps) : done_set -> done_set -> Prop :=
@@ -76,6 +80,30 @@ Proof.
     subst s0. right. apply H0. exact Hx.
   - (* s0 already done: deps in done by the invariant, hence in s::done *)
     right. apply (Hcl s0 Hs0 x Hx).
+Qed.
+
+Lemma crun_preserves_no_duplicates : forall d done done',
+  NoDup done -> crun d done done' -> NoDup done'.
+Proof.
+  intros d done done' Hnd Hstep. inversion Hstep; subst.
+  constructor; assumption.
+Qed.
+
+Lemma cruns_preserve_no_duplicates : forall d done done',
+  NoDup done -> cruns d done done' -> NoDup done'.
+Proof.
+  intros d done done' Hnd Hrun.
+  induction Hrun.
+  - exact Hnd.
+  - apply IHHrun. eapply crun_preserves_no_duplicates; eassumption.
+Qed.
+
+Theorem reachable_done_once : forall d done,
+  cruns d [] done -> NoDup done.
+Proof.
+  intros d done Hrun. apply (cruns_preserve_no_duplicates d [] done).
+  - constructor.
+  - exact Hrun.
 Qed.
 
 Lemma cruns_preserve_closure : forall d done done',

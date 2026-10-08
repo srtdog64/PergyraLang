@@ -32,7 +32,7 @@ for backend in c llvm; do
         "$WORK/$backend.out"
     grep -Fxq 'lifetime=Main_scope_reused_across_samples_cleanup_UNMEASURED' \
         "$WORK/$backend.out"
-    grep -Fxq 'clock=Now_Int_ms_host_specific' "$WORK/$backend.out"
+    grep -Fxq 'clock=Now_Long_ms_monotonic' "$WORK/$backend.out"
     grep -Fxq 'warmups=3 samples=101 pixels=4096 rounds=2000' \
         "$WORK/$backend.out"
 

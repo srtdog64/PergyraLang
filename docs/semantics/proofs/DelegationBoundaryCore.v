@@ -16,9 +16,14 @@
   compiler correctness, runtime implementation adequacy, or whole-language
   soundness. It defines the narrow permit envelope that those systems must
   refine and enforce.
+
+  Evidence classification: permit lemmas inspect the declared constructor
+  guards (INTERFACE CONTRACTS). The purpose/delegability examples witness
+  independently declared fields, not that a runtime enforces them or that
+  trusted evidence can be generated from a source declaration.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Section DelegationBoundaryCore.

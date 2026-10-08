@@ -18,8 +18,8 @@
     open s        open a fresh non-root scope under an open parent
     spawn t s     create a running task inside an OPEN non-root scope
     complete t    a task finishes
-    cancel s      every running task in s or a descendant scope is cancelled
-    close s       leave a scope: no task of s may still be running and no
+    cancel s      request cancellation; tasks remain pending until complete
+    close s       leave a scope: no task of s may still be pending and no
                   child scope may still be open (join-before-continuation)
     detach t      move a running task to the root scope -- needs the cap
 
@@ -27,7 +27,7 @@
   owning scope is open. Every structured step preserves it, so a structured
   run never reaches an orphan (Theorem [run_no_orphan]). Closing a scope
   therefore means everything inside it has stopped (Theorem
-  [no_running_task_in_closed_scope]); cancellation reaches every descendant
+  [no_pending_task_in_closed_scope]); cancellation requests reach every descendant
   scope (Theorem [cancel_reaches_descendants]); and without the detach
   capability nothing ever reaches the background (Theorem
   [background_only_via_detach]) -- docs/204 §2.5's "detach is a capability".
@@ -44,13 +44,16 @@
   (WitnessDataRace.v), no scheduler progress (ParallelSchedulingCore.v), and
   no claim that the compiler enforces these guards for anything beyond the
   named-Future flow -- the scope-tree enforcement is the rung docs/204 §4
-  item 2 asks for. Cancellation here is a state change, not preemption
-  (docs/114 §5: cancellation is cooperative).
+  item 2 asks for. Cancelled means request-pending, not terminated; only
+  complete drains that obligation. Scope close removes retired ancestry, so
+  reopening the numeric scope id cannot inherit an old parent. Task ids are
+  fresh across the entire retained history, including Done rows; task-handle
+  recycling is outside this model, not silently admitted without generations.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Bool.Bool.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Bool.Bool.
 Import ListNotations.
 
 Definition Task  := nat.
@@ -72,19 +75,25 @@ Definition root_scope : Scope := 0.
 Definition task_running (g : Config) (t : Task) (s : Scope) : Prop :=
   In (t, s, Running) (tasks g).
 
+Definition task_pending (g : Config) (t : Task) (s : Scope) : Prop :=
+  exists st, In (t, s, st) (tasks g) /\ st <> Done.
+
+Definition task_fresh (g : Config) (t : Task) : Prop :=
+  forall s st, ~ In (t, s, st) (tasks g).
+
 Definition scope_open (g : Config) (s : Scope) : Prop := In s (open g).
 
 (* ===================================================================== *)
 (* 1. The invariant and what it rules out                                 *)
 (* ===================================================================== *)
 
-(* Containment: every running task's owning scope is open. *)
+(* Both running and cooperatively cancelled tasks retain their owner. *)
 Definition contained (g : Config) : Prop :=
-  forall t s, task_running g t s -> scope_open g s.
+  forall t s, task_pending g t s -> scope_open g s.
 
 (* An orphan: a running task whose scope has already been left. *)
 Definition orphan (g : Config) : Prop :=
-  exists t s, task_running g t s /\ ~ scope_open g s.
+  exists t s, task_pending g t s /\ ~ scope_open g s.
 
 Theorem contained_no_orphan : forall g, contained g -> ~ orphan g.
 Proof.
@@ -96,8 +105,13 @@ Qed.
 Theorem no_running_task_in_closed_scope : forall g s,
   contained g -> ~ scope_open g s -> forall t, ~ task_running g t s.
 Proof.
-  intros g s Hc Hclosed t Hrun. apply Hclosed. exact (Hc t s Hrun).
+  intros g s Hc Hclosed t Hrun. apply Hclosed. apply (Hc t s).
+  exists Running. split; [exact Hrun | discriminate].
 Qed.
+
+Theorem no_pending_task_in_closed_scope : forall g s,
+  contained g -> ~ scope_open g s -> forall t, ~ task_pending g t s.
+Proof. intros g s Hc Hclosed t Hpending. exact (Hclosed (Hc t s Hpending)). Qed.
 
 (* ===================================================================== *)
 (* 2. Scope tree and the structured steps                                 *)
@@ -127,6 +141,10 @@ Definition move_to_root (t : Task) (row : TaskRow) : TaskRow :=
 Definition remove_scope (s : Scope) (l : list Scope) : list Scope :=
   filter (fun x => negb (Nat.eqb x s)) l.
 
+(* Both endpoints are retired: a numeric scope id is not an ancestry token. *)
+Definition retire_parent_edges (s : Scope) (edges : list (Scope * Scope)) :=
+  filter (fun e => negb (Nat.eqb (fst e) s || Nat.eqb (snd e) s)) edges.
+
 Definition in_list (cs : list Scope) (c : Scope) : bool :=
   existsb (Nat.eqb c) cs.
 
@@ -136,19 +154,25 @@ Inductive step : Config -> Config -> Prop :=
       step g (mkConfig (tasks g) (s :: open g) ((s, p) :: sparent g) (detach_cap g))
   | step_spawn : forall g t s,
       scope_open g s -> s <> root_scope ->
+      task_fresh g t ->
       step g (mkConfig ((t, s, Running) :: tasks g) (open g) (sparent g) (detach_cap g))
   | step_complete : forall g t,
+      (exists s, task_pending g t s) ->
       step g (mkConfig (map (set_state t Done) (tasks g)) (open g) (sparent g) (detach_cap g))
   | step_cancel : forall g s (cs : list Scope),
+      scope_open g s ->
       (forall c, In c cs <-> desc g c s) ->
       step g (mkConfig (map (cancel_row (in_list cs)) (tasks g)) (open g) (sparent g) (detach_cap g))
   | step_close : forall g s,
       s <> root_scope ->
-      (forall t, ~ task_running g t s) ->
+      scope_open g s ->
+      (forall t, ~ task_pending g t s) ->
       (forall c, In (c, s) (sparent g) -> ~ scope_open g c) ->
-      step g (mkConfig (tasks g) (remove_scope s (open g)) (sparent g) (detach_cap g))
+      step g (mkConfig (tasks g) (remove_scope s (open g))
+        (retire_parent_edges s (sparent g)) (detach_cap g))
   | step_detach : forall g t,
       detach_cap g = true ->
+      (exists s, task_pending g t s) ->
       step g (mkConfig (map (move_to_root t) (tasks g)) (open g) (sparent g) (detach_cap g)).
 
 Inductive steps : Config -> Config -> Prop :=
@@ -218,6 +242,39 @@ Proof.
   - inversion Heq; subst. right. exact Hin0.
 Qed.
 
+Lemma pending_after_complete : forall g t t' s,
+  task_pending (mkConfig (map (set_state t Done) (tasks g))
+    (open g) (sparent g) (detach_cap g)) t' s -> task_pending g t' s.
+Proof.
+  intros g t t' s [st [Hin Hpending]]. apply in_map_iff in Hin.
+  destruct Hin as [[[t0 s0] st0] [Heq Hin]]. unfold set_state in Heq; simpl in Heq.
+  destruct (Nat.eqb t0 t).
+  - inversion Heq; subst. contradiction.
+  - inversion Heq; subst. eexists; split; eassumption.
+Qed.
+
+Lemma pending_after_cancel : forall g f t s,
+  task_pending (mkConfig (map (cancel_row f) (tasks g))
+    (open g) (sparent g) (detach_cap g)) t s -> task_pending g t s.
+Proof.
+  intros g f t s [st [Hin Hpending]]. apply in_map_iff in Hin.
+  destruct Hin as [[[t0 s0] st0] [Heq Hin]]. unfold cancel_row in Heq.
+  destruct st0; try (destruct (f s0)); inversion Heq; subst.
+  all: eexists; split; [exact Hin | congruence].
+Qed.
+
+Lemma pending_after_detach : forall g t t' s,
+  task_pending (mkConfig (map (move_to_root t) (tasks g))
+    (open g) (sparent g) (detach_cap g)) t' s ->
+  s = root_scope \/ task_pending g t' s.
+Proof.
+  intros g t t' s [st [Hin Hpending]]. apply in_map_iff in Hin.
+  destruct Hin as [[[t0 s0] st0] [Heq Hin]]. unfold move_to_root in Heq; simpl in Heq.
+  destruct (Nat.eqb t0 t); inversion Heq; subst.
+  - left. reflexivity.
+  - right. eexists; split; eassumption.
+Qed.
+
 Theorem step_preserves_root_open : forall g g',
   root_open g -> step g g' -> root_open g'.
 Proof.
@@ -233,24 +290,24 @@ Qed.
 Theorem step_preserves_contained : forall g g',
   root_open g -> contained g -> step g g' -> contained g'.
 Proof.
-  intros g g' Hr Hc Hs. destruct Hs; unfold contained, task_running, scope_open in *; simpl.
+  intros g g' Hr Hc Hs. destruct Hs; unfold contained, scope_open in *; simpl.
   - (* open: tasks unchanged, open grew *)
     intros t s0 Hin. right. exact (Hc t s0 Hin).
   - (* spawn: the new task sits in an open scope *)
-    intros t0 s0 [Heq | Hin].
+    intros t0 s0 [st [[Heq | Hin] Hpending]].
     + inversion Heq; subst. exact H.
-    + exact (Hc t0 s0 Hin).
+    + apply (Hc t0 s0). exists st. auto.
   - (* complete: a Done row is not running *)
-    intros t' s0 Hin. apply running_after_complete in Hin. exact (Hc t' s0 Hin).
+    intros t' s0 Hin. apply pending_after_complete in Hin. exact (Hc t' s0 Hin).
   - (* cancel: surviving running rows were running before *)
-    intros t s0 Hin. apply running_after_cancel in Hin. destruct Hin as [Hin _].
+    intros t s0 Hin. apply pending_after_cancel in Hin.
     exact (Hc t s0 Hin).
   - (* close: the guard says nothing in s was running *)
     intros t s0 Hin. apply in_remove_scope. split.
     + exact (Hc t s0 Hin).
-    + intro Heq. subst s0. exact (H0 t Hin).
+    + intro Heq. subst s0. exact (H1 t Hin).
   - (* detach: the moved task lands in the always-open root *)
-    intros t' s0 Hin. apply running_after_detach in Hin. destruct Hin as [Heq | Hin].
+    intros t' s0 Hin. apply pending_after_detach in Hin. destruct Hin as [Heq | Hin].
     + subst s0. exact Hr.
     + exact (Hc t' s0 Hin).
 Qed.
@@ -294,6 +351,117 @@ Proof.
   unfold task_running in Hrun. simpl in Hrun.
   apply running_after_cancel in Hrun. destruct Hrun as [_ Hfalse].
   rewrite (in_list_true cs c (proj2 (Hcs c) Hdesc)) in Hfalse. discriminate.
+Qed.
+
+Theorem cancel_keeps_descendants_pending : forall g s cs t c,
+  (forall c0, In c0 cs <-> desc g c0 s) ->
+  desc g c s -> task_running g t c ->
+  let after := mkConfig (map (cancel_row (in_list cs)) (tasks g))
+    (open g) (sparent g) (detach_cap g) in
+  In (t, c, Cancelled) (tasks after) /\ task_pending after t c.
+Proof.
+  intros g s cs t c Hcs Hdesc Hrun; simpl.
+  assert (Hcancel : In (t, c, Cancelled) (map (cancel_row (in_list cs)) (tasks g))).
+  { apply in_map_iff. exists (t, c, Running). split.
+    - unfold cancel_row. rewrite (in_list_true cs c (proj2 (Hcs c) Hdesc)). reflexivity.
+    - exact Hrun. }
+  split; [exact Hcancel |]. exists Cancelled. split; [exact Hcancel | discriminate].
+Qed.
+
+Theorem cancellation_does_not_admit_close : forall g t s,
+  In (t, s, Cancelled) (tasks g) ->
+  ~ (forall t0, ~ task_pending g t0 s).
+Proof.
+  intros g t s Hcancel Hdrained. apply (Hdrained t).
+  exists Cancelled. split; [exact Hcancel | discriminate].
+Qed.
+
+Lemma in_retire_parent_edges : forall s edges c p,
+  In (c, p) (retire_parent_edges s edges) <->
+  (In (c, p) edges /\ c <> s /\ p <> s).
+Proof.
+  intros s edges c p. unfold retire_parent_edges. rewrite filter_In; simpl.
+  rewrite Bool.negb_true_iff, Bool.orb_false_iff, !Nat.eqb_neq. tauto.
+Qed.
+
+Definition ancestry_live (g : Config) : Prop :=
+  forall c p, In (c, p) (sparent g) -> scope_open g c /\ scope_open g p.
+
+Theorem step_preserves_live_ancestry : forall g g',
+  ancestry_live g -> step g g' -> ancestry_live g'.
+Proof.
+  intros g g' Hlive Hstep. destruct Hstep; unfold ancestry_live in *; simpl in *.
+  - intros c p0 [Heq | Hin].
+    + inversion Heq; subst. split; [left; reflexivity | right; exact H1].
+    + destruct (Hlive c p0 Hin) as [Hc Hp]. split; right; assumption.
+  - exact Hlive.
+  - exact Hlive.
+  - exact Hlive.
+  - intros c p Hin. apply in_retire_parent_edges in Hin.
+    destruct Hin as [Hin [Hc Hp]]. destruct (Hlive c p Hin) as [Hco Hpo].
+    split; apply in_remove_scope; split; assumption.
+  - exact Hlive.
+Qed.
+
+Theorem run_preserves_live_ancestry : forall g g',
+  ancestry_live g -> steps g g' -> ancestry_live g'.
+Proof.
+  intros g g' Hlive Hrun. induction Hrun.
+  - exact Hlive.
+  - apply IHHrun. eapply step_preserves_live_ancestry; eassumption.
+Qed.
+
+Theorem reopened_scope_has_only_current_parent : forall g s p old_parent,
+  ancestry_live g -> ~ scope_open g s ->
+  In (s, old_parent) ((s, p) :: sparent g) -> old_parent = p.
+Proof.
+  intros g s p old_parent Hlive Hclosed [Heq | Hin].
+  - inversion Heq. reflexivity.
+  - exfalso. exact (Hclosed (proj1 (Hlive s old_parent Hin))).
+Qed.
+
+Theorem completed_task_identity_cannot_be_reused : forall g t s,
+  In (t, s, Done) (tasks g) -> ~ task_fresh g t.
+Proof. intros g t s Hdone Hfresh. exact (Hfresh s Done Hdone). Qed.
+
+Definition task_identity (row : TaskRow) := fst (fst row).
+Definition task_history (g : Config) := map task_identity (tasks g).
+
+Lemma map_keeps_task_history : forall rows f,
+  (forall row, task_identity (f row) = task_identity row) ->
+  map task_identity (map f rows) = map task_identity rows.
+Proof.
+  intros rows f Hidentity. rewrite map_map. apply map_ext. exact Hidentity.
+Qed.
+
+Theorem step_preserves_unique_task_identities : forall g g',
+  NoDup (task_history g) -> step g g' -> NoDup (task_history g').
+Proof.
+  intros g g' Hunique Hstep. destruct Hstep;
+    unfold task_history in *; simpl in *.
+  - exact Hunique.
+  - constructor; [| exact Hunique]. intros Hin. apply in_map_iff in Hin.
+    destruct Hin as [[[t0 s0] st0] [Heq Hin]].
+    unfold task_identity in Heq; simpl in Heq. subst t0.
+    exact (H1 s0 st0 Hin).
+  - rewrite map_keeps_task_history; [exact Hunique |].
+    intros [[t0 s0] st0]. unfold set_state, task_identity; simpl.
+    destruct (Nat.eqb t0 t); reflexivity.
+  - rewrite map_keeps_task_history; [exact Hunique |].
+    intros [[t0 s0] st0]. unfold cancel_row, task_identity; simpl.
+    destruct st0; try (destruct (in_list cs s0)); reflexivity.
+  - exact Hunique.
+  - rewrite map_keeps_task_history; [exact Hunique |].
+    intros [[t0 s0] st0]. unfold move_to_root, task_identity; simpl.
+    destruct (Nat.eqb t0 t); reflexivity.
+Qed.
+
+Theorem run_preserves_unique_task_identities : forall g g',
+  NoDup (task_history g) -> steps g g' -> NoDup (task_history g').
+Proof.
+  intros g g' Hunique Hrun. induction Hrun.
+  - exact Hunique.
+  - apply IHHrun. eapply step_preserves_unique_task_identities; eassumption.
 Qed.
 
 (* ===================================================================== *)
@@ -387,7 +555,7 @@ Proof.
   split; [| split].
   - split.
     + unfold root_open, scope_open. simpl. left. reflexivity.
-    + unfold contained, task_running. simpl. intros t s Hin. contradiction.
+    + unfold contained, task_pending. simpl. intros t s [st [Hin _]]. contradiction.
   - (* open scope 1 under the root, spawn task 7 in it, exit without joining *)
     eapply usteps_trans.
     + apply ustep_structured. apply (step_open empty_world 1 root_scope).
@@ -398,11 +566,12 @@ Proof.
       * apply ustep_structured. apply (step_spawn _ 7 1).
         -- unfold scope_open. simpl. left. reflexivity.
         -- root. discriminate.
+        -- unfold task_fresh; simpl. intros s st Hin. contradiction.
       * eapply usteps_trans.
         -- apply (ustep_exit_without_join _ 1). root. discriminate.
         -- apply usteps_refl.
   - exists 7, 1. split.
-    + unfold task_running. simpl. left. reflexivity.
+    + exists Running. split; [simpl; left; reflexivity | discriminate].
     + unfold scope_open. root. intros [H | H]; [discriminate H | exact H].
 Qed.
 
@@ -411,7 +580,7 @@ Qed.
 (* ===================================================================== *)
 
 Definition finished_world : Config :=
-  mkConfig [(7, 1, Done)] (remove_scope 1 [1; root_scope]) [(1, root_scope)] false.
+  mkConfig [(7, 1, Done)] (remove_scope 1 [1; root_scope]) [] false.
 
 Theorem structured_run_exists : steps empty_world finished_world.
 Proof.
@@ -424,12 +593,17 @@ Proof.
     + apply (step_spawn _ 7 1).
       * unfold scope_open. simpl. left. reflexivity.
       * root. discriminate.
+      * unfold task_fresh; simpl. intros s st Hin. contradiction.
     + eapply steps_trans.
       * apply (step_complete _ 7).
+        exists 1, Running. split; [simpl; left; reflexivity | discriminate].
       * eapply steps_trans.
         -- apply (step_close _ 1).
            ++ root. discriminate.
-           ++ unfold task_running. simpl. intros t [H | H]; [discriminate H | exact H].
+           ++ unfold scope_open. simpl. left. reflexivity.
+           ++ unfold task_pending. simpl. intros t [st [[H | H] Hp]].
+              ** inversion H; subst. contradiction.
+              ** contradiction.
            ++ simpl. intros c [H | H]; [| contradiction].
               injection H as Hc Hp. root. discriminate Hp.
         -- apply steps_refl.

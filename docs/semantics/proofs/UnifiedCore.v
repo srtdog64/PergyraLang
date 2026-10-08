@@ -31,16 +31,17 @@
     - affine_safety: once a slot is Released, no use/release of it is derivable.
     - authority_conservation: no step introduces a capability that was not already
       in circulation -- delegation redistributes, the others do not touch holdings.
-    - rollback_restores: rolling back an effect restores every coupled slot to
-      the state recorded in the effect log before the forward effect.
+    - rollback_restores: compensation preserves current slot lifetime; logged
+      snapshots cannot re-acquire or resurrect an allocation. Values/effects
+      and concrete user compensation ordering are not represented here.
     - delegate_then_rollback_sound: delegation does not interfere with rollback
       soundness over actual step edges, and rollback preserves delegated authority.
     - delegation_furnishes_gated_rollback: delegating every target slot capability
       to the actor furnishes exactly the multi-slot gate that rollback requires.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Require Import PergyraCore.
 Import ListNotations.
 
@@ -95,14 +96,12 @@ Theorem rollback_restores : forall gz ge ga ct c c' e before rest s,
   step gz ge ga ct ActRollback c c' ->
   elog c = mkLog e before :: rest ->
   In s (ct e) ->
-  store c' s = before s.
+  store c' s = store c s.
 Proof.
   intros gz ge ga ct c c' e before rest s Hstep Helog Hin.
   inversion Hstep; subst.
   rewrite Helog in H.
   inversion H; subst.
-  simpl. unfold restore_targets.
-  rewrite slot_in_true by exact Hin.
   reflexivity.
 Qed.
 
@@ -133,6 +132,9 @@ Theorem emit_then_rollback_restores : forall gz ge ga ct c c1 c2 e s,
   store c2 s = store c s.
 Proof.
   intros gz ge ga ct c c1 c2 e s Hemit Hroll Hin.
+  assert (Hstore : store c1 = store c).
+  { inversion Hemit; subst. reflexivity. }
+  rewrite <- Hstore.
   apply (rollback_restores gz ge ga ct c1 c2 e (store c) (elog c) s Hroll).
   - apply (emit_logs_before_state gz ge ga ct c c1 e Hemit).
   - exact Hin.
@@ -145,7 +147,7 @@ Theorem delegate_then_rollback_sound : forall gz ge ga ct c c1 c2 b kd e before 
   step gz ge ga ct ActRollback c1 c2 ->
   elog c1 = mkLog e before :: rest ->
   In s (ct e) ->
-  store c2 s = before s /\ In kd (holdings c2 b).
+  store c2 s = store c1 s /\ In kd (holdings c2 b).
 Proof.
   intros gz ge ga ct c c1 c2 b kd e before rest s Hdel Hroll Hlog Hin.
   split.
@@ -176,7 +178,7 @@ Theorem acquire_delegate_then_rollback_sound :
   step gz ge ga ct ActRollback c2 c3 ->
   elog c2 = mkLog e before :: rest ->
   In s (ct e) ->
-  store c3 s = before s /\ In kd (holdings c3 b).
+  store c3 s = store c2 s /\ In kd (holdings c3 b).
 Proof.
   intros gz ge ga ct c c1 c2 c3 s b kd e before rest Hacq Hdel Hroll Hlog Hin.
   split.
@@ -236,57 +238,30 @@ Qed.
 
 (* ---- coupled non-interference: delegation furnishes the rollback gate ----
 
-   The deeper synthesis claim: rollback's multi-slot gate is satisfied by an
-   explicit handoff of every target slot capability to the actor. The gated
-   rollback then (a) fires, (b) restores every coupled slot from the logged
-   pre-effect store, and (c) leaves the delegated authority intact. Rollback
-   consumes the effect log, not capabilities. *)
-
-Lemma target_caps_held_by_actor : forall c ga targets,
-  Forall
-    (fun s => has_cap (with_target_deleg c (actor c) ga targets) (ga s))
-    targets.
-Proof.
-  intros c ga targets.
-  apply Forall_forall. intros s Hin.
-  unfold has_cap, with_target_deleg. simpl. unfold cmap.
-  rewrite Nat.eqb_refl.
-  apply in_or_app. left.
-  apply in_map. exact Hin.
-Qed.
+   The bounded synthesis claim: an actual delegation edge may precede a
+   rollback whose entire multi-slot gate is held by the acting principal. The gated
+   rollback then (a) fires, (b) preserves allocation lifetime, and (c) leaves
+   the delegated authority intact. The handoff must be reachable from actual
+   held authority; a record constructor does not establish provenance. *)
 
 Theorem delegation_furnishes_gated_rollback :
-  forall gz ge ga ct c e before rest,
+  forall gz ge ga ct source c b kd e before rest,
+    step gz ge ga ct (ActDelegate b kd) source c ->
     elog c = mkLog e before :: rest ->
+    Forall (fun s => has_cap c (ga s)) (ct e) ->
     step gz ge ga ct ActRollback
-         (with_target_deleg c (actor c) ga (ct e))
-         (with_rollback
-            (with_target_deleg c (actor c) ga (ct e))
-            (ct e) before rest)
-    /\ (forall s,
-          In s (ct e) ->
-          store
-            (with_rollback
-              (with_target_deleg c (actor c) ga (ct e))
-              (ct e) before rest) s = before s)
-    /\ (forall s,
-          In s (ct e) ->
-          In (ga s)
-             (holdings
-               (with_rollback
-                 (with_target_deleg c (actor c) ga (ct e))
-                 (ct e) before rest)
-               (actor c))).
+         c (with_rollback c (ct e) before rest)
+    /\ steps gz ge ga ct source (with_rollback c (ct e) before rest)
+    /\ (forall s, store (with_rollback c (ct e) before rest) s = store c s)
+    /\ In kd (holdings (with_rollback c (ct e) before rest) b).
 Proof.
-  intros gz ge ga ct c e before rest Hlog.
-  split; [| split].
-  - apply SRollback.
-    + simpl. exact Hlog.
-    + apply target_caps_held_by_actor.
-  - intros s Hin. simpl. unfold restore_targets.
-    rewrite slot_in_true by exact Hin.
-    reflexivity.
-  - intros s Hin. simpl. unfold cmap.
-    rewrite Nat.eqb_refl.
-    apply in_or_app. left. apply in_map. exact Hin.
+  intros gz ge ga ct source c b kd e before rest Hdel Hlog Hheld.
+  assert (Hroll : step gz ge ga ct ActRollback c
+                       (with_rollback c (ct e) before rest)).
+  { eapply SRollback; eauto. }
+  split; [exact Hroll |]. split.
+  - eapply SStep; [exact Hdel |].
+    eapply SStep; [exact Hroll | apply SRefl].
+  - split; [reflexivity |]. inversion Hdel; subst.
+    simpl. unfold cmap. rewrite Nat.eqb_refl. left. reflexivity.
 Qed.

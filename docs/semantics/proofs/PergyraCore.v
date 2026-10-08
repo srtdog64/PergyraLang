@@ -4,7 +4,8 @@
   Qed, and adds 0 axioms -- the budget stays at SlotCalculus's two declared
   abstractions. Rocq 9.0.1 in CI remains the authority; 8.18 accepts the `Coq.`
   namespace prefix that Rocq 9 deprecates, so it cannot speak for that.
-  Definitions only, plus two foundational lemmas, lifted verbatim from UnifiedCore.v.
+  Shared transition vocabulary and its foundational lifetime lemmas. The
+  original lift from UnifiedCore was corrected by the red-team lifecycle audit.
 
   Why this file exists. The proof corpus grew as ~38 INDEPENDENT models: each
   file re-defines its own principal/zone/cap/slot/config/step and Requires only
@@ -31,13 +32,18 @@
   Step forms (all capability/typestate gated, fail-closed by construction):
     Cross z' | Emit e | Acquire s | Use s | Release s | Delegate b k | Rollback
 
+  Scope: slot ids in this fragment denote one non-reacquired allocation.
+  Physical storage reuse/generations are owned by SlotCalculus, not inferred
+  from this typestate map. Concrete values/effects and user compensation
+  ordering remain refinement obligations; snapshots cannot restore lifetime.
+
   This file introduces NO axioms: the two abstract Parameters the corpus is
   allowed to assume live in SlotCalculus, not here. Adding an Axiom/Admitted to
   this foundation would widen the kernel-checked budget and fail coq_kernel_check.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Import ListNotations.
 
 Definition principal := nat.
@@ -55,7 +61,14 @@ Definition slot_in (s : slot) (ss : list slot) : bool :=
 
 Definition restore_targets
   (current : slot_store) (before : slot_store) (targets : list slot) : slot_store :=
-  fun x => if slot_in x targets then before x else current x.
+  current.
+
+(* Compensation may restore values/effects, not an allocation's lifetime.
+   This fragment stores only typestate: its log is not authority to resurrect
+   a Released slot or turn an acquired slot back into Empty. *)
+Lemma restore_targets_preserves_lifetime : forall current before targets s,
+  restore_targets current before targets s = current s.
+Proof. reflexivity. Qed.
 
 Lemma slot_in_true : forall s targets,
   In s targets -> slot_in s targets = true.
@@ -118,12 +131,6 @@ Definition with_store (c : config) (s : slot) (v : lcstate) : config :=
 Definition with_deleg (c : config) (b : principal) (k : cap) : config :=
   mkConfig (actor c) (cmap (holdings c) b (k :: holdings c b))
            (here c) (elog c) (store c).
-Definition with_target_deleg
-  (c : config) (b : principal) (ga : acquire_graph) (targets : list slot)
-  : config :=
-  mkConfig (actor c)
-           (cmap (holdings c) b (map ga targets ++ holdings c b))
-           (here c) (elog c) (store c).
 Definition with_rollback
   (c : config) (targets : list slot) (before : slot_store)
   (rest : list effect_log_entry) : config :=
@@ -168,4 +175,39 @@ Proof.
   destruct (Nat.eqb p b) eqn:E.
   - left. exact Hp.
   - right. exists p. exact Hp.
+Qed.
+
+Theorem released_preserved_step : forall gz ge ga ct act c c' s,
+  store c s = Released -> step gz ge ga ct act c c' ->
+  store c' s = Released.
+Proof.
+  intros gz ge ga ct act c c' s Hr Hstep.
+  destruct Hstep; simpl; try exact Hr; unfold smap;
+    destruct (Nat.eqb s s0) eqn:E; try exact Hr;
+    apply Nat.eqb_eq in E; subst; congruence.
+Qed.
+
+Theorem released_preserved_run : forall gz ge ga ct c c' s,
+  store c s = Released -> steps gz ge ga ct c c' ->
+  store c' s = Released.
+Proof.
+  intros gz ge ga ct c c' s Hr Hrun. induction Hrun.
+  - exact Hr.
+  - apply IHHrun. eapply released_preserved_step; eauto.
+Qed.
+
+Theorem acquired_never_empty_step : forall gz ge ga ct act c c' s,
+  store c s <> Empty -> step gz ge ga ct act c c' -> store c' s <> Empty.
+Proof.
+  intros gz ge ga ct act c c' s Hlive Hstep.
+  destruct Hstep; simpl; try exact Hlive; unfold smap;
+    destruct (Nat.eqb s s0); try exact Hlive; discriminate.
+Qed.
+
+Theorem acquired_never_empty_run : forall gz ge ga ct c c' s,
+  store c s <> Empty -> steps gz ge ga ct c c' -> store c' s <> Empty.
+Proof.
+  intros gz ge ga ct c c' s Hlive Hrun. induction Hrun.
+  - exact Hlive.
+  - apply IHHrun. eapply acquired_never_empty_step; eauto.
 Qed.

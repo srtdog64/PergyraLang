@@ -16,9 +16,15 @@
   and that the ownership discipline *entails* no-silent-override -- given the
   model. Mapping the model onto the real verifier graph, and proving
   confluence of multi-axis resolution, are separate obligations (see SS6).
+
+  Evidence classification: `projection_writes_nothing` and
+  `projection_preserves_all` fix the PURE VIEW INTERFACE, because
+  `projection_step` is explicitly identity. They do not derive purity of an
+  arbitrary implementation. Single-writer/confluence results are conditional
+  on the admitted Owns table and the stated update/read discipline.
 *)
 
-Require Import Coq.Init.Logic.
+Require Import Stdlib.Init.Logic.
 
 (* ========================================== *)
 (* 1. Axes (docs/42 SS0 -- four top-level axes) *)

@@ -184,8 +184,9 @@ C에서 실행된다는 것까지가 증거다.
 
 - `move_keeps_unique`, `clone_keeps_unique`, `alias_breaks_unique`: move와 clone은
   "저장소마다 소유 바인딩 하나"를 지키고, 암묵 shallow copy(alias)는 깬다.
-- `unique_drops_once`, `alias_drops_twice`: 소유자가 하나면 해제도 한 번이고,
-  alias는 같은 저장소를 두 번 해제한다.
+- `unique_drops_once`, `alias_drops_twice`는 두 binding의 제한된 대조다.
+  실제 move는 self/missing/occupied를 구별하고, `unique_arbitrary_trace_retirement`가
+  초기 unique owner에서 임의 transfer/drop 실행의 중복 retirement 부재를 증명한다.
 - `move_and_clone_differ`: 둘은 서로를 대신할 수 없다.
 
 결정: `let b = a`는 move, 복사는 `Clone(a)`로 쓴다(docs/22 §2). 암묵 deep copy는
@@ -202,8 +203,9 @@ clone과 같은 값을 계산하지만 비용을 숨기므로 표면으로 두�
 - `borrowed_as_owned_double_frees`, `owned_as_borrowed_leaks`,
   `no_lane_fits_both`: 어느 쪽으로 추측해도 한쪽이 깨진다.
 - `lanes_release_exactly`, `copy_survives_foreign_change`: lane을 밝히면 해제는
-  정확히 한 번이고, 경계에서 복사한 Pergyra 문자열은 이후 foreign 쪽이 쓰거나
-  해제해도 변하지 않는다.
+  정확히 한 번이다. `StringValue` 실행은 복사 바이트와 raw 주소를 구별하며
+  foreign 쓰기·해제·같은 주소 재사용 뒤에도 복사 바이트가 보존된다.
+  임의 값 `v`를 그대로 반환하는 사영만으로 이 주장을 증명하지 않는다.
 
 결정: 이미 있는 단어(docs/157 P7)를 쓴다.
 
@@ -225,8 +227,10 @@ clone과 같은 값을 계산하지만 비용을 숨기므로 표면으로 두�
   유지된다.
 
 결정: `Now()`는 에폭을 정하지 않은 단조 밀리초 `Long`이다(Windows
-`GetTickCount64`, POSIX `CLOCK_MONOTONIC`). 벽시계는 `UnixTimeMs() -> Long`으로
-나눈다. `let t: Int = Now()` 같은 호출은 `Long`으로 옮겨야 한다.
+`GetTickCount64`, POSIX `CLOCK_MONOTONIC`). native C/LLVM 및 self-host signature/ABI가
+같은 Long 경계를 소비한다. clock 실패·표현 범위 초과는 명시 panic이고 zero/wrap
+fallback은 없다. 벽시계 `UnixTimeMs() -> Long`은 분리 제안이며 아직 구현하지 않았다.
+`let t: Int = Now()` 같은 호출은 `Long`으로 옮겨야 한다.
 
 ## 7. R13: `+`는 그대로, `TryAdd`는 새 단위, `CheckedAdd`는 합성
 

@@ -1,6 +1,6 @@
 // Correct declaration: GetTimestamp uses Now() (CLOCK) and declares `with caps
 // clock`. declared >= used holds, so this compiles clean (no capability error).
-func GetTimestamp() -> Int
+func GetTimestamp() -> Long
     with caps clock {
     return Now();
 }

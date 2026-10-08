@@ -176,7 +176,10 @@ under `make formal-semantics-test-smoke`. Theorems:
 form** (slot lifecycle, affine/typestate lineage): typestate-gated acquire/use/
 release with `acquire_requires_capability`, `use_requires_filled`,
 `release_requires_filled`, and the affine-safety theorem `no_op_after_release`
-(use-after-release and double-release are not derivable). `docs/semantics/proofs/
+(use-after-release and double-release are not derivable for that incarnation).
+Reclaim advances a generation; `retired_identity_preserved` proves an old
+identity stays refused through subsequent runs. This is a bounded lifecycle
+model, not a concrete allocator proof. `docs/semantics/proofs/
 AuthorityDelegationCore.v` adds the **authority-check Step form** (delegation,
 authorization-logic/ocap lineage): `delegation_requires_holding` (you can only
 grant what you hold) and `no_privilege_escalation` (delegation creates no new
@@ -209,7 +212,7 @@ interference. The full proof pack is `coqc`-checked under
 
 `docs/semantics/proofs/CompensationCore.v` adds the **compensation / rollback Step
 form** -- the intent-specific facet docs/19 flags as the hard coupling, since a
-rollback is sound only when it names *both* the effect to undo and the typestate
+the ideal snapshot contract names *both* the effect to undo and the typestate
 snapshot to restore. `comp_target : eff -> list slot` is the explicit
 effect-to-targets coupling, and each effect-log entry carries the pre-forward
 store snapshot. Saga lineage. Theorems: `rollback_requires_log` (fail-closed:
@@ -218,7 +221,9 @@ effect `e` restores each target slot to the logged pre-forward state),
 `rollback_pops_log` (removes exactly the compensated effect), and the saga
 round-trip `do_then_rollback_restores` (forward-then-compensate is the identity on
 every touched slot). This is where the effect facet and the slot/lifecycle facet
-are shown to agree -- the synthesis point.
+are coupled by definition. It does not execute user compensate code or prove
+real reverse-effect adequacy. Core/Unified/WholeProgram rollback preserves the
+current lifecycle store; irreversible releases must never be resurrected.
 
 ### Status of the calculus
 
@@ -266,17 +271,18 @@ Both remaining items above are now `coqc`-checked (task #47 closed):
    `AIRFacts` record and proves the binding the fact-ownership fix needs, at
    model level (no live AIR C touched):
    - **`guard_air_faithful`**: the machine's guard is EXACTLY the guard computed
-     from the `AIRFacts` record -- AIR owning these five fields is necessary and
-     sufficient to reconstruct every gate.
+     from the selected `AIRFacts` plus current config interface. This equality
+     is definitional, not necessary/minimal architecture or producer adequacy.
    - **`gate_locality`** (+ per-action `*_reads_only` lemmas): each action's gate
-     reads EXACTLY ONE AIR field; changing any other cannot change it -- the
+     reads only the named AIR fields (rollback reads two; some read none), plus
+     current config; changing unrelated AIR fields cannot change it -- the
      operational form of the docs/42 single-owner discipline at the AIR-fact
      level. `delegate_use_release_air_independent` fixes the boundary: authority
      delegation flows through holdings and typestate through the store, neither
      through AIR.
 
-This fixes the gating INTERFACE (what AIR must own and that nothing else
-influences a decision); it does not prove the C AIR emitter populates the fields
+This fixes the selected gating INTERFACE; current holdings/store/log/done also
+influence decisions. It does not prove the C AIR emitter populates the fields
 correctly -- that remains the `air-json-schema` smoke plus the
 `make machine-neutral-status` producer gate.
 
@@ -298,23 +304,29 @@ correctly -- that remains the `air-json-schema` smoke plus the
    impermissible as a formal target, and makes WO-INT-0 fact-family naming the
    predecessor of INT-1 participant declared-used checking. This is not a proof
    that all intent implementation obligations are closed; it is the formal
-   boundary for the work order.
+   boundary for the work order. The emission checker consumes an actual finite
+   family list and refuses missing families; claim labels are architectural
+   taxonomy, not a non-library-expressibility proof.
 6. **`IntentSpine.v`** adds the operational intent fact kernel. It models the
    participant, coordination, and compensation families joined by one spine id,
    proves `checked_intent_guard_free`, `no_dep_cycle`, fact-family reassembly,
    and `checked_intent_erasable`. This proves the kernel shape once the
    compiler supplies the interprocedural used-set and scheduling facts; it does
-   not prove those implementation producers by itself.
+   not prove those implementation producers by itself. `no_dep_cycle` is
+   intra-intent dependency acyclicity, not runtime handle-parent acyclicity.
 7. **`IntentConflict.v`** adds the INT-4 cross-intent conflict kernel. It
    models the runtime admission guard and proves
    `separated_trace_conflict_free`: statically separated co-active traces cannot
    fire that guard. It also records the negative design fact that priority
    waives one activation order only, so priority is not separation evidence.
    Static co-activity computation is still an implementation producer.
-8. **`AuthorityIrreducibility.v`** discharges the authority-as-capability-times-
-   zone reduction objection at the model level. `delegation_distinguishes` and
+8. **`AuthorityIrreducibility.v`** separates unrestricted records only.
+   `delegation_distinguishes` and
    `authority_beyond_cap_zone` show that delegation history can change the
    authority verdict while capability and zone projections remain identical.
+   The old ungranted pair is grant-inconsistent; on the grant-consistent subset,
+   `consistent_authority_is_cap_projection` computes the verdict from cap.
+   This cannot justify upgrading the language's irreducibility rating.
 
 Core-calculus corpus is now **11 `coqc`-checked files** (the 7 corners/facets +
 `GuardCalculus` + `WholeProgramCore` + `AIRBinding` + `FormalKernel`), all wired
@@ -328,8 +340,10 @@ Three additions, all `coqc`-checked (0 admits / 0 axioms) and smoke-wired:
    A reading = the order a reader visits the axes to assemble the judgment.
    `read_order_irrelevant`: ANY two complete readings (each axis visited at
    least once — subsumes permutations) assemble the same judgment, because
-   ownership is functional. `incomplete_readings_can_disagree` witnesses that
-   the completeness hypothesis is load-bearing.
+   ownership is functional. This presumes admitted unique-owner facts, not
+   duplicate-producer detection; the explicit AxisOwnership admission/producer
+   interface now rejects or witnesses disagreeing duplicate producers.
+   `incomplete_readings_can_disagree` witnesses completeness is load-bearing.
 2. **`BinaryAdequacy.v`** (WO-F1b) — the surface's two-valued verdict is
    faithful to the calculus: a computable `accept` decides EXACTLY the
    AIRBinding guard (`accept_adequate`), rejection is exactly guard failure
@@ -340,8 +354,9 @@ Three additions, all `coqc`-checked (0 admits / 0 axioms) and smoke-wired:
    class(es) of `src/runtime/pgy_runtime_panic_contract.h`:
    `can_be_bad_has_witness` (every UB-capable class carries a named witness,
    including the Proven `OpSlotRelease` — the always-on backstop, mechanized)
-   and `witness_disjoint` (a panic class attributes to exactly one op family —
-   diagnosability). The smoke's `GUARD_WITNESS_BINDING` block requires the
+   and `witness_overlap_is_overflow`: division INT_MIN/-1 shares arithmetic-
+   overflow with add/mul. Panic class alone cannot identify an operation;
+   source/operation context remains necessary. The smoke's block requires the
    same class strings in BOTH the proof and the runtime header, so the
    model↔code vocabulary cannot drift silently. Not claimed: guard-firing
    correctness (failclosed fixtures) or emission coverage (twin parity).

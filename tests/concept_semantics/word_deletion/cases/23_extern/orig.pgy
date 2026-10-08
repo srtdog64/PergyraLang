@@ -1,7 +1,7 @@
 extern "c" {
-    func pgy_now_ms() -> Int;
+    func pgy_now_ms() -> Long;
 }
 func Main() -> Void {
-    let t: Int = pgy_now_ms();
+    let t: Long = pgy_now_ms();
     Log(ToString(t >= 0));
 }

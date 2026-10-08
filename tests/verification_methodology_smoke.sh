@@ -91,31 +91,16 @@ done
 require_text "docs/semantics/README.md" "proofs/VerificationMethodology.v"
 require_text "tests/formal_semantics_smoke.sh" "docs/semantics/proofs/VerificationMethodology.v"
 
-# Rocq 9 renamed the CLI (`rocq compile` replaces coqc) and its official image
-# ships only the new name, while apt coq ships only the legacy one -- detect
-# rather than assume. And a runner with no prover used to skip this check while
-# the gate still reported green; that absence is now fatal unless declared.
-coq_compile=""
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
 if command -v rocq >/dev/null 2>&1; then
-    coq_compile="rocq compile"
-elif command -v coqc >/dev/null 2>&1; then
-    coq_compile="coqc"
-fi
-
-if [ -n "$coq_compile" ]; then
-    coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
-    if command -v timeout >/dev/null 2>&1; then
-        (cd "$ROOT_DIR" && timeout "$coq_timeout" $coq_compile docs/semantics/proofs/VerificationMethodology.v)
-    else
-        (cd "$ROOT_DIR" && $coq_compile docs/semantics/proofs/VerificationMethodology.v)
-    fi
-    echo "[verification-methodology] Coq model ok (checked with '$coq_compile')"
+    pgy_rocq_check_isolated "$ROOT_DIR/docs/semantics/proofs/VerificationMethodology.v"
+    echo "[verification-methodology] Rocq model freshly kernel-checked"
 elif [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
-    echo "[verification-methodology] Coq model DECLARED SKIP -- no prover (looked" \
-         "for rocq, coqc), PGY_ALLOW_MISSING_COQ=1; the model was NOT checked here."
+    echo "[verification-methodology] Rocq model DECLARED SKIP -- no Rocq," \
+         "PGY_ALLOW_MISSING_COQ=1; the model was NOT checked here."
 else
-    echo "[verification-methodology] FAIL -- no prover found (looked for rocq," \
-         "coqc); the Coq model would go unchecked. Install Coq/Rocq, or set" \
+    echo "[verification-methodology] FAIL -- no Rocq;" \
+         "the model would go unchecked. Install pinned Rocq, or set" \
          "PGY_ALLOW_MISSING_COQ=1 to declare the skip." >&2
     exit 1
 fi

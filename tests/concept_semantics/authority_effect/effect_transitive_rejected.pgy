@@ -1,3 +1,3 @@
-func Stamp() -> Int with caps clock { return Now(); }
-func Relay() -> Int { return Stamp(); }
+func Stamp() -> Long with caps clock { return Now(); }
+func Relay() -> Long { return Stamp(); }
 func Main() -> Void with effects local { Log(Relay()); }

@@ -11,25 +11,24 @@
         owning binding".
     (2) alias_breaks_unique:
         aliasing (the implicit shallow copy) gives one storage two owners.
-    (3) unique_drops_once / alias_drops_twice:
-        with one owner per storage, releasing every live binding frees
-        each storage at most once; an alias frees one storage twice.
+    (3) unique_drops_once / alias_drops_twice are two-binding contrasts only.
+        transfer_trace_retires_once proves actual sequential retirement over
+        arbitrary transfer/drop traces, including repeated bindings.
     (4) move_and_clone_differ:
         after a move the source is gone; after a clone the source stays
         and does not see writes to the copy. Neither can stand in for the
         other, so {move, clone} is the basis and alias is outside it.
 
-  An implicit deep copy on `let` computes the same state as `clone`: it is
-  the clone unit with its cost hidden, not a new unit (docs/22: a copy is
-  spelled Clone).
+  This contrast does not prescribe user annotation or cloning ceremony.
+  Compiler-owned value-copy/cleanup inference remains the source contract.
 
   Honest scope: bindings and storages are numbers; contents are one
   number; freshness of a cloned storage is a hypothesis.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 (*
@@ -165,6 +164,9 @@ Proof.
   split; reflexivity.
 Qed.
 
+(* The preceding table is an interface/inventory constraint only. It does
+   not prove admission, owner uniqueness or executable semantic correctness. *)
+
 Record Heap := {
   owner   : nat -> option nat;   (* binding -> storage it owns *)
   content : nat -> nat           (* storage -> contents *)
@@ -177,9 +179,28 @@ Definition set_owner (f : nat -> option nat) (x : nat) (v : option nat)
     : nat -> option nat :=
   fun z => if Nat.eqb z x then v else f z.
 
-Definition move (h : Heap) (src dst : nat) : Heap :=
-  {| owner := set_owner (set_owner (owner h) dst (owner h src)) src None;
-     content := content h |}.
+Inductive TransferResult := MoveApplied | MoveSelf | MoveMissingSource
+  | MoveDestinationOwned | StorageRetired | RetireMissingOwner.
+
+Definition move (h : Heap) (src dst : nat) : Heap * TransferResult :=
+  if Nat.eqb src dst then (h,MoveSelf) else
+  match owner h src, owner h dst with
+  | Some s, None =>
+      ({| owner := set_owner (set_owner (owner h) dst (Some s)) src None;
+          content := content h |},MoveApplied)
+  | None, _ => (h,MoveMissingSource)
+  | Some _, Some _ => (h,MoveDestinationOwned)
+  end.
+
+Theorem self_move_is_identity : forall h src, move h src src = (h,MoveSelf).
+Proof. intros. unfold move. rewrite Nat.eqb_refl. reflexivity. Qed.
+
+Theorem occupied_destination_refuses_move : forall h src dst s,
+  owner h dst = Some s -> fst (move h src dst) = h.
+Proof.
+  intros h src dst s H. unfold move. destruct (Nat.eqb src dst); auto.
+  rewrite H. destruct (owner h src); reflexivity.
+Qed.
 
 Definition clone (h : Heap) (src dst fresh : nat) : Heap :=
   match owner h src with
@@ -198,10 +219,12 @@ Definition alias (h : Heap) (src dst : nat) : Heap :=
 Theorem move_keeps_unique :
   forall h src dst,
     unique_owner h -> owner h dst = None ->
-    unique_owner (move h src dst).
+    unique_owner (fst (move h src dst)).
 Proof.
   intros h src dst U Hdst x y s.
-  unfold move, set_owner. simpl.
+  unfold move. destruct (Nat.eqb src dst); [apply U |].
+  destruct (owner h src) as [storage |] eqn:Hsrc; [| apply U].
+  rewrite Hdst. unfold set_owner. simpl.
   destruct (Nat.eqb x src) eqn:Exs; [intros Hx; discriminate Hx |].
   destruct (Nat.eqb y src) eqn:Eys; [intros _ Hy; discriminate Hy |].
   destruct (Nat.eqb x dst) eqn:Exd; destruct (Nat.eqb y dst) eqn:Eyd;
@@ -210,9 +233,9 @@ Proof.
     rewrite Exd, Eyd. reflexivity.
   - (* x now holds src's storage; y already owned it *)
     apply Nat.eqb_neq in Eys. exfalso. apply Eys.
-    apply (U y src s); assumption.
+    apply (U y src s); [exact Hy |]. injection Hx as <-. exact Hsrc.
   - apply Nat.eqb_neq in Exs. exfalso. apply Exs.
-    apply (U x src s); assumption.
+    apply (U x src s); [exact Hx |]. injection Hy as <-. exact Hsrc.
   - apply (U x y s); assumption.
 Qed.
 
@@ -288,7 +311,119 @@ Qed.
 (* ---- (4) move and clone are different units ---------------------- *)
 
 Theorem move_and_clone_differ :
-  owner (move h0 0 1) 0 = None /\
+  owner (fst (move h0 0 1)) 0 = None /\
   owner (clone h0 0 1 20) 0 = Some 10 /\
   content (clone h0 0 1 20) 20 = content h0 10.
 Proof. split; [reflexivity | split; reflexivity]. Qed.
+
+(* Sequential accounting consumes ownership when emitting a retirement.
+   Unlike `frees`, it does not count a repeated binding twice from a frozen
+   pre-state. The ledger records logical storage identities, not raw addresses. *)
+Record TransferLedger := {
+  ledger_heap : Heap;
+  retired : list nat
+}.
+
+Inductive TransferAction := Transfer (src dst : nat) | Retire (binding : nat).
+
+Definition transfer_exec (l : TransferLedger) (a : TransferAction) : TransferLedger * TransferResult :=
+  match a with
+  | Transfer src dst =>
+      let outcome := move (ledger_heap l) src dst in
+      ({| ledger_heap := fst outcome; retired := retired l |},snd outcome)
+  | Retire b =>
+      match owner (ledger_heap l) b with
+      | None => (l,RetireMissingOwner)
+      | Some s =>
+          ({| ledger_heap := {| owner := set_owner (owner (ledger_heap l)) b None;
+                                content := content (ledger_heap l) |};
+              retired := s :: retired l |},StorageRetired)
+      end
+  end.
+
+Fixpoint transfer_run (l : TransferLedger) (actions : list TransferAction) :=
+  match actions with
+  | [] => l
+  | a :: rest => transfer_run (fst (transfer_exec l a)) rest
+  end.
+
+Definition ledger_inv (l : TransferLedger) : Prop :=
+  unique_owner (ledger_heap l) /\ NoDup (retired l) /\
+  (forall s, In s (retired l) -> forall b, owner (ledger_heap l) b <> Some s).
+
+Lemma moved_owner_origin : forall h src dst b s,
+  owner (fst (move h src dst)) b = Some s -> exists old, owner h old = Some s.
+Proof.
+  intros h src dst b s. unfold move.
+  destruct (Nat.eqb src dst); [intros H; eauto |].
+  destruct (owner h src) as [t |] eqn:Hsrc; [| intros H; exists b; exact H].
+  destruct (owner h dst); [intros H; exists b; exact H |].
+  simpl. unfold set_owner. destruct (Nat.eqb b src); [discriminate |].
+  destruct (Nat.eqb b dst); intros H.
+  - inversion H; subst. exists src. exact Hsrc.
+  - exists b. exact H.
+Qed.
+
+Lemma guarded_move_unique : forall h src dst,
+  unique_owner h -> unique_owner (fst (move h src dst)).
+Proof.
+  intros h src dst Hunique. destruct (owner h dst) as [s |] eqn:Hdst.
+  - rewrite (occupied_destination_refuses_move h src dst s Hdst). exact Hunique.
+  - apply move_keeps_unique; assumption.
+Qed.
+
+Lemma ledger_step_preserves : forall l a, ledger_inv l -> ledger_inv (fst (transfer_exec l a)).
+Proof.
+  intros [h rs] a [Hu [Hnd Hret]]. destruct a as [src dst | b]; simpl in *.
+  - split; [apply guarded_move_unique; exact Hu |]. split; [exact Hnd |].
+    intros s Hin x Howner.
+    destruct (moved_owner_origin h src dst x s Howner) as [old Hold].
+    exact (Hret s Hin old Hold).
+  - destruct (owner h b) as [s |] eqn:Hown; [| repeat split; assumption].
+    simpl. split.
+    + intros x y t. unfold set_owner. simpl.
+      destruct (Nat.eqb x b); [discriminate |].
+      destruct (Nat.eqb y b); [intros _ H; discriminate |]. apply Hu.
+    + split.
+      * constructor; [| exact Hnd]. intros Hin. exact (Hret s Hin b Hown).
+      * intros t Hin x Hx. unfold set_owner in Hx. simpl in Hx.
+        destruct (Nat.eqb x b) eqn:Ex; [discriminate |].
+        destruct Hin as [Heq | Hin].
+        -- subst t. apply Nat.eqb_neq in Ex. apply Ex. exact (Hu x b s Hx Hown).
+        -- exact (Hret t Hin x Hx).
+Qed.
+
+Theorem transfer_trace_retires_once : forall l actions,
+  ledger_inv l -> ledger_inv (transfer_run l actions).
+Proof.
+  intros l actions. revert l. induction actions; intros l Hinv; simpl; auto.
+  apply IHactions. apply ledger_step_preserves. exact Hinv.
+Qed.
+
+Example repeated_drop_and_self_move_release_once :
+  retired (transfer_run {| ledger_heap := h0; retired := [] |}
+    [Transfer 0 0; Transfer 0 1; Retire 0; Retire 1; Retire 1; Retire 0]) = [10].
+Proof. reflexivity. Qed.
+
+Theorem unique_initial_ledger : forall h,
+  unique_owner h -> ledger_inv {| ledger_heap := h; retired := [] |}.
+Proof.
+  intros h Hu. split; [exact Hu |]. split; [constructor |].
+  intros s Hin. contradiction.
+Qed.
+
+Corollary unique_arbitrary_trace_retirement : forall h actions,
+  unique_owner h ->
+  NoDup (retired (transfer_run {| ledger_heap := h; retired := [] |} actions)).
+Proof.
+  intros h actions Hu.
+  pose proof (transfer_trace_retires_once _ actions (unique_initial_ledger h Hu)) as H.
+  exact (proj1 (proj2 H)).
+Qed.
+
+Example alias_sequentially_retires_twice :
+  retired (transfer_run {| ledger_heap := alias h0 0 1; retired := [] |}
+    [Retire 0; Retire 1]) = [10;10].
+Proof. reflexivity. Qed.
+
+Print Assumptions transfer_trace_retires_once.

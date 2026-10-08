@@ -5,6 +5,14 @@ carried from the AIR-certified driver plan to both C and LLVM consumers. This
 document remains the strategy and evidence record; stale census statements are
 marked where implementation changed them.
 
+Ownership-cleanup recheck (2026-10-08): the selected general direction is
+compiler-synthesized cleanup from ownership/loan/exit facts, not tracing GC.
+WO-REG-1 is an allocation projection for certified transient Strings, **not**
+automatic aggregate cleanup, recursive element destruction, or proof that
+compiler row tables fit a routine/zone region. Reusing it requires complete
+allocation/escape/finalization evidence; a region reset cannot replace that
+proof. See the [algorithm and fit review](audits/ownership_dx_architecture_recheck_2026-10-08.md).
+
 The [2026-09-16 integration and keyword deletion audit](audits/2026-09-16_slot_generation_arena_abi_integration_audit.md)
 separates compiler `PgyArena`, legacy fixed runtime `PgyArena`, live
 `PgyRegion`, and the still-absent `region`/`arena` source keywords. It is a

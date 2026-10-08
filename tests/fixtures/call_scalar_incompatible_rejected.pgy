@@ -1,0 +1,2 @@
+func EchoLong(value: Long) -> Long { return value; }
+func Main() -> Void { Log(EchoLong("not a number")); }

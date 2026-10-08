@@ -182,7 +182,7 @@ must refine it without exposing forgeable source-level constructors.
 
 ## Transition Rules
 
-Claim:
+Claim (an id never claimed before):
 
 ```text
 slot notin dom(Sigma)
@@ -244,10 +244,29 @@ Sigma(slot) = <value, T, gen, ttl, Unpinned>
 Verify(Delta, slot, gen, Release)
 ---------------------------------------------------------------
 <Gamma, Sigma, Delta> --Release(x)-->
-<Gamma, Sigma[slot -> bottom], Delta>
+<Gamma, Sigma[slot -> tombstone(gen)], Delta>
 ```
 
 There is intentionally no release rule for `Pinned`.
+
+Reclaim (a released slot is reused at the next generation):
+
+```text
+Sigma(slot) = tombstone(gen)
+Verify(Delta, slot, gen + 1, Claim)
+---------------------------------------------------------------
+<Gamma, Sigma, Delta> --Claim(T)-->
+<Gamma[x -> <slot, gen + 1>], Sigma[slot -> <null, T, gen + 1, ttl, Unpinned>], Delta>
+```
+
+Read, write, pin, unpin, and release apply only to a live slot; a
+tombstone admits none of them. This matches the runtime, which recycles an
+entry only after advancing its generation (`slot_manager_core_ops.c`,
+`recycledGeneration + 1`). The rules before 2026-10-08 released a slot to
+`bottom` and claimed every `bottom` id at generation 1, so a handle issued
+before a release was valid again for the next occupant; the ABA theorem
+below did not apply to the model then. `SlotCalculus.v` keeps that case as
+the counterexample `gen_one_reclaim_resurrects`.
 
 ## Theorem: ABA Safety
 
@@ -280,8 +299,22 @@ Current evidence:
   `double_unpin_impossible` lemmas for generation/id/view mismatch. It also
   sketches `released_slot_read_impossible`,
   `released_slot_write_impossible`, `released_slot_pin_impossible`, and
-  `released_slot_release_impossible` for the runtime `None`/released-entry
-  state.
+  `released_slot_release_impossible` for a never-claimed id, and
+  `tombstone_*_impossible` for a released one.
+- Mechanized ABA: `stale_step` shows that every step, reclaim included,
+  keeps a stale handle stale, and `stale_handle_never_admitted` that a stale
+  handle admits no read, write, pin, or release through any number of later
+  steps. `reclaim_refuses_previous_handle` runs release and reclaim and
+  refuses the previous handle. Generations are unbounded naturals in the
+  model; the runtime's 32-bit counter refines them by refusing a recycle at
+  `UINT32_MAX`.
+- Unpin: until 2026-10-08 the mechanized Unpin step had no guard, unlike
+  the Unpin rule above and the runtime's pinned-view check
+  (`slot_manager_pin.c`). A context with no capability could unpin a slot
+  and then release it, so pin non-eviction held for one step only. Unpin
+  now needs a capability that verifies `Pin` for the slot's generation, and
+  `pin_holds_without_pin_capability` keeps a pinned slot live and pinned
+  through any number of steps by a context without that capability.
 
 Remaining obligation:
 

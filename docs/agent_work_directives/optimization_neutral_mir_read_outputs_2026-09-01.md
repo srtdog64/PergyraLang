@@ -1,5 +1,7 @@
 # Optimization-neutral MIR read outputs
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: IMPLEMENTATION COMPLETE
 
 Exact base: `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`

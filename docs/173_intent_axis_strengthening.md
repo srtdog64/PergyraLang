@@ -231,7 +231,8 @@ Authority/Effect는 기존 Core.v들이 소유, 중복 없음) + 정적 술어
 ③ **`checked_intent_guard_free`** — INT-5 목표 정리: checked intent는 어떤
 faithful 스케줄에서도 가드 무발화(= 소거/상각 근거, docs/142) + 비공허성 보조
 정리 2개(unchecked면 가드가 실제로 발화),
-④ **`no_dep_cycle`** — F1(fe70f180) livelock 클래스의 intent-수준 정적 배제,
+④ **`no_dep_cycle`** — 한 intent 내부 step 의존 DAG의 순환 배제다.
+런타임 handle-parent 재사용/순환이나 F1의 runtime livelock을 배제하지 않는다.
 ⑤ 합성 정리 **`one_intent_from_facts` / `intent_determined_by_facts` /
 `facts_share_spine`** — 분리 방출된 family들이 공유 spine id로 정확히 하나의
 intent로 재조립되고, intent는 family 너머의 숨은 내용이 없다("subfact가 하나의
@@ -256,11 +257,12 @@ B축 충돌그래프 엣지를 priority만으로 지우면 안 된다는 제약�
 ② **`checked_intent_erasable`** (IntentSpine.v §9): §3이 약속한 따름 —
 checked intent에서 guarded/unguarded 머신이 같은 스케줄을 수용 = 가드 소거
 가능(docs/142 상각의 intent 인스턴스).
-③ **`AuthorityIrreducibility.v`** — semantics/22 §1.5의 "authority = cap×zone
-표기" 환원 반론을 모델 수준에서 방출: cap·zone 사영이 동일한 두 구성이 위임
+③ **`AuthorityIrreducibility.v`** — unrestricted record에서 cap·zone 사영이 동일한 두 구성이 위임
 체인만 달라 authority 판정이 갈림(`delegation_distinguishes`) ⇒ 어떤
 (cap,zone) 함수도 authority를 계산 못 함(`authority_beyond_cap_zone`).
-authority는 스냅샷이 아니라 **grant의 역사**라는 것의 정리화.
+이 반례의 ungranted 구성은 grant-consistency를 위반한다. 같은 일관성 계약
+아래에서는 cap 사영이 판정을 계산한다. 따라서 언어 authority 축의 환원 불가능성
+증거나 등급 승격으로 인용하지 않는다. 실제 grant issuer/보존 증명은 별도 의무다.
 - proof-pack 연결: `IntentSpine.v`, `IntentConflict.v`,
   `AuthorityIrreducibility.v`를 `ProofSpine.v`, `proof_spine_smoke`, 그리고
   `formal_semantics_smoke`에 등록했다. 이후 추가 Coq 파일도 이 연결 없이는

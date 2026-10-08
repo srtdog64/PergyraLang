@@ -9,7 +9,7 @@ struct SemanticBuiltinArgumentRetentionRow {
     any_argument: Bool;
 }
 
-func SemanticBuiltinArgumentRetentionCount() -> Int { return 11; }
+func SemanticBuiltinArgumentRetentionCount() -> Int { return 14; }
 
 func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumentRetentionRow {
     if index == 0 { return SemanticBuiltinArgumentRetentionRow(true, "PRINT", "Print", 0, false); }
@@ -23,6 +23,9 @@ func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumen
     if index == 8 { return SemanticBuiltinArgumentRetentionRow(true, "CONCAT", "Concat", -1, true); }
     if index == 9 { return SemanticBuiltinArgumentRetentionRow(true, "TEXT_BUILDER_APPEND", "TextBuilderAppend", 1, false); }
     if index == 10 { return SemanticBuiltinArgumentRetentionRow(true, "ARRAY_PUSH_OWNED_STRING", "ArrayPushOwnedString", 1, false); }
+    if index == 11 { return SemanticBuiltinArgumentRetentionRow(true, "SUBSTRING", "Substring", 0, false); }
+    if index == 12 { return SemanticBuiltinArgumentRetentionRow(true, "SUB_EQUALS_WITH_LEN", "SubEqualsWithLen", -1, true); }
+    if index == 13 { return SemanticBuiltinArgumentRetentionRow(true, "SUB_INDEX_OF_WITH_LEN", "SubIndexOfWithLen", -1, true); }
     return SemanticBuiltinArgumentRetentionRow(false, "", "", -1, false);
 }
 

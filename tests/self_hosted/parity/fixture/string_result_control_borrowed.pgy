@@ -1,0 +1,12 @@
+func BorrowedBranch(flag: Bool, source: String) -> String
+{
+    if flag { return Concat("owned-", "branch"); }
+    return source;
+}
+
+func Main() -> Void
+{
+    let fields: Array<String> = [];
+    ArrayPush(fields, BorrowedBranch(false, "borrowed"));
+    ArrayDropOwnedStrings(fields);
+}

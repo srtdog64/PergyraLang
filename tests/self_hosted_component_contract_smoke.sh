@@ -3380,7 +3380,7 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "body_ch
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "builtin_signature_owner.pgy";'
 require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
-require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Now^Int^none"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Now^Long^none"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     'func SemanticBuiltinIsCancelledName() -> String { return "IsCancelled"; }'
 require_file "src/self_hosted/semantic/builtin_capability_projection_owner.pgy"

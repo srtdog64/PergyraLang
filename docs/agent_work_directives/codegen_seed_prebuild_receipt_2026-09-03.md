@@ -1,5 +1,7 @@
 # Codegen Seed Prebuild Receipt — 2026-09-03
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: `IMPLEMENTATION COMPLETE — EXACT CI GREEN`
 
 Exact base: `2b4cf40115e848b0077e759419254390bf83729e` on

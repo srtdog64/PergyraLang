@@ -46,7 +46,7 @@ export class DateTime
 
 export class TimeSpan
 {
-    let milliseconds: Int;
+    let milliseconds: Long;
 
     func Format(self) -> String
     {
@@ -56,7 +56,7 @@ export class TimeSpan
 
 export class Instant
 {
-    let milliseconds: Int;
+    let milliseconds: Long;
 
     func Add(self, delta: TimeSpan) -> Instant
     {
@@ -101,19 +101,19 @@ export func DateTimeOnDate(at: DateTime, date: LocalDate) -> Bool
     return at.IsOnDate(date);
 }
 
-export func DurationMs(ms: Int) -> TimeSpan
+export func DurationMs(ms: Long) -> TimeSpan
 {
     return TimeSpan(ms);
 }
 
-export func DurationSeconds(seconds: Int) -> TimeSpan
+export func DurationSeconds(seconds: Long) -> TimeSpan
 {
-    return TimeSpan(seconds * 1000);
+    return TimeSpan(seconds * 1000L);
 }
 
-export func DurationMinutes(minutes: Int) -> TimeSpan
+export func DurationMinutes(minutes: Long) -> TimeSpan
 {
-    return DurationSeconds(minutes * 60);
+    return DurationSeconds(minutes * 60L);
 }
 
 export func FormatDuration(delta: TimeSpan) -> String

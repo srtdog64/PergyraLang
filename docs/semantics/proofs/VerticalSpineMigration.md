@@ -45,9 +45,13 @@
 - **`UnifiedCore.v` 이관 완료**: 사설 모델 복제(원래 46-179줄)를 삭제하고
   `Require Import PergyraCore`. synthesis 정리(capability_soundness,
   authority_conservation, rollback_restores, delegate_*_sound,
-  delegation_furnishes_gated_rollback 등)는 **verbatim 보존** — 이제 공용 뿌리
-  위에서 합성. capstone이 재정의가 아니라 import로 선다. **CI 검증 대기**
-  (verbatim 정리 + 검증된 모델이라 컴파일 확률 높음).
+  delegation_furnishes_gated_rollback 등)는 처음 이관할 때 그대로 보존했다.
+  2026-10-08 레드팀 수정에서는 이 보존을 철회했다: rollback은 현재 수명을
+  유지하고 snapshot으로 Released/Empty를 복원하지 않는다. bulk 생성자로
+  발급된 capability 사본도 제거하고 실제 SDelegate edge를 합성의 전제로
+  받는다. 수명은 공용 뿌리의 step/run 보존 정리로 유도한다. 로컬 관측은
+  tests/proof_redteam_lifecycle_authority_smoke.sh의 fresh kernel gate로
+  구분하며, 원격 CI 및 값 보상/실제 compensate 순서의 refinement는 별도다.
 - **`PergyraCoreZoneBridge.v` 추가**(zone corner → 뿌리 엣지, additive):
   `ZoneCrossingCore`의 세 보장(무앰비언트 권한·capability soundness·fail-closed)을
   PergyraCore `step`의 `ActCross` 제한에서 재유도. green corner 파일은 안 건드림
@@ -68,6 +72,20 @@
 
 ## 순서 주의
 
-`FOUNDATION_FIRST`는 현재 `PergyraCore.v` 하나. 이관이 진행되어 importer가 늘면
-(특히 알파벳상 뿌리보다 앞서는 파일이 PergyraCore를 Require하면) 이 리스트에
-추가하거나 `coqdep` 기반 위상정렬로 승격할 것. 지금은 뿌리 하나라 단순 우선컴파일로 충분.
+초기 `FOUNDATION_FIRST`는 `PergyraCore.v` 하나였다. 현재 목록은
+`tests/coq_kernel_check.sh`가 소유한다. import가 늘어나면 실제 의존 순서를
+반영해야 하며, 파일명 정렬을 의존 순서로 가정하지 않는다.
+
+## 2026-10-06: 조정 확장 기계의 실제 import 연결
+
+- `WholeProgramCore`의 task/done을 포함한 확장 기계는 7개 연산의
+  `PergyraCore`와 아직 다른 모델이다. 둘의 동일성을 이번 작업에서 주장하지 않는다.
+- `AIRBinding`의 사설 config/action/guard_machine을 삭제했다. AIR record의
+  guard는 실제 `WholeProgramCore.guard`에 fact를 공급하는 투영이다.
+- 마지막 boolean 판정 소비자 `BinaryAdequacy`도 사설 기계/AIRFacts/guard
+  복제를 삭제하고 두 owner를 import한다. 기존 adequacy/locality 정리가
+  이제 같은 imported 타입 위에서 검사된다.
+- 이 세 파일의 변경본은 WSL Coq 8.18에서 실제 컴파일·커널 검사했다.
+  추가 axiom은 없다. 구현 AIR/MIR producer refinement나 Rocq 9.0.1의
+  변경본 CI 검증을 대신하지 않는다. 위의 역사적 첫 단계 미실행 기록은
+  당시 기록으로 유지한다.

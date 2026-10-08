@@ -28,8 +28,8 @@
   live AIR/MIR owner facts (that binding is task #45 / docs/18 machine-neutral).
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 Section EffectAuthorityCore.

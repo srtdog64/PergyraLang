@@ -26,9 +26,9 @@
         along any coordination-faithful schedule. The guards exist for
         UNCHECKED programs (non-vacuity lemmas); for checked intents they
         are erasable/amortizable (docs/142).
-    (4) `no_dep_cycle`: coordination facts of a checked intent admit no
-        dependency cycle -- the static exclusion, at the intent level, of
-        the livelock class fixed at runtime in commit fe70f180 (F1).
+    (4) `no_dep_cycle`: coordination facts INSIDE one checked intent admit
+        no step dependency cycle. It says nothing about runtime registry
+        parent handles or handle reuse; IntentConflict owns that identity.
     (5) `library_bucket_obligation_free`: the library-expressible bucket
         (Purpose/Trace payloads, modeled as the spine note) carries NO
         verifier obligation -- checking is invariant under any note. The
@@ -49,8 +49,8 @@
     is the next rung (docs/167 B axis), not claimed here.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 (* ====================================================== *)
@@ -228,7 +228,7 @@ Lemma undeclared_guard_fires :
 Proof. intros. simpl. exists p. auto. Qed.
 
 (* ====================================================== *)
-(* 6. Coordination acyclicity (the F1 class, statically)   *)
+(* 6. Intra-intent coordination acyclicity                *)
 (* ====================================================== *)
 
 Inductive dep_path (D : list (stepid * stepid)) : stepid -> stepid -> Prop :=
@@ -246,9 +246,8 @@ Proof.
   - apply HD in H. lia.
 Qed.
 
-(* A checked intent's coordination facts admit no dependency cycle:
-   the intent-level static exclusion of the parent/dependency livelock
-   class that F1 (commit fe70f180) bounded at runtime. *)
+(* Only this spine's declared step dependencies are covered. Runtime parent
+   ancestry is a different relation, not derived from deps_wf. *)
 Theorem no_dep_cycle :
   forall s, deps_wf s ->
   forall a, ~ dep_path (cf_deps (spine_cf s)) a a.

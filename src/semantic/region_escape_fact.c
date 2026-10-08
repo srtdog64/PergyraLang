@@ -54,6 +54,9 @@ region_escape_argument_is_borrowed(
         return semantic_region_retention_summary_for_builtin(
                    builtin_kind, argument_index, &retention)
             && retention == PGY_REGION_RETENTION_BORROWED_FOR_CALL;
+    if (ast_call_semantic_callee_is_stdlib(call))
+        return semantic_region_retention_summary_for_stdlib(call, argument_index, &retention)
+            && retention == PGY_REGION_RETENTION_BORROWED_FOR_CALL;
     return retention_lookup != NULL
         && retention_lookup(call, argument_index, &retention,
                             retention_userdata)

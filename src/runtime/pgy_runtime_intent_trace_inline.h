@@ -1,4 +1,5 @@
 #include "pgy_runtime_observability_schema.h"
+#include "pgy_runtime_intent_identity.h"
 
 #include <stdint.h>
 
@@ -259,13 +260,19 @@ pgy_intent_handle_is_current_ancestor(int32_t handle)
 {
     int32_t cursor = pgy_intent_current_handle();
 
-    while (cursor != 0) {
+    /* The linked and inline routes share nonrecycling issuance. A stale
+     * stack/parent entry is not ancestry evidence; fail closed at lookup. */
+    for (int32_t steps = 0;
+         cursor != 0 && steps < PGY_INTENT_ACTIVE_MAX;
+         steps++) {
         PgyIntentActiveEntry *entry;
 
+        entry = pgy_intent_find_active_entry_locked(cursor);
+        if (entry == NULL)
+            break;
         if (cursor == handle)
             return true;
-        entry = pgy_intent_find_active_entry_locked(cursor);
-        if (entry == NULL || entry->parent_handle == cursor)
+        if (entry->parent_handle >= cursor)
             break;
         cursor = entry->parent_handle;
     }
@@ -376,12 +383,9 @@ pgy_intent_next_positive_counter(int32_t *counter)
 static inline int32_t
 pgy_intent_next_unused_handle(void)
 {
-    for (int32_t probe = 0; probe <= PGY_INTENT_ACTIVE_MAX; probe++) {
-        int32_t candidate =
-            pgy_intent_next_positive_counter(&pgy_intent_next_handle);
-        if (candidate > 0 && pgy_intent_find_active_entry_locked(candidate) == NULL)
-            return candidate;
-    }
+    int32_t candidate = pgy_intent_issue_handle(&pgy_intent_next_handle);
+    if (candidate > 0 && pgy_intent_find_active_entry_locked(candidate) == NULL)
+        return candidate;
     return 0;
 }
 

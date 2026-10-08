@@ -40,9 +40,9 @@
     nobody mistakes the trivial ones for depth.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.Wf_nat.
-Require Import Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.Wf_nat.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 (* ====================================================== *)

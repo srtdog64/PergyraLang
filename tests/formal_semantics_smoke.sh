@@ -455,12 +455,14 @@ Example priority_waives_only_one_order
 TERMS
 
 require_terms "$AUTHORITY_IRREDUCIBILITY_COQ" "docs/semantics/proofs/AuthorityIrreducibility.v" <<'TERMS'
-Target: docs/semantics/22 SS1.5
+Target: distinguish a free grant-history field
 Record Config
 Inductive reach
 Definition authorized
 Theorem delegation_distinguishes
 Theorem authority_beyond_cap_zone
+Theorem consistent_authority_is_cap_projection
+Theorem old_ungranted_pair_is_inconsistent
 TERMS
 
 # The machine-layer corner (docs/19): Region is address evidence; contact_step
@@ -663,7 +665,9 @@ require_file "$PANIC_CONTRACT_PATH" "src/runtime/pgy_runtime_panic_contract.h"
 require_terms "$GUARD_WITNESS_COQ" "docs/semantics/proofs/GuardWitnessBinding.v" <<'TERMS'
 Theorem guarded_ops_witnessed
 Theorem can_be_bad_has_witness
-Theorem witness_disjoint
+Theorem witness_overlap_is_overflow
+Example division_overflow_has_runtime_witness
+Example panic_class_does_not_identify_operation
 Theorem unwitnessed_cannot_be_bad
 Corollary unwitnessed_is_proven
 pgy_runtime_panic_contract.h
@@ -808,7 +812,7 @@ forbid_term "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v" "Safe Core Mechan
 require_terms "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v" <<'TERMS'
 Status: proof-sketch; not beta-closure evidence unless checked by CI
 Negative scope: this file does not prove Rust-style borrow checking
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Arith.PeanoNat.
 Lemma stale_handle_read_impossible
 Lemma handle_read_requires_issued_token
 Lemma unissued_token_read_impossible
@@ -1015,7 +1019,7 @@ if [[ -s "$global_forbid_files" ]] &&
 fi
 
 require_terms "$CI_PATH" ".github/workflows/platform_full.yml" <<'TERMS'
-sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 TERMS
 
@@ -1040,6 +1044,7 @@ docs/semantics/proofs/PergyraCore.v \
 docs/semantics/proofs/PergyraCoreComposition.v \
 docs/semantics/proofs/PergyraCoreZoneBridge.v \
 docs/semantics/proofs/SlotCalculus.v \
+docs/semantics/proofs/AssumptionBudget.v \
 docs/semantics/proofs/AxisOwnership.v \
 docs/semantics/proofs/IntentStepSoundness.v \
 docs/semantics/proofs/IRMinimality.v \
@@ -1084,7 +1089,14 @@ docs/semantics/proofs/SuspensionRevalidationCore.v \
 docs/semantics/proofs/DeterministicSubsetCore.v \
 docs/semantics/proofs/ParallelSchedulingCore.v \
 docs/semantics/proofs/ParallelReductionCore.v \
-docs/semantics/proofs/PergyraMulCost.v docs/semantics/proofs/PartySlotBinding.v docs/semantics/proofs/AuthorityRequiresWitness.v docs/semantics/proofs/BindingIdentityScope.v docs/semantics/proofs/CollectionOwnershipTransfer.v docs/semantics/proofs/ForeignStringOwnership.v docs/semantics/proofs/ClockDomains.v docs/semantics/proofs/RecoverableArithmetic.v"
+docs/semantics/proofs/PergyraMulCost.v docs/semantics/proofs/PartySlotBinding.v docs/semantics/proofs/AuthorityRequiresWitness.v docs/semantics/proofs/BindingIdentityScope.v docs/semantics/proofs/CollectionOwnershipTransfer.v docs/semantics/proofs/ForeignStringOwnership.v docs/semantics/proofs/ClockDomains.v docs/semantics/proofs/RecoverableArithmetic.v docs/semantics/proofs/OwnershipCleanCore.v \
+docs/semantics/proofs/OwnershipCleanComposition.v \
+docs/semantics/proofs/OwnershipCleanReadOnly.v \
+docs/semantics/proofs/OwnershipCleanGCComparison.v \
+docs/semantics/proofs/OwnershipCleanExits.v \
+docs/semantics/proofs/OwnershipGraphLinks.v \
+docs/semantics/proofs/OwnershipTeardown.v \
+docs/semantics/proofs/OwnershipTeardownAuthority.v"
 
 # Inventory: every proof on disk must be registered above, or it silently never
 # gets machine-checked.
@@ -1109,47 +1121,23 @@ if [ "$coq_proof_count" -eq 0 ]; then
     exit 1
 fi
 
-# Rocq 9 renamed the CLI: `rocq compile` replaces `coqc`. The Rocq Platform
-# installer still ships the legacy name, so a local run never notices -- but the
-# official rocq/rocq-prover image ships only the new one, while Ubuntu's apt
-# `coq` (8.x) ships only the legacy one. Detect instead of assuming, or this
-# gate fails on a prover that is sitting right there.
-coq_compile=""
-if command -v rocq >/dev/null 2>&1; then
-    coq_compile="rocq compile"
-elif command -v coqc >/dev/null 2>&1; then
-    coq_compile="coqc"
-fi
-
-# A runner with no prover used to take a quiet skip branch and the gate still
-# reported green -- macOS CI ships no Coq, so it has been skipping the whole
-# corpus while passing. A missing prover is now fatal; a runner that genuinely
-# has none must declare it with PGY_ALLOW_MISSING_COQ=1, and that skip is
-# announced with the count of proofs left unchecked.
-if [ -z "$coq_compile" ]; then
+# The kernel gate owns compilation, dependency order, fresh artifacts and the
+# assumption verdict. This source inventory is not a second compiler driver.
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
+if ! command -v rocq >/dev/null 2>&1; then
     if [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
-        echo "formal semantics Coq smoke: DECLARED SKIP -- no prover" \
-             "(looked for rocq, coqc), PGY_ALLOW_MISSING_COQ=1"
+        echo "formal semantics Coq smoke: DECLARED SKIP -- no admitted Rocq" \
+             "PGY_ALLOW_MISSING_COQ=1; legacy Coq is not proof evidence"
         echo "  ${coq_proof_count} proofs were NOT machine-checked on this runner."
     else
-        echo "formal semantics Coq smoke: FAIL -- no prover found (looked for" \
-             "rocq, coqc); ${coq_proof_count} proofs would go unchecked." >&2
-        echo "  Install Coq/Rocq, or set PGY_ALLOW_MISSING_COQ=1 to declare" \
+        echo "formal semantics Coq smoke: FAIL -- no stable Rocq;" \
+             "${coq_proof_count} proofs would go unchecked." >&2
+        echo "  Install the pinned Rocq, or set PGY_ALLOW_MISSING_COQ=1 to declare" \
              "the skip explicitly." >&2
         exit 1
     fi
 else
-    coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
-    for coq_proof in $coq_proofs; do
-        coq_proof_base="$(basename "$coq_proof")"
-        if command -v timeout >/dev/null 2>&1; then
-            (cd "$ROOT_DIR/docs/semantics/proofs" && \
-                timeout "$coq_timeout" $coq_compile -Q . "" "$coq_proof_base")
-        else
-            (cd "$ROOT_DIR/docs/semantics/proofs" && \
-                $coq_compile -Q . "" "$coq_proof_base")
-        fi
-    done
-    echo "formal semantics Coq smoke: ok (${coq_proof_count} proofs machine-checked" \
-         "with '$coq_compile')"
+    pgy_rocq_require
+    bash "$ROOT_DIR/tests/coq_kernel_check.sh"
+    echo "formal semantics Coq smoke: ok (${coq_proof_count} proofs freshly kernel-checked)"
 fi

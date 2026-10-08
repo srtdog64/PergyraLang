@@ -29,13 +29,15 @@
         so the party slot is the composition borrow(identity) x witness,
         and a call through an admitted slot always has a value.
 
-  Honest scope: stores map identities to one field value; scopes are
-  nesting depths; roles are functions of the subject state. No aliasing
+  Honest scope: stores map identities to one field value; scope inclusion
+  comes from BindingIdentityScope's actual parent ancestry, not depth;
+  roles are functions of the subject state. No aliasing
   between parties, no concurrency, no drop model.
 *)
 
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
+Require Import BindingIdentityScope.
 
 (* A store maps a subject identity to its state; None is a dead subject. *)
 Definition Store := nat -> option nat.
@@ -113,38 +115,45 @@ Proof. simpl. split; reflexivity. Qed.
 
 (* ---- (4) the scope rule keeps a borrowed subject live ---------- *)
 
-(* A binding declared at depth k is live at depth d when k <= d. *)
-Definition live (k d : nat) : Prop := k <= d.
+(* Equal-depth siblings are not enclosing scopes. The existing identity
+   scope owner supplies the one ancestry relation used by this consumer. *)
+Definition live (parent : nat -> option nat) (scope at_scope : nat) : Prop :=
+  encloses parent scope at_scope.
 
 Theorem scoped_borrow_live :
-  forall subject_depth party_depth d,
-    subject_depth <= party_depth ->
-    live party_depth d -> live subject_depth d.
-Proof. unfold live. intros. lia. Qed.
+  forall parent subject_scope party_scope at_scope,
+    encloses parent subject_scope party_scope ->
+    live parent party_scope at_scope -> live parent subject_scope at_scope.
+Proof. unfold live. intros. eapply encloses_trans; eauto. Qed.
 
 Theorem inner_subject_dangles :
-  exists subject_depth party_depth d,
-    party_depth < subject_depth /\
-    live party_depth d /\ ~ live subject_depth d.
+  exists parent subject_scope party_scope at_scope,
+    encloses parent party_scope subject_scope /\
+    live parent party_scope at_scope /\ ~ live parent subject_scope at_scope.
 Proof.
-  exists 2, 1, 1. unfold live. repeat split; lia.
+  exists tree, 3, 1, 1. unfold live.
+  split; [exact scope1_encloses_3 |].
+  split; [constructor | exact not_encloses_3_1].
 Qed.
 
 (* ---- (5) composition -------------------------------------------- *)
 
-(* A store keeps every subject that is live at the current depth. *)
-Definition keeps_live (s : Store) (depth_of : nat -> nat) (d : nat) : Prop :=
-  forall id, live (depth_of id) d -> s id <> None.
+(* Store-liveness remains an explicit refinement premise, not a consequence
+   of ancestry alone. This model has no destructor/store implementation. *)
+Definition keeps_live (s : Store) (scope_of : nat -> nat)
+  (parent : nat -> option nat) (at_scope : nat) : Prop :=
+  forall id, live parent (scope_of id) at_scope -> s id <> None.
 
 Theorem slot_call_defined :
-  forall s depth_of d id w party_depth,
-    keeps_live s depth_of d ->
-    depth_of id <= party_depth ->
-    live party_depth d ->
+  forall s scope_of parent at_scope id w party_scope,
+    keeps_live s scope_of parent at_scope ->
+    encloses parent (scope_of id) party_scope ->
+    live parent party_scope at_scope ->
     exists v, call s (Borrowed id w) = Some v.
 Proof.
-  intros s depth_of d id w party_depth Hkeep Hscope Hparty.
-  assert (Hlive : live (depth_of id) d) by (unfold live in *; lia).
+  intros s scope_of parent at_scope id w party_scope Hkeep Hscope Hparty.
+  assert (Hlive : live parent (scope_of id) at_scope).
+  { eapply scoped_borrow_live; eauto. }
   unfold keeps_live in Hkeep.
   specialize (Hkeep id Hlive).
   simpl. destruct (s id) as [v |] eqn:Hs.

@@ -10,6 +10,7 @@
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_mir_store_coercion.h"
 #include "../parser/ast_api.h"
 
 static LLVMValueRef
@@ -160,6 +161,9 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
             return NULL;
         }
         arg_value = llvm_emit_expression(arg_node, ctx);
+        if (arg_value != NULL && param_type_name != NULL)
+            arg_value = llvm_mir_coerce_value_for_store(ctx, arg_value,
+                pergyra_type_to_llvm(ctx, param_type_name));
         arg_value = llvm_emit_hosted_self_arg(arg_node, ctx, param,
             param_type_name, arg_value);
         if (ctx->has_error)

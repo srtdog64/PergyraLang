@@ -1,6 +1,6 @@
-func Stamp(value: Int) -> Int with caps clock { return value + Now(); }
-func Pure(value: Int) -> Int { return value + 1; }
-func Invoke(operation: func(Int) -> Int) -> Int { return operation(1); }
-func ClockPath() -> Int with effects nondeterministic { return Invoke(Stamp); }
-func PurePath() -> Int with effects local { return Invoke(Pure); }
+func Stamp(value: Long) -> Long with caps clock { return value + Now(); }
+func Pure(value: Long) -> Long { return value + 1L; }
+func Invoke(operation: func(Long) -> Long) -> Long { return operation(1); }
+func ClockPath() -> Long with effects nondeterministic { return Invoke(Stamp); }
+func PurePath() -> Long with effects local { return Invoke(Pure); }
 func Main() -> Void { Log(ClockPath()); Log(PurePath()); }

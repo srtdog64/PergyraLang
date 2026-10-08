@@ -2,8 +2,8 @@ class Obligation
 {
     let code: String;
     let owner: String;
-    let openedAtMs: Int;
-    let dueAtMs: Int;
+    let openedAtMs: Long;
+    let dueAtMs: Long;
     let fulfilled: Bool;
 }
 
@@ -12,7 +12,7 @@ class Violation
     let code: String;
     let owner: String;
     let reason: String;
-    let latenessMs: Int;
+    let latenessMs: Long;
 }
 
 class ObligationCheck
@@ -21,7 +21,7 @@ class ObligationCheck
     let violation: Violation;
 }
 
-func OpenObligation(code: String, owner: String, openedAtMs: Int, windowMs: Int) -> Obligation
+func OpenObligation(code: String, owner: String, openedAtMs: Long, windowMs: Long) -> Obligation
 {
     return Obligation(code, owner, openedAtMs, openedAtMs + windowMs, false);
 }
@@ -37,12 +37,12 @@ func FulfillObligation(obligation: Obligation) -> Obligation
     );
 }
 
-func ObligationDue(obligation: Obligation, nowMs: Int) -> Bool
+func ObligationDue(obligation: Obligation, nowMs: Long) -> Bool
 {
     return !obligation.fulfilled && nowMs >= obligation.dueAtMs;
 }
 
-func EvaluateObligation(obligation: Obligation, nowMs: Int) -> ObligationCheck
+func EvaluateObligation(obligation: Obligation, nowMs: Long) -> ObligationCheck
 {
     if !ObligationDue(obligation, nowMs) {
         return ObligationCheck(

@@ -96,13 +96,12 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
   약하고, "authority = cap × zone 위의 표기"라는 반론이 가능하다. 반박하려면
   둘로 환원 안 되는 authority 고유 정적 의무(위임 체인 등 —
   AuthorityDelegationCore.v가 후보)를 지목해야 한다.
-- **★환원 반론 방출 (2026-07-06)**: `AuthorityIrreducibility.v`(coqc PASS) —
-  cap·zone 사영이 동일하고 위임 체인만 다른 두 구성이 authority 판정을 가름
-  (`delegation_distinguishes`) ⇒ 어떤 (cap, zone)의 함수도 authority 판정을
-  계산할 수 없음(`authority_beyond_cap_zone`). 구별 fact = **위임의 역사**.
-  모델-수준 분리(반례 쌍)지 Felleisen 정리가 아님을 파일 헤더에 명시. 이로써
-  이 절의 판정은 부분→**성립**(★★☆): 고유 fact(위임 체인)의 비표현성 근거
-  확보, 잔여는 위임 체인의 표면 정적 의무(선언 문법) 설계.
+- **2026-10-08 반례 재감사 정정**: `AuthorityIrreducibility.v`의
+  `delegation_distinguishes` / `authority_beyond_cap_zone`는 unrestricted record
+  분리만 보인다. ungranted 반례는 grant-consistency를 위반하며,
+  `consistent_authority_is_cap_projection`는 일관성 계약 아래 cap 사영이 판정을
+  계산함을 보인다. 따라서 이 반례로 부분→성립 승격을 정당화하지 않는다.
+  실제 grant issuer/보존 및 언어 고유 정적 의무의 비표현성 근거는 OPEN이다.
 
 ### 1.6 intent — 가장 약함 (명시)
 
@@ -126,7 +125,9 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
   "intent 전체"로 잘못 잡은 인공물이다. intent는 원자 primitive가 아니라
   **선언 등뼈(source-level binder)** — AIR/Coq에서 단일 Intent fact 금지,
   8-subfact로 분해(6 verifier / 2 library-가능: Purpose·Trace). M1 주장은
-  fact-단위로 재서술: **binder는 6개 verifier fact의 비표현성을 상속**하고,
+  fact-단위로 재서술: **binder는 6개 verifier fact의 의무를 묶는다**.
+  `IntentObligations`는 실제 finite emitted-family 목록의 누락을 거부하지만,
+  비표현성 상속은 선언한 ClaimClass 분류이지 수학적 expressibility 증명이 아니다.
   library 버킷은 애초에 주장 밖(정당성=표준화+spine 귀속). ability/witness
   2-평면 규율 및 docs/42 §3 "Intent Is Not A Universal Owner"의 fact-층 구현.
 
@@ -138,8 +139,8 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
 | slot/own-ref | 성립 | ★★★ (선형성 — 코어에 부재) |
 | lifecycle/vessel | 성립 | ★★☆ (+소거 관찰) |
 | zone/world | 성립 | ★★☆ (AC-3 거절 + 기계화 그림자) |
-| authority | 성립(2026-07-06 승격) | ★★☆ (AuthorityIrreducibility.v가 cap×zone 환원 반론 방출 — 위임 역사가 구별 fact. 잔여: 위임 표면 의무 설계) |
-| intent | **단위 교정(docs/173 §0-b)**: binder — 6 verifier subfact의 비표현성 상속 | fact별: Participant/Coordination/Compensation 등 6개는 INT-1~3 착지 시 ★★☆+, Purpose/Trace는 library-가능(주장 제외) |
+| authority | 부분; 이전 반례에 의한 승격 철회 | unrestricted pair는 grant-inconsistent. 일관성 계약에서는 cap 사영으로 판정 가능; 고유 정적 의무 근거 OPEN |
+| intent | **단위 교정(docs/173 §0-b)**: binder — 6 verifier subfact의 의무/누락 검사 | ClaimClass는 분류이며 비표현성 증명 아님. 실제 emitter·정적 의무와 라이브러리 표현력 증거는 별도 |
 
 이 표의 낮은 행들은 숨길 것이 아니라 **작업 지시**다: authority 고유 의무 지목,
 intent 정적 충돌 분석. 둘 다 기존 설계(AuthorityDelegationCore.v, docs/167)에

@@ -13,6 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  formal-proofs-rocq9:
+    uses: ./.github/workflows/formal_proofs.yml
+
   platform-full-linux-toolchain:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -42,7 +45,7 @@ jobs:
             bin/pgy-self-driver.machine-layer-manifest.json
 
   platform-full-linux:
-    needs: platform-full-linux-toolchain
+    needs: [platform-full-linux-toolchain, formal-proofs-rocq9]
     runs-on: ubuntu-latest
     timeout-minutes: 70
     steps:
@@ -54,7 +57,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Download installed Linux self-host toolchain
         uses: actions/download-artifact@v4
@@ -69,6 +72,7 @@ jobs:
         env:
           PGY_CI_SELF_HOST_MODE: prebuilt
           PGY_CI_PLATFORM_PARITY_MODE: contract-only
+          PGY_ALLOW_MISSING_COQ: "1"
         run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 
   platform-full-linux-self-host-parity:

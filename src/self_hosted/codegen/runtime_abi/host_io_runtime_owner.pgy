@@ -81,11 +81,12 @@ func HostIORuntimeCSleepFn() -> String {
 
 // Now() and Sleep(ms) are native's pgy_now_ms and pgy_sleep_ms (pgy_runtime.h,
 // which the program then includes), so Now takes the clock capability there.
-// The wrappers only widen and narrow Int; the names stay distinct from native's.
+// Now keeps the canonical Long result; only Sleep narrows the Int duration.
 func HostIORuntimeCClockBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
-    let block: String = Concat("static ", Concat(int_type, Concat(" ", Concat(HostIORuntimeCNowFn(), "(void)\n{\n"))));
-    block = Concat(block, Concat("    return (", Concat(int_type, ")pgy_now_ms();\n}\n\n")));
+    let long_type: String = CompilerAbiLayoutLongCValueType();
+    let block: String = Concat("static ", Concat(long_type, Concat(" ", Concat(HostIORuntimeCNowFn(), "(void)\n{\n"))));
+    block = Concat(block, "    return pgy_now_ms();\n}\n\n");
     block = Concat(block, Concat("static void ", Concat(HostIORuntimeCSleepFn(), Concat("(", Concat(int_type, " ms)\n{\n")))));
     block = Concat(block, "    pgy_sleep_ms(ms <= 0 ? 0 : (ms > 2147483647LL ? 2147483647 : (int32_t)ms));\n}\n\n");
     return block;

@@ -1,0 +1,13 @@
+func Reassigned() -> String
+{
+    let source: String = Concat("owned-", "initial");
+    source = "borrowed";
+    return source;
+}
+
+func Main() -> Void
+{
+    let fields: Array<String> = [];
+    ArrayPush(fields, Reassigned());
+    ArrayDropOwnedStrings(fields);
+}

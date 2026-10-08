@@ -140,6 +140,51 @@ static ASTNode mk_call(ASTNode *callee, ASTNode **args, size_t argc)
     n.data.call.arguments = args; n.data.call.arg_count = argc; return n;
 }
 
+static void test_stdlib_retention_selected_identity(void)
+{
+    const struct { const char *name; size_t arity; size_t last_borrowed; } cases[] = {
+        { "Substring", 3, 0 },
+        { "SubEqualsWithLen", 5, 4 },
+        { "SubIndexOfWithLen", 5, 4 }
+    };
+    ASTNode value = mk_string("rows");
+    ASTNode *args[5] = { &value, &value, &value, &value, &value };
+
+    for (size_t row = 0; row < sizeof(cases) / sizeof(cases[0]); ++row) {
+        ASTNode callee = mk_ident(cases[row].name);
+        ASTNode call = mk_call(&callee, args, cases[row].arity);
+        PgyRegionRetentionKind kind = PGY_REGION_RETENTION_BORROWED_FOR_CALL;
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind)
+                  && kind == PGY_REGION_RETENTION_UNKNOWN,
+              "stdlib spelling alone grants no borrowed argument");
+        CHECK(ast_call_set_semantic_callee_is_stdlib(&call, true), "selected stdlib target records");
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind),
+              "stdlib selection without the builtin-kind owner fact refuses");
+        CHECK(ast_call_set_semantic_callee_builtin_kind(&call, (uint32_t)BUILTIN_NOT_BUILTIN),
+              "selected stdlib builtin-kind fact records");
+        CHECK(semantic_region_retention_summary_for_stdlib(&call, cases[row].last_borrowed, &kind)
+                  && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+              "canonical selected stdlib argument is borrowed during the call");
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, cases[row].arity, &kind)
+                  && kind == PGY_REGION_RETENTION_UNKNOWN,
+              "out-of-arity argument refuses and clears the previous grant");
+        call.data.call.arg_count--;
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind), "wrong physical arity refuses");
+        call.data.call.arg_count++;
+        CHECK(ast_call_set_semantic_callee_decl_id(&call, 19), "user declaration identity records");
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind), "user declaration cannot borrow stdlib authority");
+        CHECK(ast_call_set_semantic_callee_decl_id(&call, 0), "stdlib declaration identity restores");
+        CHECK(ast_call_set_semantic_callee_value_binding_id(&call, 23), "shadowing value binding records");
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind), "bound value cannot borrow stdlib authority");
+        CHECK(ast_call_set_semantic_callee_value_binding_id(&call, 0), "stdlib value binding identity restores");
+        CHECK(ast_call_set_semantic_callee_builtin_kind(&call, (uint32_t)BUILTIN_PRINT), "different builtin fact records");
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind), "different builtin target refuses");
+        CHECK(ast_call_set_semantic_callee_builtin_kind(&call, (uint32_t)BUILTIN_NOT_BUILTIN), "stdlib builtin fact restores");
+        callee.data.identifier.name = "UnknownTextPrimitive";
+        CHECK(!semantic_region_retention_summary_for_stdlib(&call, 0, &kind), "unregistered selected stdlib refuses");
+    }
+}
+
 /* Print("a" + "b") -> the concat certified (1 site). */
 static void test_print_concat_certified(void)
 {
@@ -305,6 +350,7 @@ static void test_per_function_scope(void)
 int main(void)
 {
     test_retention_summary_owner();
+    test_stdlib_retention_selected_identity();
     test_print_concat_certified();
     test_log_family_concat_certified();
     test_chained_concat_spine();

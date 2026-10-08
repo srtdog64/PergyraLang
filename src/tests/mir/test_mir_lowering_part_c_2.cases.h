@@ -305,7 +305,7 @@ test_mir_lowering_part_c_3(void)
     {
         const char *src =
             "extern \"c\" {\n"
-            "    func pgy_now_ms() -> Int;\n"
+            "    func pgy_now_ms() -> Long;\n"
             "}\n"
             "func Main() -> Void {\n"
             "    let ignored = pgy_now_ms();\n"
@@ -326,7 +326,7 @@ test_mir_lowering_part_c_3(void)
                && mir_validate(mir, NULL)
                && routine != NULL
                && ignored_type != NULL
-               && strcmp(ignored_type, "Int") == 0);
+               && strcmp(ignored_type, "Long") == 0);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

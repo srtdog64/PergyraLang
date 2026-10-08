@@ -9,8 +9,8 @@
   observation class and stays within the declared observable-cost budget.
 *)
 
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
 
 Section LossCompositionCore.
 

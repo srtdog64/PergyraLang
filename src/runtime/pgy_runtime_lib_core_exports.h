@@ -2,6 +2,7 @@
 #define PGY_RUNTIME_LIB_CORE_EXPORTS_H
 
 #include "../common/string_compat.h"
+#include "pgy_runtime_host_clock.h"
 
 void pgy_log_int(int32_t v)    { printf("%d\n", v); }
 void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
@@ -30,18 +31,11 @@ pgy_log_banner(const char *v)
     pgy_log_string(v);
 }
 
-int32_t
+int64_t
 pgy_now_ms(void)
 {
     pgy_cap_require_export(PGY_CAP_CLOCK, "now-ms");
-#ifdef _WIN32
-    return (int32_t)GetTickCount64();
-#else
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-        return 0;
-    return (int32_t)((ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL));
-#endif
+    return pgy_host_monotonic_time(1000);
 }
 
 void

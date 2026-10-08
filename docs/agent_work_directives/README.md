@@ -39,3 +39,14 @@ handoff notes cite them. Mark them `AUDIT COMPLETE`, `IMPLEMENTATION COMPLETE`,
 or `CANCELLED`; do not rewrite their historical base revision into the current
 HEAD. A new coordination scope gets a new descriptive file rather than a new
 number in the architecture series.
+
+Do not delete an old directive; history must stay traceable. When its date is
+past and no active handoff card names it, mark it `OLD` with one banner line
+under its title (`> **OLD** (date): ...`) that points at the current
+collaboration document. The banner adds a marker only: the original status
+line, base revision and content stay unchanged, and `OLD` does not mean the
+work it describes was completed. The 2026-10-08 marking covered every
+directive dated before that day except
+`mir_builder_ownership_chain_2026-10-07.md`, which the active self-host card
+still names. The current Claude/GPT split is
+[`claude_gpt_ownership_collaboration_2026-10-08.md`](claude_gpt_ownership_collaboration_2026-10-08.md).

@@ -81,7 +81,7 @@ import "creatures.pgy";
 |------|------|----------|------|
 | **Set** | `Set<T>` | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize`, `SetValues` | 구현 (C/LLVM 표면 연결) |
 | **Queue** | `Queue<T>` | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | 구현 |
-| **Clock** | `func` | `Now() -> Int` (ms), `Sleep(ms)` | 구현 |
+| **Clock** | `func` | `Now() -> Long` (monotonic ms), `Sleep(ms)` | 구현 |
 | **Format** | `func` | `Format(template, args...)` | 미래 |
 
 ### Tier 4 — 표준 라이브러리 (`use` 키워드)

@@ -160,8 +160,11 @@ refinement obligations; they are not silently implied by a range proof.
 
 Addresses here are mathematical naturals and writes update a base-addressed
 abstract cell. This is not a byte-width, machine-integer overflow, or real
-memory-model proof; the range/contact predicates do not exclude zero-extent
-regions. The separate
+memory-model proof. Empty ranges remain valid evidence at an endpoint, but
+`contact_extent_allowed` rejects every addressed read/write/RMW with zero
+extent; fences are unaddressed. `contacted_base_is_in_grant` and
+`contact_write_preserves_outside_grant` connect this guard to the actual
+base-cell memory update rather than merely to the declared interval. The separate
 [`ResourceMachineBridge.v`](ResourceMachineBridge.v) proves a minimal
 resource-authority/placement-binding contract, with positive extent as its
 `MachineWitness`. It does not instantiate or compose `contact_step` into a

@@ -18,25 +18,26 @@
   be gated by a single owner. This file bundles the five families into ONE record
   -- AIRFacts -- and proves two things a fact-ownership claim needs:
 
-    1. Faithfulness (guard_air_faithful): the machine's guard is EXACTLY the guard
-       computed from the AIRFacts record. AIR owning these five fields is both
-       necessary and sufficient to reconstruct every gate; nothing outside the
-       record influences a gating decision.
+    1. Interface identity (guard_air_faithful): guard_air is defined to call
+       the imported guard. This is definitional equality, not an independently
+       verified producer, necessary/minimal representation, or runtime binding.
+       The current config (holdings, store, log and done-set) also determines
+       admission; AIRFacts alone is not sufficient.
 
     2. Per-gate single-owner locality (each *_reads_only lemma + the umbrella
-       gate_locality): each action's gate reads EXACTLY ONE AIR field. Changing
+       gate_locality): the lemmas identify the fields each action reads. Rollback
+       reads two; several operations read no AIR field. Changing
        any other field cannot change that action's gate. This is the operational
        form of the docs/42 axis single-owner discipline, at the AIR-fact level:
        the boundary cap is owned by the zone field alone, the effect cap by the
        effect field alone, and so on -- no silent cross-ownership.
 
-  Consequence: the AIR record IS the complete gating interface. A backend that
-  consumes AIRFacts can reproduce every fail-closed decision without re-deriving
-  anything from semantic/MIR internals -- the machine-neutral property, mechanized.
+  Scope: the record and config are the abstract machine's chosen gate inputs.
+  No compiler AIRFacts issuer or backend runtime refinement is proved here.
 
-  This file is standalone (re-declares the minimal config + guard) to match the
-  one-file-per-proof convention; WholeProgramCore.v is the source of truth for
-  the machine, and the guard here is definitionally its guard.
+  WholeProgramCore.v owns the coordination-expanded machine. This file imports
+  its actual configuration, actions and guard; there is no private machine
+  copy whose agreement would need to be maintained by text convention.
 
   Negative scope: this proves the gate READS ONLY these facts; it does NOT prove
   the C AIR emitter populates them correctly (that is the air-json-schema smoke +
@@ -44,44 +45,12 @@
   ones. It fixes the INTERFACE, not the producer.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import WholeProgramCore.
 Import ListNotations.
 
 Section AIRBinding.
-
-Definition principal := nat.
-Definition zone := nat.
-Definition cap  := nat.
-Definition eff  := nat.
-Definition slot := nat.
-Definition task := nat.
-
-Inductive lcstate := Empty | Filled | Released.
-Definition slot_store := slot -> lcstate.
-
-Record effect_log_entry := mkLog { logged_eff : eff; before_store : slot_store }.
-
-Record config := mkConfig {
-  actor    : principal;
-  holdings : principal -> list cap;
-  here     : zone;
-  elog     : list effect_log_entry;
-  store    : slot_store;
-  done     : list task
-}.
-
-Definition has_cap (c : config) (k : cap) : Prop := In k (holdings c (actor c)).
-
-Inductive action :=
-  | ActCross (z' : zone)
-  | ActEmit (e : eff)
-  | ActAcquire (s : slot)
-  | ActUse (s : slot)
-  | ActRelease (s : slot)
-  | ActDelegate (b : principal) (k : cap)
-  | ActRollback
-  | ActRun (t : task).
 
 (* ================================================================ *)
 (* The AIR fact record: exactly the five families the gate reads.   *)
@@ -95,43 +64,10 @@ Record AIRFacts := mkAIR {
   air_dep_graph    : task -> list task
 }.
 
-Definition ready_air (F : AIRFacts) (c : config) (t : task) : Prop :=
-  forall x, In x (air_dep_graph F t) -> In x (done c).
-
-(* The gate computed purely from the AIR record and the config. *)
+(* The record supplies facts; the imported machine owns every gate decision. *)
 Definition guard_air (F : AIRFacts) (act : action) (c : config) : Prop :=
-  match act with
-  | ActCross z'     => has_cap c (air_zone_gate F z')
-  | ActEmit e       => has_cap c (air_effect_gate F e)
-  | ActAcquire s    => has_cap c (air_acquire_gate F s) /\ store c s = Empty
-  | ActUse s        => store c s = Filled
-  | ActRelease s    => store c s = Filled
-  | ActDelegate _ k => has_cap c k
-  | ActRollback     => exists e before rest,
-                         elog c = mkLog e before :: rest /\
-                         Forall (fun s => has_cap c (air_acquire_gate F s))
-                                (air_comp_targets F e)
-  | ActRun t        => ready_air F c t
-  end.
-
-(* The machine's guard, with the five families as loose parameters -- this is
-   definitionally WholeProgramCore.guard. *)
-Definition guard_machine
-  (gz : zone -> cap) (ge : eff -> cap) (ga : slot -> cap)
-  (ct : eff -> list slot) (dg : task -> list task)
-  (act : action) (c : config) : Prop :=
-  match act with
-  | ActCross z'     => has_cap c (gz z')
-  | ActEmit e       => has_cap c (ge e)
-  | ActAcquire s    => has_cap c (ga s) /\ store c s = Empty
-  | ActUse s        => store c s = Filled
-  | ActRelease s    => store c s = Filled
-  | ActDelegate _ k => has_cap c k
-  | ActRollback     => exists e before rest,
-                         elog c = mkLog e before :: rest /\
-                         Forall (fun s => has_cap c (ga s)) (ct e)
-  | ActRun t        => forall x, In x (dg t) -> In x (done c)
-  end.
+  WholeProgramCore.guard (air_zone_gate F) (air_effect_gate F)
+    (air_acquire_gate F) (air_comp_targets F) (air_dep_graph F) act c.
 
 (* ================================================================ *)
 (* 1. Faithfulness: AIR record reconstructs the machine gate exactly.*)
@@ -139,17 +75,17 @@ Definition guard_machine
 
 Theorem guard_air_faithful : forall F act c,
   guard_air F act c <->
-  guard_machine (air_zone_gate F) (air_effect_gate F) (air_acquire_gate F)
+  WholeProgramCore.guard (air_zone_gate F) (air_effect_gate F) (air_acquire_gate F)
                 (air_comp_targets F) (air_dep_graph F) act c.
 Proof.
-  intros F act c. destruct act; simpl; reflexivity.
+  intros F act c. reflexivity.
 Qed.
 
 (* Contrapositive corollary: a fail-closed refusal is likewise an AIR-fact
    decision -- if the AIR gate does not hold, the machine does not step. *)
 Corollary refusal_is_air_decision : forall F act c,
   ~ guard_air F act c ->
-  ~ guard_machine (air_zone_gate F) (air_effect_gate F) (air_acquire_gate F)
+  ~ WholeProgramCore.guard (air_zone_gate F) (air_effect_gate F) (air_acquire_gate F)
                   (air_comp_targets F) (air_dep_graph F) act c.
 Proof.
   intros F act c Hn Hg. apply Hn. apply guard_air_faithful. exact Hg.
@@ -182,7 +118,8 @@ Lemma run_reads_only_deps : forall F F' t c,
   air_dep_graph F t = air_dep_graph F' t ->
   (guard_air F (ActRun t) c <-> guard_air F' (ActRun t) c).
 Proof.
-  intros F F' t c Heq; simpl; unfold ready_air; rewrite Heq; reflexivity.
+  intros F F' t c Heq; simpl; unfold WholeProgramCore.ready;
+    rewrite Heq; reflexivity.
 Qed.
 
 (* Rollback reads only the comp-target and acquire fields (it re-acquires the
@@ -221,7 +158,7 @@ Proof.
   - (* Release *) reflexivity.
   - (* Delegate *) reflexivity.
   - (* Rollback *) rewrite Hc, Ha; reflexivity.
-  - (* Run *) unfold ready_air; rewrite Hd; reflexivity.
+  - (* Run *) unfold WholeProgramCore.ready; rewrite Hd; reflexivity.
 Qed.
 
 (* Delegate and Use/Release consult NO AIR fact -- they are decided entirely by

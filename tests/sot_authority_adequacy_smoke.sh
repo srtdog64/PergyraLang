@@ -858,33 +858,17 @@ if check_consumer_copy "$tmp_dir/nominal_consumer_fallback.pgy" \
     fail "nominal fallback mutation was not rejected"
 fi
 
-# Rocq 9 renamed the CLI (`rocq compile` replaces coqc) and its official image
-# ships only the new name, while apt coq ships only the legacy one -- detect
-# rather than assume. And a runner with no prover used to skip this model check
-# while the gate still reported green: Windows and macOS CI have been doing
-# exactly that. A missing prover is now fatal unless the skip is declared.
-coq_compile=""
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
 if command -v rocq >/dev/null 2>&1; then
-    coq_compile="rocq compile"
-elif command -v coqc >/dev/null 2>&1; then
-    coq_compile="coqc"
-fi
-
-if [ -n "$coq_compile" ]; then
-    coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
-    if command -v timeout >/dev/null 2>&1; then
-        (cd "$ROOT_DIR" && timeout "$coq_timeout" $coq_compile "$PROOF")
-    else
-        (cd "$ROOT_DIR" && $coq_compile "$PROOF")
-    fi
-    echo "[sot-authority] Coq model ok (checked with '$coq_compile')"
+    pgy_rocq_check_isolated "$PROOF"
+    echo "[sot-authority] Rocq model freshly kernel-checked"
 elif [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
-    echo "[sot-authority] Coq model DECLARED SKIP -- no prover (looked for rocq," \
-         "coqc), PGY_ALLOW_MISSING_COQ=1; the model was NOT checked on this runner."
+    echo "[sot-authority] Rocq model DECLARED SKIP -- no Rocq," \
+         "PGY_ALLOW_MISSING_COQ=1; the model was NOT checked on this runner."
 else
-    echo "[sot-authority] FAIL -- no prover found (looked for rocq, coqc); the Coq" \
+    echo "[sot-authority] FAIL -- no Rocq; the" \
          "model would go unchecked." >&2
-    echo "  Install Coq/Rocq, or set PGY_ALLOW_MISSING_COQ=1 to declare the skip." >&2
+    echo "  Install pinned Rocq, or set PGY_ALLOW_MISSING_COQ=1 to declare the skip." >&2
     exit 1
 fi
 

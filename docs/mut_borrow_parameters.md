@@ -68,6 +68,33 @@ Value-by-default keeps sharing predictable. `inout` marks the rare
 caller-visible mutation path and lets the checker enforce the copy-in/copy-out
 hazards directly.
 
+## Ownership Cleanup Direction And Review Hold (2026-10-08)
+
+The user-selected direction is **compiler-synthesized ownership cleanup, not
+tracing GC**. Ordinary code should not manually enact lifetime proof through
+deep-drop calls, field carrier/restoration rituals or extra own/ref annotations.
+The compiler must derive admitted obligations and lower their defined exits
+once in MIR. General automatic aggregate cleanup is **not implemented yet**.
+
+The unlanded "Owned Functional Updates" authoring recommendation is ON HOLD,
+not an extension of this accepted inout contract. The MIR builder's current
+style must not choose the ordinary mutation model. Legitimate own transfers
+remain distinct: own consumes a generation; inout updates a caller place on
+defined exits. Neither mode proves independent backing or cleanup authority;
+general collection/aggregate copy-out and exclusivity (C2) remain open.
+
+The named-variable rule above describes the current implementation limit, not
+the intended permanent DX. Typed field-path inout and call-scoped readonly
+temporaries are preferred companion proposals, not current features. Do not
+delete alias checks, pass an unchecked field address, or add copies to sidestep
+the chosen contract. Existing explicit-release guards remain authoritative
+until synthesized cleanup is actually admitted. WO-REG-1 is not a general
+aggregate-cleanup implementation.
+
+The algorithm candidates, whole source-place/storage/effect/exit consumer map,
+current executable evidence and remaining decisions are recorded in
+[`ownership-cleanup architecture recheck`](audits/ownership_dx_architecture_recheck_2026-10-08.md).
+
 ## Current Implementation
 
 The parser accepts `inout name: T` for ordinary parameters and mutable receivers.

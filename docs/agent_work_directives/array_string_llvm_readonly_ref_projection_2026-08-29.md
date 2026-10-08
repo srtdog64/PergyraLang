@@ -1,5 +1,7 @@
 # ArrayString LLVM readonly-ref target projection — 2026-08-29
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `4a97f19a17a64e36a66b29747098a80811f11285` on `origin/main`.

@@ -1,12 +1,18 @@
 # Pergyra Proof Pack
 
-Last updated: 2026-06-22
+Last updated: 2026-10-08
 
 Status: `beta-proof-obligation`
 
 This folder is the source of truth for Pergyra's mathematical proof obligations. The proof pack is organized by core language keyword and closure axis so each stable beta surface has a local theorem statement, assumptions, evidence, and remaining gap.
 
 This is a proof-obligation pack, not a claim of completed mechanized proof. Regression tests, smoke tests, and backend compare runs are proof evidence, not proof itself.
+
+The [2026-10-08 integrated red-team repair receipt](../audits/proof_model_redteam_remediation_2026-10-08.md)
+distinguishes transition/runtime repairs from withdrawn or narrowed claims.
+Its fresh kernel snapshot checks 63 owners and six permanent regression
+consumers. It does not close physical allocation, compiler refinement, general
+memory safety or GC performance superiority.
 
 ## Folder Contract
 
@@ -70,14 +76,163 @@ Required shape for each proof document:
   intent observability to `OBS0/ERASE` or `OBS1/MATERIALIZE`; C and LLVM consume
   the same row and the same 51-row runtime-call ABI owner without AST/HIR or
   backend-local fallback tables.
+- [27_ownership_clean.md](27_ownership_clean.md): formal model, implementation
+  OPEN. Compiler-owned ownership cleanup: liveness decides move or copy, every
+  dead value is released at its last use, and branches/loops need no drop
+  flags. Calls lend borrowed arguments and move sink arguments; parameter
+  modes are inferred, not written, and inout moves in and out. A focus moves
+  one part of a value out and back, so member-path inout, updating a part
+  from itself, and read-only part views copy nothing. Proven in
+  `proofs/OwnershipCleanCore.v`; copy policy D1 is decided as (B). Section 5
+  is the MIR ownership contract (C2) that the compiler pass, backends, and
+  runtime implement.
+- [28_memory_boundary_composition.md](28_memory_boundary_composition.md):
+  adopted requirements joining one storage owner, owner-bound access and one
+  retirement edge. Slot and ordinary cleanup retain their own authorities;
+  graph links remain non-owning. The typed composition audit reuses the
+  existing Core, graph design model and Slot guards, with an explicit
+  root/footprint correspondence. Production issuance, atomicity, graph syntax
+  and C/LLVM cleanup remain OPEN; no Slot per ordinary value or link. Design
+  provenance credits the user's Qt-inspired graph proposal. Tradeoffs cover
+  long-lived retention, nullable links, indexing/copy/analysis costs, cleanup
+  bursts and the limits of unconditional release and GC comparisons.
 - [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
+- [../207_compiler_owned_cleanup_algorithm.md](../207_compiler_owned_cleanup_algorithm.md):
+  explanatory core-algorithm companion with move/copy/end/drop, branch/loop and
+  inferred-sink diagrams, dated kernel evidence, and research applicability.
+  It bounds the normal-exit whole-value model separately from production
+  cleanup; document 27 and OwnershipCleanCore retain semantic authority.
 
 Mechanized artifacts:
 
+- [MemoryBoundaryCompositionAudit.v](../../tests/coq/MemoryBoundaryCompositionAudit.v):
+  typed consumers of canonical ownership, graph and Slot proofs. Under the
+  same-root/footprint admission, graph ODrop and ordinary TDrop agree on the
+  resulting heap and preserve their invariants, while the same Slot admits
+  release. Includes a concrete cyclic graph compatible with both invariants
+  and missing/stale/released/token/pin/borrow refusal witnesses. Gate:
+  `tests/memory_boundary_composition_smoke.sh`. No new heap interpreter,
+  issuer proof, atomic runtime operation or production-support claim.
+  Reuse (2026-10-08): access resolves a generation link, not an address
+  (`address_link_admits_reused_node` is the counterexample); retirement
+  splits the heap so other values stay live; rooted links survive store-id
+  and root-slot reuse; one block has one canonical owner.
+  Allocation/growth (2026-10-08): `gexec_framed` requires the admitted external
+  footprint. New store, vacant insertion and growth preserve the canonical
+  whole-heap split; overlap and missing-frame cases refuse without transition.
+  Growth can reuse its own retired table and reach graph/canonical/Slot
+  retirement with the other owner still live. Physical placement and the
+  production frame/root issuer remain OPEN.
+
+- [proofs/OwnershipCleanGCComparison.v](proofs/OwnershipCleanGCComparison.v):
+  imports the canonical machine for ownership-based automatic memory
+  management. Proves exact-retention bounds against live-covering collector
+  heaps and conditional abstract cost savings against an ideal-root full-heap
+  sweep on a canonically elaborated/executed workload. A correct GC can match
+  exact retention; zero inspection weight and bulk reset refute universal
+  strict speed claims. Typed audit: `tests/coq/OwnershipCleanGCComparisonAudit.v`.
+  Gate: `tests/ownership_gc_comparison_smoke.sh`. No claim that correct GC is
+  unsafe, all collectors are slower, or C/LLVM cleanup is implemented.
+
+- [proofs/OwnershipGraphLinks.v](proofs/OwnershipGraphLinks.v): design check
+  for graph stores (one owner, many non-owning links). Proves exact store
+  footprints, release by slots, permanent staleness and unique links under
+  generations that retire instead of wrapping, borrow exclusivity, and
+  growth refusal under a borrow. Counterexamples cover dropping by edges,
+  modular generations, growth under a borrow, and absolute internal edges in
+  a snapshot. Unreachable nodes in a live store are retained. The allocator
+  is adversarial and may reuse just-freed blocks; a stale link stays refused
+  when its node's exact block is reused, while address identity and
+  store-id reissue resurrect links (counterexamples). No async/FFI escape,
+  finalizer, node move, or production claim.
+- [proofs/OwnershipTeardown.v](proofs/OwnershipTeardown.v): design check
+  for one owner per node (a Qt-style ownership tree) with non-owning links,
+  scoped roots, a reverse link index and an owner-keyed children index.
+  Proves that every live node belongs to a root still in scope, that no
+  step leaves a dangling stored link, that node release and root drop
+  always have a step and free exactly their unit, that both units equal
+  their inductive children-index closures (not an implemented walker),
+  and that no step ever acts
+  through a released node's handle, even after slot reuse. Counterexamples
+  drop one rule each: no link clearing, a stale index, attach without the
+  ancestor check (a permanent ownership-cycle leak), link counts as
+  lifetime (a reference-counting machine keeps an unreachable cycle
+  forever), a relinking write during teardown, and a unit that misses a
+  descendant. Owned-but-unlinked nodes stay until their owner releases them
+  or their root is dropped. Handles are assumed opaque and roots lexically
+  scoped. Retirement units now require `NoDup`; a unique exact unit still
+  always exists. SetField/Attach use only the actual old/new index rows and
+  refine the scan specifications under exact indexes; unrelated rows are
+  returned without a copy. `tests/ownership_teardown_redteam_smoke.sh`
+  kernel-checks the typed regression and freshly extracts bounded OCaml
+  value/sharing/cost observations. Large old/new rows remain expensive;
+  the list uniqueness observer is quadratic, not a production subtree walker.
+  Root-directed Alloc/Attach/RootDrop now require a live current root epoch;
+  RootDrop advances it and RootNew never resets it. Arbitrary-run proofs
+  exclude the old root handle after redeclaration. `resolve_node` rejects a
+  saved stale local link, into any member of a released or dropped unit, in
+  every later state, and `check_root` implements the same root predicate;
+  both are freshly extracted and tested through repeated reuse. Each node
+  read/retirement projection snapshots its immutable source slot once, avoiding
+  recursive repeated evaluation of earlier functional heaps.
+  Raw forest caller authority/loans are handled by the importing model below;
+  cross-arena root identity, concurrency, finite
+  generation bounds, physical refinement and production cost remain OPEN.
+  An immutable checked model read is not a stable physical loan. Scope/receipt:
+  [teardown red-team audit](../audits/ownership_teardown_redteam_locality_2026-10-08.md).
+  Successor: [root epochs and checked locals](../audits/ownership_teardown_root_epoch_2026-10-08.md).
+- [proofs/OwnershipTeardownAuthority.v](proofs/OwnershipTeardownAuthority.v):
+  executable sequential admission over the same forest. Root creation issues
+  a holder-bound cleanup responsibility; transfer moves it; retirement consumes
+  it and old node/root identities never regain admission in later runs.
+  Whole unique units are checked before destruction and descendant lifetime
+  loans/pins block retirement. Only the owner may issue a lease to a borrower;
+  the borrower may return it, not free the owner. Whole-run invariants, right
+  provenance, monotonic lease IDs and legitimate node/root cleanup are proved.
+  The focused gate extracts these functions and checks positive/negative cases.
+  Bounded full-bound unit verification is not the production indexed walker;
+  trusted context/state, live recipient binding, physical access/mutation,
+  concurrency, finalizers and native compiler synthesis remain OPEN.
+- [proofs/OwnershipCleanExits.v](proofs/OwnershipCleanExits.v): imports the
+  canonical machine; adds break, continue, return, throw and try with a
+  target live set per exit, and proves that every outcome runs with the
+  source trace and ends with exactly its target set bound. An error before a
+  pack releases the parts built so far; an early return keeps only the
+  result. No panic/abort, divergence or production compiler claim.
+- [proofs/OwnershipCleanReadOnly.v](proofs/OwnershipCleanReadOnly.v): imports
+  the canonical machine and composition supplement; checks a bounded local
+  read-only alias region, substitutes its reads with the root, and proves
+  trace preservation and inherited closed-program cleanup. A cost certificate
+  measures the actual abstract allocation frontier; the branch witness has
+  one fewer allocation, with both executions and empty heaps proved. Rejects
+  writes, retention, consumption and calls; preserves original admission.
+  Copied field reads remain copies. No general loan/place, projection-copy
+  elision, early-exit, physical-runtime or production-compiler claim.
+- [proofs/OwnershipCleanComposition.v](proofs/OwnershipCleanComposition.v):
+  imports the canonical cleanup machine; proves sequential unit/associativity,
+  guarded branch distribution, exact execution equivalence of Skip
+  normalization, inherited INV/CORR and closed-program cleanup, and syntax
+  size nonincrease without reducing resource sites. Refutes guard erasure,
+  sequential double drop and idempotent emission. No new heap, full monad
+  calculus, local-loan elision or production compiler refinement is claimed.
+- [proofs/OwnershipCleanCore.v](proofs/OwnershipCleanCore.v): Rocq proof that
+  the ownership-clean elaboration runs without a refused step, preserves the
+  value-semantics trace, keeps the live heap equal to the live owners'
+  disjoint footprints, and frees everything in a closed program, for every
+  parameter-mode table. Inferred sink modes remove the GUI call copies. Refutes
+  shallow alias copy (double free), early drop (use after free) and missing
+  release (leak). Also proves unpack of a dead record (overlapping
+  projections, no copy), one-value regions released at their end, fail-closed
+  call summaries (missing or wrong-length is a refusal, never a borrow), and
+  ascending mode inference from no summaries.
+  Scope: [27_ownership_clean.md](27_ownership_clean.md).
 - [proofs/SlotCalculus.v](proofs/SlotCalculus.v): Coq proof sketch for the
   `stale_handle_*_impossible`, `released_slot_*_impossible`,
   `handle_*_requires_issued_token`, `unissued_token_*_impossible`,
-  `pinned_handle_release_impossible`, and `pin_non_eviction` invariants. CI
+  `pinned_handle_release_impossible`, and `pin_non_eviction` invariants.
+  Released slots are tombstones that keep their generation and are
+  reclaimed at the next one; `stale_handle_never_admitted` is the ABA
+  theorem, and `gen_one_reclaim_resurrects` refutes the earlier rule. CI
   type-checks this artifact under `formal-semantics-test-smoke`, so it is
   mechanized evidence for those modeled invariants only; it does not prove the
   whole language.
@@ -97,11 +252,10 @@ Mechanized artifacts:
   intent-step execution fragment, demonstrating a well-authorized program does
   not get stuck (`intent_no_stuck`).
 - [proofs/IRMinimality.v](proofs/IRMinimality.v): Coq proof sketch for the
-  HIR/RIR/MIR codegen-layer lower bound under the live reads-from dependency
-  model, plus the AIR witness minimality claim for
-  intent/effect/authority/coordination verification. The latter proves that
-  HKT/Functor evidence is not adequate for this axis because it does not witness
-  authority, effect, boundary, coordination, or provenance facts.
+  three dependency levels under the fixed HIR -> RIR/DIR -> MIR reads graph.
+  The AIR witness minimality claim is restricted to interface coverage, not
+  architectural minimality or HKT/Functor expressiveness. Its restricted
+  order-only witness omits required fields by definition.
   `ir_minimality_adequacy_smoke.sh` binds that model to the current driver, RIR
   flow, MIR lowering, AIR, backend dependency shape, and HKT/Functor soft-no
   documentation.
@@ -110,7 +264,8 @@ Mechanized artifacts:
   model. Proves that the Witness invariant rules out write-write and read-write
   data races by construction (`xor_mut_no_data_race`), that permitted boundary
   transitions preserve the invariant (`xor_mut_preserved`), and that the
-  pin-exclusivity discipline entails data-race-free safety.
+  per-context release rule preserves other readers. The abstract xor invariant
+  is an admission contract, not a proof of the concrete Pin implementation.
 - [proofs/CheckedArith.v](proofs/CheckedArith.v): Coq proof sketch for
   fail-closed checked signed integer division and modulo (UB model). Proves
   that the checked helpers return `None` (panic) on exactly the two C undefined
@@ -141,9 +296,10 @@ Mechanized artifacts:
 - [proofs/SlotLifecycleCore.v](proofs/SlotLifecycleCore.v): Coq proof sketch for the
   THIRD core-calculus corner -- the resource-operation step (slot lifecycle,
   affine/typestate lineage). Typestate-gated acquire/use/release with precondition
-  soundness and the affine-safety theorem `no_op_after_release` (use-after-release
-  and double-release are not derivable). Complements the runtime-invariant
-  `SlotCalculus.v` by modeling the slot as a composing Step form.
+  soundness and the old-incarnation theorem `no_op_after_release`. Physical
+  reclaim advances the generation; `retired_identity_preserved` extends the
+  rejection over arbitrary runs. Storage reuse is not identity reuse.
+  Complements `SlotCalculus.v`; allocator/runtime refinement remains separate.
 - [proofs/MachineLayerCore.v](proofs/MachineLayerCore.v): Coq proof for the
   machine layer below the slot. `Grant`/`Region` own address,
   extent, mode, and declaration-rooted provenance; `TypeLayout` and
@@ -199,6 +355,9 @@ Mechanized artifacts:
   (delegation redistributes; the others do not touch holdings), the whole-machine
   no-ambient-authority theorem. Rollback now consumes snapshot-bearing effect
   log entries and multi-slot compensation targets (`comp_target : eff -> list slot`).
+  Rollback leaves current lifecycle state intact: no released incarnation or
+  consumed acquisition can be restored from a snapshot. Concrete value/effect
+  compensation remains a separate refinement obligation.
   Proves the non-interference of delegation and rollback over actual `step` /
   `steps` edges (`delegate_then_rollback_sound`,
   `delegate_rollback_steps_sound`, `acquire_delegate_then_rollback_sound`, and
@@ -208,11 +367,12 @@ Mechanized artifacts:
 - [proofs/CompensationCore.v](proofs/CompensationCore.v): Coq proof sketch for the
   compensation / rollback Step form (the intent-specific facet, Saga lineage). The
   effect->slots coupling `comp_target : eff -> list slot` and the logged
-  pre-forward store snapshot make rollback sound: `rollback_requires_log`
+  pre-forward store snapshot define an ideal snapshot contract: `rollback_requires_log`
   (fail-closed), `rollback_restores_snapshot` (undo restores each coupled slot
   to the logged pre-forward state), `rollback_pops_log`, and the saga round-trip
-  `do_then_rollback_restores`. This is the point where the effect facet and the
-  slot/lifecycle facet are shown to agree.
+  `do_then_rollback_restores`. These follow snapshot restoration, not execution
+  of user-written compensate expressions. Do not use them as irreversible
+  resource safety evidence; Core/Unified/WholeProgram preserve lifecycle instead.
 - [proofs/CoordinationCore.v](proofs/CoordinationCore.v): Coq proof sketch for the
   coordination Step form (the step dependency graph; dataflow / Kahn Process Network
   lineage). `run_requires_deps` (fail-closed: a step runs only when every dependency
@@ -226,11 +386,12 @@ Mechanized artifacts:
 - [proofs/WholeProgramCore.v](proofs/WholeProgramCore.v): Coq proof sketch for the
   whole-program guard machine. It folds coordination into the shared config and
   proves `step_iff_guard`, `step_preserves_wf`, and `whole_program_safety` over
-  the eight Step forms.
+  the eight Step forms. WF is dependency closure only; separate run invariants
+  preserve released lifecycle and prohibit repeated completed task identities.
 - [proofs/AIRBinding.v](proofs/AIRBinding.v): Coq proof sketch for the
   calculus-to-AIR fact interface. It proves `guard_air_faithful` and
-  `gate_locality`, so a backend-visible guard is reconstructed from the AIR
-  fact record rather than recovered from syntax.
+  `gate_locality` for the selected interface. Current config is also necessary;
+  faithful equality is definitional, not producer adequacy or AIR minimality.
 - [proofs/FormalKernel.v](proofs/FormalKernel.v): Coq proof sketch for
   source-vocabulary binding. It maps `world`, `zone`, `intent`, `effect`,
   `authority`, `slot`, participant terms, `projection`, `channel`, and
@@ -246,23 +407,27 @@ Mechanized artifacts:
   that elaborates into verifier fact families, keeps `purpose` and `trace`
   outside the non-library-expressibility claim, rejects an atomic `Intent` fact
   as a formal target, and records that WO-INT-0 fact-family naming precedes
-  INT-1 participant declared-used checking.
+  INT-1 participant declared-used checking. Finite emitted-family admission
+  rejects missing families; ClaimClass labels remain a taxonomy, not a proof
+  of library non-expressibility or compiler emission completeness.
 - [proofs/IntentSpine.v](proofs/IntentSpine.v): Coq proof sketch for the
   operational intent fact kernel. It models participant, coordination, and
   compensation facts joined by one spine identity, proves
   `checked_intent_guard_free`, `no_dep_cycle`, fact-family reassembly, and the
   checked-intent erasure corollary. It still treats interprocedural participant
-  used-set computation as an implementation/gate obligation.
+  used-set computation as an implementation/gate obligation. `no_dep_cycle`
+  concerns intra-intent step dependencies, not runtime handle ancestry cycles.
 - [proofs/IntentConflict.v](proofs/IntentConflict.v): Coq proof sketch for the
   cross-intent conflict kernel. It models the runtime admission guard, proves
   that statically separated co-active traces cannot fire that guard, and records
   that priority is a one-order tiebreak rather than separation evidence. The
   static co-activity computation remains implementation/gate work.
 - [proofs/AuthorityIrreducibility.v](proofs/AuthorityIrreducibility.v): Coq
-  proof sketch for the authority-axis irreducibility claim. It gives two
+  proof sketch for unrestricted record separation. It gives two
   configurations with identical capability and zone projections but different
-  delegation reachability, proving that authority is not a function of
-  cap-by-zone facts alone.
+  delegation reachability. The ungranted pair is grant-inconsistent; on the
+  explicit grant-consistent subset the cap projection already computes this
+  verdict. It does not prove the language axis irreducible.
 - [proofs/ProofCarryingIR.v](proofs/ProofCarryingIR.v): Coq proof sketch for
   the Stage 2 checker-core rule behind `pgy.proof-carrying-ir.v1`: a valid
   certificate permits downstream fact consumption, while missing AIR/MIR facts
@@ -377,3 +542,16 @@ A stable surface is proof-aligned only when all four are true:
 - Its docs and diagnostics use the same vocabulary.
 
 If any item is missing, the feature is either `IN PROGRESS`, `explicit reject`, or `OUT OF BETA`.
+
+## Stable proof toolchain and extracted cleanup cost (2026-10-08)
+
+scripts/rocq_toolchain_owner.sh admits only Rocq/rocqchk 9.3.0 and Stdlib
+9.2.0; scripts/run_rocq_toolchain.sh activates the explicit project switch.
+System Coq is not a fallback. tests/coq_kernel_check.sh checks a fresh source
+snapshot and the approved assumption bindings, never source-tree .vo files.
+
+tests/ownership_cleanup_smoke.sh freshly extracts OwnershipCleanCore.elab and
+callee elaboration. Its controls and hashed cost receipt are bounded model
+evidence, not runtime drop glue, D1 policy, implementation refinement or beta
+closure. Commands, exact hashes, limitations and recovery evidence are in
+../audits/ownership_clean_g_receipt_2026-10-08.md.

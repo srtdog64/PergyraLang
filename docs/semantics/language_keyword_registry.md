@@ -14,7 +14,7 @@ The registry contains 147 bytewise-sorted, unique spellings:
   already-selected grammar production.
 
 Every row declares its spelling, lexical class, token identity, stable
-language-word/debug identity, parser context mask, language axis,
+language-word/debug identity, parser context mask, primary category axis,
 native/self-host support, tooling exposure flags, and one explicit TextMate
 scope identity. `PGY_KEYWORD_TOKEN_NONE` means that the spelling has no
 dedicated lexer token; it must not be promoted to a reserved token merely to
@@ -25,13 +25,27 @@ parser production still decides whether a contextual or soft word is legal at
 one exact position. Registry context masks are inventory evidence and a drift
 ratchet, not a replacement grammar.
 
-This fact family remains `BRIDGE`, not `CLOSED`. A declared support bit,
-fixture occurrence, LSP exposure, or TextMate scope is not proof that a parser
-path has been substituted. The generated
-`language_word_implementation_inventory.generated.md` keeps native selector,
-typed self-host selector, direct self-host string selector, fixture, and
-tooling evidence separate. It currently records 51 direct-selector
-occurrences across 36 language words as migration debt.
+`axis` is one primary category for a spelling, not an assertion that every
+grammatical use belongs to one semantic fact owner. `all/any`, `where` and
+`with` have multiple selected productions; those productions and their typed
+semantic facts keep their own owners. GENERAL covers shared/base and module
+structure, not missing authority. MODULE is a context bit, not a new fact axis.
+The enum values, row shape, stable word IDs and LSP wire names are unchanged.
+Representative category assertions and the overload/owner distinction live in
+[`docs/42`](../42_keyword_orthogonality.md#11-registry-primary-categories-are-not-fact-ownership).
+`tests/axis_keyword_adequacy_smoke.sh` compares actual category values and the
+actual representative Rocq mapping; its negative controls do not prove the
+semantic adequacy of every word.
+
+The fact family's closure status is owned by
+[`sot_owner_spine_registry.md`](sot_owner_spine_registry.md#language-word-registry-closed--2026-09-26),
+not duplicated here. A declared support bit, fixture occurrence, LSP exposure,
+or TextMate scope is not proof that a parser path has been substituted. The
+generated [`language_word_implementation_inventory.generated.md`](language_word_implementation_inventory.generated.md)
+keeps native selector, typed self-host selector, direct self-host string
+selector, fixture, and tooling evidence separate; its current census, rather
+than historical counts in prose, is the migration inventory. Correcting
+primary categories does not itself establish a new closure or driver claim.
 
 ## Derived consumers
 
@@ -83,6 +97,9 @@ The executable gates reject:
 - unsorted or duplicate spelling and reserved/contextual/soft collisions;
 - duplicate stable word IDs or token IDs, invalid class/token combinations,
   or missing reserved debug identity;
+- invalid primary categories, native/generator numeric identity drift,
+  representative documentation/model category drift, or invalid self-host
+  numeric category/name pairs;
 - native/self-host reserved-token drift and stale generated projections;
 - parser selectors missing from the registry or registry contextual/soft rows
   with no parser selector owner;

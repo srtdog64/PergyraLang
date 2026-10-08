@@ -15,6 +15,112 @@ ABI projection처럼 컴파일러가 소유할 수 있는 기계적 선택은 �
 부족하면 fail closed 해야 한다. 사용자의 선택이 필요한 실제 권한·비용·외부
 경계에서는 하나의 안전한 기본 경로와 하나의 명시적 escape hatch를 제공한다.
 
+## Compiler-Owned Ownership Cleanup
+
+이 핵심 기제의 이름은 **소유권 기반 자동 메모리 관리**
+(Ownership-Based Automatic Memory Management)다. 목표는 **GC 같은 편의성을
+소유권 증거로 제공하는 것**이다. 개발자는 값과 실제 자원 경계를 작성하고,
+컴파일러가 이동·대여·필요한 복사와 정리를 파생한다. 이 기제는 퍼질라의
+권한·자원·수명 모델을 받치는 일반 값의 기본 관리 방식이며, 별도의 추적 GC를
+붙이거나 사용자가 정리 증명을 작성하는 방식이 아니다.
+
+2026-10-08에 선택한 방향은 **GC가 아닌 소유권 기반 자동 정리**다. 값의 실제
+소유자, 이동, 대여, 반환과 자원 경계를 컴파일러가 추론하고, 남아 있는 정리
+의무를 정의된 종료 경로에 합성한다. 일반 코드를 작성하기 위해 사용자가
+`ArrayDrop`, 필드 추출·복원, 추가 `own`/`ref`로 증명 절차를 손으로 수행하는
+것을 기본 모델로 삼지 않는다. 실질적인 권한·이동·FFI·비용 경계는 계속
+명시적이며, 추론 실패를 숨기거나 공유 backing을 독점 소유로 간주하지 않는다.
+
+이는 현재 자동 해제가 구현됐다는 선언이 아니다. 소유권/대여 사실과 CFG
+정리 의무를 내부 IR에서 결합하는 방향이며, 추적 GC나 전역 참조 카운팅을
+기본 해법으로 도입하지 않는다. 필드 `inout`, readonly 임시값, 값 복사/공유
+의미와 cleanup 순서는 전체 소유 사슬을 정한 뒤 검증해야 한다. self-host
+컴파일러의 코딩 스타일 때문에 언어 계약을 확장하거나, 거부된 지점마다
+표기·복사를 추가해 해결했다고 기록하지 않는다. 설계 및 재검증 근거는
+[`소유권 자동 정리 아키텍처 재검토`](audits/ownership_dx_architecture_recheck_2026-10-08.md)에 있다.
+
+안전성 목표는 허용된 프로그램의 사용 후 해제·이중 해제 방지, 마지막 사용
+이후의 정확한 정리와 관찰 결과 보존이다. 올바른 GC도 메모리 안전할 수 있으므로
+"일반 GC보다 무조건 안전하다"고 선언하지 않는다. 성능 이점은 같은 값·복사·
+할당/회수 비용을 둔 명시적 비교 모델에서 생존 검사와 지연 보유량을 줄이는
+것으로 검증한다. 실제 실행 시간, 최대 메모리, 큰 집합체의 해제 지연과 컴파일
+비용은 C/LLVM 실행 증거가 필요하다. 이름과 방향의 계약은
+[27번 문서 §0](semantics/27_ownership_clean.md#0-adopted-name-and-comparison-boundary),
+비교 명제와 반례는 [알고리즘 문서 §12](207_compiler_owned_cleanup_algorithm.md#12-소유권-기반-자동-메모리-관리와-gc-비교)에 둔다.
+
+Slot·자동 소유권 정리·공유 그래프는 **하나의 저장소 소유자, 그 소유자에 묶인
+접근 권한, 하나의 정리 경로**로 연결한다. 연결은 공유·순환할 수 있지만 정리
+책임을 복제하지 않는다. Slot은 실제 수명·권한 경계에 쓰며 일반 값이나 링크마다
+요구하지 않는다. owner 종료 뒤 링크 접근은 거부하고, 살아 있는 owner 내부의
+고립된 노드 자동 회수와는 구분한다. 결합 요건은
+[28번 통합 계약](semantics/28_memory_boundary_composition.md)에 둔다.
+제한 모델의 결합 증명은 실제 그래프 지원·자동 해제·런타임 원자성의 완료가 아니다.
+
+## Real-Workload Admission And Authoring Experience
+
+실제 Pergyra Agents 작성 경험도 비전의 검증 입력이다. 기준은 Agents
+`fa136620f94b73bd1e330b108546d4efba892ae6`가 사용한 compiler pin
+`8c3f074aae035d1b6c069daf3cf00f14e89cba6f`이며, 과거 발견을 현재 컴파일러의
+결함으로 자동 승격하지 않는다. 현재 소스와 설치 경로를 다시 확인하여
+`FIXED`, `OPEN`, 설계 제약, 미검증을 구분한다. 오래된 어휘 감사보다 실제
+`HarnessWorld`, `CompleteTask`, `Delegate`, `PursueGoal`과 실행 증거가 우선한다.
+
+유지할 강점은 `subject/action/vessel/tobject`의 책임·상태·결과 구분,
+`intent`의 참여자·단계·typed terminal, `zone/authority/effect`의 명시성이다.
+기계적 선택을 줄이는 것은 이 의미 경계를 클래스나 함수로 평탄화하는 일이
+아니다. 좋은 어휘가 SRP를 자동 강제하지도 않는다. 구성체 선택은 작은 예제와
+실제 workload에서 목적·상태·값·자원·실패의 소유자가 드러나는지로 검증한다.
+
+다음 일곱 축을 실사용 입장에서 닫는다. 우선순위는 의미 동등성과
+소유권/FFI 안전 경계, 그다음 진단·API 발견성과 DX다.
+
+1. **경로 동등성:** native/self-host와 적용 C/LLVM 경로의 acceptance,
+   rejection, 결과, 안정적 diagnostic code/span은 같은 owner 사실을 소비해야
+   한다. enum 배열(PP-071), 긴 문자열 식의 parser overflow(PP-072), 임시
+   aggregate의 addressable-storage 요구, import/constructor/authority 차이는
+   동일 입력으로 재검증한다. 해결된 항목에는 실제 revision과 회귀 gate를
+   연결하고, 의도된 제한은 사용자에게 설명한다. 다른 경로로 조용히 재시도해
+   성공처럼 보이게 하지 않는다.
+2. **권한 집행:** caps의 선언, 정적 호출 전이 보증, runtime grant 집행,
+   외부 OS sandbox는 다른 주장이다. `with caps` 생략이 빈 권한 상한을 뜻하지
+   않는 현재 설계와 추론된 manifest를 구분한다. extern 경계(PP-024)의 실제
+   집행은 별도 증거가 필요하다. zone 이름이나 effect 선언만으로 파일 격리,
+   도구 권한, 비밀 보호가 완성됐다고 표현하지 않는다.
+3. **수명과 FFI:** aggregate/collection의 field extraction, borrow, move,
+   Clone, alias, return, retention, release는 같은 소유자와 마지막 소비자를
+   가리켜야 한다. FFI String/handle의 수명과 ABI/layout도 그 경계에서
+   검증한다. PP-067 같은 발견은 현재 ownership 사슬의 반증으로 연결하되,
+   좁은 성공 시험을 전체 메모리 안전성 증명으로 세지 않는다. C shim에 의미를
+   복제하거나 guessed fallback으로 증거를 대신하지 않는다.
+4. **발견 가능한 API:** canonical API owner로부터 문서, signature, 예제,
+   실패·소유권 설명이 일치해야 한다. 이미 존재하는 `SubIndexOf`와
+   `SubIndexOfWithLen`을 찾지 못해 복사 기반 우회를 만든 PP-066은 발견성
+   문제다. JSON/HTTP/process/env/console의 boilerplate는 실제 작성 비용으로
+   검토하되 stdlib/runtime/OS adapter를 compiler core에 무조건 합치지 않는다.
+   linker, SDK, packaging과 editor/LSP도 기존 소유 경계를 유지한다.
+5. **원인을 설명하는 진단:** 사용자 오용, 의도된 제약, 미지원 projection,
+   compiler 내부 결함을 구분하고 원인·위치·올바른 관용구를 안내한다. 익숙한
+   match/temporary/constructor 모양이 다른 의미를 가질 때 이를 숨기지 않는다.
+   새 문법·설정·API보다 기존 정식 문법과 owner를 먼저 확인한다.
+6. **작성 경험과 SRP:** 중요한 결정에는 한 owner를 둔다. Agents의 AgentRun
+   내부 SRP는 Agents 저장소 책임이며, compiler 비전에는 이를 지원하는 작성
+   경험과 진단 원칙으로 연결한다. 함수 길이, 구성체 수, 키워드 사용량만으로
+   언어 품질이나 self-host 대체 진행률을 판정하지 않는다.
+7. **반증 가능한 주장:** workload CI green은 그 입력의 scoped acceptance다.
+   다른 언어 대비 성능 우위나 전 범위 안전성 증명이 아니다. 같은 workload,
+   target, toolchain, 권한과 provenance에서 latency/throughput/memory/compile
+   time 및 tail regression을 분리한다. 합성/loopback과 실제 운영/API 검증은
+   섞지 않는다. 성능 작업은 다음 활성 폐쇄 단계가 관측 비용에 막혔을 때만
+   그 owner의 막힌 연산을 바꾸고, 같은 입력의 반증 gate를 다시 실행한다.
+
+각 축의 현상·revision·분류·우선순위·fact owner·last consumer·금지 fallback·
+gate/반증·완료 조건은
+[`실사용 비전 검증 카드`](agent_work_directives/pergyra_agents_vision_admission_2026-10-07.md)에
+연결한다. 이 절과 작업 카드는 semantic SoT가 아니며 문서 작성만으로
+registry를 `CLOSED` 처리하지 않는다. 이미 열린 MIR/collection executable rung의
+수정·검증·설치 순서를 보존하고, 확인된 다음 결함은 그 사슬의 합법적 경계에서
+착수한다. 외부 SDK/서비스나 다른 저장소 변경은 별도 작업 범위다.
+
 ## Machine-Neutral Compute Vision
 
 Pergyra should not make the von Neumann CPU the shape of the language. C and
@@ -251,7 +357,7 @@ gate로 검증되는 diagnostic·projection reason은 설명문이 아니라 판
 Pergyra의 가장 큰 특징은 **Intent를 최상위 설계 축으로 둔다**는 것이다.
 대부분의 언어는 함수/타입/클래스를 1차로 두지만, Pergyra는 "누가 무엇을 위해 행동하는가"를 먼저 정의한다.
 
-자세한 설계 철학과 좋은 Intent를 정의하는 방법은 [`docs/01_intent_first_design.md`](docs/01_intent_first_design.md)를 참조하라.
+자세한 설계 철학과 좋은 Intent를 정의하는 방법은 [`docs/01_intent_first_design.md`](01_intent_first_design.md)를 참조하라.
 
 ---
 

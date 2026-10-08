@@ -1,5 +1,7 @@
 # Source-admission parity and active-document consolidation
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: ACTIVE; primary-only implementation, no parallel edit lane.
 Current pre-publication HEAD/origin/main: `975b703a1069dfcddb235b8a221bd1d7f4555bdb`.
 This is a coordination card, not semantic authority or an execution log.

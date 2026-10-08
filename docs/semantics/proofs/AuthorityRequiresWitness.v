@@ -26,7 +26,7 @@
   table; one authority slot per zone.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Record Zone := {

@@ -9,7 +9,7 @@ object Order {
 func ExecuteRefund(o: Order) -> Int {
     // Explicit annotation: un-annotated `let stamp = Now();` trips a C-backend
     // MIR typing gap (registered as a separate defect; not this probe's target).
-    let stamp: Int = Now();
+    let stamp: Long = Now();
     return o.amount;
 }
 

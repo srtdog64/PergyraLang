@@ -122,12 +122,21 @@ speed and order-independent declarations as first-class compiler constraints.
 | Destructuring | tuple/object destructure | `let (a, b) = ...;` | `partial` | Keep CFG/dataflow-owned. |
 | Reference / borrow | `&T`, `ref T`, pointer/ref | `ref` over supported boundaries; slot handles | `native-different` | Pergyra is not a Rust lifetime language; `ref Slot<subject>` boundary parity is gated by `slot_subject_boundary_ref`. |
 | Move/ownership transfer | move-only value, `unique_ptr` | `own`, `MoveToken<T>`, anchored slot boundaries | `partial` | Stable only for anchored subset; `own SecureSlot<subject>` and forwarding parity are gated by `secure_slot_subject_boundary_own` and `secure_slot_subject_boundary_forward_own`. |
-| RAII/drop/finally | Rust `Drop`, C# `using`, `finally` | `defer`, MIR cleanup, pin cleanup | `partial` | Cleanup source of truth must be MIR facts; straight-line scope exit is C/LLVM parity-gated by `defer_scope_exit`. |
+| RAII/drop/finally | Rust `Drop`, C# `using`, `finally` | `defer`, MIR cleanup, pin cleanup; compiler-owned ownership cleanup target | `partial` | Existing defer scope exit is gated by `defer_scope_exit`. General automatic aggregate cleanup is OPEN; the selected direction is inferred ownership plus MIR exit synthesis, not tracing GC or user lifetime annotations. |
 | Managed object reference | GC reference / handle | `Slot<T>` / registry / handle | `native-different` | Runtime-validated handle plus static boundary verifier. Direct claim/write/read/release parity is gated by `slot_basic`; subject-cell storage by `slot_subject_cell` / `secure_slot_subject_cell` / `secure_slot_subject_bot`; slot sugar remains gated by `slot_sugar`. |
 | Raw pointer escape | `unsafe`, `*T`, `void*` | explicit unsafe/raw escape policy | `out-of-beta` | Systems baseline item, not default surface. |
 | Lock/mutex | `lock`, `Mutex<T>` | Slot pin/view/resource boundaries | `native-different` | Do not import lock syntax as core by default. |
 
 ## 6. Functions, Methods, And Behavior
+
+Ownership/DX recheck (2026-10-08): value-result inout currently accepts named
+variables, not field paths; readonly aggregate call results still require a
+named boundary in the tested installed-native routes. These are implementation
+gaps, not a recommendation to add own-return-rebind or manual deep-drop rituals.
+Typed field transport, temporary lifetimes and ownership cleanup must be
+compiler-derived under the admitted storage/effect/exit contract. See
+[`the reviewed algorithm and current evidence`](audits/ownership_dx_architecture_recheck_2026-10-08.md).
+The note does not mark any future syntax or general cleanup feature stable.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |

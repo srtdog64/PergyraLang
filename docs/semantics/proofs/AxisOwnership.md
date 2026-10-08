@@ -50,29 +50,43 @@ composition law, and they can be proved rather than asserted.
 | 7 | `axis_updates_commute` | Updates by distinct axes commute (verifier resolution is order-independent). |
 | 7 | `axis_update_idempotent` | Re-running the same axis update over an already-updated state is stable; verifier reruns do not drift. |
 | 9 | `reading_updates_commute` | Even **state-dependent** resolution commutes, provided each axis reads only the facts it owns (`ALocal`). |
-| 8 | `keyword_axis_sound` | The docs/42 SS1 keyword table is consistent with `Owns` (surface adequacy, inside Coq). |
+| 8 | `keyword_axis_sound` | Eight representative semantic keyword uses are consistent with `Owns` inside Rocq, not all 147 spelling-level primary categories. |
 | 10 | `append_is_stepby` | A write attributed to the axis that **owns** the fact is exactly a `StepBy` step -- the attribution discipline *forces* single-writer. |
 | 10 | `append_preserves_foreign` | Hence a well-attributed append preserves other axes' facts (runtime no-silent-override). |
-| 11 | `projection_writes_nothing` | A projection (`object`/`tobject` view) writes no fact -- a view never owns one. |
+| 11 | `projection_writes_nothing` | Interface fixation: `projection_step` is defined as identity. This is not a derived implementation-purity proof. |
 
 All are checked with `Qed` (no `Admitted`).
+
+ReadingConfluence imports this ownership table. Its original shared-state
+reading theorem does not detect duplicate owners: every visitor read the same
+`st f`. The producer-specific path now derives order independence from the
+admitted unique owner, and `duplicate_producers_can_disagree` falsifies that
+claim for two competing producers with different values. Neither result proves
+the live verifier supplies the table or obeys the read discipline.
 
 ## 4. Binding the model to the compiler
 
 A Coq theorem constrains the *model*. It cannot, alone, know whether the model
 still matches the *real compiler*. The differential test
-`axis_keyword_adequacy_smoke.sh` **narrows** that gap -- it is grep-level
-source consistency, not a verified extraction, so it catches the *named* drifts
+`axis_keyword_adequacy_smoke.sh` **narrows** that gap -- it is source
+consistency, not a verified extraction, so it catches the *named* drifts
 below (renamed symbols, mis-attributed facts), not arbitrary divergence. Within
 that scope, drift in any pinned layer fails the gate.
 
 | Check | Binds | Catches |
 | --- | --- | --- |
-| A | docs/42 SS0 keywords subset of compiler-recognized keywords (lexer reserved + parser contextual) | a designed keyword the compiler does not implement |
-| B | Coq `keyword_axis` = docs/42 axis | the model and the design disagreeing |
+| A | All 147 registry category schemas, native enum/generator IDs, representative docs/42 category assertions and docs/151 surface-witness scope | actual value drift despite unchanged spelling; invalid category identities; restored spelling-axis injectivity claim |
+| B | Actual eight-arm Rocq `keyword_axis` = docs/42 = registry for those representative uses | changed model values that an unchanged literal mirror would miss |
 | C | intent clause -> owning semantic checker (`who`->participants, `requires`->ability, `authorized`->authority, `causes`->effect, `within`->zone) | a clause silently re-routed to a different checker |
 | D | AIR runtime evidence kind -> Coq fact/axis, plus the provider+subject guard | anonymous facts (guard dropped) or an evidence kind mis-attributed |
 | E | AIR append entry points (`air_append_evidence_node`/`_ex`) require `provider_name`+`subject_name` | the `Append` model's `ap_axis` losing its real counterpart -- an anonymous append becoming possible at the API level |
+
+Checks A/B reuse the canonical registry reader and exercise mutated scratch
+inputs. There is no second 147-word assignment table. Primary categories are
+navigation metadata, whereas `Owns` describes semantic facts of selected uses.
+GENERAL is not a fifth `Axis` in this model; overloaded `all/any/with/where`
+and module-context words do not acquire a new fact owner from a metadata label.
+This gate cannot establish the semantic adequacy of all 147 classifications.
 
 Check D reaches the **runtime** write-attribution: the AIR evidence graph is the
 compiler's runtime fact store, and `air_evidence_node.c` refuses to append a
@@ -107,10 +121,10 @@ make formal-semantics-test-smoke
 
 `formal-semantics-test-smoke` is invoked by CI on linux and macos, so the
 proofs, the binding checks (A-E), and the slot adequacy suite are gated
-automatically. Negative cases are exercised manually (a dropped guard, a
-mis-axied fact, a re-routed clause each make the gate fail), so the gate is
-known to catch the drifts it names. It does not certify anything beyond them
-(see §7).
+automatically. A/B run 18 bounded mutation/missing-input controls automatically;
+the clause, append and evidence checks remain source-consistency guards, not
+proofs of arbitrary compiler changes. Registration in CI is not evidence of a
+fresh remote run, and the gate does not certify beyond its named scope (see §7).
 
 ## 6. Remaining
 

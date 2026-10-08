@@ -95,8 +95,9 @@ region_retention_body_is_safe(const ASTNode *node,
                         argument, parameter_name)
                     || !ast_call_semantic_callee_builtin_kind(
                         node, &builtin_kind)
-                    || !semantic_region_retention_summary_for_builtin(
-                        builtin_kind, i, &kind)
+                    || !(builtin_kind != (uint32_t)BUILTIN_NOT_BUILTIN
+                        ? semantic_region_retention_summary_for_builtin(builtin_kind, i, &kind)
+                        : semantic_region_retention_summary_for_stdlib(node, i, &kind))
                     || kind != PGY_REGION_RETENTION_BORROWED_FOR_CALL) {
                     return false;
                 }

@@ -1,0 +1,12 @@
+func BorrowedLoop(flag: Bool, source: String) -> String
+{
+    while flag { return source; }
+    return Concat("owned-", "fallthrough");
+}
+
+func Main() -> Void
+{
+    let fields: Array<String> = [];
+    ArrayPush(fields, BorrowedLoop(true, "borrowed"));
+    ArrayDropOwnedStrings(fields);
+}

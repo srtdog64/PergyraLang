@@ -367,18 +367,13 @@ pgy_print(const char *msg)
     if (fflush(stdout) == EOF)
         abort();
 }
-static inline int32_t
+#include "pgy_runtime_host_clock.h"
+
+static inline int64_t
 pgy_now_ms(void)
 {
     pgy_cap_require_export(PGY_CAP_CLOCK, "now-ms");
-#ifdef _WIN32
-    return (int32_t)GetTickCount64();
-#else
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-        return 0;
-    return (int32_t)((ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL));
-#endif
+    return pgy_host_monotonic_time(1000);
 }
 static inline void
 pgy_sleep_ms(int32_t ms)

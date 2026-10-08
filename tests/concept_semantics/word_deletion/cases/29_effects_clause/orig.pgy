@@ -1,7 +1,7 @@
-func Stamp() -> Int with caps clock with effects nondeterministic {
+func Stamp() -> Long with caps clock with effects nondeterministic {
     return Now();
 }
 func Main() -> Void {
-    let s: Int = Stamp();
+    let s: Long = Stamp();
     Log(ToString(s >= 0));
 }

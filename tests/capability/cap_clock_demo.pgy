@@ -4,5 +4,5 @@
 // gate-wiring bugs the RANDOM test cannot. With the default grant it runs; under
 // a host PGY_CAP_GRANT that omits "clock" the runtime gate fail-closes
 // (class=capability-denied), identically on C and LLVM.
-let t: Int = Now();
+let t: Long = Now();
 Log("clock ok");

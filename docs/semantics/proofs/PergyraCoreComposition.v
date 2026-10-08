@@ -19,8 +19,8 @@
   imported step relation, not restatements.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Require Import PergyraCore.
 Import ListNotations.
 

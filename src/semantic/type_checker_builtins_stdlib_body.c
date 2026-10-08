@@ -225,7 +225,7 @@ type_check_resolved_stdlib_call(ASTNode *expr, const char *name,
             return TYPE_UNKNOWN;
         semantic_record_builtin_effect(ctx, expr, name);
         semantic_record_capability(ctx, capability_for_builtin("Now"));
-        return TYPE_INT;
+        return TYPE_LONG;
     case BUILTIN_SLEEP:
         return type_check_builtin_sleep(expr, ctx);
     case BUILTIN_EXIT:

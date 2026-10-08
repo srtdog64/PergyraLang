@@ -65,11 +65,11 @@
   adequacy remain explicit refinement obligations.
 *)
 
-Require Import Coq.Init.Nat.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Bool.Bool.
-Require Import Coq.Lists.List.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Init.Nat.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 Section MachineLayerCore.
@@ -448,6 +448,12 @@ Definition contact_mode_allowed (op : ContactOp) (mode : AccessMode) : Prop :=
   | _, _ => False
   end.
 
+(* Each modeled load/store/RMW contacts one base-addressed cell. An empty
+   range may be valid evidence at a grant endpoint, but it authorizes no cell.
+   A fence has no addressed access and therefore needs no positive extent. *)
+Definition contact_extent_allowed (op : ContactOp) (r : Region) : Prop :=
+  match op with ContactFence => True | _ => 0 < r_size r end.
+
 Inductive LeaseState : Type :=
   | LeaseLive
   | LeaseRevoked.
@@ -548,6 +554,7 @@ Inductive contact_step (d : MachineDeclaration) :
     ContactOp -> ContactConfig -> Region -> ContactConfig -> Prop :=
 | ContactStep : forall op c r,
     region_valid (md_grants d) r ->
+    contact_extent_allowed op r ->
     region_hardware_adequate d r ->
     contact_has_cap c (r_prov r) ->
     contact_lease_live c (r_prov r) ->
@@ -557,6 +564,7 @@ Inductive contact_step (d : MachineDeclaration) :
 Theorem contact_step_constructible :
   forall d op c r,
     region_valid (md_grants d) r ->
+    contact_extent_allowed op r ->
     region_hardware_adequate d r ->
     contact_has_cap c (r_prov r) ->
     contact_lease_live c (r_prov r) ->
@@ -614,6 +622,7 @@ Theorem sample_plain_read_contact :
 Proof.
   apply ContactStep.
   - apply grant_yields_valid_region. simpl. auto.
+  - simpl. lia.
   - apply valid_region_has_declared_hardware_adequacy.
     apply grant_yields_valid_region. simpl. auto.
   - simpl. left. reflexivity.
@@ -625,6 +634,47 @@ Theorem contact_step_requires_valid_region :
   forall d op c r c',
     contact_step d op c r c' -> region_valid (md_grants d) r.
 Proof. intros d op c r c' H. inversion H; assumption. Qed.
+
+Theorem contact_step_requires_extent : forall d op c r c',
+  contact_step d op c r c' -> contact_extent_allowed op r.
+Proof. intros d op c r c' H. inversion H; assumption. Qed.
+
+Theorem zero_extent_contact_fail_closed : forall d op c r c',
+  op <> ContactFence -> r_size r = 0 -> ~ contact_step d op c r c'.
+Proof.
+  intros d op c r c' Haccess Hzero Hstep.
+  pose proof (contact_step_requires_extent d op c r c' Hstep) as Hextent.
+  destruct op; simpl in Hextent; try contradiction; lia.
+Qed.
+
+Theorem contacted_base_is_in_grant : forall d op c r c',
+  op <> ContactFence -> contact_step d op c r c' ->
+  exists g, In g (md_grants d) /\ g_id g = r_prov r /\
+            g_base g <= r_base r /\ r_base r < g_base g + g_size g.
+Proof.
+  intros d op c r c' Haccess Hstep.
+  destruct (contact_step_requires_valid_region d op c r c' Hstep)
+    as [g [Hin [Hid [_ [Hlo Hhi]]]]].
+  pose proof (contact_step_requires_extent d op c r c' Hstep) as Hextent.
+  assert (0 < r_size r) as Hpositive.
+  { destruct op; simpl in Hextent; try exact Hextent; contradiction. }
+  exists g. repeat split; try assumption; lia.
+Qed.
+
+Theorem contact_write_preserves_outside_grant : forall d c r c' value g a,
+  contact_step d (ContactWrite value) c r c' ->
+  In g (md_grants d) -> g_id g = r_prov r ->
+  (a < g_base g \/ g_base g + g_size g <= a) ->
+  cc_memory c' a = cc_memory c a.
+Proof.
+  intros d c r c' value g a Hstep Hg Hid Ha.
+  destruct (contacted_base_is_in_grant d (ContactWrite value) c r c'
+              ltac:(discriminate) Hstep) as [actual [Hactual [Hactualid [Hlo Hhi]]]].
+  assert (actual = g).
+  { eapply declared_grant_id_unique; eauto. congruence. }
+  subst actual. inversion Hstep; subst. simpl. unfold memory_write.
+  destruct (Nat.eqb a (r_base r)) eqn:E; [apply Nat.eqb_eq in E; lia | reflexivity].
+Qed.
 
 Theorem contact_step_requires_hardware_adequacy :
   forall d op c r c',

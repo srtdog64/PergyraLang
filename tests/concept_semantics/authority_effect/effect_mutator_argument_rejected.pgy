@@ -1,4 +1,4 @@
 func Main() -> Void with effects local {
-    let values: Array<Int> = [];
+    let values: Array<Long> = [];
     ArrayPush(values, Now());
 }

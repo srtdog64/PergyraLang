@@ -157,22 +157,16 @@ ability Container<T> {
 
 이 3조건 중 1개만 만족해서는 HKT 를 열지 않는다 — "구현 가능함" 과 "언어에 맞음" 은 다르다.
 
-#### D. AIR is the minimal verifier for intent composition
+#### D. AIR carries the chosen intent-verification interface
 
-The HKT/Functor decision is not only an ergonomics or implementation-cost
-decision. For Pergyra's core thesis, Functor/HKT is the wrong minimum. A
-Functor law can describe shape-preserving composition over a type constructor;
-it cannot witness which authority discharged a step, which effect boundary was
-crossed, which zone/world boundary supplied provenance, or which coordination
-path is deterministic.
-
-AIR is the minimal verifier for intent/effect/authority/coordination
-composition. The proof-pack model in
+The HKT/Functor decision is an ergonomics and product decision. AIR's chosen
+interface records authority, effect, boundary, coordination and provenance
+facts, rather than merely shape-preserving type-constructor laws. The model in
 [`docs/semantics/proofs/IRMinimality.v`](semantics/proofs/IRMinimality.v)
 records this as `air_is_minimal_witness_set` and
-`functor_hkt_not_adequate`. That proof does not make AIR a codegen IR and does
-not reopen HKT as a hidden core feature; it says the opposite: the compiler
-evidence graph is the smaller correct proof surface for this language axis.
+`functor_hkt_not_adequate`: an interface vocabulary, not a proof of the smallest verifier
+or the limits of every HKT/Functor encoding. These definition-level statements
+do not establish compiler producer adequacy or reopen HKT as a hidden feature.
 
 ### 1.3 제네릭 슬롯 고급 기능
 

@@ -186,9 +186,9 @@
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let t0: Int = Now();\n"
+            "    let t0: Long = Now();\n"
             "    Sleep(1);\n"
-            "    let t1: Int = Now();\n"
+            "    let t1: Long = Now();\n"
             "    Log(ToString(t1 - t0));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

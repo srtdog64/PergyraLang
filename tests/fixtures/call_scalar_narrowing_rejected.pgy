@@ -1,0 +1,5 @@
+func EchoInt(value: Int) -> Int { return value; }
+func Main() -> Void {
+    let value: Long = 2147483648L;
+    Log(EchoInt(value));
+}

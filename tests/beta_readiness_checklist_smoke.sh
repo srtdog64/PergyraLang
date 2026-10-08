@@ -547,11 +547,25 @@ rc_ctrl_int_alive_at_8
 EOF
 
 require_terms ".github/workflows/platform_full.yml" <<'EOF'
-sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+formal-proofs-rocq9:
+uses: ./.github/workflows/formal_proofs.yml
+needs: [platform-full-linux-toolchain, formal-proofs-rocq9]
+sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 mingw-w64-ucrt-x86_64-python
 platform-full-macos-c-only
 make ci-macos
+EOF
+
+# Compiler lanes consume the same-run proof job; apt Coq is not a second
+# acceptable proof toolchain or an implicit version fallback.
+forbid_text ".github/workflows/platform_full.yml" \
+    'sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq'
+require_terms ".github/workflows/formal_proofs.yml" <<'EOF'
+bash scripts/install_rocq_toolchain.sh
+bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check.sh
+bash scripts/run_rocq_toolchain.sh bash tests/rocq_toolchain_selftest.sh
+bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check_selftest.sh
 EOF
 
 require_terms "Makefile" <<'EOF'

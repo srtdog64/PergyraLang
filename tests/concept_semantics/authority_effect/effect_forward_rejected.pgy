@@ -1,2 +1,2 @@
 func Main() -> Void with effects local { Log(Stamp()); }
-func Stamp() -> Int with caps clock { return Now(); }
+func Stamp() -> Long with caps clock { return Now(); }

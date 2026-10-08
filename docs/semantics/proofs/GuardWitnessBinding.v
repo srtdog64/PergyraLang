@@ -25,12 +25,10 @@
                                   double-release as always-on backstops).
                                   This is the defense-in-depth decision
                                   ("slot checks always-on"), mechanized.
-    3. witness_disjoint        -- a panic class witnesses EXACTLY ONE op
-                                  family: distinct failures cannot collapse
-                                  into the same class. This is the
-                                  "logs correspond 1:1 with code paths"
-                                  discipline lifted to panic classes
-                                  (diagnosability of the fail-close).
+    3. witness_overlap_is_overflow -- arithmetic-overflow is deliberately
+                                  shared by division and add/mul. Panic
+                                  class alone does NOT identify an op;
+                                  operation/source context must be retained.
     4. unwitnessed_cannot_be_bad -- the only unwitnessed op class is one
                                   with no bad instances at all (OpPure).
 
@@ -51,7 +49,7 @@
   silent, it does not close it.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Section GuardWitnessBinding.
@@ -104,7 +102,7 @@ Inductive PanicClass : Type :=
    OpSlotRelease is Proven yet keeps its always-on backstops. *)
 Definition witnesses (o : OpClass) : list PanicClass :=
   match o with
-  | OpDiv         => [PcDivideByZero]
+  | OpDiv         => [PcDivideByZero; PcArithmeticOverflow]
   | OpIndex       => [PcOutOfBounds]
   | OpAddMul      => [PcArithmeticOverflow]
   | OpSecureToken => [PcInvalidSecureToken]
@@ -135,20 +133,28 @@ Proof.
 Qed.
 
 (* ================================================================ *)
-(* 3. Diagnosability: a panic class witnesses exactly one op family. *)
+(* 3. Shared panic classes are explicit, not a false 1:1 assertion.  *)
 (* ================================================================ *)
 
-Theorem witness_disjoint :
+Theorem witness_overlap_is_overflow :
   forall o1 o2 pc,
-    In pc (witnesses o1) -> In pc (witnesses o2) -> o1 = o2.
+    In pc (witnesses o1) -> In pc (witnesses o2) ->
+    o1 = o2 \/ pc = PcArithmeticOverflow.
 Proof.
   intros o1 o2 pc H1 H2.
-  destruct o1; destruct o2; try reflexivity;
+  destruct o1; destruct o2; try (left; reflexivity);
     destruct pc; simpl in H1, H2;
-    repeat (destruct H1 as [H1 | H1]; try discriminate H1);
-    repeat (destruct H2 as [H2 | H2]; try discriminate H2);
-    try contradiction.
+    intuition discriminate.
 Qed.
+
+Example division_overflow_has_runtime_witness :
+  In PcArithmeticOverflow (witnesses OpDiv).
+Proof. simpl; auto. Qed.
+
+Example panic_class_does_not_identify_operation :
+  In PcArithmeticOverflow (witnesses OpDiv) /\
+  In PcArithmeticOverflow (witnesses OpAddMul) /\ OpDiv <> OpAddMul.
+Proof. simpl; intuition discriminate. Qed.
 
 (* ================================================================ *)
 (* 4. The only unwitnessed op class has no bad instances at all.     *)

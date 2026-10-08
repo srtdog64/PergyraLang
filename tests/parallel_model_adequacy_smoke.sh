@@ -12,8 +12,8 @@
 #     theorem is a statement about exactly these two expressions;
 #   - help-first await (pgy_await consults the queue before parking) -- the
 #     hypothesis under which ParallelSchedulingCore proves progress;
-#   - the compensation spare -- the mechanism that covers the cyclic-wait case
-#     the same file proves help-first cannot;
+#   - the capacity-bounded compensation spare -- queued-work starvation only;
+#     dependency cycles with an empty queue remain a modeled deadlock;
 #   - the reduce loop bound, which must be the FULL index count and not the
 #     chunk count -- an index-order fold is what makes the join worker-count
 #     invariant, and folding per chunk instead would need op associative.
@@ -55,6 +55,11 @@ for term in \
     "Lemma help_first_never_parks_with_work" \
     "Lemma help_first_preserves_queue_runner" \
     "Lemma help_first_preserves_desc_stacks" \
+    "Theorem help_first_progress_from_run" \
+    "Theorem run_preserves_await_targets" \
+    "Theorem run_preserves_worker_bound" \
+    "Theorem compensation_at_capacity_is_stuck" \
+    "Theorem cyclic_await_deadlocks_under_compensation" \
     "Example help_first_progress_is_not_vacuous"; do
     require_text "$SCHED" "$term" "the scheduling scorecard cites it"
 done
@@ -88,6 +93,13 @@ require_text "src/runtime/pgy_parallel_task_ops.h" "pthread_cond_wait" \
     "the model's StPark rule is this fallback; without it the model is wrong"
 require_text "src/runtime/pgy_parallel_pool_lifecycle.h" "pgy_pool_spawn_spare_locked" \
     "PolCompensate models this spare worker"
+require_text "src/runtime/pgy_parallel_pool_lifecycle.h" "#define PGY_POOL_SPARE_FACTOR 4" \
+    "the model's total-worker cap is the default base plus four-times spares"
+require_text "src/runtime/pgy_parallel_pool_lifecycle.h" \
+    "pool->max_spares = worker_count * PGY_POOL_SPARE_FACTOR;" \
+    "spare admission must remain bounded by the fixed base worker count"
+require_text "$SCHED" "task_present (mkCfg q (pre ++ WRun (h :: rest) :: post) dn) tg" \
+    "a wait on a nonexistent task must not be admitted"
 
 # The fold must run to the index count, never the chunk count: that is exactly
 # the difference between join_chunk_count_invariant and chunk_count_matters.

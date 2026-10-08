@@ -17,8 +17,8 @@
   AxisOwnership.md section 7.1.
 *)
 
-Require Import Coq.Init.Nat.
-Require Import Coq.Lists.List.
+Require Import Stdlib.Init.Nat.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 (* ========================================== *)

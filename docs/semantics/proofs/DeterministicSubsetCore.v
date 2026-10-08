@@ -51,10 +51,10 @@
   assumed: every equality between states is stated pointwise.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Bool.Bool.
-Require Import Coq.Sorting.Permutation.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.Sorting.Permutation.
 Import ListNotations.
 
 Definition Loc    := nat.

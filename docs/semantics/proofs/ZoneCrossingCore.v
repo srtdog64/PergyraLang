@@ -30,7 +30,7 @@
   named in docs/19; this file is one fail-closed corner of it.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Section ZoneCrossingCore.

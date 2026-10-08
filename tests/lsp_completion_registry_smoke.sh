@@ -207,7 +207,7 @@ native_wire = b"".join(
     )
 )
 native = subprocess.run(
-    [native_bin],
+    [native_bin, "--native-pipeline"],
     input=native_wire,
     stdout=subprocess.PIPE,
     stderr=subprocess.PIPE,

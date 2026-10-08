@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-09-28
+Last updated: 2026-10-08
 
 Anti-hype update: 2026-04-29
 
@@ -72,6 +72,12 @@ not own status, decisions, or completion claims.
 | Document | Purpose |
 |---|---|
 | [`98_beta_closure_readiness_report.md`](98_beta_closure_readiness_report.md) | Historical readiness snapshot; do not cite as the current beta verdict |
+
+## Core Compiler Algorithms
+
+| Document | Purpose |
+|---|---|
+| [`207_compiler_owned_cleanup_algorithm.md`](207_compiler_owned_cleanup_algorithm.md) | Compiler-owned ownership cleanup: decision procedure, branch/loop/call diagrams, checked formal scope, implementation gaps, and recent-research review; explanatory companion, not a new semantic owner |
 
 ## Core Semantics
 

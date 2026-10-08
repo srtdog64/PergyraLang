@@ -51,6 +51,8 @@ for term in \
     "Theorem live_trace_to_closed_scope_has_retirement" \
     "Theorem alternative_path_disagreement_fails_closed" \
     "Theorem parallel_retirement_contributes" \
+    "Theorem parallel_double_retirement_fails_closed" \
+    "Example already_retired_parallel_reads_are_not_new_consumptions" \
     "Example alternative_and_parallel_merges_are_distinct"; do
     require_text "$LIFECYCLE_PROOF" "$term" \
         "the structured-lifecycle proof boundary cites it"
@@ -119,6 +121,14 @@ require_text "$FLOW_MERGE" \
 require_text "$FLOW_MERGE" \
     "return PGY_FUTURE_LIFECYCLE_DIVERGED;" \
     "alternative lifecycle disagreement must fail closed"
+require_text "src/semantic/type_checker_flow_resources.c" \
+    "task_unavailable_delta = task_unavailable && !base_unavailable;" \
+    "parallel consumption is a delta from the entry snapshot, not two retired labels"
+require_text "src/semantic/type_checker_flow_parallel.c" \
+    "resource_snapshot_has_parallel_conflict(&base, &joined," \
+    "simultaneous double consumption must be rejected before state projection"
+require_text "$CONTEXT_PROOF" "INTERFACE CONTRACT" \
+    "identity-only context relations must not be cited as runtime simulation"
 
 # ---- context model still describes task capture and execution ---------------
 for assignment in \

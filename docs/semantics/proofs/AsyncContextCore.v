@@ -1,18 +1,20 @@
 (*
   Pergyra async runtime-context carriage core.
 
-  This bounded model corresponds to pgy_runtime_context_capture_task(), the
+  This bounded INTERFACE CONTRACT specifies pgy_runtime_context_capture_task(),
   six execution lanes, coroutine yield/await rebinding, and surrounding TLS
-  restoration.  Runtime source remains the authority; this file proves the
-  consequences of exact parent capture and never models executor-default reads
-  as a legal task transition.
+  restoration. Capture is a record copy and the relations below deliberately
+  admit equality only. Their preservation theorems therefore restate that
+  contract; they do not derive it from task execution, TLS mutation, lane
+  switching or runtime control flow. Runtime source remains the authority and
+  source-bound execution tests must establish this missing refinement.
 
   Capability masks are kept opaque as natural numbers.  Exact preservation of
   both masks is stronger than any bit-level no-widening statement and avoids
   inventing a second capability algebra here.
 *)
 
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Arith.PeanoNat.
 
 Section AsyncContextCore.
 

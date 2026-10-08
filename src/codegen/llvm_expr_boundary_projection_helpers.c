@@ -14,6 +14,7 @@
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_signature.h"
+#include "llvm_mir_store_coercion.h"
 
 static LLVMValueRef
 llvm_boundary_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
@@ -352,6 +353,16 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                 ctx->expected_type_name = param_type_name;
             LLVMValueRef value = llvm_emit_expression(arg_node, ctx);
             ctx->expected_type_name = saved_expected_type_name;
+            /* MIR's admitted parameter type owns numeric widening, including
+             * nonliteral Int values. Pointer/resource carriage is unchanged. */
+            if (value != NULL && !pointer_self) {
+                value = llvm_mir_coerce_value_for_store(ctx, value, expected_ty);
+                if (expected_ty == NULL || LLVMTypeOf(value) != expected_ty) {
+                    ctx->current_ret_type = saved_ret;
+                    return llvm_boundary_args_error(ctx, arg_node,
+                        "LLVM boundary value argument does not match its admitted ABI");
+                }
+            }
             if (value != NULL && pointer_self) {
                 if (LLVMTypeOf(value) == expected_ty) {
                     LLVMValueRef temporary = llvm_create_entry_alloca(

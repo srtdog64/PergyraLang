@@ -1,12 +1,18 @@
 (*
   Pergyra Intent Obligation Unit Correction
 
-  Status: proof sketch for the intent-axis unit correction. This file does not
+  Status: checked taxonomy and finite emission-admission interface. This file does not
   prove every intent implementation rule. It fixes the formal claim boundary:
   source-level intent is a binder that elaborates into fact families on the
   verification plane. The non-library-expressibility claim belongs to the
   verifier fact families, not to the word "intent" as one thick atom.
+  ClaimClass labels are architectural declarations, NOT proofs against every
+  library encoding. No compiler emitter is refined by this interface.
 *)
+
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Bool.Bool.
+Import ListNotations.
 
 Inductive IntentBucket : Type :=
   | BucketBinder
@@ -60,20 +66,35 @@ Definition subfact_bucket (f : IntentSubfact) : IntentBucket :=
   | IntentTraceFact => BucketTrace
   end.
 
-Definition binder_emits (_ : VerifierFamily) : Prop := True.
+Definition family_eqb (a b : VerifierFamily) : bool :=
+  match a, b with
+  | VFParticipant, VFParticipant | VFCoordination, VFCoordination
+  | VFBoundary, VFBoundary | VFAuthority, VFAuthority
+  | VFEffect, VFEffect | VFCompensation, VFCompensation => true
+  | _, _ => false
+  end.
 
-Definition all_verifier_families_emitted : Prop :=
-  binder_emits VFParticipant /\
-  binder_emits VFCoordination /\
-  binder_emits VFBoundary /\
-  binder_emits VFAuthority /\
-  binder_emits VFEffect /\
-  binder_emits VFCompensation.
+Lemma family_eqb_spec : forall a b, family_eqb a b = true <-> a = b.
+Proof. destruct a, b; simpl; split; intros H; try reflexivity; discriminate. Qed.
+
+Definition required_verifier_families : list VerifierFamily :=
+  [VFParticipant; VFCoordination; VFBoundary; VFAuthority; VFEffect; VFCompensation].
+Definition binder_emits (emitted : list VerifierFamily) (f : VerifierFamily) : Prop :=
+  In f emitted.
+Definition all_verifier_families_emitted (emitted : list VerifierFamily) : Prop :=
+  forall f, In f required_verifier_families -> binder_emits emitted f.
+Definition emitted_allb (emitted : list VerifierFamily) : bool :=
+  forallb (fun f => existsb (family_eqb f) emitted) required_verifier_families.
 
 Theorem intent_binder_emits_all_verifier_families :
-  all_verifier_families_emitted.
+  forall emitted, emitted_allb emitted = true <-> all_verifier_families_emitted emitted.
 Proof.
-  repeat split; exact I.
+  intros emitted. unfold emitted_allb, all_verifier_families_emitted, binder_emits.
+  rewrite forallb_forall. split; intros H f HF.
+  - specialize (H f HF). apply existsb_exists in H.
+    destruct H as [f' [HI HE]]. apply family_eqb_spec in HE. subst f'. exact HI.
+  - apply existsb_exists. exists f. split; [apply H; exact HF|].
+    apply family_eqb_spec. reflexivity.
 Qed.
 
 Theorem verifier_families_are_nonexpressibility_units :
@@ -106,13 +127,27 @@ Proof.
   simpl; split; discriminate.
 Qed.
 
-Theorem intent_binder_inherits_verifier_family_strength :
-  all_verifier_families_emitted ->
-  bucket_claim BucketBinder = ClaimNonLibraryExpressible.
+Definition binder_strength (emitted : list VerifierFamily) : option ClaimClass :=
+  if emitted_allb emitted then Some (bucket_claim BucketBinder) else None.
+
+Theorem intent_binder_inherits_verifier_family_strength : forall emitted,
+  all_verifier_families_emitted emitted ->
+  binder_strength emitted = Some ClaimNonLibraryExpressible.
 Proof.
-  intros _.
-  reflexivity.
+  intros emitted H. apply intent_binder_emits_all_verifier_families in H.
+  unfold binder_strength. rewrite H. reflexivity.
 Qed.
+
+Example complete_emission_is_admitted :
+  binder_strength required_verifier_families = Some ClaimNonLibraryExpressible.
+Proof. reflexivity. Qed.
+
+Example compensation_missing_is_refused :
+  binder_strength [VFParticipant; VFCoordination; VFBoundary; VFAuthority; VFEffect] = None.
+Proof. reflexivity. Qed.
+
+Example absent_emission_is_refused : binder_strength [] = None.
+Proof. reflexivity. Qed.
 
 Definition atomic_intent_fact_permitted : Prop := False.
 

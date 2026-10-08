@@ -1,5 +1,7 @@
 # Actual collection lifetime execution and field discharge
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: AUDIT COMPLETE; bounded String caller source prerequisite VERIFIED.
 Actual aggregate Release and its lifetime/MIR contract remain BLOCKED.
 Base: e057e3ffc28eac9620576293436c66e2a2fa571d.

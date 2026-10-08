@@ -53,8 +53,8 @@
   classes carry the heavyweight static treatment).
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Bool.Bool.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Bool.Bool.
 Import ListNotations.
 
 (* ================================================================ *)

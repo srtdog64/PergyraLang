@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CC_BIN="${CC:-${PGY_CC:-}}"
 OUT_DIR="${PGY_TEST_HARNESS_BUILD_DIR:-$ROOT_DIR/.tmp/source-test-harness-compile}"
+read -r -a PLATFORM_CFLAG_ARGS <<< "${PLATFORM_CFLAGS:-}"
 
 if [[ -z "$CC_BIN" ]]; then
     if command -v cc >/dev/null 2>&1; then
@@ -59,9 +60,9 @@ done
 probe_src="$OUT_DIR/compiler-probe.c"
 probe_obj="$OUT_DIR/compiler-probe.o"
 printf '%s\n' 'int main(void) { return 0; }' > "$probe_src"
-if ! "$CC_BIN" -std=c11 -c "$probe_src" -o "$probe_obj" >/dev/null 2>&1; then
-    echo "[source-test-harness-compile] C compiler is not usable from this shell; skipping harness compile smoke"
-    exit 0
+if ! "$CC_BIN" -std=c11 -pthread "${PLATFORM_CFLAG_ARGS[@]}" -c "$probe_src" -o "$probe_obj" >/dev/null 2>&1; then
+    echo "[source-test-harness-compile] C compiler is not usable from this shell" >&2
+    exit 1
 fi
 
 test_sources=()
@@ -80,7 +81,7 @@ for src in "${test_sources[@]}"; do
         -Wall -Wextra \
         -Werror=implicit-function-declaration \
         -Werror=implicit-int \
-        -std=c11 -O2 -g \
+        -std=c11 -pthread -O2 -g "${PLATFORM_CFLAG_ARGS[@]}" \
         -D__USE_MINGW_ANSI_STDIO=1 \
         -DPGY_PROJECT_ROOT="\"$ROOT_DIR\"" \
         -DPGY_SRC_DIR="\"$ROOT_DIR/src\"" \

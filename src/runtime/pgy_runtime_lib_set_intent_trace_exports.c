@@ -2,6 +2,7 @@
 
 #include "pgy_runtime_lib_set_raw_exports.h"
 #include "pgy_runtime_observability_schema.h"
+#include "pgy_runtime_intent_identity.h"
 
 #include <stdint.h>
 
@@ -226,24 +227,21 @@ pgy_intent_handle_is_current_ancestor_export(int32_t handle)
 {
     int32_t cursor = pgy_intent_current_handle_export();
 
-    /* Bounded walk. At most PGY_INTENT_ACTIVE_MAX intents are live, so a
-     * genuine parent chain never visits more than that many distinct handles.
-     * A longer walk means the parent_handle links formed a cycle in handle
-     * VALUE space -- unreachable under normal nesting (fresh handles + a
-     * parent that is always an older live incarnation), but constructible via
-     * handle-value recycling (counter wrap) combined with non-LIFO leave. The
-     * self-parent case (parent_handle == cursor) is caught below; this bound
-     * additionally catches multi-node cycles (A->B->A) so the loop can never
-     * spin at 100% CPU while holding pgy_intent_registry_mutex (DoS). */
+    /* Nonrecycling handles make every parent older than its child. Validate
+     * the live entry before granting a waiver: stale TLS/parent links grant
+     * nothing, even after a non-LIFO or other-thread exit. Keep a finite walk
+     * as a fail-closed corruption boundary, not as static coordination proof. */
     for (int32_t steps = 0;
          cursor != 0 && steps < PGY_INTENT_ACTIVE_MAX;
          steps++) {
         PgyIntentActiveEntry *entry;
 
+        entry = pgy_intent_find_active_entry_locked_export(cursor);
+        if (entry == NULL)
+            break;
         if (cursor == handle)
             return true;
-        entry = pgy_intent_find_active_entry_locked_export(cursor);
-        if (entry == NULL || entry->parent_handle == cursor)
+        if (entry->parent_handle >= cursor)
             break;
         cursor = entry->parent_handle;
     }
@@ -354,14 +352,10 @@ pgy_intent_next_positive_counter_export(int32_t *counter)
 static int32_t
 pgy_intent_next_unused_handle_export(void)
 {
-    for (int32_t probe = 0; probe <= PGY_INTENT_ACTIVE_MAX; probe++) {
-        int32_t candidate =
-            pgy_intent_next_positive_counter_export(&pgy_intent_next_handle);
-        if (candidate > 0
-            && pgy_intent_find_active_entry_locked_export(candidate) == NULL) {
-            return candidate;
-        }
-    }
+    int32_t candidate = pgy_intent_issue_handle(&pgy_intent_next_handle);
+    if (candidate > 0
+        && pgy_intent_find_active_entry_locked_export(candidate) == NULL)
+        return candidate;
     return 0;
 }
 

@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+pgy_selfhost_select_linked_runtime_compile_profile
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-direct-mir-scalar-entrypoint-early-return"
@@ -50,7 +52,7 @@ grep -Fq '"source_type":"AST_RETURN_VOID"' "$MIR" ||
 printf '2\nentrypoint-early-return-ready\n' >"$WORK_DIR/expected.run"
 
 runtime_obj="$WORK_DIR/runtime.o"
-"$CLANG" -std=c11 -DPGY_LLVM_ENABLED \
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" \
     -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$runtime_obj" \
     >"$WORK_DIR/runtime.compile.out" 2>"$WORK_DIR/runtime.compile.err" ||

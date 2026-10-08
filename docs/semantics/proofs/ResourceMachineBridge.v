@@ -10,8 +10,9 @@
   explicit projection binding and evidence from both sides.
 
   MachineLayerCore.v remains the owner of the detailed Region/contact_step
-  transition model. This file only proves the cross-layer non-inference and
-  complete-binding contract; it does not duplicate the machine transition.
+  transition model. This file fixes an explicit cross-layer binding interface
+  and supplies independent-record counterexamples; it does not derive a
+  production non-inference or contact-safety property or duplicate contact_step.
 *)
 
 Section ResourceMachineBridge.

@@ -346,7 +346,7 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
             { "pgy_input", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
-            { "pgy_now_ms", ctx->type_i32,
+            { "pgy_now_ms", ctx->type_i64,
               { 0 }, 0 },
             { "pgy_sleep_ms", ctx->type_void,
               { ctx->type_i32 }, 1 },

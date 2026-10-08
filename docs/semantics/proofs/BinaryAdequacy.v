@@ -27,9 +27,8 @@
                            calculus, because the calculus itself is
                            decidable at each action.
 
-  The config/guard here is the AIRBinding.v guard verbatim (standalone
-  re-declaration, one-file-per-proof convention); AIRBinding.v ties that
-  guard to the whole-program machine, so adequacy composes:
+  The config/action types come from WholeProgramCore, and the AIR record/guard
+  come from AIRBinding. There is no private machine or AIR copy. Adequacy composes:
   surface accept <-> guard_air <-> machine guard.
 
   Negative scope: this does NOT prove the C type-checker/emitter implements
@@ -39,72 +38,13 @@
   the judgment itself.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Bool.Bool.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Bool.Bool.
+Require Import WholeProgramCore AIRBinding.
 Import ListNotations.
 
 Section BinaryAdequacy.
-
-Definition principal := nat.
-Definition zone := nat.
-Definition cap  := nat.
-Definition eff  := nat.
-Definition slot := nat.
-Definition task := nat.
-
-Inductive lcstate := Empty | Filled | Released.
-Definition slot_store := slot -> lcstate.
-
-Record effect_log_entry := mkLog { logged_eff : eff; before_store : slot_store }.
-
-Record config := mkConfig {
-  actor    : principal;
-  holdings : principal -> list cap;
-  here     : zone;
-  elog     : list effect_log_entry;
-  store    : slot_store;
-  done     : list task
-}.
-
-Definition has_cap (c : config) (k : cap) : Prop := In k (holdings c (actor c)).
-
-Inductive action :=
-  | ActCross (z' : zone)
-  | ActEmit (e : eff)
-  | ActAcquire (s : slot)
-  | ActUse (s : slot)
-  | ActRelease (s : slot)
-  | ActDelegate (b : principal) (k : cap)
-  | ActRollback
-  | ActRun (t : task).
-
-Record AIRFacts := mkAIR {
-  air_zone_gate    : zone -> cap;
-  air_effect_gate  : eff  -> cap;
-  air_acquire_gate : slot -> cap;
-  air_comp_targets : eff  -> list slot;
-  air_dep_graph    : task -> list task
-}.
-
-Definition ready_air (F : AIRFacts) (c : config) (t : task) : Prop :=
-  forall x, In x (air_dep_graph F t) -> In x (done c).
-
-(* The calculus guard -- verbatim AIRBinding.v / WholeProgramCore.v. *)
-Definition guard_air (F : AIRFacts) (act : action) (c : config) : Prop :=
-  match act with
-  | ActCross z'     => has_cap c (air_zone_gate F z')
-  | ActEmit e       => has_cap c (air_effect_gate F e)
-  | ActAcquire s    => has_cap c (air_acquire_gate F s) /\ store c s = Empty
-  | ActUse s        => store c s = Filled
-  | ActRelease s    => store c s = Filled
-  | ActDelegate _ k => has_cap c k
-  | ActRollback     => exists e before rest,
-                         elog c = mkLog e before :: rest /\
-                         Forall (fun s => has_cap c (air_acquire_gate F s))
-                                (air_comp_targets F e)
-  | ActRun t        => ready_air F c t
-  end.
 
 (* ================================================================ *)
 (* The computable surface verdict.                                  *)
@@ -134,8 +74,9 @@ Definition accept (F : AIRFacts) (act : action) (c : config) : bool :=
                            forallb (fun s => capb c (air_acquire_gate F s))
                                    (air_comp_targets F e)
                        end
-  | ActRun t        => forallb (fun x => existsb (Nat.eqb x) (done c))
-                               (air_dep_graph F t)
+  | ActRun t        => negb (existsb (Nat.eqb t) (done c))
+                       && forallb (fun x => existsb (Nat.eqb x) (done c))
+                                  (air_dep_graph F t)
   end.
 
 (* ================================================================ *)
@@ -150,6 +91,16 @@ Proof.
     apply Nat.eqb_eq in Heq. subst; exact Hin.
   - intro H. apply existsb_exists. exists x.
     split; [exact H | apply Nat.eqb_refl].
+Qed.
+
+Lemma existsb_not_in_nat : forall (l : list nat) (x : nat),
+  existsb (Nat.eqb x) l = false <-> ~ In x l.
+Proof.
+  intros l x; split.
+  - intros Hfalse Hin. apply existsb_in_nat in Hin. congruence.
+  - intro Hnot. destruct (existsb (Nat.eqb x) l) eqn:E.
+    + exfalso. apply Hnot. apply existsb_in_nat. exact E.
+    + reflexivity.
 Qed.
 
 Lemma capb_iff : forall c k, capb c k = true <-> has_cap c k.
@@ -192,11 +143,14 @@ Proof.
         apply forallb_forall. intros s Hs. apply capb_iff.
         eapply Forall_forall in Hall; [exact Hall | exact Hs].
   - (* Run *)
-    unfold ready_air. split.
-    + intro H. rewrite forallb_forall in H. intros x Hx.
-      apply existsb_in_nat. apply H. exact Hx.
-    + intro H. apply forallb_forall. intros x Hx.
-      apply existsb_in_nat. apply H. exact Hx.
+    unfold WholeProgramCore.ready.
+    rewrite andb_true_iff, negb_true_iff, existsb_not_in_nat. split.
+    + intros [Hfresh Hdeps]. split; [exact Hfresh |].
+      rewrite forallb_forall in Hdeps. intros x Hx.
+      apply existsb_in_nat. apply Hdeps. exact Hx.
+    + intros [Hfresh Hdeps]. split; [exact Hfresh |].
+      apply forallb_forall. intros x Hx.
+      apply existsb_in_nat. apply Hdeps. exact Hx.
 Qed.
 
 (* ================================================================ *)

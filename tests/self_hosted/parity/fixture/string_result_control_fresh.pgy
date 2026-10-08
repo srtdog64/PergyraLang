@@ -1,0 +1,23 @@
+func FreshBranch(flag: Bool) -> String
+{
+    if flag { return Concat("branch-", "true"); }
+    return Concat("branch-", "false");
+}
+
+func FreshAfterControl(flag: Bool) -> String
+{
+    let raw: String = "false";
+    if flag { raw = "true"; }
+    return Concat("control-", raw);
+}
+
+func Main() -> Void
+{
+    let fields: Array<String> = [];
+    ArrayPush(fields, FreshBranch(true));
+    ArrayPush(fields, FreshBranch(false));
+    ArrayPush(fields, FreshAfterControl(true));
+    ArrayPush(fields, FreshAfterControl(false));
+    Log(StringJoin(fields, ","));
+    ArrayDropOwnedStrings(fields);
+}

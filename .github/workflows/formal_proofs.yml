@@ -1,0 +1,61 @@
+name: Stable Rocq proofs
+
+on:
+  workflow_call:
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Bootstrap only: 9.3 Docker tags still point at rc1. The project owner
+    # installs and admits stable 9.3.0 before any proof is accepted.
+    container:
+      image: rocq/rocq-prover:9.0.1@sha256:3ed9c46fa02e9fd7748a959abebb11b36f8818d10738dcc93edc67354c313ce2
+      options: --user root
+    env:
+      OPAMROOT: /opt/pergyra-rocq/opam
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install the project-owned stable Rocq toolchain
+        run: OPAMROOT=/home/rocq/.opam opam exec -- env OPAMROOT=/opt/pergyra-rocq/opam bash scripts/install_rocq_toolchain.sh
+      - name: Kernel-check the fresh corpus
+        run: |
+          bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check.sh
+      - name: Execute source-bound intent and host-clock regression probes
+        run: |
+          bash tests/runtime_intent_identity_reuse_smoke.sh
+          bash tests/runtime_host_clock_smoke.sh
+          bash tests/runtime_c_profile_smoke.sh
+      - name: Exercise version and kernel refusal paths
+        run: |
+          bash scripts/run_rocq_toolchain.sh bash tests/rocq_toolchain_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check_selftest.sh
+      - name: Check ownership memory comparisons and overclaim counterexamples
+        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership_gc_comparison_smoke.sh
+      - name: Check canonical cleanup, graph and Slot composition
+        run: bash scripts/run_rocq_toolchain.sh bash tests/memory_boundary_composition_smoke.sh
+      - name: Red-team teardown, root reuse and checked local reads
+        run: bash scripts/run_rocq_toolchain.sh bash tests/ownership_teardown_redteam_smoke.sh
+      - name: Preserve bounded teardown model observations
+        uses: actions/upload-artifact@v4
+        with:
+          name: ownership-teardown-model-redteam
+          path: .tmp/ownership-teardown-root-epoch-2026-10-08/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Execute freshly extracted checkers and ownership cost cases
+        run: |
+          if ! command -v python3 >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y --no-install-recommends python3
+          fi
+          bash scripts/run_rocq_toolchain.sh bash tests/proof_carrying_adequacy_smoke.sh
+          bash tests/ownership_clean_direction_selftest.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership_cleanup_smoke.sh
+      - name: Preserve model cost evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ownership-cleanup-model-cost
+          path: .tmp/ownership-cleanup/model-cost.json
+          if-no-files-found: error
+          retention-days: 7

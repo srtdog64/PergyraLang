@@ -19,9 +19,9 @@
   workload and checks output equality first.
 *)
 
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.Bool.Bool.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.ZArith.ZArith.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.micromega.Lia.
 Open Scope Z_scope.
 
 Definition PGY_INT_MIN : Z := -2147483648.

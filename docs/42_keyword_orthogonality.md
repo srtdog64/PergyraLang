@@ -1,6 +1,6 @@
 # Pergyra Keyword Orthogonality
 
-Last updated: 2026-07-04
+Last updated: 2026-10-08
 
 This document fixes the semantic question answered by each Pergyra keyword
 family. The goal is not to reduce the number of keywords mechanically. The
@@ -29,8 +29,10 @@ That is the keyword adequacy rule:
 - domain-specific nouns such as `quest`, `item`, `inventory`, `npc`, `player`,
   `buff`, or `scene` belong in libraries or kits, not core syntax.
 
-So the target is not fewer keywords by default. The target is one keyword per
-semantic axis, and no duplicate truth path for the same axis.
+So the target is not fewer keywords by default. Each distinct semantic fact
+must have one authoritative owner, with no duplicate truth path. This is not
+an injective keyword-to-axis mapping or a claim that every use of one spelling
+has the same semantic owner.
 
 ## 0.1 Human Cognition: Bounded Activation
 
@@ -69,8 +71,8 @@ contract register       -> class / struct / object / tobject / ability / role
 ```
 
 This makes keyword count a secondary metric. The primary metric is whether a
-keyword has one stable semantic role and whether that role composes with the
-other active registers without hidden owner drift.
+selected grammatical use has an explicit semantic role and fact owner, and
+whether it composes with the other active registers without hidden owner drift.
 
 The compiler-facing rule is stricter than the human rule:
 
@@ -88,17 +90,62 @@ and shared facts cannot silently cross to another owner axis. That model lives
 in `docs/semantics/proofs/AxisOwnership.v` alongside the existing keyword
 orthogonality proof.
 
-## 1. Four Top-Level Axes
+## 1. Four Top-Level Semantic Fact Axes
 
 | Axis | Question | Surface |
 | --- | --- | --- |
 | Resource | Which resource or handle is held across which boundary? | `slot`, `own`, `ref`, `pin`, `unsafe`, `extern` |
 | Execution | When, where, and under what concurrency relation does work run? | `parallel`, `spawn`, `async`, `await`, `select` |
-| Domain | Who acts, in which boundary, under which authority, relation, or effect? | `subject`, `intent`, `zone`, `world`, `authority`, `relation`, `effect`, `projection` |
-| Type/Contract | Which shape or ability contract must a value satisfy? | `class`, `struct`, `ability`, `role`, generic `where` |
+| Domain | Who acts, in which boundary, under which authority, relation, or effect? | `subject`, `role`, `intent`, `zone`, `world`, `authority`, `relation`, `effect`, `projection` |
+| Type/Contract | Which shape or ability contract must a value satisfy? | `class`, `struct`, `ability`, generic `where` |
 
 These axes are not mutually isolated sublanguages. They meet in the verifier
 graph. Ownership is kept by the axis that owns the final fact.
+
+## 1.1 Registry Primary Categories Are Not Fact Ownership
+
+The registry's single `axis` field is a **spelling-level primary category** for
+navigation and tooling. Its existing five enum values and wire names remain
+stable. It is not a dispatch table for semantic checks and does not assert
+that every grammatical use of that word introduces the same fact. The four
+fact axes above and the five metadata categories below are different levels.
+
+The registry owns the complete vocabulary; these examples are consistency
+assertions, not a second 147-word authority:
+
+| Category | Purpose | Representative spellings |
+| --- | --- | --- |
+| GENERAL | Core bindings, literals, module/visibility structure, and shared combinators | `let`, `true`, `false`, `in`, `all`, `any`, `export`, `import`, `use`, `namespace`, `public`, `private` |
+| RESOURCE | Resource/loan/foreign-boundary surface | `slot`, `own`, `ref`, `pin`, `with`, `unsafe`, `extern` |
+| EXECUTION | Control flow, scheduling, joins and orchestration paths | `if`, `else`, `while`, `for`, `loop`, `break`, `continue`, `return`, `match`, `case`, `default`, `parallel`, `spawn`, `async`, `await`, `select`, `join`, `sum`, `product`, `min`, `max`, `step`, `success`, `failure`, `priority` |
+| DOMAIN | Participant placement and domain/action topology | `subject`, `role`, `intent`, `zone`, `world`, `action`, `on`, `authority`, `relation`, `effect`, `projection`, `authorized`, `causes`, `within` |
+| TYPE_CONTRACT | Shapes, signatures and capability/type constraints | `class`, `struct`, `ability`, `event`, `where`, `requires` |
+
+GENERAL means shared/base surface, not an ownerless semantic fact. MODULE is
+already a grammar context bit; adding a top-level fact axis merely to empty
+GENERAL is not justified. Module visibility and authority retain their actual
+owners (see `202_module_authority_boundary_design.md`). `extern` remains a
+foreign resource boundary, even though it also occurs in module syntax.
+
+Use-specific examples explain why one primary category cannot prove ownership:
+
+| Surface use | Semantic responsibility |
+| --- | --- |
+| `join with all/any` | Parallel join selection (Execution). |
+| world `state ready: all/any ...` | Composition of domain state (Domain). |
+| `any T` | Type-position modifier parsed by the type owner; complete existential semantics are not established by that parser support. |
+| generic `where T: A` / step `where: Z` | Type constraint / zone binding (Type/Contract / Domain). |
+| `with slot` / `with caps` / `with effects` | Resource loan / capability contract / callable effect contract; the selected production fixes the owner. Parsed but unimplemented resilience clauses are not execution support. |
+| intent `on: actor.Action()` / zone `maintain effect on target` | Action binding / effect participant topology (Domain). Reactive parallel `on` is declared but non-executable. |
+| `role R for S` / role ability satisfaction | Concrete domain placement / Type-Contract obligation. Native role admission binds a subject or primitive domain; grouping ability and role in a learning register does not change that distinction. |
+| `event E(args)` / event subscription | Callable signature / reactive behavior; the declaration's primary category does not assign subscription ownership. |
+
+Same-parent clauses need not share a fact owner. In particular, `requires`
+stays Type/Contract while `authorized`, `causes` and `within` stay Domain;
+`intent` is Domain while `step`, `success` and `failure` describe Execution.
+`AxisOwnership.v` proves representative fact-use composition, not the semantic
+adequacy of all 147 primary-category labels. The axis consistency gate compares
+actual values and uses mutation controls; it is not a full-language proof.
 
 ## 2. Core Definitions
 

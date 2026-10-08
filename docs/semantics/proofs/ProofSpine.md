@@ -83,8 +83,8 @@ remaining obligation blocks that stronger claim.
   and channel-free paths preserve world roots;
 - `IntentObligations.v` keeps the unit correction for `intent` tied to the
   proof pack: source-level `intent` is a binder that emits verifier fact
-  families; purpose and trace stay outside the non-library-expressibility
-  claim;
+  families; finite-family admission refuses omissions. Purpose/trace stay
+  outside the declared taxonomy; these labels are not expressibility proofs;
 - `IntentSpine.v` keeps the operational intent kernel tied to the proof pack:
   participant coverage, coordination DAG, and compensation coverage imply
   `checked_intent_guard_free`, fact-family reassembly, and checked-intent guard
@@ -94,7 +94,9 @@ remaining obligation blocks that stronger claim.
   unfireable, while priority alone is not separation evidence;
 - `AuthorityIrreducibility.v` keeps the authority-axis claim tied to the proof
   pack: delegation history distinguishes configurations that have identical
-  capability and zone projections;
+  capability and zone projections in unrestricted records. The ungranted
+  pair is inconsistent, and cap computes authority on the explicitly
+  grant-consistent subset; no language-axis rating upgrade follows;
 - `DelegationBoundaryCore.v` keeps attribution, authorization, and
   delegability separate; missing evidence cannot produce an automated permit,
   and runtime permits retain a passing guard;

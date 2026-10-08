@@ -16,7 +16,7 @@ the *design*, and `tests/parallel_model_adequacy_smoke.sh` binds each modelled
 decision back to the source line it was transcribed from, so the model cannot
 silently stop describing the code.
 
-## 1. `ParallelSchedulingCore.v` — the pool cannot deadlock
+## 1. `ParallelSchedulingCore.v` — conditional join progress, bounded rescue
 
 A worker is a **stack** of task frames, so help-nesting (running a queued task
 on top of the frame that is awaiting) is representable rather than abstracted
@@ -27,7 +27,11 @@ relation:
 |---|---|---|
 | `PolParkOnly` | always parks the worker | the classic bounded pool; what Pergyra used to do |
 | `PolHelpFirst` | drains the queue first, parks only when it is empty | `pgy_await` → `pgy_pool_help_run_one` |
-| `PolCompensate` | parks, but queued work with no runner adds a spare | `pgy_pool_spawn_spare_locked` |
+| `PolCompensate` | parks; queued work with no runner may add a spare below cap | `pgy_pool_spawn_spare_locked` |
+
+Await admission requires an issued target in queue, worker stack or completed
+ledger. The fixed base worker count owns capacity; default spares are capped
+at `base_workers * 4`, hence total workers at `base_workers * 5`.
 
 Everything turns on `push`, the order in which frames were pushed, and one
 hypothesis:
@@ -68,13 +72,21 @@ where the producer being waited on may have been pushed long before the waiter.
   something buried under its own frame. Stuck — and impossible under spawn_tree,
   because a stack head is the newest frame while an awaited task must be newer
   than its awaiter.
-- **`compensation_moves_where_the_others_stick`** — one configuration, three
+- **`compensation_moves_where_the_others_stick`** — below capacity, one configuration, three
   verdicts: stuck under `PolParkOnly`, stuck under `PolHelpFirst`, steps under
   `PolCompensate`.
-- **`help_first_preserves_queue_runner`**, **`help_first_preserves_desc_stacks`**
-  — the two invariants that carry the progress proof are preserved by every
-  rule, so the theorem applies to reachable configurations and not only to
-  hand-written ones.
+- **`help_first_progress_from_run`** — the admitted join invariant preserves
+  queue runners, stack order, parked-await shape and issued-target location
+  through all reached help-first steps. The original spawn-tree progress
+  theorem then applies to the reached state, not just a chosen parked shape.
+- **`run_preserves_worker_bound`** — no run increases total workers beyond
+  the fixed default-runtime cap. A custom `PGY_POOL_SPARE_FACTOR`, failed
+  thread creation or shutdown requires separate runtime refinement.
+- **`cyclic_await_deadlocks_under_compensation`** — two issued tasks can park
+  cyclically with an empty queue under compensation too. Spare capacity
+  cannot execute work that is not queued.
+- **`compensation_at_capacity_is_stuck`** — all workers parked at the cap
+  with no completed target leaves a residue, even with queued work.
 
 ### Scorecard
 
@@ -82,11 +94,15 @@ where the producer being waited on may have been pushed long before the waiter.
 |---|---|---|---|
 | `PolParkOnly` | **deadlock** | **deadlock** | bounded |
 | `PolHelpFirst` | progress | **deadlock** | bounded |
-| `PolCompensate` | progress | progress | bounded + spares |
+| `PolCompensate` | queued rescue below cap, no universal progress theorem | **deadlock** when queue empty | at most base × 5 |
 
 The runtime runs help-first on the join lane, where spawn_tree holds and no
 spare thread is ever needed, and compensation on the channel lane, where it does
-not. Neither mechanism is redundant and neither generalises to the other's lane.
+not. Compensation addresses worker starvation, not dependency cycles. Neither
+mechanism is redundant and neither generalises to the other's lane. Source-text
+anchors in `tests/parallel_model_adequacy_smoke.sh` are not an implementation
+simulation. The permanent red-team consumer and fresh kernel gate are
+`tests/coq/AsyncReuseRedteamRegression.v` and `tests/async_reuse_redteam_smoke.sh`.
 
 ## 2. `ParallelReductionCore.v` — the join is schedule- and worker-invariant
 

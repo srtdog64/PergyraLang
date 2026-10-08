@@ -73,127 +73,22 @@ CERT_JSON="$WORK_DIR/certificate.json"
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --backend=c \
     >"$MIR_JSON" 2>"$WORK_DIR/mir.err"
 
+PYTHONPATH="$ROOT_DIR/scripts${PYTHONPATH:+:$PYTHONPATH}" \
 "$PYTHON_BIN" - "$SOURCE" "$AIR_JSON" "$MIR_JSON" "$CERT_JSON" <<'PY'
 import copy
-import hashlib
 import json
 import pathlib
 import sys
+from proof_certificate_admission import (
+    AIR_REQUIRED, MIR_REQUIRED, digest, binding_digest, require, validate_certificate,
+)
 
 source = pathlib.Path(sys.argv[1])
 air_path = pathlib.Path(sys.argv[2])
 mir_path = pathlib.Path(sys.argv[3])
 cert_path = pathlib.Path(sys.argv[4])
 
-AIR_REQUIRED = {
-    "hir_cfg",
-    "rir_boundary",
-    "rir_authority",
-    "dag_metadata",
-    "mir_cleanup",
-    "mir_terminator",
-}
-MIR_REQUIRED = {
-    "cfg_blocks",
-    "source_shape",
-    "expr0",
-    "cleanup",
-}
-REQUIRED_LAYERS = {"air", "dag", "mir", "abi", "backend"}
-
-def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-def binding_digest(source_path, air_payload_path, mir_payload_path):
-    payload = {
-        "air_sha256": digest(air_payload_path),
-        "mir_sha256": digest(mir_payload_path),
-        "schema": "pgy.proof-input-binding.v1",
-        "source_sha256": digest(source_path),
-    }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-def require(condition, message, errors):
-    if not condition:
-        errors.append(message)
-
-def validate_certificate(cert, source_path, air_payload_path, mir_payload_path, errors):
-    require(cert.get("schema") == "pgy.proof-carrying-ir.v1",
-            "wrong certificate schema", errors)
-    require(cert.get("source") == source_path.as_posix(),
-            "certificate source identity drifted", errors)
-    require(cert.get("source_digest_sha256") == digest(source_path),
-            "certificate source digest drifted", errors)
-    require(cert.get("binding_digest_sha256") ==
-            binding_digest(source_path, air_payload_path, mir_payload_path),
-            "certificate source/AIR/MIR binding digest drifted", errors)
-
-    layer_rows = cert.get("layers", [])
-    require(isinstance(layer_rows, list), "certificate layers must be an array", errors)
-    if not isinstance(layer_rows, list):
-        return
-    layer_ids = [layer.get("id") for layer in layer_rows if isinstance(layer, dict)]
-    layers = {layer.get("id"): layer for layer in layer_rows if isinstance(layer, dict)}
-    require(len(layer_ids) == len(layer_rows),
-            "certificate layer row is not an object", errors)
-    require(len(layer_ids) == len(set(layer_ids)),
-            "certificate layer ids are duplicated", errors)
-    require(set(layers) == REQUIRED_LAYERS, "certificate layer set drifted", errors)
-    if set(layers) != REQUIRED_LAYERS:
-        return
-    require(set(layers["air"].get("required_evidence", [])) == AIR_REQUIRED,
-            "AIR required evidence set drifted", errors)
-    require(set(layers["mir"].get("required_facts", [])) == MIR_REQUIRED,
-            "MIR required fact set drifted", errors)
-    for layer_id in ("air", "mir"):
-        layer = layers[layer_id]
-        require(isinstance(layer.get("digest_sha256"), str)
-                and len(layer["digest_sha256"]) == 64,
-                f"{layer_id} digest is missing", errors)
-    require(layers["air"].get("digest_sha256") == digest(air_payload_path),
-            "AIR payload digest drifted", errors)
-    require(layers["mir"].get("digest_sha256") == digest(mir_payload_path),
-            "MIR payload digest drifted", errors)
-    require(layers["abi"].get("status") == "manifest-only",
-            "ABI layer must be explicit manifest-only until ABI JSON exists", errors)
-    require(layers["backend"].get("consumption") == "fact-or-fail-closed",
-            "backend layer must stay fact-or-fail-closed", errors)
-
-air = json.loads(air_path.read_text(encoding="utf-8"))
-mir = json.loads(mir_path.read_text(encoding="utf-8"))
 errors = []
-
-require(air.get("schema") == "pgy.air.graph.v1", "AIR schema mismatch", errors)
-summary = air.get("summary", {})
-require(summary.get("strict_evidence") is True, "AIR strict evidence missing", errors)
-require(summary.get("drift_count") == 0, "AIR drift_count must be zero", errors)
-evidence_kinds = {entry.get("kind") for entry in air.get("evidence", [])}
-require(AIR_REQUIRED <= evidence_kinds,
-        "AIR evidence missing: " + ",".join(sorted(AIR_REQUIRED - evidence_kinds)),
-        errors)
-require(all(entry.get("fallback_count", 0) == 0 for entry in air.get("evidence", [])
-            if entry.get("kind") in AIR_REQUIRED),
-        "AIR required evidence contains fallback_count != 0", errors)
-
-require(mir.get("schema") == "pgy.mir.v1", "MIR schema mismatch", errors)
-routines = mir.get("routines", [])
-instructions = [
-    inst
-    for routine in routines
-    for block in routine.get("blocks", [])
-    for inst in block.get("instructions", [])
-]
-require(any(routine.get("kind") == "intent" for routine in routines),
-        "MIR intent routine missing", errors)
-require(any("blocks" in routine for routine in routines),
-        "MIR cfg block inventory missing", errors)
-require(any(inst.get("source_type") for inst in instructions),
-        "MIR source_shape fact missing", errors)
-require(any(inst.get("expr0") for inst in instructions),
-        "MIR expr0 fact missing", errors)
-require(any(inst.get("kind") == "cleanup" for inst in instructions),
-        "MIR cleanup fact missing", errors)
 
 certificate = {
     "schema": "pgy.proof-carrying-ir.v1",

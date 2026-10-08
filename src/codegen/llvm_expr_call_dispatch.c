@@ -25,6 +25,7 @@
 #include "llvm_expr_task_channel_calls.h"
 #include "llvm_expr_text_builder_calls.h"
 #include "llvm_mir_signature.h"
+#include "llvm_mir_store_coercion.h"
 #include "llvm_intent_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -429,6 +430,20 @@ emit_declared_callable:;
                         goto cleanup;
                     }
                     args[i] = llvm_emit_expression(arg_node, ctx);
+                    if (!participant_binding && type_name != NULL) {
+                        LLVMTypeRef parameter_type = pergyra_type_to_llvm(ctx,
+                            type_name);
+                        args[i] = llvm_mir_coerce_value_for_store(ctx, args[i],
+                            parameter_type);
+                        if (ctx->has_error)
+                            goto cleanup;
+                        if (args[i] != NULL && (parameter_type == NULL
+                                || LLVMTypeOf(args[i]) != parameter_type)) {
+                            result = llvm_call_error_recovery(ctx, node,
+                                "LLVM intent value argument does not match its admitted ABI");
+                            goto cleanup;
+                        }
+                    }
                 }
                 if (args[i] == NULL) {
                     result = llvm_call_arg_error_recovery(ctx, node,

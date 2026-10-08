@@ -11,8 +11,8 @@ func Main() -> Void
         opened.milliseconds,
         window.milliseconds
     );
-    let before = EvaluateObligation(obligation, opened.milliseconds + 15000);
-    let after = EvaluateObligation(obligation, opened.milliseconds + 45000);
+    let before = EvaluateObligation(obligation, opened.milliseconds + 15000L);
+    let after = EvaluateObligation(obligation, opened.milliseconds + 45000L);
     let fulfilled = FulfillObligation(obligation);
 
     Log("=== COMPLIANCE OBLIGATION PROBE ===");

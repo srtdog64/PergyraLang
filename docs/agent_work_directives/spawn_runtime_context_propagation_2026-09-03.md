@@ -1,5 +1,7 @@
 # Spawn Runtime Context Propagation
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: DONE — PUBLISHED AND EXACT CI GREEN
 
 Exact base revision: `a6ba51a996438c7de089a6cd495b20b6a6b74844`

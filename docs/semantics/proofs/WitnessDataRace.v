@@ -19,8 +19,8 @@
   so both write-write and read-write races are ruled out.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Import ListNotations.
 
 Definition Slot    := nat.
@@ -65,26 +65,34 @@ Qed.
 (* Permitted boundary steps. None creates a conflicting concurrent access. *)
 (* --------------------------------------------------------------------- *)
 
-(* Clear every capability for slot [s] (release the slot). *)
-Definition clear_slot (g : Config) (s : Slot) : Config :=
-  filter (fun p => negb (Nat.eqb (snd (fst p)) s)) g.
+(* A context releases its own access right, not the storage owner's whole
+   capability set. Other readers must remain live until their own release. *)
+Definition clear_context_slot (g : Config) (c : Context) (s : Slot) : Config :=
+  filter (fun p => negb
+    (Nat.eqb (fst (fst p)) c && Nat.eqb (snd (fst p)) s)) g.
 
-Lemma holds_clear_slot : forall g s c s' m,
-  holds (clear_slot g s) c s' m <-> (holds g c s' m /\ s' <> s).
+Lemma holds_clear_context_slot : forall g c s c' s' m,
+  holds (clear_context_slot g c s) c' s' m <->
+    (holds g c' s' m /\ (c' <> c \/ s' <> s)).
 Proof.
-  intros g s c s' m. unfold holds, clear_slot. split.
-  - intro Hin. apply filter_In in Hin. destruct Hin as [Hin Hneq].
-    simpl in Hneq. split. exact Hin.
-    intro Heq. subst s'. rewrite Nat.eqb_refl in Hneq. discriminate.
-  - intros [Hin Hneq]. apply filter_In. split. exact Hin.
-    simpl. apply Bool.negb_true_iff. apply Nat.eqb_neq. exact Hneq.
+  intros g c s c' s' m. unfold holds, clear_context_slot.
+  rewrite filter_In. simpl. rewrite Bool.negb_true_iff, Bool.andb_false_iff.
+  rewrite !Nat.eqb_neq. reflexivity.
 Qed.
 
-Lemma accesses_clear_slot : forall g s c s',
-  accesses (clear_slot g s) c s' -> (accesses g c s' /\ s' <> s).
+Lemma accesses_clear_context_slot : forall g c s c' s',
+  accesses (clear_context_slot g c s) c' s' -> accesses g c' s'.
 Proof.
-  intros g s c s' [m Hm]. apply holds_clear_slot in Hm.
-  destruct Hm as [Hm Hneq]. split. exists m; exact Hm. exact Hneq.
+  intros g c s c' s' [m Hm]. apply holds_clear_context_slot in Hm.
+  exists m. exact (proj1 Hm).
+Qed.
+
+Theorem release_preserves_foreign_right : forall g c s c' s' m,
+  c' <> c -> holds g c' s' m ->
+  holds (clear_context_slot g c s) c' s' m.
+Proof.
+  intros g c s c' s' m Hne Hright.
+  apply holds_clear_context_slot. split; [exact Hright | left; exact Hne].
 Qed.
 
 Inductive step : Config -> Config -> Prop :=
@@ -96,9 +104,10 @@ Inductive step : Config -> Config -> Prop :=
   | step_acq_read : forall g c s,
       (forall c', ~ writes g c' s) ->
       step g ((c, s, Rd) :: g)
-  (* RELEASE: clear a slot's capabilities. *)
-  | step_release : forall g s,
-      step g (clear_slot g s).
+  (* RELEASE: requires and removes only this context's own access. *)
+  | step_release : forall g c s,
+      accesses g c s ->
+      step g (clear_context_slot g c s).
 
 (* --------------------------------------------------------------------- *)
 (* Theorem 2 (Preservation): every permitted step preserves xor_mut.      *)
@@ -107,7 +116,7 @@ Theorem xor_mut_preserved :
   forall g g', xor_mut g -> step g g' -> xor_mut g'.
 Proof.
   intros g g' Hxm Hstep.
-  destruct Hstep as [g c s Hfree | g c s Hnowriter | g s].
+  destruct Hstep as [g c s Hfree | g c s Hnowriter | g c s Hown].
   - (* acquire-write: precond -- s had no access at all *)
     intros c1 c2 s0 Hw Ha.
     unfold writes, holds in Hw. simpl in Hw.
@@ -129,8 +138,8 @@ Proof.
       * exact (Hxm c1 c2 s0 Hw (ex_intro _ m2 Ha)).
   - (* release: caps only shrink *)
     intros c1 c2 s0 Hw Ha.
-    unfold writes in Hw. apply holds_clear_slot in Hw. destruct Hw as [Hw _].
-    apply accesses_clear_slot in Ha. destruct Ha as [Ha _].
+    unfold writes in Hw. apply holds_clear_context_slot in Hw. destruct Hw as [Hw _].
+    apply accesses_clear_context_slot in Ha.
     exact (Hxm c1 c2 s0 Hw Ha).
 Qed.
 
@@ -166,7 +175,7 @@ Proof.
 Qed.
 
 (* ===================================================================== *)
-(* (a) Bridge: pin/view exclusivity (SlotCalculus ModePin) => xor_mut.    *)
+(* (a) Interface vocabulary: pin/view exclusivity is xor_mut rephrased.  *)
 (*                                                                        *)
 (* SlotCalculus.v models a single context's token validity: a ModePin /  *)
 (* Pinned slot, kept stable by the Pin Non-Eviction Lemma, gives a        *)
@@ -174,8 +183,9 @@ Qed.
 (* exclusive capability is a write-cap held ALONE on its slot. The §7     *)
 (* refinement audit found exactly this guard in the implementation        *)
 (* ("Cannot write slot while a view/pin is live", PIN_PARALLEL_CONFLICT). *)
-(* Here we discharge that audit as a theorem: the pin-exclusivity         *)
-(* discipline entails the data-race invariant.                            *)
+(* This is NOT a SlotCalculus refinement theorem: no token, generation or *)
+(* runtime rule is consumed here. The actual boundary admission must      *)
+(* establish this premise; these equivalences only fix its vocabulary.    *)
 (* ===================================================================== *)
 Definition pin_exclusive (g : Config) : Prop :=
   forall c s, writes g c s -> forall c' m, holds g c' s m -> c' = c.
@@ -208,28 +218,28 @@ Qed.
 Inductive Op :=
   | OpAcqW : Context -> Slot -> Op   (* exclusive acquire: spawn-into / claim  *)
   | OpAcqR : Context -> Slot -> Op   (* shared read acquire                    *)
-  | OpRel  : Slot -> Op.             (* release / move-out / drop              *)
+  | OpRel  : Context -> Slot -> Op.  (* context-local access release            *)
 
 Definition op_guard (g : Config) (o : Op) : Prop :=
   match o with
   | OpAcqW _ s => forall c' m, ~ holds g c' s m   (* no current access at all *)
   | OpAcqR _ s => forall c', ~ writes g c' s        (* no current writer       *)
-  | OpRel  _   => True
+  | OpRel c s => accesses g c s
   end.
 
 Definition op_apply (g : Config) (o : Op) : Config :=
   match o with
   | OpAcqW c s => (c, s, Wr) :: g
   | OpAcqR c s => (c, s, Rd) :: g
-  | OpRel  s   => clear_slot g s
+  | OpRel c s => clear_context_slot g c s
   end.
 
 Lemma op_step : forall g o, op_guard g o -> step g (op_apply g o).
 Proof.
-  intros g [c s | c s | s] Hg; simpl in *.
+  intros g [c s | c s | c s] Hg; simpl in *.
   - apply step_acq_write. exact Hg.
   - apply step_acq_read. exact Hg.
-  - apply step_release.
+  - apply step_release. exact Hg.
 Qed.
 
 Fixpoint run_prog (g : Config) (p : list Op) : Config :=

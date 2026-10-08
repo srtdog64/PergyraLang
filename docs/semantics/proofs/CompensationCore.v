@@ -3,7 +3,8 @@
   Target: docs/semantics/19 "Pergyra Abstract Machine Obligation" (intent facet)
   Status: proof-sketch; not beta-closure evidence unless checked by CI (coqc).
 
-  Scope: the compensation / rollback Step form -- the intent-specific facet that
+  Scope: an ideal SNAPSHOT-RESTORATION CONTRACT, not the executed compensation
+  program. The compensation / rollback Step form is the intent-specific facet that
   docs/19 flags as the hard COUPLING: compensation is sound only when it names
   both the effect to undo AND the typestate snapshot to restore. Saga lineage
   (Garcia-Molina & Salem; Bruni-Melgratti-Montanari).
@@ -24,13 +25,18 @@
     - Saga round-trip: a forward step followed by rollback restores each target
       slot to its pre-forward value (`do_then_rollback_restores`).
 
-  Negative scope: this file still models LIFO compensation only. Binding
-  `comp_target`, graphs, and holdings to live AIR/MIR owner facts remains the
-  implementation adequacy task; the model alone must not be cited as closure.
+  Negative scope: this file models ideal LIFO snapshot copying only.
+  rollback_restores_snapshot follows directly from restore_targets; it is an
+  interface obligation, not proof that user-written compensate expressions
+  restore their effects. The backend executes those expressions in reverse
+  order (llvm_intent_cleanup.c), and no simulation to this relation exists
+  here. Binding comp_target and the compensation program to admitted AIR/MIR
+  facts, resource generations and irreversible release remains OPEN. Neither
+  this model nor its round-trip theorem establishes implementation adequacy.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Import ListNotations.
 
 Section CompensationCore.

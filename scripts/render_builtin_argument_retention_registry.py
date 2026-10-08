@@ -10,6 +10,7 @@ import re
 
 
 ROW_MACRO = "PGY_BUILTIN_ARGUMENT_RETENTION"
+STDLIB_ROW_MACRO = "PGY_STDLIB_ARGUMENT_RETENTION"
 BORROWED = "PGY_REGION_RETENTION_BORROWED_FOR_CALL"
 ANY = "PGY_RETENTION_ARGUMENT_ANY"
 
@@ -28,8 +29,8 @@ def _strip_comments(source: str) -> str:
 
 def load_rows(path: Path) -> list[RetentionRow]:
     source = _strip_comments(path.read_text(encoding="utf-8"))
-    row_pattern = re.compile(rf"\s*{ROW_MACRO}\(([^()]*)\)")
-    bodies: list[str] = []
+    row_pattern = re.compile(rf"\s*({ROW_MACRO}|{STDLIB_ROW_MACRO})\(([^()]*)\)")
+    bodies: list[tuple[str, str]] = []
     offset = 0
     while offset < len(source):
         match = row_pattern.match(source, offset)
@@ -40,14 +41,17 @@ def load_rows(path: Path) -> list[RetentionRow]:
                     f"unexpected builtin argument-retention registry text at line {line}"
                 )
             break
-        bodies.append(match.group(1))
+        bodies.append((match.group(1), match.group(2)))
         offset = match.end()
     rows: list[RetentionRow] = []
-    for row_number, body in enumerate(bodies, start=1):
+    for row_number, (macro, body) in enumerate(bodies, start=1):
         fields = [field.strip() for field in body.split(",")]
-        if len(fields) != 4:
-            raise ValueError(f"retention row {row_number} expected 4 fields")
-        identity, source, ordinal, kind = fields
+        expected_count = 5 if macro == STDLIB_ROW_MACRO else 4
+        if len(fields) != expected_count:
+            raise ValueError(f"retention row {row_number} expected {expected_count} fields")
+        identity, source, ordinal, kind = fields[:4]
+        if macro == STDLIB_ROW_MACRO and re.fullmatch(r"[1-9][0-9]*", fields[4]) is None:
+            raise ValueError(f"retention row {row_number} has invalid stdlib arity")
         if re.fullmatch(r"[A-Z][A-Z0-9_]*", identity) is None:
             raise ValueError(f"retention row {row_number} has invalid builtin identity")
         source_match = re.fullmatch(r'"([A-Za-z][A-Za-z0-9_]*)"', source)
@@ -59,6 +63,8 @@ def load_rows(path: Path) -> list[RetentionRow]:
             argument_ordinal = int(ordinal)
         else:
             raise ValueError(f"retention row {row_number} has invalid argument ordinal")
+        if macro == STDLIB_ROW_MACRO and argument_ordinal is not None and argument_ordinal >= int(fields[4]):
+            raise ValueError(f"retention row {row_number} has out-of-range argument ordinal")
         if kind != BORROWED:
             raise ValueError(f"retention row {row_number} has unknown retention kind")
         rows.append(RetentionRow(identity, source_match.group(1), argument_ordinal))

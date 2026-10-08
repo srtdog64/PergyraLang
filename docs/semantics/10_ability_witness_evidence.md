@@ -133,9 +133,9 @@ over-restriction 아님). 이 audit는 Pergyra 실제 경계 타이핑이 이 �
 
 | 경계 | 메커니즘 | step 대응 | 증거 |
 |---|---|---|---|
-| spawn / async | body+capture **move/consume** | `step_move` | `type_checker_async_channel.c` (move/consume 다수); *익명 spawn 캡처는 fail-closed 제한* ("move the body into a named async function") |
-| channel send | ownership **transfer** | `step_move` | `slot_analyzer.c` (transfer own / channel send) |
-| parallel / slot-view / world | **evidence-or-forbid** (2026-07-09 정정: 무증거 공유만 forbid; 증거 3종은 admission — 서로소 분할 view=Disjointness, 단일-writer 프리미티브의 reader=pre-parallel **snapshot copy**(`step_move`의 복사판 — reader는 원본과 절연), 단일-writer 배타=xor-mut의 write leg) | forbid + `step_move`(snapshot) + per-location 배타 | `type_checker_flow_parallel.c`(admission들), `type_checker_slot_view_boundary.c:49`, `world_roster.h`; 게이트: parallel-disjoint/snapshot-test-smoke. **WitnessDataRace.v 범위 주의**: 정리는 slot op 모델 — disjoint slice 쓰기는 *서로 다른 location*이라 xor-mut가 location별로 성립하고, scalar snapshot reader는 공유 자체가 없어(복사) 모델 밖에서 자명 |
+| spawn / async | body+capture **move/consume** | 이 모델에 transfer 전이 없음 | `type_checker_async_channel.c`; transfer와 capability 재귀속은 별도 refinement 의무 |
+| channel send | ownership **transfer** | 이 모델에 transfer 전이 없음 | `slot_analyzer.c`; 소유권 전달을 acquire/release로 구현했다고 가정하지 않음 |
+| parallel / slot-view / world | **evidence-or-forbid**: 서로소 view, 절연된 snapshot reader, 단일-writer 배타 | location별 acquire-write/read; snapshot 생성·transfer는 모델 밖 | `type_checker_flow_parallel.c`, `type_checker_slot_view_boundary.c`, `world_roster.h`; snapshot의 원본 절연과 disjoint location 대응은 실행 게이트로 별도 확인 |
 | borrowed handle (pin/view) | **배타적: 원본은 view/pin live 동안 write 불가** | single-writer 강제 | `type_checker_builtins_slotops.c:111` `"Cannot write slot while ... is live"` (`PGY_CAUSE_PIN_PARALLEL_CONFLICT`); `SlotCalculus.v` Pin Non-Eviction |
 | `shared` 필드 | **atomic**(동기화) | 메모리모델상 race-free | `docs/113:51` "atomic shared" |
 
@@ -143,21 +143,25 @@ over-restriction 아님). 이 audit는 Pergyra 실제 경계 타이핑이 이 �
 view live 동안 write 불가 = single-writer, `PIN_PARALLEL_CONFLICT`로 fail-closed) + atomic
 shared + cannot-cross fail-closed. refinement 의무가 *"미지"→"맵핑됨 + 잔여 명시"*로 좁혀졌다.
 
-**capstone 진행 (2026-06-20, WitnessDataRace.v에 기계검증):**
-- **(a) 두-calculus 연결 — done.** SlotCalculus `ModePin`/Pin Non-Eviction의 배타성을
+**모델 증명과 남은 연결 (2026-10-08 감사 정정):**
+- **(a) pin 배타성의 인터페이스 정식화.** SlotCalculus `ModePin`/Pin Non-Eviction에 필요한 배타성을
   `pin_exclusive` 규율로 정식화하고 `pin_exclusive_xor_mut`/`pin_exclusive_no_data_race`로
-  증명 — §7의 "pin/view 배타성 = single-writer" 매핑이 이제 *정리*다. (두 .v의 타입을 literal
-  통합하진 않고, 배타성 *명제*를 잇는 형태 — 형식적 충분.)
+  증명한다. 그러나 `pin_exclusive`는 `xor_mut`의 동치 재표현이다. SlotCalculus의
+  token·세대·Pin 전이를 소비하지 않으므로 **두-calculus refinement 완료가 아니다**.
 - **(b) boundary 타이핑 건전성 — done.** typed boundary calculus(`Op` =
   acquire-write/acquire-read/release, `op_guard` = checker가 강제해야 할 precondition)에서
-  **well-typed 경계 프로그램 ⟹ data-race-free**(`well_typed_data_race_free`) 기계증명. "checker가
-  안전 step만 방출"이 *비형식적 매핑*에서 *증명된 규율*로 승격.
+  **well-typed 경계 프로그램 ⟹ data-race-free**(`well_typed_data_race_free`)를 증명한다.
+  release는 `(context, slot)`에 한정되며 다른 reader의 권한을 지우지 않는다.
+  이는 `op_guard`를 만족한 모델 프로그램의 건전성이지 C checker의 동작 증명이 아니다.
 
-**남은 단 하나의 갭 (정직, over-claim 방지):**
+**남은 연결 의무:**
 - **C checker ↔ op_guard refinement**: 실제 C 타입체커가 `op_guard`(no-current-access /
   no-current-writer)를 *정확히* 강제함을 보이는 것 — RustBelt가 λRust를 증명하고 rustc는 별개인
-  바로 그 갭. *원리적으로 Coq로 C-impl을 증명할 수 없음* → §6 게이트(backend_compare, 경계
-  fail-closed 테스트)로 경험적으로 지키는 것이 실용 종착.
+  바로 그 갭. 이 저장소에는 C 실행 의미와 모델 사이의 시뮬레이션 증명이 없다.
+  §6 게이트(backend_compare, 경계 fail-closed 테스트)는 경험적 증거이며 그 증명을 대신하지 않는다.
+- **Slot admission ↔ witness 및 transfer/snapshot**: token·세대의 접근 승인과
+  문맥별 acquire/release를 연결하고, 모델에 없는 소유권 전달·복사를 별도로 검증해야 한다.
+  존재하지 않는 `step_move`를 증거로 인용하지 않는다.
 - **익명 spawn 캡처**: fail-closed 제한(named async 강제), 완전 캡처-lifetime 분석은 미래(구멍 아님).
 
 ## 8. Boundary Witness Refinement Gate (2026-06-21)

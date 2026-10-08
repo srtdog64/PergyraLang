@@ -1,0 +1,28 @@
+func CountNonempty(values: Slice<String>) -> Int
+{
+    let count: Int = 0;
+    for value in values
+    {
+        if StringLength(value) > 0 { count = count + 1; }
+    }
+    return count;
+}
+
+func SumValues(values: Slice<Int>) -> Int
+{
+    let total: Int = 0;
+    for value in values { total = total + value; }
+    return total;
+}
+
+func Main() -> Void
+{
+    let texts: Array<String> = ["alpha", "", "beta"];
+    let text_view: Slice<String> = texts.Slice(0, 3);
+    Log(CountNonempty(text_view));
+    let numbers: Array<Int> = [2, 3, 7];
+    let number_view: Slice<Int> = numbers.Slice(1, 2);
+    Log(SumValues(number_view));
+    let empty_view: Slice<Int> = numbers.Slice(3, 0);
+    Log(SumValues(empty_view));
+}

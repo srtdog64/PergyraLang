@@ -1,6 +1,6 @@
-func First(n: Int) -> Int with caps clock {
+func First(n: Int) -> Long with caps clock {
     if n > 0 { return Second(n - 1); }
     return Now();
 }
-func Second(n: Int) -> Int with caps clock { return First(n); }
-func Main() -> Void { let stamp: Int = First(2); Log("ok"); }
+func Second(n: Int) -> Long with caps clock { return First(n); }
+func Main() -> Void { let stamp: Long = First(2); Log("ok"); }

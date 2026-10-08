@@ -19,7 +19,7 @@
     - no proof that the current compiler emits these facts correctly.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Section FormalKernel.

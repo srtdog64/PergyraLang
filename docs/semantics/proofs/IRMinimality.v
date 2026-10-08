@@ -12,17 +12,19 @@
   By Mirsky's theorem the minimum equals the longest reads-from chain.
 
   Grounded edges (driver_app.c order; verified by grep):
-    - hir_lower(ast), dir_lower(ast), rir_lower(ast)   -- AST-derived
+    - hir_lower(ast), rir_lower(ast)                    -- AST-derived
+    - dir_lower_with_hir_facts(ast, hir)                -- DIR reads HIR
     - rir_enrich_scope_with_hir_flow(scope, hir)        -- RIR reads HIR flow
-    - mir_lower(hir, rir)                               -- MIR fuses HIR + RIR
-    - CODEGEN (the src/codegen tree) references to DIR and AIR: ZERO. DIR and
-      AIR are verification IRs OFF the codegen path; they add no codegen layer.
+    - mir_lower_request_bind_dir(request, dir)          -- MIR reads DIR
+    - mir_lower(request)                               -- MIR fuses HIR/RIR/DIR
+    - Backend codegen consumes MIR, not DIR/AIR directly. This does NOT erase
+      the driver's DIR -> MIR dependency.
 
   Negative scope: this proves minimality W.R.T. THIS fact/dependency model. It
   does NOT prove that some entirely different IR design could not be simpler --
   you cannot quantify over all possible designs in this model. It proves the
   current fact-sets cannot be carried in fewer layers given their real reads-from
-  edges, and it pinpoints the single collapsible boundary.
+  edges. There are two independent length-three chains, not a single pivot.
 
   Second question: for intent composition, is a Functor/HKT abstraction the
   smaller core, or is AIR the smaller proof surface? The model below treats
@@ -30,12 +32,13 @@
   composition must carry the domain facts that make side effects auditable.
   Functor/HKT laws describe shape-preserving maps over type constructors; they
   do not witness authority, effect, boundary, coordination, or provenance facts.
-  AIR is therefore the minimal verifier surface for this language axis.
+  This witness vocabulary is an interface declaration, not a proof of AIR
+  architecture minimality or of the expressiveness limits of HKT/Functor.
 *)
 
-Require Import Coq.Init.Nat.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Init.Nat.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
 
 (* The codegen-relevant IRs. (AST and the backend are endpoints, not layers.) *)
 Inductive Node : Type := NHIR | NDIR | NRIR | NMIR.
@@ -44,7 +47,9 @@ Inductive Node : Type := NHIR | NDIR | NRIR | NMIR.
 Inductive Reads : Node -> Node -> Prop :=
   | ReadsRIR_HIR : Reads NRIR NHIR    (* RIR enriched with HIR flow *)
   | ReadsMIR_HIR : Reads NMIR NHIR    (* MIR fuses HIR *)
-  | ReadsMIR_RIR : Reads NMIR NRIR.   (* MIR fuses RIR *)
+  | ReadsMIR_RIR : Reads NMIR NRIR    (* MIR fuses RIR *)
+  | ReadsDIR_HIR : Reads NDIR NHIR    (* DIR uses admitted HIR facts *)
+  | ReadsMIR_DIR : Reads NMIR NDIR.   (* MIR request binds DIR *)
 
 (* A layering assigns each IR a layer index. It is VALID when, whenever A reads
    B's completed output, B sits in a strictly earlier layer. *)
@@ -76,37 +81,42 @@ Proof.
 Qed.
 
 (* ========================================== *)
-(* 2. Upper bound: 3 layers suffice, and DIR   *)
-(* co-locates with HIR (adds no layer).        *)
+(* 2. Upper bound: 3 layers suffice; DIR/RIR   *)
+(* share the middle layer, not HIR's layer.   *)
 (* ========================================== *)
 
 Definition L3 (n : Node) : nat :=
-  match n with NHIR => 0 | NDIR => 0 | NRIR => 1 | NMIR => 2 end.
+  match n with NHIR => 0 | NDIR => 1 | NRIR => 1 | NMIR => 2 end.
 
 Theorem three_layers_suffice : Valid L3.
 Proof. intros a b HR. destruct HR; simpl; lia. Qed.
 
-(* DIR shares HIR's layer in a valid layering: nothing on the codegen path reads
-   DIR and DIR reads only AST, so it never forces its own layer. *)
-Theorem dir_colocates_with_hir : L3 NDIR = L3 NHIR.
+(* DIR and RIR both consume HIR before MIR consumes their completed facts. *)
+Theorem dir_colocates_with_rir : L3 NDIR = L3 NRIR.
 Proof. reflexivity. Qed.
 
-(* Combined: the minimum number of codegen IR layers is exactly 3 -- the current
-   decomposition (HIR/RIR/MIR; DIR off-path) is minimal, not over-decomposed. *)
+Theorem domain_chain : forall L, Valid L ->
+  L NHIR < L NDIR /\ L NDIR < L NMIR.
+Proof. intros L H; split; apply H; constructor. Qed.
+
+(* Three dependency levels for this fixed graph, not a theorem that three IR
+   representations are the smallest conceivable compiler architecture. *)
 Theorem codegen_minimum_is_three :
   Valid L3 /\ (forall L, Valid L ->
     L NHIR <> L NRIR /\ L NRIR <> L NMIR /\ L NHIR <> L NMIR).
 Proof. split. apply three_layers_suffice. apply codegen_needs_three. Qed.
 
 (* ========================================== *)
-(* 3. The single pivot: the RIR<-HIR edge      *)
+(* 3. Deferring RIR flow alone does not       *)
+(* remove the independent HIR -> DIR -> MIR. *)
 (* ========================================== *)
 
-(* The only thing forcing 3 rather than 2 is RIR depending on HIR (its flow
-   enrichment). Model RIR's flow-sensitivity deferred to MIR -- drop that edge: *)
+(* Keep every real edge except the proposed RIR<-HIR deferral. *)
 Inductive ReadsDeferred : Node -> Node -> Prop :=
   | DReadsMIR_HIR : ReadsDeferred NMIR NHIR
-  | DReadsMIR_RIR : ReadsDeferred NMIR NRIR.
+  | DReadsMIR_RIR : ReadsDeferred NMIR NRIR
+  | DReadsDIR_HIR : ReadsDeferred NDIR NHIR
+  | DReadsMIR_DIR : ReadsDeferred NMIR NDIR.
 
 Definition ValidD (L : Layering) : Prop :=
   forall a b, ReadsDeferred a b -> L b < L a.
@@ -114,26 +124,15 @@ Definition ValidD (L : Layering) : Prop :=
 Definition L2 (n : Node) : nat :=
   match n with NHIR => 0 | NDIR => 0 | NRIR => 0 | NMIR => 1 end.
 
-(* Without the RIR<-HIR edge, HIR and RIR are independent and a 2-layering is
-   valid: the decomposition would collapse to 2 codegen IRs. *)
-Theorem two_layers_suffice_when_deferred : ValidD L2.
-Proof. intros a b HR. destruct HR; simpl; lia. Qed.
+Theorem deferred_still_needs_three : forall L,
+  ValidD L -> L NHIR < L NDIR /\ L NDIR < L NMIR.
+Proof. intros L H; split; apply H; constructor. Qed.
 
-(* So the codegen layer count is decided by exactly ONE architectural fact: is
-   RIR's resource analysis genuinely flow-sensitive (must read HIR's CFG -> 3
-   layers, current), or can that flow-sensitivity be deferred into MIR's
-   fusion (-> 2 layers)? Every other boundary is forced. That single, precise
-   question is where "could it be smaller?" lives -- nowhere else.
+Theorem two_layers_refused_when_only_rir_deferred : ~ ValidD L2.
+Proof. intros H. pose proof (proj1 (deferred_still_needs_three L2 H)); simpl in *; lia. Qed.
 
-   RESOLVED (see IRMinimality.md SS5): the RIR<-HIR edge is NOT a convenience.
-   rir_enrich_scope_with_hir_flow runs an RPO-fixpoint dataflow over the HIR CFG
-   and rir_validation.c merges resource states across control flow to detect
-   conflicts, with rir_validate running BEFORE mir_lower. So the edge encodes a
-   named invariant: *flow-sensitive resource checking happens at the resource
-   layer*. Hence min=3 is the true minimum for that invariant; collapsing to 2
-   relocates resource checking into MIR (a named trade, not a free win). No
-   incidental layer remains -- the one removable boundary is the price of
-   resource-checking-at-the-resource-layer. *)
+Theorem three_layers_suffice_when_deferred : ValidD L3.
+Proof. intros a b H; destruct H; simpl; lia. Qed.
 
 (* ========================================== *)
 (* 4. AIR witness minimality                   *)
@@ -168,9 +167,8 @@ Proof.
   intros r. destruct r; constructor.
 Qed.
 
-(* A Functor/HKT abstraction can describe composition shape, but this model gives
-   it no authority/effect/boundary/coordination/provenance witnesses. That is the
-   point: those facts are not type-constructor laws. *)
+(* An intentionally restricted interface with only an ordering constructor.
+   Its missing fields do not establish limits of every HKT/Functor encoding. *)
 Inductive FunctorHKTWitness : VerificationRequirement -> Prop :=
   | FunctorIntentOrder : FunctorHKTWitness ReqIntentOrder.
 
@@ -180,10 +178,9 @@ Proof.
   specialize (H ReqAuthority). inversion H.
 Qed.
 
-(* Minimality: any adequate surface that claims to be a subset of AIR's witness
-   vocabulary is extensionally equal to AIR. Dropping any AIR witness drops a
-   required verification axis; adding HKT/Functor machinery does not make the
-   missing evidence appear. *)
+(* Extensional vocabulary contract: AdequateEvidence means every field holds,
+   and AIRWitness has a constructor for every field. This is definition-level
+   coverage, not implementation adequacy or architectural minimality. *)
 Theorem air_is_minimal_witness_set :
   AdequateEvidence AIRWitness /\
   forall S : EvidenceSurface,
@@ -201,9 +198,8 @@ Qed.
 (* ========================================== *)
 (* 5. Out of scope (honest)                    *)
 (* ------------------------------------------ *)
-(* - This does not prove that AIR verifies all future language features. It proves
-      that, for the beta intent-composition evidence axes above, AIR is the
-      minimal adequate witness set and Functor/HKT is not adequate evidence.
+(* - AIR witness rows fix an interface only, not a minimal implementation or
+      non-library-expressibility result.
    - This does not rule out a different fact factoring with a shorter codegen
       chain; it proves minimality for the current fact-sets and their real
       dependencies.                                                              *)

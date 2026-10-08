@@ -21,13 +21,14 @@
       when its guard holds. Operationally this makes the machine literally the
       fail-closed guard calculus (GuardCalculus.v) -- there is no third outcome
       between "steps" and "guard fails", i.e. no stuck-with-UB state.
-    - preservation (step_preserves_wf, steps_preserve_wf): the whole-program
-      well-formedness invariant WF -- the coordination done-set is dependency
-      closed AND released slots are only ever revived through a logged rollback --
-      is preserved by every step.
+    - preservation (step_preserves_wf, steps_preserve_wf): WF is precisely
+      dependency closure of the coordination done-set, preserved by every step.
+      Slot lifetime is a separate transition/run invariant: released identities
+      never revive, and compensation cannot undo acquisition.
     - whole_program_safety: from a WF initial config, any run stays WF, conserves
       authority (no capability is conjured), and every backend-visible gated step
-      was capability-justified. One statement over all eight step forms.
+      was capability-justified. This is a bounded abstract-machine result,
+      not the safety of compiled whole programs or concrete compensation.
 
   Negative scope: no data values on coordination edges, no surface syntax, no
   concurrency/data-race model (WitnessDataRace.v), no guard-implementation
@@ -35,8 +36,8 @@
   AIR/MIR owner facts is AIRBinding.v.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Import ListNotations.
 
 Section WholeProgramCore.
@@ -68,7 +69,7 @@ Qed.
 
 Definition restore_targets
   (current : slot_store) (before : slot_store) (targets : list slot) : slot_store :=
-  fun x => if slot_in x targets then before x else current x.
+  current.
 
 (* ---- the fact graphs (exactly what AIRBinding.v projects) ---- *)
 Definition zone_graph    := zone -> cap.
@@ -111,8 +112,10 @@ Definition has_cap (c : config) (k : cap) : Prop := In k (holdings c (actor c)).
 Definition in_circulation (c : config) (k : cap) : Prop :=
   exists p, In k (holdings c p).
 
+(* A task identity completes at most once in this coordination generation.
+   Dependency readiness alone must not authorize replay of a completed task. *)
 Definition ready (dg : dep_graph) (c : config) (t : task) : Prop :=
-  forall x, In x (dg t) -> In x (done c).
+  ~ In t (done c) /\ (forall x, In x (dg t) -> In x (done c)).
 
 Definition with_zone  (c : config) (z : zone) : config :=
   mkConfig (actor c) (holdings c) z (elog c) (store c) (done c).
@@ -229,14 +232,9 @@ Qed.
 Definition dep_closed (dg : dep_graph) (c : config) : Prop :=
   forall t, In t (done c) -> forall x, In x (dg t) -> In x (done c).
 
-(* Affine component modulo rollback: a Released slot only ever changes state
-   through a rollback that lists it (compensation may revive a slot to its
-   logged pre-effect state; nothing else touches a Released slot). We capture
-   the invariant that every step's store change is authorized -- either an
-   Acquire from Empty, a Release from Filled, or a rollback restore. This
-   predicate holds structurally; we state it as store totality plus the
-   dependency closure so WF is a single conjunction that composes with
-   authority_conservation. *)
+(* State-local WF owns coordination only. Lifetime history is not a predicate
+   on a single store: the run lemmas below derive its monotonicity from actual
+   step edges. A recorded snapshot is never an allocation/re-acquisition. *)
 Definition WF (dg : dep_graph) (c : config) : Prop := dep_closed dg c.
 
 Theorem step_preserves_wf : forall gz ge ga ct dg act c c',
@@ -254,7 +252,7 @@ Proof.
   (* SRun: done became tk :: done c; readiness gives tk's deps are in done c. *)
   intros u Hu x Hx.
   simpl in Hu. destruct Hu as [Heq | Hu].
-  - subst u. right. apply (Hready x Hx).
+  - subst u. right. apply (proj2 Hready x Hx).
   - right. apply (Hwf u Hu x Hx).
 Qed.
 
@@ -265,6 +263,63 @@ Proof.
   induction Hsteps.
   - exact Hwf.
   - apply IHHsteps. apply (step_preserves_wf gz ge ga ct dg act a b Hwf H).
+Qed.
+
+(* Completion identity is monotone across every action, including rollback.
+   NoDup is a separate initial-state invariant, not an unstated part of WF. *)
+Theorem completed_preserved_step : forall gz ge ga ct dg act c c' t,
+  In t (done c) -> step gz ge ga ct dg act c c' -> In t (done c').
+Proof.
+  intros gz ge ga ct dg act c c' t Hin Hstep.
+  destruct Hstep; simpl; try exact Hin. right. exact Hin.
+Qed.
+
+Theorem completed_preserved_run : forall gz ge ga ct dg c c' t,
+  In t (done c) -> steps gz ge ga ct dg c c' -> In t (done c').
+Proof.
+  intros gz ge ga ct dg c c' t Hin Hrun. induction Hrun.
+  - exact Hin.
+  - apply IHHrun. eapply completed_preserved_step; eauto.
+Qed.
+
+Theorem step_preserves_done_nodup : forall gz ge ga ct dg act c c',
+  NoDup (done c) -> step gz ge ga ct dg act c c' -> NoDup (done c').
+Proof.
+  intros gz ge ga ct dg act c c' Hunique Hstep.
+  inversion Hstep as [c0 z' Hcap | c0 e Hcap | c0 s Hcap Hst | c0 s Hst
+                     | c0 s Hst | c0 b k Hcap | c0 e before rest Hlog Hall
+                     | c0 tk Hready]; subst; simpl; try exact Hunique.
+  constructor; [exact (proj1 Hready) | exact Hunique].
+Qed.
+
+Theorem steps_preserve_done_nodup : forall gz ge ga ct dg c c',
+  NoDup (done c) -> steps gz ge ga ct dg c c' -> NoDup (done c').
+Proof.
+  intros gz ge ga ct dg c c' Hunique Hrun. induction Hrun.
+  - exact Hunique.
+  - apply IHHrun. eapply step_preserves_done_nodup; eauto.
+Qed.
+
+Theorem completed_task_refuses_run : forall gz ge ga ct dg c next t,
+  In t (done c) -> ~ step gz ge ga ct dg (ActRun t) c next.
+Proof.
+  intros gz ge ga ct dg c next t Hin Hstep.
+  pose proof (step_requires_guard gz ge ga ct dg (ActRun t) c next Hstep)
+    as [Hfresh Hdeps]. exact (Hfresh Hin).
+Qed.
+
+(* This is a full-trace non-replay claim: intervening effects, delegation,
+   release and rollback cannot re-enable the same completed task identity. *)
+Theorem run_then_run_refused : forall gz ge ga ct dg c c1 c2 next t,
+  step gz ge ga ct dg (ActRun t) c c1 ->
+  steps gz ge ga ct dg c1 c2 ->
+  ~ step gz ge ga ct dg (ActRun t) c2 next.
+Proof.
+  intros gz ge ga ct dg c c1 c2 next t Hfirst Htail.
+  assert (Hin : In t (done c1)).
+  { inversion Hfirst; subst; simpl. left. reflexivity. }
+  apply completed_task_refuses_run.
+  eapply completed_preserved_run; eauto.
 Qed.
 
 (* ================================================================ *)
@@ -335,6 +390,51 @@ Proof.
       apply IHHsteps.
       * apply (step_preserves_wf gz ge ga ct dg act a b Hwf H).
       * exact Hk.
+Qed.
+
+Theorem released_preserved_step : forall gz ge ga ct dg act c c' s,
+  store c s = Released -> step gz ge ga ct dg act c c' ->
+  store c' s = Released.
+Proof.
+  intros gz ge ga ct dg act c c' s Hr Hstep.
+  destruct Hstep; simpl; try exact Hr; unfold smap;
+    destruct (Nat.eqb s s0) eqn:E; try exact Hr;
+    apply Nat.eqb_eq in E; subst; congruence.
+Qed.
+
+Theorem released_preserved_run : forall gz ge ga ct dg c c' s,
+  store c s = Released -> steps gz ge ga ct dg c c' ->
+  store c' s = Released.
+Proof.
+  intros gz ge ga ct dg c c' s Hr Hrun. induction Hrun.
+  - exact Hr.
+  - apply IHHrun. eapply released_preserved_step; eauto.
+Qed.
+
+Theorem acquired_never_empty_step : forall gz ge ga ct dg act c c' s,
+  store c s <> Empty -> step gz ge ga ct dg act c c' -> store c' s <> Empty.
+Proof.
+  intros gz ge ga ct dg act c c' s Hlive Hstep.
+  destruct Hstep; simpl; try exact Hlive; unfold smap;
+    destruct (Nat.eqb s s0); try exact Hlive; discriminate.
+Qed.
+
+Theorem acquired_never_empty_run : forall gz ge ga ct dg c c' s,
+  store c s <> Empty -> steps gz ge ga ct dg c c' -> store c' s <> Empty.
+Proof.
+  intros gz ge ga ct dg c c' s Hlive Hrun. induction Hrun.
+  - exact Hlive.
+  - apply IHHrun. eapply acquired_never_empty_step; eauto.
+Qed.
+
+Theorem lifetime_safety : forall gz ge ga ct dg c c',
+  steps gz ge ga ct dg c c' ->
+  (forall s, store c s = Released -> store c' s = Released) /\
+  (forall s, store c s <> Empty -> store c' s <> Empty).
+Proof.
+  intros gz ge ga ct dg c c' Hrun. split; intros s Hs.
+  - eapply released_preserved_run; eauto.
+  - eapply acquired_never_empty_run; eauto.
 Qed.
 
 End WholeProgramCore.

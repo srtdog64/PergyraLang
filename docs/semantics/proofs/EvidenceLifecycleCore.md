@@ -54,7 +54,11 @@ continues as a fact/receipt/identity.
 - `identity_reference_carries_authority`: admitted identity may become a compact
   reference without dropping required authority.
 - `validity_summarizes_to_receipt`: admitted validity evidence becomes a compact
-  authority-carrying receipt when downstream still needs the decision.
+  authority-carrying receipt only when its re-decision verdict requires it.
+  Otherwise a needed authority is referenced, not turned into a new receipt.
+- `validity_receipt_requires_redecision` and
+  `no_redecision_does_not_synthesize_receipt`: the projection itself consumes
+  that verdict; defining a separate justification predicate is not enough.
 - `construction_erasure_preserves_established_authority`: after the last
   semantic consumer, construction payload erases while the established
   authority remains carried.

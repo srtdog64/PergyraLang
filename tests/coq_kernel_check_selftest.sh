@@ -9,25 +9,20 @@
 # has to bite -- exactly the "negative gate" one of the four SoT CLOSED
 # conditions demands.
 #
-# This is a controlled experiment. Both runs invoke the REAL gate (zero logic
-# duplicated here) against a temp corpus via its PGY_COQ_PROOFS_DIR /
-# PGY_COQ_EXPECTED_AXIOMS seams. The ONLY difference between the control and the
-# treatment is one planted `Admitted`, so a green control plus a red treatment
-# isolates the cause to the proof hole and nothing else.
+# Controlled corpora invoke the REAL gate (no budget/type logic duplicated
+# here). The original empty-budget pair differs by one planted `Admitted`;
+# the approved-API pair checks benign type/domain drift under unchanged names.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE="$ROOT_DIR/tests/coq_kernel_check.sh"
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
 
 # Same prover detection as the parent. This self-test is wired into the same
 # rocq9 CI job where the prover exists, so a missing prover is a fail-closed
 # error, not a skip: a self-test that quietly skips proves nothing about
 # whether the gate bites.
-if ! command -v rocq >/dev/null 2>&1 && ! command -v coqc >/dev/null 2>&1; then
-    echo "coq-kernel-selftest: FAIL -- no prover found (looked for rocq, coqc);" \
-         "the self-test cannot demonstrate the gate bites without one." >&2
-    exit 1
-fi
+pgy_rocq_require
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -43,6 +38,9 @@ Proof.
 Qed.
 PROOF
 
+# Stale and orphan build products must remain untouched and never be consumed.
+printf 'preserved-stale-artifact\n' > "$work/SelfTestClean.vo"
+printf 'preserved-orphan-artifact\n' > "$work/Orphan.vo"
 # --- Control: clean corpus, expect zero axioms -> the gate MUST PASS ---
 # If this fails, the self-test harness itself is broken (bad temp corpus, seam
 # not wired), not the gate -- surface that distinctly so it is never mistaken
@@ -54,6 +52,9 @@ if ! PGY_COQ_PROOFS_DIR="$work" PGY_COQ_EXPECTED_AXIOMS="" \
     sed 's/^/  | /' "$work/control.log" >&2
     exit 1
 fi
+
+grep -Fxq 'preserved-stale-artifact' "$work/SelfTestClean.vo"
+grep -Fxq 'preserved-orphan-artifact' "$work/Orphan.vo"
 
 # --- Treatment: same corpus + one planted Admitted -> the gate MUST FAIL ---
 # `Admitted` closes the theorem by assumption; coqchk surfaces it as an axiom
@@ -91,6 +92,55 @@ if ! grep -qF -- "selftest_planted" "$work/planted.log"; then
     exit 1
 fi
 
-echo "coq-kernel-selftest: ok (the gate passes a clean corpus and fail-closes on" \
-     "a planted Admitted, naming it -- the axiom budget is a live check, not a"  \
-     "no-op that happens to be green)"
+# Approved abstract APIs must also pass; unchanged names with benign type or
+# domain drift must fail at the approval module, not at the name budget.
+approved="$work/approved"
+mkdir "$approved"
+cp "$ROOT_DIR/tests/coq/assumption_budget/SlotCalculus.v" "$approved/"
+cp "$ROOT_DIR/docs/semantics/proofs/AssumptionBudget.v" "$approved/"
+if ! PGY_COQ_PROOFS_DIR="$approved" bash "$GATE" >"$work/approved.log" 2>&1; then
+    echo "coq-kernel-selftest: FAIL -- approved API control rejected" >&2
+    sed 's/^/  | /' "$work/approved.log" >&2
+    exit 1
+fi
+
+for treatment in max-slot-type verifier-result-type access-mode-domain empty-contract; do
+    mutant="$work/$treatment"
+    mkdir "$mutant"
+    cp "$approved"/*.v "$mutant/"
+    case "$treatment" in
+        max-slot-type)
+            sed -i 's/Parameter MaxSlotId : nat\./Parameter MaxSlotId : bool./' "$mutant/SlotCalculus.v" ;;
+        verifier-result-type)
+            sed -i 's/AccessMode -> bool\./AccessMode -> nat./' "$mutant/SlotCalculus.v" ;;
+        access-mode-domain)
+            sed -i 's/| ModeClaim\./| ModeClaim | ModeExtended./' "$mutant/SlotCalculus.v" ;;
+        empty-contract)
+            cp /dev/null "$mutant/AssumptionBudget.v" ;;
+    esac
+    if PGY_COQ_PROOFS_DIR="$mutant" bash "$GATE" >"$work/$treatment.log" 2>&1; then
+        echo "coq-kernel-selftest: FAIL -- same-name $treatment was accepted" >&2
+        exit 1
+    fi
+    expected_reason='approved assumption contract type drift'
+    if [ "$treatment" = empty-contract ]; then
+        expected_reason='approved assumption contract export/binding drift'
+    fi
+    if ! grep -qF "$expected_reason" "$work/$treatment.log"; then
+        echo "coq-kernel-selftest: FAIL -- $treatment rejected for the wrong reason" >&2
+        sed 's/^/  | /' "$work/$treatment.log" >&2
+        exit 1
+    fi
+done
+
+missing="$work/missing-contract"
+mkdir "$missing"
+cp "$approved/SlotCalculus.v" "$missing/"
+if PGY_COQ_PROOFS_DIR="$missing" bash "$GATE" >"$work/missing-contract.log" 2>&1 ||
+   ! grep -qF 'approved assumption contract module is missing' "$work/missing-contract.log"; then
+    echo "coq-kernel-selftest: FAIL -- missing approval module did not fail closed" >&2
+    exit 1
+fi
+
+echo "coq-kernel-selftest: ok (clean and approved controls pass; planted admission," \
+     "three same-name API contract drifts and empty/missing approval modules are refused)"

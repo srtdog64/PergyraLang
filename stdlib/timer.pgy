@@ -1,28 +1,28 @@
 class TimerSpec
 {
     let name: String;
-    let startedAtMs: Int;
-    let dueAtMs: Int;
-    let intervalMs: Int;
+    let startedAtMs: Long;
+    let dueAtMs: Long;
+    let intervalMs: Long;
     let repeating: Bool;
 }
 
-func TimerAfter(name: String, nowMs: Int, delayMs: Int) -> TimerSpec
+func TimerAfter(name: String, nowMs: Long, delayMs: Long) -> TimerSpec
 {
     return TimerSpec(name, nowMs, nowMs + delayMs, delayMs, false);
 }
 
-func TimerEvery(name: String, nowMs: Int, intervalMs: Int) -> TimerSpec
+func TimerEvery(name: String, nowMs: Long, intervalMs: Long) -> TimerSpec
 {
     return TimerSpec(name, nowMs, nowMs + intervalMs, intervalMs, true);
 }
 
-func TimerExpired(timer: TimerSpec, nowMs: Int) -> Bool
+func TimerExpired(timer: TimerSpec, nowMs: Long) -> Bool
 {
     return nowMs >= timer.dueAtMs;
 }
 
-func TimerRemaining(timer: TimerSpec, nowMs: Int) -> Int
+func TimerRemaining(timer: TimerSpec, nowMs: Long) -> Long
 {
     if nowMs >= timer.dueAtMs {
         return 0;
@@ -30,7 +30,7 @@ func TimerRemaining(timer: TimerSpec, nowMs: Int) -> Int
     return timer.dueAtMs - nowMs;
 }
 
-func TimerTick(timer: TimerSpec, nowMs: Int) -> TimerSpec
+func TimerTick(timer: TimerSpec, nowMs: Long) -> TimerSpec
 {
     if !timer.repeating {
         return timer;

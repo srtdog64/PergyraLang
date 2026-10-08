@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+pgy_selfhost_select_linked_runtime_compile_profile
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-readonly-array-int"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -23,7 +25,7 @@ printf '3\n7\n2147483647\n1\n4\n4\n2\n0\n2\n2\n한글🙂\n' >"$WORK_DIR/expecte
 cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/native.run" || fail "native runtime differed"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE" -o "$WORK_REL/program.mir.json") \
     >"$WORK_DIR/producer.log" 2>&1 || { cat "$WORK_DIR/producer.log" >&2; fail "MIR producer rejected source"; }
-"$CLANG" -std=c11 -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" \
     >"$WORK_DIR/runtime.compile.log" 2>&1 || fail "runtime compilation failed"
 for backend in c llvm; do

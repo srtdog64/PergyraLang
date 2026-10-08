@@ -46,6 +46,13 @@ in `formal_semantics_smoke.sh` and `ProofSpine.v` is executable proof-pack
 evidence. Live C/LLVM/self-host implementation adequacy still requires owner
 facts, negative gates, differential parity, and physical residue checks.
 
+The ResourceMachineBridge and DelegationBoundaryCore guard projections are
+interface-contract checks, not derived contact/enforcement safety.
+Independent constant records show that declared fields need not coincide;
+they are not operational non-inference proofs. In AxisOwnership the pure-view
+result likewise fixes an identity interface, rather than proving a compiler
+projection cannot write. These distinctions must survive downstream citations.
+
 The boundary is intentional:
 
 ```text

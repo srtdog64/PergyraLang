@@ -31,25 +31,11 @@ if ! command -v python >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; 
     fail "python or python3 is required for stable timing"
 fi
 
-if command -v rocq >/dev/null 2>&1; then
-    COQ_COMPILE=(rocq compile)
-    COQ_CHECK=rocqchk
-elif command -v coqc >/dev/null 2>&1; then
-    COQ_COMPILE=(coqc)
-    COQ_CHECK=coqchk
-else
-    fail "rocq/coqc is required for the proof leg"
-fi
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
+pgy_rocq_require
 
 PROOF_REL="docs/semantics/proofs/PergyraMulCost.v"
-(
-    cd "$ROOT_DIR"
-    "${COQ_COMPILE[@]}" "$PROOF_REL"
-)
-(
-    cd "$ROOT_DIR/docs/semantics/proofs"
-    "$COQ_CHECK" -silent PergyraMulCost
-)
+pgy_rocq_check_isolated "$ROOT_DIR/$PROOF_REL"
 echo "[pergyra-mul-coq] Coq compile + kernel check: ok"
 
 WORK_DIR="$(mktemp -d "${TMPDIR:-${TEMP:-/tmp}}/pgy_mul_coq.XXXXXX")"

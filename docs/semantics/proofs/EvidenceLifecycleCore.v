@@ -16,7 +16,7 @@
   Budget: 0 admits / 0 axioms.
 *)
 
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Arith.PeanoNat.
 
 Section EvidenceLifecycleCore.
 
@@ -75,8 +75,12 @@ Definition project_evidence
           {| disposition := Materialize;
              carries_established_authority := authority_required context |}
         else if authority_required context then
-          {| disposition := Summarize;
-             carries_established_authority := true |}
+          if would_redecide_without_carrier context then
+            {| disposition := Summarize;
+               carries_established_authority := true |}
+          else
+            {| disposition := Reference;
+               carries_established_authority := true |}
         else
           {| disposition := Erase;
              carries_established_authority := false |}
@@ -140,13 +144,14 @@ Theorem validity_summarizes_to_receipt : forall context,
   admitted context = true ->
   runtime_required context = false ->
   authority_required context = true ->
+  would_redecide_without_carrier context = true ->
   disposition (project_evidence ValidityEvidence context) = Summarize /\
   carries_established_authority
     (project_evidence ValidityEvidence context) = true.
 Proof.
-  intros context Hadmitted Hruntime Hauthority.
+  intros context Hadmitted Hruntime Hauthority Hredecision.
   unfold project_evidence.
-  rewrite Hadmitted, Hruntime, Hauthority.
+  rewrite Hadmitted, Hruntime, Hauthority, Hredecision.
   split; reflexivity.
 Qed.
 
@@ -194,7 +199,7 @@ Proof.
     destruct Hadmitted; try discriminate.
     destruct Hruntime.
     + split; [reflexivity | split; [reflexivity | right; reflexivity]].
-    + destruct Hauthority; discriminate.
+    + destruct Hauthority; [destruct Hredecide |]; discriminate.
   - simpl in Hmaterialize.
     destruct Hdiagnostic; discriminate.
   - simpl in Hmaterialize.
@@ -230,8 +235,27 @@ Theorem justified_validity_receipt_carries_authority : forall context,
   carries_established_authority
     (project_evidence ValidityEvidence context) = true.
 Proof.
-  intros context Hadmitted Hruntime [Hauthority _].
+  intros context Hadmitted Hruntime [Hauthority Hredecision].
   apply validity_summarizes_to_receipt; assumption.
+Qed.
+
+Theorem validity_receipt_requires_redecision : forall context,
+  disposition (project_evidence ValidityEvidence context) = Summarize ->
+  admitted context = true /\ runtime_required context = false /\
+  ReceiptJustified context.
+Proof.
+  intros [Ha Hb Hu Hr Hd Hj] Hreceipt. simpl in Hreceipt.
+  destruct Ha, Hr, Hu, Hj; simpl in Hreceipt; try discriminate;
+    unfold ReceiptJustified; simpl; repeat split; reflexivity.
+Qed.
+
+Theorem no_redecision_does_not_synthesize_receipt : forall context,
+  would_redecide_without_carrier context = false ->
+  disposition (project_evidence ValidityEvidence context) <> Summarize.
+Proof.
+  intros context Hno Hreceipt.
+  destruct (validity_receipt_requires_redecision context Hreceipt)
+    as [_ [_ [Hu Hj]]]. rewrite Hno in Hj. discriminate.
 Qed.
 
 (* "Semantic entropy" is modeled conservatively as the finite count of still

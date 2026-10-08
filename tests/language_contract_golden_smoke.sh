@@ -137,7 +137,8 @@ require_text "tests/proof_carrying_pipeline_smoke.sh" "negative certificate dele
 # declared -- that stronger contract is pinned here too. The shared
 # PergyraCore root also makes the sibling-module load path load-bearing.
 require_text "tests/formal_semantics_smoke.sh" 'docs/semantics/proofs/PergyraCore.v'
-require_text "tests/formal_semantics_smoke.sh" '-Q . "" "$coq_proof_base"'
+require_text "tests/formal_semantics_smoke.sh" 'bash "$ROOT_DIR/tests/coq_kernel_check.sh"'
+require_text "tests/coq_kernel_check.sh" 'source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"'
 require_text "tests/formal_semantics_smoke.sh" "PGY_ALLOW_MISSING_COQ"
 require_text "tests/slot_calculus_adequacy_smoke.sh" "SlotCalculus.v model <-> slot_manager.h runtime consistent"
 require_text "tests/axis_keyword_adequacy_smoke.sh" "Coq keyword_axis (AxisOwnership.v section 8) = docs/42 axis"
@@ -150,7 +151,7 @@ require_text "docs/semantics/proofs/SlotCalculus.v" "Negative scope: this file d
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_allows_backend_consumption"
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem missing_air_authority_fails_closed"
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem compat_success_policy_fails_closed"
-require_text "tests/proof_carrying_adequacy_smoke.sh" "checker-core model is bound to live certificate gate"
+require_text "tests/proof_carrying_adequacy_smoke.sh" "fresh kernel-checked extraction and executable envelope admission agree"
 require_text "docs/139_golden_adt_verification_methodology.md" "A fact is useful only when its owner, consumer, oracle, and regression gate are named."
 require_text "docs/139_golden_adt_verification_methodology.md" "Golden tests, differential tests, property tests, ADT owners, and mechanized"
 require_text "docs/139_golden_adt_verification_methodology.md" "Hard self-hosting must not mean"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Kernel-re-check the Coq/Rocq proof corpus and pin its axiom budget.
+# Kernel-re-check the Coq/Rocq proof corpus and pin assumption names AND types.
 #
-# `coqc` only tells you the elaborator accepted a file. It does not tell you
-# what the corpus *assumes*. `coqchk` re-runs the trusted kernel over the
+# `rocq compile` only tells you the elaborator accepted a file. It does not tell you
+# what the corpus *assumes*. `rocqchk` re-runs the trusted kernel over the
 # compiled .vo and reports the assumption base, so the things that would
 # quietly hollow out a proof -- an `Axiom`, an `Admitted`, impredicative Set,
 # type-in-type, an unsafe fixpoint, an assumed-positive inductive -- cannot
@@ -16,6 +16,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
 
 # PROOFS_DIR and EXPECTED_AXIOMS are overridable ONLY so this gate's own
 # negative self-test (coq_kernel_check_selftest.sh) can point it at a planted
@@ -27,82 +28,72 @@ PROOFS_DIR="${PGY_COQ_PROOFS_DIR:-$ROOT_DIR/docs/semantics/proofs}"
 
 EXPECTED_AXIOMS="${PGY_COQ_EXPECTED_AXIOMS-SlotCalculus.MaxSlotId
 SlotCalculus.verify_token}"
+APPROVED_AXIOMS='SlotCalculus.MaxSlotId
+SlotCalculus.verify_token'
 
-# Rocq 9 renamed the CLI: `rocq compile` replaces `coqc`, `rocqchk` replaces
-# `coqchk`. The Rocq Platform installer still ships the legacy names, so a local
-# run never notices -- but the official rocq/rocq-prover image ships ONLY the
-# new names, and Ubuntu's apt `coq` (8.x) ships only the legacy ones. Detect
-# instead of assuming, or this gate fails on a prover that is sitting right
-# there.
-if command -v rocq >/dev/null 2>&1; then
-    coq_compile="rocq compile"
-    coq_version_cmd="rocq --version"
-elif command -v coqc >/dev/null 2>&1; then
-    coq_compile="coqc"
-    coq_version_cmd="coqc --version"
-else
-    echo "coq-kernel-check: FAIL -- no prover found (looked for rocq, coqc)" >&2
+# Only the approved API profile and the isolated, axiom-free self-test profile
+# exist. An environment override is not permission to approve another axiom.
+if [ "$EXPECTED_AXIOMS" != "$APPROVED_AXIOMS" ]; then
+    if [ -n "$EXPECTED_AXIOMS" ] ||
+       [ "$(cd "$PROOFS_DIR" && pwd -P)" = "$(cd "$ROOT_DIR/docs/semantics/proofs" && pwd -P)" ]; then
+        echo "coq-kernel-check: FAIL -- unsupported assumption approval profile" >&2
+        exit 1
+    fi
+elif [ ! -f "$PROOFS_DIR/AssumptionBudget.v" ]; then
+    echo "coq-kernel-check: FAIL -- approved assumption contract module is missing" >&2
     exit 1
 fi
 
-if command -v rocqchk >/dev/null 2>&1; then
-    coq_check="rocqchk"
-elif command -v coqchk >/dev/null 2>&1; then
-    coq_check="coqchk"
-else
-    echo "coq-kernel-check: FAIL -- no kernel checker found" \
-         "(looked for rocqchk, coqchk); coqc alone cannot pin the axiom budget." >&2
-    exit 1
-fi
+pgy_rocq_require
 
-echo "coq-kernel-check: $($coq_version_cmd 2>&1 | head -1) [compile='$coq_compile' check='$coq_check']"
+# Source and generated artifacts never share authority or a directory. An old
+# .vo, including an orphan, is neither read nor deleted by this gate.
+source_proofs_dir="$PROOFS_DIR"
+production_corpus=0
+if [ "$(cd "$source_proofs_dir" && pwd -P)" = "$(cd "$ROOT_DIR/docs/semantics/proofs" && pwd -P)" ]; then
+    production_corpus=1
+fi
+PROOFS_DIR="$(mktemp -d)"
+trap 'rm -rf "$PROOFS_DIR"' EXIT
+cp "$source_proofs_dir"/*.v "$PROOFS_DIR/"
+# Permanent independent consumers share the production snapshot and kernel
+# pass. Extraction drivers belong to their own executable gates, not here.
+if [ "$production_corpus" -eq 1 ]; then
+    for consumer in AsyncReuseRedteamRegression LifecycleAuthorityRedteamRegression \
+                    ReuseIdentityAudit ProofRedteamMainRegression \
+                    OwnershipCleanGCComparisonAudit MemoryBoundaryCompositionAudit \
+                    OwnershipTeardownRedteam; do
+        cp "$ROOT_DIR/tests/coq/$consumer.v" "$PROOFS_DIR/"
+    done
+fi
+echo 'coq-kernel-check: fixed fresh source snapshot (sha256)'
+(cd "$PROOFS_DIR" && sha256sum ./*.v)
 
 # `-Q . ""` binds PROOFS_DIR to the empty logical prefix so a proof can
 # `Require Import PergyraCore` (a sibling .vo) rather than only stdlib. The
 # corpus used to be 38 independent models with no cross-Require; the shared
 # PergyraCore foundation is the first file others build on, so the load path is
-# now load-bearing. Existing files Require only `Coq.*`, so this is inert for
-# them. Kept identical on the coqchk side so the kernel resolves the same deps.
+# now load-bearing. The compiler and checker resolve exactly the same deps.
 LOADPATH=(-Q . "")
 
-# Foundation modules that other proofs Require must have their .vo built before
-# the requiring file, regardless of the alphabetical glob order (an importer
-# whose name sorts before its dependency -- e.g. AIRBinding before PergyraCore
-# -- would otherwise fail). Compile these first, then the rest, skipping repeats.
-FOUNDATION_FIRST=(PergyraCore.v)
-
 compile_proof() {
-    (cd "$PROOFS_DIR" && $coq_compile "${LOADPATH[@]}" "$1")
+    if ! (cd "$PROOFS_DIR" && "${PGY_ROCQ_COMPILE[@]}" -q "${LOADPATH[@]}" "$1"); then
+        if [ "$1" = "AssumptionBudget.v" ]; then
+            echo "coq-kernel-check: FAIL -- approved assumption contract type drift" >&2
+        else
+            echo "coq-kernel-check: FAIL -- proof compilation failed: $1" >&2
+        fi
+        return 1
+    fi
 }
 
-# Drop compiled output whose .v is gone. `.vo` files are gitignored build
-# artifacts, so a renamed or deleted proof leaves one behind -- and the kernel
-# stage below used to glob `*.vo`, which pulled those orphans in. That is a
-# correctness hole in BOTH directions: an orphan built by a different prover
-# aborts the run (a stale Rocq 9 `MachineContactCore.vo` did exactly that
-# against Coq 8.18), and an orphan built by the SAME prover would be
-# kernel-checked as if it were still part of the corpus, so a deleted proof
-# could keep vouching for the axiom budget.
-for stale in "$PROOFS_DIR"/*.vo; do
-    [ -e "$stale" ] || continue
-    base="$(basename "$stale" .vo)"
-    if [ ! -f "$PROOFS_DIR/$base.v" ]; then
-        echo "coq-kernel-check: dropping orphaned $base.vo (no $base.v)"
-        rm -f "$PROOFS_DIR/$base".{vo,vok,vos,glob} "$PROOFS_DIR/.$base.aux"
-    fi
-done
-
+# Actual imports own dependency order, not a second hand-written foundation list.
+dependency_order="$(cd "$PROOFS_DIR" && rocq dep "${LOADPATH[@]}" -sort ./*.v)"
+read -r -a ORDERED_PROOFS <<<"$dependency_order"
 proof_count=0
 COMPILED_MODULES=()
-for base in "${FOUNDATION_FIRST[@]}"; do
-    [ -f "$PROOFS_DIR/$base" ] || continue
-    compile_proof "$base"
-    COMPILED_MODULES+=("${base%.v}")
-    proof_count=$((proof_count + 1))
-done
-for proof_abs in "$PROOFS_DIR"/*.v; do
+for proof_abs in "${ORDERED_PROOFS[@]}"; do
     base="$(basename "$proof_abs")"
-    case " ${FOUNDATION_FIRST[*]} " in *" $base "*) continue;; esac
     compile_proof "$base"
     COMPILED_MODULES+=("${base%.v}")
     proof_count=$((proof_count + 1))
@@ -114,16 +105,32 @@ if [ "$proof_count" -eq 0 ]; then
 fi
 echo "coq-kernel-check: $proof_count proofs compiled"
 
+# Consume the approval exports and kernel-check their actual-API links. A
+# present-but-empty approval file must not restore the old names-only path.
+contract_audit_summary=""
+if [ "$EXPECTED_AXIOMS" = "$APPROVED_AXIOMS" ]; then
+    contract_work="$PROOFS_DIR/approval"
+    mkdir "$contract_work"
+    cp "$ROOT_DIR/tests/coq/AssumptionBudgetAudit.v" "$contract_work/"
+    LOADPATH+=(-Q "$contract_work" "")
+    if ! (cd "$PROOFS_DIR" && "${PGY_ROCQ_COMPILE[@]}" -q "${LOADPATH[@]}" "$contract_work/AssumptionBudgetAudit.v"); then
+        echo "coq-kernel-check: FAIL -- approved assumption contract export/binding drift" >&2
+        exit 1
+    fi
+    COMPILED_MODULES+=(AssumptionBudgetAudit)
+    contract_audit_summary=" plus approval export/binding consumer"
+fi
+
 # Check exactly the modules just compiled, not whatever `*.vo` happens to be on
 # disk, so the kernel verdict is about this run's corpus and nothing else.
 # `set -e` would abort here with the message trapped inside the assignment, so
 # capture the status and print the report before judging it.
 set +e
-report=$(cd "$PROOFS_DIR" && $coq_check "${LOADPATH[@]}" -silent -o "${COMPILED_MODULES[@]}" 2>&1)
+report=$(cd "$PROOFS_DIR" && "${PGY_ROCQ_CHECK[@]}" "${LOADPATH[@]}" -silent -o "${COMPILED_MODULES[@]}" 2>&1)
 check_status=$?
 set -e
 if [ "$check_status" -ne 0 ]; then
-    echo "coq-kernel-check: FAIL -- $coq_check exited $check_status:" >&2
+    echo "coq-kernel-check: FAIL -- rocqchk exited $check_status:" >&2
     printf '%s\n' "$report" | sed 's/^/  | /' >&2
     exit 1
 fi
@@ -157,6 +164,17 @@ if ! printf '%s\n' "$report" | grep -qF -- "Set is predicative"; then
          "an impredicative Set changes what the proofs mean." >&2
     exit 1
 fi
+if ! printf '%s\n' "$report" | grep -qF -- "Rewrite rules are not allowed"; then
+    echo 'coq-kernel-check: FAIL -- rewrite-rule-free kernel theory was not reported' >&2
+    exit 1
+fi
+# Rocq 9.3 reports the default indices-not-mattering dependencies (including
+# stdlib equality). Preserve this visible theory profile; it is not an Axiom
+# name and cannot honestly be folded into the two-name abstract API budget.
+if ! printf '%s\n' "$report" | grep -qF -- 'Inductives relying on indices not mattering:'; then
+    echo 'coq-kernel-check: FAIL -- indices theory dependency report is missing' >&2
+    exit 1
+fi
 
 actual_axioms=$(printf '%s\n' "$report" \
     | awk '/^\* Axioms:/ {inside=1; next} /^\*/ {inside=0} inside && NF {print $1}' \
@@ -170,11 +188,23 @@ if [ "$actual_axioms" != "$expected_axioms" ]; then
     echo "  actual (what the kernel says the corpus assumes):" >&2
     printf '%s\n' "${actual_axioms:-<none>}" | sed 's/^/    /' >&2
     echo "  An added Axiom/Admitted, or a removed Parameter, must be a" >&2
-    echo "  deliberate decision -- update EXPECTED_AXIOMS in this script." >&2
+    echo "  deliberate contract decision -- review AssumptionBudget.v and this gate." >&2
     exit 1
 fi
 
-axiom_count=$(printf '%s\n' "$expected_axioms" | wc -l | tr -d '[:space:]')
-echo "coq-kernel-check: ok ($proof_count proofs kernel-verified;" \
-     "axiom budget = $axiom_count declared abstractions, no admits,"  \
+if [ -n "${PGY_ROCQ_EXTRACT_DIR:-}" ]; then
+    [ -d "$PGY_ROCQ_EXTRACT_DIR" ] || { echo 'extraction destination is missing' >&2; exit 1; }
+    # Export only outputs generated by this successful fresh kernel run.
+    extraction_count=0
+    for extracted in "$PROOFS_DIR"/*.ml "$PROOFS_DIR"/*.mli; do
+        [ -f "$extracted" ] || continue
+        cp "$extracted" "$PGY_ROCQ_EXTRACT_DIR/"
+        extraction_count=$((extraction_count + 1))
+    done
+    [ "$extraction_count" -gt 0 ] || { echo 'no freshly extracted outputs' >&2; exit 1; }
+fi
+
+axiom_count=$(printf '%s\n' "$expected_axioms" | awk 'NF {n++} END {print n+0}')
+echo "coq-kernel-check: ok ($proof_count proofs kernel-verified$contract_audit_summary;" \
+     "axiom budget = $axiom_count declared abstractions with approved types, no admits,"  \
      "no unsafe kernel features)"

@@ -1,5 +1,6 @@
 #ifndef PGY_RUNTIME_LIB_CLOCK_CORE_H
 #define PGY_RUNTIME_LIB_CLOCK_CORE_H
+#include "pgy_runtime_host_clock.h"
 
 /* Reactive time axis shared by generated C and the LLVM runtime object.
  * PGY_VIRTUAL_CLOCK=1 latches deterministic virtual time on first use. */
@@ -26,11 +27,7 @@ pgy_clock_now_ns_export(void)
     if (pgy_clock_latched_mode() == 2)
         return (int64_t)atomic_load_explicit(&g_pgy_clock_virtual_ns,
                                              memory_order_acquire);
-    {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        return (int64_t)ts.tv_sec * 1000000000LL + (int64_t)ts.tv_nsec;
-    }
+    return pgy_host_monotonic_time(1000000000LL);
 }
 
 void

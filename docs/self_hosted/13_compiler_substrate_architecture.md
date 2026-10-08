@@ -35,6 +35,33 @@ because they own different artifacts. A shared `StageOwner` alias would hide
 which stage is allowed to scan tokens, build AST facts, prove semantic
 verdicts, or lower MIR facts.
 
+## Ownership Cleanup Synthesis Direction (2026-10-08)
+
+The selected language direction is automatic ownership cleanup, not tracing
+GC. General aggregate cleanup is an OPEN implementation target. The compiler
+must infer admitted storage/generation and scoped-loan facts, derive residual
+cleanup obligations over the CFG, and synthesize their defined exits once in
+the middle end. C/LLVM consume that same plan; they do not infer ownership from
+mode strings, choose deep drops independently, or reconstruct aliases.
+
+Internal ownership def/use plus CFG cleanup elaboration is the recommended
+algorithm family. It does not import Rust lifetime syntax, Swift ARC, or a
+generic collector. Initialization creates an obligation only for proved owned
+storage; transfers/returns hand it off, explicit release discharges it, and
+dependent loans prevent premature cleanup. Branch-dependent obligations may
+need compiler-local flags, not runtime reference counting. Partial aggregates
+require component/element ownership, not just descriptor ownership.
+
+Fix the whole place -> storage/effect -> exit -> MIR -> backend -> installed
+consumer map before implementation. Field inout transport and readonly
+temporary lifetimes should be synthesized where their actual facts permit;
+manual source carrier/restoration and own-return-rebind are not the permanent
+authoring model. Existing release/alias checks remain until replacements and
+their negative gates are admitted. The original DRV-2 implementation is on
+user-requested hold, not closed or replaced by this design review. The mapped
+algorithm, source evidence, remaining decisions and falsifiers live in
+[`the ownership cleanup recheck`](../audits/ownership_dx_architecture_recheck_2026-10-08.md).
+
 ## Compiler Tree And Projection Nerves
 
 The intended shape is tree-like, not bucket-like:

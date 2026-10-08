@@ -111,6 +111,7 @@ require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_inte
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "intent handle space exhausted"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "intent current stack depth exceeded"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_positive_counter(&pgy_intent_next_trace_id)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_issue_handle(&pgy_intent_next_handle)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "name = PGY_INTENT_OBSERVABILITY_ENABLED"
 
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export"
@@ -119,6 +120,13 @@ require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" 
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "intent handle space exhausted"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "intent current stack depth exceeded"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export(&pgy_intent_next_trace_id)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_issue_handle(&pgy_intent_next_handle)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_identity.h" "issued == INT32_MAX ? 0 : issued + 1"
+if grep -Eq 'next_positive_counter(_export)?\(&pgy_intent_next_handle\)' \
+        "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"; then
+    fail "authority-bearing intent handles must not use the wrapping trace counter"
+fi
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "(size_t)subject_count > SIZE_MAX / sizeof(void *)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "name = PGY_INTENT_OBSERVABILITY_ENABLED"
 require_step_ok_guard_before_history_write "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_events_inline.h"

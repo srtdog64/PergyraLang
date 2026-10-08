@@ -60,14 +60,13 @@ if grep -Fq -- "??" "$DOC"; then
     fail "MachineLayerCore.md contains encoding corruption"
 fi
 
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
 if command -v rocq >/dev/null 2>&1; then
-    (cd "$ROOT_DIR" && rocq compile "$PROOF")
-elif command -v coqc >/dev/null 2>&1; then
-    (cd "$ROOT_DIR" && coqc "$PROOF")
+    pgy_rocq_check_isolated "$PROOF"
 elif [[ "${PGY_ALLOW_MISSING_COQ:-0}" == "1" ]]; then
-    echo "[machine-layer] proof DECLARED SKIP -- no prover (looked for rocq, coqc), PGY_ALLOW_MISSING_COQ=1; the model was NOT checked on this runner."
+    echo "[machine-layer] proof DECLARED SKIP -- no Rocq, PGY_ALLOW_MISSING_COQ=1; the model was NOT checked on this runner."
 else
-    fail "rocq/coqc is required for the focused machine-layer gate; set PGY_ALLOW_MISSING_COQ=1 only when a dedicated proof job checks the same corpus"
+    fail "pinned Rocq is required for the focused machine-layer gate; set PGY_ALLOW_MISSING_COQ=1 only when a dedicated proof job checks the same corpus"
 fi
 
 echo "[machine-layer] GREEN -- address evidence, machine state transition, positive/negative witnesses, and no-legacy gate"

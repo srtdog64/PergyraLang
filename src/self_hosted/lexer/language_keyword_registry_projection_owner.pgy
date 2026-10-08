@@ -24,6 +24,14 @@ func LanguageWordRegistryProjectionReady() -> Bool {
                 (row.keyword_class != 2 || row.tooling_flags != 0)) {
             return false;
         }
+        // Numeric identity and name are one generated primary-category fact.
+        if !((row.axis == 0 && row.axis_name == "general") ||
+            (row.axis == 1 && row.axis_name == "resource") ||
+            (row.axis == 2 && row.axis_name == "execution") ||
+            (row.axis == 3 && row.axis_name == "domain") ||
+            (row.axis == 4 && row.axis_name == "type-contract")) {
+            return false;
+        }
         index = index + 1;
     }
     return LanguageWordRegistryCount() == 147;

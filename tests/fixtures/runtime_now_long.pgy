@@ -1,0 +1,10 @@
+func Stamp() -> Long with caps clock {
+    return Now();
+}
+func Main() -> Void {
+    let first: Long = Stamp();
+    Sleep(1);
+    let second: Long = Now();
+    Log(first >= 0L);
+    Log(second >= first);
+}

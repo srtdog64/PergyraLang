@@ -1716,7 +1716,7 @@ run_compile_fails_case "channel_field_default_constructor_reject" \
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/extern_fn.pgy" <<'EOF'
 extern "c" {
-    func pgy_now_ms() -> Int;
+    func pgy_now_ms() -> Long;
 }
 
 func Main() -> Void {

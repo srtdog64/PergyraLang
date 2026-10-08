@@ -37,11 +37,25 @@ cosmetic reshuffling.
 - Treat repeated Option/Result rituals, one-element out-parameter arrays,
   namespace prefixes, and string-concatenation pyramids as language DX debt,
   not as failures of user discipline.
+- The selected direction is compiler-owned ownership cleanup, not tracing GC.
+  Its adopted name is ownership-based automatic memory management
+  (`소유권 기반 자동 메모리 관리`): GC-like authoring convenience from
+  ownership evidence, not runtime reachability collection. Treat it as a core
+  value-lifecycle mechanism. Compare GC safety and costs only under explicit
+  models and premises; never turn a bounded proof into universal superiority.
+  Do not make manual deep-drop, field carrier/restoration or additional own/ref
+  annotations the default response to missing compiler inference. Preserve the
+  actual safety boundary while fixing its fact producer and cleanup synthesis.
+- Record any annotation/copy increase in the whole-chain plan with its real
+  authority, transfer, interoperability or observable-cost reason, missing
+  fact, last consumer and removal condition. Measure added/deleted ceremony
+  with a fixed source/AST boundary; a global keyword count is not a verdict.
 
 ## Objective Function Before Structure
 
-- Before a structural change, state the objective, priority order, fact owner,
-  last legitimate consumer, forbidden fallback, and verification gate.
+- Before a structural change, ownership repair, or SoT closure, state the
+  objective, priority order, fact owner, last legitimate consumer, forbidden
+  fallback, and verification gate.
 - Do not treat a familiar compiler architecture as a neutral default. Import
   its invariant only after mapping that invariant to Pergyra ownership and
   evidence lifetime; otherwise it is a reference, not an implementation plan.
@@ -58,6 +72,45 @@ cosmetic reshuffling.
   `docs/semantics/sot_owner_spine_registry.md`. A registry row fixes owner
   identity; it may be marked `CLOSED` only after consumer migration, missing-
   fact failure, old-path deletion, and a negative gate all exist.
+
+## Whole-Chain Overview Before Implementation
+
+- Survey the whole affected system and its end-to-end ownership/dependency
+  chain before changing code. Bound the survey by the invariant and active
+  executable rung, not by the first failing diagnostic or currently touched
+  file. This is not permission to refactor unrelated parts of the repository.
+- Trace the production entrypoint, fact producer and authoritative owner,
+  identity and lifetime of carried facts/storage, all reached consumers and
+  their callers, the last legitimate consumer, and publication or retirement.
+  Include branch/backend routes, duplicate authority, legacy reads, and
+  bypasses where they participate in that chain; verify the map against source.
+- When a reached owner reports only its first failure, enumerate the complete
+  failure set on the fixed semantic input before choosing a contract, by
+  instrumenting a scratch copy of that owner if needed. A fixed first failure
+  is one data point, not the remaining change set.
+- Fix a compact closure plan before implementation: current and intended
+  ownership, every required owner/consumer change, affected signatures and
+  transfer/restore/release obligations, old paths to delete, dependency order,
+  acceptance gates, and falsifying cases. Record unknowns explicitly and
+  investigate those that could change the ownership decision before editing.
+  Keep this plan with the existing objective card or work directive; it is
+  navigation, not a new semantic source of truth.
+- Small patches and narrow tests are execution units within that complete
+  plan, not the planning or completion boundary. Do not chase diagnostics one
+  site at a time, accumulate local exemptions or adapters, add copies that
+  sidestep the chosen ownership contract, or call a seam closed because the
+  most recently touched files pass while its remaining owner/consumer
+  obligations are still open. A copy is acceptable only when the plan chooses
+  it as that contract, as with an explicit copy across a worker boundary.
+- If an unplanned consumer or ownership dependency appears, revisit the chain
+  map and remaining change set before extending the patch. Preserve one
+  coherent ownership decision across the chain rather than letting successive
+  local fixes choose conflicting contracts.
+- Completion is measured against the whole planned chain: consumers use the
+  admitted owner, missing facts fail closed, forbidden old paths are deleted,
+  and relevant negative/integration gates ran. Keep executable substitution,
+  installed-driver, and CI evidence explicit where the active rung requires
+  them; a partial green slice is not whole-chain closure.
 
 ## Do Not Add These Anti-Patterns
 
@@ -92,10 +145,18 @@ cosmetic reshuffling.
 
 ## Default Work Loop
 
-1. Name the source-of-truth seam being closed.
-2. Make the smallest code change that moves the decision behind that owner.
-3. Add or tighten a smoke gate so the old path cannot reappear.
-4. Run the narrow gate first; run broader tests only after the slice is stable.
+1. Name the invariant and source-of-truth seam; survey the full affected chain.
+2. Fix the objective card, closure boundary, complete required change set,
+   dependency order, and acceptance/falsifying gates before implementation.
+3. Implement the plan in small coherent slices that move the decision and its
+   consumers behind the owner; do not substitute isolated diagnostic fixes.
+4. Add or tighten the relevant negative gate so the old path cannot reappear.
+   Run the narrow gate first; broaden after the slice is stable.
+5. Check the entire planned chain at its integration boundary, including the
+   last consumer and old-path deletion. Revisit the plan if new dependencies
+   appear instead of silently extending a sequence of local patches.
+6. Report closure only with the required evidence; otherwise identify the
+   exact remaining obligation and update the handoff without claiming closure.
 
 ## Hard Self-Host Progress Guard
 
@@ -106,7 +167,8 @@ cosmetic reshuffling.
   separate track or a phase deferred until every SoT row is closed.
 - Do not start a general query engine, cache architecture, library adoption, or
   unrelated SoT cleanup while an executable rung is open. Instrument only the
-  reached Pergyra owner needed to identify the next falsifying case.
+  reached Pergyra owner needed to identify the remaining falsifying cases of
+  the active rung.
 - SoT is a hard-substitution rung condition, not an independent cleanup track.
   Close only the semantic seam reached by the one active executable rung.
 - Do not make more than two consecutive SoT-only commits. Before a third, land
@@ -126,10 +188,11 @@ cosmetic reshuffling.
   program once per stage/run, record unique checks and reuses, and attribute
   the result back to the rows. Validate a cumulative graph once at its owner
   boundary.
-- Before delegating parallel work, fix the objective card, owner boundaries,
-  independent edit scopes, and one integration gate. Do not use agent count,
-  token volume, fixture count, or generated files as progress evidence, and do
-  not open parallel implementation tracks on the active executable rung.
+- Before delegating parallel work, fix the whole-chain map and closure plan,
+  objective card, owner boundaries, independent edit scopes, and one shared
+  integration gate. Do not use agent count, token volume, fixture count, or
+  generated files as progress evidence, and do not open parallel
+  implementation tracks on the active executable rung.
 - Agent work directives are temporary coordination artifacts, not numbered
   architecture documents. Store them under `docs/agent_work_directives/` with
   descriptive filenames without a leading document number, and follow that

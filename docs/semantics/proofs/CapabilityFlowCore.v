@@ -16,7 +16,7 @@
   currently holds ON LOAN from its parent. Task creation carries the mask in
   one of three ways (docs/204 §2.4):
 
-    share   the child gets a copy of the parent's mask       (read-like)
+    share   the child copies only the parent's outright mask, not its loan
     lend    the child gets L, the parent gives L up until the child returns
     move    the child gets L, the parent gives L up for good
 
@@ -50,9 +50,9 @@
   outright).
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Bool.Bool.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.Bool.Bool.
 Import ListNotations.
 
 Definition Task := nat.
@@ -89,7 +89,7 @@ Inductive step : Cfg -> Cfg -> Prop :=
   | step_share : forall g p ch,
       fresh g ch -> p <> ch ->
       step g (mkCfg (manifest g)
-                    (upd (hold g) ch (hold g p))
+                    (upd (hold g) ch (mask_and_not (hold g p) (borrowed g p)))
                     (upd (owner_of g) ch (Some p))
                     (borrowed g))
   | step_lend : forall g p ch (L : Mask),
@@ -182,7 +182,10 @@ Proof.
   intros g g' [Hb [Hh [Hx Hd]]] Hs.
   destruct Hs; unfold bounded in *; simpl; intros q c Hc; unfold upd in Hc.
   - (* share *)
-    destruct (Nat.eqb q ch); [exact (Hb p c Hc) | exact (Hb q c Hc)].
+    destruct (Nat.eqb q ch).
+    + apply (Hb p c). unfold mask_and_not in Hc.
+      apply andb_true_iff in Hc. exact (proj1 Hc).
+    + exact (Hb q c Hc).
   - (* lend *)
     destruct (Nat.eqb q ch). apply (Hb p c). apply H1. exact Hc.
     destruct (Nat.eqb q p).
@@ -377,7 +380,8 @@ Proof.
   intros g g' p ch Hs Hnone Hown. destruct Hs; simpl in *; unfold upd in *;
     intros c Hc.
   - by_eqb ch ch0.
-    + inversion Hown; subst. exact Hc.
+    + inversion Hown; subst. unfold mask_and_not in Hc.
+      apply andb_true_iff in Hc. exact (proj1 Hc).
     + rewrite Hnone in Hown. discriminate.
   - by_eqb ch ch0.
     + inversion Hown; subst. exact (H1 c Hc).
@@ -387,6 +391,30 @@ Proof.
     + rewrite Hnone in Hown. discriminate.
   - rewrite Hnone in Hown. discriminate.
   - rewrite Hnone in Hown. discriminate.
+Qed.
+
+(* A child creation never propagates an authority held on loan by its parent.
+   This covers share as well as the existing lend/move outright-only gates. *)
+Theorem child_cannot_inherit_parent_loan : forall g g' p ch c,
+  step g g' -> owner_of g ch = None -> owner_of g' ch = Some p ->
+  borrowed g p c = true -> hold g' ch c = false.
+Proof.
+  intros g g' p ch c Hstep Hnone Howner Hloan.
+  destruct Hstep; simpl in *; unfold upd in *.
+  - by_eqb ch ch0.
+    + inversion Howner; subst. unfold mask_and_not. rewrite Hloan.
+      simpl. apply andb_false_r.
+    + rewrite Hnone in Howner. discriminate.
+  - by_eqb ch ch0.
+    + inversion Howner; subst. destruct (L c) eqn:E; [| reflexivity].
+      pose proof (H2 c E) as Hnot. rewrite Hloan in Hnot. discriminate.
+    + rewrite Hnone in Howner. discriminate.
+  - by_eqb ch ch0.
+    + inversion Howner; subst. destruct (L c) eqn:E; [| reflexivity].
+      pose proof (H2 c E) as Hnot. rewrite Hloan in Hnot. discriminate.
+    + rewrite Hnone in Howner. discriminate.
+  - rewrite Hnone in Howner. discriminate.
+  - rewrite Hnone in Howner. discriminate.
 Qed.
 
 (* MAIN (unique key): while c is on loan from p to ch, ch holds it and p

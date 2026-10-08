@@ -7,6 +7,7 @@
 
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
+#include "llvm_mir_store_coercion.h"
 
 LLVMValueRef
 llvm_member_call_error_recovery(LLVMGenCtx *ctx, ASTNode *node,
@@ -89,6 +90,11 @@ llvm_member_call_emit_arg(LLVMGenCtx *ctx,
         ctx->expected_type_name = param_type_name;
     value = llvm_emit_expression(arg_node, ctx);
     ctx->expected_type_name = saved_expected_type_name;
+    if (value != NULL && param_type_name != NULL)
+        value = llvm_mir_coerce_value_for_store(ctx, value,
+            pergyra_type_to_llvm(ctx, param_type_name));
+    if (ctx->has_error)
+        return NULL;
     return value;
 }
 

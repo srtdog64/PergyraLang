@@ -16,6 +16,7 @@ import "ast_enum_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "array_type_shape_owner.pgy";
 
 struct SemanticAstIterationTypeFacts {
     ok: Bool;
@@ -300,6 +301,13 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
                 collection_element_type = Substring(
                     iterable_type, 6, StringLength(iterable_type) - 7
                 );
+            } else if StartsWith(iterable_type, "Slice<") {
+                let slice_element: Option<String> =
+                    SemanticSliceElementType(iterable_type);
+                if IsSome(slice_element) &&
+                    !SemanticTypeNameContainsUnresolvedUnknown(iterable_type) {
+                    collection_element_type = UnwrapOption(slice_element);
+                }
             } else if StartsWith(iterable_type, "List<") {
                 let list_shape: SemanticConstructedTypeNameFact =
                     SemanticConstructedTypeNameFactFrom(iterable_type);

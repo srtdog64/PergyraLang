@@ -17,7 +17,7 @@ struct PixelFrame {
 }
 
 struct TimedChecksum {
-    elapsedMs: Int;
+    elapsedMs: Long;
     checksum: Long;
 }
 
@@ -141,7 +141,7 @@ func RunNested(inout frame: PixelFrame, pixelCount: Int, rounds: Int) -> Long {
     return checksum;
 }
 
-func Report(label: String, inout samples: Array<Int>, checksum: Long, length: Int) -> Void {
+func Report(label: String, inout samples: Array<Long>, checksum: Long, length: Int) -> Void {
     ArraySort(samples);
     Log(label);
     Log(ToString(checksum));
@@ -160,19 +160,19 @@ func RequireChecksum(actual: Long, expected: Long) -> Void {
 }
 
 func MeasureFlat(inout values: Array<Int>, pixelCount: Int, rounds: Int) -> TimedChecksum {
-    let start: Int = Now();
+    let start: Long = Now();
     let checksum: Long = RunFlat(values, pixelCount, rounds);
     return TimedChecksum(Now() - start, checksum);
 }
 
 func MeasureNominal(inout values: Array<Pixel>, pixelCount: Int, rounds: Int) -> TimedChecksum {
-    let start: Int = Now();
+    let start: Long = Now();
     let checksum: Long = RunNominal(values, pixelCount, rounds);
     return TimedChecksum(Now() - start, checksum);
 }
 
 func MeasureNested(inout frame: PixelFrame, pixelCount: Int, rounds: Int) -> TimedChecksum {
-    let start: Int = Now();
+    let start: Long = Now();
     let checksum: Long = RunNested(frame, pixelCount, rounds);
     return TimedChecksum(Now() - start, checksum);
 }
@@ -207,9 +207,9 @@ func Main() -> Void {
         warmup = warmup + 1;
     }
 
-    let flatSamples: Array<Int> = [];
-    let nominalSamples: Array<Int> = [];
-    let nestedSamples: Array<Int> = [];
+    let flatSamples: Array<Long> = [];
+    let nominalSamples: Array<Long> = [];
+    let nestedSamples: Array<Long> = [];
     let flatChecksum: Long = 0L;
     let nominalChecksum: Long = 0L;
     let nestedChecksum: Long = 0L;
@@ -267,7 +267,7 @@ func Main() -> Void {
     Log("timed_growth=0_by_operation_inventory");
     Log("allocation_count=UNMEASURED_no_public_counter");
     Log("lifetime=Main_scope_reused_across_samples_cleanup_UNMEASURED");
-    Log("clock=Now_Int_ms_host_specific");
+    Log("clock=Now_Long_ms_monotonic");
     Log("warmups=3 samples=101 pixels=4096 rounds=2000");
 
     if flatChecksum != expected || nominalChecksum != expected ||

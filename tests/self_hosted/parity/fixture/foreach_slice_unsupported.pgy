@@ -1,0 +1,7 @@
+// The semantic element type is known; no Float Slice ABI has been admitted.
+func Visit(values: Slice<Float>) -> Void
+{
+    for value in values { }
+}
+
+func Main() -> Void { }

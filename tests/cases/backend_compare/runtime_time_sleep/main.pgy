@@ -1,5 +1,5 @@
 func Main() -> Void {
-    let t: Int = Now();
+    let t: Long = Now();
     Log(t >= 0);
     Sleep(0);
     Log("timer-ok");

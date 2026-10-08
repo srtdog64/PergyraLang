@@ -1,5 +1,5 @@
 extern "c" {
-    func pgy_now_ms() -> Int;
+    func pgy_now_ms() -> Long;
 }
 
 func Main() -> Void {

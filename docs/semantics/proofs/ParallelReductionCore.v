@@ -53,9 +53,9 @@
   (tests/cases/parallel_join/reject_outer_write.pgy), not something proved here.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 (* ===================================================================== *)

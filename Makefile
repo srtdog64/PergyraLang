@@ -2092,7 +2092,7 @@ test-lifecycle:
 # Secure-slot scope safety regression (double-release, leak, capacity growth).
 test-slot-scope: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 	@echo "=== Secure Slot Scope Safety Test ==="
-	$(CC) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
+	$(CC) $(PLATFORM_CFLAGS) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
 	    $(RUNTIME_DIR)/test_slot_scope_safety.c \
 	    $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
 	    -o $(BUILD_DIR)/test_slot_scope$(EXEEXT) \
@@ -2102,7 +2102,7 @@ test-slot-scope: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 # Content capability gate regression (manifest grant + fail-closed denial).
 test-capability: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 	@echo "=== Capability Gate Test ==="
-	$(CC) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
+	$(CC) $(PLATFORM_CFLAGS) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
 	    $(RUNTIME_DIR)/test_capability_gate.c \
 	    $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
 	    -o $(BUILD_DIR)/test_capability$(EXEEXT) \
@@ -2114,7 +2114,7 @@ test-capability: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 # loader imposes; metered ops charge their kind and panic fail-closed on overrun.
 test-budget: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 	@echo "=== Resource Budget Gate Test ==="
-	$(CC) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
+	$(CC) $(PLATFORM_CFLAGS) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
 	    $(RUNTIME_DIR)/test_budget_gate.c \
 	    $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
 	    -o $(BUILD_DIR)/test_budget$(EXEEXT) \
@@ -2270,14 +2270,21 @@ native-imported-private-nominal-test-smoke: $(PGY)
 	PGY_NATIVE_BOUNDARY_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
 	"$(BASH)" tests/native_imported_private_nominal_smoke.sh
 
+native-string-result-control-ownership-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
+	"$(BASH)" tests/string_result_control_ownership_smoke.sh
+
 native-compiler-boundary-regression-test-smoke: \
 	native-match-scrutinee-single-evaluation-test-smoke \
 	native-c-callable-macro-hygiene-test-smoke \
-	native-imported-private-nominal-test-smoke
+	native-imported-private-nominal-test-smoke \
+	native-string-result-control-ownership-test-smoke
 
 .PHONY: native-match-scrutinee-single-evaluation-test-smoke \
 	native-c-callable-macro-hygiene-test-smoke \
 	native-imported-private-nominal-test-smoke \
+	native-string-result-control-ownership-test-smoke \
 	native-compiler-boundary-regression-test-smoke
 
 parallel-capture-projection-test-smoke: $(PGY)
@@ -2791,8 +2798,8 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_decl_accessors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_decl_accessors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)
@@ -3326,6 +3333,8 @@ self-host-gate-dashboard: $(PGY)
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
+	PGY_TEST_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/foreach_slice_codegen_source_owner.sh
 
 self-host-builtin-signature-registry-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/builtin_signature_registry_owner_parity.sh
@@ -4878,6 +4887,13 @@ async-direction-adequacy-test-smoke:
 evidence-lifecycle-adequacy-test-smoke:
 	"$(BASH)" tests/evidence_lifecycle_adequacy_smoke.sh
 
+# Fresh bounded forest model, extracted update/teardown oracles and cost
+# observations. This is not native allocator or whole-language evidence.
+ownership-teardown-redteam-test-smoke:
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership_teardown_redteam_smoke.sh
+
+.PHONY: ownership-teardown-redteam-test-smoke
+
 machine-layer-pipeline-test-smoke: $(PGY) machine-layer-manifest-test-smoke self-host-mir-machine-layer-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/machine_layer_pipeline_smoke.sh
 
@@ -4899,8 +4915,12 @@ proof-carrying-pipeline-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/proof_carrying_pipeline_smoke.sh
 
-proof-carrying-adequacy-test-smoke:
+proof-carrying-adequacy-test-smoke: proof-carrying-pipeline-test-smoke
 	"$(BASH)" tests/proof_carrying_adequacy_smoke.sh
+
+ownership-clean-model-test-smoke:
+	"$(BASH)" tests/ownership_clean_direction_selftest.sh
+	"$(BASH)" tests/ownership_cleanup_smoke.sh
 
 air-backend-nonimpact-test-smoke:
 	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
@@ -4974,7 +4994,7 @@ transpile-strict-source-test-smoke:
 	"$(BASH)" tests/transpile_strict_source_smoke.sh
 
 source-test-harness-compile-test-smoke:
-	"$(BASH)" tests/source_test_harness_compile_smoke.sh
+	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" "$(BASH)" tests/source_test_harness_compile_smoke.sh
 
 inc-sentinel-test-smoke:
 	"$(BASH)" tests/inc_sentinel_smoke.sh
@@ -5142,6 +5162,20 @@ runtime-frontier-policy-test-smoke:
 
 runtime-intent-observability-contract-test-smoke:
 	"$(BASH)" tests/runtime_intent_observability_contract_smoke.sh
+
+# Direct current-source probes, independent of cached runtime objects.
+runtime-proof-redteam-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/runtime_intent_identity_reuse_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime_host_clock_smoke.sh
+	CC="$(CC)" "$(BASH)" tests/runtime_c_profile_smoke.sh
+
+runtime-now-compiler-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_now_compiler_smoke.sh
+
+call-scalar-widening-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/call_scalar_widening_smoke.sh
+
+.PHONY: runtime-proof-redteam-test-smoke runtime-now-compiler-test-smoke call-scalar-widening-test-smoke
 
 parallel-core-contract-test-smoke:
 	"$(BASH)" tests/parallel_core_contract_smoke.sh
@@ -5450,6 +5484,14 @@ memcheck: debug
 	valgrind --leak-check=full --show-leak-kinds=all ./$(TRANSPILE_TEST)
 
 lsp: $(PGY_LSP) self-host-lsp
+
+.PHONY: ownership-gc-comparison-test-smoke
+ownership-gc-comparison-test-smoke:
+	"$(BASH)" tests/ownership_gc_comparison_smoke.sh
+
+.PHONY: memory-boundary-composition-test-smoke
+memory-boundary-composition-test-smoke:
+	"$(BASH)" tests/memory_boundary_composition_smoke.sh
 
 .PHONY: all compiler dev-compiler all-with-tests clean clean-objects clean-scratch build-resource-report build-pressure-dev-compiler build-pressure-compiler build-pressure-self-host-compiler clean-local-variant-artifacts clean-local-artifacts rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \

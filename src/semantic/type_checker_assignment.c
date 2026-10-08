@@ -5,6 +5,7 @@
 #include "collection_ownership_fact.h"
 #include "indexed_string_borrow_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_ownership_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "diag_codes.h"
 #include "compiler/decl_field_model.h"
@@ -110,13 +111,19 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     Type *target_type = NULL;
     ASTNode *target = ast_assignment_target(expr);
     ASTNode *value = ast_assignment_value(expr);
+    Symbol *value_binding = target != NULL && target->type == AST_IDENTIFIER
+        ? lookup_identifier_symbol(target, ctx) : NULL;
+    bool tracked_value_place = value_binding != NULL
+        && semantic_classify_ownership_type(value_binding->type, ctx)
+            == OWNERSHIP_TYPE_BORROW_TRACKED;
     /* An empty collection literal takes the target's type as its storage
      * site, so the target is typed first; the literal has no operands. */
     bool target_typed_first = semantic_expr_is_empty_collection_literal(value);
 
     reject_if_embedded_world_zone_mutation(ctx, expr, target, "assignment");
     if (target_typed_first)
-        target_type = type_check_expression(target, ctx);
+        target_type = tracked_value_place ? value_binding->type
+            : type_check_expression(target, ctx);
     value_type = type_check_expression_at_typed_site(value, target_type, ctx);
     semantic_bound_party_note_value_use(ctx, value);
     if (value_type == NULL)
@@ -197,7 +204,8 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (!target_typed_first)
-        target_type = type_check_expression(target, ctx);
+        target_type = tracked_value_place ? value_binding->type
+            : type_check_expression(target, ctx);
     if (target_type == NULL)
         target_type = TYPE_UNKNOWN;
 
@@ -277,6 +285,11 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     require_assignable(value_type, target_type, expr, ctx);
     if (!ctx->has_error && target != NULL && target->type == AST_IDENTIFIER) {
         Symbol *target_sym = lookup_identifier_symbol(target, ctx);
+        /* The target is a write place, not a read of its old generation.
+         * Restore liveness only after the RHS and all assignment contracts
+         * admit the new value; this grants no array storage exclusivity. */
+        if (tracked_value_place && target_sym != NULL)
+            target_sym->is_consumed = false;
         semantic_indexed_string_borrow_record_assignment(
             target_sym, value, expr, ctx);
     }

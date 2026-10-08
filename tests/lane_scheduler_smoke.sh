@@ -42,7 +42,7 @@ if ! "${CC_CMD[@]}" -Wall -std=c11 -O1 -fwrapv -fno-strict-aliasing -pthread \
     cat "$COMPILE_ERR" >&2 || true
     fail "cext runtime object compile failed"
 fi
-if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -Wno-unused-function -std=c11 \
+if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -Wno-unused-function -std=c11 -pthread \
     -DPGY_RUNTIME_DECLS_ONLY \
     -I"$ROOT_DIR/src" \
     -I"$ROOT_DIR/src/runtime" \

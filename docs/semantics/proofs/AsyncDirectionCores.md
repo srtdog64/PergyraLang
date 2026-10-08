@@ -27,7 +27,7 @@ a shape from `docs/113`, from `src/runtime`, or from `docs/178`, and
 `tests/async_direction_adequacy_smoke.sh` binds every transcribed shape back
 to its source line so a model cannot silently stop describing the code.
 
-## 1. `AsyncScopeCore.v` — a running task always has a live scope
+## 1. `AsyncScopeCore.v` — a pending task always has a live scope
 
 A configuration holds task rows `(task, scope, state)`, the open scopes, the
 scope tree, and whether the detach capability is held. The root scope is
@@ -35,25 +35,37 @@ always open; it is the only place a detached task may live.
 
 | step | guard | what it models |
 |---|---|---|
-| `open s` | `s` fresh, non-root, parent open | entering a `parallel` block or an intent step |
-| `spawn t s` | `s` open, non-root | named `spawn` inside a scope |
-| `complete t` | — | the task finishes |
-| `cancel s` | `cs` is exactly the descendants of `s` | cooperative cancellation of a subtree |
-| `close s` | nothing in `s` still runs, no child scope open | join-before-continuation |
-| `detach t` | the detach capability is held | moving a task to the background |
+| `open s` | `s` closed, non-root, parent open | entering or reopening a scope |
+| `spawn t s` | `s` open, non-root; task id never issued before | named `spawn` inside a scope |
+| `complete t` | an issued task is pending | the task finishes and drains its obligation |
+| `cancel s` | `s` open; `cs` exactly its descendants | request cancellation of the current pending tasks |
+| `close s` | `s` open; no pending task, no open child | join-before-continuation; retire both endpoints of old ancestry edges |
+| `detach t` | detach capability and pending task | moving a task to the background |
 
-The invariant `contained` says every running task's scope is open.
+The invariant `contained` says every non-`Done` task's scope is open.
+`Cancelled` is a request-pending state, not termination. A cancellation
+request must still reach `complete` before its scope can close.
 
 ### What is proved
 
 - **`run_no_orphan`** — a structured run never reaches an orphan. Every step
   preserves `contained`, and the root stays open under every step.
-- **`no_running_task_in_closed_scope`** — once a scope is closed nothing in it
-  runs: `parallel`'s join-before-continuation generalised to every scope.
+- **`no_pending_task_in_closed_scope`** — once a scope is closed nothing in it
+  remains pending, including requested cancellation. Its running-only corollary
+  is `no_running_task_in_closed_scope`.
   `docs/113` now requires this of every named handle; `AsyncLifecycleCore.v`
   proves it per handle; this theorem states it for the tree.
-- **`cancel_reaches_descendants`** — cancelling a scope leaves no running task
-  in it or in any descendant scope.
+- **`cancel_keeps_descendants_pending`** and
+  **`cancellation_does_not_admit_close`** — the request reaches descendants
+  without discharging their lifetime. `cancel_reaches_descendants` states only
+  that these rows leave the `Running` tag; it is not a completion theorem.
+- **`step_preserves_live_ancestry`**, **`run_preserves_live_ancestry`** and
+  **`reopened_scope_has_only_current_parent`** — close retires old edges, so
+  a reused numeric scope id cannot inherit a former parent or cancellation
+  subtree. A permanent close/reopen execution demonstrates this case.
+- **`run_preserves_unique_task_identities`** — task identities remain unique
+  across the retained history. Completed rows block reuse of that task id,
+  so an old completion cannot be confused with a new occupant in this model.
 - **`background_only_via_detach`** — with the detach capability absent, no
   reachable configuration has a task in the root scope. Detach is a
   permission, which is docs/204 §2.5's decision.
@@ -68,12 +80,18 @@ The invariant `contained` says every running task's scope is open.
 
 ### What is not established
 
-Cancellation is a state change, not preemption (`docs/114` §5). Nothing
+Cancellation is a request, not preemption (`docs/114` §5). This finite-step
+model does not prove eventual completion, model sticky cancellation of future
+spawns, or recycle task handles; such recycling needs a separate incarnation
+contract. Nothing
 shows the compiler enforces the scope guards beyond the named-Future flow;
 that enforcement is docs/204 §4 item 2. The runtime skeleton this rung will
 consume exists with no caller (`src/runtime/async/async_scope.h`), and the
 gate pins its `AsyncScopeWaitAll` so the model's close rule stays tied to a
-real join.
+real join. `tests/async_reuse_redteam_smoke.sh` freshly kernel-checks the
+owners and `tests/coq/AsyncReuseRedteamRegression.v`, including cancellation
+drain and numeric scope reuse. The source-text adequacy gate is an anchor,
+not proof that the runtime implements the whole scope-tree relation.
 
 ## 2. `CapabilityFlowCore.v` — nothing held was not granted
 

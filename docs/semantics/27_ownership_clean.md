@@ -1,0 +1,1150 @@
+# Ownership Clean: Compiler-Owned Cleanup Model
+
+Status: `formal-model; implementation OPEN`.
+Proof: [`proofs/OwnershipCleanCore.v`](proofs/OwnershipCleanCore.v), with
+[`proofs/OwnershipCleanComposition.v`](proofs/OwnershipCleanComposition.v),
+[`proofs/OwnershipCleanReadOnly.v`](proofs/OwnershipCleanReadOnly.v), and
+[`proofs/OwnershipCleanExits.v`](proofs/OwnershipCleanExits.v)
+(no axioms, no admits; checked by Rocq 9.3.0 and `rocqchk`).
+Direction: `AGENTS.md` (2026-10-08) selects compiler-owned ownership cleanup,
+not a tracing GC. It also rules out manual deep drop, field carrier/restoration
+choreography, and extra `own`/`ref` annotations as the default answer to
+missing compiler inference.
+Related design review: [`../audits/ownership_dx_architecture_recheck_2026-10-08.md`](../audits/ownership_dx_architecture_recheck_2026-10-08.md).
+
+This document fixes the algorithm that turns a value-semantics program into
+one that releases every heap block exactly once, at its last use, with no
+source annotation. The Rocq file proves it on a core language. Nothing here
+claims that the native or self-hosted compiler implements it yet.
+
+**Mechanism.** The adopted name is in section 0. The mechanism behind it is
+static ownership elaboration: the compiler decides, at compile time, where
+each value is moved, copied, and released, and inserts those operations into
+the program. There is no tracing, no reference count, and no collector at
+run time. Ordinary values retire at their certified last use; declared region
+lifetimes and observable resource cleanup edges remain their own boundaries.
+This is not a claim that every allocator returns pages at the last source
+read. "Automatic"
+means that the source contains no release code, not that a runtime finds
+garbage.
+
+## 0. Adopted name and comparison boundary
+
+Adopted on 2026-10-08 at the user's direction: **ownership-based automatic
+memory management** (`소유권 기반 자동 메모리 관리`). The authoring goal is
+**GC-like convenience from ownership evidence**. This is Pergyra's core
+ordinary-value lifecycle mechanism, not an optional collector mode. The
+existing source semantics, one-owner machine, inferred conventions, D1 copy
+policy and C2 implementation interface below remain unchanged.
+
+The mechanism is automatic; it is not a tracing GC. Logical retirement and
+physical allocator reuse are different obligations. Batching or region reuse
+may consume verified lifetime facts, but must not create a second owner,
+delay observable resource finalization, or hide an unproved lifetime behind
+a GC/RC fallback. Files, sockets and authority-bearing handles retain their
+declared cleanup edges.
+
+The importing supplement
+[`proofs/OwnershipCleanGCComparison.v`](proofs/OwnershipCleanGCComparison.v)
+bounds comparisons. Under canonical `INV`, the exact owner/frame heap has
+no more blocks than a duplicate-free collector heap covering those same live
+blocks. Read coverage permits deferred garbage; ownership additionally
+requires exact reclamation. A correct collector can match the exact heap,
+so this does not prove that correct GC is less memory-safe.
+
+For a common allocate/observe/retire workload, canonical `elab` and `texec`
+remain the executable semantic authority. Compared with an ideal-root,
+nonmoving full-heap sweep under equal allocation/copy/release costs, ownership
+avoids that sweep's inspections. A strict abstract cost advantage requires
+positive inspection cost and nonempty work. This is not a wall-time theorem
+or a model of all collectors. Immediate collection, zero inspection weight,
+and a different bulk-reset allocator prevent universal strict superiority.
+The cost formulas are independent accounting under an equal-policy premise,
+not runtime algorithms or measurements. Separate allocator/copy/barrier
+profiles include witnesses in both directions; cheap shared references can
+beat ownership copies. None establishes general or generational GC speed.
+The proof/audit gate is `tests/ownership_gc_comparison_smoke.sh`; compiler
+refinement, actual C/LLVM performance and installed-driver evidence stay OPEN.
+
+Identity-bearing graphs add separate retention, nullable-link, indexing,
+loan and finalizer costs; see
+[composition tradeoffs and limits](28_memory_boundary_composition.md#tradeoffs-and-limits).
+The [Qt provenance](28_memory_boundary_composition.md#design-provenance)
+credits the user's graph/teardown proposal, not the ordinary-value
+liveness and move/copy algorithm specified here.
+
+## 1. Why: the measured starting point
+
+The figures below describe the earlier 2026-10-08 source snapshot, before the
+later rollback/deletion inventory. They are historical starting-point
+observations, not today's counts. P0 must rebind counts/locations to its exact
+source manifest; do not mix them with the cutover plan's later inventory.
+
+- **No general automatic last-use release.** Existing generated explicit
+  release and bounded cleanup paths are not this ownership-clean pass.
+  Copying a value generally copies the descriptor; the backing is
+  shared. `llvm_expr_aggregate.c` calls this "correct under Pergyra's no-free
+  model". The scope-exit releases that do exist cover Slot, zone/world/effect
+  handles, `defer`, and string-concat region temporaries.
+- **The storage model has to change first.** Under today's shared backing,
+  inserting a drop at each last use frees one backing once per descriptor
+  copy, which is a double free (`alias_copy_double_free`). Drop insertion
+  alone is therefore not a partial step toward this model; it is a bug.
+  Landing the model replaces the storage model first: one owner per backing,
+  and deep copy glue wherever a fact says copy (section 5.4). Only then are
+  drops emitted.
+- **Manual release in the compiler.** The self-hosted compiler calls
+  `CompilerRetireArrayStorage` 212 times, `ArrayDrop` 148 times, and
+  `ArrayDropOwnedStrings` 87 times. The release-proof analyzer that admits
+  those calls is 34 `ast_collection_aggregate_*` files, 5,808 lines. Its
+  refusals of the compiler's own releases are the current DRV-2 blockers. The
+  retirements exist to fit the 3 GiB build-pressure cap (recorded peak 2.974
+  GiB), not for correctness.
+- **Authoring cost.** The source has to detach a field, call, and restore it,
+  because `inout` refuses a member path such as `Push(h.items)`. Results have
+  to be threaded through `own` and rebound. Temporaries have to be bound to
+  named locals before readonly boundaries. In compiler source, the
+  parameter-mode annotations went from 71 (2026-07-01) to 6,849 (2026-10-08,
+  dirty tree).
+
+The ownership-clean model moves that work into the compiler.
+
+## 2. The model
+
+### 2.1 Source language: value semantics only
+
+The source has no move, drop, `own`, `ref`, or clone. Every read observes an
+independent value, and nothing is ever freed. The core statements are:
+computed definition, copy `x := y`, aggregate construction `x := Node[ys]`,
+push `x := x ++ [y]`, field/element read `x := y.i`, observation, sequencing,
+`if`, `while`, a function call `x := g(ys)`, an inout call
+`g(inout z, ys)`, a focus on a part (step 8), an unpack of a record into its
+parts (step 9), and a region value (step 10). The exits layer adds `break`,
+`continue`, `return`, `throw`, and `try` (step 11). Parameters have no mode in
+the source; a parameter is just a value. This semantics is the reference: elaboration must not change
+what it observes.
+
+### 2.2 Target: the ownership machine
+
+Each runtime value owns a list of heap blocks, exactly one block per node of
+the value, in preorder. One allocation step creates all the blocks of the
+value it builds, so a deep copy allocates one block per node, and the blocks
+of any part can be found from its path. A frame has owned bindings
+and borrowed bindings. A borrowed binding can be read but never moved,
+mutated, or freed; its blocks belong to an enclosing frame (the frame heap).
+A call moves its sink arguments into the callee frame, where they are owned,
+and lends its borrowed arguments.
+The machine keeps an explicit live-block heap. A step that would do any of the following has no rule, so the
+machine is stuck:
+
+- read or free a block that is not live;
+- free a block twice;
+- free or move through a borrow;
+- bind over a live owner;
+- allocate a block that is still live.
+
+Getting stuck is how use-after-free, double free, owner overwrite, and
+live-block reuse are refused.
+
+### 2.3 The elaboration algorithm
+
+The input is the set `L` of variables live after the statement, computed by a
+backward liveness pass, and the set `B` of borrowed variables (the enclosing
+function's readonly parameters).
+
+1. **Move or copy.** A use of `y` that is still live afterwards (`y ∈ L`) or
+   borrowed (`y ∈ B`) is a copy, which allocates fresh storage. Otherwise it
+   is a move: the storage is transferred and `y` is unbound.
+2. **Consuming constructors.** Aggregate construction and push consume their
+   element operands. If an element is still live, the compiler first copies it
+   into a temporary and moves the temporary in. A dead element is moved
+   directly.
+3. **ASAP release (`settle`).** After each statement, every variable that was
+   live before and is dead after is released. An owned variable is dropped,
+   which releases its whole footprint, deep by construction. A borrowed one
+   only ends, with no heap effect.
+4. **Branches.** Each arm starts by dropping the variables live into the `if`
+   that the arm no longer needs. Both arms end with the same live set, so the
+   join needs no runtime drop flag.
+5. **Loops.** A loop carries a head live set as a certificate. Elaboration only
+   checks it: the body's live-in, the exit set, and the condition must all be
+   included in it. The liveness solver is therefore outside the trusted base.
+   On entry the body drops what is redefined before use; on exit the loop drops
+   what is dead afterwards.
+6. **Calls.** Each parameter has a mode, borrowed or sink. The mode table is an
+   input to elaboration, like the loop head.
+   - A borrowed argument is lent. The callee body is elaborated with its
+     borrowed parameters in `B` and only its result live at exit, so it can
+     read them and copy out of them but cannot release caller storage.
+   - A sink argument is consumed. The caller moves it into the callee frame
+     at its last use. If the caller still needs it (it is read later, also
+     lent to the same call, or itself borrowed by the caller), the caller
+     first copies it into a temporary and moves the temporary.
+   - Parameters the body never uses are released on entry: sink ones are
+     dropped, borrowed ones end.
+   - The result's ownership returns to the caller.
+   - In this core, an inout call has one inout argument: its first sink
+     argument is also its result. The argument moves in and the updated value
+     moves back, with no copy. A production call can have several inout
+     arguments and an independent result. Its ordered normalization and
+     recovery on every exit are separate refinement obligations (§5.10), not
+     an already proved consequence of `SCallIO`.
+   - The core refuses a call that passes one variable to two sink
+     parameters. The implementation binds a temporary first.
+   - **Summaries fail closed.** The table holds, for each routine, either a
+     resolved summary (one `borrow` or `sink` entry per parameter) or none.
+     A call through a routine with no summary is refused. So is a summary
+     whose length differs from the call's argument count, and a routine
+     whose summary length differs from its parameter count. A missing entry
+     is never read as `borrow`: an unresolved summary and a verified
+     all-borrowed one are different values (`missing_summary_refuses_call`,
+     `arity_mismatch_refuses_call`, `missing_summary_refuses_routine`,
+     `arity_mismatch_refuses_routine`).
+7. **Mode inference.** A parameter is sink when the callee body stores it,
+   moves it, mutates or redefines it, returns it, or passes it on to a sink
+   parameter. Every other parameter is borrowed. Elaboration is sound for
+   every mode table, so inference is outside the trusted base.
+   - Inference starts from no summaries. Each round resolves every defined
+     routine with one entry per parameter, and leaves an undefined routine
+     unresolved (`infer_resolves_defined`). A call to an unresolved callee
+     contributes no sink use in that round; this is sound only because
+     elaboration refuses the call itself until the callee is resolved.
+   - Rounds ascend (`owns_monotone`, `infer_monotone`, `infer_ascends`): no
+     round withdraws a summary or turns a sink parameter back into a
+     borrowed one. After the first round each later round can only flip
+     entries from `borrow` to `sink`, so the iteration stops once two rounds
+     agree, after at most one round more than the program has parameters,
+     recursion included. That bound is argued here, not mechanized.
+   - A table that has not converged is still sound. It lends a parameter
+     that a later round would make sink, which costs a copy at a call and
+     never safety (`chain_needs_two_rounds`). The implementation runs to the
+     fixpoint so that the copy count is the converged one.
+8. **Places (focus).** `focus t on y.p { s }` moves the part of the owned root
+   `y` at path `p` into the temporary `t`, with exactly that part's blocks.
+   The rest of `y` is suspended in the frame heap and is unreachable while
+   `s` runs. Afterwards the final value of `t` moves back into the same
+   place. No block is copied.
+   - The body is elaborated with `t` live at its end and `y` removed from the
+     live set. `elab` refuses the focus when `y` is live inside the body, when
+     `t` is still live after the focus, when `t` and `y` are the same
+     variable, or when `y` is borrowed.
+   - One construct covers three source forms: an inout call on a member
+     path (`AddDraw(inout state.draws, label)`), an update of a part from
+     itself (`state.draws = Append(state.draws, label)`), and a read-only
+     view of a part for a range that does not touch the root
+     (`let items = state.draws` followed by reads of `items` only).
+   - The mode table treats a focus as a write to `y`, so a parameter used as
+     a focus root is inferred sink.
+9. **Dead aggregates (unpack).** `unpack y into xs` moves each part of the
+   owned record `y` into its own variable, with exactly that part's blocks,
+   and frees only `y`'s own node block. No block is copied.
+   - `elab` refuses it when `y` is live afterwards, when `y` is borrowed, when
+     `y` is also a part name, or when part names repeat or are borrowed.
+     Parts that nothing reads are dropped right after the unpack.
+   - It covers overlapping projections. `let items = h.items` while
+     `h.name` is also read, followed by a use of `h` as a whole, becomes
+     unpack, reads of the parts, and a pack of the parts back into `h`, with
+     no copy (`overlapping_projection_copies_nothing`). The field-copy
+     version pays two field copies.
+   - Taking one part out of a record that is dead afterwards costs no copy
+     (`dead_aggregate_part_moves`).
+   - `unpack_after_pack` shows that unpacking a packed value gives each part
+     back its original footprint.
+10. **Regions.** `region x := f(ys) { s }` defines `x` at the start and keeps
+    it live to the end of the region. The body is elaborated with `x` live
+    at its end, so every use inside that consumes `x` copies it, and `x` is
+    released once, on exit.
+    - `region_released_at_exit`: no drop of `x` inside the region, one at
+      its end.
+    - `elab` refuses a region whose value is still live after it, is
+      redefined inside it, or is borrowed.
+    - A value that escapes the region is copied out at the escape
+      (`region_escape_copies`).
+    - This models a string-concat region temporary and a zone-scoped value.
+      Several values released at one region end are one release set, which
+      may be emitted in any order (`drops_commute`).
+11. **Exits** ([`proofs/OwnershipCleanExits.v`](proofs/OwnershipCleanExits.v)).
+    `break`, `continue`, `return`, `throw`, and `try` are a layer over the
+    core statements. Each exit has a target live set: the loop's
+    continuation for `break`, the loop head for `continue`, the routine
+    result for `return`, and the handler's live-in for `throw`. Elaboration
+    uses the target set as the live-after set of the exit, so the settle
+    before an exit releases exactly what the target does not need.
+    - `xelab_sound`: every outcome (normal, break, continue, return, error)
+      runs with the source trace and ends with exactly the target set bound,
+      holding the source's contents. `x_closed_frees_everything`: a closed
+      program frees everything on every outcome.
+    - An error between building two parts and packing them releases both
+      built parts on the way to the handler
+      (`error_releases_partial_parts`). This is the model's partial
+      initialization: a half-built value is never a value, only parts, and
+      each part is released by its own owner.
+    - An early return releases everything except the result
+      (`early_return_elaborates`, `routine_exit_is_uniform`), and a break
+      releases the loop-local values (`break_elaborates`).
+    - No exit edge needs a drop flag: the releases on each edge are
+      unconditional, like those of a branch arm.
+
+### 2.4 Proven properties
+
+| Theorem | Meaning |
+|---|---|
+| `elab_sound` | For every mode table, and every function table whose bodies elaborate under it, the elaborated program runs with no refused step and emits exactly the source trace. At every statement boundary the bound variables are exactly the live ones, holding the source's contents. |
+| `heap_is_live_footprint` | At every boundary the live heap is a permutation of the owned footprints plus the frame heap: no block is shared (no alias, no double free) and none is unowned (garbage free). |
+| `closed_program_frees_everything` | A closed program ends with an empty heap and empty environments. |
+| `elab_copy_moves_dead_source`, `elab_copy_copies_live_source`, `elab_copy_copies_borrowed_source` | The move/copy decision table. A copy is emitted only when the source is still live or only borrowed. |
+| `gui_program_runs_clean` | The `Array<GuiDraw>` + `Label(String)` shape that blocked the GUI work runs with zero copies and frees everything. `gui_program_reuse_copies_once` shows that reading the label after the push costs exactly one copy. |
+| `gui_calls_sink_moves_only`, `gui_calls_sink_runs_clean` | The same shape through a constructor function and an inout append procedure. With inferred modes it copies nothing and frees everything. With borrow-only modes it copies twice (`gui_calls_copy_twice`, `gui_calls_runs_clean`). |
+| `gui_calls_sink_reuse_copies_once` | A caller that still needs the text after the constructor call pays one copy, at the call site. Borrow-only modes pay two, inside the callees (`gui_calls_reuse_borrowed_copies_twice`). |
+| `owned_update_needs_sink` | `Append(xs, y)`, which pushes `y` and returns `xs`, is refused with borrow-only modes. Once both parameters are inferred sink it runs with zero copies and no annotation. |
+| `gui_state_focus_copies_nothing`, `gui_state_runs_clean` | A `GuiState` record with `AddDraw(inout state.draws, label)` on its member path: no copy and no field copy, and everything is freed. |
+| `gui_state_detach_copies_the_field` | The same update with today's detach/restore ceremony costs one field copy. |
+| `gui_state_update_copies_nothing` | `state.draws = Append(state.draws, label)` through a sink `Append`: no copy. |
+| `projection_view_copies_nothing` | A read-only view of `state.draws` through a focus costs nothing; binding it to a local with a field read costs one field copy. |
+| `focus_refusals` | `elab` refuses a focus whose body reads the root, whose temporary is live after it, whose temporary is the root, or whose root is borrowed. |
+| `pack_child_segment` | After a pack, the blocks a focus moves for child `i` are exactly the blocks that child owned before the pack. The layout is faithful, not a convention the proof can choose. |
+| `gui_modes_inferred`, `gui_modes_fixpoint` | Inference marks both GUI parameters sink, and one more round leaves the table unchanged. |
+| `settle_tail`, `elab_def_releases_operands`, `elab_call_releases_operands` | The releases after a statement depend only on the variables it mentions. An implementation tests membership once per operand instead of walking the live set. |
+| `alias_copy_double_free` | A shallow alias copy (today's descriptor copy, the open C2 case) makes the two automatic drops free one block twice. The second free is refused. |
+| `early_drop_use_after_free` | Dropping before the last use leaves that use stuck. |
+| `borrowed_drop_refused` | A callee cannot free a borrowed parameter. |
+| `missing_settle_leaks` | Without `settle`, a dead definition keeps a live block that no variable owns. |
+| `overlapping_projection_copies_nothing`, `dead_aggregate_part_moves`, `unpack_after_pack`, `unpack_refusals` | Unpack: overlapping part reads and a part taken from a dead record copy nothing; the parts keep their own footprints; the four refused shapes. |
+| `rec_unpack_runs_clean` | The unpack-read-repack program runs with no refused step and frees everything. |
+| `region_released_at_exit`, `region_value_released_once`, `region_escape_copies`, `region_refusals` | A region value is dropped exactly once, at the region's end; an escape is copied out; the three refused shapes. |
+| `no_drop_live` | No statement drops a variable that is live after it and that it does not write. |
+| `xelab_sound`, `x_closed_frees_everything` | Exits: each outcome runs with the source trace and ends with its target live set; a closed program frees everything on every outcome. |
+| `error_releases_partial_parts`, `early_return_elaborates`, `routine_exit_is_uniform`, `break_elaborates` | An error releases the parts built so far; a return keeps only the result; a break releases the loop-local values. |
+| `missing_summary_refuses_call`, `arity_mismatch_refuses_call`, `missing_summary_refuses_routine`, `arity_mismatch_refuses_routine`, `missing_summary_is_refused`, `arity_mismatch_is_refused` | No summary, or a summary of the wrong length, is a refusal at the call and at the routine. |
+| `owns_monotone`, `infer_monotone`, `infer_ascends`, `infer_resolves_defined` | Inference rounds from no summaries ascend; every defined routine is resolved with the right length after one round, and an undefined one stays unresolved. |
+| `chain_needs_two_rounds` | A call chain converges in two rounds; the unconverged table costs one copy and is still admitted and sound. |
+
+Two consequences matter for the implementation:
+
+- **C2 closes by construction.** A copy is either a move or a fresh deep copy,
+  so a shared backing never exists. The aliasing questions that the
+  aggregate-release analyzer tries to answer site by site no longer arise.
+- **No drop flags.** ASAP placement plus per-arm settling makes every
+  release unconditional at its program point. Rust needs flags only because it
+  drops at scope end. This is proven for the structured statements and for
+  `break`, `continue`, `return`, `throw`, and `try` (step 11). Partial
+  initialization is a sequence of part definitions followed by a pack, so an
+  error before the pack releases the parts.
+- **Linear release placement.** `settle_tail` shows that the variables
+  released after a statement are among the ones it mentions. Straight-line
+  code costs one membership test per operand. Only branch arms, loop
+  boundaries, and routine entry compare whole live sets, which a bitset does
+  in one pass. The quadratic-to-cubic cost of the extracted proof model comes
+  from its list-based sets, not from the algorithm.
+
+### 2.5 Negative scope of the core
+
+- The semantics is big-step, so divergent runs are not covered. Each
+  terminating prefix of a long-running event loop is a separate finite run;
+  the theorem says nothing about peak memory or OOM.
+- Exits are a layer, not core statements, and an abort is not an exit. A
+  panic that ends the process runs no release; the exits layer covers only
+  exits after which the program keeps running.
+- A part of a borrowed root, read into a variable, is still a fresh copy:
+  unpack and focus both need an owned root. A focus covers the in-place
+  cases and unpack the overlapping ones.
+- A focus path addresses children of nodes. Map keys, set members, and
+  array elements at a runtime index are paths whose index is a runtime
+  value; the core takes the path as given, so the implementation must check
+  the index before the focus and fail closed on a missing element.
+- A drop has no observable effect. A resource whose release is visible (a
+  file, a socket, a zone handle) keeps its own cleanup edge (section 3).
+- Elaboration refuses a call through an unresolved summary and any summary
+  of the wrong length (step 6). It does not check types, and the theorems
+  take the source execution as a premise. The implementation reads name,
+  type, and arity facts from semantic admission and fails closed when one is
+  missing (section 5).
+- A region holds one value; nested regions give several. Slot, async, and
+  FFI are outside the model, and so is the physical allocator: the model's
+  abstract block allocator is not refined against `pgy_alloc`. Recursion is
+  covered, because big-step derivations are finite.
+- Write-through Slice and returned views are outside this independent-value
+  source core. Checked loan/current-lifetime refinement or fail-closed
+  exclusion of the affected automatic-elaboration boundary is required
+  (§5.10); exclusion means compilation refusal, not omitted cleanup. The
+  two-field Slice descriptor has no generation issuer identified yet.
+- Multi-inout plus an independent result and ordered expression/short-circuit
+  normalization are not proved by the single-output `SCallIO` (§5.10).
+
+### 2.6 Composition laws and read-only alias elision (adopted)
+
+Adopted on 2026-10-08 after review. The design is the one in
+[`../207_compiler_owned_cleanup_algorithm.md`](../207_compiler_owned_cleanup_algorithm.md)
+sections 9 and 10. Two supplementary proofs import the core and reuse its
+source and target semantics. Neither adds a heap, an ownership rule, or
+syntax. Rocq 9.3.0 and `rocqchk` check both, with no assumptions.
+
+**Composition** ([`proofs/OwnershipCleanComposition.v`](proofs/OwnershipCleanComposition.v)).
+Sequencing in the ownership machine behaves like bind in a state-and-trace
+monad whose result is unit. `cleanup_equiv` is exact equivalence of target
+executions from every start state: the same trace, environments, heap, and
+allocation frontier.
+
+- Laws: left and right unit, associativity, congruence for sequence, branch,
+  and loop, and branch-bind,
+  `(if c then a else b); k  ≈  if c then (a; k) else (b; k)`.
+- `normalize_cleanup` removes administrative `Skip` nodes with these laws,
+  and `elab_normalized_sound` carries the soundness theorem over to the
+  normalized output.
+- Falsifiers on the same machine:
+  - a branch with empty arms still reads its guard;
+  - a drop in both arms runs once, while two drops in sequence are refused;
+  - two observations are not one.
+
+These laws are the equational theory for every target-level rewrite. C3
+admits a rewrite of target code only with a `cleanup_equiv` proof, never by
+comparing program output.
+
+**Read-only alias elision** ([`proofs/OwnershipCleanReadOnly.v`](proofs/OwnershipCleanReadOnly.v)).
+Given `a := x` followed by a region, the rewrite replaces reads of `a` with
+reads of `x` and deletes the copy, then runs the canonical `elab` on the
+result. This is copy propagation on the value-semantics source. No pointer,
+loan, or second owner exists: the root's liveness extends to the last former
+use of `a`, so the root is released after it.
+
+- `readonly_copy_elision`: an admitted rewrite runs with the same trace and
+  the same final values, except for `a`.
+- `readonly_elaboration_frees_everything`: the rewritten closed program frees
+  everything.
+- `ro_demo_one_fewer_allocation`: on a fixed program, one fewer abstract
+  allocation, proven on both executions.
+- `ro_mutation_changes_observation`: a write to the root inside the region
+  would change the observed value, so the rewrite refuses it.
+- D1 applies after the rewrite, to the copies that remain. Applying it to the
+  original copy first would refuse legal elisions.
+
+**Why substitution and not a loan.** A borrow binding (`a` lends the storage
+of `x` and pins `x`) needs new frame state and a pin check in every
+consuming rule. Under value semantics an alias is unobservable except through
+writes, so substitution reaches the same result with no runtime state and no
+change to the machine. This statement concerns ordinary independent values,
+not the runtime's existing write-through `Slice` views or indexed String
+borrows. Those require backing-owner lifetime facts (§5.10); substitution
+must not change a mutable view into an independent value.
+
+**Refinements.** Both are in the repository proofs and checked under Rocq
+9.3.0 and `rocqchk` with no assumptions. The scratch module where they were
+first checked is kept at
+`.tmp/ownership-cleanup/claude-refinements/OwnershipCleanWide.v`.
+
+1. **Admission.** The bounded rule refuses any copy, pack, push, or call in
+   the region. Value semantics needs one condition only: no statement in the
+   region writes `a` or `x`, whether as a definition target, a push target,
+   or an inout argument. `readonly_copy_elision` now proves the wider rule
+   (`OwnershipCleanReadOnly.v`); a focus inside the region is still refused.
+   - An overlap that contains a call is then accepted (`ro_call_in_overlap`,
+     `ro_value_semantics_accepts`).
+   - If the root is still needed after a sink use, the copy moves to the
+     call site. The rewrite never adds a copy.
+2. **Drop order.** `drops_commute` (`OwnershipCleanComposition.v`) shows
+   that two drops of distinct variables are `cleanup_equiv` in either order,
+   so an implementation may emit a release set in any order.
+
+**Still open.**
+
+- A projection alias such as `let items = h.items` is a focus when the range
+  of `items` does not use `h` (section 2.3, step 8), and an unpack when the
+  range also reads another part of `h` (step 9). Only a part of a borrowed
+  root is still a field copy.
+- In SSA MIR, an SSA value is never redefined. The production check therefore
+  reduces to one rule: no in-place mutation of the root or the alias (a push,
+  an inout argument, a member assignment) before the alias's last use.
+
+## 3. Language rules that follow
+
+1. **One owner per heap value.** The owner is a local, a field, an element, or
+   a compiler temporary. Users never write release calls for ordinary values.
+2. **The compiler derives ownership facts.** Each inserted copy, move, and
+   drop is a compiler fact recorded in IR and reported by a diagnostic
+   observer. It is not source syntax. (AGENTS.md: derived choices must remain
+   inspectable.)
+3. **Parameters.** A parameter the callee only reads is borrowed: no copy,
+   no release in the callee. A parameter the callee stores, mutates, or
+   returns is sink: the caller moves the argument at its last use and copies
+   it only if it is still needed. Both are inferred facts, not annotations
+   (proven: section 2.4). `inout` is an exclusive move-in/move-out. On a
+   member path it is a focus on that path (section 2.3, step 8), so the
+   other arguments cannot mention the root.
+   - Under D1 (B), passing an explicit-copy value (a collection) to a sink
+     parameter while the caller still needs it requires `Clone(x)` at the
+     call site. The diagnostic names the sink parameter that stores the value
+     and the later use that keeps the source alive. At the last use the value
+     moves, with no annotation.
+   - Inferred modes are part of each function's derived summary, recorded in
+     MIR and shown by the observer (section 5). A body change that turns a
+     parameter sink can make a caller need `Clone`; the diagnostic says why.
+   - A callee without a summary is refused (`OWN_MISSING_CALLEE_SUMMARY`);
+     it is never assumed all-borrowed. An `extern` function's summary is part
+     of its ABI declaration: trivial parameters need none, and a heap-typed
+     parameter needs a lend or consume row, as `ForeignStringOwnership.v`
+     gives for strings. A function value's type fixes its summary as
+     all-borrowed, and converting a named routine into a value checks that
+     its inferred summary is all-borrowed
+     (`OWN_FUNCTION_VALUE_SUMMARY_MISMATCH` otherwise).
+4. **Existing safety boundaries stay.**
+   - Slot keeps its generation checks.
+   - Zone, world, effect, and intent handles keep their own cleanup edges.
+   - `async`/`parallel`/worker boundaries accept only a move or an explicit
+     copy (AGENTS.md worker rule).
+   - FFI strings keep `ForeignStringOwnership.v`.
+
+## 4. Decisions and next cores
+
+**D1, copy policy: decided (B)** by the user on 2026-10-08. The model inserts a
+copy whenever the source is still live. Any policy that refuses some of those
+copies is compatible with the proof, because refusing a program only shrinks
+the set that elaboration accepts. The options were:
+
+- (A) Implicit copy for every type.
+- (B) Implicit copy for String and plain aggregates; `Clone` for collections.
+- (C) `Clone` for every non-trivial copy.
+
+Under (B), every type falls into one of three classes:
+
+| Class | Types | Copy of a still-live source |
+|---|---|---|
+| Trivial | Int, Long, Float, Double, Bool, Duration, payload-free enums, and Option/Result/struct/enum built only from trivial parts | Bitwise. No drop. |
+| Implicit-copy | String, and Option/Result/struct/enum built from trivial or implicit-copy parts | The compiler inserts a deep copy and records a copy fact. |
+| Explicit-copy | Array, List, Queue, Set, HashMap, and any aggregate that contains one | Refused unless written `Clone(x)`. The diagnostic names the later use that keeps the source alive. |
+
+Affine handles (Slot, subject, Future, zone/world/effect handles) are not
+copyable at all, as today.
+
+`Slice<E>` is an existing borrowed view, not an independently owned collection
+in this D1 table. It neither owns nor drops the array backing. Copying its
+descriptor cannot mint a cleanup obligation; writes remain writes through to
+the same admitted backing. Its backing/place and checked current-lifetime
+facts must reach liveness; the generation/lifetime issuer is still OPEN
+(§5.10), not an already existing descriptor field.
+
+`Clone` must deep-copy nested collections. Today `Array<String>` clone
+already copies each string, but nested-array clone copies inner descriptors
+by value (section 5.4), and G3 fixes that.
+
+Before an explicit-copy refusal, the compiler tries two cheaper outcomes:
+
+1. **Move at last use.** If the source is not used afterwards, there is no
+   copy.
+2. **Read-only alias elision.** If neither binding is mutated, moved, or
+   stored, and neither escapes, during their overlap, the "copy" becomes a
+   shared read of the original. The original's release moves to the end of
+   the overlap. No allocation, no `Clone`.
+
+`Clone` is therefore demanded only where a real independent copy is
+observable. Elision is an optimization of the value semantics, proven for
+whole-value aliases in section 2.6. A projection alias uses a focus or an
+unpack (section 2.3, steps 8 and 9).
+
+Alternatives checked:
+
+- Copy-on-write and persistent collections need reference counting or a
+  collector, which `AGENTS.md` excludes.
+- Making every non-trivial copy explicit (C) adds ceremony for Strings, which
+  are cheap and immutable.
+- Mojo's 2025 standard library moved its collections (`List`, `Dict`, `Set`,
+  `Deque`, ...) from implicit to explicit copy and kept implicit copy for cheap
+  values. That is the same split as (B).
+- String copies cost O(n). A small-string representation is a runtime option
+  that leaves the semantics unchanged.
+
+**Sink inference: done.** `gui_calls_sink_moves_only` removes both copies of
+`gui_calls_copy_twice`. Under (B) this was required for DX: without it every
+constructor that stores a collection parameter would demand `Clone`.
+
+**Read-only alias elision and places: done** (sections 2.3 step 8 and 2.6).
+
+**Overlapping projections, exits, and regions: done** (section 2.3, steps 9
+to 11), with fail-closed summaries and ascending inference (steps 6 and 7).
+
+**Not modelled, and the hard part of the implementation.** The proofs fix
+what the pass must decide. These obligations are the implementation's, and
+no theorem here discharges them:
+
+- member-path identity in MIR: the path of a focus or unpack is static in
+  the model, while a runtime index must be checked before the access and
+  fail closed on a missing element (section 2.5);
+- the interprocedural fixpoint over the real call graph, with summaries
+  recorded per routine and an unresolved summary kept distinct from a
+  borrowed one;
+- per-type drop and copy glue in the runtime, deep for every copy
+  (section 5.4);
+- the physical allocator: the abstract block allocator against `pgy_alloc`
+  and its arenas;
+- panic and abort, divergent runs, and peak memory;
+- async, `parallel`, worker boundaries, Slot, and FFI beyond strings.
+- the §5.10 production bridge: ordered multi-inout/result and short-circuit
+  source normalization, loan/view lifetime certificates, a declared
+  collection/String ABI owner, and mutation/continuing-failure postconditions.
+  These require checked refinement or importing proof supplements, not only
+  implementing the existing target elaborator.
+
+**Implementation order.** Removing manual retirement before automatic release
+exists would exceed the 3 GiB pressure cap, and dropping before the storage
+model changes double-frees, so the order is:
+
+0. Replace the storage model: one owner per backing, and deep copy glue for
+   every copy a fact asks for, with today's shallow paths removed
+   (section 5.4). No drop is emitted for a type before its copies are deep.
+1. Native MIR drop elaboration and per-type drop glue, consumed identically by
+   C and LLVM.
+2. The same elaboration in the self-hosted compiler; gen2 == gen3 must hold.
+3. Delete the manual release calls in compiler and user code.
+4. Delete the aggregate-release analyzer, carrier/restoration, and
+   own-threading paths, with negative gates against their return.
+
+The runtime and backend work the model assumes (String storage classes,
+per-type drop and copy glue, missing collection drops) is specified in
+section 5.4.
+
+## 5. MIR ownership contract (C2)
+
+This section is the only interface between the ownership-clean pass and its
+consumers: the C emitter, the LLVM emitter, the runtime, and the self-hosted
+emitter (work items C3, C5, G3, G4). A consumer reads these facts and
+nothing else. It never decides a move, copy, or release on its own, and it
+refuses MIR that lacks a fact it needs.
+
+Contract identity: `pgy.mir.ownership.v1`.
+
+### 5.1 Objective card
+
+- **Objective:** every heap value is released exactly once, at its last use,
+  by code the compiler derives; program output is unchanged.
+- **Priority:** first refinement of `OwnershipCleanCore`, then fail-closed
+  admission, then C/LLVM parity, then deletion of the manual paths.
+- **Fact owner:** the ownership-clean owner enters after existing MIR DCE,
+  performs its ordered source normalization/copy propagation and other
+  selections, then admits facts from checked final-generation analysis before
+  `mir_validate` and emission (`src/compiler/mir.c`, `driver_app.c`). Whether
+  DCE runs again after normalization is a P1 decision; if it does, analysis
+  must be refreshed afterwards. `mir_lower` currently runs DCE after its
+  initial analysis, so that initial certificate is not the pass's final one.
+  The self-hosted
+  compiler runs the same pass (C5) and must produce the same facts, so
+  gen2 == gen3 holds.
+- **Last consumers:** the C emitter (`transpile_from_mir`,
+  `src/codegen/transpiler_entry.c`), the LLVM emitter (`llvm_codegen_from_mir`,
+  `src/codegen/llvm_api.c`), the self-host emitters, and the ownership
+  observer.
+- **Registration:** the facts are one fact family. At C3, following
+  `docs/180`, the implementer either adds a new row to
+  `docs/semantics/sot_owner_spine_registry.md` or makes the family the
+  successor identity of `semantic.hashmap_collection_ownership`
+  (registry line 110). The MIR JSON change is a row in
+  `docs/192_protocol_abi_api_registry.md`. That registry rejects unknown
+  fields, so every producer and every JSON consumer (`mir_lower`,
+  `direct_mir_*`) changes in the same slice.
+- **Forbidden:**
+  - a backend that decides a move, copy, or release itself;
+  - reading ordinary-value cleanup ownership from `own` annotations, from the
+    `ast_collection_aggregate_*` analyzer, or from the AST outside the
+    instruction payloads MIR already carries;
+  - a fallback that skips a drop when a fact is missing;
+  - reference counting, tracing, or a "leak instead" mode;
+  - a shallow copy where a fact says copy;
+  - a second cleanup authority. These become old paths, deleted once their
+    consumers migrate:
+    - the per-instruction `collection_ownership_receipt` state machine
+      (`src/compiler/mir_branch_source_facts.c`; exact span is a P0 inventory,
+      not the older snapshot's line numbers);
+    - `semantic_collection_admit_owned_string_drop`
+      (`src/semantic/collection_ownership_fact.c`);
+    - the self-host direct-MIR cleanup policy owners
+      (`direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy`,
+      the HashMap lifetime and cleanup owners);
+    - the `ast_collection_aggregate_*` analyzer.
+
+### 5.2 Inputs
+
+For each routine the pass reads, from admitted MIR:
+
+- the routine identity, its parameters in order, each parameter's type, and
+  its source mode (`inout`, `ref`, or neither);
+- every SSA value of every local and temporary, with its type and its D1
+  class: trivial, implicit-copy, explicit-copy, affine, or a resource with
+  its own cleanup edge;
+- for every call, the resolved callee identity (or `extern`, or a function
+  value) and its arity;
+- for every runtime call, a row from its declared/admitted ABI fact owner.
+  Existing resource rows cover Slot operations; the current
+  `CompilerRuntimeValueCallAbiFact` is an Allocator/TextBuilder join with up
+  to two parameters, not an owner of all collection/String calls. P1 must
+  declare the collection/String owner/registry identity before its new
+  metadata is consumed. Rows state per argument lend/consume/reset, result
+  storage and ownership origin (fresh, transferred, argument/part view, no
+  result), and mutation/continuing-failure postconditions. A missing owner or
+  required column refuses; storage class alone is not ownership;
+- for every borrowed view, the backing owner/place and a checked current
+  lifetime certificate. A view use keeps its backing owner live. Its existing
+  generation/certificate producer is UNKNOWN; the two-field Slice descriptor
+  does not carry one. P1 must resolve the issuer/refinement or refuse affected
+  automatic elaboration, never substitute a raw pointer/source ID;
+- the block structure: successors, including the cleanup, rollback, and
+  invalidation successors, and the block `live_in`/`live_out` sets that
+  `mir_recompute_analysis` already computes.
+
+Each fact comes from its existing owner: semantic admission, the MIR
+builder, or the declared runtime-call ABI owner (including P1's still-OPEN
+collection/String owner). A missing fact is a refusal
+(`OWN_MISSING_ADMISSION_FACT`). Native analysis is refreshed after a def/use
+rewrite; the self-host requires its first liveness producer, not a guessed
+empty set or the historical manual release policy. Ownership elaboration
+consumes/checks the final-generation certificate, as `elab` checks a loop head,
+and does not independently reconstruct a competing liveness authority.
+
+Source modes:
+
+- `inout` stays the source's value-result form.
+- `ref` stays an explicit readonly boundary, and its parameter is borrowed.
+- Every other **ordinary-value** parameter, including one written `own`, gets
+  its mode from inference. For those values `own` does not change a decision,
+  the observer reports a
+  mismatch, and G5 removes the annotations.
+- Affine/authority transfer and named-boundary requirements are not removed
+  by this ordinary-value rule. Slot, subject and observable handles retain
+  their existing contracts.
+
+### 5.3 Facts and the MIR-to-core mapping
+
+MIR is a CFG in SSA form. Its operands are expression payloads (`expr0`,
+`expr1`) of DEF, ASSIGN, STMT, and RETURN instructions
+(`src/compiler/mir_types.h:81-248`); there is no separate call, copy, or
+move instruction. The contract therefore keys every fact by routine, block,
+instruction index, and the operand's syntax node identity.
+
+**Model variables.**
+
+- Each SSA value of a heap-typed local is one variable of the model.
+- A PHI is a move on each incoming edge: the incoming value moves into the
+  PHI result.
+- Every unbound heap-valued subexpression, such as the result of `g(x)` in
+  `f(g(x), y)` or a heap `StringConcat`, is a compiler temporary. It is
+  either consumed by its consuming position or dropped right after the
+  instruction. This is the model's `SDef` of a temporary followed by
+  `settle`.
+
+The pass emits three kinds of facts.
+
+1. **Routine summary.** `param_modes` gives `borrow` or `sink` for each
+   parameter, and each sink entry carries its reason. An inout parameter is
+   `sink` and has a required ownership recovery output; the bounded core has
+   only one such output. Production multi-inout calls require the checked
+   normalization in §5.10. The pass iterates mode
+   inference over the call graph to a fixpoint (section 2.3, step 7), then
+   checks every routine under the final table. A routine whose summary is
+   not computed has no `param_modes` row; that absence is not
+   "all-borrowed", and a consumer that meets it refuses.
+2. **Operand decisions.** Each operand position gets one of:
+   - `lend`: a borrowed read; no copy, no transfer;
+   - `move`: the descriptor is transferred and the source value is dead;
+   - `copy(glue)`: a fresh deep copy;
+   - `copy_to_temp(glue)` followed by `move`, for a consuming position whose
+     source is still needed.
+3. **Releases.**
+   - `drop(value, glue)` after the instruction where `value` dies;
+   - `drop_on_edge(edge, values)` for each value in `live_out(pred)` that is
+     neither in `live_in(succ)` nor moved into a PHI on that edge. This is
+     the model's per-arm settle and loop entry/exit settle on a CFG. Cleanup,
+     rollback, invalidation, and return edges are included.
+   - `end(value)` for a borrowed binding that dies. It emits no code and
+     exists for the observer.
+
+Each normalized statement maps to one core statement, and its facts must
+equal what `elab` produces. An existing MIR instruction with nested expression
+payloads may need an ordered sequence of normalized statements/temporaries;
+block liveness of its original aggregate use set does not prove operand-level
+last-use order. The normalizer records those positions using the existing
+typed expression identities (§5.10):
+
+| MIR instruction and payload | Core statement | Decision |
+|---|---|---|
+| DEF or ASSIGN `x = op(ys)` (operator, comparison, pure runtime read) | `SDef` | `lend` each operand; `x` is fresh |
+| DEF or ASSIGN `x = y` | `SCopy` | `move` if `y` is dead and owned; otherwise `copy`, subject to D1 |
+| DEF or ASSIGN `x =` a struct literal, array literal, or enum variant with payload | `SPack` | each element is consumed: `move`, or `copy_to_temp` then `move` |
+| STMT runtime insert (`ArrayPush(xs, y)` and the like) | `SPush` | each argument as its ABI row says |
+| DEF or ASSIGN `x = y.f` or `x = y[i]` | `SField` | `x` is a fresh copy of the part, subject to D1 |
+| a `member_access` or `index` used directly as an operand | a read of `y` | `lend` `y`; no copy |
+| a call in DEF, ASSIGN, or STMT | `SCall` | `lend` borrowed arguments; consume sink arguments |
+| a normalized call with one inout recovery output | `SCallIO` | `z` moves in and moves back; multi-inout and a separate result require §5.10 normalization |
+| a BRANCH (expr, match-case, for-range, for-in, select) | `SIf`, `SWhile` | edge drops as above; the loop header's `live_in` is the certificate |
+| RETURN `e` | `XReturn` (exits layer) | `e` moves to the result; every other live owned value drops on the return edge |
+| `break`, `continue` | `XBreak`, `XContinue` | the values outside the target live set (the loop's continuation, or the loop head) drop on the exit edge |
+| an error exit (`?`, a failed `Result` return, a throw) and its handler | `XThrow` inside `XTry` | the values outside the handler's live-in drop on the error edge, including parts built before a pack |
+| DEF `x = y.f` while another part of `y` is read, `y` otherwise dead or used only whole afterwards | `SUnpack y xs` ... `SPack y xs` | each part moves into its own local; a whole use repacks them; no copy |
+| a string-concat region temporary, a zone-scoped value | `SRegion` | the value stays live to the region's end and drops there; an escape is copied out |
+| ASSIGN to a place from itself, `y.f = g(y.f, args)` | `SFocus t y [f] (t := g(t, args))` | the part moves out, through the sink call, and back; no copy |
+| a call with an inout member path, `g(inout y.f, args)` | `SFocus t y [f] (g(inout t, args))` | the part moves in and back; the arguments must not mention `y` |
+| ASSIGN to a place from another value, `y.f = e` | `SFocus t y [f] (t := e)` | the old part is dropped at the focus entry; `e` is consumed |
+| DEF `x = y.f` whose range reads only `x` | `SFocus x y [f] (range)` | a read-only view; no copy |
+| `async`, `parallel`, or worker capture | not in the core | `move` or an explicit copy only |
+
+**Calling convention.** The bounded single-inout model does not require a
+public ABI change. The production multi-output adapter must still be specified
+and checked (§5.10); no product-result representation is inferred merely from
+this statement. Today a default parameter
+is passed by value, which is a shallow descriptor copy, and `inout` is a
+pointer with copy-in and write-back
+(`src/codegen/transpiler_func_forward_emit.c:185-245`,
+`src/codegen/transpiler_defer_emit.c:142-178`). A sink parameter and a
+borrowed parameter are both passed by value; they differ only in who drops
+the value. For a sink argument, the callee drops it and the caller does not.
+For a borrowed argument, the caller keeps it and the callee never drops it.
+
+**Pass order and owner.** The ownership-clean owner coordinates ordered
+source expression/place/call normalization, then copy propagation (section
+2.6), then mode inference, focus/unpack selection and final-generation
+analysis checks, then target elaboration.
+Any later change to def/use invalidates the old liveness certificate and all
+dependent facts. D1 is checked last, on the copies that remain.
+
+**Focus selection.** The pass chooses a focus for a part access when the
+root is owned and the range of the temporary does not mention the root. The
+range is the source statement for an update or an inout call, and the
+alias's live range for a read-only binding. A focus is a fact like any other
+(section 5.7). The pass checks it, as `elab` does, and refuses instead of
+aliasing when the check fails.
+
+**Projection selection.** A whole-value alias (`let a = x`) is removed by
+copy propagation, and the three place forms above use a focus. A part bound
+to a local whose range also reads another part of the root, for example
+`let items = h.items` followed by a read of `h.name`, uses an unpack. The
+pass reports `OWN_EXPLICIT_COPY_REQUIRED` for a collection-typed part only
+when the root is borrowed, or when the part is a collection element at a
+runtime index while the collection is also read.
+
+### 5.4 Drop and copy glue
+
+Each type has one drop descriptor and one copy descriptor. The type owner
+generates each descriptor once, and C and LLVM consume the same descriptor.
+
+**Order.** For a type, deep copy glue and the removal of its shallow copy
+paths land before any drop of that type is emitted. A drop on a shared
+backing is a double free (`alias_copy_double_free`), so a drop without the
+storage change is refused in review, not staged.
+
+| Type | Drop | Copy (only where a fact says copy) |
+|---|---|---|
+| Trivial (D1 class) | none; no drop is emitted | bitwise |
+| `String` | free the buffer if the value is heap storage (below) | allocate and copy the bytes; the result is heap storage |
+| `Array`, `List`, `Queue`, `Set` of `E` | drop each element with `E`'s glue, then free the backing | new backing; copy each element with `E`'s copy glue |
+| `HashMap<K, V>` | drop each key and value, then the table | copy every entry |
+| struct | drop each field, in declaration order | copy each field |
+| enum, `Option`, `Result` | drop the active variant's payload only | copy the active payload |
+| `Slice<E>` / admitted borrowed view | end the view; never free its backing | view descriptor only under its backing-owner lifetime certificate; not an owning deep copy |
+| Affine handle (Slot, subject, Future, zone/world/effect handle) | never through this glue; the handle keeps its own cleanup edge | refused |
+
+Rules:
+
+- Copy glue is deep and allocates one block per node, as `TE_Copy` does. It
+  is the refinement of `TE_Copy`, which gives the copy fresh storage.
+- A value's storage is laid out so that each part's blocks can be found from
+  its path (one block per node, in preorder, in the model). A focus moves
+  exactly those blocks; `pack_child_segment` shows they are the blocks the
+  part owned before it was packed. In the runtime this means a field's
+  descriptor is moved out of and back into its slot by a bitwise move, and
+  no other storage moves with it. A copy that shares any backing with its source breaks the
+  contract; `alias_copy_double_free` is the failure it causes.
+- Drop glue releases exactly the value's footprint. It is the refinement of
+  `TE_Drop`. Freeing an element twice, or leaving one behind, breaks the
+  contract.
+- A move transfers the descriptor bitwise and nothing else. The source is not
+  dropped; the destination owns the value.
+- Runtime gaps that G3 closes:
+  - There is no per-type drop glue today.
+  - `List`, `Set`, and `Queue` have no whole-collection drop function.
+  - `HashMap` release paths exist (`pgy_map_drop_*` and the recorded CLOSED
+    `abi.hashmap_runtime_release` family), including String-value payload
+    release. This is not evidence of general ownership-fact-directed automatic
+    emission. Exact existing backend reachability is still to be checked;
+    do not claim that no backend can emit a release at all.
+  - The exported `pgy_array_drop_owned_String` calls `free(arr->data)` and
+    ignores the allocator, while the inline path uses `pgy_free` with the
+    allocator. Glue must use the value's allocator.
+  - Two shallow paths must become deep copy glue:
+    - the LLVM nested array literal shares the inner `data` pointer
+      (`src/codegen/llvm_expr_aggregate.c`; old line citations refer to
+      different snapshots; P0 rebinds the exact span);
+    - nested-array clone copies each inner descriptor by value
+      (`src/runtime/pgy_runtime_lib_array_nested_exports.h:16-21`).
+  - `Array<String>` clone already duplicates each string
+    (`src/runtime/pgy_runtime_memory_array_slot_inline.h:197`).
+- Runtime inserts disagree on copying. `ArrayPush` stores the `String`
+  pointer it is given, while `Queue<String>` and `Map<String>` copy on insert.
+  The runtime-call ABI row records each case: a copying insert lends its
+  argument, and a storing insert consumes it. That statement only applies
+  where both backends already satisfy the same operation postcondition. A
+  C-copy/LLVM-alias disagreement, such as String set-values, must be unified
+  in I1 before one ABI semantic row can admit it. It cannot be hidden as two
+  backend-specific ownership decisions or by recording both lend and consume.
+
+Whole-value glue is not the full mutation contract. Replace/set must consume
+the old payload exactly once; pop/discard/remove/clear must either transfer a
+removed payload to a named result or drop it. Growth relocates admitted owned
+descriptors without duplicating ownership; a copy operation deep-copies them.
+Duplicate insertion and failure must say whether an incoming operand was
+consumed, and release only constructed parts on a continuing/recoverable
+failure. Terminal panic/abort is outside the core's exit proof. These postconditions
+belong to the same type/operation ABI owner and are consumed identically by C
+and LLVM. Walking only the final length at collection teardown cannot recover
+an overwritten or previously removed payload (§5.10).
+
+**String storage classes.** A runtime `String` is a `char *` today and does
+not record whether it may be freed. A `String` value has one of three
+storage classes:
+
+| Class | Produced by | Dropped |
+|---|---|---|
+| static | a literal | never |
+| region | a string-concat temporary inside its region | by the region's bulk release, never individually |
+| heap | a runtime call that returns fresh storage, or a copy | by drop glue |
+
+These are storage classes, not a grant of ownership. A getter can return a
+pointer into an argument's heap storage without transferring that argument's
+ownership. Its ABI result-origin fact names the backing owner and part. The
+normalizer must materialize a fresh value copy, an admitted dead-part move, or
+a checked view range as appropriate; it never independently drops that pointer
+because its storage class is heap. A missing origin is a refusal.
+
+The pass knows each producer's class: literals are static, and the
+runtime-call ABI owner declares, for every call that returns a `String`,
+whether the result is heap or region storage. A missing declaration is a
+refusal. A static or region value behaves like a borrowed binding in the
+model. Reading it is free, and moving it into owned storage (a sink
+parameter, a field, a collection element, a variable that is later dropped)
+inserts a copy, so the owned value is heap storage. Where control flow joins
+values of different classes into one variable, the non-heap arm is copied
+before the join, so every variable has one class. This keeps `String` a
+`char *`, so the FFI contract (`ForeignStringOwnership.v`) is unchanged. G3
+may replace it with a runtime owned flag only if it measures the cost and
+keeps the same rules.
+
+### 5.5 Migration of manual releases
+
+This is the historical ABI classification used to migrate existing calls,
+not an accepted public mixed manual/automatic mode. The cutover lands only
+after admitted ordinary-value programs contain no manual releases. Negative
+fixtures retaining a forbidden call are explicit manifest exceptions and must
+refuse without publishing an executable. No shallow/reset-only implementation
+may be run with automatic drops while its owned payload contract is unproved.
+
+Automatic drops and the existing manual release calls must never release the
+same storage. Until G5 deletes the manual calls, the pass classifies every
+release primitive it meets. The class comes from the runtime-call ABI owner,
+not from matching a name:
+
+- `reset(x)`: the call releases x's storage and leaves x as a valid empty
+  value. The pass keeps x live and drops it at its last use as usual;
+  dropping an empty value frees nothing. The current manual primitives are
+  all this class:
+  - `ArrayDrop` and `CompilerRetireArrayStorage` emit `pgy_array_drop_<T>`
+    (C) or `pgy_array_drop_storage_raw_export` (LLVM). Each frees the backing
+    and sets `data = NULL` and `length = capacity = 0`
+    (`src/runtime/pgy_runtime_memory_array_slot_inline.h:268-279`).
+  - `ArrayDropOwnedStrings` emits `pgy_array_drop_owned_String`, which also
+    frees each element.
+- `consume(x)`: the call releases x's whole footprint and x is never used
+  again. The pass treats the call as x's last use and emits no automatic drop
+  for x.
+- Anything else is a refusal. The pass never guesses.
+
+Explicit `Rc`, `Box`, `TextBuilder`, region, and Slot releases are not
+ordinary values in this contract. They keep their own release edges, and the
+pass treats such a handle as affine.
+
+A `reset` call that frees only the backing of a collection whose elements own
+heap storage leaks those elements; it cannot double-free them. G5 deletes the
+calls and their classes, and a negative gate refuses their return.
+
+### 5.6 Refusals
+
+Every refusal is a typed diagnostic with a stable code. None of them lets
+compilation continue.
+
+| Code | When | Reported to |
+|---|---|---|
+| `OWN_MISSING_ADMISSION_FACT` | a callee identity, arity, local type, or type class is missing from admitted MIR | compiler (internal error naming the fact) |
+| `OWN_MISSING_CALLEE_SUMMARY` | a call to a routine with no resolved summary, including an `extern` whose ABI declaration has no summary for a heap-typed parameter; never read as all-borrowed | compiler |
+| `OWN_SUMMARY_ARITY_MISMATCH` | a summary whose length differs from the call's argument count or the routine's parameter count | compiler |
+| `OWN_FUNCTION_VALUE_SUMMARY_MISMATCH` | a routine with a sink parameter converted into a function value, whose type is all-borrowed | user: names the parameter and the use that made it sink |
+| `OWN_MISSING_STRING_CLASS` | a runtime call returns a `String` without a declared storage class | compiler |
+| `OWN_UNCLASSIFIED_RELEASE` | a release primitive without a 5.5 class | compiler |
+| `OWN_LOOP_CERTIFICATE_REJECTED` | the computed loop live set fails the check | compiler (a liveness bug) |
+| `OWN_DUPLICATE_SINK_ARGUMENT` | after normalization one variable still reaches two sink parameters | compiler (the normalizer must bind a temporary) |
+| `OWN_EXPLICIT_COPY_REQUIRED` | D1 (B): a collection must be copied because it is used again later | user: names the later use and, at a call, the sink parameter that stores the value; fix with `Clone(x)` or by reordering |
+| `OWN_AFFINE_COPY` | a copy of an affine handle | user |
+| `OWN_WORKER_BOUNDARY_SHARE` | a value crosses an `async`, `parallel`, or worker boundary without a move or an explicit copy | user (AGENTS.md worker rule) |
+
+### 5.7 Observer
+
+`--observe-ownership` prints JSON rows for each routine:
+
+- its parameter modes, each with the reason that made it sink (stores,
+  mutates, redefines, returns, passes to a sink parameter);
+- each operand's decision (move, copy, lend), with its reason (dead after,
+  used again at a location, borrowed);
+- each drop and end, with the statement or edge it follows and the glue
+  descriptor it uses;
+- each copy, with its glue and, under D1 (B), whether it was implicit or an
+  explicit `Clone`.
+
+This meets the AGENTS.md rule that derived choices stay inspectable. Gates
+read copy and drop counts from this output, never from program behavior.
+
+### 5.8 Acceptance gates
+
+Every fixture runs on both C and LLVM. Its stdout must equal the current
+no-free build, and ASan/LSan must report no leak and no use after free. The
+inputs are GPT's baseline programs (`.tmp/ownership-cleanup/code-baseline/`)
+plus the model witnesses.
+
+| Fixture | Model witness | Copies (observer) |
+|---|---|---|
+| GUI inline | `gui_program_moves_only` | 0 |
+| GUI through constructor and inout append | `gui_calls_sink_moves_only` | 0 |
+| The same, reading the text after the constructor | `gui_calls_sink_reuse_copies_once` | 1, at the call site |
+| Owned update `Append(xs, y)` returning `xs` | `owned_update_needs_sink` | 0 |
+| `AddDraw(inout state.draws, label)` on a `GuiState` record | `gui_state_focus_copies_nothing` | 0, and 0 field copies |
+| `state.draws = Append(state.draws, label)` | `gui_state_update_copies_nothing` | 0 |
+| A read-only view of `state.draws` | `projection_view_copies_nothing` | 0, and 0 field copies |
+| Copy of a live / dead / borrowed source | `elab_copy_*` | as in the decision table |
+| Branch with an arm-only use; loop with a body-only definition | per-arm settle, loop certificate | 0, with the drops on the edges |
+| Wide-live, 64/128/256 values | — | 0; doubling the input at most about doubles elaboration time |
+| `let items = h.items` read with `h.name`, then `h` used whole | `overlapping_projection_copies_nothing` | 0, and 0 field copies |
+| A part taken out of a record that is dead afterwards | `dead_aggregate_part_moves` | 0 |
+| A string-concat temporary observed twice in its region; one escaping it | `region_value_released_once`, `region_escape_copies` | 0; 1 at the escape |
+| An error after building two parts, before the pack | `error_releases_partial_parts` | both parts dropped on the error edge |
+| An early return; a break out of a loop with a loop-local value | `early_return_elaborates`, `break_elaborates` | only the result survives the return; the local drops on the break edge |
+| A two-function call chain | `chain_needs_two_rounds` | 0 after the fixpoint |
+
+Negative fixtures, refused with the named code:
+
+- a collection used again after being copied, without `Clone`
+  (`OWN_EXPLICIT_COPY_REQUIRED`);
+- a copy of an affine handle (`OWN_AFFINE_COPY`);
+- a call to a routine whose summary is missing, and one whose summary has
+  the wrong length (`OWN_MISSING_CALLEE_SUMMARY`,
+  `OWN_SUMMARY_ARITY_MISMATCH`; witnesses `missing_summary_is_refused`,
+  `arity_mismatch_is_refused`).
+
+One safety shape changes sides; the retired manual builtin does not become
+an accepted public cleanup API.
+`tests/concept_semantics/hashmap/inout_string_array_deep_drop.pgy` pushes the
+literal `"borrowed"` into an array and then deep-drops the array through an
+inout parameter. The current analyzer refuses it, because the deep drop would
+free a static string. Under 5.4 the push moves static storage into owned
+storage, so it inserts a heap copy. The positive successor removes the manual
+release and exercises compiler-synthesized cleanup after the inout call; it
+runs without leaks or use after free. Keep a separate manifest-listed negative
+fixture containing the retired call, with the stable refusal/no-artifact
+oracle. Migrate the safety shape and the old rejection expectation together in
+`tests/self_hosted/parity/collection_ownership_semantic_owner.sh:269-309`,
+which expects the old rejection today. Do not merely flip that old manual-call
+program to acceptance or delete its static-storage safety coverage.
+
+### 5.9 Refinement obligations
+
+An implementation claims to implement this model only when:
+
+1. Its liveness, loop live sets, and mode table are certificates that the
+   pass itself checks, as `elab` checks the loop head. A liveness bug then
+   becomes a refusal, not a wrong drop.
+2. Its decision for each MIR statement equals `elab`'s decision for the core
+   statement that the statement maps to (section 5.3).
+3. Its glue meets 5.4.
+4. It places branch, loop, and routine-entry drops on the edges the model
+   uses: per-arm settle, loop entry and exit, and routine entry.
+5. Each exit (return, break, continue, error) releases, on its edge, the
+   values outside its target live set, as `xelab` does (section 2.3,
+   step 11).
+6. Every target rewrite (`normalize_cleanup` administrative Skip removal,
+   drop motion) requires `cleanup_equiv` (§2.6). Ordered source call/place/
+   expression normalization is a different transformation: it must preserve
+   source evaluation/trace, returned values and all continuing-exit inout
+   recovery obligations (§5.10). Target equivalence alone is not its proof.
+   The order of drops within one release set is free (`drops_commute`).
+7. A focus moves only the part's storage, by a bitwise move out of and back
+   into its slot. The rest of the root is not read, written, moved, or
+   dropped while the focus body runs (`TE_Focus`, `pack_child_segment`). An
+   unpack moves each part's descriptor out and frees only the record's own
+   node (`TE_Unpack`, `unpack_after_pack`).
+8. Its summary table distinguishes an unresolved summary from a resolved
+   all-borrowed one, refuses every call and routine whose summary is missing
+   or of the wrong length, and records which round of the fixpoint produced
+   it (section 2.3, steps 6 and 7).
+9. No drop is emitted for a type whose copies can still share a backing
+   (section 5.4, order).
+
+### 5.10 Production refinement closure (OPEN)
+
+Added during the user-authorized cutover review, 2026-10-09. This section fixes
+implementation obligations, not new checked theorems. The single-inout core,
+read-only substitution and abstract heap soundness above remain bounded by
+their actual definitions. No native/self-host/backend closure follows from
+editing this contract.
+
+1. **Admission before MIR.** Preserve admitted type/callee/arity/place facts
+   and actual exclusivity checks. Replace variable-only inout and named-only
+   readonly temporary policy **for ordinary values** with one-evaluation
+   rooted-place and temporary facts. Preserve affine/authority named-boundary
+   guards in the same native/self-host owners. Reject duplicate inout places, a root together with
+   its focused field, and unproved dynamic-index overlap. Source `own` is not
+   a substitute for inferred ownership. An AST/formal-mode-only guard cannot
+   remain an earlier veto of normal programs the new MIR contract admits.
+2. **Ordered call normalization.** Enumerate all inout actuals and the
+   ordinary return value. Recover every inout obligation exactly once on every
+   continuing normal, early-return and handled-error exit. Check/prove a
+   normalization to the importing core or add the needed importing supplement
+   before admitting it; do not label multiple outputs proved by `SCallIO`.
+   Normalize nested calls, constructors, short-circuit arms and indexes with
+   the existing typed graph and stable syntax identities. Evaluate each actual
+   once in the language's admitted order; a skipped arm creates no owned
+   temporary. An error cleans only parts already constructed. Do not rescan
+   program roots or let recursive backend expression emission choose these
+   facts independently.
+3. **Result origin and view frame.** P1 must name the collection/String ABI
+   owner of result freshness, transfer and argument/part provenance. Existing
+   Slot rows and the limited Allocator/TextBuilder join do not supply it.
+   Existing Slice/indexed-String facts provide starting backing/place inputs,
+   not a proved current-lifetime/generation issuer. Resolve that issuer and
+   loan/refinement or refuse the affected automatic-elaboration boundary.
+   Extend the
+   backing owner's liveness through the view's actual last use. End a view
+   without releasing its backing; a mutable Slice stays write-through.
+   Reallocation/reset/escape and worker boundaries require their existing
+   invalidation or transfer checks. Test live-view push/grow/reset and
+   inout/sink transfer, not only later reads. Extending backing liveness can
+   change a formerly dead direct source into a live one: any actual independent
+   copy must obey D1 and report the view dependency in its observer/diagnostic.
+   Do not use a silent copy/Clone to change write-through view semantics or
+   erase a loan conflict. A descriptor, heap pointer, source ID or storage
+   domain is not a current ownership certificate.
+4. **Mutation and allocator.** Test replacement, discard, removal, clear,
+   duplicate insertion, relocation, nested clone and partial-failure cleanup
+   with the same descriptors/operation postconditions on both backends.
+   Preserve the allocator attached to the backing; do not `free` a region or
+   custom-allocator pointer. A recoverable/continuing failure leaves the old
+   admitted owner valid and consumes only the declared parts. A terminal
+   panic/abort has a separate expected-exit/sanitizer policy and is not an
+   `XThrow` or proof of restored ownership. Ordinary success/handled-error
+   fixtures keep ASan/LSan enabled with zero leaks/UAF; abort fixtures are
+   reported separately and cannot replace that positive evidence.
+5. **One generation of evidence.** Refresh and check liveness after final
+   expression/place rewrites and DCE. Bind summaries, glue, view dependencies,
+   instruction/operand facts and JSON projection to that admitted snapshot.
+   Unknown, stale and cross-snapshot facts refuse. Canonical JSON parity does
+   not erase identities or equate independently minted raw IDs.
+
+These obligations are exercised by the cutover plan's F1 acceptance/falsifier
+matrix. Required focused gates block dependent implementation. Negative
+manual-release fixtures are manifest exceptions, not admitted programs; they
+must refuse and produce no executable. Neither a reduced test count nor a
+structural registration check replaces actual C/LLVM sanitizer, full
+bootstrap, measured 3 GiB pressure or exact-SHA CI evidence. P1 must also
+decide retired-builtin name tombstones and bind each negative fixture's
+exact stable code to the existing diagnostic owner. Deleting operational
+builtin rows does not automatically authorize name reuse or settle that code.

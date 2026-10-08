@@ -1,5 +1,7 @@
 # Parser Statement-Head Unexpected-Token AST JSON Receipt
 
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
 Status: COMPLETE — PUBLISHED, EXACT-CI GREEN
 
 Exact base revision: `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`

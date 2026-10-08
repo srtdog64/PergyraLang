@@ -97,11 +97,21 @@ sandbox 경계(PGY_CAP_GRANT, capability envelope)가 "선언된 하강"의
 
 **축 입장 조건(재심 2건의 일반화):** 축은 **표면 착지점**(키워드/
 구문)이 실존해야 한다. 착지점 없는 후보는 축이 아니라 sketch(§6) 또는
-메타(판정 codomain)다. 재심 후 6축은 **전부 표면 키워드에 착지하고
-(전사), 각 착지 키워드는 정확히 한 축에 속한다(키워드-측 단사)** —
-World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
-`with caps`, Intent/Effect↔`intent`/effect, slot↔`slot`. Site는 이
-사상을 깨는 유일한 무착지 축명이었고, Phase 제거도 같은 기준의
+메타(판정 codomain)다. 재심 후 6축은 **각각 승인된 표면 구문 용례를
+착지 증거로 가진다** — World↔`world`, Zone↔`zone`, Actor↔`role`/
+`subject`, Auth↔`authority`/`with caps`, Intent/Effect↔`intent`/effect,
+slot↔`slot`.
+
+<!-- GENERIC-SURFACE-USES-NOT-PRIMARY-CATEGORIES -->
+이는 축마다 구문 증거가 존재한다는 조건이지, 키워드 철자와 축의 전단사
+주장이 아니다. 예를 들어 `with caps`의 authority 용례가 `with`의 다른
+구문 용례를 소유하지는 않는다. 이 문서의 6축은 제네릭이 운반하는 속성
+차원이고, docs/42의 4개 의미적 사실 소유 축 및 레지스트리의 5개 대표
+분류와 동일한 집합이 아니다. 용례별 사실의 단일 소유권과 철자별 대표
+분류는 [`docs/42`](42_keyword_orthogonality.md#11-registry-primary-categories-are-not-fact-ownership)를
+따른다. `GenericAxisCarriage.v`는 축 표시의 운반 법칙을 모델링하며
+키워드별 분류의 전단사를 증명하지 않는다. Site는 승인된 착지점이 없는
+축명이었고, Phase 제거도 같은 기준의
 귀결이다(착지 구문 부재 → 축 아님 → ERASE codomain). 미래의 신규 축
 제안은 이 조건을 먼저 통과해야 한다.
 

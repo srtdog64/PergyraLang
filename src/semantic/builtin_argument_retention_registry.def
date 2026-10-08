@@ -3,7 +3,8 @@
  * Canonical builtin-argument retention registry. A row means that the exact
  * builtin argument is borrowed only for the duration of the synchronous call.
  * Missing rows fail closed. PGY_RETENTION_ARGUMENT_ANY applies to every
- * non-negative argument ordinal of the named variadic builtin.
+ * non-negative argument ordinal of the selected call. A stdlib row also pins
+ * its physical arity; it is not a source-name grant for a user/runtime call.
  *
  * PGY_BUILTIN_ARGUMENT_RETENTION(
  *     builtin_identity, source_name, argument_ordinal, retention_kind)
@@ -20,3 +21,9 @@ PGY_BUILTIN_ARGUMENT_RETENTION(CHAR_CODE, "CharCode", 0, PGY_REGION_RETENTION_BO
 PGY_BUILTIN_ARGUMENT_RETENTION(CONCAT, "Concat", PGY_RETENTION_ARGUMENT_ANY, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
 PGY_BUILTIN_ARGUMENT_RETENTION(TEXT_BUILDER_APPEND, "TextBuilderAppend", 1, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
 PGY_BUILTIN_ARGUMENT_RETENTION(ARRAY_PUSH_OWNED_STRING, "ArrayPushOwnedString", 1, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+
+/* Synchronous range operations own no input storage. Substring copies its
+ * result; this registry grants input borrowing, never result ownership. */
+PGY_STDLIB_ARGUMENT_RETENTION(SUBSTRING, "Substring", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 3)
+PGY_STDLIB_ARGUMENT_RETENTION(SUB_EQUALS_WITH_LEN, "SubEqualsWithLen", PGY_RETENTION_ARGUMENT_ANY, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 5)
+PGY_STDLIB_ARGUMENT_RETENTION(SUB_INDEX_OF_WITH_LEN, "SubIndexOfWithLen", PGY_RETENTION_ARGUMENT_ANY, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 5)

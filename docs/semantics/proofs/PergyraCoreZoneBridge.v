@@ -25,7 +25,7 @@
     - cross_fail_closed: without the entry cap, no crossing is derivable.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Require Import PergyraCore.
 Import ListNotations.
 

@@ -48,8 +48,8 @@
   the document contract only, in the AIRBinding.v negative-scope tradition.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Import ListNotations.
 
 (* Axis marks. Concrete nat for decidable equality; every statement is

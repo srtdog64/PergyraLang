@@ -91,8 +91,11 @@ require_text "$FORMAL_GATE" \
     "docs/semantics/proofs/EvidenceLifecycleCore.v" \
     "the proof must be in the explicit Coq/Rocq compile inventory"
 require_text "$KERNEL_GATE" \
-    'for proof_abs in "$PROOFS_DIR"/*.v; do' \
+    'rocq dep "${LOADPATH[@]}" -sort ./*.v' \
     "the Rocq kernel and axiom-budget gate must discover every proof"
+require_text "$KERNEL_GATE" \
+    'for proof_abs in "${ORDERED_PROOFS[@]}"; do' \
+    "the kernel gate must compile the actual discovered dependency order"
 require_text "$KERNEL_GATE" \
     "axiom budget drifted" \
     "new proof assumptions must fail the corpus budget"

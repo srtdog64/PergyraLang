@@ -62,7 +62,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Download the exact installed compiler pair
         if: needs.classify-changes.outputs.markdown_only != 'true'
@@ -97,6 +97,14 @@ jobs:
           bash tests/gate_sot_single_owner_smoke.sh
           bash tests/protocol_registry_smoke.sh
           bash tests/self_host_progress_metric_smoke.sh
+
+      - name: Check native clock ABI and admitted scalar call widening
+        if: needs.classify-changes.outputs.markdown_only != 'true'
+        env:
+          PGY_BIN: ./bin/pgy
+        run: |
+          bash tests/runtime_now_compiler_smoke.sh
+          bash tests/call_scalar_widening_smoke.sh
 
   build-linux-self-host-contracts:
     needs: [classify-changes, backend-compare-toolchain-linux, formal-proofs-rocq9]
@@ -335,48 +343,8 @@ jobs:
   formal-proofs-rocq9:
     needs: classify-changes
     if: needs.classify-changes.outputs.run_full == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30  # hang budget (docs/190 C1)
-    # build-linux machine-checks the proof corpus with Ubuntu's apt Coq (8.x),
-    # but development happens against Rocq 9 -- so the prover actually used day
-    # to day was never gated, and what Rocq 9 says about the corpus (starting
-    # with the deprecated `Coq.` namespace prefix, which a later release turns
-    # into an error) surfaced only in someone's local run. Pinned to the exact
-    # version used locally so this gate is deterministic.
-    #
-    # This job also does what `coqc` cannot: rocqchk re-runs the trusted kernel
-    # over the compiled .vo and pins the axiom budget, so an added Axiom or
-    # Admitted, an impredicative Set, an unsafe fixpoint, or an assumed-positive
-    # inductive cannot slip in behind a green gate.
-    #
-    # The image runs as a non-root user, so actions/checkout cannot write the
-    # workspace; --user root fixes that. The invocation below pins the
-    # image-owned opam root instead of depending on the runner's HOME.
-    container:
-      image: rocq/rocq-prover:9.0.1
-      options: --user root
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Kernel-check the proof corpus with Rocq 9
-        # The prover lives in an opam switch under /home/rocq/.opam. A GHA
-        # container step runs without the image's `opam exec --` entrypoint and
-        # without a login shell, so rocq/rocqchk are NOT on PATH -- the gate
-        # fail-closes with "no prover found" even though the prover is right
-        # there. GitHub Actions overrides HOME, so bare `opam exec --` searches
-        # an uninitialised runner home. Pinning OPAMROOT replays the image
-        # entrypoint against the image-owned switch and puts both tools on
-        # PATH. coq_kernel_check.sh then fail-closes on a missing prover, proof
-        # compile failure, kernel-check failure, or axiom-budget drift.
-        run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check.sh
-
-      - name: Prove the axiom-budget gate actually bites
-        # coq_kernel_check.sh fail-closes structurally, but a reject path that
-        # has never fired cannot be told apart from a no-op. This runs the gate
-        # against a planted corpus (clean control + one planted Admitted) and
-        # asserts it passes the former and fail-closes on the latter -- the
-        # "negative gate" half of the check. Same prover, same OPAMROOT pinning.
-        run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check_selftest.sh
+    # One toolchain/proof owner shared with Platform full; no Coq 8 duplicate.
+    uses: ./.github/workflows/formal_proofs.yml
 
   backend-compare-toolchain-linux:
     needs: [classify-changes, self-host-codegen-bootstrap-linux]

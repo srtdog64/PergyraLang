@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+pgy_selfhost_select_linked_runtime_compile_profile
 pgy_prepend_windows_runtime_paths
 LABEL=self-host-cfg-identity-digest
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
@@ -43,7 +45,7 @@ for probe in probe probe.native; do
     timeout 30 "$WORK/$probe.exe" | tr -d '\r' >"$WORK/$probe.run"
     cmp -s "$WORK/expected.run" "$WORK/$probe.run" || fail "$probe byte identity drifted"
 done
-"$CLANG" -std=c11 -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK/runtime.o" >"$WORK/runtime.compile.log" 2>&1
 (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" \
     tests/self_hosted/fixtures/direct_mir_cfg_identity_digest.pgy --backend=llvm --opt=dev \

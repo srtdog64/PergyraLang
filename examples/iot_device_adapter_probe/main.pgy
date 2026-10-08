@@ -8,8 +8,8 @@ func Main() -> Void
     let poll = TimerAfter("poll:temp", started.milliseconds, 1000);
     let sensor = Register("temp", 4096);
     let command = WriteDevice(sensor, 77);
-    let sample = SampleDevice(sensor, 77, started.milliseconds + 1000);
-    let nowMs = started.milliseconds + 1000;
+    let sample = SampleDevice(sensor, 77, started.milliseconds + 1000L);
+    let nowMs = started.milliseconds + 1000L;
 
     Log("=== IOT DEVICE ADAPTER PROBE ===");
     Log(RenderTimer(poll));

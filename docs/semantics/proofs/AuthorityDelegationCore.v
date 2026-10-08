@@ -24,8 +24,8 @@
   the live AIR authority facts yet (task #45 / docs/18).
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
 Import ListNotations.
 
 Section AuthorityDelegationCore.

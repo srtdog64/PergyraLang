@@ -42,7 +42,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "MathLog^Float^Float",
         "Log10^Float^Float",
         "Log2^Float^Float",
-        "Now^Int^none",
+        "Now^Long^none",
         "Sleep^Void^Int",
         "Cancel^Bool^Unknown",
         "Random^Int^Int",
@@ -202,6 +202,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
 func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
     return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
         name == "StringLength" || name == "CharCode" || name == "Concat" ||
+        name == "Substring" || name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
         name == "TextBuilderAppend" || name == "ArrayPushOwnedString";
 }
 
@@ -214,6 +215,9 @@ func SemanticBuiltinRetentionSourceSignatureMatches(
     if name == "StringLength" { return return_type == "Int" && param_types == "String"; }
     if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
     if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
+    if name == "Substring" { return return_type == "String" && param_types == "String|Int|Int"; }
+    if name == "SubEqualsWithLen" { return return_type == "Bool" && param_types == "String|Int|Int|Int|String"; }
+    if name == "SubIndexOfWithLen" { return return_type == "Int" && param_types == "String|Int|Int|Int|String"; }
     if name == "TextBuilderAppend" { return return_type == "Void" && param_types == "TextBuilder|String"; }
     if name == "ArrayPushOwnedString" { return return_type == "Void" && param_types == "Array<String>|String"; }
     return false;

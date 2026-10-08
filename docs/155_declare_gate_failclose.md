@@ -83,7 +83,9 @@ Status: `canon`. BDFL 채택 2026-07-04 (메타 평가 대화에서 정식화·�
   `GuardWitnessBinding.v` — guard 정책의 op class를 런타임 panic-class
   레지스트리(pgy_runtime_panic_contract.h)의 명명 witness에 결속.
   can_be_bad_has_witness(Proven인 OpSlotRelease도 backstop 보유 —
-  always-on defense-in-depth 기계화) + witness_disjoint(진단가능성 1:1).
+  always-on defense-in-depth 기계화). `witness_overlap_is_overflow`는 division과
+  add/mul이 arithmetic-overflow를 공유함을 명시한다. panic class만으로
+  연산을 1:1 식별할 수 없으며 operation·source context를 같이 유지한다.
   smoke가 모델·코드 양쪽에서 같은 class 문자열을 요구 — 어휘 드리프트
   무음 불가. 갭 축소이지 제거 아님(guard 발화 정확성=failclosed 픽스처,
   방출 커버리지=twin parity 소관 — negative scope 명기).

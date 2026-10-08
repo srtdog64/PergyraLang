@@ -2,63 +2,36 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
+fail() { echo "[proof-carrying-adequacy] $*" >&2; exit 1; }
 
-fail() {
-    echo "[proof-carrying-adequacy] $*" >&2
-    exit 1
-}
+if ! command -v rocq >/dev/null 2>&1; then
+    if [ "${PGY_ALLOW_MISSING_COQ:-0}" = 1 ]; then
+        echo "[proof-carrying-adequacy] DECLARED SKIP: no prover; no checker adequacy was established"
+        exit 0
+    fi
+    fail "no Coq/Rocq prover; keyword presence cannot establish adequacy"
+fi
+pgy_rocq_require
+command -v ocamlc >/dev/null 2>&1 || fail "ocamlc is required to execute the extracted checker"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "Python is required for executable admission comparison"
 
-require_file() {
-    local rel="$1"
-    [[ -e "$ROOT_DIR/$rel" ]] || fail "missing file: $rel"
-}
-
-require_text() {
-    local rel="$1"
-    local text="$2"
-    grep -Fq -- "$text" "$ROOT_DIR/$rel" ||
-        fail "$rel missing text: $text"
-}
-
-require_file "docs/semantics/proofs/ProofCarryingIR.v"
-require_file "docs/semantics/proofs/ProofCarryingIR.md"
-require_file "docs/semantics/17_proof_carrying_pipeline.md"
-require_file "tests/proof_carrying_pipeline_smoke.sh"
-require_file "docs/semantics/pass_contract_manifest.md"
-require_file "tests/formal_semantics_smoke.sh"
-
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Inductive CertLayer"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Inductive AIRFact"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Inductive MIRFact"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "FactOrFailClosed"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "CompatMaySucceed"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Definition ValidCertificate"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_allows_backend_consumption"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem missing_air_authority_fails_closed"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem missing_mir_expr0_fails_closed"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem compat_success_policy_fails_closed"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem negative_deletion_gate_required"
-require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_requires_air_and_mir_facts"
-
-require_text "docs/semantics/proofs/ProofCarryingIR.md" "valid certificate + valid owner payloads"
-require_text "docs/semantics/proofs/ProofCarryingIR.md" "missing required certificate fact"
-require_text "docs/semantics/proofs/ProofCarryingIR.md" "This is not whole-compiler verification"
-
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "pgy.proof-carrying-ir.v1"
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "Stage 2: Mechanized Checker Core"
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "pgy.proof-input-binding.v1"
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "not a proof that an"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "AIR_REQUIRED"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "MIR_REQUIRED"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "rir_authority"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "expr0"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "negative certificate deletion was accepted"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "source mutation kept an old certificate valid"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "source digest repair bypassed the composite binding"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "AIR payload mutation kept an old certificate valid"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "MIR payload mutation kept an old certificate valid"
-require_text "tests/proof_carrying_pipeline_smoke.sh" "duplicate certificate layer was accepted"
-require_text "docs/semantics/pass_contract_manifest.md" "proof_certificate_pipeline"
-require_text "tests/formal_semantics_smoke.sh" "docs/semantics/proofs/ProofCarryingIR.v"
-
-echo "[proof-carrying-adequacy] checker-core model is bound to live certificate gate"
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+cp "$ROOT_DIR/docs/semantics/proofs/ProofCarryingIR.v" "$WORK_DIR/"
+cp "$ROOT_DIR/tests/coq/ProofCarryingIRExtraction.v" "$WORK_DIR/"
+# The existing kernel-policy owner compiles the fresh model/extraction and
+# verifies this isolated core has no assumptions. No cached .vo is consumed.
+PGY_COQ_PROOFS_DIR="$WORK_DIR" PGY_COQ_EXPECTED_AXIOMS="" PGY_ROCQ_EXTRACT_DIR="$WORK_DIR" \
+    bash "$ROOT_DIR/tests/coq_kernel_check.sh"
+cp "$ROOT_DIR/tests/coq/proof_certificate_checker_driver.ml" "$WORK_DIR/"
+(
+    cd "$WORK_DIR"
+    ocamlc -c proof_certificate_checker.mli
+    ocamlc -c proof_certificate_checker.ml
+    ocamlc -o checker proof_certificate_checker.cmo proof_certificate_checker_driver.ml
+)
+PYTHONPATH="$ROOT_DIR/scripts${PYTHONPATH:+:$PYTHONPATH}" \
+    "$PYTHON_BIN" "$ROOT_DIR/tests/proof_certificate_adequacy.py" "$WORK_DIR/checker"
+echo "[proof-carrying-adequacy] fresh kernel-checked extraction and executable envelope admission agree"

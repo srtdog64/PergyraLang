@@ -106,6 +106,19 @@ require_text "docs/semantics/proofs/CompensationCore.v" "Theorem do_then_rollbac
 require_text "docs/semantics/proofs/CoordinationCore.v" "Theorem reachable_dep_closed"
 require_text "docs/semantics/proofs/WholeProgramCore.v" "Theorem step_iff_guard"
 require_text "docs/semantics/proofs/AIRBinding.v" "Theorem guard_air_faithful"
+require_text "docs/semantics/proofs/AIRBinding.v" "Require Import WholeProgramCore."
+require_text "docs/semantics/proofs/AIRBinding.v" "WholeProgramCore.guard"
+# A source-residue ratchet, not a proof of machine behavior. Kernel compilation
+# owns the faithfulness claim against the imported machine.
+if grep -Eq '^[[:space:]]*(Definition (guard_machine|principal|zone|cap|eff|slot|task|slot_store|has_cap)|Record (config|effect_log_entry)|Inductive (action|lcstate))([[:space:]:=]|$)' \
+    "$ROOT_DIR/docs/semantics/proofs/AIRBinding.v"; then
+    fail "AIRBinding retains a private machine owner"
+fi
+require_text "docs/semantics/proofs/BinaryAdequacy.v" "Require Import WholeProgramCore AIRBinding."
+if grep -Eq '^[[:space:]]*(Definition (guard_air|ready_air|principal|zone|cap|eff|slot|task|slot_store|has_cap)|Record (config|effect_log_entry|AIRFacts)|Inductive (action|lcstate))([[:space:]:=]|$)' \
+    "$ROOT_DIR/docs/semantics/proofs/BinaryAdequacy.v"; then
+    fail "BinaryAdequacy retains a private machine/AIR owner"
+fi
 require_text "docs/semantics/proofs/FormalKernel.v" "Theorem every_keyword_has_kernel_meaning"
 require_text "docs/semantics/proofs/FormalKernel.v" "Theorem no_keyword_permits_whole_language_claim"
 require_text "docs/semantics/proofs/BasisCompleteness.v" "Theorem world_separation"
@@ -252,31 +265,16 @@ require_text "docs/semantics/README.md" "proofs/ProofSpine.v"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof spine"
 require_text "tests/formal_semantics_smoke.sh" "docs/semantics/proofs/ProofSpine.v"
 
-# Rocq 9 renamed the CLI (`rocq compile` replaces coqc) and its official image
-# ships only the new name, while apt coq ships only the legacy one -- detect
-# rather than assume. And a runner with no prover used to skip this check while
-# the gate still reported green; that absence is now fatal unless declared.
-coq_compile=""
+source "$ROOT_DIR/scripts/rocq_toolchain_owner.sh"
 if command -v rocq >/dev/null 2>&1; then
-    coq_compile="rocq compile"
-elif command -v coqc >/dev/null 2>&1; then
-    coq_compile="coqc"
-fi
-
-if [ -n "$coq_compile" ]; then
-    coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
-    if command -v timeout >/dev/null 2>&1; then
-        (cd "$ROOT_DIR" && timeout "$coq_timeout" $coq_compile docs/semantics/proofs/ProofSpine.v)
-    else
-        (cd "$ROOT_DIR" && $coq_compile docs/semantics/proofs/ProofSpine.v)
-    fi
-    echo "[proof-spine] Coq spine ok (checked with '$coq_compile')"
+    pgy_rocq_check_isolated "$ROOT_DIR/docs/semantics/proofs/ProofSpine.v"
+    echo "[proof-spine] Rocq spine freshly kernel-checked"
 elif [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
-    echo "[proof-spine] Coq spine DECLARED SKIP -- no prover (looked for rocq," \
-         "coqc), PGY_ALLOW_MISSING_COQ=1; the spine was NOT checked on this runner."
+    echo "[proof-spine] Rocq spine DECLARED SKIP -- no Rocq," \
+         "PGY_ALLOW_MISSING_COQ=1; the spine was NOT checked on this runner."
 else
-    echo "[proof-spine] FAIL -- no prover found (looked for rocq, coqc); the Coq" \
-         "spine would go unchecked. Install Coq/Rocq, or set" \
+    echo "[proof-spine] FAIL -- no Rocq; the" \
+         "spine would go unchecked. Install pinned Rocq, or set" \
          "PGY_ALLOW_MISSING_COQ=1 to declare the skip." >&2
     exit 1
 fi

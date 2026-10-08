@@ -1,5 +1,5 @@
 (*
-  ParallelSchedulingCore.v  --  why the pool cannot deadlock, and what each
+  ParallelSchedulingCore.v  --  conditional join-lane progress, and what each
   competing await policy costs.
 
   Companion to docs/186 (parallel implementation plan P-A1/P-B1), and to the
@@ -28,7 +28,7 @@
     PolHelpFirst    await drains the queue first, and    (Pergyra join lane)
                     parks only when the queue is empty
     PolCompensate   await parks, but queued work with    (Pergyra channel lane)
-                    no runner left adds a spare worker
+                    no runner left adds a capacity-bounded spare worker
 
   The axis that decides everything is `push`, the order in which frames were
   pushed, together with the hypothesis
@@ -55,7 +55,8 @@
       UNDER its helper on the same worker's stack. Stuck -- and impossible under
       spawn_tree, which is why helping is correct on the join lane and was
       refuted on the channel lane.
-    - [compensation_moves_where_the_others_stick]  one configuration, three
+    - [compensation_moves_where_the_others_stick]  with spare capacity, one
+      configuration, three
       verdicts: stuck under PolParkOnly, stuck under PolHelpFirst, steps under
       PolCompensate.
     - [help_first_preserves_queue_runner] / [help_first_preserves_desc_stacks]
@@ -71,16 +72,17 @@
   atomics, no happens-before, no C11 ordering; `push` abstracts a real clock.
   Progress means "some rule applies" -- absence of deadlock -- not termination
   and not fairness, so a starving-but-stepping schedule is outside the model.
-  Two of the four invariants consumed by [help_first_progress] (park
-  well-formedness and target location) are structural bookkeeping and are
-  asserted rather than derived; the two that carry the argument are proved
-  preserved. Binding this model to the C and LLVM emitters remains what the
-  parallel gates check empirically.
+  The transition relation admits only waits on issued tasks and preserves
+  target location. Spare workers are capped at four times the base workers,
+  matching the default runtime profile. Compensation only rescues queued
+  work below that cap; it does not resolve an empty-queue dependency cycle.
+  Binding this model to C/LLVM, thread creation failure and custom runtime
+  PGY_POOL_SPARE_FACTOR profiles remains a refinement obligation.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
 Import ListNotations.
 
 Section ParallelScheduling.
@@ -94,6 +96,11 @@ Variable push : Task -> nat.
 
 (* [awaits h t]: the task h is blocked on the completion of t. *)
 Variable awaits : Task -> Task -> Prop.
+
+(* Default runtime profile: max_spares = worker_count * 4. The fixed base
+   count is the owner; it never grows when a spare is admitted. *)
+Variable base_workers : nat.
+Definition worker_limit := base_workers * 5.
 
 (* ===================================================================== *)
 (* 1. Configurations                                                      *)
@@ -116,6 +123,12 @@ Definition stack_of (w : WState) : list Task :=
 
 Definition push_head (w : WState) : nat :=
   match stack_of w with [] => 0 | h :: _ => push h end.
+
+Definition listed_tasks (c : Config) : list Task :=
+  cqueued c ++ flat_map stack_of (cworkers c) ++ cdone c.
+
+Definition task_present (c : Config) (t : Task) : Prop :=
+  In t (listed_tasks c).
 
 (* ===================================================================== *)
 (* 2. Policies                                                            *)
@@ -170,6 +183,7 @@ Inductive step (p : Policy) : Config -> Config -> Prop :=
       pol_helps p = true ->
       awaits h tg -> ~ In tg dn ->
       push h < push t ->
+      task_present (mkCfg (t :: q) (pre ++ WRun (h :: rest) :: post) dn) tg ->
       step p (mkCfg (t :: q) (pre ++ WRun (h :: rest)      :: post) dn)
              (mkCfg q        (pre ++ WRun (t :: h :: rest) :: post) dn)
 
@@ -177,6 +191,7 @@ Inductive step (p : Policy) : Config -> Config -> Prop :=
   | StPark : forall q h rest tg pre post dn,
       pol_park_ok p q ->
       awaits h tg -> ~ In tg dn ->
+      task_present (mkCfg q (pre ++ WRun (h :: rest) :: post) dn) tg ->
       step p (mkCfg q (pre ++ WRun  (h :: rest)    :: post) dn)
              (mkCfg q (pre ++ WPark (h :: rest) tg :: post) dn)
 
@@ -193,6 +208,7 @@ Inductive step (p : Policy) : Config -> Config -> Prop :=
       pol_compensates p = true ->
       q <> [] ->
       (forall w, In w ws -> exists st tg, w = WPark st tg) ->
+      length ws < worker_limit ->
       step p (mkCfg q ws                dn)
              (mkCfg q (ws ++ [WRun []]) dn).
 
@@ -449,7 +465,8 @@ Proof.
     { apply (StPark PolParkOnly [tg] h [] tg [] []).
       - exact I.
       - exact Haw.
-      - intro Hbad. contradiction. }
+      - intro Hbad. contradiction.
+      - unfold task_present, listed_tasks. simpl. left. reflexivity. }
     apply steps_refl.
   - apply all_parked_is_stuck; [reflexivity |].
     intros w [Heq | Hbad]; [| contradiction].
@@ -488,12 +505,14 @@ Proof.
     { apply (StPark PolHelpFirst [] a [] b [] [WRun [b]]).
       - reflexivity.
       - exact Hab.
-      - intro Hbad. contradiction. }
+      - intro Hbad. contradiction.
+      - unfold task_present, listed_tasks. simpl. right. left. reflexivity. }
     apply (steps_more _ _ (mkCfg [] [WPark [a] b; WPark [b] a] [])).
     { apply (StPark PolHelpFirst [] b [] a [WPark [a] b] []).
       - reflexivity.
       - exact Hba.
-      - intro Hbad. contradiction. }
+      - intro Hbad. contradiction.
+      - unfold task_present, listed_tasks. simpl. left. reflexivity. }
     apply steps_refl.
   - apply all_parked_is_stuck; [reflexivity |].
     intros w [Heq | [Heq | Hbad]]; [| | contradiction].
@@ -529,11 +548,12 @@ Qed.
 (* One configuration -- a queued task and the only worker parked -- three
    verdicts. This is the WO-RT-5 channel witness. *)
 Theorem compensation_moves_where_the_others_stick : forall t st tg,
+  0 < base_workers ->
   stuck PolParkOnly  (mkCfg [t] [WPark st tg] [])
   /\ stuck PolHelpFirst (mkCfg [t] [WPark st tg] [])
   /\ exists c', step PolCompensate (mkCfg [t] [WPark st tg] []) c'.
 Proof.
-  intros t st tg. split; [| split].
+  intros t st tg Hbase. split; [| split].
   - apply all_parked_is_stuck; [reflexivity |].
     intros w [Heq | Hbad]; [| contradiction]. subst w. exists st, tg. reflexivity.
   - apply all_parked_is_stuck; [reflexivity |].
@@ -542,6 +562,7 @@ Proof.
     + reflexivity.
     + discriminate.
     + intros w [Heq | Hbad]; [| contradiction]. subst w. exists st, tg. reflexivity.
+    + unfold worker_limit. simpl. lia.
 Qed.
 
 (* --- (d) the two policies on the SAME configuration ------------------ *)
@@ -676,6 +697,225 @@ Proof.
   - discriminate H.
 Qed.
 
+(* An issued task migrates queue -> stack -> done; no transition invents an
+   await target or loses one when a frame completes. *)
+Lemma step_keeps_issued_tasks : forall p c c' t,
+  step p c c' -> task_present c t -> task_present c' t.
+Proof.
+  intros p c c' t Hstep Hin. destruct Hstep;
+    unfold task_present, listed_tasks in *; simpl in *;
+    rewrite ?flat_map_app in *; simpl in *;
+    repeat rewrite in_app_iff in *; simpl in *;
+    repeat rewrite in_app_iff in *; simpl in *; tauto.
+Qed.
+
+Definition await_targets_present (c : Config) : Prop :=
+  forall st tg, In (WPark st tg) (cworkers c) -> task_present c tg.
+
+Lemma task_present_cases : forall c t,
+  task_present c t <->
+  In t (cqueued c) \/ In t (cdone c) \/
+  exists w, In w (cworkers c) /\ In t (stack_of w).
+Proof.
+  intros c t. unfold task_present, listed_tasks.
+  rewrite !in_app_iff, in_flat_map. tauto.
+Qed.
+
+Lemma parked_target_survives_replacement : forall q dn pre post old new st tg,
+  await_targets_present (mkCfg q (pre ++ old :: post) dn) ->
+  In (WPark st tg) (pre ++ new :: post) ->
+  WPark st tg <> new ->
+  task_present (mkCfg q (pre ++ old :: post) dn) tg.
+Proof.
+  intros q dn pre post old new st tg Hinv Hin Hne.
+  apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin].
+  - contradiction.
+  - apply (Hinv st tg). apply in_or_app. apply in_app_or in Hin.
+    destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+Qed.
+
+Theorem step_preserves_await_targets : forall p c c',
+  await_targets_present c -> step p c c' -> await_targets_present c'.
+Proof.
+  intros p c c' Hinv Hstep.
+  assert (Hkeep : forall t, task_present c t -> task_present c' t).
+  { intros t. eapply step_keeps_issued_tasks. exact Hstep. }
+  destruct Hstep; unfold await_targets_present in *; simpl in *;
+    intros st0 tg0 Hin.
+  - apply Hkeep. eapply parked_target_survives_replacement; eauto; discriminate.
+  - apply Hkeep. apply (Hinv st0 tg0). exact Hin.
+  - apply Hkeep. eapply parked_target_survives_replacement; eauto; discriminate.
+  - apply Hkeep. eapply parked_target_survives_replacement; eauto; discriminate.
+  - apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin].
+    + inversion Heq; subst. apply Hkeep. exact H2.
+    + apply Hkeep. apply (Hinv st0 tg0). apply in_or_app. apply in_app_or in Hin.
+      destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+  - apply Hkeep. eapply parked_target_survives_replacement; eauto; discriminate.
+  - apply in_app_or in Hin. destruct Hin as [Hin | [Heq | Hin]].
+    + apply Hkeep. apply (Hinv st0 tg0). exact Hin.
+    + discriminate.
+    + contradiction.
+Qed.
+
+Theorem run_preserves_await_targets : forall p c c',
+  await_targets_present c -> steps p c c' -> await_targets_present c'.
+Proof.
+  intros p c c' Hinv Hrun. induction Hrun.
+  - exact Hinv.
+  - apply IHHrun. eapply step_preserves_await_targets; eassumption.
+Qed.
+
+Definition parked_await_wf (c : Config) : Prop :=
+  forall st tg, In (WPark st tg) (cworkers c) ->
+  exists h rest, st = h :: rest /\ awaits h tg.
+
+Theorem step_preserves_parked_await_wf : forall p c c',
+  parked_await_wf c -> step p c c' -> parked_await_wf c'.
+Proof.
+  intros p c c' Hinv Hstep. destruct Hstep;
+    unfold parked_await_wf in *; simpl in *; intros st0 tg0 Hin.
+  - apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin]; [discriminate |].
+    apply (Hinv st0 tg0). apply in_or_app. apply in_app_or in Hin.
+    destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+  - apply (Hinv st0 tg0). exact Hin.
+  - apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin]; [discriminate |].
+    apply (Hinv st0 tg0). apply in_or_app. apply in_app_or in Hin.
+    destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+  - apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin]; [discriminate |].
+    apply (Hinv st0 tg0). apply in_or_app. apply in_app_or in Hin.
+    destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+  - apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin].
+    + inversion Heq; subst. exists h, rest. auto.
+    + apply (Hinv st0 tg0). apply in_or_app. apply in_app_or in Hin.
+      destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+  - apply in_app_cons_cases in Hin. destruct Hin as [Heq | Hin]; [discriminate |].
+    apply (Hinv st0 tg0). apply in_or_app. apply in_app_or in Hin.
+    destruct Hin as [Hin | Hin]; [left; exact Hin | right; right; exact Hin].
+  - apply in_app_or in Hin. destruct Hin as [Hin | [Heq | Hin]].
+    + apply (Hinv st0 tg0). exact Hin.
+    + discriminate.
+    + contradiction.
+Qed.
+
+Definition join_invariant (c : Config) : Prop :=
+  desc_stacks c /\ await_targets_present c /\
+  parked_await_wf c /\ queue_has_runner c.
+
+Theorem help_first_preserves_join_invariant : forall c c',
+  join_invariant c -> step PolHelpFirst c c' -> join_invariant c'.
+Proof.
+  intros c c' [Hdesc [Htargets [Hpark Hqueue]]] Hstep. repeat split.
+  - eapply help_first_preserves_desc_stacks; eassumption.
+  - eapply step_preserves_await_targets; eassumption.
+  - eapply step_preserves_parked_await_wf; eassumption.
+  - eapply help_first_preserves_queue_runner; eassumption.
+Qed.
+
+Theorem help_first_run_keeps_join_invariant : forall c c',
+  join_invariant c -> steps PolHelpFirst c c' -> join_invariant c'.
+Proof.
+  intros c c' Hinv Hrun. induction Hrun.
+  - exact Hinv.
+  - apply IHHrun. eapply help_first_preserves_join_invariant; eassumption.
+Qed.
+
+Theorem help_first_progress_from_run : forall c c',
+  join_invariant c -> steps PolHelpFirst c c' ->
+  cworkers c' <> [] ->
+  (forall a b, awaits a b -> push a < push b) ->
+  ~ final c' -> exists after, step PolHelpFirst c' after.
+Proof.
+  intros c [q ws dn] Hinv Hrun Hworkers Htree Hnonfinal.
+  destruct (help_first_run_keeps_join_invariant c _ Hinv Hrun)
+    as [Hdesc [Htargets [Hpark Hqueue]]].
+  apply help_first_progress; try assumption.
+  - intros w Hin. specialize (Hdesc w Hin).
+    destruct w; apply desc_stack_head_max in Hdesc; exact Hdesc.
+  - intros st tg Hin Hnotdone.
+    destruct (proj1 (task_present_cases _ tg) (Htargets st tg Hin))
+      as [Hqueued | [Hdone | Hstack]].
+    + left. exact Hqueued.
+    + contradiction.
+    + right. exact Hstack.
+Qed.
+
+Theorem step_preserves_worker_bound : forall p c c',
+  length (cworkers c) <= worker_limit -> step p c c' ->
+  length (cworkers c') <= worker_limit.
+Proof.
+  intros p c c' Hbound Hstep. destruct Hstep; simpl in *;
+    rewrite !length_app in *; simpl in *; lia.
+Qed.
+
+Theorem run_preserves_worker_bound : forall p c c',
+  length (cworkers c) <= worker_limit -> steps p c c' ->
+  length (cworkers c') <= worker_limit.
+Proof.
+  intros p c c' Hbound Hrun. induction Hrun.
+  - exact Hbound.
+  - apply IHHrun. eapply step_preserves_worker_bound; eassumption.
+Qed.
+
+(* Spare capacity cannot satisfy a real dependency cycle when nothing is
+   queued. This falsifies universal compensation-progress claims. *)
+Lemma empty_queue_all_parked_stuck : forall p ws,
+  (forall w, In w ws -> exists st tg, w = WPark st tg) ->
+  stuck p (mkCfg [] ws []).
+Proof.
+  intros p ws Hall [c' Hstep].
+  assert (Hnorun : forall st, ~ In (WRun st) ws).
+  { intros st Hin. destruct (Hall _ Hin) as [st' [tg' Heq]]. discriminate. }
+  inversion Hstep; subst;
+    try (eapply Hnorun; apply in_middle);
+    try congruence;
+    try (match goal with H : In _ nil |- _ => destruct H end).
+Qed.
+
+Theorem compensation_at_capacity_is_stuck : forall q ws,
+  length ws = worker_limit ->
+  (forall w, In w ws -> exists st tg, w = WPark st tg) ->
+  stuck PolCompensate (mkCfg q ws []).
+Proof.
+  intros q ws Hcap Hall [c' Hstep].
+  assert (Hnorun : forall st, ~ In (WRun st) ws).
+  { intros st Hin. destruct (Hall _ Hin) as [st' [tg' Heq]]. discriminate. }
+  inversion Hstep; subst;
+    try (eapply Hnorun; apply in_middle);
+    try congruence;
+    try (match goal with H : In _ nil |- _ => destruct H end).
+  lia.
+Qed.
+
+Theorem cyclic_await_deadlocks_under_compensation : forall a b,
+  awaits a b -> awaits b a ->
+  steps PolCompensate (mkCfg [a; b] [WRun []; WRun []] [])
+                      (mkCfg [] [WPark [a] b; WPark [b] a] []) /\
+  stuck PolCompensate (mkCfg [] [WPark [a] b; WPark [b] a] []) /\
+  ~ final (mkCfg [] [WPark [a] b; WPark [b] a] []).
+Proof.
+  intros a b Hab Hba. split; [| split].
+  - eapply steps_more.
+    { apply (StTake PolCompensate [b] a [] [WRun []]). }
+    eapply steps_more.
+    { apply (StTake PolCompensate [] b [WRun [a]] []). }
+    eapply steps_more.
+    { apply (StPark PolCompensate [] a [] b [] [WRun [b]]).
+      - exact I.
+      - exact Hab.
+      - simpl. tauto.
+      - unfold task_present, listed_tasks. simpl. right. left. reflexivity. }
+    eapply steps_more.
+    { apply (StPark PolCompensate [] b [] a [WPark [a] b] []).
+      - exact I.
+      - exact Hba.
+      - simpl. tauto.
+      - unfold task_present, listed_tasks. simpl. left. reflexivity. }
+    apply steps_refl.
+  - apply empty_queue_all_parked_stuck.
+    intros w [Heq | [Heq | Hbad]]; [| | contradiction]; subst w; eauto.
+  - intros [_ HF]. inversion HF. discriminate.
+Qed.
+
 End ParallelScheduling.
 
 (* ===================================================================== *)
@@ -690,10 +930,10 @@ End ParallelScheduling.
 
 Example help_first_progress_is_not_vacuous :
   exists c',
-    step (fun x : Task => x) (fun a b : Task => a < b) PolHelpFirst
+    step (fun x : Task => x) (fun a b : Task => a < b) 1 PolHelpFirst
       (mkCfg [] [WPark [0] 1; WRun [1]] []) c'.
 Proof.
-  apply (help_first_progress (fun x : Task => x) (fun a b : Task => a < b)).
+  apply (help_first_progress (fun x : Task => x) (fun a b : Task => a < b) 1).
   - discriminate.
   - intros a b H. exact H.
   - intros w Hin. destruct Hin as [Heq | [Heq | Hf]]; try contradiction; subst w.
@@ -725,13 +965,14 @@ Qed.
 (*   PolHelpFirst         progress          DEADLOCK       bounded         *)
 (*                        help_first_       cyclic_await_                  *)
 (*                        progress          deadlocks                      *)
-(*   PolCompensate        progress          progress       bounded + spares *)
-(*                                          compensation_                  *)
-(*                                          moves_...                      *)
+(*   PolCompensate        queued rescue     DEADLOCK       <= base * 5     *)
+(*                        below spare cap   when q = []                     *)
 (*                                                                          *)
 (* The runtime runs help-first on the join lane, where spawn_tree holds and  *)
 (* no spare thread is ever needed, and compensation on the channel lane,     *)
-(* where it does not. Neither mechanism is redundant and neither generalises *)
+(* where it does not. A spare executes queued work, not a dependency cycle.   *)
+(* At cap or with an empty queue there is no progress theorem.               *)
+(* Neither mechanism is redundant and neither generalises                   *)
 (* to the other's lane: help_in_cyclic_wait_self_deadlocks is the proof that *)
 (* helping a cyclic wait is not merely unhelpful but fatal, which is what    *)
 (* the WO-RT-5 backpressure gate found empirically before this model existed.*)

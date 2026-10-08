@@ -257,7 +257,7 @@ def load_rows(registry: Path) -> list[KeywordRow]:
             raise ValueError(f"row {row_number} has no grammar context")
         if fields[5] not in AXIS_VALUES:
             raise ValueError(
-                f"row {row_number} has unknown semantic axis: {fields[5]}"
+                f"row {row_number} has unknown primary category axis: {fields[5]}"
             )
         support = set() if fields[6] == "0" else _flag_terms(
             fields[6], f"row {row_number} implementation support", set(SUPPORT_VALUES)
@@ -524,6 +524,13 @@ def _render_aggregate_projection() -> str:
             "            row.implementation_support < 0 || row.implementation_support > 3 ||",
             "            row.tooling_flags < 0 || (row.implementation_support == 0 &&",
             "                (row.keyword_class != 2 || row.tooling_flags != 0)) {",
+            "            return false;",
+            "        }",
+            "        // Numeric identity and name are one generated primary-category fact.",
+            "        if !(" + " ||\n            ".join(
+                f'(row.axis == {axis_id} && row.axis_name == "{axis_name}")'
+                for axis_id, axis_name in AXIS_VALUES.values()
+            ) + ") {",
             "            return false;",
             "        }",
             "        index = index + 1;",

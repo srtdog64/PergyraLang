@@ -30,9 +30,9 @@
   Honest scope: 32-bit signed two's complement modeled on Z.
 *)
 
-Require Import Coq.Bool.Bool.
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.ZArith.ZArith.
+Require Import Stdlib.micromega.Lia.
 Open Scope Z_scope.
 
 Definition min32 : Z := - 2 ^ 31.

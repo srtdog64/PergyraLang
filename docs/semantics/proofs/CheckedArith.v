@@ -29,10 +29,10 @@
   C == LLVM parity gate observes empirically.
 *)
 
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.ZArith.Zquot.
-Require Import Coq.Bool.Bool.
-Require Import Coq.micromega.Lia.
+Require Import Stdlib.ZArith.ZArith.
+Require Import Stdlib.ZArith.Zquot.
+Require Import Stdlib.Bool.Bool.
+Require Import Stdlib.micromega.Lia.
 Open Scope Z_scope.
 
 Definition INT_MIN : Z := -2147483648.

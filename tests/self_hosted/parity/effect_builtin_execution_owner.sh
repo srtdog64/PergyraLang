@@ -3,6 +3,8 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+pgy_selfhost_select_linked_runtime_compile_profile
 pgy_prepend_windows_runtime_paths
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELFHOST_PREBUILT_DRIVER:-$ROOT_DIR/bin/pgy-self-driver}")"
 pgy_require_runnable_binary_here effect-builtin-execution "$DRIVER"
@@ -11,7 +13,7 @@ mkdir -p .tmp/self_hosted
 WORK="$(mktemp -d .tmp/self_hosted/effect-builtin-execution.XXXXXX)"
 echo "[effect-builtin-execution] evidence: $WORK"
 sha256sum "$DRIVER" >"$WORK/inputs.sha256"
-timeout 60 clang -std=c11 -DPGY_LLVM_ENABLED -Isrc -Isrc/runtime \
+timeout 60 clang "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" -Isrc -Isrc/runtime \
     -c src/runtime/pgy_runtime_lib.c -o "$WORK/runtime.o" >"$WORK/runtime.compile.log" 2>&1
 checks=0
 while IFS='|' read -r name expected; do

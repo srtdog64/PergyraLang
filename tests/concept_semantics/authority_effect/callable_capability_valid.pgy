@@ -1,7 +1,7 @@
 import "callable_capability_fixture.pgy";
 
 func ClockBump(value: Int) -> Int with caps clock {
-    let observed: Int = Now();
+    let observed: Long = Now();
     return value + 1;
 }
 func Main() -> Void with caps clock { Log(Invoke(ClockBump, 41)); }

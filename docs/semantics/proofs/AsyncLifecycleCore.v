@@ -21,7 +21,7 @@
   starts Live and reaches an admissible scope exit contains await or transfer.
 *)
 
-Require Import Coq.Lists.List.
+Require Import Stdlib.Lists.List.
 Import ListNotations.
 
 Section AsyncLifecycleCore.
@@ -176,44 +176,48 @@ Proof.
     destruct Hclosed as [H | H]; discriminate.
 Qed.
 
-(* Parallel arms are simultaneous, not alternative paths.  A retirement in
-   either non-diverged arm contributes to the post-join state. *)
+(* Parallel arms are simultaneous. The entry snapshot owns whether Retired
+   represents a NEW consumption: two Retired arms conflict only when the
+   incoming handle was Live. An already retired handle staying retired is
+   not a double consumption. This is the per-incoming-handle admission seam,
+   not just the checker's raw future-state projection after its delta gate. *)
 Definition parallel_merge
-  (left right : LifetimeState) : LifetimeState :=
-  match left with
-  | LDiverged => LDiverged
-  | LRetired =>
-      match right with
-      | LDiverged => LDiverged
-      | _ => LRetired
-      end
-  | LLive =>
-      match right with
-      | LDiverged => LDiverged
-      | LRetired => LRetired
-      | _ => LLive
-      end
-  | LAbsent =>
-      match right with
-      | LDiverged => LDiverged
-      | LRetired => LRetired
-      | LLive => LLive
-      | LAbsent => LAbsent
-      end
+  (before left right : LifetimeState) : LifetimeState :=
+  match before, left, right with
+  | LAbsent, LAbsent, LAbsent => LAbsent
+  | LLive, LLive, LLive => LLive
+  | LLive, LRetired, LLive | LLive, LLive, LRetired => LRetired
+  | LRetired, LRetired, LRetired => LRetired
+  | _, _, _ => LDiverged
   end.
 
 Theorem parallel_retirement_contributes : forall left right,
-  left <> LDiverged ->
-  right <> LDiverged ->
+  (left = LLive \/ left = LRetired) ->
+  (right = LLive \/ right = LRetired) ->
+  ~ (left = LRetired /\ right = LRetired) ->
   (left = LRetired \/ right = LRetired) ->
-  parallel_merge left right = LRetired.
+  parallel_merge LLive left right = LRetired.
 Proof.
   destruct left, right; simpl; intuition congruence.
 Qed.
 
+Theorem parallel_double_retirement_fails_closed :
+  ~ scope_closed (parallel_merge LLive LRetired LRetired).
+Proof. simpl. intros [H | H]; discriminate. Qed.
+
+Theorem parallel_retired_has_one_consumer : forall left right,
+  parallel_merge LLive left right = LRetired ->
+  (left = LRetired /\ right <> LRetired) \/
+  (right = LRetired /\ left <> LRetired).
+Proof. destruct left, right; simpl; intuition congruence. Qed.
+
 Example alternative_and_parallel_merges_are_distinct :
   alternative_merge LLive LRetired = LDiverged /\
-  parallel_merge LLive LRetired = LRetired.
+  parallel_merge LLive LLive LRetired = LRetired.
 Proof. split; reflexivity. Qed.
+
+Example already_retired_parallel_reads_are_not_new_consumptions :
+  parallel_merge LRetired LRetired LRetired = LRetired.
+Proof. reflexivity. Qed.
 
 End AsyncLifecycleCore.

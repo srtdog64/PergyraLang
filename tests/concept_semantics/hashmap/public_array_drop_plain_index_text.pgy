@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let values: Array<Int> = [7, 9];
+    let index: Int = 0;
+    while index < ArrayLength(values) {
+        let text: String = ToString(values[index]);
+        Log(text);
+        index = index + 1;
+    }
+    ArrayDrop(values);
+}

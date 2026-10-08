@@ -15,7 +15,7 @@ X-macro 한 줄이 단어 하나의 **9개 사실**을 동시에 선언한다:
 ```c
 PGY_LANGUAGE_KEYWORD(
     spelling, class, token identity, stable debug/word identity,
-    grammar context mask, semantic axis, implementation support,
+    grammar context mask, primary category axis, implementation support,
     tooling support, TextMate highlight scope)
 ```
 
@@ -41,18 +41,26 @@ fact)**이지 구현 완료 증거가 아니다. 실제 대조는
 contextual이 거의 절반이라는 게 설계 의도다 — 도메인 어휘를 대량으로 들이면서도
 사용자 식별자 공간을 잠그지 않는다.
 
-### 1.2 의미 축 (axis)
+### 1.2 단어의 대표 분류 축 (axis)
 
 | 축 | 성격 |
 |---|---|
 | EXECUTION | 제어·동시성·트랜잭션 |
 | DOMAIN | 세계/의도 모델링 |
 | TYPE_CONTRACT | 타입·계약 |
-| GENERAL | 범용 |
+| GENERAL | 범용 binding·리터럴·모듈/가시성 구조·다중 문맥 조합어 |
 | RESOURCE | 슬롯·소유·자원 |
 
 축별 단어 수는 레지스트리에서 계산한다. 개수 자체는 의미의 독자성이나
 실행 가능성을 증명하지 않는다.
+
+`axis`는 철자 하나의 대표 분류이며, 모든 사용 문맥의 최종 의미 소유자가
+아니다. `all/any`는 join과 world 상태 합성에, `any`는 타입 위치에도 쓰인다.
+`where`는 제네릭 제약과 intent의 zone 바인딩을, `with`는 여러 종류의 절을
+연다. 실제 fact의 소유자는 선택된 parser/semantic 계약이 정한다.
+MODULE은 기존 문법 문맥 비트이고, GENERAL이라고 의미 소유자가 없는 것은
+아니다. 네 가지 의미 fact 축과 다섯 가지 단어 분류를 혼동하지 않는다.
+구분과 일관성 반례는 [직교성 계약](42_keyword_orthogonality.md#11-registry-primary-categories-are-not-fact-ownership)에 있다.
 
 ### 1.3 전체 어휘 (축별)
 

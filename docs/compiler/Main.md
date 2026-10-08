@@ -17,6 +17,7 @@ This facade follows facts from source ownership to machine projection.
 | Compiler contracts | [`../37_compiler_contracts.md`](../37_compiler_contracts.md) |
 | AIR | [`../104_air_compiler_architecture.md`](../104_air_compiler_architecture.md) |
 | CFG/body dataflow | [`../103_cfg_body_dataflow_need.md`](../103_cfg_body_dataflow_need.md) |
+| Core algorithm: automatic ownership cleanup | [`../207_compiler_owned_cleanup_algorithm.md`](../207_compiler_owned_cleanup_algorithm.md) — algorithm diagrams, formal/implementation boundary and research applicability; semantics remain with document 27 |
 | MIR-only backend migration | [`../38_mir_only_backend_migration.md`](../38_mir_only_backend_migration.md) |
 | ABI ownership and explicit layout | [`../38_c_macro_deception_and_abi.md`](../38_c_macro_deception_and_abi.md), [`../136_abi_niche_and_explicit_layout.md`](../136_abi_niche_and_explicit_layout.md) |
 | C backend policy | [`../51_c_backend_reference_policy.md`](../51_c_backend_reference_policy.md) |

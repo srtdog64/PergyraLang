@@ -42,9 +42,10 @@
   source position per binding and a source interval per scope.
 *)
 
-Require Import Coq.Lists.List.
-Require Import Coq.Arith.PeanoNat.
-Require Import Lia.
+Require Import Stdlib.Lists.List.
+Require Import Stdlib.Arith.PeanoNat.
+Require Import Stdlib.micromega.Lia.
+Require Import Stdlib.Bool.Bool.
 Import ListNotations.
 
 (* encloses p a b: scope a is b or an ancestor of b. *)
@@ -52,6 +53,14 @@ Inductive encloses (parent : nat -> option nat) : nat -> nat -> Prop :=
 | enc_refl : forall a, encloses parent a a
 | enc_step : forall a b p,
     parent b = Some p -> encloses parent a p -> encloses parent a b.
+
+Lemma encloses_trans : forall parent a b c,
+  encloses parent a b -> encloses parent b c -> encloses parent a c.
+Proof.
+  intros parent a b c Hab Hbc. induction Hbc.
+  - exact Hab.
+  - eapply enc_step; eauto.
+Qed.
 
 Record Decl := { d_name : nat; d_id : nat; d_scope : nat }.
 
@@ -185,14 +194,82 @@ Qed.
 Definition single_tag : list Decl := [outer_tag].
 Definition double_tag : list Decl := [outer_tag; inner_tag].
 
-Definition visible_ids (ds : list Decl) (name t : nat) : list nat :=
+(* Finite operational projection of the same ancestry owner, never a table
+   of the example's known scopes. Fuel bounds this projection only: full
+   resolution requires a sufficient finite scope-chain bound from its owner. *)
+Fixpoint encloses_b (fuel : nat) (parent : nat -> option nat) (a b : nat) : bool :=
+  if Nat.eqb a b then true else
+  match fuel with
+  | 0 => false
+  | S remaining =>
+      match parent b with
+      | None => false
+      | Some p => encloses_b remaining parent a p
+      end
+  end.
+
+Lemma encloses_b_sound : forall fuel parent a b,
+  encloses_b fuel parent a b = true -> encloses parent a b.
+Proof.
+  induction fuel as [| fuel IH]; intros parent a b H;
+    simpl in H; destruct (Nat.eqb a b) eqn:E.
+  - apply Nat.eqb_eq in E. subst. constructor.
+  - discriminate.
+  - apply Nat.eqb_eq in E. subst. constructor.
+  - destruct (parent b) as [p|] eqn:Hp; [| discriminate].
+    eapply enc_step; [exact Hp |]. eapply IH; exact H.
+Qed.
+
+(* One sufficient, inspectable admission profile: parent ids decrease, so
+   the current scope id bounds the whole walk. This is a model profile, not
+   an unverified claim about front-end scope numbering. *)
+Definition parent_descends (parent : nat -> option nat) : Prop :=
+  forall child p, parent child = Some p -> p < child.
+
+Lemma encloses_b_complete_bounded : forall parent a b,
+  parent_descends parent -> encloses parent a b ->
+  forall fuel, b <= fuel -> encloses_b fuel parent a b = true.
+Proof.
+  intros parent a b Hdesc Henc. induction Henc.
+  - intros fuel Hbound. destruct fuel; simpl; rewrite Nat.eqb_refl; reflexivity.
+  - intros fuel Hbound. pose proof (Hdesc b p H) as Hsmaller.
+    destruct fuel as [| fuel]; [lia |]. simpl.
+    destruct (Nat.eqb a b); [reflexivity |]. rewrite H.
+    apply IHHenc. lia.
+Qed.
+
+Definition visible_ids (parent : nat -> option nat) (fuel : nat)
+  (ds : list Decl) (name t : nat) : list nat :=
   map d_id (filter (fun d => andb (Nat.eqb (d_name d) name)
-                                  (match d_scope d, t with
-                                   | 1, 3 => true | 3, 3 => true | _, _ => false
-                                   end)) ds).
+                                  (encloses_b fuel parent (d_scope d) t)) ds).
+
+Theorem visible_ids_sound : forall parent fuel ds name t id,
+  In id (visible_ids parent fuel ds name t) ->
+  exists d, In d ds /\ d_id d = id /\ d_name d = name /\ visible parent d t.
+Proof.
+  intros parent fuel ds name t id Hin. unfold visible_ids in Hin.
+  apply in_map_iff in Hin. destruct Hin as [d [Hid Hin]].
+  apply filter_In in Hin. destruct Hin as [Hin Hb].
+  apply andb_true_iff in Hb. destruct Hb as [Hname Hscope].
+  apply Nat.eqb_eq in Hname. exists d. repeat split; try assumption.
+  apply encloses_b_sound in Hscope. exact Hscope.
+Qed.
+
+Theorem visible_ids_complete_bounded : forall parent fuel ds name t d,
+  parent_descends parent -> t <= fuel ->
+  In d ds -> d_name d = name -> visible parent d t ->
+  In (d_id d) (visible_ids parent fuel ds name t).
+Proof.
+  intros parent fuel ds name t d Hdesc Hbound Hin Hname Hvisible.
+  unfold visible_ids. apply in_map. apply filter_In. split; [exact Hin |].
+  apply andb_true_iff. split.
+  - apply Nat.eqb_eq. exact Hname.
+  - eapply encloses_b_complete_bounded; eauto.
+Qed.
 
 Theorem name_is_not_identity :
-  visible_ids single_tag 4 3 = [200] /\ visible_ids double_tag 4 3 = [200; 201].
+  visible_ids tree 3 single_tag 4 3 = [200] /\
+  visible_ids tree 3 double_tag 4 3 = [200; 201].
 Proof. split; reflexivity. Qed.
 
 (* ---- (6) declaration order: the rule the front ends enforce ------- *)

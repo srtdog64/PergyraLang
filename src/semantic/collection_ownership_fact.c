@@ -123,6 +123,23 @@ collection_owned_string_expression_ready(ASTNode *body,
     if (expression->type == AST_IDENTIFIER) {
         binding_id = ast_identifier_binding_syntax_id(expression);
         decl = collection_direct_let_for_binding(body, binding_id);
+        /* A named initializer is only a straight-line provenance proof.
+         * Control-dependent rebinding needs a value fact, not the old let. */
+        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
+            ASTNode *stmt = ast_block_statement(body, i);
+            if (stmt == NULL)
+                return false;
+            if (stmt->type == AST_ASSIGNMENT) {
+                ASTNode *target = ast_assignment_target(stmt);
+                if (target != NULL && target->type == AST_IDENTIFIER
+                    && ast_identifier_binding_syntax_id(target) == binding_id)
+                    return false;
+            } else if (stmt->type != AST_RETURN && stmt->type != AST_LET_DECL
+                       && stmt->type != AST_CALL
+                       && stmt->type != AST_DEFER_STMT) {
+                return false;
+            }
+        }
         return decl != NULL && !ast_let_is_mutable(decl)
             && collection_owned_string_expression_ready(
                 body, ast_let_initializer(decl), ctx, depth + 1);
@@ -154,44 +171,59 @@ semantic_collection_owned_string_call_result(
         expression, ctx, producer_syntax_id_out);
 }
 
+static bool
+collection_owned_string_returns_ready(ASTNode *node, ASTNode *function_body,
+                                      SemanticContext *ctx,
+                                      bool *saw_return, unsigned depth)
+{
+    if (node == NULL)
+        return true;
+    if (depth > 8)
+        return false;
+    if (node->type == AST_RETURN) {
+        *saw_return = true;
+        return collection_owned_string_expression_ready(
+            function_body, ast_return_value(node), ctx, 0);
+    }
+    if (node->type == AST_BLOCK) {
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+            ASTNode *stmt = ast_block_statement(node, i);
+            if (stmt == NULL || !collection_owned_string_returns_ready(
+                    stmt, function_body, ctx, saw_return, depth + 1)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (node->type == AST_IF_STMT) {
+        return collection_owned_string_returns_ready(
+                   ast_if_then_branch(node), function_body, ctx,
+                   saw_return, depth + 1)
+            && collection_owned_string_returns_ready(
+                   ast_if_else_branch(node), function_body, ctx,
+                   saw_return, depth + 1);
+    }
+    /* Lambda bodies are not enclosing-function returns. Other control owners
+     * remain unadmitted until their return facts are explicitly supported. */
+    return node->type == AST_LET_DECL || node->type == AST_CALL
+        || node->type == AST_ASSIGNMENT || node->type == AST_DEFER_STMT;
+}
+
 void
 semantic_collection_record_owned_string_result_summary(
     ASTNode *function_decl,
     SemanticContext *ctx)
 {
-    ASTNode *body;
     bool saw_return = false;
-
     if (function_decl == NULL || function_decl->type != AST_FUNC_DECL
         || ctx == NULL || !ctx->tracking_function_effects
         || !type_equals(ctx->current_return, TYPE_STRING)) {
         return;
     }
-    body = ast_func_body(function_decl);
-    if (body == NULL || body->type != AST_BLOCK)
-        return;
-    for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-        ASTNode *stmt = ast_block_statement(body, i);
-        if (stmt == NULL)
-            return;
-        if (stmt->type == AST_RETURN) {
-            ASTNode *value = ast_return_value(stmt);
-            saw_return = true;
-            if (!collection_owned_string_expression_ready(
-                    body, value, ctx, 0)) {
-                return;
-            }
-            continue;
-        }
-        /* A nested control owner could carry an additional return.  This
-         * bounded summary refuses it instead of guessing that the direct
-         * top-level returns are exhaustive. */
-        if (stmt->type != AST_LET_DECL && stmt->type != AST_CALL
-            && stmt->type != AST_ASSIGNMENT && stmt->type != AST_DEFER_STMT) {
-            return;
-        }
-    }
-    if (saw_return) {
+    ASTNode *body = ast_func_body(function_decl);
+    if (body != NULL && body->type == AST_BLOCK
+        && collection_owned_string_returns_ready(
+            body, body, ctx, &saw_return, 0) && saw_return) {
         semantic_record_body_summary(
             ctx, BODY_SUMMARY_RETURNS_OWNED_STRING);
     }

@@ -1,6 +1,6 @@
 # ABI Performance Contract
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-10-08 (추후 체크 항목 추가; 기존 샘플 관찰일은 2026-04-08)
 
 이 문서는 ABI 테스트가 성능을 어떻게 재고, 그 수치를 어떻게 해석해야 하는지 고정한다.
 
@@ -113,3 +113,28 @@ backend는 추가로 내부 세 구간으로 나뉜다.
 - CI 문서에는 hard upper bound만 적는다
 - benchmark 문서에는 comparative metric과 phase breakdown을 적는다
 - correctness와 performance regression을 같은 PASS/FAIL 문장으로 섞지 않는다
+
+## 7. 추후 체크: 정수 폭 · ISA · 배포 호환성 (OPEN)
+
+이 절은 추후 검토 메모다. 기본 `Int`의 64비트 전환, ABI 변경, 최소 ISA
+상향을 결정하거나 현재 활성 작업과 별도의 최적화 트랙을 시작하지 않는다.
+
+- 지원 대상별 최소 ISA와 OS/ABI를 확인한다. x86-64와 AArch64에서의 정수
+  연산 지원만으로 기본 정수 폭이나 모든 저장소의 폭을 결정하지 않는다.
+- 배포용 최소 ISA와 빌드 PC 전용 최적화를 구분한다. 2026-10-08 소스에서
+  `src/codegen/llvm_target_machine.c`의 `llvm_create_host_machine`은 호스트 CPU
+  이름과 기능을 사용하고, `src/compiler/compiler_llvm.c`의 비-Windows release
+  링크 경로에는 `-march=native`가 있다. 타 CPU 배포 호환성을 확인할 대상이며,
+  실제 실행 실패나 모든 산출물의 비호환을 입증한 결과는 아니다.
+- 32/64비트 비교는 양쪽에서 같은 의미를 갖는 고정 입력과 알고리즘으로 한다.
+  소스 revision, 실행 파일, CPU/OS, 도구 버전, 최적화 및 ISA 옵션을 기록하고,
+  C/LLVM의 일반 계산·대량 배열·SIMD 비용을 구분한다. 컴파일 시간, 실행 시간,
+  최대 메모리와 실제 생성 명령을 확인한다. 이 비교는 아직 실행하지 않았다.
+- 기본 계산형, 배열 저장 밀도, FFI·직렬화 형식을 구분한다. 자동 폭 축소를
+  검토한다면 값 범위와 오버플로 의미, 외부 ABI가 보존되는지 먼저 확인한다.
+- 기본 폭 변경 여부는 위 증거를 본 뒤 결정한다. 변경 시 산술 의미·런타임
+  ABI·C/LLVM·self-host 소비자와 경계/오버플로 음성 검증을 함께 검토한다.
+  64비트라는 이유만으로 더 빠르거나 식별자 재사용이 안전하다고 주장하지 않는다.
+
+참고: [GCC x86 대상 ISA와 native 옵션](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html),
+[Arm AArch64 레지스터 설명](https://developer.arm.com/community/arm-community-blogs/b/operating-systems-blog/posts/arm-neon-programming-quick-reference).
