@@ -6,7 +6,6 @@ source "$SCRIPT_DIR/rocq_toolchain_owner.sh"
 : "${OPAMROOT:?Set an explicit project/image-owned OPAMROOT}"
 [[ "$OPAMROOT" = /* ]] || { echo 'OPAMROOT must be absolute' >&2; exit 1; }
 command -v opam >/dev/null 2>&1 || { echo 'opam is required' >&2; exit 1; }
-command -v ocamlc >/dev/null 2>&1 || { echo 'An existing OCaml >= 4.14 compiler is required' >&2; exit 1; }
 # Ubuntu's opam 2.1 lacks the security fixes in >= 2.5.2. Keep the system
 # executable intact, and use a checksum-pinned upstream binary in our prefix.
 [[ "$OPAMROOT" != / && "${OPAMROOT%/*}" != '' ]] || { echo 'OPAMROOT must name a project prefix' >&2; exit 1; }
@@ -34,7 +33,12 @@ if [[ ! -f "$OPAMROOT/config" ]]; then
     opam init --bare --no-setup --disable-sandboxing -y
 fi
 if ! opam switch list --short | grep -Fxq "$PGY_ROCQ_SWITCH"; then
-    opam switch create "$PGY_ROCQ_SWITCH" ocaml-system -y
+    # An OCaml executable inherited from another opam switch is not a system
+    # compiler in this fresh root. Build the named compiler in our own prefix;
+    # do not let image PATH or the newest ocaml-system package choose it.
+    opam switch create "$PGY_ROCQ_SWITCH" \
+        "ocaml-base-compiler=$PGY_ROCQ_BOOTSTRAP_OCAML_VERSION" \
+        --jobs="${PGY_ROCQ_INSTALL_JOBS:-4}" -y
 fi
 opam update --switch="$PGY_ROCQ_SWITCH" -y
 opam install --switch="$PGY_ROCQ_SWITCH" -y --jobs="${PGY_ROCQ_INSTALL_JOBS:-4}" \

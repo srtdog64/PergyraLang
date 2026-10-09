@@ -5,6 +5,20 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context — ownership-cutover P1 (GPT, 2026-10-09)
 
+Immediate task: the user authorized commit, push and exact-SHA CI repair.
+Candidate `13fdf36b8fb914a282ce0f6c38b9d9bb57d119fa` was pushed and full
+dispatch `37866547046` started (not a Markdown-only run). Its first observed
+failures are fresh Rocq switch bootstrap and macOS's unavailable `timeout`.
+The bounded repair/validation map is
+`agent_work_directives/ownership_cutover_ci_repair_2026-10-09.md`.
+Compiler meaning and P1 activation are unchanged. The installer/portable
+test-runner corrections pass fresh-prefix installation/kernel validation
+(78 modules plus approval consumer, two approved Slot abstractions), stable
+toolchain negatives and native C/LLVM/forced-Perl regressions. They remain
+CI candidates until the new full remote run executes.
+Resolve the current branch HEAD and that exact SHA's Actions result on resume;
+no earlier main or partially green run substitutes for it.
+
 Latest user instruction reopens the whole automatic ownership transition;
 all other writers are stopped. One shared tree, no additional implementation
 lane. Active directive:
@@ -90,7 +104,8 @@ Receipts: `audits/ownership_clean_production_repair_2026-10-09.md`,
 `audits/ownership_slice_dx_census_2026-10-09.md`. Logs:
 `.tmp/ownership-cutover-2026-10-09/p0-5651c916-7aeb6d7b3bc44252ba1e80bf2027449b/`.
 Official bin hashes remain `f6559da9...cbc1c9` and `707dcd40...78ec7`.
-No push/install/GUI-ready message is claimed. Do not resume an archived
+Candidate push is authorized and observed; main landing, official installation
+and GUI readiness are not claimed. Do not resume an archived
 checkpoint or increase the cap to conceal missing production facts.
 
 ## Historical archive — lookup only
