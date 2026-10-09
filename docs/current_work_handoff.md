@@ -3,7 +3,89 @@
 Updated: 2026-10-09 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
-## Active self-host context — ownership-cutover preparation (GPT, 2026-10-09)
+## Active self-host context — ownership-cutover P1 (GPT, 2026-10-09)
+
+Latest user instruction reopens the whole automatic ownership transition;
+all other writers are stopped. One shared tree, no additional implementation
+lane. Active directive:
+`agent_work_directives/ownership_cutover_execution_2026-10-09.md`;
+normative owner: `semantics/27_ownership_clean.md`; complete dependency/deletion
+plan: `agent_work_directives/ownership_cutover_plan_2026-10-08.md`.
+
+Frozen parent checkpoint is
+`5651c916c87e030cc3ef579180abdfbf1814d1cc` on main. The same-folder local
+candidate is `codex/ownership-clean-cutover-2026-10-09`; no worktree was made.
+Its checkpoint contains the subsequent production resource-flow repair,
+importing direct-control model/gates and documentation. Resolve its exact
+HEAD with Git on resume and inspect its diff from the frozen parent;
+`gmon.out` remains excluded. Candidate checkpointing is not main landing or
+P1/full-cutover completion.
+The checkpoint's complete tracked inputs stayed frozen through the reached
+baseline gates. Full P0 is not green: full driver refused 3072 MiB; likeness
+and include caps are red; component gate exceeded 60 s; the same-source
+isolated self-host driver is missing. No installed/fixed-point/remote CI
+completion is inferred from unit or model gates.
+
+Delivered source chain: `driver_run_pipeline` -> semantic value declaration
+admission/snapshot/nested/seal producers -> existing ResourceFlowUniverse
+identity owner -> unchanged HIR/RIR/MIR carriers -> MIR validation/JSON.
+The owner excludes only CLASS/TYPE_PARAM and validates retained memo hints
+against its existing declaration matcher. Missing owner fails closed;
+no downstream filtering, second identity table, copy or annotation increase.
+This removes the measured obstruction, not a real C-path substitution or
+CLOSED SoT row. Registry status remains unchanged.
+
+Actual isolated production compiler SHA-256
+`262768f6...919b0` emits the SAME complete driver MIR under the unchanged cap:
+exit 0, 91047 ms, sampled private 1319.5 MiB (1.289 GiB), 10,561 declared
+bindings unchanged. Artifact 378143208 bytes, SHA-256
+`52290d05...985b402`, byte-identical to the independent scratch repair.
+The last new semantic parsed-source case and proof/docs edits followed that
+receipt, so it is not yet a future commit's all-input receipt. Heap counters
+remain UNMEASURED. Semantic 3191/0, HIR/DIR/RIR/AIR/MIR units, DIR/RIR/loop
+identity and native-only ArrayDrop/clock/scalar C/LLVM gates pass. Include
+caps remain red on unchanged 702/785/706 LOC fixtures (cap 699).
+
+Adopted P1 implementation: direct recovery epilogue, not status-guarded
+production code; compiler-local writable Slice uses whole-backing static
+focus, not the resource/graph lease ledger. Actual lexer/AST census of all
+2531 self-host files: 76 Slice constructions, all immediate call arguments;
+32 default-mode Slice formals; no local construction or Slice return. This
+does not prove transitive readonly effects. Read-oriented call lifetimes
+must be admitted separately, not broken by applying CL7's no-call rule to
+every Slice. The new direct-control model is a forward source-control
+refinement, not reverse/physical/MIR emitter proof. Fresh importing preflight
+PASS: 10 kernel-verified modules, zero assumptions. Full formal integration
+PASS: 78 modules plus approval binding consumer, only two existing approved
+Slot abstractions. Documentation quality and evidence lifetime also PASS.
+
+Next falsifying inputs were run through the ACTUAL compiler: field inout,
+ordinary readonly temporary and backing growth after the last Slice use
+still refuse. Growth before the last view use also refuses and MUST stay
+refused. Their scratch sources and diagnostics are in the p0 log root below.
+An actual generated-C/WSL sanitizer falsifier also reports an 8-byte Array
+leak without manual release; its historical manual-release control exits 0
+with stdout 2 and no sanitizer finding. This confirms automatic cleanup is
+not implemented; it is not an LLVM/full-sanitizer or regression claim.
+No manual local/carrier/copy workaround is an accepted fix. The next whole
+chain is admitted ordered source expression/place facts -> call normalization
+and disjointness -> final snapshot lifetime/recovery facts -> actual C/LLVM
+consumers, including self-host admission. Actual call-result ABI producer,
+physical inout bundle erasure and Slice lifetime issuance remain OPEN.
+P2-P7 activation is gated by those P1 dependencies; no automatic drops or
+retired manual paths have landed.
+
+Receipts: `audits/ownership_clean_production_repair_2026-10-09.md`,
+`audits/ownership_cutover_frozen_baseline_2026-10-09.md`,
+`audits/ownership_slice_dx_census_2026-10-09.md`. Logs:
+`.tmp/ownership-cutover-2026-10-09/p0-5651c916-7aeb6d7b3bc44252ba1e80bf2027449b/`.
+Official bin hashes remain `f6559da9...cbc1c9` and `707dcd40...78ec7`.
+No push/install/GUI-ready message is claimed. Do not resume an archived
+checkpoint or increase the cap to conceal missing production facts.
+
+## Historical archive — lookup only
+
+### Earlier ownership-cutover preparation snapshot (GPT, 2026-10-09)
 
 Latest user directions, "구현 시작해 클로드가 시작했으니까" and "전체 작업해",
 reopen the full transition. The earlier scope holds below are history, not the current
@@ -123,7 +205,7 @@ ABI/lifetime issuance before P2-P7. Partial proof/gate green does not activate
 automatic drops or retire the old ownership paths. No commit/push/install
 or GUI readiness was claimed.
 
-## Historical archive — lookup only
+### Earlier model and collaboration snapshots
 
 ## Latest scoped proof work: exiting callee and writable view (Claude, 2026-10-09)
 

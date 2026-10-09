@@ -8,7 +8,8 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 for model in OwnershipCleanCore OwnershipCleanExits OwnershipCleanCallRecovery \
              OwnershipTeardown OwnershipTeardownAuthority OwnershipCleanViews \
-             OwnershipCleanCallLowering OwnershipCleanViewScope; do
+             OwnershipCleanCallLowering OwnershipCleanViewScope \
+             OwnershipCleanDirectControl; do
     cp "$ROOT_DIR/docs/semantics/proofs/$model.v" "$work/"
 done
 cp "$ROOT_DIR/tests/coq/OwnershipCutoverPreflightAudit.v" "$work/"

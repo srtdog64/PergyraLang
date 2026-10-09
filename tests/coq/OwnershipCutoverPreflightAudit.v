@@ -4,6 +4,7 @@ Require Import OwnershipTeardownAuthority.
 Require Import OwnershipCleanCore OwnershipCleanExits.
 Require Import OwnershipCleanCallRecovery OwnershipCleanViews.
 Require Import OwnershipCleanCallLowering OwnershipCleanViewScope.
+Require Import OwnershipCleanDirectControl.
 Import ListNotations.
 
 Definition audit_uniform_recovery : forall M funs procs,
@@ -427,3 +428,24 @@ Theorem audit_scoped_view_writes_then_releases_without_leaks : exists t n,
   texec (tfuns_of no_summaries no_funs) (tprocs_of no_summaries no_procs)
     [] [] [] 0 t [] [] [] n [SLeaf 1; SNode [SLeaf 1; SLeaf 9; SLeaf 3; SLeaf 4]].
 Proof. exact view_program_frees_everything. Qed.
+
+Definition audit_direct_control_trace : forall funs procs sg s sg' tr o,
+  xsexec funs procs sg s sg' tr o ->
+  direct_run funs procs (direct_graph s) sg (DLocal []) sg' (DExit o) tr :=
+  direct_program_trace.
+
+Theorem audit_direct_exits_skip_the_suffix : forall choose : bool,
+  direct_run no_funs no_procs (direct_graph direct_switch)
+    (supd sempty 9 (SLeaf (if choose then 1 else 0))) (DLocal [])
+    (supd sempty 9 (SLeaf (if choose then 1 else 0)))
+    (DExit (if choose then ORet else OErr)) [].
+Proof. exact direct_switch_return_and_error. Qed.
+
+Example audit_direct_handler_and_local_loop_routes :
+  direct_graph (XLoop 9 [] XBreak) (DLocal [false]) = Some (DIJump (DExit ONorm)) /\
+  direct_graph (XLoop 9 [] XContinue) (DLocal [false]) = Some (DIJump (DLocal [])) /\
+  direct_graph (XTry XThrow XReturn) (DLocal [false]) = Some (DIJump (DLocal [true])) /\
+  direct_graph (XTry XThrow XReturn) (DLocal [true]) = Some (DIJump (DExit ORet)) /\
+  direct_graph (XLoop 9 [] XBreak) (DLocal [true]) = None /\
+  direct_graph (XReturn) (DLocal [false]) = None.
+Proof. repeat split; reflexivity. Qed.

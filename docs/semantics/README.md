@@ -228,6 +228,12 @@ Mechanized artifacts:
   ledger, runtime generation or lease vocabulary is used. While a writable
   view is live the backing cannot be named. Returned/stored views, views
   passed to calls and several writable views remain OPEN.
+- [proofs/OwnershipCleanDirectControl.v](proofs/OwnershipCleanDirectControl.v):
+  finite source-tree label lookup lowers return/error/local loop control into
+  jumps without status/guard source variables or body-local initialization.
+  Forward trace/value/exit preservation connects to the CL6 core reference.
+  Reverse graph adequacy, physical recovery and production emitter binding
+  remain OPEN; this is not a production cleanup certificate.
 - [proofs/OwnershipCleanViews.v](proofs/OwnershipCleanViews.v): reuses the
   cleanup heap and teardown lease vocabulary in a dynamic ghost oracle for
   intended static view evidence. Scalar write-through preserves INV and source

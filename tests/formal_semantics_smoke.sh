@@ -1096,6 +1096,7 @@ docs/semantics/proofs/OwnershipCleanGCComparison.v \
 docs/semantics/proofs/OwnershipCleanExits.v \
 docs/semantics/proofs/OwnershipCleanCallRecovery.v \
 docs/semantics/proofs/OwnershipCleanCallLowering.v \
+docs/semantics/proofs/OwnershipCleanDirectControl.v \
 docs/semantics/proofs/OwnershipCleanViews.v \
 docs/semantics/proofs/OwnershipCleanViewScope.v \
 docs/semantics/proofs/OwnershipGraphLinks.v \

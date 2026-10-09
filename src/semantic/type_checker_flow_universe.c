@@ -31,6 +31,16 @@ struct ResourceFlowUniverse
     size_t capacity;
 };
 
+bool
+resource_flow_universe_is_value_binding(const Symbol *symbol)
+{
+    /* A nominal/generic type declaration has no consumable storage. Other
+     * kinds retain their existing ownership-type admission policy. */
+    return symbol != NULL
+        && symbol->kind != SYMBOL_CLASS
+        && symbol->kind != SYMBOL_TYPE_PARAM;
+}
+
 static bool
 resource_flow_universe_tracks_type(const Type *type)
 {
@@ -97,14 +107,18 @@ resource_flow_universe_bind(SemanticContext *ctx, Symbol *symbol)
     ResourceFlowUniverseEntry *entry;
     size_t index;
 
-    if (ctx == NULL || symbol == NULL)
+    if (ctx == NULL || !resource_flow_universe_is_value_binding(symbol))
         return RESOURCE_FLOW_INDEX_NONE;
     universe = ctx->resource_flow_universe;
     if (universe == NULL)
         return RESOURCE_FLOW_INDEX_NONE;
 
     if (symbol->flow_universe_epoch == ctx->resource_flow_epoch
-        && symbol->flow_universe_index < universe->count) {
+        && symbol->flow_universe_index < universe->count
+        && resource_flow_entry_matches(
+            &universe->entries[symbol->flow_universe_index], symbol)) {
+        /* The hint can survive context replacement or epoch reuse. Only the
+         * current declaration owner may admit it as this value's index. */
         return symbol->flow_universe_index;
     }
 
@@ -183,7 +197,8 @@ resource_flow_universe_record_declaration(SemanticContext *ctx, Symbol *symbol)
 {
     if (ctx == NULL || symbol == NULL)
         return false;
-    if (ctx->current_function_decl == NULL
+    if (!resource_flow_universe_is_value_binding(symbol)
+        || ctx->current_function_decl == NULL
         || !resource_flow_universe_tracks_type(symbol->type))
         return true;
     /* A nested scope can disappear before the next branch snapshot or the
@@ -254,7 +269,8 @@ resource_flow_universe_capture_function_facts(
              scope = scope->parent) {
             for (size_t j = 0; j < scope->symbol_count; j++) {
                 Symbol *symbol = scope->symbols[j];
-                if (symbol == NULL || symbol->type == NULL
+                if (!resource_flow_universe_is_value_binding(symbol)
+                    || symbol->type == NULL
                     || !resource_flow_universe_tracks_type(symbol->type))
                     continue;
                 if (resource_flow_universe_bind(ctx, symbol)

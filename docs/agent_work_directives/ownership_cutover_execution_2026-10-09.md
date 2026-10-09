@@ -1,8 +1,14 @@
 # Ownership cutover: execution preparation
 
-Status: `ACTIVE P0 PREPARATION / P1 PROOF INTEGRATION`.
-Base: `main @ a75da80435e0d051f71cfacf76d44ea825ed87d7`, plus the fifteen
-preserved preflight paths and the excluded, untracked `gmon.out`.
+Status: `ACTIVE P1 / REACHED MEMORY OBSTRUCTION REPAIRED; FULL CUTOVER OPEN`.
+Current local base: `main @ 5651c916c87e030cc3ef579180abdfbf1814d1cc`, with
+subsequent production resource-flow, direct-control and documentation edits.
+The same-folder local candidate is now
+`codex/ownership-clean-cutover-2026-10-09`. No additional worktree or writer
+was introduced. This checkpoint is not the P10 main landing or publication.
+The original preparation base was `a75da80435e0d051f71cfacf76d44ea825ed87d7`;
+its older dirty-input observations below are historical. Excluded untracked
+`gmon.out` is preserved. Full P0/installed/fixed-point/remote CI are not green.
 
 The user's latest instruction, "구현 시작해 클로드가 시작했으니까", reopens
 implementation. It supersedes the earlier implementation hold, not the
@@ -126,6 +132,44 @@ installation and GUI readiness retain the cutover plan's separate gates.
 Outputs here are implementation candidates and observed gate receipts, not
 an automatic-memory-management implementation or a CLOSED SoT row.
 
+## Frozen checkpoint and reached production repair
+
+The renewed user-confirmed all-writer stop permits the local checkpoint
+`5651c916c87e030cc3ef579180abdfbf1814d1cc` (30 reviewed text inputs;
+`gmon.out` excluded). Its tracked/index diff stayed zero throughout the
+baseline gates. Full formal: 77 modules plus approval consumer, PASS. Ten
+native unit batteries and native C/LLVM clock/scalar checks PASS. Existing
+likeness RED (sentinel 73 > 20), component inventory timed out at 60 s, and
+MIR integration refused the absent same-source isolated self-host driver.
+The frozen full-source measurement bound all 10,559 tracked files with no
+endpoint drift: exit 88, 131209 ms, sampled private 3114.3 MiB, cap 3072.
+The complete installed/fixed-point/sanitizer/platform matrix is dependency
+blocked, NOT PASS; exact heap counters remain UNMEASURED. Do not call this a
+green full P0 or use the old installed pair to fill those missing rows.
+
+The next bounded operation is the measured ResourceFlowUniverse producer
+repair, not P2-P7 or an ownership-drop activation. Its objective is to admit
+actual value declarations once with a validated identity memo, leaving every
+required value fact and negative resource check intact. Priority: one
+declaration identity owner, fail-closed current binding, unchanged evidence
+lifetime and artifact behavior, then memory cost. The owner is
+`type_checker_flow_universe.c`; reached producers are snapshot classification,
+nested declaration capture and function seal. HIR validates routine-local
+rows, RIR/MIR carry them, and MIR validation/JSON are the last consumers.
+No downstream row filtering or second identity table is allowed.
+
+Complete change set: one shared CLASS/TYPE_PARAM exclusion at existing owner
+admission and all three producers; validate epoch/index hints against that
+owner's existing entry matcher; import kind, generic/Future/Slot, missing-owner
+and ordinary/fresh-context/wrapped-generation cases into the existing semantic
+unit battery. Preserve source/ABI identity, scope teardown, all other symbol
+kinds and projections. No new source annotation/copy is needed.
+Acceptance: importing negatives fail the old producer; semantic/HIR/DIR/RIR/
+AIR/MIR units, existing flow/loop and native C/LLVM cleanup gates pass;
+the SAME complete driver emits the previously checked full MIR under 3072 MiB.
+The snapshot frame lifetime and production cleanup/refinements remain OPEN.
+Baseline logs: `.tmp/ownership-cutover-2026-10-09/p0-5651c916-7aeb6d7b3bc44252ba1e80bf2027449b/`.
+
 ## Measured P0 obstruction and bounded diagnostic scope
 
 The unchanged production source reaches `driver_run_pipeline` -> semantic ->
@@ -245,6 +289,38 @@ than silently copying a write-through view or adding user annotations.
 These choices fix implementation direction, not P1 closure. The source-place,
 ordered-expression, call-result ABI and physical-descriptor obligations in
 doc 27 remain required, with one final-generation fact owner.
+
+### Direct-control refinement slice (2026-10-09 continuation)
+
+- Objective: turn an exiting `XStmt` into a finite, label-addressed control
+  graph without the CL6 status/guard variables or entry initialization of
+  source locals. Preserve branch, loop, handler, return and error traces.
+- Priority: existing source execution and output identities; exact exit
+  routing; no new heap or catch authority; then representation size.
+- Owner: `OwnershipCleanDirectControl.v` owns only the source-control graph
+  construction. `OwnershipCleanExits.v` and `OwnershipCleanCallLowering.v`
+  still own cleanup elaboration and ordinary-core call recovery respectively.
+- Chain: `XStmt` -> structural path labels and instruction lookup -> direct
+  control trace -> existing reference lowering/cleanup propositions. This
+  slice does not claim a MIR, C or LLVM graph consumes the model yet.
+- Last consumer: the importing preflight audit. Forbidden: calling a forward
+  simulation whole-compiler refinement, introducing a recovery catch rule,
+  treating graph labels as source variables or activating automatic drops.
+- Required changes: one importing model, exact theorem consumers and concrete
+  early-return/error/local-loop witnesses in the existing focused gate;
+  registration in the full formal gate, plus the documented remaining
+  reverse/physical correspondence obligations.
+- Gate: existing ownership preflight, then full formal integration. Falsifiers:
+  executing a skipped arm, continuing after return, a local break escaping
+  its loop, or routing a handled error past its handler. The actual field
+  inout/readonly-temporary/last-view-use source probes remain red and are not
+  weakened by this model slice. No additional implementation lane is opened.
+
+Observed result: direct-control plus the importing consumer PASS in the
+10-module focused kernel (zero assumptions). Full formal integration PASS:
+78 modules plus approval binding consumer, only the two existing approved
+Slot abstractions. Forward simulation is not reverse/physical/emitter
+refinement; P1 and production automatic-cleanup activation remain OPEN.
 
 ## Reached static CI-profile obligation
 

@@ -159,6 +159,14 @@ static final-MIR lifetime/effect facts, evidence linearity/snapshot binding,
 whole-instruction view frame, general payload glue and native/self-host
 consumers remain OPEN. These supplements are not whole P1 or compiler closure.
 
+2026-10-09 direct-control slice: `OwnershipCleanDirectControl.v` constructs a
+finite label-addressed graph with ordinary core statements, branches and
+jumps, without status/guard source bindings or entry-local initialization.
+It proves forward trace/environment/exit preservation and connects to the
+CL6 ordinary-core reference. Reverse graph adequacy, physical inout recovery
+and actual MIR/emitter refinement are OPEN. No compiler cleanup activation
+or cost superiority follows from this bounded source-control proposition.
+
 2026-10-09 Claude CL6/CL7: `OwnershipCleanCallLowering.v` lowers an exiting
 callee into the core's ordinary procedure table by a status variable and
 proves end-to-end recovery of every inout and the outcome packet for normal,

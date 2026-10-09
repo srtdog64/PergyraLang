@@ -44,7 +44,7 @@ flow_snapshot_tracks_symbol(Symbol *sym, SemanticContext *ctx)
      * pointer-stable (no silent tracked-set drift). */
     static int verify_memo = -1;
 
-    if (sym == NULL || sym->type == NULL)
+    if (!resource_flow_universe_is_value_binding(sym) || sym->type == NULL)
         return false;
 
     if (sym->flow_tracks_memo != 0

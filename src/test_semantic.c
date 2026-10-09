@@ -179,6 +179,9 @@ main(void)
     test_symbol_table();
     test_type_checker_slot_rules();
     test_resource_flow_symbol_lifetime();
+    test_resource_flow_value_admission();
+    test_resource_flow_generation_reentry();
+    test_resource_flow_source_admission();
     test_undefined_symbol();
     test_while_loop();
     test_arrays_and_enums();

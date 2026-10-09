@@ -6,6 +6,7 @@
 
 #define RESOURCE_FLOW_INDEX_NONE ((size_t)-1)
 
+bool resource_flow_universe_is_value_binding(const Symbol *symbol);
 void resource_flow_universe_begin(SemanticContext *ctx);
 void resource_flow_universe_end(SemanticContext *ctx);
 size_t resource_flow_universe_bind(SemanticContext *ctx, Symbol *symbol);

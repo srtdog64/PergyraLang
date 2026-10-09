@@ -1413,12 +1413,45 @@ This is the static issuer for compiler-local writable views that §5.10.3
 asks for. It uses no ticket ledger, runtime generation field or lease
 vocabulary. Resource and graph boundaries keep their own lease issuer. The
 developer-visible cost: while a writable view is live, the backing itself
-cannot be named in the scope, either for reads or for writes. Whether
-today's sources read a backing while a writable Slice is live is UNKNOWN
-and should be counted before P7.
+cannot be named in the scope, either for reads or for writes. A 2026-10-09
+lexer/AST census of all 2531 tracked self-host sources found 76 Slice member
+constructions, all immediate call arguments, no local constructions and no
+Slice return declarations. All 32 Slice formals use the default mode, not
+inout. This source census is not a transitive call-effect or alias proof.
+It establishes that these existing call-bounded usages cannot simply be
+rejected by applying the CL7 no-call writable rule to every Slice. P1 must
+bind their read-only call summaries and backing lifetime separately; writable
+views keep the focus rule. Details and exact boundary:
+`../audits/ownership_slice_dx_census_2026-10-09.md`.
 
 Still OPEN: production direct-jump epilogue refinement; place disjointness
 beyond variable identity; source expression order above `SStmt`; views
 returned from or stored by a routine; views passed to calls; several
 writable views of one backing; sub-range index bounds; and production
 descriptor and pointer refinement.
+
+### 5.10.6 Direct-control refinement boundary (GPT, 2026-10-09)
+
+`OwnershipCleanDirectControl.v` implements a finite instruction lookup over
+structural source-tree labels. Its only instructions are an existing `SStmt`,
+a jump or a condition branch. Normal/return/error continuations are labels;
+loops consume their own break/continue and a try body jumps to its handler
+on error. This construction introduces no status/guard bindings in `SEnv`
+and does not initialize body locals. Missing structural paths return `None`,
+not fallthrough. Graph labels are not user variables or resource handles.
+
+`direct_control_simulates_source` proves forward preservation of source
+trace, final environment and exact exit destination. The importing consumer
+executes a return/error switch with a skipped suffix and checks local loop
+and handler routing. `direct_control_has_core_reference` connects the same
+source execution to CL6's ordinary-core lowering, with the same observable
+trace and environment outside its issued names. It does not replace CL6's
+inout recovery theorem or introduce `recovery_exec` on that call path.
+
+This is a source-control refinement slice, not full epilogue closure. Reverse
+graph adequacy, effectful expression normalization, physical pointer/bundle
+erasure, final-generation recovery live sets and actual MIR/C/LLVM graph
+correspondence remain OPEN. In particular a forward witness cannot certify
+every run of an emitter, and a graph without status variables is not a
+measured whole-compiler memory improvement. No production drop is activated
+by these propositions.
