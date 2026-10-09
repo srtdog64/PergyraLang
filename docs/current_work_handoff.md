@@ -6,14 +6,17 @@ SoT registry, admitted contracts, and executable gates override this note.
 ## Active self-host context — ownership-cutover P1 (GPT, 2026-10-09)
 
 Immediate task: the user authorized commit, push and exact-SHA CI repair.
-Working branch is now `main`. Remote main is verified at
-`f8173daa0ac607cdf604d1452c43a81e06b983ba`; local doc checkpoint `c953974f`
-preserves another lane's reviewed doc 208/index. The pending repair checkpoint
-must be resolved with Git after commit/push; do not substitute this parent SHA.
+Working branch is `main`. Last completed exact-SHA CI checkpoint:
+`24d622323e751be8a6f51ee4c426f8b3ec2ae4a6`, independently verified after push.
+Its parent doc checkpoint `c953974f` preserves another lane's reviewed doc
+208/index. Full run `37879549165` completed RED at this exact repair SHA;
+do not substitute an older or partly green run.
 The enum-owner projection and proof-publication changes are committed/pushed.
-Pending changes repair the proof receipt's Git execution context and the
-measured array-storage mutation census obstruction, with focused gates and
-navigation notes. Another lane's doc 208/index changes were observed and
+The proof receipt's Git execution context and measured array-storage mutation
+census obstruction, focused gates and navigation are committed/pushed.
+The bounded numeric-source/gate/navigation follow-up is prepared below;
+its commit and exact-SHA CI must be resolved from Git/Actions on resume.
+Doc 208/index were observed and
 preserved. `gmon.out` is preserved
 and excluded; AGENTS.md has no diff or added branch-use rule. At the branch conversion,
 remote `main` was `b9a75ba2f1ec0eafbf8ddd2eb1ae3fc075294edf`, an ancestor,
@@ -37,9 +40,12 @@ job `113649446103` still refuses `aggregate_release_plan_unproved`, syntax
 214852, after about 392.79 s; dependent jobs are skipped. The step-scoped checkout-only Git context
 passes forced-owner controls and the unchanged five-module cleanup/cost gate
 through the actual opam runner: 30 cases, HEAD `f8173daa`, bound-source dirty
-entries zero. It is a locally validated CI-context repair, not successful
-remote cost publication. Complete
-aggregate-demand census and current-source DRV-2 remain OPEN.
+entries zero. The exact `24d62232` remote proof job subsequently passes and
+uploads both artifacts. Its downloaded model-cost receipt binds that HEAD,
+zero bound-source dirty entries and all 30 cases. Windows/macOS/TSan and
+codegen bootstrap also pass. Full run `37879549165` completes RED at DRV-2;
+dependent jobs are skipped. Complete aggregate-demand census, the installed
+pair and full CI remain OPEN.
 
 Measured census preparation: array-storage mutation copied every program
 local's type before testing routine/use identity. Under the unchanged 3 GiB
@@ -57,7 +63,29 @@ census uses the actual source entrypoint and the exact downloaded f817 gen2,
 with only scratch diagnostics and the verified candidate ordering applied.
 Its source controls preserve three successful owned-table lineage demands and
 six repeated-release demands followed by the original uniqueness refusal.
-The complete source run is in progress; input endpoint hashes own stability.
+The full SOURCE run then fails an allocation at named-boundary validation:
+231.98 s, max RSS 3,065,416 KiB, 3 GiB address-space cap, all 2,531 source
+and four diagnostic bindings unchanged. Backtrace reaches
+`AstExpressionSignedDecimalWithin` through graph/call-target validation.
+No release census is obtained. The completed scoped numeric counter records
+2,231,009 calls / 4,755,689 character strings / 114,235,064 cumulative usable
+bytes, wall 360.62 s / max RSS 3,065,036 KiB, with all bindings unchanged.
+The existing numeric predicate now uses nonallocating ASCII byte reads and
+refuses invalid digit extents, retaining width and graph checks. Focused native
+C/LLVM execution passes 78,322 old-algorithm comparisons on valid extents,
+independent Int/Long boundaries/malformed cases, arena topology and invalid-
+extent refusals. Original code fails the beyond-text negative with exit 3.
+The same-source diagnostic now reads a non-worktree `24d62232` snapshot,
+with 24 raw-checkout line endings restored only after matching their baseline
+hashes. All 2,531 source bytes match the original input; endpoint bindings
+remain equal. It records 2,926,301 numeric calls and zero character allocations,
+crossing named-boundary/generic/owned-result validation. At 425.76 s / max
+RSS 3,063,828 KiB it still exits 134 at a 24-byte allocation in
+`SemanticAstCollectionFormalEffectsWithSurfaceOrder`. The full release census
+is not obtained. Next: measure that reached operation before any further
+production edit; no dominant-cost, full-run speedup or cap increase is justified.
+These are modified-seed diagnostics, not rebuilt/admitted seed evidence.
+Do not infer dominance, full release admission or installed-driver behavior.
 Original semantic refusal remains; do not bypass provenance or enlarge caps.
 The bounded repair/validation map is
 `agent_work_directives/ownership_cutover_ci_repair_2026-10-09.md`.

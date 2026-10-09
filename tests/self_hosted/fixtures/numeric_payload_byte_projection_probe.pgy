@@ -1,0 +1,113 @@
+import "../../../src/self_hosted/hir/ast_expression_graph_owner.pgy";
+
+// Frozen pre-change algorithm, only an oracle for valid byte extents.
+func NumericPayloadReference(text: String, digits_end: Int,
+    positive_limit: String, negative_limit: String) -> Bool {
+    let text_length: Int = StringLength(text);
+    let start: Int = 0;
+    let limit: String = positive_limit;
+    if digits_end > 0 && CodegenCharAt(text, 0) == "-" {
+        start = 1; limit = negative_limit;
+    }
+    if start >= digits_end { return false; }
+    let i: Int = start;
+    while i < digits_end {
+        if StringIndexOf("0123456789", CodegenCharAt(text, i)) < 0 { return false; }
+        i = i + 1;
+    }
+    while start < digits_end - 1 && CodegenCharAt(text, start) == "0" {
+        start = start + 1;
+    }
+    let limit_length: Int = StringLength(limit);
+    let length: Int = digits_end - start;
+    if length != limit_length { return length < limit_length; }
+    i = 0;
+    while i < length {
+        let digit: Int = CodegenCharCodeAt(text, text_length, start + i);
+        let bound: Int = CodegenCharCodeAt(limit, limit_length, i);
+        if digit != bound { return digit < bound; }
+        i = i + 1;
+    }
+    return true;
+}
+
+func NumericPayloadExpect(actual: Bool, expected: Bool, label: String) -> Void {
+    if actual != expected { Log(label); Exit(3); }
+}
+
+func NumericPayloadArenaReady(text: String, kind: Int, child: Int) -> Bool {
+    let kinds: Array<Int> = [kind];
+    let texts: Array<String> = [text];
+    let left: Array<Int> = [child];
+    let right: Array<Int> = [0];
+    let arena: AstExpressionArena = AstExpressionArena(kinds, texts, left, right);
+    return AstExpressionArenaReady(arena);
+}
+
+func Main() -> Void {
+    let ints: Array<String> = ["0", "-0", "0000", "-0000", "2147483647",
+        "-2147483648", "0002147483647", "-0002147483648", "2147483648",
+        "-2147483649", "+1", "", "-", "1L", "1.0", "12a", "١", "１", " 1"];
+    let row: Int = 0;
+    while row < ArrayLength(ints) {
+        NumericPayloadExpect(AstExpressionIntegerLiteralPayloadReady(ints[row]),
+            row < 8, Concat("Int payload row ", ToString(row)));
+        NumericPayloadExpect(NumericPayloadArenaReady(ints[row],
+            AstExpressionNodeIntegerLiteral(), 0), row < 8, "Int arena admission");
+        row = row + 1;
+    }
+    let longs: Array<String> = ["0L", "-0L", "9223372036854775807L",
+        "-9223372036854775808L", "0009223372036854775807L",
+        "-0009223372036854775808L", "9223372036854775808L",
+        "-9223372036854775809L", "1", "1l", "LL", "-L", "1LL", "１L"];
+    row = 0;
+    while row < ArrayLength(longs) {
+        NumericPayloadExpect(AstExpressionLongLiteralPayloadReady(longs[row]),
+            row < 6, Concat("Long payload row ", ToString(row)));
+        NumericPayloadExpect(NumericPayloadArenaReady(longs[row],
+            AstExpressionNodeLongLiteral(), 0), row < 6, "Long arena admission");
+        row = row + 1;
+    }
+    NumericPayloadExpect(NumericPayloadArenaReady("1", 100, 0),
+        false, "unknown arena node admitted");
+    NumericPayloadExpect(NumericPayloadArenaReady("1",
+        AstExpressionNodeIntegerLiteral(), 1), false, "scalar child admitted");
+    let words: Array<String> = [""];
+    let alphabet: Array<String> = ["0", "1", "2", "7", "9", "-", "+", "x", "é"];
+    let depth: Int = 0;
+    let first: Int = 0;
+    while depth < 4 {
+        let end: Int = ArrayLength(words);
+        row = first;
+        while row < end {
+            let letter: Int = 0;
+            while letter < ArrayLength(alphabet) {
+                ArrayPush(words, Concat(words[row], alphabet[letter]));
+                letter = letter + 1;
+            }
+            row = row + 1;
+        }
+        first = end; depth = depth + 1;
+    }
+    let comparisons: Int = 0;
+    row = 0;
+    while row < ArrayLength(words) {
+        let length: Int = StringLength(words[row]);
+        let end: Int = 0;
+        while end <= length {
+            NumericPayloadExpect(AstExpressionSignedDecimalWithin(words[row], end, "23", "24"),
+                NumericPayloadReference(words[row], end, "23", "24"), "small bound parity");
+            NumericPayloadExpect(AstExpressionSignedDecimalWithin(words[row], end, "2147483647", "2147483648"),
+                NumericPayloadReference(words[row], end, "2147483647", "2147483648"), "Int bound parity");
+            comparisons = comparisons + 2;
+            end = end + 1;
+        }
+        row = row + 1;
+    }
+    Log(Concat("numeric payload comparisons=", ToString(comparisons)));
+    NumericPayloadExpect(AstExpressionSignedDecimalWithin("1", 2, "2147483647", "2147483648"),
+        false, "out-of-range extent accepted");
+    NumericPayloadExpect(AstExpressionSignedDecimalWithin("1", -1, "2147483647", "2147483648"),
+        false, "negative extent accepted");
+    Log("NUMERIC PAYLOAD BYTE PROJECTION PASS");
+}

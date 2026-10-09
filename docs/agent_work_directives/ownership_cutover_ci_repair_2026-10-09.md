@@ -4,7 +4,7 @@ Status: `ACTIVE / CANDIDATE PUSHED; CI NOT GREEN`.
 Original candidate base: `13fdf36b8fb914a282ce0f6c38b9d9bb57d119fa`.
 The user explicitly authorized commit, push and CI repair, then requested
 `main` as the working branch and the former candidate renamed to `backup`.
-Main is pushed at `f8173daa`; local/remote backup preserve `aa7f0d65`.
+Main is pushed at `24d62232`; local/remote backup preserve `aa7f0d65`.
 Remote main was the ancestor `b9a75ba2` when converted. Every then-dirty file byte was
 preserved. This branch convention does not activate incomplete automatic
 cleanup, install the candidate officially or imply P10/CI acceptance.
@@ -346,10 +346,93 @@ with endpoint hashes over all self-host source files and original admission.
 That fresh-seed diagnostic passes independent controls through the SOURCE
 entrypoint: three owned-table lineage demands pass; six repeated-release
 lineage demands finish, followed by the original uniqueness refusal. The
-complete current-source run is in progress. The diagnostic GCC build emits
+complete current-source run was in progress at that observation. The diagnostic GCC build emits
 existing generated const-qualifier warnings; this scratch build is neither
 a receipt-admitted rebuilt seed nor an installed compiler. It does not change
 the admitted source guards, final release/uniqueness verdict or validation cap.
+
+The subsequent full SOURCE run exits 134 at named-boundary graph validation:
+231.98 s / max RSS 3,065,416 KiB, unchanged 3 GiB address-space cap and
+2,531 source plus four diagnostic endpoint bindings. A two-byte malloc fails in
+`AstExpressionSignedDecimalWithin` via arena and carried-call-target
+readiness. This is not a semantic release failure or a full census. A scoped
+counter on that owner subsequently measured 2,231,009 calls, 4,755,689
+temporary character strings and 114,235,064 cumulative allocator-usable
+bytes before the same refusal. Wall time was 360.62 s / max RSS 3,065,036
+KiB; all 2,535 endpoint bindings match. These are scoped cumulative costs,
+not peak/live heap or proof that this operation dominates the entire run.
+Candidate `24d62232` is pushed and full run `37879549165` completes RED at
+the installed-driver build; dependent jobs are skipped.
+Its remote proof job now succeeds and publishes both narrow artifacts. The
+downloaded model-cost receipt binds this exact HEAD, reports zero bound-source
+dirty entries and contains all 30 cases. Windows, macOS, TSan and codegen
+bootstrap also pass; DRV-2, the installed pair and P1 closure remain OPEN.
+
+### Bounded numeric payload repair card
+
+- Objective: remove only the measured character-string allocation inside
+  `AstExpressionSignedDecimalWithin` to unblock the same actual-source
+  aggregate-demand census under the unchanged 3 GiB address-space cap.
+- Priority: identical admitted numeric payloads and graph identity, explicit
+  invalid-input refusal, same-input census, then allocation cost and patch size.
+- Owner/chain: typed expression payload issuer -> existing expression-graph
+  numeric admission -> arena/carried-call-target validation -> named-value
+  boundary/body bundle -> final release admission -> source codegen/DRV-2.
+  Parser primary literals, direct-MIR scalar readiness/kinds and MIR expression
+  sequence validation also consume these same Int/Long predicates; their
+  public identities and range rules remain unchanged.
+  Last legitimate consumer is numeric admission; no retained fact is added.
+- Required change: read ASCII sign/digit/zero bytes through the existing
+  nonallocating `CodegenCharCodeAt` owner. Preserve signed width bounds,
+  leading zeros, suffix handling and all arena/edge/call-identity checks.
+  Explicitly reject a negative or beyond-text digit extent: the old raw
+  predicate accepts `("1", 2)` because an out-of-range character becomes the
+  empty string. Public Int/Long issuers already supply exact valid extents.
+  Leave Long's separate suffix operation and other scans unchanged.
+- Forbidden: cached readiness, bypassed graph admission, weaker range rules,
+  a new fact owner, annotation/manual-drop workarounds or raised budgets.
+- Acceptance/falsifiers: native-built C/LLVM execution of 78,322 comparisons
+  against the frozen old algorithm on valid byte extents, independent Int/Long
+  boundary/sign/zero/malformed/Unicode cases and invalid-extent refusal.
+  The original implementation fails the beyond-text negative with exit 3.
+  Ratchet the allocating read path within this one predicate. Then rerun the
+  same source entrypoint/cap with all source and diagnostic bindings recorded,
+  fresh lineage witnesses and the original final admission. Modified seed
+  diagnostics are not receipt-admitted executables or installed-driver proof.
+
+Observed numeric candidate: the focused native-built C/LLVM gate passes all
+78,322 valid-extent comparisons, 33 independent Int/Long payload cases and
+their arena checks, unknown-kind/scalar-child controls and invalid extents.
+Existing Long exactness/overflow, documentation, evidence-lifetime/RED,
+program-graph, source UTF-8, beta-readiness and gate-reachability checks pass.
+Small SOURCE census controls preserve three successful owned-table demands
+and six repeated-release demands followed by the original refusal.
+
+The whole-source comparison reads a non-worktree `24d62232` snapshot. Git
+archive changed the raw checkout line endings of 24 files; the hash guard
+refused that initial input before running the executable. Only those 24
+scratch files were copied from independently baseline-hash-matched originals;
+no working source was rewritten. All 2,531 raw source hashes then match the
+previous numeric run exactly and remain stable through execution.
+
+Same input/cap, identified candidate `6fbb1cbd...a709`: 2,926,301 numeric
+calls, zero character-string allocations and zero scoped cumulative usable
+bytes. Named-boundary, generic and owned-result validation now finish. The
+run still exits 134 at `SemanticAstCollectionFormalEffectsWithSurfaceOrder`
+when a 24-byte allocation fails: wall 425.76 s / max RSS 3,063,828 KiB,
+source and all four diagnostic binding comparisons zero. This is a later
+partial run, not a full-run speedup or successful release census. Measure
+that next operation before changing it; do not infer dominance or increase
+the cap. The complete failure set and the producer/consumer ownership repair
+are still OPEN. Numeric repair does not change formal modes, releases, ABI,
+automatic-cleanup activation or a SoT registry status.
+
+Exact remote result `24d62232` / `37879549165`: DRV-2 job `113661282480`
+refuses syntax 214857 / `aggregate_release_plan_unproved` / `Array<String>`
+after about 382.58 s. The downloaded seed's source/binary hashes match its
+receipt (`e180a92c...42c2`, `faf77ad0...cf64`). Proofs and both publications,
+Windows, macOS, TSan and codegen fixed point pass; dependent jobs are skipped.
+The numeric source follow-up requires its own exact-SHA CI, not those results.
 
 Full remote run `37875813974` completed RED. DRV-2 job `113649446103` refuses
 the actual source graph at syntax 214852 / `aggregate_release_plan_unproved`

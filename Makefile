@@ -3068,6 +3068,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
 	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/numeric_payload_byte_projection_owner.sh
 	"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_function_table_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_enum_variant_builtin_collision_installed_owner.sh

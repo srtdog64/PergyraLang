@@ -122,21 +122,23 @@ func AstExpressionSignedDecimalWithin(
     negative_limit: String
 ) -> Bool {
     let text_length: Int = StringLength(text);
+    if digits_end < 0 || digits_end > text_length { return false; }
     let start: Int = 0;
     let limit: String = positive_limit;
-    if digits_end > 0 && CodegenCharAt(text, 0) == "-" {
+    // ASCII payload admission reads bytes without allocating character Strings.
+    if digits_end > 0 && CodegenCharCodeAt(text, text_length, 0) == 45 {
         start = 1;
         limit = negative_limit;
     }
     if start >= digits_end { return false; }
     let i: Int = start;
     while i < digits_end {
-        if StringIndexOf("0123456789", CodegenCharAt(text, i)) < 0 {
-            return false;
-        }
+        let digit: Int = CodegenCharCodeAt(text, text_length, i);
+        if digit < 48 || digit > 57 { return false; }
         i = i + 1;
     }
-    while start < digits_end - 1 && CodegenCharAt(text, start) == "0" {
+    while start < digits_end - 1 &&
+        CodegenCharCodeAt(text, text_length, start) == 48 {
         start = start + 1;
     }
     let limit_length: Int = StringLength(limit);

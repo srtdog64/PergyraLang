@@ -1,14 +1,19 @@
 # Ownership cutover: execution preparation
 
-Status: `ACTIVE P1 / REACHED MEMORY OBSTRUCTION REPAIRED; FULL CUTOVER OPEN`.
+Status: `ACTIVE P1 / DRIVER RELEASE EVIDENCE OPEN; FULL CUTOVER OPEN`.
 Current local base: `main @ 5651c916c87e030cc3ef579180abdfbf1814d1cc`, with
 subsequent production resource-flow, direct-control and documentation edits.
-The same-folder working branch is now `main`, local HEAD `aa7f0d65`, with
-pending CI/enum-owner/documentation corrections. By explicit user request,
-the former candidate was renamed locally and remotely to `backup` at that
-SHA; branch conversion preserved every modified/untracked file byte. No
+The same-folder working branch is now `main`, local/remote HEAD `24d62232`.
+The enum-owner, bounded storage-mutation and CI-context corrections are
+committed/pushed; full exact-SHA run `37879549165` completed RED at DRV-2.
+Proofs, both proof artifact publications, Windows, macOS, TSan and codegen
+bootstrap pass. The bounded numeric-source follow-up passes focused C/LLVM
+checks, but the full 3 GiB diagnostic still stops at formal-effect allocation;
+the aggregate release census and installed pair remain OPEN. By explicit user request,
+the former candidate was renamed locally and remotely to `backup` at `aa7f0d65`;
+branch conversion preserved every modified/untracked file byte. No
 additional worktree or writer was introduced. This is a workflow change,
-not P10 acceptance, green CI, automatic-cleanup activation or main publication.
+not P10 acceptance, green CI, automatic-cleanup activation or official installation.
 Implementation checkpoint `5ca69b4fffcc56f1e4103e914b8c041efb1aa027` was frozen
 through a fresh full-driver run: exit 0, private 1.289 GiB, unchanged cap and
 MIR hash, no declared endpoint drift. Later navigation edits record that
