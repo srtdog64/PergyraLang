@@ -6,9 +6,23 @@ SoT registry, admitted contracts, and executable gates override this note.
 ## Active self-host context — ownership-cutover P1 (GPT, 2026-10-09)
 
 Immediate task: the user authorized commit, push and exact-SHA CI repair.
-Candidate `13fdf36b8fb914a282ce0f6c38b9d9bb57d119fa` was pushed and full
-dispatch `37866547046` started (not a Markdown-only run). Its first observed
-failures are fresh Rocq switch bootstrap and macOS's unavailable `timeout`.
+Working branch is now `main`, local HEAD
+`aa7f0d65f88ff319253e45d3d8a51d0129eaf873`, with pending enum-owner,
+proof-publication, gate and documentation changes. At the branch conversion,
+remote `main` was `b9a75ba2f1ec0eafbf8ddd2eb1ae3fc075294edf`, an ancestor,
+and local main was eight commits ahead. The user requested this workflow;
+the former candidate was renamed locally and remotely to `backup` at
+`aa7f0d65`. The old remote name was removed only after verifying the backup
+SHA and with an exact-old-SHA lease. All 20 then-modified/untracked file
+hashes, including `gmon.out`, were unchanged by the branch conversion.
+No source reset, history rewrite, main push or worktree was involved.
+
+Full run `37872111584` at `aa7f0d65` completed RED: Windows, macOS, TSan and
+codegen bootstrap passed; proof checks reached a stale artifact-upload path;
+DRV-2 still refused `aggregate_release_plan_unproved`, syntax 214840.
+Dependent jobs were skipped. The upload-path/hidden-file correction is a
+locally gated candidate, not a successful remote publication. Complete
+aggregate-demand census and current-source DRV-2 remain OPEN.
 The bounded repair/validation map is
 `agent_work_directives/ownership_cutover_ci_repair_2026-10-09.md`.
 Compiler meaning and P1 activation are unchanged. The installer/portable
@@ -19,16 +33,18 @@ CI candidates until the new full remote run executes.
 Resolve the current branch HEAD and that exact SHA's Actions result on resume;
 no earlier main or partially green run substitutes for it.
 
-Latest user instruction reopens the whole automatic ownership transition;
-all other writers are stopped. One shared tree, no additional implementation
+Latest user instruction reopens the whole automatic ownership transition.
+Other-lane documentation changes were observed and preserved; confirm input
+stability for each new checkpoint rather than assuming an ongoing freeze.
+One shared tree, no additional implementation
 lane. Active directive:
 `agent_work_directives/ownership_cutover_execution_2026-10-09.md`;
 normative owner: `semantics/27_ownership_clean.md`; complete dependency/deletion
 plan: `agent_work_directives/ownership_cutover_plan_2026-10-08.md`.
 
 Frozen parent checkpoint is
-`5651c916c87e030cc3ef579180abdfbf1814d1cc` on main. The same-folder local
-candidate is `codex/ownership-clean-cutover-2026-10-09`; no worktree was made.
+`5651c916c87e030cc3ef579180abdfbf1814d1cc` on main. The same-folder candidate
+was renamed to `backup`; `main` is now the working branch. No worktree was made.
 Its checkpoint contains the subsequent production resource-flow repair,
 importing direct-control model/gates and documentation. Resolve its exact
 HEAD with Git on resume and inspect its diff from the frozen parent;
@@ -59,14 +75,23 @@ no downstream filtering, second identity table, copy or annotation increase.
 This removes the measured obstruction, not a real C-path substitution or
 CLOSED SoT row. Registry status remains unchanged.
 
-Actual isolated production compiler SHA-256
-`262768f6...919b0` emits the SAME complete driver MIR under the unchanged cap:
+Historical isolated production compiler SHA-256
+`262768f6...919b0` emitted the SAME complete driver MIR under the unchanged cap:
 exit 0, 91047 ms, sampled private 1319.5 MiB (1.289 GiB), 10,561 declared
 bindings unchanged. Artifact 378143208 bytes, SHA-256
 `52290d05...985b402`, byte-identical to the independent scratch repair.
 The last new semantic parsed-source case and proof/docs edits followed that
 receipt, so it is not yet a future commit's all-input receipt. Heap counters
-remain UNMEASURED. Semantic 3191/0, HIR/DIR/RIR/AIR/MIR units, DIR/RIR/loop
+remain UNMEASURED. That task-owned executable was subsequently truncated by
+GPT's incorrect timeout-output argument order; its old receipt is historical
+and MUST NOT identify the current zero-byte path. Official binaries were
+unchanged. The replacement was relinked into the separate
+`.tmp/ownership-cutover-ci-2026-10-09/native-rebuilt/pgy.exe`, SHA-256
+`22eb1794d89dd426281f67abe0cb1001ea9cf558e8310bff1022550e7e3f9c5a`.
+This replacement passes the new enum projection C/LLVM gate, existing
+aggregate-source 6-positive/16-falsifier C/LLVM gate and environment lifetime
+ratchets; no full-driver MIR, installed-pair or fixed-point equivalence is
+inferred for it. The older observations were Semantic 3191/0, HIR/DIR/RIR/AIR/MIR units, DIR/RIR/loop
 identity and native-only ArrayDrop/clock/scalar C/LLVM gates pass. Include
 caps remain red on unchanged 702/785/706 LOC fixtures (cap 699).
 

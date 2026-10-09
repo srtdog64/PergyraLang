@@ -4,6 +4,11 @@ Status: `BASELINE FIXED / BOUNDED IMPORTING PROOFS; FULL P1 OPEN`.
 Date: 2026-10-09 KST. This receipt is navigation/evidence, not semantic
 authority, implementation approval or compiler/SoT closure.
 
+The baseline and importing-run sections below are historical receipts for
+their named snapshots, not the current checkout's validation. The later
+[documentation-claim alignment](#documentation-claim-alignment-2026-10-09)
+records a separate source/document review and does not rebind those receipts.
+
 ## Scope
 
 The user approved the four prerequisite items and local checkpoint, then
@@ -72,10 +77,13 @@ the normalizer is the first alias defense before bundling can hide actual
 identities. Source alias/place admission is still required. Pointer/ghost-bundle
 refinement and physical allocation cost are separate P1/P7 obligations.
 
-Slice reuses the lease/pin lifetime vocabulary, not the readonly-copy
-substitution. In-range write-through is separate from structural mutation.
-The lease model supplies no write/exclusivity permission, and its graph
-handle cannot be replaced by an AST or snapshot ID without a checked binding.
+At this preflight snapshot, Slice used lease/pin vocabulary in the ghost
+oracle, not the readonly-copy substitution. This is metadata reuse:
+`LeaseKind` does not discriminate admission in Views or teardown authority.
+It supplies no write/exclusivity permission, and a graph handle cannot be
+replaced by an AST or snapshot ID without a checked binding. The later
+compiler-local whole-backing focus alternative uses no lease ledger (§5.10.5).
+In-range write-through remains separate from structural mutation.
 Static lifetime issuance is the default; runtime `{data, length}` is unchanged.
 Live old String/payload borrows must also survive or block replacement.
 
@@ -240,3 +248,74 @@ backing alive and refuse all conflicting structural instructions before any
 destructive step. An incomplete/stale scope or lifetime snapshot must refuse.
 The current conditional recovery and dynamic ghost checks do not discharge
 those production/static refinements.
+
+## Documentation-claim alignment (2026-10-09)
+
+Scope: user-requested documentation corrections in a side conversation.
+Compared definitions and theorem statements in the ten `OwnershipClean*.v`
+modules and the named audit consumers at
+`aa7f0d65f88ff319253e45d3d8a51d0129eaf873`. This was not a fresh proof-script,
+kernel, non-vacuity, compiler or CI validation. Existing successful receipts
+remain attached to their original snapshots.
+
+Objective card:
+
+- Objective: make every documentation claim no stronger than its named
+  proposition, while preserving the intended language contract and OPEN work.
+- Priority: theorem premises and semantic identity, consistent consumers,
+  explicit gaps, then wording/patch size.
+- Fact owners: the current proof definitions/statements; doc 27 §5 still owns
+  the intended compiler contract, not proof of its implementation.
+- Last consumers: doc 27, semantics README, docs/102 and 207, collaboration and
+  cutover/preflight navigation. These must not count a model as production
+  closure or silently substitute a different task for CL7.
+- Forbidden fallback: upgrading examples to general theorems, conditioning
+  away an unissued fact while calling its issuer complete, or relabelling old
+  kernel/baseline/CI results as validation of the edited documentation.
+- Verification: documentation quality, strict UTF-8, `git diff --check`, and
+  unchanged proof/audit-consumer and parent CI-directive hashes. No proof,
+  compiler, gate, Git-index, installed-driver or process mutation.
+
+| Claim | Verified statement / correction |
+|---|---|
+| CL7 finished its original task | OPEN. Whole-backing focus is a bounded alternative, with no theorem linking `view_admitted` to the Views oracle or its growth/move consumers. |
+| Full static Slice issuer | OPEN. Derived, aliased, returned/stored and call-passed views are not issued by this manually chosen no-call core scope. It covers zero of the 76 call-argument constructions in the dated AST census; that is a coverage limit, not a safety verdict. |
+| CL6 recovers before the actual caller handler | Normalized caller recovery is proved under body-execution, output/value-definition and admission premises. Actual caller packet decoding, handler/propagation lowering and complete local/output issuance remain OPEN. |
+| All `?`/failed Result exits are `XThrow` in `XTry` | Only local structured handling is covered by Exits. Escaping/cross-call errors require the outcome adapter and still-open caller lowering. |
+| ReadOnly rejects calls, or needs only a no-write rule | Current admission accepts copy/pack/push/call reads with other destinations; also checks alias identity/live-out/borrowed state and refuses focus, unpack and region. |
+| General copy-count nonincrease / arbitrary drop order | Copy counts are fixed witnesses; `drops_commute` only exchanges two adjacent distinct-variable drops. General copy bounds, release permutations and borrow-end motion need separate derivations. |
+| GC less safe or universally faster | Read coverage is not full GC safety. `correct_gc_can_match_ownership` chooses `G = H`. Sweep visits are algorithmic; allocation/release costs are specified formulas. Bulk reset (`1 < 3`) and alternate profiles are arithmetic, not collector executions. |
+| Every invalid free is stuck | `TE_Unpack` has no separate live-node premise. `INV` and its preservation supply valid/unique footprints for admitted executions. |
+| Inferred table admits every body | Soundness for admitted tables and monotone rounds do not prove inferred-table adequacy; GUI/chain examples are not a general theorem. |
+| `pack_child_segment` proves all layouts | Direct child `[i]`, immediately after pack, under size premises; not arbitrary nested paths or physical layout. |
+| `region_value_released_once` / early-return / break examples prove execution cleanup | The first counts copies; the latter two exhibit drop syntax. Placement is `region_released_at_exit`; general admitted execution uses `elab_sound`/`xelab_sound`. |
+| Missing settle leaves an unowned block | The dead source definition's target binding still owns that live block. |
+| P1 already proves multi-inout normalization equivalence | Unnormalized multi-inout source-call semantics and its equivalence to pack/call/unpack are still OPEN. Executing normalized code is not that equivalence. |
+| A zero-copy first pack covers every caller | `admitted_first_pack_has_no_copies` additionally requires inouts absent from `B` and exactly `bundle :: args` live-after; not arbitrary continuations, whole-callee cost or tuple-allocation erasure. |
+| CL7 proves `{data, length}` valid throughout | The stated postcondition is source length equality after the scope. Physical pointer stability and all-intermediate descriptor validity remain OPEN. |
+
+One supplied finding does **not** match the current source: Views defines
+`ViewSchedule` with both issue and end steps. `ended_ticket_never_usable_again`
+requires `views_wf` **before** end, then proves absence through that whole
+schedule. It does not require a separate end-preserves-WF lemma for this
+particular statement; old evidence-state replay and production issuance
+remain outside it. Do not weaken the current theorem to issuance-only scope.
+
+The audit name `normal_return_and_handled_error_execute_recovery` is historical:
+its statement executes an exit body and then a pack, and its witness uses
+`post_exit_packages_every_output`, not `recovery_exec`. It does not execute a
+caller handler. Likewise, `adapter_admitted` checks names and bound loop
+control, not that every continuing path defines the ordinary output. No
+general missing-local refusal theorem was found. These are now explicit
+premise/issuer limits, not new proof defects repaired by this document.
+
+Existing proof/audit-consumer bytes, parent CI-repair work and `gmon.out` are
+preserved. The correction changes document gate inputs; it does not alter
+the meaning of a frozen earlier checkpoint or authorize a new baseline,
+implementation rung, commit or push.
+
+Observed documentation-only checks for this correction: documentation quality
+PASS, strict UTF-8 on all eight edited documents PASS, and `git diff --check`
+PASS. SHA-256 comparison preserved all ten proof modules, the audit consumer
+and the pre-existing parent CI-repair directive. HEAD stayed `aa7f0d65`; the
+index remained empty. No fresh Rocq/kernel or CI run was performed.

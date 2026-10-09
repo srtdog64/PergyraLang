@@ -566,7 +566,18 @@ bash scripts/install_rocq_toolchain.sh
 bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check.sh
 bash scripts/run_rocq_toolchain.sh bash tests/rocq_toolchain_selftest.sh
 bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check_selftest.sh
+path: .tmp/ownership-teardown-authority-2026-10-08/
+path: .tmp/ownership-cleanup/model-cost.json
 EOF
+forbid_text ".github/workflows/formal_proofs.yml" \
+    'path: .tmp/ownership-teardown-root-epoch-2026-10-08/'
+require_terms "tests/ownership_teardown_redteam_smoke.sh" <<'EOF'
+receipt="$ROOT_DIR/.tmp/ownership-teardown-authority-2026-10-08"
+EOF
+if [[ "$(grep -Fc 'include-hidden-files: true' "$ROOT_DIR/.github/workflows/formal_proofs.yml")" -ne 2 ]]; then
+    echo '[beta-readiness] both bounded .tmp proof receipts must be uploadable' >&2
+    exit 1
+fi
 
 require_terms "Makefile" <<'EOF'
 WINDOWS_LLVM_READY :=

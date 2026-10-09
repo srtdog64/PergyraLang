@@ -40,8 +40,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ownership-teardown-model-redteam
-          path: .tmp/ownership-teardown-root-epoch-2026-10-08/
+          path: .tmp/ownership-teardown-authority-2026-10-08/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
       - name: Execute freshly extracted checkers and ownership cost cases
         run: |
@@ -58,4 +59,5 @@ jobs:
           name: ownership-cleanup-model-cost
           path: .tmp/ownership-cleanup/model-cost.json
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7

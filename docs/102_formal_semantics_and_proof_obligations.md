@@ -93,16 +93,20 @@ audits/ownership_clean_g_receipt_2026-10-08.md for observed hashes, commands,
 negative controls and the still-open compiler/runtime boundary.
 
 2026-10-08 sink core: OwnershipCleanCore now proves calls under every
-parameter-mode table (borrow or sink) and inferred modes remove the GUI call
-copies (2 to 0). The C2 MIR ownership contract that implementations consume
+parameter-mode table (borrow or sink), conditional on admitted bodies and
+source execution. Inferred modes remove the fixed GUI witness's call copies
+(2 to 0); monotonicity and those examples are not a general inferred-table
+admission theorem. The C2 MIR ownership contract that implementations consume
 is section 5 of semantics/27_ownership_clean.md.
 
 2026-10-08 places core: OwnershipCleanCore now gives every value one block per
 node and proves a focus statement that moves one part of an owned value out
 and back with exactly its blocks (member-path inout, update from self,
 read-only part view; GUI state cases copy nothing). The read-only rewrite
-refuses only writes to the alias or root, and drops of distinct variables
-commute. The fresh corpus check covers 60 proofs.
+refuses alias/root writes as well as focus, unpack and region; its additional
+alias-name/live-out/borrowed checks are specified below. Two adjacent drops
+of distinct variables commute; general permutations are not the statement.
+The recorded fresh corpus check covered 60 proofs at that snapshot.
 
 2026-10-08 composition supplement: `OwnershipCleanComposition.v` imports that
 same core and proves guarded branch/sequential composition and recursive Skip
@@ -112,14 +116,17 @@ Syntax-size reduction is not a reduction in memory or observable effects.
 The extraction controls consume both files; docs/207 section 9 bounds the
 unit-valued bind analogy and the boundary of a general local-loan extension.
 
-2026-10-08 read-only supplement: `OwnershipCleanReadOnly.v` proves a narrower
+2026-10-08 read-only supplement: `OwnershipCleanReadOnly.v` proves a bounded
 local alias rewrite without introducing loans into the canonical heap model.
-Admission excludes writes, retention/consumption, live-out aliases and calls;
+Current admission allows copy, pack, push and call reads when their destination
+or inout target is neither alias nor root. It excludes writes, focus, unpack
+and region, and requires distinct names and a non-live-out/nonborrowed alias;
 original canonical admission is preserved before rewriting. Valid source
 executions preserve trace and inherit closed-program cleanup. A certificate
 against `texec`'s allocation frontier establishes 3 -> 2 abstract allocations
 on the fixed branch witness, with the same trace and two empty final heaps.
-It is not a physical-memory benchmark or the member-projection/places core.
+Fixed examples give copy counts, not general copy-count nonincrease. It is
+not a physical-memory benchmark or the member-projection/places core.
 The exact propositions are extraction consumers; docs/207 section 10 and
 the dated research audit record the current evidence and integration limits.
 
@@ -128,14 +135,21 @@ memory management" is the core ordinary-value lifecycle mechanism (27 §0).
 `OwnershipCleanGCComparison.v` imports the existing ownership machine and
 proves exact-retention bounds and explicitly conditional full-heap-sweep
 operation-cost savings. Its canonical `elab`/`texec` workload and typed audit
-also preserve counterexamples to universal strict superiority. A correct GC
-can be equally memory-safe and can match retention. This is not wall-time,
-arbitrary-graph collector correctness, or compiler/runtime refinement evidence.
+also bind the separate comparison cost formulas. Read coverage and the
+existence of an exact heap (`correct_gc_can_match_ownership` chooses the `INV`
+heap itself) are not a full GC memory-safety theorem. Only the sweep's visits
+are counted by its algorithm; allocation/release costs are specified formulas,
+not counters derived from `texec`. Bulk-reset and alternative-policy examples
+are arithmetic witnesses, not executions of those collectors. This is not
+wall-time, universal speed superiority, arbitrary-graph collector correctness
+or compiler/runtime refinement evidence.
 
 2026-10-08 exits, unpack, regions and fail-closed summaries:
 `OwnershipCleanExits.v` layers break/continue/return/throw/try over the core
 and proves that every outcome runs with the source trace and ends with its
-target live set, so an error before a pack releases the parts built so far.
+target live set, so a local handled error before a pack releases the parts
+built so far. Routine-escaping errors and call unwinding are outside this
+layer; CL6 callee recovery does not supply caller packet dispatch/propagation.
 `OwnershipCleanCore.v` adds unpack of a dead record (overlapping projections
 with no copy) and one-value regions released at their end. Its mode table now
 holds `option` summaries: a missing or wrong-length summary is refused at the
@@ -148,7 +162,8 @@ async/FFI remain implementation obligations (27 §4).
 imports the value/exit machine and proves alias-refusing bundle call recovery,
 one operational catch adapter and restore-before-dispatch. `OwnershipCleanViews.v`
 keeps the same owning heap and proves scalar write-through INV/source CORR,
-guarded backing drop and old-ticket refusal in linear schedules. Its currentness
+guarded backing drop and old-ticket refusal after a `views_wf` pre-end state,
+through `ViewSchedule` steps that include both issuance and end. Its currentness
 checker is a dynamic ghost oracle, not the production static issuer. It reuses
 teardown lease vocabulary without fabricating graph handles. The typed consumer is
 `tests/coq/OwnershipCutoverPreflightAudit.v`; focused gate
@@ -169,15 +184,23 @@ or cost superiority follows from this bounded source-control proposition.
 
 2026-10-09 Claude CL6/CL7: `OwnershipCleanCallLowering.v` lowers an exiting
 callee into the core's ordinary procedure table by a status variable and
-proves end-to-end recovery of every inout and the outcome packet for normal,
-early-return and handled-error exits, with target soundness from
+proves recovery of every inout and the outcome packet through the normalized
+caller for normal, early-return and error outcomes under its execution,
+defined-output/value and admission premises, with target soundness from
 `elab_sound`; it does not depend on a new catch rule. `OwnershipCleanViewScope.v`
 models a writable view as a whole-backing focus scoped to its last use and
-proves the backing keeps its length; growth, transfer and release of the
-suspended backing are refused statically by the core and the admission.
-Both files are kernel-checked with no assumptions. Production direct-jump
-epilogues, place disjointness, expression order, returned/stored views and
-views passed to calls remain OPEN.
+proves the source backing has the same length after the scope; it does not
+state physical pointer/descriptor validity throughout the scope. Growth,
+transfer and release of the suspended backing are refused statically by the
+core and the admission.
+Both files have recorded kernel checks with no assumptions. CL7's original
+static-checker-to-Views-oracle task remains OPEN: the focus model is a bounded
+alternative, not the full derived/aliased/returned/call-view issuer. It covers
+none of the 76 call-argument constructions in the dated Slice census.
+Caller packet decoding/error dispatch, complete local/output issuance,
+unnormalized multi-inout source semantics/normalization equivalence,
+production direct-jump epilogues, place disjointness, expression order and
+production view/descriptor refinement remain OPEN.
 
 2026-10-08 graph links: `OwnershipGraphLinks.v` checks the proposal in
 `docs/audits/ownership_graph_links_design_2026-10-08.md`. A store owns its

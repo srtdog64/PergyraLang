@@ -62,7 +62,7 @@ func SemanticAstExpressionSeedEnumValues(
         if enums.variant_param_counts[i] == 0 {
             let variant: String = enums.variant_names[i];
             let enum_name: String = enums.variant_enum_names[i];
-            let qualified: String = Concat(enum_name, Concat(".", variant));
+            let qualified: String = enums.variant_qualified_names[i];
             let qualified_exists: Bool = false;
             let name_index: Int = 0;
             while name_index < ArrayLength(names) && !qualified_exists {
@@ -679,9 +679,9 @@ func SemanticAstExpressionEnumValueContractReady() -> Bool {
     let modes: Array<String> = [];
     return SemanticAstExpressionSeedEnumValues(
         enums, names, types, modes
-    ) && ArrayLength(names) == 2 &&
-        names[0] == "North" && types[0] == "Direction" &&
+    ) && ArrayLength(names) == 4 &&
+        names[0] == "Direction.North" && types[0] == "Direction" &&
         modes[0] == "enum_value" &&
-        names[1] == "East" && types[1] == "Direction" &&
-        modes[1] == "enum_value";
+        names[2] == "Direction.East" && types[2] == "Direction" &&
+        modes[2] == "enum_value";
 }

@@ -187,6 +187,7 @@ func SemanticEnumCallableProjectionContractReady() -> Bool {
     let empty_texts: Array<String> = [];
     let broken: SemanticAstEnumFacts = SemanticAstEnumFacts(
         false, 0, empty_ints, empty_texts, empty_texts, empty_texts,
+        empty_texts,
         empty_ints, empty_ints, empty_texts
     );
     let preserved_names: Array<String> = ["Keep"];

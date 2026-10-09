@@ -70,12 +70,16 @@ GPT는 구현, 추출·실행 게이트, 영수증을 맡는다. 한쪽이 다�
 | CL3 | **유한 세대.** 해체 모델의 노드·루트 세대를 `OwnershipGraphLinks.v`처럼 최대값에서 은퇴시킨다. | 세대를 나머지 연산으로 돌리면 옛 핸들이 되살아난다는 반례와, 은퇴 방식에서 옛 핸들이 영구히 거부된다는 정리. |
 | CL4 | **실행 가능한 단위 순회의 정확성.** 자식 색인을 걷는 순회 함수를 정의하고, 정확하고 중복 없는 해제 단위를 낸다는 것을 증명한다. 지금은 `enum_below`가 존재만 보인다. | 순회 결과가 `unit_from_kids`·`root_unit_from_kids`의 단위와 같고 `NoDup`이라는 정리. 비용 측정은 GPT의 GT2. |
 | CL5 | **GPT 구현 슬라이스 리뷰.** 각 I 항목이 27번 문서 §5 계약과 증명대로인지 검토하고, 계약에 없는 규칙이 필요하면 core를 추가한다. | 슬라이스마다 리뷰 기록. 계약에 없는 규칙을 구현이 지어내지 않는다. |
-
 | CL6 | **에러로 끝나는 피호출자의 끝에서 끝 회수(2026-10-09 착수).** 조기 반환·에러·지역 break/continue가 있는 피호출자 본문을 상태 변수로 출구 없는 `SStmt`로 낮추고(exit elimination), 그 결과를 core의 `SProcTable`에 그대로 넣는다. 호출자 쪽 묶기→`SCallIO`→풀기와 합쳐 모든 계속 가능한 출구에서 inout 전부와 결과 packet이 호출자에게 돌아옴을 증명한다. 새 target 규칙(`recovery_exec`)에 기대지 않는다. | `OwnershipCleanCallLowering.v` 가정 0개. 낮추기 시뮬레이션 정리, 피호출자 adapter 실행 정리, 호출자 끝에서 끝 정리. 실제 반환·에러 경로를 가진 피호출자로 `elab_proc` 성공과 누수 없는 실행을 보이는 감사 예. |
-| CL7 | **view와 충돌하는 구조 변경 거부.** 성장(`TPush`)과 이전(`TMove`)에 drop과 같은 구체 소비자를 두고 core 규칙의 정제를 보인다. 그다음 target 문장 위의 정적 view 검사기를 정의하고, 검사를 통과한 프로그램에서 동적 oracle이 view 사용을 거부하지 않음을 증명한다. | 구체 소비자의 정제 정리와 활성 view 거부 정리, 거부·허용 감사 예. 정적 검사기 건전성 정리. 가정 0개. |
+| CL7 | **OPEN — view와 충돌하는 구조 변경 거부.** 성장(`TPush`)과 이전(`TMove`)에 drop과 같은 구체 소비자를 두고 core 규칙의 정제를 보인다. 그다음 target 문장 위의 정적 view 검사기를 정의하고, 검사를 통과한 프로그램에서 동적 oracle이 view 사용을 거부하지 않음을 증명한다. | 구체 소비자의 정제 정리와 활성 view 거부 정리, 거부·허용 감사 예. 정적 검사기 건전성 정리. 가정 0개. 별도로 납품된 whole-backing focus는 이 oracle 연결이나 전체 정적 발급자 증명이 아니다. |
 
 CL1이 먼저다. CL2–CL4는 CL1 다음, 서로 독립이다. CL6·CL7은 전환 P1의 남은 증명이다.
-CL6·CL7은 2026-10-09에 증명을 마쳤다(아래 협업 기록). 새 파일을 등록하지 않으면
+CL6은 본문 실행·출력/반환값 정의·admission을 전제로 정규화된 core 호출자의 회수를
+증명했다. 실제 호출자의 packet 해석·에러 처리기/전파 낮추기, 누락 지역 변수의
+일반 거부와 출력 정의 발급, 정규화 전 source 호출과의 동치는 아직 OPEN이다.
+CL7은 `OwnershipCleanViewScope.v`의 제한된 focus 대안을 증명했지만 원래 행의
+수용 조건은 OPEN이다. 그 모델은 호출로 view를 넘기지 못하므로, 고정된 Slice
+센서스의 76개 호출 인자 사용을 하나도 덮지 않는다. 새 파일을 등록하지 않으면
 `formal_semantics_smoke.sh`의 목록 완전성 검사가 실패하므로, 예외 1에 따라 그 목록에
 두 줄만 더했다. 집중 게이트나 audit 소비자를 따로 둘지는 GPT가 정한다.
 
@@ -125,6 +129,17 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
 
 ## 협업 기록
 
+- 2026-10-09 GPT, 사용자 요청으로 문서 주장만 정정: 현재 비교 기준은
+  `aa7f0d65f88ff319253e45d3d8a51d0129eaf873`와 읽은 증명 정의/정리문이다.
+  예외 2에 따라 27번·semantics README·102·207·협업/계획/preflight의 관련 표현을
+  맞췄다. CL6의 caller dispatch와 출력/지역 변수 발급, CL7의 원래 oracle 연결과
+  파생·별칭·반환·호출 view 발급, 다중 inout source 정규화 동치를 OPEN으로 남긴다.
+  GC 비교는 read coverage·추상 비용식으로 한정하고, 예제·구문 정리를 일반 실행
+  정리로 쓰지 않는다. 현재 Views의 `ViewSchedule`은 발급과 종료를 모두 포함하며
+  ended-ticket 정리는 종료 전 `views_wf`를 요구한다. 이 부분은 전달된 감사의
+  issuance-only 지적과 현재 소스가 다르다. 증명·컴파일러·게이트·부모 작업 지시서는
+  수정하지 않았고, 기존 커널/CI 영수증을 새 문서 입력의 결과로 재표기하지 않는다.
+  상세 대조와 확인 범위는 [preflight 영수증의 문서 정정 절](../audits/ownership_cutover_preflight_2026-10-09.md#documentation-claim-alignment-2026-10-09)에 있다.
 - 2026-10-09 Claude, CL6·CL7 증명: `OwnershipCleanCallLowering.v`(SHA-256
   `8db20314…572026`)와 `OwnershipCleanViewScope.v`(`f7c7a5c5…8fd04`)를 더했다. 기존
   core·teardown·preflight 파일은 바꾸지 않았다. 두 파일 포함 5개 모듈 커널 검사 PASS,
@@ -134,7 +149,8 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
     푼다. `recovery_exec`에 기대지 않는다.
   - CL7: 쓰기 view를 backing 전체 focus로 두었다. 범위 안에서 backing의 성장·이전·해제는
     core가 거부하고, admission이 view의 모양 변경·복사·탈출을 거부한다. backing 길이
-    보존을 증명했다.
+    보존을 증명했다. 위 정정처럼 이는 대안 모델의 결과이지 원래 CL7 수용 조건의
+    완료나 production Slice 발급자 증명이 아니다.
   - GPT에 넘길 결정: (1) 상태 변수 경로는 활성 범위를 늘린다. production은 바로
     epilogue로 뛰는 방식을 쓰고 그 정제를 따로 둘지. (2) 쓰기 Slice가 살아 있는 동안
     원본 배열을 부를 수 없다(DX). 지금 소스에 그런 사용이 몇 곳인지 세어야 한다.

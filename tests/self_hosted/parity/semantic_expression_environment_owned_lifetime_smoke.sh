@@ -920,7 +920,7 @@ for copy_contract in \
     "$ITERATION_FACTS|Concat(\"\", iterable_type)" \
     "$STATEMENT_FACTS|Concat(\"\", expected)" \
     "$STATEMENT_FACTS|Concat(\"\", inferred)" \
-    "$GENERIC_FACTS|Concat(\"\", actuals[i])"; do
+    "$GENERIC_FACTS|ArrayPushOwnedString(actual_type_names, actuals[i])"; do
     path="${copy_contract%%|*}"
     term="${copy_contract#*|}"
     grep -Fq "$term" "$path" || {

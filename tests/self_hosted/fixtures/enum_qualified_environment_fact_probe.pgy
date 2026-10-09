@@ -1,0 +1,101 @@
+// Exact enum name projection, refusal and retained-fact lifetime evidence.
+import "../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+import "../../../src/self_hosted/semantic/enum_callable_signature_owner.pgy";
+
+func EnumQualifiedProjectionRejected(
+    artifact: AstTreeArtifact, facts: SemanticAstEnumFacts,
+    qualified_names: Array<String>
+) -> Bool {
+    let bad: SemanticAstEnumFacts = SemanticAstEnumFacts(
+        facts.ok, facts.artifact_node_count, facts.node_ids, facts.enum_names,
+        facts.variant_enum_names, facts.variant_names, qualified_names,
+        facts.variant_param_starts, facts.variant_param_counts,
+        facts.variant_param_type_names
+    );
+    let names: Array<String> = ["Keep"];
+    let types: Array<String> = ["Int"];
+    let modes: Array<String> = ["local"];
+    let seeded: Bool = SemanticAstExpressionSeedEnumValues(
+        bad, names, types, modes
+    );
+    return !SemanticAstEnumRowsReady(bad) &&
+        !SemanticAstEnumFactsMatchArtifact(artifact, bad) && !seeded &&
+        ArrayLength(names) == 1 && names[0] == "Keep" &&
+        ArrayLength(types) == 1 && types[0] == "Int" &&
+        ArrayLength(modes) == 1 && modes[0] == "local";
+}
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Enum: Direction { North, East, Payload(Int) }\n"
+    );
+    let facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    if !SemanticAstEnumRowsReady(facts) ||
+        !SemanticAstEnumFactsMatchArtifact(artifact, facts) ||
+        !SemanticAstExpressionEnumValueContractReady() ||
+        !SemanticEnumCallableProjectionContractReady() ||
+        ArrayLength(facts.variant_qualified_names) != 3 ||
+        facts.variant_qualified_names[0] != "Direction.North" ||
+        facts.variant_qualified_names[1] != "Direction.East" ||
+        facts.variant_qualified_names[2] != "Direction.Payload" {
+        Log("enum qualified projection failed"); Exit(1);
+    }
+
+    let missing: Array<String> = [];
+    let short: Array<String> = ["Direction.North", "Direction.East"];
+    let foreign: Array<String> = ["Other.North", "Direction.East", "Direction.Payload"];
+    let bare: Array<String> = ["North", "Direction.East", "Direction.Payload"];
+    let wrong_dot: Array<String> = ["Direction_North", "Direction.East", "Direction.Payload"];
+    let wrong_variant: Array<String> = ["Direction.South", "Direction.East", "Direction.Payload"];
+    let extra: Array<String> = ["Direction.North.extra", "Direction.East", "Direction.Payload"];
+    if !EnumQualifiedProjectionRejected(artifact, facts, missing) ||
+        !EnumQualifiedProjectionRejected(artifact, facts, short) ||
+        !EnumQualifiedProjectionRejected(artifact, facts, foreign) ||
+        !EnumQualifiedProjectionRejected(artifact, facts, bare) ||
+        !EnumQualifiedProjectionRejected(artifact, facts, wrong_dot) ||
+        !EnumQualifiedProjectionRejected(artifact, facts, wrong_variant) ||
+        !EnumQualifiedProjectionRejected(artifact, facts, extra) {
+        Log("enum qualified refusal failed"); Exit(1);
+    }
+    let other: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Enum: Direction { South, West, Payload(Int) }\n"
+    );
+    if other.count != artifact.count ||
+        SemanticAstEnumFactsMatchArtifact(other, facts) {
+        Log("foreign enum artifact accepted"); Exit(1);
+    }
+
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    ArrayPushOwnedString(names, "North");
+    ArrayPushOwnedString(types, "Int");
+    ArrayPushOwnedString(modes, "local");
+    if !SemanticAstExpressionSeedEnumValues(facts, names, types, modes) ||
+        ArrayLength(names) != 4 || names[0] != "North" ||
+        types[0] != "Int" || modes[0] != "local" ||
+        names[1] != "Direction.North" || names[2] != "Direction.East" ||
+        names[3] != "East" {
+        Log("enum shadow or payload exclusion failed"); Exit(1);
+    }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
+
+    // Retiring an environment must leave the admitted enum facts intact.
+    let next_names: Array<String> = [];
+    let next_types: Array<String> = [];
+    let next_modes: Array<String> = [];
+    if !SemanticAstEnumFactsMatchArtifact(artifact, facts) ||
+        !SemanticAstExpressionSeedEnumValues(
+            facts, next_names, next_types, next_modes
+        ) || ArrayLength(next_names) != 4 ||
+        next_names[0] != "Direction.North" || next_names[1] != "North" ||
+        next_names[2] != "Direction.East" || next_names[3] != "East" ||
+        next_types[0] != "Direction" || next_types[1] != "Direction" ||
+        next_types[2] != "Direction" || next_types[3] != "Direction" ||
+        next_modes[0] != "enum_value" || next_modes[1] != "enum_value" ||
+        next_modes[2] != "enum_value" || next_modes[3] != "enum_value" {
+        Log("enum facts did not survive environment retirement"); Exit(1);
+    }
+    SemanticAstExpressionEnvironmentClear(next_names, next_types, next_modes);
+    Log("enum-qualified-environment: PASS");
+}

@@ -3,12 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_enum_fact_owner.pgy"
+ENVIRONMENT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
 NORMALIZER="$ROOT_DIR/src/self_hosted/semantic/expression_normalization_owner.pgy"
 MIR_OWNER="$ROOT_DIR/src/self_hosted/mir/program_domain_projection_owner.pgy"
 ASSIGNMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
-BODY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
+BODY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy"
 
-[[ -f "$OWNER" && -f "$NORMALIZER" && -f "$MIR_OWNER" &&
+[[ -f "$OWNER" && -f "$ENVIRONMENT" && -f "$NORMALIZER" && -f "$MIR_OWNER" &&
     -f "$ASSIGNMENT_OWNER" && -f "$BODY_OWNER" ]] || {
     echo "[self-host-parity:semantic-enum-lifetime] owner or normalizer is missing" >&2
     exit 1
@@ -29,6 +30,23 @@ done
 if grep -Fq 'StringTrim(' "$OWNER" ||
     grep -Fq 'StringTrim(Substring(' "$OWNER"; then
     echo "[self-host-parity:semantic-enum-lifetime] trim-copy fallback remains" >&2
+    exit 1
+fi
+
+grep -Fq 'variant_qualified_names: Array<String>;' "$OWNER" &&
+grep -Fq 'ArrayPush(variant_qualified_names, Concat(' "$OWNER" &&
+grep -Fq 'ArrayLength(facts.variant_qualified_names) != variant_count' "$OWNER" &&
+grep -Fq 'rebuilt.variant_qualified_names[variant_index]' "$OWNER" || {
+    echo "[self-host-parity:semantic-enum-lifetime] qualified enum projection lost its issuer/admission" >&2
+    exit 1
+}
+enum_seed="$(sed -n '/func SemanticAstExpressionSeedEnumValues(/,/^}/p' "$ENVIRONMENT")"
+grep -Fq 'enums.variant_qualified_names[i]' <<<"$enum_seed" || {
+    echo "[self-host-parity:semantic-enum-lifetime] environment lost its artifact-owned qualified name" >&2
+    exit 1
+}
+if grep -Eq 'Concat\(|FactsFromArtifact\(' <<<"$enum_seed"; then
+    echo "[self-host-parity:semantic-enum-lifetime] enum environment reconstruction returned" >&2
     exit 1
 fi
 

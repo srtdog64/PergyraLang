@@ -5,6 +5,7 @@ import "../hir/ast_node_kind_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "expression_normalization_owner.pgy";
+import "../lib/source_scan_owner.pgy";
 
 struct SemanticAstEnumFacts {
     ok: Bool;
@@ -13,6 +14,7 @@ struct SemanticAstEnumFacts {
     enum_names: Array<String>;
     variant_enum_names: Array<String>;
     variant_names: Array<String>;
+    variant_qualified_names: Array<String>;
     variant_param_starts: Array<Int>;
     variant_param_counts: Array<Int>;
     variant_param_type_names: Array<String>;
@@ -25,6 +27,7 @@ func SemanticAstEnumFactsFromArtifact(
     let enum_names: Array<String> = [];
     let variant_enum_names: Array<String> = [];
     let variant_names: Array<String> = [];
+    let variant_qualified_names: Array<String> = [];
     let variant_param_starts: Array<Int> = [];
     let variant_param_counts: Array<Int> = [];
     let variant_param_type_names: Array<String> = [];
@@ -108,6 +111,10 @@ func SemanticAstEnumFactsFromArtifact(
                         } else {
                             ArrayPush(variant_enum_names, enum_name);
                             ArrayPush(variant_names, variant_name);
+                            // Artifact-owned spelling; environments must not rebuild it.
+                            ArrayPush(variant_qualified_names, Concat(
+                                enum_name, Concat(".", variant_name)
+                            ));
                             ArrayPush(variant_param_starts, param_start);
                             ArrayPush(variant_param_counts, param_count);
                         }
@@ -120,6 +127,7 @@ func SemanticAstEnumFactsFromArtifact(
     }
     return SemanticAstEnumFacts(
         ok, artifact.count, node_ids, enum_names, variant_enum_names, variant_names,
+        variant_qualified_names,
         variant_param_starts, variant_param_counts,
         variant_param_type_names
     );
@@ -129,6 +137,7 @@ func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
     let variant_count: Int = ArrayLength(facts.variant_names);
     if !facts.ok ||
         ArrayLength(facts.variant_enum_names) != variant_count ||
+        ArrayLength(facts.variant_qualified_names) != variant_count ||
         ArrayLength(facts.variant_param_starts) != variant_count ||
         ArrayLength(facts.variant_param_counts) != variant_count {
         return false;
@@ -140,6 +149,19 @@ func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
             facts.variant_names[variant_index] == "" ||
             facts.variant_param_starts[variant_index] != expected_start ||
             facts.variant_param_counts[variant_index] < 0 {
+            return false;
+        }
+        let enum_name: String = facts.variant_enum_names[variant_index];
+        let variant: String = facts.variant_names[variant_index];
+        let qualified: String = facts.variant_qualified_names[variant_index];
+        let enum_length: Int = StringLength(enum_name);
+        let qualified_length: Int = StringLength(qualified);
+        if qualified_length != enum_length + 1 + StringLength(variant) ||
+            !SubStartsWithLen(qualified, qualified_length, 0, enum_name) ||
+            SourceByteAt(qualified, qualified_length, enum_length) != 46 ||
+            !SubStartsWithLen(
+                qualified, qualified_length, enum_length + 1, variant
+            ) {
             return false;
         }
         expected_start = expected_start +
@@ -423,6 +445,8 @@ func SemanticAstEnumFactsMatchArtifact(
         ArrayLength(facts.variant_enum_names) !=
             ArrayLength(rebuilt.variant_enum_names) ||
         ArrayLength(facts.variant_names) != ArrayLength(rebuilt.variant_names) ||
+        ArrayLength(facts.variant_qualified_names) !=
+            ArrayLength(rebuilt.variant_qualified_names) ||
         ArrayLength(facts.variant_param_starts) !=
             ArrayLength(rebuilt.variant_param_starts) ||
         ArrayLength(facts.variant_param_counts) !=
@@ -445,6 +469,8 @@ func SemanticAstEnumFactsMatchArtifact(
                 rebuilt.variant_enum_names[variant_index] ||
             facts.variant_names[variant_index] !=
                 rebuilt.variant_names[variant_index] ||
+            facts.variant_qualified_names[variant_index] !=
+                rebuilt.variant_qualified_names[variant_index] ||
             facts.variant_param_starts[variant_index] !=
                 rebuilt.variant_param_starts[variant_index] ||
             facts.variant_param_counts[variant_index] !=

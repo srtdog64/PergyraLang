@@ -416,10 +416,18 @@ commit/push·설치본 교체·GUI 메시지는 각각 해당 권한과 위 검�
 
 ## 협업 기록
 
-- 2026-10-09 Claude: P1 증명 잔여 중 두 가지를 닫았다. 에러로 끝나는 피호출자를 core의
-  보통 호출 표로 낮추는 끝에서 끝 회수(`OwnershipCleanCallLowering.v`)와, 쓰기 view를
-  backing 전체 focus로 두는 정적 발급(`OwnershipCleanViewScope.v`)이다. 커널 검사 PASS,
-  가정 0. 근거와 남은 결정은 27 §5.10.5와 협업 문서에 있다. 컴파일러 코드는 바꾸지 않았다.
+- 2026-10-09 문서 대조 정정: 아래 두 납품을 P1 의무 두 개의 전체 폐쇄로 세지 않는다.
+  CL6은 본문 실행·출력 정의·admission을 전제로 정규화된 호출자에게 inout/packet을
+  회수한다. 실제 caller packet dispatch/에러 전파와 정규화 전 다중 inout source 의미
+  및 동치는 OPEN이다. CL7은 제한된 whole-backing focus 대안이며 기존 Views oracle과의
+  연결, 파생·별칭·반환·호출 view 수명을 포함하는 정적 발급자는 OPEN이다. 고정된
+  Slice 센서스의 호출 인자 76개는 이 no-call 모델의 적용 대상이 아니다.
+- 2026-10-09 Claude: 에러로 끝나는 피호출자를 core의 보통 호출 표로 낮추는
+  회수(`OwnershipCleanCallLowering.v`)와, 쓰기 view를 backing 전체 focus로 두는
+  제한된 admission/범위 후 길이 보존(`OwnershipCleanViewScope.v`)을 납품했다.
+  당시 커널 검사 PASS, 가정 0. 물리 data 포인터의 범위 내내 유효성은 이 길이 정리가
+  말하지 않는다. 근거와 OPEN 의무는 27 §5.10.5와 협업 문서에 있다.
+  컴파일러 코드는 바꾸지 않았다.
 - 2026-10-09 GPT, 후속 승인: `a75da804` 로컬 checkpoint의 456개 입력을 동결
   검증했다. 네 선행 항목의 설계/필수 importing 증명만 진행하며 production
   C/LLVM 이전은 하지 않는다. 전체 P0·메모리·CI와 전체 전환은 미완료/보류다.

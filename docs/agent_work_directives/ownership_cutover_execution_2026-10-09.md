@@ -3,9 +3,12 @@
 Status: `ACTIVE P1 / REACHED MEMORY OBSTRUCTION REPAIRED; FULL CUTOVER OPEN`.
 Current local base: `main @ 5651c916c87e030cc3ef579180abdfbf1814d1cc`, with
 subsequent production resource-flow, direct-control and documentation edits.
-The same-folder local candidate is now
-`codex/ownership-clean-cutover-2026-10-09`. No additional worktree or writer
-was introduced. This checkpoint is not the P10 main landing or publication.
+The same-folder working branch is now `main`, local HEAD `aa7f0d65`, with
+pending CI/enum-owner/documentation corrections. By explicit user request,
+the former candidate was renamed locally and remotely to `backup` at that
+SHA; branch conversion preserved every modified/untracked file byte. No
+additional worktree or writer was introduced. This is a workflow change,
+not P10 acceptance, green CI, automatic-cleanup activation or main publication.
 Implementation checkpoint `5ca69b4fffcc56f1e4103e914b8c041efb1aa027` was frozen
 through a fresh full-driver run: exit 0, private 1.289 GiB, unchanged cap and
 MIR hash, no declared endpoint drift. Later navigation edits record that

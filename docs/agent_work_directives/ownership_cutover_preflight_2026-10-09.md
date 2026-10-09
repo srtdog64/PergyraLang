@@ -139,3 +139,16 @@ lowering, complete/current scope and static lifetime issuers, whole-instruction
 view frame/effect completeness, source place/expression and physical ABI/glue
 obligations remain as recorded in doc 27 §5.10.4 and the receipt. Do not start
 P2-P7 consumers from a model-only green result.
+
+## Later claim-scope correction (2026-10-09)
+
+The integration receipt above describes its dated snapshot, not current
+compiler/CI status. The source/document comparison at `aa7f0d65` is recorded
+in the receipt's documentation-claim alignment section. CL6 subsequently
+provided a status-lowered callee in the ordinary call table, conditional on
+body execution and defined outputs/value; actual caller packet dispatch and
+complete local/output issuance remain OPEN. CL7's whole-backing focus is a
+bounded alternative, not its original static-checker-to-Views-oracle task or
+the full derived/aliased/returned/call-view issuer. Unnormalized multi-inout
+source semantics and normalization equivalence remain OPEN. This correction
+does not rerun or rebind the earlier baseline, proof gates or CI receipts.

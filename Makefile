@@ -3074,6 +3074,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_statement_type_installed_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_enum_fact_lifetime_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/enum_qualified_environment_fact_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_initializer_environment_row_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh
@@ -5163,6 +5164,10 @@ self-host-collection-aggregate-entry-requirement-test-smoke: $(PGY)
 .PHONY: self-host-collection-aggregate-release-source-test-smoke
 self-host-collection-aggregate-release-source-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_aggregate_release_source_owner.sh
+
+.PHONY: self-host-enum-qualified-environment-test-smoke
+self-host-enum-qualified-environment-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/enum_qualified_environment_fact_owner.sh
 
 .PHONY: self-host-collection-ownership-fact-carrier-test-smoke
 self-host-collection-ownership-fact-carrier-test-smoke: self-host-compiler

@@ -428,8 +428,8 @@ descriptor를 만들지 않는다.** 지역 `a := x` 뒤의 연속 구간에서 
 ```mermaid
 flowchart TD
     O["원본 프로그램의 canonical admission"] --> R{"지역 구간 검사"}
-    R -->|"쓰기 · 소비 · 저장 · 미지 호출"| N["변환 거부: 기존 copy 정책 유지"]
-    R -->|"읽기 전용 · 별칭 live-out 없음"| S["a의 읽기를 x로 치환; a := x 제거"]
+    R -->|"a/x 쓰기 · focus/unpack/region · 별칭 조건 위반"| N["변환 거부: 기존 copy 정책 유지"]
+    R -->|"현재 ro_admit/ro_region 검사 통과"| S["a의 읽기를 x로 치환; a := x 제거"]
     S --> L["기존 elab: 치환된 사용으로 live 사실 계산"]
     L --> D["마지막 별칭 읽기 뒤에만 x 정리"]
     D --> V["같은 trace · 최종 empty heap"]
@@ -448,8 +448,9 @@ cleanup이 두 번째 읽기 다음에 `Drop(x)`를 배치한다. a에 대한 �
 | 읽기, 순수 값 계산, 순차/분기/루프 | 허용. 계산의 결과 destination은 a/x와 달라야 함 |
 | `SField` 읽기 | source만 치환. 결과는 여전히 새 값 복사이며 borrowed place가 아님 |
 | a/x 재정의 또는 수정 | 거부. 한쪽 분기나 루프 안에 있어도 거부 |
-| `SPack`, `SPush`, 다른 `SCopy` | 보수적으로 모두 거부. 저장·소비·다중 별칭 확장은 하지 않음 |
-| 함수/프로시저 호출 | 알려진 이름이라도 이 지역 변환에서는 모두 거부. effect summary 확장은 별도 |
+| `SPack`, `SPush`, 다른 `SCopy` | destination이 a/x가 아니면 허용. 값 의미론의 읽기 치환이며 새 loan을 발급하지 않음 |
+| 함수/프로시저 호출 | destination 또는 inout target이 a/x가 아니면 허용. 원래 canonical admission도 필요 |
+| focus, unpack, region | 현재 지역 검사에서는 거부. 일반 place 변환의 허용 조건을 대신하지 않음 |
 | a가 live-out, borrowed destination, a=x | 서로 다른 이유로 거부 |
 
 `ro_admit`는 위 위험을 검사하며 `RORefused`의 네 종류로 거부 이유를 구분한다.
@@ -575,12 +576,17 @@ installed-driver와 CI는 아직 이 증거의 범위 밖이다. 이 문서와 �
 
 - 11.3의 두 수정은 저장소 증명에 들어갔다. 넓힌 허용 조건은
   `OwnershipCleanReadOnly.v`의 `readonly_copy_elision`, `ro_call_in_overlap`,
-  `ro_value_semantics_accepts`에 있다. drop 순서 자유는
-  `OwnershipCleanComposition.v`의 `drops_commute`에 있다.
+  `ro_value_semantics_accepts`에 있다. 현재 조건은 §10.1의 전체 guard를 따른다.
+  §11.3의 "조건 하나"와 "복사가 늘지 않는다"는 일반 정리로 채택된 것이 아니다.
+  복사 수는 고정 예들에서만 확인했다. `OwnershipCleanComposition.v`의
+  `drops_commute`는 인접한 두 distinct-variable drop의 교환이다. 임의 해제 집합
+  순열이나 borrow end와의 재배치는 별도 증명 의무다.
 - places 코어는 `OwnershipCleanCore.v`의 focus 문장이다. 원본의 한 부분을
   임시 변수로 옮기고, 본문을 실행한 뒤 다시 넣는다. 블록은 노드마다
   하나씩 두고, 할당 한 번이 값의 모든 블록을 만든다. 그래서 부분의 블록을
-  경로로 정확히 찾는다(`pack_child_segment`).
+  경로로 정확히 찾는 추상 모델이다. `pack_child_segment` 자체는 pack 직후
+  직접 자식 `[i]`의 블록 구간만 다루며, 일반 중첩 경로·물리 layout 정리는 아니다.
+  아래 세 형태는 손으로 만든 core 예이지 source selection/lowering의 동치가 아니다.
   - inout 멤버 경로: `gui_state_focus_copies_nothing`, 복사 0회
     (떼어냈다 되돌리기는 필드 복사 1회).
   - 자기 필드 갱신: `gui_state_update_copies_nothing`, 복사 0회.
@@ -600,8 +606,10 @@ installed-driver와 CI는 아직 이 증거의 범위 밖이다. 이 문서와 �
 - 같은 날 리뷰를 반영해 요약 누락을 모델에서 막았다. `Modes`는 `option`
   요약을 담고, 요약이 없거나 길이가 틀린 호출과 루틴은 거부된다. 예전의
   "항목 없음 = borrow" 기본값은 없어졌다. 추론은 요약 없음에서 시작해
-  단조 증가한다(`infer_ascends`). 수렴 전 표는 복사가 더 들 뿐 안전하다
-  (`chain_needs_two_rounds`).
+  단조 증가한다(`infer_ascends`). 수렴 전 표도 본문/호출이 elaboration되면 안전하다.
+  `chain_needs_two_rounds`는 복사가 한 번 더 드는 허용된 예이고,
+  `owned_update_needs_sink`처럼 수렴 전 거부될 수 있는 본문도 있다.
+  추론된 표에서 모든 본문이 elaboration된다는 일반 정리는 없다.
 - 남은 것은 구현 의무다(27번 §4 "Not modelled"). 특히 오늘의 얕은 descriptor
   공유 위에 drop만 넣으면 이중 해제이므로, 저장 모델 교체(단일 소유자와
   깊은 복사 glue)가 모든 drop보다 먼저다.
@@ -662,6 +670,8 @@ installed-driver와 CI는 아직 이 증거의 범위 밖이다. 이 문서와 �
 3개의 한 블록 값을 정의하고 관찰하는 고정 예에서 단가를 모두 1로 두면,
 공통 할당 3 + 회수 3은 두 방식 모두 6이다. 비교 sweep에는 블록 검사 3이
 더해져 9가 된다. **6 대 9는 추상 연산 비용이지 33% 실행시간 개선이 아니다.**
+검사 횟수만 sweep 재귀에서 센다. 할당·회수 비용은 따로 지정한 식이며
+`texec` 실행에서 비용 카운터로 도출한 값이 아니다.
 큰 값의 깊은 drop 비용, 숨은 복사, allocator 차이, 캐시, 동시 실행,
 컴파일 분석 비용, 최대 RSS와 tail latency는 이 숫자에 들어 있지 않다.
 
@@ -673,15 +683,17 @@ empty heap을 증명한다. GC envelope보다 강한 것은 **정확한 정리 �
 
 - live 블록을 제거한 힙은 읽기 생존 조건을 만족하지 않는다.
 - 죽은 블록 하나를 남긴 힙은 읽기에 안전할 수 있지만 exact ownership `INV`는 아니다.
-- 정확히 수집한 GC는 같은 힙을 가질 수 있어 보유량의 항상 엄격한 우위는 없다.
+- 같은 힙을 택한 read-covering envelope가 존재하므로 보유량의 항상 엄격한
+  우위는 없다. 이것은 collector 구현이나 GC 메모리 안전성 정리가 아니다.
 - 검사 단가가 0이면 비용이 같고, 다른 allocator가 묶음 reset 한 번으로
   회수한다면 개별 drop 세 번보다 저렴할 수도 있다.
 - 독립 allocator/copy/inspection/barrier 비용표에서는 공유 참조가 복사보다
   저렴한 경우 GC 쪽이 이기는 반례와 소유권 쪽이 이기는 예를 모두 둔다.
   동일 정책 가정의 비용 차이는 회계 항등식이지 실제 collector 실행 성능이 아니다.
 
-묶음 reset 항목은 대안 비용표의 반례다. 실제 GC allocator의 실행·안전성을
-정제한 증명이나 실측 결과로 세지 않는다.
+묶음 reset 항목은 `1 < 3`이라는 대안 비용식의 산술 예다. 묶음 reset allocator나
+즉시 수집 비용 알고리즘은 정의하지 않았다. 실제 GC allocator의 실행·안전성을
+정제한 반례나 실측 결과로 세지 않는다.
 
 따라서 핵심 기제를 채택하되 **일반 GC보다 항상 빠르고 안전하다는 문구는
 계약이나 홍보 근거로 사용하지 않는다.** actual compiler/glue의 메모리 안전성,

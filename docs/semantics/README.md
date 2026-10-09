@@ -128,9 +128,12 @@ Mechanized artifacts:
   imports the canonical machine for ownership-based automatic memory
   management. Proves exact-retention bounds against live-covering collector
   heaps and conditional abstract cost savings against an ideal-root full-heap
-  sweep on a canonically elaborated/executed workload. A correct GC can match
-  exact retention; zero inspection weight and bulk reset refute universal
-  strict speed claims. Typed audit: `tests/coq/OwnershipCleanGCComparisonAudit.v`.
+  sweep on a canonically elaborated/executed workload. An exact read-covering
+  heap exists, not a complete GC memory-safety proof. Sweep visits are counted
+  by its algorithm; allocation/release costs are separate formulas, not
+  `texec` counters. Zero inspection weight gives equality; bulk reset is only
+  an arithmetic alternative (`1 < 3`), not an implemented collector or a
+  measured counterexample. Typed audit: `tests/coq/OwnershipCleanGCComparisonAudit.v`.
   Gate: `tests/ownership_gc_comparison_smoke.sh`. No claim that correct GC is
   unsafe, all collectors are slower, or C/LLVM cleanup is implemented.
 
@@ -210,24 +213,33 @@ Mechanized artifacts:
   it in the core's ordinary procedure table, so no catch rule is added.
   Proves the lowering simulates every source run, the adapter returns every
   inout and the outcome packet on every continuing exit, and the caller
-  restores every inout before any handler runs; target soundness is the
-  core's `elab_sound`. A callee with a local loop and a return/error switch
+  restores every inout and the packet; actual caller packet dispatch/handler
+  lowering remains OPEN. The theorem assumes body execution and defined
+  outputs/value, as well as admission; target soundness is the core's
+  `elab_sound`. A callee with a local loop and a return/error switch
   elaborates, and both the return run and the error run of the whole
   caller free every block. The adapter initializes the value and the listed
   locals because liveness does not see that status-guarded paths are
-  exclusive. Production direct-jump epilogues, place disjointness beyond
-  variable identity and source expression order remain OPEN.
+  exclusive. Complete local/output issuance, unnormalized multi-inout source
+  semantics/normalization equivalence, production direct-jump epilogues,
+  place disjointness beyond variable identity and source expression order
+  remain OPEN.
 - [proofs/OwnershipCleanViewScope.v](proofs/OwnershipCleanViewScope.v): a
   writable view is the core's whole-backing focus scoped to its last use.
   The backing is suspended for the scope, so the core already refuses its
   growth, transfer and release there; the admission refuses naming the
   backing and any view use other than element read, element write and
-  observation. Proves the backing keeps its length (the `{data, length}`
-  descriptor stays valid) and composes with `elab_sound`; a witness writes
+  observation. Proves the source backing has the same length after the scope
+  and composes with `elab_sound`; physical pointer stability and descriptor
+  validity throughout the scope are not stated. A witness writes
   through the view, pushes after the scope and frees every block. No ticket
   ledger, runtime generation or lease vocabulary is used. While a writable
-  view is live the backing cannot be named. Returned/stored views, views
-  passed to calls and several writable views remain OPEN.
+  view is live the backing cannot be named. This is a bounded, already-chosen
+  core scope, not the full production static issuer or a refinement to the
+  `OwnershipCleanViews.v` oracle. All 76 call-argument constructions in the
+  dated Slice census are outside its no-call coverage. Derived/aliased,
+  returned/stored and call-passed views, several writable views and physical
+  descriptor refinement remain OPEN.
 - [proofs/OwnershipCleanDirectControl.v](proofs/OwnershipCleanDirectControl.v):
   finite source-tree label lookup lowers return/error/local loop control into
   jumps without status/guard source variables or body-local initialization.
@@ -238,8 +250,9 @@ Mechanized artifacts:
   cleanup heap and teardown lease vocabulary in a dynamic ghost oracle for
   intended static view evidence. Scalar write-through preserves INV and source
   CORR and is observed through the same backing. A guarded drop consumer
-  refines TE_Drop; ended tickets never reappear in a linearly followed
-  issuance/end schedule. Evidence end frees no backing. Static final-MIR
+  refines TE_Drop; with `views_wf` before end, ended tickets never reappear
+  in a subsequent `ViewSchedule` containing both issuance and end steps.
+  Evidence end frees no backing. Static final-MIR
   currentness, single-current-state/snapshot binding, whole-instruction frame,
   effect-set completeness, owning-payload replacement/glue, graph binding,
   mutable exclusivity and production descriptor consumers remain OPEN.
@@ -247,15 +260,21 @@ Mechanized artifacts:
   canonical machine; adds break, continue, return, throw and try with a
   target live set per exit, and proves that every outcome runs with the
   source trace and ends with exactly its target set bound. An error before a
-  pack releases the parts built so far; an early return keeps only the
-  result. No panic/abort, divergence or production compiler claim.
+  pack releases the parts built so far; admitted normal/return executions
+  retain only the routine result. The early-return/break examples themselves
+  exhibit drop syntax, not executions. No routine-escaping errors, call
+  unwinding, panic/abort, divergence or production compiler claim.
 - [proofs/OwnershipCleanReadOnly.v](proofs/OwnershipCleanReadOnly.v): imports
   the canonical machine and composition supplement; checks a bounded local
   read-only alias region, substitutes its reads with the root, and proves
   trace preservation and inherited closed-program cleanup. A cost certificate
   measures the actual abstract allocation frontier; the branch witness has
-  one fewer allocation, with both executions and empty heaps proved. Rejects
-  writes, retention, consumption and calls; preserves original admission.
+  one fewer allocation, with both executions and empty heaps proved.
+  Admits copy/pack/push/call reads when the destination/inout target is
+  neither alias nor root; refuses their writes, focus, unpack and region.
+  Also requires distinct names, a non-live-out/nonborrowed alias and original
+  canonical admission. Fixed witnesses give copy counts, not a general
+  copy-count nonincrease theorem.
   Copied field reads remain copies. No general loan/place, projection-copy
   elision, early-exit, physical-runtime or production-compiler claim.
 - [proofs/OwnershipCleanComposition.v](proofs/OwnershipCleanComposition.v):
@@ -265,11 +284,16 @@ Mechanized artifacts:
   size nonincrease without reducing resource sites. Refutes guard erasure,
   sequential double drop and idempotent emission. No new heap, full monad
   calculus, local-loan elision or production compiler refinement is claimed.
+  `drops_commute` exchanges two adjacent drops of distinct variables, not
+  arbitrary release-set permutations or borrow-end operations.
 - [proofs/OwnershipCleanCore.v](proofs/OwnershipCleanCore.v): Rocq proof that
   the ownership-clean elaboration runs without a refused step, preserves the
   value-semantics trace, keeps the live heap equal to the live owners'
   disjoint footprints, and frees everything in a closed program, for every
-  parameter-mode table. Inferred sink modes remove the GUI call copies. Refutes
+  parameter-mode table when the called bodies and program elaborate and the
+  source execution/invariant premises hold. Inferred sink modes remove the
+  fixed GUI witness's call copies; general inferred-table admission is not
+  proved. Refutes
   shallow alias copy (double free), early drop (use after free) and missing
   release (leak). Also proves unpack of a dead record (overlapping
   projections, no copy), one-value regions released at their end, fail-closed
