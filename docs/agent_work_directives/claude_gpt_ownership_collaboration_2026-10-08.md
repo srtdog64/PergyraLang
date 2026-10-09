@@ -1,5 +1,11 @@
 # Claude·GPT 협업: 소유권 기반 메모리 관리 다음 분담
 
+> 2026-10-09 최신 승인: "구현 시작해 클로드가 시작했으니까"와 "전체 작업해"로
+> 아래 GT3의 과거 구현 보류는 해제됐다. 현재 GPT 실행은
+> [실행 지시서](ownership_cutover_execution_2026-10-09.md)를 따른다.
+> P0 동결·P1 의존 장벽·최종 설치 조건은 그대로이며, 과거 완료 기록은
+> 현재 production 폐쇄 증거가 아니다.
+
 상태: `ACTIVE COORDINATION`. 작성: 2026-10-08 KST, Claude, 사용자 요청.
 기준: `main @ 3658548d24bca3d721e4f1974ac7a10da99f7aa8`, 공유 dirty main(작성 시
 Windows Git 305개 항목, staged 0개). 이 문서는 분담과 순서만 정한다. 의미는
@@ -65,7 +71,13 @@ GPT는 구현, 추출·실행 게이트, 영수증을 맡는다. 한쪽이 다�
 | CL4 | **실행 가능한 단위 순회의 정확성.** 자식 색인을 걷는 순회 함수를 정의하고, 정확하고 중복 없는 해제 단위를 낸다는 것을 증명한다. 지금은 `enum_below`가 존재만 보인다. | 순회 결과가 `unit_from_kids`·`root_unit_from_kids`의 단위와 같고 `NoDup`이라는 정리. 비용 측정은 GPT의 GT2. |
 | CL5 | **GPT 구현 슬라이스 리뷰.** 각 I 항목이 27번 문서 §5 계약과 증명대로인지 검토하고, 계약에 없는 규칙이 필요하면 core를 추가한다. | 슬라이스마다 리뷰 기록. 계약에 없는 규칙을 구현이 지어내지 않는다. |
 
-CL1이 먼저다. CL2–CL4는 CL1 다음, 서로 독립이다.
+| CL6 | **에러로 끝나는 피호출자의 끝에서 끝 회수(2026-10-09 착수).** 조기 반환·에러·지역 break/continue가 있는 피호출자 본문을 상태 변수로 출구 없는 `SStmt`로 낮추고(exit elimination), 그 결과를 core의 `SProcTable`에 그대로 넣는다. 호출자 쪽 묶기→`SCallIO`→풀기와 합쳐 모든 계속 가능한 출구에서 inout 전부와 결과 packet이 호출자에게 돌아옴을 증명한다. 새 target 규칙(`recovery_exec`)에 기대지 않는다. | `OwnershipCleanCallLowering.v` 가정 0개. 낮추기 시뮬레이션 정리, 피호출자 adapter 실행 정리, 호출자 끝에서 끝 정리. 실제 반환·에러 경로를 가진 피호출자로 `elab_proc` 성공과 누수 없는 실행을 보이는 감사 예. |
+| CL7 | **view와 충돌하는 구조 변경 거부.** 성장(`TPush`)과 이전(`TMove`)에 drop과 같은 구체 소비자를 두고 core 규칙의 정제를 보인다. 그다음 target 문장 위의 정적 view 검사기를 정의하고, 검사를 통과한 프로그램에서 동적 oracle이 view 사용을 거부하지 않음을 증명한다. | 구체 소비자의 정제 정리와 활성 view 거부 정리, 거부·허용 감사 예. 정적 검사기 건전성 정리. 가정 0개. |
+
+CL1이 먼저다. CL2–CL4는 CL1 다음, 서로 독립이다. CL6·CL7은 전환 P1의 남은 증명이다.
+CL6·CL7은 2026-10-09에 증명을 마쳤다(아래 협업 기록). 새 파일을 등록하지 않으면
+`formal_semantics_smoke.sh`의 목록 완전성 검사가 실패하므로, 예외 1에 따라 그 목록에
+두 줄만 더했다. 집중 게이트나 audit 소비자를 따로 둘지는 GPT가 정한다.
 
 ## GPT가 할 일 (순서대로)
 
@@ -73,11 +85,11 @@ CL1이 먼저다. CL2–CL4는 CL1 다음, 서로 독립이다.
 |---|---|---|
 | GT1 | **해체 게이트 유지.** Claude의 모델 변경마다 반례 파일·추출·OCaml 관측기를 이전하고 `tests/ownership_teardown_redteam_smoke.sh`를 녹색으로 유지한다. CL1이 들어오면 권한 반례 두 개가 거부로 바뀌었음을 변이 검사로 고정한다. | 집중 게이트 PASS, 변이가 실제로 거부됨, 영수증 갱신. |
 | GT2 | **순회의 추출과 비용 관측.** CL4의 순회 함수를 추출해 정확·고유 단위 생성을 같은 고정 입력에서 관측하고, 지금의 이차 비용 `unit_unique` 관측기와 비교한다. | 같은 입력에서 결과가 기존 단위와 일치하고 비용 행이 기록된다. OCaml 모델 비용이지 런타임 성능이 아니라고 적는다. |
-| GT3 | **값 정리 구현을 한 번에 전환(현재 보류).** [전환 계획](ownership_cutover_plan_2026-10-08.md)의 P0–P10은 마지막 검토 후 착수 확인을 받으면 따른다. 최신 지시는 모순 정리와 읽기 전용 재검토만이다. I1–I8 집중 조건을 장벽으로 유지하며 공개 착지는 한 번이다. P1은 GPT 통합, Claude 계약·증명 검토다. | 지금은 문서 모순 정리, P0/P1 실행 전. 최종 착지는 exact-SHA CI를 포함한 계획의 게이트 8개가 녹색일 때만. 같은 main worktree·3 GiB 상한·음성 fixture 보존. 원격/설치/GUI 권한과 증거는 별도 확인. |
+| GT3 | **값 정리 구현을 한 번에 전환(전체 구현 보류).** [전환 계획](ownership_cutover_plan_2026-10-08.md)의 P0–P10은 마지막 검토 후 착수 확인을 받으면 따른다. 후속 승인은 네 선행 항목의 로컬 기준선·계약·필수 importing 증명 preflight만 연다. I1–I8 집중 조건을 장벽으로 유지하며 공개 착지는 한 번이다. P1은 GPT 통합, Claude 계약·증명 검토다. | 기준선 checkpoint는 고정; 전체 P0 매트릭스와 P1은 아직 미완료. 최종 착지는 exact-SHA CI를 포함한 계획의 게이트 8개가 녹색일 때만. 같은 main worktree·3 GiB 상한·음성 fixture 보존. 원격/설치/GUI 권한과 증거는 별도 확인. |
 | GT4 | **런타임 색인 표현 제안.** 역방향 색인과 소유자별 자식 색인을 C/LLVM 런타임에서 어떤 자료구조로 둘지 제안한다. 큰 행의 필터와 append 비용, 이차 관측기 한계를 포함한다. | 제안서(audits). 구현이 아니다. CL1이 정한 권한·대여 경계에 맞춘다. |
 
-GT1은 계속한다. GT2는 CL4 다음, GT4는 CL1 다음이다. GT3의 현재 범위는 문서
-모순 정리와 읽기 전용 최종 검토다. 구현은 보류한다. graph CL2–CL4를 일반 값
+GT1은 계속한다. GT2는 CL4 다음, GT4는 CL1 다음이다. GT3의 현재 범위는 네 항목의
+기준선·계약·필수 importing 증명과 읽기 전용 Claude 검토다. 전체 구현은 보류한다. graph CL2–CL4를 일반 값
 cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은 당시 사실로 보존한다.
 
 ## 편집 범위와 겹침 금지
@@ -113,6 +125,40 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
 
 ## 협업 기록
 
+- 2026-10-09 Claude, CL6·CL7 증명: `OwnershipCleanCallLowering.v`(SHA-256
+  `8db20314…572026`)와 `OwnershipCleanViewScope.v`(`f7c7a5c5…8fd04`)를 더했다. 기존
+  core·teardown·preflight 파일은 바꾸지 않았다. 두 파일 포함 5개 모듈 커널 검사 PASS,
+  가정 0(`.tmp/rocq93_ownership/cl6-cl7-kernel-claude.log`).
+  - CL6: 에러로 끝나는 피호출자를 상태 변수로 낮춰 core의 보통 호출 표에 넣었다.
+    반환·에러 두 실행 모두 inout 전부와 packet이 돌아오고, 호출자 전체가 블록을 전부
+    푼다. `recovery_exec`에 기대지 않는다.
+  - CL7: 쓰기 view를 backing 전체 focus로 두었다. 범위 안에서 backing의 성장·이전·해제는
+    core가 거부하고, admission이 view의 모양 변경·복사·탈출을 거부한다. backing 길이
+    보존을 증명했다.
+  - GPT에 넘길 결정: (1) 상태 변수 경로는 활성 범위를 늘린다. production은 바로
+    epilogue로 뛰는 방식을 쓰고 그 정제를 따로 둘지. (2) 쓰기 Slice가 살아 있는 동안
+    원본 배열을 부를 수 없다(DX). 지금 소스에 그런 사용이 몇 곳인지 세어야 한다.
+    (3) 27 §5.10.3의 lease 어휘 재사용 문장은 compiler-local view에는 필요 없다.
+  - 문서: 27 §5.10.5, semantics README, docs/102.
+- 2026-10-09 Claude, preflight 검토(읽기 전용): checkpoint `a75da804`는 456개
+  파일, 바이너리·비밀값·충돌 표시·Claude co-author 없음. 새 증명 3개와 게이트
+  해시가 영수증과 같고, `tests/ownership_cutover_preflight_smoke.sh`를 따로 돌려
+  PASS(7개 모듈, 가정 0)를 확인했다(`.tmp/rocq93_ownership/preflight-claude-review.log`).
+  주장과 다른 증명 결함은 찾지 못했다. 남은 것: (1) 다중 inout은 호출자 쪽
+  pack/call/unpack과 피호출자 쪽 `recovery_exec`가 따로 증명됐고, `recovery_exec`는
+  core의 `SCallIO`/`TCall`에 연결되지 않은 새 target 규칙이다. 끝에서 끝 회수가 P1의
+  가장 큰 잔여다. (2) Views는 drop만 구체 소비자가 있고 성장(`TPush`)·이전(`TMove`)은
+  호출자가 넘기는 영향 목록에만 기댄다. backing을 마지막 view 사용까지 살리는 정적
+  issuer도 없다(동적 oracle). (3) `LeaseKind`는 두 모델 모두 판정에 쓰이지 않아,
+  §5.10.3의 "admission 규칙 재사용"은 아직 이름 공유뿐이다. (4) `a75da804`와 추적
+  diff 0이던 구간에는 증명·문서 게이트만 돌았다. 전체 P0와 메모리 판정을 그 기준선으로
+  기록하려면 preflight 변경을 두 번째 로컬 checkpoint로 고정하고 동결한 채 돌려야 한다.
+- 2026-10-09 GPT, baseline 이후: 사용자 확인으로 모든 다른 편집자가 멈췄고
+  456개 입력의 로컬 checkpoint `a75da804`를 동결 상태에서 검증했다. 예외 2로
+  `OwnershipCleanCallRecovery.v`와 `OwnershipCleanViews.v`의 importing preflight와
+  독립 gate를 이 채팅에서 맡는다. 기존 core/teardown 주인은 바꾸지 않는다.
+  Claude는 읽기 전용 검토. production consumer 이전·전체 P0/메모리·push/설치는
+  이 승인에 포함되지 않는다. 최신 범위는 preflight directive가 기록한다.
 - 2026-10-09 GPT, 최신 승인: 사용자가 ABI 주인·다중 inout 정규화·Slice 수명
   증거·검토된 로컬 기준선 커밋 네 항목에 착수하도록 확인했다. 예외 2로 필요한
   importing 모델과 생산/소비 연결을 이 채팅에서 맡는다. 별도 병렬 구현 레인은

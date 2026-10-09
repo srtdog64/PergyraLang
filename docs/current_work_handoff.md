@@ -3,24 +3,200 @@
 Updated: 2026-10-09 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
+## Active self-host context — ownership-cutover preparation (GPT, 2026-10-09)
+
+Latest user directions, "구현 시작해 클로드가 시작했으니까" and "전체 작업해",
+reopen the full transition. The earlier scope holds below are history, not the current
+authorization. Dependency gates and official-installation boundaries remain.
+Active directive:
+`agent_work_directives/ownership_cutover_execution_2026-10-09.md`.
+
+Same `main @ a75da80435e0d051f71cfacf76d44ea825ed87d7`; current snapshot:
+31 short-status entries at GPT's latest continuation check, staged 0, including
+excluded `gmon.out`; verify with Git on resume. Shared preflight changes are
+preserved. Claude's CL6/CL7 models passed GPT's independent importing audit;
+GPT's audit/pressure/profile-gate changes remain uncommitted. This is not a
+frozen tree. Claude owns model definitions; GPT owns importing integration
+and the subsequent production cutover after its dependency gates. No
+production source/runtime, CI workflow, registry-status or official-binary
+change is claimed. An input-bound receipt is not a frozen P0 matrix or heap
+allocation counter.
+
+Last observed gates: importing focused kernel PASS (nine modules, no
+assumptions); full formal integration PASS (77 modules plus approval
+consumer, only two existing approved Slot abstractions). Fresh isolated
+native LLVM-enabled compiler build and native-only C/LLVM ArrayDrop PASS.
+Native unit shard's batteries passed, but subsequent MIR integration lacks
+a same-source self-host driver. Static single-owner/protocol/reachability
+checks PASS; CI-profile stale step count repaired and verified with three
+negative consumers. Its clock/scalar native checks also PASS on C/LLVM after
+test-only Windows line-ending correction, with exact Boolean comparisons
+and their narrowing/ABI negatives retained. Component contract timed out at 60 s; likeness fails
+sentinel 73 > 20. No frozen P0, complete native matrix, DRV-2 or remote CI
+PASS. Receipt:
+`audits/ownership_cutover_p1_integration_and_p0_obstructions_2026-10-09.md`.
+
+Active executable diagnostic: fresh reference SHA-256 `8b26d1d...d24af754`
+refuses 3072 MiB on the complete `driver_bootstrap_main.pgy` input. V3/V4
+admitted-row counters locate the amplification: 4,730,448 CLASS declarations
+versus 25,434 actual VARIABLE rows, copied into per-function snapshots and
+loop states. The existing ResourceFlowUniverse owner lacks a declaration/value
+admission distinction. HIR/RIR/MIR preserve its projections; do not fix this
+by discarding required facts in a downstream consumer.
+
+Separate scratch candidate SHA-256 `0daa8b6b...3e60531` excludes only CLASS
+and TYPE_PARAM at that owner and its snapshot/declaration/seal producers.
+Same 2531 bound self-host inputs, no drift, unchanged cap: exit 0 in 64190 ms,
+peak private 1320.5 MiB, complete native MIR issued (378,143,208 bytes;
+SHA-256 `52290d05...985b402`). MIR carries the same 25,434 VARIABLE rows and
+52,498 loop states instead of 6,729,502. Heap counters remain UNMEASURED.
+Semantic unit battery 3107/0; HIR 26/0, DIR 15/0, RIR 26/0, AIR 147/0,
+MIR 217/0. Stable-ID typed/generic parameters, nested Slot lifetime, missing-
+universe and type-as-release refusals, DIR/RIR identity, loop summary and
+native C/LLVM ArrayDrop gates PASS. The old producer fails the new row-count
+oracle; two existing argument fixtures are byte-identical. This is a verified
+scratch repair, not production source change, official P0 or substitution.
+Sources, probes and logs: `.tmp/ownership-cutover-2026-10-09/`; full receipt
+and limitations are in the audit above. Official binaries are unchanged.
+
+Latest continuation: the same candidate emits C for that complete input:
+exit 0, 104087 ms, peak private 1461.1 MiB (1.427 GiB), same 3072 MiB cap,
+all 2538 declared bindings unchanged. Native oracle C is 53,340,103 bytes,
+SHA-256 `5ec64ef8...9303b4`; existing MIR/AIR/region and artifact-identity
+admission ran. No full-artifact machine-code compilation, self-host driver,
+fixed point or installed-pair result is implied. Nested-declaration and
+seal-only Future aliases/values PASS; separately named v3 probe retains the
+SAME context/symbol across universe generations and verifies changed stable
+index, snapshot and sealed parameter identity. Its executable is
+`3fc53649...25f8357`; it does not prove epoch-wrap or concurrent safety.
+Fresh focused preflight kernel also PASS (nine modules, zero assumptions),
+using the explicit project OPAMROOT after an initial missing-prefix refusal.
+This continuation changes coordination/audit/handoff and scratch probes only;
+production source and official compiler hashes remain unchanged.
+
+Latest scoped red-team repair: `scripts/measure_build_pressure.ps1` and its
+existing consumers now separate unowned candidate observation from process
+authority, fence selection/sampling/retirement with creation identity, reject
+capture failure, stream raw bytes with bounded stage buffering and preserve
+occupied receipts. Default repeated Make calls select fresh run directories;
+explicit destinations remain collision-refusing, with both receipts' bytes
+checked after repetition. Windows contract PASS: 21 executable cases plus
+synthetic identity controls. Final same-input MIR run PASS in 49248 ms,
+private 1319.6 MiB (1.289 GiB); all 2538 declared endpoint bindings unchanged, full stdout
+hash remains `52290d05...985b402`, pending stage buffer max 1 character.
+The script's fresh hash is `4f3571f1...7c86612`; input hashes are endpoints,
+not continuous immutability, and OS peaks are sampled, not heap counters or
+a kernel quota. Unknown reparented workers invalidate attribution; they are
+never silently adopted or terminated. No production compiler/proof owner
+edit, manual annotation/copy workaround or self-host closure is claimed.
+Receipt: `audits/ownership_gate_redteam_2026-10-09.md`; coordination:
+`agent_work_directives/ownership_gate_redteam_2026-10-09.md`.
+Fresh focused Rocq kernel again PASS (nine modules, zero assumptions), as do
+documentation/direction/syntax and native diff checks. Current snapshot is
+31 paths, staged 0, 30 UTF-8 text inputs plus preserved `gmon.out`. The earlier
+auxiliary WSL Git check is red on existing CRLF fixture interpretation; no
+shared source was normalized to hide that environment difference.
+
+Latest continuation extends the scratch identity falsifier: a fresh context
+with a retained symbol memo, or boundary epoch reuse, maps two values to index
+0 and loses a sealed row in the previous candidate. New scratch owner checks
+the memo against its EXISTING declaration entry before reuse; all three
+re-entry cases and v3 controls PASS. Native candidate `5377a5e0...d3872fc`
+passes semantic/HIR/DIR/RIR/AIR/MIR unit batteries and native-only C/LLVM
+ArrayDrop. Same full input emits byte-identical MIR in 50397 ms, sampled
+private 1319.2 MiB (1.288 GiB), 2542 endpoint bindings unchanged. No practical
+epoch-wrap/source exploit, arbitrary stale-frame safety, speedup or production
+migration is claimed. Fresh importing preflight again PASS (nine modules,
+zero assumptions), as do documentation/direction and native diff checks.
+The latest user instruction confirms that all other writers have stopped. Receipt:
+`audits/resource_flow_generation_memo_redteam_2026-10-09.md`.
+
+Next boundary: with the renewed stop confirmation, commit the second checkpoint
+and execute P0 against that exact input without gate-input writes. Record that
+checkpoint's P0, including its red memory result,
+then migrate the demonstrated value-admission repair into the existing
+universe header/source and snapshot owner, including the validated memo
+identity guard, with the importing semantic
+ratchet, rebuild and rerun this same input. P1 still
+needs source-place/expression and physical call/view refinements plus actual
+ABI/lifetime issuance before P2-P7. Partial proof/gate green does not activate
+automatic drops or retire the old ownership paths. No commit/push/install
+or GUI readiness was claimed.
+
+## Historical archive — lookup only
+
+## Latest scoped proof work: exiting callee and writable view (Claude, 2026-10-09)
+
+CL6/CL7 of agent_work_directives/claude_gpt_ownership_collaboration_2026-10-08.md.
+New importing proofs, no existing proof/core/teardown/preflight file changed:
+semantics/proofs/OwnershipCleanCallLowering.v (8db20314...572026) lowers an
+exiting callee to the core's ordinary procedure table and proves end-to-end
+recovery of every inout plus the outcome packet on normal, early-return and
+handled-error exits (target soundness via elab_sound, no catch rule);
+semantics/proofs/OwnershipCleanViewScope.v (f7c7a5c5...8fd04) models a writable
+view as a whole-backing focus and proves the backing keeps its length, with
+growth/transfer/release of the suspended backing refused statically.
+Kernel check of the 5 modules: PASS, no assumptions
+(.tmp/rocq93_ownership/cl6-cl7-kernel-claude.log). Both registered in
+tests/formal_semantics_smoke.sh (two lines, collaboration exception 1); the
+full formal gate rerun is logged in
+.tmp/rocq93_ownership/formal-smoke-cl6-cl7-claude.log. Decisions handed to GPT:
+direct-jump epilogue refinement (flag lowering lengthens lifetimes), the DX
+cost of not naming a backing while a writable Slice is live (count uses
+first), and the lease-vocabulary sentence of 27 §5.10.3. Docs: 27 §5.10.5,
+semantics README, docs/102. HEAD a75da804, no stage/commit/push.
+
 ## Latest scoped work: four cutover prerequisites (GPT, 2026-10-09)
 
 User confirmed the four-item proposal: ABI owner, multi-inout normalization,
 Slice lifetime evidence and reviewed local baseline checkpoint. This lifts
 the hold only for that bounded preflight, including required importing proof
-and producer/consumer work. Full ownership-clean cutover, official install,
+work. Production compiler/runtime/backend consumer migration, full cutover, official install,
 push and GUI delivery remain held. Same worktree; no discard/stash/reset.
 
 Active directive: `agent_work_directives/ownership_cutover_preflight_2026-10-09.md`.
-Base HEAD `3658548d24bca3d721e4f1974ac7a10da99f7aa8`, entry dirty 443 short-status
-entries, zero staged. Baseline comes before source edits. Existing cleanup
-model/extraction gate and docs/diff checks freshly passed; full kernel PASS
-(72 modules plus approval consumer; only two approved Slot abstractions).
+Local baseline `a75da80435e0d051f71cfacf76d44ea825ed87d7` (456 reviewed input
+paths, tree `513cc18b1785c4f623045a38463a2b5cbdd6f612`) precedes source edits.
+Post-commit frozen-input cleanup model/extraction, documentation and full
+kernel gates PASS (72 modules plus approval consumer; only two approved Slot
+abstractions). Tracked diff 0 at validation; pre-existing `gmon.out` excluded.
+No push/install/native/DRV-2/memory-pressure/remote CI result is claimed.
 The prior contradiction review remains documentary evidence, not P1 closure.
 The user confirmed other writers stopped for checkpoint-through-baseline
 validation. Latest clarification leaves production C/LLVM consumer migration
 in the later transition; only ABI/multi-output/view contract decisions and
-their necessary importing proof preflight are in scope now.
+their necessary importing proof preflight are in scope now. Doc 27 §5.10.1–3
+records the coupled vocabulary, recovery-before-failure order and static
+write-through lifetime boundary. Importing proof edit inventory is fixed in
+the directive. The importing gates ran, but full P1 and production issuance
+remain OPEN for the refinements below, not merely for a missing test run.
+
+Current uncommitted scope: 15 preflight docs/proof/gate paths plus the preserved
+untracked `gmon.out`; staged 0, same HEAD. No compiler/runtime/backend edit
+after the baseline. Supplement hashes: CallRecovery `6b82ea27...`, Views
+`8bfd2b6d...`, independent Audit `fa8b1e60...`; full identities and logs are in
+`audits/ownership_cutover_preflight_2026-10-09.md`.
+
+Last observed importing integration after final repairs: focused fresh kernel
+PASS (seven modules, zero assumptions); formal semantics/full kernel PASS
+(67 owners + eight permanent consumers = 75 modules, plus approval binding
+consumer; only the two existing approved Slot abstractions). SoT structural
+gate PASS (95/201, statuses unchanged), documentation/shell syntax/diff checks
+PASS; strict UTF-8 on 15 inputs and all 75 final module hash matches PASS.
+Two actual read-only installed Claude CLI reviews ran. The second found no
+remaining High/new Medium inside scope; GPT repaired the four Low follow-ups
+afterward and reran these gates, not a third Claude approval.
+
+Next falsifying chain: a real normal-table callee/caller lowering must restore
+every inout plus independent result/error before the actual handler runs.
+The view proof is a dynamic ghost oracle, not static liveness: final-MIR
+issuer and complete/current caller scope, snapshot/state linearity, complete
+effect sets and the whole-instruction view frame remain OPEN. Source ordered
+expression/place and pointer/bundle erasure refinements, general payload/glue,
+mutable exclusivity and graph binding also remain. Dedicated guarded backing
+drop/scalar frames do not protect the base machine's other operations.
+No new self-host substitution rung or production SoT closure is claimed;
+P2-P7 consumers and the full landing matrix remain held.
 
 ## Previous scoped work: cutover contradictions, implementation held (GPT, 2026-10-09)
 

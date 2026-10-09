@@ -111,7 +111,7 @@ if ! grep -Fq 'needs: [classify-changes, backend-compare-toolchain-linux]' <<<"$
     echo "[self-host-ci-profile] build-linux must consume the shared toolchain and remain the mandatory Markdown contract gate" >&2
     exit 1
 fi
-if [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only != 'true'" <<<"$build_linux_scope")" != "4" ]] ||
+if [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only != 'true'" <<<"$build_linux_scope")" != "5" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only == 'true'" <<<"$build_linux_scope")" != "1" ]]; then
     echo "[self-host-ci-profile] build-linux lost exclusive full/Markdown step selection" >&2
     exit 1
@@ -122,7 +122,10 @@ for required in \
     'chmod +x bin/pgy bin/pgy-self-driver' \
     'test -s bin/pgy-self-driver.machine-layer-manifest.json' \
     'PGY_CI_SELF_HOST_MODE: prebuilt' \
-    'PGY_CI_PUSH_LINUX_SHARD: core'; do
+    'PGY_CI_PUSH_LINUX_SHARD: core' \
+    'name: Check native clock ABI and admitted scalar call widening' \
+    'bash tests/runtime_now_compiler_smoke.sh' \
+    'bash tests/call_scalar_widening_smoke.sh'; do
     if ! grep -Fq "$required" <<<"$build_linux_scope"; then
         echo "[self-host-ci-profile] build-linux lost fail-closed shared toolchain admission: $required" >&2
         exit 1

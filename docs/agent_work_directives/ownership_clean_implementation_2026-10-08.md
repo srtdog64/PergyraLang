@@ -1,6 +1,16 @@
 # Ownership clean: implementation directive
 
+> Latest authorization, 2026-10-09: the user's implementation/full-work
+> instructions supersede the historical scope hold below. Follow
+> [the active execution directive](ownership_cutover_execution_2026-10-09.md).
+> Its P0 freeze, P1 dependency gates and final installation boundary still
+> apply. The original status and base below are historical, not a new result.
+
 Status: `ACTIVE COORDINATION — IMPLEMENTATION HOLD, FINAL REVIEW FIRST`.
+2026-10-09 follow-up authorization permits only the four prerequisites in
+[`ownership_cutover_preflight_2026-10-09.md`](ownership_cutover_preflight_2026-10-09.md):
+local baseline, coupled contract decisions and necessary importing proofs.
+It does not authorize P2-P7 consumer migration or the full cutover.
 It replaces the work-item table of
 [`ownership_clean_work_split_2026-10-08.md`](ownership_clean_work_split_2026-10-08.md),
 which stays as coordination evidence.
@@ -13,11 +23,12 @@ points of the work split remain valid.
 
 - The bounded core specification and proofs exist; this is not a proof of
   multi-inout normalization, borrowed views or physical runtime refinement.
-  GPT owns implementation. The latest 2026-10-09 instruction narrows current
-  work to contradiction repair and read-only final review. P0 execution,
-  proof changes and compiler/runtime implementation remain held until the
-  post-review start is confirmed. Added refinement obligations are OPEN,
-  not an implemented or proved expansion of the core.
+  GPT owns implementation. The earlier 2026-10-09 instruction narrowed work
+  to contradiction repair and read-only final review; the later authorization
+  above reopens the bounded preflight. Its frozen local baseline is
+  `a75da80435e0d051f71cfacf76d44ea825ed87d7`. Full P0 matrix/memory and
+  compiler/runtime implementation remain unrun/held. New importing evidence
+  is bounded by doc 27 §5.10.4; production refinement remains OPEN.
 - Claude keeps the remaining proof cores and reviews against them.
 - Outputs of this directive are implementation candidates. They count as
   progress only when the integration gate below passes.
@@ -205,15 +216,18 @@ A review the user passed on, and where each point now stands:
   unpublished ancestors and an actual candidate CI trigger (main-only push
   is insufficient); final SHA changes require new binding and CI.
   The official P0 baseline has the same zero-gate-input-diff precondition and
-  is currently BLOCKED pending an approved snapshot/checkpoint method. Dirty
-  diagnostic runs do not discharge it; no implicit stash/reset/extra worktree.
+  its checkpoint method was resolved by the approved frozen `a75da804` local
+  baseline. The full P0 matrix/memory measurements are still unrun; current
+  dirty preflight observations do not replace them. No implicit stash/reset/
+  extra worktree.
 
 ## Integration gate (owner: GPT; Claude reviews)
 
 The cutover plan's eight landing conditions own the complete acceptance set.
 The four rows below are a cross-reference, not a second/narrower gate list.
 In particular pressure, registry, caps, reachability and no-admitted-manual-
-call evidence cannot be omitted. Current work is docs-only, not execution.
+call evidence cannot be omitted. Current work is the authorized importing
+proof/contract preflight, not production execution or this full landing gate.
 
 1. The model and extraction gate, and the fresh corpus, pass on the hashes
    above, or on newer hashes that Claude records here.

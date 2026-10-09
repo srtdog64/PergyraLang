@@ -1,6 +1,6 @@
 # Ownership cutover: four prerequisite closures
 
-Status: `BASELINE FREEZE / CONTRACT PREFLIGHT`. Base HEAD:
+Status: `BASELINE FIXED / BOUNDED PROOF REVIEW; FULL P1 OPEN`. Base HEAD:
 `3658548d24bca3d721e4f1974ac7a10da99f7aa8`, shared main worktree.
 2026-10-09 KST user authorization: resolve the ABI owner, multi-inout
 normalization, Slice lifetime evidence and an approved local checkpoint
@@ -79,3 +79,63 @@ source/proof/test/docs/workflow inputs. `.tmp` and `gmon.out` are excluded.
 These shared changes are recorded as existing WIP, not reviewed feature
 completion. Full compiler-scale P0 memory/native/installed/CI evidence remains
 separate and must record reds or omissions instead of substituting this gate.
+
+## Fixed baseline and production-implementation boundary
+
+Checkpoint `a75da80435e0d051f71cfacf76d44ea825ed87d7` records 456 reviewed input
+paths. The user-confirmed freeze covered commit through baseline execution;
+tracked inputs remained diff 0. Only `gmon.out` remained untracked. Fresh
+post-commit cleanup extraction, full kernel and documentation gates PASS.
+No push or installed artifact replacement. The baseline is reproducible
+source identity, not a green full P0 matrix or a memory go/no-go verdict.
+
+Latest user clarification fixes ABI decisions rather than migrating production consumers at this stage. Doc 27
+§5.10.1–3 owns the coupled output/origin/lease vocabulary and the bundle/error
+ordering. No compiler/runtime source is edited in this preflight. Necessary
+importing proof work remains in scope under exception 2; production consumer
+migration is deferred to the transition. A design decision is not a checked
+theorem or a production lifetime issuer.
+
+## Importing proof edit inventory (fixed before source edits)
+
+The reached core is value semantics with a single recovered call result;
+`OwnershipCleanExits` carries exit-specific live sets over that same machine.
+`OwnershipTeardownAuthority` protects lifetime, not mutable access. Keep these
+owners unchanged and import them, rather than constructing a second heap.
+
+| Edit scope | Producer / last consumer | Acceptance and remaining boundary |
+|---|---|---|
+| `OwnershipCleanCallRecovery.v` | alias/freshness-refusing ordered bundle/call/unpack and one recovery adapter -> importing INV/CORR theorem | Normal/early-return/handled-error recovery includes all inouts plus independent payload; value-level error dispatch follows restoration. Caller-scope membership/private-name, body loop-exit and output shape/tag checks refuse malformed inputs. Complete/current scope issuance, ordinary core callee/caller lowering, language type schema, pointer ABI and source expression/place refinements are reported separately. |
+| `OwnershipCleanViews.v` | current-footprint dynamic ghost oracle -> local scalar view write and guarded backing drop | Scalar write-through preserves footprint, INV and source CORR. The dedicated drop consumer refuses active views; end frees no backing. Lease vocabulary is reused without graph-ID casts. Static final-MIR currentness, linear evidence/snapshot binding, whole-instruction view frame and general payload/glue remain OPEN. |
+| `tests/coq/OwnershipCutoverPreflightAudit.v`, focused smoke | independent success/refusal consumers of the new propositions and functions | Wrong output shape, repeated outputs, escaping loop control, readonly/out-of-range/stale view and active-view retirement falsifiers. Fresh kernel check, no admitted assumptions. |
+| formal inventory/docs/receipt/handoff | actual proof scopes -> navigation and validation registration | No existing SoT status broadened; no proof count as implementation progress. |
+
+GPT owns these edits in the frozen shared worktree. Claude co-review is
+read-only. One integration gate: `tests/ownership_cutover_preflight_smoke.sh`,
+then the full kernel and formal-semantics gates. Compiler/runtime/backend,
+the four existing cleanup cores and teardown authority are outside this edit
+inventory. Revisit the plan if a new dependency would change those owners.
+
+Next dependency order: importing multi-output/continuing-outcome refinement
+and write-through lease/frame refinement together -> admit the joined call
+contract -> type/allocator/glue gates -> production facts and C/LLVM/self-host
+consumer migration. No P2-P7 consumer work before the relevant P1 gate.
+
+## Final scoped integration (observed, 2026-10-09)
+
+Receipt: `../audits/ownership_cutover_preflight_2026-10-09.md`. Local baseline
+remains `a75da804`; 15 importing docs/proof/gate changes are uncommitted and
+`gmon.out` is preserved. No compiler/runtime edit, installation or push.
+Final focused kernel PASS (seven modules, zero assumptions); formal/kernel
+PASS (75 modules plus approval consumer, only the two existing Slot
+abstractions); SoT structural/documentation/shell/diff checks PASS. Final
+75-source hash matches and strict UTF-8 on 15 inputs PASS. Two actual read-only
+Claude CLI reviews ran. The second's Low follow-ups were strengthened by GPT
+and independently rerun, not approved by a third review.
+
+This closes the baseline method and bounded importing slice, not the four
+items' complete production refinement or full P1. Actual callee/caller
+lowering, complete/current scope and static lifetime issuers, whole-instruction
+view frame/effect completeness, source place/expression and physical ABI/glue
+obligations remain as recorded in doc 27 §5.10.4 and the receipt. Do not start
+P2-P7 consumers from a model-only green result.

@@ -20,14 +20,36 @@ require() {
     }
 }
 
-require 'schema = "pgy.build-pressure.v2"'
+require 'schema = "pgy.build-pressure.v3"'
 require 'compile_proc_count'
 require 'link_proc_count'
 require '$isCompiler -and $commandLine'
 require '$phaseStats'
 require 'peak_working_set_mb'
 require 'peak_private_mb'
-require 'ConvertTo-Json -Depth 4'
+require 'ConvertTo-Json -Depth 7'
+require '[string[]]$InputPaths = @()'
+require '[string[]]$ExecutablePaths = @()'
+require 'Get-PressureFileBinding'
+require 'file_bindings = $fileBindings'
+require 'binding_changed = $bindingChanged'
+require 'input_change_scope = "before-after-only"'
+require 'argv = @($Arguments)'
+require 'command_exit_code = $commandExitCode'
+require '"declared-paths-only"'
+require '"unbound"'
+require 'heap_counter_state = "UNMEASURED"'
+require 'heap_peak_live_bytes = $null'
+require 'heap_total_allocated_bytes = $null'
+require '$exitCode = 89'
+require '$exitCode = 90'
+require '[IO.FileMode]::CreateNew'
+require 'pressure output already exists'
+require '$PSBoundParameters.ContainsKey("OutDir")'
+require '$OutDir = Join-Path $OutDir ("run-" + [Guid]::NewGuid().ToString("N"))'
+require 'memory_peak_scope = "observed-samples-only"'
+require 'memory_measurement_state = if ($memorySampleCount -gt 0) { "sampled" } else { "UNOBSERVED" }'
+require 'declared input/tool/executable bytes changed or became unavailable'
 require '$summaryPath'
 require '$stagePath'
 require 'observed_elapsed_ms,stream,stage'
@@ -45,6 +67,14 @@ if grep -Fq '{5:N1},{6:N1}' "$PROBE"; then
 fi
 require 'BuildPressureOutputCapture'
 require 'ReadAsync('
+require 'log.WriteAsync(buffer, 0, count)'
+require 'MaxStageCharacters = 4096'
+require 'output_capture_failure = $captureFailure'
+require 'max_pending_stage_characters = $maxPendingStageCharacters'
+if grep -Fq 'StringBuilder stdoutText' "$PROBE" || grep -Fq 'StringBuilder stderrText' "$PROBE"; then
+    echo "[build-pressure-contract] whole-artifact in-memory capture returned" >&2
+    exit 1
+fi
 require '[driver-pressure-stage]'
 require '[semantic-body-type-stage]'
 require '[semantic-initializer-stage]'
@@ -67,7 +97,8 @@ require 'New-Object System.Diagnostics.ProcessStartInfo'
 require 'EnvironmentVariables["PGY_BUILD_PRESSURE_ACTIVE"] = "1"'
 require 'StartedAt $started'
 require '$rootCreatedAt = [datetime]$byId[$RootPid].CreationDate'
-require '[Math]::Abs(($rootCreatedAt - $StartedAt).TotalSeconds) -gt 5'
+require 'Test-PressureProcessIdentity -ActualCreation $rootCreatedAt -ExpectedCreation $ExpectedRootCreation'
+require '-ExpectedRootCreation $rootProcessCreation'
 require 'reused PID must not adopt an unrelated process tree'
 require 'cc1|cc1plus|lto1|lto-wrapper|collect2|ld'
 require 'pgy|pgy-self-driver|parser_ast_producer|gen[0-9]+'
@@ -77,10 +108,20 @@ require '$trackDetachedCompilerWorkers = -not [bool]$RootProcessTreeOnly'
 require 'if ($IncludeDetachedCompilerWorkers) {'
 require '-IncludeDetachedCompilerWorkers $trackDetachedCompilerWorkers'
 require 'detached_compiler_worker_tracking = $trackDetachedCompilerWorkers'
-require '$ownedProcessIds = @($rows | ForEach-Object { [int]$_.ProcessId })'
-require 'foreach ($id in ($ownedProcessIds | Sort-Object -Descending))'
+require '$ownedRows = @($rows | Where-Object PressureOwned)'
+require 'foreach ($row in $ownedRows)'
+require 'Stop-PressureOwnedProcesses -Rows $ownedRows -RootProcess $process'
+require '-NotePropertyName PressureOwned -NotePropertyValue $false'
+require 'detached_worker_attribution_complete = -not $unattributedProcessSeen'
+require 'process_observation_scope = "validated-root-tree"'
+require 'Test-PressureProcessIdentity -ActualCreation $p.StartTime -ExpectedCreation ([datetime]$row.CreationDate)'
+require 'process_identity_mismatch_seen = $processIdentityMismatchSeen'
+require 'capture_abort_requested = $captureAbortRequested'
+require '$child.Handle'
+require 'pressure child identity changed; refusing PID-based termination'
+require '$RootProcess.Kill()'
 if grep -Fq 'detached_compiler_worker_tracking = $true' "$PROBE" ||
-   grep -Fq 'Stop-Process -Id $toolPid' "$PROBE"; then
+   grep -Fq 'Stop-Process -Id' "$PROBE"; then
     echo "[build-pressure-contract] root-only mode can still report or stop an unowned detached worker" >&2
     exit 1
 fi
@@ -166,3 +207,18 @@ grep -Fq 'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER for a focused Git Bash gate' "$
     || { echo "[build-pressure-contract] focused Git Bash escape hatch is undocumented" >&2; exit 1; }
 
 echo "[build-pressure-contract] native/self-host hard ceiling and full-matrix shell guard wired"
+
+if [[ "${OS:-}" == "Windows_NT" ]]; then
+    source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+    pressure_powershell="$(command -v powershell.exe || command -v powershell)" || {
+        echo "[build-pressure-contract] Windows execution receipt requires PowerShell" >&2
+        exit 1
+    }
+    pressure_selftest="$(pgy_path_for_windows_tool "$ROOT_DIR/tests/build_pressure_execution_receipt_selftest.ps1")"
+    # Codex/PowerShell 7 may export its own module path. Windows PowerShell 5
+    # cannot load those modules; use its built-ins in this child process only.
+    env -u PSModulePath -u PSModuleAnalysisCachePath \
+        "$pressure_powershell" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$pressure_selftest"
+else
+    echo "[build-pressure-contract] Windows execution receipt self-test NOT RUN on this host"
+fi

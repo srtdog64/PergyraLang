@@ -1,6 +1,12 @@
 # 소유권 자동 정리: 한 번에 전환하는 계획
 
-상태: `REVIEW — 모순 정리, 구현 보류`. 작성: 2026-10-08 KST, Claude, 사용자 요청.
+> 2026-10-09 최신 승인: "구현 시작해 클로드가 시작했으니까"와 "전체 작업해"로
+> 아래 과거 범위 보류는 해제됐다. 현재 실행은
+> [실행 지시서](ownership_cutover_execution_2026-10-09.md)를 따른다.
+> P0 입력 동결, P1 의존 장벽, 후보 검증·공식 설치 조건은 그대로다.
+> 아래 기준 revision과 과거 상태 기록은 당시의 증거이며 최신 완료 상태가 아니다.
+
+상태: `REVIEW — 전체 구현 보류 / 선행 preflight 승인`. 작성: 2026-10-08 KST, Claude, 사용자 요청.
 2026-10-09 후속 승인: 네 선행 의무와 로컬 기준선 checkpoint만
 [별도 preflight](ownership_cutover_preflight_2026-10-09.md)에서 착수한다.
 전체 P2–P10 전환·공식 설치·push 보류는 유지한다. 아래 모순 정리 당시의
@@ -8,13 +14,15 @@
 기준: `main @ 3658548d24bca3d721e4f1974ac7a10da99f7aa8`(origin/main `b9a75ba2`보다
 커밋 3개 앞, 미push), 공유 dirty main(조사 시 439개 항목).
 이 문서는 계획이다. 의미는 [27번 문서](../semantics/27_ownership_clean.md)와 증명이,
-판정은 실행 게이트가 가진다. 2026-10-09 KST 사용자의 최신 지시 "우선 모순쪽만
+판정은 실행 게이트가 가진다. 2026-10-09 KST 사용자의 앞선 지시 "우선 모순쪽만
 정리해놔 바로 구현은 마지막 체크한번 더 하고"가 앞선 착수 지시의 실행 범위를
-줄였다. **지금은 문서 모순 정리와 읽기 전용 재검토만 한다.** P0 실행 기준선,
-P1 모델 변경, P2–P10 구현은 마지막 체크 후 별도 착수 확인까지 보류한다.
+줄였고, 후속 승인으로 위 네 항목의 기준선·계약·필수 importing 증명 preflight만
+진행한다. P2–P10의 compiler/runtime/backend 구현은 여전히 보류한다. 전체 P0
+매트릭스·고정 입력 메모리 측정은 아래 로컬 checkpoint와 별개이며 아직 미실행이다.
 옛 수동 own/carrier 수정 사슬은 재개하지 않는다. 완료·설치·원격 CI는 별도
 실행 증거가 있을 때만 기록한다. 정리 진입 시 HEAD는 위와 같고 dirty 442개,
-staged 0개였다. compiler/runtime/proof 변경은 없다.
+staged 0개였다. 모순 정리 당시 compiler/runtime/proof 변경은 없었다. 현재의
+별도 importing 증명은 승인된 preflight 범위이며 production 구현이 아니다.
 
 이 계획은 [구현 지시서](ownership_clean_implementation_2026-10-08.md)의 I1–I8을
 **착지 방식만 바꾼다.** 항목별 수용 조건은 그대로 쓰되, 항목마다 main에 착지하지
@@ -81,8 +89,10 @@ P0에서 exact-input/source manifest로 다시 고정하기 전에는 최신 실
   인자 schema는 최대 2개다. 둘을 ArrayPush/getter/Map 변경까지 이미 덮는
   일반 값 수명 주인이라고 하지 않는다.
 - 컬렉션·String 호출의 lend/consume/reset, 반환 출처, 변경 후조건 **주인은
-  미지정(OPEN)**이다. P1에서 기존 ABI identity를 확장할지 필요한 owner family를
-  선언할지 docs/180·docs/192·SoT registry에 따라 확정한다. 합리적인 새 주인을
+  생산자 미구현(OPEN)**이다. 27 §5.10.1에서 기존 identity 주인을 보존하고
+  ownership-clean이 `OwnershipCleanCallContract`를 join하도록 설계를 정했다.
+  실제 생산자·carrier·소비자 목록을 docs/180·docs/192·SoT registry에 등록하고
+  검증하는 일은 후속 P3/P4다. 합리적인 새 주인을
   금지하는 것이 아니라 근거 없는 두 번째 판정표·기본 borrow 폴백을 금지한다.
   지정·검증 전에는 새 자동 정리 경로에서 해당 호출을 거부한다.
 - 결과의 **저장 분류**(static/region/heap)와 **소유 출처**(fresh owned,
@@ -90,8 +100,9 @@ P0에서 exact-input/source manifest로 다시 고정하기 전에는 최신 실
   주소나 Slice descriptor는 새로운 소유권이 아니다. view에는 backing owner,
   part/place와 유효 세대가 필요하다. 오류 시 결과 미발급과 입력 보존/소비도
   ABI 후조건이다. 빠진 열은 borrow/fresh로 추측하지 않고 거부한다.
-- native String 결과 분류와 P1에서 지정할 collection/String ABI 주인의 연결은
-  P1에서 확정한다. 기존 일반 값 전체 ABI 행이 있다는 전제는 두지 않는다.
+- native String 결과 분류는 27 §5.10.1의 join 입력으로 유지한다. 결과 출처와
+  다중 회수·view·변경 후조건을 같이 정하되 기존 일반 값 전체 ABI 행이 있다는
+  전제는 두지 않는다. 실제 producer/consumer 이전은 후속 전환이다.
   새 독립 판정표를 기본 선택으로 삼지 않는다.
 - 레지스트리의 기존 행/closure 절은 CLOSED이고 옛 bridge 설명은 역사 기록임을
   명시해 상태 중복을 정리했다. 이 편집으로 행 상태를 바꾸거나 새 게이트 통과를
@@ -285,7 +296,8 @@ Claude는 P2–P9 동안 슬라이스마다 계약 대비 리뷰를 하고, 막�
 6. SoT 레지스트리 게이트, 컴포넌트 계약, 책임 상한, likeness, CI 프로필, 게이트
    도달성.
 7. 형식 증명 전체 커널 검사와 모델/추출 집중 gate. 최종 integration에서는
-   모델 파일 변경 여부와 무관하게 실행한다; 이번 문서 전용 검토는 그 실행이 아니다.
+   모델 파일 변경 여부와 무관하게 실행한다; 현재 importing 증명 preflight는
+   전체 착지 게이트 실행을 대신하지 않는다.
 8. P0 기준선 대비 새로 빨개진 게이트 0개와 동일 candidate SHA의 실제 CI PASS.
    1–7의 필수 게이트와 DRV-2는 기존 빨강이어도 예외 불가. 무관한 기존 실패의
    exact-input/code/revision allowlist는 **원인 분류**일 뿐 CI 면제 목록이 아니다.
@@ -361,14 +373,16 @@ WIP를 reset하거나 낡은 native fallback으로 성공을 꾸미지 않는다
 1. **위치:** 기존 사용자 지시대로 같은 main worktree. 기존 dirty 변경을 보존하며
    구현 재개 시 이 전환 파일의 겹치는 쓰기를 동결한다. snapshot/hash가 바뀌면
    재검증한다. 지금의 dirty 진단을 clean-SHA 검증으로 바꾸어 기록하지 않는다.
-2. **보류:** 2026-10-09 최신 지시대로 문서 모순 정리만 실행한다. 읽기 전용
-   마지막 체크 후 착수 확인 전까지 구현은 보류한다. 옛 manual chain은 계속
+2. **보류:** 2026-10-09 후속 지시로 네 선행 항목의 preflight만 실행한다. 그 외
+   전체 compiler/runtime/backend 전환은 보류한다. 옛 manual chain은 계속
    SUPERSEDED다. user의 최종 확인을 구현/배포 완료로 앞당겨 쓰지 않는다.
-3. **기준선:** 게이트 8의 공식 P0 기준선은 모든 gate 입력이 승인 baseline SHA와
-   diff 0인 상태를 확보하기 전까지 **BLOCKED**다. 현재 dirty 트리 결과는 진단
-   기록일 뿐 공식 기준선이 아니다. 승인된 타 레인/사용자 변경의 local checkpoint
-   commit 등 diff 0을 만들 수단과 그 포함 범위를 사용자가 결정한다. stash는
-   별도 허용 없이 쓰지 않는다. 필수 게이트/DRV-2 빨강은 착지 예외가 아니다.
+3. **기준선:** 승인된 로컬 checkpoint `a75da80435e0d051f71cfacf76d44ea825ed87d7`에
+   456개 입력을 고정했고, 모든 다른 편집자 중지 상태에서 commit부터 집중 검증까지
+   추적 diff 0을 확인했다. cleanup 추출·전체 kernel·문서 게이트 PASS.
+   **snapshot 방법/포함 권한은 해결됐지만 전체 P0 매트릭스와 메모리 go/no-go는
+   미실행**이다. 이후 preflight 수정의 dirty 결과를 이 baseline SHA의 결과로
+   기록하지 않는다. stash/reset/새 worktree는 쓰지 않는다. 필수 게이트/DRV-2
+   빨강은 착지 예외가 아니며, 로컬 checkpoint·미push 조상의 공개는 별도 승인이다.
 4. **테스트:** 수동 호출 수가 아니라 검증 성질별로 이전한다. 허용 프로그램에서
    수동 정리를 제거하고, 금지 호출 negative fixture는 manifest로 유지한다.
 5. **상한:** 3 GiB 유지. 실패하면 원인 연산을 찾아 기존 정책 안에서 수정한다.
@@ -381,13 +395,13 @@ commit/push·설치본 교체·GUI 메시지는 각각 해당 권한과 위 검�
 ## 미확인 (착수 전에 확인)
 
 - native와 self-host MIR JSON이 지금 바이트 동일한지
-- 공식 P0 baseline snapshot과 gate-input diff 0 확보 수단/포함 권한(현재 BLOCKED).
-  candidate뿐 아니라 baseline에도 적용; 임의 stash/reset/새 worktree 금지
+- 고정된 `a75da804` baseline의 전체 P0 매트릭스와 고정 입력 메모리 결과
+  (아직 미실행). snapshot/로컬 포함 권한은 해결; 원격 공개 권한은 별개
 - 오늘 트리의 DRV-2 전체 고정점 메모리 최고치
 - 최고치 순간의 live bytes(자동 정리가 줄일 수 있는 최대치). 09-28 측정 summary에는
   입력 경로가 없어서 그 입력도 미확인이다
 - 155줄과 컴파일러 전체 사이의 메모리 증가가 선형인지
-- collection/String argument/result/mutation ABI의 실제 주인과 registry identity
+- 설계된 call join의 실제 collection/String producer·carrier·소비자 등록과 검증
 - Slice의 loan·현재 수명/generation certificate 생산자(현 descriptor에는 세대 없음)
 - retired builtin tombstone/정확한 거부 코드와 negative-fixture manifest
 - 착수 전 격리 prefix/installer route 지원; 미지원 시 사전 사용자 결정
@@ -402,6 +416,13 @@ commit/push·설치본 교체·GUI 메시지는 각각 해당 권한과 위 검�
 
 ## 협업 기록
 
+- 2026-10-09 Claude: P1 증명 잔여 중 두 가지를 닫았다. 에러로 끝나는 피호출자를 core의
+  보통 호출 표로 낮추는 끝에서 끝 회수(`OwnershipCleanCallLowering.v`)와, 쓰기 view를
+  backing 전체 focus로 두는 정적 발급(`OwnershipCleanViewScope.v`)이다. 커널 검사 PASS,
+  가정 0. 근거와 남은 결정은 27 §5.10.5와 협업 문서에 있다. 컴파일러 코드는 바꾸지 않았다.
+- 2026-10-09 GPT, 후속 승인: `a75da804` 로컬 checkpoint의 456개 입력을 동결
+  검증했다. 네 선행 항목의 설계/필수 importing 증명만 진행하며 production
+  C/LLVM 이전은 하지 않는다. 전체 P0·메모리·CI와 전체 전환은 미완료/보류다.
 - 2026-10-09 GPT, 최신 범위: 사용자가 "우선 모순쪽만"으로 범위를 축소했다.
   그 시점까지 문서만 수정했으며 compiler/runtime/proof 변경은 없다. 문서 모순
   정리와 읽기 전용 Claude 재검토까지만 진행하고 구현은 다시 보류한다.

@@ -4894,6 +4894,27 @@ ownership-teardown-redteam-test-smoke:
 
 .PHONY: ownership-teardown-redteam-test-smoke
 
+# Focused fresh-kernel entrypoints. The full corpus already admits these
+# permanent regression consumers; CI does not need another full-corpus loop.
+async-reuse-redteam-test-smoke:
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/async_reuse_redteam_smoke.sh
+
+proof-redteam-lifecycle-authority-test-smoke:
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof_redteam_lifecycle_authority_smoke.sh
+
+proof-redteam-main-test-smoke:
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof_redteam_main_smoke.sh
+
+proof-reuse-identity-test-smoke:
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/proof_reuse_identity_smoke.sh
+
+ownership-cutover-preflight-test-smoke:
+	"$(BASH)" scripts/run_rocq_toolchain.sh bash tests/ownership_cutover_preflight_smoke.sh
+
+.PHONY: async-reuse-redteam-test-smoke proof-redteam-lifecycle-authority-test-smoke \
+        proof-redteam-main-test-smoke proof-reuse-identity-test-smoke \
+        ownership-cutover-preflight-test-smoke
+
 machine-layer-pipeline-test-smoke: $(PGY) machine-layer-manifest-test-smoke self-host-mir-machine-layer-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/machine_layer_pipeline_smoke.sh
 

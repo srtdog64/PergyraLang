@@ -193,6 +193,50 @@ Mechanized artifacts:
   Bounded full-bound unit verification is not the production indexed walker;
   trusted context/state, live recipient binding, physical access/mutation,
   concurrency, finalizers and native compiler synthesis remain OPEN.
+- [proofs/OwnershipCleanCallRecovery.v](proofs/OwnershipCleanCallRecovery.v):
+  imports the same value/exit machine. Proves ordered pack-call-unpack source
+  execution, a checked alias/freshness-refusing normalizer and one operational recovery
+  adapter for normal/early-return/handled-error outcomes. Its body checker
+  refuses unbound loop control; recovery supports borrowed parameters and
+  independent tagged payloads. Arity/tag decoding refuses malformed outputs
+  and value-level handlers observe restored inout bindings. The audit runs a
+  two-inout/result/readonly-argument call to an empty heap and one compiled
+  adapter handles both return/error inputs. Callee/caller decoder lowering,
+  complete/current caller-scope issuance, expression/place evaluation and pointer/tuple erasure remain
+  OPEN; zero abstract payload copies do not prove a zero-allocation ABI.
+- [proofs/OwnershipCleanCallLowering.v](proofs/OwnershipCleanCallLowering.v):
+  lowers an exiting callee body (early return, handled error, local
+  break/continue) to an exit-free statement with a status variable and puts
+  it in the core's ordinary procedure table, so no catch rule is added.
+  Proves the lowering simulates every source run, the adapter returns every
+  inout and the outcome packet on every continuing exit, and the caller
+  restores every inout before any handler runs; target soundness is the
+  core's `elab_sound`. A callee with a local loop and a return/error switch
+  elaborates, and both the return run and the error run of the whole
+  caller free every block. The adapter initializes the value and the listed
+  locals because liveness does not see that status-guarded paths are
+  exclusive. Production direct-jump epilogues, place disjointness beyond
+  variable identity and source expression order remain OPEN.
+- [proofs/OwnershipCleanViewScope.v](proofs/OwnershipCleanViewScope.v): a
+  writable view is the core's whole-backing focus scoped to its last use.
+  The backing is suspended for the scope, so the core already refuses its
+  growth, transfer and release there; the admission refuses naming the
+  backing and any view use other than element read, element write and
+  observation. Proves the backing keeps its length (the `{data, length}`
+  descriptor stays valid) and composes with `elab_sound`; a witness writes
+  through the view, pushes after the scope and frees every block. No ticket
+  ledger, runtime generation or lease vocabulary is used. While a writable
+  view is live the backing cannot be named. Returned/stored views, views
+  passed to calls and several writable views remain OPEN.
+- [proofs/OwnershipCleanViews.v](proofs/OwnershipCleanViews.v): reuses the
+  cleanup heap and teardown lease vocabulary in a dynamic ghost oracle for
+  intended static view evidence. Scalar write-through preserves INV and source
+  CORR and is observed through the same backing. A guarded drop consumer
+  refines TE_Drop; ended tickets never reappear in a linearly followed
+  issuance/end schedule. Evidence end frees no backing. Static final-MIR
+  currentness, single-current-state/snapshot binding, whole-instruction frame,
+  effect-set completeness, owning-payload replacement/glue, graph binding,
+  mutable exclusivity and production descriptor consumers remain OPEN.
 - [proofs/OwnershipCleanExits.v](proofs/OwnershipCleanExits.v): imports the
   canonical machine; adds break, continue, return, throw and try with a
   target live set per exit, and proves that every outcome runs with the

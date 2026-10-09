@@ -12,7 +12,9 @@ for backend in c llvm; do
         >"$work/$backend.build.out" 2>"$work/$backend.build.err" || {
             cat "$work/$backend.build.err" >&2; exit 1;
         }
-    env -u PGY_CAP_GRANT "$work/now-$backend" >"$work/$backend.out"
+    env -u PGY_CAP_GRANT "$work/now-$backend" >"$work/$backend.raw.out"
+    # Native Windows text stdout uses CRLF; keep all non-line-ending bytes.
+    sed 's/\r$//' "$work/$backend.raw.out" >"$work/$backend.out"
     printf 'true\ntrue\n' >"$work/expected"
     cmp "$work/expected" "$work/$backend.out"
 done

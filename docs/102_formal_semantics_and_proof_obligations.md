@@ -144,6 +144,33 @@ no summaries. Member-path identity in MIR, the production call-graph
 fixpoint, deep runtime glue, the physical allocator, panic/abort and
 async/FFI remain implementation obligations (27 §4).
 
+2026-10-09 bounded cutover prerequisites: `OwnershipCleanCallRecovery.v`
+imports the value/exit machine and proves alias-refusing bundle call recovery,
+one operational catch adapter and restore-before-dispatch. `OwnershipCleanViews.v`
+keeps the same owning heap and proves scalar write-through INV/source CORR,
+guarded backing drop and old-ticket refusal in linear schedules. Its currentness
+checker is a dynamic ghost oracle, not the production static issuer. It reuses
+teardown lease vocabulary without fabricating graph handles. The typed consumer is
+`tests/coq/OwnershipCutoverPreflightAudit.v`; focused gate
+`tests/ownership_cutover_preflight_smoke.sh` freshly kernel-checks it.
+Production callee lowering/pointer ABI, complete/current caller-scope issuance,
+source expression/place evaluation,
+static final-MIR lifetime/effect facts, evidence linearity/snapshot binding,
+whole-instruction view frame, general payload glue and native/self-host
+consumers remain OPEN. These supplements are not whole P1 or compiler closure.
+
+2026-10-09 Claude CL6/CL7: `OwnershipCleanCallLowering.v` lowers an exiting
+callee into the core's ordinary procedure table by a status variable and
+proves end-to-end recovery of every inout and the outcome packet for normal,
+early-return and handled-error exits, with target soundness from
+`elab_sound`; it does not depend on a new catch rule. `OwnershipCleanViewScope.v`
+models a writable view as a whole-backing focus scoped to its last use and
+proves the backing keeps its length; growth, transfer and release of the
+suspended backing are refused statically by the core and the admission.
+Both files are kernel-checked with no assumptions. Production direct-jump
+epilogues, place disjointness, expression order, returned/stored views and
+views passed to calls remain OPEN.
+
 2026-10-08 graph links: `OwnershipGraphLinks.v` checks the proposal in
 `docs/audits/ownership_graph_links_design_2026-10-08.md`. A store owns its
 nodes; links are values (store id, slot, generation) that own nothing. Every

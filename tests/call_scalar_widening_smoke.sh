@@ -13,7 +13,9 @@ for backend in c llvm; do
         >"$work/$backend.build.out" 2>"$work/$backend.build.err" || {
             cat "$work/$backend.build.err" >&2; exit 1;
         }
-    "$work/widen-$backend" >"$work/$backend.out"
+    "$work/widen-$backend" >"$work/$backend.raw.out"
+    # Native Windows text stdout uses CRLF; keep all non-line-ending bytes.
+    sed 's/\r$//' "$work/$backend.raw.out" >"$work/$backend.out"
     cmp "$work/expected" "$work/$backend.out"
     for rejected in narrowing incompatible; do
         output="$work/$backend-$rejected"

@@ -1106,8 +1106,9 @@ editing this contract.
    temporary. An error cleans only parts already constructed. Do not rescan
    program roots or let recursive backend expression emission choose these
    facts independently.
-3. **Result origin and view frame.** P1 must name the collection/String ABI
-   owner of result freshness, transfer and argument/part provenance. Existing
+3. **Result origin and view frame.** The target join owner is now named in
+   §5.10.1; P1/P3 must bind the actual producer of result freshness, transfer
+   and argument/part provenance. Existing
    Slot rows and the limited Allocator/TextBuilder join do not supply it.
    Existing Slice/indexed-String facts provide starting backing/place inputs,
    not a proved current-lifetime/generation issuer. Resolve that issuer and
@@ -1148,3 +1149,276 @@ bootstrap, measured 3 GiB pressure or exact-SHA CI evidence. P1 must also
 decide retired-builtin name tombstones and bind each negative fixture's
 exact stable code to the existing diagnostic owner. Deleting operational
 builtin rows does not automatically authorize name reuse or settle that code.
+
+### 5.10.1 Coupled call, recovery and view contract (design fixed; proof OPEN)
+
+Adopted in the 2026-10-09 prerequisite review. These are compiler-internal
+contract decisions, not additional source annotations, an implementation or
+new theorems. Choose the call schema with recovery outputs and view origins,
+not a separate ABI vocabulary that later loses those facts.
+
+**Owner and identity.** The ownership-clean owner produces one admitted call
+contract from resolved call identity, routine summaries, type/glue facts,
+value origins and lifetime dependencies. It joins rather than overrides the
+existing owners: `abi.runtime_call_rows` for admitted runtime operation
+identity/physical selection, `abi.layout_rows` for representation, and the
+semantic value-origin owners for ownership. A source routine is keyed by its
+resolved callable identity; a runtime operation by its existing admitted
+`RuntimeCallAbiId`. Source spelling and target symbol names are not identities.
+The limited Allocator/TextBuilder join is not expanded by assertion into a
+general collection/String owner.
+
+The joined fact is `OwnershipCleanCallContract`, indexed by admitted snapshot,
+routine, typed call site and ordered operand identities. It is produced once
+by the ownership-clean pass and carried to normalization and emitters; those
+consumers do not separately decide ownership from ABI shape. This names the
+target join owner; no production producer exists yet. Before its P3/P4 source
+implementation, declare its owner/carrier and complete consumer inventory in
+the SoT registry. Do not mark an existing ABI row CLOSED for these new columns.
+
+| Contract field | Required meaning |
+|---|---|
+| Inputs | ordered formal/actual identities, types, admitted borrow/sink/inout modes, and rooted places for inout |
+| Recovery outputs | one entry per inout formal, in formal order; exact output index, type, backing responsibility and continuing-exit recovery |
+| Ordinary outcome | normal/early-return value or handled-error payload, separate from all recovery outputs; no ordinary return consumes a recovery output |
+| Output origin | scalar/static, fresh with allocator/glue identity, transfer from an exact argument/part, backing view, or payload view |
+| View dependency | backing owner/definition, place/range, access permission, static focus lifetime and snapshot; resource/graph leases retain their own issuer; absence is not a fresh allocation |
+| Mutation postcondition | payload read/write versus possible backing relocation/reset/retirement/transfer; replaced or discarded payload responsibilities |
+| Evidence binding | one final MIR generation for the call summary, places, outputs, origins, glue and lifetime facts; missing/stale facts refuse |
+
+A synchronous argument-retention row grants only call-duration borrowing;
+it cannot establish a fresh result or a returned view's lifetime. C/LLVM and
+self-host consumer migration belongs to the later transition after P1, not
+this contract-only review.
+
+### 5.10.2 Multi-inout bundle normalization
+
+For disjoint admitted actuals `g(inout a, inout b, ys) -> r`, use the existing
+core operations as the proof representation:
+
+```text
+SPack t [a, b]
+SCallIO g_adapter t ys
+SUnpack t [a, b, outcome]
+decode outcome into the ordinary return/error continuation
+```
+
+The callee adapter receives the inout bundle, executes the original body,
+and uses one recovery epilogue to return every current inout value plus an
+ordinary outcome packet. An internal early return is caught by that epilogue;
+it is a normal function return to the caller, not an early return from the
+caller. A recoverable error is carried with the recovery values. **Unpack
+precedes error propagation/handler selection.** A `throw` escaping `SCallIO`
+before unpack is not covered by the current core or exits layer and is not
+an admitted implementation of this adapter. Terminal panic/abort remains the
+separate boundary in §5.10(4).
+
+Before packing, admission rejects repeated or overlapping places, a root
+together with its descendant, and dynamic overlap without a disjointness
+certificate. Different variable IDs do not prove different backing. Core
+`SPack` already checks `nodupb` for exact repeated variables; it refuses rather
+than silently copying them. The normalizer is the first alias defense before
+the bundle can hide actual identities. Source-place admission is still needed
+before normalization. Borrowed actuals cannot alias the transferred inout footprint.
+The private bundle and outcome names are compiler-issued fresh identities.
+
+Actuals, nested calls and index expressions are evaluated once in admitted
+source order. Failure during actual evaluation cleans only constructed
+temporaries and leaves not-yet-transferred caller responsibilities intact.
+The output schema fixes recovery count/order/types on every continuing exit;
+failure is not permission to omit a field or reconstruct it from an old copy.
+
+P1 proves source normalization's trace/value/ownership preservation and
+recovery-epilogue execution, then reuses the importing cleanup theorems. It
+does not add a second heap or infer that the one-output core theorem already
+proves the source transformation. The production pointer ABI may pass the
+original pointers without a heap tuple. That requires a separate refinement:
+the private-bundle representation is unobservable, exclusivity is retained,
+and no hidden tuple allocation/copy is introduced. `TE_Pack` itself has an
+abstract allocation, so a zero-copy model probe alone is not that cost proof.
+
+### 5.10.3 Write-through views and static focus lifetime
+
+`Slice` remains a non-owning write-through view. It is not the read-only alias
+substitution in `OwnershipCleanReadOnly.v`. Compiler-local writable views use
+the whole-backing focus discipline checked in `OwnershipCleanViewScope.v`:
+the backing is suspended until the view's last use and its exact storage is
+restored afterwards. No extra cleanup ledger or public Slot per Array is
+needed. Resource/graph boundaries retain their authorized BorrowLease/PinLease
+issuer from `OwnershipTeardownAuthority.v`; those leases are not the static
+compiler-view issuer. An AST ID or MIR snapshot number must not be cast into
+a live graph handle or release authority.
+
+The compiler fact contains the owner definition, rooted backing place/range,
+view identity and permitted access, under the final MIR snapshot. Its issuer
+derives those facts from the admitted Slice construction and checked owner
+liveness. The backing's live set includes every transitively derived view,
+view alias and admitted returned-view dependency. A static view scope ends only when no
+reachable view use remains on that path, including loop/branch/call edges.
+Unknown origin or absent lifetime evidence blocks automatic elaboration.
+Current native lexical Slice facts are starting inputs, not this final issuer.
+
+While a writable view's backing focus is active:
+
+- in-range element reads and permitted write-through updates through the view
+  can be admitted; naming the suspended backing itself is refused by CL7;
+- backing growth/reallocation/reset/drop or a consuming/inout transfer that
+  can perform those actions is refused;
+- a payload replacement must also respect any live borrowed payload, allocator
+  and copy/drop-glue obligations; protecting Array storage alone does not
+  protect a borrowed old String element;
+- view writes, range/exclusivity and worker/resource boundaries have explicit
+  checks in addition to lifetime. Lifetime protection alone does not grant writes;
+- view end releases no backing; a silent independent copy cannot cure a loan
+  conflict or change write-through semantics.
+
+Keep the runtime descriptor `{data, length}`. The default adds no runtime
+generation or layout field. A changed view ABI requires a separate decision.
+P1 must prove issuance/currentness, the source-to-core view frame and guarded
+structural operations. Production liveness integration and C/LLVM consumers
+remain later implementation obligations, not CLOSED by this section.
+
+### 5.10.4 Bounded importing evidence (2026-10-09)
+
+`OwnershipCleanCallRecovery.v` imports the existing value and exit machines.
+`normalize_multi_call` refuses repeated output identities, inout/ordinary-
+argument aliasing and private-name collisions **before** packing. Its caller-
+scope input must contain every already-issued binding; it checks operand
+membership and rejects a bundle/packet name present anywhere in that scope,
+not just among call operands. Completeness and final-snapshot binding of this
+input remain obligations of the production typed-scope owner. Without
+that check, a fresh bundle name would hide the original inout/readonly alias
+from the core's check and cause a silent preservation copy. The admitted
+pack lemma, direct first-pack elaboration copy bound and independent alias/
+existing-local collision falsifiers prevent that path in the importing scope.
+The copy bound uses the admitted `bundle :: args` live set; it is not a
+whole-callee copy bound or a production allocation/cost theorem.
+`multi_call_pack_call_unpack` proves ordered source execution once the actual
+normal-only adapter body runs and satisfies its result-shape premises.
+
+`RecoveryAdapter` and `recovery_exec` define one operational catch boundary
+over the existing target heap, not ordinary exit-skipping `XTSeq`.
+`compile_recovery_adapter` compiles its normal/error epilogues together and
+rejects unbound break/continue in the actual body. The soundness theorem
+`one_compiled_adapter_recovers_all_continuing_outcomes` preserves INV/CORR and
+packages every recovery output and independent outcome payload. Borrowed
+parameters are retained under the existing frame discipline; outputs/private
+names cannot be borrowed. The lower-level `post_exit_packages_every_output`
+is only a post-exit packaging lemma, not the adapter's execution rule.
+
+`decode_recovery_value` checks output arity, packet shape and success/error
+tag. `dispatch_recovery` restores ordered inout bindings before a value-level
+handler observes them. Wrong shape/tag/repeated outputs return `None` rather
+than relying on stuck unpack. General language type-schema checking and the
+lowering of this decoder/dispatch into caller code remain OPEN. The audit
+executes a two-inout/result core call with a readonly argument without leaks,
+and one compiled branch adapter handles both return and error inputs.
+
+These are real importing propositions, but their bridge is still OPEN:
+lowering the catch adapter into `SProcTable`/normal `SCallIO` and caller
+decoder/handler code, actual source expression/index ordering and physical
+place disjointness, and erasing the
+abstract bundle without a hidden physical tuple allocation. No existing
+callee-summary premise is asserted true merely by writing this supplement.
+
+`OwnershipCleanViews.v` is a **dynamic ghost oracle for the intended static
+view evidence**, not a proved static liveness issuer. Its checks read the
+model's current environment/heap and non-reused abstract block IDs. Scalar
+write-through uses the **same** owned heap. A successful write preserves
+the core INV/footprint, updates the source backing and preserves CORR, and
+reads back through that backing. A concrete guarded
+backing drop refuses active views and refines the existing `TE_Drop` after
+admission. View end changes
+only evidence; ended tickets never reappear through a linearly followed
+issuance/end schedule. This does not permit replaying an older evidence-state
+copy. The actual single-current-state/snapshot issuer is still OPEN.
+An active view blocks structural operations whose admitted effect
+fact lists its owner. The theorem does not prove that a production effect
+set lists every affected owner; that set's actual owner must still admit it.
+General owning-payload replacement/drop glue, full final-MIR static liveness,
+linear evidence/snapshot binding, mutable exclusivity and graph/backing
+binding remain OPEN. Except for the dedicated guarded drop consumer, the
+base `texec`/`elab` operations still know no views: protecting every move,
+pack, call, focus, unpack, growth and cleanup settle needs the later whole-
+instruction frame/refinement. A move out and back is not made safe by a
+subsequent footprint-equality check. Scalar-only
+updates do not establish the String-replacement rule by analogy.
+
+This evidence narrows the P1 obligations; it does not close P1, widen a SoT
+row, implement a compiler issuer or replace the eight full-cutover gates.
+
+### 5.10.5 Exit lowering and view scope evidence (Claude, 2026-10-09)
+
+Two importing supplements, kernel-checked with no assumptions:
+`OwnershipCleanCallLowering.v` and `OwnershipCleanViewScope.v`. They close
+two proof gaps that §5.10.4 left open. Neither is an implementation.
+
+**Exiting callee in the ordinary call table.** `lower` turns an `XStmt`
+callee body into an exit-free `SStmt`. A status variable records normal,
+break, continue, return or error, and every later statement is guarded by
+it. A loop consumes its own break and continue. The adapter unpacks the
+inout bundle, runs the lowered body and repacks every inout formal with the
+packet `[tag; value]`. It is an ordinary `SProcTable` entry, so the caller's
+`SPack`→`SCallIO`→`SUnpack` runs through the core's own call rule and its
+target soundness is `elab_sound`. No catch rule is needed on this path.
+`recovery_exec` remains an alternative model, not a premise.
+
+- `lower_sim`: every source run of the body is simulated by its lowering,
+  with the same trace and final values outside the issued names, and the
+  outcome is recorded as a status code.
+- `adapter_exec` and `lowered_multi_call_recovers`: on every continuing exit
+  the caller gets back every inout and the packet before any handler runs.
+  `lowered_multi_call_sound` gives the same in the ownership machine.
+- The witness callee has a local loop that breaks and a return/error
+  switch. It elaborates, and the whole caller frees every block on both the
+  return run and the error run.
+
+Two consequences need a decision before P7.
+
+1. Liveness does not see that status-guarded paths exclude each other. The
+   adapter therefore initializes the ordinary value and every listed body
+   local to a unit leaf, and every lowered loop head keeps the outputs and
+   locals. If a local is missing, elaboration refuses the adapter; it is
+   not unsound. The same effect lengthens lifetimes. A production epilogue
+   that jumps straight to the repack, in the style of `xelab`, keeps
+   lifetimes exact, but that refinement is not proved here. Under the 3 GiB
+   cap, prefer the direct jump and treat the flag form as the proof route.
+2. The body must define the ordinary value on every continuing exit. A
+   routine with no result defines unit.
+
+**Writable view as a whole-backing focus.** A writable view `v` over a
+backing `y` is `SFocus v y [] body`, scoped from the view's creation to its
+last use. During the scope the backing is suspended. Source semantics hands
+its value to `v`. The target rule moves `y`'s exact blocks to `v` and
+removes `y` from the owned environment. Elaboration refuses any live use of
+`y` inside the body. At the end the view's value moves back into `y` with no
+copy.
+
+- `view_admitted` refuses any mention of `y` in the scope. It also refuses
+  any use of `v` other than element read, element write through a one-index
+  focus, and observation. The view cannot grow, be copied, escape, be
+  passed to a call or be unpacked.
+- `view_scope_keeps_backing_shape`: after the scope the backing has the
+  same length, so a `{data, length}` descriptor taken at the start stays
+  valid for the whole scope. `view_scope_sound` composes this with
+  `elab_sound`.
+- An element write redefines the focused element, so the core's settle
+  releases the old element. This is the payload-replacement rule for this
+  path.
+- The witness writes through the view, pushes onto the backing after the
+  scope, and frees every block. The core alone refuses growth, copy-out and
+  growth between two view uses inside the scope.
+
+This is the static issuer for compiler-local writable views that §5.10.3
+asks for. It uses no ticket ledger, runtime generation field or lease
+vocabulary. Resource and graph boundaries keep their own lease issuer. The
+developer-visible cost: while a writable view is live, the backing itself
+cannot be named in the scope, either for reads or for writes. Whether
+today's sources read a backing while a writable Slice is live is UNKNOWN
+and should be counted before P7.
+
+Still OPEN: production direct-jump epilogue refinement; place disjointness
+beyond variable identity; source expression order above `SStmt`; views
+returned from or stored by a routine; views passed to calls; several
+writable views of one backing; sub-range index bounds; and production
+descriptor and pointer refinement.
