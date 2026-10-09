@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-10-08
+Last updated: 2026-10-09
 
 Anti-hype update: 2026-04-29
 
@@ -78,6 +78,7 @@ not own status, decisions, or completion claims.
 | Document | Purpose |
 |---|---|
 | [`207_compiler_owned_cleanup_algorithm.md`](207_compiler_owned_cleanup_algorithm.md) | Compiler-owned ownership cleanup: decision procedure, branch/loop/call diagrams, checked formal scope, implementation gaps, and recent-research review; explanatory companion, not a new semantic owner |
+| [`208_layered_complexity_minimization.md`](208_layered_complexity_minimization.md) | Layered responsibility placement: programmer versus machine complexity, language/ABI/OS boundaries, bounded current-source assessment, and falsifiable cost criteria; design principle, not a proved optimum or new semantic owner |
 
 ## Core Semantics
 
