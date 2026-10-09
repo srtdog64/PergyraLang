@@ -1,0 +1,13 @@
+// A Slice in a distinct routine cannot borrow Main's same-spelled array.
+func ObserveOtherRoutine() -> Void {
+    let values: Array<Int> = [4, 5];
+    let view: Slice<Int> = values.Slice(0, 1);
+    Log(view[0]);
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    ArrayPush(values, 2);
+    ObserveOtherRoutine();
+    Log(ArrayLength(values));
+}

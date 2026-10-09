@@ -1,0 +1,10 @@
+// A completed lexical view scope does not block a later storage mutation.
+func Main() -> Void {
+    let values: Array<Int> = [1, 2];
+    if true {
+        let view: Slice<Int> = values.Slice(0, 1);
+        Log(view[0]);
+    }
+    ArrayPush(values, 3);
+    Log(ArrayLength(values));
+}

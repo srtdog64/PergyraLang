@@ -1,0 +1,7 @@
+// Pop changes the backing length while the view is still in scope.
+func Main() -> Void {
+    let values: Array<Int> = [1, 2];
+    let view: Slice<Int> = values.Slice(0, 2);
+    ArrayPop(values);
+    Log(view[1]);
+}

@@ -6,23 +6,59 @@ SoT registry, admitted contracts, and executable gates override this note.
 ## Active self-host context — ownership-cutover P1 (GPT, 2026-10-09)
 
 Immediate task: the user authorized commit, push and exact-SHA CI repair.
-Working branch is now `main`, local HEAD
-`aa7f0d65f88ff319253e45d3d8a51d0129eaf873`, with pending enum-owner,
-proof-publication, gate and documentation changes. At the branch conversion,
+Working branch is now `main`. Remote main is verified at
+`f8173daa0ac607cdf604d1452c43a81e06b983ba`; local doc checkpoint `c953974f`
+preserves another lane's reviewed doc 208/index. The pending repair checkpoint
+must be resolved with Git after commit/push; do not substitute this parent SHA.
+The enum-owner projection and proof-publication changes are committed/pushed.
+Pending changes repair the proof receipt's Git execution context and the
+measured array-storage mutation census obstruction, with focused gates and
+navigation notes. Another lane's doc 208/index changes were observed and
+preserved. `gmon.out` is preserved
+and excluded; AGENTS.md has no diff or added branch-use rule. At the branch conversion,
 remote `main` was `b9a75ba2f1ec0eafbf8ddd2eb1ae3fc075294edf`, an ancestor,
 and local main was eight commits ahead. The user requested this workflow;
 the former candidate was renamed locally and remotely to `backup` at
 `aa7f0d65`. The old remote name was removed only after verifying the backup
 SHA and with an exact-old-SHA lease. All 20 then-modified/untracked file
 hashes, including `gmon.out`, were unchanged by the branch conversion.
-No source reset, history rewrite, main push or worktree was involved.
+No source reset, history rewrite or worktree was involved in that conversion.
 
 Full run `37872111584` at `aa7f0d65` completed RED: Windows, macOS, TSan and
 codegen bootstrap passed; proof checks reached a stale artifact-upload path;
 DRV-2 still refused `aggregate_release_plan_unproved`, syntax 214840.
-Dependent jobs were skipped. The upload-path/hidden-file correction is a
-locally gated candidate, not a successful remote publication. Complete
+Dependent jobs were skipped. The later `f8173daa` run `37875813974` passes
+Windows, macOS, TSan and codegen bootstrap; its exact native/codegen seed
+artifacts were downloaded without replacing official bins. Teardown
+publication now succeeds. The proof job `113644095458` passes kernel and
+extraction controls but cost receipt export fails at Git's mounted-checkout
+ownership check; the cost upload is skipped. This run completed RED: DRV-2
+job `113649446103` still refuses `aggregate_release_plan_unproved`, syntax
+214852, after about 392.79 s; dependent jobs are skipped. The step-scoped checkout-only Git context
+passes forced-owner controls and the unchanged five-module cleanup/cost gate
+through the actual opam runner: 30 cases, HEAD `f8173daa`, bound-source dirty
+entries zero. It is a locally validated CI-context repair, not successful
+remote cost publication. Complete
 aggregate-demand census and current-source DRV-2 remain OPEN.
+
+Measured census preparation: array-storage mutation copied every program
+local's type before testing routine/use identity. Under the unchanged 3 GiB
+address-space cap, a scoped counter sees 26,868,025 concats / 712,945,336
+cumulative usable bytes before allocation refusal at check 919. The candidate
+filters only unrelated/future declarations before copying; all Slice/scope/
+backing checks stay. C/LLVM wrapper/source controls, aggregate 6-positive/
+16-falsifier/generation controls and static gates pass. A diagnostic replay
+on the SAME fixed pretty AST completes body/verdict processing within the
+cap (279.67 s, RSS 2,985,152 KiB, unchanged hashes; 3,877 checks / 88,468
+concats / 2,264,960 cumulative usable bytes), but refuses the internal builtin
+at syntax 64082. The pretty-AST route lacks the production source admission
+context: it is NOT a complete release census or source-CI parity. The next
+census uses the actual source entrypoint and the exact downloaded f817 gen2,
+with only scratch diagnostics and the verified candidate ordering applied.
+Its source controls preserve three successful owned-table lineage demands and
+six repeated-release demands followed by the original uniqueness refusal.
+The complete source run is in progress; input endpoint hashes own stability.
+Original semantic refusal remains; do not bypass provenance or enlarge caps.
 The bounded repair/validation map is
 `agent_work_directives/ownership_cutover_ci_repair_2026-10-09.md`.
 Compiler meaning and P1 activation are unchanged. The installer/portable
@@ -48,8 +84,8 @@ was renamed to `backup`; `main` is now the working branch. No worktree was made.
 Its checkpoint contains the subsequent production resource-flow repair,
 importing direct-control model/gates and documentation. Resolve its exact
 HEAD with Git on resume and inspect its diff from the frozen parent;
-`gmon.out` remains excluded. Candidate checkpointing is not main landing or
-P1/full-cutover completion.
+`gmon.out` remains excluded. A main checkpoint/push is not official installation
+or P1/full-cutover completion.
 
 Validated implementation checkpoint:
 `5ca69b4fffcc56f1e4103e914b8c041efb1aa027`. Tracked/index diff stayed zero
@@ -129,8 +165,8 @@ Receipts: `audits/ownership_clean_production_repair_2026-10-09.md`,
 `audits/ownership_slice_dx_census_2026-10-09.md`. Logs:
 `.tmp/ownership-cutover-2026-10-09/p0-5651c916-7aeb6d7b3bc44252ba1e80bf2027449b/`.
 Official bin hashes remain `f6559da9...cbc1c9` and `707dcd40...78ec7`.
-Candidate push is authorized and observed; main landing, official installation
-and GUI readiness are not claimed. Do not resume an archived
+The main checkpoint/push is authorized and observed; P1 activation, official
+installation and GUI readiness are not claimed. Do not resume an archived
 checkpoint or increase the cap to conceal missing production facts.
 
 ## Historical archive — lookup only

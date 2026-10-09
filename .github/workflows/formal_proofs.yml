@@ -45,7 +45,16 @@ jobs:
           include-hidden-files: true
           retention-days: 7
       - name: Execute freshly extracted checkers and ownership cost cases
+        env:
+          # The mounted checkout is authenticated by checkout; no other repo
+          # is trusted by this step, independent of opam's HOME/config context.
+          GIT_CONFIG_COUNT: '2'
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: ''
+          GIT_CONFIG_KEY_1: safe.directory
+          GIT_CONFIG_VALUE_1: ${{ github.workspace }}
         run: |
+          bash scripts/run_rocq_toolchain.sh bash tests/rocq_cost_receipt_git_context_smoke.sh
           if ! command -v python3 >/dev/null 2>&1; then
             apt-get update
             apt-get install -y --no-install-recommends python3

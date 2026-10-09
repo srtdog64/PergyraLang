@@ -84,15 +84,20 @@ func SemanticExpressionGraphArrayStorageMutationFact(
     }
     let row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
+        // Admission already owns row shape; unrelated declarations cannot
+        // borrow this receiver, so exclude them before copying type storage.
+        if locals.function_node_ids[row] != function_node_id ||
+            locals.node_ids[row] >= use_node_id {
+            row = row + 1;
+            continue;
+        }
         let local_type: String = "";
         if locals.has_declared_types[row] != 0 {
             local_type = Concat("", locals.declared_type_names[row]);
         } else {
             local_type = Concat("", inferred_types[row]);
         }
-        if locals.function_node_ids[row] == function_node_id &&
-            locals.node_ids[row] < use_node_id &&
-            IsSome(SemanticSliceElementType(local_type)) &&
+        if IsSome(SemanticSliceElementType(local_type)) &&
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[row], use_node_id) {
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(

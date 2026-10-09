@@ -568,6 +568,12 @@ bash scripts/run_rocq_toolchain.sh bash tests/rocq_toolchain_selftest.sh
 bash scripts/run_rocq_toolchain.sh bash tests/coq_kernel_check_selftest.sh
 path: .tmp/ownership-teardown-authority-2026-10-08/
 path: .tmp/ownership-cleanup/model-cost.json
+bash scripts/run_rocq_toolchain.sh bash tests/rocq_cost_receipt_git_context_smoke.sh
+GIT_CONFIG_COUNT: '2'
+GIT_CONFIG_KEY_0: safe.directory
+GIT_CONFIG_VALUE_0: ''
+GIT_CONFIG_KEY_1: safe.directory
+GIT_CONFIG_VALUE_1: ${{ github.workspace }}
 EOF
 forbid_text ".github/workflows/formal_proofs.yml" \
     'path: .tmp/ownership-teardown-root-epoch-2026-10-08/'

@@ -4645,6 +4645,12 @@ parallel-capture-reach-test-smoke: $(PGY)
 evidence-lifetime-test-smoke:
 	"$(BASH)" tests/evidence_lifetime_smoke.sh
 
+.PHONY: rocq-cost-git-context-test-smoke
+rocq-cost-git-context-test-smoke:
+	GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0= \
+		GIT_CONFIG_KEY_1=safe.directory GIT_CONFIG_VALUE_1="$(CURDIR)" \
+		"$(BASH)" tests/rocq_cost_receipt_git_context_smoke.sh
+
 ability-coherence-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ability_coherence_smoke.sh
 

@@ -4,8 +4,8 @@ Status: `ACTIVE / CANDIDATE PUSHED; CI NOT GREEN`.
 Original candidate base: `13fdf36b8fb914a282ce0f6c38b9d9bb57d119fa`.
 The user explicitly authorized commit, push and CI repair, then requested
 `main` as the working branch and the former candidate renamed to `backup`.
-Local main and local/remote backup now point at `aa7f0d65`; remote main was
-the ancestor `b9a75ba2` when converted. Every then-dirty file byte was
+Main is pushed at `f8173daa`; local/remote backup preserve `aa7f0d65`.
+Remote main was the ancestor `b9a75ba2` when converted. Every then-dirty file byte was
 preserved. This branch convention does not activate incomplete automatic
 cleanup, install the candidate officially or imply P10/CI acceptance.
 Other-lane documentation updates were observed and preserved; bind current
@@ -248,3 +248,112 @@ Documentation quality, evidence-lifetime correspondence including its RED
 self-test, and native-source UTF-8 checks pass on the current tree. Full P1,
 production automatic cleanup, complete driver/installed pair and remote CI
 are still OPEN.
+
+## Fifth observed failure: container Git metadata for model receipts
+
+Main `f8173daa0ac607cdf604d1452c43a81e06b983ba`, full run `37875813974`,
+proof job `113644095458`: the bounded teardown artifact uploads successfully.
+Fresh adequacy and ownership extraction/control checks pass. Receipt export
+then fails with Git's `detected dubious ownership` at the mounted checkout;
+it never publishes a model-cost receipt. No theorem or performance superiority
+claim follows from this infrastructure failure or the passed controls.
+
+Objective/owner chain: authenticated Actions checkout -> this container
+step's exact Git trust context -> unchanged receipt generator's bound-source
+status and HEAD queries -> existing model-cost JSON and narrow artifact upload.
+The workflow owns the approved checkout context; the generator must continue
+to fail on unavailable status/HEAD, changed sources or incomplete measurements.
+Required change: clear inherited safe-directory allowances for this step and
+allow only `github.workspace` through process-scoped protected Git config.
+Do not write a persistent/global wildcard, guess clean status, catch the Git
+failure or alter proof/extraction/benchmark inputs. A focused executable gate
+must force the ownership check: the approved checkout succeeds, an unrelated
+fresh repository is refused, and an explicitly approved fixture succeeds.
+Register that gate in the existing Make/CI owners and ratchet the workflow
+binding in beta-readiness. Local context controls do not substitute for the
+new exact-SHA remote cost receipt and both successful uploads.
+
+Observed local controls: the new gate passes through the same project-owned
+opam runner under `GIT_TEST_ASSUME_DIFFERENT_OWNER=1`. The unchanged cleanup
+gate then kernel-checks five modules with zero assumptions, executes its
+decision/refusal/composition/read-only/place/exit controls and exports all
+30 fixed cost cases. Receipt HEAD is `f8173daa`, bound-source dirty entries
+zero. This validates process-context propagation and the actual receipt
+exporter locally; it is not the new workflow's remote upload or production
+memory-management performance. Beta-readiness and shell syntax pass.
+
+## Second measured census obstruction: array-storage mutation
+
+Before any production edit, a separate scoped counter on the same preserved
+full AST and diagnostic seed replay confirms an allocator refusal during
+statement analysis. Bindings compare equal; address-space cap remains
+3 GiB. At 165.11 seconds, row 19069/node 67698, a four-byte malloc fails in
+`SemanticExpressionGraphArrayStorageMutationFact`. Its 919 reached mutation
+checks have made 26,868,025 concatenations and accumulated 712,945,336
+allocator-usable bytes. These are cumulative scoped allocation observations,
+not peak/live heap, Windows private memory or a successful semantic census.
+Evidence: `storage-mutation-profile.*` under the existing log root.
+
+Objective: unblock the same full aggregate-demand census, not create a
+performance track. Owner chain: artifact-bound local/initializer admission ->
+same-generation local function/node/type columns -> the existing collection
+mutation owner -> statement `ArrayPush`/`ArrayPop` and release `ArrayDrop`
+consumers -> body verdict -> codegen/DRV-2. Last legitimate consumer is that
+mutation verdict; no facts or independently owned relevant type copies change.
+The public statement path admits local/initializer projections; production
+body assembly admits analysis and builds its initializers before both routes.
+An irrelevant row's allocated type copy is not an admission check.
+
+Required change set: before type copying, exclude only other functions and
+declarations at/after this use. Retain every relevant declared/inferred copy,
+Slice type test, lexical scope check, exact call identity, backing storage
+identity and diagnostic. Both reached consumers already use this one owner;
+no second owner, index/cache, missing-fact fallback, mode annotation or
+copy/drop workaround is added. Do not loosen the existing live-Slice rule or
+implement a last-use lifetime contract here.
+
+Acceptance: extend the existing executable value-wrapper/read-only source
+observer gate, reusing its one import-composed analyzer per C/LLVM backend.
+Same-backing live growth, pop and release must refuse with the exact Slice
+diagnostic; different function, future declaration, completed lexical scope
+and sibling backing must remain admissible. Keep all existing descriptor,
+alias and aggregate-release controls. Ratchet the old unconditional-copy
+ordering, then run the same full AST/cap with identified source/executable
+bindings and original final release admission. Full current-source DRV-2,
+installed-pair and exact-SHA CI remain separate acceptance obligations.
+
+Observed candidate: the expanded value-wrapper gate passes both C and LLVM
+on the rebuilt task-owned native compiler: eight source positives and fifteen
+refusals per backend, plus existing executable wrapper/recursive values.
+The aggregate source gate still passes all six positives, sixteen falsifiers
+and generation guards. These source cases are parsed/analyzed, not emitted
+target programs. Beta-readiness, documentation, evidence lifetime/RED self-test,
+shell syntax and gate reachability pass; no validation allowance changed.
+
+The same fixed pretty-AST diagnostic now completes statement/verdict analysis
+within the cap: 279.67 s, max RSS 2,985,152 KiB, bindings unchanged. Across all
+3,877 storage-mutation checks it records 88,468 concats / 2,264,960 cumulative
+usable bytes. The old partial run stopped at check 919; do not report these
+unequal reached counts as a full-run speedup. It then refuses
+`compiler_internal_builtin`, syntax 64082, rather than reaching the release
+census. This pretty-AST route is not the production source/provenance route;
+it is useful for the fixed allocation comparison but not semantic evidence
+for the CI aggregate failure. Do not bypass the internal-builtin guard or
+invent missing declaration provenance. The next diagnostic derives directly
+from the downloaded `f8173daa` gen2 and uses the actual source entrypoint,
+with endpoint hashes over all self-host source files and original admission.
+
+That fresh-seed diagnostic passes independent controls through the SOURCE
+entrypoint: three owned-table lineage demands pass; six repeated-release
+lineage demands finish, followed by the original uniqueness refusal. The
+complete current-source run is in progress. The diagnostic GCC build emits
+existing generated const-qualifier warnings; this scratch build is neither
+a receipt-admitted rebuilt seed nor an installed compiler. It does not change
+the admitted source guards, final release/uniqueness verdict or validation cap.
+
+Full remote run `37875813974` completed RED. DRV-2 job `113649446103` refuses
+the actual source graph at syntax 214852 / `aggregate_release_plan_unproved`
+after about 392.79 s. Dependent jobs are skipped. Windows, macOS, TSan and
+codegen fixed point pass; stable proof controls pass but cost publication
+is red as described above. Neither bounded allocation repair closes that
+release contract or activates automatic cleanup.
