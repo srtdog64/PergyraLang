@@ -65,6 +65,16 @@ immutability, heap-live/cumulative counters or whole-compiler substitution.
 The last parsed-source regression and later proof/docs edits were added
 after this receipt; do not bind it to a future commit's complete input set.
 
+A fresh run subsequently fixed **all tracked input bytes** at local candidate
+checkpoint `5ca69b4fffcc56f1e4103e914b8c041efb1aa027`. Tracked/index diff
+remained zero through completion: exit 0, 88889 ms, sampled private
+1319.8 MiB (1.289 GiB), unchanged 3072 MiB cap, complete capture, no endpoint
+binding changes. The full MIR is again byte-identical with SHA-256
+`52290d05634c1a95e81d10c3804f7745cd6d05f3fb6b18edbe7252a92985b402`.
+Receipt: `checkpoint-memory/checkpoint-full-driver-mir.summary.json`.
+This later audit/handoff edit records that exact run, not a new measured
+input snapshot or full P0 result. Heap counters remain UNMEASURED.
+
 Observed unit gates: HIR 26, DIR 15, RIR 26, AIR 147, MIR 217, all pass.
 DIR/RIR resource identity and loop-flow summaries pass. Native-only ArrayDrop:
 18 positives per C/LLVM lane, 32 negatives per lane and two native declaration

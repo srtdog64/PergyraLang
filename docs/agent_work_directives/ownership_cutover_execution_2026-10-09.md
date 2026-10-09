@@ -6,6 +6,10 @@ subsequent production resource-flow, direct-control and documentation edits.
 The same-folder local candidate is now
 `codex/ownership-clean-cutover-2026-10-09`. No additional worktree or writer
 was introduced. This checkpoint is not the P10 main landing or publication.
+Implementation checkpoint `5ca69b4fffcc56f1e4103e914b8c041efb1aa027` was frozen
+through a fresh full-driver run: exit 0, private 1.289 GiB, unchanged cap and
+MIR hash, no declared endpoint drift. Later navigation edits record that
+receipt; P1/whole cutover, installed pair and remote CI remain OPEN.
 The original preparation base was `a75da80435e0d051f71cfacf76d44ea825ed87d7`;
 its older dirty-input observations below are historical. Excluded untracked
 `gmon.out` is preserved. Full P0/installed/fixed-point/remote CI are not green.
@@ -93,13 +97,14 @@ replacement/deletion inventory remains in the cutover plan, not this receipt.
 
 ## Independent edit scopes
 
-- Claude: end-to-end multi-inout recovery through the actual core call rule;
-  concrete view grow/move guards and static last-use issuance; normative
-  doc 27 and proof cores. GPT does not edit these while that work runs.
+- Claude's CL6/CL7 definitions are completed importing owners, not an active
+  parallel edit lane. The user confirmed every other writer stopped. Preserve
+  those definitions and consume them through the independent focused audit.
 - GPT: the measurement owner, its structural/executable gate, the five
   focused Make execution roots and their reachability check, this directive,
-  GPT's current handoff card and subsequent implementation after its
-  prerequisites pass. No production compiler/runtime edit before P0 is fixed.
+  GPT's current handoff card, the demonstrated production obstruction repair,
+  direct-control refinement and subsequent implementation after its dependency
+  gates pass. The checkpoint/reached baseline precedes production changes.
 - Do not spawn another implementation lane or overwrite the official binaries.
   If a new overlap appears, stop only that edit and resolve its owner.
 
@@ -117,9 +122,10 @@ replacement/deletion inventory remains in the cutover plan, not this receipt.
 
 ## Remaining boundaries
 
-The full P0 matrix and live/cumulative heap measurement remain unrun. The
-new receipt does not implement allocation counters. The renewed all-writer
-stop is confirmed; the second checkpoint and baseline execution are next.
+The reached frozen baseline and actual production-obstruction repair are
+recorded below. The COMPLETE P0 installed/fixed-point/sanitizer/platform matrix
+and heap-live/cumulative counters remain incomplete, not PASS. The receipt
+does not implement allocation counters. The all-writer stop remains confirmed.
 CL6/CL7 passed GPT's independent focused consumer
 (nine kernel-checked modules, no assumptions) and the full formal integration
 (77 modules plus the approval binding consumer; only the two existing
@@ -131,6 +137,46 @@ installation and GUI readiness retain the cutover plan's separate gates.
 
 Outputs here are implementation candidates and observed gate receipts, not
 an automatic-memory-management implementation or a CLOSED SoT row.
+
+### Next producer/consumer chain (verified current source)
+
+The actual next falsifiers are field inout, readonly ordinary temporary and
+backing growth AFTER the last writable Slice use. Growth BEFORE the last use,
+root/descendant overlap and duplicate actuals must stay rejected. The no-manual-
+release emitted-C probe also leaks 8 bytes; its explicit historical cleanup
+control is clean. Do not report that reference as the final language contract.
+
+The production entrypoint is still `driver_run_pipeline`. Reached admission:
+`type_checker_helpers_late.c` forbids non-identifier inout and compares only
+identifier spellings; `type_checker_ownership_call.c` requires named ref/own
+boundary sources; Slice facts in `type_checker_ownership_let_slice.c` are
+lexical and are read by assignment and Array mutation admission. Those are
+existing guards, not final normalized place/lifetime certificates.
+
+Downstream C calls use `transpiler_expr_call_user_emit.c`: inout arguments
+become addresses and argument ordering is currently materialized there.
+LLVM `llvm_expr_boundary_projection_helpers.c` passes a local address only
+for identifier value-result arguments; a member currently reaches expression
+value emission instead. Thus removing the semantic field guard alone does
+not implement field inout on both backends. The self-host semantic verdict
+owner also requires a direct binding. All three guards/consumers are within
+the same planned normalization change, not three independent exemptions.
+
+Required owner-directed sequence: typed source place/temporary identity and
+ordered one-evaluation graph -> normalized call operands and disjointness ->
+call outputs/origins/recovery and backing dependencies -> fresh final-MIR
+analysis -> C/LLVM consumers of the SAME facts. The call-contract join in
+doc 27 remains the selected target; no backend-specific ownership table or
+all-borrowed default is permitted. Affine/authority named boundaries remain.
+Source-routine call modes are not assumed to describe runtime result origin.
+
+Before expanding that patch, fix the normalized fact schema and source/core/
+physical refinement, include all current carriers/JSON consumers in the
+existing whole-cutover inventory, and check alias/index/short-circuit/partial
+failure and inout restore-before-handler cases. A lexical scan for a later
+use is not the final lifetime issuer. Reusing pre-normalization liveness is
+forbidden. No P2-P7 automatic glue/drop activation until these P1 dependency
+checks pass; no new syntax, manual carrier or named-local recipe as a fix.
 
 ## Frozen checkpoint and reached production repair
 

@@ -20,6 +20,16 @@ importing direct-control model/gates and documentation. Resolve its exact
 HEAD with Git on resume and inspect its diff from the frozen parent;
 `gmon.out` remains excluded. Candidate checkpointing is not main landing or
 P1/full-cutover completion.
+
+Validated implementation checkpoint:
+`5ca69b4fffcc56f1e4103e914b8c041efb1aa027`. Tracked/index diff stayed zero
+while the entire checkpoint input was measured: exit 0, 88889 ms, sampled
+private 1319.8 MiB (1.289 GiB), complete capture and no endpoint binding
+changes. The full MIR hash remains `52290d05...985b402`. Receipt:
+`checkpoint-memory/checkpoint-full-driver-mir.summary.json` below the log root.
+The subsequent handoff/audit commit records this result; it changes navigation
+only, not compiler/proof/gate input behavior. Do not relabel the result as a
+measurement of a later all-input checkpoint or a complete P0 matrix.
 The checkpoint's complete tracked inputs stayed frozen through the reached
 baseline gates. Full P0 is not green: full driver refused 3072 MiB; likeness
 and include caps are red; component gate exceeded 60 s; the same-source
