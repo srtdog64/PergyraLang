@@ -34,6 +34,14 @@ jobs:
         run: bash scripts/run_rocq_toolchain.sh bash tests/ownership_gc_comparison_smoke.sh
       - name: Check canonical cleanup, graph and Slot composition
         run: bash scripts/run_rocq_toolchain.sh bash tests/memory_boundary_composition_smoke.sh
+      - name: Check local graph reclamation and its root completeness
+        run: |
+          bash scripts/run_rocq_toolchain.sh bash tests/graph_cycle_reclaim_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/graph_cycle_reclaim_selftest.sh
+      - name: Check action-scoped graph references and sagas
+        run: |
+          bash scripts/run_rocq_toolchain.sh bash tests/graph_action_scope_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/graph_action_scope_selftest.sh
       - name: Red-team teardown, root reuse and checked local reads
         run: bash scripts/run_rocq_toolchain.sh bash tests/ownership_teardown_redteam_smoke.sh
       - name: Preserve bounded teardown model observations

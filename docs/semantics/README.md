@@ -1,6 +1,6 @@
 # Pergyra Proof Pack
 
-Last updated: 2026-10-08
+Last updated: 2026-10-09
 
 Status: `beta-proof-obligation`
 
@@ -96,6 +96,15 @@ Required shape for each proof document:
   provenance credits the user's Qt-inspired graph proposal. Tradeoffs cover
   long-lived retention, nullable links, indexing/copy/analysis costs, cleanup
   bursts and the limits of unconditional release and GC comparisons.
+- [29_action_scoped_references.md](29_action_scoped_references.md):
+  definition recorded at the user's request. No value has a declared
+  lifetime; only a delete or a store drop ends a node, references are names,
+  and a step holds what it reads from its start to its end. Acquisition
+  failure is decided at the start; a body operation can refuse after earlier
+  effects, recorded by a successful-prefix receipt. A saga compensates
+  completed steps when a node vanished between steps; compensation completion
+  is not restoration. Surface syntax, acquisition inference, deletion-authority
+  binding for compensation targets and production remain OPEN.
 - [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
 - [../207_compiler_owned_cleanup_algorithm.md](../207_compiler_owned_cleanup_algorithm.md):
   explanatory core-algorithm companion with move/copy/end/drop, branch/loop and
@@ -148,6 +157,60 @@ Mechanized artifacts:
   when its node's exact block is reused, while address identity and
   store-id reissue resurrect links (counterexamples). No async/FFI escape,
   finalizer, node move, or production claim.
+- [proofs/OwnershipGraphCycleReclaim.v](proofs/OwnershipGraphCycleReclaim.v):
+  local reclamation of unreachable cycles in a live graph store. Each node
+  counts the edges naming its current identity; the check subtracts candidate
+  inside edges. The reference still folds the full slot-list spine, so physical
+  locality and cost are OPEN. Proves the check never returns a
+  node reachable from the given roots for any candidate set, budget and
+  non-under-counting counter; deleting through the existing `ODelete` keeps
+  the root view; maintained counts track all seven admitted graph operations,
+  with an identity reset on delete. Checked batches propagate explicit
+  refusal with the complete original state; all successful deletes return
+  `GUnit`. Successful reclaim has an accepted-only reference projection, not
+  all-input equivalence. No physical counter runtime is implemented. Counterexamples cover pure in-counts,
+  a missing closure step, a small budget, raw-index reuse and an index-keyed
+  counter after reuse. The user adopted optional store-local scope on
+  2026-10-09, not default tracing cleanup (28 §Store-local cycle reclamation).
+  Production implementation and work budgeting remain OPEN.
+- [proofs/OwnershipGraphRootCompleteness.v](proofs/OwnershipGraphRootCompleteness.v):
+  binds the reclaimer's roots to a checked language with link-holding
+  aggregates and views, liveness certificates, suspended frames, handled
+  errors and a cleanup right. Under its checking/issuing invariants, every
+  terminating reference run is reproduced by the reclaiming run, with every deleted slot unreachable from the live roots at
+  each statement boundary. Counterexamples: a link only in an aggregate, only
+  in a caller frame, only in a view, and a returned link dropped from the
+  callee's roots. A canonical-ledger permission projection covers grant,
+  transfer and consumption; a checked boundary connects accepted batches to
+  maintained counts and propagates authority/root/delete refusal.
+  Store/root binding issuance, whole-unit lease/pin checks and synchronized
+  retirement remain OPEN. Gate: `tests/graph_cycle_reclaim_smoke.sh`, independent
+  typed consumer: `tests/coq/GraphCycleReclaimAudit.v`; planted gate regressions:
+  `tests/graph_cycle_reclaim_selftest.sh`. The consumer also pins baseline
+  retention, the old sequential partial-deletion falsifier, checked-batch
+  original-state refusal under a borrow, and full-inventory snapshot
+  observations outside the checked language. Production producer, runtime and
+  cost are OPEN; see the
+  [snapshot/cache policy review](../audits/graph_store_policy_snapshot_review_2026-10-09.md).
+- [proofs/OwnershipGraphActionScope.v](proofs/OwnershipGraphActionScope.v):
+  steps and sagas over the unchanged graph machine (doc 29). A link keeps
+  resolving to the same blocks through every operation but a delete of its
+  slot or a drop of its store; while held, both are refused. An admitted
+  step, which acquires every link it reads, never fails a dereference and
+  releases exactly what it acquired. In a saga of admitted steps no outcome
+  is a failed dereference, whatever runs between steps. Falsifiers: an
+  unacquired neighbour, a delete that ignores holds, and a compensation
+  target deleted between steps. Execution-prefix receipts account for the
+  successful body operations and actual graph state; a stuck compensation
+  retains both failure causes. Finishing compensation is not effect recovery.
+  Admitted partial-forward, no-op-compensation and partial-compensation
+  counterexamples pin this distinction. Gate: `tests/graph_action_scope_smoke.sh`
+  with consumer `tests/coq/GraphActionScopeAudit.v`; planted regressions:
+  `tests/graph_action_scope_selftest.sh`. Sequential only; surface,
+  inference, effect restoration, runtime and cost are OPEN. See the
+  [implementation boundary matrix](ownership_lifecycle_implementation_boundaries.md)
+  for owner/producer/consumer, physical atomicity and root/count/authority
+  evidence obligations; it does not create another semantic owner.
 - [proofs/OwnershipTeardown.v](proofs/OwnershipTeardown.v): design check
   for one owner per node (a Qt-style ownership tree) with non-owning links,
   scoped roots, a reverse link index and an owner-keyed children index.
@@ -196,6 +259,18 @@ Mechanized artifacts:
   Bounded full-bound unit verification is not the production indexed walker;
   trusted context/state, live recipient binding, physical access/mutation,
   concurrency, finalizers and native compiler synthesis remain OPEN.
+- [proofs/OwnershipTeardownAtomicBatch.v](proofs/OwnershipTeardownAtomicBatch.v):
+  importing batch over the same canonical authority/forest. Checks every
+  request against the original state, exact disjoint units and unique targets
+  including empty roots; accepted execution also requires every canonical
+  request to succeed. Refusal preserves the full original state. Node batches
+  retain the root right, and root cleanup consumes it once. Independent review
+  found and corrected initially incomplete parent/root units becoming valid
+  after earlier child deletion; the typed consumer pins those shrinking
+  regressions and the general initial-state propositions. Fresh eight-module
+  graph gate and eleven-negative selftest pass. Pure staging is not native
+  rollback; no-fail physical commit, graph/forest binding and compiler adoption
+  remain OPEN. Scope: [atomic bridge audit](../audits/graph_atomic_bridge_redteam_2026-10-09.md).
 - [proofs/OwnershipCleanCallRecovery.v](proofs/OwnershipCleanCallRecovery.v):
   imports the same value/exit machine. Proves ordered pack-call-unpack source
   execution, a checked alias/freshness-refusing normalizer and one operational recovery

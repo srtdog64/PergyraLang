@@ -79,6 +79,7 @@ not own status, decisions, or completion claims.
 |---|---|
 | [`207_compiler_owned_cleanup_algorithm.md`](207_compiler_owned_cleanup_algorithm.md) | Compiler-owned ownership cleanup: decision procedure, branch/loop/call diagrams, checked formal scope, implementation gaps, and recent-research review; explanatory companion, not a new semantic owner |
 | [`208_layered_complexity_minimization.md`](208_layered_complexity_minimization.md) | Layered responsibility placement: programmer versus machine complexity, language/ABI/OS boundaries, bounded current-source assessment, and falsifiable cost criteria; design principle, not a proved optimum or new semantic owner |
+| [`209_ownership_lifecycle_algorithm_code.md`](209_ownership_lifecycle_algorithm_code.md) | Ownership lifecycle as algorithm code: ordinary-value cleanup, Qt-style tree teardown with authority and leases, all-or-nothing batch retirement, graph stores, action-scoped steps and sagas, optional store-local cycle reclamation, and who receives each failure; explanatory projection of the Rocq models, not a new semantic owner |
 
 ## Core Semantics
 
@@ -224,6 +225,7 @@ not own status, decisions, or completion claims.
 | Document | Purpose |
 |---|---|
 | [`20_compiler_pipeline_guide.md`](20_compiler_pipeline_guide.md) | Contributor guide for the compiler pipeline |
+| [`semantics/ownership_lifecycle_implementation_boundaries.md`](semantics/ownership_lifecycle_implementation_boundaries.md) | Ownership lifecycle implementation boundaries: step effects versus recovery, same-generation roots/counts/authority, physical preflight/commit, finite identities, work budgets, DX and falsifying gates; navigation, not a new semantic owner |
 | [`66_semantic_implementation_map.md`](66_semantic_implementation_map.md) | Semantic implementation map |
 | [`94_arena_index_lifetime_plan.md`](94_arena_index_lifetime_plan.md) | Arena/index lifetime plan |
 | [`95_ast_dispatch_partition.md`](95_ast_dispatch_partition.md) | AST dispatch partition |

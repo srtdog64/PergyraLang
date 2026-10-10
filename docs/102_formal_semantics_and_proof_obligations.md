@@ -212,6 +212,76 @@ conflicting writes, deletion, drop and table growth. Append-only stores need
 no generation check. Nodes no link reaches stay retained until their store
 ends; that limit is proven, not hidden.
 
+2026-10-09 store-local cycle reclamation: `OwnershipGraphCycleReclaim.v`
+checks a candidate-bounded selection rule. Per-identity edge counts
+summarize everything outside a candidate set, but the reference `internal`
+still folds the whole slot-list spine. Physical locality is not yet proved.
+It never returns a node reachable from its roots, for any
+candidate set, budget and counter that does not under-count, and it deletes
+through the existing `ODelete`. Maintained counts track all seven admitted graph
+operations, including the identity reset on delete. Checked counted batches
+return explicit failure and the entire original state; successful reclaim
+projects to the reference (accepted-only, not all-input equivalence).
+`OwnershipGraphRootCompleteness.v`
+removes the trusted root list: in a checked language with link-holding
+aggregates and views, liveness certificates, suspended frames, handled errors
+and a cleanup right, every terminating reference run under the checking/issuing
+invariants is reproduced by the reclaiming run. Its canonical-ledger adapter
+checks permission at a maintained-count boundary, including grant/transfer/
+consumption. Binding issuance and synchronized graph/forest retirement with
+whole-unit lease/pin checks remain OPEN.
+Four falsifiers (aggregate-only, caller-frame-only, view-only and a dropped
+returned link) show what a wrong producer or certificate breaks. Gate:
+`tests/graph_cycle_reclaim_smoke.sh` includes the independent proposition-typed
+`tests/coq/GraphCycleReclaimAudit.v`; `tests/graph_cycle_reclaim_selftest.sh`
+checks planted gate regressions. The user adopted optional store-local scope
+on 2026-10-09; ordinary non-tracing ownership cleanup remains the default.
+The consumer now also pins a borrowed-last-candidate partial deletion and a
+corrected checked batch that refuses without publishing earlier deletes,
+plus a full-inventory snapshot observation change. These are integration falsifiers
+outside the checked language's premises/operations, not contradictions of its
+simulation. The production producer, runtime counters, concurrency and cost
+remain OPEN; see the
+[snapshot/cache policy review](audits/graph_store_policy_snapshot_review_2026-10-09.md).
+
+2026-10-09 canonical atomic batch: `OwnershipTeardownAtomicBatch.v` imports
+the existing authority/forest and checks all supplied requests against the
+original state, exact disjoint units and distinct targets (including empty
+roots). Success also records every real canonical sequential retirement.
+Refusal preserves the complete initial authority state; node batches preserve
+root rights. Independent red-team found initially invalid parent/root units
+becoming valid after child deletion and verified the original-state repair.
+The eight-module focused kernel gate and eleven planted negatives pass. Native
+preflight/no-fail commit, authenticated graph/forest binding and compiler
+production adoption remain OPEN; see the
+[implementation audit](audits/graph_atomic_bridge_redteam_2026-10-09.md).
+
+2026-10-09 action-scoped references: `OwnershipGraphActionScope.v` records
+the contract of `docs/semantics/29_action_scoped_references.md` over the
+unchanged graph machine. No value has a declared lifetime. A link keeps
+resolving to the same blocks through every operation except a delete of its
+slot or a drop of its store, and while its place is held both are refused.
+A step acquires the links it reads when it starts; an admitted step never
+fails a dereference and releases exactly what it acquired. In a saga of
+admitted steps, under arbitrary operations between steps, no outcome is a
+failed dereference. A node deleted between steps is found at the next step's
+start and completed steps are compensated. A deleted compensation target
+leaves the saga observably stuck; sparing it is a premise for deletion
+authority, not a theorem. Gate: `tests/graph_action_scope_smoke.sh` with
+`tests/coq/GraphActionScopeAudit.v` and `tests/graph_action_scope_selftest.sh`.
+The canonical step result now carries its successful body-prefix length;
+`run_body_receipt_projects` ties it to actual graph execution without ignored
+refusals. `SagaCompensationFinished` is not restoration or forward success,
+and `SagaStuck` retains both the forward and compensation failure receipts.
+Permanent admitted counterexamples cover residual forward effects, no-op
+compensation and a partially failed compensation. The independent consumer
+also participates in the full kernel snapshot. Sequential model only;
+source effect binding/restoration, surface syntax, acquisition inference,
+acquire-on-first-touch traversal and cost remain OPEN. The
+[boundary matrix](semantics/ownership_lifecycle_implementation_boundaries.md)
+records physical commit, evidence issuance and retirement obligations without
+promoting the model to production closure.
+
 2026-10-08 teardown: `OwnershipTeardown.v` moves ownership from the store to
 each node (one owner: a scoped root or a parent, as in a Qt object tree) and
 keeps links non-owning. Node release and root drop always have a step. Each

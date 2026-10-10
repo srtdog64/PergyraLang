@@ -230,6 +230,180 @@ hide the issue with a weaker safety check or silent GC/RC fallback. Validation
 must follow the existing implementation order and real C/LLVM lifecycle
 chain, not another independent proof/performance track.
 
+## Store-local cycle reclamation (optional scope adopted; implementation OPEN)
+
+Added 2026-10-09. The table above keeps one cost even for a correct
+implementation: an isolated cycle under a long-lived owner stays allocated.
+Two importing proofs check a candidate-bounded selection rule for retiring
+it. They do not yet prove an implementation without a whole-store scan.
+On 2026-10-09 the user selected this as a **store-local optional feature**,
+not the default ordinary-value cleanup policy. It is local reachability
+tracing and must stay distinguishable from non-tracing ownership cleanup.
+Where checks run, actual work accounting and production admission remain
+implementation obligations; the acceptance row for isolated cycles still
+describes the baseline without the optional policy.
+
+The baseline graph lifecycle is authorized domain-directed node deletion and
+compiler-owned cleanup of the remainder at store-owner end. Forgetting a node
+removal can retain its storage until then. This does not require users to write
+manual backing/deep-drop or root-registration procedures. A stale-link refusal
+prevents access to a reused identity; it does not establish that an earlier
+deletion preserved later successful program behavior. Borrow/pin and cleanup
+authority checks are separate requirements. Neither baseline performance
+superiority nor a deployed public graph API is established by this model.
+
+**Local check** ([`OwnershipGraphCycleReclaim.v`](proofs/OwnershipGraphCycleReclaim.v)).
+Every node has a count of the edges that name its current identity (slot and
+generation). For a candidate set C the check counts the edges among C and
+subtracts that from the stored count; the
+remainder is the edges that arrive from outside C. A candidate held by a root
+or by an outside edge is kept, together with everything it reaches inside C.
+That closure is computed within a round budget and then checked. The rest of C is
+deleted through the existing `ODelete`, so per-node release, borrow refusal
+and stale-link refusal are inherited. The old result-ignoring sequential
+composition is **not** whole-batch failure atomic: a later borrowed node can
+refuse after an earlier candidate was deleted. The checked counted batch
+below replaces that path with functional original-state refusal, not a
+physical rollback algorithm. Production still requires
+complete canonical retirement units, whole-batch preflight and a stable,
+non-refusing commit before reuse is published. Graph candidate sets must not
+be silently expanded through rooted/pinned ownership descendants.
+
+Implementation boundary: `internal` currently folds the entire slot-list
+spine, inspecting edge payloads only for C; list indexing is not constant
+time. The original language's `reclaim_step` also recounts `indeg`.
+`counted_reclaim_projects` now connects a maintained-count operation to that
+reference decision, but does not prove physical candidate-only traversal or
+a work/latency bound. `fuel` counts closure rounds, not total visits or cost.
+
+- `trial_garbage_with_unreachable`: for every candidate set, root list,
+  budget and counter that never under-counts, a returned node is unreachable
+  from the roots. Over-counting only retains.
+- `reclaim_preserves_root_view`: the deletes keep the graph invariant, other
+  stores, the reachable set, every reachable slot and every root link's
+  resolution.
+- Change records: `counts_track_every_operation` keeps a maintained counter
+  equal to the recount across the seven existing graph-machine operations,
+  under `CountsExact`, `AllEdgesIssued` and `op_admitted`. A delete resets
+  the deleted identity's count (`count_after_delete_self`). Admission allows
+  past-generation stale edges but excludes future/unissued vacant-current
+  identities. `counted_run_preserves_counts` packages admitted graph/count
+  transitions. Successful `counted_reclaim_projects` refines the recount
+  decision; it is an accepted-only projection, not equivalence for every
+  refused raw candidate list. `counted_reclaim` now validates current live
+  candidates and uses an explicit checked batch, not the result-ignoring
+  general sequential runner. Duplicate/stale/missing/borrowed candidates and
+  selection deferral preserve the complete original counted state.
+  `count_after_snapshot` is a slot-list copy lemma, not a language snapshot
+  operation. Moving a node between stores is not a model operation.
+- Falsifiers: a pure in-count test does not free a cycle; subtracting without
+  the closure deletes a reachable node; a too small budget defers; an insert
+  that names a reclaimed raw slot index observes the reclamation; and a
+  counter that decrements by slot index after reuse under-counts and deletes
+  a reachable node.
+
+**Root completeness** ([`OwnershipGraphRootCompleteness.v`](proofs/OwnershipGraphRootCompleteness.v)).
+The roots are not trusted. A small language has values that hold links and
+views inside aggregates, a liveness checker over certificates, calls with
+suspended frames, handled errors, inserts, edge writes, deletes and a reclaim
+statement. What must be kept is defined by the language, not by the
+compiler: the reference semantics never reclaims, and whatever the rest of
+its run reads, follows, writes or deletes must survive.
+
+- `links_of_complete`: every link or view a projection path can extract from
+  a value is enumerated. Records, arrays, enum payloads, inout packets and
+  closure captures are modelled as aggregates.
+- `rcheck`: loop heads, call `keep` sets and reclaim root sets are checked
+  certificates, and every statement that can fail keeps the handler's live-in.
+- `reclaim_simulates`, `reclaim_preserves_every_reference_run`: under `FunsOK`,
+  `rcheck` and the issuing/graph invariants, every terminating reference run
+  is reproduced by the reclaiming run with the
+  same environment, trace and outcome. At each statement boundary every
+  deleted slot is unreachable from that point's live roots. A missing root
+  is a semantic failure; an extra one only delays reclamation.
+- Reclaim and explicit delete in the original language use a fixed rights
+  map (`reclaim_without_right_is_identity`). The new `ledger_rights` adapter
+  derives permission from `OwnershipTeardownAuthority.v`, including current
+  root epoch/holder: grant admits, transfer revokes the old holder, consumption
+  revokes, and copied handles supply no right. `checked_ledger_reclaim_simulates`
+  connects this permission projection, maintained counts and checked roots
+  for accepted batches. Refusal reasons propagate explicitly and preserve
+  original state; they are not projected into a legacy no-op.
+  Issuing the store-to-root binding, synchronizing graph/forest retirement,
+  and transferring the forest's whole-unit lease/pin checks are still OPEN.
+  This is not complete authority composition or a dynamic-rights language run.
+- Falsifiers on the same semantics: a link held only inside an aggregate,
+  only by a suspended caller, or only by a derived view, and a returned link
+  dropped from the callee's roots. Each turns a successful reference read
+  into a refusal under the wrong root producer or certificate. The checker
+  refuses the certificates that would omit the caller's or the result's link.
+
+Boundary: allocation choices are inputs; a reference run that fails an
+allocation has no transition, and reclamation can only make more choices
+admissible. Temporaries are named (ANF). View identities are values or frame
+roots; physical leases, pins, addresses and range validity are not modelled,
+and the borrow table is empty between statements.
+Links into other stores live in values. Weak links that reclamation may
+clear are not provided. The production producer of liveness, frame maps and
+value layouts, runtime counters and their overflow, concurrency, cost and
+the C/LLVM refinement remain OPEN. Gate: `tests/graph_cycle_reclaim_smoke.sh`
+kernel-checks seven models and `tests/coq/GraphCycleReclaimAudit.v`, which pins
+the proposition types and concrete reuse/authority/root falsifiers.
+`tests/graph_cycle_reclaim_selftest.sh` plants deletion, weakened-theorem,
+new-assumption, source-drift and receipt-overwrite regressions in isolated
+copies. Source hashes bind each focused receipt before/after its run; that
+does not prove continuous immutability or a main-thread P0 baseline.
+
+For implementation, use the
+[lifecycle boundary matrix](ownership_lifecycle_implementation_boundaries.md)
+alongside these owner contracts. It distinguishes stable physical preflight
+and non-refusing commit from a returned mathematical original state, and
+requires root/count/authority facts from the same validated generation.
+`checked_ledger_reclaim` is not an evidence issuer: its simulation theorem
+requires `CountsExact`, `AllEdgesIssued` and `SimInv`. A caller supplying empty
+L and R does not establish that no roots are live. Nor do action hold-release
+or compensation completion in [29](29_action_scoped_references.md) establish
+transaction rollback. The matrix is a navigation aid, not another semantic
+owner or a new prerequisite track for ordinary-value cutover P1.
+
+### Snapshot, inventory and cache observations
+
+A full-store data snapshot and a root/count/authority evidence snapshot are
+different contracts. The current pure `snapshot` copies the full slot inventory;
+its relative-edge/footprint-length lemmas do not issue a second physical store
+or prove allocation non-overlap, affine-payload copying or failure-atomic
+publication. An independent data copy needs fresh owner/identity/storage and
+admitted payloads; cleanup of a failed partial destination must preserve the
+source. Hidden shared mutable history or COW is not that independent-copy
+contract.
+
+Full inventory copying/enumeration and strong cache key lookup can observe
+nodes with no external node-link roots. The checked reclaim language does not
+yet include those operations. Their discoverable inventory must be preserved
+by the root/read-footprint contract until explicit domain removal, unless a
+distinct logical/weak contract is adopted. Do not silently narrow a promised
+full-store snapshot to a reachable-closure copy or evict a strong cache entry
+because its node link disappeared from user variables. An already published
+independent copy has its own owner and does not retain the source by sharing.
+
+Cached compiler/retirement evidence is valid only in its admitted generation;
+application-result caches also need a content revision, not just identity
+generation. CPU locality is not cache-entry semantics, and neither is proven
+fast by using the word store. The independent consumer now pins the borrowed-
+batch partial-deletion and full-inventory-snapshot falsifiers, alongside
+baseline retention. The partial runner is now retained only as a falsifier;
+the actual checked batch refuses without publishing earlier deletes.
+The importing canonical batch below also checks all requests against their
+initial forest and rejects overlapping exact units. Its original candidate
+missed shrinking-parent/root cases; independent red-team found and corrected
+that gap. Scope and remaining producer/physical obligations are in the
+[atomic bridge audit](../audits/graph_atomic_bridge_redteam_2026-10-09.md).
+Implementation recommendations, primary research and
+unmeasured costs are in the
+[bounded review](../audits/graph_store_policy_snapshot_review_2026-10-09.md);
+the [closure plan](../agent_work_directives/graph_store_integration_closure_plan_2026-10-09.md)
+keeps integration dependent on the active ownership cutover, not a new rung.
+
 ## Fact ownership and consumer chain
 
 The ordinary storage owner remains doc 27 and its canonical machine. Slot
@@ -299,6 +473,31 @@ actual access/mutation and reparenting consumers (CL2), the indexed walker,
 bounded identity exhaustion, physical allocation, concurrency/finalizers and
 compiler cleanup synthesis. No C/LLVM, installed-driver, CI or SoT closure is
 implied. The ownership/DX implementation hold and I1–I8 order are unchanged.
+
+### Importing original-state atomic batches
+
+[`OwnershipTeardownAtomicBatch.v`](proofs/OwnershipTeardownAtomicBatch.v)
+composes the existing authority boundary. All requests are first checked
+against the same original state: current identity, actual holder, complete
+unique unit and no active lifetime lease. Every pair of exact units must be
+disjoint, and target identities must be unique even when units are empty.
+Under the forest invariant, each supplied unit is the original `UnitExact`.
+
+Accepted execution additionally records every canonical retirement of those
+same supplied units. A node-only batch leaves the root right intact; later
+root cleanup consumes it once. Any refusal preserves the entire initial
+AuthorityState and its reason. The independent consumer checks late nested
+borrow/pin and foreign-holder refusal, duplicate/overlapping units, and
+shrinking parent/root units that only become valid after earlier deletion.
+
+This is functional publication atomicity, not rollback of actual frees. The
+pure initial check invokes mathematical canonical retirement; no-fail native
+commit under stable preflight remains unproved. The two graph/canonical
+batches are not yet a synchronized algorithm over authenticated physical
+units. Gate and tradeoffs:
+[atomic bridge audit](../audits/graph_atomic_bridge_redteam_2026-10-09.md).
+
+### Existing allocator and reuse composition
 
 - The graph model's allocator is adversarial. Each operation that needs
   storage takes the blocks as an argument, and any choice of distinct,

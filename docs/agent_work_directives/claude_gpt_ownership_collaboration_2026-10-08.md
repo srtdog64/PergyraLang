@@ -129,6 +129,12 @@ cutover의 추가 선행 조건으로 바꾸지 않는다. 과거 hold 기록은
 
 ## 협업 기록
 
+- 2026-10-09 GPT, 소유권 생애 리뷰 보완: 사용자의 "전부 보완해서 문서 보강"
+  요청으로 예외 2를 적용한다. `OwnershipGraphActionScope.v`의 단계 결과·saga
+  실패 정보와 독립 소비자/게이트만 함께 이전한다. graph/tree/value core와
+  다른 레인의 production P1은 건드리지 않는다. 범위·반증·경계는
+  [리뷰 보완 계획](ownership_lifecycle_review_hardening_2026-10-09.md)에 고정했다.
+  보상 코드 실행 완료를 실제 효과 복구로 부르지 않으며 물리적 원자성은 OPEN이다.
 - 2026-10-09 GPT, 사용자 요청으로 문서 주장만 정정: 현재 비교 기준은
   `aa7f0d65f88ff319253e45d3d8a51d0129eaf873`와 읽은 증명 정의/정리문이다.
   예외 2에 따라 27번·semantics README·102·207·협업/계획/preflight의 관련 표현을

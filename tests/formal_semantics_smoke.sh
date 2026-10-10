@@ -1100,8 +1100,12 @@ docs/semantics/proofs/OwnershipCleanDirectControl.v \
 docs/semantics/proofs/OwnershipCleanViews.v \
 docs/semantics/proofs/OwnershipCleanViewScope.v \
 docs/semantics/proofs/OwnershipGraphLinks.v \
+docs/semantics/proofs/OwnershipGraphCycleReclaim.v \
+docs/semantics/proofs/OwnershipGraphRootCompleteness.v \
+docs/semantics/proofs/OwnershipGraphActionScope.v \
 docs/semantics/proofs/OwnershipTeardown.v \
-docs/semantics/proofs/OwnershipTeardownAuthority.v"
+docs/semantics/proofs/OwnershipTeardownAuthority.v \
+docs/semantics/proofs/OwnershipTeardownAtomicBatch.v"
 
 # Inventory: every proof on disk must be registered above, or it silently never
 # gets machine-checked.
