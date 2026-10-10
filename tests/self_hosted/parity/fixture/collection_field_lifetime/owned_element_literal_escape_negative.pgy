@@ -1,0 +1,8 @@
+// An owned element stored into a literal outlives its array's release.
+func Main() -> Int {
+    let a: Array<String> = [];
+    ArrayPushOwnedString(a, Concat("x", "y"));
+    let b: Array<String> = [a[0]];
+    ArrayDropOwnedStrings(a);
+    return StringLength(b[0]);
+}

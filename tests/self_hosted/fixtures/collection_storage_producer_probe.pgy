@@ -102,7 +102,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if mode == 90 || mode == 93 {
         let before: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
-            edge, false, false, formal.effects, owned_push_leaf_formals,
+            edge, false, false, false, formal.effects, owned_push_leaf_formals,
             requirements, field_requirements, ownership, dispositions,
             origins, transitions, effects, storage, definitions, current, retained);
         ok = !before.ok && before.diagnostic_code == "borrow_boundary_escape" && current[owned] == -1;
@@ -119,7 +119,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if mode == 90 {
         let after: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
-            edge, false, false, formal.effects, owned_push_leaf_formals,
+            edge, false, false, false, formal.effects, owned_push_leaf_formals,
             requirements, field_requirements, ownership, dispositions,
             origins, transitions, effects, storage, definitions, current, retained);
         ok = ok && completed.ok && current[owned] == owned && after.ok;

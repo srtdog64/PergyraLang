@@ -3,6 +3,8 @@ func FirstMatches(values: Array<String>) -> Bool {
 }
 
 func Main() -> Void {
-    let source: Array<String> = ["borrowed"];
+    let source: Array<String> = [];
+    ArrayPushOwnedString(source, "borrowed");
     Log(FirstMatches([source[0]]));
+    ArrayDropOwnedStrings(source);
 }

@@ -11,7 +11,8 @@ func SemanticAstCollectionCallArgumentVerdict(
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView,
-    literal_read_ready: Bool, member_read_ready: Bool, proved: HashMap<String, Int>,
+    literal_read_ready: Bool, member_read_ready: Bool, element_escape_ready: Bool,
+    proved: HashMap<String, Int>,
     owned_push_leaf_formals: HashMap<String, Int>,
     ref element_requirements: HashMap<String, Int>,
     ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
@@ -34,7 +35,9 @@ func SemanticAstCollectionCallArgumentVerdict(
     let key: String = ToString(formal); let effect: Int = 0;
     let retains_descriptor: Bool = SemanticAstCollectionFormalRetainsDescriptor(call_effects.formal_descriptor_retention, formal);
     if MapHas(proved, key) { effect = MapGet(proved, key); }
-    if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() ||
+    // The escape entry owner admits an element escape whose argument elements
+    // this caller can never release.
+    if (effect == SemanticAstCollectionFormalUnprovedElementUseEffect() && !element_escape_ready) ||
         effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
         let boundary: String = "unproved_formal_execution_context";
         if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() {
@@ -52,6 +55,12 @@ func SemanticAstCollectionCallArgumentVerdict(
             surface_row, edge.argument_node);
     let unknown: Bool = false;
     let current_definition: Int = -1;
+    // Escaped borrowed elements keep an empty local borrowed: it may not take
+    // owned elements or be deep-dropped afterwards.
+    if element_escape_ready && binding.ok &&
+        origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+        transition_states[binding.row] = SemanticAstCollectionTransitionBorrowed();
+    }
     if binding.ok {
         current_definition = current_definitions[binding.row];
         let prior_retention: Bool = current_definition >= 0 && retained_definitions[current_definition];

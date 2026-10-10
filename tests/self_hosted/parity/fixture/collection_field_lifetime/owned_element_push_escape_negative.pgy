@@ -1,0 +1,9 @@
+// An owned element pushed into another array outlives its array's release.
+func Main() -> Int {
+    let a: Array<String> = [];
+    ArrayPushOwnedString(a, Concat("x", "y"));
+    let b: Array<String> = [];
+    ArrayPush(b, a[0]);
+    ArrayDropOwnedStrings(a);
+    return StringLength(b[0]);
+}

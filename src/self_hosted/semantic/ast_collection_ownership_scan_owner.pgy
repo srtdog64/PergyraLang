@@ -8,6 +8,7 @@ import "ast_collection_aggregate_release_transition_owner.pgy";
 import "ast_owned_string_literal_transfer_owner.pgy";
 import "ast_collection_read_literal_argument_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
+import "ast_collection_element_escape_entry_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
 import "ast_collection_definition_transition_owner.pgy";
 import "ast_collection_owned_result_return_owner.pgy";
@@ -50,6 +51,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     // Unpublished exact-consumption scratch. This descriptor cannot escape
     // the scan; physical HashMap reclamation remains the backend's contract.
     let retired_arguments: HashMap<String, Int> = MapNew();
+    let released_fields: SemanticAstCollectionReleasedFields =
+        SemanticAstCollectionReleasedFieldsFrom(constructors, field_requirements);
     let local_count: Int = ArrayLength(locals.node_ids);
     let local_row: Int = 0;
     let root_slot: Int = 0;
@@ -103,6 +106,17 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                 if !indexed_string_use.ok {
                     ArrayDrop(pending); ArrayDrop(prefixes);
                     verdict = indexed_string_use; return;
+                }
+                let owned_element_use: SemanticAstCollectionOwnershipVerdict =
+                    SemanticAstCollectionOwnedElementEscapeAtEvent(
+                        artifact, signatures, constructors, locals,
+                        initializer_types.inferred_type_names, resolved_leaf_types, surfaces,
+                        assignments, formal_effects.borrowed_text_formals,
+                        released_fields.ok, released_fields.field_ids, released_fields.names,
+                        ownership, origins, transition_states, origin_syntax_ids, root_slot, node);
+                if !owned_element_use.ok {
+                    ArrayDrop(pending); ArrayDrop(prefixes);
+                    verdict = owned_element_use; return;
                 }
                 let aggregate_source_use:
                     SemanticAstCollectionOwnershipVerdict =
@@ -167,10 +181,17 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                             surfaces, owned_string_results,
                             numeric_string_allocations, formal_effects.effects,
                             root_slot / 3, root_slot % 3, edge);
+                    let element_escape_ready: Bool = SemanticAstCollectionElementEscapeEntryReady(
+                        artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
+                        resolved_leaf_types, surfaces, root_slot / 3,
+                        edge, formal_effects.effects, released_fields.ok, released_fields.field_ids,
+                        released_fields.names, ownership, dispositions, origins,
+                        transition_states, origin_syntax_ids);
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
                         edge, literal_read_ready, SemanticAstCollectionMemberIndexedReadReady(
-                            moved_use.readable_members, moved_use.unproved_read_roots, edge.argument_node), formal_effects.effects,
+                            moved_use.readable_members, moved_use.unproved_read_roots, edge.argument_node),
+                        element_escape_ready, formal_effects.effects,
                         formal_effects.owned_push_leaf_formals,
                         element_requirements, field_requirements,
                         ownership, dispositions, origins,

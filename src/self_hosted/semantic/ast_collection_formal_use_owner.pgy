@@ -60,6 +60,8 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         SemanticAstCollectionNonStraightLineFunctions(statements);
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
     let blocked: Array<Bool> = [];
+    // An element kept only inside a text escape-free body never outlives it.
+    let escape_free: Array<Bool> = [];
     let mutations: Array<Bool> = [];
     let shallow_mutations: Array<Bool> = [];
     let element_reads: Array<Bool> = [];
@@ -90,6 +92,10 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         let opaque: Bool = !SemanticAstCollectionFormalExecutionContextCallableReady(
             artifact, contexts, inventory.function_nodes[row]);
         ArrayPush(blocked, !inventory.body_ready[row] || opaque);
+        let signature_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+            signatures, inventory.function_nodes[row]);
+        ArrayPush(escape_free, IsSome(signature_row) &&
+            SemanticAstFunctionTextEscapeFree(artifact, signatures, UnwrapOption(signature_row)));
         ArrayPush(mutations, MapHas(
             statement_owned_formals, formal_key));
         ArrayPush(shallow_mutations, MapHas(
@@ -249,11 +255,19 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                             }
                         }
                         let observed_element: Bool = false;
+                        // A moving transfer can release text even in an
+                        // escape-free body; ArrayPushOwnedString copies.
+                        let owning_consumer: Bool = false;
                         if borrowed_row >= 0 && edge == 1 &&
                             kind == AstExpressionNodeCallArgument() {
                             let argument: SemanticCallArgumentEdgeView =
                                 SemanticCallArgumentEdgeFromGraph(
                                     surfaces.expression_graph, node);
+                            owning_consumer = argument.ok && argument.argument_node == child_node &&
+                                (SemanticAstCollectionOwnershipBuiltinCall(
+                                    surfaces.expression_graph, argument.call_node, "ArrayPushOwned") ||
+                                 SemanticAstCollectionOwnStringFormalArgument(
+                                    signatures, surfaces.expression_graph, argument.call_node, argument.ordinal));
                             let identity: Option<String> =
                                 SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
                                     surfaces, argument.call_node, last + 1,
@@ -277,6 +291,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                                     argument.call_node, argument.ordinal)));
                         }
                         if borrowed_row >= 0 && !observed_element &&
+                            (!escape_free[borrowed_row] || owning_consumer) &&
                             (!primitive ||
                              (kind != AstExpressionNodeEquality() &&
                               kind != AstExpressionNodeInequality() &&
@@ -388,7 +403,9 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                 // needs a cross-storage lifetime relation. Parameter order or
                 // an inout target does not express that relation, so this use
                 // remains fail-closed until the language has an owned transfer.
-                if source_row != statement_mutation_row {
+                // A text escape-free body is that relation: its storage dies
+                // before the element's owner can release it.
+                if source_row != statement_mutation_row && !escape_free[source_row] {
                     blocked[source_row] = true;
                 }
             }
@@ -445,7 +462,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     }
     ArrayDrop(node_rows); ArrayDrop(element_rows);
     ArrayDrop(slice_member_rows); ArrayDrop(slice_value_rows);
-    ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
+    ArrayDrop(blocked); ArrayDrop(escape_free); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
     ArrayDrop(element_reads);
     ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts); ArrayDrop(direct_owned_push_call_nodes);
     ArrayDrop(owned_push_leaf_disqualified); ArrayDrop(sources); ArrayDrop(targets);

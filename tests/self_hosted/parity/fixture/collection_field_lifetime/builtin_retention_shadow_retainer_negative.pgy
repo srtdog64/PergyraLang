@@ -7,6 +7,8 @@ func EscapeIndexedString(values: Array<String>) -> String {
 }
 
 func Main() -> Void {
-    let values: Array<String> = ["retained"];
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "retained");
     Log(EscapeIndexedString(values));
+    ArrayDropOwnedStrings(values);
 }

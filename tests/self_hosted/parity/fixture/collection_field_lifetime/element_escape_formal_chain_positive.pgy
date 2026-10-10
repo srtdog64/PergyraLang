@@ -1,0 +1,18 @@
+// Elements escape through a formal chain; the root argument's elements are
+// never released, so the escape is admitted.
+func Keep(xs: Array<String>) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(xs) { ArrayPush(out, xs[i]); i = i + 1; }
+    return out;
+}
+
+func Outer(xs: Array<String>) -> Array<String> {
+    return Keep(xs);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a", "b"];
+    let kept: Array<String> = Outer(names);
+    return ArrayLength(kept);
+}

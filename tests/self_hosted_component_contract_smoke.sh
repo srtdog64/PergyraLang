@@ -28786,7 +28786,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:242 \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:165 \
     src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy:150 \
-    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:437 \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:452 \
     src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_formal_effect_admission_owner.pgy:40 \
@@ -28832,7 +28832,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_member_read_local_root_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_member_place_owner.pgy:64 \
     src/self_hosted/semantic/ast_collection_member_place_use_owner.pgy:200 \
-    src/self_hosted/semantic/ast_string_formal_borrow_owner.pgy:162 \
+    src/self_hosted/semantic/ast_string_formal_borrow_owner.pgy:235 \
     src/self_hosted/semantic/ast_collection_aggregate_release_element_borrow_owner.pgy:32 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
@@ -28846,6 +28846,8 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
     src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:590 \
     src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:330 \
+    src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy:335 \
+    src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:225 \
     src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:710 \

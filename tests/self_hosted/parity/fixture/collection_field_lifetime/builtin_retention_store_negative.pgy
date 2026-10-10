@@ -6,7 +6,10 @@ func StoreIndexedString(
 }
 
 func Main() -> Void {
-    let values: Array<String> = ["stored"];
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "stored");
     let destination: Array<String> = [];
     StoreIndexedString(values, destination);
+    ArrayDropOwnedStrings(values);
+    Log(destination[0]);
 }

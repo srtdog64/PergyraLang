@@ -1,0 +1,34 @@
+// A sibling argument can release the storage a literal element reads.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct TableHolder {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    count: Int;
+}
+
+func HolderRelease(inout holder: TableHolder) -> Void {
+    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    holder.tables = tables;
+}
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func ReadAfterRelease(inout holder: TableHolder, names: Array<String>) -> Int {
+    HolderRelease(holder);
+    return StringLength(names[0]);
+}
+
+func Main() -> Int {
+    let holder: TableHolder = TableHolder(OwnedTables(), 1);
+    let first: String = holder.tables.names[0];
+    return ReadAfterRelease(holder, [first]);
+}

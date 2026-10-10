@@ -1,0 +1,15 @@
+// An empty local whose (absent) elements escaped stays borrowed.
+func Keep(xs: Array<String>) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(xs) { ArrayPush(out, xs[i]); i = i + 1; }
+    return out;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    let kept: Array<String> = Keep(names);
+    ArrayPushOwnedString(names, Concat("x", "y"));
+    ArrayDropOwnedStrings(names);
+    return ArrayLength(kept);
+}

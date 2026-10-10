@@ -1,9 +1,11 @@
-func AliasIndexedString(values: Array<String>) -> Bool {
+func AliasIndexedString(values: Array<String>) -> String {
     let alias: String = values[0];
-    return alias == "aliased";
+    return alias;
 }
 
 func Main() -> Void {
-    let values: Array<String> = ["aliased"];
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "aliased");
     Log(AliasIndexedString(values));
+    ArrayDropOwnedStrings(values);
 }

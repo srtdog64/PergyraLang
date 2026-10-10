@@ -1,0 +1,26 @@
+// A read-only formal reads a literal of a borrowed String formal and member
+// reads of a local; no other argument can release.
+struct Instruction {
+    result: String;
+    kind: String;
+}
+
+func TargetsMatch(kinds: Array<Int>, targets: Array<String>, root: Int) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(targets) {
+        if targets[i] == "" && kinds[i] != root { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+func ShapeReady(owner: String) -> Bool {
+    return owner != "" && TargetsMatch([0, 1], ["", owner], 1);
+}
+
+func Main() -> Int {
+    let first: Instruction = Instruction("r1", "def");
+    let second: Instruction = Instruction("r2", "use");
+    if ShapeReady("Owner") && TargetsMatch([1, 1], [first.result, second.result], 1) { return 1; }
+    return 0;
+}

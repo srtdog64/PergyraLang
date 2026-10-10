@@ -1,0 +1,361 @@
+// Element escape entry. A formal with the unproved element-use effect may
+// keep an argument element past the call. A String is released only by a
+// deep drop of storage that holds it, so the escape is sound when the
+// argument's elements can never be released through this caller:
+// - a caller formal (not own): its own effect carries the obligation upward;
+// - a local whose elements are not owned and whose field, for a member move,
+//   no routine deep-drops; an empty local stays borrowed afterwards;
+// - a member path whose field name no routine deep-drops;
+// - a literal of String literals and borrowed String formals, whose text
+//   retention reaches those formals' callers through the String borrow facts.
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_string_formal_borrow_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_member_place_owner.pgy";
+
+struct SemanticAstCollectionReleasedFields {
+    ok: Bool;
+    field_ids: HashMap<String, Int>;
+    names: HashMap<String, Int>;
+}
+
+// Fields some routine deep-drops through a member move, by id and by name.
+func SemanticAstCollectionReleasedFieldsFrom(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> SemanticAstCollectionReleasedFields {
+    let ids: HashMap<String, Int> = MapNew();
+    let names: HashMap<String, Int> = MapNew();
+    let ok: Bool = SemanticAstCollectionAggregateFieldEntryRequirementsReady(requirements) &&
+        ArrayLength(constructors.field_names) == ArrayLength(constructors.field_source_syntax_ids);
+    let row: Int = 0;
+    while ok && row < ArrayLength(requirements.field_ids) {
+        let mask: Int = requirements.effect_masks[row];
+        if mask == SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() || mask == 3 {
+            MapSet(ids, ToString(requirements.field_ids[row]), 1);
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while ok && row < ArrayLength(constructors.field_source_syntax_ids) {
+        if MapHas(ids, ToString(constructors.field_source_syntax_ids[row])) {
+            MapSet(names, Concat("", constructors.field_names[row]), 1);
+        }
+        row = row + 1;
+    }
+    return SemanticAstCollectionReleasedFields(ok, ids, names);
+}
+
+func SemanticAstCollectionElementEscapeLocalReady(
+    row: Int, released_ok: Bool, released_ids: HashMap<String, Int>,
+    ref ownership: Array<Int>, ref dispositions: Array<Int>, ref origins: Array<Int>,
+    ref transition_states: Array<Int>, ref origin_syntax_ids: Array<Int>
+) -> Bool {
+    if row < 0 || row >= ArrayLength(ownership) || row >= ArrayLength(origins) ||
+        row >= ArrayLength(transition_states) || row >= ArrayLength(origin_syntax_ids) ||
+        row >= ArrayLength(dispositions) { return false; }
+    let state: Int = ownership[row];
+    let origin: Int = origins[row];
+    if dispositions[row] == SemanticAstCollectionDispositionRetired() ||
+        state == SemanticAstCollectionOwnershipOwnedElements() ||
+        state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+        state == SemanticAstCollectionOwnershipRetired() ||
+        origin == SemanticAstCollectionOriginClone() ||
+        origin == SemanticAstCollectionOriginFormalStringTransfer() ||
+        origin == SemanticAstCollectionOriginLocalStringTransfer() { return false; }
+    if origin == SemanticAstCollectionOriginEmptyLiteral() {
+        return transition_states[row] == SemanticAstCollectionTransitionEmpty() ||
+            transition_states[row] == SemanticAstCollectionTransitionBorrowed();
+    }
+    if origin == SemanticAstCollectionOriginMemberMove() {
+        return released_ok && origin_syntax_ids[row] > 0 &&
+            !MapHas(released_ids, ToString(origin_syntax_ids[row]));
+    }
+    return true;
+}
+
+func SemanticAstCollectionElementEscapeEntryReady(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
+    edge: SemanticCallArgumentEdgeView, proved: HashMap<String, Int>,
+    released_ok: Bool, released_ids: HashMap<String, Int>, released_names: HashMap<String, Int>,
+    ref ownership: Array<Int>, ref dispositions: Array<Int>, ref origins: Array<Int>,
+    ref transition_states: Array<Int>, ref origin_syntax_ids: Array<Int>
+) -> Bool {
+    if !edge.ok || !released_ok { return false; }
+    let target: Int = SemanticAstCollectionSourceArrayFormalForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    let key: String = ToString(target);
+    if target <= 0 || !MapHas(proved, key) ||
+        MapGet(proved, key) != SemanticAstCollectionFormalUnprovedElementUseEffect() { return false; }
+    let graph_node: Int = edge.argument_node;
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionStringArrayFormalIdentity(
+        signatures, surfaces.function_node_ids[surface_row], surfaces.expression_graph, graph_node);
+    if formal.ok { return formal.mode == 0 || formal.mode == 1 || formal.mode == 3; }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+        artifact, locals, inferred_types, surfaces, surface_row, graph_node);
+    if binding.ok {
+        return SemanticAstCollectionElementEscapeLocalReady(binding.row, released_ok, released_ids,
+            ownership, dispositions, origins, transition_states, origin_syntax_ids);
+    }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, graph_node);
+    if !IsSome(kind) { return false; }
+    if UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+        let field_id: Int = SemanticAstCollectionMemberPathFieldId(
+            artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+            surfaces.function_node_ids[surface_row], surfaces.node_ids[surface_row],
+            surfaces.expression_graph, graph_node);
+        if field_id > 0 { return !MapHas(released_ids, ToString(field_id)); }
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, graph_node);
+        if !member.ok { return false; }
+        let name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+        return IsSome(name) && UnwrapOption(name) != "" && !MapHas(released_names, UnwrapOption(name));
+    }
+    let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(surfaces.expression_graph, graph_node);
+    if !literal.ok { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(literal.element_nodes) {
+        let element: Int = literal.element_nodes[row];
+        let element_kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, element);
+        if !IsSome(element_kind) { return false; }
+        if UnwrapOption(element_kind) != AstExpressionNodeStringLiteral() {
+            let text: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+                signatures, surfaces.function_node_ids[surface_row], surfaces.expression_graph, element);
+            if !text.ok || text.declared_type_name != "String" || (text.mode != 0 && text.mode != 3) {
+                return false;
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+// The source field id of the last selector of a member path, resolved from
+// the root binding's type outward; 0 when a step does not resolve.
+func SemanticAstCollectionMemberPathFieldId(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    function_id: Int, syntax_id: Int, ref graph: SemanticExpressionGraphFacts, node: Int
+) -> Int {
+    let depth: Int = 0;
+    let leaf: Int = node;
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf);
+    while member.ok {
+        depth = depth + 1;
+        leaf = member.receiver_node;
+        member = SemanticMemberAccessViewFromGraph(graph, leaf);
+    }
+    let root: SemanticAstCollectionMemberRootIdentity = SemanticAstCollectionMemberRootIdentityForNode(
+        artifact, signatures, locals, inferred_types, resolved_leaf_types, function_id, syntax_id, graph, leaf);
+    if !root.ok || depth == 0 { return 0; }
+    let type_name: String = Concat("", root.type_name);
+    let field_id: Int = 0;
+    let level: Int = depth;
+    while level >= 1 {
+        let at: Int = node;
+        let hops: Int = level - 1;
+        while hops > 0 {
+            at = SemanticMemberAccessViewFromGraph(graph, at).receiver_node;
+            hops = hops - 1;
+        }
+        let selector: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, at);
+        let fact: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(graph, selector.member_node);
+        let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, fact.nominal_base_name);
+        if !selector.ok || fact.canonical_name != fact.nominal_base_name || !IsSome(field_name) ||
+            !IsSome(constructor) { return 0; }
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+            constructors, UnwrapOption(constructor), UnwrapOption(field_name));
+        if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.param_type_names) ||
+            UnwrapOption(field) >= ArrayLength(constructors.field_source_syntax_ids) { return 0; }
+        type_name = Concat("", constructors.param_type_names[UnwrapOption(field)]);
+        field_id = constructors.field_source_syntax_ids[UnwrapOption(field)];
+        level = level - 1;
+    }
+    return field_id;
+}
+
+// Whether the Array<String> read by an index node holds elements a routine
+// releases: an owned local, an empty local that took owned elements, or a
+// field some routine deep-drops (exact for a direct field of a binding, by
+// field name for a nested path).
+func SemanticAstCollectionIndexedSourceReleasable(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int, base: Int,
+    released_ok: Bool, released_ids: HashMap<String, Int>, released_names: HashMap<String, Int>,
+    ref ownership: Array<Int>, ref origins: Array<Int>,
+    ref transition_states: Array<Int>, ref origin_syntax_ids: Array<Int>
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, base);
+    if !IsSome(kind) { return true; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types, surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], surfaces.expression_graph, base);
+        if !binding.ok || !SemanticAstCollectionOwnershipIsStringArray(binding.type_name) { return false; }
+        let row: Int = binding.row;
+        if row >= ArrayLength(ownership) || row >= ArrayLength(origins) ||
+            row >= ArrayLength(transition_states) || row >= ArrayLength(origin_syntax_ids) { return true; }
+        if ownership[row] == SemanticAstCollectionOwnershipOwnedElements() { return true; }
+        if origins[row] == SemanticAstCollectionOriginEmptyLiteral() {
+            return transition_states[row] == SemanticAstCollectionTransitionOwned() ||
+                transition_states[row] == SemanticAstCollectionTransitionClean();
+        }
+        return origins[row] == SemanticAstCollectionOriginMemberMove() &&
+            (!released_ok || MapHas(released_ids, ToString(origin_syntax_ids[row])));
+    }
+    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() { return false; }
+    let field_id: Int = SemanticAstCollectionMemberPathFieldId(
+        artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+        surfaces.function_node_ids[surface_row], surfaces.node_ids[surface_row],
+        surfaces.expression_graph, base);
+    if field_id > 0 {
+        return !released_ok || MapHas(released_ids, ToString(field_id));
+    }
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, base);
+    if !member.ok { return true; }
+    let name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+    return !released_ok || !IsSome(name) || MapHas(released_names, UnwrapOption(name));
+}
+
+// The assignment at this syntax writes a field of the same root binding that
+// the read member path starts from.
+func SemanticAstCollectionElementStoredInOwnRoot(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int, syntax_id: Int, base: Int
+) -> Bool {
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(target) { return false; }
+    let written: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlaceForNode(
+        artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+        surfaces.function_node_ids[surface_row], syntax_id, surfaces.expression_graph, UnwrapOption(target));
+    let read: SemanticAstCollectionMemberPlace = SemanticAstCollectionMemberPlaceForNode(
+        artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+        surfaces.function_node_ids[surface_row], syntax_id, surfaces.expression_graph, base);
+    return written.root_binding_syntax_id > 0 && written.root_binding_syntax_id == read.root_binding_syntax_id;
+}
+
+// The non-indexed assignment at this syntax writes a String local.
+func SemanticAstCollectionAssignedStringLocal(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, syntax_id: Int, surface_row: Int
+) -> Bool {
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(target) { return false; }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, surfaces.function_node_ids[surface_row], syntax_id,
+        surfaces.expression_graph, UnwrapOption(target));
+    return binding.ok && binding.type_name == "String";
+}
+
+// An element of storage that a routine releases may only be observed in
+// place: a comparison or borrowed builtin operand, a borrow-only String
+// argument, or the value of a String local, whose loan the indexed String
+// borrow owner carries to the release. Any other consumer keeps the element
+// in storage or a result that can outlive the release.
+func SemanticAstCollectionOwnedElementEscapeAtEvent(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    borrowed_text: HashMap<String, Int>,
+    released_ok: Bool, released_ids: HashMap<String, Int>, released_names: HashMap<String, Int>,
+    ref ownership: Array<Int>, ref origins: Array<Int>,
+    ref transition_states: Array<Int>, ref origin_syntax_ids: Array<Int>,
+    root_slot: Int, node: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    // Lifetime events are leaves; an element read is the index over the
+    // leaf's member path.
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let surface_row: Int = root_slot / 3;
+    let root: Int = surfaces.expression_graph.roots[root_slot];
+    let base: Int = node;
+    let parent: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, base, root);
+    while parent >= 0 &&
+        surfaces.expression_graph.arena.topology.node_kinds[parent] == AstExpressionNodeMemberAccess() &&
+        surfaces.expression_graph.arena.topology.left_children[parent] == base {
+        base = parent;
+        parent = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, base, root);
+    }
+    if parent < 0 || surfaces.expression_graph.arena.topology.node_kinds[parent] != AstExpressionNodeIndex() ||
+        surfaces.expression_graph.arena.topology.left_children[parent] != base {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    if !SemanticAstCollectionIndexedSourceReleasable(
+            artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+            surfaces, surface_row, base, released_ok, released_ids, released_names,
+            ownership, origins, transition_states, origin_syntax_ids) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+    let text: Int = parent;
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    while consumer >= 0 && SemanticAstBorrowedTextThroughToString(surfaces.expression_graph, consumer, text) {
+        text = consumer;
+        consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    }
+    let syntax_id: Int = surfaces.node_ids[surface_row];
+    let observed: Bool = false;
+    if consumer < 0 && text == root {
+        let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+        let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, syntax_id);
+        let statement_kind: Int = -1;
+        if syntax_id >= 0 && syntax_id < ArrayLength(artifact.arena.kinds) {
+            statement_kind = artifact.arena.kinds[syntax_id];
+        }
+        if statement_kind == TypedAstKindLogStmtTag() || statement_kind == TypedAstKindMatchStmtTag() {
+            // Logging and matching read the text in place.
+            observed = true;
+        } else if root_slot % 3 == AstExpressionLaneAtom() {
+            // An assignment target names the place; it reads no element.
+            observed = IsSome(assigned);
+        } else if root_slot % 3 == AstExpressionLaneValue() && IsSome(assigned) &&
+            SemanticAstCollectionElementStoredInOwnRoot(artifact, signatures, constructors, locals,
+                inferred_types, resolved_leaf_types, surfaces, surface_row, syntax_id, base) {
+            // An element stored into a field of its own root shares that
+            // root's lifetime; the release retires both together.
+            observed = true;
+        } else if root_slot % 3 == AstExpressionLaneValue() {
+            observed = (IsSome(declared) && UnwrapOption(declared) < ArrayLength(inferred_types) &&
+                    inferred_types[UnwrapOption(declared)] == "String") ||
+                (!IsSome(declared) && IsSome(assigned) &&
+                    assignments.target_is_indexed[UnwrapOption(assigned)] == 0 &&
+                    SemanticAstCollectionAssignedStringLocal(artifact, locals, inferred_types, surfaces,
+                        syntax_id, surface_row));
+        }
+    } else if consumer >= 0 && IsSome(start) {
+        observed = SemanticAstBorrowedTextPrimitiveConsumer(surfaces, root_slot, UnwrapOption(start), consumer, text);
+        if !observed && surfaces.expression_graph.arena.topology.node_kinds[consumer] == AstExpressionNodeCallArgument() {
+            let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+            observed = edge.ok && edge.argument_node == text &&
+                SemanticAstStringFormalBorrowedArgument(signatures, surfaces.expression_graph,
+                    borrowed_text, edge.call_node, edge.ordinal);
+        }
+    }
+    if observed { return SemanticAstCollectionOwnershipVerdictOk(); }
+    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+        SemanticError2("borrow_boundary_escape", "boundary", "owned_element_escape", "type", "String"),
+        syntax_id, parent);
+}

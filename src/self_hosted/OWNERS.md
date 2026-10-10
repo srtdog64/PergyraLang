@@ -41,7 +41,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_member_place_owner.pgy` -- Exact member place identity: one root binding plus the declared type of a field path at any depth. A generic or unresolved step keeps only the root identity, so every consumer fails closed on that root.
 - `src/self_hosted/semantic/ast_collection_member_place_use_owner.pgy` -- Per-occurrence member place classification inside the member-transition pass: String element and nominal sub-place escapes with their lending edges, nested `Array<String>` read candidates of readonly formal or local roots, and the alias, write, consume or release hazards that block those reads. Grants no storage or release authority.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_element_borrow_owner.pgy` -- A deep-released aggregate keeps its release unproved while any root the release plan protects has a recorded element or sub-place escape, including one reached through a lent callee formal; reports the first borrow site.
-- `src/self_hosted/semantic/ast_string_formal_borrow_owner.pgy` -- Fixed-point borrow-only String formal summary: each occurrence is a primitive comparison operand, a borrowed builtin argument or an argument to another borrow-only formal of a synchronous body with no writable or consuming formal. Consumed by formal element-use effects and member element escapes; an absent formal may retain.
+- `src/self_hosted/semantic/ast_string_formal_borrow_owner.pgy` -- Fixed-point borrow-only String formal summary: each occurrence is a primitive comparison operand, a borrowed builtin argument or an argument to another borrow-only formal of a synchronous body with no writable or consuming formal. A text escape-free body (synchronous; result and inout/own formals hold no String) cannot keep borrowed text past its return, so its String formals are borrow-only unless an occurrence hands the text to a moving transfer (`ArrayPushOwned` or an `own` formal; `ArrayPushOwnedString` copies). Consumed by formal element-use effects, member element escapes and owned element escapes; an absent formal may retain.
 - `src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy` -- Current artifact generation, callable coverage and unsafe execution facts; one readiness lookup, with borrowed row views rather than descriptor copies.
 - `src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy` -- Complete omitted/deferred execution inventory for the named callable set. Formal effects retain all signature-callable coverage; storage preservation retains its exact formal subset.
 - `src/self_hosted/semantic/ast_collection_member_read_call_target_owner.pgy` -- Exact physical readonly call-target identity and declared boundary only; no mode-only lifetime grant.
@@ -673,7 +673,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   physical use-edge classification consumed by the formal-effect fixed point.
   Indexed String elements may reach only primitive equality or a canonical
   synchronous non-retaining builtin argument; unknown calls and cross-storage
-  borrowed-element stores remain blocked until an owned transfer exists.
+  borrowed-element stores remain blocked until an owned transfer exists,
+  except inside a text escape-free body, whose storage dies before the
+  element owner can release it (a moving transfer still blocks).
   A canonical release is consumption of an owning formal, not unresolved
   user-call forwarding. Caller element requirements and event order remain
   separate obligations.
@@ -817,10 +819,22 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   the current definition's explicit alias-admission and storage facts; borrowed
   storage alone is not a scope or dominance proof.
 - `src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy`
-  -- exact effect-3 inline `Array<String>` read admission. Static String
+  -- exact effect-3 `Array<String>` temporary read admission. Static String
   literals or exact allocated single-consumer element roots may reach the
-  synchronous last consumer; literal topology and borrowed indexed elements
-  grant nothing.
+  synchronous last consumer. A zero-argument call result cannot borrow
+  caller storage. A literal of String literals and live place reads is a
+  borrow when every other formal of the call is `ref` or holds no String
+  storage, so nothing in the call can release what it reads.
+- `src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy`
+  -- element lifetime at escapes. Released fields are the field ids some
+  routine deep-drops (DeepDrop requirement rows, complete before the scan).
+  A call into an unproved element-use formal is admitted for a caller
+  formal that is not `own`, a local whose elements are not owned (an empty
+  local stays borrowed), a member path whose resolved field is not
+  released, or a literal of String literals and borrowed String formals.
+  An element of releasable storage may only be compared, logged, matched,
+  passed to a borrowed builtin or borrow-only String formal, bound to a
+  String local, or stored into a field of its own root (`owned_element_escape`).
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.

@@ -1,0 +1,17 @@
+// An owned element kept by a retaining String formal outlives the release.
+struct Named {
+    name: String;
+    count: Int;
+}
+
+func NamedFrom(name: String) -> Named {
+    return Named(name, 1);
+}
+
+func Main() -> Int {
+    let a: Array<String> = [];
+    ArrayPushOwnedString(a, Concat("x", "y"));
+    let named: Named = NamedFrom(a[0]);
+    ArrayDropOwnedStrings(a);
+    return StringLength(named.name);
+}

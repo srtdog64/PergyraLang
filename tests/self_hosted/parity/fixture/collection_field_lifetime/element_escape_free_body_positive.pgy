@@ -1,0 +1,35 @@
+// A Bool-returning body cannot keep the text it hands to a retaining callee.
+struct Named {
+    name: String;
+    count: Int;
+}
+
+func NamedFrom(name: String) -> Named {
+    return Named(name, 1);
+}
+
+func Supported(type_name: String) -> Bool {
+    let named: Named = NamedFrom(type_name);
+    return named.count == 1 && type_name != "";
+}
+
+func Occupied(names: Array<String>, candidate: String) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        let named: Named = NamedFrom(names[i]);
+        if named.name == candidate { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["Int"];
+    let i: Int = 0;
+    while i < ArrayLength(types) {
+        if !Supported(types[i]) { return 1; }
+        i = i + 1;
+    }
+    if Occupied(types, "pgy") { return 2; }
+    return 0;
+}

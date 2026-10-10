@@ -1,13 +1,16 @@
-func Matches(values: Array<String>) -> Bool
+// Matches returns text, so it is not text escape-free: a retaining use of
+// its element is still an unproved element use.
+func Matches(values: Array<String>) -> String
 {
     let matched: Bool = values[0] == "copied";
     let decoy: Array<String> = ["ignored"];
-    return matched;
+    if matched { return "matched"; }
+    return "";
 }
 func Populate(inout values: Array<String>) -> Void
 {
     ArrayPushOwnedString(values, "copied");
-    let matched: Bool = Matches(values);
+    let matched: String = Matches(values);
 }
 func Forward(inout values: Array<String>) -> Void { Populate(values); }
 func Main() -> Void

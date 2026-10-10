@@ -1,0 +1,25 @@
+// A field some routine releases may not hand its elements to a retaining formal.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func Keep(xs: Array<String>) -> Array<String> {
+    let out: Array<String> = [];
+    ArrayPush(out, xs[0]);
+    return out;
+}
+
+func Main() -> Int {
+    let facts: SemanticAstExpressionFunctionTableFacts = OwnedTables();
+    let kept: Array<String> = Keep(facts.names);
+    SemanticAstExpressionFunctionTableFactsRelease(facts);
+    return StringLength(kept[0]);
+}

@@ -1,0 +1,19 @@
+// A read-only formal reads the result of a call with no argument.
+func NoUses() -> Array<String> {
+    let uses: Array<String> = [];
+    return uses;
+}
+
+func UseCount(name: String, uses: Array<String>) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(uses) {
+        if uses[i] == name { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Int {
+    return UseCount("a", NoUses()) + UseCount("b", NoUses());
+}

@@ -1,0 +1,8 @@
+// Elements of a released array may be logged and compared in place.
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "a");
+    Log(values[0]);
+    if values[0] == "a" { Log("eq"); }
+    ArrayDropOwnedStrings(values);
+}

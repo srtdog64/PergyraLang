@@ -1,7 +1,8 @@
 // Borrow-only String formals. A default or ref String formal of a synchronous
 // body with no writable or consuming formal is borrow-only when each of its
 // occurrences is a primitive comparison operand, a borrowed builtin argument,
-// or an argument to another borrow-only String formal. Such a callee cannot
+// or an argument to another borrow-only String formal, or when its body is
+// text escape-free. Such a callee cannot
 // retain, return or release the text, so a borrowed element may enter it
 // exactly as it enters a borrowed builtin argument. Any other occurrence
 // retains the text, and retention flows back along forwarding edges.
@@ -35,6 +36,49 @@ func SemanticAstStringFormalBorrowCandidate(
     while parameter < signatures.param_counts[row] {
         let mode: Int = signatures.param_modes[start + parameter];
         if mode == 1 || mode == 2 { return false; }
+        parameter = parameter + 1;
+    }
+    return true;
+}
+
+// Types whose values hold no String.
+func SemanticAstCollectionStringFreeTypeName(name: String) -> Bool {
+    return name == "Int" || name == "Bool" || name == "Long" || name == "Float" ||
+        name == "Double" || name == "Char" || name == "Array<Int>" ||
+        name == "Array<Bool>" || name == "Array<Long>" || name == "Array<Double>" ||
+        name == "Option<Int>" || name == "Option<Bool>" || name == "Option<Long>";
+}
+
+// A synchronous body whose result and writable formals hold no String cannot
+// keep text it borrows past its return. Whatever it builds from the text dies
+// in its frame, and a borrowed text is never released there.
+func SemanticAstFunctionTextEscapeFree(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts, row: Int
+) -> Bool {
+    if row < 0 || row >= ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.return_types) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_starts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_counts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.action_contracts.body_node_ids) != ArrayLength(signatures.function_node_ids) ||
+        signatures.action_contracts.body_node_ids[row] <= 0 { return false; }
+    let callee: Int = signatures.function_node_ids[row];
+    if callee <= 0 || callee >= artifact.count || ArrayLength(artifact.arena.modes) != artifact.count ||
+        artifact.arena.modes[callee] < 0 || artifact.arena.modes[callee] == TypedAstModeCallableAsync() {
+        return false;
+    }
+    if signatures.return_types[row] != "Void" &&
+        !SemanticAstCollectionStringFreeTypeName(signatures.return_types[row]) { return false; }
+    let start: Int = signatures.param_starts[row];
+    if start < 0 || signatures.param_counts[row] < 0 ||
+        start + signatures.param_counts[row] > ArrayLength(signatures.param_types) ||
+        ArrayLength(signatures.param_modes) != ArrayLength(signatures.param_types) { return false; }
+    let parameter: Int = 0;
+    while parameter < signatures.param_counts[row] {
+        let mode: Int = signatures.param_modes[start + parameter];
+        if (mode == 1 || mode == 2) &&
+            !SemanticAstCollectionStringFreeTypeName(signatures.param_types[start + parameter]) {
+            return false;
+        }
         parameter = parameter + 1;
     }
     return true;
@@ -129,7 +173,12 @@ func SemanticAstStringFormalBorrowOnlyFacts(
             while node <= root {
                 let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
                     signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, node);
-                if formal.ok && formal.declared_type_name == "String" {
+                if formal.ok && formal.declared_type_name == "String" &&
+                    SemanticAstFunctionTextEscapeFree(artifact, signatures, formal.signature_row) {
+                    if SemanticAstStringFormalOwningOccurrence(signatures, surfaces.expression_graph, node, root) {
+                        MapSet(retaining, ToString(formal.syntax_id), 1);
+                    }
+                } else if formal.ok && formal.declared_type_name == "String" {
                     let occurrence: Int = SemanticAstStringFormalOccurrence(
                         artifact, signatures, surfaces, slot, UnwrapOption(start), node, root);
                     if occurrence < 0 { MapSet(retaining, ToString(formal.syntax_id), 1); }
@@ -168,6 +217,34 @@ func SemanticAstStringFormalBorrowOnlyFacts(
         row = row + 1;
     }
     return borrow_only;
+}
+
+// An occurrence that hands the text to a moving transfer, which can release
+// it even inside an escape-free body. ArrayPushOwnedString copies its text.
+func SemanticAstStringFormalOwningOccurrence(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts,
+    node: Int, root: Int
+) -> Bool {
+    let consumer: Int = SemanticAstBorrowedTextConsumer(graph, node, root);
+    if consumer < 0 || graph.arena.topology.node_kinds[consumer] != AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    return edge.ok && edge.argument_node == node &&
+        (SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPushOwned") ||
+         SemanticAstCollectionOwnStringFormalArgument(signatures, graph, edge.call_node, edge.ordinal));
+}
+
+// A user call argument that enters an own formal, whose body may release it.
+func SemanticAstCollectionOwnStringFormalArgument(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, ordinal: Int
+) -> Bool {
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, graph, call_node, ordinal);
+    if !target.ok { return false; }
+    let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, target.signature_row, target.ordinal);
+    return !IsSome(mode) || UnwrapOption(mode) == 2;
 }
 
 // A user call argument that enters a borrow-only String formal.

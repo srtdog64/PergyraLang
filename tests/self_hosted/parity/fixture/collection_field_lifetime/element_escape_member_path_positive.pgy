@@ -1,0 +1,18 @@
+// A member path whose field no routine releases may hand its elements on.
+struct Header {
+    param_names: Array<String>;
+    count: Int;
+}
+
+func Keep(xs: Array<String>) -> Array<String> {
+    let out: Array<String> = [];
+    ArrayPush(out, xs[0]);
+    return out;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let header: Header = Header(names, 1);
+    let kept: Array<String> = Keep(header.param_names);
+    return ArrayLength(kept) + header.count;
+}

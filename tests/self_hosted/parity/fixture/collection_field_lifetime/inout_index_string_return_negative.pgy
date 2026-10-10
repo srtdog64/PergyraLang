@@ -6,12 +6,15 @@ func ReturnedIndexMatches(values: Array<String>) -> Bool {
     return values[0] == "escaped";
 }
 
-func EscapeAndMatch(values: Array<String>) -> Bool {
+func EscapeAndMatch(values: Array<String>) -> String {
     let escaped: String = EscapeIndexedString(values[0]);
-    return ReturnedIndexMatches(values) && escaped == "escaped";
+    if ReturnedIndexMatches(values) && escaped == "escaped" { return escaped; }
+    return "";
 }
 
 func Main() -> Void {
-    let values: Array<String> = ["escaped"];
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "escaped");
     Log(EscapeAndMatch(values));
+    ArrayDropOwnedStrings(values);
 }

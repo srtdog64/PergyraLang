@@ -231,6 +231,13 @@ INPUTS=(
     builtin_retention_text_builder_append_retainer_negative.pgy
     builtin_retention_array_push_owned_string_shadow_negative.pgy
     builtin_retention_unregistered_call_negative.pgy
+    read_temporary_zero_argument_call_positive.pgy read_temporary_borrowed_place_literal_positive.pgy
+    read_temporary_releasing_sibling_negative.pgy read_temporary_own_formal_element_negative.pgy
+    element_escape_static_root_positive.pgy element_escape_formal_chain_positive.pgy
+    element_escape_member_path_positive.pgy element_escape_free_body_positive.pgy
+    element_escape_released_member_negative.pgy element_escape_empty_then_owned_negative.pgy
+    owned_element_observe_positive.pgy owned_element_literal_escape_negative.pgy
+    owned_element_push_escape_negative.pgy owned_element_retaining_text_negative.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
@@ -251,7 +258,7 @@ INPUTS=(
     inout_index_branch_own_negative.pgy inout_index_before_own_positive.pgy inout_index_after_unknown_negative.pgy
     inout_index_after_shallow_positive.pgy
     inout_index_formal_shallow_positive.pgy inout_recursive_current_descriptor_positive.pgy
-    inout_index_before_unknown_positive.pgy inout_index_role_eq_drop_negative.pgy inout_index_role_ne_drop_negative.pgy
+    inout_index_before_unknown_positive.pgy inout_index_role_eq_drop_positive.pgy inout_index_role_ne_drop_positive.pgy
     inout_index_after_drop_negative.pgy inout_index_own_formal_drop_negative.pgy inout_index_nested_own_negative.pgy
     inout_index_formal_unknown_negative.pgy inout_index_formal_deferred_unknown_negative.pgy
     aggregate_release_source_reuse_negative.pgy aggregate_release_duplicate_storage_negative.pgy
@@ -587,12 +594,19 @@ builtin_retention_store_negative.pgy|unproved_formal_element_use_entry|StoreInde
 builtin_retention_text_builder_append_retainer_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
 builtin_retention_array_push_owned_string_shadow_negative.pgy|unproved_formal_element_use_entry|CopyIndexedString(source, destination)|Main
 builtin_retention_unregistered_call_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
-indexed_string_fresh_borrowed_element_negative.pgy|unproved_formal_indexed_read_entry|FirstMatches([source[0]])|Main
+indexed_string_fresh_borrowed_element_negative.pgy|owned_element_escape|FirstMatches([source[0]])|Main
 indexed_string_alias_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
 indexed_string_branch_rebind_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Observe
-indexed_string_unknown_call_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
+indexed_string_unknown_call_after_owned_drop_negative.pgy|owned_element_escape|borrowed|Main
 indexed_string_tostring_passthrough_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
 aggregate_owned_push_retaining_aggregate_negative.pgy|aggregate_release_incomplete|Observe(rows)|Append
+read_temporary_releasing_sibling_negative.pgy|unproved_formal_indexed_read_entry|ReadAfterRelease(holder, [first])|Main
+read_temporary_own_formal_element_negative.pgy|unproved_formal_indexed_read_entry|Has([text], "a")|Check
+element_escape_released_member_negative.pgy|unproved_formal_element_use_entry|kept|Main
+element_escape_empty_then_owned_negative.pgy|ArrayPushOwnedString|ArrayPushOwnedString(names, Concat("x", "y"))|Main
+owned_element_literal_escape_negative.pgy|owned_element_escape|b|Main
+owned_element_push_escape_negative.pgy|owned_element_escape|b|Main
+owned_element_retaining_text_negative.pgy|owned_element_escape|named|Main
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.
@@ -812,7 +826,7 @@ borrow_formal_assign_shared_read_negative.pgy|unproved_indexed_read_entry|Matche
 borrow_formal_assign_alias_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
 borrow_formal_assign_child_scope_negative.pgy|unproved_shallow_mutation_entry|Opaque(alias)|Observe
 generic_default_borrowed_return_negative.pgy|unproved_indexed_read_entry|GenericDefaultMatches(first)|Observe
-formal_read_cycle_escape_negative.pgy|unproved_formal_element_use_entry|EscapeCycleB(values)|EscapeCycleA
+formal_read_cycle_escape_negative.pgy|unproved_formal_element_use_entry|EscapeCycleA(values)|Main
 formal_read_cycle_partial_sink_negative.pgy|ArrayDropOwnedStrings|ArrayDropOwnedStrings(values)|Main
 BORROW_FORMAL_DIAGNOSTICS
     for input in storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy storage_opaque_alias_own_negative.pgy storage_shadowed_clone_own_negative.pgy; do
@@ -1008,7 +1022,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, eighty-three diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, ninety diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

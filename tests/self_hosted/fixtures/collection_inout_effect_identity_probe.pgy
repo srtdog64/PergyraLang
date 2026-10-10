@@ -593,7 +593,7 @@ func InspectOwnStorageAdmission(
                             MapSet(proved, formal_key, SemanticAstCollectionFormalUnprovedElementUseEffect());
                             let refused: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                                 artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                                analysis.expression_surfaces, slot / 3, edge, false, false, proved, effects.owned_push_leaf_formals,
+                                analysis.expression_surfaces, slot / 3, edge, false, false, false, proved, effects.owned_push_leaf_formals,
                                 requirements, field_requirements, ownership, dispositions, bundle.collection_ownership.origins,
                                 transitions, facts, storage, definitions, current_definitions, retained);
                             if refused.ok && pending_use.retirement_source > 0 {
@@ -606,7 +606,7 @@ func InspectOwnStorageAdmission(
                             MapSet(proved, formal_key, original_effect);
                             let admitted: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                                 artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                                analysis.expression_surfaces, slot / 3, edge, false, false, proved, effects.owned_push_leaf_formals,
+                                analysis.expression_surfaces, slot / 3, edge, false, false, false, proved, effects.owned_push_leaf_formals,
                                 requirements, field_requirements, ownership, dispositions, bundle.collection_ownership.origins,
                                 transitions, facts, storage, definitions, current_definitions, retained);
                             if admitted.ok && pending_use.retirement_source > 0 {

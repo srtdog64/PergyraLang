@@ -1,9 +1,105 @@
 // Exact inline Array<String> element-lifetime admission for synchronous reads.
 // Literal topology alone grants nothing: each non-static element must carry an
 // exact heap allocation domain and single-consumer proof through this call.
+// Two temporaries are read-only borrows instead: the result of a call with no
+// argument, which cannot borrow caller storage, and a literal of String
+// literals and live place reads when no argument of the call can release.
 
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "ast_owned_string_actual_exclusivity_owner.pgy";
+
+// Types whose storage holds no String, so no formal of these types can
+// release one.
+func SemanticAstCollectionReleaseFreeTypeName(name: String) -> Bool {
+    return name == "Int" || name == "Bool" || name == "Long" || name == "Float" ||
+        name == "Double" || name == "Char" || name == "String" ||
+        name == "Array<Int>" || name == "Array<Bool>" || name == "Array<Long>" ||
+        name == "Array<Double>";
+}
+
+// Strings are released only by a deep drop of storage that holds them. A
+// readonly formal, or one whose type holds no String storage, cannot do that.
+func SemanticAstCollectionReadCallReleaseFree(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, edge: SemanticCallArgumentEdgeView
+) -> Bool {
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, edge.call_node, edge.ordinal);
+    if !target.ok { return false; }
+    let row: Int = target.signature_row;
+    let ordinal: Int = 0;
+    while ordinal < signatures.param_counts[row] {
+        if ordinal != target.ordinal {
+            let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, row, ordinal);
+            let type_name: Option<String> = SemanticAstFunctionParamTypeAt(signatures, row, ordinal);
+            if !IsSome(mode) || !IsSome(type_name) { return false; }
+            if UnwrapOption(mode) != 3 &&
+                !SemanticAstCollectionReleaseFreeTypeName(UnwrapOption(type_name)) {
+                return false;
+            }
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+// The number of live place reads when every element is a String literal or
+// such a read: a String local, a borrowed String formal, or a member or
+// indexed path rooted at a local or borrowed formal. Otherwise -1.
+func SemanticAstCollectionReadLiteralBorrowedPlaces(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
+    ref literal: SemanticArrayLiteralView
+) -> Int {
+    let function_id: Int = surfaces.function_node_ids[surface_row];
+    let places: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(literal.element_nodes) {
+        let element: Int = literal.element_nodes[row];
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, element);
+        if !IsSome(kind) { return -1; }
+        if UnwrapOption(kind) != AstExpressionNodeStringLiteral() {
+            let root: Int = element;
+            let root_kind: Int = UnwrapOption(kind);
+            while root_kind == AstExpressionNodeMemberAccess() || root_kind == AstExpressionNodeIndex() {
+                let next: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, root);
+                if root_kind == AstExpressionNodeMemberAccess() {
+                    let member: SemanticMemberAccessView =
+                        SemanticMemberAccessViewFromGraph(surfaces.expression_graph, root);
+                    if !member.ok { return -1; }
+                    next = Some(member.receiver_node);
+                }
+                if !IsSome(next) { return -1; }
+                root = UnwrapOption(next);
+                let next_kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, root);
+                if !IsSome(next_kind) { return -1; }
+                root_kind = UnwrapOption(next_kind);
+            }
+            if root_kind != AstExpressionNodeLeaf() { return -1; }
+            let formal: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionSourceFormalIdentity(
+                    signatures, function_id, surfaces.expression_graph, root);
+            if formal.ok {
+                if (formal.mode != 0 && formal.mode != 3) ||
+                    (root == element && formal.declared_type_name != "String") {
+                    return -1;
+                }
+            } else {
+                let local_binding: SemanticAstLocalBindingIdentity =
+                    SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, locals, initializer_types.inferred_type_names, function_id,
+                        surfaces.node_ids[surface_row], surfaces.expression_graph, root);
+                if !local_binding.ok || (root == element && local_binding.type_name != "String") { return -1; }
+            }
+            places = places + 1;
+        }
+        row = row + 1;
+    }
+    return places;
+}
 
 func SemanticAstCollectionReadLiteralArgumentReady(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -25,9 +121,20 @@ func SemanticAstCollectionReadLiteralArgumentReady(
     if formal <= 0 || !MapHas(proved, key) || MapGet(proved, key) != 3 {
         return false;
     }
+    let inner: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, edge.argument_node);
+    if inner.ok && inner.call_node == edge.argument_node && ArrayLength(inner.argument_nodes) == 0 {
+        let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            surfaces.expression_graph, inner.callee_node);
+        return IsSome(callee_kind) && UnwrapOption(callee_kind) == AstExpressionNodeLeaf();
+    }
     let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(
         surfaces.expression_graph, edge.argument_node);
     if !literal.ok { return false; }
+    if SemanticAstCollectionReadLiteralBorrowedPlaces(
+            artifact, signatures, locals, initializer_types, surfaces, surface_row, literal) > 0 {
+        return SemanticAstCollectionReadCallReleaseFree(signatures, surfaces.expression_graph, edge);
+    }
     let row: Int = 0;
     while row < ArrayLength(literal.element_nodes) {
         let element: Int = literal.element_nodes[row];

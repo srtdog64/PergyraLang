@@ -1,9 +1,10 @@
 func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
-func Opaque(ref values: Array<String>) -> Void {
-    if ArrayLength(values) > 0 { Log(values[0]); }
+func Opaque(ref values: Array<String>) -> String {
+    if ArrayLength(values) > 0 { return values[0]; }
+    return "";
 }
 func Forward(own values: Array<String>) -> Int {
-    Opaque(values);
+    Log(Opaque(values));
     let rejected_unknown_formal: Int = Metadata(values);
     return rejected_unknown_formal;
 }
