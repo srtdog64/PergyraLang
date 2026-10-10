@@ -104,7 +104,7 @@ func DirectMirScalarProgramIndexedAssignmentFactSetFromOwners(
                 (capture.abi_type_name == CompilerAbiLayoutArrayIntTypeName() ||
                  capture.abi_type_name == CompilerAbiLayoutArrayStringTypeName()) {
             let instruction_fact: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-                admitted.routines.source_json,
+                admitted.routines.source_json, admitted.routines.source_json_extent,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]);
             let target: MirExpressionGraphSequence =

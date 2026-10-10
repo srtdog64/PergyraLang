@@ -1,0 +1,7 @@
+// The witness was measured before the source was replaced by a shorter one.
+func Main() -> Void {
+    let mut s: String = Concat("abc", "def");
+    let n: Int = StringLength(s);
+    s = "";
+    Print(ToString(CharCode(s, n, 5)));
+}

@@ -13,8 +13,9 @@ func SemanticAstSignatureTypeTextChildren(
     canonical: String,
     base: String
 ) -> Array<String> {
+    let source_extent: Int = StringLength(source);
     let shape: Array<String> = [];
-    if start >= 0 && end >= start && end <= StringLength(source) &&
+    if start >= 0 && end >= start && end <= source_extent &&
         canonical != "" && base != "" {
         let open_angle: Int = SourceByteOf("<");
         let close_angle: Int = SourceByteOf(">");
@@ -33,7 +34,7 @@ func SemanticAstSignatureTypeTextChildren(
             let at_end: Bool = i == end;
             let c: Int = -1;
             if !at_end {
-                c = SourceByteAt(source, StringLength(source), i);
+                c = SourceByteAt(source, source_extent, source_extent, i);
             }
             if !at_end && c == open_angle {
                 angle_depth = angle_depth + 1;
@@ -75,7 +76,7 @@ func SemanticAstSignatureTypeTextChildren(
                 let at_end: Bool = i == end;
                 let c: Int = -1;
                 if !at_end {
-                    c = SourceByteAt(source, StringLength(source), i);
+                    c = SourceByteAt(source, source_extent, source_extent, i);
                 }
                 if !at_end && c == open_angle {
                     angle_depth = angle_depth + 1;
@@ -116,7 +117,7 @@ func SemanticAstSignatureTypeTextShape(
         let close: Int = UnwrapOption(function_close);
         let arrow: Int = close + 1;
         while arrow < n && SourceByteIsWhitespace(
-            SourceByteAt(text, n, arrow)
+            SourceByteAt(text, n, n, arrow)
         ) {
             arrow = arrow + 1;
         }

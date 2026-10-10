@@ -415,19 +415,19 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let direct_cursor: Array<Int> = [0];
     let direct_fact: ParserExpressionFact = ParseExprFact(
-        "ToInt(1)", 0, direct_cursor
+        "ToInt(1)", 8, 0, direct_cursor
     );
     let member_cursor: Array<Int> = [0];
     let member_fact: ParserExpressionFact = ParseExprFact(
-        "box.Get()", 0, member_cursor
+        "box.Get()", 9, 0, member_cursor
     );
     let list_cursor: Array<Int> = [0];
     let list_fact: ParserExpressionFact = ParseExprFact(
-        "ListGet(items, 0)", 0, list_cursor
+        "ListGet(items, 0)", 17, 0, list_cursor
     );
     let clone_cursor: Array<Int> = [0];
     let clone_fact: ParserExpressionFact = ParseExprFact(
-        "Clone(box)", 0, clone_cursor
+        "Clone(box)", 10, 0, clone_cursor
     );
     if !direct_fact.ok || direct_cursor[0] != 8 ||
         !member_fact.ok || member_cursor[0] != 9 || !list_fact.ok ||

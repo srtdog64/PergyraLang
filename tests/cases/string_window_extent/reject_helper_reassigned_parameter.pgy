@@ -1,0 +1,11 @@
+// A helper that changes its extent parameter cannot carry a requirement.
+func CodeAt(text: String, n: Int, i: Int) -> Int {
+    let mut m: Int = n;
+    m = m + 100;
+    return CharCode(text, m, i);
+}
+
+func Main() -> Void {
+    let s: String = Concat("a", "b");
+    Print(ToString(CodeAt(s, StringLength(s), 50)));
+}

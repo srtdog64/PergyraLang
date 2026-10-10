@@ -30,7 +30,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );
@@ -60,7 +60,7 @@ func DirectMirScalarCfgArrayIntReverseFromOwners(
                 );
             let abi_opt: Option<MirAbiLayoutRowCapture> =
                 MirCapturedRequiredAbiLayoutRowAdmission(
-                    admitted.routines.source_json, capture.abi_type_name,
+                    admitted.routines.source_json, admitted.routines.source_json_extent, capture.abi_type_name,
                     capture.abi_type_value_ready, capture.abi_type_start,
                     capture.abi_type_end, capture.abi_layout_id_start,
                     capture.abi_layout_id_end,

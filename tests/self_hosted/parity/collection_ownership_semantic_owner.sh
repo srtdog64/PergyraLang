@@ -19,6 +19,11 @@ IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_iden
 STATE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy"
 MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy"
 MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy"
+MEMBER_RESULT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy"
+MEMBER_RESTORATION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy"
+MEMBER_CAPTURE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy"
+MEMBER_CAPTURE_SOURCE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy"
+MEMBER_CAPTURE_SITE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy"
 BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy"
 DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
 FIELD_FIXTURE_DIR="tests/self_hosted/parity/fixture/collection_field_lifetime"
@@ -111,7 +116,8 @@ grep -Fq 'SemanticAstCollectionOriginClone()' "$STATE_OWNER" ||
 grep -Fq 'SemanticAstCollectionOriginCallResult()' "$STATE_OWNER" ||
     fail "unknown call-result origin is missing from the collection state owner"
 ! grep -Fq 'Slot<' "$OWNER" "$IDENTITY_OWNER" "$STATE_OWNER" \
-        "$MEMBER_MOVE_OWNER" "$MEMBER_TRANSITION_OWNER" ||
+        "$MEMBER_MOVE_OWNER" "$MEMBER_TRANSITION_OWNER" "$MEMBER_RESULT_OWNER" \
+        "$MEMBER_RESTORATION_OWNER" "$MEMBER_CAPTURE_OWNER" "$MEMBER_CAPTURE_SOURCE_OWNER" "$MEMBER_CAPTURE_SITE_OWNER" ||
     fail "ordinary collection ownership imported Slot semantics"
 
 mkdir -p "$ROOT_DIR/.tmp/self_hosted"

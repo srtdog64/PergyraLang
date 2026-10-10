@@ -143,7 +143,7 @@ func DirectMirInferredGenericMemberInstructionAdmissionFromProgram(
         )
     ];
     let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[3]],
         admitted.routines.instruction_ends[globals[3]]
     );
@@ -162,19 +162,19 @@ func DirectMirInferredGenericMemberInstructionAdmissionFromProgram(
         nested_call.name != "ssa-def" || output.name != "stmt" ||
         method_return.arg0 != "" || method_return.arg1 != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, method_return,
+            admitted.routines.source_json, admitted.routines.source_json_extent, method_return,
             identity.generic_method.generic_name
         ) || constructor.arg0 != identity.graph.receiver_local_name ||
         constructor.arg1 != identity.declaration.name ||
         constructor.expr1 != identity.declaration.name ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, constructor,
+            admitted.routines.source_json, admitted.routines.source_json_extent, constructor,
             identity.declaration.name
         ) || nested_call.arg0 != identity.graph.result_local_name ||
         nested_call.arg1 != "" ||
         nested_call.expr1 != CompilerAbiLayoutIntTypeName() ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, nested_call,
+            admitted.routines.source_json, admitted.routines.source_json_extent, nested_call,
             CompilerAbiLayoutIntTypeName()
         ) || output.arg0 != "Log" || output.arg1 != "" ||
         !DirectMirLogInstructionEnvelopeReady(output_object, "2") {

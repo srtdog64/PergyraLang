@@ -8,7 +8,7 @@ import "expr_precedence_owner.pgy";
 func ParserExpressionDirectCallCalleeContractReady() -> Bool {
     let cursor: Array<Int> = [0];
     let source: String = "Mutate(value)";
-    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let call: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     let callee: Option<String> = ParserExpressionDirectCallCalleeName(call);
     return call.ok && cursor[0] == StringLength(source) &&
         IsSome(callee) && UnwrapOption(callee) == "Mutate";
@@ -17,7 +17,7 @@ func ParserExpressionDirectCallCalleeContractReady() -> Bool {
 func ParserExpressionArrayLiteralGraphContractReady() -> Bool {
     let source: String = "[1 + 2, Double(4)]";
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) ||
         fact.arena.node_kinds[fact.root] !=
             AstExpressionNodeArrayElement() {
@@ -44,7 +44,7 @@ func ParserExpressionStructLiteralGraphContractReady() -> Bool {
     let canonical: String =
         "Pair { left: (1 + 2), right: Next(3) }";
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) ||
         fact.arena.node_kinds[fact.root] !=
             AstExpressionNodeStructField() || fact.text != canonical ||
@@ -81,7 +81,7 @@ func ParserExpressionStructLiteralGraphContractReady() -> Bool {
 func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {
     let cursor: Array<Int> = [0];
     let source: String = "Log(ToString(20 + 22))";
-    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let call: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     let argument: ParserExpressionFact =
         ParserExpressionNamedSingleCallArgument(call, "Log");
     return call.ok && argument.ok &&
@@ -94,7 +94,7 @@ func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {
 func ParserExpressionNamedCallArgumentAtContractReady() -> Bool {
     let cursor: Array<Int> = [0];
     let source: String = "ArrayPush(nodes, Node(2, \"Let\"))";
-    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let call: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     let argument: ParserExpressionFact =
         ParserExpressionNamedCallArgumentAt(call, "ArrayPush", 1);
     return call.ok && argument.ok &&

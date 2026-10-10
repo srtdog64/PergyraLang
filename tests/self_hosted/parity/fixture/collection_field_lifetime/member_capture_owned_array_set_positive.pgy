@@ -1,0 +1,6 @@
+struct Table { names: Array<String>; }
+func Store(inout captured: Array<Table>) -> Void {
+    let value: Table = Table(["owned"]);
+    ArraySet(captured, 0, value);
+}
+func Main() -> Void {}

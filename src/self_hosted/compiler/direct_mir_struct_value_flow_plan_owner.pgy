@@ -85,7 +85,7 @@ func DirectMirStructValueFlowPlanFromAdmitted(
         );
     let abi: DirectMirStructValueFlowAbiFact =
         DirectMirStructValueFlowAbiFactFromCaptures(
-            admitted.routines.source_json, identity, instructions.returned,
+            admitted.routines.source_json, admitted.routines.source_json_extent, identity, instructions.returned,
             instructions.initial, instructions.assignment, instructions.result
         );
     let plan: DirectMirStructValueFlowPlan = DirectMirStructValueFlowPlan(

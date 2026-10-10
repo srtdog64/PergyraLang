@@ -5,7 +5,7 @@ import "source_location_observation_owner.pgy";
 import "expression_scalar_fact_owner.pgy";
 
 func ParseWhileStmt(
-    content: String,
+    content: String, content_extent: Int,
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
@@ -15,7 +15,7 @@ func ParseWhileStmt(
 ) -> String {
     let i: Int = after_head;
     ArraySet(cursor_out, 0, i);
-    let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
+    let condition: ParserExpressionFact = ParseExprFact(content, content_extent, i, cursor_out);
     if !condition.ok { ParseExpressionRefuse(location_context, condition, i, "statement"); }
     ParserExpressionGraphsAppendInto(
         expression_graphs, TypedAstKindWhileStmtTag(),
@@ -68,7 +68,7 @@ func ParseLoopStmt(
 }
 
 func ParseForStmt(
-    content: String,
+    content: String, content_extent: Int,
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
@@ -92,7 +92,7 @@ func ParseForStmt(
     i = LanguageWordEnd(i, LanguageWordId.WordIn);
     ArraySet(cursor_out, 0, i);
     let lower_fact: ParserExpressionFact = ParseExprFact(
-        content, i, cursor_out
+        content, content_extent, i, cursor_out
     );
     if !lower_fact.ok { ParseExpressionRefuse(location_context, lower_fact, i, "statement"); }
     let lower: String = lower_fact.text;
@@ -107,7 +107,7 @@ func ParseForStmt(
         i = after_lower + 2;
         ArraySet(cursor_out, 0, i);
         let upper_fact: ParserExpressionFact = ParseExprFact(
-            content, i, cursor_out
+            content, content_extent, i, cursor_out
         );
         if !upper_fact.ok { ParseExpressionRefuse(location_context, upper_fact, i, "statement"); }
         let upper: String = upper_fact.text;

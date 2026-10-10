@@ -53,7 +53,7 @@ func SemanticAstExpressionOperatorRowsAppend(
     inout rows: Array<Int>,
     operators: SemanticTopLevelOperatorFacts,
     normalized_text: String
-) -> Void {
+, normalized_text_extent: Int) -> Void {
     ArrayPush(rows, operators.logical_index);
     ArrayPush(rows, operators.logical_or_index);
     ArrayPush(rows, operators.logical_and_index);
@@ -67,7 +67,7 @@ func SemanticAstExpressionOperatorRowsAppend(
     let additive_operator_code: Int = -1;
     if operators.additive_index >= 0 {
         additive_operator_code = SourceByteAt(
-            normalized_text, StringLength(normalized_text),
+            normalized_text, normalized_text_extent, StringLength(normalized_text),
             operators.additive_index
         );
     }
@@ -141,9 +141,12 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
             if IsSome(value) { value_text = UnwrapOption(value); }
             if IsSome(auxiliary) { auxiliary_text = UnwrapOption(auxiliary); }
             let normalized_atom: String = SemanticStripOuterParens(atom_text);
+            let normalized_atom_extent: Int = StringLength(normalized_atom);
             let normalized_value: String = SemanticStripOuterParens(value_text);
+            let normalized_value_extent: Int = StringLength(normalized_value);
             let normalized_auxiliary: String =
                 SemanticStripOuterParens(auxiliary_text);
+            let normalized_auxiliary_extent: Int = StringLength(normalized_auxiliary);
             let function_node_id: Int = -1;
             let function_node: Option<Int> =
                 SemanticAstFunctionScopeNodeId(function_scopes, node_id);
@@ -166,19 +169,19 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
                 operator_rows,
                 SemanticTopLevelOperatorFactsFromExpression(normalized_atom),
                 normalized_atom
-            );
+            , normalized_atom_extent);
             SemanticAstExpressionOperatorRowsAppend(
                 operator_rows,
                 SemanticTopLevelOperatorFactsFromExpression(normalized_value),
                 normalized_value
-            );
+            , normalized_value_extent);
             SemanticAstExpressionOperatorRowsAppend(
                 operator_rows,
                 SemanticTopLevelOperatorFactsFromExpression(
                     normalized_auxiliary
                 ),
                 normalized_auxiliary
-            );
+            , normalized_auxiliary_extent);
             let lane: Int = AstExpressionLaneAtom();
             while lane <= AstExpressionLaneAuxiliary() {
                 ArrayPush(graph_roots, 0);

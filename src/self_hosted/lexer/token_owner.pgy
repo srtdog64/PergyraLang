@@ -3,12 +3,14 @@
 import "fixture_manifest_owner.pgy";
 import "char_owner.pgy";
 import "language_keyword_registry_projection_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 struct LexerTokenFact {
     ordinal: Int;
     kind: String;
     text: String;
     source_text: String;
+    source_text_extent: Int;
     line: Int;
     column: Int;
 }
@@ -20,8 +22,8 @@ func LexerDocCommentExactLexemeReady(fact: LexerTokenFact) -> Bool {
     }
     let i: Int = 3;
     while i < source_length &&
-        (CharCode(fact.source_text, source_length, i) == 32 ||
-         CharCode(fact.source_text, source_length, i) == 9) {
+        (StringWindowCharCode(fact.source_text, fact.source_text_extent, source_length, i) == 32 ||
+         StringWindowCharCode(fact.source_text, fact.source_text_extent, source_length, i) == 9) {
         i = i + 1;
     }
     return Substring(fact.source_text, i, source_length - i) == fact.text;
@@ -135,19 +137,19 @@ func LexerTokenFactReady(fact: LexerTokenFact) -> Bool {
 
 func LexerTokenExactLexemeContractReady() -> Bool {
     let forged_doc: LexerTokenFact = LexerTokenFact(
-        1, "DOC_COMMENT", "safe", "Log(1);", 1, 1
+        1, "DOC_COMMENT", "safe", "Log(1);", 7, 1, 1
     );
     let forged_interpolation: LexerTokenFact = LexerTokenFact(
-        1, "INTERPOLATED_STRING", "\"x\"", "\"x\"", 1, 1
+        1, "INTERPOLATED_STRING", "\"x\"", "\"x\"", StringLength("\"x\""), 1, 1
     );
     let forged_structure: LexerTokenFact = LexerTokenFact(
-        1, "}", "Log(1);", "Log(1);", 1, 1
+        1, "}", "Log(1);", "Log(1);", 7, 1, 1
     );
     let valid_doc: LexerTokenFact = LexerTokenFact(
-        1, "DOC_COMMENT", "safe", "/// safe", 1, 5
+        1, "DOC_COMMENT", "safe", "/// safe", 8, 1, 5
     );
     let valid_interpolation: LexerTokenFact = LexerTokenFact(
-        1, "INTERPOLATED_STRING", "\"x\"", "$\"x\"", 1, 2
+        1, "INTERPOLATED_STRING", "\"x\"", "$\"x\"", StringLength("$\"x\""), 1, 2
     );
     return !LexerTokenFactReady(forged_doc) &&
         !LexerTokenFactReady(forged_interpolation) &&
@@ -218,9 +220,9 @@ func LexerTokenFactLine(fact: LexerTokenFact) -> String {
     return StringJoin(parts, "");
 }
 
-func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> String {
+func TokenLine(idx: Int, ttype: String, text: String, text_extent: Int, line: Int, col: Int) -> String {
     return LexerTokenFactLine(
-        LexerTokenFact(idx, ttype, text, text, line, col)
+        LexerTokenFact(idx, ttype, text, text, text_extent, line, col)
     );
 }
 
@@ -259,7 +261,7 @@ func LexerTokenPayloadKeywordReady() -> Bool {
 }
 
 func LexerTokenPayloadFormatReady() -> Bool {
-    return TokenLine(1, "FUNC", "func", 7, 1) == "   1  Token{type: FUNC, text: \"func\", line: 7, col: 1}";
+    return TokenLine(1, "FUNC", "func", 4, 7, 1) == "   1  Token{type: FUNC, text: \"func\", line: 7, col: 1}";
 }
 
 func LexerTokenPayloadContractReady() -> Bool {

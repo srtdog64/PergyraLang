@@ -254,6 +254,10 @@ const char *mir_routine_source_local_type_name(
     const MIRRoutine *routine, const char *local_name);
 const MIRSourceLocalType *mir_routine_source_local_type_fact(
     const MIRRoutine *routine, const char *local_name);
+/* Lexical consumers must join the checker-sealed declaration identity, not
+ * the first row with the same display name. Ambiguous/missing IDs fail closed. */
+const MIRSourceLocalType *mir_routine_source_local_type_fact_by_binding_syntax_id(
+    const MIRRoutine *routine, uint32_t binding_syntax_id);
 size_t      mir_routine_source_local_type_count(const MIRRoutine *routine);
 const char *mir_routine_source_local_name_at(const MIRRoutine *routine,
                                              size_t index);

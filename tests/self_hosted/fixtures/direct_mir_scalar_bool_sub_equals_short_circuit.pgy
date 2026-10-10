@@ -4,10 +4,10 @@ func JsonTrueAt(json: String, end: Int, start: Int) -> Bool {
 }
 
 func NestedShortCircuitExit(
-    left: Bool, compare: Bool, inner: Bool, json: String
+    left: Bool, compare: Bool, inner: Bool, json: String, end: Int
 ) -> Bool {
     return left || (compare !=
-        (inner || SubEqualsWithLen(json, 4, 0, 4, "true")));
+        (inner || SubEqualsWithLen(json, end, 0, 4, "true")));
 }
 
 func Main() -> Void {
@@ -17,5 +17,5 @@ func Main() -> Void {
     if !JsonTrueAt("false", 5, 0) {
         Log(0);
     }
-    if NestedShortCircuitExit(false, false, false, "true") { Log(2); }
+    if NestedShortCircuitExit(false, false, false, "true", 4) { Log(2); }
 }

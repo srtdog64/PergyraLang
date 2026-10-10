@@ -69,7 +69,7 @@ func BuildMirRoutineInstructionMatchFacts(
         while instruction_offset < instruction_count {
             let global_row: Int = instruction_start + instruction_offset;
             let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-                routines.source_json,
+                routines.source_json, routines.source_json_extent,
                 routines.instruction_starts[global_row],
                 routines.instruction_ends[global_row]
             );

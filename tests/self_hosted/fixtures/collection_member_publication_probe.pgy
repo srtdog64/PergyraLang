@@ -1,0 +1,89 @@
+// Publication sentinels are not source-level permission facts. Generation
+// comes from the parser/analyzer; deliberately invalid closure rows test order.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let mode: String = args[0];
+    if mode != "early" && mode != "capture-unready" && mode != "context-unready" &&
+        mode != "digest" && mode != "count" && mode != "read-partial" &&
+        mode != "escape-partial" && mode != "nested-invalid" && mode != "success" { Exit(2); }
+    let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
+        "publication_generation.pgy", "func Main() -> Void {}", false));
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Exit(2); }
+    let empty: Array<Int> = [];
+    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+        analysis.expression_surfaces, empty, empty);
+    let candidates: Array<Int> = [];
+    let contexts: SemanticAstCollectionFormalExecutionContexts = SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+        artifact, candidates, analysis.function_scopes, analysis.expression_surfaces, order);
+    if !contexts.ok { Exit(2); }
+    let found: Bool = mode == "early";
+    let capture: SemanticAstCollectionMemberCaptureWitness =
+        SemanticAstCollectionMemberCaptureWitness(mode != "early" && mode != "capture-unready", 91, 92);
+    if mode == "early" || mode == "context-unready" { contexts.ok = false; }
+    if mode == "early" || mode == "digest" { contexts.artifact_identity_digest = contexts.artifact_identity_digest + 1; }
+    if mode == "early" || mode == "count" { contexts.artifact_node_count = contexts.artifact_node_count + 1; }
+    let restored: Array<Int> = [101, 102];
+    let sites: Array<Int> = [111, 112];
+    let readable: HashMap<String, Int> = MapNew(); MapSet(readable, "401", 501);
+    let blocked: HashMap<String, Int> = MapNew(); MapSet(blocked, "202", 7);
+    let escapes: HashMap<String, Int> = MapNew(); MapSet(escapes, "302", 902);
+    let nested_blocked: HashMap<String, Int> = MapNew(); MapSet(nested_blocked, "502", 1);
+    let readonly_origins: Array<Int> = [701, 702];
+    let read_sources: Array<Int> = [201];
+    let read_targets: Array<Int> = [202];
+    if mode == "early" || mode == "read-partial" { ArrayPush(read_sources, 0); ArrayPush(read_targets, 202); }
+    if mode == "success" { ArrayPush(read_sources, 203); ArrayPush(read_targets, 201); }
+    let escape_sources: Array<Int> = [301];
+    let escape_targets: Array<Int> = [302];
+    let escape_sites: Array<Int> = [901];
+    if mode == "early" || mode == "escape-partial" {
+        ArrayPush(escape_sources, 0); ArrayPush(escape_targets, 302); ArrayPush(escape_sites, 903);
+    }
+    if mode == "success" {
+        ArrayPush(escape_sources, 303); ArrayPush(escape_targets, 301); ArrayPush(escape_sites, 903);
+    }
+    let nested_nodes: Array<Int> = [601, 602];
+    let nested_roots: Array<Int> = [501, 503];
+    let lend_sources: Array<Int> = [501];
+    let lend_targets: Array<Int> = [201];
+    if mode == "success" { lend_targets[0] = 203; }
+    if mode == "early" || mode == "nested-invalid" { ArrayPop(nested_roots); }
+    let result: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUsePublish(
+        artifact, contexts, found, 71, 81, capture,
+        restored, sites, readable, blocked, escapes, nested_blocked, readonly_origins,
+        read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+        nested_nodes, nested_roots, lend_sources, lend_targets);
+    Log("result=" + ToString(result.found) + ":" + ToString(result.syntax_node_id) + ":" +
+        ToString(result.expression_node_id) + ":" + ToString(result.read_permission_ready));
+    Log("capture=" + ToString(result.capture_syntax_node_id) + ":" + ToString(result.capture_expression_node_id));
+    Log("restored=" + ToString(ArrayLength(result.restored_binding_syntax_ids)) + ":" +
+        ToString(result.restored_binding_syntax_ids[0]) + ":" + ToString(result.restored_binding_syntax_ids[1]));
+    Log("sites=" + ToString(ArrayLength(result.restoration_syntax_ids)) + ":" +
+        ToString(result.restoration_syntax_ids[0]) + ":" + ToString(result.restoration_syntax_ids[1]));
+    let result_readable: HashMap<String, Int> = result.readable_members;
+    let result_blocked: HashMap<String, Int> = result.unproved_read_roots;
+    let result_escapes: HashMap<String, Int> = result.element_escape_roots;
+    Log("sizes=" + ToString(MapSize(result_readable)) + ":" + ToString(MapSize(result_blocked)) + ":" + ToString(MapSize(result_escapes)));
+    let readable_keys: Array<String> = MapKeys(result_readable);
+    let blocked_keys: Array<String> = MapKeys(result_blocked);
+    let escape_keys: Array<String> = MapKeys(result_escapes);
+    let row: Int = 0;
+    while row < ArrayLength(readable_keys) {
+        Log("readable:" + readable_keys[row] + "=" + ToString(MapGet(result_readable, readable_keys[row]))); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(blocked_keys) {
+        Log("blocked:" + blocked_keys[row] + "=" + ToString(MapGet(result_blocked, blocked_keys[row]))); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(escape_keys) {
+        Log("escape:" + escape_keys[row] + "=" + ToString(MapGet(result_escapes, escape_keys[row]))); row = row + 1;
+    }
+}

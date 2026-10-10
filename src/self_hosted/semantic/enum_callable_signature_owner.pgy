@@ -139,7 +139,8 @@ func SeedDeclaredEnumVariantSignatures(
 }
 
 func SemanticEnumCallableProjectionContractReady() -> Bool {
-    let source: String = "enum ImportedDecision {\n  ImportedReady\n  ImportedValue(value: Int)\n  func StableCode(self) -> Int { return 7; }\n  ImportedPair(left: Int, right: String)\n}\n";
+    let source: String = "enum ImportedDecision {\n  ImportedReady\n  ImportedValue(value: Int)\n  func StableCode(self) -> Int { return 7;
+    let source_extent: Int = StringLength(source); }\n  ImportedPair(left: Int, right: String)\n}\n";
     let names: Array<String> = [];
     let returns: Array<String> = [];
     let params: Array<String> = [];

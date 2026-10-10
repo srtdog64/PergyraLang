@@ -220,7 +220,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
             let source: String =
                 admitted.routines.instruction_source_types[global_row];
             let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-                admitted.routines.source_json,
+                admitted.routines.source_json, admitted.routines.source_json_extent,
                 admitted.routines.instruction_starts[global_row],
                 admitted.routines.instruction_ends[global_row]);
             let capture: MirRoutineInstructionScalarCapture =
@@ -232,27 +232,27 @@ func DirectMirScalarCfgProgramAppendRoutine(
             if !capture.valid { DirectMirScalarCfgProgramRoutineAdmissionFailed(
                 "instruction_capture", routine_ordinal, block, global_row, source); return invalid; }
             if DirectMirScalarCfgScalarTypeSupported(capture.abi_type_name) &&
-                !DirectMirInstructionHasNoPhysicalAbi(admitted.routines.source_json, capture, capture.abi_type_name) {
+                !DirectMirInstructionHasNoPhysicalAbi(admitted.routines.source_json, admitted.routines.source_json_extent, capture, capture.abi_type_name) {
                 DirectMirScalarCfgProgramRoutineAdmissionFailed(
                     "scalar_physical_abi", routine_ordinal, block, global_row, source); return invalid;
             }
             if !DirectMirScalarProgramLogicalRecordInstructionReady(
-                    logical_record, admitted.routines.source_json, capture) {
+                    logical_record, admitted.routines.source_json, admitted.routines.source_json_extent, capture) {
                 DirectMirScalarCfgProgramRoutineAdmissionFailed(
                     "logical_record_abi", routine_ordinal, block, global_row, source); return invalid;
             }
             option_int_abi =
                 DirectMirScalarProgramOptionIntAbiFromInstruction(
-                    option_int_abi, admitted.routines.source_json, capture);
+                    option_int_abi, admitted.routines.source_json, admitted.routines.source_json_extent, capture);
             result_int_abi =
                 DirectMirScalarProgramResultIntAbiFromInstruction(
-                    result_int_abi, admitted.routines.source_json, capture);
+                    result_int_abi, admitted.routines.source_json, admitted.routines.source_json_extent, capture);
             option_string_abi =
                 DirectMirScalarProgramOptionStringAbiFromInstruction(
-                    option_string_abi, admitted.routines.source_json, capture);
+                    option_string_abi, admitted.routines.source_json, admitted.routines.source_json_extent, capture);
             option_bool_abi =
                 DirectMirScalarProgramOptionBoolAbiFromInstruction(
-                    option_bool_abi, admitted.routines.source_json, capture);
+                    option_bool_abi, admitted.routines.source_json, admitted.routines.source_json_extent, capture);
             if kind == "def" || kind == "assign" {
                 let member_rebind:
                     DirectMirScalarProgramLogicalRecordMemberRebindFact =
@@ -400,7 +400,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
         );
     collection_ownership =
         DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
-            collection_ownership, admitted.routines.source_json,
+            collection_ownership, admitted.routines.source_json, admitted.routines.source_json_extent,
             input.index, appended_storage, expressions, callables,
             routine_ordinal, local_offset, operation_offset
         );

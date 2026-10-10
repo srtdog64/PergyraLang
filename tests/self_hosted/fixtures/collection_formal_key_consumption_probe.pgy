@@ -1,0 +1,251 @@
+// Import the actual formal-use producer. Inputs are analyzed, never emitted/run.
+// Each invocation owns fresh facts; mutations happen after baseline admission.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func FormalKeyProbeArtifact(source_path: String) -> AstTreeArtifact
+{
+    if source_path == "embedded-element-escape"
+    {
+        let source: String = "func Escape(ref values: Array<String>) -> String { return values[0]; } func Main() -> Void {}";
+        return ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
+            "formal_key_element_escape.pgy", source, false));
+    }
+    return ParseRootProgramArtifact(source_path);
+}
+
+func Main() -> Void with caps env, io_read
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected source and formal-key mode"); Exit(2); }
+    let mode: String = args[1];
+    if mode != "facts" && mode != "formal-binding" && mode != "ordinary-binding" &&
+        mode != "order-unready" && mode != "order-truncated"
+    { Log("unknown formal-key mode"); Exit(2); }
+    let artifact: AstTreeArtifact = FormalKeyProbeArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.collection_formal_effects.ok { Log("formal owner not reached"); Exit(2); }
+    let no_synthetic_roots: Array<Int> = [];
+    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+        analysis.expression_surfaces, no_synthetic_roots, no_synthetic_roots);
+    if !order.ok { Log("baseline surface order refused"); Exit(2); }
+    let changed: Bool = mode == "facts";
+    if mode == "order-unready" { order.ok = false; changed = true; }
+    if mode == "order-truncated"
+    {
+        if ArrayLength(order.slots_by_root) == 0 { Exit(2); }
+        ArrayPop(order.slots_by_root); changed = true;
+    }
+    let node: Int = 0;
+    while !changed && node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena)
+    {
+        let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+            analysis.expression_surfaces.expression_graph, node);
+        if mode == "formal-binding" && binding.ok &&
+            binding.kind == SemanticExpressionBindingFormalParameter()
+        {
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = 99;
+            changed = true;
+        }
+        if mode == "ordinary-binding" && binding.ok &&
+            binding.kind == SemanticExpressionBindingNone()
+        {
+            // None must have an absent ordinal even though it consumes no formal key.
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = 99;
+            changed = true;
+        }
+        node = node + 1;
+    }
+    if !changed { Log("mutation did not reach its fact"); Exit(2); }
+    let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+        artifact, analysis.signatures, analysis.function_scopes, analysis.local_bindings,
+        bundle.initializer_types, analysis.expression_surfaces, analysis.statements,
+        bundle.owned_string_result_domains, order);
+    let retained: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
+    // Observe every returned field, including refused partial carriers. Keep
+    // MapKeys traversal local: ref-map forwarding is not admitted here.
+    Log("carrier:flags=" + ToString(actual.ok) + ":" + ToString(actual.inventory.ok) + ":" + ToString(actual.execution_contexts.ok));
+    Log("carrier:context=" + ToString(actual.execution_contexts.artifact_identity_digest) + ":" + ToString(actual.execution_contexts.artifact_node_count));
+    Log("carrier:extents=" + ToString(ArrayLength(actual.inventory.formal_nodes)) + ":" +
+        ToString(ArrayLength(actual.inventory.function_nodes)) + ":" + ToString(ArrayLength(actual.inventory.ordinals)) + ":" +
+        ToString(ArrayLength(actual.inventory.modes)) + ":" + ToString(ArrayLength(actual.inventory.body_ready)));
+    let dump_row: Int = 0;
+    while dump_row < ArrayLength(actual.inventory.formal_nodes)
+    {
+        Log("carrier:formal:" + ToString(dump_row) + "=" + ToString(actual.inventory.formal_nodes[dump_row]) + ":" +
+            ToString(actual.inventory.function_nodes[dump_row]) + ":" + ToString(actual.inventory.ordinals[dump_row]) + ":" +
+            ToString(actual.inventory.modes[dump_row]) + ":" + ToString(actual.inventory.body_ready[dump_row]));
+        dump_row = dump_row + 1;
+    }
+    // Use statically typed named map receivers: the native MIR currently refuses
+    // descriptor-selection phi joins. No map payload is copied or mutated.
+    let maps_equal: Bool = true;
+    let observed_rows: HashMap<String, Int> = actual.inventory.row_by_formal;
+    let reference_rows: HashMap<String, Int> = retained.inventory.row_by_formal;
+    let keys_rows: Array<String> = MapKeys(observed_rows);
+    if MapSize(observed_rows) != MapSize(reference_rows) { maps_equal = false; }
+    Log("carrier:map:rows:size=" + ToString(MapSize(observed_rows)));
+    for observed_key in keys_rows
+    {
+        Log("carrier:map:rows:" + observed_key + "=" + ToString(MapGet(observed_rows, observed_key)));
+        if !MapHas(reference_rows, observed_key) { maps_equal = false; }
+        else if MapGet(observed_rows, observed_key) != MapGet(reference_rows, observed_key) { maps_equal = false; }
+    }
+    // The explicit MapKeys snapshot owns duplicated String keys.
+    ArrayDropOwnedStrings(keys_rows);
+    let observed_effects: HashMap<String, Int> = actual.effects;
+    let reference_effects: HashMap<String, Int> = retained.effects;
+    let keys_effects: Array<String> = MapKeys(observed_effects);
+    if MapSize(observed_effects) != MapSize(reference_effects) { maps_equal = false; }
+    Log("carrier:map:effects:size=" + ToString(MapSize(observed_effects)));
+    for observed_key in keys_effects
+    {
+        Log("carrier:map:effects:" + observed_key + "=" + ToString(MapGet(observed_effects, observed_key)));
+        if !MapHas(reference_effects, observed_key) { maps_equal = false; }
+        else if MapGet(observed_effects, observed_key) != MapGet(reference_effects, observed_key) { maps_equal = false; }
+    }
+    // The explicit MapKeys snapshot owns duplicated String keys.
+    ArrayDropOwnedStrings(keys_effects);
+    let observed_push: HashMap<String, Int> = actual.owned_push_leaf_formals;
+    let reference_push: HashMap<String, Int> = retained.owned_push_leaf_formals;
+    let keys_push: Array<String> = MapKeys(observed_push);
+    if MapSize(observed_push) != MapSize(reference_push) { maps_equal = false; }
+    Log("carrier:map:owned-push:size=" + ToString(MapSize(observed_push)));
+    for observed_key in keys_push
+    {
+        Log("carrier:map:owned-push:" + observed_key + "=" + ToString(MapGet(observed_push, observed_key)));
+        if !MapHas(reference_push, observed_key) { maps_equal = false; }
+        else if MapGet(observed_push, observed_key) != MapGet(reference_push, observed_key) { maps_equal = false; }
+    }
+    // The explicit MapKeys snapshot owns duplicated String keys.
+    ArrayDropOwnedStrings(keys_push);
+    let observed_candidates: HashMap<String, Int> = actual.execution_contexts.candidate_functions;
+    let reference_candidates: HashMap<String, Int> = retained.execution_contexts.candidate_functions;
+    let keys_candidates: Array<String> = MapKeys(observed_candidates);
+    if MapSize(observed_candidates) != MapSize(reference_candidates) { maps_equal = false; }
+    Log("carrier:map:candidates:size=" + ToString(MapSize(observed_candidates)));
+    for observed_key in keys_candidates
+    {
+        Log("carrier:map:candidates:" + observed_key + "=" + ToString(MapGet(observed_candidates, observed_key)));
+        if !MapHas(reference_candidates, observed_key) { maps_equal = false; }
+        else if MapGet(observed_candidates, observed_key) != MapGet(reference_candidates, observed_key) { maps_equal = false; }
+    }
+    // The explicit MapKeys snapshot owns duplicated String keys.
+    ArrayDropOwnedStrings(keys_candidates);
+    let observed_unsafe: HashMap<String, Int> = actual.execution_contexts.unsafe_functions;
+    let reference_unsafe: HashMap<String, Int> = retained.execution_contexts.unsafe_functions;
+    let keys_unsafe: Array<String> = MapKeys(observed_unsafe);
+    if MapSize(observed_unsafe) != MapSize(reference_unsafe) { maps_equal = false; }
+    Log("carrier:map:unsafe:size=" + ToString(MapSize(observed_unsafe)));
+    for observed_key in keys_unsafe
+    {
+        Log("carrier:map:unsafe:" + observed_key + "=" + ToString(MapGet(observed_unsafe, observed_key)));
+        if !MapHas(reference_unsafe, observed_key) { maps_equal = false; }
+        else if MapGet(observed_unsafe, observed_key) != MapGet(reference_unsafe, observed_key) { maps_equal = false; }
+    }
+    // The explicit MapKeys snapshot owns duplicated String keys.
+    ArrayDropOwnedStrings(keys_unsafe);
+    let observed_text: HashMap<String, Int> = actual.borrowed_text_formals;
+    let reference_text: HashMap<String, Int> = retained.borrowed_text_formals;
+    let keys_text: Array<String> = MapKeys(observed_text);
+    if MapSize(observed_text) != MapSize(reference_text) { maps_equal = false; }
+    Log("carrier:map:borrowed-text:size=" + ToString(MapSize(observed_text)));
+    for observed_key in keys_text
+    {
+        Log("carrier:map:borrowed-text:" + observed_key + "=" + ToString(MapGet(observed_text, observed_key)));
+        if !MapHas(reference_text, observed_key) { maps_equal = false; }
+        else if MapGet(observed_text, observed_key) != MapGet(reference_text, observed_key) { maps_equal = false; }
+    }
+    // The explicit MapKeys snapshot owns duplicated String keys.
+    ArrayDropOwnedStrings(keys_text);
+    if mode == "facts" && !maps_equal { Log("retained map entry drift"); Exit(3); }
+    if mode != "facts"
+    {
+        if actual.ok { Log("malformed facts admitted"); Exit(3); }
+        Log("MALFORMED FORMAL KEY FACTS REFUSED"); return;
+    }
+    if !actual.ok { Log("direct formal producer refused"); Exit(3); }
+    if ArrayLength(actual.inventory.formal_nodes) != ArrayLength(retained.inventory.formal_nodes)
+    { Log("retained inventory drift"); Exit(3); }
+    let actual_effects: HashMap<String, Int> = actual.effects;
+    let retained_effects: HashMap<String, Int> = retained.effects;
+    let actual_push: HashMap<String, Int> = actual.owned_push_leaf_formals;
+    let retained_push: HashMap<String, Int> = retained.owned_push_leaf_formals;
+    let count: Int = ArrayLength(actual.inventory.formal_nodes);
+    if actual.inventory.ok != retained.inventory.ok ||
+        ArrayLength(actual.inventory.function_nodes) != count || ArrayLength(retained.inventory.function_nodes) != count ||
+        ArrayLength(actual.inventory.ordinals) != count || ArrayLength(retained.inventory.ordinals) != count ||
+        ArrayLength(actual.inventory.modes) != count || ArrayLength(retained.inventory.modes) != count ||
+        ArrayLength(actual.inventory.body_ready) != count || ArrayLength(retained.inventory.body_ready) != count ||
+        actual.execution_contexts.ok != retained.execution_contexts.ok ||
+        actual.execution_contexts.artifact_identity_digest != retained.execution_contexts.artifact_identity_digest ||
+        actual.execution_contexts.artifact_node_count != retained.execution_contexts.artifact_node_count
+    { Log("full retained carrier drift"); Exit(3); }
+    let diagnostic: String = bundle.verdict.diagnostic_code;
+    if bundle.verdict.ok { diagnostic = "ok"; }
+    Log("body=" + diagnostic);
+    let row: Int = 0;
+    while row < ArrayLength(actual.inventory.formal_nodes)
+    {
+        let formal: Int = actual.inventory.formal_nodes[row];
+        let key: String = ToString(formal);
+        if retained.inventory.formal_nodes[row] != formal ||
+            retained.inventory.function_nodes[row] != actual.inventory.function_nodes[row] ||
+            retained.inventory.ordinals[row] != actual.inventory.ordinals[row] ||
+            retained.inventory.modes[row] != actual.inventory.modes[row] ||
+            retained.inventory.body_ready[row] != actual.inventory.body_ready[row] ||
+            MapHas(actual_effects, key) != MapHas(retained_effects, key) ||
+            MapHas(actual_push, key) != MapHas(retained_push, key)
+        { Log("retained formal identity/effect drift"); Exit(3); }
+        let effect: Int = -1;
+        if MapHas(actual_effects, key)
+        {
+            effect = MapGet(actual_effects, key);
+            if effect != MapGet(retained_effects, key) { Exit(3); }
+        }
+        if MapHas(actual_push, key) && MapGet(actual_push, key) != MapGet(retained_push, key)
+        { Log("retained owned-push identity drift"); Exit(3); }
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+            analysis.signatures, actual.inventory.function_nodes[row]);
+        if !IsSome(signature) { Exit(3); }
+        let name: Option<String> = SemanticAstFunctionNameAt(analysis.signatures, UnwrapOption(signature));
+        if !IsSome(name) { Exit(3); }
+        Log(UnwrapOption(name) + ":" + ToString(actual.inventory.ordinals[row]) +
+            ":" + ToString(actual.inventory.modes[row]) + "=" + ToString(effect));
+        row = row + 1;
+    }
+    // Observed fixture coverage, not a second production effect authority.
+    let statements: SemanticAstCollectionFormalStatementEffects = SemanticAstCollectionFormalStatementEffectsFromFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
+        analysis.expression_surfaces, analysis.statements, bundle.owned_string_result_domains,
+        actual.inventory, actual.inventory.row_by_formal);
+    if !statements.ok { Exit(3); }
+    let targets: HashMap<String, Int> = statements.target_rows;
+    let formal_targets: Int = 0;
+    let element_targets: Int = 0;
+    let ordinary_roots: Int = 0;
+    let root: Int = 0;
+    while root < ArrayLength(order.slots_by_root)
+    {
+        if order.slots_by_root[root] >= 0
+        {
+            let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+                analysis.expression_surfaces.expression_graph, root);
+            if MapHas(targets, ToString(root))
+            {
+                if binding.kind == SemanticExpressionBindingFormalParameter()
+                { formal_targets = formal_targets + 1; }
+                if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[root] == AstExpressionNodeIndex()
+                { element_targets = element_targets + 1; }
+            }
+            else if binding.kind != SemanticExpressionBindingFormalParameter()
+            { ordinary_roots = ordinary_roots + 1; }
+        }
+        root = root + 1;
+    }
+    Log("targets=" + ToString(formal_targets) + ":" + ToString(element_targets));
+    Log("ordinary=" + ToString(ordinary_roots));
+}

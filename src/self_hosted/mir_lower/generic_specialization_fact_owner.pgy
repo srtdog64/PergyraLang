@@ -66,12 +66,12 @@ func MirGenericSpecializationStringArray(
     }
     let values: Array<String> = [];
     let count: Int = JsonArrayStringCount(
-        row.json, bounds[0], bounds[1]
+        row.json, row.json_extent, bounds[0], bounds[1]
     );
     let i: Int = 0;
     while i < count {
         let value: String = JsonArrayStringAt(
-            row.json, bounds[0], bounds[1], i
+            row.json, row.json_extent, bounds[0], bounds[1], i
         );
         if value == "" {
             return MirGenericSpecializationStringArrayResult(

@@ -155,13 +155,13 @@ func MirExpressionGraphSequenceAppend(
     let string_end_scratch: Array<Int> = [0];
     while cursor < header.nodes_end {
         cursor = JsonSkipWhitespaceWithin(
-            graph.json, cursor, header.nodes_end
+            graph.json, graph.json_extent, cursor, header.nodes_end
         );
         if cursor >= header.nodes_end {
             return MirExpressionGraphSequenceError(sequence);
         }
         let cursor_char: Int = JsonCharCodeAt(
-            graph.json, header.nodes_end, cursor
+            graph.json, graph.json_extent, header.nodes_end, cursor
         );
         if cursor_char == JsonAsciiCode("]") { break; }
         if cursor_char == JsonAsciiCode(",") {
@@ -170,7 +170,7 @@ func MirExpressionGraphSequenceAppend(
         }
         let node: MirExpressionGraphNodeCapture =
             MirExpressionGraphNodeCaptureWithin(
-                graph.json, cursor, header.nodes_end, string_end_scratch
+                graph.json, graph.json_extent, cursor, header.nodes_end, string_end_scratch
             );
         if !node.valid || node.text == "" {
             return MirExpressionGraphSequenceError(sequence);

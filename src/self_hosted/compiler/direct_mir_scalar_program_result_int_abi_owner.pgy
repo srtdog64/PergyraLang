@@ -7,7 +7,7 @@ import "../mir_lower/routine_instruction_scalar_capture_owner.pgy";
 
 func DirectMirScalarProgramResultIntAbiFromInstruction(
     current: DirectMirResultIntAbiFact,
-    json: String,
+    json: String, json_extent: Int,
     ref capture: MirRoutineInstructionScalarCapture
 ) -> DirectMirResultIntAbiFact {
     if capture.abi_type_name != CompilerAbiLayoutResultIntTypeName() {
@@ -15,7 +15,7 @@ func DirectMirScalarProgramResultIntAbiFromInstruction(
     }
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
             capture.abi_type_start, capture.abi_type_end,
             capture.abi_layout_id_start, capture.abi_layout_id_end,
             capture.abi_layout_required_start,

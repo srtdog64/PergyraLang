@@ -5,7 +5,7 @@ func IndexedStringMatches(values: Array<String>) -> Bool {
 func ObserveAndMatch(values: Array<String>) -> Bool {
     let length: Int = StringLength(values[0]);
     let observed: Bool = length > 0 &&
-        CharCode(values[0], length, 0) > 0;
+        CharCode(values[0], 1, 0) > 0;
     return observed && IndexedStringMatches(values);
 }
 

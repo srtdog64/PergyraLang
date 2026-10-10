@@ -53,6 +53,8 @@
 #define PGY_CODE_SEM_UNKNOWN_TYPE               "PGY_SEM_UNKNOWN_TYPE"
 #define PGY_CODE_SEM_UNDEFINED_SYMBOL           "PGY_SEM_UNDEFINED_SYMBOL"
 #define PGY_CODE_SEM_ENUM_VARIANT_UNPROVEN      "PGY_SEM_ENUM_VARIANT_UNPROVEN"
+#define PGY_CODE_SEM_STRING_WINDOW_EXTENT_UNPROVEN \
+    "PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN"
 #define PGY_CODE_SEM_INFER_COLLECTION           "PGY_SEM_INFER_COLLECTION"
 #define PGY_CODE_SEM_INFER_GENERIC              "PGY_SEM_INFER_GENERIC"
 #define PGY_CODE_SEM_INFER_REQUIRED             "PGY_SEM_INFER_REQUIRED"
@@ -163,6 +165,8 @@
 #define PGY_CAUSE_TYPE_BOUNDARY_ARG_MISMATCH    "semantic:type:boundary_arg_mismatch"
 #define PGY_CAUSE_ENUM_PAYLOAD_ACTIVE_VARIANT_UNPROVEN \
     "semantic:enum_payload:active_variant_unproven"
+#define PGY_CAUSE_STRING_WINDOW_EXTENT_UNPROVEN \
+    "semantic:string_window:extent_unproven"
 
 /* --- Semantic: slot lifecycle --- */
 #define PGY_CAUSE_SLOT_LIFECYCLE_READ_AFTER_RELEASE \
@@ -355,6 +359,7 @@
 #define PGY_FIX_NARROW_CAPS_TO_USED_SET         "narrow-caps-to-used-set"
 #define PGY_FIX_NARROW_ENUM_VARIANT_BEFORE_PROJECTION \
     "narrow-enum-variant-before-projection"
+#define PGY_FIX_PASS_SAME_STRING_LENGTH         "pass-same-string-length"
 #define PGY_FIX_ALIGN_VALUE_TO_SLOT_INNER       "align-value-to-slot-inner"
 #define PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION \
                                                 "align-world-zone-state-composition"

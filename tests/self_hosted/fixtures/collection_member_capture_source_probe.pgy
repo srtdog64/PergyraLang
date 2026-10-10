@@ -1,0 +1,80 @@
+// Source-driven scalar relevance; damaged type/provenance never reaches MIR.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy";
+
+func CollectionMemberCaptureSourceProbe(input_path: String) -> Void with caps env, io_read {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(input_path);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok || !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) { Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.verdict.ok { Exit(2); }
+    let checked: Int = 0;
+    let slot: Int = 0;
+    while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
+        let surface: Int = slot / 3;
+        let syntax: Int = analysis.expression_surfaces.node_ids[surface];
+        let statement: Option<Int> = TypedAstArenaNodeKind(artifact.arena, syntax);
+        if analysis.expression_surfaces.expression_graph.has_roots[slot] && IsSome(statement) &&
+            UnwrapOption(statement) == TypedAstKindValueReturnStmtTag() && slot % 3 == AstExpressionLaneAtom() {
+            let function_node: Option<Int> = SemanticAstExpressionFunctionNodeAt(analysis.expression_surfaces, analysis.signatures, surface);
+            if !IsSome(function_node) { Exit(2); }
+            let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+            let spine: SemanticExpressionGraphValueReceiverSpine = SemanticExpressionGraphValueReceiverSpineFromGraph(
+                analysis.expression_surfaces.expression_graph, root);
+            if !spine.ok || spine.depth != 0 || spine.leaf_node < 0 { Exit(2); }
+            let names: Array<String> = [];
+            let types: Array<String> = [];
+            let modes: Array<String> = [];
+            let intent_node: Option<Int> = SemanticAstExpressionIntentNodeAt(analysis.expression_surfaces, analysis.intent_signatures, surface);
+            if !SemanticAstBodyExpressionEnvironmentSeed(artifact, analysis, bundle.initializer_types.inferred_type_names,
+                bundle.iteration_types, analysis.function_tables, analysis.intent_signatures, function_node, intent_node, syntax,
+                names, types, modes) { Exit(2); }
+            let text: Option<String> = SemanticExpressionGraphNodeText(analysis.expression_surfaces.expression_graph, spine.leaf_node);
+            if !IsSome(text) { Exit(2); }
+            let resolved: Array<String> = [];
+            let node: Int = 0;
+            while node <= spine.leaf_node { ArrayPush(resolved, "Unknown"); node = node + 1; }
+            ArraySet(resolved, spine.leaf_node, EnvLookup(names, types, UnwrapOption(text)));
+            if resolved[spine.leaf_node] != "Int" { Exit(2); }
+            let normal: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSourceForNode(
+                artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, resolved, analysis.statements, analysis.expression_surfaces,
+                UnwrapOption(function_node), syntax, root, false);
+            if !normal.ready || normal.binding_id != 0 || normal.readonly { Exit(1); }
+            ArraySet(resolved, spine.leaf_node, "Unknown");
+            let unknown: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSourceForNode(
+                artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, resolved, analysis.statements, analysis.expression_surfaces,
+                UnwrapOption(function_node), syntax, root, false);
+            let signature_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, UnwrapOption(function_node));
+            if !IsSome(signature_row) { Exit(2); }
+            let owner: Option<String> = SemanticAstFunctionOwnerNameAt(analysis.signatures, UnwrapOption(signature_row));
+            if !IsSome(owner) || !SemanticAstCollectionMemberTypeIsAggregate(analysis.constructors, UnwrapOption(owner)) { Exit(2); }
+            ArraySet(resolved, spine.leaf_node, UnwrapOption(owner));
+            let nominal: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSourceForNode(
+                artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, resolved, analysis.statements, analysis.expression_surfaces,
+                UnwrapOption(function_node), syntax, root, false);
+            let missing_types: Array<String> = [];
+            let missing: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSourceForNode(
+                artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, missing_types, analysis.statements, analysis.expression_surfaces,
+                UnwrapOption(function_node), syntax, root, false);
+            // A nominal implicit field reads the routine's `self` formal storage,
+            // exactly as `self.field` does, with that formal's readonly mode.
+            let row: Int = UnwrapOption(signature_row);
+            if analysis.signatures.receiver_source_param_offsets[row] != 1 { Exit(2); }
+            let receiver: Int = analysis.signatures.param_starts[row];
+            if unknown.ready || missing.ready || !nominal.ready ||
+                nominal.binding_id != analysis.signatures.param_node_ids[receiver] ||
+                nominal.readonly != (analysis.signatures.param_modes[receiver] == 3) { Exit(1); }
+            checked = checked + 1;
+        }
+        slot = slot + 1;
+    }
+    if checked != 2 { Exit(2); }
+    Log("scalar_returns=2 unknown_ready=false nominal_receiver_root=true missing_ready=false");
+    Log("PASS");
+}

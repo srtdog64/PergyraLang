@@ -63,7 +63,7 @@ func DirectMirOptionMatchCfgPlanFromAdmitted(
         );
     let admitted_abi: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, def.abi_type_name,
+            admitted.routines.source_json, admitted.routines.source_json_extent, def.abi_type_name,
             def.abi_type_value_ready, def.abi_type_start, def.abi_type_end,
             def.abi_layout_id_start, def.abi_layout_id_end,
             def.abi_layout_required_start, def.abi_layout_required_end,

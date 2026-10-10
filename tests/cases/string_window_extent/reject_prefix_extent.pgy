@@ -1,0 +1,7 @@
+// An extent computed by arithmetic is not proven, even when it is smaller.
+func Main() -> Void {
+    let s: String = Concat("abc", "def");
+    let n: Int = StringLength(s);
+    let end: Int = n + 10;
+    Print(SubstringWithLen(s, end, 0, 3));
+}

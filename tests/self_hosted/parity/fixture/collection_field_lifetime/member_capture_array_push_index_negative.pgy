@@ -1,0 +1,5 @@
+struct Table { names: Array<String>; }
+func Store(ref input: Array<Table>, inout captured: Array<Table>) -> Void {
+    ArrayPush(captured, input[0]);
+}
+func Main() -> Void {}

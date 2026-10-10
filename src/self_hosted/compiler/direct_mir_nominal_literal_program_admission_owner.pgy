@@ -89,12 +89,12 @@ func DirectMirNominalLiteralProgramAdmissionFromAdmitted(
             index.instruction_facts, second
         );
     let definition_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[first],
         admitted.routines.instruction_ends[first]
     );
     let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[second],
         admitted.routines.instruction_ends[second]
     );
@@ -123,7 +123,7 @@ func DirectMirNominalLiteralProgramAdmissionFromAdmitted(
     }
     let abi_absence: DirectMirNominalLiteralAbiAbsenceFact =
         DirectMirNominalLiteralAbiAbsenceFromSealedDefinition(
-            admitted.routines.source_json, definition,
+            admitted.routines.source_json, admitted.routines.source_json_extent, definition,
             program.declaration.name
         );
     let fact: DirectMirNominalLiteralProgramAdmission =

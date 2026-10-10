@@ -1,0 +1,10 @@
+// A loop binding is not a stable binding: both compilers identify only
+// parameters and plain let bindings. Bind the element with `let` first.
+func Main() -> Void {
+    let words: Array<String> = ["ab", "cde"];
+    let mut total: Int = 0;
+    for w in words {
+        total = total + CharCode(w, StringLength(w), 0);
+    }
+    Print(ToString(total));
+}

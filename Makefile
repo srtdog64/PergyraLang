@@ -562,6 +562,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
+                   $(SEMANTIC_DIR)/string_window_extent.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_preservation_owner.c \
@@ -5149,7 +5150,19 @@ self-host-nominal-constructor-field-identity-test-smoke: $(PGY)
 collection-native-storage-escape-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_storage_escape_owner.sh
 
-self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke $(PGY)
+.PHONY: self-host-collection-formal-key-consumption-test-smoke
+self-host-collection-formal-key-consumption-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_formal_key_consumption_owner.sh
+
+.PHONY: self-host-collection-binding-move-prefix-test-smoke
+self-host-collection-binding-move-prefix-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_binding_move_prefix_owner.sh
+
+.PHONY: self-host-collection-member-permission-test-smoke
+self-host-collection-member-permission-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/member_indexed_read_permission.sh
+
+self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
 
 .PHONY: self-host-collection-owned-result-test-smoke
@@ -5276,6 +5289,10 @@ example-test-smoke:
 
 string-window-builtins-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/string_window_builtins_smoke.sh
+
+# Native and installed self-host routes give the same extent verdicts.
+string-window-extent-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/string_window_extent_smoke.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test

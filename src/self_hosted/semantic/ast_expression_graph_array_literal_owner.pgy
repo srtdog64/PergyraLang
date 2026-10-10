@@ -13,6 +13,29 @@ struct SemanticArrayLiteralView {
     element_nodes: Array<Int>;
 }
 
+struct SemanticArrayLiteralElementEdge {
+    ok: Bool;
+    previous_node: Int;
+    element_node: Int;
+}
+
+// Both literal readers and storage admission consume this parser-owned edge.
+// The decreasing spine admits one element without materializing the literal.
+func SemanticArrayLiteralElementEdgeFromGraph(
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> SemanticArrayLiteralElementEdge {
+    let invalid: SemanticArrayLiteralElementEdge = SemanticArrayLiteralElementEdge(false, -1, -1);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeArrayElement() { return invalid; }
+    let previous: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+    let element: Option<Int> = SemanticExpressionGraphRightChild(graph, node);
+    if !IsSome(previous) || !IsSome(element) || UnwrapOption(previous) < 0 ||
+        UnwrapOption(previous) >= node || UnwrapOption(element) < 0 || UnwrapOption(element) >= node { return invalid; }
+    let previous_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, UnwrapOption(previous));
+    if !IsSome(previous_kind) || !AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(previous_kind)) { return invalid; }
+    return SemanticArrayLiteralElementEdge(true, UnwrapOption(previous), UnwrapOption(element));
+}
+
 func SemanticExpressionGraphArrayLiteralTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -73,17 +96,12 @@ func SemanticArrayLiteralViewFromGraph(
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
     while IsSome(kind) &&
         UnwrapOption(kind) == AstExpressionNodeArrayElement() {
-        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node
-        );
-        let element: Option<Int> = SemanticExpressionGraphRightChild(
-            graph, node
-        );
-        if !IsSome(previous) || !IsSome(element) {
+        let edge: SemanticArrayLiteralElementEdge = SemanticArrayLiteralElementEdgeFromGraph(graph, node);
+        if !edge.ok {
             return SemanticArrayLiteralView(false, reversed);
         }
-        ArrayPush(reversed, UnwrapOption(element));
-        node = UnwrapOption(previous);
+        ArrayPush(reversed, edge.element_node);
+        node = edge.previous_node;
         kind = SemanticExpressionGraphNodeKind(graph, node);
     }
     if !IsSome(kind) ||
@@ -158,8 +176,9 @@ func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
 
 func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
     let source: String = "[1, 2]";
+    let source_extent: Int = StringLength(source);
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, source_extent, 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) { return false; }
     let graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -169,9 +188,10 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
             ), [0], 1
         );
     let nested_source: String = "[[1], [2]]";
+    let nested_source_extent: Int = StringLength(nested_source);
     let nested_cursor: Array<Int> = [0];
     let nested_fact: ParserExpressionFact = ParseExprFact(
-        nested_source, 0, nested_cursor
+        nested_source, nested_source_extent, 0, nested_cursor
     );
     if !nested_fact.ok ||
         nested_cursor[0] != StringLength(nested_source) {
@@ -186,9 +206,10 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
             ), [0], 1
         );
     let call_source: String = "[TypedAstKindBareCallStmtTag()]";
+    let call_source_extent: Int = StringLength(call_source);
     let call_cursor: Array<Int> = [0];
     let call_fact: ParserExpressionFact = ParseExprFact(
-        call_source, 0, call_cursor
+        call_source, call_source_extent, 0, call_cursor
     );
     if !call_fact.ok || call_cursor[0] != StringLength(call_source) {
         return false;

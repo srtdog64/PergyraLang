@@ -32,7 +32,7 @@ func SemanticAstSignatureTypeExpressionAppend(
         let close: Int = UnwrapOption(function_close);
         let arrow: Int = close + 1;
         while arrow < n && SourceByteIsWhitespace(
-            SourceByteAt(text, n, arrow)
+            SourceByteAt(text, n, n, arrow)
         ) {
             arrow = arrow + 1;
         }

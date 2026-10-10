@@ -4,7 +4,7 @@
 import "direct_mir_array_int_producer_fact_owner.pgy";
 
 func DirectMirReturnedArrayForEachCallAbiAdmission(
-    json: String,
+    json: String, json_extent: Int,
     ref declaration: MirRoutineInstructionScalarCapture,
     ref producer: DirectMirArrayIntProducerFact
 ) -> Option<MirAbiLayoutRowCapture> {
@@ -16,7 +16,7 @@ func DirectMirReturnedArrayForEachCallAbiAdmission(
     }
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, declaration.abi_type_name,
+            json, json_extent, declaration.abi_type_name,
             declaration.abi_type_value_ready, declaration.abi_type_start,
             declaration.abi_type_end, declaration.abi_layout_id_start,
             declaration.abi_layout_id_end,

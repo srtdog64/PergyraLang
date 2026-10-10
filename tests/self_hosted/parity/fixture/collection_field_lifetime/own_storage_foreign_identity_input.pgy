@@ -1,0 +1,10 @@
+// The direct current-definition unit selects a real other binding, not an
+// out-of-domain row. This source itself must pass unchanged admission.
+func Metadata(own values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Other(ref values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    let other: Array<String> = ["other"];
+    Metadata(values);
+    Other(other);
+}

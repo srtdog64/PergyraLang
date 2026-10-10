@@ -7,7 +7,7 @@ func ArrayBoolStorageProbeRewrite() -> String
 {
     let cursor: Array<Int> = [0];
     let source: String = "CompilerRetireArrayStorage(flags)";
-    let expression: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let expression: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     if !expression.ok || cursor[0] != StringLength(source)
     {
         Die("Bool storage rewrite expression parse failed");

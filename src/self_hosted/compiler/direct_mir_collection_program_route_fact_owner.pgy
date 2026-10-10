@@ -56,7 +56,7 @@ func DirectMirCollectionProgramRouteFactFromAdmitted(
     let row: Int = 0;
     while row < routine_count {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         let params: Int = ArrayLength(header.param_types);

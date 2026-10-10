@@ -51,29 +51,29 @@ func MirIntentExecutionDeclarationIndexFromDocument(
     let cursor: Int = document.declarations.start + 1;
     let bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
-        json, cursor, document.declarations.end, bounds
+        document.declarations.json, document.declarations.json_extent, cursor, document.declarations.end, bounds
     ) {
         let kind: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                json, bounds[0], bounds[1], "kind"
+                document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "kind"
             );
         let name: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                json, bounds[0], bounds[1], "name"
+                document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "name"
             );
         let syntax_id: MirIntentExecutionIntValue =
             MirIntentExecutionUniqueIntField(
-                json, bounds[0], bounds[1], "source_syntax_id"
+                document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "source_syntax_id"
             );
         let nominal_kind: String = "";
         let nominal_count: Int = MirIntentExecutionObjectFieldOccurrenceCount(
-            json, bounds[0], bounds[1], "nominal_kind"
+            document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "nominal_kind"
         );
         if nominal_count > 1 { valid = false; }
         if nominal_count == 1 {
             let nominal: MirIntentExecutionStringValue =
                 MirIntentExecutionUniqueStringField(
-                    json, bounds[0], bounds[1], "nominal_kind"
+                    document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "nominal_kind"
                 );
             if !nominal.valid { valid = false; }
             nominal_kind = nominal.value;
@@ -97,7 +97,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
         let variant_count: Int = 0;
         let variants_occurrences: Int =
             MirIntentExecutionObjectFieldOccurrenceCount(
-                json, bounds[0], bounds[1], "variants"
+                document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "variants"
             );
         if variants_occurrences > 1 ||
             (kind.value == "enum" && variants_occurrences != 1) ||
@@ -107,28 +107,28 @@ func MirIntentExecutionDeclarationIndexFromDocument(
         if variants_occurrences == 1 {
             let variants_bounds: Array<Int> = [0, 0];
             if !MirObjectArrayBoundsAtBounds(
-                json, bounds[0], bounds[1], "variants", variants_bounds
+                document.declarations.json, document.declarations.json_extent, bounds[0], bounds[1], "variants", variants_bounds
             ) {
                 valid = false;
             } else {
                 let variant_cursor: Int = variants_bounds[0] + 1;
                 let variant_bounds: Array<Int> = [0, 0];
                 while JsonArrayNextObjectBounds(
-                    json, variant_cursor, variants_bounds[1], variant_bounds
+                    document.declarations.json, document.declarations.json_extent, variant_cursor, variants_bounds[1], variant_bounds
                 ) {
                     let expected: Array<String> = [
                         "name", "param_count", "param_types"
                     ];
                     let fields: MirIntentExecutionExactFields =
                         MirIntentExecutionExactObjectFields(
-                            json, variant_bounds[0], variant_bounds[1], expected
+                            document.declarations.json, document.declarations.json_extent, variant_bounds[0], variant_bounds[1], expected
                         );
                     let variant_name: MirIntentExecutionStringValue =
-                        MirIntentExecutionStringAt(json, fields, 0, false);
+                        MirIntentExecutionStringAt(document.declarations.json, document.declarations.json_extent, fields, 0, false);
                     let param_count: MirIntentExecutionIntValue =
                         MirIntentExecutionIntAt(json, fields, 1);
                     let param_types: MirIntentExecutionStringArray =
-                        MirIntentExecutionStringArrayAt(json, fields, 2);
+                        MirIntentExecutionStringArrayAt(document.declarations.json, document.declarations.json_extent, fields, 2);
                     if !fields.valid || !variant_name.valid ||
                         variant_name.value == "" || !param_count.valid ||
                         !param_types.valid || param_count.value !=
@@ -146,7 +146,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
                     variant_cursor = variant_bounds[1];
                 }
                 if !MirProgramRoutineArrayCursorAtEnd(
-                    json, variant_cursor, variants_bounds[1]
+                    document.declarations.json, document.declarations.json_extent, variant_cursor, variants_bounds[1]
                 ) {
                     valid = false;
                 }
@@ -156,7 +156,7 @@ func MirIntentExecutionDeclarationIndexFromDocument(
         cursor = bounds[1];
     }
     if !MirProgramRoutineArrayCursorAtEnd(
-        json, cursor, document.declarations.end
+        document.declarations.json, document.declarations.json_extent, cursor, document.declarations.end
     ) {
         valid = false;
     }
@@ -180,7 +180,7 @@ func MirIntentExecutionRoutineSignatureIndexFromRoutines(
         let source_id_text: String = routines.source_syntax_ids[row];
         let return_type: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                routines.source_json, routines.starts[row], routines.ends[row],
+                routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
                 "return"
             );
         if source_id_text == "" ||

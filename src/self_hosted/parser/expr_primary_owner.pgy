@@ -15,7 +15,7 @@ import "expr_string_owner.pgy";
 // emitted text is the source text for literals/idents and the wrapped
 // `(...)` form for binary subtrees.
 func ParsePrimaryFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
@@ -97,7 +97,7 @@ func ParsePrimaryFact(
             }
         } else {
             ArraySet(cursor_out, 0, i);
-            let pipe_body: String = ParseExpr(content, i, cursor_out);
+            let pipe_body: String = ParseExpr(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             pipe_body = pipe_body;
         }
@@ -170,7 +170,7 @@ func ParsePrimaryFact(
                     if ParserCharAt(content, after_lp_name) == ":" {
                         i = after_lp_name + 1;
                         ArraySet(cursor_out, 0, i);
-                        let lp_type: String = ReadType(content, i, cursor_out);
+                        let lp_type: String = ReadType(content, content_extent, i, cursor_out);
                         i = cursor_out[0];
                         if StringLength(lp_type) == 0 {
                             return ParserExpressionInvalidAt(i, "type_name_invalid");
@@ -227,7 +227,7 @@ func ParsePrimaryFact(
                 }
             } else {
                 ArraySet(cursor_out, 0, i);
-                let body_expr: String = ParseExpr(content, i, cursor_out);
+                let body_expr: String = ParseExpr(content, content_extent, i, cursor_out);
                 i = cursor_out[0];
                 body_expr = body_expr;
             }
@@ -270,7 +270,7 @@ func ParsePrimaryFact(
                     base = "<node:26>";
                 } else {
                     i = i + 1;
-                    grouped = ParseExprFact(content, i, cursor_out);
+                    grouped = ParseExprFact(content, content_extent, i, cursor_out);
                     if !grouped.ok { return grouped; }
                     base = grouped.text;
                     preserves_grouped_graph = true;
@@ -363,7 +363,7 @@ func ParsePrimaryFact(
             // header is read and refused like native's.
             if ParserCharAt(content, i) == "(" {
                 let join_header: ParserParallelJoinHeader =
-                    ParserParallelJoinHeaderAt(content, i);
+                    ParserParallelJoinHeaderAt(content, content_extent, i);
                 if !join_header.ok { return join_header.failure; }
                 i = join_header.at;
             }
@@ -424,7 +424,7 @@ func ParsePrimaryFact(
             while true {
                 ArraySet(cursor_out, 0, i);
                 let element: ParserExpressionFact = ParseExprFact(
-                    content, i, cursor_out
+                    content, content_extent, i, cursor_out
                 );
                 if !element.ok { return element; }
                 i = cursor_out[0];
@@ -465,7 +465,7 @@ func ParsePrimaryFact(
             while true {
                 ArraySet(cursor_out, 0, i);
                 let element: ParserExpressionFact = ParseExprFact(
-                    content, i, cursor_out
+                    content, content_extent, i, cursor_out
                 );
                 if !element.ok { return element; }
                 i = cursor_out[0];
@@ -517,5 +517,5 @@ func ParsePrimaryFact(
     if preserves_array_literal_graph { base_fact = array_literal; }
     if preserves_set_literal_graph { base_fact = set_literal; }
     if preserves_interpolation_graph { base_fact = interpolation; }
-    return ApplyPostfixFact(content, base_fact, i, cursor_out);
+    return ApplyPostfixFact(content, content_extent, base_fact, i, cursor_out);
 }

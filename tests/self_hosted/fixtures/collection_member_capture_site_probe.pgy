@@ -1,0 +1,84 @@
+// Mutate only the selected own formal after production-issued facts match
+// their AST. No damaged bundle is admitted, serialized or used for codegen.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy";
+import "collection_member_capture_source_probe.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    if args[1] == "source" { CollectionMemberCaptureSourceProbe(args[0]); return; }
+    if args[1] != "missing" && args[1] != "mode4" { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok || !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, analysis.signatures) ||
+        !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) { Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    let selected_slot: Int = -1;
+    let selected_node: Int = -1;
+    let selected_root: Int = -1;
+    let selected_call: Int = -1;
+    let selected_argument: Int = -1;
+    let selected_row: Int = -1;
+    let selected_ordinal: Int = -1;
+    let selected_flat: Int = -1;
+    let matches: Int = 0;
+    let slot: Int = 0;
+    while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
+        if analysis.expression_surfaces.expression_graph.has_roots[slot] {
+            let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph, root);
+            if !IsSome(start) { Exit(2); }
+            let node: Int = UnwrapOption(start);
+            while node <= root {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(analysis.expression_surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
+                    if !edge.ok { Exit(2); }
+                    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+                        analysis.signatures, analysis.expression_surfaces.expression_graph, edge.call_node, edge.ordinal);
+                    if target.ok {
+                        let mode: Option<Int> = SemanticAstFunctionParamModeAt(analysis.signatures, target.signature_row, target.ordinal);
+                        if !IsSome(mode) { Exit(2); }
+                        // Own is canonical mode 2; no callee-name selection.
+                        if UnwrapOption(mode) == 2 {
+                            let flat: Option<Int> = SemanticAstFunctionParamFlatIndex(analysis.signatures, target.signature_row, target.ordinal);
+                            if !IsSome(flat) { Exit(2); }
+                            matches = matches + 1;
+                            selected_slot = slot; selected_node = node; selected_root = root;
+                            selected_call = edge.call_node; selected_argument = edge.argument_node;
+                            selected_row = target.signature_row; selected_ordinal = target.ordinal; selected_flat = UnwrapOption(flat);
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    if matches != 1 { Exit(2); }
+    let normal: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSiteForNode(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        selected_slot, selected_node, selected_root);
+    if !normal.ready || normal.destructure || normal.expression_id != selected_argument { Exit(1); }
+    if SemanticExpressionGraphCollectionCallStoresValue(SemanticExpressionGraphCollectionCallProtocolFromName("SetHas")) ||
+        SemanticExpressionGraphCollectionCallStoresValue(SemanticExpressionGraphCollectionCallProtocolFromName("SetRemove")) { Exit(1); }
+    if args[1] == "missing" { analysis.signatures.param_counts[selected_row] = selected_ordinal; }
+    else { analysis.signatures.param_modes[selected_flat] = 4; }
+    let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        analysis.signatures, analysis.expression_surfaces.expression_graph, selected_call, selected_ordinal);
+    let refused: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSiteForNode(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        selected_slot, selected_node, selected_root);
+    let signature_match: Bool = SemanticAstFunctionSignatureFactsMatchArtifact(artifact, analysis.signatures);
+    let analysis_match: Bool = SemanticAstArtifactAnalysisMatches(artifact, analysis, true);
+    if formal.ok != (args[1] == "mode4") || refused.ready || signature_match || analysis_match { Exit(1); }
+    Log("normal=true queries_are_stores=false");
+    Log("mutation=" + args[1] + " formal_after=" + ToString(formal.ok) + " site_ready=" + ToString(refused.ready) +
+        " signature_match=" + ToString(signature_match) + " analysis_match=" + ToString(analysis_match));
+    Log("PASS");
+}

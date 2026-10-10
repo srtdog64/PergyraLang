@@ -23,7 +23,7 @@ func Main() -> Void with caps env, io_read {
     let plan: MirIntentRoutinePlan = MirIntentRoutinePlanFromOwners(routines, index, routine, typed);
     if ArrayLength(plan.steps.steps) < 1 { Die("cell transfer probe placement is missing"); }
     let binding: MirIntentStepPlacementBinding = plan.steps.steps[0].placement_binding;
-    let cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(routines.source_json, routines.declarations);
+    let cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(routines.source_json, routines.source_json_extent, routines.declarations);
     let control: DirectMirIntentCellPlacement = DirectMirIntentCellPlacementFromOwners(binding, plan.bindings, cells);
     if !DirectMirIntentCellPlacementReady(control, cells) { Die("cell transfer probe valid layout was refused"); }
     let negative: Bool = args[1] != "c" && args[1] != "llvm";

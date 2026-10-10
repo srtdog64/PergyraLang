@@ -13,12 +13,12 @@ struct DirectMirGenericStructValueFlowAbiFact {
 }
 
 func DirectMirGenericStructCapturedAbi(
-    json: String,
+    json: String, json_extent: Int,
     ref capture: MirRoutineInstructionScalarCapture
 ) -> MirAbiLayoutRowCapture {
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
             capture.abi_type_start, capture.abi_type_end,
             capture.abi_layout_id_start, capture.abi_layout_id_end,
             capture.abi_layout_required_start,
@@ -65,16 +65,16 @@ func DirectMirGenericStructValueFlowAbiFactReady(
 }
 
 func DirectMirGenericStructValueFlowAbiFactFromInstructions(
-    json: String,
+    json: String, json_extent: Int,
     ref identity: DirectMirGenericStructValueFlowProgramIdentity,
     ref instructions: DirectMirGenericStructValueFlowInstructionAdmission
 ) -> DirectMirGenericStructValueFlowAbiFact {
     let returned: MirAbiLayoutRowCapture =
-        DirectMirGenericStructCapturedAbi(json, instructions.returned);
+        DirectMirGenericStructCapturedAbi(json, json_extent, instructions.returned);
     let initial: MirAbiLayoutRowCapture =
-        DirectMirGenericStructCapturedAbi(json, instructions.initial);
+        DirectMirGenericStructCapturedAbi(json, json_extent, instructions.initial);
     let result: MirAbiLayoutRowCapture =
-        DirectMirGenericStructCapturedAbi(json, instructions.result);
+        DirectMirGenericStructCapturedAbi(json, json_extent, instructions.result);
     if !DirectMirStructAbiRowsEqual(returned, identity.declaration.abi) ||
         !DirectMirStructAbiRowsEqual(initial, identity.declaration.abi) ||
         !DirectMirStructAbiRowsEqual(result, identity.declaration.abi) {

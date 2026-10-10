@@ -156,17 +156,17 @@ func DirectMirLegacyIntentRoutineHeadersReady(
     ref graph: DirectMirLegacyIntentProgramGraphFact
 ) -> Bool {
     let main: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.starts[route.main_row],
         admitted.routines.ends[route.main_row]
     );
     let method: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.starts[route.method_row],
         admitted.routines.ends[route.method_row]
     );
     let intent_header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.starts[route.intent_row],
         admitted.routines.ends[route.intent_row]
     );

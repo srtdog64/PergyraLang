@@ -125,23 +125,23 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
     let first: MirRoutineInstructionScalarCapture = captures[3];
     let output: MirRoutineInstructionScalarCapture = captures[4];
     let envelope0: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[0]],
         admitted.routines.instruction_ends[globals[0]]);
     let envelope1: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[1]],
         admitted.routines.instruction_ends[globals[1]]);
     let envelope2: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[2]],
         admitted.routines.instruction_ends[globals[2]]);
     let envelope3: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[3]],
         admitted.routines.instruction_ends[globals[3]]);
     let envelope4: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[4]],
         admitted.routines.instruction_ends[globals[4]]);
     if !DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
@@ -170,7 +170,7 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
         first.arg0 != identity.main_graph.first_local ||
         first.arg1 != identity.record.name || output.arg0 != "Log" ||
         output.arg1 != "" || !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, wrapper, identity.wrapper.name
+            admitted.routines.source_json, admitted.routines.source_json_extent, wrapper, identity.wrapper.name
         ) || point.abi_type_name != identity.record.name ||
         first.abi_type_name != identity.record.name {
         Die("direct MIR constructed record Array Main instruction is invalid");
@@ -205,7 +205,7 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
     let typed_array_abi_absence:
         DirectMirConstructedRecordArrayAbiAbsenceFact =
         DirectMirConstructedRecordArrayAbiAbsenceFromSealedResult(
-            admitted.routines.source_json, result,
+            admitted.routines.source_json, admitted.routines.source_json_extent, result,
             identity.specialization.pair.outer_generic_actual
         );
     let fact: DirectMirConstructedRecordArrayMemberMainAdmission =

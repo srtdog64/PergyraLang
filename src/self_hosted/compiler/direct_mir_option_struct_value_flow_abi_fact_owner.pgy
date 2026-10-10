@@ -20,12 +20,12 @@ struct DirectMirOptionStructValueFlowAbiFact {
 }
 
 func DirectMirOptionStructCapturedAbi(
-    json: String,
+    json: String, json_extent: Int,
     ref capture: MirRoutineInstructionScalarCapture
 ) -> MirAbiLayoutRowCapture {
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
             capture.abi_type_start, capture.abi_type_end,
             capture.abi_layout_id_start, capture.abi_layout_id_end,
             capture.abi_layout_required_start,
@@ -122,24 +122,24 @@ func DirectMirOptionStructValueFlowAbiFactReady(
 }
 
 func DirectMirOptionStructValueFlowAbiFactFromInstructions(
-    json: String,
+    json: String, json_extent: Int,
     ref identity: DirectMirOptionStructValueFlowProgramIdentity,
     ref instructions: DirectMirOptionStructValueFlowInstructionAdmission
 ) -> DirectMirOptionStructValueFlowAbiFact {
     let returned_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.returned);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.returned);
     let initial_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.initial);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.initial);
     let none_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.none_value);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.none_value);
     let latest_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.latest);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.latest);
     let built_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.built);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.built);
     let pair_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.pair);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.pair);
     let unwrapped_abi: MirAbiLayoutRowCapture =
-        DirectMirOptionStructCapturedAbi(json, instructions.unwrapped);
+        DirectMirOptionStructCapturedAbi(json, json_extent, instructions.unwrapped);
     if !DirectMirStructAbiRowsEqual(returned_abi, initial_abi) ||
         !DirectMirStructAbiRowsEqual(returned_abi, none_abi) ||
         !DirectMirStructAbiRowsEqual(returned_abi, latest_abi) ||

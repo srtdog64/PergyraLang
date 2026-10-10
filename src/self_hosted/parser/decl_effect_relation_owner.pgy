@@ -50,6 +50,7 @@ func ParseEffectRelationProjectionDirective(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> String {
+    let content_extent: Int = StringLength(content);
     let i: Int = start;
     let label: String = "";
     let target_expected: String = "";
@@ -91,7 +92,7 @@ func ParseEffectRelationProjectionDirective(
         ParseDomainProjectionMapRows(context, content, i, cursor_out);
     i = cursor_out[0];
     i = SkipWhitespaceAndComments(content, i);
-    if i < StringLength(content) && ParserCharAt(content, i) == ";" {
+    if i < content_extent && ParserCharAt(content, i) == ";" {
         i = i + 1;
     }
     ArraySet(cursor_out, 0, i);
@@ -112,6 +113,7 @@ func ParseEffectRelationProjectionSlot(
     start: Int,
     inout cursor_out: Array<Int>
 ) -> String {
+    let content_extent: Int = StringLength(content);
     let i: Int = start;
     let label: String = "";
     if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
@@ -134,14 +136,14 @@ func ParseEffectRelationProjectionSlot(
         "projection_slot", cursor_out);
     i = ParseExpectIn(context, content, cursor_out[0], ":", "projection_slot");
     ArraySet(cursor_out, 0, i);
-    let slot_type: String = ReadTypeIn(context, content, i, cursor_out);
+    let slot_type: String = ReadTypeIn(context, content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if slot_type == "" {
         ParseRefuse(context, i, "type_name_invalid",
             "construct", "projection_slot", "", "");
     }
     i = SkipWhitespaceAndComments(content, i);
-    if i < StringLength(content) && ParserCharAt(content, i) == ";" {
+    if i < content_extent && ParserCharAt(content, i) == ";" {
         i = i + 1;
     }
     ArraySet(cursor_out, 0, i);
@@ -193,7 +195,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     }
     i = ParseExpectIn(location_context, content, i, ":", "effect");
     ArraySet(cursor_out, 0, i);
-    let eff_param_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+    let eff_param_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
     i = cursor_out[0];
     if eff_param_type == "" {
         ParseRefuse(location_context, i, "type_name_invalid", "construct", "effect_participant", "", "");
@@ -252,7 +254,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         }
         i = ParseExpectIn(location_context, content, i, ":", "effect_field");
         ArraySet(cursor_out, 0, i);
-        let f_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+        let f_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
         i = cursor_out[0];
         if f_type == "" {
             ParseRefuse(location_context, i, "type_name_invalid", "construct", "effect_field", "", "");
@@ -319,7 +321,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     }
     i = ParseExpectIn(location_context, content, i, ":", "relation");
     ArraySet(cursor_out, 0, i);
-    let p1_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+    let p1_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
     i = cursor_out[0];
     if p1_type == "" {
         ParseRefuse(location_context, i, "type_name_invalid", "construct", "relation_participant", "", "");
@@ -353,7 +355,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     }
     i = ParseExpectIn(location_context, content, i, ":", "relation");
     ArraySet(cursor_out, 0, i);
-    let p2_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+    let p2_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
     i = cursor_out[0];
     if p2_type == "" {
         ParseRefuse(location_context, i, "type_name_invalid", "construct", "relation_participant", "", "");
@@ -411,7 +413,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
         }
         i = ParseExpectIn(location_context, content, i, ":", "relation_field");
         ArraySet(cursor_out, 0, i);
-        let f_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+        let f_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
         i = cursor_out[0];
         if f_type == "" {
             ParseRefuse(location_context, i, "type_name_invalid", "construct", "relation_field", "", "");

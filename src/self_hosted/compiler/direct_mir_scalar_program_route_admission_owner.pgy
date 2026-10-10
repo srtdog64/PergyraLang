@@ -123,7 +123,7 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
     generic_instances: GenericInstanceClosure
 ) -> DirectMirScalarProgramRouteAdmission {
     let identity_cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(
-        admitted.document.root.json, admitted.domain_runtime_admission.declarations);
+        admitted.document.root.json, admitted.document.root.json_extent, admitted.domain_runtime_admission.declarations);
     if !identity_cells.valid { return DirectMirScalarProgramRouteAdmissionRejected(
         "identity-cell", "declaration-inventory", -1, "", -1, "", ""); }
     let routine_instances: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventoryFromOwners(

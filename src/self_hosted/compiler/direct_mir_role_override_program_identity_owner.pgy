@@ -97,7 +97,7 @@ func DirectMirRoleOverrideEmptyMethodContract(
 ) -> Bool {
     let contract: MirDeclarationMethodContractFact =
         MirDeclarationMethodContractFactFromBounds(
-            method.json, method.start, method.end
+            method.json, method.json_extent, method.start, method.end
         );
     return contract.valid && contract.callable_kind == "function" &&
         ArrayLength(contract.requires_bases) == 0 &&
@@ -112,13 +112,13 @@ func DirectMirRoleOverrideDeclarationMethodName(
     role_owned: Bool
 ) -> String {
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "name"
+        method.json, method.json_extent, method.start, method.end, "name"
     );
     let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "return"
+        method.json, method.json_extent, method.start, method.end, "return"
     );
     let callable_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "callable_kind"
+        method.json, method.json_extent, method.start, method.end, "callable_kind"
     );
     let params: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(method, "params");
@@ -209,7 +209,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         return invalid;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[routine_row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[routine_row],
         admitted.routines.ends[routine_row]
     );
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -230,7 +230,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         return invalid;
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global],
         admitted.routines.instruction_ends[global]
     );
@@ -246,7 +246,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         capture.arg0 != "" || capture.arg1 != "" ||
         capture.slot_anchor != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, capture, "String"
+            admitted.routines.source_json, admitted.routines.source_json_extent, capture, "String"
         ) || !DirectMirObjectFieldKindEquals(instruction, "expr0", "string") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr0_graph", "object") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr1", "null") ||
@@ -269,7 +269,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         );
     let graph: JsonObjectFactTable =
         MirProgramInstructionExpressionGraphTable(
-            admitted.routines.source_json, expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
         );
     let sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
@@ -374,7 +374,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         return invalid;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[routine_row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[routine_row],
         admitted.routines.ends[routine_row]
     );
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -401,12 +401,12 @@ func DirectMirRoleOverrideMainFromRoutine(
         return invalid;
     }
     let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[definition_global],
         admitted.routines.instruction_ends[definition_global]
     );
     let log_instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[log_global],
         admitted.routines.instruction_ends[log_global]
     );
@@ -457,7 +457,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         );
     let definition_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, definition_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, definition_expression, 0
         );
     let constructor_value: Option<Int> =
         DirectMirRoleOverrideConstructorGraphValue(
@@ -469,7 +469,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         );
     let log_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, log_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, log_expression, 0
         );
     let target_name: String = CompilerSymbolCQualifiedName(
         subject_name, method_name
@@ -483,7 +483,7 @@ func DirectMirRoleOverrideMainFromRoutine(
     }
     let abi_absence: DirectMirNominalLiteralAbiAbsenceFact =
         DirectMirNominalLiteralAbiAbsenceFromSealedDefinition(
-            admitted.routines.source_json, definition_capture, subject_name
+            admitted.routines.source_json, admitted.routines.source_json_extent, definition_capture, subject_name
         );
     return DirectMirRoleOverrideMainFact(
         true, routine_row, signature.source_syntax_id, local_name,
@@ -648,14 +648,14 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
         admitted.document.declarations, role_row
     );
     let subject_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        subject_table.json, subject_table.start, subject_table.end,
+        subject_table.json, subject_table.json_extent, subject_table.start, subject_table.end,
         "source_syntax_id"
     );
     let role_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        role_table.json, role_table.start, role_table.end, "source_syntax_id"
+        role_table.json, role_table.json_extent, role_table.start, role_table.end, "source_syntax_id"
     );
     let for_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        role_table.json, role_table.start, role_table.end, "for_type"
+        role_table.json, role_table.json_extent, role_table.start, role_table.end, "for_type"
     );
     let subject_fields: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(subject_table, "fields");
@@ -685,10 +685,10 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
     }
     let field: JsonObjectFactTable = JsonArrayObjectFactAt(subject_fields, 0);
     let field_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        field.json, field.start, field.end, "name"
+        field.json, field.json_extent, field.start, field.end, "name"
     );
     let field_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        field.json, field.start, field.end, "source_syntax_id"
+        field.json, field.json_extent, field.start, field.end, "source_syntax_id"
     );
     if JsonObjectFactCount(field) != 4 || !IsSome(field_name) ||
         UnwrapOption(field_name) == "" ||

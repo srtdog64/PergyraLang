@@ -5,68 +5,68 @@ import "../lib/json_bounded_fact_read.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 
 func MirExpressionGraphKindCodeWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> Option<Int> {
-    if JsonStringValueEqualsWithin(json, start, end, "leaf") { return Some(AstExpressionNodeLeaf()); }
-    if JsonStringValueEqualsWithin(json, start, end, "logical_or") { return Some(AstExpressionNodeLogicalOr()); }
-    if JsonStringValueEqualsWithin(json, start, end, "logical_and") { return Some(AstExpressionNodeLogicalAnd()); }
-    if JsonStringValueEqualsWithin(json, start, end, "equality") { return Some(AstExpressionNodeEquality()); }
-    if JsonStringValueEqualsWithin(json, start, end, "inequality") { return Some(AstExpressionNodeInequality()); }
-    if JsonStringValueEqualsWithin(json, start, end, "less") { return Some(AstExpressionNodeLess()); }
-    if JsonStringValueEqualsWithin(json, start, end, "less_equal") { return Some(AstExpressionNodeLessEqual()); }
-    if JsonStringValueEqualsWithin(json, start, end, "greater") { return Some(AstExpressionNodeGreater()); }
-    if JsonStringValueEqualsWithin(json, start, end, "greater_equal") { return Some(AstExpressionNodeGreaterEqual()); }
-    if JsonStringValueEqualsWithin(json, start, end, "add") { return Some(AstExpressionNodeAdd()); }
-    if JsonStringValueEqualsWithin(json, start, end, "subtract") { return Some(AstExpressionNodeSubtract()); }
-    if JsonStringValueEqualsWithin(json, start, end, "multiply") { return Some(AstExpressionNodeMultiply()); }
-    if JsonStringValueEqualsWithin(json, start, end, "divide") { return Some(AstExpressionNodeDivide()); }
-    if JsonStringValueEqualsWithin(json, start, end, "modulo") { return Some(AstExpressionNodeModulo()); }
-    if JsonStringValueEqualsWithin(json, start, end, "index") { return Some(AstExpressionNodeIndex()); }
-    if JsonStringValueEqualsWithin(json, start, end, "logical_not") { return Some(AstExpressionNodeLogicalNot()); }
-    if JsonStringValueEqualsWithin(json, start, end, "negate") { return Some(AstExpressionNodeNegate()); }
-    if JsonStringValueEqualsWithin(json, start, end, "float_literal") { return Some(AstExpressionNodeFloatLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "integer_literal") { return Some(AstExpressionNodeIntegerLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "long_literal") { return Some(AstExpressionNodeLongLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "bool_literal") { return Some(AstExpressionNodeBoolLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "string_literal") { return Some(AstExpressionNodeStringLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "call") { return Some(AstExpressionNodeCall()); }
-    if JsonStringValueEqualsWithin(json, start, end, "call_argument") { return Some(AstExpressionNodeCallArgument()); }
-    if JsonStringValueEqualsWithin(json, start, end, "member_access") { return Some(AstExpressionNodeMemberAccess()); }
-    if JsonStringValueEqualsWithin(json, start, end, "try") { return Some(AstExpressionNodeTry()); }
-    if JsonStringValueEqualsWithin(json, start, end, "array_literal") { return Some(AstExpressionNodeArrayLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "array_element") { return Some(AstExpressionNodeArrayElement()); }
-    if JsonStringValueEqualsWithin(json, start, end, "struct_literal") { return Some(AstExpressionNodeStructLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "struct_field_binding") { return Some(AstExpressionNodeStructFieldBinding()); }
-    if JsonStringValueEqualsWithin(json, start, end, "struct_field") { return Some(AstExpressionNodeStructField()); }
-    if JsonStringValueEqualsWithin(json, start, end, "struct_field_name") { return Some(AstExpressionNodeStructFieldName()); }
-    if JsonStringValueEqualsWithin(json, start, end, "generic_type_actual") { return Some(AstExpressionNodeGenericTypeActual()); }
-    if JsonStringValueEqualsWithin(json, start, end, "generic_callee") { return Some(AstExpressionNodeGenericCallee()); }
-    if JsonStringValueEqualsWithin(json, start, end, "type_name") { return Some(AstExpressionNodeTypeName()); }
-    if JsonStringValueEqualsWithin(json, start, end, "cast") { return Some(AstExpressionNodeCast()); }
-    if JsonStringValueEqualsWithin(json, start, end, "await") { return Some(AstExpressionNodeAwait()); }
-    if JsonStringValueEqualsWithin(json, start, end, "coalesce") { return Some(AstExpressionNodeCoalesce()); }
-    if JsonStringValueEqualsWithin(json, start, end, "spawn") { return Some(AstExpressionNodeSpawn()); }
-    if JsonStringValueEqualsWithin(json, start, end, "set_literal") { return Some(AstExpressionNodeSetLiteral()); }
-    if JsonStringValueEqualsWithin(json, start, end, "set_element") { return Some(AstExpressionNodeSetElement()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "leaf") { return Some(AstExpressionNodeLeaf()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "logical_or") { return Some(AstExpressionNodeLogicalOr()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "logical_and") { return Some(AstExpressionNodeLogicalAnd()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "equality") { return Some(AstExpressionNodeEquality()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "inequality") { return Some(AstExpressionNodeInequality()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "less") { return Some(AstExpressionNodeLess()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "less_equal") { return Some(AstExpressionNodeLessEqual()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "greater") { return Some(AstExpressionNodeGreater()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "greater_equal") { return Some(AstExpressionNodeGreaterEqual()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "add") { return Some(AstExpressionNodeAdd()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "subtract") { return Some(AstExpressionNodeSubtract()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "multiply") { return Some(AstExpressionNodeMultiply()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "divide") { return Some(AstExpressionNodeDivide()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "modulo") { return Some(AstExpressionNodeModulo()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "index") { return Some(AstExpressionNodeIndex()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "logical_not") { return Some(AstExpressionNodeLogicalNot()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "negate") { return Some(AstExpressionNodeNegate()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "float_literal") { return Some(AstExpressionNodeFloatLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "integer_literal") { return Some(AstExpressionNodeIntegerLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "long_literal") { return Some(AstExpressionNodeLongLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "bool_literal") { return Some(AstExpressionNodeBoolLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "string_literal") { return Some(AstExpressionNodeStringLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "call") { return Some(AstExpressionNodeCall()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "call_argument") { return Some(AstExpressionNodeCallArgument()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "member_access") { return Some(AstExpressionNodeMemberAccess()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "try") { return Some(AstExpressionNodeTry()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "array_literal") { return Some(AstExpressionNodeArrayLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "array_element") { return Some(AstExpressionNodeArrayElement()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "struct_literal") { return Some(AstExpressionNodeStructLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "struct_field_binding") { return Some(AstExpressionNodeStructFieldBinding()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "struct_field") { return Some(AstExpressionNodeStructField()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "struct_field_name") { return Some(AstExpressionNodeStructFieldName()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "generic_type_actual") { return Some(AstExpressionNodeGenericTypeActual()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "generic_callee") { return Some(AstExpressionNodeGenericCallee()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "type_name") { return Some(AstExpressionNodeTypeName()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "cast") { return Some(AstExpressionNodeCast()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "await") { return Some(AstExpressionNodeAwait()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "coalesce") { return Some(AstExpressionNodeCoalesce()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "spawn") { return Some(AstExpressionNodeSpawn()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "set_literal") { return Some(AstExpressionNodeSetLiteral()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "set_element") { return Some(AstExpressionNodeSetElement()); }
     return None;
 }
 
 func MirExpressionCallTargetKindCodeWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> Option<Int> {
-    if JsonStringValueEqualsWithin(json, start, end, "none") { return Some(SemanticCallTargetNone()); }
-    if JsonStringValueEqualsWithin(json, start, end, "direct") { return Some(SemanticCallTargetDirect()); }
-    if JsonStringValueEqualsWithin(json, start, end, "namespace") { return Some(SemanticCallTargetNamespace()); }
-    if JsonStringValueEqualsWithin(json, start, end, "member") { return Some(SemanticCallTargetMember()); }
-    if JsonStringValueEqualsWithin(json, start, end, "role_operator") { return Some(SemanticCallTargetRoleOperator()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "none") { return Some(SemanticCallTargetNone()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "direct") { return Some(SemanticCallTargetDirect()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "namespace") { return Some(SemanticCallTargetNamespace()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "member") { return Some(SemanticCallTargetMember()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "role_operator") { return Some(SemanticCallTargetRoleOperator()); }
     return None;
 }
 
 func MirExpressionBindingKindCodeWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> Option<Int> {
-    if JsonStringValueEqualsWithin(json, start, end, "none") { return Some(SemanticExpressionBindingNone()); }
-    if JsonStringValueEqualsWithin(json, start, end, "formal_parameter") { return Some(SemanticExpressionBindingFormalParameter()); }
-    if JsonStringValueEqualsWithin(json, start, end, "declared_callable") { return Some(SemanticExpressionBindingDeclaredCallable()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "none") { return Some(SemanticExpressionBindingNone()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "formal_parameter") { return Some(SemanticExpressionBindingFormalParameter()); }
+    if JsonStringValueEqualsWithin(json, json_extent, start, end, "declared_callable") { return Some(SemanticExpressionBindingDeclaredCallable()); }
     return None;
 }

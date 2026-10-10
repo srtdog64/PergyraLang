@@ -1,0 +1,10 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Inspect(ref value: Table) -> Int { return ArrayLength(value.names); }
+func Fresh() -> Table { return Table(["fresh"]); }
+func Observe(ref input: Envelope) -> Int {
+    let count: Int = Inspect(input.table);
+    let fresh: Table = Fresh();
+    return count + Inspect(fresh);
+}
+func Main() -> Void {}

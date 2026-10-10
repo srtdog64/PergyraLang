@@ -15,7 +15,7 @@ func DirectMirScalarCfgRoutineRouteClaimed(
         return false;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[routine_row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[routine_row],
         admitted.routines.ends[routine_row]
     );
     if !DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(routine) {

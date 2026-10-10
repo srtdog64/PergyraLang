@@ -20,7 +20,7 @@ func MirParallelCaptureBoolEquals(
     if !JsonObjectFactValueBounds(row, field, bounds) {
         return false;
     }
-    let token: String = JsonScalarToken(row.json, bounds[0], bounds[1]);
+    let token: String = JsonScalarToken(row.json, row.json_extent, bounds[0], bounds[1]);
     if expected {
         return token == "true";
     }

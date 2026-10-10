@@ -29,7 +29,7 @@ func DirectMirRoutineInstanceTypeName(
 }
 
 func DirectMirRoutineInstanceInstructionCapture(
-    source: MirRoutineInstructionScalarCapture, json: String,
+    source: MirRoutineInstructionScalarCapture, json: String, json_extent: Int,
     ref inventory: DirectMirRoutineInstanceInventory, ordinal: Int
 ) -> MirRoutineInstructionScalarCapture {
     if !source.valid { return source; }
@@ -39,7 +39,7 @@ func DirectMirRoutineInstanceInstructionCapture(
     if type_name == source.abi_type_name { return source; }
     if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
             DirectMirIdentityCellRow(inventory.identity_cells, type_name) < 0) ||
-        !DirectMirInstructionHasNoPhysicalAbi(json, source, source.abi_type_name) {
+        !DirectMirInstructionHasNoPhysicalAbi(json, json_extent, source, source.abi_type_name) {
         return InvalidMirRoutineInstructionScalarCapture();
     }
     return MirRoutineInstructionScalarCapture(source.valid, source.name, source.result,

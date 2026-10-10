@@ -11,6 +11,7 @@
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "string_window_extent.h"
 #include "callable_capability_inference.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_let_internal.h"
@@ -532,6 +533,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = symbol_create_variable(name, decl_type,
                                          node->line, node->column);
     symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+    semantic_string_window_extent_record_let(ctx, node);
     semantic_array_storage_initialize(sym, init, ctx);
     semantic_indexed_string_borrow_initialize_binding(sym, init, ctx);
     callable_capability_record_binding(ctx, sym, init);

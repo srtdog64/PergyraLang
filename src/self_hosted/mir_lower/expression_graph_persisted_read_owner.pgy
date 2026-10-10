@@ -7,19 +7,19 @@
 import "../lib/json_fact_table.pgy";
 
 func MirExpressionGraphIndexWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> Option<Int> {
-    let i: Int = JsonSkipWhitespaceWithin(json, start, end);
+    let i: Int = JsonSkipWhitespaceWithin(json, json_extent, start, end);
     if i >= end { return None; }
     let zero: Int = JsonAsciiCode("0");
-    let first: Int = JsonCharCodeAt(json, end, i);
+    let first: Int = JsonCharCodeAt(json, json_extent, end, i);
     if !JsonIsDigitCode(first) || (first == zero && i + 1 != end) {
         return None;
     }
     let value: Int = 0;
     let cursor: Int = i;
     while cursor < end {
-        let code: Int = JsonCharCodeAt(json, end, cursor);
+        let code: Int = JsonCharCodeAt(json, json_extent, end, cursor);
         if !JsonIsDigitCode(code) { return None; }
         let digit: Int = code - zero;
         if value > (2147483647 - digit) / 10 { return None; }
@@ -45,7 +45,7 @@ func MirExpressionGraphHeaderCaptureFromTable(
     ref graph: JsonObjectFactTable
 ) -> MirExpressionGraphHeaderCapture {
     if !JsonObjectFactTableReady(graph) ||
-        JsonCharCodeAt(graph.json, graph.end, graph.start) !=
+        JsonCharCodeAt(graph.json, graph.json_extent, graph.end, graph.start) !=
             JsonAsciiCode("{") {
         return InvalidMirExpressionGraphHeaderCapture();
     }
@@ -60,11 +60,11 @@ func MirExpressionGraphHeaderCaptureFromTable(
     let after_comma: Bool = false;
     let i: Int = graph.start + 1;
     while i < graph.end {
-        i = JsonSkipWhitespaceWithin(graph.json, i, graph.end);
+        i = JsonSkipWhitespaceWithin(graph.json, graph.json_extent, i, graph.end);
         if i >= graph.end {
             return InvalidMirExpressionGraphHeaderCapture();
         }
-        let c: Int = JsonCharCodeAt(graph.json, graph.end, i);
+        let c: Int = JsonCharCodeAt(graph.json, graph.json_extent, graph.end, i);
         if c == JsonAsciiCode("}") {
             if after_comma || !root_seen || !nodes_seen ||
                 (member_count != 2 && member_count != 3) ||
@@ -88,47 +88,47 @@ func MirExpressionGraphHeaderCaptureFromTable(
             return InvalidMirExpressionGraphHeaderCapture();
         }
         let key_end_opt: Option<Int> = JsonStringEndWithin(
-            graph.json, i, graph.end
+            graph.json, graph.json_extent, i, graph.end
         );
         if !IsSome(key_end_opt) {
             return InvalidMirExpressionGraphHeaderCapture();
         }
         let key_end: Int = UnwrapOption(key_end_opt);
         let field_kind: Int = 0;
-        if JsonObjectKeyEqualsWithin(graph.json, i, key_end, "root") {
+        if JsonObjectKeyEqualsWithin(graph.json, graph.json_extent, i, key_end, "root") {
             field_kind = 1;
         } else if JsonObjectKeyEqualsWithin(
-            graph.json, i, key_end, "nodes"
+            graph.json, graph.json_extent, i, key_end, "nodes"
         ) {
             field_kind = 2;
         } else if JsonObjectKeyEqualsWithin(
-            graph.json, i, key_end, "digest"
+            graph.json, graph.json_extent, i, key_end, "digest"
         ) {
             field_kind = 3;
         }
         if field_kind == 0 {
             return InvalidMirExpressionGraphHeaderCapture();
         }
-        i = JsonSkipWhitespaceWithin(graph.json, key_end, graph.end);
+        i = JsonSkipWhitespaceWithin(graph.json, graph.json_extent, key_end, graph.end);
         if i >= graph.end ||
-            JsonCharCodeAt(graph.json, graph.end, i) != JsonAsciiCode(":") {
+            JsonCharCodeAt(graph.json, graph.json_extent, graph.end, i) != JsonAsciiCode(":") {
             return InvalidMirExpressionGraphHeaderCapture();
         }
-        i = JsonSkipWhitespaceWithin(graph.json, i + 1, graph.end);
+        i = JsonSkipWhitespaceWithin(graph.json, graph.json_extent, i + 1, graph.end);
         let value_end_opt: Option<Int> = JsonValueEndWithin(
-            graph.json, i, graph.end
+            graph.json, graph.json_extent, i, graph.end
         );
         if !IsSome(value_end_opt) {
             return InvalidMirExpressionGraphHeaderCapture();
         }
         let value_end: Int = UnwrapOption(value_end_opt);
         if field_kind == 1 {
-            if root_seen || JsonValueKindAt(graph.json, i, value_end) !=
+            if root_seen || JsonValueKindAt(graph.json, graph.json_extent, i, value_end) !=
                     "number" {
                 return InvalidMirExpressionGraphHeaderCapture();
             }
             let root_opt: Option<Int> = MirExpressionGraphIndexWithin(
-                graph.json, i, value_end
+                graph.json, graph.json_extent, i, value_end
             );
             if !IsSome(root_opt) {
                 return InvalidMirExpressionGraphHeaderCapture();
@@ -136,7 +136,7 @@ func MirExpressionGraphHeaderCaptureFromTable(
             root = UnwrapOption(root_opt);
             root_seen = true;
         } else if field_kind == 2 {
-            if nodes_seen || JsonValueKindAt(graph.json, i, value_end) !=
+            if nodes_seen || JsonValueKindAt(graph.json, graph.json_extent, i, value_end) !=
                     "array" {
                 return InvalidMirExpressionGraphHeaderCapture();
             }
@@ -144,12 +144,12 @@ func MirExpressionGraphHeaderCaptureFromTable(
             nodes_end = value_end;
             nodes_seen = true;
         } else {
-            if digest_seen || JsonValueKindAt(graph.json, i, value_end) !=
+            if digest_seen || JsonValueKindAt(graph.json, graph.json_extent, i, value_end) !=
                     "number" {
                 return InvalidMirExpressionGraphHeaderCapture();
             }
             let digest_opt: Option<Int> = MirExpressionGraphIndexWithin(
-                graph.json, i, value_end
+                graph.json, graph.json_extent, i, value_end
             );
             if !IsSome(digest_opt) || UnwrapOption(digest_opt) <= 0 {
                 return InvalidMirExpressionGraphHeaderCapture();

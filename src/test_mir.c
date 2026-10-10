@@ -25,6 +25,7 @@
 #include "compiler/mir_json_expression_graph_materialize.h"
 #include "compiler/mir_fact_validate.h"
 #include "compiler/mir_branch_source_facts.h"
+#include "compiler/mir_source_local_expr_types.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -903,6 +904,7 @@ test_mir_lowering(void)
     test_mir_carries_region_escape_facts();
     test_mir_inventory_source_identity_lookup();
     test_mir_lexical_binding_identity();
+    test_mir_lexical_array_type_identity();
     test_mir_enum_constructor_reference_identity();
     test_mir_io_summary_operand_identity();
     test_mir_resource_summary_operand_identity();

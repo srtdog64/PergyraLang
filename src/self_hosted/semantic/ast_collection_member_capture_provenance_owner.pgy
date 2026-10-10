@@ -1,0 +1,110 @@
+// The storage root a capture source reads: a local or formal declaration, or
+// for a binding without one, its admitted provenance. Shared by the capture
+// source owner and the match subject it follows; no type or store decision.
+import "ast_collection_member_place_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_expression_owner_field_environment_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+
+struct SemanticAstCollectionMemberCaptureSource {
+    ready: Bool;
+    binding_id: Int;
+    readonly: Bool;
+}
+
+// The binding whose storage a root leaf reads, with its readonly mode.
+func SemanticAstCollectionMemberCaptureBinding(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref statements: SemanticAstStatementFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, syntax_id: Int, leaf: Int, place_kind: Int
+) -> SemanticAstCollectionMemberCaptureSource {
+    let source: SemanticAstCollectionMemberRootIdentity = SemanticAstCollectionMemberRootIdentityForNode(
+        artifact, signatures, locals, inferred_types, resolved_leaf_types, function_id, syntax_id,
+        surfaces.expression_graph, leaf);
+    if !source.ok || source.source_binding_syntax_id <= 0 {
+        return SemanticAstCollectionMemberCaptureProvenance(artifact, signatures, constructors, locals,
+            inferred_types, resolved_leaf_types, statements, surfaces, function_id, syntax_id, leaf);
+    }
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+        signatures, function_id, surfaces.expression_graph, leaf);
+    let readonly: Bool = place_kind == SemanticExpressionPlaceReadonlyRefBinding();
+    if (formal.ok && (formal.mode == 3) != readonly) || (!formal.ok && readonly) {
+        return SemanticAstCollectionMemberCaptureSource(false, 0, false);
+    }
+    return SemanticAstCollectionMemberCaptureSource(true, source.source_binding_syntax_id, readonly);
+}
+
+// A binding with no local or formal declaration still has one admitted
+// storage root: an implicit receiver field is a field of the routine's `self`
+// formal, read with that formal's mode, and a match payload binding is part
+// of its match subject. Any other root (a loop binding, an unresolved name)
+// has no admitted provenance and stays invalid.
+func SemanticAstCollectionMemberCaptureProvenance(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref statements: SemanticAstStatementFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, syntax_id: Int, leaf: Int
+) -> SemanticAstCollectionMemberCaptureSource {
+    let invalid: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSource(false, 0, false);
+    let name: String = surfaces.expression_graph.arena.node_texts[leaf];
+    let ancestor: Option<Int> = TypedAstArenaParentId(artifact.arena, syntax_id);
+    while IsSome(ancestor) {
+        let case_node: Int = UnwrapOption(ancestor);
+        if TypedAstArenaNodeKindIs(artifact.arena, case_node, TypedAstKindMatchCaseStmtTag()) {
+            let pattern: AstMatchCasePatternFact = SemanticAstMatchCasePatternFactForNode(statements, case_node);
+            if !pattern.ok { return invalid; }
+            let binding: Int = 0;
+            while binding < ArrayLength(pattern.bindings) {
+                if pattern.bindings[binding] == name {
+                    return SemanticAstCollectionMemberCaptureSubject(artifact, signatures, constructors, locals,
+                        inferred_types, resolved_leaf_types, statements, surfaces, function_id, case_node);
+                }
+                binding = binding + 1;
+            }
+        }
+        ancestor = TypedAstArenaParentId(artifact.arena, case_node);
+    }
+    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !IsSome(row) || signatures.receiver_source_param_offsets[UnwrapOption(row)] != 1 ||
+        !IsSome(SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(signatures, constructors, function_id, name)) {
+        return invalid;
+    }
+    let receiver: Int = signatures.param_starts[UnwrapOption(row)];
+    return SemanticAstCollectionMemberCaptureSource(true, signatures.param_node_ids[receiver],
+        signatures.param_modes[receiver] == 3);
+}
+
+// The storage root of a match case's subject; a subject that is not rooted in
+// a binding (a call result, a constant) is a fresh value.
+func SemanticAstCollectionMemberCaptureSubject(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref statements: SemanticAstStatementFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, case_node: Int
+) -> SemanticAstCollectionMemberCaptureSource {
+    let none: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSource(true, 0, false);
+    let invalid: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSource(false, 0, false);
+    let match_node: Option<Int> = TypedAstArenaParentId(artifact.arena, case_node);
+    if !IsSome(match_node) ||
+        !TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(match_node), TypedAstKindMatchStmtTag()) { return invalid; }
+    let subject_root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, UnwrapOption(match_node), AstExpressionLaneAtom());
+    if !IsSome(subject_root) { return invalid; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, UnwrapOption(subject_root));
+    if !IsSome(kind) { return invalid; }
+    if UnwrapOption(kind) != AstExpressionNodeLeaf() && UnwrapOption(kind) != AstExpressionNodeMemberAccess() &&
+        UnwrapOption(kind) != AstExpressionNodeIndex() { return none; }
+    let spine: SemanticExpressionGraphValueReceiverSpine = SemanticExpressionGraphValueReceiverSpineFromGraph(
+        surfaces.expression_graph, UnwrapOption(subject_root));
+    if !spine.ok { return invalid; }
+    if spine.leaf_node < 0 { return none; }
+    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(surfaces.expression_graph, spine.leaf_node);
+    if !IsSome(place_kind) { return invalid; }
+    if !SemanticExpressionPlaceKindDirectBinding(UnwrapOption(place_kind)) { return none; }
+    return SemanticAstCollectionMemberCaptureBinding(artifact, signatures, constructors, locals, inferred_types,
+        resolved_leaf_types, statements, surfaces, function_id, UnwrapOption(match_node), spine.leaf_node,
+        UnwrapOption(place_kind));
+}

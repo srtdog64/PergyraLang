@@ -37,15 +37,15 @@ func ParserExpressionCallStatementKind(
 func ParserExpressionCallStatementKindContractReady() -> Bool {
     let direct_cursor: Array<Int> = [0];
     let direct: ParserExpressionFact = ParseExprFact(
-        "Mutate(value)", 0, direct_cursor
+        "Mutate(value)", 13, 0, direct_cursor
     );
     let member_cursor: Array<Int> = [0];
     let member: ParserExpressionFact = ParseExprFact(
-        "acc.Deposit(25)", 0, member_cursor
+        "acc.Deposit(25)", 15, 0, member_cursor
     );
     let value_cursor: Array<Int> = [0];
     let value: ParserExpressionFact = ParseExprFact(
-        "acc.balance", 0, value_cursor
+        "acc.balance", 11, 0, value_cursor
     );
     return ParserExpressionCallStatementKind(direct) ==
             TypedAstKindBareCallStmtTag() &&

@@ -4,7 +4,7 @@ import "direct_mir_constructed_array_member_main_instruction_owner.pgy";
 import "direct_mir_array_int_abi_fact_owner.pgy";
 
 func DirectMirConstructedArrayMemberAbiFromResult(
-    json: String,
+    json: String, json_extent: Int,
     ref main: DirectMirConstructedArrayMemberMainInstructions
 ) -> MirAbiLayoutRowCapture {
     if !DirectMirConstructedArrayMemberMainInstructionsReady(main) {
@@ -12,7 +12,7 @@ func DirectMirConstructedArrayMemberAbiFromResult(
     }
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, main.result.abi_type_name, main.result.abi_type_value_ready,
+            json, json_extent, main.result.abi_type_name, main.result.abi_type_value_ready,
             main.result.abi_type_start, main.result.abi_type_end,
             main.result.abi_layout_id_start, main.result.abi_layout_id_end,
             main.result.abi_layout_required_start,

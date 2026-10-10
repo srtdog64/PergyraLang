@@ -61,7 +61,7 @@ func DirectMirTwoRoutineNominalProgramEnvelopeReady(
             return false;
         }
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         if !JsonObjectFactTableReady(routine) ||

@@ -97,23 +97,23 @@ func MirRoutineResultDefinitionFactReady(
 // instruction row. Keep that existing phi rule separate from result lookup.
 func MirPhiParameterEntryExists(
     ref index: MirRoutineFactIndex,
-    json: String,
+    json: String, json_extent: Int,
     local_name: String,
     wanted: String
 ) -> Bool {
     if wanted != Concat(local_name, ".0") { return false; }
     let params_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, index.routine_start, index.routine_end,
+        json, json_extent, index.routine_start, index.routine_end,
         "params", params_bounds
     ) { return false; }
     let cursor: Int = params_bounds[0] + 1;
     let bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
-        json, cursor, params_bounds[1], bounds
+        json, json_extent, cursor, params_bounds[1], bounds
     ) {
         if MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "name"
+            json, json_extent, bounds[0], bounds[1], "name"
         ) == local_name {
             return true;
         }

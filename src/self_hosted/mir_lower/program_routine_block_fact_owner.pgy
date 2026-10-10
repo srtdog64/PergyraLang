@@ -5,6 +5,7 @@
 
 import "json_fact_read.pgy";
 import "../mir/intent_execution_schema_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 struct MirProgramRoutineBlockCapture {
     let valid: Bool;
@@ -25,10 +26,10 @@ func InvalidMirProgramRoutineBlockCapture(
 }
 
 func MirProgramRoutineBlockCaptureWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> MirProgramRoutineBlockCapture {
     if start < 0 || end <= start ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return InvalidMirProgramRoutineBlockCapture();
     }
     let id: String = "";
@@ -47,9 +48,9 @@ func MirProgramRoutineBlockCaptureWithin(
     let after_comma: Bool = false;
     let i: Int = start + 1;
     while i < end {
-        i = JsonSkipWhitespaceWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end { return InvalidMirProgramRoutineBlockCapture(); }
-        let code: Int = JsonCharCodeAt(json, end, i);
+        let code: Int = JsonCharCodeAt(json, json_extent, end, i);
         if code == JsonAsciiCode("}") {
             if after_comma || !id_seen || !reachable_seen ||
                 !instructions_seen {
@@ -72,41 +73,41 @@ func MirProgramRoutineBlockCaptureWithin(
         if code != JsonAsciiCode("\"") {
             return InvalidMirProgramRoutineBlockCapture();
         }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, i, end);
         if !IsSome(key_end_opt) {
             return InvalidMirProgramRoutineBlockCapture();
         }
         let key_end: Int = UnwrapOption(key_end_opt);
         let raw_key_length: Int = key_end - i - 2;
         let is_id: Bool = raw_key_length == 2 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "id");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "id");
         let is_reachable: Bool = raw_key_length == 9 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "reachable");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "reachable");
         let is_instructions: Bool = raw_key_length == 12 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "instructions");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "instructions");
         let is_succ_true: Bool = raw_key_length == 9 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "succ_true");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "succ_true");
         let is_succ_false: Bool = raw_key_length == 10 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "succ_false");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "succ_false");
         let is_intent_role: Bool = raw_key_length == 17 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "intent_block_role");
-        i = JsonSkipWhitespaceWithin(json, key_end, end);
-        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "intent_block_role");
+        i = JsonSkipWhitespaceWithin(json, json_extent, key_end, end);
+        if i >= end || JsonCharCodeAt(json, json_extent, end, i) != JsonAsciiCode(":") {
             return InvalidMirProgramRoutineBlockCapture();
         }
-        i = JsonSkipWhitespaceWithin(json, i + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, json_extent, i, end);
         if !IsSome(value_end_opt) {
             return InvalidMirProgramRoutineBlockCapture();
         }
         let value_end: Int = UnwrapOption(value_end_opt);
         if is_intent_role {
             if intent_role != "" { return InvalidMirProgramRoutineBlockCapture(); }
-            let string_end: Option<Int> = JsonStringEndWithin(json, i, value_end);
+            let string_end: Option<Int> = JsonStringEndWithin(json, json_extent, i, value_end);
             if !IsSome(string_end) || UnwrapOption(string_end) != value_end {
                 return InvalidMirProgramRoutineBlockCapture();
             }
-            let decoded: Option<String> = JsonStringValueSpanning(json, i, value_end);
+            let decoded: Option<String> = JsonStringValueSpanning(json, json_extent, i, value_end);
             if IsSome(decoded) { intent_role = UnwrapOption(decoded); }
             if !IsSome(decoded) || !MirIntentBlockRoleKnown(intent_role) {
                 return InvalidMirProgramRoutineBlockCapture();
@@ -114,7 +115,7 @@ func MirProgramRoutineBlockCaptureWithin(
         } else if is_id {
             if id_seen { return InvalidMirProgramRoutineBlockCapture(); }
             let value: Option<String> = JsonIntegerValueOptWithin(
-                json, i, value_end
+                json, json_extent, i, value_end
             );
             if !IsSome(value) { return InvalidMirProgramRoutineBlockCapture(); }
             id = UnwrapOption(value);
@@ -122,14 +123,14 @@ func MirProgramRoutineBlockCaptureWithin(
         } else if is_reachable {
             if reachable_seen { return InvalidMirProgramRoutineBlockCapture(); }
             let value: Option<Bool> = JsonBoolValueOptWithin(
-                json, i, value_end
+                json, json_extent, i, value_end
             );
             if !IsSome(value) { return InvalidMirProgramRoutineBlockCapture(); }
             reachable = UnwrapOption(value);
             reachable_seen = true;
         } else if is_instructions {
             if instructions_seen || i >= value_end ||
-                JsonCharCodeAt(json, value_end, i) != JsonAsciiCode("[") {
+                JsonCharCodeAt(json, json_extent, value_end, i) != JsonAsciiCode("[") {
                 return InvalidMirProgramRoutineBlockCapture();
             }
             instructions_start = i;
@@ -142,15 +143,15 @@ func MirProgramRoutineBlockCaptureWithin(
             }
             let successor: Int = 0 - 1;
             let value: Option<String> = JsonIntegerValueOptWithin(
-                json, i, value_end
+                json, json_extent, i, value_end
             );
             if IsSome(value) {
                 successor = ToInt(UnwrapOption(value));
                 // -1 is reserved for an absent/null successor. Preserve the
                 // old fail-closed distinction for an explicit negative id.
                 if successor < 0 { successor = 0 - 2; }
-            } else if !(i + 4 == value_end && SubEqualsWithLen(
-                json, value_end, i, 4, "null"
+            } else if !(i + 4 == value_end && StringWindowSubEquals(
+                json, json_extent, value_end, i, 4, "null"
             )) {
                 return InvalidMirProgramRoutineBlockCapture();
             }

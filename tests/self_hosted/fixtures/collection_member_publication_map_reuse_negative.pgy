@@ -1,0 +1,27 @@
+import "../../../src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy";
+// A result-owned map cannot be read through its consumed original binding.
+func Reuse(artifact: AstTreeArtifact, ref contexts: SemanticAstCollectionFormalExecutionContexts) -> Void {
+    let restored: Array<Int> = [];
+    let sites: Array<Int> = [];
+    let readable: HashMap<String, Int> = MapNew();
+    let blocked: HashMap<String, Int> = MapNew();
+    let escapes: HashMap<String, Int> = MapNew();
+    let nested_blocked: HashMap<String, Int> = MapNew();
+    let readonly_origins: Array<Int> = [];
+    let read_sources: Array<Int> = [];
+    let read_targets: Array<Int> = [];
+    let escape_sources: Array<Int> = [];
+    let escape_targets: Array<Int> = [];
+    let escape_sites: Array<Int> = [];
+    let nested_nodes: Array<Int> = [];
+    let nested_roots: Array<Int> = [];
+    let lend_sources: Array<Int> = [];
+    let lend_targets: Array<Int> = [];
+    let result: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUsePublish(
+        artifact, contexts, true, 1, 2, SemanticAstCollectionMemberCaptureWitness(true, -1, -1),
+        restored, sites, readable, blocked, escapes, nested_blocked, readonly_origins,
+        read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+        nested_nodes, nested_roots, lend_sources, lend_targets);
+    Log(ToString(MapSize(readable)));
+}
+func Main() -> Void {}

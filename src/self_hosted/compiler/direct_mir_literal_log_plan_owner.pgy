@@ -33,7 +33,7 @@ func DirectMirLiteralLogRouteClaimed(
     let expression: MirProgramInstructionExpressionFact = MirProgramInstructionExpressionIndexAt(
         admitted.routines.instruction_expressions, row);
     let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
-        admitted.routines.source_json, expression, 0);
+        admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0);
     let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(MirExpressionGraphSequenceEmpty(), graph);
     if !expression.valid || !graph.valid || !sequence.ok ||
         sequence.ready_node_count != 1 || ArrayLength(sequence.roots) != 1 ||
@@ -89,7 +89,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
             admitted.document.root, "generic_method_specializations"
         );
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0],
         admitted.routines.ends[0]
     );
     let signature: DirectMirRoutineSignatureFact =
@@ -119,7 +119,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
     );
     let block_row: Int = admitted.routines.routine_block_starts[0];
     let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.block_starts[block_row],
         admitted.routines.block_ends[block_row]
     );
@@ -132,7 +132,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         !JsonObjectFactTableReady(block) || JsonObjectFactCount(block) != 3 ||
         !DirectMirObjectNumberEquals(block, "id", "0") ||
         !JsonObjectBoolFieldEqualsWithin(
-            block.json, block.start, block.end, "reachable", true
+            block.json, block.json_extent, block.start, block.end, "reachable", true
         ) || !DirectMirExactObjectArrayCount(instructions, 2) {
         Die("direct MIR literal Log block identity is invalid");
     }
@@ -146,7 +146,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         Die("direct MIR literal Log instruction identity is invalid");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[instruction_row],
         admitted.routines.instruction_ends[instruction_row]
     );
@@ -163,7 +163,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
             admitted.routines.instruction_expressions, instruction_row
         );
     let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
-        admitted.routines.source_json, expression, 0
+        admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
     );
     let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(), graph

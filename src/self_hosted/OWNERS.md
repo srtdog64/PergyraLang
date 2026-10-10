@@ -34,6 +34,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy` -- Terminal tail restriction and the exact unshared current-descriptor proof for an owned-content mutation followed by a read. Consumes definition/storage and constructor-input facts; does not rescan source roots or infer exclusivity from a type.
 - `src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy` -- Borrow-only current formal-field reads and negative whole-root forwarding closure, consumed from the existing member-transition pass.
 - `src/self_hosted/semantic/ast_collection_member_read_local_root_owner.pgy` -- Borrow-only direct `Array<String>` field reads of a local struct root; any whole-root alias, writable or consuming argument, sequence-field copy or deferred use blocks the root for the body, and a returned aggregate may capture it only in the terminal tail.
+- `src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy` -- Carried nominal-place capture obligations at reached initializer/assignment Value, return Atom, typed array-store Value, canonical constructor field and literal-element edges. Exact source identity and readonly origin are required; a new local identity is not independent storage or cleanup authority. A destination-less store still publishes an escape witness.
+- `src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy` -- Nominal source and readonly binding projected through the existing decreasing member/index receiver spine and field/element type owner. No lexical recovery, blanket constructor exemption or arbitrary argument-to-return alias.
+- `src/self_hosted/semantic/ast_collection_member_capture_provenance_owner.pgy` -- Storage root of a capture source: its local or formal declaration, or for a binding without one its admitted provenance (an implicit receiver field is rooted in the `self` formal with its mode; a match payload binding in its match subject). Loop bindings and unresolved names stay invalid.
+- `src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy` -- Exact capture occurrence at typed statement lanes, parser-owned array/struct binding edges, canonical constructor stores, physical owning/mutable formal boundaries and sealed collection value-store ordinals. Default/ref calls and collection queries are not stores; missing selected facts fail closed. Destructure marks initialization of bindings from the original sequence/tuple place.
 - `src/self_hosted/semantic/ast_collection_member_place_owner.pgy` -- Exact member place identity: one root binding plus the declared type of a field path at any depth. A generic or unresolved step keeps only the root identity, so every consumer fails closed on that root.
 - `src/self_hosted/semantic/ast_collection_member_place_use_owner.pgy` -- Per-occurrence member place classification inside the member-transition pass: String element and nominal sub-place escapes with their lending edges, nested `Array<String>` read candidates of readonly formal or local roots, and the alias, write, consume or release hazards that block those reads. Grants no storage or release authority.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_element_borrow_owner.pgy` -- A deep-released aggregate keeps its release unproved while any root the release plan protects has a recorded element or sub-place escape, including one reached through a lent callee formal; reports the first borrow site.
@@ -43,6 +47,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_member_read_call_target_owner.pgy` -- Exact physical readonly call-target identity and declared boundary only; no mode-only lifetime grant.
 - `src/self_hosted/semantic/array_storage_release_parameter_requirement_owner.pgy` -- Exact own-formal storage-release obligations and borrowed-call escape policy.
 - `src/self_hosted/semantic/array_storage_release_verdict_owner.pgy` -- Exclusive named storage provenance and source use-after-release refusal.
+- `src/self_hosted/semantic/string_window_extent_proof_owner.pgy` -- String-window extent proof forms P1-P5, P7 and P8 over carried binding identities: one (source, extent) pair is proven, a routine requirement, a record field pair, or unproven.
+- `src/self_hosted/semantic/string_window_extent_owner.pgy` -- String-window extent admission: collects window calls, routine calls, constructions, assignment targets and inout arguments, closes requirements and field pairs as a least fixed point, and refuses the first unproven pair before MIR.
 - `src/self_hosted/compiler/direct_mir_array_storage_release_lifetime_owner.pgy` -- Re-admit release authority and CFG lifetime at the untrusted MIR boundary.
 - `src/self_hosted/compiler/direct_mir_array_storage_call_preservation_owner.pgy` -- Independently admit exact MIR value-result descriptor preservation before caller storage release.
 - `src/self_hosted/compiler/direct_mir_array_storage_element_lifetime_owner.pgy` -- Plain MIR element lifetime policy for storage-only release; owner handles remain excluded.
@@ -67,6 +73,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
 - `src/self_hosted/lib/json_scan.pgy` -- shared JSON cursor/string scan
   primitives.
+- `src/self_hosted/lib/string_window_within.pgy` -- bounded string windows
+  over a proven source extent: an index at or past the window end answers -1
+  or "" without reading the source.
 - `src/self_hosted/lib/json_emit.pgy` -- shared JSON string escaping,
   call-local file quoting, and synchronous last-consumer retirement of owned
   renderer fragments for fact-shaped tools.
@@ -604,7 +613,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy` --
   admission/preparation and caller-owned scratch lifetime boundary. It delegates
   once to the ordered scan, then retires indexed-borrow scratch and continuing-
-  retention flags before returning the typed success/failure verdict. It has
+  retention flags before returning the typed success/failure verdict. The
+  ordered scan keeps its exact-retirement ledger unpublished. It has
   no deferred cleanup or duplicate event scan.
   Stable local-binding identity owns Array<String> element facts; MIR and
   backends cannot infer them from projected type spelling.
@@ -779,6 +789,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   provenance, including direct Let moves from the current value. Own storage
   mode never grants Empty/Clone elements or reuses a previous definition's bound.
   Borrowed Let handoffs are non-consuming and carry no element-release grant.
+  One destructure Let activates every binding row it declares; those rows
+  carry no tracked storage, and a sibling row with storage facts is refused.
 - `src/self_hosted/semantic/ast_collection_owned_result_plan_owner.pgy` --
   bounded fixed-point rows for exact runtime callables whose `Array<String>`
   result has fresh exclusive storage and empty-or-owned elements. Type spelling,
@@ -837,12 +849,25 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy`
   -- ordered member-move, exact move-back, and retired-local transitions over
   the admitted expression graph. Only the matching root, declared field, and
-  local binding restore ownership; every other reuse fails closed.
+  local binding restore ownership; every other reuse fails closed. Produces
+  capture/read/escape obligations but does not publish or retire their storage.
+- `src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy`
+  -- sole member result schema and terminal publication. Early errors preserve
+  partial carriers without closures; final generation/read/escape/nested
+  closure is short-circuit ordered. Consumes returned carriers and scratch at
+  this internal handoff, retiring only the ten temporary arrays including
+  separate readonly-capture origins. Carries the first scalar capture witness
+  to the verdict, which refuses it even if no indexed formal read was reached.
+- `src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy`
+  -- applies published exact move-back identities to terminal dispositions
+  after statement/call validation; no read permission or restoration inference.
 - `src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy`
   -- definition-ID local and exact formal retirement, Let/Assign transfer and formal
-  permission-bound consumption. Physical argument events and ordinary reads are folded
-  in occurrence order; RHS reads precede definition transfer and activation.
-  Both fresh scratch arrays are created, consumed and retired here. Element
+  permission-bound consumption facts for the existing scan's event stream.
+  Current argument admission precedes committing its pending retirement;
+  RHS reads precede definition-source movement and activation. Current
+  definitions remain with the scan's caller and retirement scratch with the scan; there is
+  no second event walk or replacement current-definition array. Element
   ownership is not promoted or rejudged from final state.
 - `src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy`
   -- pure scalar left/right completion steps from the admitted graph.

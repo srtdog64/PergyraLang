@@ -38,7 +38,7 @@ func ParseAbilityDecl(
     }
     ArraySet(cursor_out, 0, i);
     let generic_parameters: String = ParseGenericParameterListText(
-        content, i, cursor_out
+        content, n, i, cursor_out
     );
     i = cursor_out[0];
     if generic_parameters != "" {
@@ -78,7 +78,7 @@ func ParseAbilityDecl(
             }
             i = ParseExpectIn(location_context, content, i, ":", "ability_fields");
             ArraySet(cursor_out, 0, i);
-            let req_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let req_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if StringLength(req_type) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "ability_fields", "", "");
@@ -92,7 +92,7 @@ func ParseAbilityDecl(
         }
         ArraySet(cursor_out, 0, i);
         let sig: String = ParseFunction(
-            content, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
+            content, n, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
             true, "", expression_graphs, location_context
         );
         i = cursor_out[0];

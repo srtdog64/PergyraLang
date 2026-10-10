@@ -23,38 +23,42 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
             let surface: Int = root_slot / 3;
             let syntax_id: Int = surfaces.node_ids[surface];
             let root_id: Int = surfaces.expression_graph.roots[root_slot];
-            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
-                surfaces.expression_graph, root_id);
-            if IsSome(start) {
-                let node: Int = UnwrapOption(start);
-                while node <= root_id {
-                    let carried: SemanticExpressionBindingIdentityFact =
-                        SemanticExpressionGraphBindingIdentity(
-                            surfaces.expression_graph, node);
-                    let is_callable: Bool = carried.ok && carried.kind ==
-                        SemanticExpressionBindingDeclaredCallable();
-                    let is_member_name: Bool = node + 1 <= root_id &&
-                        surfaces.expression_graph.arena.topology.node_kinds[
-                            node + 1] == AstExpressionNodeMemberAccess() &&
-                        surfaces.expression_graph.arena.topology.right_children[
-                            node + 1] == node;
-                    if !is_callable && !is_member_name && !SemanticAstCollectionDefinitionWriteTarget(definitions, root_slot, node) {
-                        let binding: SemanticAstLocalBindingIdentity =
-                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-                                artifact, locals, inferred_types,
-                                surfaces.function_node_ids[surface], syntax_id,
+            // Reads cannot find a retired definition before the first move.
+            // Definition completion below still advances replacement lineage.
+            if MapSize(move_points) > 0 {
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
+                    surfaces.expression_graph, root_id);
+                if IsSome(start) {
+                    let node: Int = UnwrapOption(start);
+                    while node <= root_id {
+                        let carried: SemanticExpressionBindingIdentityFact =
+                            SemanticExpressionGraphBindingIdentity(
                                 surfaces.expression_graph, node);
-                        if binding.ok {
-                            let key: String = ToString(
-                                definitions.syntax_ids[current[binding.row]]);
-                            if MapHas(move_points, key) && syntax_id >
-                                    MapGet(move_points, key) {
-                                return SemanticAstCollectionBindingMoveUse(
-                                    true, syntax_id, node);
+                        let is_callable: Bool = carried.ok && carried.kind ==
+                            SemanticExpressionBindingDeclaredCallable();
+                        let is_member_name: Bool = node + 1 <= root_id &&
+                            surfaces.expression_graph.arena.topology.node_kinds[
+                                node + 1] == AstExpressionNodeMemberAccess() &&
+                            surfaces.expression_graph.arena.topology.right_children[
+                                node + 1] == node;
+                        if !is_callable && !is_member_name && !SemanticAstCollectionDefinitionWriteTarget(definitions, root_slot, node) {
+                            let binding: SemanticAstLocalBindingIdentity =
+                                SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                    artifact, locals, inferred_types,
+                                    surfaces.function_node_ids[surface], syntax_id,
+                                    surfaces.expression_graph, node);
+                            if binding.ok {
+                                let key: String = ToString(
+                                    definitions.syntax_ids[current[binding.row]]);
+                                if MapHas(move_points, key) && syntax_id >
+                                        MapGet(move_points, key) {
+                                    return SemanticAstCollectionBindingMoveUse(
+                                        true, syntax_id, node);
+                                }
                             }
                         }
+                        node = node + 1;
                     }
-                    node = node + 1;
                 }
             }
             let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, root_slot);

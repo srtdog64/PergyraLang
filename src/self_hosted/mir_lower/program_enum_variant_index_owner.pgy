@@ -31,13 +31,14 @@ func EmptyMirProgramEnumVariantIndex() -> MirProgramEnumVariantIndex {
 func MirProgramEnumVariantArrayCursorAtEnd(
     json: String, cursor: Int, array_end: Int
 ) -> Bool {
+    let json_extent: Int = StringLength(json);
     let i: Int = JsonSkipWhitespace(json, cursor, array_end);
     return i < array_end &&
-        JsonCharCodeAt(json, StringLength(json), i) == JsonAsciiCode("]");
+        JsonCharCodeAt(json, json_extent, json_extent, i) == JsonAsciiCode("]");
 }
 
 func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
-    json: String,
+    json: String, json_extent: Int,
     declaration_starts: Array<Int>,
     declaration_ends: Array<Int>,
     declaration_kinds: Array<String>,
@@ -64,7 +65,7 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
         if declaration_kinds[declaration_row] == "enum" {
             let variants: Array<Int> = [0, 0];
             if !MirObjectArrayBoundsAtBounds(
-                json, declaration_starts[declaration_row],
+                json, json_extent, declaration_starts[declaration_row],
                 declaration_ends[declaration_row], "variants", variants
             ) || declaration_names[declaration_row] == "" {
                 valid = false;
@@ -73,22 +74,22 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
                 let variant: Array<Int> = [0, 0];
                 let ordinal: Int = 0;
                 while JsonArrayNextObjectBounds(
-                    json, cursor, variants[1], variant
+                    json, json_extent, cursor, variants[1], variant
                 ) {
                     let name: String = MirObjectStringFactAtBounds(
-                        json, variant[0], variant[1], "name"
+                        json, json_extent, variant[0], variant[1], "name"
                     );
                     let count_text: String = MirObjectNumberFactAtBounds(
-                        json, variant[0], variant[1], "param_count"
+                        json, json_extent, variant[0], variant[1], "param_count"
                     );
                     let payload_bounds: Array<Int> = [0, 0];
                     let payloads: Array<String> = [];
                     if MirObjectArrayBoundsAtBounds(
-                        json, variant[0], variant[1], "param_types",
+                        json, json_extent, variant[0], variant[1], "param_types",
                         payload_bounds
                     ) {
                         payloads = MirObjectArrayStringFactsAtBounds(
-                            json, variant[0], variant[1], "param_types"
+                            json, json_extent, variant[0], variant[1], "param_types"
                         );
                     } else {
                         valid = false;
@@ -96,7 +97,7 @@ func BuildMirProgramEnumVariantIndexFromDeclarationSpans(
                     let param_count: Int = ToInt(count_text);
                     let variant_table: JsonObjectFactTable =
                         JsonObjectFactTableFromBounds(
-                            json, variant[0], variant[1]
+                            json, json_extent, variant[0], variant[1]
                         );
                     if JsonObjectFactCount(variant_table) != 3 ||
                         name == "" || count_text == "" ||

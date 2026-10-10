@@ -18,13 +18,15 @@ func NumericPayloadReference(text: String, digits_end: Int,
     while start < digits_end - 1 && CodegenCharAt(text, start) == "0" {
         start = start + 1;
     }
-    let limit_length: Int = StringLength(limit);
+    // The limit is chosen; read it through one unchanged binding.
+    let bound_text: String = limit;
+    let limit_length: Int = StringLength(bound_text);
     let length: Int = digits_end - start;
     if length != limit_length { return length < limit_length; }
     i = 0;
     while i < length {
-        let digit: Int = CodegenCharCodeAt(text, text_length, start + i);
-        let bound: Int = CodegenCharCodeAt(limit, limit_length, i);
+        let digit: Int = CodegenCharCodeAt(text, StringLength(text), text_length, start + i);
+        let bound: Int = CodegenCharCodeAt(bound_text, limit_length, limit_length, i);
         if digit != bound { return digit < bound; }
         i = i + 1;
     }

@@ -2,9 +2,10 @@
 // plan. The row is parsed once; validation and consumers share this capture.
 
 import "abi_layout_fact_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 func MirCapturedRequiredAbiLayoutRowAdmission(
-    json: String,
+    json: String, json_extent: Int,
     captured_type_name: String,
     captured_type_value_ready: Bool,
     type_start: Int,
@@ -21,9 +22,9 @@ func MirCapturedRequiredAbiLayoutRowAdmission(
         id_start < 0 || id_end <= id_start ||
         required_start < 0 || required_end <= required_start ||
         layout_start < 0 || layout_end <= layout_start ||
-        required_start + 4 != required_end || !SubEqualsWithLen(
-            json, required_end, required_start, 4, "true"
-        ) || JsonCharCodeAt(json, layout_end, layout_start) !=
+        required_start + 4 != required_end || !StringWindowSubEquals(
+            json, json_extent, required_end, required_start, 4, "true"
+        ) || JsonCharCodeAt(json, json_extent, layout_end, layout_start) !=
             JsonAsciiCode("{") {
         return None;
     }
@@ -33,7 +34,7 @@ func MirCapturedRequiredAbiLayoutRowAdmission(
         return None;
     }
     let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
-        json, layout_start, layout_end
+        json, json_extent, layout_start, layout_end
     );
     if !row.valid || row.type_name != captured_type_name ||
         MirAbiLayoutIdFromCapture(row) != ToInt(id_text) {

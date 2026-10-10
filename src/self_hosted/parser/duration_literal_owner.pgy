@@ -45,9 +45,11 @@ func ParserDurationNanosOpt(
     if unit.times_six {
         let product: String = "";
         let carry: Int = 0;
-        let k: Int = StringLength(digits) - 1;
+        let base_digits: String = digits;
+        let base_extent: Int = StringLength(base_digits);
+        let k: Int = base_extent - 1;
         while k >= 0 {
-            let value: Int = (CharCode(digits, StringLength(digits), k) - 48) * 6 + carry;
+            let value: Int = (CharCode(base_digits, base_extent, k) - 48) * 6 + carry;
             product = Concat(ToString(value % 10), product);
             carry = value / 10;
             k = k - 1;
@@ -70,9 +72,11 @@ func ParserDurationNanosOpt(
         return None;
     }
     if StringLength(digits) == width {
+        let final_digits: String = digits;
+        let final_extent: Int = StringLength(final_digits);
         let j: Int = 0;
         while j < width {
-            let got: Int = CharCode(digits, width, j);
+            let got: Int = CharCode(final_digits, final_extent, j);
             let most: Int = CharCode(limit, width, j);
             if got > most { return None; }
             if got < most { return Some(digits); }

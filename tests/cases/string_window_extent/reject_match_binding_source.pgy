@@ -1,0 +1,14 @@
+// A match binding is not a stable binding, even measured inline: both
+// compilers identify only parameters and plain let bindings.
+enum Found {
+    Word(String),
+    Missing,
+}
+
+func Main() -> Void {
+    let found: Found = Found.Word(Concat("ab", "c"));
+    match found {
+        case Word(text): Print(ToString(CharCode(text, StringLength(text), 0)));
+        case Missing: Print("missing");
+    }
+}

@@ -10,7 +10,9 @@ import "type_env_local_row_materialization_owner.pgy";
 
 struct CodegenTypeEnv {
     global_rows: String;
+    global_rows_extent: Int;
     preseal_rows: String;
+    preseal_rows_extent: Int;
     preseal_index: CodegenTypeGlobalIndex;
     local_rows: String;
     global_index: CodegenTypeGlobalIndex;
@@ -19,13 +21,15 @@ struct CodegenTypeEnv {
 func CodegenTypeEnvFromRows(
     global_rows: String, local_rows: String
 ) -> CodegenTypeEnv {
+    // The index scans every row, so measuring them adds no order of work.
+    let global_rows_extent: Int = StringLength(global_rows);
     let global_index: CodegenTypeGlobalIndex =
         CodegenTypeGlobalIndexFromRows(global_rows);
     if !CodegenTypeGlobalIndexArraysReady(global_index) {
         Die("codegen global type rows are malformed");
     }
     return CodegenTypeEnv(
-        global_rows, "", CodegenTypeGlobalIndexMissing(),
+        global_rows, global_rows_extent, "", 0, CodegenTypeGlobalIndexMissing(),
         local_rows, global_index
     );
 }
@@ -47,9 +51,12 @@ func CodegenTypeEnvAppendPresealRows(
     }
     let preseal_rows: String = env.preseal_rows;
     if preseal_rows == "" { preseal_rows = "|"; }
+    let next_preseal_rows: String = Concat(preseal_rows, rows);
+    let next_preseal_rows_extent: Int = StringLength(next_preseal_rows);
     return CodegenTypeEnv(
-        env.global_rows, Concat(preseal_rows, rows),
-        CodegenTypeGlobalIndexMissing(), env.local_rows, env.global_index
+        env.global_rows, env.global_rows_extent, next_preseal_rows,
+        next_preseal_rows_extent, CodegenTypeGlobalIndexMissing(), env.local_rows,
+        env.global_index
     );
 }
 
@@ -61,7 +68,7 @@ func CodegenTypeEnvSealPresealRows(env: CodegenTypeEnv) -> CodegenTypeEnv {
         Die("codegen preseal type-row index is malformed");
     }
     return CodegenTypeEnv(
-        env.global_rows, env.preseal_rows, index,
+        env.global_rows, env.global_rows_extent, env.preseal_rows, env.preseal_rows_extent, index,
         env.local_rows, env.global_index
     );
 }
@@ -83,7 +90,7 @@ func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
     // rows live in separate storage. Scope-aware shadowing needs typed scope
     // facts; changing precedence here would silently redefine name lookup.
     let global_value: String = CodegenTypeGlobalIndexLookupAdmitted(
-        env.global_index, env.global_rows, name, kind
+        env.global_index, env.global_rows, env.global_rows_extent, name, kind
     );
     if StringLength(global_value) > 0 {
         return global_value;
@@ -92,7 +99,7 @@ func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
     if env.preseal_rows != "" {
         if CodegenTypeGlobalIndexArraysReady(env.preseal_index) {
             preseal_value = CodegenTypeGlobalIndexLookupAdmitted(
-                env.preseal_index, env.preseal_rows, name, kind
+                env.preseal_index, env.preseal_rows, env.preseal_rows_extent, name, kind
             );
         } else {
             let preseal_row: Option<String> =
@@ -115,13 +122,13 @@ func LookupKindTypeRowPresent(
     env: CodegenTypeEnv, name: String, kind: String
 ) -> Bool {
     let present: Bool = CodegenTypeGlobalIndexContainsAdmitted(
-        env.global_index, env.global_rows, name, kind
+        env.global_index, env.global_rows, env.global_rows_extent, name, kind
     );
     if present { return true; }
     if env.preseal_rows != "" {
         if CodegenTypeGlobalIndexArraysReady(env.preseal_index) {
             if CodegenTypeGlobalIndexContainsAdmitted(
-                env.preseal_index, env.preseal_rows, name, kind
+                env.preseal_index, env.preseal_rows, env.preseal_rows_extent, name, kind
             ) { return true; }
         } else if LookupKindTypeRowPresentRows(
             env.preseal_rows, name, kind
@@ -136,7 +143,7 @@ func TypeEnvAppendLocalRows(
     if rows == "" { return env; }
     let local_rows: String = env.local_rows;
     let next_local_rows: String = Concat(rows, local_rows);
-    return CodegenTypeEnv(env.global_rows, env.preseal_rows, env.preseal_index,
+    return CodegenTypeEnv(env.global_rows, env.global_rows_extent, env.preseal_rows, env.preseal_rows_extent, env.preseal_index,
         next_local_rows,
         env.global_index);
 }
@@ -202,7 +209,7 @@ func CsvAt(csv: String, want: Int) -> String {
     let start: Int = 0;
     let n: Int = StringLength(csv);
     while i <= n {
-        if i == n || CodegenCharCodeAt(csv, n, i) == 44 {
+        if i == n || CodegenCharCodeAt(csv, n, n, i) == 44 {
             if idx == want {
                 return Substring(csv, start, i - start);
             }
@@ -222,7 +229,7 @@ func ParamModeCsvCount(modes: String) -> Int {
     let count: Int = 1;
     let i: Int = 0;
     while i < n {
-        if CodegenCharCodeAt(modes, n, i) == 44 {
+        if CodegenCharCodeAt(modes, n, n, i) == 44 {
             count = count + 1;
         }
         i = i + 1;

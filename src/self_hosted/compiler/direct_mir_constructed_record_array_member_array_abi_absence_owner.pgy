@@ -56,11 +56,11 @@ func DirectMirConstructedRecordArrayAbiAbsenceFactReady(
 }
 
 func DirectMirConstructedRecordArrayAbiAbsenceFromSealedResult(
-    json: String, ref result: MirRoutineInstructionScalarCapture,
+    json: String, json_extent: Int, ref result: MirRoutineInstructionScalarCapture,
     expected_type: String
 ) -> DirectMirConstructedRecordArrayAbiAbsenceFact {
     let physical_abi_absent: Bool = DirectMirInstructionHasNoPhysicalAbi(
-        json, result, expected_type
+        json, json_extent, result, expected_type
     );
     let fact: DirectMirConstructedRecordArrayAbiAbsenceFact =
         DirectMirConstructedRecordArrayAbiAbsenceFact(

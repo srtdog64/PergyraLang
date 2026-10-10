@@ -95,15 +95,15 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + instruction;
         let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );
         let local_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
-            object_table.json, object_table.start, object_table.end, "local_ref"
+            object_table.json, object_table.json_extent, object_table.start, object_table.end, "local_ref"
         );
         let expr_occurrences: Int = MirObjectFieldOccurrenceCountAtBounds(
-            object_table.json, object_table.start, object_table.end, "expr0_local_refs"
+            object_table.json, object_table.json_extent, object_table.start, object_table.end, "expr0_local_refs"
         );
         if (!required && (local_occurrences != 0 || expr_occurrences != 0)) ||
             (required && (local_occurrences != 1 || expr_occurrences != 1)) {

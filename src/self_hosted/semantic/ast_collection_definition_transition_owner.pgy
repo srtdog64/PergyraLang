@@ -26,6 +26,19 @@ func SemanticAstCollectionCompleteDefinition(
     // Current value follows every completed typed write. Freshness may restore
     // Live, but cannot select an earlier value or prove storage ownership.
     current[row] = definition;
+    // One destructure Let completes every row it declares. Those rows carry
+    // no tracked storage; a sibling with storage facts is a producer defect.
+    let sibling: Int = definition + 1;
+    while definition < definitions.local_count && sibling < definitions.local_count &&
+        locals.node_ids[sibling] == locals.node_ids[definition] {
+        if definitions.value_nodes[sibling] >= 0 || definitions.own_sources[sibling] != 0 ||
+            definitions.local_sources[sibling] >= 0 {
+            return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "collection_destructure_definition"),
+                definitions.syntax_ids[sibling], -1);
+        }
+        current[sibling] = sibling; sibling = sibling + 1;
+    }
     let owned_result_function: Int =
         definitions.owned_result_function_syntax_ids[definition];
     if owned_result_function > 0 {

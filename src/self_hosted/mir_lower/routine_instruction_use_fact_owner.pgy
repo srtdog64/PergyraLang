@@ -63,7 +63,7 @@ func BuildMirRoutineInstructionUseFacts(
             let array_bounds: Array<Int> = [0, 0];
             ArrayPush(instruction_starts, ArrayLength(values));
             if !MirObjectArrayBoundsAtBounds(
-                routines.source_json,
+                routines.source_json, routines.source_json_extent,
                 routines.instruction_starts[global_row],
                 routines.instruction_ends[global_row],
                 "uses", array_bounds
@@ -75,7 +75,7 @@ func BuildMirRoutineInstructionUseFacts(
             }
             let instruction_uses: Array<String> =
                 MirObjectArrayStringFactsAtBounds(
-                    routines.source_json,
+                    routines.source_json, routines.source_json_extent,
                     routines.instruction_starts[global_row],
                     routines.instruction_ends[global_row], "uses"
                 );

@@ -120,7 +120,7 @@ func MirIntentRoutineStepPlanFromOwners(
                         ToString(ToInt(routine_carriers.carrier_arg0s[carrier_row])) !=
                             routine_carriers.carrier_arg0s[carrier_row] ||
                         MirObjectArrayStringFactCount(
-                            routines.source_json,
+                            routines.source_json, routines.source_json_extent,
                             routines.instruction_starts[
                                 routine_carriers.carrier_rows[carrier_row]
                             ],

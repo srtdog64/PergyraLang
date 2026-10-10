@@ -74,7 +74,7 @@ func DirectMirInferredGenericNominalPlanFromAdmitted(
         );
     let abi: DirectMirInferredGenericNominalAbiFact =
         DirectMirInferredGenericNominalAbiFactFromInstructions(
-            admitted.routines.source_json, identity, instructions
+            admitted.routines.source_json, admitted.routines.source_json_extent, identity, instructions
         );
     let plan: DirectMirInferredGenericNominalPlan =
         DirectMirInferredGenericNominalPlan(

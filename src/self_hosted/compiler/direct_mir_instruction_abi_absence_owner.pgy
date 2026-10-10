@@ -1,9 +1,10 @@
 // Exact receipt for a typed instruction value with no physical ABI layout.
 
 import "../mir_lower/routine_fact_index_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 func DirectMirInstructionHasNoPhysicalAbi(
-    json: String,
+    json: String, json_extent: Int,
     ref capture: MirRoutineInstructionScalarCapture,
     expected_type: String
 ) -> Bool {
@@ -14,14 +15,14 @@ func DirectMirInstructionHasNoPhysicalAbi(
         capture.abi_layout_required_start >= 0 &&
         capture.abi_layout_required_end == capture.abi_layout_required_start + 5 &&
         capture.abi_layout_end == capture.abi_layout_start + 4 &&
-        capture.abi_layout_start >= 0 && SubEqualsWithLen(
-            json, capture.abi_layout_id_end,
+        capture.abi_layout_start >= 0 && StringWindowSubEquals(
+            json, json_extent, capture.abi_layout_id_end,
             capture.abi_layout_id_start, 1, "0"
-        ) && SubEqualsWithLen(
-            json, capture.abi_layout_required_end,
+        ) && StringWindowSubEquals(
+            json, json_extent, capture.abi_layout_required_end,
             capture.abi_layout_required_start, 5, "false"
-        ) && SubEqualsWithLen(
-            json, capture.abi_layout_end,
+        ) && StringWindowSubEquals(
+            json, json_extent, capture.abi_layout_end,
             capture.abi_layout_start, 4, "null"
         );
 }

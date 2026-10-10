@@ -82,24 +82,23 @@ func MirResourceRuntimeRowFactReady(
     instruction_view: MirRoutineInstructionView
 ) -> Bool {
     if !instruction_view.valid { return false; }
-    let json: String = routines.source_json;
     let inst_start: Int = instruction_view.start;
     let inst_end: Int = instruction_view.end;
     let required_bounds: Array<Int> = [0, 0];
     let required: Bool = MirObjectFieldValueBoundsAtBounds(
-        json, inst_start, inst_end,
+        routines.source_json, routines.source_json_extent, inst_start, inst_end,
         "runtime_call_abi_required", required_bounds);
     if required && !JsonObjectBoolFieldEqualsWithin(
-        json, inst_start, inst_end,
+        routines.source_json, routines.source_json_extent, inst_start, inst_end,
         "runtime_call_abi_required", true
     ) {
         return false;
     }
     let operation: String = MirObjectStringFactAtBounds(
-        json, inst_start, inst_end, "name");
+        routines.source_json, routines.source_json_extent, inst_start, inst_end, "name");
     let machine_operation: String =
         MirMachineLayerInstructionRuntimeOperationAtBounds(
-            json, instruction_view.machine_layer_start,
+            routines.source_json, routines.source_json_extent, instruction_view.machine_layer_start,
             instruction_view.machine_layer_end);
     let expected_operation: String = operation;
     if !MirResourceRuntimeRowRequired(expected_operation) {
@@ -107,20 +106,20 @@ func MirResourceRuntimeRowFactReady(
     }
     let row_bounds: Array<Int> = [0, 0];
     let has_row: Bool = MirObjectFieldValueBoundsAtBounds(
-        json, inst_start, inst_end, "runtime_call_abi", row_bounds);
+        routines.source_json, routines.source_json_extent, inst_start, inst_end, "runtime_call_abi", row_bounds);
     if !MirResourceRuntimeRowRequired(expected_operation) {
         if has_row && row_bounds[0] < row_bounds[1] &&
-            JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) ==
+            JsonCharCodeAt(routines.source_json, routines.source_json_extent, row_bounds[1], row_bounds[0]) ==
                 JsonAsciiCode("{") {
             expected_operation = MirObjectStringFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "operation");
+                routines.source_json, routines.source_json_extent, row_bounds[0], row_bounds[1], "operation");
         }
     }
     let aux_bounds: Array<Int> = [0, 0];
     let has_aux: Bool = MirObjectFieldValueBoundsAtBounds(
-        json, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
+        routines.source_json, routines.source_json_extent, inst_start, inst_end, "runtime_call_abi_aux", aux_bounds);
     if has_row && row_bounds[0] < row_bounds[1] &&
-        JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) ==
+        JsonCharCodeAt(routines.source_json, routines.source_json_extent, row_bounds[1], row_bounds[0]) ==
             JsonAsciiCode("{") {
         // The native producer spells the same fact as
         // {"owner":<resource type>,"source":...,"c_symbol":...} attached to
@@ -129,7 +128,7 @@ func MirResourceRuntimeRowFactReady(
         // registry row for that type and operation; re-emission derives the
         // canonical spelling itself, so recognition is enough.
         let dialect_row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json, row_bounds[0], row_bounds[1]);
+            routines.source_json, routines.source_json_extent, row_bounds[0], row_bounds[1]);
         if JsonObjectFactTableReady(dialect_row) {
             let native_symbol_opt: Option<String> =
                 JsonObjectFactStringFieldOpt(dialect_row, "c_symbol");
@@ -158,12 +157,12 @@ func MirResourceRuntimeRowFactReady(
         return !required && !has_row && !has_aux;
     }
     if !has_row || row_bounds[0] >= row_bounds[1] ||
-        JsonCharCodeAt(json, row_bounds[1], row_bounds[0]) !=
+        JsonCharCodeAt(routines.source_json, routines.source_json_extent, row_bounds[1], row_bounds[0]) !=
             JsonAsciiCode("{") {
         return false;
     }
     let row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, row_bounds[0], row_bounds[1]);
+        routines.source_json, routines.source_json_extent, row_bounds[0], row_bounds[1]);
     if !JsonObjectFactTableReady(row) ||
         !JsonObjectFactStringFieldEquals(row, "owner", "MIRResource") ||
         !JsonObjectFactStringFieldEquals(
@@ -206,7 +205,7 @@ func MirResourceRuntimeRowFactReady(
     if has_aux {
         let aux_rows: JsonArrayObjectFactTable =
             JsonArrayObjectFactTableFromBounds(
-                json, aux_bounds[0], aux_bounds[1]);
+                routines.source_json, routines.source_json_extent, aux_bounds[0], aux_bounds[1]);
         if !JsonArrayObjectFactTableReady(aux_rows) {
             return false;
         }

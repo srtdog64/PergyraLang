@@ -47,6 +47,16 @@
       "src/self_hosted/semantic/delimited_range_fact_owner.pgy": "01DF83BC86C0A57EAEFEB60690032151E954E46E504FAE796217BBDA2F06B444"
     }
   },
+  "current_string_window_extent_owner_hashes": {
+    "observed_at": "2026-10-10",
+    "source_revision": "85fff5aa339ae136ac0797c4a6a95a5285ada70e+dirty",
+    "note": "Source fingerprints only. The string-window extent migration (docs/agent_work_directives/string_window_extent_closure_2026-10-10.md) passes each proven source extent beside the byte-scan window bound; the callable and type-canonical sets also carry the stopped ownership lane's uncommitted edits. The focused source-scan structural gate passed. Historical timing and allocation figures were not remeasured and do not establish current performance.",
+    "main": { "owner_set_sha256": "9D48DE305ACC3C7C5EAB2D019C61ADC4E96FAC699128A4CB6C36C69086CDD6D5" },
+    "operator": { "owner_set_sha256": "E0476868AA19EEBCA058E58A231CD194DB464AFB3429F818C30B6A872CDB5E56" },
+    "callable": { "owner_set_sha256": "8F73A1EA84DEAEC28C98DEFF641441A3E9DC613080C85BDA4F76A5EE32CDCB31" },
+    "delimited": { "owner_set_sha256": "2BAC6575D9FB2DFDF88E031B78C0BF56229CC16533D445CA4D76201F1CEA4630" },
+    "type_canonical": { "owner_set_sha256": "E17A1DDF632885AFBB4726984CAEF5DCEF7233C6C9548D7100877B3727FDE882" }
+  },
   "current_scan_owner_closure": {
     "measured_at": "2026-07-30",
     "owner_set_sha256": "D3DF0BECADFE108046C3EC0003113743C318536115159CF78151216083C78800",

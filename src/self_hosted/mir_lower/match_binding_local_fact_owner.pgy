@@ -97,7 +97,6 @@ func BuildMirMatchBindingLocalFacts(
     }
     let valid: Bool = true;
     let validation_stage: String = "ok";
-    let json: String = routines.source_json;
     let routine_start: Int = routines.starts[routine_row];
     let routine_end: Int = routines.ends[routine_row];
     let global_block_start: Int =
@@ -174,24 +173,24 @@ func BuildMirMatchBindingLocalFacts(
             }
             let binding_names: Array<String> =
                 MirObjectArrayStringFactsAtBounds(
-                    json, start, end, "match_bindings"
+                    routines.source_json, routines.source_json_extent, start, end, "match_bindings"
                 );
             let binding_types: Array<String> =
                 MirObjectArrayStringFactsAtBounds(
-                    json, start, end, "match_binding_types"
+                    routines.source_json, routines.source_json_extent, start, end, "match_binding_types"
                 );
             let binding_count: Int = ArrayLength(binding_names);
             let type_count: Int = ArrayLength(binding_types);
             let name_bounds: Array<Int> = [0, 0];
             let type_bounds: Array<Int> = [0, 0];
             let arrays_present: Bool = MirObjectArrayBoundsAtBounds(
-                json, start, end, "match_bindings", name_bounds);
+                routines.source_json, routines.source_json_extent, start, end, "match_bindings", name_bounds);
             let types_present: Bool = MirObjectArrayBoundsAtBounds(
-                json, start, end, "match_binding_types", type_bounds);
+                routines.source_json, routines.source_json_extent, start, end, "match_binding_types", type_bounds);
             let names_shape: JsonArrayStringFact = JsonArrayStringFactWithin(
-                json, name_bounds[0], name_bounds[1], -1);
+                routines.source_json, routines.source_json_extent, name_bounds[0], name_bounds[1], -1);
             let types_shape: JsonArrayStringFact = JsonArrayStringFactWithin(
-                json, type_bounds[0], type_bounds[1], -1);
+                routines.source_json, routines.source_json_extent, type_bounds[0], type_bounds[1], -1);
             if !arrays_present || !types_present || !names_shape.valid ||
                 !types_shape.valid || names_shape.count != binding_count ||
                 types_shape.count != type_count || binding_count != type_count {

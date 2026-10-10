@@ -1,3 +1,4 @@
+// User identity suppresses builtin selection; this formal is unused.
 func StringLength(value: String) -> Int {
     return 1;
 }

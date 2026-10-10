@@ -15,7 +15,6 @@ import "routine_instruction_view_owner.pgy";
 import "collection_ownership_fact_owner.pgy";
 import "routine_fact_index_schema_owner.pgy";
 func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row: Int) -> MirRoutineFactIndex {
-    let json: String = routines.source_json;
     let routine_start: Int = 0;
     let routine_end: Int = 0;
     let routine_row_ready: Bool = MirProgramRoutineIndexRowReady(routines, routine_row);
@@ -39,13 +38,13 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         source_syntax_id = routines.source_syntax_ids[routine_row];
     }
     let iteration_type_facts: MirIterationTypeFacts = BuildMirIterationTypeFacts(
-        json, routine_start, routine_end, source_syntax_id);
+        routines.source_json, routines.source_json_extent, routine_start, routine_end, source_syntax_id);
     let function_param_flow_summary_count: String = MirObjectNumberFactAtBounds(
-        json, routine_start, routine_end, "function_param_flow_summary_count");
+        routines.source_json, routines.source_json_extent, routine_start, routine_end, "function_param_flow_summary_count");
     let function_param_flow_parameter_indices: Array<Int> = [];
     let function_param_flow_masks: Array<Int> = [];
     let resource_flow_symbol_declared_count: String = MirObjectNumberFactAtBounds(
-        json, routine_start, routine_end, "resource_flow_symbol_count");
+        routines.source_json, routines.source_json_extent, routine_start, routine_end, "resource_flow_symbol_count");
     let valid: Bool = routine_row_ready;
     let validation_stage: String = "ok";
     if !routine_row_ready { validation_stage = "program_structure"; }
@@ -63,7 +62,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         validation_stage = "instruction_scalar_facts";
     }
     let resource_facts: MirResourceFlowFacts = BuildMirResourceFlowFacts(
-        json, routine_start, routine_end);
+        routines.source_json, routines.source_json_extent, routine_start, routine_end);
     if !iteration_type_facts.valid { valid = false; validation_stage = "iteration_type_facts"; }
     let resource_flow_stable_indices: Array<Int> =
         resource_facts.stable_indices;
@@ -79,7 +78,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         validation_stage = "resource_flow";
     }
     let loop_facts: MirLoopFlowFacts = BuildMirLoopFlowFacts(
-        json, routine_start, routine_end);
+        routines.source_json, routines.source_json_extent, routine_start, routine_end);
     let loop_flow_summary_declared_count: String =
         loop_facts.summary_declared_count;
     let loop_flow_summary_loop_ids: Array<Int> = loop_facts.summary_loop_ids;
@@ -111,16 +110,16 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     let loop_flow_facts_valid: Bool = loop_facts.valid;
     let flow_bounds: Array<Int> = [0, 0];
     if MirObjectArrayBoundsAtBounds(
-        json, routine_start, routine_end,
+        routines.source_json, routines.source_json_extent, routine_start, routine_end,
         "function_param_flow_summaries", flow_bounds) {
         let flow_cursor: Int = flow_bounds[0] + 1;
         let flow_row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
-            json, flow_cursor, flow_bounds[1], flow_row_bounds) {
+            routines.source_json, routines.source_json_extent, flow_cursor, flow_bounds[1], flow_row_bounds) {
             let parameter_index: String = MirObjectNumberFactAtBounds(
-                json, flow_row_bounds[0], flow_row_bounds[1], "parameter_index");
+                routines.source_json, routines.source_json_extent, flow_row_bounds[0], flow_row_bounds[1], "parameter_index");
             let mask: String = MirObjectNumberFactAtBounds(
-                json, flow_row_bounds[0], flow_row_bounds[1], "mask");
+                routines.source_json, routines.source_json_extent, flow_row_bounds[0], flow_row_bounds[1], "mask");
             if StringLength(parameter_index) == 0 || StringLength(mask) == 0 {
                 valid = false;
             } else {
@@ -236,20 +235,20 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     }
 
     let locals_bounds: Array<Int> = [0, 0];
-    if MirObjectArrayBoundsAtBounds(json, routine_start, routine_end, "source_locals", locals_bounds) {
+    if MirObjectArrayBoundsAtBounds(routines.source_json, routines.source_json_extent, routine_start, routine_end, "source_locals", locals_bounds) {
         let local_cursor: Int = locals_bounds[0] + 1;
         let local_bounds: Array<Int> = [0, 0];
-        while JsonArrayNextObjectBounds(json, local_cursor, locals_bounds[1], local_bounds) {
+        while JsonArrayNextObjectBounds(routines.source_json, routines.source_json_extent, local_cursor, locals_bounds[1], local_bounds) {
             ArrayPush(source_local_names,
-                MirObjectStringFactAtBounds(json, local_bounds[0], local_bounds[1], "name"));
+                MirObjectStringFactAtBounds(routines.source_json, routines.source_json_extent, local_bounds[0], local_bounds[1], "name"));
             ArrayPush(source_local_types,
-                MirObjectStringFactAtBounds(json, local_bounds[0], local_bounds[1], "type"));
+                MirObjectStringFactAtBounds(routines.source_json, routines.source_json_extent, local_bounds[0], local_bounds[1], "type"));
             let binding_id: String = MirObjectNumberFactAtBounds(
-                json, local_bounds[0], local_bounds[1],
+                routines.source_json, routines.source_json_extent, local_bounds[0], local_bounds[1],
                 "binding_syntax_id"
             );
             if MirObjectFieldOccurrenceCountAtBounds(
-                    json, local_bounds[0], local_bounds[1],
+                    routines.source_json, routines.source_json_extent, local_bounds[0], local_bounds[1],
                     "binding_syntax_id") != 1 ||
                 binding_id == "" || ToString(ToInt(binding_id)) != binding_id ||
                 ToInt(binding_id) < 0 {
@@ -264,7 +263,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     let collection_ownership_facts: MirCollectionOwnershipFacts =
         BuildMirCollectionOwnershipFacts(
             routines, routine_row,
-            json, routine_start, routine_end, source_syntax_id,
+            routines.source_json, routines.source_json_extent, routine_start, routine_end, source_syntax_id,
             source_local_names, source_local_types,
             source_local_binding_syntax_ids
         );

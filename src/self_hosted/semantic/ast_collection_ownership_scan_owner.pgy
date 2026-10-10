@@ -12,7 +12,7 @@ import "ast_collection_builtin_transition_owner.pgy";
 import "ast_collection_definition_transition_owner.pgy";
 import "ast_collection_owned_result_return_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
-import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_ownership_member_restoration_owner.pgy";
 import "ast_collection_aggregate_release_element_borrow_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_ownership_receipt_owner.pgy";
@@ -47,6 +47,9 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     inout retained_definitions: Array<Bool>,
     inout verdict: SemanticAstCollectionOwnershipVerdict
 ) -> Void {
+    // Unpublished exact-consumption scratch. This descriptor cannot escape
+    // the scan; physical HashMap reclamation remains the backend's contract.
+    let retired_arguments: HashMap<String, Int> = MapNew();
     let local_count: Int = ArrayLength(locals.node_ids);
     let local_row: Int = 0;
     let root_slot: Int = 0;
@@ -114,6 +117,17 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     verdict = aggregate_source_use; return;
                 }
                 let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeLeaf() {
+                    let exact_use: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUseAtEvent(
+                        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
+                        definitions, call_effects, current_definitions, retired_arguments, root_slot, node);
+                    if exact_use.found {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        verdict = SemanticAstCollectionOwnershipVerdictError(exact_use.diagnostic_code,
+                            SemanticError2(exact_use.diagnostic_code, "boundary", exact_use.boundary, "type", "Array<String>"),
+                            exact_use.syntax_node_id, exact_use.expression_node_id); return;
+                    }
+                }
                 if IsSome(kind) && UnwrapOption(kind) ==
                         AstExpressionNodeArrayElement() &&
                     !SemanticAstOwnedStringLiteralTransferObserveElement(
@@ -138,6 +152,15 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         verdict = scalar_transfer_verdict; return;
                     }
+                    let exact_use: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUseAtEvent(
+                        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
+                        definitions, call_effects, current_definitions, retired_arguments, root_slot, node);
+                    if exact_use.found {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        verdict = SemanticAstCollectionOwnershipVerdictError(exact_use.diagnostic_code,
+                            SemanticError2(exact_use.diagnostic_code, "boundary", exact_use.boundary, "type", "Array<String>"),
+                            exact_use.syntax_node_id, exact_use.expression_node_id); return;
+                    }
                     let literal_read_ready: Bool =
                         SemanticAstCollectionReadLiteralArgumentReady(
                             artifact, signatures, locals, initializer_types,
@@ -156,6 +179,9 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     if !argument_verdict.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         verdict = argument_verdict; return;
+                    }
+                    if exact_use.retirement_source > 0 {
+                        MapSet(retired_arguments, ToString(exact_use.retirement_source), exact_use.retirement_site);
                     }
                 }
                 if step.completed_call >= 0 {
@@ -213,6 +239,16 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                 }
             }
             ArrayDrop(pending); ArrayDrop(prefixes);
+            let definition_use: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentDefinitionAtSlot(
+                artifact, signatures, locals, surfaces, definitions, call_effects, statements, assignments, root_slot, root);
+            if definition_use.found {
+                verdict = SemanticAstCollectionOwnershipVerdictError(definition_use.diagnostic_code,
+                    SemanticError2(definition_use.diagnostic_code, "boundary", definition_use.boundary, "type", "Array<String>"),
+                    definition_use.syntax_node_id, definition_use.expression_node_id); return;
+            }
+            if definition_use.retirement_source > 0 {
+                MapSet(retired_arguments, ToString(definition_use.retirement_source), definition_use.retirement_site);
+            }
         }
         let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
             artifact, locals, surfaces, definitions, storage, root_slot, current_definitions, call_effects,
@@ -257,17 +293,6 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
             SemanticError2("borrow_boundary_escape", "boundary",
                 "owned_string_literal_transfer_incomplete", "type",
                 "String"), -1, -1); return;
-    }
-    let transferred_use: SemanticAstCollectionOwnedArgumentUse =
-        SemanticAstCollectionFirstInvalidOwnedArgumentUse(
-            artifact, signatures, locals, initializer_types.inferred_type_names,
-            surfaces, definitions, call_effects, statements, assignments);
-    if transferred_use.found {
-        verdict = SemanticAstCollectionOwnershipVerdictError(
-            transferred_use.diagnostic_code,
-            SemanticError2(transferred_use.diagnostic_code, "boundary",
-                transferred_use.boundary, "type", "Array<String>"),
-            transferred_use.syntax_node_id, transferred_use.expression_node_id); return;
     }
     // The transition scan above proves that no use occurs after an exact
     // field restore.  Apply the terminal disposition only after earlier

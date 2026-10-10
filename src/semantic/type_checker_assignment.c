@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "string_window_extent.h"
 #include "callable_capability_inference.h"
 #include "type_checker_assignment.h"
 #include "type_checker_builtins_internal.h"
@@ -111,6 +112,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     Type *target_type = NULL;
     ASTNode *target = ast_assignment_target(expr);
     ASTNode *value = ast_assignment_value(expr);
+    semantic_string_window_extent_record_assignment(ctx, target);
     Symbol *value_binding = target != NULL && target->type == AST_IDENTIFIER
         ? lookup_identifier_symbol(target, ctx) : NULL;
     bool tracked_value_place = value_binding != NULL

@@ -5,7 +5,7 @@ import "error_owner.pgy";
 import "type_name_owner.pgy";
 
 func ParseGenericParameterListText(
-    content: String, start: Int, inout cursor_out: Array<Int>
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) != "<" {
@@ -27,7 +27,7 @@ func ParseGenericParameterListText(
         if ParserCharAt(content, i) == "=" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
-            let default_type: String = ReadType(content, i, cursor_out);
+            let default_type: String = ReadType(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if default_type == "" {
                 Fail("expected generic parameter default type", content, i);

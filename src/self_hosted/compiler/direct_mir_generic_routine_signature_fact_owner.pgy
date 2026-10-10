@@ -65,11 +65,11 @@ func DirectMirGenericRoutineSignatureFactAt(
         return InvalidDirectMirGenericRoutineSignatureFact();
     }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        routines.source_json, routines.starts[row], routines.ends[row]
+        routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]
     );
     let param_bounds: Array<Int> = [0, 0];
     if !MirRoutineHeaderSignatureEnvelopeReady(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             routines.names[row], routines.kinds[row], routines.source_syntax_ids[row],
             routines.receiver_carriages[row], header, param_bounds) {
         return InvalidDirectMirGenericRoutineSignatureFact();
@@ -82,14 +82,14 @@ func DirectMirGenericRoutineSignatureFactAt(
         ArrayLength(header.param_resources) != 1 ||
         ArrayLength(header.param_pass_shapes) != 1 ||
         !JsonArrayNextObjectBounds(
-            routines.source_json, param_bounds[0] + 1, param_bounds[1],
+            routines.source_json, routines.source_json_extent, param_bounds[0] + 1, param_bounds[1],
             object_bounds
         ) {
         return InvalidDirectMirGenericRoutineSignatureFact();
     }
     let param: DirectMirRoutineParamFact =
         DirectMirRoutineParamFactFromBounds(
-            routines.source_json, object_bounds[0], object_bounds[1]
+            routines.source_json, routines.source_json_extent, object_bounds[0], object_bounds[1]
         );
     if !DirectMirRoutineParamFactReady(param) ||
         param.name != header.param_names[0] ||

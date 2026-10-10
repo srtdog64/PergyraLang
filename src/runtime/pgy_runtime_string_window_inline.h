@@ -9,9 +9,12 @@
  * caller-precomputed length, so a single character read is O(1). Kept in its own
  * small header so the (size-capped) io/qubit runtime header does not grow.
  *
- * SubstringWithLen/CharAtN/CharCode require source_len/len to equal strlen(s)
- * for the same live string. These primitives do not verify that precondition;
- * an inflated length can read outside storage despite the index guards below.
+ * SubstringWithLen/CharAtN/CharCode require source_len/len to be at most
+ * strlen(s) for the same live string. These primitives do not verify that
+ * precondition; an inflated length can read outside storage despite the index
+ * guards below. Source programs reach them only after semantic admission proves
+ * the extent (docs/agent_work_directives/string_window_extent_closure_2026-10-10.md);
+ * external --mir-json input is not admitted by that rule yet.
  */
 #ifndef PGY_RUNTIME_STRING_WINDOW_INLINE_H
 #define PGY_RUNTIME_STRING_WINDOW_INLINE_H

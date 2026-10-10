@@ -25,12 +25,15 @@ func CompilerCapabilityManifestHex(mask: Int) -> String {
         );
         remaining = remaining / 16;
     }
+    // The digits are complete; read them through one unchanged binding.
+    let reversed_digits: String = reversed;
+    let reversed_extent: Int = StringLength(reversed_digits);
     let output: String = "";
-    let index: Int = StringLength(reversed) - 1;
+    let index: Int = reversed_extent - 1;
     while index >= 0 {
         output = Concat(
             output,
-            SubstringWithLen(reversed, StringLength(reversed), index, 1)
+            SubstringWithLen(reversed_digits, reversed_extent, index, 1)
         );
         index = index - 1;
     }

@@ -22,12 +22,12 @@ func DirectMirOptionStringAbiFactReady(ref fact: DirectMirOptionMatchAbiFact) ->
         fact.none_tag == "1" && fact.niche_none_pattern == "";
 }
 func DirectMirScalarProgramOptionStringAbiFromInstruction(
-    current: DirectMirOptionMatchAbiFact, json: String, ref capture: MirRoutineInstructionScalarCapture
+    current: DirectMirOptionMatchAbiFact, json: String, json_extent: Int, ref capture: MirRoutineInstructionScalarCapture
 ) -> DirectMirOptionMatchAbiFact {
     if capture.abi_type_name != CompilerAbiLayoutOptionStringTypeName() { return current; }
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
             capture.abi_type_start, capture.abi_type_end,
             capture.abi_layout_id_start, capture.abi_layout_id_end,
             capture.abi_layout_required_start,

@@ -78,7 +78,7 @@ func DirectMirGenericStructValueFlowPlanFromAdmitted(
         );
     let abi: DirectMirGenericStructValueFlowAbiFact =
         DirectMirGenericStructValueFlowAbiFactFromInstructions(
-            admitted.routines.source_json, identity, instructions
+            admitted.routines.source_json, admitted.routines.source_json_extent, identity, instructions
         );
     let plan: DirectMirGenericStructValueFlowPlan =
         DirectMirGenericStructValueFlowPlan(

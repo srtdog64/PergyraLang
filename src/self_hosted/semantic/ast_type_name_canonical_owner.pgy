@@ -32,7 +32,7 @@ func SemanticTypeNameTopLevelColon(text: String) -> Option<Int> {
     let depth: Int = 0;
     let i: Int = 0;
     while i < n {
-        let c: Int = SourceByteAt(text, n, i);
+        let c: Int = SourceByteAt(text, n, n, i);
         if c == open_angle || c == open_paren || c == open_bracket {
             depth = depth + 1;
         } else if c == close_angle || c == close_paren ||
@@ -67,7 +67,7 @@ func SemanticCanonicalTypeName(type_name: String) -> String {
     let n: Int = StringLength(text);
     let open: Int = StringIndexOf(text, "<");
     if open <= 0 || n < open + 2 ||
-        SourceByteAt(text, n, n - 1) != SourceByteOf(">") {
+        SourceByteAt(text, n, n, n - 1) != SourceByteOf(">") {
         return text;
     }
     let base: String = SemanticTrimSourceRangeReuse(text, 0, open);
@@ -112,7 +112,7 @@ func SemanticConstructedTypeNameFactFrom(
     let n: Int = StringLength(canonical);
     let open: Int = StringIndexOf(canonical, "<");
     if open <= 0 || n < open + 3 ||
-        SourceByteAt(canonical, n, n - 1) != SourceByteOf(">") {
+        SourceByteAt(canonical, n, n, n - 1) != SourceByteOf(">") {
         return SemanticConstructedTypeNameFact(
             false, canonical, "", []
         );

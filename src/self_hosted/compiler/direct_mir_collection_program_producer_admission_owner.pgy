@@ -174,11 +174,11 @@ func DirectMirCollectionProducerRoutineFactFromAdmitted(
     }
     let definition_abi: MirAbiLayoutRowCapture =
         DirectMirCollectionProgramInstructionArrayAbi(
-            admitted.routines.source_json, definition
+            admitted.routines.source_json, admitted.routines.source_json_extent, definition
         );
     let return_abi: MirAbiLayoutRowCapture =
         DirectMirCollectionProgramInstructionArrayAbi(
-            admitted.routines.source_json, returned
+            admitted.routines.source_json, admitted.routines.source_json_extent, returned
         );
     if !DirectMirArrayIntCapturedAbiReady(definition_abi) ||
         !DirectMirArrayIntCapturedAbiReady(return_abi) ||

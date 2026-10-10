@@ -60,9 +60,9 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
             let start: Int = routines.instruction_starts[instruction];
             let end: Int = routines.instruction_ends[instruction];
             let local_name: String = MirObjectStringFactAtBounds(
-                routines.source_json, start, end, "arg0");
+                routines.source_json, routines.source_json_extent, start, end, "arg0");
             let result: String = MirObjectStringFactAtBounds(
-                routines.source_json, start, end, "result");
+                routines.source_json, routines.source_json_extent, start, end, "result");
             let declaration: Bool =
                 routines.instruction_kinds[instruction] == "def" &&
                 routines.instruction_source_types[instruction] ==
@@ -73,7 +73,7 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
                     local_names, local_binding_syntax_ids, local_name);
             }
             let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
-                routines.source_json, start, end, "uses");
+                routines.source_json, routines.source_json_extent, start, end, "uses");
             if binding > 0 && result != "" {
                 MapSet(value_bindings, result, binding);
             }
@@ -84,7 +84,7 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
                         routines.instruction_expressions, instruction);
                 let graph: JsonObjectFactTable =
                     MirProgramInstructionExpressionGraphTable(
-                        routines.source_json, expression, 0);
+                        routines.source_json, routines.source_json_extent, expression, 0);
                 let sequence: MirExpressionGraphSequence =
                     MirExpressionGraphSequenceAppend(
                         MirExpressionGraphSequenceEmpty(), graph);

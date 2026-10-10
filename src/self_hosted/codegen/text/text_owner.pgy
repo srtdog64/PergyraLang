@@ -3,6 +3,7 @@
 // Text and delimiter scanning primitives owned by the self-host codegen front boundary.
 
 import "../../hir/ast_text_scan_owner.pgy";
+import "../../lib/string_window_within.pgy";
 
 func Die(msg: String) -> Never {
     Log(Concat("CODEGEN ERROR: ", msg));
@@ -16,7 +17,7 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: Int = CodegenCharCodeAt(text, n, i);
+        let c: Int = CodegenCharCodeAt(text, n, n, i);
         if in_str {
             if c == 92 {
                 i = i + 2;
@@ -35,7 +36,7 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
         }
         if m > 0 && i + m <= n &&
             SubEqualsWithLen(text, n, i, m, needle) {
-            if i == 0 || !IsIdentCode(CodegenCharCodeAt(text, n, i - 1)) {
+            if i == 0 || !IsIdentCode(CodegenCharCodeAt(text, n, n, i - 1)) {
                 return true;
             }
         }
@@ -50,7 +51,7 @@ func ContainsOutsideStrings(text: String, needle: String) -> Bool {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: Int = CodegenCharCodeAt(text, n, i);
+        let c: Int = CodegenCharCodeAt(text, n, n, i);
         if in_str {
             if c == 92 {
                 i = i + 2;
@@ -77,19 +78,19 @@ func ContainsOutsideStrings(text: String, needle: String) -> Bool {
 }
 
 func TrySurfaceAllowedLineWithin(
-    text: String, length: Int, start: Int, end: Int
+    text: String, text_extent: Int, length: Int, start: Int, end: Int
 ) -> Bool {
     let i: Int = start;
     while i < end {
-        let c: Int = CodegenCharCodeAt(text, length, i);
+        let c: Int = CodegenCharCodeAt(text, text_extent, length, i);
         if c != 32 && c != 9 && c != 13 { break; }
         i = i + 1;
     }
-    if i + 5 > end || !SubEqualsWithLen(text, length, i, 5, "Let: ") {
+    if i + 5 > end || !StringWindowSubEquals(text, text_extent, length, i, 5, "Let: ") {
         return false;
     }
-    return SubIndexOfWithLen(
-        text, length, i, end - i, " : Int = (?"
+    return StringWindowSubIndexOf(
+        text, text_extent, length, i, end - i, " : Int = (?"
     ) >= 0;
 }
 
@@ -99,7 +100,7 @@ func RejectUnsupportedCodegenBuiltins(tree_text: String) -> Void {
     let i: Int = 0;
     let in_string: Bool = false;
     while i < length {
-        let c: Int = CodegenCharCodeAt(tree_text, length, i);
+        let c: Int = CodegenCharCodeAt(tree_text, length, length, i);
         if c == 10 {
             line_start = i + 1;
             in_string = false;
@@ -109,14 +110,14 @@ func RejectUnsupportedCodegenBuiltins(tree_text: String) -> Void {
         } else if c == 34 {
             in_string = true;
         } else if c == 40 && i + 1 < length &&
-            CodegenCharCodeAt(tree_text, length, i + 1) == 63 {
+            CodegenCharCodeAt(tree_text, length, length, i + 1) == 63 {
             let line_end: Int = i + 2;
             while line_end < length &&
-                CodegenCharCodeAt(tree_text, length, line_end) != 10 {
+                CodegenCharCodeAt(tree_text, length, length, line_end) != 10 {
                 line_end = line_end + 1;
             }
             if !TrySurfaceAllowedLineWithin(
-                tree_text, length, line_start, line_end
+                tree_text, length, length, line_start, line_end
             ) {
                 Die("unsupported try expression in self-host codegen subset");
             }

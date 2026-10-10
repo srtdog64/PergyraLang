@@ -6,7 +6,7 @@ func MirIntentExpressionCarrierGraphPresent(ref routines: MirProgramRoutineIndex
     let fact: MirProgramInstructionExpressionFact =
         MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, global_row);
     if !fact.valid { return false; }
-    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(routines.source_json, fact, 0);
+    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(routines.source_json, routines.source_json_extent, fact, 0);
     return JsonObjectFactTableReady(graph);
 }
 
@@ -17,7 +17,7 @@ func MirIntentExpressionCarrierIsTrue(ref routines: MirProgramRoutineIndex, glob
         MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, global_row);
     if !fact.valid { return false; }
     let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(MirExpressionGraphSequenceEmpty(),
-        MirProgramInstructionExpressionGraphTable(routines.source_json, fact, 0));
+        MirProgramInstructionExpressionGraphTable(routines.source_json, routines.source_json_extent, fact, 0));
     if !sequence.ok || ArrayLength(sequence.roots) != 1 { return false; }
     let root: Int = sequence.roots[0];
     return root >= 0 && root < SemanticExpressionGraphArenaNodeCount(sequence.arena) &&
@@ -36,10 +36,10 @@ func MirIntentInvariantCarrierGraphsEqual(ref routines: MirProgramRoutineIndex, 
         MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, after_row);
     let before: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(), MirProgramInstructionExpressionGraphTable(
-            routines.source_json, before_fact, 0));
+            routines.source_json, routines.source_json_extent, before_fact, 0));
     let after: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(), MirProgramInstructionExpressionGraphTable(
-            routines.source_json, after_fact, 0));
+            routines.source_json, routines.source_json_extent, after_fact, 0));
     if !before.ok || !after.ok || ArrayLength(before.roots) != 1 || ArrayLength(after.roots) != 1 { return false; }
     let present: Array<Bool> = [true];
     let before_graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(

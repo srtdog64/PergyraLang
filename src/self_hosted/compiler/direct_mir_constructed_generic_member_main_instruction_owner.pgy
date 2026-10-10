@@ -91,7 +91,7 @@ func DirectMirConstructedGenericMemberMainInstructionsFromProgram(
         )
     ];
     let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[2]],
         admitted.routines.instruction_ends[globals[2]]
     );
@@ -109,7 +109,7 @@ func DirectMirConstructedGenericMemberMainInstructionsFromProgram(
         constructor.arg1 != identity.declaration.name ||
         constructor.expr1 != identity.declaration.name ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, constructor,
+            admitted.routines.source_json, admitted.routines.source_json_extent, constructor,
             identity.declaration.name
         ) || result.arg0 != identity.main_graph.result_local ||
         result.arg1 != "" ||

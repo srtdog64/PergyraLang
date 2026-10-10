@@ -40,10 +40,14 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
 ) -> SemanticAstCollectionFormalEffects {
     let inventory: SemanticAstCollectionFormalEffectInventory =
         SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures);
-    let effects: HashMap<String, Int> = MapNew();
+    // The canonical shape check must precede every parameter-row consumer.
+    if !inventory.ok { return SemanticAstCollectionFormalEffectsEmpty(); }
     let contexts: SemanticAstCollectionFormalExecutionContexts =
         SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
             artifact, signatures.function_node_ids, scopes, surfaces, order);
+    // Invalid global coverage is not an admitted opaque callable effect.
+    if !contexts.ok { return SemanticAstCollectionFormalEffectsEmpty(); }
+    let effects: HashMap<String, Int> = MapNew();
     // An empty, validated String-sequence formal inventory has no element-use
     // obligations. Unrelated plain-array uses belong to their storage owner.
     let borrowed_text: HashMap<String, Int> = SemanticAstStringFormalBorrowOnlyFacts(artifact, signatures, surfaces);
@@ -123,7 +127,6 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                         surfaces.expression_graph, node);
                 if !binding.ok { ok = false; break; }
                 let formal_row: Int = -1;
-                let key: String = ToString(binding.syntax_id);
                 if binding.kind ==
                     SemanticExpressionBindingFormalParameter() {
                     let signature: Option<Int> =
@@ -141,6 +144,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                         UnwrapOption(parameter) != binding.syntax_id {
                         ok = false; break;
                     }
+                    let key: String = ToString(binding.syntax_id);
                     if MapHas(formal_rows, key) {
                         formal_row = MapGet(formal_rows, key);
                         if binding.ordinal != inventory.ordinals[formal_row] ||
@@ -363,10 +367,13 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                 node = node + 1;
             }
             let statement_mutation_row: Int = -1;
-            let root_key: String = ToString(root);
-            if MapHas(statement_target_rows, root_key) {
-                statement_mutation_row = MapGet(
-                    statement_target_rows, root_key);
+            // Failed traversal may leave root rows unbuilt; guard reads first.
+            if ok && (node_rows[root] >= 0 || element_rows[root] >= 0) {
+                let root_key: String = ToString(root);
+                if MapHas(statement_target_rows, root_key) {
+                    statement_mutation_row = MapGet(
+                        statement_target_rows, root_key);
+                }
             }
             if ok && node_rows[root] >= 0 &&
                 node_rows[root] != statement_mutation_row {
@@ -436,16 +443,12 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         }
         row = row + 1;
     }
-    ArrayDrop(node_rows);
-    ArrayDrop(element_rows);
-    ArrayDrop(slice_member_rows);
-    ArrayDrop(slice_value_rows);
+    ArrayDrop(node_rows); ArrayDrop(element_rows);
+    ArrayDrop(slice_member_rows); ArrayDrop(slice_value_rows);
     ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
     ArrayDrop(element_reads);
-    ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts);
-    ArrayDrop(direct_owned_push_call_nodes);
-    ArrayDrop(owned_push_leaf_disqualified);
-    ArrayDrop(sources); ArrayDrop(targets);
+    ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts); ArrayDrop(direct_owned_push_call_nodes);
+    ArrayDrop(owned_push_leaf_disqualified); ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(
         ok, inventory, effects, owned_push_leaf_formals, contexts, borrowed_text);
 }

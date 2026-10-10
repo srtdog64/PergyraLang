@@ -17,7 +17,7 @@ struct ParserIntentTerminalClause {
 
 func ParseIntentTerminalClause(
     context: ParserSourceLocationContext,
-    content: String, start: Int, inout cursor_out: Array<Int>
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> ParserIntentTerminalClause {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let step_offset: Int = i;
@@ -34,7 +34,7 @@ func ParseIntentTerminalClause(
     i = ParseExpectIn(context, content, i, ":", "intent_terminal");
     ArraySet(cursor_out, 0, i);
     let expression: ParserExpressionFact = ParseExprFactIn(
-        context, content, i, cursor_out
+        context, content, content_extent, i, cursor_out
     );
     i = ParseExpectIn(context, content, cursor_out[0], ";", "intent_terminal");
     ArraySet(cursor_out, 0, i);

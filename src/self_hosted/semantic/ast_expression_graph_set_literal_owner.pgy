@@ -182,8 +182,9 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
 
 func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
     let source: String = "{1, 2, 2}";
+    let source_extent: Int = StringLength(source);
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, source_extent, 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) ||
         fact.arena.node_kinds[fact.root] != AstExpressionNodeSetElement() {
         return false;
@@ -204,7 +205,7 @@ func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
     );
     let empty_cursor: Array<Int> = [0];
     let empty_fact: ParserExpressionFact = ParseExprFact(
-        "{}", 0, empty_cursor
+        "{}", 2, 0, empty_cursor
     );
     let empty_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(

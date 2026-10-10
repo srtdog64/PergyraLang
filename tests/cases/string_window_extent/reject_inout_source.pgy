@@ -1,0 +1,11 @@
+// An inout call may rebind the source after its witness was measured.
+func Empty(inout text: String) -> Void {
+    text = "";
+}
+
+func Main() -> Void {
+    let mut s: String = Concat("abc", "def");
+    let n: Int = StringLength(s);
+    Empty(s);
+    Print(ToString(CharCode(s, n, 5)));
+}

@@ -14,7 +14,7 @@ func DirectMirOptionMatchGraphAt(
     return MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(),
         MirProgramInstructionExpressionGraphTable(
-            routines.source_json, expression, 0
+            routines.source_json, routines.source_json_extent, expression, 0
         )
     );
 }

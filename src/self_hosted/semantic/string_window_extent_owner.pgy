@@ -1,0 +1,596 @@
+// String-window extent admission, the self-host owner of the rule in
+// docs/agent_work_directives/string_window_extent_closure_2026-10-10.md.
+// One pass over the carried expression graph collects window calls, calls of
+// routines, constructions, assignment targets and inout arguments. Routine
+// requirements and record field pairs close as a least fixed point; the
+// first pair left without a proof refuses the program.
+import "string_window_extent_proof_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "nominal_constructor_argument_policy_owner.pgy";
+import "ast_expression_graph_struct_view_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticStringWindowSites {
+    ok: Bool;
+    node_surfaces: Array<Int>;
+    window_calls: Array<Int>;
+    routine_calls: Array<Int>;
+    routine_rows: Array<Int>;
+    construction_nodes: Array<Int>;
+    construction_rows: Array<Int>;
+    construction_starts: Array<Int>;
+    construction_counts: Array<Int>;
+    construction_fields: Array<String>;
+    construction_values: Array<Int>;
+    write_names: Array<String>;
+    write_owners: Array<Int>;
+    write_nodes: Array<Int>;
+}
+
+struct SemanticStringWindowClosure {
+    heads: Array<Int>;
+    sources: Array<Int>;
+    extents: Array<Int>;
+    next: Array<Int>;
+    pair_sources: Array<String>;
+    pair_extents: Array<String>;
+}
+
+func SemanticStringWindowBuiltinCall(ref graph: SemanticExpressionGraphFacts, node: Int) -> Bool {
+    let name: String = graph.arena.call_target_names[node];
+    if name != "CharCode" && name != "CharAtN" && name != "SubstringWithLen" &&
+        name != "SubEqualsWithLen" && name != "SubContainsWithLen" &&
+        name != "SubIndexOfWithLen" && name != "SubStartsWithLen" {
+        return false;
+    }
+    return SemanticAstCollectionOwnershipBuiltinCall(graph, node, name);
+}
+
+func SemanticStringWindowRoutineRow(ref analysis: SemanticAstArtifactAnalysis, surface: Int) -> Int {
+    if surface < 0 { return -1; }
+    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        analysis.signatures, analysis.expression_surfaces.function_node_ids[surface]);
+    if !IsSome(row) { return -1; }
+    return UnwrapOption(row);
+}
+
+func SemanticStringWindowRoutineName(ref analysis: SemanticAstArtifactAnalysis, surface: Int) -> String {
+    let row: Int = SemanticStringWindowRoutineRow(analysis, surface);
+    if row < 0 { return "top-level code"; }
+    return analysis.signatures.names[row];
+}
+
+func SemanticStringWindowConstructorRow(ref analysis: SemanticAstArtifactAnalysis, type_name: String) -> Int {
+    if type_name == "" { return -1; }
+    let row: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, type_name);
+    if !IsSome(row) { return -1; }
+    return UnwrapOption(row);
+}
+
+func SemanticStringWindowDeclaresField(ref analysis: SemanticAstArtifactAnalysis, row: Int, name: String) -> Bool {
+    let field: Int = analysis.constructors.param_starts[row];
+    let end: Int = field + analysis.constructors.param_counts[row];
+    while field < end {
+        if analysis.constructors.field_names[field] == name { return true; }
+        field = field + 1;
+    }
+    return false;
+}
+
+// Record the binding a place writes through, and the field it replaces. An
+// assignment rebinds its root; an inout argument may rebind it. A field write
+// through an inout argument keeps owner -1, which every record field pair of
+// that name rejects, as the native owner does.
+func SemanticStringWindowMarkPlace(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    inout sites: SemanticStringWindowSites, inout bindings: HashMap<String, Int>,
+    surface: Int, place: Int, inout_argument: Bool) -> Void {
+    let typed_owner: Bool = !inout_argument;
+    let statement: Int = analysis.expression_surfaces.node_ids[surface];
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+        analysis.expression_surfaces.expression_graph, place);
+    if member.ok {
+        let owner: Int = -1;
+        if typed_owner {
+            let receiver: SemanticStringWindowBinding = SemanticStringWindowBindingAt(
+                artifact, analysis, inferred, surface, member.receiver_node);
+            owner = SemanticStringWindowConstructorRow(analysis, receiver.type_name);
+        }
+        ArrayPush(sites.write_names, analysis.expression_surfaces.expression_graph.arena.node_texts[member.member_node]);
+        ArrayPush(sites.write_owners, owner);
+        ArrayPush(sites.write_nodes, statement);
+    }
+    let root: Int = place;
+    while root >= 0 && (analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[root] == AstExpressionNodeMemberAccess() ||
+            analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[root] == AstExpressionNodeIndex()) {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(analysis.expression_surfaces.expression_graph, root);
+        root = -1;
+        if IsSome(left) { root = UnwrapOption(left); }
+    }
+    if root < 0 { return; }
+    let binding: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, root);
+    if binding.kind == 4 && root == place {
+        let owner_row: Int = -1;
+        let routine: Int = SemanticStringWindowRoutineRow(analysis, surface);
+        if typed_owner && routine >= 0 {
+            owner_row = SemanticStringWindowConstructorRow(analysis, analysis.signatures.owner_names[routine]);
+        }
+        ArrayPush(sites.write_names, analysis.expression_surfaces.expression_graph.arena.node_texts[root]);
+        ArrayPush(sites.write_owners, owner_row);
+        ArrayPush(sites.write_nodes, statement);
+    }
+    if binding.key != "" { MapSet(bindings, binding.key, 1); }
+}
+
+func SemanticStringWindowNodeSurfaces(ref surfaces: SemanticAstExpressionSurfaceFacts) -> Array<Int> {
+    let node_surfaces: Array<Int> = [];
+    let count: Int = ArrayLength(surfaces.expression_graph.arena.topology.node_kinds);
+    let node: Int = 0;
+    while node < count { ArrayPush(node_surfaces, -1); node = node + 1; }
+    let root_slot: Int = 0;
+    while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let root: Int = surfaces.expression_graph.roots[root_slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+            if !IsSome(start) || root < 0 || root >= count { return []; }
+            let member: Int = UnwrapOption(start);
+            while member <= root { ArraySet(node_surfaces, member, root_slot / 3); member = member + 1; }
+        }
+        root_slot = root_slot + 1;
+    }
+    return node_surfaces;
+}
+
+func SemanticStringWindowCollectCall(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref roots: SemanticCallSpineRoots, inout sites: SemanticStringWindowSites,
+    inout inout_passed: HashMap<String, Int>, node: Int) -> Void {
+    let surface: Int = sites.node_surfaces[node];
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        analysis.expression_surfaces.expression_graph, roots.root_nodes[node]);
+    if !call.ok || call.call_node != node || surface < 0 { return; }
+    if SemanticStringWindowBuiltinCall(analysis.expression_surfaces.expression_graph, node) {
+        if ArrayLength(call.argument_nodes) >= 2 { ArrayPush(sites.window_calls, node); }
+        return;
+    }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(analysis.expression_surfaces.expression_graph, node);
+    let target_id: Int = 0;
+    if IsSome(target) { target_id = UnwrapOption(target); }
+    if target_id == 0 {
+        let row: Int = SemanticStringWindowConstructorRow(analysis,
+            analysis.expression_surfaces.expression_graph.arena.call_target_names[node]);
+        if row < 0 { return; }
+        ArrayPush(sites.construction_nodes, node);
+        ArrayPush(sites.construction_rows, row);
+        ArrayPush(sites.construction_starts, ArrayLength(sites.construction_values));
+        ArrayPush(sites.construction_counts, ArrayLength(call.argument_nodes));
+        let argument: Int = 0;
+        while argument < ArrayLength(call.argument_nodes) {
+            let field: Option<Int> = SemanticAstNominalConstructorArgumentFieldIndexAt(analysis.constructors, row, argument);
+            let field_name: String = "";
+            if IsSome(field) {
+                field_name = analysis.constructors.field_names[analysis.constructors.param_starts[row] + UnwrapOption(field)];
+            }
+            ArrayPush(sites.construction_fields, field_name);
+            ArrayPush(sites.construction_values, call.argument_nodes[argument]);
+            argument = argument + 1;
+        }
+        return;
+    }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, target_id);
+    let callee: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+        analysis.expression_surfaces.expression_graph, call.callee_node);
+    if !IsSome(signature) {
+        // A callable parameter has no declaration here: each argument counts.
+        if callee.ok && callee.kind == SemanticExpressionBindingFormalParameter() {
+            let argument_index: Int = 0;
+            while argument_index < ArrayLength(call.argument_nodes) {
+                SemanticStringWindowMarkPlace(artifact, analysis, inferred, sites, inout_passed,
+                    surface, call.argument_nodes[argument_index], true);
+                argument_index = argument_index + 1;
+            }
+        }
+        return;
+    }
+    let row: Int = UnwrapOption(signature);
+    ArrayPush(sites.routine_calls, node);
+    ArrayPush(sites.routine_rows, row);
+    let offset: Int = 0;
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(analysis.expression_surfaces.expression_graph, node);
+    if IsSome(kind) && UnwrapOption(kind) == SemanticCallTargetMember() {
+        offset = analysis.signatures.receiver_source_param_offsets[row];
+    }
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(call.argument_nodes) {
+        let param: Int = ordinal + offset;
+        if param < analysis.signatures.param_counts[row] &&
+            analysis.signatures.param_modes[analysis.signatures.param_starts[row] + param] == 1 {
+            SemanticStringWindowMarkPlace(artifact, analysis, inferred, sites, inout_passed,
+                surface, call.argument_nodes[ordinal], true);
+        }
+        ordinal = ordinal + 1;
+    }
+}
+
+func SemanticStringWindowCollectLiteral(ref analysis: SemanticAstArtifactAnalysis,
+    inout sites: SemanticStringWindowSites, node: Int) -> Void {
+    let view: SemanticStructLiteralView = SemanticStructLiteralViewFromGraph(
+        analysis.expression_surfaces.expression_graph, node);
+    if !view.ok { return; }
+    let row: Int = SemanticStringWindowConstructorRow(analysis,
+        analysis.expression_surfaces.expression_graph.arena.node_texts[view.type_node]);
+    if row < 0 { return; }
+    ArrayPush(sites.construction_nodes, node);
+    ArrayPush(sites.construction_rows, row);
+    ArrayPush(sites.construction_starts, ArrayLength(sites.construction_values));
+    ArrayPush(sites.construction_counts, view.field_count);
+    let index: Int = 0;
+    while index < view.field_count {
+        let field: SemanticStructLiteralFieldView = SemanticStructLiteralFieldAt(
+            analysis.expression_surfaces.expression_graph, view, index);
+        let field_name: String = "";
+        let value: Int = -1;
+        if field.ok {
+            field_name = analysis.expression_surfaces.expression_graph.arena.node_texts[field.name_node];
+            value = field.value_node;
+        }
+        ArrayPush(sites.construction_fields, field_name);
+        ArrayPush(sites.construction_values, value);
+        index = index + 1;
+    }
+}
+
+func SemanticStringWindowCollectSites(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref roots: SemanticCallSpineRoots, inout mutated: HashMap<String, Int>,
+    inout inout_passed: HashMap<String, Int>) -> SemanticStringWindowSites {
+    let sites: SemanticStringWindowSites = SemanticStringWindowSites(true,
+        SemanticStringWindowNodeSurfaces(analysis.expression_surfaces), [], [], [], [], [], [], [], [], [],
+        [], [], []);
+    let count: Int = ArrayLength(analysis.expression_surfaces.expression_graph.arena.topology.node_kinds);
+    if ArrayLength(sites.node_surfaces) != count || ArrayLength(roots.root_nodes) != count {
+        sites.ok = false;
+        return sites;
+    }
+    // A struct literal's root is the outermost field node of its chain.
+    let inner: HashMap<String, Int> = MapNew();
+    let node: Int = count - 1;
+    while node >= 0 {
+        let kind: Int = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node];
+        if kind == AstExpressionNodeCall() {
+            SemanticStringWindowCollectCall(artifact, analysis, inferred, roots, sites, inout_passed, node);
+        } else if kind == AstExpressionNodeStructField() || kind == AstExpressionNodeStructLiteral() {
+            if !MapHas(inner, ToString(node)) && sites.node_surfaces[node] >= 0 {
+                SemanticStringWindowCollectLiteral(analysis, sites, node);
+            }
+            let previous: Option<Int> = SemanticExpressionGraphLeftChild(analysis.expression_surfaces.expression_graph, node);
+            if kind == AstExpressionNodeStructField() && IsSome(previous) {
+                MapSet(inner, ToString(UnwrapOption(previous)), 1);
+            }
+        }
+        node = node - 1;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(analysis.assignments.node_ids) {
+        let place: Option<Int> = SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces,
+            analysis.assignments.node_ids[row], AstExpressionLaneAtom());
+        let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+            analysis.expression_surfaces, analysis.assignments.node_ids[row]);
+        if !IsSome(place) || !IsSome(surface) {
+            sites.ok = false;
+            return sites;
+        }
+        SemanticStringWindowMarkPlace(artifact, analysis, inferred, sites, mutated,
+            UnwrapOption(surface), UnwrapOption(place), false);
+        row = row + 1;
+    }
+    return sites;
+}
+
+struct SemanticStringWindowRound {
+    changed: Bool;
+    failed: Bool;
+    message: String;
+    node: Int;
+}
+
+func SemanticStringWindowAddRequirement(inout closure: SemanticStringWindowClosure,
+    row: Int, source: Int, extent: Int) -> Bool {
+    if row < 0 || row >= ArrayLength(closure.heads) { return false; }
+    let at: Int = closure.heads[row];
+    while at >= 0 {
+        if closure.sources[at] == source && closure.extents[at] == extent { return false; }
+        at = closure.next[at];
+    }
+    ArrayPush(closure.sources, source);
+    ArrayPush(closure.extents, extent);
+    ArrayPush(closure.next, closure.heads[row]);
+    ArraySet(closure.heads, row, ArrayLength(closure.sources) - 1);
+    return true;
+}
+
+func SemanticStringWindowAddFieldPair(inout closure: SemanticStringWindowClosure,
+    source: String, extent: String) -> Bool {
+    let at: Int = 0;
+    while at < ArrayLength(closure.pair_sources) {
+        if closure.pair_sources[at] == source && closure.pair_extents[at] == extent { return false; }
+        at = at + 1;
+    }
+    ArrayPush(closure.pair_sources, source);
+    ArrayPush(closure.pair_extents, extent);
+    return true;
+}
+
+// 0: proven or already required, 1: a new requirement or field pair,
+// 2: no proof at all.
+func SemanticStringWindowApply(inout closure: SemanticStringWindowClosure,
+    ref pair: SemanticStringWindowPair, routine_row: Int) -> Int {
+    if pair.kind == 1 { return 0; }
+    if pair.kind == 2 {
+        if routine_row < 0 { return 2; }
+        if SemanticStringWindowAddRequirement(closure, routine_row, pair.source_param, pair.extent_param) { return 1; }
+        return 0;
+    }
+    if pair.kind == 3 {
+        if SemanticStringWindowAddFieldPair(closure, pair.source_field, pair.extent_field) { return 1; }
+        return 0;
+    }
+    return 2;
+}
+
+func SemanticStringWindowRefusal(message: String, node: Int) -> SemanticStringWindowRound {
+    return SemanticStringWindowRound(false, true, message, node);
+}
+
+func SemanticStringWindowVisitWindows(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref roots: SemanticCallSpineRoots, ref sites: SemanticStringWindowSites,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>,
+    inout closure: SemanticStringWindowClosure, report: Bool) -> SemanticStringWindowRound {
+    let round: SemanticStringWindowRound = SemanticStringWindowRound(false, false, "", -1);
+    let index: Int = 0;
+    while index < ArrayLength(sites.window_calls) {
+        let node: Int = sites.window_calls[index];
+        let surface: Int = sites.node_surfaces[node];
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            analysis.expression_surfaces.expression_graph, roots.root_nodes[node]);
+        let pair: SemanticStringWindowPair = SemanticStringWindowClassify(artifact, analysis, inferred,
+            mutated, inout_passed, surface, call.argument_nodes[0], call.argument_nodes[1]);
+        let applied: Int = SemanticStringWindowApply(closure, pair, SemanticStringWindowRoutineRow(analysis, surface));
+        if applied == 1 { round.changed = true; }
+        if applied == 2 && report {
+            return SemanticStringWindowRefusal(SemanticError2("string_window_extent_unproven",
+                "builtin", analysis.expression_surfaces.expression_graph.arena.call_target_names[node],
+                "routine", SemanticStringWindowRoutineName(analysis, surface)),
+                analysis.expression_surfaces.node_ids[surface]);
+        }
+        index = index + 1;
+    }
+    return round;
+}
+
+// Each requirement (i, j) of the callee is an obligation on its arguments.
+func SemanticStringWindowVisitRoutineCalls(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref roots: SemanticCallSpineRoots, ref sites: SemanticStringWindowSites,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>,
+    inout closure: SemanticStringWindowClosure, report: Bool) -> SemanticStringWindowRound {
+    let round: SemanticStringWindowRound = SemanticStringWindowRound(false, false, "", -1);
+    let index: Int = 0;
+    while index < ArrayLength(sites.routine_calls) {
+        let at: Int = closure.heads[sites.routine_rows[index]];
+        if at >= 0 {
+            let node: Int = sites.routine_calls[index];
+            let surface: Int = sites.node_surfaces[node];
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                analysis.expression_surfaces.expression_graph, roots.root_nodes[node]);
+            while at >= 0 {
+                let applied: Int = 2;
+                let source: Int = closure.sources[at];
+                let extent: Int = closure.extents[at];
+                if source < ArrayLength(call.argument_nodes) && extent < ArrayLength(call.argument_nodes) {
+                    let pair: SemanticStringWindowPair = SemanticStringWindowClassify(artifact, analysis, inferred,
+                        mutated, inout_passed, surface, call.argument_nodes[source], call.argument_nodes[extent]);
+                    applied = SemanticStringWindowApply(closure, pair, SemanticStringWindowRoutineRow(analysis, surface));
+                }
+                if applied == 1 { round.changed = true; }
+                if applied == 2 && report {
+                    return SemanticStringWindowRefusal(SemanticError3("string_window_extent_unproven",
+                        "callee", analysis.signatures.names[sites.routine_rows[index]],
+                        "routine", SemanticStringWindowRoutineName(analysis, surface),
+                        "extent_argument", ToString(extent + 1)),
+                        analysis.expression_surfaces.node_ids[surface]);
+                }
+                at = closure.next[at];
+            }
+        }
+        index = index + 1;
+    }
+    return round;
+}
+
+// A record declaring both fields of a pair proves that pair at every
+// construction; an omitted field leaves it unproven.
+func SemanticStringWindowVisitConstructions(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref sites: SemanticStringWindowSites, ref mutated: HashMap<String, Int>,
+    ref inout_passed: HashMap<String, Int>, inout closure: SemanticStringWindowClosure,
+    report: Bool) -> SemanticStringWindowRound {
+    let round: SemanticStringWindowRound = SemanticStringWindowRound(false, false, "", -1);
+    let index: Int = 0;
+    while index < ArrayLength(sites.construction_nodes) {
+        let row: Int = sites.construction_rows[index];
+        let surface: Int = sites.node_surfaces[sites.construction_nodes[index]];
+        let pair_index: Int = 0;
+        while pair_index < ArrayLength(closure.pair_sources) {
+            let source_name: String = closure.pair_sources[pair_index];
+            let extent_name: String = closure.pair_extents[pair_index];
+            if SemanticStringWindowDeclaresField(analysis, row, source_name) &&
+                SemanticStringWindowDeclaresField(analysis, row, extent_name) {
+                let source: Int = -1;
+                let extent: Int = -1;
+                let field: Int = sites.construction_starts[index];
+                while field < sites.construction_starts[index] + sites.construction_counts[index] {
+                    if sites.construction_fields[field] == source_name { source = sites.construction_values[field]; }
+                    if sites.construction_fields[field] == extent_name { extent = sites.construction_values[field]; }
+                    field = field + 1;
+                }
+                let applied: Int = 2;
+                if source >= 0 && extent >= 0 {
+                    let pair: SemanticStringWindowPair = SemanticStringWindowClassify(artifact, analysis, inferred,
+                        mutated, inout_passed, surface, source, extent);
+                    applied = SemanticStringWindowApply(closure, pair, SemanticStringWindowRoutineRow(analysis, surface));
+                }
+                if applied == 1 { round.changed = true; }
+                if applied == 2 && report {
+                    return SemanticStringWindowRefusal(SemanticError3("string_window_extent_unproven",
+                        "record", analysis.constructors.names[row],
+                        "routine", SemanticStringWindowRoutineName(analysis, surface),
+                        "extent_field", extent_name), analysis.expression_surfaces.node_ids[surface]);
+                }
+            }
+            pair_index = pair_index + 1;
+        }
+        index = index + 1;
+    }
+    return round;
+}
+
+// A field of a pair is fixed at construction; a write through a receiver of
+// unknown record type, or of a record declaring both fields, is refused.
+func SemanticStringWindowFieldWriteRefusal(ref analysis: SemanticAstArtifactAnalysis,
+    ref sites: SemanticStringWindowSites, ref closure: SemanticStringWindowClosure) -> SemanticStringWindowRound {
+    let write: Int = 0;
+    while write < ArrayLength(sites.write_names) {
+        let pair: Int = 0;
+        while pair < ArrayLength(closure.pair_sources) {
+            let owner: Int = sites.write_owners[write];
+            if (sites.write_names[write] == closure.pair_sources[pair] ||
+                    sites.write_names[write] == closure.pair_extents[pair]) &&
+                (owner < 0 || (SemanticStringWindowDeclaresField(analysis, owner, closure.pair_sources[pair]) &&
+                    SemanticStringWindowDeclaresField(analysis, owner, closure.pair_extents[pair]))) {
+                return SemanticStringWindowRefusal(SemanticError2("string_window_extent_unproven",
+                    "field", sites.write_names[write],
+                    "pair", Concat(closure.pair_sources[pair], Concat(",", closure.pair_extents[pair]))),
+                    sites.write_nodes[write]);
+            }
+            pair = pair + 1;
+        }
+        write = write + 1;
+    }
+    return SemanticStringWindowRound(false, false, "", -1);
+}
+
+// A routine with a requirement is reached only by a resolved direct call: a
+// call left unresolved under its name, or a reference to it as a value, has
+// no argument pair to prove.
+func SemanticStringWindowIndirectRefusal(ref analysis: SemanticAstArtifactAnalysis,
+    ref sites: SemanticStringWindowSites, ref closure: SemanticStringWindowClosure) -> SemanticStringWindowRound {
+    if ArrayLength(closure.sources) == 0 { return SemanticStringWindowRound(false, false, "", -1); }
+    let required: HashMap<String, Int> = MapNew();
+    let row: Int = 0;
+    while row < ArrayLength(closure.heads) {
+        if closure.heads[row] >= 0 { MapSet(required, analysis.signatures.names[row], row); }
+        row = row + 1;
+    }
+    let callees: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(analysis.expression_surfaces.expression_graph.arena.topology.node_kinds);
+    let node: Int = 0;
+    while node < count {
+        if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+            let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, node);
+            if IsSome(callee) { MapSet(callees, ToString(UnwrapOption(callee)), 1); }
+            let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(analysis.expression_surfaces.expression_graph, node);
+            let name: String = analysis.expression_surfaces.expression_graph.arena.call_target_names[node];
+            if IsSome(target) && UnwrapOption(target) == 0 && MapHas(required, name) &&
+                SemanticStringWindowConstructorRow(analysis, name) < 0 && sites.node_surfaces[node] >= 0 {
+                return SemanticStringWindowRefusal(SemanticError2("string_window_extent_unproven",
+                    "unresolved_callee", name, "routine",
+                    SemanticStringWindowRoutineName(analysis, sites.node_surfaces[node])),
+                    analysis.expression_surfaces.node_ids[sites.node_surfaces[node]]);
+            }
+        }
+        node = node + 1;
+    }
+    node = 0;
+    while node < count {
+        let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+            analysis.expression_surfaces.expression_graph, node);
+        if binding.ok && binding.kind == SemanticExpressionBindingDeclaredCallable() &&
+            !MapHas(callees, ToString(node)) && sites.node_surfaces[node] >= 0 {
+            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, binding.syntax_id);
+            if IsSome(signature) && closure.heads[UnwrapOption(signature)] >= 0 {
+                return SemanticStringWindowRefusal(SemanticError2("string_window_extent_unproven",
+                    "function_value", analysis.signatures.names[UnwrapOption(signature)], "routine",
+                    SemanticStringWindowRoutineName(analysis, sites.node_surfaces[node])),
+                    analysis.expression_surfaces.node_ids[sites.node_surfaces[node]]);
+            }
+        }
+        node = node + 1;
+    }
+    return SemanticStringWindowRound(false, false, "", -1);
+}
+
+func SemanticStringWindowExtentVerdict(artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis, ref initializers: SemanticAstInitializerTypeFacts,
+    ref roots: SemanticCallSpineRoots) -> SemanticAstBodyVerdict {
+    let count: Int = ArrayLength(analysis.expression_surfaces.expression_graph.arena.topology.node_kinds);
+    if !roots.ok || ArrayLength(roots.root_nodes) != count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid", "string-window call identity is missing", -1);
+    }
+    let windows: Bool = false;
+    let node: Int = 0;
+    while node < count && !windows {
+        windows = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
+            SemanticStringWindowBuiltinCall(analysis.expression_surfaces.expression_graph, node);
+        node = node + 1;
+    }
+    if !windows { return SemanticAstBodyVerdictOk(); }
+    let mutated: HashMap<String, Int> = MapNew();
+    let inout_passed: HashMap<String, Int> = MapNew();
+    let sites: SemanticStringWindowSites = SemanticStringWindowCollectSites(
+        artifact, analysis, initializers.inferred_type_names, roots, mutated, inout_passed);
+    if !sites.ok {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid", "string-window extent sites are incomplete", -1);
+    }
+    let heads: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.function_node_ids) { ArrayPush(heads, -1); row = row + 1; }
+    let closure: SemanticStringWindowClosure = SemanticStringWindowClosure(heads, [], [], [], [], []);
+    // Each round that changes adds one requirement or pair; both are finite.
+    let budget: Int = count + ArrayLength(analysis.signatures.param_node_ids) + 1;
+    let changed: Bool = true;
+    while changed {
+        if budget <= 0 {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid", "string-window extent requirements did not close", -1);
+        }
+        budget = budget - 1;
+        let windows_round: SemanticStringWindowRound = SemanticStringWindowVisitWindows(
+            artifact, analysis, initializers.inferred_type_names, roots, sites, mutated, inout_passed, closure, false);
+        let calls_round: SemanticStringWindowRound = SemanticStringWindowVisitRoutineCalls(
+            artifact, analysis, initializers.inferred_type_names, roots, sites, mutated, inout_passed, closure, false);
+        let records_round: SemanticStringWindowRound = SemanticStringWindowVisitConstructions(
+            artifact, analysis, initializers.inferred_type_names, sites, mutated, inout_passed, closure, false);
+        changed = windows_round.changed || calls_round.changed || records_round.changed;
+    }
+    let refusal: SemanticStringWindowRound = SemanticStringWindowVisitWindows(
+        artifact, analysis, initializers.inferred_type_names, roots, sites, mutated, inout_passed, closure, true);
+    if !refusal.failed {
+        refusal = SemanticStringWindowVisitRoutineCalls(
+            artifact, analysis, initializers.inferred_type_names, roots, sites, mutated, inout_passed, closure, true);
+    }
+    if !refusal.failed {
+        refusal = SemanticStringWindowVisitConstructions(
+            artifact, analysis, initializers.inferred_type_names, sites, mutated, inout_passed, closure, true);
+    }
+    if !refusal.failed { refusal = SemanticStringWindowFieldWriteRefusal(analysis, sites, closure); }
+    if !refusal.failed { refusal = SemanticStringWindowIndirectRefusal(analysis, sites, closure); }
+    if refusal.failed {
+        return SemanticAstBodyVerdictError("string_window_extent_unproven", refusal.message, refusal.node);
+    }
+    return SemanticAstBodyVerdictOk();
+}

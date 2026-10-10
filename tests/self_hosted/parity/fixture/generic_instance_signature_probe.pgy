@@ -13,7 +13,7 @@ func Main() -> Void with caps env, io_read {
     let closure: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(occurrences);
     if !closure.valid { Die(closure.diagnostic); }
     let inventory: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventoryFromOwners(
-        routines, occurrences, closure, DirectMirIdentityCellFactsFromDeclarations(document.root.json, declarations));
+        routines, occurrences, closure, DirectMirIdentityCellFactsFromDeclarations(document.root.json, document.root.json_extent, declarations));
     if !DirectMirRoutineInstanceInventoryReady(inventory) { Die(inventory.diagnostic); }
     let call: Int = 0;
     while call < ArrayLength(closure.call_recipes) {
@@ -52,7 +52,7 @@ func Main() -> Void with caps env, io_read {
         if !bound.valid { Die(bound.diagnostic); }
         let row: Int = bound.template_row;
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-            routines.source_json, routines.starts[row], routines.ends[row]);
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]);
         if bound.signature.source_syntax_id != ToInt(routines.source_syntax_ids[row]) ||
             bound.signature.param_count != ArrayLength(header.param_names) {
             Die("generic routine source identity or parameter count changed");

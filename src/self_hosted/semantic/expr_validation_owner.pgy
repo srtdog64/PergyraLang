@@ -18,13 +18,13 @@ import "expression_text_operand_shape_owner.pgy";
 // after the dot. Looking only at the byte before the name reads the wrap as
 // "not a member" and validates the member as a local, so walk back over
 // whitespace before deciding.
-func SemanticIdentifierFollowsDot(text: String, n: Int, start: Int) -> Bool {
+func SemanticIdentifierFollowsDot(text: String, text_extent: Int, n: Int, start: Int) -> Bool {
     let dot: Int = SourceByteOf(".");
     let back: Int = start;
-    while back > 0 && SourceByteIsWhitespace(SourceByteAt(text, n, back - 1)) {
+    while back > 0 && SourceByteIsWhitespace(SourceByteAt(text, text_extent, n, back - 1)) {
         back = back - 1;
     }
-    return back > 0 && SourceByteAt(text, n, back - 1) == dot;
+    return back > 0 && SourceByteAt(text, text_extent, n, back - 1) == dot;
 }
 
 func CheckUndefinedIdentifiers(
@@ -41,11 +41,11 @@ func CheckUndefinedIdentifiers(
     let type_cursor: Array<Int> = [0];
     let i: Int = 0;
     while i < n {
-        let c: Int = SourceByteAt(text, n, i);
+        let c: Int = SourceByteAt(text, n, n, i);
         if c == quote {
             i = i + 1;
-            while i < n && SourceByteAt(text, n, i) != quote {
-                if SourceByteAt(text, n, i) == escape {
+            while i < n && SourceByteAt(text, n, n, i) != quote {
+                if SourceByteAt(text, n, n, i) == escape {
                     i = i + 1;
                 }
                 i = i + 1;
@@ -56,7 +56,7 @@ func CheckUndefinedIdentifiers(
         if SourceByteIsAlpha(c) {
             let start: Int = i;
             i = i + 1;
-            while i < n && SourceByteIsAlphaNum(SourceByteAt(text, n, i)) {
+            while i < n && SourceByteIsAlphaNum(SourceByteAt(text, n, n, i)) {
                 i = i + 1;
             }
             let name: String = Substring(text, start, i - start);
@@ -64,7 +64,7 @@ func CheckUndefinedIdentifiers(
                 continue;
             }
             if name == "L" && start > 0 &&
-                SourceByteIsDigit(SourceByteAt(text, n, start - 1)) {
+                SourceByteIsDigit(SourceByteAt(text, n, n, start - 1)) {
                 continue;
             }
             if name == "as" {
@@ -74,24 +74,24 @@ func CheckUndefinedIdentifiers(
                 }
                 continue;
             }
-            if SemanticIdentifierFollowsDot(text, n, start) {
+            if SemanticIdentifierFollowsDot(text, n, n, start) {
                 continue;
             }
             let after: Int = SkipWhitespaceAndComments(text, i);
-            if after < n && SourceByteAt(text, n, after) == open_paren {
+            if after < n && SourceByteAt(text, n, n, after) == open_paren {
                 continue;
             }
-            if after < n && SourceByteAt(text, n, after) == dot {
+            if after < n && SourceByteAt(text, n, n, after) == dot {
                 let member_start: Int = SkipWhitespaceAndComments(
                     text, after + 1
                 );
                 let member_end: Int = member_start;
                 if member_start < n && SourceByteIsAlpha(
-                    SourceByteAt(text, n, member_start)
+                    SourceByteAt(text, n, n, member_start)
                 ) {
                     member_end = member_start + 1;
                     while member_end < n && SourceByteIsAlphaNum(
-                        SourceByteAt(text, n, member_end)
+                        SourceByteAt(text, n, n, member_end)
                     ) {
                         member_end = member_end + 1;
                     }
@@ -99,15 +99,15 @@ func CheckUndefinedIdentifiers(
                         text, member_end
                     );
                     let owner_initial: Int = SourceByteAt(
-                        text, n, start
+                        text, n, n, start
                     );
                     let member_initial: Int = SourceByteAt(
-                        text, n, member_start
+                        text, n, n, member_start
                     );
                     if owner_initial >= 65 && owner_initial <= 90 &&
                         member_initial >= 65 && member_initial <= 90 &&
                         (after_member >= n || SourceByteAt(
-                            text, n, after_member
+                            text, n, n, after_member
                         ) != open_paren) {
                         let qualified_name: String = Concat(
                             name,
@@ -198,8 +198,8 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
     // A leading unary `!` (not `!=`) requires a Bool operand; the C oracle
     // rejects `!` on a non-Bool value. Checked only when the operand expression
     // resolves to a known non-Bool type; Unknown operands are skipped.
-    if n >= 2 && SourceByteAt(text, n, 0) == SourceByteOf("!") &&
-        SourceByteAt(text, n, 1) != SourceByteOf("=") {
+    if n >= 2 && SourceByteAt(text, n, n, 0) == SourceByteOf("!") &&
+        SourceByteAt(text, n, n, 1) != SourceByteOf("=") {
         let not_operand: String = SemanticTrimSourceReuse(
             Substring(text, 1, n - 1)
         );

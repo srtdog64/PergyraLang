@@ -1,0 +1,44 @@
+// Nominal capture source projected from an admitted receiver spine. Index
+// values still originate in their backing place; arbitrary call results do
+// not acquire an argument-to-return alias by inference here.
+import "ast_collection_member_capture_provenance_owner.pgy";
+import "tuple_type_shape_owner.pgy";
+
+func SemanticAstCollectionMemberCaptureSourceForNode(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref statements: SemanticAstStatementFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, syntax_id: Int, node: Int, destructure: Bool
+) -> SemanticAstCollectionMemberCaptureSource {
+    let none: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSource(true, 0, false);
+    let invalid: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSource(false, 0, false);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+    if !IsSome(kind) { return invalid; }
+    if UnwrapOption(kind) != AstExpressionNodeLeaf() && UnwrapOption(kind) != AstExpressionNodeMemberAccess() &&
+        UnwrapOption(kind) != AstExpressionNodeIndex() { return none; }
+    let spine: SemanticExpressionGraphValueReceiverSpine = SemanticExpressionGraphValueReceiverSpineFromGraph(
+        surfaces.expression_graph, node);
+    if !spine.ok { return invalid; }
+    if spine.leaf_node < 0 { return none; }
+    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(surfaces.expression_graph, spine.leaf_node);
+    if !IsSome(place_kind) { return invalid; }
+    // Every addressable path is rooted in a binding. A path from any other
+    // name (an enum variant, a type or namespace member) is a constant: the
+    // place owner classifies it as a value, and it holds no storage.
+    if !SemanticExpressionPlaceKindDirectBinding(UnwrapOption(place_kind)) { return none; }
+    // The body environment also types implicit receiver fields. A scalar
+    // field needs no aggregate backing declaration; an unknown type does.
+    if spine.leaf_node >= ArrayLength(resolved_leaf_types) { return invalid; }
+    let captured_type: Option<String> = SemanticExpressionGraphValueReceiverProjectedTypeName(
+        surfaces.expression_graph, node, constructors, spine.depth, Concat("", resolved_leaf_types[spine.leaf_node]));
+    if !IsSome(captured_type) { return invalid; }
+    let aggregate: Bool = SemanticAstCollectionMemberTypeIsAggregate(constructors, UnwrapOption(captured_type));
+    if !aggregate && destructure {
+        aggregate = IsSome(SemanticSequenceElementType(UnwrapOption(captured_type))) ||
+            SemanticTupleElementTypeFactFrom(UnwrapOption(captured_type), 0).ok;
+    }
+    if !aggregate { return none; }
+    return SemanticAstCollectionMemberCaptureBinding(artifact, signatures, constructors, locals, inferred_types,
+        resolved_leaf_types, statements, surfaces, function_id, syntax_id, spine.leaf_node, UnwrapOption(place_kind));
+}

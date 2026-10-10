@@ -142,7 +142,7 @@ func DirectMirArrayIntProducerFactFromRoutine(
     }
     let abi_opt: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, returned.abi_type_name,
+            admitted.routines.source_json, admitted.routines.source_json_extent, returned.abi_type_name,
             returned.abi_type_value_ready, returned.abi_type_start,
             returned.abi_type_end, returned.abi_layout_id_start,
             returned.abi_layout_id_end,
@@ -159,7 +159,7 @@ func DirectMirArrayIntProducerFactFromRoutine(
         );
     let graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
         );
     let elements: Array<Int> = DirectMirArrayIntLiteralElements(graph);
     let name: String = admitted.routines.names[routine_row];

@@ -7,6 +7,7 @@
 // as a non-required row with id zero.
 
 import "json_fact_read.pgy";
+import "../lib/string_window_within.pgy";
 
 func MirAbiLayoutModulus() -> Long {
     return 268435456L;
@@ -121,24 +122,24 @@ func InvalidMirAbiLayoutRowCapture() -> MirAbiLayoutRowCapture {
 // Capture only the selected value spans while walking an object once. Unknown
 // fields remain forward-compatible; duplicate selected fields fail closed.
 func MirAbiSelectedObjectBoundsWithin(
-    json: String, start: Int, end: Int,
+    json: String, json_extent: Int, start: Int, end: Int,
     keys: Array<String>, inout starts: Array<Int>, inout ends: Array<Int>
 ) -> Bool {
     if start < 0 || end <= start || ArrayLength(keys) == 0 ||
         ArrayLength(keys) != ArrayLength(starts) ||
         ArrayLength(keys) != ArrayLength(ends) ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return false;
     }
     let i: Int = start + 1;
     while i < end {
-        i = JsonSkipWhitespaceWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end { return false; }
-        let c: Int = JsonCharCodeAt(json, end, i);
+        let c: Int = JsonCharCodeAt(json, json_extent, end, i);
         if c == JsonAsciiCode("}") { return i + 1 == end; }
         if c == JsonAsciiCode(",") { i = i + 1; continue; }
         if c != JsonAsciiCode("\"") { return false; }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, i, end);
         if !IsSome(key_end_opt) { return false; }
         let key_end: Int = UnwrapOption(key_end_opt);
         let selected: Int = 0 - 1;
@@ -146,7 +147,7 @@ func MirAbiSelectedObjectBoundsWithin(
         while key_row < ArrayLength(keys) {
             let expected: String = Concat("", keys[key_row]);
             if JsonObjectKeyEqualsWithin(
-                json, i, key_end, expected
+                json, json_extent, i, key_end, expected
             ) {
                 selected = key_row;
                 key_row = ArrayLength(keys);
@@ -154,12 +155,12 @@ func MirAbiSelectedObjectBoundsWithin(
                 key_row = key_row + 1;
             }
         }
-        i = JsonSkipWhitespaceWithin(json, key_end, end);
-        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+        i = JsonSkipWhitespaceWithin(json, json_extent, key_end, end);
+        if i >= end || JsonCharCodeAt(json, json_extent, end, i) != JsonAsciiCode(":") {
             return false;
         }
-        i = JsonSkipWhitespaceWithin(json, i + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, json_extent, i, end);
         if !IsSome(value_end_opt) { return false; }
         let value_end: Int = UnwrapOption(value_end_opt);
         if selected >= 0 {
@@ -188,62 +189,62 @@ func MirAbiAllBoundsPresent(
 }
 
 func MirAbiStringValueAtBounds(
-    json: String, start: Int, end: Int, nullable: Bool
+    json: String, json_extent: Int, start: Int, end: Int, nullable: Bool
 ) -> Option<String> {
-    let kind: String = JsonValueKindAt(json, start, end);
+    let kind: String = JsonValueKindAt(json, json_extent, start, end);
     if kind == "null" {
         if nullable && start + 4 == end &&
-            SubEqualsWithLen(json, end, start, 4, "null") {
+            StringWindowSubEquals(json, json_extent, end, start, 4, "null") {
             return Some("");
         }
         return None;
     }
     if kind != "string" { return None; }
-    return JsonStringValueSpanning(json, start, end);
+    return JsonStringValueSpanning(json, json_extent, start, end);
 }
 
 func MirAbiIntegerValueAtBounds(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> Option<String> {
-    return JsonIntegerValueOptWithin(json, start, end);
+    return JsonIntegerValueOptWithin(json, json_extent, start, end);
 }
 
 func MirAbiLayoutFieldsCaptureWithin(
-    json: String, start: Int, end: Int,
+    json: String, json_extent: Int, start: Int, end: Int,
     inout names: Array<String>, inout offsets: Array<String>,
     inout sizes: Array<String>, inout aligns: Array<String>
 ) -> Bool {
     if start < 0 || end <= start ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("[") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("[") {
         return false;
     }
-    let close_opt: Option<Int> = JsonArrayEndWithin(json, start, end);
+    let close_opt: Option<Int> = JsonArrayEndWithin(json, json_extent, start, end);
     if !IsSome(close_opt) || UnwrapOption(close_opt) + 1 != end {
         return false;
     }
     let cursor: Int = start + 1;
     let row_bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(json, cursor, end, row_bounds) {
+    while JsonArrayNextObjectBounds(json, json_extent, cursor, end, row_bounds) {
         if ArrayLength(names) >= 8 { return false; }
         let keys: Array<String> = ["name", "offset", "size", "align"];
         let starts: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
         let ends: Array<Int> = [0 - 1, 0 - 1, 0 - 1, 0 - 1];
         if !MirAbiSelectedObjectBoundsWithin(
-            json, row_bounds[0], row_bounds[1], keys, starts, ends
+            json, json_extent, row_bounds[0], row_bounds[1], keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
             return false;
         }
         let name: Option<String> = MirAbiStringValueAtBounds(
-            json, starts[0], ends[0], false
+            json, json_extent, starts[0], ends[0], false
         );
         let offset: Option<String> = MirAbiIntegerValueAtBounds(
-            json, starts[1], ends[1]
+            json, json_extent, starts[1], ends[1]
         );
         let size: Option<String> = MirAbiIntegerValueAtBounds(
-            json, starts[2], ends[2]
+            json, json_extent, starts[2], ends[2]
         );
         let align: Option<String> = MirAbiIntegerValueAtBounds(
-            json, starts[3], ends[3]
+            json, json_extent, starts[3], ends[3]
         );
         if !IsSome(name) || StringLength(UnwrapOption(name)) == 0 ||
             !IsSome(offset) || !IsSome(size) || !IsSome(align) {
@@ -255,16 +256,16 @@ func MirAbiLayoutFieldsCaptureWithin(
         ArrayPush(aligns, UnwrapOption(align));
         cursor = row_bounds[1];
     }
-    cursor = JsonSkipWhitespaceWithin(json, cursor, end);
-    if cursor < end && JsonCharCodeAt(json, end, cursor) == JsonAsciiCode(",") {
-        cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
+    cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
+    if cursor < end && JsonCharCodeAt(json, json_extent, end, cursor) == JsonAsciiCode(",") {
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor + 1, end);
     }
     return cursor + 1 == end &&
-        JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("]");
+        JsonCharCodeAt(json, json_extent, end, cursor) == JsonAsciiCode("]");
 }
 
 func MirAbiLayoutRowCaptureWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> MirAbiLayoutRowCapture {
     let keys: Array<String> = [
         "type", "size", "align", "fields", "runtime_fn", "inner_c_type",
@@ -280,39 +281,39 @@ func MirAbiLayoutRowCaptureWithin(
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
     if !MirAbiSelectedObjectBoundsWithin(
-        json, start, end, keys, starts, ends
+        json, json_extent, start, end, keys, starts, ends
     ) || !MirAbiAllBoundsPresent(starts, ends) {
         return InvalidMirAbiLayoutRowCapture();
     }
     let type_name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[0], ends[0], false
+        json, json_extent, starts[0], ends[0], false
     );
     let size: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[1], ends[1]
+        json, json_extent, starts[1], ends[1]
     );
     let align: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[2], ends[2]
+        json, json_extent, starts[2], ends[2]
     );
     let runtime_fn: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[4], ends[4], true
+        json, json_extent, starts[4], ends[4], true
     );
     let inner_c_type: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[5], ends[5], true
+        json, json_extent, starts[5], ends[5], true
     );
     let representation: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[6], ends[6]
+        json, json_extent, starts[6], ends[6]
     );
     let discriminant: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[7], ends[7], true
+        json, json_extent, starts[7], ends[7], true
     );
     let primary_tag: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[8], ends[8]
+        json, json_extent, starts[8], ends[8]
     );
     let secondary_tag: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[9], ends[9]
+        json, json_extent, starts[9], ends[9]
     );
     let niche: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[10], ends[10], true
+        json, json_extent, starts[10], ends[10], true
     );
     if !IsSome(type_name) || StringLength(UnwrapOption(type_name)) == 0 ||
         !IsSome(size) || !IsSome(align) || !IsSome(runtime_fn) ||
@@ -326,7 +327,7 @@ func MirAbiLayoutRowCaptureWithin(
     let field_sizes: Array<String> = [];
     let field_aligns: Array<String> = [];
     if !MirAbiLayoutFieldsCaptureWithin(
-        json, starts[3], ends[3], field_names, field_offsets,
+        json, json_extent, starts[3], ends[3], field_names, field_offsets,
         field_sizes, field_aligns
     ) {
         return InvalidMirAbiLayoutRowCapture();
@@ -376,7 +377,7 @@ func MirAbiLayoutIdFromCapture(ref row: MirAbiLayoutRowCapture) -> Int {
 // captured semantic row used by the final consumer.
 func MirAbiLayoutIdFromRow(ref row: JsonObjectFactTable) -> Int {
     let capture: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
-        row.json, row.start, row.end
+        row.json, row.json_extent, row.start, row.end
     );
     return MirAbiLayoutIdFromCapture(capture);
 }
@@ -446,7 +447,7 @@ func MirAbiRememberRequiredTuple(
 // single object walk.  This ABI owner alone interprets their JSON kinds and
 // semantic relationship; callers do not create a second id/bool authority.
 func MirCapturedAbiLayoutFactReady(
-    json: String,
+    json: String, json_extent: Int,
     captured_type_name: String,
     captured_type_value_ready: Bool,
     type_start: Int,
@@ -467,48 +468,48 @@ func MirCapturedAbiLayoutFactReady(
     }
     if !MirAbiLayoutValidationSessionReady(session) { return false; }
     let required: Bool = false;
-    if required_start + 4 == required_end && SubEqualsWithLen(
-        json, required_end, required_start, 4, "true"
+    if required_start + 4 == required_end && StringWindowSubEquals(
+        json, json_extent, required_end, required_start, 4, "true"
     ) {
         required = true;
-    } else if !(required_start + 5 == required_end && SubEqualsWithLen(
-        json, required_end, required_start, 5, "false"
+    } else if !(required_start + 5 == required_end && StringWindowSubEquals(
+        json, json_extent, required_end, required_start, 5, "false"
     )) {
         return false;
     }
     if !captured_type_value_ready { return false; }
     if !required {
         return id_start + 1 == id_end && JsonCharCodeAt(
-                json, id_end, id_start
+                json, json_extent, id_end, id_start
             ) == JsonAsciiCode("0") &&
             layout_start + 4 == layout_end &&
-            SubEqualsWithLen(
-                json, layout_end, layout_start, 4, "null"
+            StringWindowSubEquals(
+                json, json_extent, layout_end, layout_start, 4, "null"
             );
     }
-    let id_text: String = SubstringWithLen(
-        json, id_end, id_start, id_end - id_start
+    let id_text: String = StringWindowSubstring(
+        json, json_extent, id_end, id_start, id_end - id_start
     );
     if id_text == "" || ToString(ToInt(id_text)) != id_text {
         return false;
     }
     let id: Int = ToInt(id_text);
     if id <= 0 || JsonCharCodeAt(
-        json, layout_end, layout_start
+        json, json_extent, layout_end, layout_start
     ) != JsonAsciiCode("{") {
         return false;
     }
-    let type_key: String = SubstringWithLen(
-        json, type_end, type_start, type_end - type_start
+    let type_key: String = StringWindowSubstring(
+        json, json_extent, type_end, type_start, type_end - type_start
     );
-    let layout_key: String = SubstringWithLen(
-        json, layout_end, layout_start, layout_end - layout_start
+    let layout_key: String = StringWindowSubstring(
+        json, json_extent, layout_end, layout_start, layout_end - layout_start
     );
     if MirAbiRequiredTupleSeen(session, type_key, id, layout_key) {
         return true;
     }
     let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
-        json, layout_start, layout_end
+        json, json_extent, layout_start, layout_end
     );
     if !row.valid || captured_type_name != row.type_name ||
         id != MirAbiLayoutIdFromCapture(row) {

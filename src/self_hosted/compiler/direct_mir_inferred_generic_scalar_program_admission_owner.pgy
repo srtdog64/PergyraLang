@@ -39,14 +39,14 @@ func DirectMirInferredGenericScalarProgramEnvelopeReady(
             return false;
         }
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         if !DirectMirGenericRoutineProgramEnvelopeReady(routine) {
             return false;
         }
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         if ArrayLength(header.generic_names) == 1 {

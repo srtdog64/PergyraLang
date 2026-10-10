@@ -48,7 +48,7 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
             admitted.routines.instruction_source_types[global] !=
                 "AST_CALL" { return false; }
         let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]);
         let sequence: MirExpressionGraphSequence =

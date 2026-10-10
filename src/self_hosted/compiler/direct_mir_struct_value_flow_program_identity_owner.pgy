@@ -77,7 +77,7 @@ func DirectMirStructValueFlowInstructionGraph(
             admitted.routines.instruction_expressions, global
         );
     return DirectMirArrayIntGraphFromExpressionFact(
-        admitted.routines.source_json, expression, 0
+        admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
     );
 }
 
@@ -126,7 +126,7 @@ func DirectMirStructValueFlowProgramIdentityFromAdmitted(
         );
     let declaration: DirectMirNominalDeclarationAbiFact =
         DirectMirNominalDeclarationAbiFactFromDocument(
-            admitted.document.root.json,
+            admitted.document.root.json, admitted.document.root.json_extent,
             admitted.domain_runtime_admission.declarations, 0
         );
     let identity: DirectMirStructValueFlowProgramIdentity =

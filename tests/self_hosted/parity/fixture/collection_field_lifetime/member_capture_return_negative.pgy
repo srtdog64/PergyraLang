@@ -1,0 +1,4 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Escape(ref input: Envelope) -> Table { return input.table; }
+func Main() -> Void {}

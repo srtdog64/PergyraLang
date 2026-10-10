@@ -1,5 +1,6 @@
 // Shared source character and trivia scanning owner.
 
+import "string_window_within.pgy";
 func SourceCharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
     if i < 0 || i >= n {
@@ -8,8 +9,8 @@ func SourceCharAt(s: String, i: Int) -> String {
     return CharAtN(s, n, i);
 }
 
-func SourceByteAt(s: String, length: Int, i: Int) -> Int {
-    return CharCode(s, length, i);
+func SourceByteAt(s: String, s_extent: Int, length: Int, i: Int) -> Int {
+    return StringWindowCharCode(s, s_extent, length, i);
 }
 
 func SourceByteOf(character: String) -> Int {
@@ -35,12 +36,12 @@ func SourceByteIsWhitespace(byte: Int) -> Bool {
 
 func IsAlpha(c: String) -> Bool {
     let n: Int = StringLength(c);
-    return n == 1 && SourceByteIsAlpha(SourceByteAt(c, n, 0));
+    return n == 1 && SourceByteIsAlpha(SourceByteAt(c, n, n, 0));
 }
 
 func IsDigit(c: String) -> Bool {
     let n: Int = StringLength(c);
-    return n == 1 && SourceByteIsDigit(SourceByteAt(c, n, 0));
+    return n == 1 && SourceByteIsDigit(SourceByteAt(c, n, n, 0));
 }
 
 func IsAlphaNum(c: String) -> Bool {
@@ -48,28 +49,28 @@ func IsAlphaNum(c: String) -> Bool {
 }
 
 func SkipWhitespaceAndCommentsWithin(
-    content: String, n: Int, start: Int
+    content: String, content_extent: Int, n: Int, start: Int
 ) -> Int {
     let i: Int = start;
     while i < n {
-        let c: Int = SourceByteAt(content, n, i);
+        let c: Int = SourceByteAt(content, content_extent, n, i);
         if SourceByteIsWhitespace(c) {
             i = i + 1;
             continue;
         }
         if c == SourceByteOf("/") &&
-            SourceByteAt(content, n, i + 1) == SourceByteOf("/") {
-            while i < n && SourceByteAt(content, n, i) != SourceByteOf("\n") {
+            SourceByteAt(content, content_extent, n, i + 1) == SourceByteOf("/") {
+            while i < n && SourceByteAt(content, content_extent, n, i) != SourceByteOf("\n") {
                 i = i + 1;
             }
             continue;
         }
         if c == SourceByteOf("/") &&
-            SourceByteAt(content, n, i + 1) == SourceByteOf("*") {
+            SourceByteAt(content, content_extent, n, i + 1) == SourceByteOf("*") {
             i = i + 2;
             while i < n {
-                if SourceByteAt(content, n, i) == SourceByteOf("*") &&
-                    SourceByteAt(content, n, i + 1) == SourceByteOf("/") {
+                if SourceByteAt(content, content_extent, n, i) == SourceByteOf("*") &&
+                    SourceByteAt(content, content_extent, n, i + 1) == SourceByteOf("/") {
                     i = i + 2;
                     break;
                 }
@@ -83,7 +84,8 @@ func SkipWhitespaceAndCommentsWithin(
 }
 
 func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
+    let content_extent: Int = StringLength(content);
     return SkipWhitespaceAndCommentsWithin(
-        content, StringLength(content), start
+        content, content_extent, content_extent, start
     );
 }

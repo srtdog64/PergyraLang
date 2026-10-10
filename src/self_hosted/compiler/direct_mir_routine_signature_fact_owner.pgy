@@ -93,10 +93,10 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
         MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0) != expected_instruction_count {
         return InvalidDirectMirRoutineSignatureFact();
     }
-    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(routines.source_json, routines.starts[row], routines.ends[row]);
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]);
     let param_bounds: Array<Int> = [0, 0];
     if !MirRoutineHeaderSignatureEnvelopeReady(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             routines.names[row], routines.kinds[row], routines.source_syntax_ids[row],
             routines.receiver_carriages[row], header, param_bounds) {
         return InvalidDirectMirRoutineSignatureFact();
@@ -128,7 +128,7 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
     if routines.kinds[row] == "intent" {
         if param_count != 0 || ArrayLength(generic_names) != 0 ||
             intent_bindings.intent_source_syntax_id != ToInt(routines.source_syntax_ids[row]) ||
-            !DirectMirExactJsonArrayCursorAtEnd(routines.source_json, param_bounds[0] + 1, param_bounds[1]) {
+            !DirectMirExactJsonArrayCursorAtEnd(routines.source_json, routines.source_json_extent, param_bounds[0] + 1, param_bounds[1]) {
             return InvalidDirectMirRoutineSignatureFact();
         }
         parameters = DirectMirRoutineIntentParameterSetFromBindings(routines.declarations, intent_bindings);
@@ -136,7 +136,7 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
     } else {
         if intent_bindings.ok { return InvalidDirectMirRoutineSignatureFact(); }
         parameters = DirectMirRoutineParameterSetFactFromBounds(
-            routines.source_json, param_bounds[0], param_bounds[1],
+            routines.source_json, routines.source_json_extent, param_bounds[0], param_bounds[1],
             header.param_names, header.param_types,
             header.param_carriages, header.param_resources,
             header.param_pass_shapes, receiver_type);

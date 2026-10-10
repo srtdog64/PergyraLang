@@ -156,7 +156,7 @@ func CaptureMirProgramRoutineReceiverIdentity(
 // The declaration is the method identity carrier even on direct-MIR routes
 // that never reconstruct a canonical AST. Resolve only inside its owned span.
 func MirProgramRoutineMethodDeclarationIdentityReady(
-    json: String, ref declarations: MirProgramDeclarationIndex,
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex,
     declaration_row: Int, name: String, source_syntax_id: String
 ) -> Bool {
     if declaration_row < 0 ||
@@ -165,18 +165,18 @@ func MirProgramRoutineMethodDeclarationIdentityReady(
     }
     let methods: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, declarations.starts[declaration_row],
+        json, json_extent, declarations.starts[declaration_row],
         declarations.ends[declaration_row], "methods", methods
     ) { return false; }
     let method: Array<Int> = [0, 0];
     let cursor: Int = methods[0] + 1;
     let matches: Int = 0;
-    while JsonArrayNextObjectBounds(json, cursor, methods[1], method) {
+    while JsonArrayNextObjectBounds(json, json_extent, cursor, methods[1], method) {
         let method_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-            json, method[0], method[1], "name"
+            json, json_extent, method[0], method[1], "name"
         );
         let method_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
-            json, method[0], method[1], "source_syntax_id"
+            json, json_extent, method[0], method[1], "source_syntax_id"
         );
         if !IsSome(method_name) || !IsSome(method_id) ||
             !MirProgramDeclarationFieldIdentityPositiveDecimal(
@@ -189,7 +189,7 @@ func MirProgramRoutineMethodDeclarationIdentityReady(
         cursor = method[1];
     }
     return matches == 1 && MirProgramDeclarationIndexCursorAtEnd(
-        json, cursor, methods[1]
+        json, json_extent, cursor, methods[1]
     );
 }
 

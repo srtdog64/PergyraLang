@@ -1,0 +1,18 @@
+// P5: helpers receive the source and its extent as unchanged parameters;
+// every caller proves the pair, including through a second helper.
+func CodeAt(text: String, n: Int, i: Int) -> Int {
+    return CharCode(text, n, i);
+}
+
+func FirstCode(text: String, n: Int) -> Int {
+    return CodeAt(text, n, 0);
+}
+
+func Main() -> Void {
+    let s: String = Concat("ab", "c");
+    let m: Int = StringLength(s);
+    Print(ToString(CodeAt(s, StringLength(s), 1)));
+    Print(ToString(CodeAt(s, m, 2)));
+    Print(ToString(CodeAt(s, m, 7)));
+    Print(ToString(FirstCode(s, m)));
+}

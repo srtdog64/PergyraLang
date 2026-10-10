@@ -93,9 +93,10 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
             let value_source: String = Substring(
                 s, value_start, i - value_start
             );
+            let value_source_extent: Int = StringLength(value_source);
             let value_cursor: Array<Int> = [0];
             let value: ParserExpressionFact =
-                ParseExprFact(value_source, 0, value_cursor);
+                ParseExprFact(value_source, value_source_extent, 0, value_cursor);
             // A refused placeholder stops the literal; it is not text.
             if !value.ok && value.failure_offset >= 0 {
                 return ParserExpressionInvalid();
@@ -166,9 +167,10 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
             let value_source: String = Substring(
                 s, value_start, i - value_start
             );
+            let value_source_extent: Int = StringLength(value_source);
             let value_cursor: Array<Int> = [0];
             let value: ParserExpressionFact = ParseExprFact(
-                value_source, 0, value_cursor
+                value_source, value_source_extent, 0, value_cursor
             );
             if !value.ok && value.failure_offset >= 0 {
                 return ParserExpressionInvalid();

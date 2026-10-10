@@ -9,6 +9,7 @@
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "string_window_extent.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
 
@@ -207,6 +208,7 @@ semantic_context_destroy(SemanticContext *ctx)
     callable_capability_destroy(ctx);
     semantic_collection_owned_element_requirements_destroy(
         ctx->collection_owned_element_requirements);
+    semantic_string_window_extent_destroy(ctx->string_window_extents);
     semantic_array_storage_deferral_destroy(ctx);
     scope_destroy(ctx->scope);
 

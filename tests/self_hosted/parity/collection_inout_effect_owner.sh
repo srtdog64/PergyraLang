@@ -223,10 +223,12 @@ INPUTS=(
     builtin_retention_string_length_positive.pgy builtin_retention_char_code_positive.pgy
     builtin_retention_text_builder_append_positive.pgy
     builtin_retention_array_push_owned_string_positive.pgy
-    builtin_retention_alias_negative.pgy builtin_retention_custom_call_negative.pgy
+    builtin_retention_alias_negative.pgy builtin_retention_custom_call_positive.pgy
+    builtin_retention_custom_retainer_negative.pgy
     builtin_retention_no_ownership_negative.pgy builtin_retention_return_negative.pgy
-    builtin_retention_shadow_negative.pgy builtin_retention_store_negative.pgy
+    builtin_retention_shadow_positive.pgy builtin_retention_shadow_retainer_negative.pgy builtin_retention_store_negative.pgy
     builtin_retention_text_builder_append_shadow_negative.pgy
+    builtin_retention_text_builder_append_retainer_negative.pgy
     builtin_retention_array_push_owned_string_shadow_negative.pgy
     builtin_retention_unregistered_call_negative.pgy
     inout_index_string_marker_literal_positive.pgy
@@ -263,7 +265,7 @@ INPUTS=(
     aggregate_owned_push_loop_positive.pgy aggregate_owned_push_fresh_factory_positive.pgy
     aggregate_owned_push_missing_restore_negative.pgy aggregate_owned_push_conditional_restore_negative.pgy
     aggregate_owned_push_unknown_negative.pgy aggregate_owned_push_return_alias_negative.pgy
-    aggregate_owned_push_opaque_aggregate_negative.pgy aggregate_owned_push_duplicate_site_negative.pgy
+    aggregate_owned_push_readonly_aggregate_positive.pgy aggregate_owned_push_retaining_aggregate_negative.pgy aggregate_owned_push_duplicate_site_negative.pgy
     aggregate_owned_push_borrowed_input_negative.pgy aggregate_owned_push_wrong_field_negative.pgy
     aggregate_owned_push_alias_negative.pgy aggregate_owned_push_factory_alias_negative.pgy
     aggregate_owned_push_leaf_adapter_loop_positive.pgy
@@ -362,6 +364,11 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy \
     src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy \
@@ -375,7 +382,11 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/builtin_argument_retention_projection_owner.pgy \
     src/semantic/builtin_argument_retention_registry.def \
     scripts/render_builtin_argument_retention_registry.py \
+    tests/self_hosted/parity/collection_argument_retirement_order.py \
+    "${BASH_SOURCE[0]}" \
     tests/builtin_argument_retention_registry_smoke.sh >"$WORK/owners.sha256"
+python3 tests/self_hosted/parity/collection_argument_retirement_order.py \
+    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy
 if grep -R -Fq --include='*.pgy' 'SemanticAstGenericDefaultTypeForName' src/self_hosted; then
     echo 'legacy borrowed generic-default return path remains' >&2
     exit 1
@@ -400,7 +411,7 @@ if grep -Fq 'let close: Int = StringIndexOf(row, ">");' \
 fi
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
-    "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
+    "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_storage_foreign_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
     "$FIXTURES/borrow_formal_identity_input.pgy" "$FIXTURES/storage_producer_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 # Root-coordinated reuse within a frozen source stage, not a compiler install
@@ -484,11 +495,15 @@ for backend in c llvm; do
         tr -d '\r' <"$WORK/$backend-$name.raw" >"$WORK/$backend-$name.run"
         [[ ! -s "$WORK/$backend-$name.err" ]]
         case "$name" in
+            builtin_retention_text_builder_append_shadow_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=single_owner_handle_boundary\n' >"$WORK/expected" ;;
             member_indexed_read_mutator_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=inout_argument_not_variable\n' >"$WORK/expected" ;;
             member_composed_views_alias_negative.pgy|member_scalar_shallow_accumulator_negative.pgy|member_indexed_read_root_copy_negative.pgy|member_indexed_read_root_own_negative.pgy|member_indexed_read_root_inout_negative.pgy|member_indexed_read_deferred_negative.pgy|member_indexed_read_forwarded_alias_negative.pgy|member_indexed_read_forwarded_move_negative.pgy|member_indexed_read_nested_alias_negative.pgy|member_indexed_read_value_formal_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             inout_borrowed_loop_sibling_negative.pgy|inout_borrowed_push_sibling_indexed_negative.pgy|inout_terminal_owned_mutation_sibling_negative.pgy|own_generation_double_transfer_negative.pgy|own_generation_nonterminal_cleanup_negative.pgy|own_generation_return_use_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            own_storage_repeated_negative.pgy|inout_owned_loop_retired_read_negative.pgy|own_generation_terminal_hides_consumption_negative.pgy|inout_event_transferred_child_drop_negative.pgy|inout_branch_own_then_copy_negative.pgy|inout_own_formal_retired_copy_negative.pgy|inout_index_branch_own_negative.pgy|inout_index_own_formal_drop_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             own_indexed_copy_retirement_after_negative.pgy|own_indexed_copy_retirement_repeat_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
@@ -564,12 +579,12 @@ OPAQUE_EXECUTION_DIAGNOSTICS
         grep -Eq '^body_syntax=[1-9][0-9]*$' "$WORK/$backend-$input-retention.run"
     done <<'BUILTIN_RETENTION_DIAGNOSTICS'
 builtin_retention_alias_negative.pgy|unproved_formal_element_use_entry|AliasIndexedString(values)|Main
-builtin_retention_custom_call_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
+builtin_retention_custom_retainer_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
 builtin_retention_no_ownership_negative.pgy|owned_string_drop|ArrayDropOwnedStrings(values)|Main
 builtin_retention_return_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
-builtin_retention_shadow_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
+builtin_retention_shadow_retainer_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
 builtin_retention_store_negative.pgy|unproved_formal_element_use_entry|StoreIndexedString(values, destination)|Main
-builtin_retention_text_builder_append_shadow_negative.pgy|unproved_formal_element_use_entry|AppendIndexedString(values)|Main
+builtin_retention_text_builder_append_retainer_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
 builtin_retention_array_push_owned_string_shadow_negative.pgy|unproved_formal_element_use_entry|CopyIndexedString(source, destination)|Main
 builtin_retention_unregistered_call_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
 indexed_string_fresh_borrowed_element_negative.pgy|unproved_formal_indexed_read_entry|FirstMatches([source[0]])|Main
@@ -577,7 +592,22 @@ indexed_string_alias_after_owned_drop_negative.pgy|indexed_string_use_after_deep
 indexed_string_branch_rebind_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Observe
 indexed_string_unknown_call_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
 indexed_string_tostring_passthrough_after_owned_drop_negative.pgy|indexed_string_use_after_deep_drop|borrowed|Main
+aggregate_owned_push_retaining_aggregate_negative.pgy|aggregate_release_incomplete|Observe(rows)|Append
 BUILTIN_RETENTION_DIAGNOSTICS
+    # This resource formal fails before the String retention consumer. Keep
+    # that refusal, and use the separate String-only shadow retainer above.
+    input=builtin_retention_text_builder_append_shadow_negative.pgy
+    timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+        >"$WORK/$backend-resource-shadow.raw" 2>"$WORK/$backend-resource-shadow.err"
+    tr -d '\r' <"$WORK/$backend-resource-shadow.raw" >"$WORK/$backend-resource-shadow.run"
+    [[ ! -s "$WORK/$backend-resource-shadow.err" ]]
+    grep -Fxq 'body_ok=false' "$WORK/$backend-resource-shadow.run"
+    grep -Fxq 'body_diagnostic=single_owner_handle_boundary' "$WORK/$backend-resource-shadow.run"
+    grep -Fxq -- '- parameter: builder' "$WORK/$backend-resource-shadow.run"
+    grep -Fxq -- '- type: TextBuilder' "$WORK/$backend-resource-shadow.run"
+    grep -Fxq 'body_atom=builder' "$WORK/$backend-resource-shadow.run"
+    grep -Fxq 'body_function=TextBuilderAppend' "$WORK/$backend-resource-shadow.run"
+    grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-resource-shadow.run"
     while IFS='|' read -r input boundary atom function value; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
             >"$WORK/$backend-$input-constructor.raw" 2>"$WORK/$backend-$input-constructor.err"
@@ -673,9 +703,33 @@ inout_event_index_write_after_copy_negative.pgy|ArraySet|values[0]|"borrowed"
 own_storage_retired_empty_negative.pgy|owned_argument_storage_not_live|rejected_own|Metadata(values)
 own_storage_retired_clone_negative.pgy|owned_argument_storage_not_live|rejected_clone|Metadata(values)
 own_storage_child_retired_negative.pgy|owned_argument_storage_not_live|rejected_child|Metadata(a)
-own_storage_repeated_negative.pgy|owned_argument_storage_not_live|rejected_second|Metadata(values)
 own_storage_loop_negative.pgy|owned_argument_storage_not_live|rejected_loop|Metadata(values)
 EVENT_DIAGNOSTICS
+    # Exact admitted consumption outranks a later generic storage refusal.
+    # Unknown/deferred calls remain in their separate borrow diagnostic rows.
+    while IFS='|' read -r input atom value function; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-retired.raw" 2>"$WORK/$backend-$input-retired.err"
+        tr -d '\r' <"$WORK/$backend-$input-retired.raw" >"$WORK/$backend-$input-retired.run"
+        [[ ! -s "$WORK/$backend-$input-retired.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-retired.run"
+        grep -Fxq 'body_diagnostic=move_from_released' "$WORK/$backend-$input-retired.run"
+        grep -Fxq -- '- boundary: owned_argument_use_after_move' "$WORK/$backend-$input-retired.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-retired.run"
+        if [[ -n "$value" ]]; then grep -Fxq "body_value=$value" "$WORK/$backend-$input-retired.run"; fi
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-retired.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-retired.run"
+        grep -Eq '^body_syntax=[1-9][0-9]*$' "$WORK/$backend-$input-retired.run"
+    done <<'EXACT_RETIREMENT_DIAGNOSTICS'
+own_storage_repeated_negative.pgy|rejected_second|Metadata(values)|Main
+inout_owned_loop_retired_read_negative.pgy|Reads(values)||Main
+own_generation_terminal_hides_consumption_negative.pgy|Reads(values)||Run
+inout_event_transferred_child_drop_negative.pgy|ArrayDropOwnedStrings(values)||Main
+inout_branch_own_then_copy_negative.pgy|Copy(values)||Main
+inout_own_formal_retired_copy_negative.pgy|Copy(values)||Consume
+inout_index_branch_own_negative.pgy|Matches(values)||Main
+inout_index_own_formal_drop_negative.pgy|Matches(values)||Consume
+EXACT_RETIREMENT_DIAGNOSTICS
     while IFS='|' read -r input boundary atom value function; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
             >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
@@ -880,6 +934,16 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=125; mutation<=128; mutation++)); do
+        input="$FIXTURES/own_storage_identity_input.pgy"
+        if [[ "$mutation" == 127 ]]; then input="$FIXTURES/own_storage_foreign_identity_input.pgy"; fi
+        timeout 30 "$WORK/$backend-identity.exe" "$input" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     for ((mutation=22; mutation<=25; mutation++)); do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/own_event_order_identity_input.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
@@ -944,7 +1008,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-six diagnostic locations, three observer mode, seventy-four identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, eighty-three diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

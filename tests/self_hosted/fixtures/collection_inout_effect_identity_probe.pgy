@@ -183,7 +183,7 @@ func Main() -> Void with caps env, io_read {
     if mutation >= 22 && mutation <= 25 {
         Log(InspectOwnArgumentOccurrenceOrder(artifact, analysis, bundle, mutation)); return;
     }
-    if mutation >= 16 && mutation <= 21 {
+    if (mutation >= 16 && mutation <= 21) || (mutation >= 125 && mutation <= 128) {
         Log(InspectOwnStorageAdmission(artifact, analysis, bundle, mutation)); return;
     }
     if mutation >= 103 && mutation <= 113 {
@@ -401,16 +401,26 @@ func Main() -> Void with caps env, io_read {
         // A second parent in another surface violates the shared graph's
         // root-interval seal. That earlier refusal must leave no reusable
         // proofs, rather than manufacturing an isolated rejecting effect.
-        let seal_rejected: Bool = !effects.ok &&
+        let owned_push_proofs: HashMap<String, Int> = effects.owned_push_leaf_formals;
+        let text_proofs: HashMap<String, Int> = effects.borrowed_text_formals;
+        let seal_rejected: Bool = !effects.ok && !effects.inventory.ok &&
+            !effects.execution_contexts.ok && MapSize(proved) == 0 &&
+            MapSize(owned_push_proofs) == 0 && MapSize(text_proofs) == 0 &&
             !MapHas(proved, ToString(indexed_formal)) &&
             !MapHas(proved, key) && !MapHas(proved, ToString(foreign));
-        Log((effects.ok && indexed_rejected) || (mutation == 15 && seal_rejected));
+        if mutation == 15 { Log(seal_rejected); }
+        else { Log(effects.ok && indexed_rejected); }
     } else if mutation >= 14 {
         // A sealed artifact or a structurally admitted graph may reject the
         // post-admission mutation at different boundaries. Neither path may
         // leave a reusable formal proof behind.
         Log(!MapHas(proved, ToString(indexed_formal)) &&
             !MapHas(proved, key) && !MapHas(proved, ToString(foreign)));
+    } else if mutation == 9 {
+        let owned_push_proofs: HashMap<String, Int> = effects.owned_push_leaf_formals;
+        let text_proofs: HashMap<String, Int> = effects.borrowed_text_formals;
+        Log(!effects.ok && !effects.inventory.ok && !effects.execution_contexts.ok &&
+            MapSize(proved) == 0 && MapSize(owned_push_proofs) == 0 && MapSize(text_proofs) == 0);
     } else if mutation == 0 {
         Log(effects.ok && MapHas(proved, key) && MapGet(proved, key) == 2 &&
             MapHas(proved, ToString(foreign)) && MapGet(proved, ToString(foreign)) == 2);
@@ -515,14 +525,15 @@ func InspectOwnStorageAdmission(
                         if mutation == 19 { analysis.signatures.param_node_ids[analysis.signatures.param_starts[signature]] = 0; }
                         if mutation == 20 { analysis.signatures.receiver_source_param_offsets[signature] = 1; }
                         if mutation == 21 { edge.ordinal = 99; }
-                        if mutation > 16 {
+                        if mutation >= 17 && mutation <= 21 {
                             return SemanticAstCollectionOwnStringArrayParameterNode(analysis.signatures,
                                 analysis.expression_surfaces.expression_graph, edge.call_node, edge.ordinal) == 0;
                         }
                         let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
                             artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge.argument_node);
-                        if !binding.ok || ArrayLength(analysis.local_bindings.node_ids) != 1 || binding.row != 0 { return false; }
+                        let local_count: Int = ArrayLength(analysis.local_bindings.node_ids);
+                        if !binding.ok || binding.row != 0 || (mutation != 127 && local_count != 1) { return false; }
                         let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.function_scopes,
                             analysis.local_bindings, bundle.initializer_types,
@@ -540,13 +551,75 @@ func InspectOwnStorageAdmission(
                             artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
                             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
                             formal_rows, modes, proved, definitions, storage);
-                        if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, 1) { return false; }
-                        let ownership: Array<Int> = [SemanticAstCollectionOwnershipBorrowedElements()];
-                        let dispositions: Array<Int> = [SemanticAstCollectionDispositionLive()];
-                        let transitions: Array<Int> = [SemanticAstCollectionTransitionUntracked()];
+                        if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, local_count) { return false; }
+                        let ownership: Array<Int> = [];
+                        let dispositions: Array<Int> = [];
+                        let transitions: Array<Int> = [];
+                        row = 0;
+                        while row < local_count {
+                            ArrayPush(ownership, SemanticAstCollectionOwnershipBorrowedElements());
+                            ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
+                            ArrayPush(transitions, SemanticAstCollectionTransitionUntracked());
+                            row = row + 1;
+                        }
                         let requirements: HashMap<String, Int> = MapNew();
                         let syntax: Int = analysis.expression_surfaces.node_ids[slot / 3];
                         let current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+                        if mutation >= 125 && mutation <= 128 {
+                            let retired: HashMap<String, Int> = MapNew();
+                            if mutation == 126 { current_definitions[0] = -1; }
+                            if mutation == 127 {
+                                if local_count != 2 || current_definitions[1] < 0 ||
+                                    definitions.binding_rows[current_definitions[1]] != 1 { return false; }
+                                current_definitions[0] = current_definitions[1];
+                            }
+                            if mutation == 128 { definitions.syntax_ids[current_definitions[0]] = 0; }
+                            let pending_use: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUseAtEvent(
+                                artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+                                analysis.expression_surfaces, definitions, facts, current_definitions, retired, slot, node);
+                            if mutation != 125 {
+                                return pending_use.found && pending_use.diagnostic_code == "ast_artifact_invalid" &&
+                                    pending_use.boundary == "owned_argument_event_identity" && MapSize(retired) == 0;
+                            }
+                            let retained: Array<Bool> = [];
+                            row = 0;
+                            while row < ArrayLength(definitions.syntax_ids) { ArrayPush(retained, false); row = row + 1; }
+                            let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
+                            let formal_key: String = ToString(formal);
+                            if !MapHas(proved, formal_key) { return false; }
+                            let original_effect: Int = MapGet(proved, formal_key);
+                            // Component mutation: the exact event is unchanged, but
+                            // the actual generic consumer refuses its entry effect.
+                            MapSet(proved, formal_key, SemanticAstCollectionFormalUnprovedElementUseEffect());
+                            let refused: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
+                                artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+                                analysis.expression_surfaces, slot / 3, edge, false, false, proved, effects.owned_push_leaf_formals,
+                                requirements, field_requirements, ownership, dispositions, bundle.collection_ownership.origins,
+                                transitions, facts, storage, definitions, current_definitions, retained);
+                            if refused.ok && pending_use.retirement_source > 0 {
+                                MapSet(retired, ToString(pending_use.retirement_source), pending_use.retirement_site);
+                            }
+                            let before: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUseAtEvent(
+                                artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+                                analysis.expression_surfaces, definitions, facts, current_definitions, retired, slot, edge.argument_node);
+                            let unpublished: Bool = MapSize(retired) == 0 && !before.found;
+                            MapSet(proved, formal_key, original_effect);
+                            let admitted: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
+                                artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+                                analysis.expression_surfaces, slot / 3, edge, false, false, proved, effects.owned_push_leaf_formals,
+                                requirements, field_requirements, ownership, dispositions, bundle.collection_ownership.origins,
+                                transitions, facts, storage, definitions, current_definitions, retained);
+                            if admitted.ok && pending_use.retirement_source > 0 {
+                                MapSet(retired, ToString(pending_use.retirement_source), pending_use.retirement_site);
+                            }
+                            let after: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUseAtEvent(
+                                artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+                                analysis.expression_surfaces, definitions, facts, current_definitions, retired, slot, edge.argument_node);
+                            return !pending_use.found && pending_use.retirement_source > 0 && pending_use.retirement_site == syntax &&
+                                !refused.ok && refused.diagnostic_code == "borrow_boundary_escape" && unpublished &&
+                                admitted.ok && after.found && after.diagnostic_code == "move_from_released" &&
+                                after.boundary == "owned_argument_use_after_move";
+                        }
                         let live: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge, binding, false, false, true, facts, requirements,
@@ -727,8 +800,32 @@ func InspectOwnArgumentOccurrenceOrder(
         true, [], [], [], [], [], [], [], [], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
         SemanticAstCollectionConstructorFieldInputsEmpty(), [], no_formal_descriptor_retiring,
         SemanticAstCollectionFormalDescriptorRetentionEmpty());
-    let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
-        artifact, analysis.signatures, no_locals, strings, projected, definitions, effects, analysis.statements, analysis.assignments);
+    // The unit folds the production event API, not a retired whole-program
+    // scanner. These projected formal edges have no generic storage demands.
+    let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+    let retired: HashMap<String, Int> = MapNew();
+    let pending: Array<Int> = [root];
+    let prefixes: Array<Bool> = [false];
+    let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, 0, -1);
+    while ArrayLength(pending) > 0 && !verdict.found {
+        let entry: Int = pending[ArrayLength(pending) - 1];
+        let prefix: Bool = prefixes[ArrayLength(prefixes) - 1];
+        ArrayPop(pending); ArrayPop(prefixes);
+        let step: SemanticAstCollectionLifetimeEventStep = SemanticAstCollectionLifetimeEventStepFromGraph(graph, entry, prefix);
+        if !step.ok {
+            verdict = SemanticAstCollectionOwnedArgumentUse(true, "ast_artifact_invalid", "owned_argument_event_order", syntax, root, 0, -1);
+        } else {
+            if step.completion < 0 { ArrayPush(pending, step.completion); ArrayPush(prefixes, prefix); }
+            if step.right >= 0 { ArrayPush(pending, step.right); ArrayPush(prefixes, false); }
+            if step.left >= 0 { ArrayPush(pending, step.left); ArrayPush(prefixes, step.left_prefix); }
+            verdict = SemanticAstCollectionOwnedArgumentUseAtEvent(
+                artifact, analysis.signatures, no_locals, strings, projected, definitions, effects, current, retired, 0, step.event_node);
+            if !verdict.found && verdict.retirement_source > 0 {
+                MapSet(retired, ToString(verdict.retirement_source), verdict.retirement_site);
+            }
+        }
+    }
+    ArrayDrop(pending); ArrayDrop(prefixes);
     if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }
     if mutation == 25 { return !verdict.found; }
     return verdict.found && verdict.diagnostic_code == "move_from_released" &&
@@ -791,12 +888,38 @@ func InspectFormalStorageAuthority(
         analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
         analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
-    // This array-only owner unit has no aggregate receiver. Unknown entries
-    // preserve the required same-graph extent without inventing field types.
+    // Reuse the production body environment issuer without re-resolving sealed
+    // identities. A missing environment leaves Unknown, never a guessed type.
     let leaf_types: Array<String> = [];
     row = 0;
     while row < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         ArrayPush(leaf_types, "Unknown"); row = row + 1;
+    }
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    while root_slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
+        if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
+            let surface_row: Int = root_slot / 3;
+            let root: Int = analysis.expression_surfaces.expression_graph.roots[root_slot];
+            let names: Array<String> = [];
+            let types: Array<String> = [];
+            let modes: Array<String> = [];
+            let function_node: Option<Int> = SemanticAstExpressionFunctionNodeAt(analysis.expression_surfaces, analysis.signatures, surface_row);
+            let intent_node: Option<Int> = SemanticAstExpressionIntentNodeAt(analysis.expression_surfaces, analysis.intent_signatures, surface_row);
+            if storage.ok && SemanticAstBodyExpressionEnvironmentSeed(artifact, analysis, bundle.initializer_types.inferred_type_names,
+                bundle.iteration_types, analysis.function_tables, analysis.intent_signatures, function_node, intent_node,
+                analysis.expression_surfaces.node_ids[surface_row], names, types, modes) {
+                row = last_root + 1;
+                while row <= root {
+                    if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[row] == AstExpressionNodeLeaf() {
+                        leaf_types[row] = EnvLookup(names, types, analysis.expression_surfaces.expression_graph.arena.node_texts[row]);
+                    }
+                    row = row + 1;
+                }
+            }
+            last_root = root;
+        }
+        root_slot = root_slot + 1;
     }
     let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
     // Mutation units must derive their domain facts from the same mutated graph.

@@ -1,0 +1,74 @@
+// Readonly-capture provenance is distinct from ordinary read/move hazards.
+// A new binding cannot erase a readonly storage origin. Constructor field
+// stores inspect their arguments; a fresh factory is not an alias by default.
+import "ast_assignment_fact_owner.pgy";
+import "ast_collection_member_capture_source_owner.pgy";
+import "ast_collection_member_capture_site_owner.pgy";
+
+struct SemanticAstCollectionMemberCaptureWitness {
+    ready: Bool;
+    syntax_id: Int;
+    expression_id: Int;
+}
+
+func SemanticAstCollectionMemberReadonlyCaptureContains(ref roots: Array<Int>, binding_id: Int) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(roots) {
+        if roots[row] == binding_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionMemberCaptureObligationAt(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    slot: Int, node: Int, root: Int, witness: SemanticAstCollectionMemberCaptureWitness,
+    inout readonly_origins: Array<Int>, inout blocked: HashMap<String, Int>
+) -> SemanticAstCollectionMemberCaptureWitness {
+    let site: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSiteForNode(
+        artifact, signatures, constructors, locals, inferred_types, surfaces, slot, node, root);
+    if !site.ready { return SemanticAstCollectionMemberCaptureWitness(false, witness.syntax_id, witness.expression_id); }
+    if site.expression_id < 0 { return witness; }
+    let row: Int = slot / 3;
+    let syntax: Int = surfaces.node_ids[row];
+    let function_id: Int = surfaces.function_node_ids[row];
+    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, syntax);
+    let assignment: Bool = SemanticAstAssignmentContainsNode(assignments, syntax);
+    let value_store: Bool = slot % 3 == AstExpressionLaneValue() && (IsSome(declared) || assignment);
+    let source: SemanticAstCollectionMemberCaptureSource = SemanticAstCollectionMemberCaptureSourceForNode(
+        artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+        statements, surfaces, function_id, syntax, site.expression_id, site.destructure);
+    if !source.ready { return SemanticAstCollectionMemberCaptureWitness(false, witness.syntax_id, witness.expression_id); }
+    if source.binding_id <= 0 || (!source.readonly &&
+            !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, source.binding_id)) { return witness; }
+    let destination: Int = 0;
+    if value_store && IsSome(declared) {
+        let local_row: Int = UnwrapOption(declared);
+        if locals.function_node_ids[local_row] == function_id && locals.binding_kinds[local_row] == SemanticAstLocalBindingKindNormal() &&
+            locals.binding_indices[local_row] == 0 && locals.binding_arities[local_row] == 1 { destination = syntax; }
+    } else if value_store && assignment {
+        let atom: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax, AstExpressionLaneAtom());
+        if IsSome(atom) {
+            let target_spine: SemanticExpressionGraphValueReceiverSpine =
+                SemanticExpressionGraphValueReceiverSpineFromGraph(surfaces.expression_graph, UnwrapOption(atom));
+            if target_spine.ok && target_spine.leaf_node >= 0 {
+                let target: SemanticAstCollectionMemberRootIdentity = SemanticAstCollectionMemberRootIdentityForNode(
+                    artifact, signatures, locals, inferred_types, resolved_leaf_types,
+                    function_id, syntax, surfaces.expression_graph, target_spine.leaf_node);
+                if target.ok { destination = target.source_binding_syntax_id; }
+            }
+        }
+    }
+    if destination > 0 {
+        if !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, destination) { ArrayPush(readonly_origins, destination); }
+        MapSet(blocked, ToString(destination), 1);
+    }
+    // A supported store with no exact target (e.g. multi-binding) is still a
+    // semantic readonly escape, never artifact corruption or a fresh owner.
+    if witness.syntax_id > 0 { return witness; }
+    return SemanticAstCollectionMemberCaptureWitness(witness.ready, syntax, site.expression_id);
+}

@@ -51,7 +51,7 @@ func DirectMirScalarCfgProgramAppendStatement(operations: DirectMirScalarCfgProg
         DirectMirScalarCfgProgramStatementAdmission(
             false, operations, expressions);
     if source != "AST_CALL" || capture.result != "" { return invalid; }
-    if !DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, "") ||
+    if !DirectMirInstructionHasNoPhysicalAbi(instruction.json, instruction.json_extent, capture, "") ||
         capture.abi_type_end != capture.abi_type_start + 4 { return invalid; }
     let operation_kind: Int = 0;
     let expected_type: String = "";

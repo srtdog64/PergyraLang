@@ -12,7 +12,7 @@ func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
     let i: Int = 0;
     let in_string: Bool = false;
     while i < n {
-        let c: Int = SourceByteAt(text, n, i);
+        let c: Int = SourceByteAt(text, n, n, i);
         if in_string {
             if c == SourceByteOf("\\") { i = i + 2; continue; }
             if c == SourceByteOf("\"") { in_string = false; }
@@ -23,12 +23,12 @@ func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
         if m > 0 && i + m <= n && SubEqualsWithLen(text, n, i, m, token) {
             let before_ok: Bool = i == 0 ||
                 !SemanticExpressionSurfaceIdentifierByte(
-                    SourceByteAt(text, n, i - 1)
+                    SourceByteAt(text, n, n, i - 1)
                 );
             let after: Int = i + m;
             let after_ok: Bool = after >= n ||
                 !SemanticExpressionSurfaceIdentifierByte(
-                    SourceByteAt(text, n, after)
+                    SourceByteAt(text, n, n, after)
                 );
             if before_ok && after_ok { return true; }
         }
@@ -43,7 +43,7 @@ func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
     let i: Int = 0;
     let in_string: Bool = false;
     while i < n {
-        let c: Int = SourceByteAt(text, n, i);
+        let c: Int = SourceByteAt(text, n, n, i);
         if in_string {
             if c == SourceByteOf("\\") { i = i + 2; continue; }
             if c == SourceByteOf("\"") { in_string = false; }
@@ -53,9 +53,9 @@ func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
         if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
         if m > 0 && i + m < n &&
             SubEqualsWithLen(text, n, i, m, callee) &&
-            SourceByteAt(text, n, i + m) == SourceByteOf("(") &&
+            SourceByteAt(text, n, n, i + m) == SourceByteOf("(") &&
             (i == 0 || !SemanticExpressionSurfaceIdentifierByte(
-                SourceByteAt(text, n, i - 1)
+                SourceByteAt(text, n, n, i - 1)
             )) {
             return true;
         }

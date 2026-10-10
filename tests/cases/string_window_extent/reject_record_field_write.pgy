@@ -1,0 +1,12 @@
+// A mutable field of a proven pair is replaced after construction.
+struct Measured {
+    let mut text: String;
+    let text_length: Int;
+}
+
+func Main() -> Void {
+    let s: String = Concat("abc", "def");
+    let mut m: Measured = Measured(s, StringLength(s));
+    m.text = "";
+    Print(ToString(CharCode(m.text, m.text_length, 5)));
+}

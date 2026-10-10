@@ -1,0 +1,6 @@
+struct Table { names: Array<String>; }
+func Store(inout captured: Array<Table>) -> Void {
+    let value: Table = Table(["owned"]);
+    ArrayPush(captured, value);
+}
+func Main() -> Void {}

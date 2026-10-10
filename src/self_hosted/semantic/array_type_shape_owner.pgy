@@ -1,6 +1,7 @@
 // Canonical Array<T> shape facts without expression-verdict dependencies.
 
 import "../lib/source_scan_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 func SemanticArrayElementType(type_name: String) -> Option<String> {
     if StringLength(type_name) >= 8 && StartsWith(type_name, "Array<") &&
@@ -17,9 +18,10 @@ func SemanticArrayTypeNameAt(ref type_names: Array<String>, row: Int) -> Bool {
     let length: Int = StringLength(type_names[row]);
     if length < 8 || CharCode(type_names[row], length, length - 1) != 62 { return false; }
     let prefix: String = "Array<";
+    let prefix_extent: Int = StringLength(prefix);
     let i: Int = 0;
     while i < 6 {
-        if CharCode(type_names[row], length, i) != CharCode(prefix, 6, i) { return false; }
+        if CharCode(type_names[row], length, i) != StringWindowCharCode(prefix, prefix_extent, 6, i) { return false; }
         i = i + 1;
     }
     return true;

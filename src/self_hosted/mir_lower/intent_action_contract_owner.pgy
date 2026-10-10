@@ -29,7 +29,7 @@ func MirIntentActionGraphFromInstruction(
         return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        routines.source_json,
+        routines.source_json, routines.source_json_extent,
         routines.instruction_starts[instruction_global_row],
         routines.instruction_ends[instruction_global_row]
     );
@@ -144,7 +144,7 @@ func MirIntentActionContract(
             routines.declarations.nominal_kinds[declaration_row] == "subject" {
             let declaration: JsonObjectFactTable =
                 JsonObjectFactTableFromBounds(
-                    routines.source_json,
+                    routines.source_json, routines.source_json_extent,
                     routines.declarations.starts[declaration_row],
                     routines.declarations.ends[declaration_row]
                 );
@@ -161,7 +161,7 @@ func MirIntentActionContract(
                     UnwrapOption(method_name) == action_name {
                     let contract: MirDeclarationMethodContractFact =
                         MirDeclarationMethodContractFactFromBounds(
-                            routines.source_json, method.start, method.end
+                            routines.source_json, routines.source_json_extent, method.start, method.end
                         );
                     let return_type: Option<String> =
                         JsonObjectFactStringFieldOpt(method, "return");

@@ -16,13 +16,13 @@ func MirProgramZoneAuthorityAbilityType(
     let actual_bounds: Array<Int> = [0, 0];
     if !IsSome(base) || UnwrapOption(base) == "" ||
         !JsonObjectFieldValueBoundsWithin(
-            ability_fact.json, ability_fact.start, ability_fact.end,
+            ability_fact.json, ability_fact.json_extent, ability_fact.start, ability_fact.end,
             "actuals", actual_bounds
         ) {
         return "";
     }
     let actuals: Array<String> = MirObjectArrayStringFactsAtBounds(
-        ability_fact.json, ability_fact.start, ability_fact.end, "actuals"
+        ability_fact.json, ability_fact.json_extent, ability_fact.start, ability_fact.end, "actuals"
     );
     let result: String = UnwrapOption(base);
     if ArrayLength(actuals) == 0 { return result; }

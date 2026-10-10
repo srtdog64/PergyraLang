@@ -214,7 +214,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
                 }
                 let abi_opt: Option<MirAbiLayoutRowCapture> =
                     MirCapturedRequiredAbiLayoutRowAdmission(
-                        admitted.routines.source_json, capture.abi_type_name,
+                        admitted.routines.source_json, admitted.routines.source_json_extent, capture.abi_type_name,
                         capture.abi_type_value_ready, capture.abi_type_start,
                         capture.abi_type_end, capture.abi_layout_id_start,
                         capture.abi_layout_id_end,

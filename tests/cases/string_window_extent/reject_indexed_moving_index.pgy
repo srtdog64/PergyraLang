@@ -1,0 +1,12 @@
+// The witness measured another row than the one the window reads.
+func LastCode(ref words: Array<String>) -> Int {
+    let row: Int = 0;
+    let length: Int = StringLength(words[row]);
+    row = 1;
+    return CharCode(words[row], length, length - 1);
+}
+
+func Main() -> Void {
+    let words: Array<String> = ["abcdef", "x"];
+    Print(ToString(LastCode(words)));
+}

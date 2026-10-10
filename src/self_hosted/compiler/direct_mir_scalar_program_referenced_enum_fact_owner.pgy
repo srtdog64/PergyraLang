@@ -239,16 +239,16 @@ func DirectMirScalarProgramReferencedEnumFactFromAdmitted(
     while reference < ArrayLength(referenced) {
         let declaration_row: Int = referenced[reference];
         let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.document.root.json,
+            admitted.document.root.json, admitted.document.root.json_extent,
             admitted.domain_runtime_admission.declarations.starts[
                 declaration_row],
             admitted.domain_runtime_admission.declarations.ends[
                 declaration_row]);
         let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-            declaration.json, declaration.start, declaration.end,
+            declaration.json, declaration.json_extent, declaration.start, declaration.end,
             "source_syntax_id");
         let source_path: Option<String> = MirObjectUniqueStringFactAtBounds(
-            declaration.json, declaration.start, declaration.end,
+            declaration.json, declaration.json_extent, declaration.start, declaration.end,
             "source_module_path");
         let fields: JsonArrayObjectFactTable =
             JsonObjectFactArrayObjectTable(declaration, "fields");

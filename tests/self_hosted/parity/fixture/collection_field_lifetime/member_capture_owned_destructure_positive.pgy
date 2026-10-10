@@ -1,0 +1,7 @@
+struct Table { names: Array<String>; }
+func Observe() -> Int {
+    let values: Array<Table> = [Table(["first"]), Table(["second"])];
+    let (first, second) = values;
+    return ArrayLength(first.names) + ArrayLength(second.names);
+}
+func Main() -> Void {}

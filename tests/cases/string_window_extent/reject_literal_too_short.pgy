@@ -1,0 +1,4 @@
+// A literal source with a literal extent longer than the literal.
+func Main() -> Void {
+    Print(ToString(CharCode("ab", 3, 2)));
+}

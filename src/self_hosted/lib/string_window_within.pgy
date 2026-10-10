@@ -1,0 +1,70 @@
+// Bounded string windows: read a prefix [0, end) of a source whose proven
+// extent is passed separately (docs/agent_work_directives/
+// string_window_extent_closure_2026-10-10.md).
+//
+// Each function answers exactly what the window builtin answers with `end`
+// as its extent, provided `end <= source_extent`, and never reads outside the
+// source when `end` is larger: the read goes through the proven extent, and
+// `end` only narrows the answer. Callers keep their bound arithmetic and
+// prove the source extent once, where the source is created.
+
+func StringWindowCharCode(source: String, source_extent: Int, end: Int, index: Int) -> Int {
+    if index >= end {
+        return -1;
+    }
+    return CharCode(source, source_extent, index);
+}
+
+func StringWindowCharAt(source: String, source_extent: Int, end: Int, index: Int) -> String {
+    if index >= end {
+        return "";
+    }
+    return CharAtN(source, source_extent, index);
+}
+
+// The view length a window builtin uses for [start, start + length) inside
+// [0, end): zero when the window starts outside, else clipped at `end`.
+func StringWindowViewLength(end: Int, start: Int, length: Int) -> Int {
+    if start < 0 || start >= end || length <= 0 {
+        return 0;
+    }
+    if length > end - start {
+        return end - start;
+    }
+    return length;
+}
+
+func StringWindowSubstring(source: String, source_extent: Int, end: Int, start: Int, length: Int) -> String {
+    return SubstringWithLen(source, source_extent, start,
+        StringWindowViewLength(end, start, length));
+}
+
+func StringWindowSubEquals(source: String, source_extent: Int, end: Int, start: Int, length: Int,
+    other: String) -> Bool {
+    return SubEqualsWithLen(source, source_extent, start,
+        StringWindowViewLength(end, start, length), other);
+}
+
+func StringWindowSubContains(source: String, source_extent: Int, end: Int, start: Int, length: Int,
+    needle: String) -> Bool {
+    return SubContainsWithLen(source, source_extent, start,
+        StringWindowViewLength(end, start, length), needle);
+}
+
+func StringWindowSubIndexOf(source: String, source_extent: Int, end: Int, start: Int, length: Int,
+    needle: String) -> Int {
+    return SubIndexOfWithLen(source, source_extent, start,
+        StringWindowViewLength(end, start, length), needle);
+}
+
+func StringWindowSubStartsWith(source: String, source_extent: Int, end: Int, start: Int,
+    prefix: String) -> Bool {
+    if start < 0 || start > end {
+        return false;
+    }
+    let prefix_extent: Int = StringLength(prefix);
+    if prefix_extent > end - start {
+        return false;
+    }
+    return SubStartsWithLen(source, source_extent, start, prefix);
+}

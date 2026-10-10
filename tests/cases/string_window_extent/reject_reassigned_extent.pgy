@@ -1,0 +1,7 @@
+// The extent binding is replaced after its declaration.
+func Main() -> Void {
+    let s: String = Concat("a", "b");
+    let mut n: Int = StringLength(s);
+    n = 100;
+    Print(ToString(CharCode(s, n, 50)));
+}

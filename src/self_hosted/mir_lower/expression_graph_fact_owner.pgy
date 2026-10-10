@@ -55,12 +55,12 @@ func MirExpressionGraphFactsForArtifactObserved(
                     routines.instruction_expressions, covered_row
                 );
             if !MirInstructionExpressionRequiresExpr0Graph(
-                    routines.source_json,
+                    routines.source_json, routines.source_json_extent,
                     routines.instruction_kinds[covered_row],
                     routines.instruction_source_types[covered_row],
                     covered_expression
                 ) || MirInstructionExpressionRequiresExpr1Graph(
-                    routines.source_json, routines.instruction_kinds[covered_row],
+                    routines.source_json, routines.source_json_extent, routines.instruction_kinds[covered_row],
                     routines.instruction_source_types[covered_row],
                     covered_expression
                 ) {
@@ -130,7 +130,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                         let instruction: JsonObjectFactTable =
                             JsonObjectFactTable(
                                 expression.valid,
-                                routines.source_json,
+                                routines.source_json, routines.source_json_extent,
                                 routines.instruction_starts[global_row],
                                 routines.instruction_ends[global_row]
                             );
@@ -143,7 +143,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                         let graph_slot: Int = MirExpressionGraphSlotNone();
                         if producer_only {
                             if !MirExpressionGraphProducerOnlyOccurrenceAllowed(
-                                    routines.source_json, kind, source,
+                                    routines.source_json, routines.source_json_extent, kind, source,
                                     expression, lane, ordinal
                                 ) {
                                 occurrence_valid = false;
@@ -155,7 +155,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                             }
                         } else {
                             graph_slot = MirExpressionGraphOccurrenceGraphSlot(
-                                routines.source_json, kind, source,
+                                routines.source_json, routines.source_json_extent, kind, source,
                                 expression, lane, ordinal
                             );
                             sequence = MirExpressionGraphSequenceAppendOccurrence(
@@ -170,7 +170,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                                         true, false, 0, "", ""
                                     );
                             if MirProgramInstructionExpressionRoutingEquals(
-                                routines.source_json, expression, 0, "IntentEval") {
+                                routines.source_json, routines.source_json_extent, expression, 0, "IntentEval") {
                                 target_projection =
                                     MirIntentExecutionGraphTargetForInstruction(
                                         routines, intent_execution_plan,
@@ -234,14 +234,14 @@ func MirExpressionGraphFactsForArtifactObserved(
         let kind: String = routines.instruction_kinds[coverage_i];
         let source: String = routines.instruction_source_types[coverage_i];
         let expr0_required: Bool = MirInstructionExpressionRequiresExpr0Graph(
-            routines.source_json, kind, source, expression
+            routines.source_json, routines.source_json_extent, kind, source, expression
         );
         let expr1_required: Bool = MirInstructionExpressionRequiresExpr1Graph(
-            routines.source_json, kind, source, expression
+            routines.source_json, routines.source_json_extent, kind, source, expression
         );
         let special_expr0_required: Bool = source == "AST_MATCH_CASE";
         if kind == "destructure" {
-            let needs: Option<Bool> = MirDestructureNeedsTemporary(routines.source_json, expression);
+            let needs: Option<Bool> = MirDestructureNeedsTemporary(routines.source_json, routines.source_json_extent, expression);
             special_expr0_required = !IsSome(needs) || UnwrapOption(needs);
         }
         if (expr0_required || special_expr0_required) &&

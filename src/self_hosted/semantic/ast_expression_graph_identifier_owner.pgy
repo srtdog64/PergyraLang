@@ -142,18 +142,21 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
 func SemanticExpressionGraphIdentifierContractReady() -> Bool {
     let missing_cursor: Array<Int> = [0];
     let missing_source: String = "Pair { label: missing }";
+    let missing_source_extent: Int = StringLength(missing_source);
     let missing: ParserExpressionFact = ParseExprFact(
-        missing_source, 0, missing_cursor
+        missing_source, missing_source_extent, 0, missing_cursor
     );
     let valid_cursor: Array<Int> = [0];
     let valid_source: String = "Pair { missing: 1 }";
+    let valid_source_extent: Int = StringLength(valid_source);
     let valid: ParserExpressionFact = ParseExprFact(
-        valid_source, 0, valid_cursor
+        valid_source, valid_source_extent, 0, valid_cursor
     );
     let member_cursor: Array<Int> = [0];
     let member_source: String = "known.value";
+    let member_source_extent: Int = StringLength(member_source);
     let member: ParserExpressionFact = ParseExprFact(
-        member_source, 0, member_cursor
+        member_source, member_source_extent, 0, member_cursor
     );
     if !missing.ok || !valid.ok || !member.ok { return false; }
     let missing_facts: SemanticExpressionGraphFacts =

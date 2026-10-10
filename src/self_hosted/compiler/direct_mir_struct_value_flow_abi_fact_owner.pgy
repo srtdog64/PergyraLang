@@ -20,12 +20,12 @@ struct DirectMirStructValueFlowAbiFact {
 }
 
 func DirectMirStructValueFlowCapturedAbi(
-    json: String,
+    json: String, json_extent: Int,
     ref capture: MirRoutineInstructionScalarCapture
 ) -> MirAbiLayoutRowCapture {
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
             capture.abi_type_start, capture.abi_type_end,
             capture.abi_layout_id_start, capture.abi_layout_id_end,
             capture.abi_layout_required_start,
@@ -68,7 +68,7 @@ func DirectMirStructValueFlowAbiFactReady(
 }
 
 func DirectMirStructValueFlowAbiFactFromCaptures(
-    json: String,
+    json: String, json_extent: Int,
     ref identity: DirectMirStructValueFlowProgramIdentity,
     ref returned: MirRoutineInstructionScalarCapture,
     ref initial: MirRoutineInstructionScalarCapture,
@@ -76,13 +76,13 @@ func DirectMirStructValueFlowAbiFactFromCaptures(
     ref result: MirRoutineInstructionScalarCapture
 ) -> DirectMirStructValueFlowAbiFact {
     let return_abi: MirAbiLayoutRowCapture =
-        DirectMirStructValueFlowCapturedAbi(json, returned);
+        DirectMirStructValueFlowCapturedAbi(json, json_extent, returned);
     let initial_abi: MirAbiLayoutRowCapture =
-        DirectMirStructValueFlowCapturedAbi(json, initial);
+        DirectMirStructValueFlowCapturedAbi(json, json_extent, initial);
     let assignment_abi: MirAbiLayoutRowCapture =
-        DirectMirStructValueFlowCapturedAbi(json, assignment);
+        DirectMirStructValueFlowCapturedAbi(json, json_extent, assignment);
     let result_abi: MirAbiLayoutRowCapture =
-        DirectMirStructValueFlowCapturedAbi(json, result);
+        DirectMirStructValueFlowCapturedAbi(json, json_extent, result);
     if !DirectMirStructAbiRowsEqual(return_abi, identity.declaration.abi) ||
         !DirectMirStructAbiRowsEqual(initial_abi, identity.declaration.abi) ||
         !DirectMirStructAbiRowsEqual(

@@ -17,7 +17,7 @@ func ParserIntentDefaultClauseNone(start: Int) -> ParserIntentDefaultClause {
 }
 
 func ParserIntentDefaultClauseFromSource(
-    context: ParserSourceLocationContext, content: String, start: Int
+    context: ParserSourceLocationContext, content: String, content_extent: Int, start: Int
 ) -> ParserIntentDefaultClause {
     let cursor: Array<Int> = [start];
     if MatchLanguageWord(content, start, LanguageWordId.WordWho) {
@@ -52,7 +52,7 @@ func ParserIntentDefaultClauseFromSource(
             LanguageWordEnd(start, LanguageWordId.WordWhere), ":", "intent_where");
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor, 0, i);
-        let type_name: String = ReadTypeIn(context, content, i, cursor);
+        let type_name: String = ReadTypeIn(context, content, content_extent, i, cursor);
         i = cursor[0];
         if type_name == "" {
             ParseRefuse(context, i, "type_name_invalid",

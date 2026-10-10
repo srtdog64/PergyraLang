@@ -37,28 +37,28 @@ func MirCollectionOwnershipLocalRow(
 }
 
 func MirCollectionOwnershipParameterType(
-    json: String,
+    json: String, json_extent: Int,
     routine_start: Int,
     routine_end: Int,
     binding_syntax_id: Int
 ) -> String {
     let bounds: Array<Int> = [0, 0];
     if binding_syntax_id <= 0 || !MirObjectArrayBoundsAtBounds(
-        json, routine_start, routine_end, "params", bounds
+        json, json_extent, routine_start, routine_end, "params", bounds
     ) { return ""; }
     let cursor: Int = bounds[0] + 1;
     let row_bounds: Array<Int> = [0, 0];
     let matched: Int = 0;
     let found_type: String = "";
-    while JsonArrayNextObjectBounds(json, cursor, bounds[1], row_bounds) {
+    while JsonArrayNextObjectBounds(json, json_extent, cursor, bounds[1], row_bounds) {
         let source_id: String = MirObjectNumberFactAtBounds(
-            json, row_bounds[0], row_bounds[1], "source_syntax_id");
+            json, json_extent, row_bounds[0], row_bounds[1], "source_syntax_id");
         let type_name: String = MirObjectStringFactAtBounds(
-            json, row_bounds[0], row_bounds[1], "type");
+            json, json_extent, row_bounds[0], row_bounds[1], "type");
         if MirObjectFieldOccurrenceCountAtBounds(
-                json, row_bounds[0], row_bounds[1], "source_syntax_id") != 1 ||
+                json, json_extent, row_bounds[0], row_bounds[1], "source_syntax_id") != 1 ||
             MirObjectFieldOccurrenceCountAtBounds(
-                json, row_bounds[0], row_bounds[1], "type") != 1 ||
+                json, json_extent, row_bounds[0], row_bounds[1], "type") != 1 ||
             source_id == "" || ToString(ToInt(source_id)) != source_id ||
             ToInt(source_id) <= 0 || type_name == "" {
             return "";
@@ -89,7 +89,7 @@ func MirCollectionOwnershipMemberSourceReady(
         source_type = Concat("", local_types[source_row]);
     } else {
         source_type = MirCollectionOwnershipParameterType(
-            routines.source_json, routine_start, routine_end,
+            routines.source_json, routines.source_json_extent, routine_start, routine_end,
             source_binding_syntax_id);
     }
     if source_type == "" || field_syntax_id <= 0 { return false; }
@@ -115,7 +115,7 @@ func MirCollectionOwnershipCallResultSourceReady(
             if routine >= ArrayLength(routines.starts) ||
                 routine >= ArrayLength(routines.ends) ||
                 MirObjectStringFactAtBounds(
-                    routines.source_json, routines.starts[routine],
+                    routines.source_json, routines.source_json_extent, routines.starts[routine],
                     routines.ends[routine], "return"
                 ) != "Array<String>" {
                 return false;
@@ -157,9 +157,9 @@ func MirCollectionOwnershipEmptyLiteralReceipt(
             let end: Int = routines.instruction_ends[instruction];
             let local_ref: String = "";
             if MirObjectFieldOccurrenceCountAtBounds(
-                    routines.source_json, start, end, "local_ref") == 1 {
+                    routines.source_json, routines.source_json_extent, start, end, "local_ref") == 1 {
                 local_ref = MirObjectStringFactAtBounds(
-                    routines.source_json, start, end, "local_ref"
+                    routines.source_json, routines.source_json_extent, start, end, "local_ref"
                 );
             }
             if local_ref == expected_ref &&
@@ -173,7 +173,7 @@ func MirCollectionOwnershipEmptyLiteralReceipt(
                     );
                 let graph: JsonObjectFactTable =
                     MirProgramInstructionExpressionGraphTable(
-                        routines.source_json, expression, 0
+                        routines.source_json, routines.source_json_extent, expression, 0
                     );
                 let sequence: MirExpressionGraphSequence =
                     MirExpressionGraphSequenceAppend(
@@ -203,7 +203,7 @@ func MirCollectionOwnershipEmptyLiteralReceipt(
 func BuildMirCollectionOwnershipFacts(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
-    json: String,
+    json: String, json_extent: Int,
     routine_start: Int,
     routine_end: Int,
     routine_syntax_id: String,
@@ -227,21 +227,21 @@ func BuildMirCollectionOwnershipFacts(
         binding_moves.valid;
     let stage: String = "ok";
     let declared_count: String = MirObjectNumberFactAtBounds(
-        json, routine_start, routine_end,
+        json, json_extent, routine_start, routine_end,
         "collection_ownership_fact_count"
     );
     let bounds: Array<Int> = [0, 0];
     if MirObjectFieldOccurrenceCountAtBounds(
-            json, routine_start, routine_end,
+            json, json_extent, routine_start, routine_end,
             "collection_ownership_fact_count") != 1 ||
         MirObjectFieldOccurrenceCountAtBounds(
-            json, routine_start, routine_end,
+            json, json_extent, routine_start, routine_end,
             "collection_ownership_facts") != 1 ||
         declared_count == "" ||
         ToString(ToInt(declared_count)) != declared_count ||
         ToInt(declared_count) < 0 ||
         !MirObjectArrayBoundsAtBounds(
-            json, routine_start, routine_end,
+            json, json_extent, routine_start, routine_end,
             "collection_ownership_facts", bounds) {
         valid = false;
         stage = "collection_ownership_shape";
@@ -249,23 +249,23 @@ func BuildMirCollectionOwnershipFacts(
         let cursor: Int = bounds[0] + 1;
         let row_bounds: Array<Int> = [0, 0];
         while JsonArrayNextObjectBounds(
-            json, cursor, bounds[1], row_bounds
+            json, json_extent, cursor, bounds[1], row_bounds
         ) {
             let function_id: String = MirObjectNumberFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "function_syntax_id");
+                json, json_extent, row_bounds[0], row_bounds[1], "function_syntax_id");
             let binding_id: String = MirObjectNumberFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "binding_syntax_id");
+                json, json_extent, row_bounds[0], row_bounds[1], "binding_syntax_id");
             let origin_id: String = MirObjectNumberFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "origin_syntax_id");
+                json, json_extent, row_bounds[0], row_bounds[1], "origin_syntax_id");
             let source_id: String = MirObjectNumberFactAtBounds(
-                json, row_bounds[0], row_bounds[1],
+                json, json_extent, row_bounds[0], row_bounds[1],
                 "source_binding_syntax_id");
             let ownership: String = MirObjectStringFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "element_ownership");
+                json, json_extent, row_bounds[0], row_bounds[1], "element_ownership");
             let disposition: String = MirObjectStringFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "disposition");
+                json, json_extent, row_bounds[0], row_bounds[1], "disposition");
             let origin: String = MirObjectStringFactAtBounds(
-                json, row_bounds[0], row_bounds[1], "origin");
+                json, json_extent, row_bounds[0], row_bounds[1], "origin");
             let exact_fields: Bool = true;
             let field_names: Array<String> = [
                 "function_syntax_id", "binding_syntax_id",
@@ -275,7 +275,7 @@ func BuildMirCollectionOwnershipFacts(
             let field: Int = 0;
             while field < ArrayLength(field_names) {
                 if MirObjectFieldOccurrenceCountAtBounds(
-                    json, row_bounds[0], row_bounds[1], field_names[field]
+                    json, json_extent, row_bounds[0], row_bounds[1], field_names[field]
                 ) != 1 { exact_fields = false; }
                 field = field + 1;
             }

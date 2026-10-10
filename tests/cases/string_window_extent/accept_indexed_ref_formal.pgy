@@ -1,0 +1,12 @@
+// Reads of one element of a readonly array at an unchanged index prove its
+// extent in place; the element is never bound or copied out.
+func EdgeCodes(ref words: Array<String>, row: Int) -> Int {
+    let length: Int = StringLength(words[row]);
+    let last: Int = CharCode(words[row], length, length - 1);
+    return last + CharCode(words[0], StringLength(words[0]), 0);
+}
+
+func Main() -> Void {
+    let words: Array<String> = ["ab", "cde"];
+    Print(ToString(EdgeCodes(words, 1)));
+}

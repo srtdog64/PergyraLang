@@ -1,0 +1,6 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+struct Box { table: Table; }
+func Inspect(ref box: Box) -> Bool { return box.table.names[0] == "x"; }
+func Observe(ref input: Envelope) -> Bool { return Inspect(Box(input.table)); }
+func Main() -> Void {}

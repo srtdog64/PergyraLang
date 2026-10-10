@@ -6,7 +6,7 @@ import "type_name_owner.pgy";
 import "source_refusal_owner.pgy";
 
 // `event NAME(PNAME: PTYPE, ...);` top-level event signature.
-func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
+func ParseEventDecl(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     location_context: ParserSourceLocationContext) -> String {
     let i: Int = LanguageWordEnd(start, LanguageWordId.WordEvent);
     i = SkipWhitespaceAndComments(content, i);
@@ -34,7 +34,7 @@ func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, d
             }
             i = ParseExpectIn(location_context, content, i, ":", "event_parameter");
             ArraySet(cursor_out, 0, i);
-            let p_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let p_type: String = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_type) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "event_parameter", "", "");

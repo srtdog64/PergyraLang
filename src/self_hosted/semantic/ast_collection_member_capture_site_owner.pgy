@@ -1,0 +1,86 @@
+// Exact storage occurrence selection, not a readonly/lifetime decision.
+// Default/ref calls are not stores; canonical identity precedes protocol use.
+import "ast_collection_constructor_storage_escape_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_struct_view_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
+
+struct SemanticAstCollectionMemberCaptureSite {
+    ready: Bool;
+    expression_id: Int;
+    destructure: Bool;
+}
+
+func SemanticAstCollectionMemberCaptureSiteForNode(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    slot: Int, node: Int, root: Int
+) -> SemanticAstCollectionMemberCaptureSite {
+    let absent: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSite(true, -1, false);
+    let invalid: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSite(false, -1, false);
+    if slot < 0 || slot / 3 >= ArrayLength(surfaces.node_ids) || node < 0 || node > root { return invalid; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+    if !IsSome(kind) { return invalid; }
+    if UnwrapOption(kind) == AstExpressionNodeArrayElement() {
+        let edge: SemanticArrayLiteralElementEdge = SemanticArrayLiteralElementEdgeFromGraph(surfaces.expression_graph, node);
+        if !edge.ok { return invalid; }
+        return SemanticAstCollectionMemberCaptureSite(true, edge.element_node, false);
+    }
+    if UnwrapOption(kind) == AstExpressionNodeStructFieldBinding() {
+        let field: SemanticStructLiteralFieldView = SemanticStructLiteralFieldBindingFromGraph(surfaces.expression_graph, node);
+        if !field.ok { return invalid; }
+        return SemanticAstCollectionMemberCaptureSite(true, field.value_node, false);
+    }
+    if UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+        if !edge.ok { return invalid; }
+        let field: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorStorageEscapeField(
+            artifact, constructors, locals, inferred_types, surfaces, slot / 3, edge);
+        if !field.ok { return invalid; }
+        if field.field_syntax_id > 0 || SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "Clone") {
+            return SemanticAstCollectionMemberCaptureSite(true, edge.argument_node, false);
+        }
+        let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+        if target.ok {
+            let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, target.signature_row, target.ordinal);
+            if !IsSome(mode) || UnwrapOption(mode) < 0 || UnwrapOption(mode) > 3 { return invalid; }
+            if UnwrapOption(mode) == 1 || UnwrapOption(mode) == 2 {
+                return SemanticAstCollectionMemberCaptureSite(true, edge.argument_node, false);
+            }
+            return absent;
+        }
+        let declared_target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
+        if !IsSome(declared_target) { return invalid; }
+        // A declared callable cannot become a builtin/opaque callback when its
+        // required formal join is missing. First-order parameter calls are not
+        // declared callable nodes and retain their upstream admission contract.
+        if UnwrapOption(declared_target) > 0 &&
+            (!TypedAstArenaRowHasNode(artifact.count, UnwrapOption(declared_target)) ||
+             TypedAstArenaNodeKindIsCallable(artifact.arena, UnwrapOption(declared_target))) { return invalid; }
+        let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, edge.call_node);
+        if !IsSome(name) { return invalid; }
+        let protocol: SemanticExpressionGraphCollectionCallProtocolFact = SemanticExpressionGraphCollectionCallProtocolFromName(UnwrapOption(name));
+        if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, protocol.operation) &&
+            SemanticExpressionGraphCollectionCallStoresValue(protocol) && edge.ordinal == protocol.value_argument_index {
+            return SemanticAstCollectionMemberCaptureSite(true, edge.argument_node, false);
+        }
+        return absent;
+    }
+    if node != root { return absent; }
+    let syntax: Int = surfaces.node_ids[slot / 3];
+    let statement_fact: Option<Int> = TypedAstArenaNodeKind(artifact.arena, syntax);
+    if !IsSome(statement_fact) { return invalid; }
+    let statement: Int = UnwrapOption(statement_fact);
+    let lane: Int = slot % 3;
+    let destructure: Bool = statement == TypedAstKindDestructureStmtTag();
+    let store: Bool = lane == AstExpressionLaneValue() &&
+        (statement == TypedAstKindLetStmtTag() || statement == TypedAstKindAssignStmtTag() ||
+         statement == TypedAstKindArrayPushStmtTag() || destructure);
+    store = store || (lane == AstExpressionLaneAuxiliary() && statement == TypedAstKindArraySetStmtTag()) ||
+        (lane == AstExpressionLaneAtom() && statement == TypedAstKindValueReturnStmtTag());
+    if !store { return absent; }
+    return SemanticAstCollectionMemberCaptureSite(true, node, destructure);
+}

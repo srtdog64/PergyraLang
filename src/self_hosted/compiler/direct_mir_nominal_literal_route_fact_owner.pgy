@@ -55,12 +55,12 @@ func DirectMirNominalLiteralRouteFactFromAdmitted(
             admitted.document.declarations, 0
         );
         let kind_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
-            declaration.json, declaration.start, declaration.end, "kind");
+            declaration.json, declaration.json_extent, declaration.start, declaration.end, "kind");
         let nominal_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
-            declaration.json, declaration.start, declaration.end,
+            declaration.json, declaration.json_extent, declaration.start, declaration.end,
             "nominal_kind");
         let name_fact: Option<String> = MirObjectUniqueStringFactAtBounds(
-            declaration.json, declaration.start, declaration.end, "name");
+            declaration.json, declaration.json_extent, declaration.start, declaration.end, "name");
         if IsSome(kind_fact) { kind = UnwrapOption(kind_fact); }
         if IsSome(nominal_fact) {
             nominal_kind = UnwrapOption(nominal_fact);

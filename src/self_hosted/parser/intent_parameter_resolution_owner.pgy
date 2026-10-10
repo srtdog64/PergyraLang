@@ -34,7 +34,7 @@ func ParserIntentParameterResolvedLine(
     let line_length: Int = StringLength(line);
     let indent_index: Int = 0;
     while indent_index < marker_index {
-        let c: Int = SourceByteAt(line, line_length, indent_index);
+        let c: Int = SourceByteAt(line, line_length, line_length, indent_index);
         // The integrated parser parses this owner's own contract strings.
         // A marker inside a Literal row is source text, not an unresolved
         // parameter node, so only an indentation-anchored label is eligible.

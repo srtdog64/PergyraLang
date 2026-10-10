@@ -104,7 +104,7 @@ func DirectMirEnumDefinitionEnvelopeReady(
             instruction, "abi_type_name", "Int"
         ) && DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") &&
         JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.start, instruction.end,
+            instruction.json, instruction.json_extent, instruction.start, instruction.end,
             "abi_layout_required", false
         ) && DirectMirObjectFieldKindEquals(
             instruction, "abi_layout", "null"
@@ -149,7 +149,7 @@ func DirectMirEnumBranchEnvelopeReady(
             instruction, "abi_type_name", "null"
         ) && DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") &&
         JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.start, instruction.end,
+            instruction.json, instruction.json_extent, instruction.start, instruction.end,
             "abi_layout_required", false
         ) && DirectMirObjectFieldKindEquals(
             instruction, "abi_layout", "null"
@@ -185,7 +185,7 @@ func DirectMirEnumLiteralLogAt(
         return "";
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );
@@ -225,16 +225,16 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
         Die("direct MIR enum declaration route or CFG certificate is invalid");
     }
     let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.domain_runtime_admission.declarations.starts[0],
         admitted.domain_runtime_admission.declarations.ends[0]
     );
     let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        declaration.json, declaration.start, declaration.end,
+        declaration.json, declaration.json_extent, declaration.start, declaration.end,
         "source_syntax_id"
     );
     let source_path: Option<String> = MirObjectUniqueStringFactAtBounds(
-        declaration.json, declaration.start, declaration.end,
+        declaration.json, declaration.json_extent, declaration.start, declaration.end,
         "source_module_path"
     );
     let fields: JsonArrayObjectFactTable =
@@ -290,7 +290,7 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
         variant_row = variant_row + 1;
     }
     let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[
             identity_match.definition_global_row
         ], admitted.routines.instruction_ends[
@@ -324,7 +324,7 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
     let selected_ordinal: Int = admitted.domain_runtime_admission
         .declarations.enum_variants.ordinals[selected_row];
     let entry_log: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[
             identity_match.entry_log_global_row
         ], admitted.routines.instruction_ends[
@@ -344,7 +344,7 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
         Die("direct MIR enum entry Log graph or use is invalid");
     }
     let branch: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[
             identity_match.branch_global_row
         ], admitted.routines.instruction_ends[

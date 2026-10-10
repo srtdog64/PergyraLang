@@ -4,10 +4,10 @@ import "expression_graph_kind_code_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
 
 func MirExpressionGraphPersistedNodeIdentityValueWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> Option<Int> {
-    if JsonValueKindAt(json, start, end) != "number" { return None; }
-    return MirExpressionGraphIndexWithin(json, start, end);
+    if JsonValueKindAt(json, json_extent, start, end) != "number" { return None; }
+    return MirExpressionGraphIndexWithin(json, json_extent, start, end);
 }
 
 func MirExpressionGraphPersistedNodeIdentityReady(

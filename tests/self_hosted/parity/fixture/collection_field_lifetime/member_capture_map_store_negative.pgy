@@ -1,0 +1,7 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Observe(ref input: Envelope) -> Void {
+    let captured: HashMap<String, Table> = MapNew();
+    MapSet(captured, "key", input.table);
+}
+func Main() -> Void {}

@@ -310,7 +310,7 @@ func DirectMirArrayIntPlanFromAdmitted(
     }
     let abi_row_opt: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, first.abi_type_name,
+            admitted.routines.source_json, admitted.routines.source_json_extent, first.abi_type_name,
             first.abi_type_value_ready, first.abi_type_start,
             first.abi_type_end, first.abi_layout_id_start,
             first.abi_layout_id_end, first.abi_layout_required_start,
@@ -326,23 +326,23 @@ func DirectMirArrayIntPlanFromAdmitted(
     }
     let initial_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, initial_expression_fact, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, initial_expression_fact, 0
         );
     let assigned_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, assigned_expression_fact, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, assigned_expression_fact, 0
         );
     let target_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, assigned_expression_fact, 1
+            admitted.routines.source_json, admitted.routines.source_json_extent, assigned_expression_fact, 1
         );
     let length_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, length_expression_fact, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, length_expression_fact, 0
         );
     let index_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, index_expression_fact, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, index_expression_fact, 0
         );
     let initial_values: Array<Int> =
         DirectMirArrayIntLiteralElements(initial_graph);

@@ -154,11 +154,11 @@ func DirectMirNestedIntentProgramDeclarationSyntaxId(
         return -1;
     }
     let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.document.root.json,
+        admitted.document.root.json, admitted.document.root.json_extent,
         admitted.domain_runtime_admission.declarations.starts[row],
         admitted.domain_runtime_admission.declarations.ends[row]);
     let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        declaration.json, declaration.start, declaration.end,
+        declaration.json, declaration.json_extent, declaration.start, declaration.end,
         "source_syntax_id");
     if !JsonObjectFactTableReady(declaration) || !IsSome(syntax) ||
         ToInt(UnwrapOption(syntax)) <= 0 ||

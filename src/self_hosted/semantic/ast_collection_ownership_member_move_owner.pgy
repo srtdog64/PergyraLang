@@ -16,6 +16,10 @@ struct SemanticAstCollectionMemberMoveIdentity {
     string_array_field: Bool;
 }
 
+func SemanticAstCollectionMemberMoveEventKey(identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
+    return Concat(identity.key, Concat(":", ToString(syntax_node_id)));
+}
+
 func SemanticAstCollectionMemberMoveIdentityForNode(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,

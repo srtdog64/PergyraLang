@@ -9,14 +9,14 @@ struct SemanticDelimitedRangeFacts {
 }
 
 func SemanticDelimitedTrimmedStart(
-    source: String,
+    source: String, source_extent: Int,
     source_length: Int,
     start: Int,
     end: Int
 ) -> Int {
     let result: Int = start;
     while result < end && SourceByteIsWhitespace(
-        SourceByteAt(source, source_length, result)
+        SourceByteAt(source, source_extent, source_length, result)
     ) {
         result = result + 1;
     }
@@ -24,14 +24,14 @@ func SemanticDelimitedTrimmedStart(
 }
 
 func SemanticDelimitedTrimmedEnd(
-    source: String,
+    source: String, source_extent: Int,
     source_length: Int,
     start: Int,
     end: Int
 ) -> Int {
     let result: Int = end;
     while result > start && SourceByteIsWhitespace(
-        SourceByteAt(source, source_length, result - 1)
+        SourceByteAt(source, source_extent, source_length, result - 1)
     ) {
         result = result - 1;
     }
@@ -39,22 +39,22 @@ func SemanticDelimitedTrimmedEnd(
 }
 
 func SemanticDelimitedAngleOpensTypeRange(
-    source: String,
+    source: String, source_extent: Int,
     source_length: Int,
     index: Int
 ) -> Bool {
     if index <= 0 || index + 1 >= source_length ||
-        SourceByteIsWhitespace(SourceByteAt(source, source_length, index - 1)) {
+        SourceByteIsWhitespace(SourceByteAt(source, source_extent, source_length, index - 1)) {
         return false;
     }
     let next: Int = index + 1;
     while next < source_length && SourceByteIsWhitespace(
-        SourceByteAt(source, source_length, next)
+        SourceByteAt(source, source_extent, source_length, next)
     ) {
         next = next + 1;
     }
     if next >= source_length { return false; }
-    let next_byte: Int = SourceByteAt(source, source_length, next);
+    let next_byte: Int = SourceByteAt(source, source_extent, source_length, next);
     return next_byte >= 65 && next_byte <= 90;
 }
 
@@ -82,12 +82,12 @@ func SemanticNestedCommaRangeFactsFromSource(
         let at_end: Bool = i >= n;
         let c: Int = -1;
         if !at_end {
-            c = SourceByteAt(source, n, i);
+            c = SourceByteAt(source, n, n, i);
         }
         if !at_end && c == quote {
             i = i + 1;
-            while i < n && SourceByteAt(source, n, i) != quote {
-                if SourceByteAt(source, n, i) == escape {
+            while i < n && SourceByteAt(source, n, n, i) != quote {
+                if SourceByteAt(source, n, n, i) == escape {
                     i = i + 1;
                 }
                 i = i + 1;
@@ -96,7 +96,7 @@ func SemanticNestedCommaRangeFactsFromSource(
             continue;
         }
         if !at_end && c == open_angle &&
-            SemanticDelimitedAngleOpensTypeRange(source, n, i) {
+            SemanticDelimitedAngleOpensTypeRange(source, n, n, i) {
             angle_depth = angle_depth + 1;
             i = i + 1;
             continue;
@@ -129,10 +129,10 @@ func SemanticNestedCommaRangeFactsFromSource(
         if at_end || (angle_depth == 0 && paren_depth == 0 &&
             bracket_depth == 0 && c == comma) {
             let trimmed_start: Int = SemanticDelimitedTrimmedStart(
-                source, n, range_start, i
+                source, n, n, range_start, i
             );
             let trimmed_end: Int = SemanticDelimitedTrimmedEnd(
-                source, n, trimmed_start, i
+                source, n, n, trimmed_start, i
             );
             ArrayPush(starts, trimmed_start);
             ArrayPush(lengths, trimmed_end - trimmed_start);
@@ -153,12 +153,12 @@ func SemanticSignatureRangeFactsFromSource(
     let range_start: Int = 0;
     let i: Int = 0;
     while i <= n {
-        if i == n || SourceByteAt(source, n, i) == separator {
+        if i == n || SourceByteAt(source, n, n, i) == separator {
             let trimmed_start: Int = SemanticDelimitedTrimmedStart(
-                source, n, range_start, i
+                source, n, n, range_start, i
             );
             let trimmed_end: Int = SemanticDelimitedTrimmedEnd(
-                source, n, trimmed_start, i
+                source, n, n, trimmed_start, i
             );
             ArrayPush(starts, trimmed_start);
             ArrayPush(lengths, trimmed_end - trimmed_start);

@@ -205,14 +205,14 @@ func DirectMirScalarProgramLogicalRecordFactReady(ref fact: DirectMirScalarProgr
 }
 
 func DirectMirScalarProgramLogicalRecordCandidateAt(
-    json: String, ref declarations: MirProgramDeclarationIndex, declaration_row: Int,
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex, declaration_row: Int,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramLogicalRecordFact {
     let invalid: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFactInvalid();
     let envelope: DirectMirScalarProgramLogicalRecordDeclarationEnvelope =
         DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
-            json, declarations, declaration_row);
+            json, json_extent, declarations, declaration_row);
     if !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) ||
         !envelope.valid { return invalid; }
     if MirProgramDeclarationFieldIdentityDeclarationIndex(
@@ -431,7 +431,7 @@ func DirectMirScalarProgramLogicalRecordFactFromAdmitted(
     while reference < ArrayLength(referenced_rows) {
         let candidate: DirectMirScalarProgramLogicalRecordFact =
             DirectMirScalarProgramLogicalRecordCandidateAt(
-                admitted.document.root.json,
+                admitted.document.root.json, admitted.document.root.json_extent,
                 admitted.domain_runtime_admission.declarations,
                 referenced_rows[reference], payload_free_enum);
         if candidate.valid {
@@ -457,7 +457,7 @@ func DirectMirScalarProgramLogicalRecordFactFromAdmitted(
         while reference < ArrayLength(referenced_rows) {
             let candidate: DirectMirScalarProgramLogicalRecordFact =
                 DirectMirScalarProgramLogicalRecordCandidateAt(
-                    admitted.document.root.json,
+                    admitted.document.root.json, admitted.document.root.json_extent,
                     admitted.domain_runtime_admission.declarations,
                     referenced_rows[reference], payload_free_enum);
             let already_selected: Bool = false;
@@ -577,21 +577,21 @@ func DirectMirScalarProgramLogicalRecordFieldType(
 
 func DirectMirScalarProgramLogicalRecordInstructionReady(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
-    json: String, ref capture: MirRoutineInstructionScalarCapture
+    json: String, json_extent: Int, ref capture: MirRoutineInstructionScalarCapture
 ) -> Bool {
     if !DirectMirScalarProgramLogicalRecordFactReady(fact) { return false; }
     let row: Int = DirectMirScalarProgramLogicalRecordRow(
         fact, capture.abi_type_name);
     if row < 0 {
         if DirectMirIdentityCellRow(fact.identity_cells, capture.abi_type_name) >= 0 {
-            return DirectMirInstructionHasNoPhysicalAbi(json, capture, capture.abi_type_name);
+            return DirectMirInstructionHasNoPhysicalAbi(json, json_extent, capture, capture.abi_type_name);
         }
         return true;
     }
     if fact.physical.layout_ids[row] > 0 {
         let physical: Option<MirAbiLayoutRowCapture> =
             MirCapturedRequiredAbiLayoutRowAdmission(
-                json, capture.abi_type_name, capture.abi_type_value_ready,
+                json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
                 capture.abi_type_start, capture.abi_type_end,
                 capture.abi_layout_id_start, capture.abi_layout_id_end,
                 capture.abi_layout_required_start,
@@ -603,7 +603,7 @@ func DirectMirScalarProgramLogicalRecordInstructionReady(
             DirectMirAbiRowIdentityText(captured) == fact.physical.row_keys[row];
     }
     return DirectMirInstructionHasNoPhysicalAbi(
-        json, capture, capture.abi_type_name);
+        json, json_extent, capture, capture.abi_type_name);
 }
 
 func DirectMirScalarProgramLogicalRecordParameterAbiReady(

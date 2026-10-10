@@ -49,7 +49,7 @@ func DirectMirReturnedArrayProgramRouteFactFromAdmitted(
     let row: Int = 0;
     while row < 2 {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         if admitted.routines.names[row] == "Main" {

@@ -10,7 +10,7 @@ import "error_owner.pgy";
 import "json_fact_read.pgy";
 
 func MirMatchBindingLineForInstruction(
-    json: String,
+    json: String, json_extent: Int,
     instruction_start: Int,
     instruction_end: Int,
     source_type: String,
@@ -33,18 +33,18 @@ func MirMatchBindingLineForInstruction(
     let binding_bounds: Array<Int> = [0, 0];
     let type_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-            json, instruction_start, instruction_end, "match_bindings",
+            json, json_extent, instruction_start, instruction_end, "match_bindings",
             binding_bounds
         ) ||
         !JsonArrayStringsWithin(
-            json, binding_bounds[0], binding_bounds[1], bindings
+            json, json_extent, binding_bounds[0], binding_bounds[1], bindings
         ) ||
         !MirObjectArrayBoundsAtBounds(
-            json, instruction_start, instruction_end, "match_binding_types",
+            json, json_extent, instruction_start, instruction_end, "match_binding_types",
             type_bounds
         ) ||
         !JsonArrayStringsWithin(
-            json, type_bounds[0], type_bounds[1], binding_types
+            json, json_extent, type_bounds[0], type_bounds[1], binding_types
         ) {
         MirLowerFailClosed(Concat(
             variant,
@@ -62,7 +62,7 @@ func MirMatchBindingLineForInstruction(
     let is_wrapper: Bool =
         variant == "Some" || variant == "Ok" || variant == "Err";
     let family: Option<String> = JsonObjectStringFieldOptWithin(
-        json, instruction_start, instruction_end, "match_subject_family"
+        json, json_extent, instruction_start, instruction_end, "match_subject_family"
     );
     if IsSome(family) {
         let subject_family: String = UnwrapOption(family);

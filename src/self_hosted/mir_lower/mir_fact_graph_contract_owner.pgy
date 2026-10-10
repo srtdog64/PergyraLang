@@ -13,6 +13,7 @@ func MirFactGraphPayloadFixtureCount() -> Int {
 
 func MirFactGraphPayloadRootReady() -> Bool {
     let json: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":[],\"routines\":[{\"name\":\"Main\",\"source_locals\":[],\"body\":[{\"source_type\":\"AST_LOG_CALL\",\"expr0\":\"1\"}]}]}";
+    let json_extent: Int = StringLength(json);
     if !MirDocumentSchemaEquals(json, MirFactGraphPayloadSchema()) {
         return false;
     }
@@ -37,7 +38,7 @@ func MirFactGraphPayloadRootReady() -> Bool {
     }
 
     let inst: Array<Int> = [0, 0];
-    if !MirObjectArrayObjectBoundsAt(json, routine[0], routine[1], "body", 0, inst) {
+    if !MirObjectArrayObjectBoundsAt(json, json_extent, routine[0], routine[1], "body", 0, inst) {
         return false;
     }
     let source_type: Option<String> = MirObjectStringFactOpt(json, inst[0], inst[1], "source_type");

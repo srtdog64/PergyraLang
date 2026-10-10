@@ -82,7 +82,7 @@ func DirectMirConstructedGenericMemberDeclarationHasMethod(
 }
 
 func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
-    json: String, ref declarations: MirProgramDeclarationIndex,
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex,
     declaration_row: Int
 ) -> DirectMirConstructedGenericMemberDeclarationFact {
     if !declarations.valid || declaration_row < 0 ||
@@ -92,7 +92,7 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
     }
     let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, declarations.starts[declaration_row],
+        json, json_extent, declarations.starts[declaration_row],
         declarations.ends[declaration_row]
     );
     let name_opt: Option<String> = JsonObjectFactStringFieldOpt(
@@ -152,7 +152,7 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
         );
         let contract: MirDeclarationMethodContractFact =
             MirDeclarationMethodContractFactFromBounds(
-                json, method.start, method.end
+                json, json_extent, method.start, method.end
             );
         if JsonObjectFactCount(method) != 5 || !IsSome(method_name) ||
             !IsSome(method_return) || !IsSome(callable_kind) ||
@@ -188,12 +188,12 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
 }
 
 func DirectMirConstructedGenericMemberDeclarationFactFromDocument(
-    json: String, ref declarations: MirProgramDeclarationIndex
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex
 ) -> DirectMirConstructedGenericMemberDeclarationFact {
     if MirProgramDeclarationIndexCount(declarations) != 1 {
         return InvalidDirectMirConstructedGenericMemberDeclarationFact();
     }
     return DirectMirConstructedGenericMemberDeclarationFactAtDocument(
-        json, declarations, 0
+        json, json_extent, declarations, 0
     );
 }

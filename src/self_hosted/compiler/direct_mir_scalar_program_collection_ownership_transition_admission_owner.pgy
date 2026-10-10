@@ -85,14 +85,14 @@ func DirectMirCollectionOwnershipTrackedRowForLocal(
 }
 
 func DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
-    json: String,
+    json: String, json_extent: Int,
     ref index: MirRoutineFactIndex,
     binding_syntax_id: Int
 ) -> Bool {
     let instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json, index.instruction_facts.starts[instruction],
+            json, json_extent, index.instruction_facts.starts[instruction],
             index.instruction_facts.ends[instruction]
         );
         let receipt: DirectMirCollectionOwnershipInstructionReceipt =
@@ -162,7 +162,7 @@ func DirectMirCollectionOwnershipEmptyBindingForLocal(
 
 func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     fact: DirectMirScalarProgramCollectionOwnershipTransitionFact,
-    json: String,
+    json: String, json_extent: Int,
     ref index: MirRoutineFactIndex,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
@@ -205,7 +205,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             let requires_transition: Bool = origin == "member-move" ||
                 origin == "binding" || retired ||
                 DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
-                    json, index, binding) ||
+                    json, json_extent, index, binding) ||
                 DirectMirCollectionOwnershipOperationSetRequiresTransition(
                     storage, expressions, operation_offset,
                     storage.routines.operation_counts[routine], matched_local);
@@ -260,7 +260,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     let instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.starts) {
         let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json, index.instruction_facts.starts[instruction],
+            json, json_extent, index.instruction_facts.starts[instruction],
             index.instruction_facts.ends[instruction]
         );
         let kind: Option<String> = JsonObjectFactStringFieldOpt(

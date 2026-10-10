@@ -17,6 +17,25 @@ struct SemanticStructLiteralFieldView {
     value_node: Int;
 }
 
+// One allocation-free parser binding edge, shared by indexed literal reads
+// and capture admission during the existing source-ordered node traversal.
+func SemanticStructLiteralFieldBindingFromGraph(
+    ref graph: SemanticExpressionGraphFacts, binding: Int
+) -> SemanticStructLiteralFieldView {
+    let invalid: SemanticStructLiteralFieldView = SemanticStructLiteralFieldView(false, -1, -1);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, binding);
+    let name: Option<Int> = SemanticExpressionGraphLeftChild(graph, binding);
+    let value: Option<Int> = SemanticExpressionGraphRightChild(graph, binding);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeStructFieldBinding() ||
+        !IsSome(name) || !IsSome(value) || UnwrapOption(name) < 0 || UnwrapOption(name) >= binding ||
+        UnwrapOption(value) < 0 || UnwrapOption(value) >= binding { return invalid; }
+    let name_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, UnwrapOption(name));
+    let name_text: Option<String> = SemanticExpressionGraphNodeText(graph, UnwrapOption(name));
+    if !IsSome(name_kind) || UnwrapOption(name_kind) != AstExpressionNodeStructFieldName() ||
+        !IsSome(name_text) || !IsIdentifier(UnwrapOption(name_text)) { return invalid; }
+    return SemanticStructLiteralFieldView(true, UnwrapOption(name), UnwrapOption(value));
+}
+
 func SemanticStructLiteralViewFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int
@@ -35,30 +54,8 @@ func SemanticStructLiteralViewFromGraph(
         if !IsSome(previous) || !IsSome(binding) {
             return SemanticStructLiteralView(false, 0, root_id, 0);
         }
-        let binding_id: Int = UnwrapOption(binding);
-        let binding_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph, binding_id
-        );
-        let name_node: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, binding_id
-        );
-        let value_node: Option<Int> = SemanticExpressionGraphRightChild(
-            graph, binding_id
-        );
-        if !IsSome(binding_kind) || UnwrapOption(binding_kind) !=
-                AstExpressionNodeStructFieldBinding() ||
-            !IsSome(name_node) || !IsSome(value_node) {
-            return SemanticStructLiteralView(false, 0, root_id, 0);
-        }
-        let name_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph, UnwrapOption(name_node)
-        );
-        let name: Option<String> = SemanticExpressionGraphNodeText(
-            graph, UnwrapOption(name_node)
-        );
-        if !IsSome(name_kind) || UnwrapOption(name_kind) !=
-                AstExpressionNodeStructFieldName() ||
-            !IsSome(name) || !IsIdentifier(UnwrapOption(name)) {
+        let field: SemanticStructLiteralFieldView = SemanticStructLiteralFieldBindingFromGraph(graph, UnwrapOption(binding));
+        if !field.ok {
             return SemanticStructLiteralView(false, 0, root_id, 0);
         }
         field_count = field_count + 1;
@@ -108,21 +105,5 @@ func SemanticStructLiteralFieldAt(
             AstExpressionNodeStructField() || !IsSome(binding) {
         return SemanticStructLiteralFieldView(false, 0, 0);
     }
-    let binding_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, UnwrapOption(binding)
-    );
-    let name_node: Option<Int> = SemanticExpressionGraphLeftChild(
-        graph, UnwrapOption(binding)
-    );
-    let value_node: Option<Int> = SemanticExpressionGraphRightChild(
-        graph, UnwrapOption(binding)
-    );
-    if !IsSome(binding_kind) || UnwrapOption(binding_kind) !=
-            AstExpressionNodeStructFieldBinding() ||
-        !IsSome(name_node) || !IsSome(value_node) {
-        return SemanticStructLiteralFieldView(false, 0, 0);
-    }
-    return SemanticStructLiteralFieldView(
-        true, UnwrapOption(name_node), UnwrapOption(value_node)
-    );
+    return SemanticStructLiteralFieldBindingFromGraph(graph, UnwrapOption(binding));
 }

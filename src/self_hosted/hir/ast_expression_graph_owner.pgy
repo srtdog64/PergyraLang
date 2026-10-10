@@ -78,13 +78,13 @@ func AstExpressionBoolLiteralPayloadReady(text: String) -> Bool {
 
 func AstExpressionStringLiteralPayloadReady(text: String) -> Bool {
     let n: Int = StringLength(text);
-    if n < 2 || CodegenCharCodeAt(text, n, 0) != 34 ||
-        CodegenCharCodeAt(text, n, n - 1) != 34 {
+    if n < 2 || CodegenCharCodeAt(text, n, n, 0) != 34 ||
+        CodegenCharCodeAt(text, n, n, n - 1) != 34 {
         return false;
     }
     let i: Int = 1;
     while i < n - 1 {
-        let c: Int = CodegenCharCodeAt(text, n, i);
+        let c: Int = CodegenCharCodeAt(text, n, n, i);
         if c == 34 { return false; }
         if c == 92 {
             i = i + 1;
@@ -126,30 +126,32 @@ func AstExpressionSignedDecimalWithin(
     let start: Int = 0;
     let limit: String = positive_limit;
     // ASCII payload admission reads bytes without allocating character Strings.
-    if digits_end > 0 && CodegenCharCodeAt(text, text_length, 0) == 45 {
+    if digits_end > 0 && CodegenCharCodeAt(text, text_length, text_length, 0) == 45 {
         start = 1;
         limit = negative_limit;
     }
     if start >= digits_end { return false; }
     let i: Int = start;
     while i < digits_end {
-        let digit: Int = CodegenCharCodeAt(text, text_length, i);
+        let digit: Int = CodegenCharCodeAt(text, text_length, text_length, i);
         if digit < 48 || digit > 57 { return false; }
         i = i + 1;
     }
     while start < digits_end - 1 &&
-        CodegenCharCodeAt(text, text_length, start) == 48 {
+        CodegenCharCodeAt(text, text_length, text_length, start) == 48 {
         start = start + 1;
     }
-    let limit_length: Int = StringLength(limit);
+    // The sign has chosen the limit; read it through one unchanged binding.
+    let selected_limit: String = limit;
+    let limit_length: Int = StringLength(selected_limit);
     let length: Int = digits_end - start;
     if length != limit_length {
         return length < limit_length;
     }
     i = 0;
     while i < length {
-        let digit: Int = CodegenCharCodeAt(text, text_length, start + i);
-        let bound: Int = CodegenCharCodeAt(limit, limit_length, i);
+        let digit: Int = CodegenCharCodeAt(text, text_length, text_length, start + i);
+        let bound: Int = CodegenCharCodeAt(selected_limit, limit_length, limit_length, i);
         if digit != bound {
             return digit < bound;
         }

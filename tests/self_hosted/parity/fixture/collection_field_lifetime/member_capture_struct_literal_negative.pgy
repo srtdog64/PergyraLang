@@ -1,0 +1,8 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+struct Box { table: Table; }
+func Observe(ref input: Envelope) -> Int {
+    let captured: Box = Box { table: input.table };
+    return ArrayLength(captured.table.names);
+}
+func Main() -> Void {}

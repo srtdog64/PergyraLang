@@ -162,7 +162,7 @@ func CompilerRuntimeValueCallInstructionRowReady(
         }
         return type_ready && IsSome(id) && UnwrapOption(id) == "0" &&
             JsonObjectBoolFieldEqualsWithin(
-                instruction.json, instruction.start, instruction.end,
+                instruction.json, instruction.json_extent, instruction.start, instruction.end,
                 "abi_layout_required", false) &&
             IsSome(layout_kind) && UnwrapOption(layout_kind) == "null";
     }
@@ -170,7 +170,7 @@ func CompilerRuntimeValueCallInstructionRowReady(
             instruction, "abi_type_name", representation.type_name) ||
         !IsSome(id) || ToString(ToInt(UnwrapOption(id))) != UnwrapOption(id) ||
         !JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.start, instruction.end,
+            instruction.json, instruction.json_extent, instruction.start, instruction.end,
             "abi_layout_required", true) ||
         !IsSome(layout_kind) || UnwrapOption(layout_kind) != "object" {
         return false;
@@ -180,7 +180,7 @@ func CompilerRuntimeValueCallInstructionRowReady(
         return false;
     }
     let captured: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
-        instruction.json, bounds[0], bounds[1]);
+        instruction.json, instruction.json_extent, bounds[0], bounds[1]);
     return CompilerRuntimeValueRepresentationMatchesCapture(
             representation, captured) &&
         ToInt(UnwrapOption(id)) == MirAbiLayoutIdFromCapture(captured);

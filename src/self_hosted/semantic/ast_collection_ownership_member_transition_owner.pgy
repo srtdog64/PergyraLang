@@ -6,26 +6,14 @@ import "ast_collection_ownership_member_move_owner.pgy";
 import "ast_collection_member_read_permission_owner.pgy";
 import "ast_collection_member_read_local_root_owner.pgy";
 import "ast_collection_member_place_use_owner.pgy";
-struct SemanticAstCollectionMemberMoveUse {
-    found: Bool;
-    syntax_node_id: Int;
-    expression_node_id: Int;
-    restored_binding_syntax_ids: Array<Int>;
-    restoration_syntax_ids: Array<Int>;
-    readable_members: HashMap<String, Int>;
-    unproved_read_roots: HashMap<String, Int>;
-    // Root binding -> first site where its member storage may outlive a release.
-    element_escape_roots: HashMap<String, Int>;
-    read_permission_ready: Bool;
-}
-func SemanticAstCollectionMemberMoveEventKey(identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
-    return Concat(identity.key, Concat(":", ToString(syntax_node_id)));
-}
+import "ast_collection_member_capture_obligation_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
 func SemanticAstCollectionFirstInvalidMemberMoveUse(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
     ref contexts: SemanticAstCollectionFormalExecutionContexts, borrowed_text: HashMap<String, Int>,
     own move_destinations: HashMap<String, Int>
 ) -> SemanticAstCollectionMemberMoveUse {
@@ -42,6 +30,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
     let nested_nodes: Array<Int> = []; let nested_roots: Array<Int> = [];
     let nested_lend_sources: Array<Int> = []; let nested_lend_targets: Array<Int> = [];
     let nested_blocked: HashMap<String, Int> = MapNew();
+    let readonly_origins: Array<Int> = [];
+    let capture: SemanticAstCollectionMemberCaptureWitness = SemanticAstCollectionMemberCaptureWitness(true, -1, -1);
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[root_slot] {
@@ -54,6 +44,9 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                 let subtree_start: Int = UnwrapOption(start);
                 let node: Int = subtree_start;
                 while node <= root_id {
+                    capture = SemanticAstCollectionMemberCaptureObligationAt(
+                        artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types, surfaces, assignments,
+                        statements, root_slot, node, root_id, capture, readonly_origins, unproved_read_roots);
                     let read_use: SemanticAstCollectionMemberRootReadOccurrence = SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
                         artifact, signatures, constructors, resolved_leaf_types, surfaces.expression_graph, contexts,
                         surfaces.function_node_ids[surface], node, root_id);
@@ -93,13 +86,11 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             MapSet(unproved_read_roots, ToString(identity.source_binding_syntax_id), 1);
                             // A new extraction cannot overwrite an outstanding move.
                             if MapHas(active_members, identity.key) && MapGet(active_members, identity.key) > 0 {
-                                ArrayDrop(read_sources); ArrayDrop(read_targets);
-                                ArrayDrop(escape_sources); ArrayDrop(escape_targets); ArrayDrop(escape_sites);
-                                ArrayDrop(nested_nodes); ArrayDrop(nested_roots);
-                                ArrayDrop(nested_lend_sources); ArrayDrop(nested_lend_targets);
-                                return SemanticAstCollectionMemberMoveUse(
-                                    true, syntax_id, node, restored, restoration_sites, readable_members,
-                                    unproved_read_roots, element_escape_roots, true);
+                                return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
+                                    restored, restoration_sites, readable_members, unproved_read_roots, element_escape_roots, nested_blocked,
+                                    readonly_origins,
+                                    read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+                                    nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
                             }
                             MapSet(active_members, identity.key,
                                 MapGet(move_destinations, event_key));
@@ -136,13 +127,11 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                 }
                             }
                             if !is_restore {
-                                ArrayDrop(read_sources); ArrayDrop(read_targets);
-                                ArrayDrop(escape_sources); ArrayDrop(escape_targets); ArrayDrop(escape_sites);
-                                ArrayDrop(nested_nodes); ArrayDrop(nested_roots);
-                                ArrayDrop(nested_lend_sources); ArrayDrop(nested_lend_targets);
-                                return SemanticAstCollectionMemberMoveUse(
-                                    true, syntax_id, node, restored, restoration_sites, readable_members,
-                                    unproved_read_roots, element_escape_roots, true);
+                                return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
+                                    restored, restoration_sites, readable_members, unproved_read_roots, element_escape_roots, nested_blocked,
+                                    readonly_origins,
+                                    read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+                                    nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
                             }
                         }
                         let read_root: Int = SemanticAstCollectionMemberReadFormalRoot(
@@ -156,14 +145,11 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                     // field identity, not lexical local use.  The expression
                     // identity owner applies the same topology rule when it
                     // carries binding identities.
-                    let is_member_name: Bool = node + 1 <= root_id &&
-                        surfaces.expression_graph.arena.topology.node_kinds[
-                            node + 1] == AstExpressionNodeMemberAccess() &&
-                        surfaces.expression_graph.arena.topology.right_children[
-                            node + 1] == node;
+                    let next_member: SemanticMemberAccessView =
+                        SemanticMemberAccessViewFromGraph(surfaces.expression_graph, node + 1);
                     let binding_use: SemanticAstLocalBindingIdentity =
                         SemanticAstLocalBindingIdentityUnresolved();
-                    if !is_member_name {
+                    if node + 1 > root_id || !next_member.ok || next_member.member_node != node {
                         binding_use =
                             SemanticAstScopedLocalBindingIdentityForGraphLeaf(
                                 artifact, locals, inferred_types,
@@ -182,13 +168,11 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             ToString(binding_use.declaration_node_id)) &&
                         syntax_id > MapGet(retired_locals,
                             ToString(binding_use.declaration_node_id)) {
-                        ArrayDrop(read_sources); ArrayDrop(read_targets);
-                        ArrayDrop(escape_sources); ArrayDrop(escape_targets); ArrayDrop(escape_sites);
-                        ArrayDrop(nested_nodes); ArrayDrop(nested_roots);
-                        ArrayDrop(nested_lend_sources); ArrayDrop(nested_lend_targets);
-                        return SemanticAstCollectionMemberMoveUse(
-                            true, syntax_id, node, restored, restoration_sites, readable_members,
-                            unproved_read_roots, element_escape_roots, true);
+                        return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
+                            restored, restoration_sites, readable_members, unproved_read_roots, element_escape_roots, nested_blocked,
+                            readonly_origins,
+                            read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+                            nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
                     }
                     node = node + 1;
                 }
@@ -196,34 +180,9 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
         }
         root_slot = root_slot + 1;
     }
-    let closed: Bool = contexts.ok && contexts.artifact_identity_digest == artifact.identity_digest &&
-        contexts.artifact_node_count == artifact.count &&
-        SemanticAstCollectionMemberReadBlockedRootsClosure(read_sources, read_targets, unproved_read_roots) &&
-        SemanticAstCollectionMemberElementEscapeClosure(escape_sources, escape_targets, escape_sites, element_escape_roots) &&
-        SemanticAstCollectionMemberNestedReadAdmit(nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets,
-            unproved_read_roots, nested_blocked, readable_members);
-    ArrayDrop(read_sources); ArrayDrop(read_targets);
-    ArrayDrop(escape_sources); ArrayDrop(escape_targets); ArrayDrop(escape_sites);
-    ArrayDrop(nested_nodes); ArrayDrop(nested_roots); ArrayDrop(nested_lend_sources); ArrayDrop(nested_lend_targets);
-    return SemanticAstCollectionMemberMoveUse(
-        false, -1, -1, restored, restoration_sites, readable_members, unproved_read_roots, element_escape_roots, closed);
-}
-
-func SemanticAstCollectionApplyMemberMoveRestorations(
-    ref locals: SemanticAstLocalBindingFacts, ref moved_use: SemanticAstCollectionMemberMoveUse,
-    inout dispositions: Array<Int>
-) -> Void {
-    let restored: Int = 0;
-    while restored < ArrayLength(moved_use.restored_binding_syntax_ids) {
-        let local_row: Int = 0;
-        while local_row < ArrayLength(locals.node_ids) {
-            if locals.node_ids[local_row] ==
-                    moved_use.restored_binding_syntax_ids[restored] {
-                dispositions[local_row] =
-                    SemanticAstCollectionDispositionRetired();
-            }
-            local_row = local_row + 1;
-        }
-        restored = restored + 1;
-    }
+    return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, false, -1, -1, capture,
+        restored, restoration_sites, readable_members, unproved_read_roots, element_escape_roots, nested_blocked,
+        readonly_origins,
+        read_sources, read_targets, escape_sources, escape_targets, escape_sites,
+        nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets);
 }

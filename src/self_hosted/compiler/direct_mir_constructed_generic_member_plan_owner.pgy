@@ -106,7 +106,7 @@ func DirectMirConstructedGenericMemberPlanFromAdmitted(
         );
     let option_abi: DirectMirOptionMatchAbiFact =
         DirectMirConstructedGenericMemberOptionAbiFromResult(
-            admitted.routines.source_json, main
+            admitted.routines.source_json, admitted.routines.source_json_extent, main
         );
     let plan: DirectMirConstructedGenericMemberPlan =
         DirectMirConstructedGenericMemberPlan(

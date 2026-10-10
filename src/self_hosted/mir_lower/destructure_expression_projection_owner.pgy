@@ -76,9 +76,9 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
         ) {
         return MirExpressionGraphSequenceError(sequence);
     }
-    let binding_count: Int = JsonArrayStringCount(instruction.json, binding_bounds[0], binding_bounds[1]);
+    let binding_count: Int = JsonArrayStringCount(instruction.json, instruction.json_extent, binding_bounds[0], binding_bounds[1]);
     if binding_count <= 0 { return MirExpressionGraphSequenceError(sequence); }
-    let first_binding: String = JsonArrayStringAt(instruction.json, binding_bounds[0], binding_bounds[1], 0);
+    let first_binding: String = JsonArrayStringAt(instruction.json, instruction.json_extent, binding_bounds[0], binding_bounds[1], 0);
     if first_binding == "" { return MirExpressionGraphSequenceError(sequence); }
     let init: String = UnwrapOption(expr0);
     // The initializer graph decides whether a temporary exists; the name
@@ -107,7 +107,7 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
     }
     if binding_index < 0 || binding_index >= binding_count ||
         JsonArrayStringAt(
-            instruction.json, binding_bounds[0], binding_bounds[1],
+            instruction.json, instruction.json_extent, binding_bounds[0], binding_bounds[1],
             binding_index
         ) == "" {
         return MirExpressionGraphSequenceError(sequence);

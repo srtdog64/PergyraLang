@@ -1,0 +1,9 @@
+// P3 and P4: a literal source with a literal extent no larger than it, and
+// an extent of 0 or 1, which reads at most index 0.
+func Main() -> Void {
+    let digits: String = Concat("01", "2");
+    Print(CharAtN("0123456789abcdef", 16, 15));
+    Print(ToString(CharCode("abc", 3, 2)));
+    Print(ToString(CharCode(digits, 1, 0)));
+    Print(ToString(CharCode(digits, 0, 0)));
+}

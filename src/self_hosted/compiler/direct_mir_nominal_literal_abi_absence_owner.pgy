@@ -55,11 +55,11 @@ func DirectMirNominalLiteralAbiAbsenceFactReady(
 }
 
 func DirectMirNominalLiteralAbiAbsenceFromSealedDefinition(
-    json: String, ref definition: MirRoutineInstructionScalarCapture,
+    json: String, json_extent: Int, ref definition: MirRoutineInstructionScalarCapture,
     expected_type: String
 ) -> DirectMirNominalLiteralAbiAbsenceFact {
     let physical_abi_absent: Bool = DirectMirInstructionHasNoPhysicalAbi(
-        json, definition, expected_type
+        json, json_extent, definition, expected_type
     );
     let fact: DirectMirNominalLiteralAbiAbsenceFact =
         DirectMirNominalLiteralAbiAbsenceFact(

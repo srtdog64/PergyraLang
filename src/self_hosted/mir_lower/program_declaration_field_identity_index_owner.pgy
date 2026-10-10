@@ -53,7 +53,7 @@ func EmptyMirProgramDeclarationFieldIdentityIndex(
 }
 
 func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
-    json: String,
+    json: String, json_extent: Int,
     starts: Array<Int>,
     ends: Array<Int>,
     declaration_names: Array<String>,
@@ -77,7 +77,7 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
     let declaration_index: Int = 0;
     while declaration_index < ArrayLength(starts) {
         let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json, starts[declaration_index], ends[declaration_index]
+            json, json_extent, starts[declaration_index], ends[declaration_index]
         );
         let name: String = Concat("", declaration_names[declaration_index]);
         let kind: String = Concat("", declaration_kinds[declaration_index]);

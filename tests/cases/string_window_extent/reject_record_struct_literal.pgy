@@ -1,0 +1,14 @@
+// A struct literal is a construction: it must prove the field pair too.
+struct MeasureText {
+    text: String;
+    text_extent: Int;
+}
+
+func ReadAt(m: MeasureText, i: Int) -> Int {
+    return CharCode(m.text, m.text_extent, i);
+}
+
+func Main() -> Void {
+    let m: MeasureText = MeasureText { text: "ab", text_extent: 4096 };
+    Print(ToString(ReadAt(m, 3000)));
+}

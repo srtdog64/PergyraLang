@@ -1,6 +1,7 @@
 // Allocation-free comparisons over borrowed MIR instruction routing strings.
 
 import "program_instruction_expression_index_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 func MirProgramInstructionExpressionRoutingPresent(
     ref fact: MirProgramInstructionExpressionFact,
@@ -14,7 +15,7 @@ func MirProgramInstructionExpressionRoutingPresent(
 }
 
 func MirProgramInstructionExpressionRoutingEquals(
-    json: String,
+    json: String, json_extent: Int,
     ref fact: MirProgramInstructionExpressionFact,
     slot: Int,
     expected: String
@@ -29,7 +30,7 @@ func MirProgramInstructionExpressionRoutingEquals(
     let escaped: Bool = false;
     let i: Int = start + 1;
     while i < end - 1 {
-        if JsonCharCodeAt(json, end, i) == JsonAsciiCode("\\") {
+        if JsonCharCodeAt(json, json_extent, end, i) == JsonAsciiCode("\\") {
             escaped = true;
         }
         i = i + 1;
@@ -37,8 +38,8 @@ func MirProgramInstructionExpressionRoutingEquals(
     if !escaped {
         let length: Int = end - start - 2;
         return length == StringLength(expected) &&
-            SubEqualsWithLen(json, end, start + 1, length, expected);
+            StringWindowSubEquals(json, json_extent, end, start + 1, length, expected);
     }
-    let decoded: Option<String> = JsonStringValueSpanning(json, start, end);
+    let decoded: Option<String> = JsonStringValueSpanning(json, json_extent, start, end);
     return IsSome(decoded) && UnwrapOption(decoded) == expected;
 }

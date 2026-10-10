@@ -40,10 +40,10 @@ func InvalidMirProgramInstructionExpressionCapture(
 }
 
 func MirProgramInstructionExpressionCaptureWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> MirProgramInstructionExpressionCapture {
     if start < 0 || end <= start ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return InvalidMirProgramInstructionExpressionCapture();
     }
     let kind: String = "";
@@ -78,11 +78,11 @@ func MirProgramInstructionExpressionCaptureWithin(
     let after_comma: Bool = false;
     let i: Int = start + 1;
     while i < end {
-        i = JsonSkipWhitespaceWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end {
             return InvalidMirProgramInstructionExpressionCapture();
         }
-        let c: Int = JsonCharCodeAt(json, end, i);
+        let c: Int = JsonCharCodeAt(json, json_extent, end, i);
         if c == JsonAsciiCode("}") {
             if after_comma || !kind_seen || kind == "" ||
                 !source_type_seen {
@@ -110,40 +110,40 @@ func MirProgramInstructionExpressionCaptureWithin(
         if c != JsonAsciiCode("\"") {
             return InvalidMirProgramInstructionExpressionCapture();
         }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, i, end);
         if !IsSome(key_end_opt) {
             return InvalidMirProgramInstructionExpressionCapture();
         }
         let key_end: Int = UnwrapOption(key_end_opt);
         let raw_key_length: Int = key_end - i - 2;
         let is_kind: Bool = raw_key_length == 4 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "kind");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "kind");
         let is_name: Bool = raw_key_length == 4 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "name");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "name");
         let is_arg0: Bool = raw_key_length == 4 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "arg0");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "arg0");
         let is_expr0: Bool = raw_key_length == 5 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr0");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr0");
         let is_expr1: Bool = raw_key_length == 5 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr1");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr1");
         let is_source_type: Bool = raw_key_length == 11 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "source_type");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "source_type");
         let is_expr0_graph: Bool = raw_key_length == 11 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr0_graph");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr0_graph");
         let is_expr1_graph: Bool = raw_key_length == 11 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr1_graph");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr1_graph");
         let is_machine_layer: Bool = raw_key_length == 13 &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "machine_layer");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "machine_layer");
         let is_machine_contact: Bool = raw_key_length == 20 &&
             JsonObjectKeyEqualsWithin(
-                json, i, key_end, "machine_contact_kind"
+                json, json_extent, i, key_end, "machine_contact_kind"
             );
-        i = JsonSkipWhitespaceWithin(json, key_end, end);
-        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+        i = JsonSkipWhitespaceWithin(json, json_extent, key_end, end);
+        if i >= end || JsonCharCodeAt(json, json_extent, end, i) != JsonAsciiCode(":") {
             return InvalidMirProgramInstructionExpressionCapture();
         }
-        i = JsonSkipWhitespaceWithin(json, i + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, json_extent, i, end);
         if !IsSome(value_end_opt) {
             return InvalidMirProgramInstructionExpressionCapture();
         }
@@ -154,13 +154,13 @@ func MirProgramInstructionExpressionCaptureWithin(
                 return InvalidMirProgramInstructionExpressionCapture();
             }
             let value: String = "";
-            if JsonValueKindAt(json, i, value_end) == "string" {
-                let decoded: Option<String> = JsonStringValueSpanning(json, i, value_end);
+            if JsonValueKindAt(json, json_extent, i, value_end) == "string" {
+                let decoded: Option<String> = JsonStringValueSpanning(json, json_extent, i, value_end);
                 if !IsSome(decoded) {
                     return InvalidMirProgramInstructionExpressionCapture();
                 }
                 value = UnwrapOption(decoded);
-            } else if JsonValueKindAt(json, i, value_end) != "null" {
+            } else if JsonValueKindAt(json, json_extent, i, value_end) != "null" {
                 return InvalidMirProgramInstructionExpressionCapture();
             }
             if is_kind { kind = value; kind_seen = true; }
@@ -174,7 +174,7 @@ func MirProgramInstructionExpressionCaptureWithin(
             }
             let routing_start: Int = 0 - 1;
             let routing_end: Int = 0 - 1;
-            let routing_kind: String = JsonValueKindAt(json, i, value_end);
+            let routing_kind: String = JsonValueKindAt(json, json_extent, i, value_end);
             if routing_kind == "string" {
                 routing_start = i;
                 routing_end = value_end;
@@ -196,7 +196,7 @@ func MirProgramInstructionExpressionCaptureWithin(
             }
             let value_start: Int = 0 - 1;
             let text_end: Int = 0 - 1;
-            let value_kind: String = JsonValueKindAt(json, i, value_end);
+            let value_kind: String = JsonValueKindAt(json, json_extent, i, value_end);
             if value_kind == "string" {
                 value_start = i;
                 text_end = value_end;
@@ -219,7 +219,7 @@ func MirProgramInstructionExpressionCaptureWithin(
             }
             let graph_start: Int = 0 - 1;
             let graph_end: Int = 0 - 1;
-            let graph_kind: String = JsonValueKindAt(json, i, value_end);
+            let graph_kind: String = JsonValueKindAt(json, json_extent, i, value_end);
             if graph_kind == "object" {
                 graph_start = i;
                 graph_end = value_end;
@@ -374,7 +374,7 @@ func MirProgramInstructionExpressionTextPresent(
 }
 
 func MirProgramInstructionExpressionTextsEqual(
-    json: String,
+    json: String, json_extent: Int,
     ref fact: MirProgramInstructionExpressionFact
 ) -> Bool {
     if !fact.valid || fact.expr0_start < 0 || fact.expr1_start < 0 {
@@ -385,8 +385,8 @@ func MirProgramInstructionExpressionTextsEqual(
     if left_length != right_length { return false; }
     let i: Int = 0;
     while i < left_length {
-        if JsonCharCodeAt(json, fact.expr0_end, fact.expr0_start + i) !=
-            JsonCharCodeAt(json, fact.expr1_end, fact.expr1_start + i) {
+        if JsonCharCodeAt(json, json_extent, fact.expr0_end, fact.expr0_start + i) !=
+            JsonCharCodeAt(json, json_extent, fact.expr1_end, fact.expr1_start + i) {
             return false;
         }
         i = i + 1;
@@ -395,7 +395,7 @@ func MirProgramInstructionExpressionTextsEqual(
 }
 
 func MirProgramInstructionExpressionText(
-    json: String,
+    json: String, json_extent: Int,
     ref fact: MirProgramInstructionExpressionFact,
     slot: Int
 ) -> String {
@@ -403,13 +403,13 @@ func MirProgramInstructionExpressionText(
     let start: Int = fact.expr0_start;
     let end: Int = fact.expr0_end;
     if slot == 1 { start = fact.expr1_start; end = fact.expr1_end; }
-    let decoded: Option<String> = JsonStringValueSpanning(json, start, end);
+    let decoded: Option<String> = JsonStringValueSpanning(json, json_extent, start, end);
     if !IsSome(decoded) { return ""; }
     return UnwrapOption(decoded);
 }
 
 func MirProgramInstructionExpressionGraphTable(
-    json: String,
+    json: String, json_extent: Int,
     ref fact: MirProgramInstructionExpressionFact,
     slot: Int
 ) -> JsonObjectFactTable {
@@ -423,5 +423,5 @@ func MirProgramInstructionExpressionGraphTable(
         start < 0 || end <= start {
         return EmptyJsonObjectFactTable();
     }
-    return JsonObjectFactTable(true, json, start, end);
+    return JsonObjectFactTable(true, json, json_extent, start, end);
 }

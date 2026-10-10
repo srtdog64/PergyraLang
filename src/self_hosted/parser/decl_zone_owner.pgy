@@ -68,7 +68,7 @@ func ParseZoneDecl(
             continue;
         }
         let group: ParserZoneSlotGroupRows =
-            ParseZoneSlotGroupRows(location_context, content, i, cursor_out);
+            ParseZoneSlotGroupRows(location_context, content, n, i, cursor_out);
         if group.present {
             i = SkipWhitespaceAndComments(content, cursor_out[0]);
             if ParserCharAt(content, i) == ";" { i = i + 1; }
@@ -174,7 +174,7 @@ func ParseZoneDecl(
             }
             i = ParseExpectIn(location_context, content, i, ":", "zone_shared");
             ArraySet(cursor_out, 0, i);
-            let field_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let field_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if field_type == "" {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "zone_shared", "", "");
@@ -184,7 +184,7 @@ func ParseZoneDecl(
             if ParserCharAt(content, i) == "=" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
-                default_text = ParseExprFactIn(location_context, content, i, cursor_out).text;
+                default_text = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
                 i = cursor_out[0];
             }
             i = ParseStatementTerminatorIn(location_context, content, i, "zone_shared");
@@ -415,7 +415,7 @@ func ParseZoneDecl(
         } else if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
-                content, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
+                content, n, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
                 false, "", expression_graphs, location_context
             );
             i = cursor_out[0];
@@ -439,7 +439,7 @@ func ParseZoneDecl(
                 i = LanguageWordEnd(i, LanguageWordId.WordRequires);
                 i = SkipWhitespaceAndComments(content, i);
                 ArraySet(cursor_out, 0, i);
-                auth_req = ReadTypeIn(location_context, content, i, cursor_out);
+                auth_req = ReadTypeIn(location_context, content, n, i, cursor_out);
                 i = cursor_out[0];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
@@ -447,7 +447,7 @@ func ParseZoneDecl(
                         i = i + 1;
                         i = SkipWhitespaceAndComments(content, i);
                         ArraySet(cursor_out, 0, i);
-                        let next_req: String = ReadTypeIn(location_context, content, i, cursor_out);
+                        let next_req: String = ReadTypeIn(location_context, content, n, i, cursor_out);
                         i = cursor_out[0];
                         auth_req = Concat(auth_req, Concat(", ", next_req));
                         continue;
@@ -498,7 +498,7 @@ func ParseZoneDecl(
             let s_name: String = ParseNameIn(location_context, content, i, "slot name", "zone_slot", cursor_out);
             i = ParseExpectIn(location_context, content, cursor_out[0], ":", "zone_slot");
             ArraySet(cursor_out, 0, i);
-            let s_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let s_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if StringLength(s_type) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "zone_slot", "", "");

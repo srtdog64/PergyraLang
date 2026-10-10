@@ -1,0 +1,12 @@
+func CustomObserver(value: String) -> String {
+    return value;
+}
+
+func EscapeIndexedString(values: Array<String>) -> String {
+    return CustomObserver(values[0]);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["retained"];
+    Log(EscapeIndexedString(values));
+}

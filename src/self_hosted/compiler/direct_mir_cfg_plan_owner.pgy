@@ -23,7 +23,7 @@ func DirectMirCfgPlanFromAdmitted(
     if DirectMirEnumValueMatchRouteFactReady(enum_route) &&
         enum_route.claimed {
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json, admitted.routines.starts[0],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0],
             admitted.routines.ends[0]
         );
         enum_envelope = DirectMirProgramCommonEnvelopeReady(admitted) &&

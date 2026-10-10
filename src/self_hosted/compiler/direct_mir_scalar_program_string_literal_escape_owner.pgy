@@ -4,9 +4,10 @@
 // the backslash is removed before the bounded JSON decoder reads the literal.
 
 import "../codegen/text/text_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 func DirectMirScalarProgramStringLiteralJsonSpelling(
-    spelling: String, length: Int
+    spelling: String, spelling_extent: Int, length: Int
 ) -> String {
     if StringIndexOf(spelling, "\\$") < 0 && StringIndexOf(spelling, "\\{") < 0 {
         return spelling;
@@ -15,16 +16,16 @@ func DirectMirScalarProgramStringLiteralJsonSpelling(
     let out: TextBuilder = TextBuilderNew(256);
     let index: Int = 0;
     while index < length {
-        let code: Int = CharCode(spelling, length, index);
+        let code: Int = StringWindowCharCode(spelling, spelling_extent, length, index);
         if code == 92 && index + 1 < length {
-            let escaped: Int = CharCode(spelling, length, index + 1);
+            let escaped: Int = StringWindowCharCode(spelling, spelling_extent, length, index + 1);
             if escaped != 36 && escaped != 123 {
-                TextBuilderAppend(out, CharAtN(spelling, length, index));
+                TextBuilderAppend(out, StringWindowCharAt(spelling, spelling_extent, length, index));
             }
-            TextBuilderAppend(out, CharAtN(spelling, length, index + 1));
+            TextBuilderAppend(out, StringWindowCharAt(spelling, spelling_extent, length, index + 1));
             index = index + 2;
         } else {
-            TextBuilderAppend(out, CharAtN(spelling, length, index));
+            TextBuilderAppend(out, StringWindowCharAt(spelling, spelling_extent, length, index));
             index = index + 1;
         }
     }

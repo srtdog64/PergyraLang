@@ -5,7 +5,7 @@ import "direct_mir_option_match_abi_capture_owner.pgy";
 import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 
 func DirectMirConstructedGenericMemberOptionAbiFromResult(
-    json: String,
+    json: String, json_extent: Int,
     ref main: DirectMirConstructedGenericMemberMainInstructions
 ) -> DirectMirOptionMatchAbiFact {
     if !DirectMirConstructedGenericMemberMainInstructionsReady(main) {
@@ -13,7 +13,7 @@ func DirectMirConstructedGenericMemberOptionAbiFromResult(
     }
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, main.result.abi_type_name, main.result.abi_type_value_ready,
+            json, json_extent, main.result.abi_type_name, main.result.abi_type_value_ready,
             main.result.abi_type_start, main.result.abi_type_end,
             main.result.abi_layout_id_start, main.result.abi_layout_id_end,
             main.result.abi_layout_required_start,

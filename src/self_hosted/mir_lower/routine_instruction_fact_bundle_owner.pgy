@@ -105,7 +105,7 @@ func BuildMirRoutineInstructionFactBundle(
             let global_row: Int = instruction_start + instruction_offset;
             let scalar: MirRoutineInstructionScalarCapture =
                 MirRoutineInstructionScalarCaptureWithin(
-                    routines.source_json,
+                    routines.source_json, routines.source_json_extent,
                     routines.instruction_starts[global_row],
                     routines.instruction_ends[global_row]
                 );

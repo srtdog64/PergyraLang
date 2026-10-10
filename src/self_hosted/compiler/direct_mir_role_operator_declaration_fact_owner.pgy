@@ -42,23 +42,23 @@ func DirectMirRoleOperatorMethodDeclarationFromTable(
             false, 0, "", "", "", ""
         );
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "name"
+        method.json, method.json_extent, method.start, method.end, "name"
     );
     let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "return"
+        method.json, method.json_extent, method.start, method.end, "return"
     );
     let callable_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "callable_kind"
+        method.json, method.json_extent, method.start, method.end, "callable_kind"
     );
     let params: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         method, "params"
     );
     let method_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        method.json, method.start, method.end, "source_syntax_id"
+        method.json, method.json_extent, method.start, method.end, "source_syntax_id"
     );
     let contract: MirDeclarationMethodContractFact =
         MirDeclarationMethodContractFactFromBounds(
-            method.json, method.start, method.end
+            method.json, method.json_extent, method.start, method.end
         );
     if !JsonObjectFactTableReady(method) ||
         JsonObjectFactCount(method) != 6 || !IsSome(name) ||
@@ -78,13 +78,13 @@ func DirectMirRoleOperatorMethodDeclarationFromTable(
     let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
     let rhs: JsonObjectFactTable = JsonArrayObjectFactAt(params, 1);
     let receiver_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        receiver.json, receiver.start, receiver.end, "name"
+        receiver.json, receiver.json_extent, receiver.start, receiver.end, "name"
     );
     let rhs_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        rhs.json, rhs.start, rhs.end, "name"
+        rhs.json, rhs.json_extent, rhs.start, rhs.end, "name"
     );
     let rhs_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        rhs.json, rhs.start, rhs.end, "type"
+        rhs.json, rhs.json_extent, rhs.start, rhs.end, "type"
     );
     if JsonObjectFactCount(receiver) != 2 ||
         JsonObjectFactCount(rhs) != 2 || !IsSome(receiver_name) ||
@@ -190,16 +190,16 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
         admitted.document.declarations, erased_row
     );
     let role_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        role.json, role.start, role.end, "source_syntax_id"
+        role.json, role.json_extent, role.start, role.end, "source_syntax_id"
     );
     let ability_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        ability_table.json, ability_table.start, ability_table.end, "source_syntax_id"
+        ability_table.json, ability_table.json_extent, ability_table.start, ability_table.end, "source_syntax_id"
     );
     let erased_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        erased.json, erased.start, erased.end, "source_syntax_id"
+        erased.json, erased.json_extent, erased.start, erased.end, "source_syntax_id"
     );
     let receiver_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        role.json, role.start, role.end, "for_type"
+        role.json, role.json_extent, role.start, role.end, "for_type"
     );
     let role_methods: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(role, "methods");
@@ -247,13 +247,13 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
         impl_table, "ability"
     );
     let impl_base: Option<String> = MirObjectUniqueStringFactAtBounds(
-        impl_ability.json, impl_ability.start, impl_ability.end, "base"
+        impl_ability.json, impl_ability.json_extent, impl_ability.start, impl_ability.end, "base"
     );
     let method_start: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        impl_table.json, impl_table.start, impl_table.end, "method_start"
+        impl_table.json, impl_table.json_extent, impl_table.start, impl_table.end, "method_start"
     );
     let method_count: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        impl_table.json, impl_table.start, impl_table.end, "method_count"
+        impl_table.json, impl_table.json_extent, impl_table.start, impl_table.end, "method_count"
     );
     if !JsonObjectFactTableReady(impl_table) || JsonObjectFactCount(impl_table) != 3 ||
         !JsonObjectFactTableReady(impl_ability) ||

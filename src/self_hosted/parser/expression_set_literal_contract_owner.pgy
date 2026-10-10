@@ -5,7 +5,7 @@ import "expr_owner.pgy";
 func ParserExpressionSetLiteralGraphContractReady() -> Bool {
     let source: String = "{1, 2, 2}";
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, StringLength(source), 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) ||
         fact.arena.node_kinds[fact.root] != AstExpressionNodeSetElement() {
         return false;
@@ -16,7 +16,7 @@ func ParserExpressionSetLiteralGraphContractReady() -> Bool {
     }
     let empty_cursor: Array<Int> = [0];
     let empty: ParserExpressionFact = ParseExprFact(
-        "{}", 0, empty_cursor
+        "{}", StringLength("{}"), 0, empty_cursor
     );
     return fact.arena.node_kinds[spine] == AstExpressionNodeSetLiteral() &&
         fact.arena.node_texts[spine] == "{}" && empty.ok &&

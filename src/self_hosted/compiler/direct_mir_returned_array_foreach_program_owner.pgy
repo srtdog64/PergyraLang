@@ -106,7 +106,7 @@ func DirectMirReturnedArrayForEachProgramFactFromAdmitted(
         return invalid;
     }
     let main: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[main_row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[main_row],
         admitted.routines.ends[main_row]
     );
     if !JsonObjectFactTableReady(main) ||

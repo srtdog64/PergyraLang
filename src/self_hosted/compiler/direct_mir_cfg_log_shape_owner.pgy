@@ -16,7 +16,7 @@ func DirectMirCfgLogToStringGraphReady(
         return false;
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );

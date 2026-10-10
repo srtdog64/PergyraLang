@@ -37,7 +37,7 @@ func DirectMirIdentityCellStoreFromOwners(
         target_field = "expr1_graph";
     } else if wire_kind != "assign" || capture.name != "assign" || capture.arg0 != "" ||
         capture.result != "" || result != -1 ||
-        !DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, "") {
+        !DirectMirInstructionHasNoPhysicalAbi(instruction.json, instruction.json_extent, capture, "") {
         return invalid;
     }
     let graph: MirExpressionGraphSequence = DirectMirScalarCfgInstructionGraphAt(instruction, target_field);

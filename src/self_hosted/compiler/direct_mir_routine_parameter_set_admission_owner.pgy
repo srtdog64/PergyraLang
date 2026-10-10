@@ -4,7 +4,7 @@ import "direct_mir_routine_parameter_set_fact_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
 
 func DirectMirRoutineParameterSetFactFromBounds(
-    json: String, start: Int, end: Int,
+    json: String, json_extent: Int, start: Int, end: Int,
     names: Array<String>, types: Array<String>,
     carriages: Array<String>, resources: Array<String>,
     pass_shapes: Array<String>, receiver_type: String
@@ -25,13 +25,13 @@ func DirectMirRoutineParameterSetFactFromBounds(
     let cursor: Int = start + 1; let bounds: Array<Int> = [0, 0];
     let row: Int = 0;
     while row < count {
-        if !JsonArrayNextObjectBounds(json, cursor, end, bounds) {
+        if !JsonArrayNextObjectBounds(json, json_extent, cursor, end, bounds) {
             return invalid;
         }
         let implicit_type: String = "";
         if row == 0 { implicit_type = receiver_type; }
         let param: DirectMirRoutineParamFact =
-            DirectMirRoutineParamFactWithReceiverFromBounds(json, bounds[0], bounds[1], implicit_type);
+            DirectMirRoutineParamFactWithReceiverFromBounds(json, json_extent, bounds[0], bounds[1], implicit_type);
         if !DirectMirRoutineParamFactReady(param) ||
             param.name != names[row] ||
             (implicit_type == "" && param.type_name != types[row]) ||
@@ -50,7 +50,7 @@ func DirectMirRoutineParameterSetFactFromBounds(
         cursor = bounds[1];
         row = row + 1;
     }
-    if !DirectMirExactJsonArrayCursorAtEnd(json, cursor, end) { return invalid; }
+    if !DirectMirExactJsonArrayCursorAtEnd(json, json_extent, cursor, end) { return invalid; }
     let source: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFact(
             true, 0, names, source_syntax_ids, admitted_types, carriages, resources,

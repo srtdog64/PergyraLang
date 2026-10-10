@@ -1,0 +1,14 @@
+// P2: a never-reassigned binding declared as StringLength of the source.
+func Main() -> Void {
+    let s: String = Concat("ab", "c");
+    let n: Int = StringLength(s);
+    let mut k: Int = 0;
+    let mut total: Int = 0;
+    while k < 5 {
+        total = total + CharCode(s, n, k);
+        k = k + 1;
+    }
+    Print(ToString(total));
+    Print(CharAtN(s, n, 1));
+    Print(SubstringWithLen(s, n, 1, 9));
+}

@@ -37,7 +37,7 @@ func DirectMirScalarCfgIndexAssignmentAbiMatchesInt(
 ) -> Bool {
     let abi_opt: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, capture.abi_type_name,
+            admitted.routines.source_json, admitted.routines.source_json_extent, capture.abi_type_name,
             capture.abi_type_value_ready, capture.abi_type_start,
             capture.abi_type_end, capture.abi_layout_id_start,
             capture.abi_layout_id_end, capture.abi_layout_required_start,
@@ -63,7 +63,7 @@ func DirectMirScalarCfgIndexAssignmentAbiMatchesString(
 ) -> Bool {
     let abi_opt: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, capture.abi_type_name,
+            admitted.routines.source_json, admitted.routines.source_json_extent, capture.abi_type_name,
             capture.abi_type_value_ready, capture.abi_type_start,
             capture.abi_type_end, capture.abi_layout_id_start,
             capture.abi_layout_id_end, capture.abi_layout_required_start,
@@ -127,7 +127,7 @@ func DirectMirScalarCfgIndexAssignmentCollectionPlanFromOwners(
         let source_type: String =
             admitted.routines.instruction_source_types[global];
         let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[global],
             admitted.routines.instruction_ends[global]
         );

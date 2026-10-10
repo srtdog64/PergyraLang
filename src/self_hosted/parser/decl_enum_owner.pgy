@@ -42,7 +42,7 @@ func ParseEnumDecl(
         if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let method_block: String = ParseFunction(
-                content, i, cursor_out, "", false, 4,
+                content, n, i, cursor_out, "", false, 4,
                 LanguageWordId.WordFunc, "Function: ", false, "",
                 expression_graphs, location_context
             );
@@ -80,7 +80,7 @@ func ParseEnumDecl(
                     i = type_start;
                 }
                 ArraySet(cursor_out, 0, i);
-                let param_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+                let param_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
                 if StringLength(param_type) == 0 {
                     ParseRefuse(location_context, cursor_out[0], "type_name_invalid", "construct", "enum_variant", "", "");
                 }

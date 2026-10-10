@@ -17,12 +17,12 @@ func SemanticTrimSourceRangeReuse(
         return "";
     }
     while start < end && SourceByteIsWhitespace(
-        SourceByteAt(expr, source_length, start)
+        SourceByteAt(expr, source_length, source_length, start)
     ) {
         start = start + 1;
     }
     while end > start && SourceByteIsWhitespace(
-        SourceByteAt(expr, source_length, end - 1)
+        SourceByteAt(expr, source_length, source_length, end - 1)
     ) {
         end = end - 1;
     }
@@ -40,27 +40,30 @@ func SemanticStripOuterParens(expr: String) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let keep_scanning: Bool = true;
     while keep_scanning && StringLength(text) >= 2 {
-        let open: Int = SkipWhitespaceAndComments(text, 0);
-        if SourceByteAt(text, StringLength(text), open) != SourceByteOf("(") {
+        // One unchanged binding per round proves every window below.
+        let current: String = text;
+        let current_extent: Int = StringLength(current);
+        let open: Int = SkipWhitespaceAndComments(current, 0);
+        if SourceByteAt(current, current_extent, current_extent, open) != SourceByteOf("(") {
             break;
         }
         let depth: Int = 0;
         let close: Int = -1;
         let i: Int = open;
-        while i < StringLength(text) && close < 0 {
-            let c: Int = SourceByteAt(text, StringLength(text), i);
+        while i < current_extent && close < 0 {
+            let c: Int = SourceByteAt(current, current_extent, current_extent, i);
             if c == SourceByteOf("\"") {
-                i = SkipQuotedString(text, i, StringLength(text));
+                i = SkipQuotedString(current, current_extent, i, current_extent);
                 continue;
             }
             if c == SourceByteOf("/") &&
-                SourceByteAt(text, StringLength(text), i + 1) == SourceByteOf("/") {
-                i = SkipLineComment(text, i, StringLength(text));
+                SourceByteAt(current, current_extent, current_extent, i + 1) == SourceByteOf("/") {
+                i = SkipLineComment(current, current_extent, i, current_extent);
                 continue;
             }
             if c == SourceByteOf("/") &&
-                SourceByteAt(text, StringLength(text), i + 1) == SourceByteOf("*") {
-                i = SkipBlockComment(text, i, StringLength(text));
+                SourceByteAt(current, current_extent, current_extent, i + 1) == SourceByteOf("*") {
+                i = SkipBlockComment(current, current_extent, i, current_extent);
                 continue;
             }
             if c == SourceByteOf("(") {
@@ -74,23 +77,23 @@ func SemanticStripOuterParens(expr: String) -> String {
             i = i + 1;
         }
         if close < 0 ||
-            SkipWhitespaceAndComments(text, close + 1) != StringLength(text) {
+            SkipWhitespaceAndComments(current, close + 1) != current_extent {
             keep_scanning = false;
         } else {
             let inner_start: Int = open + 1;
             let inner_end: Int = close;
             while inner_start < inner_end && SourceByteIsWhitespace(
-                SourceByteAt(text, StringLength(text), inner_start)
+                SourceByteAt(current, current_extent, current_extent, inner_start)
             ) {
                 inner_start = inner_start + 1;
             }
             while inner_end > inner_start && SourceByteIsWhitespace(
-                SourceByteAt(text, StringLength(text), inner_end - 1)
+                SourceByteAt(current, current_extent, current_extent, inner_end - 1)
             ) {
                 inner_end = inner_end - 1;
             }
             text = Substring(
-                text, inner_start, inner_end - inner_start
+                current, inner_start, inner_end - inner_start
             );
         }
     }

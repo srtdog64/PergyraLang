@@ -134,10 +134,10 @@ func DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
         );
     let assignment_target: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, assignment_expression, 1
+            admitted.routines.source_json, admitted.routines.source_json_extent, assignment_expression, 1
         );
     let output_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[4]],
         admitted.routines.instruction_ends[globals[4]]
     );
@@ -160,16 +160,16 @@ func DirectMirInferredGenericScalarInstructionAdmissionFromProgram(
         generic_return.arg1 != "" || wrapper_return.arg0 != "" ||
         wrapper_return.arg1 != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, generic_return,
+            admitted.routines.source_json, admitted.routines.source_json_extent, generic_return,
             identity.generic_template.generic_name
         ) || !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, wrapper_return,
+            admitted.routines.source_json, admitted.routines.source_json_extent, wrapper_return,
             CompilerAbiLayoutIntTypeName()
         ) || !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, initial,
+            admitted.routines.source_json, admitted.routines.source_json_extent, initial,
             CompilerAbiLayoutIntTypeName()
         ) || !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, assignment,
+            admitted.routines.source_json, admitted.routines.source_json_extent, assignment,
             CompilerAbiLayoutIntTypeName()
         ) || initial.arg0 != identity.graph.local_name || initial.arg1 != "" ||
         initial.expr1 != CompilerAbiLayoutIntTypeName() ||

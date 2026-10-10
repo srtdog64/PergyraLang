@@ -89,17 +89,17 @@ func DirectMirRoleOperatorParamReady(
     type_is_null: Bool
 ) -> Bool {
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        param.json, param.start, param.end, "name"
+        param.json, param.json_extent, param.start, param.end, "name"
     );
     let type_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        param.json, param.start, param.end, "type"
+        param.json, param.json_extent, param.start, param.end, "type"
     );
     let abi_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        param.json, param.start, param.end, "abi_type_name"
+        param.json, param.json_extent, param.start, param.end, "abi_type_name"
     );
     let source_syntax_id: Option<String> =
         MirObjectUniqueNumberFactAtBounds(
-            param.json, param.start, param.end, "source_syntax_id"
+            param.json, param.json_extent, param.start, param.end, "source_syntax_id"
         );
     return JsonObjectFactTableReady(param) &&
         JsonObjectFactCount(param) == 10 && IsSome(source_syntax_id) &&
@@ -119,7 +119,7 @@ func DirectMirRoleOperatorParamReady(
         JsonObjectFactStringFieldEquals(param, "pass", "direct") &&
         DirectMirObjectNumberEquals(param, "abi_layout_id", "0") &&
         JsonObjectBoolFieldEqualsWithin(
-            param.json, param.start, param.end,
+            param.json, param.json_extent, param.start, param.end,
             "abi_layout_required", false
         ) && DirectMirObjectFieldKindEquals(param, "abi_layout", "null");
 }
@@ -141,10 +141,10 @@ func DirectMirRoleOperatorMethodRoutineReady(
         return false;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        routines.source_json, routines.starts[row], routines.ends[row]
+        routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]
     );
     let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routine.json, routine.start, routine.end, "return"
+        routine.json, routine.json_extent, routine.start, routine.end, "return"
     );
     let params: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(routine, "params");
@@ -235,7 +235,7 @@ func DirectMirRoleOperatorReturnLiteral(
         Die("direct MIR role operator method return routing is invalid");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );
@@ -255,7 +255,7 @@ func DirectMirRoleOperatorReturnLiteral(
         !DirectMirObjectNumberEquals(
             instruction, "abi_layout_id", "0"
         ) || !JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.start, instruction.end,
+            instruction.json, instruction.json_extent, instruction.start, instruction.end,
             "abi_layout_required", false
         ) || !DirectMirObjectFieldKindEquals(
             instruction, "abi_layout", "null"
@@ -279,7 +279,7 @@ func DirectMirRoleOperatorReturnLiteral(
         );
     let graph: JsonObjectFactTable =
         MirProgramInstructionExpressionGraphTable(
-            admitted.routines.source_json, expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
         );
     let sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
@@ -332,7 +332,7 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         Die("direct MIR role operator entrypoint signature is invalid");
     }
     let main_routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[main_row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[main_row],
         admitted.routines.ends[main_row]
     );
     let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -367,17 +367,17 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         row = row + 1;
     }
     let left_definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[0]],
         admitted.routines.instruction_ends[globals[0]]
     );
     let right_definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[1]],
         admitted.routines.instruction_ends[globals[1]]
     );
     let log_instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[globals[2]],
         admitted.routines.instruction_ends[globals[2]]
     );
@@ -400,7 +400,7 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         );
     let log_graph_table: JsonObjectFactTable =
         MirProgramInstructionExpressionGraphTable(
-            admitted.routines.source_json, log_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, log_expression, 0
         );
     let log_graph: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(

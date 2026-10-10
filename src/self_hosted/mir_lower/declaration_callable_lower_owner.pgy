@@ -19,7 +19,6 @@ func EmitClassMethods(
     observe_pressure: Bool,
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
-    let json: String = routines.source_json;
     let out: String = "";
     let direct_hosted_methods: Bool = nominal_kind == "zone" ||
         nominal_kind == "world" || nominal_kind == "party" ||
@@ -34,14 +33,14 @@ func EmitClassMethods(
     let method_bounds: Array<Int> = [0, 0];
     let methods_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, decl_start, decl_end, "methods", methods_bounds
+        routines.source_json, routines.source_json_extent, decl_start, decl_end, "methods", methods_bounds
     ) { return ""; }
     let cursor: Int = methods_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
-        json, cursor, methods_bounds[1], method_bounds
+        routines.source_json, routines.source_json_extent, cursor, methods_bounds[1], method_bounds
     ) {
         let mname: String = MirObjectStringFactAtBounds(
-            json, method_bounds[0], method_bounds[1], "name"
+            routines.source_json, routines.source_json_extent, method_bounds[0], method_bounds[1], "name"
         );
         if StringLength(mname) == 0 {
             MirLowerFailClosed(Concat(
@@ -50,7 +49,7 @@ func EmitClassMethods(
         }
         let contract: MirDeclarationMethodContractFact =
             MirDeclarationMethodContractFactFromBounds(
-                json, method_bounds[0], method_bounds[1]
+                routines.source_json, routines.source_json_extent, method_bounds[0], method_bounds[1]
             );
         if !contract.valid {
             MirLowerFailClosed(Concat(
@@ -127,12 +126,12 @@ func EmitClassMethods(
 }
 
 func EmitAbilityMethodParams(
-    json: String, method_start: Int, method_end: Int,
+    json: String, json_extent: Int, method_start: Int, method_end: Int,
     ability_name: String, method_name: String
 ) -> String {
     let params_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, method_start, method_end, "params", params_bounds
+        json, json_extent, method_start, method_end, "params", params_bounds
     ) {
         MirLowerFailClosed(Concat(
             "ability method is missing params fact: ",
@@ -143,10 +142,10 @@ func EmitAbilityMethodParams(
     let param_bounds: Array<Int> = [0, 0];
     let cursor: Int = params_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
-        json, cursor, params_bounds[1], param_bounds
+        json, json_extent, cursor, params_bounds[1], param_bounds
     ) {
         let pname: String = MirObjectStringFactAtBounds(
-            json, param_bounds[0], param_bounds[1], "name"
+            json, json_extent, param_bounds[0], param_bounds[1], "name"
         );
         if StringLength(pname) == 0 {
             MirLowerFailClosed(Concat(
@@ -155,7 +154,7 @@ func EmitAbilityMethodParams(
             ));
         }
         let ptype: String = MirObjectStringFactAtBounds(
-            json, param_bounds[0], param_bounds[1], "type"
+            json, json_extent, param_bounds[0], param_bounds[1], "type"
         );
         out = Concat(out, Concat("        ", pname));
         if StringLength(ptype) > 0 { out = Concat(out, Concat(": ", ptype)); }
@@ -166,11 +165,11 @@ func EmitAbilityMethodParams(
 }
 
 func EmitAbilityMethods(
-    json: String, decl_start: Int, decl_end: Int, ability_name: String
+    json: String, json_extent: Int, decl_start: Int, decl_end: Int, ability_name: String
 ) -> String {
     let methods_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, decl_start, decl_end, "methods", methods_bounds
+        json, json_extent, decl_start, decl_end, "methods", methods_bounds
     ) {
         MirLowerFailClosed(Concat(
             "ability declaration is missing methods fact: ", ability_name
@@ -180,10 +179,10 @@ func EmitAbilityMethods(
     let method_bounds: Array<Int> = [0, 0];
     let cursor: Int = methods_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
-        json, cursor, methods_bounds[1], method_bounds
+        json, json_extent, cursor, methods_bounds[1], method_bounds
     ) {
         let mname: String = MirObjectStringFactAtBounds(
-            json, method_bounds[0], method_bounds[1], "name"
+            json, json_extent, method_bounds[0], method_bounds[1], "name"
         );
         if StringLength(mname) == 0 {
             MirLowerFailClosed(Concat(
@@ -192,7 +191,7 @@ func EmitAbilityMethods(
         }
         let contract: MirDeclarationMethodContractFact =
             MirDeclarationMethodContractFactFromBounds(
-                json, method_bounds[0], method_bounds[1]
+                json, json_extent, method_bounds[0], method_bounds[1]
             );
         if !contract.valid || contract.callable_kind != "function" {
             MirLowerFailClosed(Concat(
@@ -201,7 +200,7 @@ func EmitAbilityMethods(
             ));
         }
         let ret: String = MirObjectStringFactAtBounds(
-            json, method_bounds[0], method_bounds[1], "return"
+            json, json_extent, method_bounds[0], method_bounds[1], "return"
         );
         if StringLength(ret) == 0 {
             MirLowerFailClosed(Concat(
@@ -212,7 +211,7 @@ func EmitAbilityMethods(
         out = Concat(out, Concat("    Function: ", Concat(mname, "\n")));
         out = Concat(out, "      Parameters:\n");
         out = Concat(out, EmitAbilityMethodParams(
-            json, method_bounds[0], method_bounds[1], ability_name, mname
+            json, json_extent, method_bounds[0], method_bounds[1], ability_name, mname
         ));
         out = Concat(out, Concat("      Returns: ", Concat(ret, "\n")));
         out = Concat(out, MirDeclarationMethodContractRows(
@@ -224,11 +223,11 @@ func EmitAbilityMethods(
 }
 
 func EmitExternBlockDecl(
-    json: String, decl_start: Int, decl_end: Int, abi_name: String
+    json: String, json_extent: Int, decl_start: Int, decl_end: Int, abi_name: String
 ) -> String {
     let methods_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, decl_start, decl_end, "methods", methods_bounds
+        json, json_extent, decl_start, decl_end, "methods", methods_bounds
     ) {
         MirLowerFailClosed(Concat(
             "extern declaration is missing methods fact: ", abi_name
@@ -238,10 +237,10 @@ func EmitExternBlockDecl(
     let method_bounds: Array<Int> = [0, 0];
     let cursor: Int = methods_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
-        json, cursor, methods_bounds[1], method_bounds
+        json, json_extent, cursor, methods_bounds[1], method_bounds
     ) {
         let mname: String = MirObjectStringFactAtBounds(
-            json, method_bounds[0], method_bounds[1], "name"
+            json, json_extent, method_bounds[0], method_bounds[1], "name"
         );
         if StringLength(mname) == 0 {
             MirLowerFailClosed(Concat(
@@ -250,7 +249,7 @@ func EmitExternBlockDecl(
         }
         let contract: MirDeclarationMethodContractFact =
             MirDeclarationMethodContractFactFromBounds(
-                json, method_bounds[0], method_bounds[1]
+                json, json_extent, method_bounds[0], method_bounds[1]
             );
         // Host-ABI members declare a signature and, like any callable, the
         // capabilities and effects a caller must hold; the semantic stage
@@ -266,7 +265,7 @@ func EmitExternBlockDecl(
             ));
         }
         let ret: String = MirObjectStringFactAtBounds(
-            json, method_bounds[0], method_bounds[1], "return"
+            json, json_extent, method_bounds[0], method_bounds[1], "return"
         );
         if StringLength(ret) == 0 {
             MirLowerFailClosed(Concat(
@@ -277,7 +276,7 @@ func EmitExternBlockDecl(
         out = Concat(out, Concat("    Function: ", Concat(mname, "\n")));
         out = Concat(out, "      Parameters:\n");
         out = Concat(out, EmitAbilityMethodParams(
-            json, method_bounds[0], method_bounds[1], abi_name, mname
+            json, json_extent, method_bounds[0], method_bounds[1], abi_name, mname
         ));
         out = Concat(out, Concat("      Returns: ", Concat(ret, "\n")));
         cursor = method_bounds[1];
@@ -289,13 +288,12 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
     decl_end: Int, role_name: String,
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
-    let json: String = routines.source_json;
     let impls_bounds: Array<Int> = [0, 0];
     let methods_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, decl_start, decl_end, "impls", impls_bounds
+        routines.source_json, routines.source_json_extent, decl_start, decl_end, "impls", impls_bounds
     ) || !MirObjectArrayBoundsAtBounds(
-        json, decl_start, decl_end, "methods", methods_bounds
+        routines.source_json, routines.source_json_extent, decl_start, decl_end, "methods", methods_bounds
     ) {
         MirLowerFailClosed(Concat(
             "role declaration is missing impl/method facts: ", role_name
@@ -306,7 +304,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
     let method_bounds: Array<Int> = [0, 0];
     let method_cursor: Int = methods_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
-        json, method_cursor, methods_bounds[1], method_bounds
+        routines.source_json, routines.source_json_extent, method_cursor, methods_bounds[1], method_bounds
     ) {
         ArrayPush(method_starts, method_bounds[0]);
         ArrayPush(method_ends, method_bounds[1]);
@@ -317,24 +315,24 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
     let impl_bounds: Array<Int> = [0, 0];
     let impl_cursor: Int = impls_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
-        json, impl_cursor, impls_bounds[1], impl_bounds
+        routines.source_json, routines.source_json_extent, impl_cursor, impls_bounds[1], impl_bounds
     ) {
         let ability_bounds: Array<Int> = [0, 0];
         if !MirObjectFieldValueBoundsAtBounds(
-            json, impl_bounds[0], impl_bounds[1], "ability", ability_bounds
+            routines.source_json, routines.source_json_extent, impl_bounds[0], impl_bounds[1], "ability", ability_bounds
         ) {
             MirLowerFailClosed(Concat(
                 "role impl is missing ability fact: ", role_name
             ));
         }
         let ability_name: String = MirObjectStringFactAtBounds(
-            json, ability_bounds[0], ability_bounds[1], "base"
+            routines.source_json, routines.source_json_extent, ability_bounds[0], ability_bounds[1], "base"
         );
         let method_start_text: String = MirObjectNumberFactAtBounds(
-            json, impl_bounds[0], impl_bounds[1], "method_start"
+            routines.source_json, routines.source_json_extent, impl_bounds[0], impl_bounds[1], "method_start"
         );
         let method_count_text: String = MirObjectNumberFactAtBounds(
-            json, impl_bounds[0], impl_bounds[1], "method_count"
+            routines.source_json, routines.source_json_extent, impl_bounds[0], impl_bounds[1], "method_count"
         );
         let method_start: Int = ToInt(method_start_text);
         let method_count: Int = ToInt(method_count_text);
@@ -358,7 +356,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
                 ));
             }
             let method_name: String = MirObjectStringFactAtBounds(
-                json, method_starts[method_row], method_ends[method_row], "name"
+                routines.source_json, routines.source_json_extent, method_starts[method_row], method_ends[method_row], "name"
             );
             let routine_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
                 routines, role_name, method_name
@@ -371,7 +369,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
             }
             let contract: MirDeclarationMethodContractFact =
                 MirDeclarationMethodContractFactFromBounds(
-                    json, method_starts[method_row], method_ends[method_row]
+                    routines.source_json, routines.source_json_extent, method_starts[method_row], method_ends[method_row]
                 );
             if !contract.valid || contract.callable_kind != "function" {
                 MirLowerFailClosed(Concat(
@@ -394,7 +392,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
     }
     while covered_method_count < ArrayLength(method_starts) {
         let method_name: String = MirObjectStringFactAtBounds(
-            json, method_starts[covered_method_count],
+            routines.source_json, routines.source_json_extent, method_starts[covered_method_count],
             method_ends[covered_method_count], "name"
         );
         let routine_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
@@ -402,7 +400,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
         );
         let contract: MirDeclarationMethodContractFact =
             MirDeclarationMethodContractFactFromBounds(
-                json, method_starts[covered_method_count],
+                routines.source_json, routines.source_json_extent, method_starts[covered_method_count],
                 method_ends[covered_method_count]
             );
         if method_name == "" || !IsSome(routine_row) || !contract.valid ||

@@ -87,13 +87,13 @@ func DirectMirRoutineInstanceInventoryFromOwners(
     while cell < ArrayLength(identity_cells.names) {
         let declaration: Int = identity_cells.declaration_rows[cell];
         let bounds: Array<Int> = [0, 0];
-        if !MirObjectArrayBoundsAtBounds(routines.source_json,
+        if !MirObjectArrayBoundsAtBounds(routines.source_json, routines.source_json_extent,
                 routines.declarations.starts[declaration], routines.declarations.ends[declaration],
                 "methods", bounds) {
             return DirectMirRoutineInstanceInventoryEmpty("identity cell method inventory is missing");
         }
         let methods: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
-            routines.source_json, bounds[0], bounds[1]);
+            routines.source_json, routines.source_json_extent, bounds[0], bounds[1]);
         let bodies: Int = 0; let method_row: Int = 0;
         while method_row < MirProgramRoutineIndexCount(routines) {
             if routines.kinds[method_row] == "method" && routines.owner_declaration_rows[method_row] == declaration {

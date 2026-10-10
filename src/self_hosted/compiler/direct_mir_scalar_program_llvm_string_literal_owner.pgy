@@ -1,6 +1,7 @@
 // LLVM byte spelling for one decoded scalar-program string literal.
 
 import "../codegen/text/text_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 func DirectMirScalarProgramLlvmStringLiteralPayload(
     value: String
@@ -8,6 +9,7 @@ func DirectMirScalarProgramLlvmStringLiteralPayload(
     let allocator: Allocator = AllocatorResult();
     let payload: TextBuilder = TextBuilderNew(256);
     let digits: String = "0123456789ABCDEF";
+    let digits_extent: Int = StringLength(digits);
     let length: Int = StringLength(value);
     let index: Int = 0;
     while index < length {
@@ -17,8 +19,8 @@ func DirectMirScalarProgramLlvmStringLiteralPayload(
         } else if code == 9 || code == 10 || code == 13 ||
                 code == 34 || code == 92 || (code >= 128 && code <= 255) {
             TextBuilderAppend(payload, "\\");
-            TextBuilderAppend(payload, CharAtN(digits, 16, code / 16));
-            TextBuilderAppend(payload, CharAtN(digits, 16, code % 16));
+            TextBuilderAppend(payload, StringWindowCharAt(digits, digits_extent, 16, code / 16));
+            TextBuilderAppend(payload, StringWindowCharAt(digits, digits_extent, 16, code % 16));
         } else {
             Die("direct MIR scalar LLVM string literal byte is invalid");
         }

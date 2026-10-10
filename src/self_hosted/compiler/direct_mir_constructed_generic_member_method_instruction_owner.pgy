@@ -73,10 +73,10 @@ func DirectMirConstructedGenericMemberMethodInstructionsFromProgram(
         constructed_return.arg1 != "" || identity_return.arg0 != "" ||
         identity_return.arg1 != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, constructed_return,
+            admitted.routines.source_json, admitted.routines.source_json_extent, constructed_return,
             identity.constructed_method.return_type
         ) || !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, identity_return,
+            admitted.routines.source_json, admitted.routines.source_json_extent, identity_return,
             identity.identity_method.return_type
         ) || !DirectMirInferredGenericMemberExpectedUse(
             constructed_uses, constructed_global, ""

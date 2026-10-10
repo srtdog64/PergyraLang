@@ -1,0 +1,18 @@
+// Every window builtin with a proven extent.
+func Main() -> Void {
+    let s: String = Concat("hello", " world");
+    let n: Int = StringLength(s);
+    Print(ToString(CharCode(s, n, 4)));
+    Print(CharAtN(s, n, 6));
+    Print(SubstringWithLen(s, n, 6, 5));
+    if SubEqualsWithLen(s, n, 0, 5, "hello") {
+        Print("equals");
+    }
+    if SubContainsWithLen(s, n, 3, 6, "lo w") {
+        Print("contains");
+    }
+    Print(ToString(SubIndexOfWithLen(s, n, 0, n, "world")));
+    if SubStartsWithLen(s, n, 6, "wor") {
+        Print("starts");
+    }
+}

@@ -50,13 +50,13 @@ rm -f "$WORK_DIR"/*
         fail "MIR production failed"
     }
 mir_sha="$(sha256sum "$MIR" | awk '{print toupper($1)}')"
-[[ "$mir_sha" == "F100B677BACBA7EE9D145B485D67857141B7C9E510B409E5237F153B2E00AC2E" ]] ||
+[[ "$mir_sha" == "438212A4E4EBDF68DB07B060993E9674F84F29BDE278163E7EF80A63558C0804" ]] ||
     fail "source MIR identity changed: $mir_sha"
 grep -Fq '"kind":"logical_and"' "$MIR" ||
     fail "producer omitted persisted logical_and topology"
 grep -Fq '"call_target_name":"SubEqualsWithLen"' "$MIR" ||
     fail "producer omitted the semantic builtin identity"
-grep -Fq 'NestedShortCircuitExit(false, false, false, \"true\")' "$MIR" ||
+grep -Fq 'NestedShortCircuitExit(false, false, false, \"true\", 4)' "$MIR" ||
     fail "producer omitted the nested short-circuit exit fixture"
 
 printf '1\n0\n2\n' >"$WORK_DIR/expected.run"

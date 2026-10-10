@@ -183,7 +183,8 @@ func SelfHostMachineLayerDeclarationFromPath(
     path: String
 ) -> SelfHostMachineLayerDeclaration {
     if path == "" { return SelfHostMachineLayerDeclarationEmpty(); }
-    return SelfHostMachineLayerDeclarationFromJson(ReadFile(path));
+    let json: String = ReadFile(path);
+    return SelfHostMachineLayerDeclarationFromJson(json);
 }
 
 func SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(

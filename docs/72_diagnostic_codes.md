@@ -148,6 +148,26 @@ joins, and match-arm refinement.
 - **Fix**: narrow the enum value to the requested variant before reading its
   payload.
 - **cause_ir**: `semantic:enum_payload:active_variant_unproven`
+
+#### `PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN`
+
+A call to `CharCode`, `CharAtN`, `SubstringWithLen`, `SubEqualsWithLen`,
+`SubContainsWithLen`, `SubIndexOfWithLen` or `SubStartsWithLen` whose second
+argument is not proven to be `StringLength` of its first. These builtins read
+the source through that extent without measuring it, so a larger extent would
+read outside the string's storage. Also reported at a call to a routine that
+passes its parameters to such a builtin when the caller cannot prove the pair,
+at a call whose target is unresolved but shares that routine's name, and where
+such a routine is used as a value. Rule and proof forms:
+`agent_work_directives/string_window_extent_closure_2026-10-10.md`.
+
+- **Reason**: the extent is neither `StringLength` of the same unchanged
+  binding, a never-reassigned `let` witness of it, a literal bound, 0 or 1,
+  nor an unchanged parameter pair proven by every caller.
+- **Fix**: pass `StringLength(source)` or a binding declared
+  `let n: Int = StringLength(source);` where neither is reassigned.
+- **cause_ir**: `semantic:string_window:extent_unproven`
+- **self-host code**: `string_window_extent_unproven`
 - **fix_source**: `narrow-enum-variant-before-projection`
 
 ### Type Inference

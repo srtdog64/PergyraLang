@@ -48,7 +48,7 @@ for term in \
 done
 
 require_text "$SOURCE_OWNER" \
-    "let c: Int = SourceByteAt(content, n, i);"
+    "let c: Int = SourceByteAt(content, content_extent, n, i);"
 reject_region_text "$SOURCE_OWNER" \
     "func SkipWhitespaceAndComments" "SourceCharAt("
 reject_region_text "$SOURCE_OWNER" \
@@ -61,7 +61,7 @@ done
 reject_region_text "$PARSER_CURSOR" "func MatchKeyword" "Substring("
 reject_region_text "$PARSER_CURSOR" "func ExpectOpt" "Substring("
 require_text "$PARSER_CURSOR" \
-    "SourceByteIsAlphaNum(SourceByteAt(content, n, i))"
+    "SourceByteIsAlphaNum(SourceByteAt(content, n, n, i))"
 require_text "$PARSER_CURSOR" \
     "SubEqualsWithLen(content, n, i, kl, kw)"
 
@@ -69,9 +69,9 @@ if grep -Fq "CharAt(content" "$SEMANTIC_SCAN"; then
     fail "semantic scanner reopened allocating character reads"
 fi
 require_text "$SEMANTIC_SCAN" \
-    "SourceByteAt(content, limit, i)"
+    "SourceByteAt(content, content_extent, limit, i)"
 require_text "$SEMANTIC_SCAN" \
-    "SubEqualsWithLen(content, n, i, kl, kw)"
+    "StringWindowSubEquals(content, content_extent, n, i, kl, kw)"
 require_text "$OPERATOR_FACTS" "struct SemanticTopLevelOperatorFacts"
 require_text "$OPERATOR_FACTS" \
     "func SemanticTopLevelOperatorFactsFromExpression"

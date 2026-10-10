@@ -3,11 +3,11 @@
 import "../lib/json_fact_table.pgy";
 
 func DirectMirExactJsonArrayCursorAtEnd(
-    json: String, cursor: Int, array_end: Int
+    json: String, json_extent: Int, cursor: Int, array_end: Int
 ) -> Bool {
-    let next: Int = JsonSkipWhitespaceWithin(json, cursor, array_end);
+    let next: Int = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_end);
     return next < array_end &&
-        JsonCharCodeAt(json, array_end, next) == JsonAsciiCode("]");
+        JsonCharCodeAt(json, json_extent, array_end, next) == JsonAsciiCode("]");
 }
 
 func DirectMirExactObjectArrayCount(
@@ -21,7 +21,7 @@ func DirectMirExactObjectArrayCount(
     let row: Int = 0;
     while row < expected {
         if !JsonArrayNextObjectBounds(
-            table.json, cursor, table.end, bounds
+            table.json, table.json_extent, cursor, table.end, bounds
         ) {
             return false;
         }
@@ -29,40 +29,40 @@ func DirectMirExactObjectArrayCount(
         row = row + 1;
     }
     return DirectMirExactJsonArrayCursorAtEnd(
-        table.json, cursor, table.end
+        table.json, table.json_extent, cursor, table.end
     );
 }
 
 func DirectMirExactStringArrayCount(
-    json: String, array_open: Int, array_end: Int, expected: Int
+    json: String, json_extent: Int, array_open: Int, array_end: Int, expected: Int
 ) -> Bool {
     if array_open < 0 || array_end <= array_open || expected < 0 ||
-        JsonCharCodeAt(json, array_end, array_open) != JsonAsciiCode("[") {
+        JsonCharCodeAt(json, json_extent, array_end, array_open) != JsonAsciiCode("[") {
         return false;
     }
     let cursor: Int = array_open + 1;
     let row: Int = 0;
     while row < expected {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, array_end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_end);
         if row > 0 {
             if cursor >= array_end ||
-                JsonCharCodeAt(json, array_end, cursor) != JsonAsciiCode(",") {
+                JsonCharCodeAt(json, json_extent, array_end, cursor) != JsonAsciiCode(",") {
                 return false;
             }
             cursor = JsonSkipWhitespaceWithin(
-                json, cursor + 1, array_end
+                json, json_extent, cursor + 1, array_end
             );
         }
         if cursor >= array_end ||
-            JsonCharCodeAt(json, array_end, cursor) != JsonAsciiCode("\"") {
+            JsonCharCodeAt(json, json_extent, array_end, cursor) != JsonAsciiCode("\"") {
             return false;
         }
         let end_opt: Option<Int> = JsonStringEndWithin(
-            json, cursor, array_end
+            json, json_extent, cursor, array_end
         );
         if !IsSome(end_opt) { return false; }
         cursor = UnwrapOption(end_opt);
         row = row + 1;
     }
-    return DirectMirExactJsonArrayCursorAtEnd(json, cursor, array_end);
+    return DirectMirExactJsonArrayCursorAtEnd(json, json_extent, cursor, array_end);
 }

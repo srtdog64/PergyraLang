@@ -14,7 +14,7 @@ func MirExpressionGraphSlotExpr0() -> Int { return 1; }
 func MirExpressionGraphSlotExpr1() -> Int { return 2; }
 
 func MirExpressionGraphProducerOnlyOccurrenceAllowed(
-    json: String,
+    json: String, json_extent: Int,
     kind: String,
     source_type: String,
     ref expression: MirProgramInstructionExpressionFact,
@@ -27,15 +27,15 @@ func MirExpressionGraphProducerOnlyOccurrenceAllowed(
         return false;
     }
     return MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "ArrayPop") ||
+            json, json_extent, expression, 1, "ArrayPop") ||
         MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "ArrayPush") ||
+            json, json_extent, expression, 1, "ArrayPush") ||
         MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "ArraySet");
+            json, json_extent, expression, 1, "ArraySet");
 }
 
 func MirExpressionGraphOccurrenceGraphSlot(
-    json: String,
+    json: String, json_extent: Int,
     kind: String,
     source: String,
     ref expression: MirProgramInstructionExpressionFact,
@@ -50,7 +50,7 @@ func MirExpressionGraphOccurrenceGraphSlot(
     }
     if kind == "destructure" {
         let needs_temporary: Option<Bool> =
-            MirDestructureNeedsTemporary(json, expression);
+            MirDestructureNeedsTemporary(json, json_extent, expression);
         if lane == AstExpressionLaneValue() && ordinal == 0 &&
             IsSome(needs_temporary) && UnwrapOption(needs_temporary) {
             return MirExpressionGraphSlotExpr0();
@@ -89,12 +89,12 @@ func MirExpressionGraphOccurrenceGraphSlot(
     }
     if source == "AST_CALL" && kind == "stmt" {
         if MirProgramInstructionExpressionRoutingEquals(
-                json, expression, 1, "ArrayPush") &&
+                json, json_extent, expression, 1, "ArrayPush") &&
             lane == AstExpressionLaneValue() {
             return MirExpressionGraphSlotExpr0();
         }
         if MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "ArraySet"
+            json, json_extent, expression, 1, "ArraySet"
         ) {
             if lane == AstExpressionLaneValue() {
                 return MirExpressionGraphSlotExpr1();
@@ -105,12 +105,12 @@ func MirExpressionGraphOccurrenceGraphSlot(
         }
         if lane == AstExpressionLaneAtom() &&
             !MirProgramInstructionExpressionRoutingEquals(
-                json, expression, 1, "ArrayPop") {
+                json, json_extent, expression, 1, "ArrayPop") {
             return MirExpressionGraphSlotExpr0();
         }
     }
     if source == "AST_DEFER_STMT" &&
-        MirProgramInstructionExpressionRoutingEquals(json, expression, 1, "Assign") {
+        MirProgramInstructionExpressionRoutingEquals(json, json_extent, expression, 1, "Assign") {
         // Like a `def` assignment row: the value graph, then the target.
         if lane == AstExpressionLaneValue() { return MirExpressionGraphSlotExpr0(); }
         if lane == AstExpressionLaneAtom() { return MirExpressionGraphSlotExpr1(); }
@@ -121,15 +121,15 @@ func MirExpressionGraphOccurrenceGraphSlot(
     }
     if kind == "stmt" && lane == AstExpressionLaneAtom() &&
         (MirProgramInstructionExpressionRoutingEquals(
-             json, expression, 0, "IntentCheck") ||
+             json, json_extent, expression, 0, "IntentCheck") ||
          (MirProgramInstructionExpressionRoutingEquals(
-              json, expression, 0, "IntentEval") &&
+              json, json_extent, expression, 0, "IntentEval") &&
           (MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "on") ||
+               json, json_extent, expression, 1, "on") ||
            MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "compensate") ||
+               json, json_extent, expression, 1, "compensate") ||
            MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "priority")))) {
+               json, json_extent, expression, 1, "priority")))) {
         return MirExpressionGraphSlotExpr0();
     }
     if kind == "branch" && lane == AstExpressionLaneAtom() {
@@ -160,7 +160,7 @@ func MirExpressionGraphSequenceAppendOccurrence(
     }
     let expr0_graph: JsonObjectFactTable =
         MirProgramInstructionExpressionGraphTable(
-            instruction.json, expression, 0
+            instruction.json, instruction.json_extent, expression, 0
         );
     if kind == "destructure" {
         if lane != AstExpressionLaneValue() {
@@ -176,21 +176,21 @@ func MirExpressionGraphSequenceAppendOccurrence(
         );
     }
     let slot: Int = MirExpressionGraphOccurrenceGraphSlot(
-        instruction.json, kind, source, expression, lane, ordinal
+        instruction.json, instruction.json_extent, kind, source, expression, lane, ordinal
     );
     if slot == MirExpressionGraphSlotExpr0() &&
         MirInstructionExpressionRequiresExpr0Graph(
-            instruction.json, kind, source, expression
+            instruction.json, instruction.json_extent, kind, source, expression
         ) {
         return MirExpressionGraphSequenceAppend(sequence, expr0_graph);
     }
     if slot == MirExpressionGraphSlotExpr1() &&
         MirInstructionExpressionRequiresExpr1Graph(
-            instruction.json, kind, source, expression
+            instruction.json, instruction.json_extent, kind, source, expression
         ) {
         return MirExpressionGraphSequenceAppend(
             sequence, MirProgramInstructionExpressionGraphTable(
-                instruction.json, expression, 1
+                instruction.json, instruction.json_extent, expression, 1
             )
         );
     }

@@ -1,0 +1,7 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Observe(ref input: Envelope) -> Bool {
+    let alias: Table = input.table;
+    return true;
+}
+func Main() -> Void {}

@@ -129,3 +129,13 @@ func SemanticExpressionGraphCollectionCallProtocolFromName(
 func SemanticHashMapCallProtocolNames() -> Array<String> {
     return ["MapNew", "MapSet", "MapGet", "MapHas", "MapRemove", "MapSize", "MapKeys"];
 }
+
+// A value ordinal alone is not a store: SetHas/SetRemove only inspect it.
+func SemanticExpressionGraphCollectionCallStoresValue(
+    protocol: SemanticExpressionGraphCollectionCallProtocolFact
+) -> Bool {
+    return protocol.applies && protocol.value_argument_index >= 0 &&
+        (protocol.operation == "ListPush" || protocol.operation == "ListSet" ||
+         protocol.operation == "QueuePush" || protocol.operation == "SetAdd" ||
+         protocol.operation == "MapSet");
+}

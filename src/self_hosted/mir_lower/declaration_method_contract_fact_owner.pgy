@@ -49,39 +49,39 @@ func MirDeclarationMethodContractContains(
 }
 
 func MirDeclarationMethodContractReadStringArray(
-    json: String, start: Int, end: Int, field: String,
+    json: String, json_extent: Int, start: Int, end: Int, field: String,
     reject_duplicates: Bool, inout values: Array<String>
 ) -> Bool {
     let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBoundsAtBounds(json, start, end, field, bounds) {
+    if !MirObjectArrayBoundsAtBounds(json, json_extent, start, end, field, bounds) {
         return false;
     }
     let value_start: Int = ArrayLength(values);
     let cursor: Int = bounds[0] + 1;
     let need_value: Bool = true;
     while cursor < bounds[1] {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, bounds[1]);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, bounds[1]);
         if cursor >= bounds[1] { return false; }
-        let code: Int = JsonCharCodeAt(json, bounds[1], cursor);
+        let code: Int = JsonCharCodeAt(json, json_extent, bounds[1], cursor);
         if code == JsonAsciiCode("]") {
             return need_value || ArrayLength(values) > value_start;
         }
         if !need_value {
             if code != JsonAsciiCode(",") { return false; }
             cursor = JsonSkipWhitespaceWithin(
-                json, cursor + 1, bounds[1]
+                json, json_extent, cursor + 1, bounds[1]
             );
             if cursor >= bounds[1] ||
-                JsonCharCodeAt(json, bounds[1], cursor) ==
+                JsonCharCodeAt(json, json_extent, bounds[1], cursor) ==
                     JsonAsciiCode("]") {
                 return false;
             }
         }
-        if JsonCharCodeAt(json, bounds[1], cursor) != JsonAsciiCode("\"") {
+        if JsonCharCodeAt(json, json_extent, bounds[1], cursor) != JsonAsciiCode("\"") {
             return false;
         }
         let read: Option<JsonStringRead> = JsonReadStringBounded(
-            json, cursor, bounds[1]
+            json, json_extent, cursor, bounds[1]
         );
         if !IsSome(read) { return false; }
         let value: String = UnwrapOption(read).value;
@@ -102,12 +102,12 @@ func MirDeclarationMethodContractReadStringArray(
 }
 
 func MirDeclarationMethodContractRequiredOptionalString(
-    json: String, start: Int, end: Int, field: String,
+    json: String, json_extent: Int, start: Int, end: Int, field: String,
     inout value_box: Array<String>
 ) -> Bool {
     let bounds: Array<Int> = [0, 0];
     if ArrayLength(value_box) != 1 || !MirObjectFieldValueBoundsAtBounds(
-        json, start, end, field, bounds
+        json, json_extent, start, end, field, bounds
     ) {
         return false;
     }
@@ -117,7 +117,7 @@ func MirDeclarationMethodContractRequiredOptionalString(
         return true;
     }
     let value: String = MirObjectStringFactAtBounds(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
     if StringLength(value) == 0 { return false; }
     ArraySet(value_box, 0, value);
@@ -125,15 +125,15 @@ func MirDeclarationMethodContractRequiredOptionalString(
 }
 
 func MirDeclarationMethodContractRequiredBool(
-    json: String, start: Int, end: Int, field: String,
+    json: String, json_extent: Int, start: Int, end: Int, field: String,
     inout value_box: Array<Bool>
 ) -> Bool {
     if ArrayLength(value_box) != 1 { return false; }
-    if JsonObjectBoolFieldEqualsWithin(json, start, end, field, true) {
+    if JsonObjectBoolFieldEqualsWithin(json, json_extent, start, end, field, true) {
         ArraySet(value_box, 0, true);
         return true;
     }
-    if JsonObjectBoolFieldEqualsWithin(json, start, end, field, false) {
+    if JsonObjectBoolFieldEqualsWithin(json, json_extent, start, end, field, false) {
         ArraySet(value_box, 0, false);
         return true;
     }
@@ -141,28 +141,28 @@ func MirDeclarationMethodContractRequiredBool(
 }
 
 func MirDeclarationMethodContractReadRequires(
-    json: String, start: Int, end: Int,
+    json: String, json_extent: Int, start: Int, end: Int,
     inout bases: Array<String>, inout actual_starts: Array<Int>,
     inout actual_counts: Array<Int>, inout actual_names: Array<String>
 ) -> Bool {
     let bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBoundsAtBounds(json, start, end, "requires", bounds) {
+    if !MirObjectArrayBoundsAtBounds(json, json_extent, start, end, "requires", bounds) {
         return false;
     }
     let cursor: Int = bounds[0] + 1;
     let first: Bool = true;
     while cursor < bounds[1] {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, bounds[1]);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, bounds[1]);
         if cursor >= bounds[1] { return false; }
-        let code: Int = JsonCharCodeAt(json, bounds[1], cursor);
+        let code: Int = JsonCharCodeAt(json, json_extent, bounds[1], cursor);
         if code == JsonAsciiCode("]") { return true; }
         if !first {
             if code != JsonAsciiCode(",") { return false; }
             cursor = JsonSkipWhitespaceWithin(
-                json, cursor + 1, bounds[1]
+                json, json_extent, cursor + 1, bounds[1]
             );
             if cursor >= bounds[1] ||
-                JsonCharCodeAt(json, bounds[1], cursor) !=
+                JsonCharCodeAt(json, json_extent, bounds[1], cursor) !=
                     JsonAsciiCode("{") {
                 return false;
             }
@@ -170,19 +170,19 @@ func MirDeclarationMethodContractReadRequires(
             return false;
         }
         let object_end: Option<Int> = JsonObjectEndWithin(
-            json, cursor, bounds[1]
+            json, json_extent, cursor, bounds[1]
         );
         if !IsSome(object_end) { return false; }
         let row_end: Int = UnwrapOption(object_end);
         let base: String = MirObjectStringFactAtBounds(
-            json, cursor, row_end, "base"
+            json, json_extent, cursor, row_end, "base"
         );
         if StringLength(base) == 0 {
             return false;
         }
         let actual_start: Int = ArrayLength(actual_names);
         if !MirDeclarationMethodContractReadStringArray(
-            json, cursor, row_end, "actuals", false, actual_names
+            json, json_extent, cursor, row_end, "actuals", false, actual_names
         ) {
             return false;
         }
@@ -210,10 +210,10 @@ func MirDeclarationMethodContractReadRequires(
 }
 
 func MirDeclarationMethodContractFactFromBounds(
-    json: String, method_start: Int, method_end: Int
+    json: String, json_extent: Int, method_start: Int, method_end: Int
 ) -> MirDeclarationMethodContractFact {
     let callable_kind: String = MirObjectStringFactAtBounds(
-        json, method_start, method_end, "callable_kind"
+        json, json_extent, method_start, method_end, "callable_kind"
     );
     if callable_kind != "function" && callable_kind != "action" {
         return MirDeclarationMethodContractEmpty(
@@ -222,9 +222,9 @@ func MirDeclarationMethodContractFactFromBounds(
     }
     let contract_bounds: Array<Int> = [0, 0];
     if !MirObjectFieldValueBoundsAtBounds(
-        json, method_start, method_end, "contract", contract_bounds
+        json, json_extent, method_start, method_end, "contract", contract_bounds
     ) || contract_bounds[0] >= contract_bounds[1] ||
-        JsonCharCodeAt(json, contract_bounds[1], contract_bounds[0]) !=
+        JsonCharCodeAt(json, json_extent, contract_bounds[1], contract_bounds[0]) !=
             JsonAsciiCode("{") {
         return MirDeclarationMethodContractEmpty(
             "method contract object is missing"
@@ -243,27 +243,27 @@ func MirDeclarationMethodContractFactFromBounds(
     let effects_box: Array<Bool> = [false];
     let effect_names: Array<String> = [];
     if !MirDeclarationMethodContractReadRequires(
-        json, contract_bounds[0], contract_bounds[1], requires_bases,
+        json, json_extent, contract_bounds[0], contract_bounds[1], requires_bases,
         requires_actual_starts, requires_actual_counts,
         requires_actual_names
     ) || !MirDeclarationMethodContractRequiredOptionalString(
-        json, contract_bounds[0], contract_bounds[1], "within", within_box
+        json, json_extent, contract_bounds[0], contract_bounds[1], "within", within_box
     ) || !MirDeclarationMethodContractRequiredOptionalString(
-        json, contract_bounds[0], contract_bounds[1], "causes", causes_box
+        json, json_extent, contract_bounds[0], contract_bounds[1], "causes", causes_box
     ) || !MirDeclarationMethodContractReadStringArray(
-        json, contract_bounds[0], contract_bounds[1], "authorized_by",
+        json, json_extent, contract_bounds[0], contract_bounds[1], "authorized_by",
         true, authorized_by_names
     ) || !MirDeclarationMethodContractRequiredBool(
-        json, contract_bounds[0], contract_bounds[1], "caps_present",
+        json, json_extent, contract_bounds[0], contract_bounds[1], "caps_present",
         caps_box
     ) || !MirDeclarationMethodContractReadStringArray(
-        json, contract_bounds[0], contract_bounds[1], "caps", true,
+        json, json_extent, contract_bounds[0], contract_bounds[1], "caps", true,
         cap_names
     ) || !MirDeclarationMethodContractRequiredBool(
-        json, contract_bounds[0], contract_bounds[1], "effects_present",
+        json, json_extent, contract_bounds[0], contract_bounds[1], "effects_present",
         effects_box
     ) || !MirDeclarationMethodContractReadStringArray(
-        json, contract_bounds[0], contract_bounds[1], "effects", true,
+        json, json_extent, contract_bounds[0], contract_bounds[1], "effects", true,
         effect_names
     ) {
         return MirDeclarationMethodContractEmpty(

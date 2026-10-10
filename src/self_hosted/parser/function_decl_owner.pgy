@@ -153,7 +153,7 @@ func ParserCallableContractCanonicalCaps(names: Array<String>) -> String {
 // Used at both top level (base_indent = 2) and inside subject/class
 // `Methods:` blocks (base_indent = 6).
 func ParseFunctionObserved(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>,
     name_prefix: String,
@@ -193,7 +193,7 @@ func ParseFunctionObserved(
     // a `    Generic params: <T, U>` line after `Function: NAME`.
     ArraySet(cursor_out, 0, i);
     let generic_params: String = ParseGenericParameterListText(
-        content, i, cursor_out
+        content, content_extent, i, cursor_out
     );
     i = cursor_out[0];
     i = ParseExpectIn(location_context, content, i, "(", "function");
@@ -242,7 +242,7 @@ func ParseFunctionObserved(
             }
             i = ParseExpectIn(location_context, content, i, ":", "function");
             ArraySet(cursor_out, 0, i);
-            let p_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let p_type: String = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_type) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid",
@@ -284,7 +284,7 @@ func ParseFunctionObserved(
         i = i + 2;
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        ret_type = ReadTypeIn(location_context, content, i, cursor_out);
+        ret_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if ret_type == "" {
             ParseRefuse(location_context, i, "type_name_invalid",
@@ -308,7 +308,7 @@ func ParseFunctionObserved(
             i = LanguageWordEnd(i, LanguageWordId.WordRequires);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
-            req_type = ReadTypeIn(location_context, content, i, cursor_out);
+            req_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
             i = cursor_out[0];
             while true {
                 i = SkipWhitespaceAndComments(content, i);
@@ -316,7 +316,7 @@ func ParseFunctionObserved(
                     i = i + 1;
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
-                    let next_req: String = ReadTypeIn(location_context, content, i, cursor_out);
+                    let next_req: String = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
                     i = cursor_out[0];
                     req_type = Concat(req_type, Concat(", ", next_req));
                     continue;
@@ -533,7 +533,7 @@ func ParseFunctionObserved(
 }
 
 func ParseFunction(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>,
     name_prefix: String,
@@ -552,7 +552,7 @@ func ParseFunction(
         ParserSourceLocationContextWithoutObservation(location_context);
     let locations: Array<ParserSourceLocationObservation> = [];
     return ParseFunctionObserved(
-        content, start, cursor_out, name_prefix, is_export, false, base_indent,
+        content, content_extent, start, cursor_out, name_prefix, is_export, false, base_indent,
         fn_word, fn_label, is_signature, within_zone_arg,
         expression_graphs, context, locations, location_context.projection
     );

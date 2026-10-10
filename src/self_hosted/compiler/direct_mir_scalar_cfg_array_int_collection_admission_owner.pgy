@@ -23,7 +23,7 @@ func DirectMirScalarCfgArrayIntCollectionFromOwners(
             CompilerAbiLayoutArrayIntTypeName() { return invalid; }
     let abi_opt: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            admitted.routines.source_json, declaration.abi_type_name,
+            admitted.routines.source_json, admitted.routines.source_json_extent, declaration.abi_type_name,
             declaration.abi_type_value_ready, declaration.abi_type_start,
             declaration.abi_type_end, declaration.abi_layout_id_start,
             declaration.abi_layout_id_end,
@@ -41,7 +41,7 @@ func DirectMirScalarCfgArrayIntCollectionFromOwners(
         );
     let graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
         );
     let empty_literal: Bool = DirectMirArrayLiteralEmptyReady(graph);
     let elements: Array<Int> = [];

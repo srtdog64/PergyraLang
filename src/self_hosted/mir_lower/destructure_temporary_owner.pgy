@@ -24,16 +24,16 @@ func MirExpressionGraphRootNodeKind(ref graph: JsonObjectFactTable) -> Option<In
     let cursor: Int = header.nodes_start + 1;
     let scratch: Array<Int> = [0];
     while cursor < header.nodes_end {
-        cursor = JsonSkipWhitespaceWithin(graph.json, cursor, header.nodes_end);
+        cursor = JsonSkipWhitespaceWithin(graph.json, graph.json_extent, cursor, header.nodes_end);
         if cursor >= header.nodes_end { return None; }
-        let c: Int = JsonCharCodeAt(graph.json, header.nodes_end, cursor);
+        let c: Int = JsonCharCodeAt(graph.json, graph.json_extent, header.nodes_end, cursor);
         if c == JsonAsciiCode("]") { return None; }
         if c == JsonAsciiCode(",") {
             cursor = cursor + 1;
             continue;
         }
         let node: MirExpressionGraphNodeCapture = MirExpressionGraphNodeCaptureWithin(
-            graph.json, cursor, header.nodes_end, scratch);
+            graph.json, graph.json_extent, cursor, header.nodes_end, scratch);
         if !node.valid { return None; }
         if row == header.root { return Some(node.kind); }
         row = row + 1;
@@ -45,10 +45,10 @@ func MirExpressionGraphRootNodeKind(ref graph: JsonObjectFactTable) -> Option<In
 // Whether a destructure must read its initializer once into a temporary:
 // None when its expr0 graph cannot be read.
 func MirDestructureNeedsTemporary(
-    json: String, ref expression: MirProgramInstructionExpressionFact
+    json: String, json_extent: Int, ref expression: MirProgramInstructionExpressionFact
 ) -> Option<Bool> {
     let graph: JsonObjectFactTable =
-        MirProgramInstructionExpressionGraphTable(json, expression, 0);
+        MirProgramInstructionExpressionGraphTable(json, json_extent, expression, 0);
     let root_kind: Option<Int> = MirExpressionGraphRootNodeKind(graph);
     if !IsSome(root_kind) { return None; }
     return Some(UnwrapOption(root_kind) != AstExpressionNodeLeaf());
@@ -60,7 +60,6 @@ func MirDestructureTakenNamesInto(
     ref routines: MirProgramRoutineIndex, routine_row: Int,
     inout names: Array<String>
 ) -> Bool {
-    let json: String = routines.source_json;
     let start: Int = routines.starts[routine_row];
     let end: Int = routines.ends[routine_row];
     let row: Int = 0;
@@ -72,14 +71,14 @@ func MirDestructureTakenNamesInto(
     let field: Int = 0;
     while field < ArrayLength(fields) {
         let bounds: Array<Int> = [0, 0];
-        if MirObjectFieldOccurrenceCountAtBounds(json, start, end, fields[field]) != 1 ||
-            !MirObjectArrayBoundsAtBounds(json, start, end, fields[field], bounds) {
+        if MirObjectFieldOccurrenceCountAtBounds(routines.source_json, routines.source_json_extent, start, end, fields[field]) != 1 ||
+            !MirObjectArrayBoundsAtBounds(routines.source_json, routines.source_json_extent, start, end, fields[field], bounds) {
             return false;
         }
         let cursor: Int = bounds[0] + 1;
         let entry: Array<Int> = [0, 0];
-        while JsonArrayNextObjectBounds(json, cursor, bounds[1], entry) {
-            ArrayPush(names, MirObjectStringFactAtBounds(json, entry[0], entry[1], "name"));
+        while JsonArrayNextObjectBounds(routines.source_json, routines.source_json_extent, cursor, bounds[1], entry) {
+            ArrayPush(names, MirObjectStringFactAtBounds(routines.source_json, routines.source_json_extent, entry[0], entry[1], "name"));
             cursor = entry[1];
         }
         field = field + 1;
@@ -96,11 +95,10 @@ func MirDestructureTemporaryAt(
     if global_row < 0 || global_row >= ArrayLength(routines.instruction_starts) {
         return None;
     }
-    let json: String = routines.source_json;
     let expression: MirProgramInstructionExpressionFact =
         MirProgramInstructionExpressionIndexAt(
             routines.instruction_expressions, global_row);
-    let needs: Option<Bool> = MirDestructureNeedsTemporary(json, expression);
+    let needs: Option<Bool> = MirDestructureNeedsTemporary(routines.source_json, routines.source_json_extent, expression);
     if !IsSome(needs) { return None; }
     if !UnwrapOption(needs) { return Some(""); }
     let position: Int = routines.instruction_starts[global_row];
@@ -140,13 +138,12 @@ func MirDestructureTemporaryTextAt(
 ) -> String {
     if kind != "destructure" || global_row < 0 ||
         global_row >= ArrayLength(routines.instruction_starts) { return ""; }
-    let json: String = routines.source_json;
     let bindings: Array<Int> = [0, 0];
-    if !MirObjectArrayBoundsAtBounds(json, routines.instruction_starts[global_row],
+    if !MirObjectArrayBoundsAtBounds(routines.source_json, routines.source_json_extent, routines.instruction_starts[global_row],
             routines.instruction_ends[global_row], "destructure_bindings", bindings) ||
-        JsonArrayStringCount(json, bindings[0], bindings[1]) <= 0 { return ""; }
+        JsonArrayStringCount(routines.source_json, routines.source_json_extent, bindings[0], bindings[1]) <= 0 { return ""; }
     let temporary: Option<String> = MirDestructureTemporaryAt(routines, global_row,
-        JsonArrayStringAt(json, bindings[0], bindings[1], 0));
+        JsonArrayStringAt(routines.source_json, routines.source_json_extent, bindings[0], bindings[1], 0));
     if !IsSome(temporary) { return ""; }
     return UnwrapOption(temporary);
 }

@@ -91,7 +91,7 @@ func DirectMirInferredGenericScalarInstructionGraph(
             admitted.routines.instruction_expressions, global
         );
     return DirectMirArrayIntGraphFromExpressionFact(
-        admitted.routines.source_json, expression, 0
+        admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
     );
 }
 

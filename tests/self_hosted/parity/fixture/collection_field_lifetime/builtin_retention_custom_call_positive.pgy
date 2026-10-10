@@ -1,3 +1,4 @@
+// The exact custom String formal is proven synchronous and nonretaining.
 func CustomObserver(value: String) -> Bool {
     return value == "observed";
 }

@@ -443,7 +443,8 @@ func CompilerRuntimeCallAbiConstructedSuffix(
     if StringLength(out) == 0 {
         return None;
     }
-    let first: Int = CharCode(out, StringLength(out), 0);
+    // `out` is not empty here, so an extent of one reads exactly index 0.
+    let first: Int = CharCode(out, 1, 0);
     if first >= 48 && first <= 57 {
         out = Concat("T_", out);
     }

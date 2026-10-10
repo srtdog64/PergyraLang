@@ -205,7 +205,7 @@ func DirectMirArrayArgumentPlanFromAdmitted(
             );
         if !capture.valid ||
             !DirectMirInstructionHasNoPhysicalAbi(
-                admitted.routines.source_json, capture, abi_types[row]
+                admitted.routines.source_json, admitted.routines.source_json_extent, capture, abi_types[row]
         ) {
             Die("direct MIR Array argument instruction ABI is invalid");
         }
@@ -240,11 +240,11 @@ func DirectMirArrayArgumentPlanFromAdmitted(
         expressions[2];
     let consumer_sequence: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, consumer_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, consumer_expression, 0
         );
     let nested_sequence: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, nested_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, nested_expression, 0
         );
     let indices: Array<Int> = DirectMirArrayArgumentConsumerIndices(
         consumer_sequence, program.array_callee.param.name

@@ -219,6 +219,10 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
         return SemanticPublicDiagnosticIdentity(
             true, "semantic:borrow_escape", "bind-to-named-variable-before-move");
     }
+    if code == "string_window_extent_unproven" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:string_window:extent_unproven", "pass-same-string-length");
+    }
     if code == "call_arity_mismatch" {
         return SemanticPublicDiagnosticIdentity(
             true,

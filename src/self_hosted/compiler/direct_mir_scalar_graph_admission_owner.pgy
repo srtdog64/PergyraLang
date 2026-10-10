@@ -55,9 +55,9 @@ func DirectMirObjectArrayEmpty(
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFactArrayBounds(fact_table, field, bounds) { return false; }
     let cursor: Int = JsonSkipWhitespaceWithin(
-        fact_table.json, bounds[0] + 1, bounds[1]);
+        fact_table.json, fact_table.json_extent, bounds[0] + 1, bounds[1]);
     return cursor < bounds[1] &&
-        JsonCharCodeAt(fact_table.json, bounds[1], cursor) ==
+        JsonCharCodeAt(fact_table.json, fact_table.json_extent, bounds[1], cursor) ==
             JsonAsciiCode("]");
 }
 
@@ -153,7 +153,7 @@ func DirectMirProgramCommonEnvelopeForRoutineNameReady(
         return false;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, admitted.routines.starts[0], admitted.routines.ends[0]);
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0], admitted.routines.ends[0]);
     return JsonObjectFactTableReady(routine) &&
         JsonObjectFactStringFieldEquals(routine, "name", expected_name) &&
         JsonObjectFactStringFieldEquals(routine, "kind", "function") &&
@@ -180,7 +180,7 @@ func DirectMirProgramEnvelopeReady(
 ) -> Bool {
     if !DirectMirProgramBaseEnvelopeReady(admitted) { return false; }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0],
         admitted.routines.ends[0]
     );
     return DirectMirRoutineHasNoUnsupportedFacts(routine);
@@ -191,7 +191,7 @@ func DirectMirCfgProgramEnvelopeReady(
 ) -> Bool {
     if !DirectMirProgramBaseEnvelopeReady(admitted) { return false; }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0],
         admitted.routines.ends[0]
     );
     return DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine);
@@ -211,7 +211,7 @@ func DirectMirLogInstructionEnvelopeReady(
         DirectMirObjectFieldKindEquals(instruction, "abi_type_name", "null") &&
         DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") &&
         JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.start, instruction.end,
+            instruction.json, instruction.json_extent, instruction.start, instruction.end,
             "abi_layout_required", false
         ) &&
         DirectMirObjectFieldKindEquals(instruction, "abi_layout", "null") &&
@@ -282,7 +282,7 @@ func DirectMirScalarDefinitionLiteral(
         !JsonObjectFactStringFieldEquals(instruction, "abi_type_name", "Int") ||
         !DirectMirObjectNumberEquals(instruction, "abi_layout_id", "0") ||
         !JsonObjectBoolFieldEqualsWithin(
-            instruction.json, instruction.start, instruction.end,
+            instruction.json, instruction.json_extent, instruction.start, instruction.end,
             "abi_layout_required", false
         ) ||
         !DirectMirObjectFieldKindEquals(instruction, "abi_layout", "null") ||
@@ -459,7 +459,6 @@ func DirectMirScalarBlockProjectionCandidate(
 
 func DirectMirScalarBlockProjectionFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirScalarBlockProjection {
-    let json: String = admitted.routines.source_json;
     if !DirectMirProgramEnvelopeReady(admitted) ||
         admitted.routines.routine_block_counts[0] != 1 {
         return DirectMirScalarBlockProjectionEmpty();
@@ -495,14 +494,14 @@ func DirectMirScalarBlockProjectionFromAdmitted(
     }
     let block_row: Int = admitted.routines.routine_block_starts[0];
     let block: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.block_starts[block_row],
         admitted.routines.block_ends[block_row]
     );
     if !JsonObjectFactTableReady(block) || JsonObjectFactCount(block) != 3 ||
         !DirectMirObjectNumberEquals(block, "id", "0") ||
         !JsonObjectBoolFieldEqualsWithin(
-            json, block.start, block.end, "reachable", true
+            admitted.routines.source_json, admitted.routines.source_json_extent, block.start, block.end, "reachable", true
         ) {
         Die("direct MIR scalar reachable block is missing or invalid");
     }
@@ -529,7 +528,7 @@ func DirectMirScalarBlockProjectionFromAdmitted(
             Die("direct MIR scalar definition instruction order is invalid");
         }
         let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[global_row],
             admitted.routines.instruction_ends[global_row]
         );
@@ -567,7 +566,7 @@ func DirectMirScalarBlockProjectionFromAdmitted(
             Die("direct MIR scalar repeated Log instruction order is invalid");
         }
         let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[global_row],
             admitted.routines.instruction_ends[global_row]
         );

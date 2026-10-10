@@ -4,7 +4,7 @@
 
 import "ast_collection_aggregate_release_plan_owner.pgy";
 import "ast_collection_aggregate_value_exclusivity_owner.pgy";
-import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
 import "ast_collection_owned_argument_admission_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";

@@ -1,9 +1,9 @@
-// Ordered own storage transfer keyed only by admitted SyntaxNodeIds.
+// Exact consumption facts for the caller's one admitted occurrence stream.
+// Pending retirement is committed only after current argument admission.
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_builtin_release_identity_owner.pgy";
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
-import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_collection_assignment_definition_owner.pgy";
 import "ast_collection_formal_storage_permission_owner.pgy";
@@ -15,157 +15,126 @@ struct SemanticAstCollectionOwnedArgumentUse {
     boundary: String;
     syntax_node_id: Int;
     expression_node_id: Int;
+    retirement_source: Int;
+    retirement_site: Int;
 }
 
-func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
+func SemanticAstCollectionOwnedArgumentUseAtEvent(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
-    ref effects: SemanticAstCollectionCallEffectFacts,
-    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts
+    ref effects: SemanticAstCollectionCallEffectFacts, ref current: Array<Int>,
+    ref retired: HashMap<String, Int>, root_slot: Int, node: Int
 ) -> SemanticAstCollectionOwnedArgumentUse {
-    let retired: HashMap<String, Int> = MapNew();
-    let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
-    let root_slot: Int = 0;
-    while root_slot < ArrayLength(surfaces.expression_graph.roots) {
-        if surfaces.expression_graph.has_roots[root_slot] {
-            let surface: Int = root_slot / 3;
-            let syntax_id: Int = surfaces.node_ids[surface];
-            let root_id: Int = surfaces.expression_graph.roots[root_slot];
-            if !SemanticAstCollectionLifetimeRootReady(surfaces.expression_graph, root_id) {
-                return SemanticAstCollectionOwnedArgumentUse(
-                    true, "ast_artifact_invalid", "owned_argument_event_order", syntax_id, root_id);
-            }
-            let order: Array<Int> = [];
-            let pending: Array<Int> = [root_id];
-            let ordered: Bool = true;
-            while ArrayLength(pending) > 0 && ordered {
-                let step: SemanticAstCollectionArgumentEventStep = SemanticAstCollectionArgumentEventStepFromGraph(
-                    surfaces.expression_graph, pending[ArrayLength(pending) - 1]);
-                ArrayPop(pending);
-                ordered = step.ok;
-                if ordered {
-                    if step.event_node >= 0 { ArrayPush(order, step.event_node); }
-                    if step.completion < 0 { ArrayPush(pending, step.completion); }
-                    if step.right >= 0 { ArrayPush(pending, step.right); }
-                    if step.left >= 0 { ArrayPush(pending, step.left); }
-                }
-            }
-            ArrayDrop(pending);
-            if !ordered {
-                ArrayDrop(order);
-                return SemanticAstCollectionOwnedArgumentUse(
-                    true, "ast_artifact_invalid", "owned_argument_event_order", syntax_id, root_id);
-            }
-            let index: Int = 0;
-            while index < ArrayLength(order) {
-                let node: Int = order[index];
-                if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
-                    !SemanticAstCollectionDefinitionWriteTarget(definitions, root_slot, node) {
-                    let carried: SemanticExpressionBindingIdentityFact =
-                        SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, node);
-                    let binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
-                    if !carried.ok || carried.kind != SemanticExpressionBindingDeclaredCallable() {
-                        binding = SemanticAstCollectionOwnershipLocalForArgument(
-                            artifact, locals, inferred_types, surfaces, surface, node);
-                    }
-                    let source: Int = 0;
-                    if binding.ok { source = definitions.syntax_ids[current[binding.row]]; }
-                    else { source = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
-                        surfaces.function_node_ids[surface], surfaces.expression_graph, node); }
-                    let fresh_generation: Bool = binding.ok &&
-                        SemanticAstCollectionFreshLocalGenerationAtUse(artifact, locals, definitions,
-                            binding.row, current[binding.row], syntax_id, true);
-                    if source > 0 && MapHas(retired, ToString(source)) &&
-                        SemanticAstCollectionOwnRetirementVisibleAtUse(artifact,
-                            MapGet(retired, ToString(source)), syntax_id, fresh_generation) {
-                        ArrayDrop(order);
-                        return SemanticAstCollectionOwnedArgumentUse(
-                            true, "move_from_released", "owned_argument_use_after_move", syntax_id, node);
-                    }
-                } else if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
-                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
-                    if !edge.ok {
-                        ArrayDrop(order);
-                        return SemanticAstCollectionOwnedArgumentUse(true, "ast_artifact_invalid", "owned_argument_edge", syntax_id, node);
-                    }
-                    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
-                        artifact, locals, inferred_types, surfaces, surface, edge.argument_node);
-                    let formal_source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
-                        surfaces.function_node_ids[surface], surfaces.expression_graph, edge.argument_node);
-                    let own_parameter: Int = SemanticAstCollectionOwnStringArrayParameterNode(
-                        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-                    let source: Int = formal_source;
-                    if binding.ok { source = definitions.syntax_ids[current[binding.row]]; }
-                    let releasing: Bool = SemanticAstCollectionBuiltinReleaseArgument(
-                        surfaces.expression_graph, edge.call_node, edge.ordinal);
-                    let mutating: Bool = edge.ordinal == 0 && SemanticAstCollectionStorageMutationCall(
-                        surfaces.expression_graph, edge.call_node);
-                    if own_parameter > 0 && source > 0 {
-                        let fresh_generation: Bool = binding.ok &&
-                            SemanticAstCollectionFreshLocalGenerationAtUse(artifact, locals, definitions,
-                                binding.row, current[binding.row], syntax_id, false);
-                        if MapHas(retired, ToString(source)) &&
-                            SemanticAstCollectionOwnRetirementVisibleAtUse(artifact,
-                                MapGet(retired, ToString(source)), syntax_id, fresh_generation) {
-                            ArrayDrop(order);
-                            return SemanticAstCollectionOwnedArgumentUse(
-                                true, "move_from_released", "owned_argument_use_after_move", syntax_id, edge.argument_node);
-                        }
-                        if !binding.ok &&
-                            (SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
-                             SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, source, effects)) {
-                            ArrayDrop(order);
-                            return SemanticAstCollectionOwnedArgumentUse(
-                                true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, edge.argument_node);
-                        }
-                        let retirement: Int = SemanticAstCollectionCallRetirementSite(artifact, syntax_id);
-                        // A consumption in a function-exit tail retires only its own scope.
-                        if fresh_generation || SemanticAstCollectionTerminatingRetirementScope(artifact, syntax_id, true) >= 0 {
-                            retirement = syntax_id;
-                        }
-                        MapSet(retired, ToString(source), retirement);
-                    } else if (releasing || mutating) && formal_source > 0 {
-                        // Keep local-drop metadata rules separate from own-source retirement.
-                        if (releasing && SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, formal_source, effects)) ||
-                            (mutating && SemanticAstCollectionFormalStorageMutationUnproved(artifact, syntax_id, formal_source, effects)) {
-                            ArrayDrop(order);
-                            return SemanticAstCollectionOwnedArgumentUse(
-                                true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, edge.argument_node);
-                        }
-                        if releasing { MapSet(retired, ToString(formal_source), SemanticAstCollectionCallRetirementSite(artifact, syntax_id)); }
-                    }
-                }
-                index = index + 1;
-            }
-            let mutation: Result<Bool> = SemanticAstCollectionOwnFormalStatementMutationUnproved(artifact, signatures, statements, assignments,
-                surfaces.function_node_ids[surface], syntax_id, root_slot % 3, surfaces.expression_graph, root_id, effects);
-            if IsErr(mutation) {
-                ArrayDrop(order);
-                return SemanticAstCollectionOwnedArgumentUse(true, "ast_artifact_invalid", "statement_mutation_identity", syntax_id, root_id);
-            }
-            let mutation_unproved: Bool = Unwrap(mutation);
-            if mutation_unproved {
-                ArrayDrop(order);
-                return SemanticAstCollectionOwnedArgumentUse(
-                    true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, root_id);
-            }
-            ArrayDrop(order);
-            let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, root_slot);
-            let moved: Int = 0;
-            if completed >= 0 { moved = definitions.own_sources[completed]; }
-            if moved > 0 {
-                if !definitions.fresh[completed] || SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
-                    SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, moved, effects) {
-                    return SemanticAstCollectionOwnedArgumentUse(
-                        true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, root_id);
-                }
-                // Initializer reads precede its move. Element facts stay with their owner.
-                MapSet(retired, ToString(moved), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
-            }
-            if completed >= 0 { current[definitions.binding_rows[completed]] = completed; }
-        }
-        root_slot = root_slot + 1;
+    let absent: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, 0, -1);
+    if node < 0 { return absent; }
+    let surface: Int = root_slot / 3;
+    let syntax_id: Int = surfaces.node_ids[surface];
+    let invalid: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionOwnedArgumentUse(
+        true, "ast_artifact_invalid", "owned_argument_event_identity", syntax_id, node, 0, -1);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+    if !IsSome(kind) { return invalid; }
+    let leaf: Bool = UnwrapOption(kind) == AstExpressionNodeLeaf();
+    let argument: Bool = UnwrapOption(kind) == AstExpressionNodeCallArgument();
+    if (!leaf && !argument) || (leaf && SemanticAstCollectionDefinitionWriteTarget(definitions, root_slot, node)) { return absent; }
+    let source_node: Int = node;
+    let own_parameter: Int = 0;
+    let releasing: Bool = false;
+    let mutating: Bool = false;
+    if argument {
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+        if !edge.ok { return invalid; }
+        source_node = edge.argument_node;
+        own_parameter = SemanticAstCollectionOwnStringArrayParameterNode(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+        releasing = SemanticAstCollectionBuiltinReleaseArgument(surfaces.expression_graph, edge.call_node, edge.ordinal);
+        mutating = edge.ordinal == 0 && SemanticAstCollectionStorageMutationCall(surfaces.expression_graph, edge.call_node);
     }
-    return SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1);
+    let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, source_node);
+    if !carried.ok { return invalid; }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
+    if carried.kind != SemanticExpressionBindingDeclaredCallable() {
+        binding = SemanticAstCollectionOwnershipLocalForArgument(artifact, locals, inferred_types, surfaces, surface, source_node);
+    }
+    let formal_source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
+        surfaces.function_node_ids[surface], surfaces.expression_graph, source_node);
+    let source: Int = formal_source;
+    if binding.ok {
+        if binding.row < 0 || binding.row >= ArrayLength(current) || current[binding.row] < 0 ||
+            current[binding.row] >= ArrayLength(definitions.syntax_ids) ||
+            current[binding.row] >= ArrayLength(definitions.binding_rows) ||
+            definitions.binding_rows[current[binding.row]] != binding.row { return invalid; }
+        source = definitions.syntax_ids[current[binding.row]];
+        if source <= 0 { return invalid; }
+    }
+    let fresh_generation: Bool = binding.ok && SemanticAstCollectionFreshLocalGenerationAtUse(
+        artifact, locals, definitions, binding.row, current[binding.row], syntax_id, leaf);
+    if source > 0 && (leaf || own_parameter > 0) && MapSize(retired) > 0 {
+        let key: String = ToString(source);
+        if MapHas(retired, key) && SemanticAstCollectionOwnRetirementVisibleAtUse(
+            artifact, MapGet(retired, key), syntax_id, fresh_generation) {
+            return SemanticAstCollectionOwnedArgumentUse(
+                true, "move_from_released", "owned_argument_use_after_move", syntax_id, source_node, 0, -1);
+        }
+    }
+    if leaf { return absent; }
+    if own_parameter > 0 && source > 0 {
+        if !binding.ok && (SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
+            SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, source, effects)) {
+            return SemanticAstCollectionOwnedArgumentUse(
+                true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, source_node, 0, -1);
+        }
+        let retirement: Int = SemanticAstCollectionCallRetirementSite(artifact, syntax_id);
+        // Exit-tail consumption retires this generation, not a later loop one.
+        if fresh_generation || SemanticAstCollectionTerminatingRetirementScope(artifact, syntax_id, true) >= 0 { retirement = syntax_id; }
+        return SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, source, retirement);
+    }
+    if (releasing || mutating) && formal_source > 0 {
+        if (releasing && SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, formal_source, effects)) ||
+            (mutating && SemanticAstCollectionFormalStorageMutationUnproved(artifact, syntax_id, formal_source, effects)) {
+            return SemanticAstCollectionOwnedArgumentUse(
+                true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, source_node, 0, -1);
+        }
+        if releasing {
+            return SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1,
+                formal_source, SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
+        }
+    }
+    return absent;
+}
+
+// RHS reads finish before source movement and destination activation.
+func SemanticAstCollectionOwnedArgumentDefinitionAtSlot(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts, ref effects: SemanticAstCollectionCallEffectFacts,
+    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
+    root_slot: Int, root: Int
+) -> SemanticAstCollectionOwnedArgumentUse {
+    let surface: Int = root_slot / 3;
+    let syntax_id: Int = surfaces.node_ids[surface];
+    let mutation: Result<Bool> = SemanticAstCollectionOwnFormalStatementMutationUnproved(artifact, signatures, statements, assignments,
+        surfaces.function_node_ids[surface], syntax_id, root_slot % 3, surfaces.expression_graph, root, effects);
+    if IsErr(mutation) {
+        return SemanticAstCollectionOwnedArgumentUse(true, "ast_artifact_invalid", "statement_mutation_identity", syntax_id, root, 0, -1);
+    }
+    let unproved: Bool = Unwrap(mutation);
+    if unproved {
+        return SemanticAstCollectionOwnedArgumentUse(true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, root, 0, -1);
+    }
+    let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, root_slot);
+    if completed >= 0 {
+        if completed >= ArrayLength(definitions.own_sources) || completed >= ArrayLength(definitions.fresh) {
+            return SemanticAstCollectionOwnedArgumentUse(true, "ast_artifact_invalid", "owned_argument_definition_identity", syntax_id, root, 0, -1);
+        }
+        let moved: Int = definitions.own_sources[completed];
+        if moved > 0 {
+            if !definitions.fresh[completed] || SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
+                SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, moved, effects) {
+                return SemanticAstCollectionOwnedArgumentUse(true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, root, 0, -1);
+            }
+            return SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1,
+                moved, SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
+        }
+    }
+    return SemanticAstCollectionOwnedArgumentUse(false, "", "", -1, -1, 0, -1);
 }

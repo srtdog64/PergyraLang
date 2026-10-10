@@ -5,6 +5,7 @@
 // ABI value spans. ABI syntax and semantics stay in abi_layout_fact_owner.
 
 import "json_fact_read.pgy";
+import "../lib/string_window_within.pgy";
 
 struct MirRoutineInstructionScalarCapture {
     let valid: Bool;
@@ -50,10 +51,10 @@ func InvalidMirRoutineInstructionScalarCapture(
 }
 
 func MirRoutineInstructionScalarCaptureWithin(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> MirRoutineInstructionScalarCapture {
     if start < 0 || end <= start ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return InvalidMirRoutineInstructionScalarCapture();
     }
     let name: String = "";
@@ -107,9 +108,9 @@ func MirRoutineInstructionScalarCaptureWithin(
     let after_comma: Bool = false;
     let i: Int = start + 1;
     while i < end {
-        i = JsonSkipWhitespaceWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i, end);
         if i >= end { return InvalidMirRoutineInstructionScalarCapture(); }
-        let c: Int = JsonCharCodeAt(json, end, i);
+        let c: Int = JsonCharCodeAt(json, json_extent, end, i);
         if c == JsonAsciiCode("}") {
             if after_comma || !kind_seen || kind == "" ||
                 !source_type_seen {
@@ -152,7 +153,7 @@ func MirRoutineInstructionScalarCaptureWithin(
         if c != JsonAsciiCode("\"") {
             return InvalidMirRoutineInstructionScalarCapture();
         }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, i, end);
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, i, end);
         if !IsSome(key_end_opt) {
             return InvalidMirRoutineInstructionScalarCapture();
         }
@@ -161,69 +162,69 @@ func MirRoutineInstructionScalarCaptureWithin(
         let key_has_escape: Bool = false;
         let key_row: Int = i + 1;
         while key_row < key_end - 1 {
-            if JsonCharCodeAt(json, key_end, key_row) ==
+            if JsonCharCodeAt(json, json_extent, key_end, key_row) ==
                 JsonAsciiCode("\\") {
                 key_has_escape = true;
             }
             key_row = key_row + 1;
         }
         let is_name: Bool = (key_has_escape || raw_key_length == 4) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "name");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "name");
         let is_result: Bool = (key_has_escape || raw_key_length == 6) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "result");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "result");
         let is_expr0: Bool = (key_has_escape || raw_key_length == 5) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr0");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr0");
         let is_expr1: Bool = (key_has_escape || raw_key_length == 5) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr1");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr1");
         let is_arg0: Bool = (key_has_escape || raw_key_length == 4) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "arg0");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "arg0");
         let is_arg1: Bool = (key_has_escape || raw_key_length == 4) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "arg1");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "arg1");
         let is_kind: Bool = (key_has_escape || raw_key_length == 4) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "kind");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "kind");
         let is_source_type: Bool =
             (key_has_escape || raw_key_length == 11) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "source_type");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "source_type");
         let is_slot_anchor: Bool =
             (key_has_escape || raw_key_length == 11) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "slot_anchor");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "slot_anchor");
         let is_abi_type: Bool =
             (key_has_escape || raw_key_length == 13) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "abi_type_name");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "abi_type_name");
         let is_match_variant: Bool =
             (key_has_escape || raw_key_length == 13) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "match_variant");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "match_variant");
         let is_expr0_graph: Bool =
             (key_has_escape || raw_key_length == 11) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr0_graph");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr0_graph");
         let is_expr1_graph: Bool =
             (key_has_escape || raw_key_length == 11) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "expr1_graph");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "expr1_graph");
         let is_machine_contact: Bool =
             (key_has_escape || raw_key_length == 20) &&
             JsonObjectKeyEqualsWithin(
-                json, i, key_end, "machine_contact_kind"
+                json, json_extent, i, key_end, "machine_contact_kind"
             );
         let is_machine_layer: Bool =
             (key_has_escape || raw_key_length == 13) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "machine_layer");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "machine_layer");
         let is_abi_layout_id: Bool =
             (key_has_escape || raw_key_length == 13) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "abi_layout_id");
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "abi_layout_id");
         let is_abi_layout_required: Bool =
             (key_has_escape || raw_key_length == 19) &&
             JsonObjectKeyEqualsWithin(
-                json, i, key_end, "abi_layout_required"
+                json, json_extent, i, key_end, "abi_layout_required"
             );
         let is_abi_layout: Bool =
             (key_has_escape || raw_key_length == 10) &&
-            JsonObjectKeyEqualsWithin(json, i, key_end, "abi_layout");
-        i = JsonSkipWhitespaceWithin(json, key_end, end);
-        if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
+            JsonObjectKeyEqualsWithin(json, json_extent, i, key_end, "abi_layout");
+        i = JsonSkipWhitespaceWithin(json, json_extent, key_end, end);
+        if i >= end || JsonCharCodeAt(json, json_extent, end, i) != JsonAsciiCode(":") {
             return InvalidMirRoutineInstructionScalarCapture();
         }
-        i = JsonSkipWhitespaceWithin(json, i + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
+        i = JsonSkipWhitespaceWithin(json, json_extent, i + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, json_extent, i, end);
         if !IsSome(value_end_opt) {
             return InvalidMirRoutineInstructionScalarCapture();
         }
@@ -243,14 +244,14 @@ func MirRoutineInstructionScalarCaptureWithin(
                 return InvalidMirRoutineInstructionScalarCapture();
             }
             let value: String = "";
-            if JsonCharCodeAt(json, value_end, i) == JsonAsciiCode("\"") {
+            if JsonCharCodeAt(json, json_extent, value_end, i) == JsonAsciiCode("\"") {
                 let decoded_end: Array<Int> = [0];
-                value = ReadJsonStringBounded(json, i, value_end, decoded_end);
+                value = ReadJsonStringBounded(json, json_extent, i, value_end, decoded_end);
                 if decoded_end[0] != value_end {
                     return InvalidMirRoutineInstructionScalarCapture();
                 }
             } else if !(i + 4 == value_end &&
-                SubEqualsWithLen(json, value_end, i, 4, "null")) {
+                StringWindowSubEquals(json, json_extent, value_end, i, 4, "null")) {
                 return InvalidMirRoutineInstructionScalarCapture();
             }
             if is_name { name = value; name_seen = true; }
@@ -276,15 +277,15 @@ func MirRoutineInstructionScalarCaptureWithin(
                 abi_type_start = i;
                 abi_type_end = value_end;
                 abi_type_seen = true;
-                if JsonValueKindAt(json, i, value_end) == "string" {
+                if JsonValueKindAt(json, json_extent, i, value_end) == "string" {
                     let decoded_end: Array<Int> = [0];
                     abi_type_name = ReadJsonStringBounded(
-                        json, i, value_end, decoded_end
+                        json, json_extent, i, value_end, decoded_end
                     );
                     abi_type_value_ready = decoded_end[0] == value_end;
                     if !abi_type_value_ready { abi_type_name = ""; }
-                } else if i + 4 == value_end && SubEqualsWithLen(
-                    json, value_end, i, 4, "null"
+                } else if i + 4 == value_end && StringWindowSubEquals(
+                    json, json_extent, value_end, i, 4, "null"
                 ) {
                     abi_type_value_ready = true;
                 }
@@ -320,7 +321,7 @@ func MirRoutineInstructionScalarCaptureWithin(
             }
             let graph_start: Int = 0 - 1;
             let graph_end: Int = 0 - 1;
-            let graph_kind: String = JsonValueKindAt(json, i, value_end);
+            let graph_kind: String = JsonValueKindAt(json, json_extent, i, value_end);
             if graph_kind == "object" {
                 graph_start = i;
                 graph_end = value_end;

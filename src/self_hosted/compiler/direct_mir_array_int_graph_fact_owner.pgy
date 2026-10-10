@@ -9,11 +9,11 @@ import "direct_mir_scalar_int_literal_domain_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 
 func DirectMirArrayIntGraphFromExpressionFact(
-    json: String, ref fact: MirProgramInstructionExpressionFact,
+    json: String, json_extent: Int, ref fact: MirProgramInstructionExpressionFact,
     slot: Int
 ) -> MirExpressionGraphSequence {
     let graph: JsonObjectFactTable =
-        MirProgramInstructionExpressionGraphTable(json, fact, slot);
+        MirProgramInstructionExpressionGraphTable(json, json_extent, fact, slot);
     if !graph.valid {
         Die("direct MIR Array<Int> expression graph fact is missing");
     }

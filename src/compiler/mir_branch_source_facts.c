@@ -201,39 +201,29 @@ fail:
     return false;
 }
 
-static const MIRSourceLocalType *
-mir_collection_source_local(const MIRRoutine *routine,
-                            uint32_t binding_syntax_id)
-{
-    if (routine == NULL || binding_syntax_id == 0)
-        return NULL;
-    for (size_t i = 0; i < routine->source_local_type_count; i++) {
-        const MIRSourceLocalType *local = &routine->source_local_types[i];
-        if (local->binding_syntax_id == binding_syntax_id)
-            return local;
-    }
-    return NULL;
-}
-
 static const char *
 mir_collection_binding_type_name(const MIRRoutine *routine,
                                  uint32_t binding_syntax_id)
 {
     const MIRSourceLocalType *local =
-        mir_collection_source_local(routine, binding_syntax_id);
+        mir_routine_source_local_type_fact_by_binding_syntax_id(
+            routine, binding_syntax_id);
+    const char *parameter_type = NULL;
+    size_t parameter_matches = 0;
 
-    if (local != NULL)
-        return local->type_name;
     if (routine == NULL || binding_syntax_id == 0)
         return NULL;
     for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
         FuncParam *param = mir_routine_param(routine, i);
         if (param != NULL
             && ast_func_param_stable_id(param) == binding_syntax_id) {
-            return mir_routine_param_type_name(routine, i);
+            parameter_matches++;
+            parameter_type = mir_routine_param_type_name(routine, i);
         }
     }
-    return NULL;
+    if (local != NULL)
+        return parameter_matches == 0 ? local->type_name : NULL;
+    return parameter_matches == 1 ? parameter_type : NULL;
 }
 
 static bool
@@ -372,7 +362,8 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
         const MIRCollectionOwnershipFact *fact =
             &routine->collection_ownership_facts[i];
         const MIRSourceLocalType *target =
-            mir_collection_source_local(routine, fact->binding_syntax_id);
+            mir_routine_source_local_type_fact_by_binding_syntax_id(
+                routine, fact->binding_syntax_id);
         const MIRCollectionOwnershipFact *source_fact = NULL;
         const char *source_type = NULL;
         bool origin_consistent = false;
@@ -695,7 +686,7 @@ mir_collection_transition_error(const MIRRoutine *routine,
                                 const char *stage)
 {
     if (error_message != NULL) {
-        const MIRSourceLocalType *local = mir_collection_source_local(
+        const MIRSourceLocalType *local = mir_routine_source_local_type_fact_by_binding_syntax_id(
             routine, binding_syntax_id);
         char detail[512];
         snprintf(detail, sizeof(detail),

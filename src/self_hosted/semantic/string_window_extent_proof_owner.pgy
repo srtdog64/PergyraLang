@@ -1,0 +1,345 @@
+// String-window extent proof forms P1-P5, P7 and P8 over carried graph
+// identities. The rule is fixed in
+// docs/agent_work_directives/string_window_extent_closure_2026-10-10.md and
+// is the rule of the native owner src/semantic/string_window_extent.c.
+//
+// A binding key names one declaration: "p<param id>" for a formal, "l<let id>"
+// for a plain let, "d<let id>:<index>" for a destructured let and "h<name>"
+// for a host field. Any other identifier is "n<routine>:<name>"; spelling
+// joins those only inside one expression, where no shadowing exists. Only
+// formal and plain-let keys can be stable.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_expression_owner_field_environment_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+
+struct SemanticStringWindowBinding {
+    key: String;
+    kind: Int;        // 0 none, 1 formal, 2 plain let, 3 destructured, 4 host field, 5 other
+    syntax_id: Int;   // formal param id or let statement id
+    ordinal: Int;     // formal ordinal within its signature
+    type_name: String;
+}
+
+// kind: 0 unproven, 1 proven, 2 routine requirement, 3 record field pair.
+struct SemanticStringWindowPair {
+    kind: Int;
+    source_param: Int;
+    extent_param: Int;
+    source_field: String;
+    extent_field: String;
+}
+
+func SemanticStringWindowPairOf(kind: Int) -> SemanticStringWindowPair {
+    return SemanticStringWindowPair(kind, -1, -1, "", "");
+}
+
+func SemanticStringWindowBindingAt(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    surface: Int, node: Int) -> SemanticStringWindowBinding {
+    let unbound: SemanticStringWindowBinding = SemanticStringWindowBinding("", 0, 0, -1, "");
+    if surface < 0 || node < 0 ||
+        analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() {
+        return unbound;
+    }
+    let formal: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+        analysis.expression_surfaces.expression_graph, node);
+    if formal.ok && formal.kind == SemanticExpressionBindingFormalParameter() {
+        return SemanticStringWindowBinding(Concat("p", ToString(formal.syntax_id)), 1,
+            formal.syntax_id, formal.ordinal, SemanticStringWindowFormalType(analysis.signatures,
+                analysis.expression_surfaces.function_node_ids[surface], formal.ordinal));
+    }
+    if formal.ok && formal.kind == SemanticExpressionBindingDeclaredCallable() { return unbound; }
+    let local_binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+        artifact, analysis.local_bindings, inferred, analysis.expression_surfaces, surface, node);
+    if local_binding.ok {
+        if analysis.local_bindings.binding_kinds[local_binding.row] == SemanticAstLocalBindingKindNormal() {
+            return SemanticStringWindowBinding(Concat("l", ToString(local_binding.declaration_node_id)), 2,
+                local_binding.declaration_node_id, -1, local_binding.type_name);
+        }
+        return SemanticStringWindowBinding(Concat(Concat("d", ToString(local_binding.declaration_node_id)),
+            Concat(":", ToString(local_binding.binding_index))), 3, local_binding.declaration_node_id, -1, local_binding.type_name);
+    }
+    let text: String = analysis.expression_surfaces.expression_graph.arena.node_texts[node];
+    if !IsIdentifier(text) { return unbound; }
+    let routine: Int = analysis.expression_surfaces.function_node_ids[surface];
+    let field_type: Option<String> = None;
+    if routine > 0 {
+        field_type = SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
+            analysis.signatures, analysis.constructors, routine, text);
+    }
+    if IsSome(field_type) {
+        return SemanticStringWindowBinding(Concat("h", text), 4, 0, -1, UnwrapOption(field_type));
+    }
+    return SemanticStringWindowBinding(Concat(Concat("n", ToString(routine)), Concat(":", text)),
+        5, 0, -1, "");
+}
+
+func SemanticStringWindowFormalType(ref signatures: SemanticAstFunctionSignatureFacts,
+    routine: Int, ordinal: Int) -> String {
+    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, routine);
+    if !IsSome(row) || ordinal < 0 || ordinal >= signatures.param_counts[UnwrapOption(row)] { return ""; }
+    return signatures.param_types[signatures.param_starts[UnwrapOption(row)] + ordinal];
+}
+
+// A stable binding is a formal or a plain let that no assignment targets and
+// no call passes to an inout parameter, anywhere in the program.
+func SemanticStringWindowStable(ref binding: SemanticStringWindowBinding,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>) -> Bool {
+    return (binding.kind == 1 || binding.kind == 2) &&
+        !MapHas(mutated, binding.key) && !MapHas(inout_passed, binding.key);
+}
+
+// The value of an Int or Long literal of at most nine digits. A longer
+// literal exceeds every literal string, so it can prove no extent above 1.
+func SemanticStringWindowIntLiteral(ref graph: SemanticExpressionGraphFacts, node: Int) -> Int {
+    let kind: Int = graph.arena.topology.node_kinds[node];
+    let digits: String = graph.arena.node_texts[node];
+    let digits_extent: Int = StringLength(digits);
+    let length: Int = digits_extent;
+    if kind == AstExpressionNodeLongLiteral() && length > 1 &&
+        CharCode(digits, digits_extent, length - 1) == 76 {
+        length = length - 1;
+    } else if kind != AstExpressionNodeIntegerLiteral() {
+        return -1;
+    }
+    if length < 1 || length > 9 { return -1; }
+    let value: Int = 0;
+    let i: Int = 0;
+    while i < length {
+        let c: Int = CharCode(digits, digits_extent, i);
+        if c < 48 || c > 57 { return -1; }
+        value = value * 10 + (c - 48);
+        i = i + 1;
+    }
+    return value;
+}
+
+// Bytes a string literal holds before its first escape; -1 for any other
+// node. The raw text keeps its quotes and escape sequences.
+func SemanticStringWindowLiteralPrefix(ref graph: SemanticExpressionGraphFacts, node: Int) -> Int {
+    if graph.arena.topology.node_kinds[node] != AstExpressionNodeStringLiteral() { return -1; }
+    let raw: String = graph.arena.node_texts[node];
+    let raw_extent: Int = StringLength(raw);
+    let i: Int = 1;
+    while i < raw_extent - 1 && CharCode(raw, raw_extent, i) != 92 { i = i + 1; }
+    return i - 1;
+}
+
+// The argument of a bare `StringLength(x)` call rooted at `node`, or -1.
+func SemanticStringWindowLengthArgument(ref graph: SemanticExpressionGraphFacts, node: Int) -> Int {
+    let kind: Int = graph.arena.topology.node_kinds[node];
+    if kind != AstExpressionNodeCall() && kind != AstExpressionNodeCallArgument() { return -1; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node);
+    if !call.ok || ArrayLength(call.argument_nodes) != 1 ||
+        !SemanticAstCollectionOwnershipBuiltinCall(graph, call.call_node, "StringLength") {
+        return -1;
+    }
+    return call.argument_nodes[0];
+}
+
+func SemanticStringWindowSameValue(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>,
+    left_surface: Int, left: Int, right_surface: Int, right: Int) -> Bool {
+    if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[left] == AstExpressionNodeStringLiteral() &&
+        analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[right] == AstExpressionNodeStringLiteral() {
+        return analysis.expression_surfaces.expression_graph.arena.node_texts[left] ==
+            analysis.expression_surfaces.expression_graph.arena.node_texts[right];
+    }
+    let a: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, left_surface, left);
+    let b: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, right_surface, right);
+    return SemanticStringWindowStable(a, mutated, inout_passed) &&
+        SemanticStringWindowStable(b, mutated, inout_passed) && a.key == b.key;
+}
+
+// Two member paths read one record when their member names agree down to one
+// binding root that no call passes as inout. The root may be reassigned:
+// every record value satisfies the field invariant.
+func SemanticStringWindowSameRecordPath(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref inout_passed: HashMap<String, Int>, surface: Int, left: Int, right: Int) -> Bool {
+    let a: Int = left;
+    let b: Int = right;
+    while a >= 0 && b >= 0 {
+        let kind_a: Int = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[a];
+        let kind_b: Int = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[b];
+        if kind_a == AstExpressionNodeMemberAccess() && kind_b == AstExpressionNodeMemberAccess() {
+            let view_a: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+                analysis.expression_surfaces.expression_graph, a);
+            let view_b: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+                analysis.expression_surfaces.expression_graph, b);
+            if !view_a.ok || !view_b.ok ||
+                analysis.expression_surfaces.expression_graph.arena.node_texts[view_a.member_node] !=
+                    analysis.expression_surfaces.expression_graph.arena.node_texts[view_b.member_node] {
+                return false;
+            }
+            a = view_a.receiver_node;
+            b = view_b.receiver_node;
+        } else {
+            let root_a: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, a);
+            let root_b: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, b);
+            return root_a.kind != 0 && root_a.kind != 4 && root_a.key == root_b.key &&
+                !MapHas(inout_passed, root_a.key);
+        }
+    }
+    return false;
+}
+
+// A readonly place: a `ref` formal of the routine, or a field path over one.
+// No write reaches its elements while the routine runs.
+func SemanticStringWindowReadonlyPath(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    surface: Int, left: Int, right: Int) -> Bool {
+    let a: Int = left;
+    let b: Int = right;
+    while a >= 0 && b >= 0 &&
+        analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[a] == AstExpressionNodeMemberAccess() &&
+        analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[b] == AstExpressionNodeMemberAccess() {
+        let view_a: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(analysis.expression_surfaces.expression_graph, a);
+        let view_b: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(analysis.expression_surfaces.expression_graph, b);
+        if !view_a.ok || !view_b.ok ||
+            analysis.expression_surfaces.expression_graph.arena.node_texts[view_a.member_node] !=
+                analysis.expression_surfaces.expression_graph.arena.node_texts[view_b.member_node] {
+            return false;
+        }
+        a = view_a.receiver_node;
+        b = view_b.receiver_node;
+    }
+    if a < 0 || b < 0 { return false; }
+    let root_a: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, a);
+    let root_b: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, b);
+    let routine: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        analysis.signatures, analysis.expression_surfaces.function_node_ids[surface]);
+    if root_a.kind != 1 || root_a.key != root_b.key || !IsSome(routine) ||
+        !SemanticStringWindowFormalOf(analysis.signatures, UnwrapOption(routine), root_a) {
+        return false;
+    }
+    return analysis.signatures.param_modes[analysis.signatures.param_starts[UnwrapOption(routine)] + root_a.ordinal] == 3;
+}
+
+// P8: two reads of one element of a readonly array, at the same stable index
+// binding or the same integer literal.
+func SemanticStringWindowSameElement(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>,
+    surface: Int, left: Int, right: Int) -> Bool {
+    if left < 0 || right < 0 ||
+        analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[left] != AstExpressionNodeIndex() ||
+        analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[right] != AstExpressionNodeIndex() {
+        return false;
+    }
+    let base_a: Option<Int> = SemanticExpressionGraphLeftChild(analysis.expression_surfaces.expression_graph, left);
+    let base_b: Option<Int> = SemanticExpressionGraphLeftChild(analysis.expression_surfaces.expression_graph, right);
+    let index_a: Option<Int> = SemanticExpressionGraphRightChild(analysis.expression_surfaces.expression_graph, left);
+    let index_b: Option<Int> = SemanticExpressionGraphRightChild(analysis.expression_surfaces.expression_graph, right);
+    if !IsSome(base_a) || !IsSome(base_b) || !IsSome(index_a) || !IsSome(index_b) { return false; }
+    let value_a: Int = SemanticStringWindowIntLiteral(analysis.expression_surfaces.expression_graph, UnwrapOption(index_a));
+    let value_b: Int = SemanticStringWindowIntLiteral(analysis.expression_surfaces.expression_graph, UnwrapOption(index_b));
+    let same_index: Bool = value_a >= 0 && value_a == value_b;
+    if !same_index {
+        let key_a: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, UnwrapOption(index_a));
+        let key_b: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, UnwrapOption(index_b));
+        same_index = SemanticStringWindowStable(key_a, mutated, inout_passed) &&
+            SemanticStringWindowStable(key_b, mutated, inout_passed) && key_a.key == key_b.key;
+    }
+    return same_index && SemanticStringWindowReadonlyPath(artifact, analysis, inferred, surface,
+        UnwrapOption(base_a), UnwrapOption(base_b));
+}
+
+// One (source, extent) pair in the routine of `surface`, by P4, P3, P1/P8,
+// P7, P8, P2 and P5 in that order, as the native owner classifies it.
+func SemanticStringWindowClassify(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>,
+    surface: Int, source: Int, extent: Int) -> SemanticStringWindowPair {
+    let value: Int = SemanticStringWindowIntLiteral(analysis.expression_surfaces.expression_graph, extent);
+    if value >= 0 {
+        if value <= 1 { return SemanticStringWindowPairOf(1); }
+        if value <= SemanticStringWindowLiteralPrefix(analysis.expression_surfaces.expression_graph, source) {
+            return SemanticStringWindowPairOf(1);
+        }
+        return SemanticStringWindowPairOf(0);
+    }
+    let measured: Int = SemanticStringWindowLengthArgument(analysis.expression_surfaces.expression_graph, extent);
+    if measured >= 0 {
+        if SemanticStringWindowSameValue(artifact, analysis, inferred, mutated, inout_passed,
+            surface, measured, surface, source) ||
+            SemanticStringWindowSameElement(artifact, analysis, inferred, mutated, inout_passed,
+                surface, measured, source) { return SemanticStringWindowPairOf(1); }
+        return SemanticStringWindowPairOf(0);
+    }
+    let field: SemanticStringWindowPair = SemanticStringWindowFieldPair(
+        artifact, analysis, inferred, inout_passed, surface, source, extent);
+    if field.kind == 3 { return field; }
+    let source_binding: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, source);
+    let extent_binding: SemanticStringWindowBinding = SemanticStringWindowBindingAt(artifact, analysis, inferred, surface, extent);
+    if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[source] == AstExpressionNodeIndex() {
+        if extent_binding.kind != 2 || !SemanticStringWindowStable(extent_binding, mutated, inout_passed) {
+            return SemanticStringWindowPairOf(0);
+        }
+        return SemanticStringWindowPairOf(SemanticStringWindowWitnessKind(artifact, analysis, inferred,
+            mutated, inout_passed, extent_binding.syntax_id, surface, source));
+    }
+    if !SemanticStringWindowStable(source_binding, mutated, inout_passed) ||
+        !SemanticStringWindowStable(extent_binding, mutated, inout_passed) {
+        return SemanticStringWindowPairOf(0);
+    }
+    if extent_binding.kind == 2 {
+        return SemanticStringWindowPairOf(SemanticStringWindowWitnessKind(artifact, analysis, inferred,
+            mutated, inout_passed, extent_binding.syntax_id, surface, source));
+    }
+    let routine: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        analysis.signatures, analysis.expression_surfaces.function_node_ids[surface]);
+    if extent_binding.kind != 1 || source_binding.kind != 1 || !IsSome(routine) ||
+        analysis.signatures.owner_names[UnwrapOption(routine)] != "" ||
+        !SemanticStringWindowFormalOf(analysis.signatures, UnwrapOption(routine), source_binding) ||
+        !SemanticStringWindowFormalOf(analysis.signatures, UnwrapOption(routine), extent_binding) {
+        return SemanticStringWindowPairOf(0);
+    }
+    return SemanticStringWindowPair(2, source_binding.ordinal, extent_binding.ordinal, "", "");
+}
+
+func SemanticStringWindowFieldPair(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref inout_passed: HashMap<String, Int>, surface: Int, source: Int, extent: Int) -> SemanticStringWindowPair {
+    let source_view: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+        analysis.expression_surfaces.expression_graph, source);
+    let extent_view: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+        analysis.expression_surfaces.expression_graph, extent);
+    if !source_view.ok || !extent_view.ok ||
+        !SemanticStringWindowSameRecordPath(artifact, analysis, inferred, inout_passed, surface,
+            source_view.receiver_node, extent_view.receiver_node) {
+        return SemanticStringWindowPairOf(0);
+    }
+    return SemanticStringWindowPair(3, -1, -1,
+        analysis.expression_surfaces.expression_graph.arena.node_texts[source_view.member_node],
+        analysis.expression_surfaces.expression_graph.arena.node_texts[extent_view.member_node]);
+}
+
+// P2: the extent's let declares `StringLength(x)` with x the source.
+func SemanticStringWindowWitnessKind(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    ref mutated: HashMap<String, Int>, ref inout_passed: HashMap<String, Int>,
+    let_id: Int, surface: Int, source: Int) -> Int {
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces,
+        let_id, AstExpressionLaneValue());
+    let let_surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(analysis.expression_surfaces, let_id);
+    if !IsSome(root) || !IsSome(let_surface) { return 0; }
+    let witnessed: Int = SemanticStringWindowLengthArgument(
+        analysis.expression_surfaces.expression_graph, UnwrapOption(root));
+    if witnessed < 0 || (!SemanticStringWindowSameValue(artifact, analysis, inferred, mutated, inout_passed,
+            UnwrapOption(let_surface), witnessed, surface, source) &&
+        !SemanticStringWindowSameElement(artifact, analysis, inferred, mutated, inout_passed,
+            surface, witnessed, source)) {
+        return 0;
+    }
+    return 1;
+}
+
+func SemanticStringWindowFormalOf(ref signatures: SemanticAstFunctionSignatureFacts,
+    routine_row: Int, ref binding: SemanticStringWindowBinding) -> Bool {
+    return binding.ordinal >= 0 && binding.ordinal < signatures.param_counts[routine_row] &&
+        signatures.param_node_ids[signatures.param_starts[routine_row] + binding.ordinal] == binding.syntax_id;
+}

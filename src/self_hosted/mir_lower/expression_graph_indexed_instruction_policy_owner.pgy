@@ -4,7 +4,7 @@ import "program_instruction_expression_index_owner.pgy";
 import "program_instruction_routing_span_owner.pgy";
 
 func MirInstructionExpressionRequiresExpr0Graph(
-    json: String,
+    json: String, json_extent: Int,
     kind: String,
     source: String,
     ref expression: MirProgramInstructionExpressionFact
@@ -17,12 +17,12 @@ func MirInstructionExpressionRequiresExpr0Graph(
     }
     if source == "AST_DEFER_STMT" {
         return (MirProgramInstructionExpressionRoutingEquals(
-                    json, expression, 1, "Log") ||
+                    json, json_extent, expression, 1, "Log") ||
                 MirProgramInstructionExpressionRoutingEquals(
-                    json, expression, 1, "Call") ||
+                    json, json_extent, expression, 1, "Call") ||
                 MirProgramInstructionExpressionRoutingEquals(
-                    json, expression, 1, "Assign")) &&
-            MirProgramInstructionExpressionText(json, expression, 0) ==
+                    json, json_extent, expression, 1, "Assign")) &&
+            MirProgramInstructionExpressionText(json, json_extent, expression, 0) ==
                 "{...}";
     }
     if kind == "assign" && source == "AST_ASSIGNMENT" {
@@ -32,11 +32,11 @@ func MirInstructionExpressionRequiresExpr0Graph(
         if kind == "loop-init" { return true; }
         return kind == "branch" &&
             MirProgramInstructionExpressionTextPresent(expression, 1) &&
-            !MirProgramInstructionExpressionTextsEqual(json, expression);
+            !MirProgramInstructionExpressionTextsEqual(json, json_extent, expression);
     }
     if kind == "branch" &&
         MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 0, "branch") &&
+            json, json_extent, expression, 0, "branch") &&
         !MirProgramInstructionExpressionRoutingPresent(expression, 1) &&
         source != "AST_MATCH_CASE" {
         return true;
@@ -47,20 +47,20 @@ func MirInstructionExpressionRequiresExpr0Graph(
     }
     if kind == "stmt" &&
         (MirProgramInstructionExpressionRoutingEquals(
-             json, expression, 0, "IntentCheck") ||
+             json, json_extent, expression, 0, "IntentCheck") ||
          (MirProgramInstructionExpressionRoutingEquals(
-              json, expression, 0, "IntentEval") &&
+              json, json_extent, expression, 0, "IntentEval") &&
           (MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "on") ||
+               json, json_extent, expression, 1, "on") ||
            MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "compensate") ||
+               json, json_extent, expression, 1, "compensate") ||
            MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "priority")))) {
+               json, json_extent, expression, 1, "priority")))) {
         return true;
     }
     if kind == "stmt" && source == "AST_CALL" {
         return !MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "ArrayPop");
+            json, json_extent, expression, 1, "ArrayPop");
     }
     // A bind's subject, the slot's borrowed self (docs/206 section 1).
     if kind == "stmt" && source == "AST_BIND_STMT" { return true; }
@@ -68,7 +68,7 @@ func MirInstructionExpressionRequiresExpr0Graph(
 }
 
 func MirInstructionExpressionRequiresExpr1Graph(
-    json: String,
+    json: String, json_extent: Int,
     kind: String,
     source: String,
     ref expression: MirProgramInstructionExpressionFact
@@ -77,7 +77,7 @@ func MirInstructionExpressionRequiresExpr1Graph(
     // only as the secondary graph (docs/205 F5).
     if expression.valid && kind == "stmt" && source == "AST_DEFER_STMT" {
         return MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "Assign");
+            json, json_extent, expression, 1, "Assign");
     }
     if !expression.valid || kind == "" || source == "" ||
         !MirProgramInstructionExpressionTextPresent(expression, 0) ||
@@ -86,7 +86,7 @@ func MirInstructionExpressionRequiresExpr1Graph(
     }
     if kind == "stmt" && source == "AST_CALL" &&
         MirProgramInstructionExpressionRoutingEquals(
-            json, expression, 1, "ArraySet") {
+            json, json_extent, expression, 1, "ArraySet") {
         return true;
     }
     if source != "AST_ASSIGNMENT" { return false; }

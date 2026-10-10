@@ -2,13 +2,14 @@
 //
 // This owner deliberately stops at cursor/string scanning. JSON object shape
 // and field semantics stay in json.pgy; emission stays in json_emit.pgy.
+import "string_window_within.pgy";
 
 func JsonCharAt(s: String, i: Int) -> String {
     return CharAtN(s, StringLength(s), i);
 }
 
-func JsonCharCodeAt(s: String, length: Int, i: Int) -> Int {
-    return CharCode(s, length, i);
+func JsonCharCodeAt(s: String, s_extent: Int, length: Int, i: Int) -> Int {
+    return StringWindowCharCode(s, s_extent, length, i);
 }
 
 func JsonAsciiCode(character: String) -> Int {
@@ -30,11 +31,11 @@ func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
     return Some(start + k);
 }
 
-func JsonSkipWhitespaceWithin(json: String, index: Int, end: Int) -> Int {
+func JsonSkipWhitespaceWithin(json: String, json_extent: Int, index: Int, end: Int) -> Int {
     let i: Int = index;
     let n: Int = end;
     while i < end {
-        let c: Int = JsonCharCodeAt(json, n, i);
+        let c: Int = JsonCharCodeAt(json, json_extent, n, i);
         if c != JsonAsciiCode(" ") && c != JsonAsciiCode("\n") && c != JsonAsciiCode("\r") && c != JsonAsciiCode("\t") {
             return i;
         }
@@ -47,7 +48,7 @@ func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
     let i: Int = index;
     let n: Int = StringLength(json);
     while i < end {
-        let c: Int = JsonCharCodeAt(json, n, i);
+        let c: Int = JsonCharCodeAt(json, n, n, i);
         if c != JsonAsciiCode(" ") && c != JsonAsciiCode("\n") &&
             c != JsonAsciiCode("\r") && c != JsonAsciiCode("\t") {
             return i;

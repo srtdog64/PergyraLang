@@ -36,7 +36,7 @@ func DirectMirScalarCfgArrayIntStaticMutationFromOwners(
             let global: Int = index.instruction_facts.global_start +
                 local_instruction;
             let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-                admitted.routines.source_json,
+                admitted.routines.source_json, admitted.routines.source_json_extent,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );

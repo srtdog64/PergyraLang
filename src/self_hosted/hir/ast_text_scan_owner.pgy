@@ -1,5 +1,6 @@
 // Shared scanning facts for the transitional compact AST-text artifact.
 
+import "../lib/string_window_within.pgy";
 func CodegenCharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
     if i < 0 || i >= n {
@@ -8,8 +9,8 @@ func CodegenCharAt(s: String, i: Int) -> String {
     return CharAtN(s, n, i);
 }
 
-func CodegenCharCodeAt(s: String, length: Int, i: Int) -> Int {
-    return CharCode(s, length, i);
+func CodegenCharCodeAt(s: String, s_extent: Int, length: Int, i: Int) -> Int {
+    return StringWindowCharCode(s, s_extent, length, i);
 }
 
 func IsIdentCode(c: Int) -> Bool {
@@ -20,7 +21,7 @@ func IsIdentCode(c: Int) -> Bool {
 
 func IsIdentChar(c: String) -> Bool {
     let n: Int = StringLength(c);
-    return n == 1 && IsIdentCode(CodegenCharCodeAt(c, n, 0));
+    return n == 1 && IsIdentCode(CodegenCharCodeAt(c, n, n, 0));
 }
 
 func IsIdentifier(e: String) -> Bool {
@@ -28,13 +29,13 @@ func IsIdentifier(e: String) -> Bool {
     if n == 0 {
         return false;
     }
-    let first: Int = CodegenCharCodeAt(e, n, 0);
+    let first: Int = CodegenCharCodeAt(e, n, n, 0);
     if first >= 48 && first <= 57 {
         return false;
     }
     let i: Int = 0;
     while i < n {
-        if !IsIdentCode(CodegenCharCodeAt(e, n, i)) {
+        if !IsIdentCode(CodegenCharCodeAt(e, n, n, i)) {
             return false;
         }
         i = i + 1;
@@ -80,7 +81,7 @@ func FindTopLevelComma(s: String) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: Int = CodegenCharCodeAt(s, n, i);
+        let c: Int = CodegenCharCodeAt(s, n, n, i);
         if in_str {
             if c == 92 {
                 i = i + 2;
@@ -123,7 +124,7 @@ func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: Int = CodegenCharCodeAt(s, n, i);
+        let c: Int = CodegenCharCodeAt(s, n, n, i);
         if in_str {
             if c == 92 {
                 i = i + 2;
@@ -152,7 +153,7 @@ func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
 
 func IsSingleCall(e: String) -> Bool {
     let n: Int = StringLength(e);
-    if n == 0 || CodegenCharCodeAt(e, n, n - 1) != 41 {
+    if n == 0 || CodegenCharCodeAt(e, n, n, n - 1) != 41 {
         return false;
     }
     let op: Int = StringIndexOf(e, "(");

@@ -1,0 +1,56 @@
+// One terminal publication owner: return the five evidence carriers, retire
+// only the ten temporary arrays. Early move errors preserve partial evidence
+// and never run the final closures; final closures retain short-circuit order.
+import "ast_collection_member_read_permission_owner.pgy";
+import "ast_collection_member_place_use_owner.pgy";
+import "ast_collection_member_capture_obligation_owner.pgy";
+
+struct SemanticAstCollectionMemberMoveUse {
+    found: Bool;
+    syntax_node_id: Int;
+    expression_node_id: Int;
+    restored_binding_syntax_ids: Array<Int>;
+    restoration_syntax_ids: Array<Int>;
+    readable_members: HashMap<String, Int>;
+    unproved_read_roots: HashMap<String, Int>;
+    // Root binding -> first site where its member storage may outlive a release.
+    element_escape_roots: HashMap<String, Int>;
+    capture_syntax_node_id: Int;
+    capture_expression_node_id: Int;
+    read_permission_ready: Bool;
+}
+
+func SemanticAstCollectionMemberMoveUsePublish(
+    ref artifact: AstTreeArtifact, ref contexts: SemanticAstCollectionFormalExecutionContexts,
+    found: Bool, syntax_id: Int, node: Int, capture: SemanticAstCollectionMemberCaptureWitness,
+    own restored: Array<Int>, own restoration_sites: Array<Int>,
+    own readable_members: HashMap<String, Int>, own unproved_read_roots: HashMap<String, Int>,
+    own element_escape_roots: HashMap<String, Int>, own nested_blocked: HashMap<String, Int>,
+    own readonly_origins: Array<Int>,
+    own read_sources: Array<Int>, own read_targets: Array<Int>,
+    own escape_sources: Array<Int>, own escape_targets: Array<Int>, own escape_sites: Array<Int>,
+    own nested_nodes: Array<Int>, own nested_roots: Array<Int>,
+    own nested_lend_sources: Array<Int>, own nested_lend_targets: Array<Int>
+) -> SemanticAstCollectionMemberMoveUse {
+    let ready: Bool = true;
+    if !found {
+        ready = capture.ready && contexts.ok && contexts.artifact_identity_digest == artifact.identity_digest &&
+            contexts.artifact_node_count == artifact.count &&
+            SemanticAstCollectionMemberReadBlockedRootsClosure(read_sources, read_targets, unproved_read_roots) &&
+            SemanticAstCollectionMemberElementEscapeClosure(escape_sources, escape_targets, escape_sites, element_escape_roots) &&
+            SemanticAstCollectionMemberNestedReadAdmit(nested_nodes, nested_roots, nested_lend_sources, nested_lend_targets,
+                unproved_read_roots, nested_blocked, readable_members);
+    }
+    ArrayDrop(read_sources);
+    ArrayDrop(read_targets);
+    ArrayDrop(escape_sources);
+    ArrayDrop(escape_targets);
+    ArrayDrop(escape_sites);
+    ArrayDrop(nested_nodes);
+    ArrayDrop(nested_roots);
+    ArrayDrop(nested_lend_sources);
+    ArrayDrop(nested_lend_targets);
+    ArrayDrop(readonly_origins);
+    return SemanticAstCollectionMemberMoveUse(found, syntax_id, node, restored, restoration_sites,
+        readable_members, unproved_read_roots, element_escape_roots, capture.syntax_id, capture.expression_id, ready);
+}

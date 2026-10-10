@@ -6,7 +6,7 @@ import "type_name_owner.pgy";
 import "source_refusal_owner.pgy";
 
 func ParseUnaryFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
@@ -15,7 +15,7 @@ func ParseUnaryFact(
     if MatchLanguageWord(content, i, LanguageWordId.WordReflect) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
     if ParserCharAt(content, i) == "!" && ParserCharAt(content, i + 1) != "=" {
         i = i + 1;
-        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeLogicalNot(),
             Concat("(!", Concat(operand.text, ")")), operand
@@ -43,7 +43,7 @@ func ParseUnaryFact(
                 return ParserExpressionLongLiteral("-9223372036854775808");
             }
         }
-        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeNegate(),
             Concat("(-", Concat(operand.text, ")")), operand
@@ -51,13 +51,13 @@ func ParseUnaryFact(
     }
     if ParserCharAt(content, i) == "&" && ParserCharAt(content, i + 1) != "&" {
         i = i + 1;
-        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         if !operand.ok { return operand; }
         return ParserExpressionLeaf(Concat("(&", Concat(operand.text, ")")));
     }
     if ParserCharAt(content, i) == "<" && ParserCharAt(content, i + 1) == "-" {
         i = i + 2;
-        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         if !operand.ok { return operand; }
         return ParserExpressionLeaf(Concat("<-", operand.text));
     }
@@ -65,29 +65,29 @@ func ParseUnaryFact(
         i = LanguageWordEnd(i, LanguageWordId.WordSpawn);
         let after_spawn: Int = SkipWhitespaceAndComments(content, i);
         if MatchLanguageWord(content, after_spawn, LanguageWordId.WordBlocking) { i = LanguageWordEnd(after_spawn, LanguageWordId.WordBlocking); }
-        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeSpawn(), Concat("spawn ", operand.text), operand
         );
     }
     if MatchLanguageWord(content, i, LanguageWordId.WordAwait) {
         i = LanguageWordEnd(i, LanguageWordId.WordAwait);
-        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeAwait(),
             Concat("await ", operand.text), operand
         );
     }
-    return ParsePrimaryFact(content, i, cursor_out);
+    return ParsePrimaryFact(content, content_extent, i, cursor_out);
 }
 
 func ParseCastFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
     let left: ParserExpressionFact = ParseUnaryFact(
-        content, start, cursor_out
+        content, content_extent, start, cursor_out
     );
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
@@ -102,7 +102,7 @@ func ParseCastFact(
         }
         i = LanguageWordEnd(i, LanguageWordId.WordAs);
         ArraySet(cursor_out, 0, i);
-        let target_type: String = ReadTypeFact(content, i, cursor_out);
+        let target_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if target_type == "" {
             return ParserExpressionInvalidAt(i, "type_name_invalid");
@@ -126,11 +126,11 @@ func ParseCastFact(
 }
 
 func ParseMulFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseCastFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParseCastFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
     while true {
@@ -142,7 +142,7 @@ func ParseMulFact(
             return left;
         }
         i = i + 1;
-        let right: ParserExpressionFact = ParseCastFact(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseCastFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
         let kind: Int = AstExpressionNodeMultiply();
@@ -159,11 +159,11 @@ func ParseMulFact(
 }
 
 func ParseAdditiveFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseMulFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParseMulFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
     while true {
@@ -175,7 +175,7 @@ func ParseAdditiveFact(
             return left;
         }
         i = i + 1;
-        let right: ParserExpressionFact = ParseMulFact(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseMulFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
         let kind: Int = AstExpressionNodeAdd();
@@ -191,11 +191,11 @@ func ParseAdditiveFact(
 }
 
 func ParsePipeFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseAdditiveFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParseAdditiveFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
     while true {
@@ -227,7 +227,7 @@ func ParsePipeFact(
                 while true {
                     ArraySet(cursor_out, 0, i);
                     let argument: ParserExpressionFact = ParseExprFact(
-                        content, i, cursor_out
+                        content, content_extent, i, cursor_out
                     );
                     if !argument.ok { return argument; }
                     i = cursor_out[0];
@@ -259,11 +259,11 @@ func ParsePipeFact(
 }
 
 func ParseComparisonFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParsePipeFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParsePipeFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
     while true {
@@ -283,7 +283,7 @@ func ParseComparisonFact(
             return left;
         }
         i = i + StringLength(op);
-        let right: ParserExpressionFact = ParseAdditiveFact(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseAdditiveFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
         let text: String = Concat("(", Concat(left.text, Concat(
@@ -321,11 +321,11 @@ func ParseComparisonFact(
 }
 
 func ParseLogicalAndFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseComparisonFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParseComparisonFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
     while true {
@@ -336,7 +336,7 @@ func ParseLogicalAndFact(
             return left;
         }
         i = i + 2;
-        let right: ParserExpressionFact = ParseComparisonFact(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseComparisonFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
         let text: String = Concat(
@@ -350,11 +350,11 @@ func ParseLogicalAndFact(
 }
 
 func ParseLogicalOrFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseLogicalAndFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParseLogicalAndFact(content, content_extent, start, cursor_out);
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
     while true {
@@ -365,7 +365,7 @@ func ParseLogicalOrFact(
             return left;
         }
         i = i + 2;
-        let right: ParserExpressionFact = ParseLogicalAndFact(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseLogicalAndFact(content, content_extent, i, cursor_out);
         if !right.ok { return right; }
         i = cursor_out[0];
         let text: String = Concat(
@@ -379,12 +379,12 @@ func ParseLogicalOrFact(
 }
 
 func ParseCoalesceFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
     let left: ParserExpressionFact = ParseLogicalOrFact(
-        content, start, cursor_out
+        content, content_extent, start, cursor_out
     );
     if !left.ok { return left; }
     let i: Int = cursor_out[0];
@@ -398,7 +398,7 @@ func ParseCoalesceFact(
         }
         i = i + 2;
         let right: ParserExpressionFact = ParseLogicalOrFact(
-            content, i, cursor_out
+            content, content_extent, i, cursor_out
         );
         if !right.ok { return right; }
         i = cursor_out[0];
@@ -413,24 +413,26 @@ func ParseCoalesceFact(
 }
 
 func ParseExprFact(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    return ParseCoalesceFact(content, start, cursor_out);
+    return ParseCoalesceFact(content, content_extent, start, cursor_out);
 }
 
 func ParserExpressionPrecedenceGraphContractReady() -> Bool {
     let source: String = "1 + 2 * 3 >= 7 && 5 % 2 != 0";
+    let source_extent: Int = StringLength(source);
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, source_extent, 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) {
         return false;
     }
     let coalesce_source: String = "(candidate ?? 0)";
+    let coalesce_source_extent: Int = StringLength(coalesce_source);
     let coalesce_cursor: Array<Int> = [0];
     let coalesce: ParserExpressionFact = ParseExprFact(
-        coalesce_source, 0, coalesce_cursor
+        coalesce_source, coalesce_source_extent, 0, coalesce_cursor
     );
     if !coalesce.ok || coalesce_cursor[0] !=
             StringLength(coalesce_source) ||
@@ -466,12 +468,14 @@ func ParserExpressionPrecedenceGraphContractReady() -> Bool {
 
 func ParserExpressionCastGraphContractReady() -> Bool {
     let source: String = "i as Float + g";
+    let source_extent: Int = StringLength(source);
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, source_extent, 0, cursor);
     let string_source: String = "i as String";
+    let string_source_extent: Int = StringLength(string_source);
     let string_cursor: Array<Int> = [0];
     let string_fact: ParserExpressionFact = ParseExprFact(
-        string_source, 0, string_cursor
+        string_source, string_source_extent, 0, string_cursor
     );
     if !fact.ok || !string_fact.ok ||
         cursor[0] != StringLength(source) ||
@@ -493,19 +497,19 @@ func ParserExpressionCastGraphContractReady() -> Bool {
 func ParserExpressionUnaryGraphContractReady() -> Bool {
     let logical_cursor: Array<Int> = [0];
     let logical: ParserExpressionFact = ParseExprFact(
-        "!!flag", 0, logical_cursor
+        "!!flag", 6, 0, logical_cursor
     );
     let numeric_cursor: Array<Int> = [0];
     let numeric: ParserExpressionFact = ParseExprFact(
-        "-(-value)", 0, numeric_cursor
+        "-(-value)", 9, 0, numeric_cursor
     );
     let await_cursor: Array<Int> = [0];
     let awaited: ParserExpressionFact = ParseExprFact(
-        "await pending", 0, await_cursor
+        "await pending", 13, 0, await_cursor
     );
     let spawn_cursor: Array<Int> = [0];
     let spawned: ParserExpressionFact = ParseExprFact(
-        "spawn Inc(4)", 0, spawn_cursor
+        "spawn Inc(4)", 12, 0, spawn_cursor
     );
     if !logical.ok || !numeric.ok || !awaited.ok || !spawned.ok ||
         logical_cursor[0] != 6 || numeric_cursor[0] != 9 ||
@@ -538,8 +542,9 @@ func ParserExpressionUnaryGraphContractReady() -> Bool {
 
 func ParserExpressionPipeGraphContractReady() -> Bool {
     let source: String = "5 |> Double |> Add(3)";
+    let source_extent: Int = StringLength(source);
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact(source, source_extent, 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) ||
         fact.text != "Add(Double(5), 3)" ||
         fact.arena.node_kinds[fact.root] !=
@@ -572,11 +577,11 @@ func ParserExpressionPipeGraphContractReady() -> Bool {
 // positioned refusal; the expression parser itself never stops the process.
 func ParseExprFactIn(
     context: ParserSourceLocationContext,
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let fact: ParserExpressionFact = ParseExprFact(content, start, cursor_out);
+    let fact: ParserExpressionFact = ParseExprFact(content, content_extent, start, cursor_out);
     if !fact.ok {
         ParseExpressionRefuse(
             context, fact, SkipWhitespaceAndComments(content, start),
@@ -589,8 +594,8 @@ func ParseExprFactIn(
 // Compatibility text is a projection of the canonical parser fact, never a
 // second parse path. Without a source context the refusal still names its
 // code; it cannot name a position.
-func ParseExpr(content: String, start: Int, cursor_out: Array<Int>) -> String {
+func ParseExpr(content: String, content_extent: Int, start: Int, cursor_out: Array<Int>) -> String {
     return ParseExprFactIn(
-        ParserSourceLocationContextUnknown(), content, start, cursor_out
+        ParserSourceLocationContextUnknown(), content, content_extent, start, cursor_out
     ).text;
 }

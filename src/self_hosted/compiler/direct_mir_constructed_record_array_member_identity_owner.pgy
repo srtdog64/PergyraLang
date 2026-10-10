@@ -195,10 +195,10 @@ func DirectMirConstructedRecordArrayMemberIdentityFromAdmitted(
             ), DirectMirConstructedArrayMemberSignatureFactAt(
                 admitted.routines, identity_row
             ), specialization, DirectMirNominalDeclarationAbiFactFromDocument(
-                admitted.document.root.json,
+                admitted.document.root.json, admitted.document.root.json_extent,
                 admitted.domain_runtime_admission.declarations, record_row
             ), DirectMirConstructedGenericMemberDeclarationFactAtDocument(
-                admitted.document.root.json,
+                admitted.document.root.json, admitted.document.root.json_extent,
                 admitted.domain_runtime_admission.declarations, wrapper_row
             ), DirectMirConstructedArrayMemberMethodGraphFactFromSequences(
                 constructed_return, identity_return

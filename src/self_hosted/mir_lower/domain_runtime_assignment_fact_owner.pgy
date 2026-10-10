@@ -372,11 +372,11 @@ func MirDomainProjectionAssignmentFactsFromTable(
             return EmptyMirDomainProjectionAssignmentFacts(false);
         }
         if JsonObjectBoolFieldEqualsWithin(
-            row.json, row.start, row.end, "explicit_map", true
+            row.json, row.json_extent, row.start, row.end, "explicit_map", true
         ) {
             ArrayPush(explicit_maps, true);
         } else if JsonObjectBoolFieldEqualsWithin(
-            row.json, row.start, row.end, "explicit_map", false
+            row.json, row.json_extent, row.start, row.end, "explicit_map", false
         ) {
             ArrayPush(explicit_maps, false);
         } else {

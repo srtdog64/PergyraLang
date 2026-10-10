@@ -53,7 +53,7 @@ func SemanticAstExpressionGraphNominalCallComparisonContractReady() -> Bool {
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let cursor: Array<Int> = [0];
     let fact: ParserExpressionFact = ParseExprFact(
-        "failure.stage != StageFor(failure.status)", 0, cursor
+        "failure.stage != StageFor(failure.status)", StringLength("failure.stage != StageFor(failure.status)"), 0, cursor
     );
     if !fact.ok || cursor[0] != 41 { return false; }
     let graph: SemanticExpressionGraphFacts =
@@ -97,17 +97,17 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
     let valid_text: String = "admission == Outcome.Denied";
     let valid_cursor: Array<Int> = [0];
     let valid_fact: ParserExpressionFact = ParseExprFact(
-        valid_text, 0, valid_cursor
+        valid_text, StringLength(valid_text), 0, valid_cursor
     );
     let inverse_text: String = "Outcome.Denied != admission";
     let inverse_cursor: Array<Int> = [0];
     let inverse_fact: ParserExpressionFact = ParseExprFact(
-        inverse_text, 0, inverse_cursor
+        inverse_text, StringLength(inverse_text), 0, inverse_cursor
     );
     let invalid_text: String = "admission == Outcome.Missing";
     let invalid_cursor: Array<Int> = [0];
     let invalid_fact: ParserExpressionFact = ParseExprFact(
-        invalid_text, 0, invalid_cursor
+        invalid_text, StringLength(invalid_text), 0, invalid_cursor
     );
     if !valid_fact.ok || !inverse_fact.ok || !invalid_fact.ok ||
         valid_cursor[0] != StringLength(valid_text) ||

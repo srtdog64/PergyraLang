@@ -20,16 +20,15 @@ struct MirProgramDeclarationIndex {
     let zone_authorities: SelfMirDeclarationZoneAuthorityRows;
 }
 func MirProgramDeclarationIndexCursorAtEnd(
-    json: String, cursor: Int, array_end: Int
+    json: String, json_extent: Int, cursor: Int, array_end: Int
 ) -> Bool {
     let i: Int = JsonSkipWhitespace(json, cursor, array_end);
     return i >= 0 && i + 1 == array_end &&
-        JsonCharCodeAt(json, array_end, i) == JsonAsciiCode("]");
+        JsonCharCodeAt(json, json_extent, array_end, i) == JsonAsciiCode("]");
 }
 func BuildMirProgramDeclarationIndexFromTable(
     ref declarations: JsonArrayObjectFactTable
 ) -> MirProgramDeclarationIndex {
-    let json: String = declarations.json;
     let declaration_start: Int = declarations.start;
     let declaration_end: Int = declarations.end;
     let starts: Array<Int> = [];
@@ -42,7 +41,7 @@ func BuildMirProgramDeclarationIndexFromTable(
     let enum_variants: MirProgramEnumVariantIndex = EmptyMirProgramEnumVariantIndex();
     let valid: Bool = true;
     if !JsonArrayObjectFactTableReady(declarations) ||
-        JsonCharCodeAt(json, declaration_end, declaration_start) !=
+        JsonCharCodeAt(declarations.json, declarations.json_extent, declaration_end, declaration_start) !=
             JsonAsciiCode("[") {
         return MirProgramDeclarationIndex(
             false, starts, ends, kinds, nominal_kinds, names,
@@ -51,35 +50,35 @@ func BuildMirProgramDeclarationIndexFromTable(
     }
     let cursor: Int = declaration_start + 1;
     let bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(json, cursor, declaration_end, bounds) {
+    while JsonArrayNextObjectBounds(declarations.json, declarations.json_extent, cursor, declaration_end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
         ArrayPush(kinds, MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "kind"
+            declarations.json, declarations.json_extent, bounds[0], bounds[1], "kind"
         ));
         ArrayPush(nominal_kinds, MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "nominal_kind"
+            declarations.json, declarations.json_extent, bounds[0], bounds[1], "nominal_kind"
         ));
         ArrayPush(names, MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "name"
+            declarations.json, declarations.json_extent, bounds[0], bounds[1], "name"
         ));
-        let source_module_path: String = MirObjectStringFactAtBounds(json, bounds[0], bounds[1], "source_module_path");
+        let source_module_path: String = MirObjectStringFactAtBounds(declarations.json, declarations.json_extent, bounds[0], bounds[1], "source_module_path");
         valid = valid && source_module_path != "";
         ArrayPush(source_module_paths, source_module_path);
         cursor = bounds[1];
     }
     valid = valid && MirProgramDeclarationIndexCursorAtEnd(
-        json, cursor, declaration_end
+        declarations.json, declarations.json_extent, cursor, declaration_end
     ) && ArrayLength(starts) == ArrayLength(ends) &&
         ArrayLength(starts) == ArrayLength(kinds) &&
         ArrayLength(starts) == ArrayLength(nominal_kinds) &&
         ArrayLength(starts) == ArrayLength(names) && ArrayLength(starts) == ArrayLength(source_module_paths);
     field_identities =
         BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
-            json, starts, ends, names, kinds, nominal_kinds
+            declarations.json, declarations.json_extent, starts, ends, names, kinds, nominal_kinds
         );
     enum_variants = BuildMirProgramEnumVariantIndexFromDeclarationSpans(
-        json, starts, ends, kinds, names
+        declarations.json, declarations.json_extent, starts, ends, kinds, names
     );
     let zone_authorities: SelfMirDeclarationZoneAuthorityRows =
         BuildMirProgramDeclarationZoneAuthorityIndex(

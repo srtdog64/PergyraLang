@@ -103,7 +103,7 @@ func DirectMirNominalDeclarationAbiFactReady(
     return true;
 }
 func DirectMirNominalDeclarationAbiFactFromDocument(
-    json: String,
+    json: String, json_extent: Int,
     ref declarations: MirProgramDeclarationIndex,
     row: Int
 ) -> DirectMirNominalDeclarationAbiFact {
@@ -116,7 +116,7 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     let start: Int = declarations.starts[row];
     let end: Int = declarations.ends[row];
     let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, start, end
+        json, json_extent, start, end
     );
     let keys: Array<String> = [
         "kind", "nominal_kind", "name", "source_syntax_id",
@@ -131,21 +131,21 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     ];
     if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 9 ||
         !MirAbiSelectedObjectBoundsWithin(
-            json, start, end, keys, starts, ends
+            json, json_extent, start, end, keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
         return InvalidDirectMirNominalDeclarationAbiFact();
     }
     let name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[2], ends[2], false
+        json, json_extent, starts[2], ends[2], false
     );
     let syntax_id: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[3], ends[3]
+        json, json_extent, starts[3], ends[3]
     );
     let source_path: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[4], ends[4], false
+        json, json_extent, starts[4], ends[4], false
     );
     let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[6], ends[6]
+        json, json_extent, starts[6], ends[6]
     );
     if !IsSome(name) || !IsSome(syntax_id) || !IsSome(source_path) ||
         !IsSome(abi_id) ||
@@ -157,7 +157,7 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     }
     let admitted_abi: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, UnwrapOption(name), true, starts[2], ends[2],
+            json, json_extent, UnwrapOption(name), true, starts[2], ends[2],
             starts[6], ends[6], starts[7], ends[7], starts[8], ends[8]
         );
     let fields: JsonArrayObjectFactTable =

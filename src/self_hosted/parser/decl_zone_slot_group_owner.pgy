@@ -21,7 +21,7 @@ struct ParserZoneSlotGroupRows {
 
 func ParseZoneSlotGroupRows(
     context: ParserSourceLocationContext,
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserZoneSlotGroupRows {
@@ -66,7 +66,7 @@ func ParseZoneSlotGroupRows(
             "layer type", "zone_slot_group", cursor_out);
     } else {
         ArraySet(cursor_out, 0, i);
-        group_type = ReadTypeIn(context, content, i, cursor_out);
+        group_type = ReadTypeIn(context, content, content_extent, i, cursor_out);
         if group_type == "" {
             ParseRefuse(context, SkipWhitespaceAndComments(content, i),
                 "type_name_invalid", "construct", "zone_slot_group", "", "");

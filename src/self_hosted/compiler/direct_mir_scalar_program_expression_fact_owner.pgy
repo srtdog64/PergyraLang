@@ -108,7 +108,7 @@ func DirectMirScalarProgramLiteralEmbeddable(value: String) -> Bool {
     let length: Int = StringLength(value);
     let row: Int = 0;
     while row < length {
-        let code: Int = JsonCharCodeAt(value, length, row);
+        let code: Int = JsonCharCodeAt(value, length, length, row);
         if code != 9 && code != 10 && code != 13 &&
             (code < 32 || code == 127 || code > 255) {
             return false;

@@ -1,0 +1,13 @@
+// The audit reproduction: an extent larger than the source.
+func Main() -> Void {
+    let s: String = Concat("a", "b");
+    let mut k: Int = 0;
+    let mut seen: Int = 0;
+    while k < 4096 {
+        if CharCode(s, 4096, k) > 0 {
+            seen = seen + 1;
+        }
+        k = k + 1;
+    }
+    Print(ToString(seen));
+}

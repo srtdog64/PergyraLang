@@ -27,14 +27,14 @@ func SourceBundleSeen(paths: Array<String>, path: String) -> Bool {
 
 func SourceBundleReadImportPath(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
-    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, start);
-    if CharAtWithin(content, n, i) != "\"" {
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, n, n, start);
+    if CharAtWithin(content, n, n, i) != "\"" {
         ArraySet(cursor_out, 0, i);
         return "";
     }
     let begin: Int = i + 1;
     let end: Int = begin;
-    while end < n && CharAtWithin(content, n, end) != "\"" {
+    while end < n && CharAtWithin(content, n, n, end) != "\"" {
         end = end + 1;
     }
     if end >= n {
@@ -48,8 +48,8 @@ func SourceBundleReadImportPath(content: String, start: Int, inout cursor_out: A
 func SourceBundleSkipString(content: String, start: Int) -> Int {
     let n: Int = StringLength(content);
     let i: Int = start + 1;
-    while i < n && CharAtWithin(content, n, i) != "\"" {
-        if CharAtWithin(content, n, i) == "\\" {
+    while i < n && CharAtWithin(content, n, n, i) != "\"" {
+        if CharAtWithin(content, n, n, i) == "\\" {
             i = i + 1;
         }
         i = i + 1;
@@ -75,16 +75,16 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
     let cursor: Array<Int> = [0];
     let i: Int = 0;
     while i < content_length {
-        i = SkipWhitespaceAndCommentsWithin(content, content_length, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_length, content_length, i);
         if i >= content_length {
             break;
         }
-        if CharAtWithin(content, content_length, i) == "\"" {
+        if CharAtWithin(content, content_length, content_length, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
         if SemanticMatchKeywordWithin(
-            content, content_length, i, "import"
+            content, content_length, content_length, i, "import"
         ) {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
@@ -121,24 +121,24 @@ func SemanticSourceSignatureStubText(source: SemanticSourceText) -> SemanticSour
     let i: Int = 0;
     let chunk_start: Int = 0;
     while i < n {
-        if CharAtWithin(content, n, i) == "\"" {
+        if CharAtWithin(content, n, n, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if CharAtWithin(content, n, i) == "/" &&
-            CharAtWithin(content, n, i + 1) == "/" {
-            i = SkipLineComment(content, i, n);
+        if CharAtWithin(content, n, n, i) == "/" &&
+            CharAtWithin(content, n, n, i + 1) == "/" {
+            i = SkipLineComment(content, n, i, n);
             continue;
         }
-        if CharAtWithin(content, n, i) == "/" &&
-            CharAtWithin(content, n, i + 1) == "*" {
-            i = SkipBlockComment(content, i, n);
+        if CharAtWithin(content, n, n, i) == "/" &&
+            CharAtWithin(content, n, n, i + 1) == "*" {
+            i = SkipBlockComment(content, n, i, n);
             continue;
         }
-        if SemanticMatchKeywordWithin(content, n, i, "func") {
-            let block_open: Int = FindBlockOpen(content, i, n);
+        if SemanticMatchKeywordWithin(content, n, n, i, "func") {
+            let block_open: Int = FindBlockOpen(content, n, i, n);
             if block_open < n &&
-                CharAtWithin(content, n, block_open) == "{" {
+                CharAtWithin(content, n, n, block_open) == "{" {
                 TextBuilderAppend(
                     out, Substring(content, chunk_start, i - chunk_start)
                 );
@@ -146,7 +146,7 @@ func SemanticSourceSignatureStubText(source: SemanticSourceText) -> SemanticSour
                     out, Substring(content, i, block_open + 1 - i)
                 );
                 TextBuilderAppend(out, "}\n");
-                i = FindMatchingBraceWithin(content, block_open, n) + 1;
+                i = FindMatchingBraceWithin(content, n, block_open, n) + 1;
                 chunk_start = i;
                 continue;
             }
@@ -182,16 +182,16 @@ func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Arra
     let cursor: Array<Int> = [0];
     let i: Int = 0;
     while i < content_length {
-        i = SkipWhitespaceAndCommentsWithin(content, content_length, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_length, content_length, i);
         if i >= content_length {
             break;
         }
-        if CharAtWithin(content, content_length, i) == "\"" {
+        if CharAtWithin(content, content_length, content_length, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
         if SemanticMatchKeywordWithin(
-            content, content_length, i, "import"
+            content, content_length, content_length, i, "import"
         ) {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
@@ -233,16 +233,16 @@ func LoadSemanticSourceCheckBundle(root_path: String) -> SemanticSourceBundle {
     let cursor: Array<Int> = [0];
     let i: Int = 0;
     while i < content_length {
-        i = SkipWhitespaceAndCommentsWithin(content, content_length, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_length, content_length, i);
         if i >= content_length {
             break;
         }
-        if CharAtWithin(content, content_length, i) == "\"" {
+        if CharAtWithin(content, content_length, content_length, i) == "\"" {
             i = SourceBundleSkipString(content, i);
             continue;
         }
         if SemanticMatchKeywordWithin(
-            content, content_length, i, "import"
+            content, content_length, content_length, i, "import"
         ) {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];

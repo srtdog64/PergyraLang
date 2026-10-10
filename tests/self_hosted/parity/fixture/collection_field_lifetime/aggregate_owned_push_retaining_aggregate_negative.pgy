@@ -1,0 +1,20 @@
+struct Rows {
+    values: Array<String>;
+}
+
+func Observe(rows: Rows) -> Void {
+    let aliases: Array<Rows> = [];
+    ArrayPush(aliases, rows);
+}
+
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ArrayPushOwnedString(values, "x");
+    rows.values = values;
+    Observe(rows);
+}
+
+func Main() -> Void {
+    let rows: Rows = Rows([]);
+    Append(rows);
+}

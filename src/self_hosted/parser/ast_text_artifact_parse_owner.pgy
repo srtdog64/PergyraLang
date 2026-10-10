@@ -8,6 +8,7 @@ import "../hir/ast_expression_lane_policy_owner.pgy";
 
 func ParserSerializedExpressionFact(text: String) -> ParserExpressionFact {
     let expression: String = StringTrim(text);
+    let expression_extent: Int = StringLength(expression);
     if expression == "" { return ParserExpressionInvalid(); }
     // Source parsing canonicalizes postfix try (`value?`) to the compact AST
     // spelling `?value`.  Accept that serialization here, at the parser
@@ -33,7 +34,7 @@ func ParserSerializedExpressionFact(text: String) -> ParserExpressionFact {
         );
     }
     let cursor: Array<Int> = [0];
-    let parsed: ParserExpressionFact = ParseExprFact(expression, 0, cursor);
+    let parsed: ParserExpressionFact = ParseExprFact(expression, expression_extent, 0, cursor);
     if parsed.ok && cursor[0] == StringLength(expression) {
         // The recursive graph owns grouping, while its root spelling seals the
         // exact serialized AST lane.  Do not replace that spelling with the

@@ -51,7 +51,7 @@ func SemanticAstCallableTypeShapeFromName(
     let close: Int = UnwrapOption(close_opt);
     let arrow: Int = close + 1;
     while arrow < n && SourceByteIsWhitespace(
-        SourceByteAt(text, n, arrow)
+        SourceByteAt(text, n, n, arrow)
     ) {
         arrow = arrow + 1;
     }

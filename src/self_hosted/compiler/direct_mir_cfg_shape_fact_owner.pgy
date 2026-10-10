@@ -214,7 +214,7 @@ func DirectMirCfgLiteralArmProjection(
         Die("direct MIR CFG literal arm Log instruction is invalid");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );
@@ -253,7 +253,7 @@ func DirectMirCfgGreaterConditionLiteral(
         Die("direct MIR CFG condition SSA use edge is invalid");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );
@@ -325,7 +325,7 @@ func DirectMirCfgAssignmentArmFromBlock(
             index.instruction_facts, global_row
         );
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );
@@ -388,7 +388,7 @@ func DirectMirCfgMergeLogReady(
         return false;
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[global_row],
         admitted.routines.instruction_ends[global_row]
     );
@@ -457,7 +457,7 @@ func DirectMirCfgPhiMergeShapeFromOwners(
         return DirectMirCfgShapeFactsEmpty();
     }
     let branch: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json,
+        admitted.routines.source_json, admitted.routines.source_json_extent,
         admitted.routines.instruction_starts[branch_row],
         admitted.routines.instruction_ends[branch_row]
     );

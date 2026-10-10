@@ -43,7 +43,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             i = ParseExpectIn(location_context, content, i, ":", "intent_parameter");
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
-            let ip_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let ip_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if StringLength(ip_type) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "intent_parameter", "", "");
@@ -67,7 +67,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         i = i + 2;
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        intent_return_type = ReadTypeIn(location_context, content, i, cursor_out);
+        intent_return_type = ReadTypeIn(location_context, content, n, i, cursor_out);
         i = cursor_out[0];
         if intent_return_type == "" {
             ParseRefuse(location_context, i, "type_name_invalid", "construct", "intent_return", "", "");
@@ -90,14 +90,15 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         i = SkipWhitespaceAndComments(content, i);
         let retry_start: Int = i;
         ArraySet(cursor_out, 0, i);
-        intent_retry = ReadNumber(content, i, cursor_out);
+        let retry_text: String = ReadNumber(content, i, cursor_out);
+        intent_retry = retry_text;
         i = cursor_out[0];
-        let retry_length: Int = StringLength(intent_retry);
+        let retry_length: Int = StringLength(retry_text);
         let retry_count: Int = 0;
         let retry_index: Int = 0;
         let retry_digits: Bool = true;
         while retry_index < retry_length {
-            let digit: Int = SourceByteAt(intent_retry, retry_length, retry_index) - SourceByteOf("0");
+            let digit: Int = SourceByteAt(retry_text, retry_length, retry_length, retry_index) - SourceByteOf("0");
             if digit < 0 || digit > 9 || retry_count > (2147483647 - digit) / 10 { retry_digits = false; break; }
             retry_count = retry_count * 10 + digit;
             retry_index = retry_index + 1;
@@ -137,13 +138,13 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             break;
         }
         let item_at: Int = i;
-        let policy_clause: ParserIntentPolicyClause = ParserIntentPolicyClauseFromSource(location_context, content, i, intent_policy);
+        let policy_clause: ParserIntentPolicyClause = ParserIntentPolicyClauseFromSource(location_context, content, n, i, intent_policy);
         if policy_clause.matched {
             intent_policy = policy_clause;
             i = policy_clause.next;
             continue;
         }
-        let default_clause: ParserIntentDefaultClause = ParserIntentDefaultClauseFromSource(location_context, content, i);
+        let default_clause: ParserIntentDefaultClause = ParserIntentDefaultClauseFromSource(location_context, content, n, i);
         if default_clause.matched {
             if (default_clause.who_names != "" && default_who != "") ||
                 (default_clause.where_type != "" && default_where != "") {
@@ -160,7 +161,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         if MatchLanguageWord(content, i, LanguageWordId.WordSuccess) {
             i = LanguageWordEnd(i, LanguageWordId.WordSuccess);
             ArraySet(cursor_out, 0, i);
-            let terminal: ParserIntentTerminalClause = ParseIntentTerminalClause(location_context, content, i, cursor_out);
+            let terminal: ParserIntentTerminalClause = ParseIntentTerminalClause(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if (terminal.step_name == "" && intent_return_type != "") ||
                 (terminal.step_name != "" && intent_return_type == "") {
@@ -183,7 +184,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         if MatchLanguageWord(content, i, LanguageWordId.WordFailure) {
             i = LanguageWordEnd(i, LanguageWordId.WordFailure);
             ArraySet(cursor_out, 0, i);
-            let terminal: ParserIntentTerminalClause = ParseIntentTerminalClause(location_context, content, i, cursor_out);
+            let terminal: ParserIntentTerminalClause = ParseIntentTerminalClause(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if (terminal.step_name == "" && intent_return_type != "") ||
                 (terminal.step_name != "" && intent_return_type == "") {
@@ -292,7 +293,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 if is_transfer {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
-                    let t_from: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+                    let t_from: String = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
                     i = cursor_out[0];
                     i = SkipWhitespaceAndComments(content, i);
                     if !MatchLanguageWord(content, i, LanguageWordId.WordTo) {
@@ -301,7 +302,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     i = LanguageWordEnd(i, LanguageWordId.WordTo);
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
-                    let t_to: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+                    let t_to: String = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
                     i = ParseExpectIn(location_context, content, cursor_out[0], ";", "intent_step_transfer");
                     s_transfer = Concat(t_from, Concat(" -> ", t_to));
                     continue;
@@ -353,7 +354,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     }
                     s_on_seen = true;
                     if binds_outcome {
-                        if on_head >= n || !SourceByteIsAlpha(SourceByteAt(content, n, on_head)) {
+                        if on_head >= n || !SourceByteIsAlpha(SourceByteAt(content, n, n, on_head)) {
                             ParseRefuse(location_context, on_head, "expected_token", "expected", "outcome binding or :", "construct", "intent_step_on");
                         }
                         ArraySet(cursor_out, 0, on_head);
@@ -374,7 +375,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     ArraySet(cursor_out, 0, i);
                 } else {
                     ArraySet(cursor_out, 0, i);
-                    let val_fact: ParserExpressionFact = ParseExprFactIn(location_context, content, i, cursor_out);
+                    let val_fact: ParserExpressionFact = ParseExprFactIn(location_context, content, n, i, cursor_out);
                     val = val_fact.text;
                     if MatchLanguageWord(content, clause_start, LanguageWordId.WordOn) { s_on_fact = val_fact; }
                     if MatchLanguageWord(content, clause_start, LanguageWordId.WordGuard) { s_guard_fact = val_fact; }

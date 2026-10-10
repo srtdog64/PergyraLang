@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include "type_checker_internal.h"
+#include "string_window_extent.h"
 #include "type_checker_visibility.h"
 #include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
@@ -155,6 +156,9 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
             }
             return TYPE_UNKNOWN;
         }
+        if (sym->kind == SYMBOL_FUNCTION)
+            semantic_string_window_extent_record_function_value(
+                ctx, expr, sym->decl_syntax_id);
         if (!semantic_future_validate_use(sym, expr, ctx))
             return TYPE_UNKNOWN;
         if (!semantic_indexed_string_borrow_validate_use(sym, expr, ctx))
@@ -217,8 +221,11 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
     case AST_UNARY:
         return type_check_unary(expr, ctx);
 
-    case AST_CALL:
-        return type_check_call(expr, ctx);
+    case AST_CALL: {
+        Type *call_type = type_check_call(expr, ctx);
+        semantic_string_window_extent_record_call(ctx, expr);
+        return call_type;
+    }
 
     case AST_MEMBER_ACCESS:
         return type_check_member_access(expr, ctx);

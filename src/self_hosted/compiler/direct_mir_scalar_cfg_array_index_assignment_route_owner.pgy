@@ -16,7 +16,7 @@ func DirectMirScalarCfgArrayIndexAssignmentRouteClaimed(
                 index.instruction_facts.abi_type_names[instruction]
             ) {
             let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-                admitted.routines.source_json,
+                admitted.routines.source_json, admitted.routines.source_json_extent,
                 admitted.routines.instruction_starts[global],
                 admitted.routines.instruction_ends[global]
             );

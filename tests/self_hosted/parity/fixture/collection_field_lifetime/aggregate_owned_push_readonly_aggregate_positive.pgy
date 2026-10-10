@@ -1,3 +1,4 @@
+// Closed readonly aggregate use, not an opaque/default-mode exemption.
 struct Rows { values: Array<String>; }
 func Observe(rows: Rows) -> Void { Log(ArrayLength(rows.values)); }
 func Append(inout rows: Rows) -> Void {

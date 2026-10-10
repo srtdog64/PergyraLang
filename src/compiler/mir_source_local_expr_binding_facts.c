@@ -4,6 +4,7 @@
 
 #include "mir_decl_headers.h"
 #include "mir_source_local_type_shape.h"
+#include "../parser/ast_api.h"
 
 static const MIRDeclHeader *
 mir_source_local_decl_header(const MIRProgram *program, const char *name)
@@ -81,20 +82,31 @@ mir_source_local_header_method(const MIRDeclHeader *header, const char *name)
 }
 
 static const char *
-mir_source_local_param_type_name(const MIRRoutine *routine, const char *name)
+mir_source_local_param_type_name(const MIRRoutine *routine,
+                                 uint32_t binding_syntax_id,
+                                 const char *name,
+                                 size_t *matches)
 {
-    if (routine == NULL || name == NULL || !routine->has_signature)
+    const char *type_name = NULL;
+    *matches = 0;
+
+    if (routine == NULL || name == NULL || binding_syntax_id == 0
+        || !routine->has_signature)
         return NULL;
     for (size_t i = 0; i < routine->param_count; i++) {
         FuncParam *param = routine->params != NULL ? routine->params[i] : NULL;
-        if (param != NULL && param->name != NULL
-            && strcmp(param->name, name) == 0) {
-            return routine->param_type_names != NULL
-                ? routine->param_type_names[i]
-                : NULL;
-        }
+        if (param == NULL
+            || ast_func_param_stable_id(param) != binding_syntax_id)
+            continue;
+        (*matches)++;
+        if (param->name == NULL || strcmp(param->name, name) != 0)
+            return NULL;
+        type_name = mir_routine_param_type_name(routine, i);
+        /* An implicit self parameter still has an exact formal identity. */
+        if (type_name == NULL && strcmp(name, "self") == 0)
+            type_name = routine->owner_name;
     }
-    return NULL;
+    return *matches == 1 ? type_name : NULL;
 }
 
 static const char *
@@ -111,37 +123,59 @@ mir_source_local_routine_owner_name(const MIRRoutine *routine)
 static const char *
 mir_source_local_owner_field_type_name(const MIRProgram *program,
                                        const MIRRoutine *routine,
+                                       uint32_t binding_syntax_id,
                                        const char *name)
 {
     const char *owner_name = mir_source_local_routine_owner_name(routine);
     const MIRDeclHeader *owner;
-    const MIRDeclField *field;
+    const char *type_name = NULL;
+    size_t matches = 0;
 
-    if (name == NULL || owner_name == NULL)
+    if (name == NULL || owner_name == NULL || binding_syntax_id == 0)
         return NULL;
     owner = mir_source_local_decl_header(program, owner_name);
-    field = mir_source_local_header_field(owner, name);
-    return field != NULL ? field->type_name : NULL;
+    if (owner == NULL || owner->field_count != owner->field_metadata_count
+        || (owner->field_metadata_count > 0 && owner->field_metadata == NULL))
+        return NULL;
+    for (size_t i = 0; i < mir_decl_header_field_count(owner); i++) {
+        const MIRDeclField *field = mir_decl_header_field(owner, i);
+        if (mir_decl_field_source_syntax_id(field) != binding_syntax_id)
+            continue;
+        if (mir_decl_field_name(field) == NULL
+            || strcmp(mir_decl_field_name(field), name) != 0)
+            return NULL;
+        matches++;
+        type_name = field->type_name;
+    }
+    return matches == 1 ? type_name : NULL;
 }
 
 const char *
 mir_source_local_identifier_type_name(const MIRProgram *program,
                                       const MIRRoutine *routine,
-                                      const char *name)
+                                      const ASTNode *identifier)
 {
-    const char *type_name = mir_source_local_param_type_name(routine, name);
+    const char *name = ast_identifier_name(identifier);
+    uint32_t binding_id = ast_identifier_binding_syntax_id(identifier);
+    const MIRSourceLocalType *local;
+    const char *parameter_type;
+    size_t parameter_matches;
 
-    if (type_name != NULL)
-        return type_name;
-    if (name != NULL && strcmp(name, "self") == 0) {
-        const char *owner_name = mir_source_local_routine_owner_name(routine);
-        if (owner_name != NULL && owner_name[0] != '\0')
-            return owner_name;
+    if (name == NULL || name[0] == '\0' || binding_id == 0)
+        return NULL;
+    if (ast_identifier_binding_is_host_field(identifier))
+        return mir_source_local_owner_field_type_name(program, routine,
+            binding_id, name);
+    local = mir_routine_source_local_type_fact_by_binding_syntax_id(
+        routine, binding_id);
+    parameter_type = mir_source_local_param_type_name(routine, binding_id, name,
+        &parameter_matches);
+    if (local != NULL) {
+        if (parameter_matches != 0 || strcmp(local->name, name) != 0)
+            return NULL;
+        return local->type_name;
     }
-    type_name = mir_routine_source_local_type_name(routine, name);
-    if (type_name != NULL)
-        return type_name;
-    return mir_source_local_owner_field_type_name(program, routine, name);
+    return parameter_type;
 }
 
 const char *

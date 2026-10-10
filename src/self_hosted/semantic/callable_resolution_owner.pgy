@@ -9,12 +9,12 @@ func SemanticCallableNameRangeValid(
 ) -> Bool {
     let n: Int = StringLength(source_name);
     if start < 0 || end <= start || end > n ||
-        !SourceByteIsAlpha(SourceByteAt(source_name, n, start)) {
+        !SourceByteIsAlpha(SourceByteAt(source_name, n, n, start)) {
         return false;
     }
     let i: Int = start + 1;
     while i < end {
-        if !SourceByteIsAlphaNum(SourceByteAt(source_name, n, i)) {
+        if !SourceByteIsAlphaNum(SourceByteAt(source_name, n, n, i)) {
             return false;
         }
         i = i + 1;
@@ -34,7 +34,7 @@ func SemanticCallableSourceNameValid(source_name: String) -> Bool {
     if dot < 0 {
         return SemanticCallableNameSegmentValid(source_name);
     }
-    let first: Int = SourceByteAt(source_name, n, 0);
+    let first: Int = SourceByteAt(source_name, n, n, 0);
     if dot == 0 || first < 65 || first > 90 {
         return false;
     }
@@ -42,7 +42,7 @@ func SemanticCallableSourceNameValid(source_name: String) -> Bool {
     let i: Int = 0;
     let separator: Int = SourceByteOf(".");
     while i <= n {
-        if i == n || SourceByteAt(source_name, n, i) == separator {
+        if i == n || SourceByteAt(source_name, n, n, i) == separator {
             if !SemanticCallableNameRangeValid(source_name, start, i) {
                 return false;
             }
@@ -122,18 +122,20 @@ func SemanticCallableIndex(
     let suffix_count: Int = 0;
     i = 0;
     while i < ArrayLength(declared_names) {
-        let declared_len: Int = StringLength(declared_names[i]);
+        // One unchanged row index lets every read observe the row in place.
+        let declared_row: Int = i;
+        let declared_len: Int = StringLength(declared_names[declared_row]);
         let local_len: Int = StringLength(source_name);
         let matches: Bool = local_len > 0 && declared_len > local_len;
         let start: Int = declared_len - local_len;
         if matches && CharCode(
-                declared_names[i], declared_len, start - 1) !=
+                declared_names[declared_row], declared_len, start - 1) !=
                 SourceByteOf("_") {
             matches = false;
         }
         let offset: Int = 0;
         while matches && offset < local_len {
-            if CharCode(declared_names[i], declared_len, start + offset) !=
+            if CharCode(declared_names[declared_row], declared_len, start + offset) !=
                 CharCode(source_name, local_len, offset) {
                 matches = false;
             }

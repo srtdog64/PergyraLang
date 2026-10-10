@@ -107,7 +107,7 @@ func DirectMirCollectionEntrypointRoutineFactFromAdmitted(
     }
     let abi: MirAbiLayoutRowCapture =
         DirectMirCollectionProgramInstructionArrayAbi(
-            admitted.routines.source_json, definition
+            admitted.routines.source_json, admitted.routines.source_json_extent, definition
         );
     if !DirectMirArrayIntCapturedAbiReady(abi) ||
         MirAbiLayoutIdFromCapture(abi) !=

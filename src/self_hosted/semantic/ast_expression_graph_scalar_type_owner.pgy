@@ -334,7 +334,7 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let cursor: Array<Int> = [0];
-    let fact: ParserExpressionFact = ParseExprFact("i + 1", 0, cursor);
+    let fact: ParserExpressionFact = ParseExprFact("i + 1", 5, 0, cursor);
     if !fact.ok || cursor[0] != 5 { return false; }
     let graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -345,13 +345,13 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
         );
     let coalesce_cursor: Array<Int> = [0];
     let coalesce_fact: ParserExpressionFact =
-        ParseExprFact("value ?? 0", 0, coalesce_cursor);
+        ParseExprFact("value ?? 0", 10, 0, coalesce_cursor);
     let coalesce_graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFactsFromAstRows(
             AstExpressionGraphRows(true, [TypedAstKindAssignStmtTag()],
                 [AstExpressionLaneAuxiliary()], [coalesce_fact.root], coalesce_fact.arena), [0], 1);
     let await_cursor: Array<Int> = [0];
     let await_fact: ParserExpressionFact = ParseExprFact(
-        "await pending", 0, await_cursor
+        "await pending", 13, 0, await_cursor
     );
     let await_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -363,7 +363,7 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
         );
     let member_cursor: Array<Int> = [0];
     let member_fact: ParserExpressionFact = ParseExprFact(
-        "fact.inner.values[fact.root]", 0, member_cursor
+        "fact.inner.values[fact.root]", 28, 0, member_cursor
     );
     let member_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -375,7 +375,7 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
         );
     let call_member_cursor: Array<Int> = [0];
     let call_member_fact: ParserExpressionFact = ParseExprFact(
-        "MakeOuter().root", 0, call_member_cursor
+        "MakeOuter().root", 16, 0, call_member_cursor
     );
     let call_member_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -386,9 +386,10 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             ), [0], 1
         );
     let indexed_member_text: String = "nodes[active[0]].root";
+    let indexed_member_text_extent: Int = StringLength(indexed_member_text);
     let indexed_member_cursor: Array<Int> = [0];
     let indexed_member_fact: ParserExpressionFact = ParseExprFact(
-        indexed_member_text, 0, indexed_member_cursor
+        indexed_member_text, indexed_member_text_extent, 0, indexed_member_cursor
     );
     let indexed_member_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -399,9 +400,10 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             ), [0], 1
         );
     let wrapper_member_text: String = "UnwrapOption(owner).root";
+    let wrapper_member_text_extent: Int = StringLength(wrapper_member_text);
     let wrapper_member_cursor: Array<Int> = [0];
     let wrapper_member_fact: ParserExpressionFact = ParseExprFact(
-        wrapper_member_text, 0, wrapper_member_cursor
+        wrapper_member_text, wrapper_member_text_extent, 0, wrapper_member_cursor
     );
     let wrapper_member_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -434,9 +436,10 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
         wrapper_call.call_node, "UnwrapOption"
     );
     let index_text: String = "stack[(ArrayLength(stack) - 1)]";
+    let index_text_extent: Int = StringLength(index_text);
     let index_cursor: Array<Int> = [0];
     let index_fact: ParserExpressionFact = ParseExprFact(
-        index_text, 0, index_cursor
+        index_text, index_text_extent, 0, index_cursor
     );
     let index_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(
@@ -447,9 +450,10 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             ), [0], 1
         );
     let invalid_index_text: String = "stack[\"bad\"]";
+    let invalid_index_text_extent: Int = StringLength(invalid_index_text);
     let invalid_index_cursor: Array<Int> = [0];
     let invalid_index_fact: ParserExpressionFact = ParseExprFact(
-        invalid_index_text, 0, invalid_index_cursor
+        invalid_index_text, invalid_index_text_extent, 0, invalid_index_cursor
     );
     let invalid_index_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFactsFromAstRows(

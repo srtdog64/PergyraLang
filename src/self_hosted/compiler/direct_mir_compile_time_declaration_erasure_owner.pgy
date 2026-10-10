@@ -101,7 +101,7 @@ func DirectMirErasureFieldKindEquals(
 ) -> Bool {
     let kind: Option<String> = JsonObjectFactValueKind(table, field);
     return MirObjectFieldOccurrenceCountAtBounds(
-        table.json, table.start, table.end, field
+        table.json, table.json_extent, table.start, table.end, field
     ) == 1 && IsSome(kind) && UnwrapOption(kind) == expected;
 }
 
@@ -124,16 +124,16 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
         admitted.document.declarations, 0
     );
     let kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        declaration.json, declaration.start, declaration.end, "kind"
+        declaration.json, declaration.json_extent, declaration.start, declaration.end, "kind"
     );
     let nominal_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        declaration.json, declaration.start, declaration.end, "nominal_kind"
+        declaration.json, declaration.json_extent, declaration.start, declaration.end, "nominal_kind"
     );
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        declaration.json, declaration.start, declaration.end, "name"
+        declaration.json, declaration.json_extent, declaration.start, declaration.end, "name"
     );
     let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        declaration.json, declaration.start, declaration.end,
+        declaration.json, declaration.json_extent, declaration.start, declaration.end,
         "source_syntax_id"
     );
     let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
@@ -159,22 +159,22 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
             UnwrapOption(nominal_kind) ||
         admitted.domain_runtime_admission.declarations.names[0] !=
             UnwrapOption(name) || MirObjectFieldOccurrenceCountAtBounds(
-            declaration.json, declaration.start, declaration.end, "fields"
+            declaration.json, declaration.json_extent, declaration.start, declaration.end, "fields"
         ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
-            declaration.json, declaration.start, declaration.end, "methods"
+            declaration.json, declaration.json_extent, declaration.start, declaration.end, "methods"
         ) != 1 || !DirectMirExactObjectArrayCount(fields, 0) ||
         !DirectMirExactObjectArrayCount(methods, 1) {
         Die("direct MIR compile-time declaration erasure declaration schema is invalid");
     }
     let method: JsonObjectFactTable = JsonArrayObjectFactAt(methods, 0);
     let method_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "name"
+        method.json, method.json_extent, method.start, method.end, "name"
     );
     let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "return"
+        method.json, method.json_extent, method.start, method.end, "return"
     );
     let callable_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        method.json, method.start, method.end, "callable_kind"
+        method.json, method.json_extent, method.start, method.end, "callable_kind"
     );
     let contract: JsonObjectFactTable = JsonObjectFactObjectTable(
         method, "contract"
@@ -184,10 +184,10 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
     );
     let contract_fact: MirDeclarationMethodContractFact =
         MirDeclarationMethodContractFactFromBounds(
-            method.json, method.start, method.end
+            method.json, method.json_extent, method.start, method.end
         );
     let method_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        method.json, method.start, method.end, "source_syntax_id"
+        method.json, method.json_extent, method.start, method.end, "source_syntax_id"
     );
     if !JsonObjectFactTableReady(method) || JsonObjectFactCount(method) != 6 ||
         !IsSome(method_id) || !MirProgramDeclarationFieldIdentityPositiveDecimal(UnwrapOption(method_id)) ||
@@ -195,9 +195,9 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
         !IsSome(return_type) || UnwrapOption(return_type) != "Int" ||
         !IsSome(callable_kind) || UnwrapOption(callable_kind) != "function" ||
         MirObjectFieldOccurrenceCountAtBounds(
-            method.json, method.start, method.end, "contract"
+            method.json, method.json_extent, method.start, method.end, "contract"
         ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
-            method.json, method.start, method.end, "params"
+            method.json, method.json_extent, method.start, method.end, "params"
         ) != 1 || !JsonObjectFactTableReady(contract) ||
         JsonObjectFactCount(contract) != 8 || !contract_fact.valid ||
         contract_fact.callable_kind != "function" ||
@@ -213,13 +213,13 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
     let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
     let argument: JsonObjectFactTable = JsonArrayObjectFactAt(params, 1);
     let receiver_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        receiver.json, receiver.start, receiver.end, "name"
+        receiver.json, receiver.json_extent, receiver.start, receiver.end, "name"
     );
     let argument_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        argument.json, argument.start, argument.end, "name"
+        argument.json, argument.json_extent, argument.start, argument.end, "name"
     );
     let argument_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        argument.json, argument.start, argument.end, "type"
+        argument.json, argument.json_extent, argument.start, argument.end, "type"
     );
     if JsonObjectFactCount(receiver) != 2 || JsonObjectFactCount(argument) != 2 ||
         !IsSome(receiver_name) || UnwrapOption(receiver_name) == "" ||

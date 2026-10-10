@@ -25,7 +25,7 @@ func MirIntentExecutionInstructionGlobalRow(
         let global_row: Int = routines.block_instruction_starts[block_row] +
             local_row;
         let id_text: String = MirObjectNumberFactAtBounds(
-            routines.source_json, routines.instruction_starts[global_row],
+            routines.source_json, routines.source_json_extent, routines.instruction_starts[global_row],
             routines.instruction_ends[global_row], "id"
         );
         if id_text == instruction_text {

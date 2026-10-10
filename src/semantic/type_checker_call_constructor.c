@@ -8,6 +8,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "string_window_extent.h"
 #include "array_storage_release_owner.h"
 #include "type_checker_visibility.h"
 #include "type_checker_ownership_consumers_internal.h"
@@ -285,6 +286,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
             if (decl != NULL) {
                 size_t provided = ast_call_arg_count(expr);
                 const char *channel_field_name = NULL;
+                semantic_string_window_extent_record_constructor(ctx, expr, decl);
                 if (constructor_decl_has_channel_field(
                         decl, ctx, &channel_field_name)) {
                     constructor_reject_channel_field_store(ctx,

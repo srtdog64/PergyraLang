@@ -15,25 +15,25 @@ func DirectMirInferredGenericMemberRoutineArrayShapeReady(
     let param_bounds: Array<Int> = [0, 0];
     let local_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             "generics", generic_bounds
         ) || !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             "params", param_bounds
         ) || !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             "source_locals", local_bounds
         ) || !DirectMirExactStringArrayCount(
-            routines.source_json, generic_bounds[0], generic_bounds[1],
+            routines.source_json, routines.source_json_extent, generic_bounds[0], generic_bounds[1],
             generic_count
         ) {
         return false;
     }
     let params: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
-        routines.source_json, param_bounds[0], param_bounds[1]
+        routines.source_json, routines.source_json_extent, param_bounds[0], param_bounds[1]
     );
     let locals: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
-        routines.source_json, local_bounds[0], local_bounds[1]
+        routines.source_json, routines.source_json_extent, local_bounds[0], local_bounds[1]
     );
     return DirectMirExactObjectArrayCount(
             params, param_count

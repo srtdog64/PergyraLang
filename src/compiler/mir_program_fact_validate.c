@@ -412,12 +412,33 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
         }
         for (size_t j = 0; j < routine->source_local_type_count; j++) {
             const MIRSourceLocalType *fact = &routine->source_local_types[j];
-            if (fact->name == NULL || fact->type_name == NULL) {
+            if (fact->name == NULL || fact->name[0] == '\0'
+                || fact->type_name == NULL || fact->type_name[0] == '\0') {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
                         "MIR routine '%s' source-local type fact[%zu] is incomplete",
                         routine->name != NULL ? routine->name : "(anonymous)",
                         j);
+                }
+                return false;
+            }
+            if (fact->binding_syntax_id == 0) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' source-local type fact[%zu] has missing binding identity",
+                        routine->name != NULL ? routine->name : "(anonymous)", j);
+                }
+                return false;
+            }
+            for (size_t k = 0; k < j; k++) {
+                if (routine->source_local_types[k].binding_syntax_id
+                    != fact->binding_syntax_id)
+                    continue;
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' source-local type facts[%zu,%zu] duplicate binding identity %u",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        k, j, (unsigned)fact->binding_syntax_id);
                 }
                 return false;
             }

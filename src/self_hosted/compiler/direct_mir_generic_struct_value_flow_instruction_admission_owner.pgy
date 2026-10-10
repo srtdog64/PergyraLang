@@ -158,7 +158,7 @@ func DirectMirGenericStructValueFlowInstructionAdmissionFromProgram(
         generic_return.arg1 != "" || returned.arg0 != "" ||
         returned.arg1 != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
-            admitted.routines.source_json, generic_return,
+            admitted.routines.source_json, admitted.routines.source_json_extent, generic_return,
             identity.generic_template.generic_name
         ) ||
         returned.abi_type_name != identity.declaration.name ||

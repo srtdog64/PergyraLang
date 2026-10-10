@@ -70,7 +70,7 @@ func DirectMirLegacyIntentProgramExpressionSequence(
             routines.instruction_expressions, global_row
         );
     return DirectMirArrayIntGraphFromExpressionFact(
-        routines.source_json, expression, slot
+        routines.source_json, routines.source_json_extent, expression, slot
     );
 }
 

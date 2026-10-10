@@ -4,7 +4,7 @@ import "direct_mir_routine_instance_type_owner.pgy";
 import "direct_mir_scalar_cfg_graph_input_owner.pgy";
 
 func DirectMirRoutineInstanceGraphInput(
-    source: DirectMirScalarCfgGraphInput, json: String,
+    source: DirectMirScalarCfgGraphInput, json: String, json_extent: Int,
     ref inventory: DirectMirRoutineInstanceInventory, ordinal: Int
 ) -> DirectMirScalarCfgGraphInput {
     if !inventory.valid || ordinal < 0 || ordinal >= ArrayLength(inventory.instance_rows) {
@@ -33,7 +33,7 @@ func DirectMirRoutineInstanceGraphInput(
     while row < ArrayLength(original.starts) {
         let capture: MirRoutineInstructionScalarCapture = MirRoutineInstructionFactBundleAtGlobal(
             original, original.global_start + row);
-        capture = DirectMirRoutineInstanceInstructionCapture(capture, json, inventory, ordinal);
+        capture = DirectMirRoutineInstanceInstructionCapture(capture, json, json_extent, inventory, ordinal);
         if !capture.valid { Die("direct MIR routine instance instruction ABI receipt is invalid"); }
         ArrayPush(abi_types, capture.abi_type_name);
         row = row + 1;

@@ -49,18 +49,20 @@ func SemanticAstExpressionFunctionTableCallableIndex(
     let suffix_count: Int = 0;
     row = 0;
     while row < ArrayLength(facts.names) {
-        let declared_len: Int = StringLength(facts.names[row]);
+        // One unchanged row index lets every read observe the row in place.
+        let declared_row: Int = row;
+        let declared_len: Int = StringLength(facts.names[declared_row]);
         let local_len: Int = StringLength(source_name);
         let matches: Bool = local_len > 0 && declared_len > local_len;
         let start: Int = declared_len - local_len;
         if matches && CharCode(
-                facts.names[row], declared_len, start - 1) !=
+                facts.names[declared_row], declared_len, start - 1) !=
                 SourceByteOf("_") {
             matches = false;
         }
         let offset: Int = 0;
         while matches && offset < local_len {
-            if CharCode(facts.names[row], declared_len, start + offset) !=
+            if CharCode(facts.names[declared_row], declared_len, start + offset) !=
                 CharCode(source_name, local_len, offset) {
                 matches = false;
             }

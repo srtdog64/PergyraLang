@@ -306,7 +306,7 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
         let open: Int = StringIndexOf(target, "[");
         let n: Int = StringLength(target);
         if open > 0 && open + 1 < n &&
-            CodegenCharCodeAt(target, n, n - 1) == 93 {
+            CodegenCharCodeAt(target, n, n, n - 1) == 93 {
             return target;
         }
         return "";

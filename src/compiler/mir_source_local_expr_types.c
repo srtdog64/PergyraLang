@@ -40,7 +40,7 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         if (match_binding != NULL)
             return match_binding->binding_type_name;
         return mir_source_local_identifier_type_name(program, routine,
-            ast_identifier_name(expr));
+            expr);
     }
     case AST_ARRAY_ACCESS: {
         const char *collection_type = mir_source_local_expr_type_name(

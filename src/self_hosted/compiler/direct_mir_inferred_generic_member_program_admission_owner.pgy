@@ -45,7 +45,7 @@ func DirectMirInferredGenericMemberProgramEnvelopeReady(
     let row: Int = 0;
     while row < 2 {
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         if !DirectMirGenericRoutineProgramEnvelopeReady(routine) ||

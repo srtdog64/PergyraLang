@@ -5,6 +5,7 @@
 // across another row-string epoch.
 
 import "../text/text_owner.pgy";
+import "../../lib/string_window_within.pgy";
 
 struct CodegenTypeGlobalIndex {
     ok: Bool;
@@ -39,7 +40,7 @@ func CodegenTypeGlobalIndexHash(
     let i: Int = 0;
     while i < name_length {
         hash = (hash * 131L +
-            (CodegenCharCodeAt(name, name_length, i) as Long)) % modulus;
+            (CodegenCharCodeAt(name, name_length, name_length, i) as Long)) % modulus;
         i = i + 1;
     }
     hash = (hash * 131L + 61L) % modulus;
@@ -47,14 +48,14 @@ func CodegenTypeGlobalIndexHash(
     i = 0;
     while i < kind_length {
         hash = (hash * 131L +
-            (CodegenCharCodeAt(kind, kind_length, i) as Long)) % modulus;
+            (CodegenCharCodeAt(kind, kind_length, kind_length, i) as Long)) % modulus;
         i = i + 1;
     }
     return hash as Int;
 }
 
 func CodegenTypeGlobalIndexHashRow(
-    rows: String,
+    rows: String, rows_extent: Int,
     rows_length: Int,
     name_start: Int,
     name_length: Int,
@@ -68,7 +69,7 @@ func CodegenTypeGlobalIndexHashRow(
     let i: Int = 0;
     while i < name_length {
         hash = (hash * 131L +
-            (CodegenCharCodeAt(rows, rows_length, name_start + i) as Long)) %
+            (CodegenCharCodeAt(rows, rows_extent, rows_length, name_start + i) as Long)) %
             modulus;
         i = i + 1;
     }
@@ -76,7 +77,7 @@ func CodegenTypeGlobalIndexHashRow(
     i = 0;
     while i < kind_length {
         hash = (hash * 131L +
-            (CodegenCharCodeAt(rows, rows_length, kind_start + i) as Long)) %
+            (CodegenCharCodeAt(rows, rows_extent, rows_length, kind_start + i) as Long)) %
             modulus;
         i = i + 1;
     }
@@ -96,7 +97,7 @@ func CodegenTypeGlobalIndexArraysReady(
 }
 
 func CodegenTypeGlobalIndexRowRangeEquals(
-    rows: String,
+    rows: String, rows_extent: Int,
     rows_length: Int,
     left_start: Int,
     right_start: Int,
@@ -104,8 +105,8 @@ func CodegenTypeGlobalIndexRowRangeEquals(
 ) -> Bool {
     let i: Int = 0;
     while i < length {
-        if CodegenCharCodeAt(rows, rows_length, left_start + i) !=
-            CodegenCharCodeAt(rows, rows_length, right_start + i) {
+        if CodegenCharCodeAt(rows, rows_extent, rows_length, left_start + i) !=
+            CodegenCharCodeAt(rows, rows_extent, rows_length, right_start + i) {
             return false;
         }
         i = i + 1;
@@ -115,7 +116,7 @@ func CodegenTypeGlobalIndexRowRangeEquals(
 
 func CodegenTypeGlobalIndexInsertFirst(
     inout index: CodegenTypeGlobalIndex,
-    rows: String,
+    rows: String, rows_extent: Int,
     name_start: Int,
     name_length: Int,
     kind_start: Int,
@@ -135,7 +136,7 @@ func CodegenTypeGlobalIndexInsertFirst(
     let kind_lengths: Array<Int> = index.kind_lengths;
     let values: Array<String> = index.values;
     let slot: Int = CodegenTypeGlobalIndexHashRow(
-        rows, index.rows_length,
+        rows, rows_extent, index.rows_length,
         name_start, name_length, kind_start, kind_length, capacity
     );
     let probes: Int = 0;
@@ -158,10 +159,10 @@ func CodegenTypeGlobalIndexInsertFirst(
         if name_lengths[slot] == name_length &&
             kind_lengths[slot] == kind_length &&
             CodegenTypeGlobalIndexRowRangeEquals(
-                rows, index.rows_length,
+                rows, rows_extent, index.rows_length,
                 name_starts[slot], name_start, name_length
             ) && CodegenTypeGlobalIndexRowRangeEquals(
-                rows, index.rows_length,
+                rows, rows_extent, index.rows_length,
                 kind_starts[slot], kind_start, kind_length
             ) {
             // The flat row owner resolves the first row.  Duplicate rows must
@@ -259,7 +260,7 @@ func CodegenTypeGlobalIndexFromRows(
         let row_end: Int = rows_length;
         if end_offset >= 0 { row_end = value_start + end_offset; }
         if !CodegenTypeGlobalIndexInsertFirst(
-            index, rows,
+            index, rows, rows_length,
             cursor, equal_at - cursor,
             kind_start, colon_at - kind_start,
             value_start, row_end - value_start
@@ -277,7 +278,7 @@ func CodegenTypeGlobalIndexFromRows(
 
 func CodegenTypeGlobalIndexLookupAdmitted(
     index: CodegenTypeGlobalIndex,
-    rows: String,
+    rows: String, rows_extent: Int,
     name: String,
     kind: String
 ) -> String {
@@ -294,11 +295,11 @@ func CodegenTypeGlobalIndexLookupAdmitted(
         if !index.occupied[slot] { return ""; }
         if index.name_lengths[slot] == name_length &&
             index.kind_lengths[slot] == kind_length &&
-            SubEqualsWithLen(
-                rows, index.rows_length, index.name_starts[slot],
+            StringWindowSubEquals(
+                rows, rows_extent, index.rows_length, index.name_starts[slot],
                 index.name_lengths[slot], name
-            ) && SubEqualsWithLen(
-                rows, index.rows_length, index.kind_starts[slot],
+            ) && StringWindowSubEquals(
+                rows, rows_extent, index.rows_length, index.kind_starts[slot],
                 index.kind_lengths[slot], kind
             ) {
             return index.values[slot];
@@ -315,15 +316,16 @@ func CodegenTypeGlobalIndexLookup(
     name: String,
     kind: String
 ) -> String {
-    if StringLength(rows) != index.rows_length {
+    let rows_extent: Int = StringLength(rows);
+    if rows_extent != index.rows_length {
         Die("codegen global type-row index epoch changed");
     }
-    return CodegenTypeGlobalIndexLookupAdmitted(index, rows, name, kind);
+    return CodegenTypeGlobalIndexLookupAdmitted(index, rows, rows_extent, name, kind);
 }
 
 func CodegenTypeGlobalIndexContainsAdmitted(
     index: CodegenTypeGlobalIndex,
-    rows: String,
+    rows: String, rows_extent: Int,
     name: String,
     kind: String
 ) -> Bool {
@@ -340,11 +342,11 @@ func CodegenTypeGlobalIndexContainsAdmitted(
         if !index.occupied[slot] { return false; }
         if index.name_lengths[slot] == name_length &&
             index.kind_lengths[slot] == kind_length &&
-            SubEqualsWithLen(
-                rows, index.rows_length, index.name_starts[slot],
+            StringWindowSubEquals(
+                rows, rows_extent, index.rows_length, index.name_starts[slot],
                 index.name_lengths[slot], name
-            ) && SubEqualsWithLen(
-                rows, index.rows_length, index.kind_starts[slot],
+            ) && StringWindowSubEquals(
+                rows, rows_extent, index.rows_length, index.kind_starts[slot],
                 index.kind_lengths[slot], kind
             ) {
             return true;
@@ -361,10 +363,11 @@ func CodegenTypeGlobalIndexContains(
     name: String,
     kind: String
 ) -> Bool {
-    if StringLength(rows) != index.rows_length {
+    let rows_extent: Int = StringLength(rows);
+    if rows_extent != index.rows_length {
         Die("codegen global type-row index epoch changed");
     }
-    return CodegenTypeGlobalIndexContainsAdmitted(index, rows, name, kind);
+    return CodegenTypeGlobalIndexContainsAdmitted(index, rows, rows_extent, name, kind);
 }
 
 func CodegenTypeGlobalIndexContractReady() -> Bool {

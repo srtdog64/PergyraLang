@@ -15,7 +15,6 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
     block_row: Int,
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
-    let json: String = routines.source_json;
     let selection: MirRoutineInstructionSelection =
         MirRoutineFactIndexBranchAtBlock(
             index, routines, routine_row, block_row
@@ -37,7 +36,7 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
     if source_type == "AST_MATCH_CASE" {
         let match_subject: String = scalar.expr0;
         let patterns: Array<String> = MirObjectArrayStringFactsAtBounds(
-            json, kp, inst_end, "match_patterns"
+            routines.source_json, routines.source_json_extent, kp, inst_end, "match_patterns"
         );
         let pattern_count: Int = ArrayLength(patterns);
         if StringLength(match_subject) == 0 || pattern_count == 0 {
@@ -56,7 +55,7 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         // A user enum may spell a variant Some, None, Ok or Err; the carried
         // subject family keeps such a case on the enum comparison below.
         let family: Option<String> = JsonObjectStringFieldOptWithin(
-            json, kp, inst_end, "match_subject_family"
+            routines.source_json, routines.source_json_extent, kp, inst_end, "match_subject_family"
         );
         let wrapper: Bool = !IsSome(family) || UnwrapOption(family) != "enum";
         if wrapper && variant == "Some" {
@@ -184,7 +183,6 @@ func BlockMatchBindingLineWithExpressionOrder(ref index: MirRoutineFactIndex,
     block_row: Int, indent: String,
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
-    let json: String = routines.source_json;
     let selection: MirRoutineInstructionSelection =
         MirRoutineFactIndexBranchAtBlock(
             index, routines, routine_row, block_row
@@ -198,13 +196,13 @@ func BlockMatchBindingLineWithExpressionOrder(ref index: MirRoutineFactIndex,
         );
     if !scalar.valid { MirLowerFailClosed("invalid match scalar facts"); }
     let line: String = MirMatchBindingLineForInstruction(
-        json, instruction.start, instruction.end,
+        routines.source_json, routines.source_json_extent, instruction.start, instruction.end,
         instruction.source_type, scalar.match_variant,
         scalar.expr0, indent
     );
     if line == "" { return line; }
     let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
-        json, instruction.start, instruction.end, "match_bindings"
+        routines.source_json, routines.source_json_extent, instruction.start, instruction.end, "match_bindings"
     );
     let binding_index: Int = 0;
     while binding_index < ArrayLength(bindings) {

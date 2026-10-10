@@ -22,7 +22,7 @@ func AirGraphSummaryIntField(content: String, field: String, inout value_out: Ar
 }
 
 func AirGraphScalarFieldValues(content: String, field: String) -> Array<String> {
-    return JsonScalarFieldValues(content, field);
+    return JsonScalarFieldValues(content, StringLength(content), field);
 }
 
 func CountSubstring(content: String, needle: String) -> Int {

@@ -24,7 +24,7 @@ import "diagnostic_owner.pgy";
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
 // Mutually recursive with ParseBlock for `if` and `while` bodies.
-func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
+func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
     inout owner_kind_out: Array<Int>, diagnostic_projection: ParseDiagnosticProjection) -> String {
@@ -41,7 +41,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if MatchLanguageWord(content, head_start, LanguageWordId.WordBind) {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        let bind_lhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+        let bind_lhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
         i = cursor_out[0];
         i = ParseExpectIn(location_context, content, i, "=", "statement");
         // docs/206 section 1: the slot borrows a local subject through a role;
@@ -68,11 +68,11 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             Concat(" = ", Concat(subject_name, Concat(" as ", role_name))))));
     }
     if MatchLanguageWord(content, head_start, LanguageWordId.WordIf) {
-        return ParseIfStmt(content, i, cursor_out, stmt_indent, expression_graphs,
+        return ParseIfStmt(content, content_extent, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations);
     }
     if MatchLanguageWord(content, head_start, LanguageWordId.WordWhile) {
-        return ParseWhileStmt(content, i, cursor_out, stmt_indent, expression_graphs,
+        return ParseWhileStmt(content, content_extent, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations);
     }
     if MatchLanguageWord(content, head_start, LanguageWordId.WordLoop) {
@@ -96,7 +96,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         }
         i = i + 1;
         ArraySet(cursor_out, 0, i);
-        let with_type: String = ReadType(content, i, cursor_out);
+        let with_type: String = ReadType(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if ParserCharAt(content, i) != ">" {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
@@ -138,7 +138,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     }
     if MatchLanguageWord(content, head_start, LanguageWordId.WordParallel) {
         return ParseParallelStmt(
-            content, i, cursor_out, stmt_indent, expression_graphs,
+            content, content_extent, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
@@ -163,7 +163,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             if MatchLanguageWord(content, i, LanguageWordId.WordCompensate) {
                 i = LanguageWordEnd(i, LanguageWordId.WordCompensate);
                 ArraySet(cursor_out, 0, i);
-                let handler_expr: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+                let handler_expr: String = ParseExprFactIn(location_context, content, n_tx, i, cursor_out).text;
                 i = cursor_out[0];
                 handler_expr = handler_expr;
                 i = ParseStatementTerminatorIn(location_context, content, i, "statement");
@@ -171,7 +171,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             }
             ArraySet(cursor_out, 0, i);
             let tx_stmt: String = ParseOneStmtObserved(
-                content, i, cursor_out, stmt_indent + 4, expression_graphs,
+                content, n_tx, i, cursor_out, stmt_indent + 4, expression_graphs,
                 location_context, source_locations
             );
             i = cursor_out[0];
@@ -228,7 +228,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), "(null)"));
         }
         ArraySet(cursor_out, 0, reason_start);
-        let fail_reason: String = ParseExprFactIn(location_context, content, reason_start, cursor_out).text;
+        let fail_reason: String = ParseExprFactIn(location_context, content, content_extent, reason_start, cursor_out).text;
         i = cursor_out[0];
         i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
@@ -242,7 +242,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     }
     if MatchLanguageWord(content, head_start, LanguageWordId.WordFor) {
         return ParseForStmt(
-            content, i, cursor_out, stmt_indent, expression_graphs,
+            content, content_extent, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
@@ -256,7 +256,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         }
         ArraySet(cursor_out, 0, i);
         let value_fact: ParserExpressionFact = ParseExprFactIn(
-            location_context, content, i, cursor_out
+            location_context, content, content_extent, i, cursor_out
         );
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindValueReturnStmtTag(),
@@ -275,7 +275,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == "(" {
             return ParseDestructureLetStmt(
-                content, i, cursor_out, stmt_indent, expression_graphs
+                content, content_extent, i, cursor_out, stmt_indent, expression_graphs
             );
         }
         ArraySet(cursor_out, 0, i);
@@ -303,7 +303,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         if ParserCharAt(content, i) == ":" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
-            var_type = ReadTypeIn(location_context, content, i, cursor_out);
+            var_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(var_type) == 0 {
                 ParseRefuse(location_context, SkipWhitespaceAndComments(content, i),
@@ -314,7 +314,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         i = ParseExpectIn(location_context, content, i, "=", "let");
         ArraySet(cursor_out, 0, i);
         let value_fact: ParserExpressionFact = ParseExprFactIn(
-            location_context, content, i, cursor_out
+            location_context, content, content_extent, i, cursor_out
         );
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindLetStmtTag(),
@@ -344,7 +344,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     // work).
     ArraySet(cursor_out, 0, head_start);
     let lhs_fact: ParserExpressionFact = ParsePrimaryFact(
-        content, head_start, cursor_out
+        content, content_extent, head_start, cursor_out
     );
     if !lhs_fact.ok {
         ParseExpressionRefuse(location_context, lhs_fact, head_start, "statement");
@@ -360,7 +360,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "+" && ParserCharAt(content, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
-        let rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+        let rhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
         i = cursor_out[0];
         i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
@@ -372,7 +372,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "-" && ParserCharAt(content, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
-        let unsub_rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+        let unsub_rhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
         i = cursor_out[0];
         i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
@@ -385,7 +385,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "<" && ParserCharAt(content, peek + 1) == "-" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
-        let send_rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+        let send_rhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
         i = cursor_out[0];
         i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
@@ -396,7 +396,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         i = peek + 1;
         ArraySet(cursor_out, 0, i);
         let rhs_fact: ParserExpressionFact = ParseExprFactIn(
-            location_context, content, i, cursor_out
+            location_context, content, content_extent, i, cursor_out
         );
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindAssignStmtTag(),
@@ -417,7 +417,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     // Expression statement fallback.
     ArraySet(cursor_out, 0, head_start);
     let expr_fact: ParserExpressionFact = ParseExprFactIn(
-        location_context, content, head_start, cursor_out
+        location_context, content, content_extent, head_start, cursor_out
     );
     let owner_kind: Int = ParserExpressionCallStatementKind(expr_fact);
     ArraySet(owner_kind_out, 0, owner_kind);
@@ -467,7 +467,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
 // stmt_indent is the column at which each child statement's first line
 // starts; nested blocks (if/while) compute their own deeper indents.
 func ParseOneStmtObservedProjected(
-    content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
     diagnostic_projection: ParseDiagnosticProjection
@@ -478,7 +478,7 @@ func ParseOneStmtObservedProjected(
     );
     let owner_kind: Array<Int> = [TypedAstKindUnknownTag()];
     let tree_text: String = ParseOneStmtCore(
-        content, start, cursor_out, stmt_indent, expression_graphs,
+        content, content_extent, start, cursor_out, stmt_indent, expression_graphs,
         location_context, source_locations, owner_kind, diagnostic_projection
     );
     let finished: String = ParserObservedStatementFinish(tree_text, slot, owner_kind[0], source_locations);
@@ -493,17 +493,17 @@ func ParseOneStmtObservedProjected(
     return finished;
 }
 func ParseOneStmtObserved(
-    content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>, location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     return ParseOneStmtObservedProjected(
-        content, start, cursor_out, stmt_indent, expression_graphs,
+        content, content_extent, start, cursor_out, stmt_indent, expression_graphs,
         location_context, source_locations, ParseDiagnosticText
     );
 }
 func ParseOneStmt(
-    content: String,
+    content: String, content_extent: Int,
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
@@ -511,7 +511,7 @@ func ParseOneStmt(
 ) -> String {
     let context: ParserSourceLocationContext = ParserSourceLocationContextUnknown();
     let locations: Array<ParserSourceLocationObservation> = [];
-    return ParseOneStmtObserved(content, start, cursor_out, stmt_indent,
+    return ParseOneStmtObserved(content, content_extent, start, cursor_out, stmt_indent,
         expression_graphs, context, locations);
 }
 
@@ -566,7 +566,7 @@ func ParseBlockStatementsObserved(
         }
         ArraySet(cursor_out, 0, i);
         let stmt: String = ParseOneStmtObserved(
-            content, i, cursor_out, stmt_indent, expression_graphs,
+            content, n, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
         i = cursor_out[0];

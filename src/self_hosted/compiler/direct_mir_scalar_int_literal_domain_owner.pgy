@@ -13,14 +13,14 @@ func DirectMirScalarIntLiteralInRange(value: String) -> Bool {
         (negative && digits == 1 && first == 48) {
         return false;
     }
-    let limit: String = "2147483647";
-    if negative { limit = "2147483648"; }
     let row: Int = 0;
     while row < digits {
         let digit: Int = CharCode(value, length, start + row);
         if digit < 48 || digit > 57 { return false; }
         if digits == 10 {
-            let bound: Int = CharCode(limit, 10, row);
+            // Each literal bound is read through its own literal extent.
+            let bound: Int = CharCode("2147483647", 10, row);
+            if negative { bound = CharCode("2147483648", 10, row); }
             if digit < bound { return true; }
             if digit > bound { return false; }
         }

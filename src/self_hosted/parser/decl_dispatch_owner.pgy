@@ -29,11 +29,11 @@ func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
     let cursor: Array<Int> = [0];
     let i: Int = 0;
     while i < n {
-        i = SkipWhitespaceAndCommentsWithin(content, n, i);
+        i = SkipWhitespaceAndCommentsWithin(content, n, n, i);
         if i >= n {
             return false;
         }
-        if SourceByteAt(content, n, i) == SourceByteOf("\"") {
+        if SourceByteAt(content, n, n, i) == SourceByteOf("\"") {
             ArraySet(cursor, 0, i);
             ReadString(content, i, cursor);
             if cursor[0] <= i {
@@ -43,7 +43,7 @@ func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordExport) &&
-            (i == 0 || !SourceByteIsAlphaNum(SourceByteAt(content, n, i - 1))) {
+            (i == 0 || !SourceByteIsAlphaNum(SourceByteAt(content, n, n, i - 1))) {
             return true;
         }
         i = i + 1;
@@ -269,7 +269,7 @@ func ParseDeclsInto(
                 // ABI names are never namespaced: the member's C symbol is
                 // the declared name itself, so no decl prefix applies.
                 let extern_sig: String = ParseFunction(
-                    content, i, cursor_out, "", false, 4,
+                    content, n, i, cursor_out, "", false, 4,
                     LanguageWordId.WordFunc, "Function: ", true, "", expression_graphs,
                     location_context
                 );
@@ -429,7 +429,7 @@ func ParseDeclsInto(
 
 
         if MatchLanguageWord(content, i, LanguageWordId.WordEvent) {
-            let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix, location_context);
+            let event_block: String = ParseEventDecl(content, n, i, cursor_out, decl_prefix, location_context);
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, event_block, source_locations));
             ArrayPush(out_module_paths, source_path);
@@ -456,7 +456,7 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let fn_block: String = ParseFunctionObserved(
-                content, i, cursor_out, decl_prefix, effective_export,
+                content, n, i, cursor_out, decl_prefix, effective_export,
                 is_async_decl, 2,
                 LanguageWordId.WordFunc, "Function: ", false, active_within_zone,
                 expression_graphs, location_context, source_locations,
@@ -486,13 +486,13 @@ func ParseDeclsInto(
         let stmt_block: String = "";
         if collect_script {
             stmt_block = ParseOneStmtObservedProjected(
-                content, i, cursor_out, stmt_indent, statement_graphs,
+                content, n, i, cursor_out, stmt_indent, statement_graphs,
                 location_context, script_source_locations,
                 diagnostic_projection
             );
         } else {
             stmt_block = ParseOneStmtObservedProjected(
-                content, i, cursor_out, stmt_indent, statement_graphs,
+                content, n, i, cursor_out, stmt_indent, statement_graphs,
                 location_context, source_locations, diagnostic_projection
             );
         }

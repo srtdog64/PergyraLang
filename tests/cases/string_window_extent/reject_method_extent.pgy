@@ -1,0 +1,14 @@
+// A method may not take the extent as a parameter requirement.
+class Reader {
+    let base: Int;
+
+    func CodeAt(text: String, n: Int, i: Int) -> Int {
+        return CharCode(text, n, i);
+    }
+}
+
+func Main() -> Void {
+    let r: Reader = Reader(0);
+    let s: String = Concat("a", "b");
+    Print(ToString(r.CodeAt(s, StringLength(s), 1)));
+}

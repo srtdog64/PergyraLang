@@ -70,4 +70,19 @@ if grep -Fq 'builtin_resolve(' src/compiler/mir_ssa_rename.c; then
     fail 'SSA collection reintroduced call-target spelling resolution'
 fi
 
+grep -Fq 'mir_routine_source_local_type_fact_by_binding_syntax_id(' \
+    src/compiler/mir_source_local_expr_binding_facts.c ||
+    fail 'expression typing lost exact source-local binding identity'
+if grep -Fq 'mir_routine_source_local_type_name(' \
+    src/compiler/mir_source_local_expr_binding_facts.c; then
+    fail 'expression typing reintroduced first-name local type authority'
+fi
+if grep -Fq 'mir_collection_source_local(' src/compiler/mir_branch_source_facts.c; then
+    fail 'collection branch facts recreated a parallel local identity lookup'
+fi
+grep -Fq 'duplicate binding identity' src/compiler/mir_program_fact_validate.c ||
+    fail 'source-local inventory no longer refuses duplicate identities'
+grep -Fq 'owner_elem_type != entry->elem_type' src/codegen/llvm_expr_array_access.c ||
+    fail 'LLVM array typing may override active lexical storage metadata'
+
 echo '[mir-lexical-binding] semantic identity carriage / old-path residue: PASS'

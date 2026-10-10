@@ -161,7 +161,7 @@ func DirectMirStructValueFlowInstructionAdmissionFromProgram(
         );
     let assignment_target: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, assignment_expression, 1
+            admitted.routines.source_json, admitted.routines.source_json_extent, assignment_expression, 1
         );
     if !DirectMirStructValueFlowAssignmentTargetReady(
         assignment_target, identity.graph.source_local_name

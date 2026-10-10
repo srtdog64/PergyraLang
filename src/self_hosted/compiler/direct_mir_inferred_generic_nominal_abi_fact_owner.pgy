@@ -32,13 +32,13 @@ func DirectMirInferredGenericNominalAbiFactReady(
 }
 
 func DirectMirInferredGenericNominalAbiFactFromInstructions(
-    json: String,
+    json: String, json_extent: Int,
     ref identity: DirectMirInferredGenericNominalProgramIdentity,
     ref instructions: DirectMirInferredGenericNominalInstructionAdmission
 ) -> DirectMirInferredGenericNominalAbiFact {
     let captured: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, instructions.initial.abi_type_name,
+            json, json_extent, instructions.initial.abi_type_name,
             instructions.initial.abi_type_value_ready,
             instructions.initial.abi_type_start,
             instructions.initial.abi_type_end,

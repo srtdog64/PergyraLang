@@ -3,6 +3,7 @@
 #include "capability_analyze.h"
 #include "callable_capability_inference.h"
 #include "type_checker_internal.h"
+#include "string_window_extent.h"
 #include "type_checker_decls_a_helpers_internal.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
@@ -268,6 +269,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     Type *prev_inferred  = ctx->inferred_return;
     bool  prev_infer_conflict = ctx->inferred_return_conflict;
     ctx->current_function_decl = node;
+    semantic_string_window_extent_record_routine(ctx, node);
     ctx->current_return = return_type;
     ctx->inferring_return = infer_return;
     ctx->inferred_return = NULL;

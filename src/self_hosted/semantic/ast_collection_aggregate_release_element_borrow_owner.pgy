@@ -4,7 +4,7 @@
 // including an escape reached through a lent callee formal. A root that this
 // release plan protects with such a site keeps the release unproved.
 import "ast_collection_aggregate_release_plan_schema_owner.pgy";
-import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
 
 // A scalar lookup does not retain the escape map's container descriptor.
 func SemanticAstCollectionAggregateElementBorrowSiteIn(

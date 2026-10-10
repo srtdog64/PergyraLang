@@ -1,0 +1,6 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Store(ref input: Envelope, inout captured: Array<Table>) -> Void {
+    ArraySet(captured, 0, input.table);
+}
+func Main() -> Void {}

@@ -55,7 +55,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
         }
         ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
         input = DirectMirRoutineInstanceGraphInput(
-            input, admitted.routines.source_json, route.routine_instances, ordinal);
+            input, admitted.routines.source_json, admitted.routines.source_json_extent, route.routine_instances, ordinal);
         let admission: DirectMirScalarCfgProgramRoutineAdmission =
             DirectMirScalarCfgProgramAppendRoutine(
                 admitted, route.routine_rows[ordinal], ordinal, callables, input,

@@ -45,7 +45,6 @@ func EmitBlockStmtsWithExpressionOrder(
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
-    let json: String = routines.source_json;
     let chunks: Array<String> = [];
     let instruction_count: Int =
         MirProgramRoutineIndexBlockInstructionCountAt(
@@ -71,7 +70,7 @@ func EmitBlockStmtsWithExpressionOrder(
         let source_type: String = instruction.source_type;
         if defer_part != "" && source_type != "AST_DEFER_STMT" { MirLowerFailClosed(Concat("defer body part is missing: ", defer_part)); }
         if !MirCapturedAbiLayoutFactReady(
-            json, scalar.abi_type_name, scalar.abi_type_value_ready,
+            routines.source_json, routines.source_json_extent, scalar.abi_type_name, scalar.abi_type_value_ready,
             scalar.abi_type_start, scalar.abi_type_end,
             scalar.abi_layout_id_start, scalar.abi_layout_id_end,
             scalar.abi_layout_required_start, scalar.abi_layout_required_end,
@@ -87,7 +86,7 @@ func EmitBlockStmtsWithExpressionOrder(
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":resource:done"))))); }
         if ikind == "destructure" {
             ArrayPush(chunks, Concat("", RenderDestructureFromFactsWithExpressionOrder(
-                json, kp, inst_end, indent, scalar.expr0, routines,
+                routines.source_json, routines.source_json_extent, kp, inst_end, indent, scalar.expr0, routines,
                 instruction.global_row, expression_order)));
         }
         // Resource-op rows are MIR evidence for an already-owned executable
@@ -121,7 +120,7 @@ func EmitBlockStmtsWithExpressionOrder(
                 ArrayPush(chunks, StringJoin(bind_parts, ""));
             } else if source_type == "AST_DEFER_STMT" {
                 ArrayPush(chunks, Concat("", RenderDeferFromFactsWithExpressionOrder(
-                    json, kp, inst_end, indent, arg0, arg1, defer_part,
+                    routines.source_json, routines.source_json_extent, kp, inst_end, indent, arg0, arg1, defer_part,
                     instruction.global_row, expression_order
                 )));
             } else if (ikind == "return" && StringLength(expr0) == 0) ||
@@ -388,7 +387,6 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
     if !MirProgramRoutineIndexRowReady(routines, routine_row) { MirLowerFailClosed("malformed routine index row"); }
-    let json: String = routines.source_json;
     let routine_start: Int = routines.starts[routine_row];
     let routine_end: Int = routines.ends[routine_row];
     let routine: String = routines.names[routine_row];
@@ -463,7 +461,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     if observe_fact_index { Log("[driver-pressure-stage] consumer:mir-to-ast:first-top-level-routine-validation:done"); }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:done"); }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        json, routine_start, routine_end
+        routines.source_json, routines.source_json_extent, routine_start, routine_end
     );
     if !MirRoutineHeaderGenericRowsReady(header) {
         MirLowerFailClosed(Concat(

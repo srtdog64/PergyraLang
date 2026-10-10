@@ -28,6 +28,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "call_arg_type_mismatch",
         "member_call_arg_type_mismatch",
         "enum_payload_variant_unproven",
+        "string_window_extent_unproven",
         "match_pattern_invalid",
         "named_value_boundary_argument_required",
         "borrow_boundary_escape",
@@ -178,6 +179,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "enum_payload_variant_unproven" {
         return "PGY_SEM_ENUM_VARIANT_UNPROVEN";
+    }
+    if code == "string_window_extent_unproven" {
+        return "PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN";
     }
     if code == "named_value_boundary_argument_required" {
         return "PGY_SEM_TYPE_MISMATCH";

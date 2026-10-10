@@ -10,7 +10,7 @@ func IntentBlockRoleFieldProbe() -> Void {
     let row: Int = 0;
     while row < ArrayLength(roles) {
         let text: String = prefix + "\"intent_block_role\":\"" + roles[row] + "\"}";
-        let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, 0, StringLength(text));
+        let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, StringLength(text), 0, StringLength(text));
         if !block.valid || block.intent_role != roles[row] { Die("MIR Intent block role reader lost a producer role"); }
         row = row + 1;
     }
@@ -20,7 +20,7 @@ func IntentBlockRoleFieldProbe() -> Void {
     row = 0;
     while row < ArrayLength(invalid_fields) {
         let text: String = prefix + "\"intent_block_role\":" + invalid_fields[row] + "}";
-        let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, 0, StringLength(text));
+        let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, StringLength(text), 0, StringLength(text));
         if block.valid { Die("MIR Intent role reader admitted an unknown, mistyped or duplicate role"); }
         row = row + 1;
     }
@@ -77,9 +77,9 @@ func IntentSignatureHeaderEnvelopeProbe() -> Void {
         "\"source_syntax_id\":17", "\"receiver_carriage\":\"none\"",
         "\"return\":\"Bool\"", "\"generics\":[]", "\"params\":[]"];
     let baseline: String = "{" + StringJoin(rows, ",") + "}";
-    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(baseline, 0, StringLength(baseline));
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(baseline, StringLength(baseline), 0, StringLength(baseline));
     let bounds: Array<Int> = [0, 0];
-    if !MirRoutineHeaderSignatureEnvelopeReady(baseline, 0, StringLength(baseline),
+    if !MirRoutineHeaderSignatureEnvelopeReady(baseline, StringLength(baseline), 0, StringLength(baseline),
             "Run", "intent", "17", "none", header, bounds) {
         Die("MIR signature header owner rejected its valid control");
     }
@@ -101,8 +101,8 @@ func IntentSignatureHeaderEnvelopeProbe() -> Void {
                 row = row + 1;
             }
             let changed: String = "{" + StringJoin(changed_rows, ",") + "}";
-            let parsed: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(changed, 0, StringLength(changed));
-            if MirRoutineHeaderSignatureEnvelopeReady(changed, 0, StringLength(changed),
+            let parsed: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(changed, StringLength(changed), 0, StringLength(changed));
+            if MirRoutineHeaderSignatureEnvelopeReady(changed, StringLength(changed), 0, StringLength(changed),
                     "Run", "intent", "17", "none", parsed, bounds) {
                 Die("MIR signature header owner admitted a missing, duplicate or mistyped member");
             }
@@ -148,8 +148,10 @@ func Main() -> Void with caps env, io_read {
     if ArrayLength(args) != 1 { Die("usage: intent_binding_identity_probe <mir-json>"); }
     let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
     if !routines.valid { Die("binder probe routine index is invalid"); }
+    // `routines` is passed inout below, so measure one unchanged binding.
+    let routine_json: String = routines.source_json;
     let cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(
-        routines.source_json, routines.declarations);
+        routine_json, StringLength(routine_json), routines.declarations);
     if !DirectMirIdentityCellFactsReady(cells) { Die("binder probe identity cells are invalid"); }
     let absent_cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsEmpty();
     let row: Int = 0;

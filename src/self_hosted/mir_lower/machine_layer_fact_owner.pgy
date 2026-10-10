@@ -17,6 +17,7 @@ import "intent_execution_plan_fact_owner.pgy";
 import "program_declaration_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
+import "../lib/string_window_within.pgy";
 
 // Domain-only admission receipt shared by the source semantic C path and the
 // complete machine-layer consumer.  Domain codegen must not depend on routine
@@ -142,25 +143,25 @@ func MirMachineLayerContactIndex(operation: String) -> Int {
 }
 
 func MirMachineLayerObjectReady(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     declaration: SelfHostMachineLayerDeclaration
 ) -> Bool {
     let manifest: String = MirObjectStringFactAtBounds(
-        json, start, end, "manifest");
+        json, json_extent, start, end, "manifest");
     let operation: String = MirObjectStringFactAtBounds(
-        json, start, end, "operation");
+        json, json_extent, start, end, "operation");
     let physical_grant: String = MirObjectStringFactAtBounds(
-        json, start, end, "physical_grant");
+        json, json_extent, start, end, "physical_grant");
     let physical_base: String = MirObjectNumberFactAtBounds(
-        json, start, end, "physical_base");
+        json, json_extent, start, end, "physical_base");
     let physical_size: String = MirObjectNumberFactAtBounds(
-        json, start, end, "physical_size");
+        json, json_extent, start, end, "physical_size");
     let physical_mode: String = MirObjectStringFactAtBounds(
-        json, start, end, "physical_mode");
+        json, json_extent, start, end, "physical_mode");
     let runtime_operation: String = MirObjectStringFactAtBounds(
-        json, start, end, "runtime_operation");
+        json, json_extent, start, end, "runtime_operation");
     let contact_index: Int = MirMachineLayerContactIndex(operation);
     if !SelfHostMachineLayerDeclarationReady(declaration) ||
         manifest != CompilerRuntimeCallAbiMachineLayerManifestId() ||
@@ -173,18 +174,18 @@ func MirMachineLayerObjectReady(
         return false;
     }
     return JsonObjectBoolFieldEqualsWithin(
-            json, start, end,
+            json, json_extent, start, end,
             "hardware_adequate", true) &&
         JsonObjectBoolFieldEqualsWithin(
-            json, start, end,
+            json, json_extent, start, end,
             "authority_required", true) &&
         JsonObjectBoolFieldEqualsWithin(
-            json, start, end,
+            json, json_extent, start, end,
             "live_lease_required", true);
 }
 
 func MirMachineLayerInstructionBoundsReady(
-    json: String,
+    json: String, json_extent: Int,
     contact_start: Int,
     contact_end: Int,
     value_start: Int,
@@ -194,17 +195,17 @@ func MirMachineLayerInstructionBoundsReady(
     let contact_kind: String = "";
     if contact_start >= 0 {
         let contact_value_kind: Int = JsonCharCodeAt(
-            json, contact_end, contact_start
+            json, json_extent, contact_end, contact_start
         );
         if contact_value_kind == JsonAsciiCode("\"") {
             let decoded: Option<String> = JsonStringValueSpanning(
-                json, contact_start, contact_end);
+                json, json_extent, contact_start, contact_end);
             if !IsSome(decoded) { return false; }
             contact_kind = UnwrapOption(decoded);
         } else if contact_value_kind != JsonAsciiCode("n") ||
             contact_start + 4 != contact_end ||
-            !SubEqualsWithLen(
-                json, contact_end, contact_start, 4, "null"
+            !StringWindowSubEquals(
+                json, json_extent, contact_end, contact_start, 4, "null"
             ) {
             return false;
         }
@@ -213,12 +214,12 @@ func MirMachineLayerInstructionBoundsReady(
         return StringLength(contact_kind) == 0;
     }
     let value_kind: Int = JsonCharCodeAt(
-        json, value_end, value_start);
+        json, json_extent, value_end, value_start);
     if value_kind == JsonAsciiCode("n") {
         return StringLength(contact_kind) == 0 &&
             value_start + 4 == value_end &&
-            SubEqualsWithLen(
-                json, value_end, value_start, 4, "null"
+            StringWindowSubEquals(
+                json, json_extent, value_end, value_start, 4, "null"
             );
     }
     if value_kind != JsonAsciiCode("{") {
@@ -226,14 +227,14 @@ func MirMachineLayerInstructionBoundsReady(
     }
     return StringLength(contact_kind) > 0 &&
         contact_kind == MirObjectStringFactAtBounds(
-            json, value_start, value_end, "operation") &&
+            json, json_extent, value_start, value_end, "operation") &&
         MirMachineLayerObjectReady(
-            json, value_start, value_end, declaration
+            json, json_extent, value_start, value_end, declaration
         );
 }
 
 func MirMachineLayerInstructionReady(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     declaration: SelfHostMachineLayerDeclaration
@@ -241,38 +242,38 @@ func MirMachineLayerInstructionReady(
     let contact_bounds: Array<Int> = [0 - 1, 0 - 1];
     let value_bounds: Array<Int> = [0 - 1, 0 - 1];
     if !JsonObjectTwoFieldValueBoundsWithin(
-        json, start, end,
+        json, json_extent, start, end,
         "machine_contact_kind", "machine_layer",
         contact_bounds, value_bounds
     ) {
         return false;
     }
     return MirMachineLayerInstructionBoundsReady(
-        json, contact_bounds[0], contact_bounds[1],
+        json, json_extent, contact_bounds[0], contact_bounds[1],
         value_bounds[0], value_bounds[1], declaration
     );
 }
 
 func MirMachineLayerInstructionRuntimeOperationAtBounds(
-    json: String, value_start: Int, value_end: Int
+    json: String, json_extent: Int, value_start: Int, value_end: Int
 ) -> String {
     if value_start < 0 || value_end <= value_start ||
-        JsonCharCodeAt(json, value_end, value_start) !=
+        JsonCharCodeAt(json, json_extent, value_end, value_start) !=
         JsonAsciiCode("{") {
         return "";
     }
     return MirObjectStringFactAtBounds(
-        json, value_start, value_end, "runtime_operation");
+        json, json_extent, value_start, value_end, "runtime_operation");
 }
 
 func MirMachineLayerInstructionRuntimeOperation(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> String {
     let value_bounds: Array<Int> = [0, 0];
     if !MirObjectFieldValueBoundsAtBounds(
-        json, start, end, "machine_layer", value_bounds) { return ""; }
+        json, json_extent, start, end, "machine_layer", value_bounds) { return ""; }
     return MirMachineLayerInstructionRuntimeOperationAtBounds(
-        json, value_bounds[0], value_bounds[1]
+        json, json_extent, value_bounds[0], value_bounds[1]
     );
 }
 
@@ -283,7 +284,6 @@ func MirMachineLayerRoutineIndexFactsReady(
     declaration: SelfHostMachineLayerDeclaration,
     ref routines: MirProgramRoutineIndex
 ) -> Bool {
-    let json: String = routines.source_json;
     if !CompilerRuntimeCallAbiMachineLayerProjectionReady() {
         return false;
     }
@@ -291,7 +291,7 @@ func MirMachineLayerRoutineIndexFactsReady(
     let instruction_row: Int = 0;
     while instruction_row < ArrayLength(routines.instruction_starts) {
         if !MirMachineLayerInstructionBoundsReady(
-            json,
+            routines.source_json, routines.source_json_extent,
             routines.instruction_machine_contact_starts[instruction_row],
             routines.instruction_machine_contact_ends[instruction_row],
             routines.instruction_machine_layer_starts[instruction_row],

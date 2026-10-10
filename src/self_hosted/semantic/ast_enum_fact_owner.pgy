@@ -158,7 +158,7 @@ func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
         let qualified_length: Int = StringLength(qualified);
         if qualified_length != enum_length + 1 + StringLength(variant) ||
             !SubStartsWithLen(qualified, qualified_length, 0, enum_name) ||
-            SourceByteAt(qualified, qualified_length, enum_length) != 46 ||
+            SourceByteAt(qualified, qualified_length, qualified_length, enum_length) != 46 ||
             !SubStartsWithLen(
                 qualified, qualified_length, enum_length + 1, variant
             ) {

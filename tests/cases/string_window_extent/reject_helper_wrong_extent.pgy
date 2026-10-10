@@ -1,0 +1,10 @@
+// The helper's requirement is proven at one call and broken at another.
+func CodeAt(text: String, n: Int, i: Int) -> Int {
+    return CharCode(text, n, i);
+}
+
+func Main() -> Void {
+    let s: String = Concat("a", "b");
+    Print(ToString(CodeAt(s, StringLength(s), 1)));
+    Print(ToString(CodeAt(s, 100, 50)));
+}

@@ -8,18 +8,19 @@ import "program_routine_receiver_identity_owner.pgy";
 import "program_instruction_expression_index_owner.pgy";
 
 func MirProgramRoutineArrayCursorAtEnd(
-    json: String,
+    json: String, json_extent: Int,
     cursor: Int,
     array_end: Int
 ) -> Bool {
-    let i: Int = JsonSkipWhitespaceWithin(json, cursor, array_end);
+    let i: Int = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_end);
     return i < array_end &&
-        JsonCharCodeAt(json, array_end, i) == JsonAsciiCode("]");
+        JsonCharCodeAt(json, json_extent, array_end, i) == JsonAsciiCode("]");
 }
 
 struct MirProgramRoutineIndex {
     let valid: Bool;
     let source_json: String;
+    let source_json_extent: Int;
     let source_length: Int;
     let declarations: MirProgramDeclarationIndex;
     let starts: Array<Int>;
@@ -100,7 +101,7 @@ func BuildMirProgramRoutineIndexFromTable(
         declarations.valid && declarations.field_identities.valid;
     if !JsonArrayObjectFactTableReady(routines) {
         return MirProgramRoutineIndex(
-            false, json, StringLength(json), declarations,
+            false, routines.json, routines.json_extent, StringLength(json), declarations,
             starts, ends, kinds, owners, names,
             source_syntax_ids, source_module_paths, receiver_carriages,
             owner_nominal_kinds,
@@ -121,33 +122,33 @@ func BuildMirProgramRoutineIndexFromTable(
 
     let cursor: Int = routines.start + 1;
     let bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(json, cursor, routines.end, bounds) {
+    while JsonArrayNextObjectBounds(routines.json, routines.json_extent, cursor, routines.end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
         let routine_kind: String = MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "kind"
+            routines.json, routines.json_extent, bounds[0], bounds[1], "kind"
         );
         let routine_name: String = MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "name"
+            routines.json, routines.json_extent, bounds[0], bounds[1], "name"
         );
         let owner: String = MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "owner"
+            routines.json, routines.json_extent, bounds[0], bounds[1], "owner"
         );
         let source_syntax_id: String = MirObjectNumberFactAtBounds(
-            json, bounds[0], bounds[1], "source_syntax_id"
+            routines.json, routines.json_extent, bounds[0], bounds[1], "source_syntax_id"
         );
         let source_module_path: String = MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "source_module_path"
+            routines.json, routines.json_extent, bounds[0], bounds[1], "source_module_path"
         );
         let receiver_carriage: String = MirObjectStringFactAtBounds(
-            json, bounds[0], bounds[1], "receiver_carriage"
+            routines.json, routines.json_extent, bounds[0], bounds[1], "receiver_carriage"
         );
         let receiver_identity: MirProgramRoutineReceiverIdentityCapture =
             CaptureMirProgramRoutineReceiverIdentity(
                 declarations, routine_kind, owner, source_syntax_id,
                 receiver_carriage, source_syntax_ids);
         if routine_kind == "method" && !MirProgramRoutineMethodDeclarationIdentityReady(
-            json, declarations, receiver_identity.owner_declaration_row,
+            routines.json, routines.json_extent, declarations, receiver_identity.owner_declaration_row,
             routine_name, source_syntax_id
         ) { valid = false; }
         if routine_kind == "" || routine_name == "" ||
@@ -168,18 +169,18 @@ func BuildMirProgramRoutineIndexFromTable(
         let routine_block_count: Int = 0;
         let blocks_bounds: Array<Int> = [0, 0];
         if !MirObjectArrayBoundsAtBounds(
-            json, bounds[0], bounds[1], "blocks", blocks_bounds
+            routines.json, routines.json_extent, bounds[0], bounds[1], "blocks", blocks_bounds
         ) {
             valid = false;
         } else {
             let block_cursor: Int = blocks_bounds[0] + 1;
             let block_bounds: Array<Int> = [0, 0];
             while JsonArrayNextObjectBounds(
-                json, block_cursor, blocks_bounds[1], block_bounds
+                routines.json, routines.json_extent, block_cursor, blocks_bounds[1], block_bounds
             ) {
                 let block_fact: MirProgramRoutineBlockCapture =
                     MirProgramRoutineBlockCaptureWithin(
-                        json, block_bounds[0], block_bounds[1]
+                        routines.json, routines.json_extent, block_bounds[0], block_bounds[1]
                     );
                 if !block_fact.valid ||
                     block_fact.id != ToString(routine_block_count) ||
@@ -201,7 +202,7 @@ func BuildMirProgramRoutineIndexFromTable(
                         block_fact.instructions_start + 1;
                     let instruction_bounds: Array<Int> = [0, 0];
                     while JsonArrayNextObjectBounds(
-                        json, instruction_cursor, block_fact.instructions_end,
+                        routines.json, routines.json_extent, instruction_cursor, block_fact.instructions_end,
                         instruction_bounds
                     ) {
                         ArrayPush(instruction_starts, instruction_bounds[0]);
@@ -209,7 +210,7 @@ func BuildMirProgramRoutineIndexFromTable(
                         let expression:
                             MirProgramInstructionExpressionCapture =
                             MirProgramInstructionExpressionCaptureWithin(
-                                json, instruction_bounds[0],
+                                routines.json, routines.json_extent, instruction_bounds[0],
                                 instruction_bounds[1]
                             );
                         if !MirProgramInstructionExpressionRowsAppend(
@@ -223,7 +224,7 @@ func BuildMirProgramRoutineIndexFromTable(
                         );
                         ArrayPush(instruction_abi_type_names,
                             MirObjectStringFactAtBounds(
-                                json, instruction_bounds[0],
+                                routines.json, routines.json_extent, instruction_bounds[0],
                                 instruction_bounds[1], "abi_type_name"));
                         ArrayPush(
                             instruction_machine_contact_starts,
@@ -245,7 +246,7 @@ func BuildMirProgramRoutineIndexFromTable(
                         instruction_cursor = instruction_bounds[1];
                     }
                     if !MirProgramRoutineArrayCursorAtEnd(
-                        json, instruction_cursor, block_fact.instructions_end
+                        routines.json, routines.json_extent, instruction_cursor, block_fact.instructions_end
                     ) { valid = false; }
                 } else {
                     valid = false;
@@ -255,13 +256,13 @@ func BuildMirProgramRoutineIndexFromTable(
                 block_cursor = block_bounds[1];
             }
             if !MirProgramRoutineArrayCursorAtEnd(
-                json, block_cursor, blocks_bounds[1]
+                routines.json, routines.json_extent, block_cursor, blocks_bounds[1]
             ) { valid = false; }
         }
         ArrayPush(routine_block_counts, routine_block_count);
         cursor = bounds[1];
     }
-    if !MirProgramRoutineArrayCursorAtEnd(json, cursor, routines.end) {
+    if !MirProgramRoutineArrayCursorAtEnd(routines.json, routines.json_extent, cursor, routines.end) {
         valid = false;
     }
     instruction_expressions = MirProgramInstructionExpressionIndexFromRows(
@@ -269,7 +270,7 @@ func BuildMirProgramRoutineIndexFromTable(
         expression_text_bounds, expression_graph_bounds
     );
     return MirProgramRoutineIndex(
-        valid, json, StringLength(json), declarations,
+        valid, routines.json, routines.json_extent, StringLength(json), declarations,
         starts, ends, kinds, owners, names,
         source_syntax_ids, source_module_paths, receiver_carriages,
         owner_nominal_kinds,

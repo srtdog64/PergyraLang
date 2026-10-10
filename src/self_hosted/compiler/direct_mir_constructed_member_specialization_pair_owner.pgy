@@ -146,9 +146,9 @@ func DirectMirConstructedMemberSpecializationPairFromDocumentForInner(
             !JsonObjectFactArrayBounds(row, "generic_params", param_bounds) ||
             !JsonObjectFactArrayBounds(row, "generic_actuals", actual_bounds) ||
             !DirectMirExactStringArrayCount(
-                row.json, param_bounds[0], param_bounds[1], 1
+                row.json, row.json_extent, param_bounds[0], param_bounds[1], 1
             ) || !DirectMirExactStringArrayCount(
-                row.json, actual_bounds[0], actual_bounds[1], 1
+                row.json, row.json_extent, actual_bounds[0], actual_bounds[1], 1
             ) {
             return InvalidDirectMirConstructedMemberSpecializationPairFact();
         }

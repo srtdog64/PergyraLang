@@ -8,7 +8,7 @@ import "ast_collection_ownership_member_root_identity_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_statement_fact_owner.pgy";
-import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
 
 func SemanticAstCollectionAggregateValueBindingForNode(
     artifact: AstTreeArtifact,

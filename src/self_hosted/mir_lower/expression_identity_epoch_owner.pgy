@@ -97,7 +97,7 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
     let routine: Int = 0;
     while routine < MirProgramRoutineIndexCount(routines) && ok {
         let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-            routines.source_json, routines.starts[routine],
+            routines.source_json, routines.source_json_extent, routines.starts[routine],
             routines.ends[routine]
         );
         let source_routine_id: Int = ToInt(
@@ -223,7 +223,7 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
     while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
         let methods: Array<Int> = [0, 0];
         if MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.declarations.starts[declaration],
+            routines.source_json, routines.source_json_extent, routines.declarations.starts[declaration],
             routines.declarations.ends[declaration], "methods", methods
         ) {
             let owner: String = routines.declarations.names[declaration];
@@ -234,13 +234,13 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
             let method: Array<Int> = [0, 0];
             let cursor: Int = methods[0] + 1;
             while JsonArrayNextObjectBounds(
-                routines.source_json, cursor, methods[1], method
+                routines.source_json, routines.source_json_extent, cursor, methods[1], method
             ) {
                 let name: String = MirObjectStringFactAtBounds(
-                    routines.source_json, method[0], method[1], "name"
+                    routines.source_json, routines.source_json_extent, method[0], method[1], "name"
                 );
                 let source_text: String = MirObjectNumberFactAtBounds(
-                    routines.source_json, method[0], method[1],
+                    routines.source_json, routines.source_json_extent, method[0], method[1],
                     "source_syntax_id"
                 );
                 let source_id: Int = ToInt(source_text);
@@ -287,7 +287,7 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
                 cursor = method[1];
             }
             if !MirProgramDeclarationIndexCursorAtEnd(
-                routines.source_json, cursor, methods[1]
+                routines.source_json, routines.source_json_extent, cursor, methods[1]
             ) { return false; }
         }
         declaration = declaration + 1;
@@ -391,7 +391,7 @@ func MirExpressionIdentityEpochDeclarationMemberNames(
         let methods: Array<Int> = [0, 0];
         if routines.declarations.kinds[declaration] == "ability" &&
             MirObjectArrayBoundsAtBounds(
-                routines.source_json,
+                routines.source_json, routines.source_json_extent,
                 routines.declarations.starts[declaration],
                 routines.declarations.ends[declaration], "methods", methods
             ) {
@@ -399,13 +399,13 @@ func MirExpressionIdentityEpochDeclarationMemberNames(
             let method: Array<Int> = [0, 0];
             let cursor: Int = methods[0] + 1;
             while JsonArrayNextObjectBounds(
-                routines.source_json, cursor, methods[1], method
+                routines.source_json, routines.source_json_extent, cursor, methods[1], method
             ) {
                 let name: String = MirObjectStringFactAtBounds(
-                    routines.source_json, method[0], method[1], "name"
+                    routines.source_json, routines.source_json_extent, method[0], method[1], "name"
                 );
                 let source_id: Int = ToInt(MirObjectNumberFactAtBounds(
-                    routines.source_json, method[0], method[1],
+                    routines.source_json, routines.source_json_extent, method[0], method[1],
                     "source_syntax_id"
                 ));
                 let canonical: Option<Int> =

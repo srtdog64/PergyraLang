@@ -3,6 +3,7 @@
 // rediscover physical layout from the source type.
 import "direct_mir_array_int_abi_fact_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 struct DirectMirRoutineParamFact {
     let valid: Bool;
@@ -72,8 +73,8 @@ func DirectMirRoutineParamFactReady(ref fact: DirectMirRoutineParamFact) -> Bool
 }
 
 func DirectMirRoutineParamFactWithReceiverFromBounds(
-    json: String, start: Int, end: Int, receiver_type: String) -> DirectMirRoutineParamFact {
-    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, start, end);
+    json: String, json_extent: Int, start: Int, end: Int, receiver_type: String) -> DirectMirRoutineParamFact {
+    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, json_extent, start, end);
     let keys: Array<String> = [
         "name", "source_syntax_id", "type", "carriage", "resource", "pass",
         "abi_type_name", "abi_layout_id", "abi_layout_required", "abi_layout"
@@ -87,38 +88,38 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
     ];
     if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 10 ||
         !MirAbiSelectedObjectBoundsWithin(
-            json, start, end, keys, starts, ends
+            json, json_extent, start, end, keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
         return InvalidDirectMirRoutineParamFact();
     }
     let name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[0], ends[0], false
+        json, json_extent, starts[0], ends[0], false
     );
-    let source_syntax_id: Option<String> = MirAbiIntegerValueAtBounds(json, starts[1], ends[1]);
+    let source_syntax_id: Option<String> = MirAbiIntegerValueAtBounds(json, json_extent, starts[1], ends[1]);
     let type_name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[2], ends[2], false
+        json, json_extent, starts[2], ends[2], false
     );
     let carriage: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[3], ends[3], false
+        json, json_extent, starts[3], ends[3], false
     );
     let resource: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[4], ends[4], false
+        json, json_extent, starts[4], ends[4], false
     );
     let pass_shape: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[5], ends[5], false
+        json, json_extent, starts[5], ends[5], false
     );
     let abi_type_name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[6], ends[6], false
+        json, json_extent, starts[6], ends[6], false
     );
     let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[7], ends[7]
+        json, json_extent, starts[7], ends[7]
     );
     // Only the receiver owner may resolve the protocol's implicit self type.
     // Null is not an unknown-type fallback for an ordinary formal parameter.
     if receiver_type != "" {
         if !IsSome(name) || UnwrapOption(name) != "self" ||
-            starts[2] + 4 != ends[2] || !SubEqualsWithLen(json, ends[2], starts[2], 4, "null") ||
-            starts[6] + 4 != ends[6] || !SubEqualsWithLen(json, ends[6], starts[6], 4, "null") ||
+            starts[2] + 4 != ends[2] || !StringWindowSubEquals(json, json_extent, ends[2], starts[2], 4, "null") ||
+            starts[6] + 4 != ends[6] || !StringWindowSubEquals(json, json_extent, ends[6], starts[6], 4, "null") ||
             !IsSome(carriage) || UnwrapOption(carriage) != "value" ||
             !IsSome(resource) || UnwrapOption(resource) != "none" ||
             !IsSome(pass_shape) || UnwrapOption(pass_shape) != "direct" {
@@ -134,9 +135,9 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
         return InvalidDirectMirRoutineParamFact();
     }
     let required: Bool = starts[8] + 4 == ends[8] &&
-        SubEqualsWithLen(json, ends[8], starts[8], 4, "true");
+        StringWindowSubEquals(json, json_extent, ends[8], starts[8], 4, "true");
     let not_required: Bool = starts[8] + 5 == ends[8] &&
-        SubEqualsWithLen(json, ends[8], starts[8], 5, "false");
+        StringWindowSubEquals(json, json_extent, ends[8], starts[8], 5, "false");
     if (!required && !not_required) || (receiver_type != "" && required) {
         return InvalidDirectMirRoutineParamFact();
     }
@@ -144,7 +145,7 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
     if required {
         let admitted: Option<MirAbiLayoutRowCapture> =
             MirCapturedRequiredAbiLayoutRowAdmission(
-                json, UnwrapOption(abi_type_name), true,
+                json, json_extent, UnwrapOption(abi_type_name), true,
                 starts[6], ends[6], starts[7], ends[7],
                 starts[8], ends[8], starts[9], ends[9]
             );
@@ -154,7 +155,7 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
         abi = UnwrapOption(admitted);
     } else if UnwrapOption(abi_id) != "0" ||
         starts[9] + 4 != ends[9] ||
-        !SubEqualsWithLen(json, ends[9], starts[9], 4, "null") {
+        !StringWindowSubEquals(json, json_extent, ends[9], starts[9], 4, "null") {
         return InvalidDirectMirRoutineParamFact();
     }
     let fact: DirectMirRoutineParamFact = DirectMirRoutineParamFact(
@@ -174,7 +175,7 @@ func DirectMirRoutineParamFactWithReceiverFromBounds(
 }
 
 func DirectMirRoutineParamFactFromBounds(
-    json: String, start: Int, end: Int
+    json: String, json_extent: Int, start: Int, end: Int
 ) -> DirectMirRoutineParamFact {
-    return DirectMirRoutineParamFactWithReceiverFromBounds(json, start, end, "");
+    return DirectMirRoutineParamFactWithReceiverFromBounds(json, json_extent, start, end, "");
 }

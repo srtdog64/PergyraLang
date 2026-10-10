@@ -96,7 +96,7 @@ func DirectMirArrayReturnProgramEnvelopeReady(
             return false;
         }
         let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row]
         );
         if !JsonObjectFactTableReady(routine) ||
@@ -153,7 +153,7 @@ func DirectMirArrayReturnProgramIdentityFromAdmitted(
         );
     let call_graph: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, call_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, call_expression, 0
         );
     let producer_name: String =
         DirectMirArrayReturnProducerName(call_graph);

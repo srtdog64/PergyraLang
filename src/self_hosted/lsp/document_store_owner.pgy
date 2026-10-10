@@ -351,7 +351,8 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
 }
 
 func LspDocumentStoreContractReady() -> Bool {
-    let body: String = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///a.pgy\",\"version\":1,\"text\":\"Log(1);\"}}}";
+    let body: String = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///a.pgy\",\"version\":1,\"text\":\"Log(1);
+    let body_extent: Int = StringLength(body);\"}}}";
     let event: String = UnwrapOption(LspDocumentStoreEventForBody(body));
     if StringIndexOf(event, "\"action\":\"open\"") < 0 {
         return false;

@@ -10,7 +10,7 @@ func JsonBoundedStringEquals(
 ) -> Bool {
     let end: Array<Int> = [0];
     let actual: String = ReadJsonStringBounded(
-        encoded, 0, StringLength(encoded), end
+        encoded, StringLength(encoded), 0, StringLength(encoded), end
     );
     return actual == expected && end[0] == expected_end;
 }
@@ -19,7 +19,7 @@ func JsonBoundedIntegerEquals(
     encoded: String, start: Int, end: Int, expected: String
 ) -> Bool {
     let actual: Option<String> = JsonIntegerValueOptWithin(
-        encoded, start, end
+        encoded, StringLength(encoded), start, end
     );
     return IsSome(actual) && UnwrapOption(actual) == expected;
 }
@@ -43,7 +43,7 @@ func Main() -> Void {
 
     let truncated_end: Array<Int> = [0];
     if ReadJsonStringBounded(
-        plain, 0, StringLength(plain) - 1, truncated_end
+        plain, StringLength(plain), 0, StringLength(plain) - 1, truncated_end
     ) != "" || truncated_end[0] != 0 {
         failures = failures + 1;
     }
@@ -51,18 +51,18 @@ func Main() -> Void {
     let bounded_integer: String = "xx-42tail";
     if !JsonBoundedIntegerEquals(bounded_integer, 2, 5, "-42") ||
         !JsonBoundedIntegerEquals("xx17tail", 2, 4, "17") ||
-        IsSome(JsonIntegerValueOptWithin("xx-tail", 2, 3)) ||
-        IsSome(JsonIntegerValueOptWithin("xx1.5tail", 2, 5)) ||
-        IsSome(JsonIntegerValueOptWithin("xx17tail", 2, 2)) {
+        IsSome(JsonIntegerValueOptWithin("xx-tail", StringLength("xx-tail"), 2, 3)) ||
+        IsSome(JsonIntegerValueOptWithin("xx1.5tail", StringLength("xx1.5tail"), 2, 5)) ||
+        IsSome(JsonIntegerValueOptWithin("xx17tail", StringLength("xx17tail"), 2, 2)) {
         failures = failures + 1;
     }
 
     let array_with_suffix: String = "xx[\"a\",\"b\\n\",\"\"]tail";
     let array_end: Int = StringLength(array_with_suffix) - 4;
-    if JsonArrayStringCount(array_with_suffix, 2, array_end) != 3 ||
-        JsonArrayStringAt(array_with_suffix, 2, array_end, 0) != "a" ||
-        JsonArrayStringAt(array_with_suffix, 2, array_end, 1) != "b\n" ||
-        JsonArrayStringAt(array_with_suffix, 2, array_end, 2) != "" {
+    if JsonArrayStringCount(array_with_suffix, StringLength(array_with_suffix), 2, array_end) != 3 ||
+        JsonArrayStringAt(array_with_suffix, StringLength(array_with_suffix), 2, array_end, 0) != "a" ||
+        JsonArrayStringAt(array_with_suffix, StringLength(array_with_suffix), 2, array_end, 1) != "b\n" ||
+        JsonArrayStringAt(array_with_suffix, StringLength(array_with_suffix), 2, array_end, 2) != "" {
         failures = failures + 1;
     }
 
@@ -71,15 +71,15 @@ func Main() -> Void {
     let trailing_comma: String = "[\"a\",]";
     let non_string: String = "[\"a\",1]";
     if JsonArrayStringCount(
-            missing_comma, 0, StringLength(missing_comma)
+            missing_comma, StringLength(missing_comma), 0, StringLength(missing_comma)
         ) != 0 || JsonArrayStringCount(
-            leading_comma, 0, StringLength(leading_comma)
+            leading_comma, StringLength(leading_comma), 0, StringLength(leading_comma)
         ) != 0 || JsonArrayStringCount(
-            trailing_comma, 0, StringLength(trailing_comma)
+            trailing_comma, StringLength(trailing_comma), 0, StringLength(trailing_comma)
         ) != 0 || JsonArrayStringCount(
-            non_string, 0, StringLength(non_string)
+            non_string, StringLength(non_string), 0, StringLength(non_string)
         ) != 0 || JsonArrayStringCount(
-            array_with_suffix, 2, array_end - 1
+            array_with_suffix, StringLength(array_with_suffix), 2, array_end - 1
         ) != 0 {
         failures = failures + 1;
     }

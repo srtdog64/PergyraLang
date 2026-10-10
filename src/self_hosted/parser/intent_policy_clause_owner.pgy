@@ -24,7 +24,7 @@ func ParserIntentPolicyClauseDefault() -> ParserIntentPolicyClause {
 
 func ParserIntentPolicyClauseFromSource(
     context: ParserSourceLocationContext,
-    content: String, start: Int, current: ParserIntentPolicyClause
+    content: String, content_extent: Int, start: Int, current: ParserIntentPolicyClause
 ) -> ParserIntentPolicyClause {
     if MatchLanguageWord(content, start, LanguageWordId.WordExclusive) ||
         MatchLanguageWord(content, start, LanguageWordId.WordConcurrent) {
@@ -90,7 +90,7 @@ func ParserIntentPolicyClauseFromSource(
         LanguageWordEnd(start, LanguageWordId.WordPriority), ":", "intent_priority");
     let cursor: Array<Int> = [expression_start];
     let expression: ParserExpressionFact = ParseExprFactIn(
-        context, content, expression_start, cursor
+        context, content, content_extent, expression_start, cursor
     );
     let next: Int = ParseExpectIn(context, content, cursor[0], ";", "intent_priority");
     return ParserIntentPolicyClause(

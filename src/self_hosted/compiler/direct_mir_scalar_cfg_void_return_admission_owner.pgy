@@ -42,7 +42,7 @@ func DirectMirScalarCfgVoidReturnReady(
     return (public_void || native_void) && capture.expr0 == "" &&
         capture.expr1 == "" &&
         DirectMirInstructionHasNoPhysicalAbi(
-            instruction.json, capture, capture.abi_type_name) &&
+            instruction.json, instruction.json_extent, capture, capture.abi_type_name) &&
         IsSome(graph0) && UnwrapOption(graph0) == "null" &&
         IsSome(graph1) && UnwrapOption(graph1) == "null" &&
         MirRoutineInstructionUseCountAtGlobal(uses, global_row) == 0;

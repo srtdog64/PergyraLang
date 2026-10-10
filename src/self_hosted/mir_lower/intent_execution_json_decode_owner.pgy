@@ -2,6 +2,7 @@
 // This owner knows JSON shape only; semantic identity joins live elsewhere.
 
 import "json_fact_read.pgy";
+import "../lib/string_window_within.pgy";
 
 struct MirIntentExecutionExactFields {
     valid: Bool;
@@ -29,47 +30,47 @@ struct MirIntentExecutionStringArray {
 }
 
 func MirIntentExecutionExactObjectFields(
-    json: String, start: Int, end: Int, expected: Array<String>
+    json: String, json_extent: Int, start: Int, end: Int, expected: Array<String>
 ) -> MirIntentExecutionExactFields {
     let starts: Array<Int> = [];
     let ends: Array<Int> = [];
     if start < 0 || end <= start + 1 ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return MirIntentExecutionExactFields(false, starts, ends);
     }
     let cursor: Int = start + 1;
     let row: Int = 0;
     while row < ArrayLength(expected) {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
         if row > 0 {
             if cursor >= end ||
-                JsonCharCodeAt(json, end, cursor) != JsonAsciiCode(",") {
+                JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode(",") {
                 return MirIntentExecutionExactFields(false, starts, ends);
             }
-            cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
+            cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor + 1, end);
         }
         if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("\"") {
+            JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode("\"") {
             return MirIntentExecutionExactFields(false, starts, ends);
         }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, cursor, end);
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, cursor, end);
         if !IsSome(key_end_opt) {
             return MirIntentExecutionExactFields(false, starts, ends);
         }
         let key_end: Int = UnwrapOption(key_end_opt);
         let expected_key: String = Concat("", expected[row]);
         if !JsonObjectKeyEqualsWithin(
-            json, cursor, key_end, expected_key
+            json, json_extent, cursor, key_end, expected_key
         ) {
             return MirIntentExecutionExactFields(false, starts, ends);
         }
-        cursor = JsonSkipWhitespaceWithin(json, key_end, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, key_end, end);
         if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) != JsonAsciiCode(":") {
+            JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode(":") {
             return MirIntentExecutionExactFields(false, starts, ends);
         }
-        cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, cursor, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, json_extent, cursor, end);
         if !IsSome(value_end_opt) {
             return MirIntentExecutionExactFields(false, starts, ends);
         }
@@ -82,16 +83,16 @@ func MirIntentExecutionExactObjectFields(
         cursor = value_end;
         row = row + 1;
     }
-    cursor = JsonSkipWhitespaceWithin(json, cursor, end);
+    cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
     if cursor + 1 != end ||
-        JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("}") {
+        JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode("}") {
         return MirIntentExecutionExactFields(false, starts, ends);
     }
     return MirIntentExecutionExactFields(true, starts, ends);
 }
 
 func MirIntentExecutionStringAt(
-    json: String, ref fields: MirIntentExecutionExactFields,
+    json: String, json_extent: Int, ref fields: MirIntentExecutionExactFields,
     row: Int, nullable: Bool
 ) -> MirIntentExecutionStringValue {
     if !fields.valid || row < 0 || row >= ArrayLength(fields.starts) ||
@@ -101,13 +102,13 @@ func MirIntentExecutionStringAt(
     let start: Int = fields.starts[row];
     let end: Int = fields.ends[row];
     if start < end &&
-        JsonCharCodeAt(json, end, start) == JsonAsciiCode("\"") {
-        let decoded: Option<String> = JsonStringValueSpanning(json, start, end);
+        JsonCharCodeAt(json, json_extent, end, start) == JsonAsciiCode("\"") {
+        let decoded: Option<String> = JsonStringValueSpanning(json, json_extent, start, end);
         if !IsSome(decoded) { return MirIntentExecutionStringValue(false, ""); }
         return MirIntentExecutionStringValue(true, UnwrapOption(decoded));
     }
     if nullable && end == start + 4 &&
-        SubEqualsWithLen(json, end, start, 4, "null") {
+        StringWindowSubEquals(json, json_extent, end, start, 4, "null") {
         return MirIntentExecutionStringValue(true, "");
     }
     return MirIntentExecutionStringValue(false, "");
@@ -130,7 +131,7 @@ func MirIntentExecutionIntAt(
 }
 
 func MirIntentExecutionBoolAt(
-    json: String, ref fields: MirIntentExecutionExactFields, row: Int
+    json: String, json_extent: Int, ref fields: MirIntentExecutionExactFields, row: Int
 ) -> MirIntentExecutionBoolValue {
     if !fields.valid || row < 0 || row >= ArrayLength(fields.starts) ||
         row >= ArrayLength(fields.ends) {
@@ -139,18 +140,18 @@ func MirIntentExecutionBoolAt(
     let start: Int = fields.starts[row];
     let end: Int = fields.ends[row];
     if end == start + 4 &&
-        SubEqualsWithLen(json, end, start, 4, "true") {
+        StringWindowSubEquals(json, json_extent, end, start, 4, "true") {
         return MirIntentExecutionBoolValue(true, true);
     }
     if end == start + 5 &&
-        SubEqualsWithLen(json, end, start, 5, "false") {
+        StringWindowSubEquals(json, json_extent, end, start, 5, "false") {
         return MirIntentExecutionBoolValue(true, false);
     }
     return MirIntentExecutionBoolValue(false, false);
 }
 
 func MirIntentExecutionStringArrayAt(
-    json: String, ref fields: MirIntentExecutionExactFields, row: Int
+    json: String, json_extent: Int, ref fields: MirIntentExecutionExactFields, row: Int
 ) -> MirIntentExecutionStringArray {
     let values: Array<String> = [];
     if !fields.valid || row < 0 || row >= ArrayLength(fields.starts) ||
@@ -160,29 +161,29 @@ func MirIntentExecutionStringArrayAt(
     let start: Int = fields.starts[row];
     let end: Int = fields.ends[row];
     if start >= end ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("[") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("[") {
         return MirIntentExecutionStringArray(false, values);
     }
     let cursor: Int = start + 1;
     let first: Bool = true;
     while cursor < end {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
         if cursor < end &&
-            JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("]") {
+            JsonCharCodeAt(json, json_extent, end, cursor) == JsonAsciiCode("]") {
             return MirIntentExecutionStringArray(cursor + 1 == end, values);
         }
         if !first {
             if cursor >= end ||
-                JsonCharCodeAt(json, end, cursor) != JsonAsciiCode(",") {
+                JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode(",") {
                 return MirIntentExecutionStringArray(false, values);
             }
-            cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
+            cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor + 1, end);
         }
         if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("\"") {
+            JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode("\"") {
             return MirIntentExecutionStringArray(false, values);
         }
-        let read: Option<JsonStringRead> = JsonReadStringBounded(json, cursor, end);
+        let read: Option<JsonStringRead> = JsonReadStringBounded(json, json_extent, cursor, end);
         if !IsSome(read) || UnwrapOption(read).value == "" {
             return MirIntentExecutionStringArray(false, values);
         }
@@ -195,18 +196,18 @@ func MirIntentExecutionStringArrayAt(
 }
 
 func MirIntentExecutionObjectFieldOccurrenceCount(
-    json: String, start: Int, end: Int, field: String
+    json: String, json_extent: Int, start: Int, end: Int, field: String
 ) -> Int {
     return MirObjectFieldOccurrenceCountAtBounds(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
 }
 
 func MirIntentExecutionUniqueStringField(
-    json: String, start: Int, end: Int, field: String
+    json: String, json_extent: Int, start: Int, end: Int, field: String
 ) -> MirIntentExecutionStringValue {
     let value: Option<String> = MirObjectUniqueStringFactAtBounds(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
     if !IsSome(value) {
         return MirIntentExecutionStringValue(false, "");
@@ -215,15 +216,15 @@ func MirIntentExecutionUniqueStringField(
 }
 
 func MirIntentExecutionUniqueIntField(
-    json: String, start: Int, end: Int, field: String
+    json: String, json_extent: Int, start: Int, end: Int, field: String
 ) -> MirIntentExecutionIntValue {
     if MirIntentExecutionObjectFieldOccurrenceCount(
-        json, start, end, field
+        json, json_extent, start, end, field
     ) != 1 {
         return MirIntentExecutionIntValue(false, 0);
     }
     let value: Option<String> = JsonObjectNumberFieldOptWithin(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
     if !IsSome(value) || UnwrapOption(value) == "" ||
         ToString(ToInt(UnwrapOption(value))) != UnwrapOption(value) ||

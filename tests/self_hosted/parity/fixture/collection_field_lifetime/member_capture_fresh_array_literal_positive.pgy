@@ -1,0 +1,7 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Store(ref input: Envelope) -> Int {
+    let captured: Array<Table> = [Table(Clone(input.table.names))];
+    return ArrayLength(captured);
+}
+func Main() -> Void {}

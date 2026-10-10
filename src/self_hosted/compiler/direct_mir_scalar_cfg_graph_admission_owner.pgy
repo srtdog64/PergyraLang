@@ -164,7 +164,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                 admitted.routines.instruction_source_types[global_row];
             let instruction: JsonObjectFactTable =
                 JsonObjectFactTableFromBounds(
-                    admitted.routines.source_json,
+                    admitted.routines.source_json, admitted.routines.source_json_extent,
                     admitted.routines.instruction_starts[global_row],
                     admitted.routines.instruction_ends[global_row]
                 );

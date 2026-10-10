@@ -154,7 +154,7 @@ func DirectMirStructArgumentProgramIdentityFromAdmitted(
         );
     let main_sequence: MirExpressionGraphSequence =
         DirectMirArrayIntGraphFromExpressionFact(
-            admitted.routines.source_json, main_expression, 0
+            admitted.routines.source_json, admitted.routines.source_json_extent, main_expression, 0
         );
     let main_graph: DirectMirStructArgumentGraphFact =
         DirectMirStructArgumentGraphFactFromSequence(main_sequence);
@@ -178,12 +178,12 @@ func DirectMirStructArgumentProgramIdentityFromAdmitted(
     );
     let outer_declaration: DirectMirNominalDeclarationAbiFact =
         DirectMirNominalDeclarationAbiFactFromDocument(
-            admitted.document.root.json,
+            admitted.document.root.json, admitted.document.root.json_extent,
             admitted.domain_runtime_admission.declarations, outer_decl_row
         );
     let nested_declaration: DirectMirNominalDeclarationAbiFact =
         DirectMirNominalDeclarationAbiFactFromDocument(
-            admitted.document.root.json,
+            admitted.document.root.json, admitted.document.root.json_extent,
             admitted.domain_runtime_admission.declarations, nested_decl_row
         );
     let identity: DirectMirStructArgumentProgramIdentity =

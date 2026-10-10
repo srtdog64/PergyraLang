@@ -33,7 +33,7 @@ func MirAssignmentBindingModesMatchSemanticFacts(
             InvalidMirRoutineInstructionScalarCapture();
         if assignment_source || source == "AST_DEFER_STMT" {
             scalar = MirRoutineInstructionScalarCaptureWithin(
-                routines.source_json,
+                routines.source_json, routines.source_json_extent,
                 routines.instruction_starts[global_row],
                 routines.instruction_ends[global_row]
             );

@@ -1,0 +1,8 @@
+// A local array's element can be replaced between the witness and the read.
+func Main() -> Void {
+    let words: Array<String> = ["ab", "cde"];
+    let row: Int = 1;
+    let length: Int = StringLength(words[row]);
+    ArraySet(words, 1, "x");
+    Print(ToString(CharCode(words[row], length, 2)));
+}

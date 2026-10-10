@@ -49,7 +49,7 @@ func DirectMirNominalLiteralGraphAt(
             admitted.routines.instruction_expressions, global_row
         );
     let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
-        admitted.routines.source_json, expression, 0
+        admitted.routines.source_json, admitted.routines.source_json_extent, expression, 0
     );
     if !expression.valid || !graph.valid {
         Die("direct MIR nominal literal expression graph is missing");
@@ -68,7 +68,7 @@ func DirectMirNominalLiteralProgramFactFromAdmitted(
             admitted.document.root, "generic_method_specializations"
         );
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        admitted.routines.source_json, admitted.routines.starts[0],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[0],
         admitted.routines.ends[0]
     );
     if !admitted.document.valid || admitted.domain_topology_plan.present ||
@@ -97,7 +97,7 @@ func DirectMirNominalLiteralProgramFactFromAdmitted(
     }
     let declaration: DirectMirNominalLiteralDeclarationFact =
         DirectMirNominalLiteralDeclarationFactFromIndex(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.domain_runtime_admission.declarations
         );
     let entrypoint: DirectMirRoutineSignatureFact =

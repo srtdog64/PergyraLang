@@ -1,0 +1,8 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Reads(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+func Observe(input: Envelope) -> Bool {
+    let alias: Table = input.table;
+    return Reads(alias.names);
+}
+func Main() -> Void {}

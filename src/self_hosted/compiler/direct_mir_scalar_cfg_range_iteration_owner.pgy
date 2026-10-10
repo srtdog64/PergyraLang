@@ -141,12 +141,12 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
                 index.instruction_facts, branch_global
             );
         let init_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[init_global],
             admitted.routines.instruction_ends[init_global]
         );
         let branch_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.routines.source_json,
+            admitted.routines.source_json, admitted.routines.source_json_extent,
             admitted.routines.instruction_starts[branch_global],
             admitted.routines.instruction_ends[branch_global]
         );

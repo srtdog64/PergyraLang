@@ -8,12 +8,12 @@
 import "program_routine_index_owner.pgy";
 
 func MirProgramInstructionIdentityMark(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     inout ids: Array<Int>
 ) -> Bool {
-    let id: String = MirObjectNumberFactAtBounds(json, start, end, "id");
+    let id: String = MirObjectNumberFactAtBounds(json, json_extent, start, end, "id");
     let n: Int = StringLength(id);
     if n <= 0 || (n > 1 && CharCode(id, n, 0) == CharCode("0", 1, 0)) {
         return false;
@@ -52,7 +52,7 @@ func MirProgramInstructionIdentitiesReady(
                     routines.block_instruction_starts[block_row] +
                     local_instruction;
                 if !MirProgramInstructionIdentityMark(
-                    routines.source_json,
+                    routines.source_json, routines.source_json_extent,
                     routines.instruction_starts[instruction_row],
                     routines.instruction_ends[instruction_row], ids
                 ) { return false; }

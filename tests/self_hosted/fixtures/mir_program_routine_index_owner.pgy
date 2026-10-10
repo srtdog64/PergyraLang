@@ -31,7 +31,7 @@ func Main() -> Void {
         "{\"instructions\":[],\"id\":0,\"future_fact\":true,\"reachable\":true,\"succ_false\":null,\"succ_true\":1}";
     let permuted_block: MirProgramRoutineBlockCapture =
         MirProgramRoutineBlockCaptureWithin(
-            permuted_block_row, 0, StringLength(permuted_block_row)
+            permuted_block_row, StringLength(permuted_block_row), 0, StringLength(permuted_block_row)
         );
     if !permuted_block.valid || permuted_block.id != "0" ||
         !permuted_block.reachable || permuted_block.succ_true != 1 ||
@@ -42,7 +42,7 @@ func Main() -> Void {
     let duplicate_block_row: String =
         "{\"id\":0,\"id\":1,\"reachable\":true,\"instructions\":[]}";
     if MirProgramRoutineBlockCaptureWithin(
-        duplicate_block_row, 0, StringLength(duplicate_block_row)
+        duplicate_block_row, StringLength(duplicate_block_row), 0, StringLength(duplicate_block_row)
     ).valid {
         Log("mir-program-routine-index-owner-duplicate-block-key-accepted");
         failures = failures + 1;
@@ -50,7 +50,7 @@ func Main() -> Void {
     let missing_comma_block_row: String =
         "{\"id\":0 \"reachable\":true,\"instructions\":[]}";
     if MirProgramRoutineBlockCaptureWithin(
-        missing_comma_block_row, 0, StringLength(missing_comma_block_row)
+        missing_comma_block_row, StringLength(missing_comma_block_row), 0, StringLength(missing_comma_block_row)
     ).valid {
         Log("mir-program-routine-index-owner-missing-block-comma-accepted");
         failures = failures + 1;
@@ -104,7 +104,8 @@ func Main() -> Void {
         BuildMirProgramDeclarationIndexFromTable(foreign_document.declarations);
     let extended_declaration_table: JsonArrayObjectFactTable =
         JsonArrayObjectFactTable(
-            true, document.declarations.json, document.declarations.start,
+            true, document.declarations.json, document.declarations.json_extent,
+            document.declarations.start,
             document.declarations.end + 1
         );
     let extended_declarations: MirProgramDeclarationIndex =
@@ -342,7 +343,7 @@ func Main() -> Void {
     let missing_parallel_block_ends: Array<Int> = [];
     let zero_block_parallel_gap: MirProgramRoutineIndex =
         MirProgramRoutineIndex(
-            index.valid, index.source_json, index.source_length,
+            index.valid, index.source_json, index.source_json_extent, index.source_length,
             index.declarations,
             index.starts, index.ends, index.kinds, index.owners, index.names,
             index.source_syntax_ids, index.source_module_paths, index.receiver_carriages,
@@ -377,7 +378,7 @@ func Main() -> Void {
         failures = failures + 1;
     }
     if !MirCapturedAbiLayoutFactReady(
-        json, first_scalar.abi_type_name,
+        json, StringLength(json), first_scalar.abi_type_name,
         first_scalar.abi_type_value_ready,
         first_scalar.abi_type_start, first_scalar.abi_type_end,
         first_scalar.abi_layout_id_start, first_scalar.abi_layout_id_end,
@@ -400,13 +401,13 @@ func Main() -> Void {
         failures = failures + 1;
     }
     if JsonCharCodeAt(
-        json, index.instruction_machine_layer_ends[0],
+        json, StringLength(json), index.instruction_machine_layer_ends[0],
         index.instruction_machine_layer_starts[0]
     ) != JsonAsciiCode("n") || JsonCharCodeAt(
-        json, index.instruction_machine_layer_ends[1],
+        json, StringLength(json), index.instruction_machine_layer_ends[1],
         index.instruction_machine_layer_starts[1]
     ) != JsonAsciiCode("{") || JsonCharCodeAt(
-        json, index.instruction_machine_contact_ends[1],
+        json, StringLength(json), index.instruction_machine_contact_ends[1],
         index.instruction_machine_contact_starts[1]
     ) != JsonAsciiCode("\"") {
         failures = failures + 1;
@@ -809,20 +810,20 @@ func Main() -> Void {
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"other\":{},\"expr0\":\"kept\"}";
     let same_length_non_target: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            same_length_non_target_row, 0,
+            same_length_non_target_row, StringLength(same_length_non_target_row), 0,
             StringLength(same_length_non_target_row)
         );
     let escaped_target_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"\\expr0\":\"escaped\"}";
     let escaped_target: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            escaped_target_row, 0, StringLength(escaped_target_row)
+            escaped_target_row, StringLength(escaped_target_row), 0, StringLength(escaped_target_row)
         );
     let plain_escaped_duplicate_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"expr0\":\"plain\",\"\\expr0\":\"escaped\"}";
     let plain_escaped_duplicate: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            plain_escaped_duplicate_row, 0,
+            plain_escaped_duplicate_row, StringLength(plain_escaped_duplicate_row), 0,
             StringLength(plain_escaped_duplicate_row)
         );
     if !same_length_non_target.valid ||
@@ -837,32 +838,32 @@ func Main() -> Void {
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":null,\"abi_layout_id\":\"0\",\"abi_layout_required\":false,\"abi_layout\":null}";
     let wrong_abi: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            wrong_abi_row, 0, StringLength(wrong_abi_row)
+            wrong_abi_row, StringLength(wrong_abi_row), 0, StringLength(wrong_abi_row)
         );
     let duplicate_abi_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":null,\"abi_layout_id\":0,\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null}";
     let duplicate_abi: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            duplicate_abi_row, 0, StringLength(duplicate_abi_row)
+            duplicate_abi_row, StringLength(duplicate_abi_row), 0, StringLength(duplicate_abi_row)
         );
     let wrong_abi_type_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":{},\"abi_layout_id\":0,\"abi_layout_required\":false,\"abi_layout\":null}";
     let wrong_abi_type: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            wrong_abi_type_row, 0, StringLength(wrong_abi_type_row)
+            wrong_abi_type_row, StringLength(wrong_abi_type_row), 0, StringLength(wrong_abi_type_row)
         );
     let required_abi_row: String =
         "{\"kind\":\"def\",\"source_type\":\"AST_LET_DECL\",\"abi_type_name\":\"Array<Int>\",\"abi_layout_id\":599770891,\"abi_layout_required\":true,\"abi_layout\":{\"type\":\"Array<Int>\",\"size\":32,\"align\":8,\"fields\":[{\"name\":\"data\",\"offset\":0,\"size\":8,\"align\":8},{\"name\":\"length\",\"offset\":8,\"size\":8,\"align\":8},{\"name\":\"capacity\",\"offset\":16,\"size\":8,\"align\":8},{\"name\":\"allocator\",\"offset\":24,\"size\":8,\"align\":8}],\"runtime_fn\":\"pgy_array_new_Int\",\"inner_c_type\":\"int32_t\",\"representation\":0,\"discriminant\":null,\"primary_tag\":0,\"secondary_tag\":0,\"niche_none_pattern\":null}}";
     let required_abi: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            required_abi_row, 0, StringLength(required_abi_row)
+            required_abi_row, StringLength(required_abi_row), 0, StringLength(required_abi_row)
         );
     let mutated_required_abi_row: String = StringReplace(
         required_abi_row, "\"offset\":0", "\"offset\":1"
     );
     let mutated_required_abi: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            mutated_required_abi_row, 0,
+            mutated_required_abi_row, StringLength(mutated_required_abi_row), 0,
             StringLength(mutated_required_abi_row)
         );
     let reordered_required_abi_row: String = StringReplace(
@@ -872,12 +873,12 @@ func Main() -> Void {
     );
     let reordered_required_abi: MirRoutineInstructionScalarCapture =
         MirRoutineInstructionScalarCaptureWithin(
-            reordered_required_abi_row, 0,
+            reordered_required_abi_row, StringLength(reordered_required_abi_row), 0,
             StringLength(reordered_required_abi_row)
         );
     let required_abi_layout: JsonObjectFactTable =
         JsonObjectFactTableFromBounds(
-            required_abi_row, required_abi.abi_layout_start,
+            required_abi_row, StringLength(required_abi_row), required_abi.abi_layout_start,
             required_abi.abi_layout_end
         );
     if !wrong_abi.valid || !duplicate_abi.valid || !wrong_abi_type.valid ||
@@ -885,7 +886,7 @@ func Main() -> Void {
         !mutated_required_abi.valid || !reordered_required_abi.valid ||
         MirAbiLayoutIdFromRow(required_abi_layout) != 599770891 ||
         !MirCapturedAbiLayoutFactReady(
-            required_abi_row, required_abi.abi_type_name,
+            required_abi_row, StringLength(required_abi_row), required_abi.abi_type_name,
             required_abi.abi_type_value_ready, required_abi.abi_type_start,
             required_abi.abi_type_end, required_abi.abi_layout_id_start,
             required_abi.abi_layout_id_end,
@@ -894,7 +895,7 @@ func Main() -> Void {
             required_abi.abi_layout_start, required_abi.abi_layout_end,
             abi_validation
         ) || !MirCapturedAbiLayoutFactReady(
-            reordered_required_abi_row, reordered_required_abi.abi_type_name,
+            reordered_required_abi_row, StringLength(reordered_required_abi_row), reordered_required_abi.abi_type_name,
             reordered_required_abi.abi_type_value_ready,
             reordered_required_abi.abi_type_start,
             reordered_required_abi.abi_type_end,
@@ -907,7 +908,7 @@ func Main() -> Void {
             abi_validation
         ) ||
         MirCapturedAbiLayoutFactReady(
-            wrong_abi_row, wrong_abi.abi_type_name,
+            wrong_abi_row, StringLength(wrong_abi_row), wrong_abi.abi_type_name,
             wrong_abi.abi_type_value_ready, wrong_abi.abi_type_start,
             wrong_abi.abi_type_end, wrong_abi.abi_layout_id_start,
             wrong_abi.abi_layout_id_end,
@@ -916,7 +917,7 @@ func Main() -> Void {
             wrong_abi.abi_layout_start, wrong_abi.abi_layout_end,
             abi_validation
         ) || MirCapturedAbiLayoutFactReady(
-            duplicate_abi_row, duplicate_abi.abi_type_name,
+            duplicate_abi_row, StringLength(duplicate_abi_row), duplicate_abi.abi_type_name,
             duplicate_abi.abi_type_value_ready, duplicate_abi.abi_type_start,
             duplicate_abi.abi_type_end, duplicate_abi.abi_layout_id_start,
             duplicate_abi.abi_layout_id_end,
@@ -925,7 +926,7 @@ func Main() -> Void {
             duplicate_abi.abi_layout_start, duplicate_abi.abi_layout_end,
             abi_validation
         ) || MirCapturedAbiLayoutFactReady(
-            wrong_abi_type_row, wrong_abi_type.abi_type_name,
+            wrong_abi_type_row, StringLength(wrong_abi_type_row), wrong_abi_type.abi_type_name,
             wrong_abi_type.abi_type_value_ready,
             wrong_abi_type.abi_type_start, wrong_abi_type.abi_type_end,
             wrong_abi_type.abi_layout_id_start,
@@ -935,7 +936,7 @@ func Main() -> Void {
             wrong_abi_type.abi_layout_start,
             wrong_abi_type.abi_layout_end, abi_validation
         ) || MirCapturedAbiLayoutFactReady(
-            mutated_required_abi_row, mutated_required_abi.abi_type_name,
+            mutated_required_abi_row, StringLength(mutated_required_abi_row), mutated_required_abi.abi_type_name,
             mutated_required_abi.abi_type_value_ready,
             mutated_required_abi.abi_type_start,
             mutated_required_abi.abi_type_end,

@@ -1,9 +1,284 @@
 # Current Work Handoff
 
-Updated: 2026-10-09 KST (Asia/Seoul). Navigation only. Current source, the
+Updated: 2026-10-10 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
-## Active self-host context — ownership-cutover P1 (GPT, 2026-10-09)
+## Active self-host context — string-window extent closure landed; ownership-cutover P1b BLOCKED on sink-mode inference (Claude, sole lane since 2026-10-10)
+
+Base `main @ 85fff5aa`. Landed by explicit paths, without push: `2c7f6f6e`
+(graph proofs and docs) and the following compiler commit (stopped GPT lane's
+ownership-cutover work, its repairs, LLVM lexical type identity and the
+string-window extent rule). Only `gmon.out` (profiler output) stays
+untracked. Private builds only (`.tmp/claude-bin`, scratch drivers); `bin/` is
+untouched. D: has about 4 GB free; heavy output goes to the C: scratchpad.
+
+| Boundary | Flag | Evidence / next obligation |
+| --- | --- | --- |
+| String-window extent rule | FOCUSED_GREEN | `tests/string_window_extent_smoke.sh` (`string-window-extent-test-smoke`, Linux push shard) on the final tree: 8 accept fixtures print their exact output and 17 reject fixtures are refused on both the native route (`PGY_SEM_STRING_WINDOW_EXTENT_UNPROVEN`) and the selfhost route (`string_window_extent_unproven`, private final driver at `--emit-mir-json-verified`): 16 accepted, 34 refused. Rule P1–P8: `agent_work_directives/string_window_extent_closure_2026-10-10.md`. |
+| Compiler-source migration | GREEN (native) | `driver_bootstrap_main.pgy` native check 0 errors; the 188 programs importing changed files show no error beyond the pre-migration snapshot's. 23 per-block/per-routine re-measurements of MIR JSON were replaced by carried record extents. |
+| Behavior preservation | GREEN | 1488 `tests/cases` + `examples` programs: pre- and post-migration drivers built by one compiler give byte-identical MIR, C and diagnostics. |
+| Structural gates | GREEN | Final tree: component contract (435 s; transition-owner cap 72→84), source-scan, CI profile (67 Linux push steps), owner size. |
+| External `--mir-json` input | RECORDED GAP | Directive step 5: direct-MIR scalar route admits five window builtins from MIR JSON without an extent proof. |
+| Short-circuit MIR pin | REFRESHED (private) | The fixture gained its extent argument, so the MIR identity changed. Pin `438212A4E4EBDF68DB07B060993E9674F84F29BDE278163E7EF80A63558C0804` observed with the private native-built final driver; the gate passes C/LLVM parity and negatives with it. Re-observe with the installed driver once the chain is green. |
+| P1a: DRV-2 member capture readiness | FOCUSED_GREEN | The dirty tree's DRV-2 refusal was `ast_artifact_invalid` / `collection_member_read_permission`; the pre-migration snapshot failed identically. Complete failure set: only `capture.ready`, from ~22 enum constants, world zone fields cloned in `compiler/world.pgy` and two match payload bindings. Repair in `ast_collection_member_capture_source_owner.pgy`: a non-binding root is a constant; an implicit receiver field is rooted in the `self` formal with its mode; a match payload binding is rooted in its match subject. DRV-2 now reaches HEAD's frontier; codegen gen0 compiles the `mir_collection_receiver_root` control again (`member_indexed_read_permission.sh` expectation moved to `nominal_receiver_root=true`). |
+| Destructure definition activation | FOCUSED_GREEN | The admitted-stream argument owner read `current_definitions` for the second binding of `let (first, second) = ...` as -1: Value completion selected only the first local row of the shared Let node. `ast_collection_definition_transition_owner.pgy` now activates every row a destructure Let declares and refuses a sibling row that carries storage facts. `member_indexed_read_permission.sh` PASS (16 original + 35 capture pairs, C/LLVM; `.tmp/self_hosted/member-indexed-read.hpObo6`). Also green on the final tree: formal-key, binding-move prefix, owned-result, constructor-field-input, member-identity, aggregate entry-requirement, aggregate release-source and native-storage-escape gates. The 434-source inout-effect integration was not rerun. |
+| P1b: DRV-2 aggregate release plan | BLOCKED | Final-tree DRV-2 (721 s) refuses `borrow_boundary_escape` / `aggregate_release_plan_unproved`, the same frontier as exact-HEAD CI. Complete demand set (16 requirements, 4 call sites): `SemanticAstExpressionFunctionTableFactsRelease` from `DriverRung2MirProjectionRelease` and `CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved`; `SelfMirDestructureFactRowsAttach` from `SelfMirCfgAttachLastDestructure`; `SelfMirDestructureFactRowsAppend` from `SelfMirAppendCfg`. Each lineage ends at a default-mode aggregate formal (`verified` ×24, `semantic_analysis` ×3, `cfg` ×2) that the lineage owner (`ast_collection_aggregate_value_lineage_owner.pgy`, formal-mode branch) admits only as inout/own; one more ends at a two-level member initializer (`target.instructions.destructure_facts`). Missing fact: the sink-mode summary of 27_ownership_clean.md §2.3 step 7 (interprocedural fixed point). Explicit `own` cascades would be the forbidden response (27 "Source `own` is not a substitute for inferred ownership"; AGENTS.md). Owner to build: mode inference feeding the release-plan formal branch; falsifier: this DRV-2 run. |
+| Installed-driver / C-path substitution | OPEN | The installed chain stops at P1b, as at HEAD. No installed pair or substitution receipt. |
+
+## Previous active card — ownership-cutover P1 (GPT, 2026-10-10; lane stopped)
+
+### Progress flags — observed revision, not completion percentages
+
+Observed `main @ 85fff5aa339ae136ac0797c4a6a95a5285ada70e`; the current
+dirty candidate has not been committed or run by Actions. Flags describe
+evidence status, not compiler feature switches or semantic authority.
+
+| Boundary | Flag | Last observed evidence / next obligation |
+| --- | --- | --- |
+| Formal-use key issuance / admission | FOCUSED_GREEN | Current 437 counted-line owner rejects invalid inventory/context before consuming or issuing effects. `.tmp/formal-admission-20261010/`: 127 selected identity units per C/LLVM (254/254). Fresh `.tmp/self_hosted/collection-formal-key.Hz0R0q/` passes 30 C/LLVM carriers, pinned verdicts and malformed-fact refusals; unready/truncated order returns an entirely empty refused carrier. Full rung remains open. |
+| Binding-move empty prefix | FOCUSED_GREEN | Fresh `.tmp/self_hosted/collection-binding-move.R6FKZN/`: seventeen exact C/LLVM observations and four planted placement refusals; definition transitions retained. |
+| Aggregate source controls | FOCUSED_GREEN | Fresh `.tmp/self_hosted/aggregate-release-source.ARFKoF/`: 6 positive + 16 falsifying sources and generation/coverage guards per C/LLVM; analyzed-only, not driver admission. |
+| Member transition/capture/publication | REPLAY_PENDING | Scalar-expanded `.tmp/self_hosted/member-indexed-read.zpopkH/` passes in 252 s before the subsequent retirement consumer repair; current imports require a fresh pair. Transition retains its 180 counted-line cap. |
+| Exact retirement in the admitted stream | FOCUSED_GREEN / INTEGRATION_RUNNING | Terminal full scanner/second current array deleted; pending publication follows admission. Prior 434-source integration `.tmp/self_hosted/collection-inout-effect.qhCTKx/` stopped at mutation9 (status127); fresh `.tmp/formal-admission-20261010/` now passes all 127 selected identity units per C/LLVM. Full 434-source importing replay is running; it is not yet green. |
+| Reached LLVM lexical type identity | FOCUSED_GREEN | New isolated builder `14c03d48f450feb7fd67b98cca300a544f4de367c7c26255067eac81a7bc5c66` uses exact local/formal/host-field IDs, refuses ambiguous local rows and checks active-array element agreement. MIR units: 224 PASS; runtime parity: 4/4. Lambda direct indexing and arbitrary post-semantic same-name ID authentication remain OPEN. |
+| Full structural inventory | INCOMPLETE_BUDGET | WSL run exits 124 at the 60 s edit-loop budget; fourteen checker unit tests pass, but the whole inventory has no end receipt. |
+| Complete source release census | BLOCKED_COST | Same 2531-file input still exits 134 at the unchanged 3 GiB cap; the partial modified-seed diagnostic is not admission. |
+| DRV-2 / P1 source admission | OPEN_SEMANTIC | Exact-HEAD CI refuses `aggregate_release_plan_unproved`, `Array<String>`, syntax 214862; enumerate the complete demand set before selecting a repair. |
+| Installed-driver / C-path substitution | OPEN | No new installed pair or executable substitution receipt from this candidate. |
+| Exact-HEAD CI | RED | Actions run `37883531407`, job `113673946389`, installer step 7 fails; dependent jobs are skipped, not green. |
+| Candidate publication / candidate CI | NOT_RUN | Commit, push, remote-SHA verification and the candidate's complete CI remain pending. |
+
+CI's first red is the semantic release-plan refusal, **not** the local memory
+refusal. Its log is `.tmp/ci-progress-2026-10-09/backend-toolchain-head.log`.
+Exact-HEAD parser-only mapping, independently replayed by main, identifies
+syntax 214862 as `SemanticAstExpressionFunctionTableFactsRelease(function_tables)`
+in `DriverRung2MirProjectionRelease`, `compiler/driver_rung2_owner.pgy:184:5`.
+Its 2531 source hashes and artifact digest are bound in
+`.tmp/ci-head-parser-map-85fff5aa-astra-20261009/`; this identifies the call,
+not the failed lineage/uniqueness predicate or the full refusal set.
+The bounded measurement and negative-test lanes remain under the existing
+formal-effect execution directive; main alone edits production owners.
+
+Latest production integration slice: observed HEAD
+`85fff5aa339ae136ac0797c4a6a95a5285ada70e` on `main`; existing dirty
+graph/proof/document work is preserved. Follow
+`agent_work_directives/ownership_formal_effect_execution_unblock_2026-10-09.md`
+and semantic owner `semantics/27_ownership_clean.md`. The whole cutover plan
+remains `agent_work_directives/ownership_cutover_plan_2026-10-08.md`.
+Main's reached chain includes the two measured allocation repairs and the
+bounded member responsibility/capture repair below, not a parallel
+implementation track. In the formal-use owner, binding/root decimal keys are issued at their
+existing consumers, preserving all binding and
+generation checks and both statement-target exceptions. The measured key-only
+candidate source SHA256 was
+`08c14ec40fee4f167b306f79a80a4ba7aa89f7de8d037635d142d6ce1c04ec1c`;
+the inventory/context admission guard candidate is
+`5a4ed37d601ad7892598195125af040fb2aa0d150c29f65900a26c703a68bec2`.
+The new permanent importing native C/LLVM gate passes at
+`.tmp/self_hosted/collection-formal-key.Ug5Kzn/`; main independently compares
+thirty full/partial pre-edit/candidate carriers including nonempty text and
+owned-push maps. The Make inout-effect target reaches the gate. Independent
+adversarial review finds no blocking candidate defect; admitted borrowed-
+element statement-target positive coverage and full diagnostic message/node
+equality remain OPEN. No annotation/copy/manual-drop increase in production.
+
+The same 2531-file, 3221225472-byte-cap modified-seed diagnostic now returns
+from the formal-effect function but fails allocation in the next member-read
+owner (328.54 s, RSS 3063184 KiB, source/diagnostic hashes stable). This is not
+full source admission, a complete census or rebuilt/installed-driver evidence.
+The isolated member profile is complete at
+`.tmp/ownership-member-read-2026-10-09-75f10c9e05e145d698e1bc2eeadd6fe9/`:
+execution 134/signal 6, 476.42 s, RSS 3063104 KiB, stable endpoint bindings.
+Only 5756 of 66046 integer conversions are context-row calls; the last failure
+does not justify a context cache/table change. Member entry is 16848320 allocated
+bytes above formal exit, not yet attributed to one owner. The directive extends
+the same admitted verdict chain to a scratch binding-move measurement at
+`.tmp/ownership-binding-move-2026-10-09-8a245cdcf02e460eafa48ea510c26f2c/`.
+That binding baseline is complete: execution 134/signal 6, 318.71 s, RSS
+3063364 KiB and stable source/eight diagnostic bindings. Its scanner records
+zero moves across 138772 roots / 952248 nodes, 827463 scoped lookups and
+137699 read keys plus type concatenations, while completing 29278 definitions.
+Allocated entry/exit grows by 9283920 bytes. Main implements only the measured
+empty-map subtree/read guard in the binding scanner (SHA256
+`0627b7a09203695228031da7c092d271659ea16cc381b91978add5ba9bbdce2c`).
+The frozen `.tmp/self_hosted/collection-binding-move.sZmpPx/` and fresh main
+candidate `.tmp/self_hosted/collection-binding-move.oZWAYz/` pass seventeen
+exact C/LLVM scanner/caller/lineage observations and four planted placement
+refusals; independent re-execution/diff review finds no blocker. Import diff
+is only this scanner hash. The new Make inout prerequisite is target-reachable.
+The combined formal gate passes at `.tmp/self_hosted/collection-formal-key.8RaoBp/`.
+SAME fixed-input/cap candidate replay is complete: execution 134/signal 6,
+327.44 s, RSS 3063856 KiB, stable source/eight diagnostic bindings. It retains
+all 138772 roots / 29278 completions / zero moves while requests shrink
+5047754 -> 262336 bytes (275415 -> 17 allocation calls); exit allocated memory
+drops 9152576 bytes. Member scan now reaches 226367 versus 135208 nodes but
+still refuses. `addr2line` identifies the new 16-byte concat at canonical
+type-name copying in `ast_collection_member_read_permission_owner.pgy`,
+generated line 61143, member symbol +0xf4. This is a location, not dominance;
+no third owner edit, cache, raw alias or manual free is selected. The next
+same-input attribution is now complete at
+`.tmp/ownership-member-copies-2026-10-09-df0914c3d3d37/`: execution 134/signal
+6, 743.65 s, RSS 3063808 KiB, all source/nine diagnostic endpoint bindings
+stable. Four disjoint allocation-time categories sum to 9329400 requested
+bytes in the reached member extent. Canonical-fact construction contributes
+540535 bytes (about 5.8%); it is not established as the blocking dominant
+operation. The final 24-byte refusal is instead `ToString` inside
+`SemanticAstCollectionMemberMoveIdentityForNode`'s existing key issuance.
+That location is not dominance either. This O1 diagnostic does not establish
+a speedup, complete census, rebuilt admission or installed-driver result.
+The member gate's pre-existing source-size drift and two native-confirmed
+readonly alias acceptances are repaired in the bounded candidate below.
+Invalid partial carriers, final closure order, restoration and first-error
+priority remain pinned; no cap increase or line condensation was used.
+Definition transitions and upstream admission remain required.
+The earlier broader inout gate stopped at a diagnostic mismatch:
+`own_formal_shallow_after_drop_negative.pgy` expected `move_from_released`,
+but the then-current probes reported `borrow_boundary_escape`. Its expectation
+is retained. The admitted event-stream repair below now reaches exact prior
+consumption; its full fresh integration remains pending. Earlier commands are in
+`audits/collection_formal_key_consumption_validation_2026-10-09.md`.
+P1/DRV-2, the full release census, C-path substitution and SoT closure remain
+OPEN. Exact-HEAD Actions run `37883531407` was refreshed: completed/failure.
+No official binaries, AGENTS.md, branch, commit or push changed in this slice.
+Dirty graph/proof/document work and `gmon.out` remain preserved; the profiling
+artifact is not a commit input.
+
+Latest member integration: the transition owns only ordered transitions;
+result publication/schema, terminal restoration, capture-site selection,
+capture-source projection and capture-obligation propagation have separate
+bounded owners. The three schema-only consumers import the result owner;
+scan restoration remains after statement/call validation. The sole publisher
+consumes sixteen internal terminal transfers, retires ten scratch arrays and
+returns the five existing carriers. This is an internal ownership boundary,
+not added user annotation, manual cleanup or a new backing-copy policy.
+Transition SHA256 is
+`59a451d91bc09ecaf83bc11e229b69f6e8fe25705fe67475e4401d32d899b56e`;
+publication SHA256 is
+`3ca30204b58a3b469bf3e1e9067c62685afc127cacc1cb2ffbb2b961a0f00fae`.
+The final member gate exits 0 in 260 s at
+`.tmp/self_hosted/member-indexed-read.xz7oo0/`. Main rechecks its eight
+manifests and compares fourteen preserved full analyzer outputs per backend
+byte-for-byte with the frozen baseline. Two old unsafe acceptances now refuse
+without weakening their expectations. Selected declared-call join omission
+and invalid mode fail both capture readiness and signature/artifact matching.
+The Make inout prerequisite reaches this gate; its former manual-inventory
+entry is removed. Gate reachability reports 939 scripts / 871 reachable /
+68 manual, with no undeclared, stale or dual entry.
+See `audits/collection_member_capture_integration_2026-10-10.md` for scope and
+limits. The full structural gate's independent 60 s run returns 124 at
+`.tmp/member-result-survey-2026-10-09/component-final-wsl.log`; its checker-unit
+PASS is not a full inventory PASS. The complete original 430-input C/LLVM
+census found seven mismatches. Existing declared readonly String/aggregate
+effects justify three positive renames, while four retaining controls are
+added. The TextBuilder shadow's earlier resource refusal is pinned separately.
+Scalar implicit fields now use the admitted body leaf-type projection before
+demanding nominal backing identity; Unknown/missing/nominal-without-backing
+controls still fail. No new type owner or blanket failed-source exemption exists.
+
+The terminal argument-use full scan is removed. Its pure event/completed-
+definition API uses the existing current-definition stream; pending consumption
+is published after generic admission, and RHS movement precedes destination
+activation. A complete frozen C-only census of the resulting 434 inputs has
+eight diagnosis-only differences, all independently traced to an admitted own
+call/canonical release. Those eight expectations now pin exact move and later
+location. Unknown/deferred inputs remain borrow refusals. Mode125 checks pending
+nonpublication on an actual generic refusal; 126/127/128 test missing current,
+a real other binding's current definition and zero syntax. Formal units use the
+existing admitted-only environment issuer, guarded by storage readiness.
+The source-order ratchet refuses seventeen planted variants; an independent
+replay also refuses seven additional scratch shapes. It is structural only.
+
+The current importing identity pair passes 23 units per backend, including
+the previously crashing LLVM37 and all 125–128 pending controls. The underlying
+crash was MIR's first-same-name type query, not scope-pointer lifetime: an
+earlier `modes:Array<String>` row retyped the current `modes:Array<Int>` buffer.
+The exact-ID inventory API replaces the reached expression/collection reads;
+the deleted private collection scan cannot reappear under the residue gate.
+Formal and host-field paths use their own exact IDs. Available active-array
+metadata must agree with the projected MIR element type. No user annotation,
+copy or manual-drop workaround was added to production.
+
+Builder/MIR unit receipt: `.tmp/native-lexical-type-20261010/`, 224/224 PASS.
+Runtime receipt: `.tmp/pgy_backend_compare.QUeWEC/`, 4/4 PASS (both shadow
+orders, class/self, nested match and typed lambda member controls). Each identity
+observer build reports 0 errors / 9 existing warnings, not warning-free.
+These consumers trust semantic checker-issued IDs. An intentionally mutated
+same-name ID is not independently scope-authenticated by MIR's current ID/name
+inventory; the new type-agreement guard is not a same-type scope proof.
+Direct lambda parameter/local array indexing already refuses in LLVM while C
+accepts it; that separate missing-fact route is not extended in this slice.
+
+Next falsifier: finish fresh C/LLVM importing integration and member replay, including
+all 434 inputs and the mutated-fact units. These small-input results are not
+the still-cost-blocked 2531-file release-demand census. Physical scan-local map
+reclamation and unit scratch reclamation are not established. Full P1,
+installed driver, hard C substitution and candidate CI remain OPEN.
+Concurrent explanatory doc 209/index and lifecycle collaboration/model edits were observed and preserved;
+they are not a new semantic owner or implementation rung.
+The user-supplied `209_ownership_lifecycle_algorithm_code.md` and
+`semantics/ownership_lifecycle_implementation_boundaries.md` are reviewed
+against the reached chain. They distinguish ordinary compiler-owned cleanup,
+external-effect recovery and optional store-local tracing; their full boundary
+matrix is not a new P1 precondition list. Production issuers, consumers,
+physical commit and finite-ID refinement remain OPEN as stated there.
+Main's fresh four-module action-scope kernel gate exits 0 at
+`.tmp/graph-action-scope/run.7CY6yH/`, with no assumptions. This does not
+cover native implementation, P1 source admission or exact-candidate CI.
+
+Previous scoped graph model implementation: observed HEAD
+`85fff5aa339ae136ac0797c4a6a95a5285ada70e` on `main`, with dirty model,
+consumer/gate and documentation changes. Whole-chain source surveys found
+that production graph implementation is not ready; P1/DRV-2 remains the
+active executable rung. Under
+`agent_work_directives/graph_atomic_bridge_implementation_2026-10-09.md`,
+parallel edits replaced graph reclaim's result-ignoring batch path with
+explicit accepted/refused results and added an importing canonical-authority
+batch owner. Independent cross-review found a real shrinking-unit bypass:
+deleting a child first could admit an initially invalid parent/root unit.
+Original-state admission, exact disjoint units and unique targets now reject
+it. Main's fresh eight-module kernel gate passes with zero declared
+abstractions at `.tmp/graph-cycle-reclaim/run.lAmOuT/`; eleven planted
+regression controls pass at `.tmp/graph-cycle-reclaim/selftest.Ieu9v0/`.
+Fresh full formal integration passes 74 models plus nine default consumers
+and the separate approval consumer, retaining only the two approved Slot
+abstractions. Documentation quality and evidence-lifetime gates pass.
+Current receipts/findings and remaining obligations are in
+`audits/graph_atomic_bridge_redteam_2026-10-09.md`. Accepted batches follow
+actual canonical operations; refused batches preserve the full original
+state. This is a functional model contract, not a proof that native frees can
+roll back or that preflight alone makes a physical commit non-refusing.
+Next falsifiers: authenticated graph/store/root-to-physical-unit binding,
+stable whole-unit admission/no-fail commit, and P1's final call/output/view
+fact issuer through every MIR/JSON/backend consumer. Complete inventory and
+snapshot roots, payload glue and finite identity/counter exhaustion remain
+OPEN. Concurrent doc 29/action-scope model work was observed and preserved;
+it is not an implementation or new active rung from this graph batch slice.
+No source/compiler/bin/AGENTS.md changes, commit or push were made in this
+scope. Exact-HEAD CI is still RED; local model receipts do not cover it.
+
+Previous scoped graph review: observed HEAD `85fff5aa339ae136ac0797c4a6a95a5285ada70e`
+on `main`; existing proof/publication changes and untracked `gmon.out` remain
+preserved. Exact-HEAD Actions run `37883531407` is RED at
+`backend-compare-toolchain-linux`; it does not cover the dirty graph slice.
+The user adopted store-local reclaim as an optional feature and requested
+multi-model research including snapshots, cache observations and domain
+deletion/store-end cleanup. The new bounded review is
+`audits/graph_store_policy_snapshot_review_2026-10-09.md`; coordination is
+`agent_work_directives/graph_store_integration_closure_plan_2026-10-09.md`.
+P1/DRV-2 remains the active executable rung; no compiler implementation lane,
+public graph API or CLOSED registry row was added. Main independently verified
+the initial seven-module graph gate and four-module scratch falsifiers with
+zero declared abstractions. Durable consumer/gate follow-up passes at
+`.tmp/graph-cycle-reclaim/run.vkPNzl/`; documentation quality and evidence
+lifetime pass. The expanded seven-negative selftest passes at
+`.tmp/graph-cycle-reclaim/selftest.WYblAA/`. New review/plan and bounded
+doc/index/handoff/consumer/gate edits remain uncommitted; no push was made in
+this scoped review. Compiler source and semantic model bytes are unchanged.
+Next falsifiers at integration: borrowed last batch member after an earlier
+delete; full-inventory snapshot/strong key lookup discovering an unrooted
+node; store/root binding substitution and omitted call/view/output roots.
+Complete runtime issuers, batch commit, physical snapshots and finite counters
+remain OPEN. AGENTS.md and official binaries are unchanged by this review.
 
 Immediate task: the user authorized commit, push and exact-SHA CI repair.
 Working branch is `main`. Last completed exact-SHA CI checkpoint:
@@ -197,6 +472,25 @@ The main checkpoint/push is authorized and observed; P1 activation, official
 installation and GUI readiness are not claimed. Do not resume an archived
 checkpoint or increase the cap to conceal missing production facts.
 
+### Scoped lifecycle review supplement — not a successor production rung
+
+2026-10-09, `main @ 85fff5aa339ae136ac0797c4a6a95a5285ada70e`, shared dirty
+tree preserved. At the user's request, the action model now issues exact
+successful-body-prefix receipts and preserves both forward/compensation
+failures. Compensation completion is not restored effects or forward success.
+Doc 209/semantics 29 and the
+[implementation boundary matrix](semantics/ownership_lifecycle_implementation_boundaries.md)
+are updated. This does not change the active P1 owner/rung above.
+
+Observed gates: action 4 modules / 0 assumptions, 11 planted controls refused;
+graph bridge 8 / 0; full formal/kernel 84 modules plus approval consumer, only
+the 2 existing approved Slot abstractions. See the
+[audit](audits/ownership_lifecycle_review_hardening_2026-10-09.md) for hashes/logs.
+Next graph falsifier remains native late-refusal after preflight together with
+real store/root/lease binding; partial effects and compensation non-restoration
+remain explicit. No native/installed-driver/CI/commit/push evidence from this
+slice. Do not turn the boundary matrix into a parallel implementation queue.
+
 ## Historical archive — lookup only
 
 ### Earlier ownership-cutover preparation snapshot (GPT, 2026-10-09)
@@ -320,6 +614,74 @@ automatic drops or retire the old ownership paths. No commit/push/install
 or GUI readiness was claimed.
 
 ### Earlier model and collaboration snapshots
+
+## Latest scoped proof work: action-scoped references and sagas (Claude, 2026-10-09)
+
+User direction: "라이프타임은 존재해서는 안돼 ... 라이프타임이 없는 문제를 풀어야해",
+then, on the offer to record the definition and prove that a dereference
+inside an action cannot fail, "시작하고 넣어놔". Base `main @ 85fff5aa`;
+uncommitted. New: docs/semantics/29_action_scoped_references.md (definition,
+status DEFINITION RECORDED), semantics/proofs/OwnershipGraphActionScope.v
+(62119ab13ab4...3f0fb83, imports only Core and the unchanged GraphLinks),
+independent consumer tests/coq/GraphActionScopeAudit.v (330a85bf4612...f505d),
+focused gate tests/graph_action_scope_smoke.sh and planted-regression
+tests/graph_action_scope_selftest.sh (Makefile graph-action-scope-test-smoke,
+CI step in .github/workflows/formal_proofs.yml), registration in
+tests/formal_semantics_smoke.sh, and index entries in the semantics README and
+docs/102. Proven: a link keeps resolving to the same blocks through every
+operation except a delete of its slot or a drop of its store; while held both
+are refused; an admitted step never fails a dereference and releases exactly
+what it acquired; a saga of admitted steps never ends in a failed
+dereference under arbitrary operations between steps. Falsifiers: unacquired
+neighbour, delete ignoring holds, compensation target deleted between steps.
+Evidence: focused gate PASS (4 modules, no assumptions; receipt
+.tmp/graph-action-scope/run.XIsSoa) and selftest PASS (6 planted regressions
+refused). The consumer is not added to the production consumer list in
+tests/coq_kernel_check.sh (another lane's dirty file); the owner module is in
+the production corpus. Not touched: the cycle-reclaim/root-completeness
+modules, their gate and the graph directives of the concurrent GPT lane.
+OPEN: surface syntax, acquisition inference, acquire-on-first-touch
+traversal, deletion-authority binding for compensation targets, workers and
+async, refinement and cost. No compiler, runtime, active card or registry
+change; no commit/push.
+
+## Latest scoped proof work: store-local cycle reclamation and root completeness (Claude + scoped GPT review, 2026-10-09)
+
+User direction: "작업해", then "이거까지 테스트에 넣어놔 스크래치패드에 말고".
+Base `main @ 85fff5aa`; this work is uncommitted. New importing proofs:
+semantics/proofs/OwnershipGraphCycleReclaim.v (60410a323110...0b51f9f) and
+semantics/proofs/OwnershipGraphRootCompleteness.v (bdb80df5da13...fc3d61b). The
+first proves a local check that never returns a node reachable from its
+roots (any candidate set, budget and non-under-counting counter), deletion
+through the existing ODelete, and counter maintenance on every graph-machine
+operation under the admission/issued-identity premises, with an identity reset
+on delete. A counted graph transition and reclaim now project to the reference
+recount. The second binds the roots to a
+checked language (aggregates/views, liveness certificates, suspended frames,
+handled errors, cleanup right): every terminating reference run under its
+checking/issuing invariants is reproduced by the reclaiming run. A canonical
+ledger permission projection connects grant, transfer and consumption at a
+checked counted boundary. Four falsifiers cover aggregate-only, frame-only and
+view-only links and a dropped returned link. Registered in
+tests/formal_semantics_smoke.sh; new focused gate
+tests/graph_cycle_reclaim_smoke.sh (Makefile graph-cycle-reclaim-test-smoke,
+CI step in .github/workflows/formal_proofs.yml). Scoped review: focused gate
+PASS (six models + independent typed consumer, no assumptions), five planted
+gate regressions refused, full formal gate PASS (81 modules plus approval
+consumer; existing two approved Slot abstractions only). Documentation-quality,
+evidence-lifetime/lifecycle and beta-readiness PASS. Audit and exact receipt
+paths: docs/audits/graph_cycle_reclaim_review_2026-10-09.md. Docs: 28 §Store-local
+cycle reclamation, semantics README, docs/102. Policy adoption is a user
+decision (AGENTS.md: no tracing GC, no silent GC/RC fallback); the production
+liveness/frame/value producer, runtime counters, concurrency and cost are OPEN.
+`internal` still folds the full slot-list spine; no physical locality or work
+bound is proved. Store/root binding issuance, graph/forest footprint retirement
+and whole-unit lease/pin integration remain OPEN; the adapter proves permission,
+not full authority composition. No compiler, runtime, active card or registry
+change; no commit/push or whole-project CI green claim.
+Automatic handoff to the original `Install TypeSafe skill` chat failed with
+an app message-dispatch error; delivery is not claimed. Read the scoped audit
+above as the file-backed handoff, without reviving this as an independent rung.
 
 ## Latest scoped proof work: exiting callee and writable view (Claude, 2026-10-09)
 

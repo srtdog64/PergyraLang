@@ -70,9 +70,10 @@ func LexerScanContentFacts(
             let dc_text: String = Substring(content, dc_start, i - dc_start);
             let dc_source_text: String =
                 Substring(content, dc_source_start, i - dc_source_start);
+            let dc_source_text_extent: Int = StringLength(dc_source_text);
             token_count = token_count + 1;
             ArrayPush(tokens, LexerTokenFact(
-                token_count, "DOC_COMMENT", dc_text, dc_source_text,
+                token_count, "DOC_COMMENT", dc_text, dc_source_text, dc_source_text_extent,
                 line, dc_col
             ));
             continue;
@@ -150,10 +151,11 @@ func LexerScanContentFacts(
             let itext: String = Substring(content, istart, i - istart);
             let interpolation_source: String =
                 Substring(content, interpolation_start, i - interpolation_start);
+            let interpolation_source_extent: Int = StringLength(interpolation_source);
             token_count = token_count + 1;
             ArrayPush(tokens, LexerTokenFact(
                 token_count, "INTERPOLATED_STRING", itext,
-                interpolation_source, line, istart_col
+                interpolation_source, interpolation_source_extent, line, istart_col
             ));
             continue;
         }
@@ -166,10 +168,11 @@ func LexerScanContentFacts(
                 col = col + 1;
             }
             let text: String = Substring(content, start, i - start);
+            let text_extent: Int = StringLength(text);
             let ttype: String = KeywordType(text);
             token_count = token_count + 1;
             ArrayPush(tokens, LexerTokenFact(
-                token_count, ttype, text, text, line, start_col
+                token_count, ttype, text, text, text_extent, line, start_col
             ));
             continue;
         }
@@ -197,9 +200,10 @@ func LexerScanContentFacts(
                 col = col + 1;
             }
             let text: String = Substring(content, start, i - start);
+            let text_extent: Int = StringLength(text);
             token_count = token_count + 1;
             ArrayPush(tokens, LexerTokenFact(
-                token_count, "NUMBER", text, text, line, start_col
+                token_count, "NUMBER", text, text, text_extent, line, start_col
             ));
             continue;
         }
@@ -230,9 +234,10 @@ func LexerScanContentFacts(
                 Exit(1);
             }
             let text: String = Substring(content, start, i - start);
+            let text_extent: Int = StringLength(text);
             token_count = token_count + 1;
             ArrayPush(tokens, LexerTokenFact(
-                token_count, "STRING", text, text, line, start_col
+                token_count, "STRING", text, text, text_extent, line, start_col
             ));
             continue;
         }
@@ -240,14 +245,14 @@ func LexerScanContentFacts(
         let n2: Int = CharCode(content, n, i + 1);
         if c == Ord("-") && n2 == Ord(">") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "->", "->", "->", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "->", "->", "->", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("<") && n2 == Ord("-") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "<-", "<-", "<-", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "<-", "<-", "<-", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -255,28 +260,28 @@ func LexerScanContentFacts(
         // Compound assignment operators
         if c == Ord("+") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "+=", "+=", "+=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "+=", "+=", "+=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("-") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "-=", "-=", "-=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "-=", "-=", "-=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("*") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "*=", "*=", "*=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "*=", "*=", "*=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("/") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "/=", "/=", "/=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "/=", "/=", "/=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -284,7 +289,7 @@ func LexerScanContentFacts(
         // :: scope resolution
         if c == Ord(":") && n2 == Ord(":") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "::", "::", "::", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "::", "::", "::", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -292,7 +297,7 @@ func LexerScanContentFacts(
         // => lambda arrow
         if c == Ord("=") && n2 == Ord(">") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "=>", "=>", "=>", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "=>", "=>", "=>", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -300,7 +305,7 @@ func LexerScanContentFacts(
         // |> pipe
         if c == Ord("|") && n2 == Ord(">") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "|>", "|>", "|>", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "|>", "|>", "|>", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -308,49 +313,49 @@ func LexerScanContentFacts(
         // ?? null-coalesce
         if c == Ord("?") && n2 == Ord("?") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "??", "??", "??", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "??", "??", "??", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("=") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "==", "==", "==", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "==", "==", "==", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("!") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "!=", "!=", "!=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "!=", "!=", "!=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("<") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "<=", "<=", "<=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "<=", "<=", "<=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord(">") && n2 == Ord("=") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, ">=", ">=", ">=", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, ">=", ">=", ">=", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("&") && n2 == Ord("&") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "&&", "&&", "&&", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "&&", "&&", "&&", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
         if c == Ord("|") && n2 == Ord("|") {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, "||", "||", "||", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, "||", "||", "||", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -360,7 +365,7 @@ func LexerScanContentFacts(
             // and text=".." (two dots). Verified against pgy --tokens on
             // examples/break_continue.pgy's `for i in 0..100` loop.
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, ".", "..", "..", line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, ".", "..", "..", 2, line, col));
             i = i + 2;
             col = col + 2;
             continue;
@@ -370,9 +375,10 @@ func LexerScanContentFacts(
         // Punctuation is rare relative to whitespace/identifiers, so materialize
         // the single-char token text here (the only remaining per-token alloc).
         let ch: String = CharAtN(content, n, i);
+        let ch_extent: Int = StringLength(ch);
         if StringIndexOf(punct, ch) >= 0 {
             token_count = token_count + 1;
-            ArrayPush(tokens, LexerTokenFact(token_count, ch, ch, ch, line, col));
+            ArrayPush(tokens, LexerTokenFact(token_count, ch, ch, ch, ch_extent, line, col));
             i = i + 1;
             col = col + 1;
             continue;
@@ -385,7 +391,7 @@ func LexerScanContentFacts(
     }
 
     token_count = token_count + 1;
-    ArrayPush(tokens, LexerTokenFact(token_count, "EOF", "", "", line, col));
+    ArrayPush(tokens, LexerTokenFact(token_count, "EOF", "", "", 0, line, col));
     return tokens;
 }
 

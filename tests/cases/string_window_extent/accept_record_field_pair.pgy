@@ -1,0 +1,21 @@
+// P7: a record whose every construction proves (text, text_length), with no
+// later write to either field, lends that pair to any of its values.
+struct Measured {
+    let text: String;
+    let text_length: Int;
+}
+
+func CodeAt(text: String, n: Int, i: Int) -> Int {
+    return CharCode(text, n, i);
+}
+
+func MeasureText(text: String) -> Measured {
+    return Measured(text, StringLength(text));
+}
+
+func Main() -> Void {
+    let m: Measured = MeasureText(Concat("ab", "c"));
+    Print(ToString(CharCode(m.text, m.text_length, 2)));
+    Print(ToString(CodeAt(m.text, m.text_length, 0)));
+    Print(ToString(CodeAt(m.text, m.text_length, 9)));
+}

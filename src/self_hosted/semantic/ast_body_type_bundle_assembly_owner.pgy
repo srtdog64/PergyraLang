@@ -20,6 +20,7 @@ import "ast_collection_ownership_verdict_owner.pgy";
 import "ast_collection_formal_effect_admission_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
 import "array_storage_release_verdict_owner.pgy";
+import "string_window_extent_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
@@ -263,6 +264,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     if verdict.ok { verdict = SemanticArrayStorageReleaseVerdict(artifact, analysis, initializer_types,
         resolved_leaf_types, assignment_types, statement_types, exhaustive_match_nodes,
         occurrence_order); }
+    // Source-only: a tree rebuilt from MIR is admitted by the direct-MIR readiness owner.
+    if verdict.ok && require_source_body_flow {
+        verdict = SemanticStringWindowExtentVerdict(artifact, analysis, initializer_types, call_roots);
+    }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
     if verdict.ok { verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
         initializer_types, assignment_types, generic_specializations, resolved_leaf_types); }

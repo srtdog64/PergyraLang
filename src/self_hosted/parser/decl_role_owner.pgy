@@ -49,7 +49,7 @@ func ParseRoleDecl(
             i = SkipWhitespaceAndComments(content, i);
         }
         ArraySet(cursor_out, 0, i);
-        compact_impl = ReadTypeIn(location_context, content, i, cursor_out);
+        compact_impl = ReadTypeIn(location_context, content, n, i, cursor_out);
         i = cursor_out[0];
         if StringLength(compact_impl) == 0 {
             ParseRefuse(location_context, i, "type_name_invalid", "construct", "role_impl", "", "");
@@ -79,7 +79,7 @@ func ParseRoleDecl(
         if StringLength(compact_impl) > 0 && MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let compact_m: String = ParseFunction(
-                content, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
+                content, n, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
                 false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
@@ -95,7 +95,7 @@ func ParseRoleDecl(
             }
             ArraySet(cursor_out, 0, i);
             let override_method: String = ParseFunction(
-                content, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
+                content, n, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
                 false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
@@ -121,7 +121,7 @@ func ParseRoleDecl(
             i = SkipWhitespaceAndComments(content, i);
         }
         ArraySet(cursor_out, 0, i);
-        let ab_name_impl: String = ReadTypeIn(location_context, content, i, cursor_out);
+        let ab_name_impl: String = ReadTypeIn(location_context, content, n, i, cursor_out);
         i = cursor_out[0];
         if StringLength(ab_name_impl) == 0 {
             ParseRefuse(location_context, i, "type_name_invalid", "construct", "role_impl", "", "");
@@ -143,7 +143,7 @@ func ParseRoleDecl(
             }
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
-                content, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
+                content, n, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
                 false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];

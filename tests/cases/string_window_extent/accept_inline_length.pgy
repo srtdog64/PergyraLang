@@ -1,0 +1,11 @@
+// P1: the extent is StringLength of the same unchanged binding.
+func Main() -> Void {
+    let s: String = Concat("ab", "c");
+    let mut k: Int = 0;
+    let mut total: Int = 0;
+    while k < 5 {
+        total = total + CharCode(s, StringLength(s), k);
+        k = k + 1;
+    }
+    Print(ToString(total));
+}

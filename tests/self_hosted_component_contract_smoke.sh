@@ -1182,12 +1182,12 @@ require_text "src/self_hosted/lib/json_emit.pgy" \
     'func JsonStringLiteralWriteFile('
 require_function_text "src/self_hosted/lib/json_emit.pgy" \
     'func JsonStringLiteralWriteFile(' \
-    'if !JsonStringLiteralRequiresEscape(value, value_length) {'
+    'if !JsonStringLiteralRequiresEscape(value, value_length, value_length) {'
 require_function_text "src/self_hosted/lib/json_emit.pgy" \
-    'func JsonEscapeStringWithAllocator(' 'JsonEscapeTokenAt(value, n, i)'
+    'func JsonEscapeStringWithAllocator(' 'JsonEscapeTokenAt(value, n, n, i)'
 require_function_text "src/self_hosted/lib/json_emit.pgy" \
     'func JsonStringLiteralRequiresEscape(' \
-    'JsonEscapeTokenAt(value, length, i)'
+    'JsonEscapeTokenAt(value, value_extent, length, i)'
 reject_function_text "src/self_hosted/lib/json_emit.pgy" \
     'func JsonStringLiteralRequiresEscape(' 'SubEqualsWithLen('
 require_function_text "src/self_hosted/lib/json_emit.pgy" \
@@ -1730,7 +1730,7 @@ require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_string_owner.
 require_text "src/self_hosted/parser/expr_string_owner.pgy" \
     "func ParserExpressionInterpolationGraphContractReady("
 require_text "src/self_hosted/parser/expr_string_owner.pgy" \
-    "ParseExprFact(value_source, 0, value_cursor)"
+    "ParseExprFact(value_source, value_source_extent, 0, value_cursor)"
 require_text "src/self_hosted/parser/expr_string_owner.pgy" \
     'ParserExpressionNamedSingleCallArgument(call_fact, "ToString")'
 require_text "src/self_hosted/parser/expr_string_owner.pgy" \
@@ -3512,7 +3512,7 @@ done < <(grep -RIl -E --include='*.pgy' '(^|[^A-Za-z0-9_])Die[[:space:]]*\(' "$R
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "func SeedDeclaredFunctionSignatures("
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "func FindNominalFieldEnd("
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
-    'content, content_length, after_let, "mut"'
+    'content, content_extent, content_length, after_let, "mut"'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" 'c == SourceByteOf("}")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SemanticCallableCanonicalDeclaredName("
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" 'import "expression_fact_owner.pgy";'
@@ -3530,11 +3530,11 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
     "SemanticAstFunctionSignatureFactsWithBuiltinNames(artifact);"
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringLength")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
-    'SemanticMatchKeywordWithin(content, content_length, i, "let")'
+    'SemanticMatchKeywordWithin(content, content_extent, content_length, i, "let")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
-    'SemanticMatchKeywordWithin(content, content_length, start, "zone")'
+    'SemanticMatchKeywordWithin(content, content_extent, content_length, start, "zone")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
-    'SemanticMatchKeywordWithin(content, content_length, start, "world")'
+    'SemanticMatchKeywordWithin(content, content_extent, content_length, start, "world")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
     "func NominalConstructorFieldNameStart("
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" \
@@ -6393,7 +6393,7 @@ require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
     "LanguageWordId.WordPrivate"
 require_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
     "func ParserImportedSourceHasExplicitExport(" \
-    "SkipWhitespaceAndCommentsWithin(content, n, i);"
+    "SkipWhitespaceAndCommentsWithin(content, n, n, i);"
 require_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
     "func ParserImportedSourceHasExplicitExport(" \
     "LanguageWordId.WordExport"
@@ -6415,7 +6415,7 @@ require_file "src/self_hosted/parser/fixture/top_level_visibility_decl_ast.txt"
 require_text "src/self_hosted/semantic/expression_cast_fact_owner.pgy" \
     "func SemanticOuterCastTargetType("
 require_text "src/self_hosted/semantic/expression_cast_fact_owner.pgy" \
-    'ReadType(text, cast_index + 2, cursor);'
+    'ReadType(text, n, cast_index + 2, cursor);'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
     "SemanticOuterCastTargetType(text);"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticAstExpressionSeedEnumValues("
@@ -10629,7 +10629,7 @@ require_text "src/self_hosted/fmt/session_owner.pgy" \
 require_text "src/self_hosted/lexer/token_owner.pgy" \
     "func LexerTokenFactExactLexemeReady("
 require_text "src/self_hosted/lexer/token_owner.pgy" \
-    '1, "}", "Log(1);", "Log(1);", 1, 1'
+    '1, "}", "Log(1);", "Log(1);", 7, 1, 1'
 require_text "src/self_hosted/fmt/layout_owner.pgy" \
     "LexerTokenExactLexemeContractReady()"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
@@ -11481,7 +11481,7 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionBoolLiteralPayloadReady("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionStringLiteralPayloadReady("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
-    "CodegenCharCodeAt(text, n, i)"
+    "CodegenCharCodeAt(text, n, n, i)"
 reject_function_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionStringLiteralPayloadReady(" "CodegenCharAt("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
@@ -11814,7 +11814,7 @@ require_max_lines "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy"
 reject_text "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" \
     'let needle: String = Concat(callee, "(");'
 require_text "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" \
-    'SourceByteAt(text, n, i + m) == SourceByteOf("(")'
+    'SourceByteAt(text, n, n, i + m) == SourceByteOf("(")'
 reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaAtomText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaValueText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaAuxValueText(arena, i)"
@@ -12990,7 +12990,7 @@ require_text "src/self_hosted/mir_lower/expression_graph_instruction_policy_owne
 reject_text "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" \
     'scalar.arg0 == "" || scalar.arg0 == "Log"'
 require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
-    'json, expression, 1, "ArrayPop"'
+    'json, json_extent, expression, 1, "ArrayPop"'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'node_id, UnwrapOption(graph_lane)'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
@@ -13844,9 +13844,9 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvCount"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvAt"
 require_function_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
-    "func CsvAt(" "CodegenCharCodeAt(csv, n, i) == 44"
+    "func CsvAt(" "CodegenCharCodeAt(csv, n, n, i) == 44"
 require_function_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
-    "func ParamModeCsvCount(" "CodegenCharCodeAt(modes, n, i) == 44"
+    "func ParamModeCsvCount(" "CodegenCharCodeAt(modes, n, n, i) == 44"
 reject_function_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func CsvAt(" "CodegenCharAt("
 reject_function_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
@@ -14356,7 +14356,7 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectS
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParam"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocks"
 require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" \
-    "JsonArrayNextObjectBounds(json, cursor, routines.end, bounds)"
+    "JsonArrayNextObjectBounds(routines.json, routines.json_extent, cursor, routines.end, bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return -1"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds("
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
@@ -14601,9 +14601,9 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
     "admitted.json"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
-    "let json: String = routines.source_json;"
+    "routines.source_json, routines.source_json_extent"
 require_text "src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy" \
-    "let json: String = routines.source_json;"
+    "routines.source_json, routines.source_json_extent"
 require_text "src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy" \
     "func RoutineCfgBlockRow("
 reject_text "src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy" \
@@ -14800,7 +14800,7 @@ reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'imp
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json_scan.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphSummaryIntField"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphScalarFieldValues"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "return JsonScalarFieldValues(content, field)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "return JsonScalarFieldValues(content, StringLength(content), field)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphCollectScalarFieldValues"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphScalarToken"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func RequiredGraphFeatureKeys"
@@ -16674,7 +16674,7 @@ require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFact
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactTableReady(table: JsonObjectFactTable)"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFactAt(table: JsonArrayObjectFactTable"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexSourceLocalType"
-require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArrayNextObjectBounds(json, local_cursor, locals_bounds[1], local_bounds)"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArrayNextObjectBounds(routines.source_json, routines.source_json_extent, local_cursor, locals_bounds[1], local_bounds)"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func ReadJsonString"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "ReadJsonString(json,"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'FindFrom(json, "\"source_locals\":['
@@ -16733,15 +16733,19 @@ reject_text "src/self_hosted/lib/json.pgy" "func JsonObjectArrayStringAt("
 require_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded("
 require_function_text "src/self_hosted/lib/json.pgy" \
-    "func ReadJsonStringBounded(" "JsonReadStringBounded(json, open, limit)"
+    "func ReadJsonStringBounded(" "JsonReadStringBounded(json, json_extent, open, limit)"
+# A bare Substring copy rescans the whole document; the bounded window
+# copy (StringWindowSubstring) is the admitted form.
 reject_function_text "src/self_hosted/lib/json.pgy" \
-    "func JsonReadStringBounded(" "Substring(json"
+    "func JsonReadStringBounded(" " Substring(json"
+reject_function_text "src/self_hosted/lib/json.pgy" \
+    "func JsonReadStringBounded(" "(Substring(json"
 require_function_text "src/self_hosted/lib/json.pgy" \
-    "func JsonReadStringBounded(" "SubstringWithLen(json, n, open + 1, close - open - 1)"
+    "func JsonReadStringBounded(" "StringWindowSubstring(json, json_extent, n, open + 1, close - open - 1)"
 require_function_text "src/self_hosted/lib/json.pgy" \
     "func JsonReadStringBounded(" 'if close == open + 1 { return Some(JsonStringRead("", close + 1)); }'
 require_text "src/self_hosted/lib/json.pgy" \
-    "ArrayPush(chunks, CharAtN("
+    "ArrayPush(chunks, StringWindowCharAt("
 require_file "tests/self_hosted/fixtures/json_bounded_string_owner.pgy"
 require_file "tests/self_hosted/parity/json_bounded_string_owner_smoke.sh"
 require_text "Makefile" "self-host-json-bounded-string-test-smoke:"
@@ -16760,7 +16764,7 @@ reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
 require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectNumberFieldOptWithin(" "JsonIntegerValueOptWithin("
 require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
-    "func JsonIntegerValueOptWithin(" "SubstringWithLen("
+    "func JsonIntegerValueOptWithin(" "StringWindowSubstring("
 require_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "func MirAbiIntegerValueAtBounds(" "JsonIntegerValueOptWithin("
 reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
@@ -16770,7 +16774,7 @@ reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
 require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
     "let bounded_integer: String"
 require_text "tests/self_hosted/fixtures/json_bounded_string_owner.pgy" \
-    'JsonIntegerValueOptWithin("xx1.5tail", 2, 5)'
+    'JsonIntegerValueOptWithin("xx1.5tail", StringLength("xx1.5tail"), 2, 5)'
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonObjectNumberFieldOptWithin(" "Substring("
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -16799,17 +16803,17 @@ reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
 reject_function_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
     "func MirMachineLayerInstructionReady(" "Substring(json"
 require_text "src/self_hosted/mir_lower/machine_layer_fact_owner.pgy" \
-    "SubEqualsWithLen("
+    "StringWindowSubEquals("
 require_text "src/self_hosted/lib/json_fact_table.pgy" \
     "let end_opt: Option<Int> = JsonDocumentObjectEnd(json);"
 require_text "src/self_hosted/lib/json_fact_table.pgy" \
-    "return JsonObjectFactTable(true, json, 0, end);"
+    "return JsonObjectFactTable(true, json, json_extent, 0, end);"
 reject_function_text "src/self_hosted/lib/json_fact_table.pgy" \
     "func JsonDocumentObjectFactTable(" "JsonObjectFactTableFromBounds("
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirDeclArrayBounds(json, decls)"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirRoutineObjectBoundsAt(json, 0, routine)"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectArrayBounds(json, routine[0], routine[1], \"source_locals\", source_locals)"
-require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectArrayObjectBoundsAt(json, routine[0], routine[1], \"body\", 0, inst)"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectArrayObjectBoundsAt(json, json_extent, routine[0], routine[1], \"body\", 0, inst)"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectStringFactOpt(json, routine[0], routine[1], \"name\")"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectStringFactOpt(json, inst[0], inst[1], \"source_type\")"
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonObjectStringField(json,"
@@ -17252,10 +17256,9 @@ reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "MirAbiLayoutIdFromRow("
 require_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "func MirCapturedAbiLayoutFactReady(" \
-    "SubstringWithLen("
-reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
-    "func MirCapturedAbiLayoutFactReady(" \
-    "Substring("
+    "StringWindowSubstring("
+reject_function_terms "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
+    "func MirCapturedAbiLayoutFactReady(" " Substring(" "(Substring("
 reject_function_text "src/self_hosted/mir_lower/abi_layout_fact_owner.pgy" \
     "func MirCapturedAbiLayoutFactReady(" \
     "StringLength(json)"
@@ -28638,7 +28641,7 @@ done < <(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_std
 # Physical owner moves preserve names and delete the former definitions.
 require_function_text "src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy" \
     "func DirectMirScalarCfgProgramAppendStatement(" \
-    'DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, "")'
+    'DirectMirInstructionHasNoPhysicalAbi(instruction.json, instruction.json_extent, capture, "")'
 require_function_text "src/self_hosted/mir_lower/generic_call_occurrence_index_owner.pgy" \
     "func MirGenericCallOccurrenceIndexFromDocument(" \
     "routines.instruction_abi_type_names[instruction] != header.return_type"
@@ -28807,7 +28810,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
     src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:91 \
     src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy:60 \
-    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:72 \
+    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:84 \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:115 \
     src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:210 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:145 \
@@ -28818,7 +28821,13 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:220 \
+    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy:30 \
+    src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_member_capture_provenance_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_member_read_local_root_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_member_place_owner.pgy:64 \
@@ -29141,6 +29150,59 @@ require_text \
 require_text \
     "src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy" \
     'SemanticAstAssignmentContainsNode(assignments, syntax_id);'
+for retired_member_responsibility in 'struct SemanticAstCollectionMemberMoveUse {' \
+        'func SemanticAstCollectionApplyMemberMoveRestorations(' \
+        'SemanticAstCollectionMemberReadBlockedRootsClosure(' \
+        'SemanticAstCollectionMemberElementEscapeClosure(' \
+        'SemanticAstCollectionMemberNestedReadAdmit(' 'ArrayDrop('; do
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy" \
+        "$retired_member_responsibility"
+done
+for member_schema_consumer in ast_collection_aggregate_value_exclusivity_owner \
+        ast_collection_aggregate_release_transition_owner \
+        ast_collection_aggregate_release_element_borrow_owner; do
+    require_text "src/self_hosted/semantic/$member_schema_consumer.pgy" \
+        'import "ast_collection_ownership_member_result_owner.pgy";'
+    reject_text "src/self_hosted/semantic/$member_schema_consumer.pgy" \
+        'import "ast_collection_ownership_member_transition_owner.pgy";'
+done
+for terminal_member_owner in ast_collection_ownership_member_result_owner \
+        ast_collection_ownership_member_restoration_owner ast_collection_member_capture_obligation_owner \
+        ast_collection_member_capture_source_owner ast_collection_member_capture_provenance_owner \
+        ast_collection_member_capture_site_owner; do
+    reject_text "src/self_hosted/semantic/$terminal_member_owner.pgy" \
+        'import "ast_collection_ownership_member_transition_owner.pgy";'
+done
+require_text "src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy" \
+    'SemanticAstCollectionMemberCaptureObligationAt('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy" \
+    'SemanticExpressionGraphPlaceKind('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy" \
+    'SemanticExpressionGraphValueReceiverSpineFromGraph('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy" \
+    'SemanticExpressionGraphValueReceiverProjectedTypeName('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy" \
+    'SemanticAstCollectionMemberReadonlyCaptureContains('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'SemanticArrayLiteralElementEdgeFromGraph('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'TypedAstKindArrayPushStmtTag()'
+require_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'TypedAstKindArraySetStmtTag()'
+require_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'SemanticStructLiteralFieldBindingFromGraph('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'SemanticAstCollectionArgumentFormalTargetForArgument('
+require_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'SemanticExpressionGraphCollectionCallStoresValue(protocol)'
+reject_text "src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy" \
+    'SemanticArrayLiteralViewFromGraph('
+require_text "src/self_hosted/semantic/ast_expression_graph_collection_call_protocol_owner.pgy" \
+    'protocol.operation == "SetAdd"'
+require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
+    'node = edge.previous_node;'
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'import "ast_collection_ownership_member_restoration_owner.pgy";'
 require_text \
     "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstCollectionOwnStringArrayParameterNode('
@@ -29233,12 +29295,18 @@ for assignment_identity_consumer in src/self_hosted/semantic/ast_collection_assi
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy; do
     reject_text "$assignment_identity_consumer" 'SemanticAstScopedLocalBindingIdentityForName('
 done
-require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
-    'SemanticAstCollectionArgumentEventStepFromGraph('
-require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
-    'ArrayDrop(pending);'
-require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
-    'ArrayDrop(order);'
+for retired_transfer_walk in SemanticAstCollectionFirstInvalidOwnedArgumentUse SemanticAstCollectionInitialDefinitions \
+    SemanticAstCollectionArgumentEventStepFromGraph 'let pending:' 'let order:'; do
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_transfer_walk"
+done
+reject_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'SemanticAstCollectionFirstInvalidOwnedArgumentUse('
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'SemanticAstCollectionOwnedArgumentUseAtEvent('
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'SemanticAstCollectionOwnedArgumentDefinitionAtSlot('
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'let retired_arguments: HashMap<String, Int> = MapNew();'
 require_text "src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy" \
     'if !AstExpressionNodeKindKnown(kind)'
 require_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" \
@@ -29251,10 +29319,8 @@ require_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.p
     'if !call.ok || call.call_node != node'
 require_file "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy"
 require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy" 220
-for completion_consumer in src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy; do
-    require_text "$completion_consumer" 'SemanticAstCollectionLifetimeRootReady('
-done
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'SemanticAstCollectionLifetimeRootReady('
 require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
     'SemanticAstCollectionLifetimeEventStepFromGraph('
 require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \

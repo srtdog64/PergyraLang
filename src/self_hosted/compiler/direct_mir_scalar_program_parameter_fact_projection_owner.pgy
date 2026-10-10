@@ -12,7 +12,7 @@ func DirectMirScalarProgramParamFactAtOrdinal(
     }
     let array_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[routine_row],
+            routines.source_json, routines.source_json_extent, routines.starts[routine_row],
             routines.ends[routine_row], "params", array_bounds) {
         return InvalidDirectMirRoutineParamFact();
     }
@@ -21,12 +21,12 @@ func DirectMirScalarProgramParamFactAtOrdinal(
     let row: Int = 0;
     while row <= ordinal {
         if !JsonArrayNextObjectBounds(
-                routines.source_json, cursor, array_bounds[1], bounds) {
+                routines.source_json, routines.source_json_extent, cursor, array_bounds[1], bounds) {
             return InvalidDirectMirRoutineParamFact();
         }
         cursor = bounds[1];
         row = row + 1;
     }
     return DirectMirRoutineParamFactFromBounds(
-        routines.source_json, bounds[0], bounds[1]);
+        routines.source_json, routines.source_json_extent, bounds[0], bounds[1]);
 }

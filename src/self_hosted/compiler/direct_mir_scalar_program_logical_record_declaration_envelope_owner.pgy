@@ -4,6 +4,7 @@ import "../mir_lower/program_declaration_index_owner.pgy";
 import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "../mir/declaration_wire_kind_owner.pgy";
+import "../lib/string_window_within.pgy";
 
 struct DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
     let valid: Bool;
@@ -13,7 +14,7 @@ struct DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
 }
 
 func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
-    json: String, ref declarations: MirProgramDeclarationIndex,
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex,
     declaration_row: Int
 ) -> DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
     let invalid: DirectMirScalarProgramLogicalRecordDeclarationEnvelope =
@@ -31,7 +32,7 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     let start: Int = declarations.starts[declaration_row];
     let end: Int = declarations.ends[declaration_row];
     let declaration_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, start, end);
+        json, json_extent, start, end);
     let logical_only: Bool = declarations.kinds[declaration_row] != "struct";
     let keys: Array<String> = [
         "kind", "nominal_kind", "name", "source_syntax_id",
@@ -48,20 +49,20 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     }
     if !JsonObjectFactTableReady(declaration_table) ||
         JsonObjectFactCount(declaration_table) != ArrayLength(keys) ||
-        !MirAbiSelectedObjectBoundsWithin(json, start, end, keys, starts, ends) ||
+        !MirAbiSelectedObjectBoundsWithin(json, json_extent, start, end, keys, starts, ends) ||
         !MirAbiAllBoundsPresent(starts, ends) {
         return invalid;
     }
     let kind: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[0], ends[0], false);
+        json, json_extent, starts[0], ends[0], false);
     let nominal_kind: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[1], ends[1], false);
+        json, json_extent, starts[1], ends[1], false);
     let name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[2], ends[2], false);
+        json, json_extent, starts[2], ends[2], false);
     let syntax: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[3], ends[3]);
+        json, json_extent, starts[3], ends[3]);
     let source_path: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[4], ends[4], false);
+        json, json_extent, starts[4], ends[4], false);
     if !IsSome(kind) || !IsSome(nominal_kind) || !IsSome(name) ||
         !IsSome(syntax) || !IsSome(source_path) ||
         UnwrapOption(kind) != declarations.kinds[declaration_row] ||
@@ -75,23 +76,23 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
         InvalidDirectMirNominalDeclarationAbiFact();
     if logical_only {
         if ends[6] - starts[6] != 2 ||
-            !SubEqualsWithLen(json, ends[6], starts[6], 2, "[]") {
+            !StringWindowSubEquals(json, json_extent, ends[6], starts[6], 2, "[]") {
             return invalid;
         }
     } else {
         let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
-            json, starts[6], ends[6]);
+            json, json_extent, starts[6], ends[6]);
         if !IsSome(abi_id) { return invalid; }
-        if SubEqualsWithLen(json, ends[7], starts[7], 4, "true") {
+        if StringWindowSubEquals(json, json_extent, ends[7], starts[7], 4, "true") {
             physical = DirectMirNominalDeclarationAbiFactFromDocument(
-                json, declarations, declaration_row);
+                json, json_extent, declarations, declaration_row);
             if !DirectMirNominalDeclarationAbiFactReady(physical) ||
                 physical.source_syntax_id != ToInt(UnwrapOption(syntax)) {
                 return invalid;
             }
         } else if ToInt(UnwrapOption(abi_id)) != 0 ||
-            !SubEqualsWithLen(json, ends[7], starts[7], 5, "false") ||
-            !SubEqualsWithLen(json, ends[8], starts[8], 4, "null") {
+            !StringWindowSubEquals(json, json_extent, ends[7], starts[7], 5, "false") ||
+            !StringWindowSubEquals(json, json_extent, ends[8], starts[8], 4, "null") {
             return invalid;
         }
     }

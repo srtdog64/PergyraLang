@@ -53,11 +53,11 @@ func DirectMirConstructedRecordArrayMemberPointAbiFactReady(
 }
 
 func DirectMirConstructedRecordArrayCapturedPointAbi(
-    json: String, ref capture: MirRoutineInstructionScalarCapture
+    json: String, json_extent: Int, ref capture: MirRoutineInstructionScalarCapture
 ) -> MirAbiLayoutRowCapture {
     let admitted: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
-            json, capture.abi_type_name, capture.abi_type_value_ready,
+            json, json_extent, capture.abi_type_name, capture.abi_type_value_ready,
             capture.abi_type_start, capture.abi_type_end,
             capture.abi_layout_id_start, capture.abi_layout_id_end,
             capture.abi_layout_required_start,
@@ -71,14 +71,14 @@ func DirectMirConstructedRecordArrayCapturedPointAbi(
 }
 
 func DirectMirConstructedRecordArrayMemberPointAbiFromMain(
-    json: String,
+    json: String, json_extent: Int,
     ref identity: DirectMirConstructedRecordArrayMemberIdentity,
     ref main: DirectMirConstructedRecordArrayMemberMainAdmission
 ) -> DirectMirConstructedRecordArrayMemberPointAbiFact {
     let point: MirAbiLayoutRowCapture =
-        DirectMirConstructedRecordArrayCapturedPointAbi(json, main.point);
+        DirectMirConstructedRecordArrayCapturedPointAbi(json, json_extent, main.point);
     let first: MirAbiLayoutRowCapture =
-        DirectMirConstructedRecordArrayCapturedPointAbi(json, main.first);
+        DirectMirConstructedRecordArrayCapturedPointAbi(json, json_extent, main.first);
     if !DirectMirConstructedRecordArrayPointLayoutReady(identity.record) ||
         !DirectMirStructAbiRowsEqual(point, identity.record.abi) ||
         !DirectMirStructAbiRowsEqual(first, identity.record.abi) {

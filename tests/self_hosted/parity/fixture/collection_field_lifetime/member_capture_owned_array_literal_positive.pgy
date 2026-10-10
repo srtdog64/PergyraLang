@@ -1,0 +1,7 @@
+struct Table { names: Array<String>; }
+func Store() -> Int {
+    let value: Table = Table(["owned"]);
+    let captured: Array<Table> = [value];
+    return ArrayLength(captured);
+}
+func Main() -> Void {}

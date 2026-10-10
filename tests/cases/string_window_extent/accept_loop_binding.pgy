@@ -1,0 +1,13 @@
+// A source bound fresh in each iteration with its witness in the same body.
+func Main() -> Void {
+    let words: Array<String> = ["ab", "cde"];
+    let mut i: Int = 0;
+    let mut total: Int = 0;
+    while i < ArrayLength(words) {
+        let w: String = words[i];
+        let n: Int = StringLength(w);
+        total = total + CharCode(w, n, n - 1);
+        i = i + 1;
+    }
+    Print(ToString(total));
+}

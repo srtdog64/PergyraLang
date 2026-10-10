@@ -1,0 +1,15 @@
+// Closed scopes may reuse a spelling; each read keeps its own binding type.
+func Main() -> Void {
+    unsafe {
+        let modes: Array<String> = ["first"];
+        Log(modes[0]);
+    }
+    let modes: Array<Int> = [0, 1, 2, 3];
+    Log(modes[1]);
+    unsafe {
+        let rows: Array<Int> = [17];
+        Log(rows[0]);
+    }
+    let rows: Array<String> = ["last"];
+    Log(rows[0]);
+}

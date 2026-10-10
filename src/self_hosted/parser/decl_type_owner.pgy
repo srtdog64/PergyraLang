@@ -41,7 +41,7 @@ func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
             }
             i = ParseExpectIn(location_context, content, i, ":", "type_field");
             ArraySet(cursor_out, 0, i);
-            let af_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let af_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if StringLength(af_type) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "type_field", "", "");
@@ -64,7 +64,7 @@ func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
         return alias_out;
     }
     ArraySet(cursor_out, 0, i);
-    let alias_target: String = ReadTypeIn(location_context, content, i, cursor_out);
+    let alias_target: String = ReadTypeIn(location_context, content, n, i, cursor_out);
     i = cursor_out[0];
     if StringLength(alias_target) == 0 {
         ParseRefuse(location_context, i, "type_name_invalid", "construct", "type", "", "");

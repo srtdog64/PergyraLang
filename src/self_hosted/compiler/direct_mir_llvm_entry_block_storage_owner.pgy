@@ -11,58 +11,59 @@
 // count cannot move above its operand, so it is refused instead of kept.
 
 import "../codegen/text/text_owner.pgy";
+import "../lib/string_window_within.pgy";
 
-func DirectMirLlvmLineEnd(text: String, n: Int, start: Int) -> Int {
+func DirectMirLlvmLineEnd(text: String, text_extent: Int, n: Int, start: Int) -> Int {
     let index: Int = start;
-    while index < n && CharCode(text, n, index) != 10 { index = index + 1; }
+    while index < n && StringWindowCharCode(text, text_extent, n, index) != 10 { index = index + 1; }
     if index < n { return index + 1; }
     return n;
 }
 
 // Length of a line without its trailing newline.
-func DirectMirLlvmLineLength(text: String, n: Int, start: Int, end: Int) -> Int {
-    if end > start && CharCode(text, n, end - 1) == 10 { return end - start - 1; }
+func DirectMirLlvmLineLength(text: String, text_extent: Int, n: Int, start: Int, end: Int) -> Int {
+    if end > start && StringWindowCharCode(text, text_extent, n, end - 1) == 10 { return end - start - 1; }
     return end - start;
 }
 
 // A basic-block label: `name:` at column zero.
-func DirectMirLlvmLineIsLabel(text: String, n: Int, start: Int, end: Int) -> Bool {
-    let length: Int = DirectMirLlvmLineLength(text, n, start, end);
+func DirectMirLlvmLineIsLabel(text: String, text_extent: Int, n: Int, start: Int, end: Int) -> Bool {
+    let length: Int = DirectMirLlvmLineLength(text, text_extent, n, start, end);
     if length < 2 { return false; }
-    let first: Int = CharCode(text, n, start);
+    let first: Int = StringWindowCharCode(text, text_extent, n, start);
     if first == 32 || first == 9 || first == 59 || first == 125 { return false; }
-    return CharCode(text, n, start + length - 1) == 58;
+    return StringWindowCharCode(text, text_extent, n, start + length - 1) == 58;
 }
 
-func DirectMirLlvmLineIsDefine(text: String, n: Int, start: Int, end: Int) -> Bool {
-    return DirectMirLlvmLineLength(text, n, start, end) >= 7 &&
-        SubEqualsWithLen(text, n, start, 7, "define ");
+func DirectMirLlvmLineIsDefine(text: String, text_extent: Int, n: Int, start: Int, end: Int) -> Bool {
+    return DirectMirLlvmLineLength(text, text_extent, n, start, end) >= 7 &&
+        StringWindowSubEquals(text, text_extent, n, start, 7, "define ");
 }
 
-func DirectMirLlvmLineIsFunctionEnd(text: String, n: Int, start: Int, end: Int) -> Bool {
-    return DirectMirLlvmLineLength(text, n, start, end) == 1 &&
-        CharCode(text, n, start) == 125;
+func DirectMirLlvmLineIsFunctionEnd(text: String, text_extent: Int, n: Int, start: Int, end: Int) -> Bool {
+    return DirectMirLlvmLineLength(text, text_extent, n, start, end) == 1 &&
+        StringWindowCharCode(text, text_extent, n, start) == 125;
 }
 
 // `  %name = alloca <type>[, align N]`. Returns false for any other line and
 // refuses an alloca whose operand list carries an element count.
-func DirectMirLlvmLineIsAlloca(text: String, n: Int, start: Int, end: Int) -> Bool {
-    let length: Int = DirectMirLlvmLineLength(text, n, start, end);
-    if length < 13 || !SubEqualsWithLen(text, n, start, 3, "  %") { return false; }
+func DirectMirLlvmLineIsAlloca(text: String, text_extent: Int, n: Int, start: Int, end: Int) -> Bool {
+    let length: Int = DirectMirLlvmLineLength(text, text_extent, n, start, end);
+    if length < 13 || !StringWindowSubEquals(text, text_extent, n, start, 3, "  %") { return false; }
     let line_end: Int = start + length;
     let index: Int = start + 3;
-    while index < line_end && CharCode(text, n, index) != 32 { index = index + 1; }
-    if index + 10 > line_end || !SubEqualsWithLen(text, n, index, 10, " = alloca ") {
+    while index < line_end && StringWindowCharCode(text, text_extent, n, index) != 32 { index = index + 1; }
+    if index + 10 > line_end || !StringWindowSubEquals(text, text_extent, n, index, 10, " = alloca ") {
         return false;
     }
     index = index + 10;
     let depth: Int = 0;
     while index < line_end {
-        let code: Int = CharCode(text, n, index);
+        let code: Int = StringWindowCharCode(text, text_extent, n, index);
         if code == 123 || code == 91 || code == 60 || code == 40 { depth = depth + 1; }
         if code == 125 || code == 93 || code == 62 || code == 41 { depth = depth - 1; }
         if code == 44 && depth == 0 {
-            if index + 8 > line_end || !SubEqualsWithLen(text, n, index, 8, ", align ") {
+            if index + 8 > line_end || !StringWindowSubEquals(text, text_extent, n, index, 8, ", align ") {
                 Die("direct MIR LLVM alloca carries an element count; entry-block storage placement cannot move it");
             }
         }
@@ -85,25 +86,25 @@ func DirectMirLlvmEntryBlockStorage(module_text: String) -> String {
     let target: Int = -1;
     let start: Int = 0;
     while start < n {
-        let end: Int = DirectMirLlvmLineEnd(module_text, n, start);
+        let end: Int = DirectMirLlvmLineEnd(module_text, n, n, start);
         if !in_function {
-            if DirectMirLlvmLineIsDefine(module_text, n, start, end) {
+            if DirectMirLlvmLineIsDefine(module_text, n, n, start, end) {
                 in_function = true;
                 entry_open = true;
                 entry_start = end;
                 target = -1;
-                if end < n && DirectMirLlvmLineIsLabel(module_text, n, end,
-                        DirectMirLlvmLineEnd(module_text, n, end)) {
-                    entry_start = DirectMirLlvmLineEnd(module_text, n, end);
+                if end < n && DirectMirLlvmLineIsLabel(module_text, n, n, end,
+                        DirectMirLlvmLineEnd(module_text, n, n, end)) {
+                    entry_start = DirectMirLlvmLineEnd(module_text, n, n, end);
                     start = entry_start;
                     continue;
                 }
             }
-        } else if DirectMirLlvmLineIsFunctionEnd(module_text, n, start, end) {
+        } else if DirectMirLlvmLineIsFunctionEnd(module_text, n, n, start, end) {
             in_function = false;
-        } else if DirectMirLlvmLineIsLabel(module_text, n, start, end) {
+        } else if DirectMirLlvmLineIsLabel(module_text, n, n, start, end) {
             entry_open = false;
-        } else if !entry_open && DirectMirLlvmLineIsAlloca(module_text, n, start, end) {
+        } else if !entry_open && DirectMirLlvmLineIsAlloca(module_text, n, n, start, end) {
             if target < 0 {
                 ArrayPush(insert_points, entry_start);
                 target = ArrayLength(insert_points) - 1;

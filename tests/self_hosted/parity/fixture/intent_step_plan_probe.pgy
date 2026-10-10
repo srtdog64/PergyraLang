@@ -18,7 +18,7 @@ func StepProbeWithForeignTarget(
     if target_row < 0 || maximum <= 0 { Die("step probe target setup is invalid"); }
     ArraySet(ids, target_row, ToString(maximum + 1));
     return MirProgramRoutineIndex(routines.valid, routines.source_json,
-        routines.source_length, routines.declarations, routines.starts,
+        routines.source_json_extent, routines.source_length, routines.declarations, routines.starts,
         routines.ends, routines.kinds, routines.owners, routines.names, ids,
         routines.source_module_paths, routines.receiver_carriages,
         routines.owner_nominal_kinds, routines.owner_declaration_rows,

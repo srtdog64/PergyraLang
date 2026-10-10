@@ -28,6 +28,10 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
         bool has_arr_var = llvm_scope_lookup_snapshot(ctx, name, &arr_var);
         LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
         if (has_arr_var && entry != NULL) {
+            /* The MIR type fact may not retype the current lexical storage. */
+            if (owner_elem_type != NULL && owner_elem_type != entry->elem_type)
+                return llvm_expression_error(ctx, node,
+                    "LLVM MIR array element type disagrees with active lexical storage");
             LLVMTypeRef elem_type = owner_elem_type != NULL
                 ? owner_elem_type : entry->elem_type;
             const char *suffix = llvm_type_to_suffix(ctx, elem_type);

@@ -1,0 +1,12 @@
+// One construction of the record does not prove its pair.
+struct Measured {
+    let text: String;
+    let text_length: Int;
+}
+
+func Main() -> Void {
+    let good: Measured = Measured(Concat("ab", "c"), 3);
+    let bad: Measured = Measured(Concat("a", "b"), 4096);
+    Print(ToString(CharCode(bad.text, bad.text_length, 100)));
+    Print(ToString(StringLength(good.text)));
+}

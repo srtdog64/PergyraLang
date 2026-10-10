@@ -261,7 +261,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     let moved_use: SemanticAstCollectionMemberMoveUse =
         SemanticAstCollectionFirstInvalidMemberMoveUse(
             artifact, signatures, constructors, locals, initializer_types.inferred_type_names, resolved_leaf_types,
-            surfaces, assignments, formal_effects.execution_contexts, formal_effects.borrowed_text_formals,
+            surfaces, assignments, statements, formal_effects.execution_contexts, formal_effects.borrowed_text_formals,
             move_destinations);
     if !moved_use.read_permission_ready {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
@@ -369,6 +369,11 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         retained_definitions, verdict);
     SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
     ArrayDrop(retained_definitions);
+    if verdict.ok && moved_use.capture_syntax_node_id > 0 {
+        return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", "readonly_aggregate_capture", "type", "nominal aggregate"),
+            moved_use.capture_syntax_node_id, moved_use.capture_expression_node_id);
+    }
     return verdict;
 }
 

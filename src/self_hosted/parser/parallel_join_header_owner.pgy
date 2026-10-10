@@ -24,7 +24,7 @@ func ParserParallelJoinHeaderExpected(at: Int, expected: String) -> ParserParall
 }
 
 // `open` is the offset of the header's `(`.
-func ParserParallelJoinHeaderAt(content: String, open: Int) -> ParserParallelJoinHeader {
+func ParserParallelJoinHeaderAt(content: String, content_extent: Int, open: Int) -> ParserParallelJoinHeader {
     let i: Int = SkipWhitespaceAndComments(content, open + 1);
     let cursor: Array<Int> = [i];
     let binding: String = ReadIdent(content, i, cursor);
@@ -38,14 +38,14 @@ func ParserParallelJoinHeaderAt(content: String, open: Int) -> ParserParallelJoi
     }
     i = LanguageWordEnd(after_binding, LanguageWordId.WordIn);
     ArraySet(cursor, 0, i);
-    let collection: ParserExpressionFact = ParseExprFact(content, i, cursor);
+    let collection: ParserExpressionFact = ParseExprFact(content, content_extent, i, cursor);
     if !collection.ok {
         return ParserParallelJoinHeader(false, i, "", collection);
     }
     i = SkipWhitespaceAndComments(content, cursor[0]);
     if ParserCharAt(content, i) == "." && ParserCharAt(content, i + 1) == "." {
         ArraySet(cursor, 0, i + 2);
-        let range_end: ParserExpressionFact = ParseExprFact(content, i + 2, cursor);
+        let range_end: ParserExpressionFact = ParseExprFact(content, content_extent, i + 2, cursor);
         if !range_end.ok {
             return ParserParallelJoinHeader(false, i + 2, "", range_end);
         }

@@ -71,6 +71,75 @@ Formal identity owner units mutate freshly admitted facts and check final
 authority refusal. These checks are not MIR, installed-driver, aggregate-field
 release, hard C substitution or registry-closure evidence.
 
+`collection_formal_key_consumption_owner.sh` separately pins formal-use
+producer effects/verdicts and observes every returned carrier field and map
+entry on native C/LLVM, including partial malformed-input refusals. Its
+source-placement ratchet rejects the two historical unconsumed key hoists;
+that static check is not behavioral or performance evidence. It runs through
+`self-host-collection-formal-key-consumption-test-smoke`, a prerequisite of
+the inout-effect target. Admitted borrowed-element statement-target positive
+coverage remains OPEN; rejected indexed-mutator source is not forged into
+typed facts to count that branch. Whole-input cost, P1, installed-driver and
+SoT closure require their separate gates.
+
+`collection_binding_move_prefix_owner.sh` pins seventeen real-source/parent
+observations on native C/LLVM: exact scanner triples and matched leaf text,
+caller/body diagnostics and source IDs, canonical definition/storage rows,
+and completion slots. Its optional `BINDING_MOVE_BASELINE` compares a frozen
+pre-edit observation; permanent full-output pins are checked even without
+that local receipt. The separate source ratchet requires the empty-map read
+guard and leaves completion/lineage updates outside it, rejecting four planted
+placement regressions. `--static-only` is placement evidence only;
+`--behavior-only` is executable observation only. The default runs both through
+`self-host-collection-binding-move-prefix-test-smoke`, reached by the inout-effect
+target. Malformed analysis is refused by the validating parent, not sent to a
+raw scanner. Probe-skipped invalid body cases are NOT_OBSERVED, not proof of
+production call order. Missing-subtree admitted-positive and strict same-SyntaxId
+post-insertion later-lane coverage remain OPEN; no forged AST fills those gaps.
+This does not establish whole-input cost, installed-driver parity or P1 closure.
+
+`member_indexed_read_permission.sh` runs the reached member transition,
+capture and terminal-publication chain on native C/LLVM. It preserves the
+original sixteen source controls and adds thirty-five native-calibrated
+capture controls: readonly nominal places cannot become owned locals,
+constructor/literal/container stores, destructured values, returns or own
+actuals. Default/ref calls, actual owned values and fresh factories remain
+positive controls. ArraySet consumes the parser-owned Auxiliary value lane;
+store calls require canonical builtin identity and the collection protocol's
+store policy, not a spelling match. This is bounded capture admission, not
+general return-provenance inference or graph/view lifetime implementation.
+
+The same gate checks nine complete publication results, three terminal
+transfer refusals and two selected formal-fact corruption cases per backend.
+The corruption probes start with real parser/analyzer facts and require both
+the capture site and existing signature/artifact admission to refuse the
+selected missing row or invalid mode. Publication checks pin early-error
+priority, partial carriers, generation and read/escape/nested closure order.
+Source-size caps remain unchanged; the responsibility split is not permission
+to condense source or weaken a cap. Native, inputs, transitive imports,
+executables and observations are hash-bound before and after execution.
+Run it with `make self-host-collection-member-permission-test-smoke`; it is a
+prerequisite of the inout-effect target, not a second manual gate. Supplied
+sources are analyzer inputs; empty-Main native controls do not prove their
+payload execution. Full source admission, installed-driver parity, C-path
+substitution, SoT closure and exact-candidate CI remain separate obligations.
+
+The selected-site executable also imports the scalar capture-source unit: two
+actual implicit Int returns need no nominal backing identity, while Unknown,
+missing types and nominal-without-backing fail. Leaf types come from the existing
+body environment issuer; this is not an independent arbitrary forged-type
+validator. Member receipts are bound to their own imports, so a later event-owner
+edit requires a fresh importing pair.
+
+The inout gate consumes pending argument/definition retirement in the scan's
+one current-definition stream, not a terminal second scanner. Units 125–128
+pin exact pending site, actual generic refusal nonpublication, missing current,
+a real foreign current definition and zero syntax. Same-event API checks do not
+replace later-event source controls. The structural order ratchet rejects
+seventeen planted placement/site/write/fact-overwrite variants; executable
+observations own semantics. Unit
+scratch and the scan-local map have no physical-reclamation evidence here.
+
 Its formal/member source controls require exact root/declared-field identity,
 reject repeated extraction and indexed-target false restoration, and retain
 whole-field writeback. Generic source controls consume the real admitted body

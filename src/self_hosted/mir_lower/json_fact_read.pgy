@@ -33,7 +33,7 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
         EmptyJsonArrayObjectFactTable();
     let intent_execution_seen: Bool = false;
     let n: Int = StringLength(json);
-    if n <= 0 || JsonCharCodeAt(json, n, 0) != JsonAsciiCode("{") {
+    if n <= 0 || JsonCharCodeAt(json, n, n, 0) != JsonAsciiCode("{") {
         return MirDocumentFactIndex(
             false, root, declarations, domain_topology,
             domain_runtime_assignments, intent_execution, routines, boundaries
@@ -43,16 +43,16 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
     let expect_member: Bool = true;
     let after_comma: Bool = false;
     while cursor < n {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, n);
+        cursor = JsonSkipWhitespaceWithin(json, n, cursor, n);
         if cursor >= n { break; }
-        let code: Int = JsonCharCodeAt(json, n, cursor);
+        let code: Int = JsonCharCodeAt(json, n, n, cursor);
         if code == JsonAsciiCode("}") {
             let document_end: Int = cursor + 1;
             if after_comma ||
-                JsonSkipWhitespaceWithin(json, document_end, n) != n {
+                JsonSkipWhitespaceWithin(json, n, document_end, n) != n {
                 break;
             }
-            root = JsonObjectFactTable(true, json, 0, document_end);
+            root = JsonObjectFactTable(true, json, n, 0, document_end);
             return MirDocumentFactIndex(
                 true, root, declarations, domain_topology,
                 domain_runtime_assignments, intent_execution, routines, boundaries
@@ -68,66 +68,66 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
         if code != JsonAsciiCode("\"") { break; }
         let key_start: Int = cursor;
         let key_end_opt: Option<Int> = JsonStringEndWithin(
-            json, key_start, n
+            json, n, key_start, n
         );
         if !IsSome(key_end_opt) { break; }
         let key_end: Int = UnwrapOption(key_end_opt);
-        cursor = JsonSkipWhitespaceWithin(json, key_end, n);
+        cursor = JsonSkipWhitespaceWithin(json, n, key_end, n);
         if cursor >= n ||
-            JsonCharCodeAt(json, n, cursor) != JsonAsciiCode(":") {
+            JsonCharCodeAt(json, n, n, cursor) != JsonAsciiCode(":") {
             break;
         }
         let value_start: Int = JsonSkipWhitespaceWithin(
-            json, cursor + 1, n
+            json, n, cursor + 1, n
         );
         let value_end_opt: Option<Int> = JsonValueEndWithin(
-            json, value_start, n
+            json, n, value_start, n
         );
         if !IsSome(value_end_opt) { break; }
         let value_end: Int = UnwrapOption(value_end_opt);
         let is_intent_execution: Bool = JsonObjectKeyEqualsWithin(
-            json, key_start, key_end, "intent_execution"
+            json, n, key_start, key_end, "intent_execution"
         );
         if is_intent_execution && intent_execution_seen {
             break;
         }
         if value_start < value_end &&
-            JsonCharCodeAt(json, value_end, value_start) ==
+            JsonCharCodeAt(json, n, value_end, value_start) ==
                 JsonAsciiCode("[") {
             let table: JsonArrayObjectFactTable = JsonArrayObjectFactTable(
-                true, json, value_start, value_end
+                true, json, n, value_start, value_end
             );
             if JsonObjectKeyEqualsWithin(
-                json, key_start, key_end, "decls"
+                json, n, key_start, key_end, "decls"
             ) {
                 declarations = table;
             } else if JsonObjectKeyEqualsWithin(
-                json, key_start, key_end, "routines"
+                json, n, key_start, key_end, "routines"
             ) {
                 routines = table;
             } else if JsonObjectKeyEqualsWithin(
-                json, key_start, key_end, "parallel_capture_boundaries"
+                json, n, key_start, key_end, "parallel_capture_boundaries"
             ) {
                 boundaries = table;
             }
         } else if value_start < value_end &&
-            JsonCharCodeAt(json, value_end, value_start) ==
+            JsonCharCodeAt(json, n, value_end, value_start) ==
                 JsonAsciiCode("{") {
             if JsonObjectKeyEqualsWithin(
-                json, key_start, key_end, "domain_topology"
+                json, n, key_start, key_end, "domain_topology"
             ) {
                 domain_topology = JsonObjectFactTableFromBounds(
-                    json, value_start, value_end
+                    json, n, value_start, value_end
                 );
             } else if JsonObjectKeyEqualsWithin(
-                json, key_start, key_end, "domain_runtime_assignments"
+                json, n, key_start, key_end, "domain_runtime_assignments"
             ) {
                 domain_runtime_assignments = JsonObjectFactTableFromBounds(
-                    json, value_start, value_end
+                    json, n, value_start, value_end
                 );
             } else if is_intent_execution {
                 intent_execution = JsonObjectFactTableFromBounds(
-                    json, value_start, value_end
+                    json, n, value_start, value_end
                 );
                 intent_execution_seen = true;
             }
@@ -149,12 +149,12 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
         return start;
     }
     let n: Int = StringLength(json);
-    if JsonCharCodeAt(json, n, start) == JsonAsciiCode("{") {
+    if JsonCharCodeAt(json, n, n, start) == JsonAsciiCode("{") {
         return start;
     }
     let i: Int = start - 1;
     while i >= 0 {
-        let c: Int = JsonCharCodeAt(json, n, i);
+        let c: Int = JsonCharCodeAt(json, n, n, i);
         if c == JsonAsciiCode("{") {
             return i;
         }
@@ -167,94 +167,94 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
 }
 
 func MirObjectStringFactAtBounds(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     field: String
 ) -> String {
     let value: Option<String> = JsonObjectStringFieldOptWithin(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
     if !IsSome(value) { return ""; }
     return UnwrapOption(value);
 }
 
 func MirObjectNumberFactAtBounds(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     field: String
 ) -> String {
     let value: Option<String> = JsonObjectNumberFieldOptWithin(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
     if !IsSome(value) { return ""; }
     return UnwrapOption(value);
 }
 
 func MirObjectFieldValueBoundsAtBounds(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     field: String,
     inout bounds: Array<Int>
 ) -> Bool {
     return JsonObjectFieldValueBoundsWithin(
-        json, start, end, field, bounds
+        json, json_extent, start, end, field, bounds
     );
 }
 
 func MirObjectArrayBoundsAtBounds(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     field: String,
     inout bounds: Array<Int>
 ) -> Bool {
     if !JsonObjectFieldValueBoundsWithin(
-        json, start, end, field, bounds
+        json, json_extent, start, end, field, bounds
     ) {
         return false;
     }
     return bounds[0] < bounds[1] &&
-        JsonCharCodeAt(json, bounds[1], bounds[0]) == JsonAsciiCode("[");
+        JsonCharCodeAt(json, json_extent, bounds[1], bounds[0]) == JsonAsciiCode("[");
 }
 
 func MirObjectFieldOccurrenceCountAtBounds(
-    json: String, start: Int, end: Int, field: String
+    json: String, json_extent: Int, start: Int, end: Int, field: String
 ) -> Int {
     if start < 0 || end <= start ||
-        JsonCharCodeAt(json, end, start) != JsonAsciiCode("{") {
+        JsonCharCodeAt(json, json_extent, end, start) != JsonAsciiCode("{") {
         return 0;
     }
     let count: Int = 0;
     let cursor: Int = start + 1;
     while cursor < end {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, end);
         if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("}") {
+            JsonCharCodeAt(json, json_extent, end, cursor) == JsonAsciiCode("}") {
             return count;
         }
-        if JsonCharCodeAt(json, end, cursor) == JsonAsciiCode(",") {
+        if JsonCharCodeAt(json, json_extent, end, cursor) == JsonAsciiCode(",") {
             cursor = cursor + 1;
             continue;
         }
-        if JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("\"") {
+        if JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode("\"") {
             return 0;
         }
-        let key_end_opt: Option<Int> = JsonStringEndWithin(json, cursor, end);
+        let key_end_opt: Option<Int> = JsonStringEndWithin(json, json_extent, cursor, end);
         if !IsSome(key_end_opt) { return 0; }
         let key_end: Int = UnwrapOption(key_end_opt);
         let matches: Bool = JsonObjectKeyEqualsWithin(
-            json, cursor, key_end, field
+            json, json_extent, cursor, key_end, field
         );
-        cursor = JsonSkipWhitespaceWithin(json, key_end, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, key_end, end);
         if cursor >= end ||
-            JsonCharCodeAt(json, end, cursor) != JsonAsciiCode(":") {
+            JsonCharCodeAt(json, json_extent, end, cursor) != JsonAsciiCode(":") {
             return 0;
         }
-        cursor = JsonSkipWhitespaceWithin(json, cursor + 1, end);
-        let value_end_opt: Option<Int> = JsonValueEndWithin(json, cursor, end);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor + 1, end);
+        let value_end_opt: Option<Int> = JsonValueEndWithin(json, json_extent, cursor, end);
         if !IsSome(value_end_opt) { return 0; }
         if matches { count = count + 1; }
         cursor = UnwrapOption(value_end_opt);
@@ -263,26 +263,26 @@ func MirObjectFieldOccurrenceCountAtBounds(
 }
 
 func MirObjectUniqueStringFactAtBounds(
-    json: String, start: Int, end: Int, field: String
+    json: String, json_extent: Int, start: Int, end: Int, field: String
 ) -> Option<String> {
     if MirObjectFieldOccurrenceCountAtBounds(
-        json, start, end, field
+        json, json_extent, start, end, field
     ) != 1 {
         return None;
     }
-    return JsonObjectStringFieldOptWithin(json, start, end, field);
+    return JsonObjectStringFieldOptWithin(json, json_extent, start, end, field);
 }
 
 func MirObjectUniqueNumberFactAtBounds(
-    json: String, start: Int, end: Int, field: String
+    json: String, json_extent: Int, start: Int, end: Int, field: String
 ) -> Option<String> {
     if MirObjectFieldOccurrenceCountAtBounds(
-        json, start, end, field
+        json, json_extent, start, end, field
     ) != 1 {
         return None;
     }
     let value: String = MirObjectNumberFactAtBounds(
-        json, start, end, field
+        json, json_extent, start, end, field
     );
     if value == "" { return None; }
     return Some(value);
@@ -324,30 +324,31 @@ func MirObjectFieldValueBounds(json: String, start: Int, end: Int, field: String
     return JsonObjectFieldValueBounds(json, MirFactObjectStart(json, start), end, field, bounds);
 }
 
-func MirObjectArrayStringFactAt(json: String, start: Int, end: Int, field: String, row: Int) -> String {
-    return JsonObjectArrayStringAt(json, MirFactObjectStart(json, start), end, field, row);
+func MirObjectArrayStringFactAt(json: String, json_extent: Int, start: Int, end: Int, field: String, row: Int) -> String {
+    return JsonObjectArrayStringAt(json, json_extent, MirFactObjectStart(json, start), end, field, row);
 }
 
-func MirObjectArrayStringFactCount(json: String, start: Int, end: Int, field: String) -> Int {
+func MirObjectArrayStringFactCount(json: String, json_extent: Int, start: Int, end: Int, field: String) -> Int {
     let bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, start, end, field, bounds) {
         return 0;
     }
-    return JsonArrayStringCount(json, bounds[0], bounds[1]);
+    return JsonArrayStringCount(json, json_extent, bounds[0], bounds[1]);
 }
 
 func MirObjectArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
+    let json_extent: Int = StringLength(json);
     if !JsonObjectFieldValueBounds(json, MirFactObjectStart(json, start), end, field, bounds) {
         return false;
     }
     if bounds[0] >= bounds[1] {
         return false;
     }
-    return JsonCharCodeAt(json, StringLength(json), bounds[0]) == JsonAsciiCode("[");
+    return JsonCharCodeAt(json, json_extent, json_extent, bounds[0]) == JsonAsciiCode("[");
 }
 
 func MirObjectArrayObjectBoundsAt(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     field: String,
@@ -358,13 +359,13 @@ func MirObjectArrayObjectBoundsAt(
     if !MirObjectArrayBounds(json, start, end, field, array_bounds) {
         return false;
     }
-    return JsonArrayObjectBoundsAt(json, array_bounds[0], array_bounds[1], row, bounds);
+    return JsonArrayObjectBoundsAt(json, json_extent, array_bounds[0], array_bounds[1], row, bounds);
 }
 
 // A missing field reads as empty. A present array must hold only strings:
 // returning the prefix before a bad element would lower it silently.
 func MirObjectArrayStringFactsAtBounds(
-    json: String,
+    json: String, json_extent: Int,
     start: Int,
     end: Int,
     field: String
@@ -372,13 +373,13 @@ func MirObjectArrayStringFactsAtBounds(
     let values: Array<String> = [];
     let array_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, start, end, field, array_bounds
+        json, json_extent, start, end, field, array_bounds
     ) { return values; }
     let cursor: Int = array_bounds[0] + 1;
     while cursor < array_bounds[1] {
-        cursor = JsonSkipWhitespaceWithin(json, cursor, array_bounds[1]);
+        cursor = JsonSkipWhitespaceWithin(json, json_extent, cursor, array_bounds[1]);
         if cursor >= array_bounds[1] { break; }
-        let code: Int = JsonCharCodeAt(json, array_bounds[1], cursor);
+        let code: Int = JsonCharCodeAt(json, json_extent, array_bounds[1], cursor);
         if code == JsonAsciiCode("]") { return values; }
         if code == JsonAsciiCode(",") {
             cursor = cursor + 1;
@@ -386,7 +387,7 @@ func MirObjectArrayStringFactsAtBounds(
         }
         if code != JsonAsciiCode("\"") { break; }
         let read: Option<JsonStringRead> = JsonReadStringBounded(
-            json, cursor, array_bounds[1]
+            json, json_extent, cursor, array_bounds[1]
         );
         if !IsSome(read) { break; }
         ArrayPush(values, UnwrapOption(read).value);

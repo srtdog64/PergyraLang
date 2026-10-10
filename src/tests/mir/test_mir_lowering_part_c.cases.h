@@ -278,6 +278,31 @@ test_mir_lowering_part_c(void)
         free(mir_error);
     }
 
+    TEST("MIR validator rejects zero and duplicate local-type identities");
+    {
+        MIRSourceLocalType facts[2] = {
+            { .name = "local", .type_name = "Int", .binding_syntax_id = 0 },
+            { .name = "local", .type_name = "String", .binding_syntax_id = 7 }
+        };
+        MIRRoutine routine = {0};
+        MIRProgram mir = {0};
+        char *error = NULL;
+        routine.name = "InvalidLocalTypeIdentity";
+        routine.source_local_type_count = routine.source_local_type_capacity = 2;
+        routine.source_local_types = facts;
+        mir.routine_count = 1;
+        mir.routines = &routine;
+        bool rejected = !mir_validate(&mir, &error) && error != NULL
+            && strstr(error, "missing binding identity") != NULL;
+        free(error);
+        error = NULL;
+        facts[0].binding_syntax_id = 7;
+        rejected &= !mir_validate(&mir, &error) && error != NULL
+            && strstr(error, "duplicate binding identity") != NULL;
+        EXPECT(rejected);
+        free(error);
+    }
+
     TEST("MIR captures builtin call return types for source locals");
     {
         const char *src =

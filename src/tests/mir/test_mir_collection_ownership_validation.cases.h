@@ -171,4 +171,36 @@ test_mir_collection_ownership_validation(void)
     mir_destroy(mir);
     rir_destroy(rir);
     hir_destroy(hir);
+
+    hir = NULL;
+    rir = NULL;
+    mir = NULL;
+    bool formal_control = lower_mir_from_source(
+        "struct Holder { rows: Array<String>; }"
+        "func Inspect(own values: Holder, ref other: Holder) -> Void {"
+        " let alias: Array<String> = values.rows; Log(ArrayLength(alias)); }"
+        " func Main() -> Void {}", &hir, &rir, &mir);
+    routine = formal_control
+        ? find_mir_routine_mut(mir, "Inspect", MIR_SCOPE_FUNCTION) : NULL;
+    bool duplicate_formal = false;
+    if (routine != NULL && routine->param_count == 2) {
+        formal_control &= routine->collection_ownership_fact_count == 1
+            && mir_validate_collection_ownership_facts(routine, NULL);
+        FuncParam *second = routine->params[1];
+        routine->params[1] = routine->params[0];
+        duplicate_formal = !mir_validate_collection_ownership_facts(routine,
+            &error) && error != NULL;
+        routine->params[1] = second;
+        free(error);
+    }
+    TEST("MIR collection source type refuses duplicate formal identity");
+    if (!formal_control || !duplicate_formal)
+        printf("\n  formal identity fixture: control=%d rows=%zu params=%zu duplicate_refused=%d\n",
+            (int)formal_control,
+            routine != NULL ? routine->collection_ownership_fact_count : 0,
+            routine != NULL ? routine->param_count : 0, (int)duplicate_formal);
+    EXPECT(formal_control && duplicate_formal);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
 }

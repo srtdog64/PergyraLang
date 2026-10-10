@@ -69,10 +69,10 @@ func DirectMirNestedIntentEmptyParameterSetFact(
 }
 
 func DirectMirNestedIntentImplicitReceiverParamReady(
-    json: String, start: Int, end: Int, expected_owner: String
+    json: String, json_extent: Int, start: Int, end: Int, expected_owner: String
 ) -> Bool {
     let routine: JsonObjectFactTable =
-        JsonObjectFactTableFromBounds(json, start, end);
+        JsonObjectFactTableFromBounds(json, json_extent, start, end);
     let params: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(routine, "params");
     if expected_owner == "" || !DirectMirExactObjectArrayCount(params, 1) {
@@ -80,11 +80,11 @@ func DirectMirNestedIntentImplicitReceiverParamReady(
     }
     let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        receiver.json, receiver.start, receiver.end, "name");
+        receiver.json, receiver.json_extent, receiver.start, receiver.end, "name");
     let source_syntax_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        receiver.json, receiver.start, receiver.end, "source_syntax_id");
+        receiver.json, receiver.json_extent, receiver.start, receiver.end, "source_syntax_id");
     let owner: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routine.json, routine.start, routine.end, "owner");
+        routine.json, routine.json_extent, routine.start, routine.end, "owner");
     return JsonObjectFactTableReady(receiver) &&
         JsonObjectFactCount(receiver) == 10 && IsSome(name) &&
         IsSome(source_syntax_id) && IsSome(owner) &&
@@ -101,7 +101,7 @@ func DirectMirNestedIntentImplicitReceiverParamReady(
             receiver, "abi_type_name", "null") &&
         DirectMirObjectNumberEquals(receiver, "abi_layout_id", "0") &&
         JsonObjectBoolFieldEqualsWithin(
-            receiver.json, receiver.start, receiver.end,
+            receiver.json, receiver.json_extent, receiver.start, receiver.end,
             "abi_layout_required", false) &&
         DirectMirObjectFieldKindEquals(receiver, "abi_layout", "null");
 }
@@ -118,19 +118,19 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
         Die("direct MIR nested intent header row is invalid");
     }
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row], "name");
     let kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row], "kind");
     let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row], "source_syntax_id");
     let receiver: Option<String> = MirObjectUniqueStringFactAtBounds(
-        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row], "receiver_carriage");
     let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
-        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row], "return");
     let generic_bounds: Array<Int> = [0, 0];
     let param_bounds: Array<Int> = [0, 0];
@@ -151,12 +151,12 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
         Die("direct MIR nested intent header return is invalid");
     }
     if !MirObjectArrayBoundsAtBounds(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row], "generics", generic_bounds) {
         Die("direct MIR nested intent header generics are invalid");
     }
     if !MirObjectArrayBoundsAtBounds(
-            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
             admitted.routines.ends[row], "params", param_bounds) {
         Die("direct MIR nested intent header params are invalid");
     }
@@ -169,7 +169,7 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
         Die("direct MIR nested intent indexed header identity is invalid");
     }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.source_json, admitted.routines.source_json_extent, admitted.routines.starts[row],
         admitted.routines.ends[row]);
     if ArrayLength(header.generic_names) != 0 ||
         header.return_type != UnwrapOption(return_type) {
@@ -177,13 +177,13 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
     }
     let parameters: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFactFromBounds(
-            admitted.routines.source_json, param_bounds[0], param_bounds[1],
+            admitted.routines.source_json, admitted.routines.source_json_extent, param_bounds[0], param_bounds[1],
             header.param_names, header.param_types,
             header.param_carriages, header.param_resources,
             header.param_pass_shapes, "");
     if UnwrapOption(kind) == "method" {
         if !DirectMirNestedIntentImplicitReceiverParamReady(
-                admitted.routines.source_json,
+                admitted.routines.source_json, admitted.routines.source_json_extent,
                 admitted.routines.starts[row], admitted.routines.ends[row],
                 indexed_owner) {
             Die("direct MIR nested intent implicit receiver is invalid");

@@ -7,7 +7,7 @@ import "expression_graph_sequence_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 
 func RenderDestructureFromFactsWithExpressionOrder(
-    json: String,
+    json: String, json_extent: Int,
     inst_start: Int,
     inst_end: Int,
     indent: String,
@@ -18,7 +18,7 @@ func RenderDestructureFromFactsWithExpressionOrder(
 ) -> String {
     let init: String = StringTrim(expr0);
     let elem_type: String = MirObjectStringFactAtBounds(
-        json, inst_start, inst_end, "destructure_element_type"
+        json, json_extent, inst_start, inst_end, "destructure_element_type"
     );
     if StringLength(init) == 0 {
         MirLowerFailClosed("destructure instruction is missing initializer fact");
@@ -29,10 +29,10 @@ func RenderDestructureFromFactsWithExpressionOrder(
     let bindings: Array<String> = [];
     let binding_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-            json, inst_start, inst_end, "destructure_bindings", binding_bounds
+            json, json_extent, inst_start, inst_end, "destructure_bindings", binding_bounds
         ) ||
         !JsonArrayStringsWithin(
-            json, binding_bounds[0], binding_bounds[1], bindings
+            json, json_extent, binding_bounds[0], binding_bounds[1], bindings
         ) {
         MirLowerFailClosed("destructure instruction is missing binding-name facts");
     }
@@ -225,7 +225,7 @@ func MirDeferPartAdvance(part: String, inout open_part: String) -> Bool {
 }
 
 func RenderDeferFromFactsWithExpressionOrder(
-    json: String,
+    json: String, json_extent: Int,
     inst_start: Int,
     inst_end: Int,
     indent: String,
@@ -239,7 +239,7 @@ func RenderDeferFromFactsWithExpressionOrder(
         MirLowerFailClosed("defer instruction has no typed body kind");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, inst_start, inst_end
+        json, json_extent, inst_start, inst_end
     );
     let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
         instruction, "expr0_graph"

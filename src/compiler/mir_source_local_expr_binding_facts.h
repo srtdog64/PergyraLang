@@ -6,7 +6,7 @@
 const char *mir_source_local_identifier_type_name(
     const MIRProgram *program,
     const MIRRoutine *routine,
-    const char *name);
+    const ASTNode *identifier);
 const char *mir_source_local_member_field_type_name(
     const MIRProgram *program,
     const char *owner_type_name,

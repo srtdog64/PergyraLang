@@ -1,0 +1,23 @@
+// Apply terminal restoration only after ordered statement/call validation.
+import "ast_local_binding_fact_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_ownership_member_result_owner.pgy";
+
+func SemanticAstCollectionApplyMemberMoveRestorations(
+    ref locals: SemanticAstLocalBindingFacts, ref moved_use: SemanticAstCollectionMemberMoveUse,
+    inout dispositions: Array<Int>
+) -> Void {
+    let restored: Int = 0;
+    while restored < ArrayLength(moved_use.restored_binding_syntax_ids) {
+        let local_row: Int = 0;
+        while local_row < ArrayLength(locals.node_ids) {
+            if locals.node_ids[local_row] ==
+                    moved_use.restored_binding_syntax_ids[restored] {
+                dispositions[local_row] =
+                    SemanticAstCollectionDispositionRetired();
+            }
+            local_row = local_row + 1;
+        }
+        restored = restored + 1;
+    }
+}

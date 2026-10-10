@@ -344,11 +344,12 @@ func SelfMirJsonStaticAbiLayout(type_name: String) -> String {
 }
 
 func SelfMirJsonAbiLayoutId(layout: String) -> String {
-    if StringLength(layout) == 0 {
+    let layout_extent: Int = StringLength(layout);
+    if layout_extent == 0 {
         return "0";
     }
     let row: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        layout, 0, StringLength(layout)
+        layout, layout_extent, 0, layout_extent
     );
     return ToString(MirAbiLayoutIdFromRow(row));
 }

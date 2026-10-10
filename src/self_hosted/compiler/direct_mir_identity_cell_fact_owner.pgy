@@ -142,13 +142,13 @@ func DirectMirIdentityCellRow(ref fact: DirectMirIdentityCellFacts, type_name: S
 }
 
 func DirectMirIdentityCellEnvelopeSyntaxId(
-    json: String, ref declarations: MirProgramDeclarationIndex, row: Int
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex, row: Int
 ) -> Int {
     if !declarations.valid || row < 0 || row >= MirProgramDeclarationIndexCount(declarations) ||
         !DirectMirIdentityCellNominalKindReady(declarations.nominal_kinds[row]) ||
         declarations.kinds[row] != MirDeclarationWireKind(declarations.nominal_kinds[row]) { return 0; }
     let start: Int = declarations.starts[row]; let end: Int = declarations.ends[row];
-    let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, start, end);
+    let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, json_extent, start, end);
     let keys: Array<String> = ["kind", "nominal_kind", "name", "source_syntax_id",
         "source_module_path", "fields", "methods"];
     let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
@@ -159,20 +159,20 @@ func DirectMirIdentityCellEnvelopeSyntaxId(
     // The producer owns the nominal envelope, including Zone authority rows.
     // ABI/generic/authority obligations cannot disappear as an unused member.
     if !JsonObjectFactTableReady(table) || JsonObjectFactCount(table) != ArrayLength(keys) ||
-        !MirAbiSelectedObjectBoundsWithin(json, start, end, keys, starts, ends) ||
+        !MirAbiSelectedObjectBoundsWithin(json, json_extent, start, end, keys, starts, ends) ||
         !MirAbiAllBoundsPresent(starts, ends) { return 0; }
-    let kind: Option<String> = MirAbiStringValueAtBounds(json, starts[0], ends[0], false);
-    let nominal: Option<String> = MirAbiStringValueAtBounds(json, starts[1], ends[1], false);
-    let name: Option<String> = MirAbiStringValueAtBounds(json, starts[2], ends[2], false);
-    let syntax: Option<String> = MirAbiIntegerValueAtBounds(json, starts[3], ends[3]);
-    let path: Option<String> = MirAbiStringValueAtBounds(json, starts[4], ends[4], false);
+    let kind: Option<String> = MirAbiStringValueAtBounds(json, json_extent, starts[0], ends[0], false);
+    let nominal: Option<String> = MirAbiStringValueAtBounds(json, json_extent, starts[1], ends[1], false);
+    let name: Option<String> = MirAbiStringValueAtBounds(json, json_extent, starts[2], ends[2], false);
+    let syntax: Option<String> = MirAbiIntegerValueAtBounds(json, json_extent, starts[3], ends[3]);
+    let path: Option<String> = MirAbiStringValueAtBounds(json, json_extent, starts[4], ends[4], false);
     if !IsSome(kind) || !IsSome(nominal) || !IsSome(name) || !IsSome(syntax) || !IsSome(path) ||
         UnwrapOption(kind) != declarations.kinds[row] || UnwrapOption(nominal) != declarations.nominal_kinds[row] ||
         UnwrapOption(name) != declarations.names[row] || UnwrapOption(path) != declarations.source_module_paths[row] { return 0; }
-    let methods: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, starts[6], ends[6]);
+    let methods: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, json_extent, starts[6], ends[6]);
     if !methods.valid { return 0; }
     if declarations.nominal_kinds[row] == "zone" {
-        let authorities: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, starts[7], ends[7]);
+        let authorities: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, json_extent, starts[7], ends[7]);
         if !DirectMirExactObjectArrayCount(methods, 0) ||
             !DirectMirExactObjectArrayCount(authorities, 0) { return 0; }
     }
@@ -201,7 +201,7 @@ func DirectMirIdentityCellFieldType(
 }
 
 func DirectMirIdentityCellFactsFromDeclarations(
-    json: String, ref declarations: MirProgramDeclarationIndex
+    json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex
 ) -> DirectMirIdentityCellFacts {
     let result: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsEmpty();
     if !declarations.valid || !declarations.field_identities.valid {
@@ -214,7 +214,7 @@ func DirectMirIdentityCellFactsFromDeclarations(
         while cursor < fields && declarations.field_identities.field_owner_indices[cursor] == row {
             cursor = cursor + 1;
         }
-        let syntax: Int = DirectMirIdentityCellEnvelopeSyntaxId(json, declarations, row);
+        let syntax: Int = DirectMirIdentityCellEnvelopeSyntaxId(json, json_extent, declarations, row);
         let supported: Bool = syntax > 0 && cursor > start;
         let field: Int = start;
         while field < cursor {

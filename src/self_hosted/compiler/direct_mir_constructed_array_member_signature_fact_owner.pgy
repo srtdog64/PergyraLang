@@ -81,7 +81,7 @@ func DirectMirConstructedArrayMemberSignatureFactAt(
         return InvalidDirectMirConstructedArrayMemberSignatureFact();
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        routines.source_json, routines.starts[row], routines.ends[row]
+        routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]
     );
     let receiver_opt: Option<String> = JsonObjectFactStringFieldOpt(
         routine, "receiver_carriage"
@@ -94,40 +94,40 @@ func DirectMirConstructedArrayMemberSignatureFactAt(
     if !IsSome(receiver_opt) || !IsSome(return_opt) ||
         UnwrapOption(receiver_opt) != "value" ||
         !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             "generics", generic_bounds
         ) || !DirectMirExactStringArrayCount(
-            routines.source_json, generic_bounds[0], generic_bounds[1], 1
+            routines.source_json, routines.source_json_extent, generic_bounds[0], generic_bounds[1], 1
         ) || !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row],
             "params", param_bounds
         ) {
         return InvalidDirectMirConstructedArrayMemberSignatureFact();
     }
     let params: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
-        routines.source_json, param_bounds[0], param_bounds[1]
+        routines.source_json, routines.source_json_extent, param_bounds[0], param_bounds[1]
     );
     let first_bounds: Array<Int> = [0, 0];
     let second_bounds: Array<Int> = [0, 0];
     if !DirectMirExactObjectArrayCount(params, 2) ||
         !JsonArrayNextObjectBounds(
-            routines.source_json, param_bounds[0] + 1,
+            routines.source_json, routines.source_json_extent, param_bounds[0] + 1,
             param_bounds[1], first_bounds
         ) || !JsonArrayNextObjectBounds(
-            routines.source_json, first_bounds[1],
+            routines.source_json, routines.source_json_extent, first_bounds[1],
             param_bounds[1], second_bounds
         ) {
         return InvalidDirectMirConstructedArrayMemberSignatureFact();
     }
     let receiver: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        routines.source_json, first_bounds[0], first_bounds[1]
+        routines.source_json, routines.source_json_extent, first_bounds[0], first_bounds[1]
     );
     let value_param: DirectMirRoutineParamFact =
         DirectMirRoutineParamFactFromBounds(
-            routines.source_json, second_bounds[0], second_bounds[1]
+            routines.source_json, routines.source_json_extent, second_bounds[0], second_bounds[1]
         );
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
-        routines.source_json, routines.starts[row], routines.ends[row]
+        routines.source_json, routines.source_json_extent, routines.starts[row], routines.ends[row]
     );
     if !DirectMirGenericMemberReceiverParamReady(receiver) ||
         !DirectMirRoutineParamFactReady(value_param) ||

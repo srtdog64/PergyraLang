@@ -1,0 +1,8 @@
+struct Table { names: Array<String>; }
+struct Box { table: Table; }
+func Observe() -> Int {
+    let value: Table = Table(["owned"]);
+    let captured: Box = Box { table: value };
+    return ArrayLength(captured.table.names);
+}
+func Main() -> Void {}

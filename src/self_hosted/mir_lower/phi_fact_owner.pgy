@@ -139,7 +139,7 @@ func MirRoutinePhiFactAt(
         } else {
             if self_backedge || !definition.valid || definition.found ||
                 !MirPhiParameterEntryExists(
-                    index, routines.source_json, scalar.name, use_name
+                    index, routines.source_json, routines.source_json_extent, scalar.name, use_name
                 ) {
                 return MirRoutinePhiFactEmpty();
             }

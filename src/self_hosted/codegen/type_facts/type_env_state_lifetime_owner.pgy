@@ -31,7 +31,7 @@ func CodegenTypeEnvStateView(
 ) -> CodegenTypeEnv {
     // The sealed global epoch remains owned by `base_env`; only local rows vary.
     return CodegenTypeEnv(
-        base_env.global_rows, base_env.preseal_rows, base_env.preseal_index,
+        base_env.global_rows, base_env.global_rows_extent, base_env.preseal_rows, base_env.preseal_rows_extent, base_env.preseal_index,
         state.local_rows, base_env.global_index
     );
 }

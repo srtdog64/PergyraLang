@@ -71,7 +71,7 @@ func ParseNominalDecl(
         // before `Fields:` / `Methods:`.
         ArraySet(cursor_out, 0, i);
         let decl_generic: String = ParseGenericParameterListText(
-            content, i, cursor_out
+            content, n, i, cursor_out
         );
         i = cursor_out[0];
         let decl_suffix: String = "";
@@ -80,7 +80,7 @@ func ParseNominalDecl(
             i = LanguageWordEnd(i, LanguageWordId.WordExtends);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
-            let parent_name: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let parent_name: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if StringLength(parent_name) == 0 {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "extends", "", "");
@@ -126,7 +126,7 @@ func ParseNominalDecl(
                 // A plain func in a `within` subject is a hosted method: only
                 // the subject's actions take the zone's contract.
                 let m_block: String = ParseFunction(
-                    content, i, cursor_out, "", false, host_method_indent,
+                    content, n, i, cursor_out, "", false, host_method_indent,
                     LanguageWordId.WordFunc, "Function: ", false, "",
                     expression_graphs, location_context
                 );
@@ -143,7 +143,7 @@ func ParseNominalDecl(
                 }
                 ArraySet(cursor_out, 0, i);
                 let a_block: String = ParseFunction(
-                    content, i, cursor_out, "", false, host_method_indent,
+                    content, n, i, cursor_out, "", false, host_method_indent,
                     LanguageWordId.WordAction, "Action: ", false, within_zone,
                     expression_graphs, location_context
                 );
@@ -233,7 +233,7 @@ func ParseNominalDecl(
                 i = ParseExpectIn(location_context, content, i, ")", "destructure_field");
                 i = ParseExpectIn(location_context, content, i, "=", "destructure_field");
                 ArraySet(cursor_out, 0, i);
-                let df_init: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+                let df_init: String = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
                 i = cursor_out[0];
                 df_init = df_init;
                 let df_end: Int = i;
@@ -267,7 +267,7 @@ func ParseNominalDecl(
             }
             i = ParseExpectIn(location_context, content, i, ":", "field");
             ArraySet(cursor_out, 0, i);
-            let f_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let f_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             if StringLength(f_type) == 0 {
                 ParseRefuse(location_context, cursor_out[0], "type_name_invalid", "construct", "field", "", "");
             }
@@ -280,7 +280,7 @@ func ParseNominalDecl(
             if ParserCharAt(content, after_type) == "=" {
                 i = after_type + 1;
                 ArraySet(cursor_out, 0, i);
-                let default_expr: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
+                let default_expr: String = ParseExprFactIn(location_context, content, n, i, cursor_out).text;
                 i = cursor_out[0];
                 default_text = default_expr;
             } else {

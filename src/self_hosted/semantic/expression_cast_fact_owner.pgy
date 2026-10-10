@@ -12,19 +12,19 @@ func SemanticOuterCastTargetType(expression: String) -> Option<String> {
     let depth: Int = 0;
     let cast_index: Int = -1;
     while i < n {
-        let c: Int = SourceByteAt(text, n, i);
+        let c: Int = SourceByteAt(text, n, n, i);
         if c == SourceByteOf("\"") {
-            i = SkipQuotedString(text, i, n);
+            i = SkipQuotedString(text, n, i, n);
             continue;
         }
         if c == SourceByteOf("/") &&
-            SourceByteAt(text, n, i + 1) == SourceByteOf("/") {
-            i = SkipLineComment(text, i, n);
+            SourceByteAt(text, n, n, i + 1) == SourceByteOf("/") {
+            i = SkipLineComment(text, n, i, n);
             continue;
         }
         if c == SourceByteOf("/") &&
-            SourceByteAt(text, n, i + 1) == SourceByteOf("*") {
-            i = SkipBlockComment(text, i, n);
+            SourceByteAt(text, n, n, i + 1) == SourceByteOf("*") {
+            i = SkipBlockComment(text, n, i, n);
             continue;
         }
         if c == SourceByteOf("(") || c == SourceByteOf("[") {
@@ -38,7 +38,7 @@ func SemanticOuterCastTargetType(expression: String) -> Option<String> {
             continue;
         }
         let prior_is_word: Bool = i > 0 &&
-            SourceByteIsAlphaNum(SourceByteAt(text, n, i - 1));
+            SourceByteIsAlphaNum(SourceByteAt(text, n, n, i - 1));
         if depth == 0 && !prior_is_word && MatchKeyword(text, i, "as") {
             cast_index = i;
             i = i + 2;
@@ -48,7 +48,7 @@ func SemanticOuterCastTargetType(expression: String) -> Option<String> {
     }
     if cast_index < 0 { return None; }
     let cursor: Array<Int> = [0];
-    let target: String = ReadType(text, cast_index + 2, cursor);
+    let target: String = ReadType(text, n, cast_index + 2, cursor);
     let end: Int = SkipWhitespaceAndComments(text, cursor[0]);
     if target == "" || end != n { return None; }
     return Some(SemanticCanonicalTypeName(target));

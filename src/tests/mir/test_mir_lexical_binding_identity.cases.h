@@ -124,6 +124,97 @@ test_mir_lexical_binding_identity(void)
 }
 
 static void
+test_mir_lexical_array_type_identity(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "func Main() -> Void { unsafe {"
+        " let modes: Array<String> = [\"first\"]; Log(modes[0]); }"
+        " let modes: Array<Int> = [0, 1, 2, 3]; Log(modes[1]);"
+        " unsafe { let rows: Array<Int> = [17]; Log(rows[0]); }"
+        " let rows: Array<String> = [\"last\"]; Log(rows[0]); }",
+        &hir, &rir, &mir);
+    MIRRoutine *routine = ok
+        ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    ASTNode *reads[4] = {NULL, NULL, NULL, NULL};
+    size_t read_count = 0;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                ASTNode *call = block->instructions[i].expr0;
+                if (block->instructions[i].kind == MIR_INST_STMT
+                    && call != NULL && call->type == AST_CALL
+                    && ast_call_arg_count(call) == 1
+                    && ast_call_argument(call, 0) != NULL
+                    && ast_call_argument(call, 0)->type == AST_ARRAY_ACCESS
+                    && read_count < 4)
+                    reads[read_count++] = ast_call_argument(call, 0);
+            }
+        }
+    }
+    const char *expected[4] = {"String", "Int", "Int", "String"};
+    bool exact_types = read_count == 4;
+    for (size_t i = 0; i < read_count; i++) {
+        MIRSourceLocalTypeScratch scratch = {0};
+        const char *type = mir_source_local_expr_type_name(mir, routine,
+            &scratch, reads[i]);
+        exact_types &= type != NULL && strcmp(type, expected[i]) == 0;
+    }
+    TEST("MIR same-name array reads retain exact types in both shadow orders");
+    EXPECT(ok && exact_types);
+
+    bool missing = false, foreign_name = false, supplied_identity = false;
+    if (read_count == 4) {
+        ASTNode *receiver = ast_array_access_array(reads[1]);
+        uint32_t identity = ast_identifier_binding_syntax_id(receiver);
+        MIRSourceLocalTypeScratch scratch = {0};
+        ast_identifier_set_binding_syntax_id(receiver, 0);
+        missing = mir_source_local_expr_type_name(mir, routine, &scratch,
+            reads[1]) == NULL;
+        ast_identifier_set_binding_syntax_id(receiver, UINT32_MAX);
+        missing &= mir_source_local_expr_type_name(mir, routine, &scratch,
+            reads[1]) == NULL;
+        ast_identifier_set_binding_syntax_id(receiver,
+            ast_identifier_binding_syntax_id(ast_array_access_array(reads[2])));
+        foreign_name = mir_source_local_expr_type_name(mir, routine, &scratch,
+            reads[1]) == NULL;
+        ast_identifier_set_binding_syntax_id(receiver,
+            ast_identifier_binding_syntax_id(ast_array_access_array(reads[0])));
+        /* This projection trusts checker-sealed identity. It must not
+         * reinterpret even an altered same-spelled ID by the current name;
+         * scope admission and backend storage consistency are separate. */
+        const char *type = mir_source_local_expr_type_name(mir, routine,
+            &scratch, reads[1]);
+        supplied_identity = type != NULL && strcmp(type, "String") == 0;
+        ast_identifier_set_binding_syntax_id(receiver, identity);
+    }
+    TEST("MIR array type lookup refuses missing IDs without name repair");
+    EXPECT(missing);
+    TEST("MIR array type lookup refuses a foreign differently named binding");
+    EXPECT(foreign_name);
+    TEST("MIR type projection uses supplied identity, not same-name reinterpretation");
+    EXPECT(supplied_identity);
+
+    bool duplicate = false;
+    if (routine != NULL && routine->source_local_type_count >= 2) {
+        uint32_t original = routine->source_local_types[1].binding_syntax_id;
+        routine->source_local_types[1].binding_syntax_id =
+            routine->source_local_types[0].binding_syntax_id;
+        duplicate = mir_routine_source_local_type_fact_by_binding_syntax_id(
+            routine, routine->source_local_types[0].binding_syntax_id) == NULL;
+        routine->source_local_types[1].binding_syntax_id = original;
+    }
+    TEST("MIR exact local-type owner refuses duplicate identity rows");
+    EXPECT(duplicate);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
+static void
 test_mir_enum_constructor_reference_identity(void)
 {
     HIRProgram *hir = NULL;

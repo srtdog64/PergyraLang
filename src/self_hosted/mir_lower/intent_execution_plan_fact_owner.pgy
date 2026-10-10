@@ -20,7 +20,7 @@ func MirIntentExecutionRoutineBlockRowById(
         let block_row: Int =
             routines.routine_block_starts[routine_row] + local_row;
         let id: MirIntentExecutionIntValue = MirIntentExecutionUniqueIntField(
-            routines.source_json, routines.block_starts[block_row],
+            routines.source_json, routines.source_json_extent, routines.block_starts[block_row],
             routines.block_ends[block_row], "id"
         );
         if !id.valid { return 0 - 1; }
@@ -54,15 +54,15 @@ func MirIntentExecutionInstructionReady(
         let start: Int = routines.instruction_starts[instruction_row];
         let end: Int = routines.instruction_ends[instruction_row];
         let id: MirIntentExecutionIntValue = MirIntentExecutionUniqueIntField(
-            routines.source_json, start, end, "id"
+            routines.source_json, routines.source_json_extent, start, end, "id"
         );
         let kind: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                routines.source_json, start, end, "kind"
+                routines.source_json, routines.source_json_extent, start, end, "kind"
             );
         let name: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                routines.source_json, start, end, "name"
+                routines.source_json, routines.source_json_extent, start, end, "name"
             );
         if !id.valid || !kind.valid || !name.valid { return false; }
         if id.value == instruction_id && kind.value == expected_kind &&
@@ -70,7 +70,7 @@ func MirIntentExecutionInstructionReady(
             if expected_result != "" {
                 let result: MirIntentExecutionStringValue =
                     MirIntentExecutionUniqueStringField(
-                        routines.source_json, start, end, "result"
+                        routines.source_json, routines.source_json_extent, start, end, "result"
                     );
                 if !result.valid || result.value != expected_result {
                     return false;
@@ -79,7 +79,7 @@ func MirIntentExecutionInstructionReady(
             if expected_arg0 != "" {
                 let arg0: MirIntentExecutionStringValue =
                     MirIntentExecutionUniqueStringField(
-                        routines.source_json, start, end, "arg0"
+                        routines.source_json, routines.source_json_extent, start, end, "arg0"
                     );
                 if !arg0.valid || arg0.value != expected_arg0 {
                     return false;
@@ -88,31 +88,31 @@ func MirIntentExecutionInstructionReady(
             if graph_required {
                 let graph_bounds: Array<Int> = [0, 0];
                 if MirIntentExecutionObjectFieldOccurrenceCount(
-                    routines.source_json, start, end, "expr0_graph"
+                    routines.source_json, routines.source_json_extent, start, end, "expr0_graph"
                 ) != 1 || !JsonObjectFieldValueBoundsWithin(
-                    routines.source_json, start, end,
+                    routines.source_json, routines.source_json_extent, start, end,
                     "expr0_graph", graph_bounds
                 ) || graph_bounds[0] >= graph_bounds[1] ||
                     JsonCharCodeAt(
-                        routines.source_json, graph_bounds[1], graph_bounds[0]
+                        routines.source_json, routines.source_json_extent, graph_bounds[1], graph_bounds[0]
                     ) != JsonAsciiCode("{") {
                     return false;
                 }
                 let graph: JsonObjectFactTable =
                     JsonObjectFactTableFromBounds(
-                        routines.source_json, graph_bounds[0], graph_bounds[1]
+                        routines.source_json, routines.source_json_extent, graph_bounds[0], graph_bounds[1]
                     );
                 if !MirExpressionGraphPersistedSealedShapeReady(graph) {
                     return false;
                 }
                 let root: MirIntentExecutionIntValue =
                     MirIntentExecutionUniqueIntField(
-                        routines.source_json, graph_bounds[0], graph_bounds[1],
+                        routines.source_json, routines.source_json_extent, graph_bounds[0], graph_bounds[1],
                         "root"
                     );
                 let digest: MirIntentExecutionIntValue =
                     MirIntentExecutionUniqueIntField(
-                        routines.source_json, graph_bounds[0], graph_bounds[1],
+                        routines.source_json, routines.source_json_extent, graph_bounds[0], graph_bounds[1],
                         "digest"
                     );
                 if !root.valid || !digest.valid || root.value < 0 ||
@@ -149,21 +149,21 @@ func MirIntentExecutionPayloadDefinitionReady(
         let end: Int = routines.instruction_ends[instruction_row];
         let kind: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                routines.source_json, start, end, "kind"
+                routines.source_json, routines.source_json_extent, start, end, "kind"
             );
         let name: MirIntentExecutionStringValue =
             MirIntentExecutionUniqueStringField(
-                routines.source_json, start, end, "name"
+                routines.source_json, routines.source_json_extent, start, end, "name"
             );
         if kind.valid && name.valid && kind.value == "def" &&
             name.value == instruction_name {
             let result: MirIntentExecutionStringValue =
                 MirIntentExecutionUniqueStringField(
-                    routines.source_json, start, end, "result"
+                    routines.source_json, routines.source_json_extent, start, end, "result"
                 );
             let arg0: MirIntentExecutionStringValue =
                 MirIntentExecutionUniqueStringField(
-                    routines.source_json, start, end, "arg0"
+                    routines.source_json, routines.source_json_extent, start, end, "arg0"
                 );
             if !result.valid || !arg0.valid { return false; }
             if result.value == result_name && arg0.value == variant_name {
@@ -395,11 +395,11 @@ func MirIntentExecutionPlanFromDocument(
     ];
     let fields: MirIntentExecutionExactFields =
         MirIntentExecutionExactObjectFields(
-            json, document.intent_execution.start,
+            document.intent_execution.json, document.intent_execution.json_extent, document.intent_execution.start,
             document.intent_execution.end, expected
         );
     let schema: MirIntentExecutionStringValue =
-        MirIntentExecutionStringAt(json, fields, 0, false);
+        MirIntentExecutionStringAt(document.intent_execution.json, document.intent_execution.json_extent, fields, 0, false);
     let wire_digest: MirIntentExecutionIntValue =
         MirIntentExecutionIntAt(json, fields, 1);
     let steps: MirIntentStepTransitionFacts =
@@ -410,7 +410,7 @@ func MirIntentExecutionPlanFromDocument(
         schema.value != MirIntentExecutionPlanSchema() ||
         !wire_digest.valid || wire_digest.value <= 0 ||
         !MirIntentExecutionPlanRowsFromExactFields(
-            json, fields, steps, terminals
+            document.intent_execution.json, document.intent_execution.json_extent, fields, steps, terminals
         ) {
         return MirIntentExecutionPlanEmpty(false, true);
     }

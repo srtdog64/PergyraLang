@@ -1,0 +1,6 @@
+// The extent measures a different string.
+func Main() -> Void {
+    let s: String = Concat("a", "b");
+    let t: String = Concat("longer", " text");
+    Print(ToString(CharCode(s, StringLength(t), 8)));
+}

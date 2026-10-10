@@ -36,7 +36,7 @@ func CollectionPolicyProbeGraphFacts(
 ) -> SemanticExpressionGraphFacts {
     let cursor: Array<Int> = [0];
     let parsed: ParserExpressionFact = ParseExprFact(
-        "ArrayPush(xs, 1)", 0, cursor
+        "ArrayPush(xs, 1)", StringLength("ArrayPush(xs, 1)"), 0, cursor
     );
     let rows: AstExpressionGraphRows = AstExpressionGraphRows(
         parsed.ok, [TypedAstKindBareCallStmtTag()],

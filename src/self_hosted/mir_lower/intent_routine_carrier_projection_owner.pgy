@@ -58,7 +58,7 @@ func MirIntentRoutineCarrierProjectionFromRoutine(
             } else if scalar.name != "IntentBinding" &&
                 scalar.name != "IntentParticipant" && scalar.name != "IntentValue" &&
                 MirIntentExecutionObjectFieldOccurrenceCount(
-                    routines.source_json, instruction.start, instruction.end,
+                    routines.source_json, routines.source_json_extent, instruction.start, instruction.end,
                     "binding_source_syntax_id"
                 ) != 0 {
                 valid = false;
@@ -90,7 +90,7 @@ func MirIntentRoutineCarrierProjectionFromRoutine(
                     scalar.name == "IntentParticipant" || scalar.name == "IntentValue" {
                     let identity: MirIntentExecutionIntValue =
                         MirIntentExecutionUniqueIntField(
-                            routines.source_json, instruction.start, instruction.end,
+                            routines.source_json, routines.source_json_extent, instruction.start, instruction.end,
                             "binding_source_syntax_id"
                         );
                     if !identity.valid || identity.value <= 0 {

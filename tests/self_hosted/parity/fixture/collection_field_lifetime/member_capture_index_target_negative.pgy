@@ -1,0 +1,8 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Observe(ref input: Envelope) -> Bool {
+    let destination: Array<Table> = [Table(["y"])];
+    destination[0] = input.table;
+    return true;
+}
+func Main() -> Void {}

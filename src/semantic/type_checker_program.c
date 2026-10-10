@@ -9,6 +9,7 @@
 #include "capability_analyze.h"
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "string_window_extent.h"
 #include "diag_codes.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING sub-slots for type_check_program: which of the
@@ -119,6 +120,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     ctx->program_root = program;
     if (!semantic_collection_owned_element_requirements_begin(program, ctx))
         return false;
+    if (!semantic_string_window_extent_begin(ctx))
+        return program_report_resolution_oom(ctx, program,
+            "string-window extent records");
     callable_capability_program_begin(ctx, program);
     if (!semantic_build_host_decl_index(ctx, program))
         return program_report_resolution_oom(ctx, program,
@@ -573,7 +577,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
 
     if (!semantic_array_storage_deferral_finalize(ctx)
-        || !semantic_collection_owned_element_requirements_finalize(ctx)) {
+        || !semantic_collection_owned_element_requirements_finalize(ctx)
+        || !semantic_string_window_extent_finalize(ctx)) {
         free(topo_order);
         return false;
     }

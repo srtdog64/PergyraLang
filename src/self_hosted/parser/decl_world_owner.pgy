@@ -92,7 +92,7 @@ func ParseWorldDecl(
             let field_name: String = ParseNameIn(location_context, content,
                 LanguageWordEnd(i, LanguageWordId.WordShared), "field name", "world_shared", cursor_out);
             i = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_shared");
-            let field_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            let field_type: String = ReadTypeIn(location_context, content, n, i, cursor_out);
             i = cursor_out[0];
             if field_type == "" {
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "world_shared", "", "");
@@ -102,14 +102,14 @@ func ParseWorldDecl(
             if ParserCharAt(content, i) == "=" {
                 ArraySet(cursor_out, 0, i + 1);
                 shared_row = Concat(shared_row, Concat(" = ",
-                    ParseExprFactIn(location_context, content, i + 1, cursor_out).text));
+                    ParseExprFactIn(location_context, content, n, i + 1, cursor_out).text));
                 i = cursor_out[0];
             }
             shared_rows = AppendLine(shared_rows, shared_row);
         } else if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let method_block: String = ParseFunction(
-                content, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
+                content, n, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
                 false, "", expression_graphs, location_context
             );
             i = cursor_out[0];

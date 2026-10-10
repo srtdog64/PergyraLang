@@ -30,7 +30,7 @@ func IsPrimitiveType(base_type: String) -> Bool {
 // Returns "" in two cases: no type name at `start` (cursor unmoved), or a
 // malformed type (cursor left where it went wrong). It never stops the
 // process; ReadType/ReadTypeIn decide that for their callers.
-func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) == "(" && ParserCharAt(content, i + 1) == ")" {
         ArraySet(cursor_out, 0, i + 2);
@@ -50,7 +50,7 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
     if MatchLanguageWord(content, base_start, LanguageWordId.WordImpl) {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        return ReadTypeFact(content, i, cursor_out);
+        return ReadTypeFact(content, content_extent, i, cursor_out);
     }
     let type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
@@ -61,7 +61,7 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         if ParserCharAt(content, i) != ")" {
             while true {
                 ArraySet(cursor_out, 0, i);
-                let param_type: String = ReadTypeFact(content, i, cursor_out);
+                let param_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
                 i = cursor_out[0];
                 if StringLength(param_type) == 0 {
                     ArraySet(cursor_out, 0, i);
@@ -91,7 +91,7 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         }
         i = i + 2;
         ArraySet(cursor_out, 0, i);
-        let ret_type: String = ReadTypeFact(content, i, cursor_out);
+        let ret_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(ret_type) == 0 {
             ArraySet(cursor_out, 0, SkipWhitespaceAndComments(content, i));
@@ -108,7 +108,7 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                 i = SkipWhitespaceAndComments(content, i);
             }
             ArraySet(cursor_out, 0, i);
-            let arg: String = ReadTypeFact(content, i, cursor_out);
+            let arg: String = ReadTypeFact(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(arg) == 0 {
                 ArraySet(cursor_out, 0, i);
@@ -144,7 +144,7 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
     if ParserCharAt(content, arrow_i) == "-" && ParserCharAt(content, arrow_i + 1) == ">" {
         i = arrow_i + 2;
         ArraySet(cursor_out, 0, i);
-        let ret_type: String = ReadTypeFact(content, i, cursor_out);
+        let ret_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(ret_type) == 0 {
             ArraySet(cursor_out, 0, SkipWhitespaceAndComments(content, i));
@@ -156,7 +156,7 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
     while ParserCharAt(content, intersection_i) == "&" && ParserCharAt(content, intersection_i + 1) != "&" {
         i = intersection_i + 1;
         ArraySet(cursor_out, 0, i);
-        let rhs_type: String = ReadTypeFact(content, i, cursor_out);
+        let rhs_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(rhs_type) == 0 {
             ArraySet(cursor_out, 0, SkipWhitespaceAndComments(content, i));
@@ -174,10 +174,10 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
 // keeps owning whether a type was required there.
 func ReadTypeIn(
     context: ParserSourceLocationContext,
-    content: String, start: Int, inout cursor_out: Array<Int>
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
     let type_start: Int = SkipWhitespaceAndComments(content, start);
-    let type_text: String = ReadTypeFact(content, start, cursor_out);
+    let type_text: String = ReadTypeFact(content, content_extent, start, cursor_out);
     if type_text == "" && cursor_out[0] > type_start {
         ParseRefuse(context, cursor_out[0], "type_name_invalid",
             "construct", "type", "source_offset", ToString(cursor_out[0]));
@@ -187,8 +187,8 @@ func ReadTypeIn(
 
 // Context-free callers keep the old contract (a malformed type stops the
 // parse) and now name the code; they have no position to give.
-func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+func ReadType(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>) -> String {
     return ReadTypeIn(
-        ParserSourceLocationContextUnknown(), content, start, cursor_out
+        ParserSourceLocationContextUnknown(), content, content_extent, start, cursor_out
     );
 }

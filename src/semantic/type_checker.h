@@ -47,6 +47,7 @@ typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
 typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
 typedef struct CollectionOwnedElementRequirementStore CollectionOwnedElementRequirementStore;
 typedef struct ArrayStorageDeferredPreservationStore ArrayStorageDeferredPreservationStore;
+typedef struct StringWindowExtentStore StringWindowExtentStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -197,6 +198,8 @@ struct SemanticContext
     CollectionOwnedElementRequirementStore *collection_owned_element_requirements;
     /* Pass 2 inout handoffs to user callees, decided once after Pass 2. */
     ArrayStorageDeferredPreservationStore *array_storage_deferred_preservations;
+    /* Pass 2 string-window extent records, decided once after Pass 2. */
+    StringWindowExtentStore *string_window_extents;
 
     /* Semantic-owned domain runtime identities.  Later stages may carry these
      * rows losslessly, but must not reconstruct participant roles or member

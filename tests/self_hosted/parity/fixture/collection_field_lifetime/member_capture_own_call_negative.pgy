@@ -1,0 +1,5 @@
+struct Table { names: Array<String>; }
+struct Envelope { table: Table; }
+func Consume(own value: Table) -> Int { return ArrayLength(value.names); }
+func Observe(ref input: Envelope) -> Int { return Consume(input.table); }
+func Main() -> Void {}

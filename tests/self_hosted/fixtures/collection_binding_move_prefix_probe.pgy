@@ -1,0 +1,122 @@
+// Observe admitted source facts and the production first-invalid-use owner.
+// Supplied programs are analyzed, never emitted or executed.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func BindingMoveProbeSource(name: String) -> String
+{
+    if name == "no-moves" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; Log(ArrayLength(seed)); }"; }
+    if name == "late-move" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; Log(ArrayLength(seed)); let moved: Array<String> = seed; }"; }
+    if name == "borrowed-handoff" { return "func Observe(ref values: Array<String>) -> Int { let alias: Array<String> = values; let next: Array<String> = alias; return ArrayLength(alias) + ArrayLength(next); } func Main() -> Void {}"; }
+    if name == "borrowed-exclusive" { return "func Observe(ref values: Array<String>) -> Int { let alias: Array<String> = values; let next: Array<String> = alias; next = Clone(values); let moved: Array<String> = next; return ArrayLength(next); } func Main() -> Void {}"; }
+    if name == "pre-reassign" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; let current: Array<String> = []; current = Clone(seed); let moved: Array<String> = current; Log(ArrayLength(current)); }"; }
+    if name == "post-reassign" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; let current: Array<String> = Clone(seed); let moved: Array<String> = current; current = Clone(seed); Log(ArrayLength(current)); }"; }
+    if name == "shadowing" { return "func First() -> Void { let seed: Array<String> = [\"a\"]; let moved: Array<String> = seed; } func Second() -> Int { let seed: Array<String> = [\"b\"]; return ArrayLength(seed); } func Main() -> Void {}"; }
+    if name == "shadow-rejected" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; let moved: Array<String> = seed; if true { let seed: Array<String> = [\"b\"]; Log(ArrayLength(seed)); } Log(ArrayLength(seed)); }"; }
+    if name == "lhs-rhs" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; let moved: Array<String> = seed; seed = Clone(moved); moved = seed; Log(ArrayLength(seed)); }"; }
+    if name == "self-assignment" { return "func Main() -> Void { let seed: Array<String> = [\"a\"]; seed = seed; Log(ArrayLength(seed)); }"; }
+    if name == "first-invalid-root" { return "func Main() -> Void { let a: Array<String> = [\"a\"]; let b: Array<String> = [\"b\"]; let x: Array<String> = a; let y: Array<String> = b; Log(ArrayLength(b)); Log(ArrayLength(a)); }"; }
+    if name == "first-invalid-node" { return "func Main() -> Void { let a: Array<String> = [\"a\"]; let b: Array<String> = [\"b\"]; let x: Array<String> = a; let y: Array<String> = b; Log(ArrayLength(a) + ArrayLength(b)); }"; }
+    if name == "first-invalid-node-reversed" { return "func Main() -> Void { let a: Array<String> = [\"a\"]; let b: Array<String> = [\"b\"]; let x: Array<String> = a; let y: Array<String> = b; Log(ArrayLength(b) + ArrayLength(a)); }"; }
+    if name == "member-failure" { return "struct Bundle { values: Array<String>; } func Main() -> Void { let bundle: Bundle = Bundle([\"a\"]); let moved: Array<String> = bundle.values; Log(ArrayLength(bundle.values)); }"; }
+    if name == "formal-failure" { return "func Retire(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); } func Forward(own values: Array<String>) -> Int { Retire(values); return ArrayLength(values); } func Main() -> Void {}"; }
+    if name == "type-failure" { return "func Main() -> Void { let seed: Array<String> = 42; Log(ArrayLength(seed)); }"; }
+    return "";
+}
+
+func Main() -> Void with caps env, io_read
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected case and mode"); Exit(2); }
+    if args[1] != "facts" && args[1] != "malformed-analysis" { Log("unknown binding-move mode"); Exit(2); }
+    let source: String = BindingMoveProbeSource(args[0]);
+    if source == "" { Log("unknown binding-move case"); Exit(2); }
+    let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
+        "binding_move_prefix_input.pgy", source, false));
+    if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    Log("analysis=" + ToString(analysis.verdict.ok) + ":" + analysis.verdict.diagnostic_code);
+    if !analysis.verdict.ok { Log("analysis_message=" + analysis.verdict.diagnostic_message); Log("scanner=NOT_REACHED"); return; }
+    if args[1] == "malformed-analysis"
+    {
+        // Corrupt a real admitted carrier only at its validating parent seam.
+        // Never invoke the raw scanner with this malformed graph.
+        if ArrayLength(analysis.expression_surfaces.expression_graph.has_roots) == 0 { Exit(2); }
+        ArrayPop(analysis.expression_surfaces.expression_graph.has_roots);
+    }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    Log("body=" + ToString(bundle.verdict.ok) + ":" + bundle.verdict.diagnostic_code + ":" + ToString(bundle.verdict.first_node_id));
+    Log("body_message=" + bundle.verdict.diagnostic_message);
+    let caller: SemanticAstCollectionOwnershipVerdict = bundle.collection_ownership;
+    Log("caller=" + ToString(caller.ok) + ":" + caller.diagnostic_code + ":" + ToString(caller.syntax_node_id) + ":" + ToString(caller.expression_node_id));
+    Log("caller_message=" + caller.diagnostic_message);
+    if args[1] == "malformed-analysis"
+    {
+        if bundle.verdict.ok || bundle.verdict.diagnostic_code != "body_analysis_admission" { Exit(2); }
+        Log("scanner=NOT_REACHED"); return;
+    }
+    // This observation guard prevents a raw invalid-carrier scanner call.
+    // It is not a certificate of the production verdict's diagnostic order.
+    if !bundle.collection_formal_effects.ok { Log("scanner=NOT_OBSERVED"); return; }
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    if !definitions.ok { Log("definition admission refused"); Exit(2); }
+    let plan: SemanticAstFreshOwnedStringArrayResultPlan = SemanticAstFreshOwnedStringArrayResultPlanFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types, analysis.expression_surfaces, analysis.statements);
+    if !SemanticAstFreshOwnedStringArrayResultPlanReady(plan, analysis.signatures) ||
+        !SemanticAstCollectionOwnedResultDefinitionsApply(analysis.signatures, analysis.expression_surfaces, plan, definitions)
+    { Log("owned-result admission refused"); Exit(2); }
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    if !storage.ok { Log("storage admission refused"); Exit(2); }
+    let result: SemanticAstCollectionBindingMoveUse = SemanticAstCollectionFirstInvalidBindingMoveUse(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, definitions, storage);
+    Log("scanner=" + ToString(result.found) + ":" + ToString(result.syntax_node_id) + ":" + ToString(result.expression_node_id));
+    if result.found
+    {
+        let text: Option<String> = SemanticExpressionGraphNodeText(analysis.expression_surfaces.expression_graph, result.expression_node_id);
+        if !IsSome(text) { Log("found node text absent"); Exit(2); }
+        Log("matched=" + UnwrapOption(text));
+    }
+    Log("definitions=" + ToString(definitions.local_count) + ":" + ToString(ArrayLength(definitions.syntax_ids)));
+    let row: Int = 0;
+    while row < definitions.local_count
+    {
+        Log("local:" + ToString(row) + "=" + ToString(analysis.local_bindings.node_ids[row]) + ":" +
+            ToString(analysis.local_bindings.function_node_ids[row]) + ":" + ToString(analysis.local_bindings.scope_node_ids[row]) +
+            ":" + analysis.local_bindings.names[row] + ":" + bundle.initializer_types.inferred_type_names[row]);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(definitions.syntax_ids)
+    {
+        Log("definition:" + ToString(row) + "=" + ToString(definitions.syntax_ids[row]) + ":" + ToString(definitions.binding_rows[row]) +
+            ":" + ToString(definitions.target_nodes[row]) + ":" + ToString(definitions.value_nodes[row]) + ":" + ToString(definitions.own_sources[row]) +
+            ":" + ToString(definitions.local_sources[row]) + ":" + ToString(definitions.origins[row]) + ":" + ToString(definitions.ownerships[row]) +
+            ":" + ToString(definitions.transitions[row]) + ":" + ToString(definitions.owned_result_function_syntax_ids[row]) +
+            ":" + ToString(definitions.fresh[row]) + ":" + ToString(definitions.shallow_alias_admitted[row]));
+        Log("storage:" + ToString(row) + "=" + ToString(storage.borrowed_definitions[row]) + ":" +
+            ToString(storage.borrowed_seed_sources[row]) + ":" + ToString(storage.producer_source_ids[row]));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(definitions.surface_rows)
+    { Log("surface:" + ToString(row) + "=" + ToString(definitions.surface_rows[row])); row = row + 1; }
+    let slot: Int = 0;
+    while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
+    {
+        let has_root: Bool = analysis.expression_surfaces.expression_graph.has_roots[slot];
+        let completed: Int = -1;
+        let has_start: Bool = false;
+        if has_root
+        {
+            completed = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, analysis.local_bindings, analysis.expression_surfaces, slot);
+            has_start = IsSome(SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph,
+                analysis.expression_surfaces.expression_graph.roots[slot]));
+        }
+        Log("slot:" + ToString(slot) + "=" + ToString(has_root) + ":" + ToString(has_start) + ":" + ToString(completed));
+        slot = slot + 1;
+    }
+}

@@ -436,6 +436,31 @@ mir_routine_source_local_type_fact(const MIRRoutine *routine,
     return NULL;
 }
 
+const MIRSourceLocalType *
+mir_routine_source_local_type_fact_by_binding_syntax_id(
+    const MIRRoutine *routine, uint32_t binding_syntax_id)
+{
+    const MIRSourceLocalType *found = NULL;
+
+    if (routine == NULL || binding_syntax_id == 0
+        || routine->source_local_type_count > routine->source_local_type_capacity
+        || (routine->source_local_type_count > 0
+            && routine->source_local_types == NULL)) {
+        return NULL;
+    }
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        const MIRSourceLocalType *fact = &routine->source_local_types[i];
+        if (fact->binding_syntax_id != binding_syntax_id)
+            continue;
+        if (found != NULL || fact->name == NULL || fact->name[0] == '\0'
+            || fact->type_name == NULL || fact->type_name[0] == '\0') {
+            return NULL;
+        }
+        found = fact;
+    }
+    return found;
+}
+
 size_t
 mir_routine_source_local_type_count(const MIRRoutine *routine)
 {
