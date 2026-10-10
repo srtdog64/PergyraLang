@@ -124,9 +124,50 @@ func SemanticAstCollectionAggregateReleaseSharedDemandReady(
     if !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, prior, divergence) ||
         !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, current, divergence) { return false; }
     let earlier_requirement: Int = prior_requirement;
-    if plan.call_syntax_ids[current_call] < plan.call_syntax_ids[prior_call] { earlier_requirement = current_requirement; }
+    let earlier_call: Int = prior_call;
+    if plan.call_syntax_ids[current_call] < plan.call_syntax_ids[prior_call] {
+        earlier_requirement = current_requirement;
+        earlier_call = current_call;
+    }
     let earlier_mask: Int = plan.requirement_effect_masks[earlier_requirement];
-    return earlier_mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() && earlier_mask != 3;
+    // An earlier deep drop is ordered only when its statement is followed by
+    // one that leaves the routine, so the later call cannot run after it.
+    if earlier_mask == SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() || earlier_mask == 3 {
+        return earlier_call < ArrayLength(plan.call_ends_routine) && plan.call_ends_routine[earlier_call];
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseInvocationEnd(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+) -> Int {
+    if demand + 1 < ArrayLength(plan.demand_invocation_starts) {
+        return plan.demand_invocation_starts[demand + 1];
+    }
+    return ArrayLength(plan.demand_invocation_nodes);
+}
+
+// Two demands of one origin site reach distinct storage when their producer
+// invocation paths differ at a common depth: each differing call node is a
+// separate invocation, so its constructor runs separately. A path that is a
+// prefix of the other (recursion) or an equal path shares one invocation.
+func SemanticAstCollectionAggregateReleaseDistinctInvocations(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current < 0 || prior >= ArrayLength(plan.demand_invocation_starts) ||
+        current >= ArrayLength(plan.demand_invocation_starts) { return false; }
+    let a: Int = plan.demand_invocation_starts[prior];
+    let b: Int = plan.demand_invocation_starts[current];
+    let a_end: Int = SemanticAstCollectionAggregateReleaseInvocationEnd(plan, prior);
+    let b_end: Int = SemanticAstCollectionAggregateReleaseInvocationEnd(plan, current);
+    let depth: Int = 0;
+    while a + depth < a_end && b + depth < b_end {
+        if plan.demand_invocation_nodes[a + depth] != plan.demand_invocation_nodes[b + depth] {
+            return true;
+        }
+        depth = depth + 1;
+    }
+    return false;
 }
 
 func SemanticAstCollectionAggregateReleasePlanUnique(
@@ -146,6 +187,10 @@ func SemanticAstCollectionAggregateReleasePlanUnique(
         let prior: Int = 0;
         while prior < row {
             let prior_input: Int = plan.constructor_input_rows[prior];
+            if SemanticAstCollectionAggregateReleaseDistinctInvocations(plan, prior, row) {
+                prior = prior + 1;
+                continue;
+            }
             if plan.aggregate_origin_ids[prior] ==
                     plan.aggregate_origin_ids[row] &&
                 inputs.field_ids[prior_input] == inputs.field_ids[input] &&

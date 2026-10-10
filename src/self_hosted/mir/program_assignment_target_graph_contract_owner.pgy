@@ -131,8 +131,9 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     );
     let destructure_facts: SelfMirDestructureFactRows =
         SelfMirDestructureFactRowsEmpty();
+    let destructure_bindings: Array<String> = ["a", "b"];
     SelfMirDestructureFactRowsAttach(
-        destructure_facts, 0, "String", ["a", "b"]
+        destructure_facts, 0, "String", destructure_bindings
     );
     let valid_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["destructure"], ["destructure"], [""], [""], [""], [""],

@@ -7,6 +7,7 @@ import "ast_collection_ownership_member_root_identity_owner.pgy";
 import "ast_expression_graph_member_view_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
+import "ast_collection_aggregate_sink_consumption_owner.pgy";
 
 func SemanticAstCollectionAggregateTypeOwnsField(
     ref constructors: SemanticAstNominalConstructorFacts,
@@ -137,6 +138,10 @@ func SemanticAstCollectionAggregateRecordDemand(
     if requirement_row < 0 || aggregate_origin_id <= 0 || input_row < 0 {
         return false;
     }
+    if SemanticAstCollectionAggregateReleaseDemandRecorded(
+            plan, trace, requirement_row, demand_edge_node, aggregate_origin_id, input_row) {
+        return true;
+    }
     ArrayPush(plan.demand_chain_starts, ArrayLength(plan.demand_chain_edges));
     let entry: Int = ArrayLength(trace.entry_edges) - 1;
     while entry >= 0 {
@@ -144,6 +149,12 @@ func SemanticAstCollectionAggregateRecordDemand(
         entry = entry - 1;
     }
     ArrayPush(plan.demand_chain_edges, demand_edge_node);
+    ArrayPush(plan.demand_invocation_starts, ArrayLength(plan.demand_invocation_nodes));
+    let frame: Int = 0;
+    while frame < ArrayLength(trace.invocation_call_nodes) {
+        ArrayPush(plan.demand_invocation_nodes, trace.invocation_call_nodes[frame]);
+        frame = frame + 1;
+    }
     ArrayPush(plan.demand_edge_nodes, demand_edge_node);
     ArrayPush(plan.aggregate_origin_ids, aggregate_origin_id);
     ArrayPush(plan.requirement_rows, requirement_row);
@@ -315,43 +326,66 @@ func SemanticAstCollectionAggregateTraceExpression(
         let formal_mode: Option<Int> =
             SemanticAstFunctionParamModeAt(
                 signatures, formal.signature_row, formal.ordinal);
+        // A default-mode formal on the lineage is a sink by inference: the
+        // callee stores or forwards it toward the release. Each call edge
+        // must then consume its argument; ref stays a readonly boundary.
         if !IsSome(formal_mode) ||
-            (UnwrapOption(formal_mode) != 1 &&
+            (UnwrapOption(formal_mode) != 0 &&
+             UnwrapOption(formal_mode) != 1 &&
              UnwrapOption(formal_mode) != 2) {
             return false;
         }
+        let inferred_sink: Bool = UnwrapOption(formal_mode) == 0;
         let explicit_ordinal: Int = formal.ordinal -
             signatures.receiver_source_param_offsets[formal.signature_row];
         if explicit_ordinal >= 0 {
             if invocation_depth > 0 {
+                if ArrayLength(trace.invocation_call_nodes) != invocation_depth {
+                    return false;
+                }
                 let top: Int = invocation_depth - 1;
                 let call_node: Int = trace.invocation_call_nodes[top];
+                let caller_function: Int = trace.invocation_caller_functions[top];
+                let caller_syntax_id: Int = trace.invocation_caller_syntax_ids[top];
+                // The caller frame is current while its argument is traced;
+                // a call it makes must not index the callee's stale frame.
+                ArrayPop(trace.invocation_call_nodes);
+                ArrayPop(trace.invocation_caller_functions);
+                ArrayPop(trace.invocation_caller_syntax_ids);
                 let matching_argument_count: Int = 0;
                 let row: Int = 0;
                 while row < ArrayLength(plan.call_nodes) {
                     if plan.call_nodes[row] == call_node &&
                         plan.call_ordinals[row] == explicit_ordinal {
                         matching_argument_count = matching_argument_count + 1;
-                        if !SemanticAstCollectionAggregateReleaseRecordLineageEdge(
-                                plan.call_edge_nodes[row], plan) {
-                            return false;
+                        if SemanticAstCollectionAggregateReleaseRecordLineageEdge(
+                                plan.call_edge_nodes[row], plan) &&
+                            (!inferred_sink || SemanticAstCollectionAggregateSinkArgumentConsumed(
+                                artifact, signatures, constructors, locals, inferred_types,
+                                surfaces, assignments, caller_function, caller_syntax_id,
+                                plan.call_argument_nodes[row], trace, path_row)) {
+                            result = SemanticAstCollectionAggregateTraceExpression(
+                                artifact, signatures, constructors, locals,
+                                inferred_types, resolved_leaf_types, surfaces,
+                                statements, assignments, inputs,
+                                caller_function, caller_syntax_id,
+                                plan.call_argument_nodes[row], path_row,
+                                candidate_origin_id, aggregate_origin_id,
+                                demand_edge_node, requirement_row,
+                                invocation_depth - 1, trace, plan, depth + 1
+                            );
+                        } else {
+                            result = false;
                         }
-                        result = SemanticAstCollectionAggregateTraceExpression(
-                            artifact, signatures, constructors, locals,
-                            inferred_types, resolved_leaf_types, surfaces,
-                            statements, assignments, inputs,
-                            trace.invocation_caller_functions[top],
-                            trace.invocation_caller_syntax_ids[top],
-                            plan.call_argument_nodes[row], path_row,
-                            candidate_origin_id, aggregate_origin_id,
-                            demand_edge_node, requirement_row,
-                            invocation_depth - 1, trace, plan, depth + 1
-                        );
                     }
                     row = row + 1;
                 }
+                ArrayPush(trace.invocation_call_nodes, call_node);
+                ArrayPush(trace.invocation_caller_functions, caller_function);
+                ArrayPush(trace.invocation_caller_syntax_ids, caller_syntax_id);
                 if matching_argument_count != 1 { result = false; }
             } else {
+                if ArrayLength(trace.invocation_call_nodes) != 0 { return false; }
                 result = true;
                 let saw: Bool = false;
                 let row: Int = 0;
@@ -361,6 +395,13 @@ func SemanticAstCollectionAggregateTraceExpression(
                         saw = true;
                         if !SemanticAstCollectionAggregateReleaseRecordLineageEdge(
                                 plan.call_edge_nodes[row], plan) {
+                            return false;
+                        }
+                        if inferred_sink && !SemanticAstCollectionAggregateSinkArgumentConsumed(
+                                artifact, signatures, constructors, locals, inferred_types,
+                                surfaces, assignments, plan.call_function_ids[row],
+                                plan.call_syntax_ids[row], plan.call_argument_nodes[row],
+                                trace, path_row) {
                             return false;
                         }
                         ArrayPush(trace.entry_edges, plan.call_edge_nodes[row]);
@@ -470,6 +511,12 @@ func SemanticAstCollectionAggregateTraceExpression(
                     requirement_row, demand_edge_node, origin, input, trace,
                     plan);
             } else {
+                // Storing the traced value into the constructed aggregate is
+                // the lineage itself, not an alias of a protected binding.
+                if !SemanticAstCollectionAggregateReleaseRecordLineageEdge(
+                        plan.call_edge_nodes[argument_row], plan) {
+                    return false;
+                }
                 result = SemanticAstCollectionAggregateTraceExpression(
                     artifact, signatures, constructors, locals,
                     inferred_types, resolved_leaf_types, surfaces,

@@ -1,0 +1,37 @@
+// The crossing repeats in a loop that keeps the same tables.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct TableHolder {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    count: Int;
+}
+
+func HolderFromTables(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {
+    return TableHolder(tables, 1);
+}
+
+func HolderRelease(inout holder: TableHolder) -> Void {
+    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    holder.tables = tables;
+}
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func Main() -> Void {
+    let facts: SemanticAstExpressionFunctionTableFacts = OwnedTables();
+    let round: Int = 0;
+    while round < 2 {
+        let holder: TableHolder = HolderFromTables(facts);
+        HolderRelease(holder);
+        round = round + 1;
+    }
+}

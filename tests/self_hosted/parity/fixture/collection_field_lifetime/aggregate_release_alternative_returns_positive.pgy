@@ -1,0 +1,40 @@
+// Two return paths of one producer store the same tables; one runs.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct TableHolder {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    count: Int;
+}
+
+func HolderFromTables(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {
+    return TableHolder(tables, 1);
+}
+
+func HolderRelease(inout holder: TableHolder) -> Void {
+    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    holder.tables = tables;
+}
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func HolderFromChoice(first: Bool) -> TableHolder {
+    let tables: SemanticAstExpressionFunctionTableFacts = OwnedTables();
+    if first {
+        return TableHolder(tables, 1);
+    }
+    return TableHolder(tables, 2);
+}
+
+func Main() -> Void {
+    let holder: TableHolder = HolderFromChoice(true);
+    HolderRelease(holder);
+}

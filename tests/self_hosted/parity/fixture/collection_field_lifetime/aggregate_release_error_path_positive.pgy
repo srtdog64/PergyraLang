@@ -1,0 +1,46 @@
+// An error-path release leaves the routine through a Never call, so the
+// normal-path release of the same tables cannot run after it.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct TableHolder {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    count: Int;
+}
+
+func HolderFromTables(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {
+    return TableHolder(tables, 1);
+}
+
+func HolderRelease(inout holder: TableHolder) -> Void {
+    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    holder.tables = tables;
+}
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func Abort(message: String) -> Never {
+    Log(message);
+    Exit(1);
+}
+
+func ReleaseChecked(ok: Bool) -> Void {
+    let holder: TableHolder = HolderFromTables(OwnedTables());
+    if !ok {
+        HolderRelease(holder);
+        Abort("tables refused");
+    }
+    HolderRelease(holder);
+}
+
+func Main() -> Void {
+    ReleaseChecked(true);
+}

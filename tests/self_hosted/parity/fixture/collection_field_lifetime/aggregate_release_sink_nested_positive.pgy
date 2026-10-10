@@ -1,0 +1,37 @@
+// Two default-mode crossings: each caller frame maps its own argument.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct TableHolder {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    count: Int;
+}
+
+func HolderFromTables(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {
+    return TableHolder(tables, 1);
+}
+
+func HolderRelease(inout holder: TableHolder) -> Void {
+    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    holder.tables = tables;
+}
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func HolderFromTablesTwice(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {
+    return HolderFromTables(tables);
+}
+
+func Main() -> Void {
+    let facts: SemanticAstExpressionFunctionTableFacts = OwnedTables();
+    let holder: TableHolder = HolderFromTablesTwice(facts);
+    HolderRelease(holder);
+}

@@ -904,6 +904,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   returns, nested aggregates, and an exact constructor input. It preserves the
   original demand edge and refuses aliases, duplicate routes, and unknown
   constructor sources rather than inferring ownership from a nominal type.
+  A default-mode formal on the lineage is an inferred sink (doc 27 section
+  2.3 step 7); each call edge through it must consume its argument. A caller
+  frame is popped while its argument is traced, and a traced constructor
+  argument is a lineage edge.
+- `src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy`
+  -- caller-side consumption at an inferred sink crossing: a temporary, or a
+  binding that is not inout/ref, not a view of another binding, not kept
+  across a loop, and whose consumed path no later read (direct or through a
+  local alias) overlaps. A partial alias written into another place refuses.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy`
   -- joins admitted field-entry obligations to constructor/storage demands and
   delegates the final uniqueness verdict without reconstructing its policy.
@@ -1461,7 +1470,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/mir/match_fact_owner.pgy` -- sparse instruction-keyed match
   pattern, variant, and binding facts; the scalar rung requires one pattern.
 - `src/self_hosted/mir/destructure_fact_owner.pgy` -- sparse instruction-keyed
-  destructure element type and ordered binding facts.
+  destructure element type and ordered binding facts. Like the match-fact
+  rows, it reads its inputs readonly and stores fresh copies that a routine
+  build does not release.
 - `src/self_hosted/mir/destructure_type_fact_owner.pgy` -- routine-level
   semantic destructure binding type rows joined from local-binding and
   initializer facts; source re-inference is forbidden.

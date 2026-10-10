@@ -28842,11 +28842,12 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:110 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:162 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:267 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:316 \
     src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
-    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:545 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:590 \
+    src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:330 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:183 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:225 \
     src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:710 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
@@ -29256,7 +29257,7 @@ require_text "src/self_hosted/semantic/ast_collection_aggregate_release_transiti
 reject_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy" \
     'aggregate_field_entry_unproved'
 require_file "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh"
-require_max_lines "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 129
 require_text "Makefile" 'self-host-collection-aggregate-release-source-test-smoke'
 for aggregate_release_fixture in \
     aggregate_release_source_reuse_negative.pgy \

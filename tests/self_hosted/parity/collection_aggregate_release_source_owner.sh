@@ -23,6 +23,12 @@ CASES=(
     "aggregate_release_source_reassign_positive.pgy|pass|none|none"
     "aggregate_release_outer_restore_positive.pgy|pass|none|none"
     "aggregate_readonly_call_chain_positive.pgy|pass|none|none"
+    "aggregate_release_sink_default_formal_positive.pgy|pass|none|none"
+    "aggregate_release_sink_nested_positive.pgy|pass|none|none"
+    "aggregate_release_sink_disjoint_field_positive.pgy|pass|none|none"
+    "aggregate_release_sink_distinct_invocation_positive.pgy|pass|none|none"
+    "aggregate_release_error_path_positive.pgy|pass|none|none"
+    "aggregate_release_alternative_returns_positive.pgy|pass|none|none"
     "callable_table_borrowed_negative.pgy|fail|borrow_boundary_escape|aggregate_release_source_unproved"
     "aggregate_release_source_reuse_negative.pgy|fail|move_from_released|aggregate_release_source_use"
     "aggregate_release_formal_root_reuse_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
@@ -39,6 +45,10 @@ CASES=(
     "aggregate_readonly_call_deferred_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
     "aggregate_readonly_call_return_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
     "aggregate_readonly_call_site_deferred_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
+    "aggregate_release_sink_reuse_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
+    "aggregate_release_sink_alias_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
+    "aggregate_release_sink_loop_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
+    "aggregate_release_error_path_continue_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$PROBE" >"$WORK/inputs.sha256"
@@ -116,4 +126,4 @@ for manifest in native inputs imports; do
 done
 sha256sum "$WORK/c-source.exe" "$WORK/llvm-source.exe" \
     >"$WORK/binaries.sha256"
-echo "[$LABEL] 6 positive + 16 falsifying cases and generation/coverage guards per C/LLVM PASS; MIR receipt remains a separate boundary"
+echo "[$LABEL] 12 positive + 20 falsifying cases and generation/coverage guards per C/LLVM PASS; MIR receipt remains a separate boundary"

@@ -8,15 +8,11 @@ struct SelfMirDestructureFactRows {
     bindings: Array<String>;
 }
 
-// This is deliberately a single synchronous leaf owned-push carrier. The
-// semantic owner preserves the caller's exact aggregate field identity across
-// this inout boundary and records the transition at call completion.
-func SelfMirDestructureOwnedStringStoreAppend(
-    inout values: Array<String>,
-    value: String
-) -> Void {
-    ArrayPushOwnedString(values, value);
-}
+// Rows follow the match-fact row contract: inputs are readonly, and each row
+// stores a fresh copy of every spelling. The copies are not released with a
+// routine build; an owned-push transfer would need an exclusive-storage proof
+// through the routine and program accumulators that only the MIR ownership
+// pass can give (docs/semantics/27_ownership_clean.md section 5).
 
 func SelfMirDestructureFactRowsEmpty() -> SelfMirDestructureFactRows {
     let instruction_indices: Array<Int> = [];
@@ -34,7 +30,7 @@ func SelfMirDestructureFactRowsAttach(
     inout rows: SelfMirDestructureFactRows,
     instruction_index: Int,
     element_type: String,
-    bindings_in: Array<String>
+    ref bindings_in: Array<String>
 ) -> Void {
     let instruction_indices: Array<Int> = rows.instruction_indices;
     let element_types: Array<String> = rows.element_types;
@@ -42,12 +38,12 @@ func SelfMirDestructureFactRowsAttach(
     let binding_counts: Array<Int> = rows.binding_counts;
     let bindings: Array<String> = rows.bindings;
     ArrayPush(instruction_indices, instruction_index);
-    SelfMirDestructureOwnedStringStoreAppend(element_types, element_type);
+    ArrayPush(element_types, Concat("", element_type));
     ArrayPush(binding_starts, ArrayLength(bindings));
     ArrayPush(binding_counts, ArrayLength(bindings_in));
     let i: Int = 0;
     while i < ArrayLength(bindings_in) {
-        SelfMirDestructureOwnedStringStoreAppend(bindings, bindings_in[i]);
+        ArrayPush(bindings, Concat("", bindings_in[i]));
         i = i + 1;
     }
     rows.instruction_indices = instruction_indices;
@@ -73,16 +69,16 @@ func SelfMirDestructureFactRowsAppend(
             instruction_indices,
             source.instruction_indices[row] + instruction_offset
         );
-        SelfMirDestructureOwnedStringStoreAppend(
-            element_types, source.element_types[row]
+        ArrayPush(
+            element_types, Concat("", source.element_types[row])
         );
         ArrayPush(binding_starts, ArrayLength(bindings));
         ArrayPush(binding_counts, source.binding_counts[row]);
         let i: Int = 0;
         while i < source.binding_counts[row] {
-            SelfMirDestructureOwnedStringStoreAppend(
+            ArrayPush(
                 bindings,
-                source.bindings[source.binding_starts[row] + i]
+                Concat("", source.bindings[source.binding_starts[row] + i])
             );
             i = i + 1;
         }

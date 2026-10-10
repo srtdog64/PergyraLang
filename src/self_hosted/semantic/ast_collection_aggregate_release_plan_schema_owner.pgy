@@ -21,6 +21,9 @@ struct SemanticAstCollectionAggregateReleasePlan {
     call_argument_nodes: Array<Int>;
     call_ordinals: Array<Int>;
     call_target_ids: Array<Int>;
+    // The call's statement is followed in its block by one that leaves the
+    // routine, so no later statement of the routine runs after it.
+    call_ends_routine: Array<Bool>;
     requirement_local_ids: Array<Int>;
     requirement_effect_masks: Array<Int>;
     owned_push_syntax_ids: Array<Int>;
@@ -46,6 +49,11 @@ struct SemanticAstCollectionAggregateReleasePlan {
     // requirement call (outermost first), flattened at demand_chain_starts.
     demand_chain_starts: Array<Int>;
     demand_chain_edges: Array<Int>;
+    // Per demand, the call nodes entered from the value's materializing
+    // binding down to the origin constructor (outermost first). Two demands
+    // whose paths differ reach the origin through distinct invocations.
+    demand_invocation_starts: Array<Int>;
+    demand_invocation_nodes: Array<Int>;
 }
 
 struct SemanticAstCollectionAggregateTrace {
@@ -65,6 +73,7 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
     let call_nodes: Array<Int> = []; let call_argument_nodes: Array<Int> = [];
     let call_ordinals: Array<Int> = [];
     let call_target_ids: Array<Int> = [];
+    let call_ends_routine: Array<Bool> = [];
     let requirement_local_ids: Array<Int> = [];
     let requirement_effect_masks: Array<Int> = [];
     let owned_push_syntax_ids: Array<Int> = [];
@@ -88,11 +97,13 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
     let lineage_call_edge_nodes: Array<Int> = [];
     let demand_chain_starts: Array<Int> = [];
     let demand_chain_edges: Array<Int> = [];
+    let demand_invocation_starts: Array<Int> = [];
+    let demand_invocation_nodes: Array<Int> = [];
     return SemanticAstCollectionAggregateReleasePlan(
         true, -1,
         call_surface_rows, call_function_ids, call_syntax_ids,
         call_edge_nodes, call_nodes, call_argument_nodes,
-        call_ordinals, call_target_ids,
+        call_ordinals, call_target_ids, call_ends_routine,
         requirement_local_ids, requirement_effect_masks,
         owned_push_syntax_ids, owned_push_expression_nodes,
         drop_syntax_ids, drop_expression_nodes,
@@ -102,7 +113,8 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
         carrier_source_binding_ids, carrier_field_ids,
         carrier_release_edge_nodes, carrier_restoration_syntax_ids,
         protected_binding_ids, lineage_call_edge_nodes,
-        demand_chain_starts, demand_chain_edges
+        demand_chain_starts, demand_chain_edges,
+        demand_invocation_starts, demand_invocation_nodes
     );
 }
 
@@ -150,6 +162,7 @@ func SemanticAstCollectionAggregateReleasePlanShapeReady(
         ArrayLength(plan.call_argument_nodes) == calls &&
         ArrayLength(plan.call_ordinals) == calls &&
         ArrayLength(plan.call_target_ids) == calls &&
+        ArrayLength(plan.call_ends_routine) == calls &&
         ArrayLength(plan.requirement_effect_masks) == requirements &&
         ArrayLength(plan.owned_push_syntax_ids) == requirements &&
         ArrayLength(plan.owned_push_expression_nodes) == requirements &&
@@ -160,6 +173,7 @@ func SemanticAstCollectionAggregateReleasePlanShapeReady(
         ArrayLength(plan.requirement_rows) == demands &&
         ArrayLength(plan.reserved) == demands &&
         ArrayLength(plan.demand_chain_starts) == demands &&
+        ArrayLength(plan.demand_invocation_starts) == demands &&
         ArrayLength(plan.carrier_function_ids) == carriers &&
         ArrayLength(plan.carrier_scope_ids) == carriers &&
         ArrayLength(plan.carrier_source_binding_ids) == carriers &&
@@ -228,6 +242,47 @@ func SemanticAstCollectionAggregateReleaseRecordLineageEdge(
     }
     ArrayPush(plan.lineage_call_edge_nodes, edge_node);
     return true;
+}
+
+// An existing demand with the same requirement, release edge, origin, input,
+// caller chain and producer invocation path is the same flow reached again
+// through an alternative return path of one callee; it executes once.
+func SemanticAstCollectionAggregateReleaseDemandRecorded(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref trace: SemanticAstCollectionAggregateTrace,
+    requirement_row: Int, demand_edge_node: Int, aggregate_origin_id: Int, input_row: Int
+) -> Bool {
+    let demand: Int = 0;
+    while demand < ArrayLength(plan.constructor_input_rows) {
+        let chain_end: Int = ArrayLength(plan.demand_chain_edges);
+        let path_end: Int = ArrayLength(plan.demand_invocation_nodes);
+        if demand + 1 < ArrayLength(plan.constructor_input_rows) {
+            chain_end = plan.demand_chain_starts[demand + 1];
+            path_end = plan.demand_invocation_starts[demand + 1];
+        }
+        let chain: Int = plan.demand_chain_starts[demand];
+        let path: Int = plan.demand_invocation_starts[demand];
+        let same: Bool = plan.requirement_rows[demand] == requirement_row &&
+            plan.demand_edge_nodes[demand] == demand_edge_node &&
+            plan.aggregate_origin_ids[demand] == aggregate_origin_id &&
+            plan.constructor_input_rows[demand] == input_row &&
+            chain_end - chain == ArrayLength(trace.entry_edges) + 1 &&
+            path_end - path == ArrayLength(trace.invocation_call_nodes);
+        let index: Int = 0;
+        while same && index < ArrayLength(trace.entry_edges) {
+            same = plan.demand_chain_edges[chain + index] ==
+                trace.entry_edges[ArrayLength(trace.entry_edges) - 1 - index];
+            index = index + 1;
+        }
+        index = 0;
+        while same && index < ArrayLength(trace.invocation_call_nodes) {
+            same = plan.demand_invocation_nodes[path + index] == trace.invocation_call_nodes[index];
+            index = index + 1;
+        }
+        if same { return true; }
+        demand = demand + 1;
+    }
+    return false;
 }
 
 func SemanticAstCollectionAggregateReleasePlanCallInventory(

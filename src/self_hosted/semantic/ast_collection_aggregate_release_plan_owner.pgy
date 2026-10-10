@@ -7,6 +7,47 @@ import "ast_collection_call_effect_fact_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
 import "ast_collection_aggregate_release_uniqueness_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+
+// The statement after `syntax_id` in its block leaves the routine: a return,
+// exit or fail, or a call of a routine whose result type is Never.
+func SemanticAstCollectionAggregateReleaseStatementEndsRoutine(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, syntax_id: Int
+) -> Bool {
+    let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, syntax_id);
+    if !IsSome(parent) { return false; }
+    let index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(parent), index);
+    while IsSome(child) && UnwrapOption(child) != syntax_id {
+        index = index + 1;
+        child = TypedAstArenaChildAt(artifact.arena, UnwrapOption(parent), index);
+    }
+    let next: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(parent), index + 1);
+    if !IsSome(child) || !IsSome(next) { return false; }
+    if SemanticAstCollectionEffectSiteTerminatesFlow(artifact, UnwrapOption(next)) { return true; }
+    let lane: Int = 0;
+    while lane < 3 {
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, UnwrapOption(next), lane);
+        if IsSome(root) {
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                surfaces.expression_graph, UnwrapOption(root));
+            if call.ok {
+                let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+                    surfaces.expression_graph, call.call_node);
+                if IsSome(target) {
+                    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                        signatures, UnwrapOption(target));
+                    if IsSome(row) && signatures.return_types[UnwrapOption(row)] == "Never" {
+                        return true;
+                    }
+                }
+            }
+        }
+        lane = lane + 1;
+    }
+    return false;
+}
 
 func SemanticAstCollectionAggregateReleasePlanFromRequirements(
     artifact: AstTreeArtifact,
@@ -32,6 +73,12 @@ func SemanticAstCollectionAggregateReleasePlanFromRequirements(
         !SemanticAstCollectionAggregateReleasePlanCallInventory(
             surfaces, plan) {
         plan.ok = false; return plan;
+    }
+    let call_row: Int = 0;
+    while call_row < ArrayLength(plan.call_nodes) {
+        ArrayPush(plan.call_ends_routine, SemanticAstCollectionAggregateReleaseStatementEndsRoutine(
+            artifact, signatures, surfaces, plan.call_syntax_ids[call_row]));
+        call_row = call_row + 1;
     }
     let trace: SemanticAstCollectionAggregateTrace =
         SemanticAstCollectionAggregateTraceEmpty();

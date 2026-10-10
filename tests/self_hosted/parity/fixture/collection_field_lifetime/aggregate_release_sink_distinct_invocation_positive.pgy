@@ -1,0 +1,43 @@
+// Two releases reach one constructor site through separate calls of its
+// producer: each call constructs its own tables.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct TableHolder {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    count: Int;
+}
+
+func HolderFromTables(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {
+    return TableHolder(tables, 1);
+}
+
+func HolderRelease(inout holder: TableHolder) -> Void {
+    let tables: SemanticAstExpressionFunctionTableFacts = holder.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    holder.tables = tables;
+}
+
+func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+}
+
+func ReleaseFresh() -> Void {
+    let holder: TableHolder = HolderFromTables(OwnedTables());
+    HolderRelease(holder);
+}
+
+func ReleaseFreshAgain() -> Void {
+    let holder: TableHolder = HolderFromTables(OwnedTables());
+    HolderRelease(holder);
+}
+
+func Main() -> Void {
+    ReleaseFresh();
+    ReleaseFreshAgain();
+}
