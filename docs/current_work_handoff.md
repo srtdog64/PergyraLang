@@ -10,8 +10,8 @@ to `origin/main`. CI run `38065600591` (at `1c1e0308`) passed codegen bootstrap
 and failed the toolchain job at the same refusal as local DRV-2
 (`node=125550`, `ArrayPush`). After it come the R/E entry commit `3ffcdb20`
 the S/T checkpoint `8c5cc3fe` (exclusive values and text containment), and
-the G slice `7848a931` (field-level growth), and the B slice (last-use
-refinements). Plan and record:
+the G slice `7848a931` (field-level growth), and the B slice `4fa51da1`
+(last-use refinements). Plan and record:
 `agent_work_directives/drv2_ownership_entry_frontier_2026-10-11.md`.
 Handover after B (next lane, in order): (1) map growth: count `MapSet` and
 `MapRemove` as growth of the map place, falsified by a fixture that copies a
