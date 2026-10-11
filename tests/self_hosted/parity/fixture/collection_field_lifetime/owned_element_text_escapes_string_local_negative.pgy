@@ -1,0 +1,15 @@
+// A borrowed element bound to a String local leaves through the return.
+func FirstOf(values: Array<String>) -> String {
+    let operands: Array<String> = [];
+    ArrayPush(operands, values[0]);
+    let key: String = operands[0];
+    return key;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", "b"));
+    let first: String = FirstOf(names);
+    ArrayDropOwnedStrings(names);
+    return StringLength(first);
+}

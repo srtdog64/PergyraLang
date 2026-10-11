@@ -46,6 +46,7 @@ import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_collection_ownership_scan_owner.pgy";
+import "ast_collection_exclusive_value_mutation_owner.pgy";
 
 func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -345,6 +346,21 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             SemanticError1("ast_artifact_invalid", "owner",
                 "indexed_string_borrow_state"), -1, -1);
     }
+    // Exclusive values and mutating formals are whole-program facts; a scan
+    // of any routine may enter a routine scanned later.
+    let exclusive_values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
+        artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
+        assignments, statements);
+    let mutating_formals: HashMap<String, Int> = SemanticAstCollectionMutatingFormals(
+        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, formal_effects.effects,
+        statements, assignments, origins, source_binding_syntax_ids,
+        exclusive_values.dep_locals, exclusive_values.dep_formals);
+    if !exclusive_values.ok || MapHas(mutating_formals, "unconverged") {
+        SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "exclusive_value_facts"), -1, -1);
+    }
     // A continuing retention is an observed call transition of one definition,
     // never inferred from Unknown provenance or a future conservative bound.
     let retained_definitions: Array<Bool> = [];
@@ -366,7 +382,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         ownership, dispositions, origins, transition_states, origin_syntax_ids,
         source_binding_syntax_ids, current_definitions, receipts, literal_transfers,
         call_effects, aggregate_release_plan, indexed_string_borrows,
-        retained_definitions, verdict);
+        retained_definitions, exclusive_values, mutating_formals, verdict);
     SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
     ArrayDrop(retained_definitions);
     if verdict.ok && moved_use.capture_syntax_node_id > 0 {

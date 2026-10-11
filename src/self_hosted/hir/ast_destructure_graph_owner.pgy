@@ -163,9 +163,12 @@ func AstTreeArtifactBindDestructurePayloads(
     let values: Array<Int> = arena.values;
     let has_values: Array<Int> = arena.has_values;
     let atom_table: Array<String> = arena.atom_table;
+    // Once the atom table grows, the admitted arena names released storage:
+    // every exit from here carries the bound arena, failed or not.
+    let bound_ok: Bool = true;
     let ordinal: Int = 0;
     let node_id: Int = 0;
-    while node_id < artifact.count {
+    while node_id < artifact.count && bound_ok {
         if !TypedAstArenaNodeKindIs(
             arena, node_id, TypedAstKindDestructureStmtTag()
         ) {
@@ -176,56 +179,28 @@ func AstTreeArtifactBindDestructurePayloads(
             AstDestructureGraphViewForOrdinalFromReadyRows(
                 artifact.expression_graphs, ordinal
             );
-        if !view.ok {
-            let invalid_rows: AstExpressionGraphRows = AstExpressionGraphRows(
-                false, artifact.expression_graphs.root_owner_kinds,
-                artifact.expression_graphs.root_lanes,
-                artifact.expression_graphs.roots,
-                artifact.expression_graphs.arena
+        bound_ok = view.ok;
+        if view.ok {
+            ArrayPush(
+                atom_table,
+                artifact.expression_graphs.arena.node_texts[view.pattern_root]
             );
-            return AstTreeArtifact(
-                artifact.tree_text, artifact.arena, artifact.count,
-                invalid_rows, artifact.source_modules,
-                AstTreeArtifactIdentityDigest(
-                    artifact.tree_text, artifact.count, invalid_rows,
-                    artifact.source_modules
-                )
+            ArraySet(atoms, node_id, ArrayLength(atom_table) - 1);
+            ArraySet(has_atoms, node_id, 1);
+            ArrayPush(
+                atom_table,
+                artifact.expression_graphs.arena.node_texts[view.initializer_root]
             );
+            ArraySet(values, node_id, ArrayLength(atom_table) - 1);
+            ArraySet(has_values, node_id, 1);
+            ordinal = ordinal + 1;
         }
-        ArrayPush(
-            atom_table,
-            artifact.expression_graphs.arena.node_texts[view.pattern_root]
-        );
-        ArraySet(atoms, node_id, ArrayLength(atom_table) - 1);
-        ArraySet(has_atoms, node_id, 1);
-        ArrayPush(
-            atom_table,
-            artifact.expression_graphs.arena.node_texts[view.initializer_root]
-        );
-        ArraySet(values, node_id, ArrayLength(atom_table) - 1);
-        ArraySet(has_values, node_id, 1);
-        ordinal = ordinal + 1;
         node_id = node_id + 1;
     }
     let graph_count: Option<Int> = AstDestructureGraphCountFromReadyRows(
         artifact.expression_graphs
     );
-    if !IsSome(graph_count) || UnwrapOption(graph_count) != ordinal {
-        let invalid_rows2: AstExpressionGraphRows = AstExpressionGraphRows(
-            false, artifact.expression_graphs.root_owner_kinds,
-            artifact.expression_graphs.root_lanes,
-            artifact.expression_graphs.roots,
-            artifact.expression_graphs.arena
-        );
-        return AstTreeArtifact(
-            artifact.tree_text, artifact.arena, artifact.count,
-            invalid_rows2, artifact.source_modules,
-            AstTreeArtifactIdentityDigest(
-                artifact.tree_text, artifact.count, invalid_rows2,
-                artifact.source_modules
-            )
-        );
-    }
+    bound_ok = bound_ok && IsSome(graph_count) && UnwrapOption(graph_count) == ordinal;
     let bound_arena: AstArena = AstArena(
         arena.kinds, arena.nominal_subkinds, atoms, has_atoms,
         arena.type_names, arena.has_type_names, values, has_values,
@@ -233,6 +208,22 @@ func AstTreeArtifactBindDestructurePayloads(
         arena.first_children, arena.child_counts, arena.parents,
         arena.indents, arena.provenance_texts, arena.children, atom_table
     );
+    if !bound_ok {
+        let invalid_rows: AstExpressionGraphRows = AstExpressionGraphRows(
+            false, artifact.expression_graphs.root_owner_kinds,
+            artifact.expression_graphs.root_lanes,
+            artifact.expression_graphs.roots,
+            artifact.expression_graphs.arena
+        );
+        return AstTreeArtifact(
+            artifact.tree_text, bound_arena, artifact.count,
+            invalid_rows, artifact.source_modules,
+            AstTreeArtifactIdentityDigest(
+                artifact.tree_text, artifact.count, invalid_rows,
+                artifact.source_modules
+            )
+        );
+    }
     return AstTreeArtifact(
         artifact.tree_text, bound_arena, artifact.count,
         artifact.expression_graphs, artifact.source_modules,

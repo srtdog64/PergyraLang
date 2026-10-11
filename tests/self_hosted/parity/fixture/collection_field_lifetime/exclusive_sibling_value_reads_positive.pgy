@@ -1,0 +1,19 @@
+// Sibling arguments read an element and a length before the call grows the set.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetAddNamed(facts: NodeSet, name: String, count: Int) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, name);
+    if count > 3 { ArrayPush(types, name); }
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddNamed(facts, facts.types[0], ArrayLength(facts.types));
+    return ArrayLength(facts.types);
+}

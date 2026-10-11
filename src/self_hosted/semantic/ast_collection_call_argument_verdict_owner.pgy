@@ -12,7 +12,7 @@ func SemanticAstCollectionCallArgumentVerdict(
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView,
     literal_read_ready: Bool, member_read_ready: Bool, element_escape_ready: Bool,
-    proved: HashMap<String, Int>,
+    member_root_ready: Bool, proved: HashMap<String, Int>,
     owned_push_leaf_formals: HashMap<String, Int>,
     ref element_requirements: HashMap<String, Int>,
     ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
@@ -114,7 +114,7 @@ func SemanticAstCollectionCallArgumentVerdict(
         artifact, signatures, locals, surfaces, surface_row, edge,
         literal_read_ready, member_read_ready, proved, effect, owned_push_leaf_formals,
         field_requirements, binding, unknown,
-        borrowed_storage, owned_storage, repeated_fresh_generation,
+        borrowed_storage, owned_storage, member_root_ready, repeated_fresh_generation,
         current_definition, retains_descriptor,
         ownership, dispositions, origins, transition_states, call_effects,
         admitted_own_read_entry);

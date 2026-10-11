@@ -36,16 +36,17 @@ func SelfMirRoutineBuildEmpty() -> SelfMirRoutineBuild {
     );
 }
 
+// A failed build carries only its diagnostic. The failing state may name
+// storage a growth already released, and the last consumer retires the
+// failed build, so none of that storage travels with the error.
 func SelfMirRoutineBuildError(
     build: SelfMirRoutineBuild,
     message: String
 ) -> SelfMirRoutineBuild {
-    return SelfMirRoutineBuild(
-        false, message, build.cfg, build.current_block,
-        build.next_instruction_id, build.terminated,
-        build.local_names, build.local_types, build.local_versions,
-        build.local_refs
-    );
+    let failed: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    failed.ok = false;
+    failed.diagnostic_message = message;
+    return failed;
 }
 
 func SelfMirRoutineAddBlock(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {

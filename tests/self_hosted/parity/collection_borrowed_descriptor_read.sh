@@ -14,9 +14,9 @@ cd "$ROOT_DIR"
 fail() { echo "[collection-borrowed-descriptor-read] $*; evidence=$REL" >&2; exit 1; }
 "${PYTHON_BIN:-python3}" scripts/source_size_count.py --caps <<'CAPS'
 115	src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy
-400	src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy
+410	src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy
 600	src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy
-210	src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy
+222	src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy
 200	src/self_hosted/semantic/ast_collection_call_effect_owner.pgy
 170	src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy
 45	src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy
@@ -47,7 +47,8 @@ for backend in c llvm; do
         borrow_formal_indexed_scalar_copy_positive borrow_formal_selected_scalar_copy_positive \
         borrow_formal_mapped_owned_accumulator_positive inout_member_owned_clone_positive \
         member_scalar_owned_accumulator_positive participant_loop_scalar_copy_positive \
-        borrow_formal_direct_owned_seed_positive borrow_formal_aggregate_scalar_copy_positive \
+        borrow_formal_direct_owned_seed_positive borrow_formal_bound_owned_seed_positive \
+        borrow_formal_aggregate_scalar_copy_positive \
         borrow_formal_sync_typed_result_cleanup_positive borrow_formal_member_array_snapshot_positive \
         borrow_formal_row_scalar_copy_positive inout_use_unique_scalar_copy_positive; do
         observe "$name"
@@ -118,7 +119,7 @@ for backend in c llvm; do
         >"$WORK/$backend-runtime-abi-source.log" 2>&1 || fail "$backend runtime ABI source observer failed"
     grep -Fxq 'body_ok=true' "$WORK/$backend-runtime-abi-source.log" || fail "$backend refused imported runtime ABI owner"
 done
-echo "[collection-borrowed-descriptor-read] PASS (C/LLVM analysis: 28 fixture positives, 41 compile-only refusals and imported match/runtime ABI owners each; not installed-driver proof); evidence=$REL"
+echo "[collection-borrowed-descriptor-read] PASS (C/LLVM analysis: 29 fixture positives, 41 compile-only refusals and imported match/runtime ABI owners each; not installed-driver proof); evidence=$REL"
 
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \

@@ -1,0 +1,36 @@
+// The whole sequence enters a formal that reads only a sibling subtree of
+// the grown path.
+struct Topo {
+    kinds: Array<String>;
+}
+
+struct Arena {
+    topo: Topo;
+    types: Array<String>;
+}
+
+struct Seq {
+    ok: Bool;
+    arena: Arena;
+}
+
+func SeqWithKinds(seq: Seq, kinds: Array<String>) -> Seq {
+    if ArrayLength(seq.arena.types) == 0 { return Seq(false, Arena(Topo(kinds), seq.arena.types)); }
+    return Seq(seq.ok, Arena(Topo(kinds), seq.arena.types));
+}
+
+func SeqAppend(seq: Seq, text: String) -> Seq {
+    let arena: Arena = seq.arena;
+    let topo: Topo = arena.topo;
+    let kinds: Array<String> = topo.kinds;
+    ArrayPush(kinds, text); ArrayPush(kinds, text); ArrayPush(kinds, text); ArrayPush(kinds, text);
+    return SeqWithKinds(seq, kinds);
+}
+
+func Main() -> Int {
+    let kinds: Array<String> = ["k"];
+    let types: Array<String> = ["t"];
+    let seq: Seq = Seq(true, Arena(Topo(kinds), types));
+    seq = SeqAppend(seq, "x");
+    return ArrayLength(seq.arena.topo.kinds);
+}

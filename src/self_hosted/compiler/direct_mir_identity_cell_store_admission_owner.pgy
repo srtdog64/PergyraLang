@@ -69,5 +69,12 @@ func DirectMirIdentityCellStoreAppendOperation(
     let targets: Array<Int> = appended.secondary_expression_rows;
     ArraySet(members, ArrayLength(members) - 1, member);
     ArraySet(targets, ArrayLength(targets) - 1, target_expression);
-    return appended;
+    // The written rows travel by name, not through the aliased root.
+    return DirectMirScalarCfgProgramOperationStorage(
+        appended.valid, appended.kinds, appended.result_values,
+        appended.left_values, appended.right_values, appended.left_locals,
+        members, appended.left_literals, appended.right_literals,
+        appended.phi_starts, appended.phi_counts,
+        appended.phi_predecessor_blocks, appended.phi_incoming_values,
+        appended.expression_rows, targets);
 }

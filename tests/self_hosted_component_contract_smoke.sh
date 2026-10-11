@@ -19072,11 +19072,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
     "func DirectMirScalarProgramAppendExpression(" \
-    '"leaf-operand", node'
+    'failed_stage = "leaf-operand"; failed_node = node'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
     "func DirectMirScalarProgramAppendExpression(" \
-    '"expression-kind", node'
+    'failed_stage = "expression-kind"; failed_node = node'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
     "func DirectMirScalarProgramAppendExpression(" \
@@ -28776,7 +28776,7 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_
 # responsibility instead of raising its cap.
 for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:600 \
-    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy:400 \
+    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy:410 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy:240 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_source_policy_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
@@ -28786,7 +28786,8 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:242 \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:165 \
     src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy:150 \
-    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:452 \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:465 \
+    src/self_hosted/semantic/ast_string_formal_text_containment_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_formal_effect_admission_owner.pgy:40 \
@@ -28812,7 +28813,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:84 \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:115 \
-    src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:210 \
+    src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:222 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:145 \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:96 \
     src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy:40 \
@@ -28837,7 +28838,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:292 \
+    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:110 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
@@ -28845,8 +28846,14 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:316 \
     src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
     src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:590 \
-    src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:330 \
+    src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:385 \
     src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy:335 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy:565 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:410 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:325 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:295 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:380 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:225 \

@@ -523,6 +523,7 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         let changed_variants: Array<String> =
             changed_variant.match_pattern_variants;
         ArraySet(changed_variants, match_row, "Other");
+        changed_variant.match_pattern_variants = changed_variants;
     }
     let changed_binding: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(
@@ -532,6 +533,7 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         let changed_bindings: Array<String> =
             changed_binding.match_pattern_bindings;
         ArraySet(changed_bindings, 0, "changed");
+        changed_binding.match_pattern_bindings = changed_bindings;
     }
     let crossed_range: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(
@@ -545,6 +547,7 @@ func SemanticAstStatementFactsContractReady() -> Bool {
             match_row,
             crossed_starts[match_row] + 1
         );
+        crossed_range.match_pattern_binding_starts = crossed_starts;
     }
     return SemanticAstStatementFactsMatchArtifact(
         artifact, signatures, facts

@@ -1,0 +1,331 @@
+// Exclusive-value copies: a definition that copies a place inside a call or
+// constructor without consuming it makes its destination a second holder of
+// that storage. The holder keeps the source's dependencies; instead of
+// sharing the source forever, each later use of either side is a read of the
+// other. A holder that leaves the tracked definitions (a push, a statement
+// call, a match) falls back to sharing its source.
+//
+// Edge rows live in one map, keyed explicitly:
+// - "edges" -> count; "edge_root:k", "edge_holder:k" -> binding ids;
+//   "edge_whole:k" or "edge_field:k:<field>" -> 1;
+// - "from:<root>" and "from:<root>:i" -> edges out of a source binding;
+// - "into:<holder>" and "into:<holder>:i" -> edges into a holder binding;
+// - "pair:<root>:<field>:<holder>" -> 1 (one row per edge);
+// - "contained:<holder>" -> 1 contained, 2 escaping (memoized).
+import "ast_collection_exclusive_value_flow_owner.pgy";
+
+// The binding a place is rooted at: a local declaration or a formal.
+func SemanticAstCollectionExclusivePlaceRoot(
+    ref locals: SemanticAstLocalBindingFacts, ref place: SemanticAstCollectionAggregateSinkPlace
+) -> Int {
+    if place.key >= 0 { return locals.node_ids[place.key]; }
+    return 0 - place.key;
+}
+
+func SemanticAstCollectionExclusiveCopyCount(copies: HashMap<String, Int>, key: String) -> Int {
+    if !MapHas(copies, key) { return 0; }
+    return MapGet(copies, key);
+}
+
+// One edge from `root` (or its first field `field`) into `holder`. Returns
+// whether it is new.
+func SemanticAstCollectionExclusiveRecordCopyEdge(
+    inout copies: HashMap<String, Int>, root: Int, field: String, holder: Int
+) -> Bool {
+    let pair: String = Concat("pair:", Concat(ToString(root), Concat(":", Concat(field,
+        Concat(":", ToString(holder))))));
+    if root == holder || MapHas(copies, pair) { return false; }
+    MapSet(copies, pair, 1);
+    let edge: Int = SemanticAstCollectionExclusiveCopyCount(copies, "edges");
+    let key: String = ToString(edge);
+    MapSet(copies, "edges", edge + 1);
+    MapSet(copies, Concat("edge_root:", key), root);
+    MapSet(copies, Concat("edge_holder:", key), holder);
+    if field == "" { MapSet(copies, Concat("edge_whole:", key), 1); }
+    else { MapSet(copies, Concat("edge_field:", Concat(key, Concat(":", field))), 1); }
+    let from: String = Concat("from:", ToString(root));
+    let out: Int = SemanticAstCollectionExclusiveCopyCount(copies, from);
+    MapSet(copies, Concat(from, Concat(":", ToString(out))), edge);
+    MapSet(copies, from, out + 1);
+    let into: String = Concat("into:", ToString(holder));
+    let inward: Int = SemanticAstCollectionExclusiveCopyCount(copies, into);
+    MapSet(copies, Concat(into, Concat(":", ToString(inward))), edge);
+    MapSet(copies, into, inward + 1);
+    return true;
+}
+
+// The copy edges a last-use proof of `root` reads: its holders, the sources
+// it holds, and the other holders of those sources. Edges are only added, so
+// the counts change exactly when that set does.
+func SemanticAstCollectionExclusiveCopySignature(copies: HashMap<String, Int>, root: Int) -> String {
+    let into: String = Concat("into:", ToString(root));
+    let count: Int = SemanticAstCollectionExclusiveCopyCount(copies, into);
+    let siblings: Int = 0;
+    let index: Int = 0;
+    while index < count {
+        let edge: Int = MapGet(copies, Concat(into, Concat(":", ToString(index))));
+        siblings = siblings + SemanticAstCollectionExclusiveCopyCount(copies,
+            Concat("from:", ToString(MapGet(copies, Concat("edge_root:", ToString(edge))))));
+        index = index + 1;
+    }
+    return Concat(ToString(SemanticAstCollectionExclusiveCopyCount(copies, Concat("from:", ToString(root)))),
+        Concat(",", Concat(ToString(count), Concat(",", ToString(siblings)))));
+}
+
+// The edge's field, or "" for a whole-value copy.
+func SemanticAstCollectionExclusiveCopyEdgeField(
+    copies: HashMap<String, Int>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    edge: Int, ref chain: Array<Int>
+) -> Bool {
+    let key: String = ToString(edge);
+    if MapHas(copies, Concat("edge_whole:", key)) || ArrayLength(chain) == 0 { return true; }
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, chain[0]);
+    return !IsSome(field) || MapHas(copies, Concat("edge_field:", Concat(key, Concat(":", UnwrapOption(field)))));
+}
+
+// The fixed point follows a copy of `root` (at the first step of `chain`)
+// into `holder`.
+func SemanticAstCollectionExclusiveCopyHeld(
+    copies: HashMap<String, Int>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    root: Int, ref chain: Array<Int>, holder: Int
+) -> Bool {
+    let prefix: String = Concat("pair:", Concat(ToString(root), ":"));
+    let suffix: String = Concat(":", ToString(holder));
+    if MapHas(copies, Concat(prefix, suffix)) { return true; }
+    if ArrayLength(chain) == 0 { return false; }
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, chain[0]);
+    return IsSome(field) && MapHas(copies, Concat(prefix, Concat(UnwrapOption(field), suffix)));
+}
+
+// A holder moving into `holder` carries every edge it holds, widened to a
+// whole-value copy of each source.
+func SemanticAstCollectionExclusivePropagateCopies(
+    inout copies: HashMap<String, Int>, from_holder: Int, holder: Int
+) -> Bool {
+    let changed: Bool = false;
+    let into: String = Concat("into:", ToString(from_holder));
+    let count: Int = SemanticAstCollectionExclusiveCopyCount(copies, into);
+    let index: Int = 0;
+    while index < count {
+        let edge: String = ToString(MapGet(copies, Concat(into, Concat(":", ToString(index)))));
+        let root: Int = MapGet(copies, Concat("edge_root:", edge));
+        if SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder) { changed = true; }
+        index = index + 1;
+    }
+    return changed;
+}
+
+// Every use of `holder` stays where the fixed point sees it: reads,
+// conditions, logs, returns, rebinding, and the values of definitions.
+func SemanticAstCollectionExclusiveHolderContained(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, first_surface: Int, end_surface: Int,
+    function_id: Int, holder: Int
+) -> Bool {
+    let surface: Int = first_surface;
+    while surface < end_surface {
+        let statement: Int = surfaces.node_ids[surface];
+        let defines: Bool = TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindLetStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindValueReturnStmtTag());
+        let observes: Bool = TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindIfStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindLogStmtTag());
+        let lane: Int = 0;
+        while lane < 3 {
+            let slot: Int = surface * 3 + lane;
+            if slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                let root: Int = surfaces.expression_graph.roots[slot];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                let node: Int = root + 1;
+                if IsSome(start) { node = UnwrapOption(start); }
+                while node <= root {
+                    if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                        !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                        let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                            artifact, signatures, locals, inferred_types, surfaces, function_id, statement, node);
+                        if place.ok && !place.temporary &&
+                            SemanticAstCollectionExclusivePlaceRoot(locals, place) == holder && !defines && !observes &&
+                            !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, statement, lane, root, node,
+                                false) {
+                            return false;
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    return true;
+}
+
+// No statement from `syntax_id` on in its exit scope uses `binding`, except
+// a later return before the consumed family is first used.
+func SemanticAstCollectionExclusiveBindingUnreadAfter(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, first_surface: Int, end_surface: Int,
+    function_id: Int, syntax_id: Int, scoped: Bool, scope: Int, ref uses: Array<Int>, early_returns: Bool,
+    binding: Int
+) -> Bool {
+    // A whole write of the binding that every path runs gives it a new
+    // value; its target is no read.
+    let rebound: Int = -1;
+    let surface: Int = first_surface;
+    while surface < end_surface {
+        let statement: Int = surfaces.node_ids[surface];
+        let rewrites: Bool = statement >= syntax_id && (rebound < 0 || statement <= rebound) &&
+            SemanticAstCollectionExclusiveRebindsBinding(artifact, signatures, locals, inferred_types, surfaces,
+                function_id, statement, binding);
+        if rewrites && (statement == syntax_id || SemanticAstCollectionExclusiveRunsAfter(artifact, syntax_id, statement)) {
+            rebound = statement;
+        }
+        let early: Bool = early_returns &&
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindValueReturnStmtTag()) &&
+            SemanticAstCollectionExclusiveReturnBeforeUses(artifact, syntax_id, statement, uses);
+        // The consuming statement itself counts: a holder in a sibling
+        // argument reaches the same call.
+        if statement >= syntax_id && !early && (rebound < 0 || statement <= rebound) &&
+            (!scoped || SemanticAstCollectionNodeEnclosedBy(artifact, statement, scope)) {
+            let lane: Int = 0;
+            while lane < 3 {
+                let slot: Int = surface * 3 + lane;
+                if (!rewrites || lane != AstExpressionLaneAtom()) &&
+                    slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                    let root: Int = surfaces.expression_graph.roots[slot];
+                    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                    let node: Int = root + 1;
+                    if IsSome(start) { node = UnwrapOption(start); }
+                    while node <= root {
+                        if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                            !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                            let place: SemanticAstCollectionAggregateSinkPlace =
+                                SemanticAstCollectionAggregateSinkPlaceForNode(artifact, signatures, locals,
+                                    inferred_types, surfaces, function_id, statement, node);
+                            if place.ok && !place.temporary &&
+                                SemanticAstCollectionExclusivePlaceRoot(locals, place) == binding { return false; }
+                        }
+                        node = node + 1;
+                    }
+                }
+                lane = lane + 1;
+            }
+        }
+        surface = surface + 1;
+    }
+    return true;
+}
+
+// The assignment at `statement` writes the whole binding `binding`.
+func SemanticAstCollectionExclusiveRebindsBinding(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, statement: Int, binding: Int
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag()) { return false; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, statement, AstExpressionLaneAtom());
+    if !IsSome(target) { return false; }
+    let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, statement, UnwrapOption(target));
+    return written.ok && !written.temporary && ArrayLength(written.chain) == 0 &&
+        SemanticAstCollectionExclusivePlaceRoot(locals, written) == binding;
+}
+
+// A use of `place` at `syntax_id` is the last one only if no holder of a
+// copy of it, and no source of a copy it holds, is used later.
+func SemanticAstCollectionExclusiveCopiesUnread(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, copies: HashMap<String, Int>,
+    ref place: SemanticAstCollectionAggregateSinkPlace, first_surface: Int, end_surface: Int,
+    function_id: Int, syntax_id: Int, scoped: Bool, scope: Int, ref uses: Array<Int>, early_returns: Bool
+) -> Bool {
+    let root: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+    let from: String = Concat("from:", ToString(root));
+    let index: Int = 0;
+    while index < SemanticAstCollectionExclusiveCopyCount(copies, from) {
+        let edge: Int = MapGet(copies, Concat(from, Concat(":", ToString(index))));
+        if SemanticAstCollectionExclusiveCopyEdgeField(copies, surfaces, edge, place.chain) &&
+            !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
+                surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope, uses,
+                early_returns, MapGet(copies, Concat("edge_holder:", ToString(edge)))) {
+            return false;
+        }
+        index = index + 1;
+    }
+    // A holder shares its storage with the source and every other holder of it.
+    let into: String = Concat("into:", ToString(root));
+    index = 0;
+    while index < SemanticAstCollectionExclusiveCopyCount(copies, into) {
+        let edge: Int = MapGet(copies, Concat(into, Concat(":", ToString(index))));
+        let source: Int = MapGet(copies, Concat("edge_root:", ToString(edge)));
+        if !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
+                surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope, uses,
+                early_returns, source) {
+            return false;
+        }
+        let sibling_from: String = Concat("from:", ToString(source));
+        let sibling: Int = 0;
+        while sibling < SemanticAstCollectionExclusiveCopyCount(copies, sibling_from) {
+            let other: Int = MapGet(copies, Concat("edge_holder:", ToString(MapGet(copies,
+                Concat(sibling_from, Concat(":", ToString(sibling)))))));
+            if other != root && !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals,
+                    inferred_types, surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope,
+                    uses, early_returns, other) {
+                return false;
+            }
+            sibling = sibling + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+// A copy of `place` the fixed point cannot follow shares the root, or its
+// first field, from then on: "s:root", or "s:root.field" with "s:root.*".
+func SemanticAstCollectionExclusiveRecordCopy(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref place: SemanticAstCollectionAggregateSinkPlace, inout copied: HashMap<String, Int>
+) -> Void {
+    let root: String = ToString(SemanticAstCollectionExclusivePlaceRoot(locals, place));
+    let field: Option<String> = None;
+    if ArrayLength(place.chain) > 0 {
+        field = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+    }
+    if !IsSome(field) { MapSet(copied, Concat("s:", root), 1); return; }
+    MapSet(copied, Concat("s:", Concat(root, Concat(".", UnwrapOption(field)))), 1);
+    MapSet(copied, Concat("s:", Concat(root, ".*")), 1);
+}
+
+// The place names storage an unconsumed copy shares.
+func SemanticAstCollectionExclusiveCopiedPlace(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref locals: SemanticAstLocalBindingFacts,
+    shared_locals: HashMap<String, Int>, ref place: SemanticAstCollectionAggregateSinkPlace
+) -> Bool {
+    let root: String = ToString(SemanticAstCollectionExclusivePlaceRoot(locals, place));
+    if ArrayLength(place.chain) == 0 { return MapHas(shared_locals, Concat(root, ".*")); }
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+    return !IsSome(field) || MapHas(shared_locals, Concat(root, Concat(".", UnwrapOption(field))));
+}
+
+// `holder` follows every copy it receives: each of its uses stays where the
+// fixed point sees it (memoized in `copied`).
+func SemanticAstCollectionExclusiveHolderFollowed(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_starts: HashMap<String, Int>,
+    surface_ends: HashMap<String, Int>, inout copied: HashMap<String, Int>, function_id: Int, holder: Int
+) -> Bool {
+    let memo: String = Concat("contained:", ToString(holder));
+    if MapHas(copied, memo) { return MapGet(copied, memo) == 1; }
+    let key: String = ToString(function_id);
+    let followed: Bool = MapHas(surface_starts, key) && MapHas(surface_ends, key) &&
+        MapGet(surface_starts, key) >= 0 &&
+        SemanticAstCollectionExclusiveHolderContained(artifact, signatures, locals, inferred_types, surfaces,
+            MapGet(surface_starts, key), MapGet(surface_ends, key), function_id, holder);
+    if followed { MapSet(copied, memo, 1); } else { MapSet(copied, memo, 2); }
+    return followed;
+}

@@ -1,0 +1,28 @@
+// A holder of a copy of the set enters the call that grows the set.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+struct Held {
+    set: NodeSet;
+}
+
+func NodeSetHold(facts: NodeSet) -> Held {
+    return Held(NodeSet(facts.valid, facts.types));
+}
+
+func NodeSetGrowWith(facts: NodeSet, held: Held) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    Log(held.set.types[0]);
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    let held: Held = NodeSetHold(facts);
+    facts = NodeSetGrowWith(facts, held);
+    return ArrayLength(facts.types);
+}

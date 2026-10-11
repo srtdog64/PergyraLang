@@ -14,7 +14,8 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
     artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>, ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
-    node: Int, terminal_root: Int, ref call_effects: SemanticAstCollectionCallEffectFacts,
+    node: Int, terminal_root: Int, receiver_root_ready: Bool,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
     ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
     inout aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan,
     inout ownership: Array<Int>, inout dispositions: Array<Int>,
@@ -108,6 +109,13 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                         node, binding.row, aggregate_requirement,
                         ownership, dispositions, transition_states,
                         aggregate_release_plan);
+                }
+                if mutates_elements && !receiver_root_ready &&
+                    origins[binding.row] == SemanticAstCollectionOriginMemberMove() {
+                    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+                        SemanticError3("borrow_boundary_escape", "boundary", "unproved_exclusive_member_mutation",
+                            "type", "Array<String>", "binding", Concat("", locals.names[binding.row])),
+                        surfaces.node_ids[surface_row], node);
                 }
                 let state: Int = ownership[binding.row];
                 if origins[binding.row] ==

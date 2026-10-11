@@ -1,0 +1,26 @@
+// The alias shares the field with a copy of the set that is read afterwards.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func TypesAdd(inout types: Array<String>, name: String) -> Void {
+    ArrayPush(types, name);
+    ArrayPush(types, name);
+}
+
+func NodeSetAddTwiceKept(facts: NodeSet) -> NodeSet {
+    let kept: NodeSet = facts;
+    let types: Array<String> = facts.types;
+    TypesAdd(types, "a");
+    TypesAdd(types, "b");
+    Log(kept.types[0]);
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddTwiceKept(facts);
+    return ArrayLength(facts.types);
+}

@@ -1,0 +1,28 @@
+// A callee binds a borrowed element to a String local and only concatenates
+// it into fresh text.
+struct Expr {
+    valid: Bool;
+    text: String;
+}
+
+func KeyAt(values: Array<String>, at: Int) -> Expr {
+    let operands: Array<String> = [];
+    let index: Int = 0;
+    while index < ArrayLength(values) {
+        ArrayPush(operands, values[index]);
+        index = index + 1;
+    }
+    if at < 0 || at >= ArrayLength(operands) { return Expr(false, ""); }
+    let key: String = operands[at];
+    if key == "" { key = "empty"; }
+    key = Concat(key, ".key");
+    return Expr(true, Concat("op ", key));
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", "b"));
+    let expr: Expr = KeyAt(names, 0);
+    ArrayDropOwnedStrings(names);
+    return StringLength(expr.text);
+}

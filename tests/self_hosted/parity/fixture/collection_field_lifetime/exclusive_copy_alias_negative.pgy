@@ -1,0 +1,19 @@
+// A whole-set copy shares the buffer the sink grows.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func Grow(facts: NodeSet) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    return NodeSet(true, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    let copy: NodeSet = facts;
+    facts = Grow(facts);
+    return StringLength(copy.types[0]) + ArrayLength(facts.types);
+}

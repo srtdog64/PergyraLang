@@ -1,0 +1,21 @@
+// A return before the alias first grows leaves with the untouched set.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetAttach(facts: NodeSet, name: String) -> NodeSet {
+    let types: Array<String> = facts.types;
+    let last: Int = ArrayLength(types) - 1;
+    if name == "" || last < 0 { return facts; }
+    ArrayPush(types, name);
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAttach(facts, "");
+    facts = NodeSetAttach(facts, "y");
+    return ArrayLength(facts.types);
+}

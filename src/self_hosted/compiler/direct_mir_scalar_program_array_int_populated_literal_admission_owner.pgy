@@ -73,6 +73,8 @@ func DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
             use_offset, locals_plan, value_types, wire, signature, logical_record);
     if record_index.recognized { use_offset = use_offset + record_index.consumed_uses;
         return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(true, record_index.facts); }
+    // An unrecognized record-index literal hands the set back untouched.
+    facts = record_index.facts;
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
     if !sequence.ok || sequence.ready_node_count != count || count < 3 ||
         root != count - 1 ||

@@ -69,6 +69,28 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
         ) {
         return false;
     }
+    // Every row is checked before the first append: once the graph grows,
+    // the only exit left writes the grown graph back.
+    let ordinals: Array<Int> = [];
+    let i: Int = 0;
+    while i < count {
+        if facts.synthetic_names[i] != "" || facts.synthetic_graph_root_ids[i] != -1 {
+            return false;
+        }
+        let row_ordinal: Int = -1;
+        if facts.collection_hoists[i] == 1 {
+            let ordinal: Option<Int> =
+                SemanticAstIterationSyntheticOrdinal(
+                    artifact, facts, facts.node_ids[i]
+                );
+            if !IsSome(ordinal) { return false; }
+            row_ordinal = UnwrapOption(ordinal);
+        } else if facts.collection_hoists[i] != 0 {
+            return false;
+        }
+        ArrayPush(ordinals, row_ordinal);
+        i = i + 1;
+    }
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
     let topology: AstExpressionArena = graph.arena.topology;
@@ -91,40 +113,32 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
     let place_kinds: Array<Int> = graph.arena.place_kinds;
     let synthetic_names: Array<String> = facts.synthetic_names;
     let synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
-    let i: Int = 0;
-    while i < count {
-        if synthetic_names[i] != "" || synthetic_roots[i] != -1 {
-            return false;
-        }
-        if facts.collection_hoists[i] == 1 {
-            let ordinal: Option<Int> =
-                SemanticAstIterationSyntheticOrdinal(
-                    artifact, facts, facts.node_ids[i]
-                );
-            if !IsSome(ordinal) { return false; }
-            let name: String = Concat(
-                "__pgy_forin_", ToString(UnwrapOption(ordinal))
-            );
+    let appended_all: Bool = true;
+    i = 0;
+    while i < count && appended_all {
+        if ordinals[i] >= 0 {
+            let name: String = Concat("__pgy_forin_", ToString(ordinals[i]));
             let appended: ProgramExpressionGraphAppend =
                 ProgramExpressionGraphAppendIsolatedNode(
                     topology, AstExpressionNodeLeaf(), name
                 );
-            if !appended.ok { return false; }
+            // A failed append hands back the arena it was given.
+            appended_all = appended.ok;
             topology = appended.arena;
-            ArrayPush(node_texts, name);
-            ArrayPush(target_kinds, SemanticCallTargetNone());
-            ArrayPush(target_names, "");
-            ArrayPush(call_return_types, "");
-            ArrayPush(call_target_syntax_ids, 0);
-            ArrayPush(runtime_call_abi_ids, 0);
-            ArrayPush(binding_syntax_ids, 0);
-            ArrayPush(binding_kinds, SemanticExpressionBindingNone());
-            ArrayPush(binding_ordinals, -1);
-            ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
-            ArraySet(synthetic_names, i, name);
-            ArraySet(synthetic_roots, i, appended.root_id);
-        } else if facts.collection_hoists[i] != 0 {
-            return false;
+            if appended.ok {
+                ArrayPush(node_texts, name);
+                ArrayPush(target_kinds, SemanticCallTargetNone());
+                ArrayPush(target_names, "");
+                ArrayPush(call_return_types, "");
+                ArrayPush(call_target_syntax_ids, 0);
+                ArrayPush(runtime_call_abi_ids, 0);
+                ArrayPush(binding_syntax_ids, 0);
+                ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+                ArrayPush(binding_ordinals, -1);
+                ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
+                ArraySet(synthetic_names, i, name);
+                ArraySet(synthetic_roots, i, appended.root_id);
+            }
         }
         i = i + 1;
     }
@@ -147,11 +161,12 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
         SemanticAstExpressionSurfaceFactsWithGraph(
             artifact, analysis.expression_surfaces, attached
         );
-    if !surfaces.ok { return false; }
+    // The grown graph and rows replace the admitted ones, failed or not.
+    let attached_ok: Bool = surfaces.ok;
     analysis.expression_surfaces = surfaces;
     facts.synthetic_names = synthetic_names;
     facts.synthetic_graph_root_ids = synthetic_roots;
-    return true;
+    return appended_all && attached_ok;
 }
 
 func SemanticAstIterationSyntheticGraphRootsReady(

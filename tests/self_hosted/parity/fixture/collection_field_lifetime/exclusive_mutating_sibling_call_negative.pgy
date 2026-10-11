@@ -1,0 +1,24 @@
+// A sibling argument grows the set before the call receives its old copy.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetGrowCount(facts: NodeSet) -> Int {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    return ArrayLength(types);
+}
+
+func NodeSetAddCounted(facts: NodeSet, count: Int) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, ToString(count));
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddCounted(facts, NodeSetGrowCount(facts));
+    return ArrayLength(facts.types);
+}

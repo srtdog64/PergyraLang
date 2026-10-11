@@ -1,0 +1,26 @@
+// A reassigned formal returns the storage of the other formal.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetPick(facts: NodeSet, other: NodeSet) -> NodeSet {
+    facts = other;
+    return facts;
+}
+
+func NodeSetAddInt(facts: NodeSet) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "Int"); ArrayPush(types, "Bool"); ArrayPush(types, "Long"); ArrayPush(types, "Char");
+    return NodeSet(true, types);
+}
+
+func Main() -> Int {
+    let first: Array<String> = ["a"];
+    let second: Array<String> = ["b"];
+    let left: NodeSet = NodeSet(true, first);
+    let right: NodeSet = NodeSet(true, second);
+    let picked: NodeSet = NodeSetPick(left, right);
+    picked = NodeSetAddInt(picked);
+    return StringLength(right.types[0]) + ArrayLength(picked.types);
+}

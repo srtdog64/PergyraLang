@@ -1,0 +1,33 @@
+// The set is taken back from the sibling owner on one path only; the other
+// path grows the stale field.
+struct ExprSet {
+    valid: Bool;
+    kinds: Array<String>;
+}
+
+struct Admission {
+    recognized: Bool;
+    facts: ExprSet;
+}
+
+func RecordIndexFromOwners(facts: ExprSet, ref source: Array<String>) -> Admission {
+    let kinds: Array<String> = facts.kinds;
+    ArrayPush(kinds, source[0]);
+    ArrayPush(kinds, source[0]);
+    return Admission(true, ExprSet(true, kinds));
+}
+
+func AppendPopulated(facts: ExprSet, ref source: Array<String>, flag: Bool) -> Int {
+    let record_index: Admission = RecordIndexFromOwners(facts, source);
+    if flag { facts = record_index.facts; }
+    let kinds: Array<String> = facts.kinds;
+    ArrayPush(kinds, "x");
+    return ArrayLength(kinds);
+}
+
+func Main() -> Int {
+    let kinds: Array<String> = ["k"];
+    let source: Array<String> = ["a", "b"];
+    let facts: ExprSet = ExprSet(true, kinds);
+    return AppendPopulated(facts, source, false);
+}

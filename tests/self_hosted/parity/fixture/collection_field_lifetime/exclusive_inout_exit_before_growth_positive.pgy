@@ -1,0 +1,21 @@
+// An inout set may leave before its alias first grows.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetGrowChecked(inout facts: NodeSet, name: String) -> Bool {
+    let types: Array<String> = facts.types;
+    if name == "" || ArrayLength(types) == 0 { return false; }
+    ArrayPush(types, name);
+    facts.types = types;
+    return true;
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    let grown: Bool = NodeSetGrowChecked(facts, "y");
+    if !grown { return 1; }
+    return ArrayLength(facts.types);
+}

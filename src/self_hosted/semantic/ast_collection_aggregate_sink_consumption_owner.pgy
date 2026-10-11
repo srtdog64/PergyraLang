@@ -115,10 +115,57 @@ func SemanticAstCollectionAggregateSinkAliasAdd(
 // A whole local assigned from a known storage name names it too. A write
 // into a field of another place is a partial alias this owner does not
 // track; it refuses the crossing instead (returns -1).
+// Two places name the same path from the same binding.
+func SemanticAstCollectionAggregateSinkSamePlace(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref left: SemanticAstCollectionAggregateSinkPlace, ref right: SemanticAstCollectionAggregateSinkPlace
+) -> Bool {
+    if !left.ok || !right.ok || left.temporary || right.temporary || left.key != right.key ||
+        ArrayLength(left.chain) != ArrayLength(right.chain) { return false; }
+    let index: Int = 0;
+    while index < ArrayLength(left.chain) {
+        let a: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, left.chain[index]);
+        let b: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, right.chain[index]);
+        if !IsSome(a) || !IsSome(b) || UnwrapOption(a) != UnwrapOption(b) { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+// Writing the alias at `base` back to the very path it names adds no alias.
+func SemanticAstCollectionAggregateSinkWritesBack(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref aliases: SemanticAstCollectionAggregateSinkAliases,
+    base: Int, ref source: SemanticAstCollectionAggregateSinkPlace, ref written: SemanticAstCollectionAggregateSinkPlace
+) -> Bool {
+    let target_row: Int = SemanticAstCollectionAggregateSinkAliasRow(aliases, written.key);
+    let length: Int = aliases.chain_counts[base] + ArrayLength(source.chain);
+    if target_row < 0 || aliases.chain_counts[target_row] + ArrayLength(written.chain) != length { return false; }
+    let step: Int = 0;
+    while step < length {
+        let left: Int = 0;
+        if step < aliases.chain_counts[target_row] {
+            left = aliases.chain_nodes[aliases.chain_starts[target_row] + step];
+        } else { left = written.chain[step - aliases.chain_counts[target_row]]; }
+        let right: Int = 0;
+        if step < aliases.chain_counts[base] { right = aliases.chain_nodes[aliases.chain_starts[base] + step]; }
+        else { right = source.chain[step - aliases.chain_counts[base]]; }
+        let left_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, left);
+        let right_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, right);
+        if !IsSome(left_text) || !IsSome(right_text) || UnwrapOption(left_text) != UnwrapOption(right_text) {
+            return false;
+        }
+        step = step + 1;
+    }
+    return true;
+}
+
+// A write of `restored`, the place the root was moved out of, puts the root
+// back and adds no alias.
 func SemanticAstCollectionAggregateSinkAssignmentAlias(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, syntax_id: Int,
+    ref restored: SemanticAstCollectionAggregateSinkPlace,
     inout aliases: SemanticAstCollectionAggregateSinkAliases
 ) -> Int {
     let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
@@ -130,7 +177,10 @@ func SemanticAstCollectionAggregateSinkAssignmentAlias(
     if !source.ok || source.temporary || base < 0 { return 0; }
     let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
         artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, UnwrapOption(target));
-    if !written.ok || written.temporary || ArrayLength(written.chain) != 0 { return -1; }
+    if SemanticAstCollectionAggregateSinkSamePlace(surfaces, written, restored) { return 0; }
+    if !written.ok || written.temporary || (ArrayLength(written.chain) != 0 &&
+            !SemanticAstCollectionAggregateSinkWritesBack(surfaces, aliases, base, source, written)) { return -1; }
+    if ArrayLength(written.chain) != 0 { return 0; }
     if SemanticAstCollectionAggregateSinkAliasRow(aliases, written.key) >= 0 { return 0; }
     SemanticAstCollectionAggregateSinkAliasAdd(aliases, written.key, base, source.chain);
     return 1;
@@ -138,12 +188,13 @@ func SemanticAstCollectionAggregateSinkAssignmentAlias(
 
 // Local initializers and whole-local assignments, to a fixed point. A
 // destructure row aliases its whole initializer. Fails closed (keys empty)
-// on an untracked partial alias.
+// on an untracked partial alias. `restored` is the place the root was moved
+// out of, or a place that is not ok.
 func SemanticAstCollectionAggregateSinkAliasesForFunction(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
-    function_id: Int, root_key: Int
+    function_id: Int, root_key: Int, ref restored: SemanticAstCollectionAggregateSinkPlace
 ) -> SemanticAstCollectionAggregateSinkAliases {
     let keys: Array<Int> = [root_key];
     let starts: Array<Int> = [0];
@@ -175,7 +226,7 @@ func SemanticAstCollectionAggregateSinkAliasesForFunction(
         while row < ArrayLength(assignments.node_ids) {
             if assignments.function_node_ids[row] == function_id {
                 let added: Int = SemanticAstCollectionAggregateSinkAssignmentAlias(artifact, signatures,
-                    locals, inferred_types, surfaces, function_id, assignments.node_ids[row], aliases);
+                    locals, inferred_types, surfaces, function_id, assignments.node_ids[row], restored, aliases);
                 if added < 0 {
                     let refused_keys: Array<Int> = [];
                     aliases.keys = refused_keys;
@@ -351,8 +402,11 @@ func SemanticAstCollectionAggregateSinkArgumentConsumed(
         row = trace.path_parent_rows[row];
     }
     if row >= 0 { return false; }
+    let no_chain: Array<Int> = [];
+    let unrestored: SemanticAstCollectionAggregateSinkPlace =
+        SemanticAstCollectionAggregateSinkPlace(false, false, 0, -1, -1, no_chain);
     let aliases: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliasesForFunction(
-        artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, place.key);
+        artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, place.key, unrestored);
     if ArrayLength(aliases.keys) == 0 { return false; }
     return SemanticAstCollectionAggregateSinkNoLaterRead(artifact, signatures, constructors, locals,
         inferred_types, surfaces, aliases, function_id, call_syntax_id, argument_node, place.chain, field_ids);

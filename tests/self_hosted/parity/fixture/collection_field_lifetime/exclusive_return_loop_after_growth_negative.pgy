@@ -1,0 +1,24 @@
+// A return earlier in the loop body runs after the growth of a previous
+// iteration.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetGrowUntil(facts: NodeSet, count: Int) -> NodeSet {
+    let types: Array<String> = facts.types;
+    let index: Int = 0;
+    while index < count {
+        if index == 3 { return facts; }
+        ArrayPush(types, "a");
+        index = index + 1;
+    }
+    return NodeSet(true, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetGrowUntil(facts, 5);
+    return StringLength(facts.types[0]);
+}

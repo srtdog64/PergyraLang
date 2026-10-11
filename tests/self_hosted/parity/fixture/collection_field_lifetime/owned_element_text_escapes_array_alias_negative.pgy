@@ -1,0 +1,14 @@
+// The local array holding borrowed elements is returned whole.
+func Gather(values: Array<String>) -> Array<String> {
+    let operands: Array<String> = [];
+    ArrayPush(operands, values[0]);
+    return operands;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", "b"));
+    let gathered: Array<String> = Gather(names);
+    ArrayDropOwnedStrings(names);
+    return StringLength(gathered[0]);
+}

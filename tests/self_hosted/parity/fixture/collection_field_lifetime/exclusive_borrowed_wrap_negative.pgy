@@ -1,0 +1,23 @@
+// A set built from a borrowed array shares its buffer; growing it frees the
+// buffer the caller still reads.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func Wrap(types: Array<String>) -> NodeSet {
+    return NodeSet(true, types);
+}
+
+func Grow(facts: NodeSet) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    return NodeSet(true, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = Wrap(types);
+    facts = Grow(facts);
+    return StringLength(types[0]) + ArrayLength(facts.types);
+}

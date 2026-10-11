@@ -1,0 +1,18 @@
+// A field alias of an inout formal grows and is restored.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetAddInt(inout facts: NodeSet) -> Void {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "Int");
+    facts.types = types;
+}
+
+func Main() -> Int {
+    let types: Array<String> = [];
+    let facts: NodeSet = NodeSet(true, types);
+    NodeSetAddInt(facts);
+    return ArrayLength(facts.types);
+}

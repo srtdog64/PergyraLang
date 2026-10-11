@@ -835,6 +835,46 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   An element of releasable storage may only be compared, logged, matched,
   passed to a borrowed builtin or borrow-only String formal, bound to a
   String local, or stored into a field of its own root (`owned_element_escape`).
+- `src/self_hosted/semantic/ast_string_formal_text_containment_owner.pgy`
+  -- text containment of an Array<String> formal whose body may return or
+  write String: every element text is read by a primitive, borrowed or
+  borrow-only consumer, binds or overwrites a String local, or enters a
+  local array that starts empty and is only pushed, measured and indexed.
+  The formal-use inventory asks it only when the text's escape is a
+  formal's sole open use.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy` --
+  exclusive aggregate values, a greatest fixed point over routines: literals,
+  `Clone` and `MapKeys` are fresh; constructors and carrying calls need
+  exclusive, consumed, distinct arguments; a local or reassigned formal joins
+  every definition. Array<Int> is tracked.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy`
+  -- copy holders: a definition that copies a place inside a call or
+  constructor without consuming it holds the source's dependencies, and each
+  later use of the holder, the source, or another holder of the same source
+  reads that storage, until a whole rebinding every path runs. A plain alias, or a holder that escapes the tracked
+  definitions (push, statement call, match), shares its source instead.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy`
+  -- last-use proof for a consumed place: no later statement that runs after
+  the use reads overlapping storage. The destination family and the fields
+  it touches are excluded; an inout root is read again at every exit; after
+  a whole rebinding only aliases taken before it name the old value.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy`
+  -- field reads for consumption: field-read summaries of aggregate formals
+  that narrow whole-value reads, the fields and paths a destination writes,
+  and reads that copy no buffer: a scalar or String value, an array length,
+  or a scalar or String element while the consuming call still evaluates its
+  arguments (field types from the constructor facts; an unresolved type is
+  tracked).
+- `src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy`
+  -- order facts for consumption: exit scopes (blocks ending in a function
+  exit with no leaving jump), write-backs every path runs, loop rebinding,
+  returns before the first non-read family use, and per-use write-back
+  scopes. A function with a deferred body has no forward order and refuses.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy`
+  -- growth admission: formals a body grows through a member alias (a fixed
+  point), a member alias that consumed its source, roots that may grow in
+  place, and the argument boundary (`unproved_exclusive_sink_entry`,
+  `exclusive_root_shared`).
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.

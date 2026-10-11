@@ -1,0 +1,22 @@
+// A sibling argument counts through a formal that only observes.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetCount(facts: NodeSet) -> Int {
+    return ArrayLength(facts.types);
+}
+
+func NodeSetAddCounted(facts: NodeSet, count: Int) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, ToString(count));
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddCounted(facts, NodeSetCount(facts));
+    return ArrayLength(facts.types);
+}

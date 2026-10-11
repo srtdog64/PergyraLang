@@ -1,0 +1,29 @@
+// A growth inside a branch that writes back and returns leaves the other
+// exits untouched.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetInsertAt(inout facts: NodeSet, name: String, slot: Int) -> Bool {
+    let types: Array<String> = facts.types;
+    let probes: Int = 0;
+    while probes < 4 {
+        if probes == slot {
+            ArrayPush(types, name);
+            facts.types = types;
+            return true;
+        }
+        if probes > slot { return true; }
+        probes = probes + 1;
+    }
+    return false;
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    let inserted: Bool = NodeSetInsertAt(facts, "y", 1);
+    if !inserted { return 1; }
+    return ArrayLength(facts.types);
+}

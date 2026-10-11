@@ -1,0 +1,19 @@
+// A sibling argument hands the same buffer to the call that grows it.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetAddKept(facts: NodeSet, kept: Array<String>) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    Log(kept[0]);
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddKept(facts, facts.types);
+    return ArrayLength(facts.types);
+}

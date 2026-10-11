@@ -87,17 +87,23 @@ func DirectMirScalarProgramAppendOptionIntTryOperand(
             "expr0_graph", use_offset, true,
             CompilerAbiLayoutOptionIntTypeName(), true, -1
         );
+    // The admission may have grown the set before it failed: every exit
+    // hands the caller the set it returned, never the stale one.
     if !admission.valid {
-        if !failure.present { failure = admission.failure; } return None;
+        if !failure.present { failure = admission.failure; }
+        expressions = admission.facts;
+        return None;
     }
     let appended: DirectMirScalarProgramExpressionSet = admission.facts;
     if ArrayLength(appended.graph_starts) != expression_row + 1 {
         if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("try-cardinality", -1); }
+        expressions = appended;
         return None;
     }
     if appended.node_types[appended.graph_roots[expression_row]] !=
             CompilerAbiLayoutOptionIntTypeName() {
         if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("try-type", appended.graph_roots[expression_row]); }
+        expressions = appended;
         return None;
     }
     expressions = appended;

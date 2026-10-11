@@ -46,12 +46,13 @@ func SelfMirIntentExecutionRoutineAppend(
             input.analysis.expression_surfaces, outcome_node, AstExpressionLaneAtom());
         let outcome_text: String = SelfMirIntentExpressionText(
             input.analysis.expression_surfaces, outcome_node);
+        let outcome_uses: Array<String> = SelfMirExpressionGraphUses(build, outcome_graph);
         build = SelfMirIntentAddInstruction(build, "branch",
             "IntentOutcomeBranch", intents.transitions.success_variant_names[step],
             intents.transitions.failure_variant_names[step],
             intents.steps.outcome_names[step], outcome_text,
             SelfMirIntentExpressionSourceType(outcome_graph, outcome_text),
-            SelfMirExpressionGraphUses(build, outcome_graph));
+            outcome_uses);
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, outcome_graph, input.machine_declaration);
         if !build.ok { return build; }
@@ -117,6 +118,7 @@ func SelfMirIntentExecutionRoutineAppend(
             return SelfMirRoutineBuildError(build,
                 "typed Intent terminal expression graph is missing");
         }
+        let terminal_uses: Array<String> = SelfMirExpressionGraphUses(build, graph);
         build = SelfMirIntentAddResultInstruction(build, "return",
             "IntentTerminalResult", Concat("intent.result.", ToString(expression_id)),
             intents.transitions.terminal_variant_names[terminal],
@@ -124,7 +126,7 @@ func SelfMirIntentExecutionRoutineAppend(
             intents.transitions.terminal_source_step_names[terminal], text,
             SelfMirIntentExpressionSourceType(graph, text),
             intents.return_type_names[intent_index],
-            SelfMirExpressionGraphUses(build, graph));
+            terminal_uses);
         build = SelfMirRoutineAttachLastExpressionGraph(
             build, graph, input.machine_declaration);
         if !build.ok { return build; }

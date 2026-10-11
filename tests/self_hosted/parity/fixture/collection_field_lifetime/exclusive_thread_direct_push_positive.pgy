@@ -1,0 +1,18 @@
+// `facts = F(facts)` threads one exclusive set; F pushes onto a field alias.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetAddInt(facts: NodeSet) -> NodeSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "Int");
+    return NodeSet(true, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = [];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddInt(facts);
+    return ArrayLength(facts.types);
+}

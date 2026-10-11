@@ -1,0 +1,21 @@
+// An inout set returns to the caller before its grown field is written back.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetGrowChecked(inout facts: NodeSet, fail: Bool) -> Bool {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    if fail { return false; }
+    facts.types = types;
+    return true;
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    let grown: Bool = NodeSetGrowChecked(facts, true);
+    if grown { return 0; }
+    return StringLength(facts.types[0]);
+}

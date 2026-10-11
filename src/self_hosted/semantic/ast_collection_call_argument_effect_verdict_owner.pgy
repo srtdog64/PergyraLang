@@ -34,17 +34,33 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
         SemanticAstCollectionAggregateFieldEntryRequirements,
     binding: SemanticAstLocalBindingIdentity,
     unknown: Bool, borrowed_storage: Bool, owned_storage: Bool,
-    repeated_fresh_generation: Bool, current_definition: Int,
+    member_root_ready: Bool, repeated_fresh_generation: Bool, current_definition: Int,
     retains_descriptor: Bool,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts, admitted_own_read_entry: Bool
 ) -> SemanticAstCollectionOwnershipVerdict {
+    // An inout formal writes the exact binding back, so an earlier shallow
+    // write of an exclusive member alias leaves it current; only a
+    // descriptor-retiring effect precedes this use.
+    let prior_retiring_site: Int = -1;
+    let prior_non_deep_site: Int = -1;
+    if binding.ok {
+        prior_retiring_site = call_effects.first_retiring_sites[binding.row];
+        prior_non_deep_site = call_effects.first_non_deep_drop_retiring_sites[binding.row];
+        if origins[binding.row] == SemanticAstCollectionOriginMemberMove() && member_root_ready &&
+            current_definition >= 0 && current_definition < ArrayLength(call_effects.definition_descriptor_retiring_sites) {
+            prior_retiring_site = call_effects.definition_descriptor_retiring_sites[current_definition];
+            prior_non_deep_site = prior_retiring_site;
+        }
+    }
     if effect == SemanticAstCollectionFormalShallowMutationEffect() {
         if binding.ok {
+            // A member alias of an exclusive root holds that field's storage.
             let borrowed: Bool = ownership[binding.row] ==
                     SemanticAstCollectionOwnershipBorrowedElements() ||
-                borrowed_storage || owned_storage;
+                borrowed_storage || owned_storage ||
+                (origins[binding.row] == SemanticAstCollectionOriginMemberMove() && member_root_ready);
             let current_empty_descriptor: Bool = false;
             let exact_retention_entry: Bool = retains_descriptor &&
                 call_effects.first_storage_escape_sites[binding.row] ==
@@ -73,9 +89,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                     !exact_retention_entry) ||
                 (SemanticAstCollectionShallowMutationHasPriorEffect(
                         artifact, surfaces.node_ids[surface_row],
-                        call_effects.first_retiring_sites[binding.row],
-                        call_effects.first_non_deep_drop_retiring_sites[
-                            binding.row]) &&
+                        prior_retiring_site, prior_non_deep_site) &&
                     !current_empty_descriptor) {
                 return SemanticAstCollectionOwnershipVerdictError(
                     "borrow_boundary_escape",
@@ -180,8 +194,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                     artifact, call_effects, binding.row,
                     surfaces.node_ids[surface_row])) ||
                 (SemanticAstCollectionMutableCallMayBeRetired(
-                    artifact, surfaces.node_ids[surface_row],
-                    call_effects.first_retiring_sites[binding.row]) &&
+                    artifact, surfaces.node_ids[surface_row], prior_retiring_site) &&
                     !repeated_fresh_generation && !current_borrowed_read && !admitted_own_read_entry) {
                 let boundary: String = "unproved_inout_copy_entry";
                 if effect == 3 { boundary = "unproved_indexed_read_entry"; }

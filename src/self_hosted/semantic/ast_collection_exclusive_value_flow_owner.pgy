@@ -1,0 +1,417 @@
+// Exclusive-value flow facts: which statements run after a definition, which
+// of them end the old value, and where a member alias family is first used
+// otherwise than read. Missing shape is never a certificate: a function with
+// a deferred body, a block a jump leaves, or an unmodelled family refuses.
+import "ast_collection_aggregate_sink_consumption_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_string_formal_borrow_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+
+// Surfaces are emitted per function in source order; a function whose rows
+// are not contiguous has no range and every check on it refuses. A deferred
+// body runs at exit, after every later statement, so its function has no
+// forward order either.
+func SemanticAstCollectionExclusiveSurfaceRanges(
+    artifact: AstTreeArtifact, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    inout starts: HashMap<String, Int>, inout ends: HashMap<String, Int>
+) -> Void {
+    let broken: HashMap<String, Int> = MapNew();
+    let row: Int = 0;
+    let previous: Int = -1;
+    while row < ArrayLength(surfaces.function_node_ids) {
+        let function_id: Int = surfaces.function_node_ids[row];
+        let key: String = ToString(function_id);
+        let ancestor: Int = surfaces.node_ids[row];
+        let remaining: Int = artifact.count;
+        while ancestor >= 0 && ancestor < artifact.count && ancestor != function_id && remaining > 0 {
+            if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) {
+                MapSet(broken, key, 1);
+            }
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+            ancestor = -1;
+            if IsSome(parent) { ancestor = UnwrapOption(parent); }
+            remaining = remaining - 1;
+        }
+        if function_id != previous {
+            if MapHas(starts, key) { MapSet(broken, key, 1); }
+            else { MapSet(starts, key, row); }
+            if previous >= 0 { MapSet(ends, ToString(previous), row); }
+            previous = function_id;
+        }
+        row = row + 1;
+    }
+    if previous >= 0 { MapSet(ends, ToString(previous), row); }
+    let keys: Array<String> = MapKeys(broken);
+    let index: Int = 0;
+    while index < ArrayLength(keys) {
+        MapSet(starts, keys[index], -1);
+        index = index + 1;
+    }
+}
+
+// The statement at `syntax_id` assigns the consumed place itself, so later
+// statements read the new value.
+func SemanticAstCollectionExclusiveRedefinesPlace(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int, ref place: SemanticAstCollectionAggregateSinkPlace
+) -> Bool {
+    let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+    if !IsSome(assigned) || assignments.target_is_indexed[UnwrapOption(assigned)] != 0 { return false; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(target) { return false; }
+    let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, UnwrapOption(target));
+    // Writing the place or an ancestor of it ends the old value.
+    if !written.ok || written.temporary || written.key != place.key ||
+        ArrayLength(written.chain) > ArrayLength(place.chain) { return false; }
+    let index: Int = 0;
+    while index < ArrayLength(written.chain) {
+        let left: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, written.chain[index]);
+        let right: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[index]);
+        if !IsSome(left) || !IsSome(right) || UnwrapOption(left) != UnwrapOption(right) { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+// No break or continue inside `block` leaves it.
+func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, block: Int) -> Bool {
+    let pending: Array<Int> = [block];
+    while ArrayLength(pending) > 0 {
+        let node: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        if node < 0 || node >= artifact.count { return false; }
+        let kind: Int = artifact.arena.kinds[node];
+        if kind == TypedAstKindBreakStmtTag() || kind == TypedAstKindContinueStmtTag() {
+            // Only a jump to a loop inside the block stays in it.
+            let inner: Bool = false;
+            let ancestor: Int = artifact.arena.parents[node];
+            while ancestor >= 0 && ancestor != block && !inner {
+                inner = artifact.arena.kinds[ancestor] == TypedAstKindWhileStmtTag() ||
+                    artifact.arena.kinds[ancestor] == TypedAstKindForStmtTag();
+                ancestor = artifact.arena.parents[ancestor];
+            }
+            if !inner { return false; }
+        }
+        let index: Int = 0;
+        while index < artifact.arena.child_counts[node] {
+            let slot: Int = artifact.arena.first_children[node] + index;
+            if slot < 0 || slot >= ArrayLength(artifact.arena.children) { return false; }
+            ArrayPush(pending, artifact.arena.children[slot]);
+            index = index + 1;
+        }
+    }
+    return true;
+}
+
+// The block `block` ends in a function exit at or after its child `child`, and
+// no break or continue inside it leaves it.
+func SemanticAstCollectionExclusiveBlockExits(ref artifact: AstTreeArtifact, block: Int, child: Int) -> Bool {
+    let count: Int = artifact.arena.child_counts[block];
+    let edge: Int = artifact.arena.first_children[block] + count - 1;
+    if count <= 0 || edge < 0 || edge >= ArrayLength(artifact.arena.children) { return false; }
+    let terminal: Int = artifact.arena.children[edge];
+    if terminal < child || terminal >= artifact.count ||
+        !SemanticAstCollectionEffectSiteTerminatesFlow(artifact, terminal) { return false; }
+    return SemanticAstCollectionExclusiveBlockJumpFree(artifact, block);
+}
+
+// Every path from `definition` that goes on runs `statement`: it sits directly
+// in a jump-free block around the definition.
+func SemanticAstCollectionExclusiveRunsAfter(ref artifact: AstTreeArtifact, definition: Int, statement: Int) -> Bool {
+    if statement <= definition || statement >= artifact.count { return false; }
+    let block: Int = artifact.arena.parents[statement];
+    return block >= 0 && block < artifact.count && artifact.arena.kinds[block] == TypedAstKindBlockTag() &&
+        SemanticAstCollectionNodeEnclosedBy(artifact, definition, block) &&
+        SemanticAstCollectionExclusiveBlockJumpFree(artifact, block);
+}
+
+// Every loop that repeats `use_site` but keeps the binding declared at
+// `origin` also holds the rebinding at `rebind`, so each iteration rebinds
+// before the next one reads.
+func SemanticAstCollectionExclusiveRebindsEachIteration(
+    ref artifact: AstTreeArtifact, use_site: Int, rebind: Int, origin: Int
+) -> Bool {
+    let ancestor: Int = use_site;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if (TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag())) &&
+            !SemanticAstCollectionNodeEnclosedBy(artifact, origin, ancestor) &&
+            !SemanticAstCollectionNodeEnclosedBy(artifact, rebind, ancestor) { return false; }
+        if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) { return false; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return true; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+// A write in `writes` runs on every path to the exit at `exit_site`: it sits
+// earlier, directly in a jump-free block around the exit.
+func SemanticAstCollectionExclusiveWriteCoversExit(
+    ref artifact: AstTreeArtifact, ref writes: Array<Int>, exit_site: Int
+) -> Bool {
+    let index: Int = 0;
+    while index < ArrayLength(writes) {
+        let write: Int = writes[index];
+        let block: Int = -1;
+        if write >= 0 && write < artifact.count { block = artifact.arena.parents[write]; }
+        if write < exit_site && block >= 0 && block < artifact.count &&
+            artifact.arena.kinds[block] == TypedAstKindBlockTag() &&
+            SemanticAstCollectionNodeEnclosedBy(artifact, exit_site, block) &&
+            SemanticAstCollectionExclusiveBlockJumpFree(artifact, block) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+// A leaf that names the member of its member access is no binding use.
+func SemanticAstCollectionExclusiveMemberName(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int, root: Int
+) -> Bool {
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+    return consumer >= 0 && member.ok && member.member_node == node;
+}
+
+// The innermost block around `syntax_id` that no path from it leaves.
+func SemanticAstCollectionExclusiveExitScope(ref artifact: AstTreeArtifact, syntax_id: Int) -> Option<Int> {
+    if syntax_id < 0 || syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count ||
+        ArrayLength(artifact.arena.child_counts) != artifact.count ||
+        ArrayLength(artifact.arena.first_children) != artifact.count { return None; }
+    let node: Int = syntax_id;
+    let remaining: Int = artifact.count;
+    while remaining > 0 {
+        let parent: Int = artifact.arena.parents[node];
+        if parent < 0 || parent >= artifact.count ||
+            artifact.arena.kinds[parent] == TypedAstKindFuncDeclTag() { return None; }
+        if artifact.arena.kinds[parent] == TypedAstKindBlockTag() &&
+            SemanticAstCollectionExclusiveBlockExits(artifact, parent, node) { return Some(parent); }
+        node = parent;
+        remaining = remaining - 1;
+    }
+    return None;
+}
+
+// A family occurrence at `node` only reads: a length, an element or index, an
+// operand, a condition, or (unless `observing`) the value of a further alias.
+func SemanticAstCollectionExclusiveFamilyRead(
+    ref artifact: AstTreeArtifact, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    statement: Int, lane: Int, root: Int, node: Int, observing: Bool
+) -> Bool {
+    let top: Int = node;
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+    while consumer >= 0 && member.ok && member.receiver_node == top {
+        top = consumer;
+        consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
+        member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+    }
+    if consumer < 0 {
+        return TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindIfStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindWhileStmtTag()) ||
+            (!observing && lane == AstExpressionLaneValue() &&
+                TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindLetStmtTag()));
+    }
+    // An indexed assignment target writes through its index base.
+    if lane == AstExpressionLaneAtom() &&
+        TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag()) { return false; }
+    let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[consumer];
+    if kind >= AstExpressionNodeLogicalOr() && kind <= AstExpressionNodeNegate() { return true; }
+    if kind != AstExpressionNodeCallArgument() { return false; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+    return edge.ok && edge.argument_node == top &&
+        (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayLength") ||
+         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "StringLength"));
+}
+
+// The statements after `syntax_id` that use a member of `family` otherwise
+// than to read it: only there may the family storage grow or be kept. Writing
+// the family back to `moved_from`, the path it came from, restores it.
+func SemanticAstCollectionExclusiveFamilyUses(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref family: SemanticAstCollectionAggregateSinkAliases, ref moved_from: SemanticAstCollectionAggregateSinkPlace,
+    first_surface: Int, end_surface: Int, function_id: Int, syntax_id: Int
+) -> Array<Int> {
+    let uses: Array<Int> = [];
+    let surface: Int = first_surface;
+    while surface < end_surface {
+        let statement: Int = surfaces.node_ids[surface];
+        let known: Bool = ArrayLength(uses) > 0 && uses[ArrayLength(uses) - 1] == statement;
+        let restores: Bool = statement > syntax_id && !known &&
+            SemanticAstCollectionExclusiveRedefinesPlace(artifact, signatures, locals, inferred_types, surfaces,
+                assignments, function_id, statement, moved_from);
+        if statement > syntax_id && !known {
+            let lane: Int = 0;
+            while lane < 3 {
+                let slot: Int = surface * 3 + lane;
+                if (!restores || lane != AstExpressionLaneValue()) &&
+                    slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                    let root: Int = surfaces.expression_graph.roots[slot];
+                    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                    let node: Int = root + 1;
+                    if IsSome(start) { node = UnwrapOption(start); }
+                    while node <= root {
+                        if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                            !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                            let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                                artifact, signatures, locals, inferred_types, surfaces, function_id, statement, node);
+                            if place.ok && !place.temporary &&
+                                SemanticAstCollectionAggregateSinkAliasRow(family, place.key) >= 0 &&
+                                !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, statement, lane, root, node,
+                                    false) &&
+                                (ArrayLength(uses) == 0 || uses[ArrayLength(uses) - 1] != statement) {
+                                ArrayPush(uses, statement);
+                            }
+                        }
+                        node = node + 1;
+                    }
+                }
+                lane = lane + 1;
+            }
+        }
+        surface = surface + 1;
+    }
+    return uses;
+}
+
+// The earliest of `uses`, or -1.
+func SemanticAstCollectionExclusiveFirstOf(ref uses: Array<Int>) -> Int {
+    let first: Int = -1;
+    let index: Int = 0;
+    while index < ArrayLength(uses) {
+        if first < 0 || uses[index] < first { first = uses[index]; }
+        index = index + 1;
+    }
+    return first;
+}
+
+// The exit at `exit` can run after `use`: it is later, or a loop inside
+// `scope` holds both.
+func SemanticAstCollectionExclusiveExitAfterUse(
+    ref artifact: AstTreeArtifact, scope: Int, use_site: Int, exit_site: Int
+) -> Bool {
+    if exit_site > use_site { return true; }
+    let ancestor: Int = exit_site;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && ancestor != scope && remaining > 0 {
+        if (TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag())) &&
+            SemanticAstCollectionNodeEnclosedBy(artifact, use_site, ancestor) { return true; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        ancestor = -1;
+        if IsSome(parent) { ancestor = UnwrapOption(parent); }
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+// From a use inside an exit scope every path ends at an exit of that scope:
+// each one it can reach follows a write-back of the place that runs after
+// the use.
+func SemanticAstCollectionExclusiveScopedWriteBack(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref place: SemanticAstCollectionAggregateSinkPlace, ref exits: Array<Int>,
+    first_surface: Int, end_surface: Int, function_id: Int, scope: Int, use_site: Int
+) -> Bool {
+    let kill: Int = -1;
+    let surface: Int = first_surface;
+    while surface < end_surface && kill < 0 {
+        let statement: Int = surfaces.node_ids[surface];
+        if statement > use_site && SemanticAstCollectionNodeEnclosedBy(artifact, statement, scope) &&
+            SemanticAstCollectionExclusiveRedefinesPlace(artifact, signatures, locals, inferred_types, surfaces,
+                assignments, function_id, statement, place) &&
+            SemanticAstCollectionExclusiveRunsAfter(artifact, use_site, statement) {
+            kill = statement;
+        }
+        surface = surface + 1;
+    }
+    if kill < 0 { return false; }
+    let index: Int = 0;
+    while index < ArrayLength(exits) {
+        if SemanticAstCollectionNodeEnclosedBy(artifact, exits[index], scope) && exits[index] < kill &&
+            SemanticAstCollectionExclusiveExitAfterUse(artifact, scope, use_site, exits[index]) {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+// A loop that leaves `definition` outside holds both `from` and `to`, so a
+// later iteration carries `from` to `to`.
+func SemanticAstCollectionExclusiveLoopCarries(
+    ref artifact: AstTreeArtifact, definition: Int, from: Int, to: Int
+) -> Bool {
+    let ancestor: Int = to;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if (TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag())) &&
+            SemanticAstCollectionNodeEnclosedBy(artifact, from, ancestor) &&
+            !SemanticAstCollectionNodeEnclosedBy(artifact, definition, ancestor) { return true; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return false; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return true;
+}
+
+// `left` and `right` sit in different branches of one `if` or `match`: no
+// single pass runs both.
+func SemanticAstCollectionExclusiveOtherBranch(ref artifact: AstTreeArtifact, left: Int, right: Int) -> Bool {
+    let below: Int = right;
+    let ancestor: Option<Int> = TypedAstArenaParentId(artifact.arena, right);
+    let remaining: Int = artifact.count;
+    while IsSome(ancestor) && remaining > 0 && !SemanticAstCollectionNodeEnclosedBy(artifact, left, UnwrapOption(ancestor)) {
+        below = UnwrapOption(ancestor);
+        ancestor = TypedAstArenaParentId(artifact.arena, below);
+        remaining = remaining - 1;
+    }
+    if !IsSome(ancestor) || below == left { return false; }
+    let join: Int = UnwrapOption(ancestor);
+    if !TypedAstArenaNodeKindIs(artifact.arena, join, TypedAstKindIfStmtTag()) &&
+        !TypedAstArenaNodeKindIs(artifact.arena, join, TypedAstKindMatchStmtTag()) { return false; }
+    let side: Int = left;
+    let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, side);
+    remaining = artifact.count;
+    while IsSome(parent) && UnwrapOption(parent) != join && remaining > 0 {
+        side = UnwrapOption(parent);
+        parent = TypedAstArenaParentId(artifact.arena, side);
+        remaining = remaining - 1;
+    }
+    return IsSome(parent) && side != below && side != join;
+}
+
+// A return at `statement` runs before every use in `uses` of the family
+// defined at `definition`: each use comes later or sits in another branch,
+// and no loop that leaves the definition outside carries a use to it.
+func SemanticAstCollectionExclusiveReturnBeforeUses(
+    ref artifact: AstTreeArtifact, definition: Int, statement: Int, ref uses: Array<Int>
+) -> Bool {
+    let index: Int = 0;
+    while index < ArrayLength(uses) {
+        let use_site: Int = uses[index];
+        if use_site <= statement && !SemanticAstCollectionExclusiveOtherBranch(artifact, use_site, statement) {
+            return false;
+        }
+        if SemanticAstCollectionExclusiveLoopCarries(artifact, definition, use_site, statement) { return false; }
+        index = index + 1;
+    }
+    return true;
+}

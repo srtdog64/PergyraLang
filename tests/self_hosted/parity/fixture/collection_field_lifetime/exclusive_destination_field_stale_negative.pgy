@@ -1,0 +1,27 @@
+// Reading the grown field through the old path is stale.
+struct Pair {
+    left: Array<String>;
+    right: Array<String>;
+}
+
+struct Holder {
+    pair: Pair;
+    extra: Array<String>;
+}
+
+func HolderExtendStale(holder: Holder) -> Holder {
+    let pair: Pair = holder.pair;
+    let left: Array<String> = pair.left;
+    ArrayPush(left, "a"); ArrayPush(left, "b"); ArrayPush(left, "c"); ArrayPush(left, "d");
+    Log(holder.pair.left[0]);
+    return Holder(Pair(left, holder.pair.right), holder.extra);
+}
+
+func Main() -> Int {
+    let left: Array<String> = ["l"];
+    let right: Array<String> = ["r"];
+    let extra: Array<String> = ["e"];
+    let holder: Holder = Holder(Pair(left, right), extra);
+    holder = HolderExtendStale(holder);
+    return ArrayLength(holder.pair.left);
+}

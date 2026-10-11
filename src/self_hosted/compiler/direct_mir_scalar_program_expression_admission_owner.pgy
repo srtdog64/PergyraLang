@@ -83,13 +83,17 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                 wire, signature, callables, logical_record);
         if literal_admission.recognized {
             if require_all_uses && total_uses != use_offset {
-                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "literal-uses", source_root);
+                return DirectMirScalarProgramExpressionAdmissionRejected(
+                    literal_admission.facts, "literal-uses", source_root);
             }
             if !literal_admission.facts.valid {
-                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "literal", source_root);
+                return DirectMirScalarProgramExpressionAdmissionRejected(
+                    literal_admission.facts, "literal", source_root);
             }
             return DirectMirScalarProgramExpressionAdmissionAccepted(literal_admission.facts);
         }
+        // An unrecognized literal hands the set back untouched.
+        facts = literal_admission.facts;
     }
     let graph_rows: Array<Int> = facts.graph_global_rows;
     let starts: Array<Int> = facts.graph_starts;
@@ -116,6 +120,10 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
     while initialize < total_count {
         ArrayPush(consumed_calls, false); initialize = initialize + 1;
     }
+    // Once a node is appended the aliases hold the set's storage: a failure
+    // hands back the set they form, never the descriptors they replaced.
+    let failed_stage: String = "";
+    let failed_node: Int = -1;
     let node: Int = 0;
     while node < count {
         let source_kind: Int = sequence.arena.topology.node_kinds[node];
@@ -141,7 +149,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                 DirectMirScalarProgramNamedRecordConstructorFromPlan(
                     named_records, node, source_rows, types, logical_record);
             if !constructor.valid || !constructor.complete {
-                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "named-record-fields", node);
+                failed_stage = "named-record-fields"; failed_node = node; break;
             }
             kind = constructor.kind; type_name = constructor.type_name;
             call_arguments = constructor.argument_rows;
@@ -153,19 +161,18 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     sequence, node, expected_type, logical_record);
             if builtin.recognized {
                 if !builtin.valid || !builtin.complete || builtin.call_node < 0 || builtin.call_node >= total_count {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "runtime-value-call", node);
+                    failed_stage = "runtime-value-call"; failed_node = node; break;
                 }
                 if builtin.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {
                     let runtime_value: CompilerRuntimeValueCallAbiFact = CompilerRuntimeValueCallAbiFactForSource(
                             sequence.arena.call_target_names[
                                 builtin.call_node]);
                     if !CompilerRuntimeValueCallInstructionRowReady(instruction, runtime_value) {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "runtime-value-call", node);
+                        failed_stage = "runtime-value-call"; failed_node = node; break;
                     }
                 }
                 if consumed_calls[builtin.call_node] {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "runtime-value-call-consumption", node);
+                    failed_stage = "runtime-value-call-consumption"; failed_node = node; break;
                 }
                 consumed_calls[builtin.call_node] = true;
                 kind = builtin.expression_kind;
@@ -182,7 +189,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                 }
                 if !direct.valid || !direct.complete { ArrayPush(source_rows, -1); node = node + 1; continue; }
                 if consumed_calls[direct.call_node] {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "direct-call-consumption", node);
+                    failed_stage = "direct-call-consumption"; failed_node = node; break;
                 }
                 consumed_calls[direct.call_node] = true;
                 kind = DirectMirScalarProgramExprDirectCall();
@@ -200,13 +207,13 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                         sequence, node, source_rows, types, logical_record);
             if constructor.recognized {
                 if !constructor.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "logical-record-constructor", node);
+                    failed_stage = "logical-record-constructor"; failed_node = node; break;
                 }
                 if !constructor.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
                 if consumed_calls[constructor.call_node] {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "logical-record-constructor-consumption", node);
+                    failed_stage = "logical-record-constructor-consumption"; failed_node = node; break;
                 }
                 consumed_calls[constructor.call_node] = true;
                 kind = constructor.kind;
@@ -218,14 +225,13 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                         sequence, node, source_rows, types, referenced_enum);
             if payload_constructor.recognized {
                 if !payload_constructor.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "payload-enum-constructor", node);
+                    failed_stage = "payload-enum-constructor"; failed_node = node; break;
                 }
                 if !payload_constructor.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
                 if consumed_calls[payload_constructor.call_node] {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "payload-enum-constructor-consumption", node);
+                    failed_stage = "payload-enum-constructor-consumption"; failed_node = node; break;
                 }
                 consumed_calls[payload_constructor.call_node] = true;
                 kind = DirectMirScalarProgramExprPayloadEnumConstructor();
@@ -237,13 +243,13 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     sequence, node, source_rows, types, expected_type, logical_record);
             if call.recognized {
                 if !call.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "builtin-call", node);
+                    failed_stage = "builtin-call"; failed_node = node; break;
                 }
                 if !call.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
                 if consumed_calls[call.call_node] {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "builtin-call-consumption", node);
+                    failed_stage = "builtin-call-consumption"; failed_node = node; break;
                 }
                 consumed_calls[call.call_node] = true;
                 kind = call.expression_kind;
@@ -254,20 +260,20 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     let runtime_value: CompilerRuntimeValueCallAbiFact = CompilerRuntimeValueCallAbiFactForSource(
                             sequence.arena.call_target_names[call.call_node]);
                     if !CompilerRuntimeValueCallInstructionRowReady(instruction, runtime_value) {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "runtime-value-call-row", node);
+                        failed_stage = "runtime-value-call-row"; failed_node = node; break;
                     }
                 }
             } else {
                 let direct: DirectMirScalarProgramDirectCallFact = DirectMirScalarProgramDirectCallFactFromGraph(
                     sequence, node, source_rows, types, callables, signature);
                 if !direct.recognized || !direct.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "direct-call", node);
+                    failed_stage = "direct-call"; failed_node = node; break;
                 }
                 if !direct.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
                 if consumed_calls[direct.call_node] {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "direct-call-consumption", node);
+                    failed_stage = "direct-call-consumption"; failed_node = node; break;
                 }
                 consumed_calls[direct.call_node] = true;
                 kind = DirectMirScalarProgramExprDirectCall();
@@ -300,13 +306,12 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             let declared: DirectMirScalarProgramDeclaredCallableValueFact = DirectMirScalarProgramDeclaredCallableValueFromGraph(sequence, node, absence_expected_type, callables);
             if declared.recognized {
                 if !declared.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, declared.failure_stage, node);
+                    failed_stage = declared.failure_stage; failed_node = node; break;
                 }
                 kind = DirectMirScalarProgramExprDeclaredCallable(); type_name = declared.type_name; call_callable = declared.callable_ordinal;
             } else if tagged_leaf.recognized {
                 if !tagged_leaf.valid || !tagged_leaf.complete {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "payload-enum-zero-constructor", node);
+                    failed_stage = "payload-enum-zero-constructor"; failed_node = node; break;
                 }
                 kind = DirectMirScalarProgramExprPayloadEnumConstructor();
                 type_name = tagged_leaf.type_name;
@@ -328,7 +333,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                         sequence.arena.identities.binding_ordinals[node],
                         signature.parameters.names, signature.parameters.source_syntax_ids);
                 if !identity.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
+                    failed_stage = "leaf-alias"; failed_node = node; break;
                 }
                 let bound_local: Int = identity.bound_local; let operand: DirectMirScalarCfgLeafOperand =
                     DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(uses, index, global_row, expected_uses,
@@ -344,7 +349,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                         "parameter", signature.source_syntax_id, identity.parameter_ordinal);
                     if (bound_local >= 0 && locals.local_ref_value_ids[bound_local] != wanted) ||
                         (operand.valid && operand_local >= 0 && locals.local_ref_value_ids[operand_local] != wanted) {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "formal-storage-identity", node);
+                        failed_stage = "formal-storage-identity"; failed_node = node; break;
                     }
                 }
                 let consumed_uses: Int = operand.use_count; let reused_prior_lane: Bool = operand.valid &&
@@ -352,7 +357,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                 let selects_local: Bool = false;
                 if bound_local >= 0 {
                     if operand.valid && operand_local >= 0 && operand_local != bound_local {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
+                        failed_stage = "leaf-alias"; failed_node = node; break;
                     }
                     operand_local = bound_local; consumed_uses = 0;
                     selects_local = true;
@@ -365,7 +370,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                         let entry_use: Option<String> =
                             MirRoutineInstructionUseAtGlobal(uses, global_row, expected_uses);
                         if !IsSome(entry_use) {
-                            return DirectMirScalarProgramExpressionAdmissionRejected(facts, "formal-entry-use", node);
+                            failed_stage = "formal-entry-use"; failed_node = node; break;
                         }
                         if UnwrapOption(entry_use) == Concat(signature.parameters.names[param], ".0") {
                             expected_uses = expected_uses + 1;
@@ -381,11 +386,11 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     ArrayPush(bound_leaf_texts, sequence.arena.node_texts[node]);
                     ArrayPush(bound_leaf_locals, operand_local); selects_local = true;
                 } else {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-operand", node);
+                    failed_stage = "leaf-operand"; failed_node = node; break;
                 }
                 if selects_local {
                     if operand_local >= ArrayLength(value_types.local_types) {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-type", node);
+                        failed_stage = "leaf-type"; failed_node = node; break;
                     }
                     kind = DirectMirScalarProgramExprLocal();
                     type_name = value_types.local_types[operand_local];
@@ -393,7 +398,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     expected_uses = expected_uses + consumed_uses;
                 }
             } else {
-                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-binding", node);
+                failed_stage = "leaf-binding"; failed_node = node; break;
             }
         } else if source_kind == AstExpressionNodeMemberAccess() {
             let tagged_zero: DirectMirScalarProgramPayloadEnumConstructorFact =
@@ -401,15 +406,14 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             let payload_member: DirectMirScalarProgramPayloadEnumMemberFact = DirectMirScalarProgramPayloadEnumMemberFromGraph(sequence, node, source_rows, types, referenced_enum);
             if tagged_zero.recognized {
                 if !tagged_zero.valid || !tagged_zero.complete {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "payload-enum-zero-constructor", node);
+                    failed_stage = "payload-enum-zero-constructor"; failed_node = node; break;
                 }
                 kind = DirectMirScalarProgramExprPayloadEnumConstructor();
                 type_name = tagged_zero.type_name;
                 member_ordinal = tagged_zero.variant_ordinal;
             } else if payload_member.recognized {
                 if !payload_member.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "payload-enum-member", node);
+                    failed_stage = "payload-enum-member"; failed_node = node; break;
                 }
                 kind = DirectMirScalarProgramExprPayloadEnumMember(); type_name = payload_member.type_name;
                 left = payload_member.left_row; member_ordinal = payload_member.parameter_row;
@@ -417,7 +421,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             let enum_variant: DirectMirScalarProgramPayloadFreeEnumExpressionFact = DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(sequence, node, payload_free_enum);
             if enum_variant.recognized {
                 if !enum_variant.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "payload-free-enum-variant", node);
+                    failed_stage = "payload-free-enum-variant"; failed_node = node; break;
                 }
                 kind = enum_variant.kind; type_name = enum_variant.type_name;
                 member_ordinal = enum_variant.variant_ordinal;
@@ -425,7 +429,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                 let member: DirectMirScalarProgramLogicalRecordExpressionFact = DirectMirScalarProgramLogicalRecordMemberFromGraph(
                     sequence, node, source_rows, types, logical_record);
                 if !member.recognized || !member.valid || !member.complete {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "logical-record-member", node);
+                    failed_stage = "logical-record-member"; failed_node = node; break;
                 }
                 kind = member.kind; type_name = member.type_name;
                 left = member.left_row; member_ordinal = member.member_ordinal;
@@ -455,14 +459,14 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
             if arity >= 1 {
                 let source_left: Int = sequence.arena.topology.left_children[node];
                 if source_left < 0 || source_left >= node || source_rows[source_left] < start {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "left-edge", node);
+                    failed_stage = "left-edge"; failed_node = node; break;
                 }
                 left = source_rows[source_left];
             }
             if arity == 2 {
                 let source_right: Int = sequence.arena.topology.right_children[node];
                 if source_right < 0 || source_right >= node || source_rows[source_right] < start {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "right-edge", node);
+                    failed_stage = "right-edge"; failed_node = node; break;
                 }
                 right = source_rows[source_right];
             }
@@ -477,14 +481,14 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     source_kind, sequence.arena.node_texts[node], left_type, right_type, arity, logical_record);
             }
             if !classified.valid {
-                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "expression-kind", node);
+                failed_stage = "expression-kind"; failed_node = node; break;
             }
             kind = classified.kind; type_name = classified.type_name;
             literal = classified.literal;
             if kind == DirectMirScalarProgramExprDivideInt() {
                 let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
                 if !abi.ok {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "checked-int-runtime", node);
+                    failed_stage = "checked-int-runtime"; failed_node = node; break;
                 }
                 runtime_call_abi_id = abi.runtime_call_abi_id;
             }
@@ -500,15 +504,19 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
         ArrayPush(source_rows, ArrayLength(kinds) - 1);
         node = node + 1;
     }
-    let root: Int = source_rows[source_root];
-    if root < start {
-        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-root-mapping", source_root);
+    let root: Int = -1;
+    if failed_stage == "" {
+        root = source_rows[source_root];
+        failed_node = source_root;
+        if root < start { failed_stage = "graph-root-mapping"; }
+        else if require_all_uses && expected_uses != total_uses { failed_stage = "graph-use-completeness"; }
+        else if !DirectMirScalarProgramCallsComplete(sequence, consumed_calls) { failed_stage = "graph-call-completeness"; }
     }
-    if require_all_uses && expected_uses != total_uses {
-        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-use-completeness", source_root);
-    }
-    if !DirectMirScalarProgramCallsComplete(sequence, consumed_calls) {
-        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-call-completeness", source_root);
+    if failed_stage != "" {
+        return DirectMirScalarProgramExpressionAdmissionRejected(DirectMirScalarProgramExpressionSet(
+            false, 0, graph_rows, starts, counts, roots, kinds, types,
+            lefts, rights, local_rows, params, member_ordinals, literals,
+            callable_rows, runtime_call_abi_ids, nary_operands), failed_stage, failed_node);
     }
     use_offset = expected_uses;
     ArrayPush(graph_rows, global_row); ArrayPush(starts, start);

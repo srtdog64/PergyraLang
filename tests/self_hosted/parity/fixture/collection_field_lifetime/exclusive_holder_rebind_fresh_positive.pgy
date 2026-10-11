@@ -1,0 +1,32 @@
+// The holder of a copy is rebound on every path before it is read again.
+struct Box {
+    items: Array<String>;
+}
+
+struct Holder {
+    box: Box;
+}
+
+func Grow(box: Box) -> Box {
+    let items: Array<String> = box.items;
+    ArrayPush(items, "g");
+    ArrayPush(items, "g");
+    return Box(items);
+}
+
+func Fresh() -> Holder {
+    let none: Array<String> = ["f"];
+    return Holder(Box(none));
+}
+
+func Run(box: Box) -> Int {
+    let holder: Holder = Holder(box);
+    let grown: Box = Grow(box);
+    holder = Fresh();
+    return StringLength(holder.box.items[0]) + ArrayLength(grown.items);
+}
+
+func Main() -> Int {
+    let items: Array<String> = ["x"];
+    return Run(Box(items));
+}

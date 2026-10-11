@@ -1,7 +1,7 @@
 # DRV-2 ownership-entry frontier: sink inference for the remaining entries
 
-Status: **ACTIVE — R and E land; S developed out of tree; L and M open
-(Claude, sole lane, 2026-10-11)**. Base `main @ 1c1e0308`. The user asked to make CI green
+Status: **ACTIVE — R, E, S and T land; field-level growth (G), L and M
+open (Claude, sole lane, 2026-10-11)**. Base `main @ 1c1e0308`. The user asked to make CI green
 and to finish sink inference. CI run 38065600591 fails in
 `backend-compare-toolchain-linux` at the same refusal as local DRV-2
 (`node=125550`, boundary `ArrayPush`), so the two requests are one rung.
@@ -142,19 +142,103 @@ no String (`SemanticAstCollectionReadCallReleaseFree`).
   positives now. `own_{storage,event}_formal_*_unknown` keep an unproved
   callee by returning the element.
 
-**S (developed, not landed).** The owner and its scan wiring are kept
-outside the tree (C: scratchpad `ev_wip/`); the R/E landing carries none of
-it. With it wired, every S fixture behaves (four threading positives
-admitted; caller reuse, borrowed wrap, copy alias and both stale failure
-values refused), but DRV-2 rises to 770 refusals: 437 sharing, 147 sink
-entry, 73 alias growth. The analysis is flow-insensitive, and the corpus
-relies on two path facts it cannot see: a field is moved out, then the
-original aggregate is returned on an early path before any growth; and an
-error value is built from the aggregate after a field grew (a real stale
-descriptor; `SelfMirRoutineBuildError` alone has 147 callers). Next:
-measure consumption from the first growth of the alias instead of from its
-definition (reads inside the growth's loop count as later), then fix the
-error constructors that carry grown storage.
+**S (landed in tree, gate rows added).** Exclusive values are inferred by six owners
+(`ast_collection_exclusive_value_{,consumption_,field_read_,copy_,flow_,mutation_}owner.pgy`).
+Values stay flow-insensitive; the path facts the corpus relies on are each
+modelled with a falsifier in the inout-effect gate:
+
+- Field-read summaries of aggregate formals, a fixed point over forwarding,
+  by first field and by full member path: a whole value entering a formal
+  that never reads the grown storage does not overlap it. `!` marks a
+  formal whose body keeps or changes what it reads; `*` a whole use.
+- A definition writes a local or a formal; that destination and its alias
+  family hold the moved value, and a later read of a path the family never
+  touches is not stale.
+- A read that copies no buffer is no reader: a scalar or String field, an
+  array length, or, while the consuming call still evaluates its arguments,
+  a scalar or String element or a read-only formal returning a value.
+- Exit scopes (a block ending in a function exit with no leaving jump), a
+  return before every non-read family use (later, or in another branch of
+  the same `if` or `match`, and no loop carrying a use to it), write-backs
+  every path runs once no family use follows them, loop rebinding, and the
+  inout copy-out at every exit, per growth scope. A function with a deferred
+  body has no forward order and refuses.
+- Copies: a definition that copies a place inside a call or constructor
+  without consuming it holds the source's dependencies; each later use of
+  that holder, the source, or another holder of the source reads the same
+  storage. A plain alias, or a holder that escapes (push, statement call,
+  match), shares its source instead. A reassigned formal joins every value
+  assigned to it; `Array<Int>` is tracked.
+- After a whole rebinding of the consumed place, only aliases taken before
+  it name the old value, and a copy holder rebound on every path before its
+  next read holds a new value (`exclusive_holder_rebind_*`,
+  `exclusive_rebind_branch_stale_negative`).
+- An exclusive member alias grown through an inout formal is written back
+  each time, so its read and copy entries check only descriptor-retiring
+  sites (`exclusive_alias_inout_then_read_positive`,
+  `exclusive_alias_read_shared_root_negative`).
+- Last-use proofs are memoized by the copy edges of the place's root (its
+  holders, the sources it holds and their other holders; edges are only
+  added) instead of a program-wide epoch. On the inout-effect gate's
+  compiler-scale unit the fixed point drops from 8.0 s to 3.9 s and the
+  unit from about 53 s to 47 s; its timeout is 60 s, and the HEAD tree
+  took 56 s on the same machine.
+
+Corpus fixes, each a real hazard the analysis exposed:
+
+- Error values carried the failing state, whose rows a growth may already
+  have released: `SelfMirRoutineBuildError` (the last consumer retires failed
+  builds, so a double free), `SelfMirProgramFactsError`,
+  `MirExpressionGraphSequenceError` and
+  `DirectMirScalarProgramExpressionSetInvalid`. Each now carries only its
+  diagnostic in fresh storage; every consumer checks `ok`/`valid` first.
+- `SemanticAstMatchMaterializationFactsAttach` read the admitted graph in
+  the loop that grew its aliases (a use-after-free once a second scrutinee
+  is materialized and a push reallocates) and returned the stale graph on
+  failure while its caller keeps reading it. It reads roots first (without
+  copying the graph), appends second, and writes back on every exit.
+  `SemanticAstIterationSyntheticGraphRootsAttach` and
+  `AstTreeArtifactBindDestructurePayloads` returned stale storage on
+  failure after a growth; both now carry the grown storage on every exit.
+- `DirectMirScalarProgramAppendExpression` rejected with the caller's set
+  after its node aliases grew (31 sites in the node loop and three after
+  it), and the option-int try operand did not take the returned set back on
+  failure; both callers kept stale descriptors. Every failure now hands back
+  the set the aliases form (marked invalid), both callers write it back, and
+  an unrecognized literal hands the set back as the populated-literal
+  admission already did.
+- Two inline `SelfMirExpressionGraphUses(build, ...)` arguments move into the
+  preceding statement, the idiom every other site uses; a negative
+  statement-fact self-test now writes its field aliases back explicitly.
+
+Open, recorded: member aliases are tracked only for `Array<String>` locals
+whose path has one step from a binding, so growth through `Array<Int>`
+aliases (`s_int_array_copy_negative` stays admitted) or through a nested
+path (`let kinds = arena.topo.kinds`) is unchecked by this verdict.
+`p_exit_scope_add_local_positive` is refused by the member-move owner
+(`member_use_after_move`), which has no exit scopes.
+
+**T (landed in tree, gate rows added).**
+`ast_string_formal_text_containment_owner.pgy` (new): an `Array<String>`
+formal of a body whose result or writable formals may hold String keeps its
+element text in the frame when every text source (an element of the
+formal or of a contained local array, or a contained String local) is read
+by a primitive or borrowed consumer or a borrow-only String formal, binds
+or overwrites a String local, or enters `ArrayPush` (call or statement
+form) of a local array that starts empty and is only pushed, measured and
+indexed. The formal-use inventory asks it only for a formal whose sole open
+use is the text's escape. `borrow_formal_retained_owned_seed_negative`
+pinned the signature-only rule on a safe program (the bound element is only
+compared and copied by `ArrayPushOwnedString`); that shape is now
+`borrow_formal_bound_owned_seed_positive`, and the negative retains the
+element for real (a raw push into the inout destination, read after the
+source's deep drop). Falsifiers: `owned_element_text_escapes_{result,
+string_local,array_alias}_negative` refuse at the caller;
+`owned_element_text_contained_{local_array,string_local}_positive` admit.
+
+Gate re-pin: `aggregate_owned_push_leaf_adapter_alias_negative` is refused
+first by the exclusive sink entry (its alias copy shares the storage the
+call grows) instead of `aggregate_release_incomplete`.
 
 Earlier design notes for S:
 
@@ -177,6 +261,20 @@ Earlier design notes for S:
   handed to a result-carrying formal or a constructor while it stays live
   (the stale failure value). Boundaries `unproved_exclusive_sink_entry`,
   `unproved_exclusive_member_mutation`, `exclusive_root_shared`.
+
+## Recount after S/T
+
+112 refusals (from 126 after R/E, 138 with the first S wiring):
+`unproved_exclusive_sink_entry` 30, `unproved_indexed_read_entry` 21,
+`unproved_exclusive_member_mutation` 12, `unproved_formal_indexed_read_entry`
+9, `owned_string_actual_unproved` 9, `unproved_formal_element_use_entry` 7,
+`exclusive_root_shared` 7, `unproved_shallow_mutation_entry` 4,
+`owned_string_drop` 4, `ArrayPush` 4, `owned_element_escape` 2, three
+singletons. Most sink entries and all seven root-shared refusals hand an
+aggregate that holds a copy of another value's storage in one field (the
+program facts hold the analysis graph) to a sink that grows other fields;
+the next step (G) gives exclusive classes per first field and summarizes
+the fields each sink grows.
 
 ## Recount after R/E
 

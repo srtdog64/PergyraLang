@@ -1,0 +1,25 @@
+// One exit hands the caller the inout set the grower already reallocated.
+struct TypeList {
+    items: Array<String>;
+}
+
+func TypeListGrow(list: TypeList, name: String) -> TypeList {
+    let items: Array<String> = list.items;
+    ArrayPush(items, name); ArrayPush(items, name); ArrayPush(items, name); ArrayPush(items, name);
+    return TypeList(items);
+}
+
+func TypeListAddChecked(inout list: TypeList, name: String) -> Bool {
+    let grown: TypeList = TypeListGrow(list, name);
+    if name == "" { return false; }
+    list = grown;
+    return true;
+}
+
+func Main() -> Int {
+    let items: Array<String> = ["x"];
+    let list: TypeList = TypeList(items);
+    let added: Bool = TypeListAddChecked(list, "");
+    if added { return 1; }
+    return StringLength(list.items[0]);
+}

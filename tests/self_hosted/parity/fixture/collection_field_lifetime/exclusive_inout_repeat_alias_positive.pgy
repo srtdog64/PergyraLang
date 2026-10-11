@@ -1,0 +1,25 @@
+// An exclusive field alias goes through an inout formal twice; each call
+// writes the alias back.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func TypesAdd(inout types: Array<String>, name: String) -> Void {
+    ArrayPush(types, name);
+    ArrayPush(types, name);
+}
+
+func NodeSetAddTwice(facts: NodeSet) -> NodeSet {
+    let types: Array<String> = facts.types;
+    TypesAdd(types, "a");
+    TypesAdd(types, "b");
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetAddTwice(facts);
+    return ArrayLength(facts.types);
+}

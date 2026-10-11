@@ -59,6 +59,43 @@ func SemanticAstMatchMaterializationFactsAttach(
         return SemanticAstMatchMaterializationError(artifact);
     }
 
+    // Every scrutinee is read before the first append: an append may release
+    // the buffers the admitted graph still names.
+    let row: Int = 0;
+    while row < ArrayLength(statement_types.node_ids) {
+        if statement_types.kind_tags[row] == TypedAstKindMatchStmtTag() {
+            if statement_types.verified[row] != 1 ||
+                statement_types.inferred_type_names[row] == "" ||
+                statement_types.inferred_type_names[row] == "Unknown" {
+                return SemanticAstMatchMaterializationError(artifact);
+            }
+            // Only the root is read: a view would copy the graph the
+            // appends below grow.
+            let source_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    analysis.expression_surfaces,
+                    statement_types.node_ids[row], AstExpressionLaneAtom()
+                );
+            if !IsSome(source_root) {
+                return SemanticAstMatchMaterializationError(artifact);
+            }
+            if SemanticAstMatchScrutineeNeedsMaterialization(
+                analysis.expression_surfaces.expression_graph,
+                UnwrapOption(source_root)
+            ) {
+                ArrayPush(node_ids, statement_types.node_ids[row]);
+                ArrayPush(
+                    function_node_ids,
+                    analysis.statements.function_node_ids[row]
+                );
+                ArrayPush(
+                    type_names, statement_types.inferred_type_names[row]
+                );
+            }
+        }
+        row = row + 1;
+    }
+
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
     let topology: AstExpressionArena = graph.arena.topology;
@@ -81,64 +118,39 @@ func SemanticAstMatchMaterializationFactsAttach(
         graph.arena.identities.builtin_argument_retention_calls;
     let place_kinds: Array<Int> = graph.arena.place_kinds;
 
-    let row: Int = 0;
-    while row < ArrayLength(statement_types.node_ids) {
-        if statement_types.kind_tags[row] == TypedAstKindMatchStmtTag() {
-            if statement_types.verified[row] != 1 ||
-                statement_types.inferred_type_names[row] == "" ||
-                statement_types.inferred_type_names[row] == "Unknown" {
-                return SemanticAstMatchMaterializationError(artifact);
-            }
-            let source: SemanticExpressionGraphView =
-                SemanticAstExpressionGraphForNode(
-                    analysis.expression_surfaces,
-                    statement_types.node_ids[row], AstExpressionLaneAtom()
-                );
-            if !source.ok {
-                return SemanticAstMatchMaterializationError(artifact);
-            }
-            if SemanticAstMatchScrutineeNeedsMaterialization(
-                source.graph, source.root_id
-            ) {
-                let name: String = SemanticAstMatchMaterializationName(
-                    statement_types.node_ids[row]
-                );
-                let appended: ProgramExpressionGraphAppend =
-                    ProgramExpressionGraphAppendIsolatedNode(
-                        topology, AstExpressionNodeLeaf(), name
-                    );
-                if !appended.ok {
-                    return SemanticAstMatchMaterializationError(artifact);
-                }
-                topology = appended.arena;
-                ArrayPush(graph_node_texts, name);
-                ArrayPush(target_kinds, SemanticCallTargetNone());
-                ArrayPush(target_names, "");
-                ArrayPush(call_return_types, "");
-                ArrayPush(call_target_syntax_ids, 0);
-                ArrayPush(runtime_call_abi_ids, 0);
-                ArrayPush(binding_syntax_ids, 0);
-                ArrayPush(binding_kinds, SemanticExpressionBindingNone());
-                ArrayPush(
-                    binding_ordinals,
-                    SemanticExpressionBindingOrdinalAbsent()
-                );
-                ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
-                ArrayPush(node_ids, statement_types.node_ids[row]);
-                ArrayPush(
-                    function_node_ids,
-                    analysis.statements.function_node_ids[row]
-                );
-                ArrayPush(
-                    type_names, statement_types.inferred_type_names[row]
-                );
-                ArrayPush(synthetic_names, name);
-                ArrayPush(synthetic_roots, appended.root_id);
-            }
+    let appended_all: Bool = true;
+    let index: Int = 0;
+    while index < ArrayLength(node_ids) && appended_all {
+        let name: String = SemanticAstMatchMaterializationName(node_ids[index]);
+        let appended: ProgramExpressionGraphAppend =
+            ProgramExpressionGraphAppendIsolatedNode(
+                topology, AstExpressionNodeLeaf(), name
+            );
+        // A failed append hands back the arena it was given.
+        appended_all = appended.ok;
+        topology = appended.arena;
+        if appended.ok {
+            ArrayPush(graph_node_texts, name);
+            ArrayPush(target_kinds, SemanticCallTargetNone());
+            ArrayPush(target_names, "");
+            ArrayPush(call_return_types, "");
+            ArrayPush(call_target_syntax_ids, 0);
+            ArrayPush(runtime_call_abi_ids, 0);
+            ArrayPush(binding_syntax_ids, 0);
+            ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+            ArrayPush(
+                binding_ordinals,
+                SemanticExpressionBindingOrdinalAbsent()
+            );
+            ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
+            ArrayPush(synthetic_names, name);
+            ArrayPush(synthetic_roots, appended.root_id);
         }
-        row = row + 1;
+        index = index + 1;
     }
 
+    // The appended graph replaces the admitted one on every exit from here,
+    // failed or not: the caller keeps reading it.
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             topology, graph_node_texts, target_kinds, target_names,
@@ -159,10 +171,11 @@ func SemanticAstMatchMaterializationFactsAttach(
         SemanticAstExpressionSurfaceFactsWithGraph(
             artifact, analysis.expression_surfaces, attached
         );
-    if !surfaces.ok {
+    let attached_ok: Bool = surfaces.ok;
+    analysis.expression_surfaces = surfaces;
+    if !appended_all || !attached_ok {
         return SemanticAstMatchMaterializationError(artifact);
     }
-    analysis.expression_surfaces = surfaces;
     return SemanticAstMatchMaterializationFacts(
         true, artifact.count, node_ids, function_node_ids, type_names,
         synthetic_names, synthetic_roots

@@ -1,0 +1,28 @@
+// `facts = F(facts)` threads one exclusive set; F grows a field alias
+// through an inout formal.
+struct NodeSet {
+    valid: Bool;
+    kinds: Array<Int>;
+    types: Array<String>;
+}
+
+func NodeSetAppend(inout kinds: Array<Int>, inout types: Array<String>, kind: Int, type_name: String) -> Void {
+    ArrayPush(kinds, kind);
+    ArrayPush(types, type_name);
+}
+
+func NodeSetAddInt(facts: NodeSet) -> NodeSet {
+    let kinds: Array<Int> = facts.kinds;
+    let types: Array<String> = facts.types;
+    NodeSetAppend(kinds, types, 1, "Int");
+    return NodeSet(true, kinds, types);
+}
+
+func Main() -> Int {
+    let kinds: Array<Int> = [];
+    let types: Array<String> = [];
+    let facts: NodeSet = NodeSet(true, kinds, types);
+    facts = NodeSetAddInt(facts);
+    facts = NodeSetAddInt(facts);
+    return ArrayLength(facts.types);
+}

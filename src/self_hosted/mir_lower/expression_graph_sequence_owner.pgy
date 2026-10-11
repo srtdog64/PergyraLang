@@ -19,11 +19,13 @@ func MirExpressionGraphSequenceEmpty() -> MirExpressionGraphSequence {
     let roots: Array<Int> = [];
     return MirExpressionGraphSequence(true, 0, roots, SemanticExpressionGraphArenaEmpty(), roots);
 }
+// A failed sequence carries no rows: the failing sequence may name arena
+// storage a growth already released, and every consumer checks `ok` first.
 func MirExpressionGraphSequenceError(sequence: MirExpressionGraphSequence
 ) -> MirExpressionGraphSequence {
-    return MirExpressionGraphSequence(
-        false, sequence.ready_node_count, sequence.roots, sequence.arena, sequence.program_call_ordinals
-    );
+    let failed: MirExpressionGraphSequence = MirExpressionGraphSequenceEmpty();
+    failed.ok = false;
+    return failed;
 }
 func MirExpressionGraphSequenceFromExtendedRows(sequence: MirExpressionGraphSequence,
     roots: Array<Int>, kinds: Array<Int>, texts: Array<String>,

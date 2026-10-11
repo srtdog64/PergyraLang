@@ -1,0 +1,53 @@
+// A dispatcher hands the set to a sibling owner and takes its result back
+// before any further use; the result restores the set.
+struct ExprSet {
+    valid: Bool;
+    kinds: Array<String>;
+}
+
+struct Admission {
+    recognized: Bool;
+    facts: ExprSet;
+    consumed: Int;
+}
+
+func ExprSetInvalid(facts: ExprSet) -> ExprSet {
+    let none: Array<String> = [];
+    return ExprSet(false, none);
+}
+
+func RecordIndexFromOwners(facts: ExprSet, ref source: Array<String>, offset: Int) -> Admission {
+    if ArrayLength(source) != 3 { return Admission(false, facts, 0); }
+    let invalid: ExprSet = ExprSetInvalid(facts);
+    if offset < 0 { return Admission(true, invalid, 0); }
+    let kinds: Array<String> = facts.kinds;
+    ArrayPush(kinds, source[0]);
+    return Admission(true, ExprSet(true, kinds), 1);
+}
+
+func AppendPopulated(facts: ExprSet, ref source: Array<String>, inout offset: Int) -> Admission {
+    let invalid: ExprSet = ExprSetInvalid(facts);
+    let record_index: Admission = RecordIndexFromOwners(facts, source, offset);
+    if record_index.recognized {
+        offset = offset + record_index.consumed;
+        return Admission(true, record_index.facts, 0);
+    }
+    facts = record_index.facts;
+    let kinds: Array<String> = facts.kinds;
+    let index: Int = 0;
+    while index < ArrayLength(source) {
+        if source[index] == "" { return Admission(true, invalid, 0); }
+        ArrayPush(kinds, source[index]);
+        index = index + 1;
+    }
+    return Admission(true, ExprSet(facts.valid, kinds), 0);
+}
+
+func Main() -> Int {
+    let kinds: Array<String> = ["k"];
+    let source: Array<String> = ["a", "b"];
+    let offset: Int = 0;
+    let facts: ExprSet = ExprSet(true, kinds);
+    let admitted: Admission = AppendPopulated(facts, source, offset);
+    return ArrayLength(admitted.facts.kinds);
+}

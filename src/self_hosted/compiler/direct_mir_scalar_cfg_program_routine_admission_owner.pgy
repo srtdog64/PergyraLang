@@ -121,9 +121,13 @@ func DirectMirScalarCfgProgramAppendRoutine(
     ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
     ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact
 ) -> DirectMirScalarCfgProgramRoutineAdmission {
+    // A failed admission carries no storage: the appends below may release
+    // what the inputs name, and the caller stops on an invalid admission.
     let invalid: DirectMirScalarCfgProgramRoutineAdmission = DirectMirScalarCfgProgramRoutineAdmission(
-            false, storage, expressions, option_int_abi, result_int_abi,
-            option_string_abi, option_bool_abi, collection_ownership);
+            false, DirectMirScalarCfgProgramGraphStorageEmpty(), DirectMirScalarProgramExpressionSetEmpty(),
+            DirectMirOptionMatchAbiFactEmpty(), DirectMirResultIntAbiFactEmpty(),
+            DirectMirOptionMatchAbiFactEmpty(), DirectMirOptionMatchAbiFactEmpty(),
+            DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty());
     if !input.index.valid || !DirectMirScalarCfgProgramInputReady(input) {
         Die("direct MIR scalar program routine input has an external collection plan");
     }

@@ -33,6 +33,8 @@ func DirectMirScalarProgramAppendLiteralExpression(
         return DirectMirScalarProgramLiteralExpressionAdmission(
             true, string_array.facts);
     }
+    // An unrecognized literal hands the set back untouched.
+    facts = string_array.facts;
     let int_populated:
         DirectMirScalarProgramArrayIntPopulatedLiteralAdmission =
         DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
@@ -43,6 +45,7 @@ func DirectMirScalarProgramAppendLiteralExpression(
         return DirectMirScalarProgramLiteralExpressionAdmission(
             true, int_populated.facts);
     }
+    facts = int_populated.facts;
     let bool_populated:
         DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission =
         DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
@@ -51,6 +54,7 @@ func DirectMirScalarProgramAppendLiteralExpression(
         return DirectMirScalarProgramLiteralExpressionAdmission(
             true, bool_populated.facts);
     }
+    facts = bool_populated.facts;
     let int_empty: DirectMirScalarProgramArrayIntEmptyLiteralAdmission =
         DirectMirScalarProgramAppendArrayIntEmptyLiteral(
             facts, sequence, uses, global_row, expected_type);
@@ -58,6 +62,7 @@ func DirectMirScalarProgramAppendLiteralExpression(
         return DirectMirScalarProgramLiteralExpressionAdmission(
             true, int_empty.facts);
     }
+    facts = int_empty.facts;
     let bool_empty: DirectMirScalarProgramArrayBoolEmptyLiteralAdmission =
         DirectMirScalarProgramAppendArrayBoolEmptyLiteral(
             facts, sequence, uses, global_row, expected_type);
@@ -65,6 +70,7 @@ func DirectMirScalarProgramAppendLiteralExpression(
         return DirectMirScalarProgramLiteralExpressionAdmission(
             true, bool_empty.facts);
     }
+    facts = bool_empty.facts;
     let record_array:
         DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission =
         DirectMirScalarProgramAppendLogicalRecordArrayEmptyLiteral(
@@ -74,5 +80,6 @@ func DirectMirScalarProgramAppendLiteralExpression(
         return DirectMirScalarProgramLiteralExpressionAdmission(
             true, record_array.facts);
     }
+    facts = record_array.facts;
     return DirectMirScalarProgramLiteralExpressionAdmission(false, facts);
 }

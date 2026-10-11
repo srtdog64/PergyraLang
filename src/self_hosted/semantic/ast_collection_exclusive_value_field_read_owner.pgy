@@ -1,0 +1,348 @@
+// Exclusive-value field reads: which fields of an aggregate a statement or
+// a summarized formal reads, which a destination writes, and which value
+// reads observe no tracked storage.
+import "ast_collection_exclusive_value_copy_owner.pgy";
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "array_type_shape_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+
+// Types whose values hold no Array buffer the verdict tracks. Array<Int> is
+// String-free but its buffer grows like any other.
+func SemanticAstCollectionExclusiveUntrackedType(name: String) -> Bool {
+    return name == "" || name == "String" || name == "Void" || name == "Int" || name == "Bool" ||
+        name == "Long" || name == "Float" || name == "Double" || name == "Char" ||
+        name == "Option<Int>" || name == "Option<Bool>" || name == "Option<Long>" || name == "Option<String>";
+}
+
+// The name of step `index` of a place whose alias prefix and occurrence are given.
+func SemanticAstCollectionExclusiveStepName(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref aliases: SemanticAstCollectionAggregateSinkAliases, alias_row: Int,
+    ref occurrence: Array<Int>, index: Int
+) -> String {
+    let prefix: Int = aliases.chain_counts[alias_row];
+    let node: Int = -1;
+    if index < prefix { node = aliases.chain_nodes[aliases.chain_starts[alias_row] + index]; }
+    else if index - prefix < ArrayLength(occurrence) { node = occurrence[index - prefix]; }
+    if node < 0 { return ""; }
+    let text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, node);
+    if !IsSome(text) { return ""; }
+    return UnwrapOption(text);
+}
+
+// The aggregate formal a whole-root argument enters, when that formal's
+// field-read summary is known (not "*"); otherwise 0.
+func SemanticAstCollectionExclusiveSummarizedTarget(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    field_reads: HashMap<String, Int>, node: Int, root: Int
+) -> Int {
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+    if consumer < 0 || surfaces.expression_graph.arena.topology.node_kinds[consumer] != AstExpressionNodeCallArgument() {
+        return 0;
+    }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+    if !edge.ok || edge.argument_node != node { return 0; }
+    let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    if !formal.ok || MapHas(field_reads, Concat(ToString(formal.syntax_id), ":*")) { return 0; }
+    return formal.syntax_id;
+}
+
+// The member path read from `node` up its member chain ("" when none), as
+// field names joined by dots.
+func SemanticAstCollectionExclusiveMemberPathAbove(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int, root: Int
+) -> String {
+    let path: String = "";
+    let top: Int = node;
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+    while consumer >= 0 && member.ok && member.receiver_node == top {
+        let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+        if !IsSome(field) { return ""; }
+        if path == "" { path = UnwrapOption(field); } else { path = Concat(path, Concat(".", UnwrapOption(field))); }
+        top = consumer;
+        consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
+        member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+    }
+    return path;
+}
+
+// Record a read of `path` below formal `key`: "@path" for the subtree it
+// reads whole, "@~prefix" for each proper prefix it reads into.
+func SemanticAstCollectionExclusiveRecordReadPath(inout reads: HashMap<String, Int>, key: String, path: String) -> Void {
+    MapSet(reads, Concat(key, Concat(":@", path)), 1);
+    let at: Int = 0;
+    while at < StringLength(path) {
+        if Substring(path, at, 1) == "." { MapSet(reads, Concat(key, Concat(":@~", Substring(path, 0, at))), 1); }
+        at = at + 1;
+    }
+}
+
+// Formal `formal` may read storage at `path`: it reads that subtree or a
+// subtree around it, or something below it.
+func SemanticAstCollectionExclusivePathRead(reads: HashMap<String, Int>, formal: Int, path: String) -> Bool {
+    let key: String = ToString(formal);
+    if MapHas(reads, Concat(key, Concat(":@", path))) || MapHas(reads, Concat(key, Concat(":@~", path))) {
+        return true;
+    }
+    let at: Int = 0;
+    while at < StringLength(path) {
+        if Substring(path, at, 1) == "." && MapHas(reads, Concat(key, Concat(":@", Substring(path, 0, at)))) {
+            return true;
+        }
+        at = at + 1;
+    }
+    return false;
+}
+
+// The declared type a place names, when every step resolves (an owned copy,
+// so no element of the type tables leaves this owner).
+func SemanticAstCollectionExclusivePlaceType(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, ref place: SemanticAstCollectionAggregateSinkPlace
+) -> Option<String> {
+    if !place.ok || place.temporary { return None; }
+    let type_name: String = "";
+    if place.key >= 0 {
+        if place.key >= ArrayLength(inferred_types) { return None; }
+        type_name = Concat("", inferred_types[place.key]);
+    } else {
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+        if !IsSome(signature) { return None; }
+        let start: Int = signatures.param_starts[UnwrapOption(signature)];
+        let index: Int = 0;
+        while index < signatures.param_counts[UnwrapOption(signature)] {
+            if signatures.param_node_ids[start + index] == 0 - place.key {
+                type_name = Concat("", signatures.param_types[start + index]);
+            }
+            index = index + 1;
+        }
+    }
+    let step: Int = 0;
+    while step < ArrayLength(place.chain) && type_name != "" {
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[step]);
+        let fact: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(type_name);
+        let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, fact.nominal_base_name);
+        if !IsSome(field_name) || fact.canonical_name != fact.nominal_base_name || !IsSome(constructor) { return None; }
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+            constructors, UnwrapOption(constructor), UnwrapOption(field_name));
+        if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.param_type_names) { return None; }
+        type_name = Concat("", constructors.param_type_names[UnwrapOption(field)]);
+        step = step + 1;
+    }
+    if type_name == "" { return None; }
+    return Some(type_name);
+}
+
+// A read at `node` that copies no buffer: a scalar or String value, an array
+// length, or, while the consuming call `call` still evaluates its arguments,
+// a scalar or String element.
+func SemanticAstCollectionExclusiveValueRead(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, ref place: SemanticAstCollectionAggregateSinkPlace, node: Int, root: Int,
+    call_start: Int, call: Int, field_reads: HashMap<String, Int>
+) -> Bool {
+    let type_name: Option<String> = SemanticAstCollectionExclusivePlaceType(
+        signatures, constructors, inferred_types, surfaces, function_id, place);
+    if !IsSome(type_name) { return false; }
+    if SemanticAstCollectionExclusiveUntrackedType(UnwrapOption(type_name)) { return true; }
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+    if consumer < 0 { return false; }
+    let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[consumer];
+    if kind == AstExpressionNodeCallArgument() {
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+        if !edge.ok || edge.argument_node != node { return false; }
+        if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayLength") {
+            return true;
+        }
+        // A formal that only observes, returning a value, while the consuming
+        // call still evaluates its arguments.
+        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+        let key: String = ToString(formal.syntax_id);
+        return formal.ok && formal.signature_row >= 0 &&
+            formal.signature_row < ArrayLength(signatures.return_types) &&
+            !MapHas(field_reads, Concat(key, ":!")) &&
+            SemanticAstCollectionExclusiveUntrackedType(signatures.return_types[formal.signature_row]) &&
+            signatures.return_types[formal.signature_row] != "" &&
+            call >= 0 && node >= call_start && node <= call;
+    }
+    let base: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, consumer);
+    let element: Option<String> = SemanticArrayElementType(UnwrapOption(type_name));
+    return kind == AstExpressionNodeIndex() && IsSome(base) && UnwrapOption(base) == node &&
+        IsSome(element) && UnwrapOption(element) != "" &&
+        SemanticAstCollectionExclusiveUntrackedType(UnwrapOption(element)) &&
+        call >= 0 && node >= call_start && node <= call;
+}
+
+// Field-read summaries of aggregate formals: a member read reads its field,
+// a whole argument to another aggregate formal reads what that one reads, and
+// any other whole use reads every field (a fixed point over forwarding).
+func SemanticAstCollectionExclusiveFieldReads(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> HashMap<String, Int> {
+    let reads: HashMap<String, Int> = MapNew();
+    let sources: Array<Int> = [];
+    let targets: Array<Int> = [];
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+            let node: Int = root + 1;
+            if IsSome(start) { node = UnwrapOption(start); }
+            while node <= root {
+                let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+                    signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, node);
+                if formal.ok && !SemanticAstCollectionExclusiveUntrackedType(formal.declared_type_name) &&
+                    !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                    // An own formal may be released whole by its body.
+                    let key: String = ToString(formal.syntax_id);
+                    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+                    let handled: Bool = false;
+                    if consumer >= 0 && formal.mode != 2 {
+                        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+                            surfaces.expression_graph, consumer);
+                        if member.ok && member.receiver_node == node {
+                            let field: Option<String> = SemanticExpressionGraphNodeText(
+                                surfaces.expression_graph, member.member_node);
+                            if IsSome(field) {
+                                MapSet(reads, Concat(key, Concat(":", UnwrapOption(field))), 1);
+                                SemanticAstCollectionExclusiveRecordReadPath(reads, key,
+                                    SemanticAstCollectionExclusiveMemberPathAbove(surfaces, node, root));
+                                handled = true;
+                            }
+                            // "!": the body keeps or changes what it reads.
+                            if !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, surfaces.node_ids[slot / 3],
+                                    slot % 3, root, node, true) {
+                                MapSet(reads, Concat(key, ":!"), 1);
+                            }
+                        } else if surfaces.expression_graph.arena.topology.node_kinds[consumer] ==
+                                AstExpressionNodeCallArgument() {
+                            let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+                                surfaces.expression_graph, consumer);
+                            if edge.ok && edge.argument_node == node {
+                                let target: SemanticAstCollectionArgumentFormalTarget =
+                                    SemanticAstCollectionArgumentFormalTargetForArgument(
+                                        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+                                if target.ok {
+                                    ArrayPush(sources, formal.syntax_id);
+                                    ArrayPush(targets, target.syntax_id);
+                                    handled = true;
+                                }
+                            }
+                        }
+                    }
+                    // A whole use reads every field; unless it only observes,
+                    // the body may also keep or change it.
+                    if !handled {
+                        MapSet(reads, Concat(key, ":*"), 1);
+                        if formal.mode == 2 || !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces,
+                                surfaces.node_ids[slot / 3], slot % 3, root, node, true) {
+                            MapSet(reads, Concat(key, ":!"), 1);
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    let changed: Bool = true;
+    let remaining: Int = ArrayLength(sources) + 2;
+    while changed && remaining > 0 {
+        changed = false;
+        let keys: Array<String> = MapKeys(reads);
+        let edge: Int = 0;
+        while edge < ArrayLength(sources) {
+            let source: String = ToString(sources[edge]);
+            let target: String = Concat(ToString(targets[edge]), ":");
+            let index: Int = 0;
+            while index < ArrayLength(keys) {
+                let entry: String = keys[index];
+                if StartsWith(entry, target) {
+                    let field: String = Substring(entry, StringLength(target), StringLength(entry) - StringLength(target));
+                    let copied: String = Concat(source, Concat(":", field));
+                    if !MapHas(reads, copied) { MapSet(reads, copied, 1); changed = true; }
+                }
+                index = index + 1;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    if changed { MapSet(reads, "unconverged", 1); }
+    return reads;
+}
+
+// The fields of the local `destination` its family touches. False when some
+// use takes it whole: then every field may be touched.
+func SemanticAstCollectionExclusiveDestinationFields(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref family: SemanticAstCollectionAggregateSinkAliases,
+    first_surface: Int, end_surface: Int, function_id: Int, syntax_id: Int, destination: Int,
+    inout fields: HashMap<String, Int>, inout paths: Array<String>
+) -> Bool {
+    let row: Int = 1;
+    while row < ArrayLength(family.keys) {
+        if family.chain_counts[row] == 0 { return false; }
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            surfaces.expression_graph, family.chain_nodes[family.chain_starts[row]]);
+        if !IsSome(text) { return false; }
+        MapSet(fields, UnwrapOption(text), 1);
+        let path: String = "";
+        let step: Int = 0;
+        while step < family.chain_counts[row] {
+            let name: Option<String> = SemanticExpressionGraphNodeText(
+                surfaces.expression_graph, family.chain_nodes[family.chain_starts[row] + step]);
+            if !IsSome(name) { return false; }
+            if path == "" { path = UnwrapOption(name); } else { path = Concat(path, Concat(".", UnwrapOption(name))); }
+            step = step + 1;
+        }
+        ArrayPush(paths, path);
+        row = row + 1;
+    }
+    let surface: Int = first_surface;
+    while surface < end_surface {
+        let statement: Int = surfaces.node_ids[surface];
+        let lane: Int = 0;
+        while lane < 3 {
+            let slot: Int = surface * 3 + lane;
+            if (statement != syntax_id || lane != AstExpressionLaneAtom()) &&
+                slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                let root: Int = surfaces.expression_graph.roots[slot];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                let node: Int = root + 1;
+                if IsSome(start) { node = UnwrapOption(start); }
+                while node <= root {
+                    if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                        !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                        let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                            artifact, signatures, locals, inferred_types, surfaces, function_id, statement, node);
+                        if place.ok && !place.temporary && place.key == destination {
+                            let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+                            let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+                                surfaces.expression_graph, consumer);
+                            if consumer < 0 || !member.ok || member.receiver_node != node { return false; }
+                            let field: Option<String> = SemanticExpressionGraphNodeText(
+                                surfaces.expression_graph, member.member_node);
+                            if !IsSome(field) { return false; }
+                            MapSet(fields, UnwrapOption(field), 1);
+                            ArrayPush(paths, SemanticAstCollectionExclusiveMemberPathAbove(surfaces, node, root));
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    return true;
+}

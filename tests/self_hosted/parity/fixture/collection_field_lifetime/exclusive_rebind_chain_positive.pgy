@@ -1,0 +1,45 @@
+// Error values and rebinding threads keep one exclusive build.
+struct ChainBuild {
+    ok: Bool;
+    names: Array<String>;
+    count: Int;
+}
+
+func ChainBuildError(build: ChainBuild) -> ChainBuild {
+    return ChainBuild(false, build.names, build.count);
+}
+
+func ChainAdd(build: ChainBuild, name: String) -> ChainBuild {
+    let names: Array<String> = build.names;
+    ArrayPush(names, name);
+    return ChainBuild(build.ok, names, build.count + 1);
+}
+
+func ChainAddTagged(build: ChainBuild, name: String, tag: String) -> ChainBuild {
+    build = ChainAdd(build, name);
+    if tag != "" {
+        build = ChainAdd(build, tag);
+    }
+    return build;
+}
+
+func ChainBuildRun(limit: Int) -> ChainBuild {
+    let empty: Array<String> = [];
+    let build: ChainBuild = ChainBuild(true, empty, 0);
+    if limit < 0 { return ChainBuildError(build); }
+    build = ChainAddTagged(build, "first", "");
+    if !build.ok { return build; }
+    let index: Int = 0;
+    while index < limit {
+        if index == 7 { return ChainBuildError(build); }
+        build = ChainAddTagged(build, "next", "tag");
+        index = index + 1;
+    }
+    return build;
+}
+
+func Main() -> Int {
+    let build: ChainBuild = ChainBuildRun(3);
+    Log(ToString(ArrayLength(build.names)));
+    return 0;
+}

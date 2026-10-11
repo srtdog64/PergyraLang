@@ -1,0 +1,41 @@
+// A callee keeps the elements it borrows in a local array it only pushes,
+// measures and indexes; the caller grows its own array afterwards.
+struct Expr {
+    valid: Bool;
+    text: String;
+}
+
+func HashMapAt(values: Array<String>, at: Int) -> Expr {
+    let operands: Array<String> = [];
+    let index: Int = 0;
+    while index < at {
+        if index >= ArrayLength(values) { return Expr(false, ""); }
+        ArrayPush(operands, values[index]);
+        index = index + 1;
+    }
+    let text: String = "";
+    if ArrayLength(operands) > 0 { text = Concat("op ", operands[0]); }
+    return Expr(true, text);
+}
+
+func Emit(ref names: Array<String>) -> Int {
+    let values: Array<String> = [];
+    let chunks: Array<String> = [];
+    let node: Int = 0;
+    while node < ArrayLength(names) {
+        let left: String = "";
+        if node > 0 { left = values[node - 1]; }
+        let hashmap: Expr = HashMapAt(values, node);
+        let value: String = Concat(left, names[node]);
+        if hashmap.valid { value = hashmap.text; }
+        ArrayPush(chunks, Concat("c", value));
+        ArrayPush(values, value);
+        node = node + 1;
+    }
+    return ArrayLength(chunks) + ArrayLength(values);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["x", "y"];
+    return Emit(names);
+}

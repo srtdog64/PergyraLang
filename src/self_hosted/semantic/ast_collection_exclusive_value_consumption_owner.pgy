@@ -1,0 +1,447 @@
+// Exclusive-value consumption: a use is the last use of its place when no
+// later statement that runs after it reads overlapping storage. The field-read
+// owner narrows the overlap of whole-value reads; the flow owner supplies
+// exit scopes, write-backs, loop rebinding and inout exits.
+import "ast_collection_exclusive_value_field_read_owner.pgy";
+
+// The sink owner's later-read scan, with field summaries: a whole root that
+// enters a summarized formal reads only the fields that formal reads.
+func SemanticAstCollectionExclusiveTreeUnread(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref aliases: SemanticAstCollectionAggregateSinkAliases, field_reads: HashMap<String, Int>,
+    function_id: Int, syntax_id: Int, root: Int, argument_node: Int,
+    ref argument_chain: Array<Int>, consumed_formal: Int,
+    destination_fields: HashMap<String, Int>, destination_known: Bool, ref destination_paths: Array<String>,
+    call_start: Int, call: Int
+) -> Bool {
+    let no_fields: Array<Int> = [];
+    let pending: Array<Int> = [root];
+    while ArrayLength(pending) > 0 {
+        let node: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+        if node != argument_node && IsSome(kind) {
+            if UnwrapOption(kind) == AstExpressionNodeLeaf() || UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+                let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                    artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+                let row: Int = -1;
+                if place.ok && !place.temporary { row = SemanticAstCollectionAggregateSinkAliasRow(aliases, place.key); }
+                if row >= 0 && SemanticAstCollectionAggregateSinkOverlaps(surfaces, constructors, aliases, row,
+                        place.chain, argument_chain, no_fields) &&
+                    !SemanticAstCollectionExclusiveValueRead(signatures, constructors, inferred_types, surfaces,
+                        function_id, place, node, root, call_start, call, field_reads) {
+                    let effective: Int = aliases.chain_counts[row] + ArrayLength(place.chain);
+                    let consumed: Int = ArrayLength(argument_chain);
+                    let disjoint: Bool = false;
+                    if effective < consumed {
+                        let reader: Int = SemanticAstCollectionExclusiveSummarizedTarget(
+                            signatures, surfaces, field_reads, node, root);
+                        let step: Option<String> = SemanticExpressionGraphNodeText(
+                            surfaces.expression_graph, argument_chain[effective]);
+                        disjoint = reader > 0 && IsSome(step) &&
+                            !MapHas(field_reads, Concat(ToString(reader), Concat(":", UnwrapOption(step))));
+                        // The consumed subtree is touched only at the paths
+                        // its destination family uses.
+                        if reader > 0 && !disjoint && destination_known && ArrayLength(destination_paths) > 0 {
+                            let base: String = "";
+                            let at: Int = effective;
+                            while at < consumed {
+                                let name: Option<String> = SemanticExpressionGraphNodeText(
+                                    surfaces.expression_graph, argument_chain[at]);
+                                if IsSome(name) {
+                                    if base == "" { base = UnwrapOption(name); }
+                                    else { base = Concat(base, Concat(".", UnwrapOption(name))); }
+                                }
+                                at = at + 1;
+                            }
+                            disjoint = base != "";
+                            let path: Int = 0;
+                            while path < ArrayLength(destination_paths) && disjoint {
+                                disjoint = destination_paths[path] != "" && !SemanticAstCollectionExclusivePathRead(
+                                    field_reads, reader, Concat(base, Concat(".", destination_paths[path])));
+                                path = path + 1;
+                            }
+                        }
+                    } else if effective > consumed {
+                        let step_name: String = SemanticAstCollectionExclusiveStepName(
+                            surfaces, aliases, row, place.chain, consumed);
+                        disjoint = step_name != "" && (
+                            (consumed_formal > 0 &&
+                                !MapHas(field_reads, Concat(ToString(consumed_formal), Concat(":", step_name)))) ||
+                            (destination_known && !MapHas(destination_fields, step_name)));
+                    }
+                    if !disjoint { return false; }
+                }
+                let receiver: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+                if row < 0 && UnwrapOption(kind) == AstExpressionNodeMemberAccess() &&
+                    IsSome(receiver) && UnwrapOption(receiver) >= 0 {
+                    ArrayPush(pending, UnwrapOption(receiver));
+                }
+            } else {
+                let left: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+                let right: Option<Int> = SemanticExpressionGraphRightChild(surfaces.expression_graph, node);
+                if IsSome(left) && UnwrapOption(left) >= 0 { ArrayPush(pending, UnwrapOption(left)); }
+                if IsSome(right) && UnwrapOption(right) >= 0 { ArrayPush(pending, UnwrapOption(right)); }
+            }
+        }
+    }
+    return true;
+}
+
+// The binding key a definition statement writes when `node` is its whole
+// value, a local or a formal: the value moves there, so that binding and its
+// aliases are not later readers.
+func SemanticAstCollectionExclusiveDefinitionDestination(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int, node: Int
+) -> Option<Int> {
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneValue());
+    if !IsSome(value) || UnwrapOption(value) != node { return None; }
+    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, syntax_id);
+    if IsSome(declared) { return declared; }
+    let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+    if !IsSome(assigned) || assignments.target_is_indexed[UnwrapOption(assigned)] != 0 { return None; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(target) { return None; }
+    let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, UnwrapOption(target));
+    if !written.ok || written.temporary || ArrayLength(written.chain) != 0 { return None; }
+    return Some(written.key);
+}
+
+// The aliases declared before `before`: a local declared later aliases the
+// value written there, not the old one.
+func SemanticAstCollectionExclusiveAliasesBefore(
+    ref aliases: SemanticAstCollectionAggregateSinkAliases, ref locals: SemanticAstLocalBindingFacts, before: Int
+) -> SemanticAstCollectionAggregateSinkAliases {
+    let keys: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(aliases.keys) {
+        let key: Int = aliases.keys[row];
+        if key < 0 || key >= ArrayLength(locals.node_ids) || locals.node_ids[key] < before {
+            ArrayPush(keys, key);
+            ArrayPush(starts, ArrayLength(nodes));
+            ArrayPush(counts, aliases.chain_counts[row]);
+            let index: Int = 0;
+            while index < aliases.chain_counts[row] {
+                ArrayPush(nodes, aliases.chain_nodes[aliases.chain_starts[row] + index]);
+                index = index + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstCollectionAggregateSinkAliases(keys, starts, counts, nodes);
+}
+
+// `aliases` without the keys `excluded` names, and without locals of an
+// untracked type: a copied scalar or String shares no buffer with its root.
+func SemanticAstCollectionExclusiveAliasesWithout(
+    ref aliases: SemanticAstCollectionAggregateSinkAliases,
+    ref excluded: SemanticAstCollectionAggregateSinkAliases, ref inferred_types: Array<String>
+) -> SemanticAstCollectionAggregateSinkAliases {
+    let keys: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(aliases.keys) {
+        let key: Int = aliases.keys[row];
+        let scalar: Bool = row > 0 && key >= 0 && key < ArrayLength(inferred_types) &&
+            SemanticAstCollectionExclusiveUntrackedType(inferred_types[key]);
+        if !scalar && SemanticAstCollectionAggregateSinkAliasRow(excluded, key) < 0 {
+            ArrayPush(keys, aliases.keys[row]);
+            ArrayPush(starts, ArrayLength(nodes));
+            ArrayPush(counts, aliases.chain_counts[row]);
+            let index: Int = 0;
+            while index < aliases.chain_counts[row] {
+                ArrayPush(nodes, aliases.chain_nodes[aliases.chain_starts[row] + index]);
+                index = index + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstCollectionAggregateSinkAliases(keys, starts, counts, nodes);
+}
+
+// A use at `node` in statement `syntax_id` is the last use of its place: a
+// temporary, or a non-ref binding no later statement reads (nor a local
+// alias of it), not repeated by a loop that keeps it. A statement that
+// assigns the same place ends the old value's life itself.
+func SemanticAstCollectionExclusivePlaceConsumed(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
+    field_reads: HashMap<String, Int>, copies: HashMap<String, Int>,
+    function_id: Int, syntax_id: Int, node: Int
+) -> Bool {
+    let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+    if !place.ok { return false; }
+    if place.temporary { return true; }
+    if place.formal_mode == 3 { return false; }
+    // A return leaves the routine: no statement after it runs in this call.
+    if TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindValueReturnStmtTag()) { return true; }
+    let key: String = ToString(function_id);
+    if !MapHas(surface_starts, key) || !MapHas(surface_ends, key) || MapGet(surface_starts, key) < 0 {
+        return false;
+    }
+    let redefined: Bool = SemanticAstCollectionExclusiveRedefinesPlace(
+        artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, syntax_id, place);
+    // A loop that keeps the place repeats the use, unless its body rebinds
+    // the place on every path first (checked once the write-back is known).
+    let repeated: Bool = SemanticAstCollectionCallRetirementSiteForOrigin(
+        artifact, syntax_id, place.origin_syntax_id) <= 0;
+    let no_chain: Array<Int> = [];
+    let unrestored: SemanticAstCollectionAggregateSinkPlace =
+        SemanticAstCollectionAggregateSinkPlace(false, false, 0, -1, -1, no_chain);
+    let all_aliases: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliasesForFunction(
+        artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, place.key, unrestored);
+    if ArrayLength(all_aliases.keys) == 0 { return false; }
+    let destination_opt: Option<Int> = SemanticAstCollectionExclusiveDefinitionDestination(
+        artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, syntax_id, node);
+    let moves: Bool = IsSome(destination_opt);
+    let destination: Int = 0;
+    if moves { destination = UnwrapOption(destination_opt); }
+    let no_keys: Array<Int> = [];
+    let no_starts: Array<Int> = [];
+    let no_counts: Array<Int> = [];
+    let no_nodes: Array<Int> = [];
+    let excluded: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliases(
+        no_keys, no_starts, no_counts, no_nodes);
+    // The destination family holds the moved value. Empty when the sink owner
+    // cannot model it; the destination alone is still excluded then.
+    let family: SemanticAstCollectionAggregateSinkAliases = excluded;
+    if moves {
+        family = SemanticAstCollectionAggregateSinkAliasesForFunction(
+            artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, destination, place);
+    }
+    if moves && destination != place.key {
+        excluded = family;
+        if ArrayLength(family.keys) == 0 {
+            let only_keys: Array<Int> = [destination];
+            let only_starts: Array<Int> = [0];
+            let only_counts: Array<Int> = [0];
+            let only_nodes: Array<Int> = [];
+            excluded = SemanticAstCollectionAggregateSinkAliases(only_keys, only_starts, only_counts, only_nodes);
+        }
+    }
+    let aliases: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionExclusiveAliasesWithout(
+        all_aliases, excluded, inferred_types);
+    if ArrayLength(aliases.keys) == 0 { return false; }
+    // After a redefinition the place itself names the new value; every other
+    // alias still names the old one.
+    let root_keys: Array<Int> = [place.key];
+    let root_starts: Array<Int> = [0];
+    let root_counts: Array<Int> = [0];
+    let root_nodes: Array<Int> = [];
+    let root_only: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliases(
+        root_keys, root_starts, root_counts, root_nodes);
+    let later_aliases: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionExclusiveAliasesWithout(
+        aliases, root_only, inferred_types);
+    // Old aliases read in a later iteration are not scanned below.
+    if repeated && ArrayLength(later_aliases.keys) > 0 { return false; }
+    let last_node: Int = ArrayLength(surfaces.expression_graph.arena.topology.node_kinds) - 1;
+    let consumed_formal: Int = SemanticAstCollectionExclusiveSummarizedTarget(
+        signatures, surfaces, field_reads, node, last_node);
+    // The call the use enters still evaluates its other arguments first.
+    let consumed_call: Int = -1;
+    let consumed_call_start: Int = 0;
+    let argument_consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, last_node);
+    if argument_consumer >= 0 &&
+        surfaces.expression_graph.arena.topology.node_kinds[argument_consumer] == AstExpressionNodeCallArgument() {
+        let argument_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+            surfaces.expression_graph, argument_consumer);
+        // The call spine continues through every later argument edge.
+        let spine: Int = argument_consumer;
+        let above: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, spine, last_node);
+        while above >= 0 &&
+            surfaces.expression_graph.arena.topology.node_kinds[above] == AstExpressionNodeCallArgument() &&
+            surfaces.expression_graph.arena.topology.left_children[above] == spine {
+            spine = above;
+            above = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, spine, last_node);
+        }
+        let call_start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, spine);
+        if argument_edge.ok && argument_edge.argument_node == node && IsSome(call_start) {
+            consumed_call = spine;
+            consumed_call_start = UnwrapOption(call_start);
+        }
+    }
+    let first_surface: Int = MapGet(surface_starts, key);
+    let end: Int = MapGet(surface_ends, key);
+    let destination_fields: HashMap<String, Int> = MapNew();
+    let destination_paths: Array<String> = [];
+    let destination_known: Bool = false;
+    if moves {
+        destination_known = ArrayLength(family.keys) > 0 && SemanticAstCollectionExclusiveDestinationFields(
+            artifact, signatures, locals, inferred_types, surfaces, family, first_surface, end, function_id,
+            syntax_id, destination, destination_fields, destination_paths);
+    }
+    // No path from the definition leaves its exit scope.
+    let exit_scope: Option<Int> = SemanticAstCollectionExclusiveExitScope(artifact, syntax_id);
+    let scoped: Bool = IsSome(exit_scope);
+    let scope: Int = 0;
+    if scoped { scope = UnwrapOption(exit_scope); }
+    let family_uses: Array<Int> = [];
+    let last_use: Int = -1;
+    if moves && ArrayLength(family.keys) > 0 {
+        family_uses = SemanticAstCollectionExclusiveFamilyUses(artifact, signatures, locals, inferred_types,
+            surfaces, assignments, family, place, first_surface, end, function_id, syntax_id);
+        let use_index: Int = 0;
+        while use_index < ArrayLength(family_uses) {
+            if family_uses[use_index] > last_use { last_use = family_uses[use_index]; }
+            use_index = use_index + 1;
+        }
+    }
+    // A later write of the place that every path runs ends the old value too.
+    let written_back: Int = -1;
+    let place_writes: Array<Int> = [];
+    let exits: Array<Int> = [];
+    let surface: Int = first_surface;
+    while surface < end {
+        let statement: Int = surfaces.node_ids[surface];
+        if statement >= syntax_id && (!scoped || SemanticAstCollectionNodeEnclosedBy(artifact, statement, scope)) {
+            if statement > syntax_id &&
+                (TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindValueReturnStmtTag()) ||
+                 TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindBareReturnStmtTag())) {
+                ArrayPush(exits, statement);
+            }
+            // Writing the place reads nothing of the old value. The write ends
+            // that value only when every path runs it and the family no
+            // longer grows: a later growth would leave the place stale again.
+            let targets_place: Bool = statement > syntax_id &&
+                SemanticAstCollectionExclusiveRedefinesPlace(artifact, signatures, locals, inferred_types, surfaces,
+                    assignments, function_id, statement, place);
+            let settles: Bool = targets_place &&
+                (!moves || (ArrayLength(family.keys) > 0 && last_use <= statement));
+            if settles { ArrayPush(place_writes, statement); }
+            let writes: Bool = settles && written_back < 0 &&
+                SemanticAstCollectionExclusiveRunsAfter(artifact, syntax_id, statement);
+            let lane: Int = 0;
+            while lane < 3 {
+                let slot: Int = surface * 3 + lane;
+                let same: Bool = statement == syntax_id;
+                if (!redefined || !same || lane != AstExpressionLaneAtom()) &&
+                    (!targets_place || lane != AstExpressionLaneAtom()) &&
+                    slot < ArrayLength(surfaces.expression_graph.has_roots) &&
+                    surfaces.expression_graph.has_roots[slot] {
+                    let readers: SemanticAstCollectionAggregateSinkAliases = aliases;
+                    if redefined && !same {
+                        readers = SemanticAstCollectionExclusiveAliasesBefore(later_aliases, locals, syntax_id);
+                    } else if written_back >= 0 && statement > written_back {
+                        readers = SemanticAstCollectionExclusiveAliasesBefore(later_aliases, locals, written_back);
+                    }
+                    if ArrayLength(readers.keys) > 0 &&
+                        !SemanticAstCollectionExclusiveTreeUnread(artifact, signatures, constructors, locals,
+                            inferred_types, surfaces, readers, field_reads, function_id, statement,
+                            surfaces.expression_graph.roots[slot], node, place.chain, consumed_formal,
+                            destination_fields, destination_known, destination_paths, consumed_call_start,
+                            consumed_call) {
+                        // A return before the family is first used leaves with
+                        // storage nothing has grown, and the family dies there.
+                        let early: Bool = false;
+                        if !same && moves && ArrayLength(family.keys) > 0 &&
+                            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindValueReturnStmtTag()) {
+                            early = SemanticAstCollectionExclusiveReturnBeforeUses(
+                                artifact, syntax_id, statement, family_uses);
+                        }
+                        if !early { return false; }
+                    }
+                }
+                lane = lane + 1;
+            }
+            if writes { written_back = statement; }
+        }
+        surface = surface + 1;
+    }
+    if repeated && !redefined &&
+        (written_back < 0 || !SemanticAstCollectionExclusiveRebindsEachIteration(
+            artifact, syntax_id, written_back, place.origin_syntax_id)) {
+        return false;
+    }
+    // A holder of a copy of the place, or a source of a copy it holds, is
+    // still a reader of the same storage.
+    if !SemanticAstCollectionExclusiveCopiesUnread(artifact, signatures, locals, inferred_types, surfaces, copies,
+            place, first_surface, end, function_id, syntax_id, scoped, scope, family_uses,
+            moves && ArrayLength(family.keys) > 0) {
+        return false;
+    }
+    // The caller reads an inout root again at every exit: once its storage
+    // may grow, each exit must follow the write-back of the place. A statement
+    // that rebinds the place is its own write-back.
+    if place.key < 0 && place.formal_mode == 1 && !redefined {
+        let unscoped: Array<Int> = [syntax_id];
+        if moves && ArrayLength(family.keys) > 0 {
+            let kept: Array<Int> = [];
+            let use_index: Int = 0;
+            while use_index < ArrayLength(family_uses) {
+                let use_site: Int = family_uses[use_index];
+                let use_scope: Option<Int> = SemanticAstCollectionExclusiveExitScope(artifact, use_site);
+                if IsSome(use_scope) && (!scoped || UnwrapOption(use_scope) != scope) {
+                    if !SemanticAstCollectionExclusiveScopedWriteBack(artifact, signatures, locals, inferred_types,
+                            surfaces, assignments, place, exits, first_surface, end, function_id,
+                            UnwrapOption(use_scope), use_site) {
+                        return false;
+                    }
+                } else { ArrayPush(kept, use_site); }
+                use_index = use_index + 1;
+            }
+            unscoped = kept;
+        }
+        let grows_at: Int = SemanticAstCollectionExclusiveFirstOf(unscoped);
+        if grows_at >= 0 {
+            // Falling off the end needs the write-back every path runs.
+            if !scoped && written_back < 0 { return false; }
+            let exit_index: Int = 0;
+            while exit_index < ArrayLength(exits) {
+                let exit_site: Int = exits[exit_index];
+                if !(written_back >= 0 && exit_site > written_back) &&
+                    !SemanticAstCollectionExclusiveWriteCoversExit(artifact, place_writes, exit_site) &&
+                    !SemanticAstCollectionExclusiveReturnBeforeUses(artifact, syntax_id, exit_site, unscoped) {
+                    return false;
+                }
+                exit_index = exit_index + 1;
+            }
+        }
+    }
+    return true;
+}
+
+func SemanticAstCollectionExclusiveConsumedAt(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
+    field_reads: HashMap<String, Int>, copies: HashMap<String, Int>,
+    inout consumed: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int
+) -> Bool {
+    // A proof reads the copy edges of its place's root only, and is redone
+    // when one of them is added.
+    let site: String = Concat(ToString(syntax_id), Concat(":", ToString(node)));
+    let root_key: String = Concat("root:", site);
+    if !MapHas(consumed, root_key) {
+        let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+            artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+        let root: Int = 0;
+        if place.ok && !place.temporary { root = SemanticAstCollectionExclusivePlaceRoot(locals, place); }
+        MapSet(consumed, root_key, root);
+    }
+    let key: String = Concat(site, Concat("@",
+        SemanticAstCollectionExclusiveCopySignature(copies, MapGet(consumed, root_key))));
+    if MapHas(consumed, key) { return MapGet(consumed, key) == 1; }
+    let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, signatures, constructors, locals,
+        inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, function_id,
+        syntax_id, node);
+    if result { MapSet(consumed, key, 1); } else { MapSet(consumed, key, 2); }
+    return result;
+}

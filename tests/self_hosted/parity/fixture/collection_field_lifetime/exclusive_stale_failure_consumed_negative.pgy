@@ -1,0 +1,24 @@
+// A failure value built from the formal before its field grows is stale.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func Invalid(facts: NodeSet) -> NodeSet {
+    return NodeSet(false, facts.types);
+}
+
+func Grow(facts: NodeSet, fail: Bool) -> NodeSet {
+    let invalid: NodeSet = Invalid(facts);
+    let types: Array<String> = facts.types;
+    ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    if fail { return invalid; }
+    return NodeSet(true, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    let grown: NodeSet = Grow(facts, true);
+    return StringLength(grown.types[0]);
+}

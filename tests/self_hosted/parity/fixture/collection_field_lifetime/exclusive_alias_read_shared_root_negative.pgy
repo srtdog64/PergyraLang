@@ -1,0 +1,34 @@
+// The grown alias shares its root with a copy that is read afterwards.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func AppendNode(inout types: Array<String>, name: String) -> Void {
+    ArrayPush(types, name);
+}
+
+func ReadAt(ref types: Array<String>, at: Int) -> String {
+    if at < 0 || at >= ArrayLength(types) { return ""; }
+    return Concat("", types[at]);
+}
+
+func Append(facts: NodeSet, count: Int) -> NodeSet {
+    let kept: NodeSet = facts;
+    let types: Array<String> = facts.types;
+    let node: Int = 0;
+    while node < count {
+        let left: String = ReadAt(types, node - 1);
+        AppendNode(types, Concat(left, "t"));
+        node = node + 1;
+    }
+    Log(kept.types[0]);
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = Append(facts, 3);
+    return ArrayLength(facts.types);
+}

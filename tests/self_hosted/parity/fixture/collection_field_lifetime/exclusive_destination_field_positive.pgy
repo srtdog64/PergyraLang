@@ -1,0 +1,27 @@
+// A later read of a field the alias family never touches is not stale.
+struct Pair {
+    left: Array<String>;
+    right: Array<String>;
+}
+
+struct Holder {
+    pair: Pair;
+    extra: Array<String>;
+}
+
+func HolderExtend(holder: Holder) -> Holder {
+    let pair: Pair = holder.pair;
+    let left: Array<String> = pair.left;
+    ArrayPush(left, "a");
+    ArrayPush(left, "b");
+    return Holder(Pair(left, holder.pair.right), holder.extra);
+}
+
+func Main() -> Int {
+    let left: Array<String> = ["l"];
+    let right: Array<String> = ["r"];
+    let extra: Array<String> = ["e"];
+    let holder: Holder = Holder(Pair(left, right), extra);
+    holder = HolderExtend(holder);
+    return ArrayLength(holder.pair.left) + ArrayLength(holder.pair.right);
+}

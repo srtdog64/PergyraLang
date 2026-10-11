@@ -30,8 +30,11 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
             parameter_types, signature, callables, logical_record,
             payload_free_enum, referenced_enum, graph_field, use_offset,
             require_all_uses, expected_type, false, source_root);
+    // The admission may have grown the set before it failed: every exit
+    // hands the caller the set it returned, never the stale one.
     if !admission.valid {
         if !failure.present { failure = admission.failure; }
+        expressions = admission.facts;
         return None;
     }
     let appended: DirectMirScalarProgramExpressionSet = admission.facts;
@@ -76,6 +79,7 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
             failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
                 "enum-match", -1);
         }
+        expressions = appended;
         return None;
     }
     if ArrayLength(appended.graph_starts) != expression_row + 1 {
@@ -83,6 +87,7 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
             failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
                 "admitted-cardinality", -1);
         }
+        expressions = appended;
         return None;
     }
     let root: Int = appended.graph_roots[expression_row];
@@ -93,6 +98,7 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
             failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
                 "admitted-type", root);
         }
+        expressions = appended;
         return None;
     }
     expressions = appended;

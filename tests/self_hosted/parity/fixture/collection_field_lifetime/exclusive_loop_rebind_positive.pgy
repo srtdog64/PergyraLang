@@ -1,0 +1,33 @@
+// Each iteration hands the rows to the append and rebinds them before the
+// next one reads.
+struct Rows {
+    names: Array<String>;
+}
+
+struct RowsAppend {
+    ok: Bool;
+    rows: Rows;
+}
+
+func RowsAppendName(rows: Rows, name: String) -> RowsAppend {
+    let names: Array<String> = rows.names;
+    if name == "" { return RowsAppend(false, rows); }
+    ArrayPush(names, name);
+    return RowsAppend(true, Rows(names));
+}
+
+func RowsAppendAll(rows: Rows, count: Int) -> Rows {
+    let index: Int = 0;
+    while index < count {
+        let appended: RowsAppend = RowsAppendName(rows, "x");
+        rows = appended.rows;
+        index = index + 1;
+    }
+    return rows;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let rows: Rows = RowsAppendAll(Rows(names), 6);
+    return ArrayLength(rows.names);
+}

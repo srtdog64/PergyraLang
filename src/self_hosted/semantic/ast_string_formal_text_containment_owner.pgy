@@ -1,0 +1,191 @@
+// Text containment of an Array<String> formal whose body may return or write
+// String. Its element text stays in the callee frame when every text source
+// -- an element of the formal or of a contained local array, or a contained
+// String local -- is read by a primitive or borrowed consumer or a
+// borrow-only String formal, initializes or overwrites a String local, or
+// enters `ArrayPush` of a local Array<String> that starts empty and is only
+// pushed, measured and indexed. No such text reaches the result, a writable
+// formal or retained storage; any other use keeps the formal fail-closed.
+import "ast_string_formal_borrow_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+
+func SemanticAstFormalTextContained(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, borrow_only: HashMap<String, Int>,
+    function_id: Int, formal: Int
+) -> Bool {
+    if function_id <= 0 || function_id >= artifact.count || ArrayLength(artifact.arena.modes) != artifact.count ||
+        artifact.arena.modes[function_id] < 0 || artifact.arena.modes[function_id] == TypedAstModeCallableAsync() {
+        return false;
+    }
+    // Local row -> 1 for a contained String local, 2 for a contained array.
+    let contained: HashMap<String, Int> = MapNew();
+    let changed: Bool = true;
+    let passes: Int = ArrayLength(locals.node_ids) + 1;
+    while changed && passes > 0 {
+        let before: Int = MapSize(contained);
+        let slot: Int = 0;
+        while slot < ArrayLength(surfaces.expression_graph.roots) {
+            if surfaces.function_node_ids[slot / 3] == function_id && surfaces.expression_graph.has_roots[slot] &&
+                !SemanticAstFormalTextRootContained(artifact, signatures, locals, inferred_types, surfaces,
+                    borrow_only, slot, formal, contained) {
+                return false;
+            }
+            slot = slot + 1;
+        }
+        changed = MapSize(contained) != before;
+        passes = passes - 1;
+    }
+    return !changed;
+}
+
+// The local a leaf names, or -1 for a formal, a callable or an unresolved name.
+func SemanticAstFormalTextLocal(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, node: Int, type_name: String
+) -> Int {
+    let identity: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, node);
+    if !identity.ok || identity.kind != SemanticExpressionBindingNone() { return -1; }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, surfaces.function_node_ids[slot / 3], surfaces.node_ids[slot / 3],
+        surfaces.expression_graph, node);
+    if !binding.ok || binding.type_name != type_name { return -1; }
+    return binding.row;
+}
+
+func SemanticAstFormalTextRootContained(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, borrow_only: HashMap<String, Int>,
+    slot: Int, formal: Int, inout contained: HashMap<String, Int>
+) -> Bool {
+    let root: Int = surfaces.expression_graph.roots[slot];
+    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+    if !IsSome(start) { return false; }
+    let statement: Int = surfaces.node_ids[slot / 3];
+    let target: Bool = slot % 3 == AstExpressionLaneAtom() &&
+        TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag());
+    // A statement-level push names its receiver in the atom lane.
+    let receiver: Bool = slot % 3 == AstExpressionLaneAtom() &&
+        TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindArrayPushStmtTag());
+    let node: Int = UnwrapOption(start);
+    while node <= root {
+        let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[node];
+        let source: Bool = false;
+        if kind == AstExpressionNodeIndex() {
+            let base: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+            if IsSome(base) && UnwrapOption(base) >= 0 && UnwrapOption(base) < node {
+                let identity: SemanticExpressionBindingIdentityFact =
+                    SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, UnwrapOption(base));
+                let array: Int = SemanticAstFormalTextLocal(artifact, locals, inferred_types, surfaces, slot,
+                    UnwrapOption(base), "Array<String>");
+                source = (identity.ok && identity.kind == SemanticExpressionBindingFormalParameter() &&
+                    identity.syntax_id == formal) ||
+                    (array >= 0 && MapHas(contained, ToString(array)) && MapGet(contained, ToString(array)) == 2);
+            }
+        } else if kind == AstExpressionNodeLeaf() {
+            let text: Int = SemanticAstFormalTextLocal(artifact, locals, inferred_types, surfaces, slot, node, "String");
+            source = text >= 0 && MapHas(contained, ToString(text)) && !(target && node == root);
+            let array: Int = SemanticAstFormalTextLocal(artifact, locals, inferred_types, surfaces, slot, node,
+                "Array<String>");
+            if array >= 0 && MapHas(contained, ToString(array)) && !(receiver && node == root) &&
+                !SemanticAstFormalTextArrayUse(surfaces.expression_graph, node, root) {
+                return false;
+            }
+        }
+        if source && !SemanticAstFormalTextSourceContained(artifact, signatures, locals, inferred_types, surfaces,
+                borrow_only, slot, UnwrapOption(start), node, root, contained) {
+            return false;
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+// A contained array is only an ArrayPush receiver, an ArrayLength argument
+// or an index base.
+func SemanticAstFormalTextArrayUse(ref graph: SemanticExpressionGraphFacts, node: Int, root: Int) -> Bool {
+    let consumer: Int = SemanticAstBorrowedTextConsumer(graph, node, root);
+    if consumer < 0 { return false; }
+    if graph.arena.topology.node_kinds[consumer] == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        return IsSome(base) && UnwrapOption(base) == node;
+    }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    return edge.ok && edge.argument_node == node && edge.ordinal == 0 &&
+        (SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPush") ||
+         SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayLength"));
+}
+
+// One text source stays in the frame, recording the local it enters.
+func SemanticAstFormalTextSourceContained(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, borrow_only: HashMap<String, Int>,
+    slot: Int, root_start: Int, node: Int, root: Int, inout contained: HashMap<String, Int>
+) -> Bool {
+    let text: Int = node;
+    let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    while consumer >= 0 && SemanticAstBorrowedTextThroughToString(surfaces.expression_graph, consumer, text) {
+        text = consumer;
+        consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, text, root);
+    }
+    if consumer < 0 {
+        if slot % 3 != AstExpressionLaneValue() { return false; }
+        let statement: Int = surfaces.node_ids[slot / 3];
+        let row: Int = -1;
+        let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, statement);
+        if IsSome(declared) && UnwrapOption(declared) < ArrayLength(inferred_types) &&
+            inferred_types[UnwrapOption(declared)] == "String" {
+            row = UnwrapOption(declared);
+        } else if TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag()) {
+            let written: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, statement, AstExpressionLaneAtom());
+            if IsSome(written) {
+                row = SemanticAstFormalTextLocal(artifact, locals, inferred_types, surfaces, slot,
+                    UnwrapOption(written), "String");
+            }
+        } else if TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindArrayPushStmtTag()) {
+            let pushed_into: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, statement, AstExpressionLaneAtom());
+            return IsSome(pushed_into) && SemanticAstFormalTextEntersArray(artifact, locals, inferred_types, surfaces,
+                slot, UnwrapOption(pushed_into), contained);
+        }
+        if row < 0 { return false; }
+        MapSet(contained, ToString(row), 1);
+        return true;
+    }
+    if SemanticAstBorrowedTextPrimitiveConsumer(surfaces, slot, root_start, consumer, text) { return true; }
+    if surfaces.expression_graph.arena.topology.node_kinds[consumer] != AstExpressionNodeCallArgument() { return false; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+    if !edge.ok || edge.argument_node != text { return false; }
+    if SemanticAstStringFormalBorrowedArgument(signatures, surfaces.expression_graph, borrow_only,
+            edge.call_node, edge.ordinal) { return true; }
+    if edge.ordinal != 1 || !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayPush") {
+        return false;
+    }
+    let receiver_edge: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, consumer);
+    if !IsSome(receiver_edge) { return false; }
+    let receiver: Option<Int> = SemanticExpressionGraphRightChild(surfaces.expression_graph, UnwrapOption(receiver_edge));
+    return IsSome(receiver) && SemanticAstFormalTextEntersArray(artifact, locals, inferred_types, surfaces,
+        slot, UnwrapOption(receiver), contained);
+}
+
+// Text pushed into `receiver` stays contained when it is a local array that
+// starts empty; that array then becomes contained.
+func SemanticAstFormalTextEntersArray(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, receiver: Int, inout contained: HashMap<String, Int>
+) -> Bool {
+    let array: Int = SemanticAstFormalTextLocal(artifact, locals, inferred_types, surfaces, slot, receiver,
+        "Array<String>");
+    if array < 0 { return false; }
+    let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[array],
+        AstExpressionLaneValue());
+    if !IsSome(initializer) ||
+        !SemanticAstCollectionOwnershipLiteralIsEmpty(surfaces.expression_graph, UnwrapOption(initializer)) {
+        return false;
+    }
+    MapSet(contained, ToString(array), 2);
+    return true;
+}

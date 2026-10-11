@@ -1,0 +1,32 @@
+// The whole set enters a formal that reads the field the update grows.
+struct TypeList {
+    items: Array<String>;
+}
+
+struct NodeSet {
+    valid: Bool;
+    list: TypeList;
+}
+
+func NodeSetWithListChecked(facts: NodeSet, list: TypeList) -> NodeSet {
+    if ArrayLength(facts.list.items) > 0 { Log(facts.list.items[0]); }
+    return NodeSet(facts.valid, list);
+}
+
+func TypeListAdd(list: TypeList, name: String) -> TypeList {
+    let items: Array<String> = list.items;
+    ArrayPush(items, name); ArrayPush(items, name); ArrayPush(items, name); ArrayPush(items, name);
+    return TypeList(items);
+}
+
+func NodeSetUpdate(facts: NodeSet, name: String) -> NodeSet {
+    facts = NodeSetWithListChecked(facts, TypeListAdd(facts.list, name));
+    return facts;
+}
+
+func Main() -> Int {
+    let items: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, TypeList(items));
+    facts = NodeSetUpdate(facts, "y");
+    return ArrayLength(facts.list.items);
+}

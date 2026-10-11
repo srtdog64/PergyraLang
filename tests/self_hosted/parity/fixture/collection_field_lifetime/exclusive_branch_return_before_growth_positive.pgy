@@ -1,0 +1,22 @@
+// The return in the other branch never follows the growth.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func NodeSetPick(facts: NodeSet, grow: Bool) -> NodeSet {
+    let types: Array<String> = facts.types;
+    if grow {
+        ArrayPush(types, "a"); ArrayPush(types, "b"); ArrayPush(types, "c"); ArrayPush(types, "d");
+    } else {
+        return facts;
+    }
+    return NodeSet(facts.valid, types);
+}
+
+func Main() -> Int {
+    let types: Array<String> = ["x"];
+    let facts: NodeSet = NodeSet(true, types);
+    facts = NodeSetPick(facts, true);
+    return ArrayLength(facts.types);
+}

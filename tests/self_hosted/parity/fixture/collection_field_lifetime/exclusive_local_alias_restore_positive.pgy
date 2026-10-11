@@ -1,0 +1,14 @@
+// A field alias of an exclusive local grows and is restored.
+struct NodeSet {
+    valid: Bool;
+    types: Array<String>;
+}
+
+func Main() -> Int {
+    let types: Array<String> = [];
+    let facts: NodeSet = NodeSet(true, types);
+    let alias: Array<String> = facts.types;
+    ArrayPush(alias, "Int");
+    facts.types = alias;
+    return ArrayLength(facts.types);
+}

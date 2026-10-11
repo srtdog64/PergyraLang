@@ -2,17 +2,18 @@
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 
+// A failed expression set carries no rows: the failing set may name row
+// storage a later append already released, and every consumer checks
+// `valid` first.
 func DirectMirScalarProgramExpressionSetInvalid(
     facts: DirectMirScalarProgramExpressionSet
 ) -> DirectMirScalarProgramExpressionSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
     return DirectMirScalarProgramExpressionSet(
-        false, 0, facts.graph_global_rows, facts.graph_starts,
-        facts.graph_counts, facts.graph_roots, facts.node_kinds,
-        facts.node_types, facts.node_lefts, facts.node_rights,
-        facts.node_local_rows, facts.node_parameter_ordinals,
-        facts.node_member_ordinals, facts.node_literals,
-        facts.node_callable_rows, facts.node_runtime_call_abi_ids,
-        facts.nary_operands);
+        false, 0, ints, ints, ints, ints, ints, strings,
+        ints, ints, ints, ints, ints, strings, ints, ints,
+        DirectMirScalarProgramNaryOperandsEmpty());
 }
 
 func DirectMirScalarProgramAppendExpressionNode(

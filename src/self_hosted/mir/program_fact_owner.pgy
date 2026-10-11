@@ -219,21 +219,21 @@ func SelfMirProgramFactsEmpty(
     );
 }
 
+// A failed program carries only its diagnostic. The failing facts may name
+// row storage a growth already released, so none of it travels with the
+// error; the admitted semantic graph is borrowed, not built here.
 func SelfMirProgramFactsError(
     facts: SelfMirProgramFacts,
     code: String,
     message: String
 ) -> SelfMirProgramFacts {
-    return SelfMirProgramFacts(
-        false, code, message, facts.artifact_node_count,
-        facts.declarations, facts.domain_topology,
-        facts.domain_runtime_assignments,
-        facts.generic_specializations,
-        facts.parallel_captures, facts.routines, facts.cfg,
-        facts.instruction_abi_receipts,
-        facts.collection_ownership_receipts,
-        facts.expression_graph, facts.intent_execution
+    let failed: SelfMirProgramFacts = SelfMirProgramFactsEmpty(
+        facts.artifact_node_count, facts.expression_graph
     );
+    failed.ok = false;
+    failed.diagnostic_code = code;
+    failed.diagnostic_message = message;
+    return failed;
 }
 
 func SelfMirProgramFactsWithDomainTopology(

@@ -182,7 +182,8 @@ INPUTS=(
     inout_member_owned_clone_positive.pgy inout_member_unproved_ownership_negative.pgy
     member_scalar_owned_accumulator_positive.pgy member_scalar_shallow_accumulator_negative.pgy
     participant_loop_scalar_copy_positive.pgy participant_loop_scalar_borrow_negative.pgy
-    borrow_formal_direct_owned_seed_positive.pgy borrow_formal_retained_owned_seed_negative.pgy
+    borrow_formal_direct_owned_seed_positive.pgy borrow_formal_bound_owned_seed_positive.pgy
+    borrow_formal_retained_owned_seed_negative.pgy
     borrow_formal_aggregate_scalar_copy_positive.pgy borrow_formal_aggregate_scalar_return_negative.pgy
     borrow_formal_sync_typed_result_cleanup_positive.pgy borrow_formal_deferred_typed_result_cleanup_negative.pgy
     borrow_formal_member_array_snapshot_positive.pgy borrow_formal_member_array_return_negative.pgy
@@ -238,6 +239,31 @@ INPUTS=(
     element_escape_released_member_negative.pgy element_escape_empty_then_owned_negative.pgy
     owned_element_observe_positive.pgy owned_element_literal_escape_negative.pgy
     owned_element_push_escape_negative.pgy owned_element_retaining_text_negative.pgy
+    exclusive_thread_inout_positive.pgy exclusive_local_alias_restore_positive.pgy
+    exclusive_inout_alias_restore_positive.pgy exclusive_thread_direct_push_positive.pgy
+    exclusive_rebind_chain_positive.pgy exclusive_destination_field_positive.pgy
+    exclusive_focus_update_positive.pgy exclusive_inout_exit_before_growth_positive.pgy
+    exclusive_inout_scoped_writeback_positive.pgy exclusive_loop_rebind_positive.pgy
+    exclusive_return_before_growth_positive.pgy exclusive_failure_value_before_growth_positive.pgy
+    exclusive_sibling_value_reads_positive.pgy exclusive_sibling_array_argument_negative.pgy
+    exclusive_caller_reuse_negative.pgy exclusive_borrowed_wrap_negative.pgy exclusive_copy_alias_negative.pgy
+    exclusive_stale_failure_value_negative.pgy exclusive_stale_failure_consumed_negative.pgy
+    exclusive_destination_field_stale_negative.pgy exclusive_focus_reads_grown_field_negative.pgy
+    exclusive_formal_reassign_share_negative.pgy exclusive_inout_exit_before_writeback_negative.pgy
+    exclusive_loop_rebind_branch_negative.pgy exclusive_return_after_growth_negative.pgy
+    exclusive_return_loop_after_growth_negative.pgy exclusive_array_copy_negative.pgy
+    exclusive_branch_return_before_growth_positive.pgy exclusive_inout_argument_exit_writeback_positive.pgy
+    exclusive_inout_repeat_alias_positive.pgy exclusive_nested_path_focus_positive.pgy
+    exclusive_readonly_sibling_call_positive.pgy exclusive_holder_rebind_restore_positive.pgy
+    exclusive_holder_rebind_fresh_positive.pgy exclusive_alias_inout_then_read_positive.pgy
+    owned_element_text_contained_local_array_positive.pgy
+    owned_element_text_contained_string_local_positive.pgy exclusive_branch_loop_return_negative.pgy
+    exclusive_holder_sibling_argument_negative.pgy exclusive_inout_argument_exit_stale_negative.pgy
+    exclusive_inout_repeat_shared_alias_negative.pgy exclusive_mutating_sibling_call_negative.pgy
+    exclusive_nested_path_reads_grown_negative.pgy exclusive_holder_rebind_branch_negative.pgy
+    exclusive_rebind_branch_stale_negative.pgy exclusive_alias_read_shared_root_negative.pgy
+    owned_element_text_escapes_result_negative.pgy owned_element_text_escapes_string_local_negative.pgy
+    owned_element_text_escapes_array_alias_negative.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
@@ -545,7 +571,7 @@ for backend in c llvm; do
         grep -Fxq -- "- boundary: $boundary" \
             "$WORK/$backend-$input-leaf.run"
     done <<'OWNED_PUSH_LEAF_DIAGNOSTICS'
-aggregate_owned_push_leaf_adapter_alias_negative.pgy|aggregate_release_incomplete
+aggregate_owned_push_leaf_adapter_alias_negative.pgy|unproved_exclusive_sink_entry
 aggregate_owned_push_leaf_adapter_borrowed_input_negative.pgy|aggregate_release_source_not_live
 aggregate_owned_push_leaf_adapter_conditional_restore_negative.pgy|aggregate_release_incomplete
 aggregate_owned_push_leaf_adapter_deferred_negative.pgy|unproved_formal_execution_context
@@ -607,6 +633,32 @@ element_escape_empty_then_owned_negative.pgy|ArrayPushOwnedString|ArrayPushOwned
 owned_element_literal_escape_negative.pgy|owned_element_escape|b|Main
 owned_element_push_escape_negative.pgy|owned_element_escape|b|Main
 owned_element_retaining_text_negative.pgy|owned_element_escape|named|Main
+exclusive_sibling_array_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
+exclusive_caller_reuse_negative.pgy|unproved_exclusive_sink_entry|grown|Main
+exclusive_borrowed_wrap_negative.pgy|unproved_exclusive_sink_entry|facts|Main
+exclusive_copy_alias_negative.pgy|unproved_exclusive_sink_entry|facts|Main
+exclusive_stale_failure_value_negative.pgy|unproved_exclusive_member_mutation|types|Grow
+exclusive_stale_failure_consumed_negative.pgy|unproved_exclusive_member_mutation|types|Grow
+exclusive_destination_field_stale_negative.pgy|unproved_exclusive_member_mutation|left|HolderExtendStale
+exclusive_focus_reads_grown_field_negative.pgy|unproved_exclusive_sink_entry|facts|NodeSetUpdate
+exclusive_formal_reassign_share_negative.pgy|unproved_exclusive_sink_entry|picked|Main
+exclusive_inout_exit_before_writeback_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowChecked
+exclusive_loop_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|appended|RowsAppendAll
+exclusive_return_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrow
+exclusive_return_loop_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowUntil
+exclusive_array_copy_negative.pgy|unproved_exclusive_sink_entry|grown|Main
+exclusive_branch_loop_return_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetPickUntil
+exclusive_holder_sibling_argument_negative.pgy|unproved_exclusive_sink_entry|facts|Main
+exclusive_inout_argument_exit_stale_negative.pgy|unproved_exclusive_sink_entry|grown|TypeListAddChecked
+exclusive_inout_repeat_shared_alias_negative.pgy|unproved_shallow_mutation_entry|TypesAdd(types, "a")|NodeSetAddTwiceKept
+exclusive_mutating_sibling_call_negative.pgy|unproved_exclusive_sink_entry|facts|Main
+exclusive_nested_path_reads_grown_negative.pgy|unproved_exclusive_member_mutation|kinds|SeqAppend
+exclusive_holder_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|grown|Run
+exclusive_rebind_branch_stale_negative.pgy|unproved_exclusive_sink_entry|record_index|AppendPopulated
+exclusive_alias_read_shared_root_negative.pgy|unproved_indexed_read_entry|left|Append
+owned_element_text_escapes_result_negative.pgy|unproved_formal_element_use_entry|expr|Main
+owned_element_text_escapes_string_local_negative.pgy|unproved_formal_element_use_entry|first|Main
+owned_element_text_escapes_array_alias_negative.pgy|unproved_formal_element_use_entry|gathered|Main
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.
@@ -1022,7 +1074,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, ninety diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, one hundred sixteen diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

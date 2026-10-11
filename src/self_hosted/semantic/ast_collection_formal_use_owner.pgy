@@ -9,6 +9,7 @@ import "ast_owned_string_call_result_admission_owner.pgy";
 import "ast_collection_formal_statement_effect_owner.pgy";
 import "ast_collection_builtin_release_identity_owner.pgy";
 import "ast_string_formal_borrow_owner.pgy";
+import "ast_string_formal_text_containment_owner.pgy";
 
 func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     artifact: AstTreeArtifact,
@@ -62,6 +63,9 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     let blocked: Array<Bool> = [];
     // An element kept only inside a text escape-free body never outlives it.
     let escape_free: Array<Bool> = [];
+    // A formal whose only open use is its text's escape; its body may still
+    // keep that text in the frame.
+    let text_escapes: Array<Bool> = [];
     let mutations: Array<Bool> = [];
     let shallow_mutations: Array<Bool> = [];
     let element_reads: Array<Bool> = [];
@@ -96,6 +100,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
             signatures, inventory.function_nodes[row]);
         ArrayPush(escape_free, IsSome(signature_row) &&
             SemanticAstFunctionTextEscapeFree(artifact, signatures, UnwrapOption(signature_row)));
+        ArrayPush(text_escapes, false);
         ArrayPush(mutations, MapHas(
             statement_owned_formals, formal_key));
         ArrayPush(shallow_mutations, MapHas(
@@ -296,7 +301,8 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                              (kind != AstExpressionNodeEquality() &&
                               kind != AstExpressionNodeInequality() &&
                               kind != AstExpressionNodeAdd())) {
-                            blocked[borrowed_row] = true;
+                            if owning_consumer { blocked[borrowed_row] = true; }
+                            else { text_escapes[borrowed_row] = true; }
                         }
                         if used_row >= 0 {
                             direct_use_counts[used_row] =
@@ -406,7 +412,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                 // A text escape-free body is that relation: its storage dies
                 // before the element's owner can release it.
                 if source_row != statement_mutation_row && !escape_free[source_row] {
-                    blocked[source_row] = true;
+                    text_escapes[source_row] = true;
                 }
             }
             if ok && slice_member_rows[root] >= 0 {
@@ -434,6 +440,15 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         ArrayLength(direct_owned_push_call_nodes) == count &&
         ArrayLength(owned_push_leaf_disqualified) == count &&
         ArrayLength(sources) == ArrayLength(targets);
+    row = 0;
+    while ok && row < count {
+        if text_escapes[row] && !blocked[row] &&
+            !SemanticAstFormalTextContained(artifact, signatures, locals, initializer_types.inferred_type_names,
+                surfaces, borrowed_text, inventory.function_nodes[row], inventory.formal_nodes[row]) {
+            blocked[row] = true;
+        }
+        row = row + 1;
+    }
     let fixed_point_status: SemanticAstCollectionFormalEffectResolutionStatus =
         SemanticAstCollectionFormalEffectResolutionStatus(ok);
     SemanticAstCollectionFormalEffectFixedPoint(
@@ -462,7 +477,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     }
     ArrayDrop(node_rows); ArrayDrop(element_rows);
     ArrayDrop(slice_member_rows); ArrayDrop(slice_value_rows);
-    ArrayDrop(blocked); ArrayDrop(escape_free); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
+    ArrayDrop(blocked); ArrayDrop(escape_free); ArrayDrop(text_escapes); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
     ArrayDrop(element_reads);
     ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts); ArrayDrop(direct_owned_push_call_nodes);
     ArrayDrop(owned_push_leaf_disqualified); ArrayDrop(sources); ArrayDrop(targets);
