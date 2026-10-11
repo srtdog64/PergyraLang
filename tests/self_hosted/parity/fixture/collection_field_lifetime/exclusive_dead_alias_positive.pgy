@@ -1,0 +1,59 @@
+// A default taken from an admitted set is overwritten on every path before
+// any read: each branch grows the set once and hands back its result.
+struct ExprSet {
+    valid: Bool;
+    roots: Array<Int>;
+    types: Array<String>;
+}
+
+struct Admission {
+    valid: Bool;
+    facts: ExprSet;
+}
+
+func GrowSet(facts: ExprSet, name: String) -> ExprSet {
+    let types: Array<String> = facts.types;
+    ArrayPush(types, name);
+    let roots: Array<Int> = facts.roots;
+    ArrayPush(roots, ArrayLength(types) - 1);
+    return ExprSet(facts.valid, roots, types);
+}
+
+func Append(facts: ExprSet, name: String) -> Admission {
+    if name == "" { return Admission(false, facts); }
+    return Admission(true, GrowSet(facts, name));
+}
+
+func Core(inout expressions: ExprSet, kind: Int) -> Option<Int> {
+    let row: Int = ArrayLength(expressions.roots);
+    let admission: Admission = Append(expressions, "x");
+    if !admission.valid {
+        expressions = admission.facts;
+        return None;
+    }
+    let appended: ExprSet = admission.facts;
+    if kind == 1 {
+        let value_node: Int = admission.facts.roots[row];
+        if value_node >= 0 && admission.facts.types[value_node] == "x" {
+            appended = GrowSet(admission.facts, "a");
+        } else {
+            appended = GrowSet(admission.facts, "b");
+        }
+    } else {
+        appended = GrowSet(admission.facts, "c");
+    }
+    if !appended.valid {
+        expressions = appended;
+        return None;
+    }
+    expressions = appended;
+    return Some(row);
+}
+
+func Main() -> Int {
+    let roots: Array<Int> = [];
+    let types: Array<String> = [];
+    let expressions: ExprSet = ExprSet(true, roots, types);
+    let row: Option<Int> = Core(expressions, 1);
+    return ArrayLength(expressions.types);
+}

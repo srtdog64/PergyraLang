@@ -266,7 +266,11 @@ INPUTS=(
     owned_element_text_escapes_array_alias_negative.pgy exclusive_grown_field_disjoint_positive.pgy
     exclusive_grown_field_holder_positive.pgy exclusive_grown_field_ref_holder_positive.pgy
     exclusive_self_rebuild_positive.pgy exclusive_grown_field_shared_negative.pgy
-    exclusive_grown_field_holder_negative.pgy
+    exclusive_grown_field_holder_negative.pgy exclusive_call_result_rebind_positive.pgy
+    exclusive_other_branch_positive.pgy exclusive_alias_rewrite_positive.pgy
+    exclusive_other_branch_loop_negative.pgy exclusive_later_holder_negative.pgy
+    exclusive_alias_element_write_negative.pgy exclusive_dead_alias_positive.pgy
+    exclusive_dead_alias_partial_negative.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
@@ -664,6 +668,10 @@ owned_element_text_escapes_string_local_negative.pgy|unproved_formal_element_use
 owned_element_text_escapes_array_alias_negative.pgy|unproved_formal_element_use_entry|gathered|Main
 exclusive_grown_field_shared_negative.pgy|unproved_exclusive_sink_entry|facts|Build
 exclusive_grown_field_holder_negative.pgy|unproved_exclusive_sink_entry|facts|Build
+exclusive_other_branch_loop_negative.pgy|unproved_exclusive_sink_entry|grown|Pick
+exclusive_later_holder_negative.pgy|unproved_exclusive_sink_entry|grown|Build
+exclusive_alias_element_write_negative.pgy|unproved_exclusive_sink_entry|grown|Build
+exclusive_dead_alias_partial_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.
@@ -1079,7 +1087,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, one hundred eighteen diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, one hundred twenty-two diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

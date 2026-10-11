@@ -1,0 +1,34 @@
+// The branch that grows a set and the branch that reads it sit in one loop:
+// the next pass reads the storage the growth retired.
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "r");
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows);
+}
+
+func Pick(seed: Array<String>) -> Int {
+    let facts: Facts = Facts(true, seed);
+    let total: Int = 0;
+    let pass: Int = 0;
+    while pass < 2 {
+        if pass == 0 {
+            let grown: Facts = Grow(facts);
+            total = total + ArrayLength(grown.rows);
+        } else {
+            total = total + StringLength(facts.rows[0]);
+        }
+        pass = pass + 1;
+    }
+    return total;
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    return Pick(seed);
+}

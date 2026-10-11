@@ -15,6 +15,7 @@
 //   classification records it as a dependency. An own formal is exclusive.
 // - An indexed read, a ref formal and anything else may be shared.
 import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_collection_exclusive_value_dead_definition_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
@@ -424,6 +425,26 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
     if !locals.ok || !assignments.ok || !statements.ok ||
         ArrayLength(inferred_types) != ArrayLength(locals.node_ids) ||
         MapHas(field_reads, "unconverged") { return facts; }
+    // A definition of a place no path reads aliases nothing.
+    let dead_definitions: HashMap<String, Int> = MapNew();
+    let dead_row: Int = 0;
+    while dead_row < ArrayLength(locals.node_ids) {
+        let dead_function: String = ToString(locals.function_node_ids[dead_row]);
+        let dead_value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, locals.node_ids[dead_row], AstExpressionLaneValue());
+        if !SemanticAstCollectionExclusiveUntrackedType(inferred_types[dead_row]) && IsSome(dead_value) &&
+            MapHas(starts, dead_function) && MapHas(ends, dead_function) && MapGet(starts, dead_function) >= 0 {
+            let source: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                artifact, signatures, locals, inferred_types, surfaces, locals.function_node_ids[dead_row],
+                locals.node_ids[dead_row], UnwrapOption(dead_value));
+            if source.ok && !source.temporary && SemanticAstCollectionExclusiveDefinitionDead(artifact, signatures,
+                    locals, inferred_types, surfaces, locals.function_node_ids[dead_row],
+                    MapGet(starts, dead_function), MapGet(ends, dead_function), locals.node_ids[dead_row]) {
+                MapSet(dead_definitions, ToString(locals.node_ids[dead_row]), 1);
+            }
+        }
+        dead_row = dead_row + 1;
+    }
     // Whole-local assignment targets, resolved once.
     let assigned_rows: Array<Int> = [];
     let assigned_formals: Array<Int> = [];
@@ -458,7 +479,8 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
         changed = false;
         let local_row: Int = 0;
         while local_row < ArrayLength(locals.node_ids) {
-            if !SemanticAstCollectionExclusiveUntrackedType(inferred_types[local_row]) {
+            if !SemanticAstCollectionExclusiveUntrackedType(inferred_types[local_row]) &&
+                !MapHas(dead_definitions, ToString(locals.node_ids[local_row])) {
                 let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
                     surfaces, locals.node_ids[local_row], AstExpressionLaneValue());
                 if IsSome(value) {

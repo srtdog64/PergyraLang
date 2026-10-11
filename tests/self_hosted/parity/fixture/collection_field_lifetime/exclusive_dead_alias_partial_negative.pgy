@@ -1,0 +1,29 @@
+// A default taken from a set is overwritten on one path only: the other path
+// reads it after the set grows.
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "r");
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows);
+}
+
+func Build(seed: Array<String>, other: Array<String>, fresh: Bool) -> Int {
+    let facts: Facts = Facts(true, seed);
+    let view: Facts = facts;
+    if fresh {
+        view = Facts(false, other);
+    }
+    let grown: Facts = Grow(facts);
+    return StringLength(view.rows[0]) + ArrayLength(grown.rows);
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    let other: Array<String> = ["o"];
+    return Build(seed, other, false);
+}

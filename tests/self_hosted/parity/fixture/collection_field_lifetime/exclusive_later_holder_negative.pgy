@@ -1,0 +1,30 @@
+// A holder declared after the growth copies an older holder of the grown
+// field: the older holder is read after the growth.
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+}
+
+struct Holder {
+    items: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "r");
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows);
+}
+
+func Build(seed: Array<String>) -> Int {
+    let facts: Facts = Facts(true, seed);
+    let kept: Holder = Holder(facts.rows);
+    let grown: Facts = Grow(facts);
+    let later: Holder = Holder(kept.items);
+    return StringLength(later.items[0]) + ArrayLength(grown.rows);
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    return Build(seed);
+}

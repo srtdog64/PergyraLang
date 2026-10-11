@@ -28852,10 +28852,11 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_exclusive_value_class_owner.pgy:280 \
     src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:235 \
     src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy:145 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:410 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_dead_definition_owner.pgy:135 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:440 \
     src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:370 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:330 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:380 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:340 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:395 \
     src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \

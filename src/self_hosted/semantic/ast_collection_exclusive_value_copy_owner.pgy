@@ -266,6 +266,14 @@ func SemanticAstCollectionExclusiveRebindsBinding(
         SemanticAstCollectionExclusivePlaceRoot(locals, written) == binding;
 }
 
+// A local declared at or after `syntax_id` holds only copies made there or
+// later: any older storage reaches it through a later read the scan checks.
+func SemanticAstCollectionExclusiveDeclaredFrom(
+    ref locals: SemanticAstLocalBindingFacts, binding: Int, syntax_id: Int
+) -> Bool {
+    return binding >= syntax_id && IsSome(SemanticAstLocalBindingIndexForNode(locals, binding));
+}
+
 // A use of `place` at `syntax_id` is the last one only if no holder of a
 // copy of it, and no source of a copy it holds, is used later.
 func SemanticAstCollectionExclusiveCopiesUnread(
@@ -284,12 +292,13 @@ func SemanticAstCollectionExclusiveCopiesUnread(
     let index: Int = 0;
     while index < SemanticAstCollectionExclusiveCopyCount(copies, from) {
         let edge: Int = MapGet(copies, Concat(from, Concat(":", ToString(index))));
-        if MapGet(copies, Concat("edge_holder:", ToString(edge))) != destination &&
+        let holder: Int = MapGet(copies, Concat("edge_holder:", ToString(edge)));
+        if holder != destination && !SemanticAstCollectionExclusiveDeclaredFrom(locals, holder, syntax_id) &&
             SemanticAstCollectionExclusiveCopyEdgeField(copies, surfaces, edge, place.chain) &&
             SemanticAstCollectionExclusiveCopyEdgeGrown(copies, edge, grown) &&
             !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals, inferred_types,
                 surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope, uses,
-                early_returns, MapGet(copies, Concat("edge_holder:", ToString(edge)))) {
+                early_returns, holder) {
             return false;
         }
         index = index + 1;
@@ -300,7 +309,7 @@ func SemanticAstCollectionExclusiveCopiesUnread(
     while index < SemanticAstCollectionExclusiveCopyCount(copies, into) {
         let edge: Int = MapGet(copies, Concat(into, Concat(":", ToString(index))));
         let source: Int = MapGet(copies, Concat("edge_root:", ToString(edge)));
-        let ignored: Bool = false;
+        let ignored: Bool = SemanticAstCollectionExclusiveDeclaredFrom(locals, source, syntax_id);
         let ignored_index: Int = 0;
         while ignored_index < ArrayLength(ignored_sources) {
             if ignored_sources[ignored_index] == source { ignored = true; }
@@ -316,7 +325,8 @@ func SemanticAstCollectionExclusiveCopiesUnread(
         while sibling < SemanticAstCollectionExclusiveCopyCount(copies, sibling_from) {
             let other: Int = MapGet(copies, Concat("edge_holder:", ToString(MapGet(copies,
                 Concat(sibling_from, Concat(":", ToString(sibling)))))));
-            if !ignored && other != root && !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals,
+            if !ignored && other != root && !SemanticAstCollectionExclusiveDeclaredFrom(locals, other, syntax_id) &&
+                !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, locals,
                     inferred_types, surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope,
                     uses, early_returns, other) {
                 return false;

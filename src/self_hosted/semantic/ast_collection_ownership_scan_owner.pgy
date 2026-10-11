@@ -47,7 +47,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
     inout aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan,
     inout indexed_string_borrows: SemanticAstIndexedStringBorrowState,
     inout retained_definitions: Array<Bool>,
-    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    inout exclusive_values: SemanticAstCollectionExclusiveValueFacts,
     mutating_formals: HashMap<String, Int>,
     inout verdict: SemanticAstCollectionOwnershipVerdict
 ) -> Void {

@@ -398,6 +398,23 @@ func SemanticAstCollectionExclusiveOtherBranch(ref artifact: AstTreeArtifact, le
     return IsSome(parent) && side != below && side != join;
 }
 
+// `statement` sits in another branch than `definition` and no loop holds
+// both: no path from the definition reaches it.
+func SemanticAstCollectionExclusiveBranchUnreached(ref artifact: AstTreeArtifact, definition: Int, statement: Int) -> Bool {
+    if !SemanticAstCollectionExclusiveOtherBranch(artifact, definition, statement) { return false; }
+    let ancestor: Option<Int> = TypedAstArenaParentId(artifact.arena, statement);
+    let remaining: Int = artifact.count;
+    while IsSome(ancestor) && remaining > 0 {
+        let node: Int = UnwrapOption(ancestor);
+        if (TypedAstArenaNodeKindIs(artifact.arena, node, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, node, TypedAstKindForStmtTag())) &&
+            SemanticAstCollectionNodeEnclosedBy(artifact, definition, node) { return false; }
+        ancestor = TypedAstArenaParentId(artifact.arena, node);
+        remaining = remaining - 1;
+    }
+    return remaining > 0;
+}
+
 // A return at `statement` runs before every use in `uses` of the family
 // defined at `definition`: each use comes later or sits in another branch,
 // and no loop that leaves the definition outside carries a use to it.

@@ -1,6 +1,6 @@
 # DRV-2 ownership-entry frontier: sink inference for the remaining entries
 
-Status: **ACTIVE — R, E, S, T and G land; L, M and the remaining sink
+Status: **ACTIVE — R, E, S, T, G and B land; L, M and the remaining sink
 entries open (Claude, sole lane, 2026-10-11)**. Base `main @ 1c1e0308`. The user asked to make CI green
 and to finish sink inference. CI run 38065600591 fails in
 `backend-compare-toolchain-linux` at the same refusal as local DRV-2
@@ -278,6 +278,62 @@ Gate re-pin: `aggregate_owned_push_leaf_adapter_alias_negative` is refused
 first by the exclusive sink entry (its alias copy shares the storage the
 call grows) instead of `aggregate_release_incomplete`.
 
+Last-use refinements (B, after G). Each rule hands the case to a check that
+already runs, so no reader of the old storage goes unseen:
+
+- A copy holder, copy source or sibling holder declared at or after the use
+  holds only copies made there or later; older storage reaches it only
+  through a later read of the root, an alias or an older holder, which the
+  scan and the holder checks still see.
+- A statement in another branch of an `if` or `match` than the use, with no
+  loop around both, is not reached from the use. A loop around both keeps
+  the read (`exclusive_other_branch_loop_negative`).
+- The target of a whole-binding write (`x = v`, `let x = v`), the consuming
+  statement's own included, is no read of its old value; a member or
+  indexed write still is (`exclusive_alias_element_write_negative`).
+- The binding the consuming statement wholly writes names its new value in
+  later statements; at the statement itself it is still a reader, so
+  `w = F(place, w)` stays checked.
+- A local definition of a place that no path reads (every path writes the
+  whole binding first or leaves its block) aliases nothing
+  (`ast_collection_exclusive_value_dead_definition_owner.pgy`). A statement
+  shape the cover does not model counts as a read; a path that keeps the
+  default refuses (`exclusive_dead_alias_partial_negative`).
+
+Shape this admits: the instruction-core admission, which threads an inout
+expression set through a growing call, takes the admitted set as a default,
+and overwrites it in every match branch. Fixtures: eight new (63 in the
+suite), 32 rows, one hundred twenty-two diagnostic locations. Every earlier
+fixture keeps its verdict (683 inputs compared against the previous probe).
+No annotation or copy was added to the corpus.
+
+Corpus hazard fixed with B (introduced by the S/T slice): the sink-entry
+check classified its argument into `let copied = copies;`, a value copy of
+the copies map. A HashMap value copy shares its buckets, so a `MapSet` that
+rehashed through the copy retired storage the facts still read. The map now
+moves out of the facts for the check and back before any read, and the
+check records into that one live map. The same hazard is outside the
+exclusive-value model today: growth summaries count ArrayPush, ArrayPop and
+ArrayPushOwnedString, but not `MapSet` or `MapRemove`, although a HashMap is
+growable storage (AGENTS worker rule). Counting map growth is the open
+obligation this case falsifies; the comparison with Valen group borrowing
+that names it is `audits/valen_group_borrowing_comparison_2026-10-11.md`.
+
+Local gate note: `bin/pgy.exe` (2026-10-06) predates the lexical array type
+fix of `2b08d86d`; with it the LLVM identity probe reads `modes[observed]`
+from an `Array<Int>` as a string (the probe reuses the spelling `modes`) and
+crashes on mutation 37. The inout gate is evidence only with a compiler built
+from the current C sources (`PGY_BIN`); CI builds its own.
+
+B evidence: the inout-effect gate passed end to end (C and LLVM) with
+`PGY_BIN=.tmp/claude-bin/pgy.exe`, in a local copy whose only change raised
+the 60 s identity unit to 240 s (it took 66-76 s here, as it does at HEAD);
+the committed gate keeps 60 s. Borrowed-descriptor-read, component contract
+and source-scan passed unchanged. All 683 earlier fixture inputs keep their
+verdicts against the pre-B probe; of the eight new fixtures the four
+positives are admitted and the four negatives refused. The recount with the
+copies fix is the same 97 sites.
+
 Earlier design notes for S:
 
 - Measured hazard scale: 121 corpus functions grow 724 member aliases of
@@ -299,6 +355,23 @@ Earlier design notes for S:
   handed to a result-carrying formal or a constructor while it stays live
   (the stale failure value). Boundaries `unproved_exclusive_sink_entry`,
   `unproved_exclusive_member_mutation`, `exclusive_root_shared`.
+
+## Recount after B
+
+97 refusals (from 101): the four option-match member mutations
+(`MirExpressionGraphSequenceAppendUnaryCall`) are admitted; no refusal is
+new. `unproved_exclusive_sink_entry` 27, `unproved_indexed_read_entry` 21,
+`unproved_formal_indexed_read_entry` 9, `owned_string_actual_unproved` 9,
+`unproved_formal_element_use_entry` 7, `unproved_exclusive_member_mutation`
+7, `unproved_shallow_mutation_entry` 4, `owned_string_drop` 4, `ArrayPush`
+4, `owned_element_escape` 2, three singletons. The instruction-core sinks
+(lines 27, 59, 67) are not the core's own shape any more: the class of the
+inout set turns shared in the third round of the fixed point through shared
+result fields of `DirectMirScalarProgramAppendExpression` that reach
+`admission.facts`. No whole value in that chain is shared first, so the
+origin is a shared first field inside the direct-MIR expression admission
+(the same owners as its indexed-read cluster); that field is the next
+falsifier to locate.
 
 ## Recount after G
 

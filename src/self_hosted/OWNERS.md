@@ -871,11 +871,20 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   later use of the holder, the source, or another holder of the same source
   reads that storage, until a whole rebinding every path runs. A plain alias, or a holder that escapes the tracked
   definitions (push, statement call, match), shares its source instead.
+  A local declared at or after the use holds only copies made there or
+  later, so it is no reader of the old storage.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy`
   -- last-use proof for a consumed place: no later statement that runs after
   the use reads overlapping storage. The destination family and the fields
   it touches are excluded; an inout root is read again at every exit; after
-  a whole rebinding only aliases taken before it name the old value.
+  a whole rebinding only aliases taken before it name the old value. A
+  statement in another branch with no loop around both is not reached, the
+  target of a whole-binding write is not read, and the binding the consuming
+  statement writes names its new value in later statements.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_dead_definition_owner.pgy`
+  -- dead definitions: a local definition no path reads, because every path
+  writes the whole binding first or leaves its block, aliases nothing. A
+  statement shape the cover does not model counts as a read.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy`
   -- field reads for consumption: field-read summaries of aggregate formals
   that narrow whole-value reads, the fields and paths a destination writes,
@@ -886,8 +895,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy`
   -- order facts for consumption: exit scopes (blocks ending in a function
   exit with no leaving jump), write-backs every path runs, loop rebinding,
-  returns before the first non-read family use, and per-use write-back
-  scopes. A function with a deferred body has no forward order and refuses.
+  returns before the first non-read family use, per-use write-back scopes,
+  and branches no pass from a use reaches. A function with a deferred body
+  has no forward order and refuses.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy`
   -- growth admission: a member alias that consumed its source, roots whose
   grown field shares no storage, and the argument boundary: a sink needs

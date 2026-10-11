@@ -1,0 +1,30 @@
+// A set is read only in the branch that does not grow it: no pass reaches
+// that read after the growth.
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "r");
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows);
+}
+
+func Pick(seed: Array<String>, grow: Bool) -> Int {
+    let facts: Facts = Facts(true, seed);
+    let width: Int = 0;
+    if grow {
+        let grown: Facts = Grow(facts);
+        width = ArrayLength(grown.rows);
+    } else {
+        width = StringLength(facts.rows[0]);
+    }
+    return width;
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    return Pick(seed, true);
+}

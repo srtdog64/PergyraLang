@@ -3,15 +3,29 @@
 Updated: 2026-10-11 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
-## Active self-host context — DRV-2 ownership-entry frontier: exclusive values, text containment and field-level growth land (Claude, sole lane since 2026-10-10)
+## Active self-host context — DRV-2 ownership-entry frontier: exclusive values, text containment, field-level growth and last-use refinements land (Claude 2026-10-10 to 2026-10-11; handed over after the B slice)
 
 Pushed `2c7f6f6e` (graph proofs), `2b08d86d` (compiler) and `1c1e0308` (P1b)
 to `origin/main`. CI run `38065600591` (at `1c1e0308`) passed codegen bootstrap
 and failed the toolchain job at the same refusal as local DRV-2
 (`node=125550`, `ArrayPush`). After it come the R/E entry commit `3ffcdb20`
 the S/T checkpoint `8c5cc3fe` (exclusive values and text containment), and
-the G slice (field-level growth). Plan and record:
+the G slice `7848a931` (field-level growth), and the B slice (last-use
+refinements). Plan and record:
 `agent_work_directives/drv2_ownership_entry_frontier_2026-10-11.md`.
+Handover after B (next lane, in order): (1) map growth: count `MapSet` and
+`MapRemove` as growth of the map place, falsified by a fixture that copies a
+map descriptor, grows the copy and reads the original (the 9 move-out and
+move-back sites in the corpus should pass through the existing field-alias
+restore proof); (2) refuse growth of Set, List or Queue through a descriptor
+not proven exclusive, without modelling them (5, 2 and 0 corpus uses);
+(3) the remaining 97 DRV-2 refusals, starting from the shared first field in
+the direct-MIR expression admission. Local traps: `bin/pgy.exe` (2026-10-06)
+predates the lexical array type fix of `2b08d86d` and miscompiles the LLVM
+identity probe, so run the inout gate with `PGY_BIN` set to a compiler built
+from the current C sources (`.tmp/claude-bin/pgy.exe` here); the gate's 60 s
+identity unit takes 66-76 s on this machine under load at HEAD as well, so
+it is evidence only on an idle machine and its budget is not to be raised.
 Only `gmon.out` (profiler output) stays untracked. Private builds only
 (`.tmp/claude-bin`, C: scratch drivers); `bin/` is untouched. D: has about
 2 GB free; heavy output goes to the C: scratchpad.
@@ -27,7 +41,7 @@ Only `gmon.out` (profiler output) stays untracked. Private builds only
 | P1a: DRV-2 member capture readiness | FOCUSED_GREEN | The dirty tree's DRV-2 refusal was `ast_artifact_invalid` / `collection_member_read_permission`; the pre-migration snapshot failed identically. Complete failure set: only `capture.ready`, from ~22 enum constants, world zone fields cloned in `compiler/world.pgy` and two match payload bindings. Repair in `ast_collection_member_capture_source_owner.pgy`: a non-binding root is a constant; an implicit receiver field is rooted in the `self` formal with its mode; a match payload binding is rooted in its match subject. DRV-2 now reaches HEAD's frontier; codegen gen0 compiles the `mir_collection_receiver_root` control again (`member_indexed_read_permission.sh` expectation moved to `nominal_receiver_root=true`). |
 | Destructure definition activation | FOCUSED_GREEN | The admitted-stream argument owner read `current_definitions` for the second binding of `let (first, second) = ...` as -1: Value completion selected only the first local row of the shared Let node. `ast_collection_definition_transition_owner.pgy` now activates every row a destructure Let declares and refuses a sibling row that carries storage facts. `member_indexed_read_permission.sh` PASS (16 original + 35 capture pairs, C/LLVM; `.tmp/self_hosted/member-indexed-read.hpObo6`). Also green on the final tree: formal-key, binding-move prefix, owned-result, constructor-field-input, member-identity, aggregate entry-requirement, aggregate release-source and native-storage-escape gates. The 434-source inout-effect integration was not rerun. |
 | P1b: DRV-2 aggregate release plan | FOCUSED_GREEN | Closed by inferred sink crossings (`agent_work_directives/aggregate_release_sink_inference_2026-10-10.md`): a default-mode formal on a release lineage is a sink and each call edge must consume its argument (`ast_collection_aggregate_sink_consumption_owner.pgy`); the trace pops a callee frame while it traces the caller argument; a traced constructor argument is a lineage edge; demands record producer invocation paths (distinct calls do not share storage); an earlier shared deep drop is ordered when the next statement leaves the routine; identical demands from alternative returns are recorded once; destructure rows follow the match-row contract (`ref` input, `Concat` copies, backing-only retirement). `collection_aggregate_release_source_owner.sh` 12 positive + 20 falsifying C/LLVM PASS; DRV-2 no longer refuses the aggregate release plan. No `own` was added to the driver. |
-| DRV-2 ownership-entry frontier | OPEN_SEMANTIC | Instrumented recount (`.tmp/claude-sh/p1s`, every refusal logged and the scan continued): 239 at `1c1e0308`, 126 with R/E, 112 with S/T (`8c5cc3fe`), **101** with G. G gives exclusive classes per first field (class, growth and copy-landing owners), treats ArraySet as in-place, and fixes `AstTreeArtifactBindExpressionOwnerKinds` (stale atom read and stale failure value); record in `agent_work_directives/drv2_ownership_entry_frontier_2026-10-11.md`. Remaining: sink entry 27, local indexed read 21, member mutation 11, formal indexed read 9, `owned_string_actual_unproved` 9, element use 7, shallow 4, `owned_string_drop` 4, `ArrayPush` 4, `owned_element_escape` 2, three singletons. Fast iteration: probe-ev on a wrapper `Main` importing one subsystem (fmt/parser closure 37 s, mir_lower 52 s, direct-MIR 9 min) reproduces its refusals. CI stays red at the toolchain job. |
+| DRV-2 ownership-entry frontier | OPEN_SEMANTIC | Instrumented recount (`.tmp/claude-sh/p1s`, every refusal logged and the scan continued): 239 at `1c1e0308`, 126 with R/E, 112 with S/T (`8c5cc3fe`), 101 with G (`7848a931`), **97** with B. B refines last use: later-declared copy holders, branches no pass reaches, whole-binding write targets, the consuming statement's own destination and dead definitions (new dead-definition owner); record in `agent_work_directives/drv2_ownership_entry_frontier_2026-10-11.md`. Remaining: sink entry 27, local indexed read 21, formal indexed read 9, `owned_string_actual_unproved` 9, element use 7, member mutation 7, shallow 4, `owned_string_drop` 4, `ArrayPush` 4, `owned_element_escape` 2, three singletons. Next falsifier: the shared first field inside the direct-MIR expression admission that reaches the instruction-core inout set (round 2 of the fixed point). Open obligation: map insert/remove (and other growable containers) are not growth effects yet (`audits/valen_group_borrowing_comparison_2026-10-11.md`). Fast iteration: probe on a wrapper `Main` importing one subsystem (fmt/parser closure 37 s, mir_lower 52 s, direct-MIR 9 min). CI stays red at the toolchain job. |
 | Installed-driver / C-path substitution | OPEN | The installed chain stops at P1b, as at HEAD. No installed pair or substitution receipt. |
 
 ## Previous active card — ownership-cutover P1 (GPT, 2026-10-10; lane stopped)

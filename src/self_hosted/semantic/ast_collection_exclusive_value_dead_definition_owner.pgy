@@ -1,0 +1,145 @@
+// Exclusive-value dead definitions: a local definition whose value no path
+// reads, because every path writes the whole binding first or leaves the
+// block that declares it. Such a definition aliases nothing. Any statement
+// shape the cover does not model counts as a read.
+import "ast_collection_exclusive_value_copy_owner.pgy";
+
+// A statement row at `statement` (only its own row when `row_only`, else every row
+// it encloses) names `binding`, apart from the target of a whole write of it.
+// Rows follow preorder node ids, so the rows a statement encloses follow its
+// own row and end at the first row it does not enclose.
+func SemanticAstCollectionExclusiveRowsUse(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, first_surface: Int, end_surface: Int,
+    statement: Int, row_only: Bool, binding: Int
+) -> Bool {
+    let surface: Int = first_surface;
+    while surface < end_surface && surfaces.node_ids[surface] < statement { surface = surface + 1; }
+    while surface < end_surface {
+        let row: Int = surfaces.node_ids[surface];
+        if row != statement && (row_only || !SemanticAstCollectionNodeEnclosedBy(artifact, row, statement)) {
+            return false;
+        }
+        let rewrites: Bool = SemanticAstCollectionExclusiveRebindsBinding(artifact, signatures, locals,
+            inferred_types, surfaces, function_id, row, binding);
+        let lane: Int = 0;
+        while lane < 3 {
+            let slot: Int = surface * 3 + lane;
+            if (!rewrites || lane != AstExpressionLaneAtom()) &&
+                slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                let root: Int = surfaces.expression_graph.roots[slot];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                let node: Int = root + 1;
+                if IsSome(start) { node = UnwrapOption(start); }
+                while node <= root {
+                    if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                        !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                        let place: SemanticAstCollectionAggregateSinkPlace =
+                            SemanticAstCollectionAggregateSinkPlaceForNode(artifact, signatures, locals,
+                                inferred_types, surfaces, function_id, row, node);
+                        if place.ok && !place.temporary &&
+                            SemanticAstCollectionExclusivePlaceRoot(locals, place) == binding { return true; }
+                    }
+                    node = node + 1;
+                }
+            }
+            lane = lane + 1;
+        }
+        surface = surface + 1;
+    }
+    return false;
+}
+
+// How the statement `statement` treats `binding`: 1 when every path through
+// it writes the whole binding or leaves before reading it, -1 when a path may
+// read it first, 0 when it reaches the next statement without either.
+func SemanticAstCollectionExclusiveStatementCover(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, first_surface: Int, end_surface: Int,
+    statement: Int, binding: Int, depth: Int
+) -> Int {
+    if statement < 0 || statement >= artifact.count || depth > artifact.count { return -1; }
+    let kind: Int = artifact.arena.kinds[statement];
+    if kind == TypedAstKindBlockTag() {
+        let index: Int = 0;
+        while index < artifact.arena.child_counts[statement] {
+            let slot: Int = artifact.arena.first_children[statement] + index;
+            if slot < 0 || slot >= ArrayLength(artifact.arena.children) { return -1; }
+            let child: Int = artifact.arena.children[slot];
+            let cover: Int = SemanticAstCollectionExclusiveStatementCover(artifact, signatures, locals, inferred_types,
+                surfaces, function_id, first_surface, end_surface, child, binding, depth + 1);
+            if cover != 0 { return cover; }
+            index = index + 1;
+        }
+        return 0;
+    }
+    // `then` and `else` wrap the block (or the nested `if`) of one branch.
+    if kind == TypedAstKindThenTag() || kind == TypedAstKindElseStmtTag() {
+        let target: Option<Int> = TypedAstArenaChildAt(artifact.arena, statement, 0);
+        if !IsSome(target) || artifact.arena.child_counts[statement] != 1 { return -1; }
+        return SemanticAstCollectionExclusiveStatementCover(artifact, signatures, locals, inferred_types,
+            surfaces, function_id, first_surface, end_surface, UnwrapOption(target), binding, depth + 1);
+    }
+    if kind == TypedAstKindIfStmtTag() {
+        if SemanticAstCollectionExclusiveRowsUse(artifact, signatures, locals, inferred_types, surfaces, function_id,
+                first_surface, end_surface, statement, true, binding) { return -1; }
+        let branches: Int = 0;
+        let covered: Int = 0;
+        let branch_index: Int = 0;
+        while branch_index < artifact.arena.child_counts[statement] {
+            let branch_slot: Int = artifact.arena.first_children[statement] + branch_index;
+            if branch_slot < 0 || branch_slot >= ArrayLength(artifact.arena.children) { return -1; }
+            let branch: Int = artifact.arena.children[branch_slot];
+            if branch < 0 || branch >= artifact.count || (artifact.arena.kinds[branch] != TypedAstKindThenTag() &&
+                    artifact.arena.kinds[branch] != TypedAstKindElseStmtTag()) { return -1; }
+            let branch_cover: Int = SemanticAstCollectionExclusiveStatementCover(artifact, signatures, locals,
+                inferred_types, surfaces, function_id, first_surface, end_surface, branch, binding, depth + 1);
+            if branch_cover < 0 { return -1; }
+            branches = branches + 1;
+            if branch_cover > 0 { covered = covered + 1; }
+            branch_index = branch_index + 1;
+        }
+        if branches == 2 && covered == 2 { return 1; }
+        return 0;
+    }
+    let uses: Bool = SemanticAstCollectionExclusiveRowsUse(artifact, signatures, locals, inferred_types, surfaces,
+        function_id, first_surface, end_surface, statement, false, binding);
+    if kind == TypedAstKindValueReturnStmtTag() || kind == TypedAstKindBareReturnStmtTag() {
+        if uses { return -1; }
+        return 1;
+    }
+    if kind == TypedAstKindBreakStmtTag() || kind == TypedAstKindContinueStmtTag() || uses { return -1; }
+    if SemanticAstCollectionExclusiveRebindsBinding(artifact, signatures, locals, inferred_types, surfaces,
+            function_id, statement, binding) { return 1; }
+    return 0;
+}
+
+// The definition of `binding` at `definition` is never read: every later
+// statement of its block writes the whole binding first, leaves, or ends the
+// block without reading it.
+func SemanticAstCollectionExclusiveDefinitionDead(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, first_surface: Int, end_surface: Int,
+    definition: Int
+) -> Bool {
+    if definition < 0 || definition >= artifact.count { return false; }
+    let block: Int = artifact.arena.parents[definition];
+    if block < 0 || block >= artifact.count || artifact.arena.kinds[block] != TypedAstKindBlockTag() { return false; }
+    let index: Int = 0;
+    while index < artifact.arena.child_counts[block] {
+        let slot: Int = artifact.arena.first_children[block] + index;
+        if slot < 0 || slot >= ArrayLength(artifact.arena.children) { return false; }
+        let child: Int = artifact.arena.children[slot];
+        if child > definition {
+            let cover: Int = SemanticAstCollectionExclusiveStatementCover(artifact, signatures, locals, inferred_types,
+                surfaces, function_id, first_surface, end_surface, child, definition, 0);
+            if cover < 0 { return false; }
+            if cover > 0 { return true; }
+        }
+        index = index + 1;
+    }
+    return true;
+}

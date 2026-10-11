@@ -140,7 +140,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     ref dep_paths: Array<Int>, ref paths: Array<String>,
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
     mutating: HashMap<String, Int>, inout consumed: HashMap<String, Int>, empty_locals: HashMap<String, Int>,
-    field_reads: HashMap<String, Int>, copies: HashMap<String, Int>, function_id: Int, syntax_id: Int,
+    field_reads: HashMap<String, Int>, inout copies: HashMap<String, Int>, function_id: Int, syntax_id: Int,
     edge: SemanticCallArgumentEdgeView
 ) -> Bool {
     if !edge.ok { return false; }
@@ -176,12 +176,12 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
             return false;
         }
     }
-    // Holder 0: a copy entering a mutating formal is never followed here.
-    let copied: HashMap<String, Int> = copies;
+    // Holder 0: a copy entering a mutating formal is never followed here. Its
+    // records land in the one live copies map, never in a value copy of it.
     let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
         artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
         shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths, surface_starts,
-        surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id, edge.argument_node,
+        surface_ends, consumed, copies, empty_locals, field_reads, function_id, syntax_id, edge.argument_node,
         UnwrapOption(mode) != 1 && !restricted, 0, 0);
     if !part.exclusive { return false; }
     // Only the storage the formal grows must be exclusive.
@@ -202,13 +202,18 @@ func SemanticAstCollectionExclusiveArgumentBoundary(
     ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
-    ref values: SemanticAstCollectionExclusiveValueFacts, mutating: HashMap<String, Int>,
+    inout values: SemanticAstCollectionExclusiveValueFacts, mutating: HashMap<String, Int>,
     inout consumed: HashMap<String, Int>, function_id: Int, syntax_id: Int, edge: SemanticCallArgumentEdgeView
 ) -> String {
-    if !SemanticAstCollectionExclusiveSinkEntryReady(artifact, signatures, constructors, locals, inferred_types,
-            surfaces, assignments, values.shared_results, values.carrying, values.shared_locals, values.dep_locals,
-            values.dep_formals, values.dep_paths, values.paths, values.surface_starts, values.surface_ends, mutating, consumed, values.empty_locals,
-            values.field_reads, values.copies, function_id, syntax_id, edge) {
+    // The copies map moves out for the entry check and back before any read.
+    let copies: HashMap<String, Int> = values.copies;
+    let entry_ready: Bool = SemanticAstCollectionExclusiveSinkEntryReady(artifact, signatures, constructors, locals,
+            inferred_types, surfaces, assignments, values.shared_results, values.carrying, values.shared_locals,
+            values.dep_locals, values.dep_formals, values.dep_paths, values.paths, values.surface_starts,
+            values.surface_ends, mutating, consumed, values.empty_locals, values.field_reads, copies, function_id,
+            syntax_id, edge);
+    values.copies = copies;
+    if !entry_ready {
         return "unproved_exclusive_sink_entry";
     }
     if !SemanticAstCollectionExclusiveSharingUseReady(artifact, signatures, constructors, locals, inferred_types,

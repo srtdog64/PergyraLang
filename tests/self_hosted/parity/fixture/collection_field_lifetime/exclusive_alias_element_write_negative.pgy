@@ -1,0 +1,33 @@
+// An alias that took a set on an early exit writes an element after the set
+// grows: the write lands in the storage the growth retired.
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "r");
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows);
+}
+
+func Build(seed: Array<String>, other: Array<String>, early: Bool) -> Int {
+    let facts: Facts = Facts(true, seed);
+    let view: Facts = Facts(false, other);
+    if early {
+        view = facts;
+        return ArrayLength(view.rows);
+    }
+    view = facts;
+    let grown: Facts = Grow(facts);
+    let rows: Array<String> = view.rows;
+    ArraySet(rows, 0, "w");
+    return ArrayLength(grown.rows);
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    let other: Array<String> = ["o"];
+    return Build(seed, other, false);
+}
