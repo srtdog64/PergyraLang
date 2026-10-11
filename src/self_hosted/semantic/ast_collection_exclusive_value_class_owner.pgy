@@ -1,0 +1,301 @@
+// Exclusive-value classes: a value is exclusive, shared at some first
+// fields, or shared; each dependency on a formal records the first field of
+// the value it reaches and the first field of the formal it comes from. The
+// fixed point's facts record these per local and per result.
+import "ast_collection_exclusive_value_copy_landing_owner.pgy";
+
+struct SemanticAstCollectionExclusiveClass {
+    exclusive: Bool;
+    deps: Array<Int>;
+    // Per dependency: the first field of the value it reaches and the first
+    // field of the formal it comes from, "" for the whole.
+    dep_fields: Array<String>;
+    dep_sources: Array<String>;
+    // First fields that may name shared storage; the rest is exclusive.
+    shared_fields: Array<String>;
+}
+
+struct SemanticAstCollectionExclusiveValueFacts {
+    ok: Bool;
+    // Function node id: some return may share storage with a live value.
+    shared_results: HashMap<String, Int>;
+    // Formal syntax id: the formal's storage may flow into its result.
+    carrying: HashMap<String, Int>;
+    // Local declaration node id: some definition may share storage.
+    shared_locals: HashMap<String, Int>;
+    // Local declaration node id and formal syntax id it depends on, as pairs.
+    dep_locals: Array<Int>;
+    dep_formals: Array<Int>;
+    // Per dependency row: an index into `paths` (dest at 2k, source at 2k+1),
+    // or -1 for the whole value of the whole formal.
+    dep_paths: Array<Int>;
+    paths: Array<String>;
+    // Function node id -> first surface row and one past its last.
+    surface_starts: HashMap<String, Int>;
+    surface_ends: HashMap<String, Int>;
+    // Statement syntax id and argument node -> 1 consumed, 2 kept.
+    consumed: HashMap<String, Int>;
+    // Local declaration node id: every definition is an empty array literal
+    // and nothing grows it, so it names no buffer.
+    empty_locals: HashMap<String, Int>;
+    // "formal:field" for each field an aggregate formal's body reads or
+    // carries, "formal:*" when it uses the formal whole.
+    field_reads: HashMap<String, Int>;
+    // Copy edges between holders and sources (copy owner keys).
+    copies: HashMap<String, Int>;
+}
+
+func SemanticAstCollectionExclusiveShared() -> SemanticAstCollectionExclusiveClass {
+    let deps: Array<Int> = [];
+    let dep_fields: Array<String> = [];
+    let dep_sources: Array<String> = [];
+    let shared_fields: Array<String> = [];
+    return SemanticAstCollectionExclusiveClass(false, deps, dep_fields, dep_sources, shared_fields);
+}
+
+func SemanticAstCollectionExclusiveFresh() -> SemanticAstCollectionExclusiveClass {
+    let deps: Array<Int> = [];
+    let dep_fields: Array<String> = [];
+    let dep_sources: Array<String> = [];
+    let shared_fields: Array<String> = [];
+    return SemanticAstCollectionExclusiveClass(true, deps, dep_fields, dep_sources, shared_fields);
+}
+
+func SemanticAstCollectionExclusiveAddDep(
+    inout into: SemanticAstCollectionExclusiveClass, dep: Int, field: String, source: String
+) -> Void {
+    let seen: Int = 0;
+    while seen < ArrayLength(into.deps) {
+        if into.deps[seen] == dep && into.dep_fields[seen] == field && into.dep_sources[seen] == source { return; }
+        seen = seen + 1;
+    }
+    let deps: Array<Int> = into.deps;
+    let dep_fields: Array<String> = into.dep_fields;
+    let dep_sources: Array<String> = into.dep_sources;
+    ArrayPush(deps, dep);
+    ArrayPush(dep_fields, field);
+    ArrayPush(dep_sources, source);
+    into.deps = deps;
+    into.dep_fields = dep_fields;
+    into.dep_sources = dep_sources;
+}
+
+func SemanticAstCollectionExclusiveAddSharedField(
+    inout into: SemanticAstCollectionExclusiveClass, field: String
+) -> Void {
+    let seen: Int = 0;
+    while seen < ArrayLength(into.shared_fields) {
+        if into.shared_fields[seen] == field { return; }
+        seen = seen + 1;
+    }
+    let shared_fields: Array<String> = into.shared_fields;
+    ArrayPush(shared_fields, field);
+    into.shared_fields = shared_fields;
+}
+
+func SemanticAstCollectionExclusiveJoin(
+    inout into: SemanticAstCollectionExclusiveClass, ref part: SemanticAstCollectionExclusiveClass
+) -> Void {
+    if !part.exclusive { into.exclusive = false; return; }
+    let index: Int = 0;
+    while index < ArrayLength(part.deps) {
+        SemanticAstCollectionExclusiveAddDep(into, part.deps[index], part.dep_fields[index],
+            part.dep_sources[index]);
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(part.shared_fields) {
+        SemanticAstCollectionExclusiveAddSharedField(into, part.shared_fields[index]);
+        index = index + 1;
+    }
+}
+
+// `part` lands at the first field `field` of `into`: a shared or partly
+// shared part shares that field only.
+func SemanticAstCollectionExclusiveJoinField(
+    inout into: SemanticAstCollectionExclusiveClass, ref part: SemanticAstCollectionExclusiveClass, field: String
+) -> Void {
+    if !part.exclusive || ArrayLength(part.shared_fields) > 0 {
+        SemanticAstCollectionExclusiveAddSharedField(into, field);
+    }
+    if !part.exclusive { return; }
+    let index: Int = 0;
+    while index < ArrayLength(part.deps) {
+        SemanticAstCollectionExclusiveAddDep(into, part.deps[index], field, part.dep_sources[index]);
+        index = index + 1;
+    }
+}
+
+// The class of the first field `field` of a value of class `part`.
+func SemanticAstCollectionExclusiveFieldOf(
+    ref part: SemanticAstCollectionExclusiveClass, field: String
+) -> SemanticAstCollectionExclusiveClass {
+    if !part.exclusive { return SemanticAstCollectionExclusiveShared(); }
+    let index: Int = 0;
+    while index < ArrayLength(part.shared_fields) {
+        if part.shared_fields[index] == field { return SemanticAstCollectionExclusiveShared(); }
+        index = index + 1;
+    }
+    let result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
+    index = 0;
+    while index < ArrayLength(part.deps) {
+        if part.dep_fields[index] == field {
+            SemanticAstCollectionExclusiveAddDep(result, part.deps[index], "", part.dep_sources[index]);
+        } else if part.dep_fields[index] == "" {
+            // The whole value comes from the formal (or its field), so this
+            // field does as well.
+            let source: String = part.dep_sources[index];
+            if source == "" { source = field; }
+            SemanticAstCollectionExclusiveAddDep(result, part.deps[index], "", source);
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+// The formal syntax ids a local's definitions depend on, with their paths.
+func SemanticAstCollectionExclusiveLocalDeps(
+    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>,
+    ref paths: Array<String>, local_id: Int
+) -> SemanticAstCollectionExclusiveClass {
+    let result: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveFresh();
+    let row: Int = 0;
+    while row < ArrayLength(dep_locals) {
+        if dep_locals[row] == local_id {
+            if dep_paths[row] < 0 {
+                SemanticAstCollectionExclusiveAddDep(result, dep_formals[row], "", "");
+            } else {
+                SemanticAstCollectionExclusiveAddDep(result, dep_formals[row], paths[2 * dep_paths[row]],
+                    paths[2 * dep_paths[row] + 1]);
+            }
+        }
+        row = row + 1;
+    }
+    return result;
+}
+
+// One definition of a tracked local: a shared class marks the local shared,
+// an exclusive one adds its dependencies. Returns whether anything changed.
+func SemanticAstCollectionExclusiveRecordLocal(
+    inout facts: SemanticAstCollectionExclusiveValueFacts, local_id: Int,
+    ref part: SemanticAstCollectionExclusiveClass
+) -> Bool {
+    let key: String = ToString(local_id);
+    let shared_rows: HashMap<String, Int> = facts.shared_locals;
+    if MapHas(shared_rows, key) { return false; }
+    if !part.exclusive {
+        MapSet(shared_rows, key, 1);
+        facts.shared_locals = shared_rows;
+        return true;
+    }
+    let changed: Bool = false;
+    let field_index: Int = 0;
+    while field_index < ArrayLength(part.shared_fields) {
+        let field_key: String = Concat(key, Concat(".", part.shared_fields[field_index]));
+        if !MapHas(shared_rows, field_key) {
+            MapSet(shared_rows, field_key, 1);
+            MapSet(shared_rows, Concat(key, ".*"), 1);
+            changed = true;
+        }
+        field_index = field_index + 1;
+    }
+    facts.shared_locals = shared_rows;
+    let index: Int = 0;
+    while index < ArrayLength(part.deps) {
+        let whole: Bool = part.dep_fields[index] == "" && part.dep_sources[index] == "";
+        let known: Bool = false;
+        let row: Int = 0;
+        while row < ArrayLength(facts.dep_locals) && !known {
+            if facts.dep_locals[row] == local_id && facts.dep_formals[row] == part.deps[index] {
+                if facts.dep_paths[row] < 0 { known = whole; }
+                else {
+                    known = facts.paths[2 * facts.dep_paths[row]] == part.dep_fields[index] &&
+                        facts.paths[2 * facts.dep_paths[row] + 1] == part.dep_sources[index];
+                }
+            }
+            row = row + 1;
+        }
+        if !known {
+            let locals_column: Array<Int> = facts.dep_locals;
+            let formals_column: Array<Int> = facts.dep_formals;
+            let paths_column: Array<Int> = facts.dep_paths;
+            ArrayPush(locals_column, local_id);
+            ArrayPush(formals_column, part.deps[index]);
+            if whole { ArrayPush(paths_column, -1); }
+            else { ArrayPush(paths_column, SemanticAstCollectionExclusiveRecordPath(facts, part.dep_fields[index],
+                part.dep_sources[index])); }
+            facts.dep_locals = locals_column;
+            facts.dep_formals = formals_column;
+            facts.dep_paths = paths_column;
+            changed = true;
+        }
+        index = index + 1;
+    }
+    return changed;
+}
+
+// A path's index in `paths`, appended.
+func SemanticAstCollectionExclusiveRecordPath(
+    inout facts: SemanticAstCollectionExclusiveValueFacts, field: String, source: String
+) -> Int {
+    let paths: Array<String> = facts.paths;
+    let path: Int = ArrayLength(paths) / 2;
+    ArrayPush(paths, Concat("", field));
+    ArrayPush(paths, Concat("", source));
+    facts.paths = paths;
+    return path;
+}
+
+// One return of a tracked result: a shared class marks the result shared, an
+// exclusive one marks its dependencies as carrying formals ("F"; "cn:F" paths
+// "ci:F:i", each a source field landing at a result field) and its shared
+// fields as shared result fields ("rfn:function" paths "rfi:function:i").
+func SemanticAstCollectionExclusiveRecordReturn(
+    inout facts: SemanticAstCollectionExclusiveValueFacts, function_id: Int,
+    ref part: SemanticAstCollectionExclusiveClass
+) -> Bool {
+    let key: String = ToString(function_id);
+    let shared_rows: HashMap<String, Int> = facts.shared_results;
+    if MapHas(shared_rows, key) { return false; }
+    if !part.exclusive {
+        MapSet(shared_rows, key, 1);
+        facts.shared_results = shared_rows;
+        return true;
+    }
+    let changed: Bool = false;
+    let field_index: Int = 0;
+    while field_index < ArrayLength(part.shared_fields) {
+        let field_key: String = Concat("rf:", Concat(key, Concat(":", part.shared_fields[field_index])));
+        let results: HashMap<String, Int> = facts.shared_results;
+        if !MapHas(results, field_key) {
+            let path: Int = SemanticAstCollectionExclusiveRecordPath(facts, part.shared_fields[field_index], "");
+            let count: Int = SemanticAstCollectionExclusiveCopyCount(results, Concat("rfn:", key));
+            MapSet(results, field_key, 1);
+            MapSet(results, Concat("rfi:", Concat(key, Concat(":", ToString(count)))), path);
+            MapSet(results, Concat("rfn:", key), count + 1);
+            facts.shared_results = results;
+            changed = true;
+        }
+        field_index = field_index + 1;
+    }
+    let index: Int = 0;
+    while index < ArrayLength(part.deps) {
+        let formal: String = ToString(part.deps[index]);
+        let pair: String = Concat("cp:", Concat(formal, Concat(":", Concat(part.dep_fields[index],
+            Concat(":", part.dep_sources[index])))));
+        let carrying: HashMap<String, Int> = facts.carrying;
+        if !MapHas(carrying, pair) {
+            let path: Int = SemanticAstCollectionExclusiveRecordPath(facts, part.dep_fields[index],
+                part.dep_sources[index]);
+            let count: Int = SemanticAstCollectionExclusiveCopyCount(carrying, Concat("cn:", formal));
+            MapSet(carrying, pair, 1);
+            MapSet(carrying, formal, 1);
+            MapSet(carrying, Concat("ci:", Concat(formal, Concat(":", ToString(count)))), path);
+            MapSet(carrying, Concat("cn:", formal), count + 1);
+            facts.carrying = carrying;
+            changed = true;
+        }
+        index = index + 1;
+    }
+    return changed;
+}

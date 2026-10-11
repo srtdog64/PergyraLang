@@ -1,7 +1,7 @@
 # DRV-2 ownership-entry frontier: sink inference for the remaining entries
 
-Status: **ACTIVE — R, E, S and T land; field-level growth (G), L and M
-open (Claude, sole lane, 2026-10-11)**. Base `main @ 1c1e0308`. The user asked to make CI green
+Status: **ACTIVE — R, E, S, T and G land; L, M and the remaining sink
+entries open (Claude, sole lane, 2026-10-11)**. Base `main @ 1c1e0308`. The user asked to make CI green
 and to finish sink inference. CI run 38065600591 fails in
 `backend-compare-toolchain-linux` at the same refusal as local DRV-2
 (`node=125550`, boundary `ArrayPush`), so the two requests are one rung.
@@ -236,6 +236,44 @@ source's deep drop). Falsifiers: `owned_element_text_escapes_{result,
 string_local,array_alias}_negative` refuse at the caller;
 `owned_element_text_contained_{local_array,string_local}_positive` admit.
 
+**G (landed in tree, gate rows added).** Exclusive classes per first field
+(`ast_collection_exclusive_value_class_owner.pgy`): a value is exclusive,
+shared at some first fields, or shared, and each dependency on a formal
+records the first field of the value it reaches and the first field of the
+formal it comes from. A constructor lands each argument at its field; a
+result records which formal field lands at which result field and which
+result fields are shared; a local records its shared fields and dependency
+paths. The growth owner (`ast_collection_exclusive_value_growth_owner.pgy`)
+summarizes the first fields each formal and root grows; a rebound alias and
+a dependency grow any field. Then:
+
+- a sink needs exclusivity and a last use only of the fields it grows: a
+  holder of another field, and a formal source whose copies land only at
+  fields the sink never grows, are not readers of grown storage;
+- a place whose only later readers are copies it shares moves, and is
+  shared only at the fields those copies reach
+  (`ast_collection_exclusive_value_copy_landing_owner.pgy`);
+- a root may be handed to a carrying formal at a field it never grows, and
+  a definition that rebuilds the root itself retires the old value;
+- a member alias may grow when its root's field (not the whole root) shares
+  no storage.
+
+Falsifiers: `exclusive_grown_field_{shared,holder}_negative` refuse at the
+sink; `exclusive_grown_field_{disjoint,holder,ref_holder}_positive` and
+`exclusive_self_rebuild_positive` admit. The 26 earlier rows keep their
+exact first refusals.
+- ArraySet and an indexed assignment write in place and retire no buffer,
+  so they are not growth; only ArrayPush, ArrayPop and callee effects that
+  may reallocate are.
+- A dependency formal grows where its path lands in the growing root, and
+  a copy edge into the binding the consuming statement itself writes is the
+  move's destination, not a reader of the old storage.
+
+Corpus hazards fixed with G: `AstTreeArtifactBindExpressionOwnerKinds` read
+an atom through the arena whose atom table its loop grows (a stale read once
+a push reallocates) and failed with the pre-growth artifact; it now reads
+every row through the aliases it extends and hands back the arena they form.
+
 Gate re-pin: `aggregate_owned_push_leaf_adapter_alias_negative` is refused
 first by the exclusive sink entry (its alias copy shares the storage the
 call grows) instead of `aggregate_release_incomplete`.
@@ -261,6 +299,21 @@ Earlier design notes for S:
   handed to a result-carrying formal or a constructor while it stays live
   (the stale failure value). Boundaries `unproved_exclusive_sink_entry`,
   `unproved_exclusive_member_mutation`, `exclusive_root_shared`.
+
+## Recount after G
+
+101 refusals (from 112): `unproved_exclusive_sink_entry` 27,
+`unproved_indexed_read_entry` 21, `unproved_exclusive_member_mutation` 11,
+`unproved_formal_indexed_read_entry` 9, `owned_string_actual_unproved` 9,
+`unproved_formal_element_use_entry` 7, `unproved_shallow_mutation_entry` 4,
+`owned_string_drop` 4, `ArrayPush` 4, `owned_element_escape` 2, three
+singletons. No refusal is new. Open shapes: callers that grow a sequence's
+rows through two-step aliases and then hand the pre-growth sequence to
+`MirExpressionGraphSequenceFromExtendedRows` (the option and tagged-enum
+match owners; a signature change that passes the rows instead made the
+callee mutate a value formal and was withdrawn), the driver entry points
+that hand an artifact and the analysis built from it to one sink, and the
+direct-MIR expression admission's node aliases read after an inout growth.
 
 ## Recount after S/T
 

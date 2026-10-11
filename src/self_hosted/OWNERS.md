@@ -846,7 +846,25 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   exclusive aggregate values, a greatest fixed point over routines: literals,
   `Clone` and `MapKeys` are fresh; constructors and carrying calls need
   exclusive, consumed, distinct arguments; a local or reassigned formal joins
-  every definition. Array<Int> is tracked.
+  every definition. Array<Int> is tracked. A place whose only later readers
+  are copies it shares moves, and is shared only at the fields they reach.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_class_owner.pgy`
+  -- exclusive classes per first field: a value is exclusive, shared at some
+  first fields, or shared, and each dependency on a formal records the
+  field of the value it reaches and the field of the formal it comes from.
+  Locals record their shared fields and dependency paths; results record
+  shared result fields and which formal field lands at which result field.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy`
+  -- where the copies of a root reach it (holders of a root field, a ref
+  source at the root's shared fields, a formal source at its dependency
+  paths) and the last-use proofs that read only the copies a growth can
+  reach.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy`
+  -- the formals a body grows through a member alias (a fixed point over
+  forwarding) and the first fields each root and formal grows: a rebound
+  alias grows any field, a dependency grows where its path lands. Only a
+  reallocating mutation is growth (ArrayPush, ArrayPop, a callee effect that
+  may reallocate); ArraySet and an indexed assignment write in place.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy`
   -- copy holders: a definition that copies a place inside a call or
   constructor without consuming it holds the source's dependencies, and each
@@ -871,10 +889,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   returns before the first non-read family use, and per-use write-back
   scopes. A function with a deferred body has no forward order and refuses.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy`
-  -- growth admission: formals a body grows through a member alias (a fixed
-  point), a member alias that consumed its source, roots that may grow in
-  place, and the argument boundary (`unproved_exclusive_sink_entry`,
-  `exclusive_root_shared`).
+  -- growth admission: a member alias that consumed its source, roots whose
+  grown field shares no storage, and the argument boundary: a sink needs
+  exclusivity and a last use only of the fields it grows, and a root may be
+  handed to a carrying formal at a field it never grows or by a rebuild of
+  itself (`unproved_exclusive_sink_entry`, `exclusive_root_shared`).
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.

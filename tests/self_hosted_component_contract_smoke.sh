@@ -28849,9 +28849,12 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:385 \
     src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy:335 \
     src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy:565 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_class_owner.pgy:280 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:235 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy:145 \
     src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:410 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:325 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:295 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:370 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:330 \
     src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:380 \
     src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \

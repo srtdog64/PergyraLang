@@ -1,0 +1,48 @@
+// The sink grows the field the set shares with another value, which is read
+// afterwards.
+struct Analysis {
+    ok: Bool;
+    names: Array<String>;
+}
+
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+    names: Array<String>;
+}
+
+struct Holder {
+    items: Array<String>;
+}
+
+func FactsEmpty(names: Array<String>) -> Facts {
+    let rows: Array<String> = [];
+    return Facts(true, rows, names);
+}
+
+func GrowRows(facts: Facts, ref analysis: Analysis) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, analysis.names[0]);
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows, facts.names);
+}
+
+func GrowNames(facts: Facts) -> Facts {
+    let names: Array<String> = facts.names;
+    ArrayPush(names, "n");
+    ArrayPush(names, "n");
+    return Facts(facts.ok, facts.rows, names);
+}
+
+func Build(analysis: Analysis) -> Int {
+    let facts: Facts = FactsEmpty(analysis.names);
+    facts = GrowNames(facts);
+    return StringLength(analysis.names[0]) + ArrayLength(facts.rows);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let analysis: Analysis = Analysis(true, names);
+    return Build(analysis);
+}
+

@@ -1,156 +1,7 @@
-// Exclusive-value mutation admission: which formals a body grows through a
-// member alias, and the checks that keep growth to exclusive roots and
-// consumed arguments.
-import "ast_collection_exclusive_value_owner.pgy";
-
-// The mode of the formal `formal_id` of `function_id`.
-func SemanticAstCollectionExclusiveFormalMode(
-    ref signatures: SemanticAstFunctionSignatureFacts, function_id: Int, formal_id: Int
-) -> Option<Int> {
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) { return None; }
-    let start: Int = signatures.param_starts[UnwrapOption(signature)];
-    let index: Int = 0;
-    while index < signatures.param_counts[UnwrapOption(signature)] {
-        if signatures.param_node_ids[start + index] == formal_id { return Some(signatures.param_modes[start + index]); }
-        index = index + 1;
-    }
-    return None;
-}
-
-// Marks the formals a mutated root stands for: a default or inout formal
-// itself, and every formal a local or reassigned formal root depends on.
-func SemanticAstCollectionExclusiveMarkRoot(
-    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
-    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>,
-    function_id: Int, root_id: Int, inout mutating: HashMap<String, Int>
-) -> Bool {
-    let changed: Bool = false;
-    let root_key: String = Concat("root:", ToString(root_id));
-    if !MapHas(mutating, root_key) { MapSet(mutating, root_key, 1); changed = true; }
-    let row: Int = 0;
-    while row < ArrayLength(dep_locals) {
-        if dep_locals[row] == root_id && !MapHas(mutating, ToString(dep_formals[row])) {
-            MapSet(mutating, ToString(dep_formals[row]), 1);
-            changed = true;
-        }
-        row = row + 1;
-    }
-    if IsSome(SemanticAstLocalBindingIndexForNode(locals, root_id)) { return changed; }
-    let mode: Option<Int> = SemanticAstCollectionExclusiveFormalMode(signatures, function_id, root_id);
-    if IsSome(mode) && (UnwrapOption(mode) == 0 || UnwrapOption(mode) == 1) && !MapHas(mutating, ToString(root_id)) {
-        MapSet(mutating, ToString(root_id), 1);
-        return true;
-    }
-    return changed;
-}
-
-// Mutating formals: default or inout formals whose storage the body grows
-// through a member alias, or passes to a mutating formal (a fixed point).
-func SemanticAstCollectionMutatingFormals(
-    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
-    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, proved: HashMap<String, Int>,
-    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
-    ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
-    ref dep_locals: Array<Int>, ref dep_formals: Array<Int>
-) -> HashMap<String, Int> {
-    let mutating: HashMap<String, Int> = MapNew();
-    let changed: Bool = true;
-    let round: Int = 0;
-    let bound: Int = ArrayLength(signatures.param_node_ids) + 2;
-    while changed && round < bound {
-        changed = false;
-        let slot: Int = 0;
-        while slot < ArrayLength(surfaces.expression_graph.roots) {
-            if surfaces.expression_graph.has_roots[slot] {
-                let root: Int = surfaces.expression_graph.roots[slot];
-                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
-                let function_id: Int = surfaces.function_node_ids[slot / 3];
-                let syntax_id: Int = surfaces.node_ids[slot / 3];
-                let node: Int = 0;
-                if IsSome(start) { node = UnwrapOption(start); } else { node = root + 1; }
-                while node <= root {
-                    if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
-                        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
-                        let root_id: Int = 0;
-                        if edge.ok {
-                            let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
-                                artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id,
-                                edge.argument_node);
-                            if place.ok && !place.temporary && place.key >= 0 && ArrayLength(place.chain) == 0 &&
-                                origins[place.key] == SemanticAstCollectionOriginMemberMove() {
-                                // A member alias: its mutation grows its root's field.
-                                let builtin_mutation: Bool = edge.ordinal == 0 &&
-                                    (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayPush") ||
-                                     SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArraySet") ||
-                                     SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayPop") ||
-                                     SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayPushOwnedString"));
-                                let target: Int = SemanticAstCollectionSourceArrayFormalForArgument(
-                                    signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-                                let effect: Int = 0;
-                                if target > 0 && MapHas(proved, ToString(target)) { effect = MapGet(proved, ToString(target)); }
-                                if builtin_mutation || effect == 2 || effect == SemanticAstCollectionFormalShallowMutationEffect() {
-                                    root_id = source_binding_syntax_ids[place.key];
-                                }
-                            }
-                            let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
-                                signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-                            if root_id == 0 && formal.ok && MapHas(mutating, ToString(formal.syntax_id)) &&
-                                place.ok && !place.temporary {
-                                if place.key >= 0 { root_id = locals.node_ids[place.key]; }
-                                else { root_id = 0 - place.key; }
-                            }
-                        }
-                        if root_id > 0 && SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals,
-                                dep_formals, function_id, root_id, mutating) {
-                            changed = true;
-                        }
-                    }
-                    node = node + 1;
-                }
-            }
-            slot = slot + 1;
-        }
-        // ArrayPush/ArraySet/ArrayPop statements and indexed assignments carry
-        // their receiver in the Atom lane, not as a call argument.
-        let statement: Int = 0;
-        while statement < ArrayLength(statements.node_ids) {
-            let kind: Int = statements.kind_tags[statement];
-            if kind == TypedAstKindArrayPushStmtTag() || kind == TypedAstKindArraySetStmtTag() ||
-                kind == TypedAstKindArrayPopStmtTag() {
-                let function_id: Int = statements.function_node_ids[statement];
-                let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
-                    artifact, locals, inferred_types, surfaces, function_id, statements.node_ids[statement]);
-                if target.ok && target.row < ArrayLength(origins) &&
-                    origins[target.row] == SemanticAstCollectionOriginMemberMove() &&
-                    SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals,
-                        function_id, source_binding_syntax_ids[target.row], mutating) {
-                    changed = true;
-                }
-            }
-            statement = statement + 1;
-        }
-        let assignment: Int = 0;
-        while assignment < ArrayLength(assignments.node_ids) {
-            if assignments.target_is_indexed[assignment] != 0 {
-                let function_id: Int = assignments.function_node_ids[assignment];
-                let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
-                    artifact, locals, inferred_types, surfaces, function_id, assignments.node_ids[assignment]);
-                if target.ok && target.row < ArrayLength(origins) &&
-                    origins[target.row] == SemanticAstCollectionOriginMemberMove() &&
-                    SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals,
-                        function_id, source_binding_syntax_ids[target.row], mutating) {
-                    changed = true;
-                }
-            }
-            assignment = assignment + 1;
-        }
-        round = round + 1;
-    }
-    if changed { MapSet(mutating, "unconverged", 1); }
-    return mutating;
-}
+// Exclusive-value mutation admission: the checks that keep growth to
+// exclusive roots and consumed arguments, at the first fields the growth
+// owner summarizes.
+import "ast_collection_exclusive_value_growth_owner.pgy";
 
 // The statement-form mutation at `syntax_id` targets no member alias, or one
 // whose root may grow in place.
@@ -159,20 +10,15 @@ func SemanticAstCollectionExclusiveStatementRootReady(
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
     ref assignments: SemanticAstAssignmentFacts, shared_locals: HashMap<String, Int>,
-    ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
+    mutating: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
     function_id: Int, syntax_id: Int
 ) -> Bool {
+    // Only a reallocating mutation retires the buffer other copies name;
+    // ArraySet and an indexed assignment write in place.
     let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
-    let mutation: Bool = false;
-    if IsSome(indexed) {
-        let kind: Int = statements.kind_tags[UnwrapOption(indexed)];
-        mutation = kind == TypedAstKindArrayPushStmtTag() || kind == TypedAstKindArraySetStmtTag() ||
-            kind == TypedAstKindArrayPopStmtTag();
-    } else {
-        let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
-        mutation = IsSome(assigned) && assignments.target_is_indexed[UnwrapOption(assigned)] != 0;
-    }
-    if !mutation { return true; }
+    if !IsSome(indexed) { return true; }
+    let kind: Int = statements.kind_tags[UnwrapOption(indexed)];
+    if kind != TypedAstKindArrayPushStmtTag() && kind != TypedAstKindArrayPopStmtTag() { return true; }
     let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
         artifact, locals, inferred_types, surfaces, function_id, syntax_id);
     if !target.ok || target.row >= ArrayLength(origins) ||
@@ -180,16 +26,20 @@ func SemanticAstCollectionExclusiveStatementRootReady(
     // The alias must have consumed its source: no later read sees the old buffer.
     if MapHas(shared_locals, ToString(locals.node_ids[target.row])) { return false; }
     return SemanticAstCollectionExclusiveMemberRootReady(signatures, locals, shared_locals, function_id,
-        source_binding_syntax_ids[target.row]);
+        source_binding_syntax_ids[target.row], SemanticAstCollectionExclusiveAliasField(surfaces, locals,
+            mutating, target.row));
 }
 
-// Whether a member alias whose root binding is `root_id` may grow in place:
-// an exclusive local, or a formal that is not ref.
+// Whether a member alias of the first field `field` ("*": unknown) of the root
+// binding `root_id` may grow in place: an exclusive local, or a formal that is
+// not ref, whose field shares no storage.
 func SemanticAstCollectionExclusiveMemberRootReady(
     ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
-    shared_locals: HashMap<String, Int>, function_id: Int, root_id: Int
+    shared_locals: HashMap<String, Int>, function_id: Int, root_id: Int, field: String
 ) -> Bool {
     if root_id <= 0 { return false; }
+    let field_key: String = Concat(ToString(root_id), Concat(".", field));
+    if MapHas(shared_locals, field_key) { return false; }
     if IsSome(SemanticAstLocalBindingIndexForNode(locals, root_id)) {
         return !MapHas(shared_locals, ToString(root_id));
     }
@@ -203,7 +53,7 @@ func SemanticAstCollectionExclusiveAliasRootReadyAt(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, shared_locals: HashMap<String, Int>,
-    ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
+    mutating: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_syntax_ids: Array<Int>,
     surface_row: Int, node: Int
 ) -> Bool {
     let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
@@ -212,7 +62,8 @@ func SemanticAstCollectionExclusiveAliasRootReadyAt(
         origins[binding.row] != SemanticAstCollectionOriginMemberMove() { return true; }
     if MapHas(shared_locals, ToString(locals.node_ids[binding.row])) { return false; }
     return SemanticAstCollectionExclusiveMemberRootReady(signatures, locals, shared_locals,
-        surfaces.function_node_ids[surface_row], source_binding_syntax_ids[binding.row]);
+        surfaces.function_node_ids[surface_row], source_binding_syntax_ids[binding.row],
+        SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, binding.row));
 }
 
 // A root that grows in this routine may not be handed, while it stays live, to
@@ -234,6 +85,12 @@ func SemanticAstCollectionExclusiveSharingUseReady(
     let root_id: Int = 0 - place.key;
     if place.key >= 0 { root_id = locals.node_ids[place.key]; }
     if !MapHas(mutating, Concat("root:", ToString(root_id))) { return true; }
+    // Storage the routine never grows is never freed by its growth.
+    let grown_key: String = Concat("g:", Concat(ToString(root_id), ":"));
+    if ArrayLength(place.chain) > 0 && !MapHas(mutating, Concat(grown_key, "*")) {
+        let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+        if IsSome(first) && !MapHas(mutating, Concat(grown_key, UnwrapOption(first))) { return true; }
+    }
     let carried: Bool = false;
     let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
     if IsSome(target) && UnwrapOption(target) == 0 {
@@ -261,7 +118,9 @@ func SemanticAstCollectionExclusiveSharingUseReady(
             holder = SemanticAstCollectionExclusivePlaceRoot(locals, written_place);
         }
     }
-    if holder > 0 && SemanticAstCollectionExclusiveCopyHeld(copies, surfaces, root_id, place.chain, holder) {
+    // A definition that rebuilds the root itself retires the old value here.
+    if holder > 0 && (holder == root_id ||
+            SemanticAstCollectionExclusiveCopyHeld(copies, surfaces, root_id, place.chain, holder)) {
         return true;
     }
     return SemanticAstCollectionExclusiveConsumedAt(artifact, signatures, constructors, locals, inferred_types,
@@ -278,6 +137,7 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     shared_results: HashMap<String, Int>, carrying: HashMap<String, Int>,
     shared_locals: HashMap<String, Int>, ref dep_locals: Array<Int>, ref dep_formals: Array<Int>,
+    ref dep_paths: Array<Int>, ref paths: Array<String>,
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
     mutating: HashMap<String, Int>, inout consumed: HashMap<String, Int>, empty_locals: HashMap<String, Int>,
     field_reads: HashMap<String, Int>, copies: HashMap<String, Int>, function_id: Int, syntax_id: Int,
@@ -289,14 +149,49 @@ func SemanticAstCollectionExclusiveSinkEntryReady(
     if !formal.ok || !MapHas(mutating, ToString(formal.syntax_id)) { return true; }
     let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, formal.signature_row, formal.ordinal);
     if !IsSome(mode) { return false; }
+    // The fields the formal grows, when it names them; a sink of a place then
+    // needs its last use only for copies of that storage.
+    let grown_key: String = Concat("g:", Concat(ToString(formal.syntax_id), ":"));
+    let grown: Array<String> = [];
+    if !MapHas(mutating, Concat(grown_key, "*")) {
+        let fields: Array<String> = SemanticAstCollectionExclusiveTypeFields(constructors,
+            signatures.param_types[signatures.param_starts[formal.signature_row] + formal.ordinal]);
+        let field_index: Int = 0;
+        while field_index < ArrayLength(fields) {
+            if MapHas(mutating, Concat(grown_key, fields[field_index])) { ArrayPush(grown, fields[field_index]); }
+            field_index = field_index + 1;
+        }
+    }
+    let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, edge.argument_node);
+    let restricted: Bool = UnwrapOption(mode) != 1 && ArrayLength(grown) > 0 && place.ok && !place.temporary &&
+        ArrayLength(place.chain) == 0;
+    if restricted {
+        let ignored: Array<Int> = SemanticAstCollectionExclusiveUngrownSources(signatures, locals, copies,
+            shared_locals, dep_locals, dep_formals, dep_paths, paths, function_id,
+            SemanticAstCollectionExclusivePlaceRoot(locals, place), grown);
+        if !SemanticAstCollectionExclusiveSinkArgumentConsumed(artifact, signatures, constructors, locals,
+                inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, consumed,
+                function_id, syntax_id, edge.argument_node, grown, ignored) {
+            return false;
+        }
+    }
     // Holder 0: a copy entering a mutating formal is never followed here.
     let copied: HashMap<String, Int> = copies;
     let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
         artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
-        shared_results, carrying, shared_locals, dep_locals, dep_formals, surface_starts, surface_ends,
-        consumed, copied, empty_locals, field_reads, function_id, syntax_id, edge.argument_node, UnwrapOption(mode) != 1, 0,
-        0);
-    return part.exclusive;
+        shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths, surface_starts,
+        surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id, edge.argument_node,
+        UnwrapOption(mode) != 1 && !restricted, 0, 0);
+    if !part.exclusive { return false; }
+    // Only the storage the formal grows must be exclusive.
+    if MapHas(mutating, Concat(grown_key, "*")) { return ArrayLength(part.shared_fields) == 0; }
+    let index: Int = 0;
+    while index < ArrayLength(part.shared_fields) {
+        if MapHas(mutating, Concat(grown_key, part.shared_fields[index])) { return false; }
+        index = index + 1;
+    }
+    return true;
 }
 
 // The exclusive-value boundary an argument edge breaks, or "": a mutating
@@ -312,7 +207,7 @@ func SemanticAstCollectionExclusiveArgumentBoundary(
 ) -> String {
     if !SemanticAstCollectionExclusiveSinkEntryReady(artifact, signatures, constructors, locals, inferred_types,
             surfaces, assignments, values.shared_results, values.carrying, values.shared_locals, values.dep_locals,
-            values.dep_formals, values.surface_starts, values.surface_ends, mutating, consumed, values.empty_locals,
+            values.dep_formals, values.dep_paths, values.paths, values.surface_starts, values.surface_ends, mutating, consumed, values.empty_locals,
             values.field_reads, values.copies, function_id, syntax_id, edge) {
         return "unproved_exclusive_sink_entry";
     }

@@ -32,9 +32,13 @@ func AstTreeArtifactBindExpressionOwnerKinds(
     let atoms: Array<Int> = arena.atoms;
     let has_atoms: Array<Int> = arena.has_atoms;
     let atom_table: Array<String> = arena.atom_table;
+    let provenance_texts: Array<String> = arena.provenance_texts;
+    // The loop extends these rows: it reads them through the aliases, never
+    // the arena they came from, and a failure hands back the arena they form.
+    let failed: Bool = false;
     let node_cursor: Int = 0;
     let root_index: Int = 0;
-    while root_index < ArrayLength(artifact.expression_graphs.roots) {
+    while root_index < ArrayLength(artifact.expression_graphs.roots) && !failed {
         if artifact.expression_graphs.root_owner_kinds[root_index] !=
                 TypedAstKindBareCallStmtTag() ||
             artifact.expression_graphs.root_lanes[root_index] !=
@@ -43,43 +47,42 @@ func AstTreeArtifactBindExpressionOwnerKinds(
             continue;
         }
         let root: Int = artifact.expression_graphs.roots[root_index];
+        let found: Bool = false;
         if root < 0 || root >= AstExpressionArenaNodeCount(
             artifact.expression_graphs.arena
         ) {
-            return AstExpressionOwnerKindBindingInvalid(artifact);
-        }
-        let graph_text: String =
-            artifact.expression_graphs.arena.node_texts[root];
-        let found: Bool = false;
-        while node_cursor < artifact.count && !found {
-            let provenance: Option<String> = TypedAstArenaProvenanceText(
-                arena, node_cursor
-            );
-            let kind: Int = kinds[node_cursor];
-            if IsSome(provenance) && UnwrapOption(provenance) == graph_text &&
-                (kind == TypedAstKindBareCallStmtTag() ||
-                    kind == TypedAstKindUnknownTag()) {
-                if kind == TypedAstKindUnknownTag() {
-                    ArraySet(
-                        kinds, node_cursor, TypedAstKindBareCallStmtTag()
-                    );
-                    ArrayPush(atom_table, graph_text);
-                    ArraySet(atoms, node_cursor, ArrayLength(atom_table) - 1);
-                    ArraySet(has_atoms, node_cursor, 1);
-                } else {
-                    let atom: Option<String> = TypedAstArenaAtomText(
-                        arena, node_cursor
-                    );
-                    if !IsSome(atom) || UnwrapOption(atom) != graph_text {
-                        return AstExpressionOwnerKindBindingInvalid(artifact);
-                    }
+            failed = true;
+        } else {
+            let graph_text: String =
+                artifact.expression_graphs.arena.node_texts[root];
+            while node_cursor < artifact.count && !found && !failed {
+                let provenance: Option<String> = None;
+                if node_cursor < ArrayLength(kinds) && node_cursor < ArrayLength(provenance_texts) {
+                    provenance = Some(provenance_texts[node_cursor]);
                 }
-                found = true;
+                let kind: Int = kinds[node_cursor];
+                if IsSome(provenance) && UnwrapOption(provenance) == graph_text &&
+                    (kind == TypedAstKindBareCallStmtTag() ||
+                        kind == TypedAstKindUnknownTag()) {
+                    if kind == TypedAstKindUnknownTag() {
+                        ArraySet(
+                            kinds, node_cursor, TypedAstKindBareCallStmtTag()
+                        );
+                        ArrayPush(atom_table, graph_text);
+                        ArraySet(atoms, node_cursor, ArrayLength(atom_table) - 1);
+                        ArraySet(has_atoms, node_cursor, 1);
+                    } else if node_cursor >= ArrayLength(has_atoms) ||
+                        node_cursor >= ArrayLength(atoms) ||
+                        has_atoms[node_cursor] == 0 || atoms[node_cursor] < 0 ||
+                        atoms[node_cursor] >= ArrayLength(atom_table) ||
+                        atom_table[atoms[node_cursor]] != graph_text {
+                        failed = true;
+                    }
+                    found = true;
+                }
+                node_cursor = node_cursor + 1;
             }
-            node_cursor = node_cursor + 1;
-        }
-        if !found {
-            return AstExpressionOwnerKindBindingInvalid(artifact);
+            if !found { failed = true; }
         }
         root_index = root_index + 1;
     }
@@ -89,11 +92,13 @@ func AstTreeArtifactBindExpressionOwnerKinds(
         arena.values, arena.has_values,
         arena.aux_values, arena.has_aux_values, arena.modes,
         arena.first_children, arena.child_counts, arena.parents,
-        arena.indents, arena.provenance_texts, arena.children, atom_table
+        arena.indents, provenance_texts, arena.children, atom_table
     );
-    return AstTreeArtifact(
+    let current: AstTreeArtifact = AstTreeArtifact(
         artifact.tree_text, bound, artifact.count,
         artifact.expression_graphs, artifact.source_modules,
         artifact.identity_digest
     );
+    if failed { return AstExpressionOwnerKindBindingInvalid(current); }
+    return current;
 }

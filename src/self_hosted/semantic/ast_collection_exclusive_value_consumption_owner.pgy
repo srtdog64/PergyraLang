@@ -182,7 +182,7 @@ func SemanticAstCollectionExclusivePlaceConsumed(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
     field_reads: HashMap<String, Int>, copies: HashMap<String, Int>,
-    function_id: Int, syntax_id: Int, node: Int
+    function_id: Int, syntax_id: Int, node: Int, ref grown: Array<String>, ref ignored_sources: Array<Int>
 ) -> Bool {
     let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
         artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
@@ -372,7 +372,7 @@ func SemanticAstCollectionExclusivePlaceConsumed(
     // still a reader of the same storage.
     if !SemanticAstCollectionExclusiveCopiesUnread(artifact, signatures, locals, inferred_types, surfaces, copies,
             place, first_surface, end, function_id, syntax_id, scoped, scope, family_uses,
-            moves && ArrayLength(family.keys) > 0) {
+            moves && ArrayLength(family.keys) > 0, grown, ignored_sources) {
         return false;
     }
     // The caller reads an inout root again at every exit: once its storage
@@ -439,9 +439,12 @@ func SemanticAstCollectionExclusiveConsumedAt(
     let key: String = Concat(site, Concat("@",
         SemanticAstCollectionExclusiveCopySignature(copies, MapGet(consumed, root_key))));
     if MapHas(consumed, key) { return MapGet(consumed, key) == 1; }
+    let no_fields: Array<String> = [];
+    let no_sources: Array<Int> = [];
     let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, signatures, constructors, locals,
         inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, function_id,
-        syntax_id, node);
+        syntax_id, node, no_fields, no_sources);
     if result { MapSet(consumed, key, 1); } else { MapSet(consumed, key, 2); }
     return result;
 }
+

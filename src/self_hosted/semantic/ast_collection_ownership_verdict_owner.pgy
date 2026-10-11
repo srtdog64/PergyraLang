@@ -352,9 +352,11 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
         assignments, statements);
     let mutating_formals: HashMap<String, Int> = SemanticAstCollectionMutatingFormals(
-        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, formal_effects.effects,
+        artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
+        formal_effects.effects,
         statements, assignments, origins, source_binding_syntax_ids,
-        exclusive_values.dep_locals, exclusive_values.dep_formals);
+        exclusive_values.dep_locals, exclusive_values.dep_formals, exclusive_values.dep_paths,
+        exclusive_values.paths);
     if !exclusive_values.ok || MapHas(mutating_formals, "unconverged") {
         SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
         return SemanticAstCollectionOwnershipVerdictError(

@@ -1,0 +1,43 @@
+// A set holds a copy of a ref formal's field and grows only its own field;
+// the ref formal stays readable in the sink's sibling argument.
+struct Graph {
+    texts: Array<String>;
+}
+
+struct Analysis {
+    ok: Bool;
+    graph: Graph;
+}
+
+struct Facts {
+    ok: Bool;
+    rows: Array<String>;
+    graph: Graph;
+}
+
+func FactsEmpty(graph: Graph) -> Facts {
+    let rows: Array<String> = [];
+    return Facts(true, rows, graph);
+}
+
+func Grow(facts: Facts, ref analysis: Analysis) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, analysis.graph.texts[0]);
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, rows, facts.graph);
+}
+
+func Build(ref analysis: Analysis, extra: Array<String>) -> Facts {
+    let facts: Facts = FactsEmpty(analysis.graph);
+    facts = Facts(true, extra, facts.graph);
+    facts = Grow(facts, analysis);
+    return facts;
+}
+
+func Main() -> Int {
+    let texts: Array<String> = ["t"];
+    let analysis: Analysis = Analysis(true, Graph(texts));
+    let extra: Array<String> = ["e"];
+    let built: Facts = Build(analysis, extra);
+    return ArrayLength(built.rows);
+}

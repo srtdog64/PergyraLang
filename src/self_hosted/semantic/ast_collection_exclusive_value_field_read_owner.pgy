@@ -7,6 +7,55 @@ import "array_type_shape_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 
+// The fields of a struct type, or none when the type has no constructor.
+func SemanticAstCollectionExclusiveTypeFields(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
+) -> Array<String> {
+    let fields: Array<String> = [];
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if !IsSome(constructor) { return fields; }
+    let start: Int = constructors.param_starts[UnwrapOption(constructor)];
+    let index: Int = 0;
+    while index < constructors.param_counts[UnwrapOption(constructor)] {
+        ArrayPush(fields, Concat("", constructors.field_names[start + index]));
+        index = index + 1;
+    }
+    return fields;
+}
+
+// The declared type of the binding `root_id`, a local or a formal of `function_id`.
+func SemanticAstCollectionExclusiveRootType(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, function_id: Int, root_id: Int
+) -> String {
+    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, root_id);
+    if IsSome(declared) { return Concat("", inferred_types[UnwrapOption(declared)]); }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !IsSome(signature) { return ""; }
+    let start: Int = signatures.param_starts[UnwrapOption(signature)];
+    let index: Int = 0;
+    while index < signatures.param_counts[UnwrapOption(signature)] {
+        if signatures.param_node_ids[start + index] == root_id { return Concat("", signatures.param_types[start + index]); }
+        index = index + 1;
+    }
+    return "";
+}
+
+// The mode of the formal `root_id` of `function_id`, or -1 for a local.
+func SemanticAstCollectionExclusiveRootMode(
+    ref signatures: SemanticAstFunctionSignatureFacts, function_id: Int, root_id: Int
+) -> Int {
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !IsSome(signature) { return -1; }
+    let start: Int = signatures.param_starts[UnwrapOption(signature)];
+    let index: Int = 0;
+    while index < signatures.param_counts[UnwrapOption(signature)] {
+        if signatures.param_node_ids[start + index] == root_id { return signatures.param_modes[start + index]; }
+        index = index + 1;
+    }
+    return -1;
+}
+
 // Types whose values hold no Array buffer the verdict tracks. Array<Int> is
 // String-free but its buffer grows like any other.
 func SemanticAstCollectionExclusiveUntrackedType(name: String) -> Bool {

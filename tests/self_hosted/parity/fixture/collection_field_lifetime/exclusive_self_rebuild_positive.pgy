@@ -1,0 +1,29 @@
+// A set rebuilt from its own fields retires the old value in the statement
+// that rebuilds it; the next growth consumes the new one.
+struct Facts {
+    ok: Bool;
+    names: Array<String>;
+    rows: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "r");
+    ArrayPush(rows, "r");
+    return Facts(facts.ok, facts.names, rows);
+}
+
+func Build(seed: Facts, extra: Array<String>) -> Facts {
+    let facts: Facts = seed;
+    facts = Facts(true, extra, facts.rows);
+    facts = Grow(facts);
+    return facts;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["n"];
+    let rows: Array<String> = ["r"];
+    let extra: Array<String> = ["e"];
+    let built: Facts = Build(Facts(true, names, rows), extra);
+    return ArrayLength(built.rows);
+}
