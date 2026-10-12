@@ -410,7 +410,7 @@ Pergyra:
 이 데이터가 있어야 "시장에 필요한 안전성"이라는 주장이 성립합니다.
 
 실행 가능한 코퍼스: [`tests/counterexample_corpus/`](../tests/counterexample_corpus/README.md)
-(2026-10-12, 16개 부류를 TypeScript·C#·Python과 비교; Rust는 아직 없음).
+(2026-10-12, 16개 부류를 TypeScript·C#·Python·Rust와 비교).
 
 # 8. Pergyra에 가장 유망한 미해결 안전 카테고리
 | 순위 | 카테고리 | 시장 수요 | Pergyra 적합성 |

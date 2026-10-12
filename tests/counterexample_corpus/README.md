@@ -3,7 +3,8 @@
 Pergyra는 주류 범용 언어가 되려는 것이 아니라, 다른 언어가 그대로 받아들이는 버그 부류의
 반례가 되려 한다. 이 코퍼스는 `docs/198_market_safety_positioning.md`의 "필요한 bug corpus"
 16개 부류를 같은 이야기(다중 테넌트 서비스 AgentHub에서 AI 에이전트가 테넌트 `acme`,
-`globex`를 대신해 도구를 호출한다)로 쓰고, Pergyra와 TypeScript, C#, Python을 나란히 놓는다.
+`globex`를 대신해 도구를 호출한다)로 쓰고, Pergyra와 TypeScript, C#, Python, Rust를 나란히
+놓는다.
 
 Pergyra가 잡지 못하는 부류도 빼지 않는다. 그런 행은 `ACCEPTED_GAP`이나 `PARTIAL`로 남고,
 무엇이 빠졌는지 근거 위치와 함께 적는다.
@@ -15,10 +16,9 @@ PGY_BIN=.tmp/claude-bin/pgy.exe bash tests/counterexample_corpus_smoke.sh
 ```
 
 - `PGY_BIN`에는 현재 C 소스로 빌드한 컴파일러를 준다. 기본값은 `bin/pgy`이다.
-- TypeScript(`tsc`, `node`), C#(`dotnet`, .NET 10의 파일 하나짜리 실행), Python이 있으면 함께 돌린다. 없는 도구는 통과가 아니라 `SKIP`으로 찍는다. `PGY_CORPUS_OTHERS=0`이면 다른 언어를 돌리지 않는다.
+- TypeScript(`tsc`, `node`), C#(`dotnet`, .NET 10의 파일 하나짜리 실행), Python, Rust(`rustc`, 표준 라이브러리만)가 있으면 함께 돌린다. Rust는 `RUSTC`, PATH, `~/.cargo/bin` 순서로 찾는다. 없는 도구는 통과가 아니라 `SKIP`으로 찍는다. `PGY_CORPUS_OTHERS=0`이면 다른 언어를 돌리지 않는다.
 - 데모(아래)도 함께 돈다. `PGY_CORPUS_DEMO=0`이면 뺀다.
-- 수동 게이트다(`tests/manual_gate_inventory.tsv`). 이 기계에서 약 2분 30초 걸린다.
-- Rust는 아직 비교하지 않았다. 이 기계에는 Windows와 WSL 모두 툴체인이 없다.
+- 수동 게이트다(`tests/manual_gate_inventory.tsv`). 이 기계에서 약 3분 걸린다.
 
 ## 사례 구성
 
@@ -28,9 +28,9 @@ PGY_BIN=.tmp/claude-bin/pgy.exe bash tests/counterexample_corpus_smoke.sh
 | --- | --- |
 | `pergyra_bug.pgy` | Pergyra로 쓴 버그 |
 | `pergyra_fixed.pgy`, `pergyra_fixed.expected` | 고친 프로그램과 그 출력 |
-| `typescript.ts`, `csharp.cs`, `python.py` | 같은 버그. 깨끗하게 빌드되고(TypeScript는 `--strict`), 버그가 일어나는 순간 `BUG_MANIFESTED NN`을 한 줄 찍는다 |
+| `typescript.ts`, `csharp.cs`, `python.py`, `rust.rs` | 같은 버그. 깨끗하게 빌드되고(TypeScript는 `--strict`), 버그가 일어나는 순간 `BUG_MANIFESTED NN`을 한 줄 찍는다. 그 언어가 자연스러운 코드를 거부하면(Rust의 빌림 검사기) 거부 자체가 관찰이고, 게이트는 기록된 오류 코드로 실패하는지 확인한다 |
 
-`manifest.tsv`(schema `pgy.counterexample.v1`)가 행마다 Pergyra의 판정을 고정한다.
+`manifest.tsv`(schema `pgy.counterexample.v2`)가 행마다 Pergyra의 판정을 고정한다.
 
 | `pergyra_expect` | 뜻 | 게이트가 확인하는 것 |
 | --- | --- | --- |
@@ -44,27 +44,41 @@ PGY_BIN=.tmp/claude-bin/pgy.exe bash tests/counterexample_corpus_smoke.sh
 
 ## 결과 (2026-10-12, C 백엔드)
 
-| # | 부류 | Pergyra | TypeScript | C# | Python |
-| --- | --- | --- | --- | --- | --- |
-| 01 | 잘못된 테넌트 | PARTIAL: 컴파일 거부 (테넌트별 zone 타입일 때만) | 통과, 런타임 버그 | 통과 | 통과 |
-| 02 | 소유권 누락 | PARTIAL: intent step·zone 규칙만 컴파일 거부 | 통과 | 통과 | 통과 |
-| 03 | confused deputy | PARTIAL: 모델링한 모양만 컴파일 거부 | 통과 | 통과 | 통과 |
-| 04 | 과도한 에이전트 권한 | PARTIAL: `with caps`를 쓴 곳만 컴파일 거부 | 통과 (Node `--permission`은 선택) | 통과 | 통과 |
-| 05 | 고아 task | PARTIAL: 이름 붙은 `spawn` 컴파일 거부 | 통과 | 경고 CS4014, 런타임 버그 | 통과 |
-| 06 | 취소 누수 | COMPILE | 통과 | 통과 | 통과 |
-| 07 | 채널 데드락 | NONE: 받아들임 (벽시계 감시로만 멈춤) | 통과 | 통과 | 통과 |
-| 08 | 스코프 밖 자원 | COMPILE | 통과 (조용히 실패) | 런타임 예외 | 런타임 예외 |
-| 09 | spawn 폭주 | RUNTIME: 호스트 예산으로 멈춤 | 통과 | 통과 | 통과 |
-| 10 | 할당 폭주 | PARTIAL: 호스트 예산으로 멈춤, 문자열은 계산 안 됨 | 통과 | 통과 | 통과 |
-| 11 | 호스트 호출 증폭 | NONE: 받아들임 | 통과 | 통과 | 통과 |
-| 12 | 외부 API 비용 폭탄 | NONE: 받아들임 | 통과 | 통과 | 통과 |
-| 13 | 잘못된 단계 순서 | PARTIAL: 함수 안 지역 객체만 컴파일 거부 | 통과 | 통과 | 통과 |
-| 14 | 부분 commit | RUNTIME: 보상이 상태 복원 | 통과 | 통과 | 통과 |
-| 15 | 보상 누락 | COMPILE | 통과 | 통과 | 통과 |
-| 16 | stale zone 변경 | PARTIAL: 탈출 컴파일 거부, 런타임은 경고만 | 통과 | 통과 | 통과 |
+| # | 부류 | Pergyra | TypeScript | C# | Python | Rust |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01 | 잘못된 테넌트 | PARTIAL: 컴파일 거부 (테넌트별 zone 타입일 때만) | 통과, 런타임 버그 | 통과 | 통과 | 통과 (테넌트를 타입으로 두면 거부) |
+| 02 | 소유권 누락 | PARTIAL: intent step·zone 규칙만 컴파일 거부 | 통과 | 통과 | 통과 | 통과 (capability 토큰 설계면 거부) |
+| 03 | confused deputy | PARTIAL: 모델링한 모양만 컴파일 거부 | 통과 | 통과 | 통과 | 통과 (object-capability 설계면 거부) |
+| 04 | 과도한 에이전트 권한 | PARTIAL: `with caps`를 쓴 곳만 컴파일 거부 | 통과 (Node `--permission`은 선택) | 통과 | 통과 | 통과 (`std::fs`는 앰비언트 권한) |
+| 05 | 고아 task | PARTIAL: 이름 붙은 `spawn` 컴파일 거부 | 통과 | 경고 CS4014, 런타임 버그 | 통과 | 통과 (경고 없음) |
+| 06 | 취소 누수 | COMPILE | 통과 | 통과 | 통과 | 경고 unused_variables뿐 |
+| 07 | 채널 데드락 | NONE: 받아들임 (벽시계 감시로만 멈춤) | 통과 | 통과 | 통과 | 통과 |
+| 08 | 스코프 밖 자원 | COMPILE | 통과 (조용히 실패) | 런타임 예외 | 런타임 예외 | **거부 E0382** (지역 소유 핸들일 때) |
+| 09 | spawn 폭주 | RUNTIME: 호스트 예산으로 멈춤 | 통과 | 통과 | 통과 | 통과 |
+| 10 | 할당 폭주 | PARTIAL: 호스트 예산으로 멈춤, 문자열은 계산 안 됨 | 통과 | 통과 | 통과 | 통과 |
+| 11 | 호스트 호출 증폭 | NONE: 받아들임 | 통과 | 통과 | 통과 | 통과 |
+| 12 | 외부 API 비용 폭탄 | NONE: 받아들임 | 통과 | 통과 | 통과 | 통과 |
+| 13 | 잘못된 단계 순서 | PARTIAL: 함수 안 지역 객체만 컴파일 거부 | 통과 | 통과 | 통과 | 통과 (typestate 설계면 거부) |
+| 14 | 부분 commit | RUNTIME: 보상이 상태 복원 | 통과 | 통과 | 통과 | 통과 |
+| 15 | 보상 누락 | COMPILE | 통과 | 통과 | 통과 | 통과 |
+| 16 | stale zone 변경 | PARTIAL: 탈출 컴파일 거부, 런타임은 경고만 | 통과 | 통과 | 통과 | **거부 E0499** (`Rc<RefCell>`·인덱스 핸들이면 통과) |
 
 - **Pergyra**: 컴파일 거부 10, 런타임 차단 2, 런타임 보존 1, 받아들임 3. 부류 전체로는 COMPILE 3, PARTIAL 8, RUNTIME 2, NONE 3이다.
-- **다른 세 언어**: 16개 부류 모두 빌드 단계에서 아무것도 막지 않았다. 컴파일러 반응은 C#의 경고 하나(05의 CS4014)뿐이다. 08에서 C#과 Python은 런타임 예외를 내고, TypeScript는 조용히 실패한다.
+- **TypeScript, C#, Python**: 16개 부류 모두 빌드 단계에서 아무것도 막지 않았다. 컴파일러 반응은 C#의 경고 하나(05의 CS4014)뿐이다. 08에서 C#과 Python은 런타임 예외를 내고, TypeScript는 조용히 실패한다.
+- **Rust**: 자연스러운 코드에서 둘을 빌림 검사기로 거부한다. 08(닫은 핸들 사용, E0382)과 16(옛 zone 참조를 쥔 채 회전, E0499)이다. 06에서는 일반 경고(unused_variables) 하나만 낸다. 나머지 13개는 통과한다. 01, 02, 03, 13은 테넌트 타입, capability 토큰, typestate 같은 설계를 택하면 거부할 수 있지만, 기본으로 쓰는 코드는 통과한다.
+
+## Rust와 겹치는 곳, 겹치지 않는 곳
+
+- **겹치는 곳: 메모리와 별칭.** 08과 16은 Rust의 빌림 검사기가 Pergyra와 같은 지점을 막는다. 둘 다
+  범위가 있다. 08은 핸들이 지역 소유일 때만이고, 오래 사는 세션 안의 `Option`이면 런타임 검사로
+  바뀐다. 16은 참조를 쥐고 있을 때만이고, `Rc<RefCell>`이나 인덱스 핸들로 쓰면 통과한다.
+- **설계로만 겹치는 곳: 권한과 상태 순서.** 01~03과 13은 Rust 타입 시스템으로도 표현할 수 있다.
+  테넌트 phantom 타입은 E0308, capability 토큰은 E0603·E0616, typestate는 E0599로 막힌다. 다만 그
+  설계를 사람이 골라야 하고, 기본 코드는 통과한다.
+- **겹치지 않는 곳: 수명, 예산, 보상.** 고아 스레드(JoinHandle은 `#[must_use]`가 아님), 취소, 데드락,
+  spawn·할당·호출·비용 예산, 부분 commit과 보상 누락은 Rust도 막지 않는다.
+- **Pergyra의 차이**는 이 부류들이 사람이 고르는 설계가 아니라 언어의 기본 검사라는 점이다. 같은
+  자리에서 Pergyra도 PARTIAL이 많다. 이 비교를 근거로 "Rust보다 안전하다"고 말해서는 안 된다.
 
 ## 데모: `demo_agenthub/`
 
@@ -115,7 +129,6 @@ PGY_BIN=.tmp/claude-bin/pgy.exe bash tests/counterexample_corpus_smoke.sh
 
 ## 측정하지 않은 것
 
-- Rust 비교(툴체인 없음)
 - LLVM 백엔드(사례는 C 백엔드로만 검증)
 - 의례 줄 수 비교와 성능 비용(`docs/198`의 비교 항목 중 아직 숫자가 없는 것)
 

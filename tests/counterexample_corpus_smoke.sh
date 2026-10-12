@@ -7,8 +7,10 @@
 # keep state correct at run time (RUNTIME_SAFE), or still be accepted
 # (ACCEPTED_GAP, a recorded gap: if Pergyra starts refusing it, the row must be
 # updated). The fixed program must build and print its expected output. The
-# TypeScript, C# and Python versions run when their toolchain is present and
-# must show the bug; a missing toolchain is reported as SKIP, never as a pass.
+# TypeScript, C#, Python and Rust versions run when their toolchain is present
+# and must show the bug or, where the row records `rejected Exxxx`, fail to
+# compile with that error. A missing toolchain is reported as SKIP, never as a
+# pass. RUSTC may name rustc; otherwise PATH and ~/.cargo/bin are searched.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -27,7 +29,7 @@ bad() { note "FAIL $*"; fail_count=$((fail_count + 1)); }
 
 [[ -x "$PGY" ]] || { note "missing compiler: $PGY (set PGY_BIN)"; exit 1; }
 [[ -f "$MANIFEST" ]] || { note "missing manifest: $MANIFEST"; exit 1; }
-grep -qx '# schema pgy.counterexample.v1' "$MANIFEST" || { note "manifest schema line missing"; exit 1; }
+grep -qx '# schema pgy.counterexample.v2' "$MANIFEST" || { note "manifest schema line missing"; exit 1; }
 
 mkdir -p .tmp
 WORK="$(mktemp -d .tmp/counterexample-corpus.XXXXXX)"
@@ -111,7 +113,7 @@ check_bug() {
 have() { command -v "$1" >/dev/null 2>&1; }
 
 check_others() {
-    local id="$1" dir="$2" cs_observed="$3"
+    local id="$1" dir="$2" cs_observed="$3" rs_observed="$4"
     local marker="BUG_MANIFESTED ${id%%_*}"
     if have tsc && have node; then
         local out="$WORK/ts-$id"
@@ -158,25 +160,73 @@ check_others() {
     else
         py_status=SKIP
     fi
+    local rustc="${RUSTC:-}"
+    if [[ -z "$rustc" ]]; then
+        if have rustc; then rustc=rustc
+        elif [[ -x "$HOME/.cargo/bin/rustc" || -x "$HOME/.cargo/bin/rustc.exe" ]]; then rustc="$HOME/.cargo/bin/rustc"
+        fi
+    fi
+    if [[ -z "$rustc" ]]; then
+        rs_status=SKIP
+        return
+    fi
+    local rs_rc=0
+    "$rustc" --edition 2021 -o "$WORK/$id-rs.exe" "$dir/rust.rs" >"$WORK/$id-rs.build" 2>&1 || rs_rc=$?
+    if [[ "$rs_observed" == rejected* ]]; then
+        # Rust refuses the natural code: the refusal and its error code are the observation.
+        local code
+        code="$(grep -oE 'E[0-9]{4}' <<<"$rs_observed" | head -1 || true)"
+        if [[ "$rs_rc" -eq 0 ]]; then
+            bad "$id Rust version compiled, but the manifest records a refusal"; rs_status=fail
+        elif [[ -n "$code" ]] && ! grep -Fq "error[$code]" "$WORK/$id-rs.build"; then
+            bad "$id Rust refusal lacks $code"; rs_status=fail
+        else
+            rs_status=rejected
+        fi
+        return
+    fi
+    if [[ "$rs_rc" -ne 0 ]]; then
+        bad "$id Rust version does not build ($WORK/$id-rs.build)"; rs_status=fail
+        return
+    fi
+    local run_rc=0
+    timeout 60 "$WORK/$id-rs.exe" >"$WORK/$id-rs.run" 2>&1 || run_rc=$?
+    if [[ "$rs_observed" == *panic* ]]; then
+        if [[ "$run_rc" -eq 0 ]] || ! grep -q 'panicked' "$WORK/$id-rs.run"; then
+            bad "$id Rust version did not panic as recorded"; rs_status=fail
+            return
+        fi
+    elif [[ "$run_rc" -ne 0 ]] || ! grep -Fqx "$marker" <(tr -d '\r' <"$WORK/$id-rs.run"); then
+        bad "$id Rust version did not show the bug"; rs_status=fail
+        return
+    fi
+    rs_status=ok
+    local lint
+    lint="$(grep -oE 'warning [a-z_]+' <<<"$rs_observed" | head -1 || true)"
+    if [[ -n "$lint" ]]; then
+        grep -Fq "${lint#warning }" "$WORK/$id-rs.build" || bad "$id Rust build lacks recorded $lint"
+    elif grep -q '^warning' "$WORK/$id-rs.build"; then
+        bad "$id Rust build has a warning the manifest does not record"
+    fi
 }
 
 rows=0
 declare -A by_expect=()
-while IFS=$'\t' read -r id category bug scenario level expect oracle env_spec ts_obs cs_obs py_obs gap; do
+while IFS=$'\t' read -r id category bug scenario level expect oracle env_spec ts_obs cs_obs py_obs rs_obs gap; do
     [[ -z "$id" || "$id" == \#* || "$id" == id ]] && continue
     rows=$((rows + 1))
     dir="$CORPUS/$id"
-    for file in pergyra_bug.pgy pergyra_fixed.pgy pergyra_fixed.expected typescript.ts csharp.cs python.py; do
+    for file in pergyra_bug.pgy pergyra_fixed.pgy pergyra_fixed.expected typescript.ts csharp.cs python.py rust.rs; do
         [[ -f "$dir/$file" ]] || bad "$id missing $file"
     done
     case "$level" in COMPILE|RUNTIME|PARTIAL|NONE) ;; *) bad "$id unknown pergyra_level '$level'" ;; esac
     if [[ "$expect" == ACCEPTED_GAP && "$gap" == "-" ]]; then bad "$id gap row needs a gap_note"; fi
     check_bug "$id" "$dir" "$expect" "$oracle" "$env_spec"
     check_fixed "$id" "$dir"
-    ts_status=off; cs_status=off; py_status=off
-    if [[ "$OTHERS" == 1 ]]; then check_others "$id" "$dir" "$cs_obs"; fi
+    ts_status=off; cs_status=off; py_status=off; rs_status=off
+    if [[ "$OTHERS" == 1 ]]; then check_others "$id" "$dir" "$cs_obs" "$rs_obs"; fi
     by_expect[$expect]=$(( ${by_expect[$expect]:-0} + 1 ))
-    note "$id $level/$expect ts=$ts_status cs=$cs_status py=$py_status"
+    note "$id $level/$expect ts=$ts_status cs=$cs_status py=$py_status rs=$rs_status"
 done <"$MANIFEST"
 
 [[ "$rows" -eq 16 ]] || bad "expected 16 manifest rows, found $rows"
@@ -194,4 +244,4 @@ if [[ "$fail_count" -ne 0 ]]; then
     note "$fail_count failure(s)"
     exit 1
 fi
-note "PASS (Rust is not part of this run; the corpus records it as not yet compared)"
+note "PASS"
