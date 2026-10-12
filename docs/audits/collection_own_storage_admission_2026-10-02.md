@@ -2,7 +2,7 @@
 
 Status: focused VERIFIED; aggregate lifetime, installed-driver substitution and CI closure HELD.
 Base: `421ccf6416a0a4ac6018bcb069a25a5c093ee565`.
-Directive: `docs/agent_work_directives/collection_own_storage_admission_2026-10-02.md`.
+Directive: `docs/agent_work_directives/archive/collection_own_storage_admission_2026-10-02.md`.
 Root alone edited, built and integrated. Three agents independently reviewed
 storage/element semantics, paired falsifiers, and identity/API/gate boundaries.
 The 84 pre-existing dirty entries, held formal-root/resolved-type/member edits

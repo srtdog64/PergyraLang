@@ -6,7 +6,7 @@ remain owned by the execution lane and primary, not by this source review.
 
 Base: `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa`, with the primary's existing
 uncommitted work. This report follows
-[Bootstrap Artifact Comparison Review](../agent_work_directives/bootstrap_artifact_comparison_review_2026-09-05.md).
+[Bootstrap Artifact Comparison Review](../agent_work_directives/archive/bootstrap_artifact_comparison_review_2026-09-05.md).
 This lane owns only this report. It does not own compiler semantics, the active
 bootstrap rung, normalized-artifact policy, publication, or progress status.
 

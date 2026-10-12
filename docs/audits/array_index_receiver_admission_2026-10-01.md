@@ -4,7 +4,7 @@ Status: DELIVERED (bounded admission seam, zero complete registry rows).
 Base HEAD: `669d0b904f7d687dd8f99b2dad00ed45b6892daf`.
 This is checkout-scoped executable evidence, not a new semantic authority.
 The 69 pre-existing dirty entries remain outside the delivery scope.
-Coordination: `docs/agent_work_directives/sot_sequential_closure_2026-10-01.md`.
+Coordination: `docs/agent_work_directives/archive/sot_sequential_closure_2026-10-01.md`.
 
 ## Objective and reached boundary
 

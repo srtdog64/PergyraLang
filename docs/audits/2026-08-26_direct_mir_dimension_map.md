@@ -8,7 +8,7 @@ Audit base: `9ca4a69517142a4c87eb47862afcd55a9a9f2011`.
 ## Scope and method
 
 This is Track B from
-`docs/agent_work_directives/semantic_hop_parallel_audit_2026-08-26.md`.
+`docs/agent_work_directives/archive/semantic_hop_parallel_audit_2026-08-26.md`.
 The census starts at
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`, follows only literal
 Pergyra imports, and classifies the reachable `direct_mir_*.pgy` owners. No

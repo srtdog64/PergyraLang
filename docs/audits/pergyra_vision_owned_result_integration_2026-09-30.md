@@ -9,7 +9,7 @@ HEAD: `7a9fe09d8293170c4ce676de6464486cd25ca348`
 The user authorized vision-aligned self-host compiler implementation and
 multiple subagents. Root fixed the objective card first and delegated one
 implementation track, independent tests and read-only vision/integration review.
-Coordination: `docs/agent_work_directives/pergyra_vision_owned_result_integration_2026-09-30.md`.
+Coordination: `docs/agent_work_directives/archive/pergyra_vision_owned_result_integration_2026-09-30.md`.
 Review: `docs/audits/pergyra_vision_owned_result_integration_review_2026-09-30.md`.
 
 The authoring skill kept pure ownership proof in `func`/typed facts rather than

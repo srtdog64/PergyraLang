@@ -4,7 +4,7 @@ Status: READ-ONLY phase-one findings, not implementation or acceptance evidence.
 Observed HEAD: `62a83a8256bf4fa34878cca8f1f14641736fdeba`.
 Date: 2026-10-01, Asia/Seoul.
 Scope: the ten machine/HIR/DIR/RIR/MIR/generic/AIR/ABI/target/diagnostic rows
-assigned in `docs/agent_work_directives/bridge_batch_closure_2026-10-01.md`.
+assigned in `docs/agent_work_directives/archive/bridge_batch_closure_2026-10-01.md`.
 No source, registry, binary, test artifact, or Git index was changed by this
 review. Only this report is written. No gate or compiler build was executed.
 

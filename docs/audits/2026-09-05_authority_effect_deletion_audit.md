@@ -3,7 +3,7 @@
 Status: AUDIT COMPLETE; 구현 수정과 SoT 승격은 하지 않았다.
 
 Base revision: `bf8b33d078b27c41cc6cdb7ffed2e8fa5c62ef22`.
-지시서: [Intent and language-axis semantic audit](../agent_work_directives/intent_and_language_axes_semantic_audit_2026-09-05.md), lane 2.
+지시서: [Intent and language-axis semantic audit](../agent_work_directives/archive/intent_and_language_axes_semantic_audit_2026-09-05.md), lane 2.
 
 ## 가장 중요한 관찰
 

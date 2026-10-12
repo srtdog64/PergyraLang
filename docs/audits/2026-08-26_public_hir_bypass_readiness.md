@@ -6,7 +6,7 @@ authorization, readiness promotion, or substitution checkpoint.
 ## Scope and method
 
 This is the HIR track from
-`docs/agent_work_directives/public_ir_bypass_readiness_audit_2026-08-26.md`.
+`docs/agent_work_directives/archive/public_ir_bypass_readiness_audit_2026-08-26.md`.
 The named base and observed `HEAD` are both
 `8b8c78f0d6f5efd0eecaeaec7ee2b1796b6723dd`.
 

@@ -13,7 +13,7 @@ Root alone edited, built and integrates the attached managed worktree. Three
 read-only reviewers covered CI/source identity, physical field/current lifetime,
 and MIR/consumer obligations. They independently inspected retained results and
 hashes but did not execute tests. Temporary coordination is in
-docs/agent_work_directives/actual_aggregate_release_execution_2026-10-03.md.
+docs/agent_work_directives/archive/actual_aggregate_release_execution_2026-10-03.md.
 Main dirty work and its six unrelated component-counter hunks are excluded.
 
 ## Exact first refusal, observed rather than inferred

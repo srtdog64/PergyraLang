@@ -115,7 +115,7 @@ Slot·자동 소유권 정리·공유 그래프는 **하나의 저장소 소유�
 
 각 축의 현상·revision·분류·우선순위·fact owner·last consumer·금지 fallback·
 gate/반증·완료 조건은
-[`실사용 비전 검증 카드`](agent_work_directives/pergyra_agents_vision_admission_2026-10-07.md)에
+[`실사용 비전 검증 카드`](agent_work_directives/archive/pergyra_agents_vision_admission_2026-10-07.md)에
 연결한다. 이 절과 작업 카드는 semantic SoT가 아니며 문서 작성만으로
 registry를 `CLOSED` 처리하지 않는다. 이미 열린 MIR/collection executable rung의
 수정·검증·설치 순서를 보존하고, 확인된 다음 결함은 그 사슬의 합법적 경계에서

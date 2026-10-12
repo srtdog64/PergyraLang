@@ -134,7 +134,7 @@ rows are review constraints on their eventual owners, not parallel work queues.
 ## Active navigation, not another execution log
 
 The [handoff](../current_work_handoff.md) is the single current candidate and
-gate snapshot; the [objective card](../agent_work_directives/source_admission_parity_2026-09-07.md)
+gate snapshot; the [objective card](../agent_work_directives/archive/source_admission_parity_2026-09-07.md)
 fixes the current edit boundary. Follow its single reached execution falsifier,
 not a historical builtin, constructor-performance or research queue in this
 intake. Local focused improvements do not close all backends, typed Intent,

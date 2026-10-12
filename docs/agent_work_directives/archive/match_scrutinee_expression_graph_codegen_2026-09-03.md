@@ -1,0 +1,77 @@
+# Match scrutinee expression-graph codegen lease — 2026-09-03
+
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](../claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
+Status: `DONE — PUBLISHED; EXACT CI GREEN`
+
+Exact base: `8f1a35d334c8506fc0e8ecf71c6df6fb4b6ca284` on
+`origin/main`.
+
+This is a bounded implementation lease, not a semantic authority or progress
+owner.
+
+## Objective card
+
+- Objective: make installed self-host C match emission consume the already
+  required semantic expression graph for its scrutinee instead of re-entering
+  text expression classification.
+- Priority: preserve match behavior; consume the existing graph identity;
+  remove the text decision; fail closed on missing or mismatched graph facts;
+  then keep the patch small.
+- Fact owner: `SemanticAstExpressionSurfaceFacts`, specifically the atom-lane
+  `SemanticExpressionGraphView` required for `TypedAstKindMatchStmtTag()`.
+- Last legitimate consumer: `stmt_emit.pgy` renders the graph once and passes
+  the rendered C expression to the scalar, Option, and tagged-enum match
+  emitters.
+- Forbidden fallback: `IntEval(match_subject, env)` or
+  `RewriteExpr(match_value, env)` at the match emission boundary.
+- Verification gate: `driver_rung2_match_graph_use_owner.sh`, followed by
+  focused DRV-2 parity for `match_case_int`, `option_match`, `enum_match`,
+  `class_bump_option_match`, and `class_holds_enum_field`. A missing or
+  inconsistent match expression graph must remain a rejection.
+
+## Independent edit scope
+
+- `src/self_hosted/codegen/emission/stmt_emit.pgy`
+- `src/self_hosted/codegen/emission/option_match_owner.pgy`
+- `src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy`
+- `tests/self_hosted/parity/driver_rung2_match_graph_use_owner.sh`
+- this directive and the active handoff after verification
+
+Do not widen this lease into general expression-text cleanup, match subject
+materialization/lifetime changes, new syntax, or registry closure.
+
+## Local evidence
+
+- `stmt_emit.pgy` now requires the match atom-lane graph and renders the
+  scrutinee through `RewriteExprWithSemanticGraph` before dispatching match
+  shape. Scalar match no longer calls `IntEval` on the text payload; Option and
+  tagged-enum owners receive only the rendered C expression and no longer
+  import or call `expr_rewrite.pgy`.
+- `driver_rung2_match_graph_use_owner.sh` passes and rejects reopening any
+  `RewriteExpr` call in the Option or tagged-enum match owners.
+- A changed-source C DRV-2 build produced
+  `.tmp/self_hosted/driver_rung2/driver_c.exe`, 5,810,176 bytes, SHA-256
+  `9BAA7208AAF9B6046E14391AD4CD3597D17FD616D8304DF994387790DB8519D0`.
+  Reusing that exact binary with `PGY_SELFHOST_DRIVER_BACKENDS=c`, focused
+  producer/source/MIR parity passed all five selected fixtures.
+- `self_host_hard_contract_smoke.sh` passed. The broad component inventory was
+  stopped after five minutes because it exceeded the repository's static-gate
+  budget; its reached `driver-source-mir-execution-action` slice passed. This
+  interruption is not recorded as a green component gate and exact CI remains
+  the integration authority.
+
+## Publication evidence
+
+- Commit `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de` is published on
+  `origin/main`.
+- Exact-head run `33743159430` completed 30/30 jobs green in 35m45s. Full
+  self-host took 35m25s, installed the Pergyra-built DRV-2, and proved
+  `gen2 == gen3 (173911 lines)`. The three-source policy census completed with
+  `0 in_subset, 3 out_of_subset`.
+- Linux completed in 19m50s, Rocq 9 in 1m49s, sanitizers in 11m37s, Windows in
+  7m35s, macOS in 2m39s, the codegen fixed point in 7m01s, and backend compare
+  passed all twenty shards.
+- This consumer migration changes neither the registry census
+  `88 authorities / 184 derived carriers / CLOSED=55 BRIDGE=32 ACTIVE=1` nor
+  the 83% project forecast. The lease is released.

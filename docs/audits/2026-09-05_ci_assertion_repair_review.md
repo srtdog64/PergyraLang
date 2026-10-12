@@ -10,7 +10,7 @@ uncommitted CI assertion repairs. The working tree also contains concurrent
 compiler, documentation, and other-task changes. This lane changed only this
 report; it did not stage, commit, push, rebuild, install, or query remote CI.
 
-Directive: [CI semantic integration review](../agent_work_directives/ci_semantic_integration_review_2026-09-05.md).
+Directive: [CI semantic integration review](../agent_work_directives/archive/ci_semantic_integration_review_2026-09-05.md).
 Primary owns implementation and the eventual semantic parity integration gate.
 
 ## Observed ownership and assertion changes

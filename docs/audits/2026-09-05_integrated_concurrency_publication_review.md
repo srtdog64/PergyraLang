@@ -8,7 +8,7 @@ verdict.
 Base: `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa` plus the existing dirty work.
 The user reopened the previously separate session's changes for integration.
 Scope and authority follow
-[Integrated Publication Review](../agent_work_directives/integrated_publication_review_2026-09-05.md).
+[Integrated Publication Review](../agent_work_directives/archive/integrated_publication_review_2026-09-05.md).
 Primary owns all shared-document/test corrections and publication; this lane
 edited only this report and ran the permitted existing gates.
 

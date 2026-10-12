@@ -5,7 +5,7 @@ Date: 2026-09-05 (Asia/Seoul)
 Observed base: `f34355b37dbd9e86ef574399e895a78fd41dd0a3`, with the shared
 working tree dirty. This report inspects the current source, not merely that
 commit. It is a bounded documentation review under
-`docs/agent_work_directives/machine_layer_documentation_review_2026-09-05.md`.
+`docs/agent_work_directives/archive/machine_layer_documentation_review_2026-09-05.md`.
 No compiler, runtime, proof, test, registry or shared navigation file was edited
 by this lane. No build, executable gate or proof was run.
 

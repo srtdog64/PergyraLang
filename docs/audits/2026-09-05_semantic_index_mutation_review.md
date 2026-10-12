@@ -10,7 +10,7 @@ self-host implementation rung.
 ## Scope and evidence boundary
 
 The directive is
-[`ci_semantic_integration_review_2026-09-05.md`](../agent_work_directives/ci_semantic_integration_review_2026-09-05.md).
+[`ci_semantic_integration_review_2026-09-05.md`](../agent_work_directives/archive/ci_semantic_integration_review_2026-09-05.md).
 Only this report was written. No compiler was built, no test suite or invalid
 program was executed, no binary was installed, and no Git write was performed.
 The primary task owns focused-probe execution and full semantic parity.

@@ -3,7 +3,7 @@
 작성일: 2026-09-05. 기준 HEAD:
 `bf8b33d078b27c41cc6cdb7ffed2e8fa5c62ef22`.
 
-이 문서는 [작업지시서](../agent_work_directives/intent_and_language_axes_semantic_audit_2026-09-05.md)의
+이 문서는 [작업지시서](../agent_work_directives/archive/intent_and_language_axes_semantic_audit_2026-09-05.md)의
 lane 3 결과다. 언어 의미·SoT 상태·self-host 진척을 소유하지 않는다. 조사 중
 컴파일러 source, registry, build 설정을 변경하지 않았다.
 

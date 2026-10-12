@@ -6,7 +6,7 @@ substitution checkpoint.
 ## Scope and method
 
 This is Track A from
-`docs/agent_work_directives/semantic_hop_parallel_audit_2026-08-26.md`.
+`docs/agent_work_directives/archive/semantic_hop_parallel_audit_2026-08-26.md`.
 The measured base is `9ca4a69517142a4c87eb47862afcd55a9a9f2011`; `HEAD`
 still equals that revision. The current worktree contains the uncommitted Lease
 F implementation and gates. None of the nested-intent route/plan/emitter files

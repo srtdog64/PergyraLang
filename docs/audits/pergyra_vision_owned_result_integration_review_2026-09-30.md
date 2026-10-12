@@ -6,7 +6,7 @@ Status: READ-ONLY REVIEW COMPLETE / implementation acceptance belongs to root
 This review supports the single active collection-ownership P1. It does not
 start native-C implementation, declare a new compiler fact family, or authorize
 P2-P6/S0-S6. The integration directive is
-`docs/agent_work_directives/pergyra_vision_owned_result_integration_2026-09-30.md`.
+`docs/agent_work_directives/archive/pergyra_vision_owned_result_integration_2026-09-30.md`.
 The authoring skill was applied to actual purpose, authority and evidence
 lifetime, rather than keyword or file-size counts.
 

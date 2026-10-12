@@ -6,7 +6,7 @@ follow-up below.
 
 Base: `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa` plus the primary task's
 uncommitted work. This report follows
-[`bootstrap_artifact_comparison_review_2026-09-05.md`](../agent_work_directives/bootstrap_artifact_comparison_review_2026-09-05.md).
+[`bootstrap_artifact_comparison_review_2026-09-05.md`](../agent_work_directives/archive/bootstrap_artifact_comparison_review_2026-09-05.md).
 It is a bounded gate review, not compiler semantics, a new implementation
 rung, a bootstrap PASS, or self-host/SoT progress evidence.
 

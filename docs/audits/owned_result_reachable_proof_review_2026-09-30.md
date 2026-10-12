@@ -6,7 +6,7 @@ Base revision: `7a9fe09d8293170c4ce676de6464486cd25ca348`
 Starting owner SHA-256: `B2DB3A6E2BB25BAB2CDE4DB65ECA70658CF5A4FB9D8CA143F0123A1A43D08A80`
 
 This report supports the single implementation track coordinated by
-`docs/agent_work_directives/owned_result_reachable_proof_work_2026-09-30.md`.
+`docs/agent_work_directives/archive/owned_result_reachable_proof_work_2026-09-30.md`.
 It does not issue ownership facts, change registry status, or claim whole-driver
 or public-route verification. Existing dirty source and test work was preserved.
 
@@ -416,7 +416,7 @@ build, runtime leak measurement or additional compiler edit was performed.
 ## Focused acceptance update and current typed-retirement candidate
 
 The next serial directive is
-`docs/agent_work_directives/body_bundle_typed_retirement_2026-09-30.md`.
+`docs/agent_work_directives/archive/body_bundle_typed_retirement_2026-09-30.md`.
 Root remains the sole compiler editor. The earlier body omission and ABI gap
 above describe the pre-candidate source, not the current mapping after this
 patch. This reviewer read the implementation audit and the actual retained

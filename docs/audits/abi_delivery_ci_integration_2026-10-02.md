@@ -4,7 +4,7 @@ Base: `b5601b8b1359318630fe3943584197f39a137232`.
 This is delivery integration, not a successor compiler rung, registry closure,
 new C substitution, fixed point or aggregate-field lifetime delivery.
 Objective and independent review boundaries are in
-`docs/agent_work_directives/abi_delivery_ci_integration_2026-10-02.md`.
+`docs/agent_work_directives/archive/abi_delivery_ci_integration_2026-10-02.md`.
 Root is the sole editor/finalizer; reviewers did not edit production files.
 
 ## Observed CI failures

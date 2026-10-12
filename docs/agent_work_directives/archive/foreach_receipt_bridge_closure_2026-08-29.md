@@ -1,0 +1,100 @@
+# Scalar CFG foreach receipt BRIDGE closure — 2026-08-29
+
+> **OLD** (2026-10-08 표시): 연혁 기록이다. 지금의 작업 대기열이 아니며, 아래 원래 상태 줄과 내용은 바꾸지 않았다. 현재 협업 상태는 [claude_gpt_ownership_collaboration_2026-10-08.md](../claude_gpt_ownership_collaboration_2026-10-08.md)와 인계 문서의 활성 카드를 본다.
+
+Status: `DONE — PUBLISHED GREEN` (CI-ratchet repair
+`e54ce620d49f79c3ab817ca9afeefd8b5a0310f7` is on `origin/main`; exact-head
+run `33229419440` completed GREEN 30/30)
+
+This directive coordinates one executable closure. It is not semantic
+authority, a registry verdict, progress evidence, or permission to open a
+parallel implementation track on the same rung.
+
+## Shared objective card
+
+- Objective: close the existing
+  `projection.direct_mir_scalar_cfg_foreach_receipt` row by making its reached
+  local and returned `Array<Int>` plus local `Array<String>` production paths
+  consume one `LoopSyntaxId`-keyed receipt without numeric wrap admission,
+  ignored call ABI, or call-as-literal fallback. A valid closure changes the
+  census from `CLOSED=54 BRIDGE=33 ACTIVE=1` to `55/32/1`; it does not add an
+  authority row.
+- Priority: lexical Int32 representability before conversion, exact returned
+  call ABI carriage, producer/call ABI cross-seal, wrong-route failure before
+  literal decoding, C/LLVM no-artifact negatives, old-path ratchet, then patch
+  size.
+- Fact owners: `DirectMirScalarIntLiteralInRange` owns canonical signed Int32
+  spelling; `MirCapturedRequiredAbiLayoutRowAdmission` and
+  `DirectMirArrayIntCapturedAbiReady` own the admitted call-site ArrayInt ABI;
+  `DirectMirArrayIntProducerFact` owns the returned element/storage receipt;
+  `DirectMirScalarCfgForEachFact` owns the final LoopSyntaxId-keyed execution
+  receipt.
+- Last legitimate consumers: scalar-CFG foreach C and LLVM emitters, including
+  shared storage materialization for repeated returned-collection loops.
+- Forbidden fallback: convert an unbounded decimal with `ToInt` before range
+  admission, accept wrapped overflow, ignore a carried call ABI, trust only the
+  producer ABI, treat a direct call graph as a local array literal, reparse
+  `expr0`, retry the legacy range/return/Option route, or broaden this bounded
+  row to unrelated effectful or element-ABI families.
+- Verification gate: the integration owner runs
+  `one_mir_scalar_cfg_foreach_array_int_projection.sh`,
+  `one_mir_returned_array_foreach_projection.sh`, and
+  `one_mir_mixed_collection_foreach_projection.sh`, then
+  `sot_authority_edge_smoke.sh`. Decisive negatives are positive Int32
+  overflow, producer/call layout damage, call ABI-ID damage, and false hoist;
+  every target must exit nonzero and publish no artifact.
+
+## Edit scope and overlap boundary
+
+- The implementation scope is limited to the ArrayInt graph admission owner,
+  foreach collection admission owner, the two focused gates, registry row,
+  and coordination/progress documents.
+- The primary task is the sole integration owner. Candidate-audit agents are
+  read-only; they may not edit, change registry state, build, commit, push, or
+  interpret CI as publication.
+- No general collection plan, ArrayString ABI materializer, diagnostic catalog,
+  enum declaration, zone authority, query/cache, or performance track is open.
+
+## Commands and budgets
+
+- Static owner and registry gates target 60 seconds. Focused C/LLVM parity
+  targets five minutes per semantic program. One rebuilt installed DRV-2 is
+  reused across all three gates.
+- Full matrices remain the exact-head remote publication boundary. No new CI
+  job, duplicate bootstrap, timeout increase, cache, or shard is admitted.
+
+## Local implementation evidence
+
+- The first local falsifier was RED: C accepted `2147483648` and emitted
+  `-2147483648`. The ArrayInt graph owner now calls the existing lexical Int32
+  domain owner before `ToInt`, including index literals.
+- Rebuilding DRV-2 exposed a second stale seam: current MIR carries a complete
+  ArrayInt ABI on hoisted call-result locals, while the consumer required that
+  ABI to be empty. The consumer now admits the call row and matches its ID,
+  size, alignment, and four offsets against the producer receipt. A call root
+  cannot fall through to local-literal decoding.
+- All three focused C/LLVM gates are GREEN. Returned foreach now includes call
+  layout and call-ID mutations in addition to producer/layout/identity/CFG
+  negatives. The SoT edge reports 88 authorities, 182 carriers, and
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Documentation, progress metric, hard contract, and likeness are GREEN;
+  `result_use` is ratcheted at 4486/4486. Coq/Rocq execution is a declared
+  local skip because no prover is installed; live owner/consumer binding and
+  negative mutations pass. Two supplementary non-row gates do not reach
+  behavior because unchanged pre-base owners already exceed their stale line
+  caps (`direct_mir_array_int_abi_projection_owner.pgy` 175/160 and
+  `direct_mir_multi_routine_projection_owner.pgy` 110/80); neither owner is in
+  this diff and neither gate is claimed GREEN.
+- First publication evidence is exact: Linux push steps 1-13 passed, then the
+  component inventory reported the collection owner at 177 lines against its
+  160-line cap. The returned-call ABI admission and producer cross-seal now
+  live in the responsibility-named
+  `direct_mir_returned_array_foreach_call_abi_owner.pgy`; the collection owner
+  consumes its `Option` receipt. Current `wc -l` is 157/160 for the collection
+  owner and 40/80 for the new owner. A fresh installed DRV-2 (6,449,210 bytes,
+  SHA-256 `FB14F7E714CC16CAC7B970219BCAD9855507B2E7F7DD876649C2A8CA9B2FAFC4`)
+  passes all three focused gates after this split.
+- Publication result: repair `e54ce620` is on `origin/main`; exact-head run
+  `33229419440` completed GREEN 30/30. `build-linux` passed in 24m25s and the
+  full self-host fixed point passed in 27m27s. The lease is released at
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.

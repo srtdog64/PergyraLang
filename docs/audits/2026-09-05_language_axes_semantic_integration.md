@@ -6,7 +6,7 @@ Status: AUDIT COMPLETE. 기준 revision:
 사용자 요청으로 세 subagent가 Intent, Authority/Effect, Domain axes를
 독립 조사했고 primary가 nominal 대체 실험과 통합 검증을 맡았다.
 이 문서는 관찰 기록이며 언어 의미, SoT 상태, 후속 구현 rung의 owner가 아니다.
-[작업지시서](../agent_work_directives/intent_and_language_axes_semantic_audit_2026-09-05.md)의
+[작업지시서](../agent_work_directives/archive/intent_and_language_axes_semantic_audit_2026-09-05.md)의
 범위 안에서 source fixture와 검사 runner를 추가했으며 compiler source는 바꾸지 않았다.
 
 ## 결론

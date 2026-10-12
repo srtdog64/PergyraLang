@@ -2,7 +2,7 @@
 
 Status: focused VERIFIED; aggregate lifetime, installed driver and substitution HELD.
 Base: `f16f57c03a5a2c5f4eeea2debc3f92586af94129`.
-Directive: `docs/agent_work_directives/collection_event_time_2026-10-02.md`.
+Directive: `docs/agent_work_directives/archive/collection_event_time_2026-10-02.md`.
 Root alone edited, built and integrated; three agents reviewed read-only.
 The held formal-root/resolved-type hunks and six unrelated component-counter
 hunks are not part of this frozen candidate.

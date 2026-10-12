@@ -2,7 +2,7 @@
 
 Audit base: `464a907a010b745c3ec1bdaecf783bbf9e31c037`
 
-Scope: the seven `BRIDGE` rows assigned by `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md`.
+Scope: the seven `BRIDGE` rows assigned by `docs/agent_work_directives/archive/sot_closure_dependency_map_2026-08-26.md`.
 Method: static inspection of the current registry, owners, live consumers, and existing focused gates. No build or test was run. “Observed” below means present in source or a checked-in gate; “inferred” and “proposed” are dependency/order recommendations, not completed work.
 
 | Owner / current authority (observed) | Old carrier or stable-handle coverage gap (observed) | Exact last live consumer (observed) | Predecessor rows (inferred) | Smallest production rung (inferred) | Existing falsifier (observed; not run here) | Negative ratchet required for closure (proposed) | Classification (inferred) |

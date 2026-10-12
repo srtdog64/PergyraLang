@@ -2,7 +2,7 @@
 
 Status: **NOT READY**
 Audited revision: `acdab822b7d1ce27c636f73392ebb1d7738bf08a`
-Directive: `docs/agent_work_directives/remaining_native_boundary_readiness_audit_2026-08-26.md`
+Directive: `docs/agent_work_directives/archive/remaining_native_boundary_readiness_audit_2026-08-26.md`
 
 This is a read-only ownership audit. No build, executable probe, source edit, or
 gate run was performed. The census follows the public returns in

@@ -7,7 +7,7 @@ or new architecture work is proposed.
 Base: `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa` plus existing dirty work.
 The user's integration authorization reopened the former other-session
 exclusion for `docs/compiler_architectures/`. The directive is
-[`integrated_publication_review_2026-09-05.md`](../agent_work_directives/integrated_publication_review_2026-09-05.md).
+[`integrated_publication_review_2026-09-05.md`](../agent_work_directives/archive/integrated_publication_review_2026-09-05.md).
 Only this report was edited by this lane; shared notes, compiler source,
 tests, navigation, registry state, and Git state were not changed.
 

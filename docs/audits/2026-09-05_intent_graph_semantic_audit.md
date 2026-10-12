@@ -8,7 +8,7 @@ Status: AUDIT COMPLETE — 구현 정책과 SoT 상태를 소유하지 않는 �
 
 - Native SHA-256: `0F9F4F30255D6850B5A773E21D5815F776B305E5C01A7A2C3DF6D373BB15A29E`
 - DRV-2 SHA-256: `FB37EA36D92E9C28B6BB7162F87BA00E733255AD5E46B24A166578713DF75847`
-- 지시서: [Intent and language-axis semantic audit](../agent_work_directives/intent_and_language_axes_semantic_audit_2026-09-05.md)
+- 지시서: [Intent and language-axis semantic audit](../agent_work_directives/archive/intent_and_language_axes_semantic_audit_2026-09-05.md)
 
 ## 판정
 

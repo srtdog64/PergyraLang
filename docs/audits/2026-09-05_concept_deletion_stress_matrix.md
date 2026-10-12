@@ -5,7 +5,7 @@ Status: `READ-ONLY DESIGN AUDIT — NO SEMANTIC AUTHORITY`
 Observed base revision: `01f280a3566fb581d0f65d7783e678eee6c987d9`.
 
 This report applies the deletion half of
-`docs/agent_work_directives/language_concept_stress_audit_2026-09-05.md`.
+`docs/agent_work_directives/archive/language_concept_stress_audit_2026-09-05.md`.
 It does not change language semantics, a registry row, self-host progress, or
 an implementation priority. Current source, owner documents, and executable
 gates remain authoritative.

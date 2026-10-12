@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Directive: `docs/agent_work_directives/public_ir_bypass_readiness_audit_2026-08-26.md`
+- Directive: `docs/agent_work_directives/archive/public_ir_bypass_readiness_audit_2026-08-26.md`
 - Audited revision: `8b8c78f0d6f5efd0eecaeaec7ee2b1796b6723dd`
 - Modes: public `pgy --air` and `pgy --air-json`
 - This is a readiness audit, not substitution evidence. No build or test suite was run.

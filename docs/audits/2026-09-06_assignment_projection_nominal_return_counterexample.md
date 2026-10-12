@@ -73,7 +73,7 @@ current owner evidence and focused positive/missing-fact tests first.
 ## Physical receipt implementation and execution
 
 The objective card is
-`docs/agent_work_directives/physical_record_return_carriage_2026-09-06.md`.
+`docs/agent_work_directives/archive/physical_record_return_carriage_2026-09-06.md`.
 The existing nominal declaration owner still admits required layout rows; the
 record inventory now retains their exact identity and storage columns. Formal
 parameters retain exact bounded receipt keys, including non-first parameters.

@@ -2,7 +2,7 @@
 
 Base: `53168fe98acd6f9490cf70404a383a83bfe43f8e`.
 This is an audit, not a semantic authority, lifetime permission or SoT closure.
-Directive: `../agent_work_directives/constructor_field_identity_2026-10-02.md`.
+Directive: `../agent_work_directives/archive/constructor_field_identity_2026-10-02.md`.
 
 ## Observed implementation
 

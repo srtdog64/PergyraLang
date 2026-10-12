@@ -10,7 +10,7 @@ a compiler-completeness claim, or a new collection ownership grant.
 The active executable rung is the real JsonOwnedFragmentWriteFile route:
 an owned scalar String enters a one-element array and reaches
 ArrayDropOwnedStrings. The objective card and read-only review boundaries are
-in agent_work_directives/owned_string_literal_transfer_2026-10-03.md.
+in agent_work_directives/archive/owned_string_literal_transfer_2026-10-03.md.
 Root alone edited and built; three agents reviewed scalar lifetime, complete
 MIR consumers, and the actual caller/runtime boundary independently.
 

@@ -216,7 +216,7 @@ UCRT64 Python 경로를 추가한 SoT 검사에서는 PASS를 관찰했다.
 
 ## Prepared work and limits
 
-[작업 준비서](../agent_work_directives/pergyra_worldview_quality_preparation_2026-09-30.md)는
+[작업 준비서](../agent_work_directives/archive/pergyra_worldview_quality_preparation_2026-09-30.md)는
 F1/F2를 P1의 다음 반례로 전달하고, 의미 소유권·revision·게시·target 투영·DX별
 책임 경계를 기존 순서에 대응시킨다. authoring skill에는 worldview review 지침을
 추가했다. compiler 구현, cap authority, registry 상태, CI, 설치 설정은 이 감사가 변경하지 않았다.

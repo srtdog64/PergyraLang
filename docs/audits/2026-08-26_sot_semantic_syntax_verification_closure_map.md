@@ -4,7 +4,7 @@ Status: `AUDIT COMPLETE`
 
 Audited revision: `464a907a010b745c3ec1bdaecf783bbf9e31c037`
 
-Directive: `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md`
+Directive: `docs/agent_work_directives/archive/sot_closure_dependency_map_2026-08-26.md`
 
 This report is read-only dependency evidence. It changes no owner, registry
 status, progress claim, or implementation lease. `O:` means directly observed

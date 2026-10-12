@@ -4,7 +4,7 @@ Status: READ-ONLY REVIEW COMPLETE; 증명 재실행·구현 수정·SoT 승격 �
 
 Base revision: `f34355b37dbd9e86ef574399e895a78fd41dd0a3` (dirty shared tree).
 대상은 사용자가 제공한 기계층 평가 첨부이며, 이 문서는 평가를 그대로 정전으로
-승인하지 않는다. [작업 지시서](../agent_work_directives/machine_layer_documentation_review_2026-09-05.md)의
+승인하지 않는다. [작업 지시서](../agent_work_directives/archive/machine_layer_documentation_review_2026-09-05.md)의
 Formal reviewer 범위에서 정의·정리·기존 게이트를 읽었다. 아래 `파일:줄`은 이
 체크포인트의 탐색 앵커이며, 문서가 해당 사실의 owner를 대체하지 않는다.
 

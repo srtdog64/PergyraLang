@@ -7,7 +7,7 @@ checkpoint.
 ## Scope and method
 
 This is Track C from
-`docs/agent_work_directives/semantic_hop_parallel_audit_2026-08-26.md`. The named base is
+`docs/agent_work_directives/archive/semantic_hop_parallel_audit_2026-08-26.md`. The named base is
 `9ca4a69517142a4c87eb47862afcd55a9a9f2011`, and `HEAD` still equals that
 revision. The working tree also contains the primary task's uncommitted Lease F
 implementation. The inventory below records that overlay explicitly because it
