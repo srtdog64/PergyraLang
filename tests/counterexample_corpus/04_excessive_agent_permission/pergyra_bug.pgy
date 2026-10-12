@@ -1,0 +1,17 @@
+// Bug: the support agent's turn is granted io_write (post the reply) only, but a context tool reads a local file.
+// Pergyra: refused at compile time (PGY_SEM_EFFECT_CONFLICT): io_read inferred from the tool body is missing
+// from RunAgentTurn's `with caps`. Without `with caps`, only a host PGY_CAP_GRANT stops it, at run time.
+func AttachContext(ticket: String) -> String {
+    let notes: String = ReadFile("agenthub_admin_notes.txt");
+    return ticket + " | " + notes;
+}
+func DraftReply(ticket: String) -> String {
+    return "Re: " + AttachContext(ticket);
+}
+// The grant for an agent turn: write the reply, nothing else.
+func RunAgentTurn(ticket: String) -> Void with caps io_write {
+    Print(DraftReply(ticket) + "\n");
+}
+func Main() -> Void {
+    RunAgentTurn("acme-42 reset password");
+}

@@ -1,0 +1,3 @@
+compensate: refund 40 to acme
+purchase ok=false gold=100 shipped=0
+failure=pre:ship

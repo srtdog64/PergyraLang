@@ -1,0 +1,16 @@
+// Fix: sleep between deadline checks and stop after maxCalls host calls.
+// The limit is ordinary user code; Pergyra has no host-call budget that would enforce it.
+func Main() -> Void {
+    let maxCalls: Int = 10;
+    let waitMs: Long = 50;
+    let deadline: Long = Now() + waitMs;
+    let calls: Int = 1;
+    let waiting: Bool = true;
+    while waiting && calls < maxCalls {
+        Sleep(10);
+        calls = calls + 1;
+        waiting = Now() < deadline;
+    }
+    Log("acme export wait ended");
+    Log("host calls within limit=" + ToString(calls <= maxCalls));
+}

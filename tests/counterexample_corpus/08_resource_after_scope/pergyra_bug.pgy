@@ -1,0 +1,14 @@
+// Bug: the agent releases the acme search tool handle, then a retried tool call still uses it.
+// Pergyra: the slot's released state is tracked at compile time; borrowing it after Release is
+// refused (PGY_SEM_SLOT_RELEASED, "Cannot borrow released slot"), nothing is emitted.
+func RetrySearch(ref handle: Slot<Int>) -> Void {
+    Write(handle, Read(handle) + 1);
+}
+
+func Main() -> Void {
+    let handle: Slot<Int> = ClaimSlot();
+    Write(handle, 1);
+    Log("acme search calls: " + ToString(Read(handle)));
+    Release(handle);
+    RetrySearch(handle);
+}

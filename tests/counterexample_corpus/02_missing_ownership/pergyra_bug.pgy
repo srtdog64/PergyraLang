@@ -1,0 +1,34 @@
+// Bug: the agent's usage-charge step debits acme's account without the account owner's approval.
+// Pergyra: refused at compile time (PGY_SEM_INTENT_STEP_INVALID): a step in a zone that declares
+// authority must name an authorizer. A plain func calling owner.Debit directly is not checked.
+subject Agent {
+    let id: Int;
+}
+subject Account {
+    let mut credits: Int;
+    action Debit(self, amount: Int) -> Void {
+        self.credits = self.credits - amount;
+    }
+}
+zone TenantZone {
+    subject slot owner: Account
+    subject slot agent: Agent
+    authority owner
+}
+intent ChargeUsage(tenant: TenantZone, owner: Account, agent: Agent) {
+    step Charge {
+        where: TenantZone;
+        using: tenant;
+        who: agent;
+        on: owner.Debit(30);
+        expect: owner.credits == 70;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let acme = TenantZone(Account(100), Agent(7));
+    let ok = ChargeUsage(acme, acme.owner, acme.agent);
+    Log("charged=" + ToString(ok));
+    Log("acme.credits=" + ToString(acme.owner.credits));
+}

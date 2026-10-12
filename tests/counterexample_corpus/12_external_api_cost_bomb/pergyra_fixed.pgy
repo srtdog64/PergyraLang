@@ -1,0 +1,38 @@
+// Fix: retry only the overloaded status, at most 3 attempts with backoff, then fail the request.
+// The limit is ordinary user code; Pergyra has no network or cost budget that would enforce it.
+subject PaidModelApi {
+    let mut calls: Int;
+    let mut spentCents: Int;
+
+    // Local stand-in for the paid API (no network): 3 cents per call, overloaded (529)
+    // for the first 400 calls.
+    action Complete(self) -> Int {
+        calls = calls + 1;
+        spentCents = spentCents + 3;
+        if calls >= 400 {
+            return 200;
+        }
+        return 529;
+    }
+}
+
+func Main() -> Void {
+    let maxAttempts: Int = 3;
+    let api: PaidModelApi = PaidModelApi(0, 0);
+    let status: Int = 0;
+    let attempts: Int = 0;
+    while attempts < maxAttempts {
+        status = api.Complete();
+        attempts = attempts + 1;
+        if status != 529 || attempts == maxAttempts {
+            break;
+        }
+        Sleep(10 * attempts);   // linear backoff
+    }
+    if status != 200 {
+        Log("acme request failed: status=" + ToString(status) + " attempts=" + ToString(attempts));
+        Log("spent cents=" + ToString(api.spentCents));
+        return;
+    }
+    Log("acme request ok");
+}

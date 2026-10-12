@@ -1,0 +1,61 @@
+// Fixed: the purchase tool checks stock before it debits, so an out-of-stock order
+// never touches the wallet; `compensate:` stays as the backstop for a later failure.
+// Pergyra: the debit step's `pre:` refuses the step before its effect runs.
+subject Wallet {
+    let tenant: String;
+    let mut gold: Int;
+    action Debit(self, amount: Int) -> Void { self.gold = self.gold - amount; }
+    action Refund(self, amount: Int) -> Void {
+        self.gold = self.gold + amount;
+        Log("compensate: refund " + ToString(amount) + " to " + self.tenant);
+    }
+}
+
+subject Warehouse {
+    let mut stock: Int;
+    let mut shipped: Int;
+    action Ship(self) -> Void { self.stock = self.stock - 1; self.shipped = self.shipped + 1; }
+}
+
+zone Billing { subject slot wallet: Wallet }
+zone Shipping { subject slot warehouse: Warehouse }
+
+intent PurchaseTool(billing: Billing, shipping: Shipping,
+                    wallet: Wallet, warehouse: Warehouse, price: Int) {
+    rollback: full;
+
+    step debit {
+        where: Billing;
+        using: billing;
+        who: wallet;
+        pre: warehouse.stock > 0;
+        on: wallet.Debit(price);
+        compensate: wallet.Refund(price);
+    }
+
+    step ship {
+        where: Shipping;
+        using: shipping;
+        who: warehouse;
+        pre: warehouse.stock > 0;
+        on: warehouse.Ship();
+    }
+
+    success: true;
+}
+
+func Report(label: String, ok: Bool, wallet: Wallet, warehouse: Warehouse) -> Void {
+    Log(label + " ok=" + ToString(ok) + " gold=" + ToString(wallet.gold)
+        + " shipped=" + ToString(warehouse.shipped));
+}
+
+func Main() -> Void {
+    let billing = Billing();
+    let shipping = Shipping();
+    let wallet = Wallet("acme", 100);
+    let empty = Warehouse(0, 0);
+    Report("out-of-stock", PurchaseTool(billing, shipping, wallet, empty, 40), wallet, empty);
+    Log("failure=" + IntentLastFailure());
+    let stocked = Warehouse(1, 0);
+    Report("in-stock", PurchaseTool(billing, shipping, wallet, stocked, 40), wallet, stocked);
+}

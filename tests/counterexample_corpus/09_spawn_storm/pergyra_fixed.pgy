@@ -1,0 +1,30 @@
+// Fix: a fixed pool of 4 worker tasks, each summarizing a contiguous slice of the documents.
+// The spawn count is 4 for any document count, so it stays under a host spawn ceiling.
+func SummaryTokens(doc: Int) -> Int {
+    return 10 + doc % 5;
+}
+
+async func SummarizeRange(lo: Int, hi: Int, docCount: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = lo;
+    while i < hi && i < docCount {
+        total = total + SummaryTokens(i);
+        i = i + 1;
+    }
+    return total;
+}
+
+async func Main() -> Void {
+    let docCount: Int = 64;
+    let slice: Int = (docCount + 3) / 4;
+    let w0: Future<Int> = spawn SummarizeRange(0, slice, docCount);
+    let w1: Future<Int> = spawn SummarizeRange(slice, 2 * slice, docCount);
+    let w2: Future<Int> = spawn SummarizeRange(2 * slice, 3 * slice, docCount);
+    let w3: Future<Int> = spawn SummarizeRange(3 * slice, docCount, docCount);
+    let t0: Int = await w0;
+    let t1: Int = await w1;
+    let t2: Int = await w2;
+    let t3: Int = await w3;
+    let tokens: Int = t0 + t1 + t2 + t3;
+    Log("acme docs=" + ToString(docCount) + " tokens=" + ToString(tokens));
+}

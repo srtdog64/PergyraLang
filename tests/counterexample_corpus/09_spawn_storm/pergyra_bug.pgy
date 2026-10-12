@@ -1,0 +1,27 @@
+// Bug: the agent fans out one summarize task per tenant document, with no bound on task count.
+// Pergyra: the compiler accepts it. Only a host-set PGY_BUDGET_SPAWN_COUNT stops it at run time
+// (class=budget-exceeded); with no host ceiling every task is created.
+func SummaryTokens(doc: Int) -> Int {
+    return 10 + doc % 5;
+}
+
+// Futures cannot be stored in a collection, so the fan-out splits recursively:
+// one leaf task per document, all of them in flight together.
+async func SummarizeDocs(lo: Int, hi: Int) -> Int {
+    if hi - lo == 1 {
+        return SummaryTokens(lo);
+    }
+    let mid: Int = (lo + hi) / 2;
+    let left: Future<Int> = spawn SummarizeDocs(lo, mid);
+    let right: Future<Int> = spawn SummarizeDocs(mid, hi);
+    let a: Int = await left;
+    let b: Int = await right;
+    return a + b;
+}
+
+async func Main() -> Void {
+    // acme's folder size comes from the tool call; nothing caps it.
+    let docCount: Int = 64;
+    let tokens: Int = await spawn SummarizeDocs(0, docCount);
+    Log("acme docs=" + ToString(docCount) + " tokens=" + ToString(tokens));
+}

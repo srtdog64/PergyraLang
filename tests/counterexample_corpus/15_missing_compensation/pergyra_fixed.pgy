@@ -1,0 +1,61 @@
+// Fixed: the debit step declares its undo, the notify step keeps its explicit
+// `irreversible:` reason, so the `rollback: full` claim is covered and compiles.
+// Pergyra: when shipping fails, the debit is compensated and the notification stays.
+subject Wallet {
+    let tenant: String;
+    let mut gold: Int;
+    action Debit(self, amount: Int) -> Void { self.gold = self.gold - amount; }
+    action Refund(self, amount: Int) -> Void { self.gold = self.gold + amount; }
+    action Notify(self) -> Void { Log("notify " + self.tenant + ": order placed"); }
+}
+
+subject Warehouse {
+    let mut stock: Int;
+    let mut shipped: Int;
+    action Ship(self) -> Void { self.stock = self.stock - 1; self.shipped = self.shipped + 1; }
+}
+
+zone Billing { subject slot wallet: Wallet }
+zone Shipping { subject slot warehouse: Warehouse }
+
+intent PurchaseTool(billing: Billing, shipping: Shipping,
+                    wallet: Wallet, warehouse: Warehouse, price: Int) {
+    rollback: full;
+
+    step debit {
+        where: Billing;
+        using: billing;
+        who: wallet;
+        on: wallet.Debit(price);
+        compensate: wallet.Refund(price);
+    }
+
+    step notify {
+        where: Billing;
+        using: billing;
+        who: wallet;
+        on: wallet.Notify();
+        irreversible: "a sent notification cannot be recalled";
+    }
+
+    step ship {
+        where: Shipping;
+        using: shipping;
+        who: warehouse;
+        pre: warehouse.stock > 0;
+        on: warehouse.Ship();
+    }
+
+    success: true;
+}
+
+func Main() -> Void {
+    let billing = Billing();
+    let shipping = Shipping();
+    let wallet = Wallet("acme", 100);
+    let warehouse = Warehouse(0, 0);
+    let ok = PurchaseTool(billing, shipping, wallet, warehouse, 40);
+    Log("purchase ok=" + ToString(ok) + " gold=" + ToString(wallet.gold)
+        + " shipped=" + ToString(warehouse.shipped));
+    Log("failure=" + IntentLastFailure());
+}

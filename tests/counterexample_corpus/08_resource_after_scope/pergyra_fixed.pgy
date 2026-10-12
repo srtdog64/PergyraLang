@@ -1,0 +1,14 @@
+// Fixed: the retried tool call runs while the acme search tool handle is live; Release comes last.
+// Pergyra: every Read/Write/borrow precedes Release on the only path, so the slot contract
+// admits the program.
+func RetrySearch(ref handle: Slot<Int>) -> Void {
+    Write(handle, Read(handle) + 1);
+}
+
+func Main() -> Void {
+    let handle: Slot<Int> = ClaimSlot();
+    Write(handle, 1);
+    RetrySearch(handle);
+    Log("acme search calls: " + ToString(Read(handle)));
+    Release(handle);
+}

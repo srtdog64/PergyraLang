@@ -1,0 +1,19 @@
+// Bug: the agent appends every search hit to its result buffer although the request wants the top 20.
+// Pergyra: the compiler accepts it. A host-set PGY_BUDGET_ALLOC_BYTES stops the List growth at run
+// time (class=budget-exceeded); with no host ceiling the buffer grows with the hit count.
+func SearchHit(rank: Int) -> Int {
+    return 700000 + rank;   // record id of the hit at this rank
+}
+
+func Main() -> Void {
+    let requested: Int = 20;
+    // The search tool matched 20000 acme records and pages through all of them.
+    let matched: Int = 20000;
+    let buffer: List<Int> = ListNew();
+    let rank: Int = 0;
+    while rank < matched {
+        ListPush(buffer, SearchHit(rank));
+        rank = rank + 1;
+    }
+    Log("acme requested=" + ToString(requested) + " buffered=" + ToString(ListSize(buffer)));
+}

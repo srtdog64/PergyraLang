@@ -1,0 +1,16 @@
+// Fixed: the context tool builds the reply from the ticket text alone; the turn stays within io_write.
+// Pergyra: accepted; the capability set inferred through DraftReply and AttachContext is {io_write}.
+// Also runs under a host grant of PGY_CAP_GRANT=io_write.
+func AttachContext(ticket: String) -> String {
+    return ticket + " | see help center";
+}
+func DraftReply(ticket: String) -> String {
+    return "Re: " + AttachContext(ticket);
+}
+// The grant for an agent turn: write the reply, nothing else.
+func RunAgentTurn(ticket: String) -> Void with caps io_write {
+    Print(DraftReply(ticket) + "\n");
+}
+func Main() -> Void {
+    RunAgentTurn("acme-42 reset password");
+}

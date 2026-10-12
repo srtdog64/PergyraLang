@@ -1,0 +1,36 @@
+// Bug: a guest asks the agent (the deputy) to change acme's plan; the edit runs on the guest's say-so.
+// Pergyra: refused at compile time (PGY_SEM_INTENT_STEP_INVALID): the step's authorizer 'guest'
+// is not an authority slot. If the agent itself is made an authority, 'authorized by: agent' passes.
+subject Agent {
+    let id: Int;
+}
+subject User {
+    let mut plan: Int;
+    action SetPlan(self, plan: Int) -> Void {
+        self.plan = plan;
+    }
+}
+zone AccountZone {
+    subject slot owner: User
+    subject slot guest: User
+    subject slot agent: Agent
+    authority owner
+}
+intent EditPlan(account: AccountZone, owner: User, guest: User, agent: Agent) {
+    step Edit {
+        where: AccountZone;
+        using: account;
+        who: agent;
+        authorized by: guest;
+        on: owner.SetPlan(3);
+        expect: owner.plan == 3;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let acme = AccountZone(User(1), User(0), Agent(7));
+    let ok = EditPlan(acme, acme.owner, acme.guest, acme.agent);
+    Log("edited=" + ToString(ok));
+    Log("owner.plan=" + ToString(acme.owner.plan));
+}

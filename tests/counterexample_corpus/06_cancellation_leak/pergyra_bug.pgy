@@ -1,0 +1,21 @@
+// Bug: the user presses stop; the agent cancels the export tool call for tenant acme but never waits for it to finish.
+// Pergyra: Cancel only requests cooperative cancellation and leaves the Future live, so the
+// compiler refuses StopExport (PGY_SEM_TASK_LIFECYCLE, "is not retired"), nothing is emitted.
+func ExportTool(tenant: String) -> Int {
+    if (IsCancelled()) {
+        return 0;
+    }
+    return 1;
+}
+
+async func StopExport(tenant: String) -> Bool {
+    let export_call: Future<Int> = spawn ExportTool(tenant);
+    let requested: Bool = Cancel(export_call);
+    Log("export tool call reported stopped for " + tenant);
+    return requested;
+}
+
+async func Main() -> Void {
+    let requested: Bool = StopExport("acme");
+    Log("cancel requested: " + ToString(requested));
+}

@@ -1,0 +1,41 @@
+// Bug: the agent acting for tenant acme runs a charge step against tenant globex's account.
+// Pergyra: with one zone type per tenant, refused at compile time (PGY_SEM_INTENT_STEP_INVALID):
+// the agent is an authority in AcmeTenant only. Two instances of one shared zone type are not told apart.
+subject Agent {
+    let id: Int;
+}
+subject Account {
+    let mut credits: Int;
+    action Debit(self, amount: Int) -> Void {
+        self.credits = self.credits - amount;
+    }
+}
+// acme delegated its account to the agent session; globex did not.
+zone AcmeTenant {
+    subject slot agent: Agent
+    subject slot owner: Account
+    authority agent
+}
+zone GlobexTenant {
+    subject slot agent: Agent
+    subject slot owner: Account
+    authority owner
+}
+intent AgentCharge(tenant: GlobexTenant, agent: Agent, owner: Account) {
+    step Charge {
+        where: GlobexTenant;
+        using: tenant;
+        who: agent;
+        authorized by: agent;
+        on: owner.Debit(30);
+        expect: owner.credits == 470;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let globex = GlobexTenant(Agent(7), Account(500));
+    let ok = AgentCharge(globex, globex.agent, globex.owner);
+    Log("charged=" + ToString(ok));
+    Log("globex.credits=" + ToString(globex.owner.credits));
+}

@@ -1,0 +1,30 @@
+// Fixed: the agent records calls through the world, which always targets the
+// current tenant's zone; an audit copy is taken with an explicit Clone.
+// Pergyra: mutation through the owning world's method and Clone(...) are admitted.
+subject Session {
+    let tenant: String;
+    let mut calls: Int;
+    action Record(self) -> Void { self.calls = self.calls + 1; }
+}
+
+zone ToolZone { subject slot session: Session }
+
+world AgentWorld {
+    zone tools: ToolZone
+
+    func Tenant(self) -> String { return tools.session.tenant; }
+    func Calls(self) -> Int { return tools.session.calls; }
+    func RecordCall(self) -> Void { tools.session.Record(); }
+    func Rotate(self, tenant: String) -> Void { self.tools = ToolZone(Session(tenant, 0)); }
+}
+
+func Main() -> Void {
+    let world = AgentWorld(ToolZone(Session("acme", 0)));
+    world.RecordCall();
+    let audit = Clone(world.tools);
+    world.Rotate("globex");
+    world.RecordCall();
+    world.RecordCall();
+    Log(world.Tenant() + " calls=" + ToString(world.Calls()));
+    Log("audit " + audit.session.tenant + " calls=" + ToString(audit.session.calls));
+}

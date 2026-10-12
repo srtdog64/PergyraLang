@@ -1,0 +1,26 @@
+// Bug: the agent keeps a handle to the world's tool zone, the world rotates to the
+// next tenant, and the agent then records a call through the stale handle.
+// Pergyra: a world-owned zone cannot escape into a local; refused at compile time.
+subject Session {
+    let tenant: String;
+    let mut calls: Int;
+    action Record(self) -> Void { self.calls = self.calls + 1; }
+}
+
+zone ToolZone { subject slot session: Session }
+
+world AgentWorld {
+    zone tools: ToolZone
+
+    func Tenant(self) -> String { return tools.session.tenant; }
+    func Calls(self) -> Int { return tools.session.calls; }
+    func Rotate(self, tenant: String) -> Void { self.tools = ToolZone(Session(tenant, 0)); }
+}
+
+func Main() -> Void {
+    let world = AgentWorld(ToolZone(Session("acme", 0)));
+    let handle = world.tools;
+    world.Rotate("globex");
+    handle.session.Record();
+    Log(world.Tenant() + " calls=" + ToString(world.Calls()));
+}

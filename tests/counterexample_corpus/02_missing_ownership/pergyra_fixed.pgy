@@ -1,0 +1,35 @@
+// Fixed: the charge step names the account owner as its authorizer.
+// Pergyra: accepted; 'owner' resolves to TenantZone's authority slot. The approval is a static
+// contract; at run time the generated check only tests that zone and participant are present.
+subject Agent {
+    let id: Int;
+}
+subject Account {
+    let mut credits: Int;
+    action Debit(self, amount: Int) -> Void {
+        self.credits = self.credits - amount;
+    }
+}
+zone TenantZone {
+    subject slot owner: Account
+    subject slot agent: Agent
+    authority owner
+}
+intent ChargeUsage(tenant: TenantZone, owner: Account, agent: Agent) {
+    step Charge {
+        where: TenantZone;
+        using: tenant;
+        who: agent;
+        authorized by: owner;
+        on: owner.Debit(30);
+        expect: owner.credits == 70;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let acme = TenantZone(Account(100), Agent(7));
+    let ok = ChargeUsage(acme, acme.owner, acme.agent);
+    Log("charged=" + ToString(ok));
+    Log("acme.credits=" + ToString(acme.owner.credits));
+}

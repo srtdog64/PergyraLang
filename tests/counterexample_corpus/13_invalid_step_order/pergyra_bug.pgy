@@ -1,0 +1,28 @@
+// Bug: the agent's checkout tool captures the tenant's payment before authorizing it.
+// Pergyra: the lifecycle makes call order part of the subject; the state here is
+// statically Pending, so the compiler refuses Capture (no PGY code, message only).
+subject Payment {
+    let tenant: String;
+    let amount: Int;
+    let mut captured: Int;
+
+    func Authorize(self) -> Void { }
+    func Capture(self) -> Void { self.captured = self.captured + self.amount; }
+}
+
+lifecycle Payment {
+    Authorize: Pending -> Authorized;
+    Capture: Authorized -> Captured;
+}
+
+// Tool call "checkout" run by the agent for tenant acme.
+func RunCheckoutTool(tenant: String, amount: Int) -> Int {
+    let payment: Payment = Payment(tenant, amount, 0);
+    payment.Capture();
+    payment.Authorize();
+    return payment.captured;
+}
+
+func Main() -> Void {
+    Log("captured=" + ToString(RunCheckoutTool("acme", 40)));
+}

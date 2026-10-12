@@ -1,0 +1,20 @@
+// Bug: the planner waits for the executor's capacity while the executor waits for the plan first; neither proceeds.
+// Pergyra: accepted and builds; nothing detects the wait cycle. Only the host wall-clock
+// watchdog (PGY_BUDGET_WALL_MS) ends the hung process: class budget-exceeded, op=wall-time.
+func Main() -> Void {
+    let plan_ch: Channel<Int> = Channel(1);
+    let capacity_ch: Channel<Int> = Channel(1);
+    let mut steps: Int = 0;
+    parallel {
+        {
+            let capacity: Int = <- capacity_ch;
+            plan_ch <- capacity;
+        }
+        {
+            let plan: Int = <- plan_ch;
+            capacity_ch <- 3;
+            steps = plan;
+        }
+    }
+    Log("acme turn executed " + ToString(steps) + " steps");
+}

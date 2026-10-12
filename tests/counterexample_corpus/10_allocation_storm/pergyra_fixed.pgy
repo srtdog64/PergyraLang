@@ -1,0 +1,19 @@
+// Fix: stop paging once the buffer holds the requested number of hits and report truncation.
+// The buffer is bounded by the request, not by the size of the search result.
+func SearchHit(rank: Int) -> Int {
+    return 700000 + rank;   // record id of the hit at this rank
+}
+
+func Main() -> Void {
+    let requested: Int = 20;
+    let matched: Int = 20000;
+    let buffer: List<Int> = ListNew();
+    let rank: Int = 0;
+    while rank < matched && ListSize(buffer) < requested {
+        ListPush(buffer, SearchHit(rank));
+        rank = rank + 1;
+    }
+    let truncated: Bool = matched > ListSize(buffer);
+    Log("acme requested=" + ToString(requested) + " buffered=" + ToString(ListSize(buffer)));
+    Log("truncated=" + ToString(truncated));
+}

@@ -1,0 +1,43 @@
+// Fixed: the acme agent's charge step runs in acme's own tenant zone, on acme's account.
+// Pergyra: accepted; the step's authorizer resolves to AcmeTenant's authority slot 'agent'.
+// The authority check is static; the runtime check only tests that zone and participant are present.
+subject Agent {
+    let id: Int;
+}
+subject Account {
+    let mut credits: Int;
+    action Debit(self, amount: Int) -> Void {
+        self.credits = self.credits - amount;
+    }
+}
+// acme delegated its account to the agent session; globex did not.
+zone AcmeTenant {
+    subject slot agent: Agent
+    subject slot owner: Account
+    authority agent
+}
+zone GlobexTenant {
+    subject slot agent: Agent
+    subject slot owner: Account
+    authority owner
+}
+intent AgentCharge(tenant: AcmeTenant, agent: Agent, owner: Account) {
+    step Charge {
+        where: AcmeTenant;
+        using: tenant;
+        who: agent;
+        authorized by: agent;
+        on: owner.Debit(30);
+        expect: owner.credits == 70;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let acme = AcmeTenant(Agent(7), Account(100));
+    let globex = GlobexTenant(Agent(7), Account(500));
+    let ok = AgentCharge(acme, acme.agent, acme.owner);
+    Log("charged=" + ToString(ok));
+    Log("acme.credits=" + ToString(acme.owner.credits));
+    Log("globex.credits=" + ToString(globex.owner.credits));
+}

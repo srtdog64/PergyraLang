@@ -1,0 +1,28 @@
+// Fixed: the checkout tool authorizes the payment, then captures it.
+// Pergyra: Authorize moves the statically known state Pending -> Authorized, so the
+// lifecycle check admits Capture at compile time.
+subject Payment {
+    let tenant: String;
+    let amount: Int;
+    let mut captured: Int;
+
+    func Authorize(self) -> Void { }
+    func Capture(self) -> Void { self.captured = self.captured + self.amount; }
+}
+
+lifecycle Payment {
+    Authorize: Pending -> Authorized;
+    Capture: Authorized -> Captured;
+}
+
+// Tool call "checkout" run by the agent for tenant acme.
+func RunCheckoutTool(tenant: String, amount: Int) -> Int {
+    let payment: Payment = Payment(tenant, amount, 0);
+    payment.Authorize();
+    payment.Capture();
+    return payment.captured;
+}
+
+func Main() -> Void {
+    Log("captured=" + ToString(RunCheckoutTool("acme", 40)));
+}

@@ -1,0 +1,19 @@
+// Fixed: the agent turn awaits the search tool call before it reports the turn complete.
+// Pergyra: the Future is retired by await on every path out of RunAgentTurn, so the
+// lifecycle check admits the program.
+async func SearchTool(tenant: String) -> Int {
+    Log("search tool finished for " + tenant);
+    return 3;
+}
+
+async func RunAgentTurn(tenant: String) -> Int {
+    let search: Future<Int> = spawn SearchTool(tenant);
+    let hits: Int = await search;
+    Log("turn complete for " + tenant);
+    return hits;
+}
+
+async func Main() -> Void {
+    let hits: Int = RunAgentTurn("acme");
+    Log("session closed for acme, hits=" + ToString(hits));
+}

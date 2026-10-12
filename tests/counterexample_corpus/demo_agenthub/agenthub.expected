@@ -1,0 +1,4 @@
+reply to acme: 3 results
+turn 1 charged=true acme=70 globex=500 executed=1
+compensate: refund 30 to acme
+turn 2 charged=false acme=70 ledger=1

@@ -1,0 +1,101 @@
+// AgentHub demo: one agent turn for tenant acme. The agent searches, plans and runs a
+// tool, charges acme for it and records the charge. demo.sh rebuilds this file with one
+// common mistake at a time; each mistake is refused before the program exists.
+subject Agent {
+    let id: Int;
+}
+
+subject Account {
+    let tenant: String;
+    let mut credits: Int;
+    action Debit(self, amount: Int) -> Void { self.credits = self.credits - amount; }
+    action Refund(self, amount: Int) -> Void {
+        self.credits = self.credits + amount;
+        Log("compensate: refund " + ToString(amount) + " to " + self.tenant);
+    }
+}
+
+subject Ledger {
+    let mut capacity: Int;
+    let mut entries: Int;
+    action Record(self) -> Void { self.capacity = self.capacity - 1; self.entries = self.entries + 1; }
+}
+
+// acme delegated its account to the agent session; globex did not. Each tenant is its own
+// zone type: Pergyra does not yet tell two instances of one zone type apart (corpus case 01).
+zone AcmeTenant {
+    subject slot agent: Agent
+    subject slot owner: Account
+    authority agent
+}
+zone GlobexTenant {
+    subject slot agent: Agent
+    subject slot owner: Account
+    authority owner
+}
+zone Books { subject slot ledger: Ledger }
+
+// A tool run must be planned before it executes.
+subject ToolRun {
+    let tool: String;
+    let mut executed: Int;
+    func Plan(self) -> Void { }
+    func Execute(self) -> Void { self.executed = self.executed + 1; }
+}
+lifecycle ToolRun {
+    Plan: Pending -> Planned;
+    Execute: Planned -> Done;
+}
+
+// Charging and recording are one purpose: if recording fails, the charge is undone.
+intent ChargeTurn(tenant: AcmeTenant, books: Books, agent: Agent, owner: Account, ledger: Ledger, cost: Int) {
+    rollback: full;
+    step charge {
+        where: AcmeTenant;
+        using: tenant;
+        who: agent;
+        authorized by: agent;
+        on: owner.Debit(cost);
+        compensate: owner.Refund(cost);
+    }
+    step record {
+        where: Books;
+        using: books;
+        who: ledger;
+        pre: ledger.capacity > 0;
+        on: ledger.Record();
+    }
+    success: true;
+}
+
+async func SearchTool(tenant: String) -> Int {
+    return 3;
+}
+
+// The reply tool may write the answer and nothing else.
+func DraftReply(tenant: String, hits: Int) -> Void with caps io_write {
+    Print("reply to " + tenant + ": " + ToString(hits) + " results\n");
+}
+
+func RunTool(name: String) -> Int {
+    let run: ToolRun = ToolRun(name, 0);
+    run.Plan();
+    run.Execute();
+    return run.executed;
+}
+
+async func Main() -> Void {
+    let acme = AcmeTenant(Agent(7), Account("acme", 100));
+    let globex = GlobexTenant(Agent(7), Account("globex", 500));
+    let search: Future<Int> = spawn SearchTool("acme");
+    let hits: Int = await search;
+    let executed: Int = RunTool("summarize");
+    DraftReply("acme", hits);
+    let books = Books(Ledger(1, 0));
+    let first = ChargeTurn(acme, books, acme.agent, acme.owner, books.ledger, 30);
+    Log("turn 1 charged=" + ToString(first) + " acme=" + ToString(acme.owner.credits)
+        + " globex=" + ToString(globex.owner.credits) + " executed=" + ToString(executed));
+    let second = ChargeTurn(acme, books, acme.agent, acme.owner, books.ledger, 30);
+    Log("turn 2 charged=" + ToString(second) + " acme=" + ToString(acme.owner.credits)
+        + " ledger=" + ToString(books.ledger.entries));
+}

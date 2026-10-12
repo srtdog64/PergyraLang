@@ -1,0 +1,18 @@
+// Bug: one agent request runs wait_for_export, which spins on the host clock until the job deadline.
+// Pergyra: accepted and runs. Clock access is one capability bit (PGY_CAP_CLOCK), unlimited once
+// granted, and no budget kind counts host calls, so the call storm is not stopped.
+func Main() -> Void {
+    let expectedCalls: Int = 10;   // a wait should need a handful of host calls
+    let waitMs: Long = 50;         // export job promised within 50 ms
+    let deadline: Long = Now() + waitMs;
+    let calls: Int = 1;
+    let reported: Bool = false;
+    // Busy-wait: every spin is one host clock call.
+    while Now() < deadline {
+        calls = calls + 1;
+        if calls > expectedCalls && !reported {
+            Log("BUG_MANIFESTED 11");
+            reported = true;
+        }
+    }
+}

@@ -1,0 +1,22 @@
+// Fixed: the agent cancels the export tool call and then awaits it, so "stopped" is reported
+// only after the call has finished. Pergyra: Cancel followed by await retires the Future.
+// The chunk count depends on when the tool observes the cancel, so it is not printed.
+func ExportTool(tenant: String) -> Int {
+    if (IsCancelled()) {
+        return 0;
+    }
+    return 1;
+}
+
+async func StopExport(tenant: String) -> Bool {
+    let export_call: Future<Int> = spawn ExportTool(tenant);
+    let requested: Bool = Cancel(export_call);
+    let chunks: Int = await export_call;
+    Log("export tool call stopped and joined for " + tenant);
+    return requested;
+}
+
+async func Main() -> Void {
+    let requested: Bool = StopExport("acme");
+    Log("cancel requested: " + ToString(requested));
+}

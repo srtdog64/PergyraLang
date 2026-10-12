@@ -1,0 +1,36 @@
+// Fixed: the agent may change the plan only under the account owner's authority, not the guest's.
+// Pergyra: accepted; 'owner' resolves to AccountZone's authority slot. The approval is a static
+// contract; the original requester of a deputy call is not recorded.
+subject Agent {
+    let id: Int;
+}
+subject User {
+    let mut plan: Int;
+    action SetPlan(self, plan: Int) -> Void {
+        self.plan = plan;
+    }
+}
+zone AccountZone {
+    subject slot owner: User
+    subject slot guest: User
+    subject slot agent: Agent
+    authority owner
+}
+intent EditPlan(account: AccountZone, owner: User, guest: User, agent: Agent) {
+    step Edit {
+        where: AccountZone;
+        using: account;
+        who: agent;
+        authorized by: owner;
+        on: owner.SetPlan(3);
+        expect: owner.plan == 3;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let acme = AccountZone(User(1), User(0), Agent(7));
+    let ok = EditPlan(acme, acme.owner, acme.guest, acme.agent);
+    Log("edited=" + ToString(ok));
+    Log("owner.plan=" + ToString(acme.owner.plan));
+}

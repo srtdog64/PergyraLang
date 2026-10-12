@@ -1,0 +1,18 @@
+// Bug: the agent turn starts a background search tool call for tenant acme and returns without joining it.
+// Pergyra: a named spawn yields a Future that must be awaited before the function exits;
+// the compiler refuses RunAgentTurn (PGY_SEM_TASK_LIFECYCLE), nothing is emitted.
+async func SearchTool(tenant: String) -> Int {
+    Log("search tool finished for " + tenant);
+    return 3;
+}
+
+async func RunAgentTurn(tenant: String) -> Int {
+    let search: Future<Int> = spawn SearchTool(tenant);
+    Log("turn complete for " + tenant);
+    return 0;
+}
+
+async func Main() -> Void {
+    let hits: Int = RunAgentTurn("acme");
+    Log("session closed for acme, hits=" + ToString(hits));
+}

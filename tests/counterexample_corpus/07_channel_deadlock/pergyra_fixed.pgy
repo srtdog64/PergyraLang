@@ -1,0 +1,20 @@
+// Fixed: the executor announces its capacity before it waits for the plan, so the waits form no cycle.
+// Pergyra: same program shape; the correct order is the programmer's responsibility,
+// because the compiler does not check channel wait order.
+func Main() -> Void {
+    let plan_ch: Channel<Int> = Channel(1);
+    let capacity_ch: Channel<Int> = Channel(1);
+    let mut steps: Int = 0;
+    parallel {
+        {
+            let capacity: Int = <- capacity_ch;
+            plan_ch <- capacity;
+        }
+        {
+            capacity_ch <- 3;
+            let plan: Int = <- plan_ch;
+            steps = plan;
+        }
+    }
+    Log("acme turn executed " + ToString(steps) + " steps");
+}
