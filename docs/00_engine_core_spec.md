@@ -47,7 +47,7 @@ Pergyra Engine Core는 다음 요구를 만족해야 한다.
 - 공용 타입과 공용 API는 PascalCase
 - 세미콜론 `;` 필수
 - 블록은 같은 줄에서 `{`
-- 엔진 코어의 기준 문법은 [syntax.md](/mnt/e/PergyraLang/doc/syntax.md)와 이 문서를 함께 따른다
+- 엔진 코어의 기준 문법은 [syntax.md](grammar/01_syntax.md)와 이 문서를 함께 따른다
 
 ## 4. Struct
 

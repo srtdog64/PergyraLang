@@ -1,6 +1,6 @@
 # Pergyra 모듈 시스템
 
-엔진용 코어 언어 우선순위에서 모듈 시스템의 기준은 [engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)의 9장을 우선한다.
+엔진용 코어 언어 우선순위에서 모듈 시스템의 기준은 [engine_core_spec.md](00_engine_core_spec.md)의 9장을 우선한다.
 
 현재 구현 기준:
 
