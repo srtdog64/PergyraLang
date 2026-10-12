@@ -162,16 +162,16 @@ tests/cases/backend_compare/**/main.c
 .DS_Store
 Thumbs.db
 
-# VS Code extension packages are release artifacts. Historical packages stay
-# tracked, but local/package-version rebuilds must not create new source facts.
+# VS Code extension packages are release artifacts. Publish them as release
+# assets; the repository never tracks a packaged .vsix.
 *.vsix
 
-# Review notes (private folder + README tracked, contents ignored)
-review/*
-!review/README.md
+# Private review notes; never tracked. `make timing` creates the folder itself.
+/review/
 
 # Debug
 /SESSION_CHANGES.md
+gmon.out
 *.dSYM/
 core
 vgcore.*
