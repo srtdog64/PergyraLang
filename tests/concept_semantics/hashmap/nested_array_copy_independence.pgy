@@ -1,0 +1,22 @@
+// Ordinary literal/push descriptor storage is not the copy operation here.
+func Main() -> Void
+{
+    let intRow: Array<Int> = [7, 8];
+    let ints: Array<Array<Int>> = [intRow];
+    let copiedInts: Array<Array<Int>> = Clone(ints);
+    ArraySet(intRow, 0, 99);
+    Log(ints[0][0]);
+    Log(copiedInts[0][0]);
+    Log(copiedInts[0][1]);
+    let stringRow: Array<String> = ["alpha", "beta"];
+    let strings: Array<Array<String>> = [stringRow];
+    let copiedStrings: Array<Array<String>> = Clone(strings);
+    ArraySet(stringRow, 0, "changed");
+    Log(strings[0][0]);
+    Log(copiedStrings[0][0]);
+    Log(copiedStrings[0][1]);
+    let emptyInts: Array<Array<Int>> = [];
+    let emptyStrings: Array<Array<String>> = [];
+    Log(ArrayLength(Clone(emptyInts)));
+    Log(ArrayLength(Clone(emptyStrings)));
+}

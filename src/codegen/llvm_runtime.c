@@ -502,6 +502,21 @@ llvm_declare_runtime_entrypoints(LLVMGenCtx *ctx)
               llvm_slice_struct_type(ctx, suffix)); }
     }
 
+    const char *nested_suffixes[] = {"Array_Int", "Array_Long", "Array_Float",
+        "Array_Double", "Array_Bool", "Array_String"};
+    for (size_t i = 0; i < sizeof(nested_suffixes) / sizeof(nested_suffixes[0]); i++) {
+        LLVMTypeRef array = llvm_array_struct_type(ctx, nested_suffixes[i]);
+        LLVMTypeRef params[] = {LLVMPointerType(array, 0), LLVMPointerType(array, 0)};
+        LLVMTypeRef type = LLVMFunctionType(ctx->type_void, params, 2, 0);
+        char name[64];
+        int written = snprintf(name, sizeof(name), "pgy_array_clone_%s_into", nested_suffixes[i]);
+        if (written < 0 || (size_t)written >= sizeof(name)) {
+            llvm_set_error(ctx, "Nested array clone runtime name is too long");
+            return;
+        }
+        LLVMValueRef function = LLVMAddFunction(ctx->module, name, type);
+        llvm_register_function(ctx, LLVMGetValueName(function), function, type, ctx->type_void);
+    }
     llvm_declare_runtime_task_memory(ctx);
     llvm_declare_runtime_raw_collections(ctx);
     llvm_declare_runtime_channels(ctx);

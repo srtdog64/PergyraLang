@@ -8,7 +8,11 @@
 #define PGY_ARRAY_EXPORT_COPY_VALUE_Double(value) (value)
 #define PGY_ARRAY_EXPORT_COPY_VALUE_Bool(value)   (value)
 #define PGY_ARRAY_EXPORT_COPY_VALUE_String(value) \
-    pgy_runtime_strdup_export((value) != NULL ? (value) : "")
+    ({ const char *pgy_copy_source = (value); \
+       char *pgy_copy = pgy_runtime_strdup_export(pgy_copy_source != NULL ? pgy_copy_source : ""); \
+       if (pgy_copy == NULL) \
+           PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
+       pgy_copy; })
 
 #define PGY_DEFINE_ARRAY_EXPORTS(Suffix, CType)                                  \
 typedef struct {                                                                 \
@@ -52,9 +56,9 @@ PgyArray_##Suffix pgy_array_clone_##Suffix(PgyArray_##Suffix *arr)              
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
                           "array clone on null array");                         \
     }                                                                            \
-    if (arr->length > 0 && arr->data == NULL) {                                  \
+    if (arr->length > arr->capacity || (arr->capacity > 0 && arr->data == NULL)) { \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
-                          "array clone on array without backing storage");      \
+                          "array clone on invalid array descriptor");            \
     }                                                                            \
     out = pgy_array_new_##Suffix(arr->length);                                   \
     for (size_t i = 0; i < arr->length; i++)                                    \

@@ -348,6 +348,21 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         ok_ctype, combined, combined, ok_ctype, ok_tag, ok_field);
 }
 
+const char *transpiler_array_copy_leaf_suffix(TranspilerCtx *ctx, const char *element_type)
+{
+    static const char *const leaves[] = {"Int", "Long", "Float", "Double", "Bool", "String"};
+    char alias[256], inner[128];
+    if (ctx == NULL || element_type == NULL) return NULL;
+    element_type = transpiler_type_name_resolve_aliases(ctx, element_type, alias, sizeof(alias));
+    if (transpiler_type_name_is_array(element_type)) {
+        if (!slot_inner_type_name_copy(element_type, inner, sizeof(inner))) return NULL;
+        element_type = transpiler_type_name_resolve_aliases(ctx, inner, alias, sizeof(alias));
+    }
+    for (size_t i = 0; element_type != NULL && i < sizeof(leaves) / sizeof(leaves[0]); i++)
+        if (strcmp(element_type, leaves[i]) == 0) return leaves[i];
+    return NULL;
+}
+
 void
 ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                     const char *kind, const char *inner_type)
@@ -367,28 +382,15 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
             ctx, &inner_type, inner_subst, sizeof(inner_subst)))
         return;
 
-    if ((strcmp(kind, "List") == 0 || strcmp(kind, "Queue") == 0)
-        && (strcmp(inner_type, "Int") == 0
-            || strcmp(inner_type, "String") == 0)) {
-        return;
-    }
-    if (strcmp(kind, "Map") == 0
-        && (strcmp(inner_type, "Int") == 0
-            || strcmp(inner_type, "String") == 0)) {
-        return;
-    }
-    if (strcmp(kind, "Set") == 0
+    if ((strcmp(kind, "List") == 0 || strcmp(kind, "Queue") == 0 ||
+         strcmp(kind, "Map") == 0 || strcmp(kind, "Set") == 0)
         && (strcmp(inner_type, "Int") == 0
             || strcmp(inner_type, "String") == 0)) {
         return;
     }
     if (strcmp(kind, "Array") == 0
-        && (strcmp(inner_type, "Int") == 0
-            || strcmp(inner_type, "Long") == 0
-            || strcmp(inner_type, "Float") == 0
-            || strcmp(inner_type, "Double") == 0
-            || strcmp(inner_type, "Bool") == 0
-            || strcmp(inner_type, "String") == 0)) {
+        && !transpiler_type_name_is_array(inner_type)
+        && transpiler_array_copy_leaf_suffix(ctx, inner_type) != NULL) {
         return;
     }
 
@@ -458,17 +460,21 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                 suffix, ctype, suffix);
         }
     } else if (strcmp(kind, "Array") == 0) {
+        const char *leaf = transpiler_type_name_is_array(inner_type)
+            ? transpiler_array_copy_leaf_suffix(ctx, inner_type) : NULL;
+        if (leaf != NULL)
+            codebuf_write(dst, "#define PGY_ARRAY_COPY_VALUE_%s(value) pgy_array_clone_%s(&(PgyArray_%s[]){(value)}[0])\n",
+                suffix, leaf, leaf);
+        else
+            codebuf_write(dst, "#ifndef PGY_ARRAY_COPY_VALUE_%s\n#define PGY_ARRAY_COPY_VALUE_%s(value) (value)\n#endif\n",
+                suffix, suffix);
         codebuf_write(dst,
             "\n/* PGY_COLLECTION_ARRAY_%s */\n"
-            "#ifndef PGY_ARRAY_COPY_VALUE_%s\n"
-            "#define PGY_ARRAY_COPY_VALUE_%s(value) (value)\n"
-            "#endif\n"
             "#pragma GCC diagnostic push\n"
             "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
             "PGY_ARRAY_DECLARE(%s, %s)\n"
             "#pragma GCC diagnostic pop\n",
             suffix,
-            suffix, suffix,
             suffix, ctype);
         /* Descriptors can occur in recursive nominal fields. Runtime bodies
          * join the file-scope declarations after all nominal layouts; their

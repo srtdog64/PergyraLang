@@ -30,6 +30,7 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
+#include "transpiler_specialization_registry.h"
 
 static bool
 transpiler_stdlib_copy_type_name(char *out, size_t out_size,
@@ -235,6 +236,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free(slice);
                 return NULL;
             }
+            if (transpiler_type_name_is_array(inner) && transpiler_array_copy_leaf_suffix(ctx, inner) == NULL) {
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: SliceCopy has no concrete nested-array copy operation");
+                free(slice);
+                return NULL;
+            }
+            transpiler_array_inner_sanitize_suffix(inner_buf, sizeof(inner_buf), &inner);
             int tmp_id = ++ctx->tmp_counter;
             char *result = strdup_fmt(
                 "({ PgySlice_%s _pgy_slice_copy_%d = %s; "
@@ -530,6 +539,13 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         PGY_CAUSE_C_TYPE_UNSUPPORTED,
                         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                         "C backend: Clone requires concrete Array<T> metadata");
+                    free(src);
+                    return NULL;
+                }
+                if (transpiler_type_name_is_array(inner) && transpiler_array_copy_leaf_suffix(ctx, inner) == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C backend: Clone has no concrete nested-array copy operation");
                     free(src);
                     return NULL;
                 }

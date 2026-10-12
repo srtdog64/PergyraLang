@@ -279,6 +279,12 @@ llvm_array_value_suffix(LLVMGenCtx *ctx, LLVMValueRef array)
     if (ty == ctx->array_type_Double) return "Double";
     if (ty == ctx->array_type_Bool)   return "Bool";
     if (ty == ctx->array_type_String) return "String";
+    if (ty == ctx->array_type_Array_Int) return "Array_Int";
+    if (ty == ctx->array_type_Array_Long) return "Array_Long";
+    if (ty == ctx->array_type_Array_Float) return "Array_Float";
+    if (ty == ctx->array_type_Array_Double) return "Array_Double";
+    if (ty == ctx->array_type_Array_Bool) return "Array_Bool";
+    if (ty == ctx->array_type_Array_String) return "Array_String";
     return NULL;
 }
 
@@ -291,7 +297,7 @@ llvm_emit_array_clone_value(ASTNode *node, LLVMGenCtx *ctx,
     const char *suffix;
     LLVMFuncEntry *fn;
     LLVMValueRef address;
-    LLVMValueRef args[1];
+    LLVMValueRef args[2];
 
     if (out == NULL || ctx == NULL || value == NULL)
         return false;
@@ -312,6 +318,14 @@ llvm_emit_array_clone_value(ASTNode *node, LLVMGenCtx *ctx,
         *out = NULL;
         return true;
     }
+    bool nested = strncmp(suffix, "Array_", 6) == 0;
+    char clone_suffix[32];
+    if (nested) {
+        int written = snprintf(clone_suffix, sizeof(clone_suffix), "%s_into", suffix);
+        if (written < 0 || (size_t)written >= sizeof(clone_suffix))
+            return llvm_array_error_out(node, ctx, "Nested Clone runtime suffix is too long", out);
+        suffix = clone_suffix;
+    }
     fn = llvm_array_required_suffix_runtime(ctx, node,
         "Clone", "pgy_array_clone", suffix,
         "LLVM Clone requires registered array-clone runtime function", out);
@@ -321,8 +335,20 @@ llvm_emit_array_clone_value(ASTNode *node, LLVMGenCtx *ctx,
     address = llvm_create_entry_alloca(ctx, value_type, "array.clone.addr");
     LLVMBuildStore(ctx->builder, value, address);
     args[0] = address;
-    *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-        args, 1, llvm_tmp_name(ctx));
+    if (nested) {
+        LLVMTypeRef params[] = {LLVMPointerType(value_type, 0), LLVMPointerType(value_type, 0)};
+        LLVMTypeRef abi = LLVMFunctionType(ctx->type_void, params, 2, 0);
+        if (fn->ret_type != ctx->type_void || fn->fn_type != abi || fn->fn == NULL ||
+            LLVMIsAFunction(fn->fn) == NULL || LLVMGlobalGetValueType(fn->fn) != abi ||
+            !fn->runtime_entrypoint || fn->name == NULL || LLVMGetNamedFunction(ctx->module, fn->name) != fn->fn)
+            return llvm_array_error_out(node, ctx, "Nested Clone requires its exact registered pointer-out ABI", out);
+        LLVMValueRef result = llvm_create_entry_alloca(ctx, value_type, "array.clone.result");
+        args[1] = result;
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        *out = LLVMBuildLoad2(ctx->builder, value_type, result, llvm_tmp_name(ctx));
+    } else {
+        *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx));
+    }
     return true;
 }
 

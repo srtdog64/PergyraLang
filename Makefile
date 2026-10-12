@@ -1936,6 +1936,29 @@ $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
+ifeq ($(LLVM_ENABLED),1)
+ALL_DEP_FILES += $(BUILD_DIR)/tests/llvm_nested_array_clone_transport_unit.d
+
+$(BUILD_DIR)/tests/llvm_nested_array_clone_transport_unit.o: tests/compiler/llvm_nested_array_clone_transport_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/llvm_nested_array_clone_transport_unit.o | $(BIN_DIR)
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: nested-array-copy-test-smoke
+nested-array-copy-test-smoke: $(PGY) $(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT)
+	PGY_BIN="$(abspath $(PGY))" NESTED_ARRAY_CLONE_UNIT="$(abspath $(BIN_DIR)/llvm_nested_array_clone_transport_unit$(EXEEXT))" CC="$(CC)" "$(BASH)" tests/nested_array_copy_smoke.sh
+
+nested-array-test-smoke: nested-array-copy-test-smoke
+else
+.PHONY: nested-array-copy-test-smoke
+nested-array-copy-test-smoke:
+	@echo "nested-array-copy-test-smoke requires LLVM_ENABLED=1 for its C/LLVM and transport checks" >&2
+	@exit 1
+endif
+
 # C backend test
 $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))

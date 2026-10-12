@@ -3,6 +3,9 @@
 
 #include "transpiler.h"
 
+const char *transpiler_array_copy_leaf_suffix(TranspilerCtx *ctx,
+                                             const char *element_type);
+
 void ensure_result_specialization_to(TranspilerCtx *ctx,
                                      CodeBuf *dst,
                                      const char *ok_type,
