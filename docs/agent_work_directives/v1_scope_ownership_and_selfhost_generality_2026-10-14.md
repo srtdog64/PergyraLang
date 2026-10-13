@@ -77,13 +77,22 @@ being promoted to `CLOSED`.
   That round trip is the text re-parse that
   `docs/self_hosted/14_target_compiler_world.md` rejects as a handoff.
 
-  **The AST fallback is closed to programs that carry ownership facts.**
-  `driver_rung2_scalar_c_substitution_owner.pgy` forces the direct route
-  whenever a routine carries collection ownership facts. Rebuilding cleanup
-  from the AST would throw the MIR fact away. If no shape claims such a
-  program, the route admission ends in `Die`. Each ownership fact that
-  ownership automation adds therefore ties C, too, to the shape list. This is
-  where the two V1 goals meet.
+  **Ownership facts and the AST fallback.** For a program with no
+  declarations, `driver_rung2_scalar_c_substitution_owner.pgy` forces the
+  direct route whenever a routine carries collection ownership facts:
+  rebuilding cleanup from the AST would throw the MIR fact away, and an
+  unclaimed program ends in `Die`.
+
+  A program that has any declaration skips the substitution entirely (`decls`
+  non-empty, :17) and takes the AST fallback. The fallback drops the MIR
+  ownership facts, because no file under `codegen/` reads
+  `collection_ownership`. Cleanup then comes from the AST codegen's own
+  reasoning, a second authority.
+
+  Either way, the facts ownership automation produces reach C only through
+  the shape list or not at all. This is where the two V1 goals meet. The
+  detail is in
+  [`selfhost_c_path_review_2026-10-14.md`](../audits/selfhost_c_path_review_2026-10-14.md).
 
   The rule for extending: when a program fails, add the missing MIR
   instruction kind, expression node kind or ABI row to the general emitter.
@@ -93,12 +102,22 @@ being promoted to `CLOSED`.
   `CodegenRouteRefusal` (`CODEGEN ERROR: ...`). Self-host LLVM is therefore
   limited to the claimed shapes.
 - **The general emitter is smaller than the shape code it replaces.**
-  - **The input exists.** The self-host direct route reads only the admitted
-    MIR JSON (`MirMachineLayerAdmittedJsonInput`). For the shapes it claims,
-    that JSON already carries everything emission needs: records, arrays,
-    strings, options, enums and nested intents. The C fallback rebuilds an AST
-    because the general codegen it reuses is AST-based. Nothing on that route
-    names a fact that MIR lacks.
+  - **The input mostly exists.** The self-host direct route reads only the
+    admitted MIR JSON (`MirMachineLayerAdmittedJsonInput`). For the shapes it
+    claims, that is enough: records, arrays, strings, options, enums and
+    nested intents.
+
+    The AST fallback's second semantic pass re-derives three inputs that the
+    MIR JSON does not carry:
+    - zone carriage: the self-host writer hardcodes
+      `"resource_flow_symbol_count":0`;
+    - DIR intent source facts for intents the MIR plan does not own;
+    - declaration rows: rebuilt from analysis rather than read from MIR
+      `decls`, which makes a duplicate authority.
+
+    The MIR producer must emit these before the round trip can go. Of the 97k
+    direct_mir lines, about 7k are reusable C emission and about 43k are pure
+    shape admission (same audit).
   - **Still to measure.** Whether the JSON carries enough for the whole
     native-admitted corpus is measured on the installed driver, not assumed.
   - **The work is bounded.** MIR has 10 instruction kinds, the expression
@@ -174,6 +193,15 @@ P0 is active. The lanes, in order:
 - `CODEGEN ERROR` route refusals over that corpus. Target 0.
 - Ownership refusals on the fixed DRV-2 input. Target 0, with safety gates
   preserved.
+
+  Baseline at `60b9d62bc`, from
+  [`p0_ownership_refusal_census_2026-10-14.md`](../audits/p0_ownership_refusal_census_2026-10-14.md):
+  - 9 on the gen1 input `codegen/main.pgy`;
+  - 97 on the installed-driver input `compiler/driver_bootstrap_main.pgy`.
+
+  All 97 come from the collection ownership scan, at 9 sites and with 13
+  boundary kinds. These are upper bounds: later owners in the bundle assembly
+  were not reached.
 
 ## Out of scope for V1
 
