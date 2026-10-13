@@ -135,6 +135,36 @@ general emitter per backend, not as more admitted shapes.
    is deleted last.
 4. **Generality, LLVM.** Same method. Route refusals go to zero.
 
+## Work split (owner decision, 2026-10-14)
+
+P0 is active. The lanes, in order:
+
+- **GPT lane: P0 implementation.** This lane continues the `focus17`
+  candidate under `compiler_closure_priorities_2026-10-14.md`, which owns the
+  dependency order, the lanes and the integration gate. Its uncommitted files
+  in the shared tree belong to this lane.
+- **Claude lane: investigation and verification.** This lane does not edit
+  the P0 candidate's files. Its outputs are observations and reviews, not a
+  second implementation:
+  1. **Full failure census of the fixed DRV-2 input on main.** Instrument a
+     scratch copy of the reached verdict owner so the bootstrap reports every
+     ownership refusal, not only the first. Record each refusal with its node,
+     code, boundary and owner. That gives P0 its real remaining set, replacing
+     the historical 97 and the current first error.
+  2. **Review of the candidate** as each coherent unit lands. Check it against
+     the ownership contract (`docs/semantics/27_ownership_clean.md` §5) and
+     the census, and add executable falsifiers where a refusal has none.
+  3. **C-path review.** List what in the self-host C path must be fixed or
+     refactored for V1 generality:
+     - the claimed-shape emitters and their per-operation pieces;
+     - the MIR → AST round trip;
+     - the route that ownership facts force;
+     - the AST codegen.
+
+     Record which parts become the general MIR → C emitter, which are
+     deleted, and in what order. This is a plan for after P0; no C-path edit
+     starts while P0 is open.
+
 ## Measurements to track
 
 - `direct_mir_*` file and line count inside the driver import closure. It
