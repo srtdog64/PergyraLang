@@ -99,8 +99,9 @@ decide on them. On 2026-10-14 the owner decided:
   change, in a WSL clone with the native compiler only.
   - 0 scripts went from pass to fail.
   - 10 went from fail to pass. Each had failed on a stale text check.
-  - 239 failed in both runs, each with the same last line before and after.
-    The last lines show:
+  - 239 failed in both runs. Seven of them stopped at a different point after
+    the change, because the text check that used to fail first was gone. By
+    last output line after the change:
     - 198 stopped on a missing installed self-host driver;
     - 4 stopped on the missing Rocq toolchain;
     - 8 stopped on probes or test binaries that this run did not build;
