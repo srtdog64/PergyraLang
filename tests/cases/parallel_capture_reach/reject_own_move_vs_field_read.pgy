@@ -9,7 +9,7 @@ func Take(own hero: Hero) -> Void {
 
 func Main() -> Void {
     let hero: Hero = Hero(10);
-    let mut a: Int = 0;
+    var a: Int = 0;
     parallel {
         { Take(hero); }
         { a = hero.hp; }

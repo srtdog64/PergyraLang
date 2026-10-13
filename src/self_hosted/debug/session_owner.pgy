@@ -11,13 +11,13 @@ import "../semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
 
 class DebugSessionState
 {
-    let mut running: Bool;
-    let mut step_mode: Bool;
-    let mut current_node_id: Int;
-    let mut current_line: Int;
-    let mut current_path: String;
-    let mut input_buffer: String;
-    let mut breakpoints: Array<Int>;
+    var running: Bool;
+    var step_mode: Bool;
+    var current_node_id: Int;
+    var current_line: Int;
+    var current_path: String;
+    var input_buffer: String;
+    var breakpoints: Array<Int>;
 }
 
 func NewDebugSessionState() -> DebugSessionState {

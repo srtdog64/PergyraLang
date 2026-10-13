@@ -184,7 +184,7 @@ func Main() -> Void {
 
     let flat: Array<Int> = [];
     let nominal: Array<Pixel> = [];
-    let mut frame: PixelFrame = PixelFrame(PixelBuffer([]));
+    var frame: PixelFrame = PixelFrame(PixelBuffer([]));
     let i: Int = 0;
     while i < pixelCount {
         ArrayPush(flat, 0);

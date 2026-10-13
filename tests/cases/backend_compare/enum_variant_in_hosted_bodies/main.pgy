@@ -21,8 +21,8 @@ subject Ent {
 }
 
 subject Runner {
-    let mut outcome: Option<Outcome>;
-    let mut last: Int;
+    var outcome: Option<Outcome>;
+    var last: Int;
 
     action Finish(self, n: Int) -> Bool
         authorized by self

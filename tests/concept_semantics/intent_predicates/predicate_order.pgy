@@ -3,7 +3,7 @@ func Check(label: String) -> Bool {
     return true;
 }
 subject W {
-    let mut calls: Int;
+    var calls: Int;
     action Go(self) -> Void { Log("action"); calls = calls + 1; }
 }
 zone Z { subject slot w: W }

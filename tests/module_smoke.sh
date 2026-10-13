@@ -134,7 +134,7 @@ mkdir -p "$WORK_DIR/implicit_export_intent" "$WORK_DIR/explicit_export_hides_int
 cat > "$WORK_DIR/implicit_export_intent/tasks.pgy" <<'EOF'
 within Shop {
     subject Worker {
-        let mut done: Int;
+        var done: Int;
 
         action Finish(self) -> Bool
             authorized by self

@@ -2,7 +2,7 @@
 // reads the bound subject as self, a write through the slot lands on the
 // subject, and a rebind replaces both the subject and the role.
 subject Fighter {
-    let mut power: Int;
+    var power: Int;
 }
 
 ability Talkable {

@@ -69,15 +69,15 @@ func HeapSub(
 }
 func ComputePrefix(first: Int, n: Int) -> Long {
     let twoN: Int = n + n; let histLen: Int = twoN + 1;
-    let mut perm: Array<Int> = [];
+    var perm: Array<Int> = [];
     ArrayPush(perm, first);
     let v: Int = 1;
     while v <= n { if v != first { ArrayPush(perm, v); } v = v + 1; }
-    let mut hist: Array<Long> = [];
+    var hist: Array<Long> = [];
     for k in 0..histLen { ArrayPush(hist, 0L); }
-    let mut next: Array<Int> = [];
+    var next: Array<Int> = [];
     for k in 0..twoN { ArrayPush(next, 0); }
-    let mut visited: Array<Int> = [];
+    var visited: Array<Int> = [];
     for k in 0..twoN { ArrayPush(visited, 0); }
     HeapSub(n - 1, 1, perm, n, hist, next, visited);
     let total: Long = 0L; let c: Int = 0;

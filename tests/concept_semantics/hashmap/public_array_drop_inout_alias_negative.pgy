@@ -3,7 +3,7 @@ func Aliased(inout values: Array<Int>) -> Void {
     Log(ArrayLength(other));
 }
 func Main() -> Void {
-    let mut values: Array<Int> = [7];
+    var values: Array<Int> = [7];
     Aliased(values);
     ArrayDrop(values);
 }

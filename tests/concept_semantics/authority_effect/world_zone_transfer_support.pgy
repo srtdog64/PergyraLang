@@ -1,5 +1,5 @@
 export subject Buyer {
-    let mut hp: Int;
+    var hp: Int;
     action Promote(self) -> Void { self.hp = self.hp + 1; }
 }
 export zone CartZone { subject slot buyer: Buyer }

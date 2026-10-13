@@ -11,10 +11,10 @@ struct MirDomainTopologyOwnerGraph {
     let edge_from_node_indexes: Array<Int>;
     let edge_to_node_indexes: Array<Int>;
     let schedule_node_indexes: Array<Int>;
-    let mut chain_depth: Int;
-    let mut pass_limit: Int;
-    let mut max_scc_size: Int;
-    let mut has_cycle: Bool;
+    var chain_depth: Int;
+    var pass_limit: Int;
+    var max_scc_size: Int;
+    var has_cycle: Bool;
 }
 
 func EmptyMirDomainTopologyOwnerGraph(valid: Bool) -> MirDomainTopologyOwnerGraph {

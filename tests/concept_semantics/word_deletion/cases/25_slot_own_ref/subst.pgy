@@ -1,4 +1,4 @@
-subject Vec2 { let mut x: Int; let mut y: Int; }
+subject Vec2 { var x: Int; var y: Int; }
 func Inner(v: Vec2) -> Void { v.x = 2; v.y = 2; }
 func Consume(v: Vec2) -> Void { Log("consumed"); }
 func Main() -> Void {

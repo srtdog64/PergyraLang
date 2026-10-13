@@ -11,13 +11,13 @@ tobject WorkflowActorSnapshot {
 }
 
 subject WorkflowActor {
-    let mut state: Int;
-    let mut trace: Int;
-    let mut a_calls: Int;
-    let mut b_calls: Int;
-    let mut undo_a_calls: Int;
-    let mut undo_b_first_calls: Int;
-    let mut undo_b_second_calls: Int;
+    var state: Int;
+    var trace: Int;
+    var a_calls: Int;
+    var b_calls: Int;
+    var undo_a_calls: Int;
+    var undo_b_first_calls: Int;
+    var undo_b_second_calls: Int;
 
     action ForwardA(self) -> Void
         requires WorkflowRunnable

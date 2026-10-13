@@ -6,7 +6,7 @@
 // codegen completion of that surface. The base array observes every write
 // made through the view, and reads through the view observe them too.
 func Main() -> Void {
-    let mut arr: Array<Int> = [10, 20, 30, 40];
+    var arr: Array<Int> = [10, 20, 30, 40];
     let view: Slice<Int> = arr.Slice(1, 2);
     view[0] = 99;
     view[1] = view[1] + 1;

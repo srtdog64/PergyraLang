@@ -91,7 +91,7 @@ assignment_field_write_path(ASTNode *node, SemanticContext *ctx)
                 PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, node,
                 "field '%s.%s' is immutable.\n"
                 "Reason:\n- it is declared with `let` (an immutable field binding)\n"
-                "Fix:\n- declare it `let mut %s: ...` or set it only at construction",
+                "Fix:\n- declare it `var %s: ...` or set it only at construction",
                 root_name, field_name, field_name);
         } else {
             Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(

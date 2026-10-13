@@ -365,7 +365,7 @@
         "7\n";
     static const char *relation_effect_propagation_source =
         "subject Player {\n"
-        "    let mut hp: Int;\n"
+        "    var hp: Int;\n"
         "}\n"
         "object PlayerView {\n"
         "    hp: Int;\n"

@@ -6,7 +6,7 @@
 // fixture ("cannot escape as a live binding"), locked by
 // tests/axis_composition_smoke.sh. The declared form is Clone(w.cart).
 subject Buyer {
-    let mut hp: Int;
+    var hp: Int;
     action Promote(self) -> Void {
         self.hp = self.hp + 1;
     }

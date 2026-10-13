@@ -93,7 +93,7 @@ fact를 재추론하지 않는다. 특히 `ReceiverCarriage`를 일반 parameter
 | 구성체 | 존재/identity | 함수 경계 전달 | hosted receiver | construction 이후 상태 | 허용 동사 | 경계 의미 |
 | --- | --- | --- | --- | --- | --- | --- |
 | `struct` | 작은 구조 값, identity 없음 | 값 복사 | 없음 | 바인딩/필드 규칙에 따른 값 갱신 | free `func`의 입력/출력. hosted `func`는 semantic에서 거부 | 값 fact, 좌표, 옵션, 계획 행 |
-| `class` | 수동 nominal 값/도구, identity 없음 | 값 복사와 값 반환 | value-self | `let mut` 필드는 직접 바인딩을 통해 갱신 가능. hosted func 안의 갱신은 호출자 identity 전이가 아님 | hosted `func` | 계산이 붙은 도구, formatter, policy value |
+| `class` | 수동 nominal 값/도구, identity 없음 | 값 복사와 값 반환 | value-self | `var` 필드는 직접 바인딩을 통해 갱신 가능. hosted func 안의 갱신은 호출자 identity 전이가 아님 | hosted `func` | 계산이 붙은 도구, formatter, policy value |
 | `object` | local projection 값, 능동 identity 없음 | 값 복사 | value-self | construction 이후 read-only. source를 갱신하고 `refresh`하거나 새 view 생성 | 관측/format/query `func`만 권장. `action` 금지 | 동일 실행 경계의 refreshable read projection; 현재 ABI는 value projection |
 | `tobject` | 외부 전달 값, identity/authority 없음 | materialized 값 복사 | 현재 passive helper는 value-self; canonical surface는 receiver 없음 | immutable. 새 snapshot을 `publish` | 현재 semantic은 passive `func`를 허용하지만 새 코드는 method-free. `action` 금지 | API/IPC/persistence/world 경계 transfer |
 | `vessel` | subject-owned 수동 상태 값, 독립 actor identity 없음 | canonical은 값 전달. **현재 C/LLVM은 잘못 자동 간접 전달** | **pointer-self** | owner가 호출한 hosted `func`가 원본 내부 상태를 갱신 가능 | hosted `func`; `action` 금지 | subject 내부 상태·자원·규칙 수용체 |
@@ -992,7 +992,7 @@ subject CompilerExecution {
    field-mutability fact를 소비하지 않는다. 실제 probe에서 `class`와 `subject`의
    `let count`도 bare assignment가 통과했고, class caller는 7로 남은 반면 subject
    원본은 8로 바뀌었다. `MIRDeclField`에는 현재 mutability fact도 없다. 새 코드는
-   hosted field를 항상 `self.field`로 쓰고 변경 상태를 `let mut`로 명시하며,
+   hosted field를 항상 `self.field`로 쓰고 변경 상태를 `var`로 명시하며,
    bare 표기를 같은 의미로 가정하지 않는다.
 4. `class` hosted func는 value-self이므로 내부 mutation 결과가 호출자에 남지
    않는다. mutator처럼 보이는 이름은 피하고 새 class 값을 반환하는 형태를

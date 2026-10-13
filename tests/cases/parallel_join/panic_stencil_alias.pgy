@@ -3,7 +3,7 @@
 // would let free-index reads race the per-index writes, so the fan-out
 // entry check panics fail-closed on both backends.
 func Main() -> Void {
-    let mut a: Array<Int> = [];
+    var a: Array<Int> = [];
     for k in 0..4 { ArrayPush(a, k); }
     let b = a;
     parallel (i in 0..4) {

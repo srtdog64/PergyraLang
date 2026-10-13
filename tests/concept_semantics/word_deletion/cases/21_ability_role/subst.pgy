@@ -1,5 +1,5 @@
 subject Worker {
-    let mut jobs: Int;
+    var jobs: Int;
     let ready: Bool;
     func Work(self) -> Void { if ready { jobs = jobs + 1; } }
 }

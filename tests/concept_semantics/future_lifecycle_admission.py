@@ -35,7 +35,7 @@ def main() -> int:
         ("loop-local-continue", "while Choice() {" + binding + "continue; }", False, ""),
         ("loop-possibly-skipped", binding + "while Choice() {" + retired + "break; }", False, ""),
         ("alias-binding", binding + "let other: Future<Int> = t;" + retired, False, ""),
-        ("mutable-binding", binding.replace("let t", "let mut t") + retired, False, ""),
+        ("mutable-binding", binding.replace("let t", "var t") + retired, False, ""),
         ("immediate-await", "let value: Int = await spawn Work(14);", True, ""),
         ("unowned-spawn", "spawn Work(14);", False, ""),
         ("own-transfer", binding + "Drain(t);", True,

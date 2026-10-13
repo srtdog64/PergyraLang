@@ -67,9 +67,9 @@ func Main() -> Void {
     let arr: Array<Int> = parallel (i in 0..1000) join with all { give Weight(i); };
     let s2: Int = parallel (x in arr) join with sum { give x; };
     if (s2 == s) { Log(1); } else { Log(0); }
-    let mut fs: Array<Float> = [];
-    let mut serial: Float = 0.0;
-    let mut w: Float = 0.0;
+    var fs: Array<Float> = [];
+    var serial: Float = 0.0;
+    var w: Float = 0.0;
     for k in 0..1000 {
         if (k % 7 == 0) { w = 0.0; }
         ArrayPush(fs, w);

@@ -31,7 +31,7 @@ func RenderArithmeticCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "func Main() -> Void {");
     ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
     ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
-    ArrayPush(lines, "    let mut acc: Int = 0;");
+    ArrayPush(lines, "    var acc: Int = 0;");
     ArrayPush(lines, "    for i in 0..5 {");
     ArrayPush(lines, "        acc = acc + Mix(base + i, twist);");
     ArrayPush(lines, "    }");
@@ -50,12 +50,12 @@ func RenderWhileArrayCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
     ArrayPush(lines, Concat("    let limit: Int = ", Concat(ToString(4 + twist % 4), ";")));
     ArrayPush(lines, "    let xs: Array<Int> = [];");
-    ArrayPush(lines, "    let mut i: Int = 0;");
+    ArrayPush(lines, "    var i: Int = 0;");
     ArrayPush(lines, "    while i < limit {");
     ArrayPush(lines, "        ArrayPush(xs, base + i);");
     ArrayPush(lines, "        i = i + 1;");
     ArrayPush(lines, "    }");
-    ArrayPush(lines, "    let mut total: Int = 0;");
+    ArrayPush(lines, "    var total: Int = 0;");
     ArrayPush(lines, "    for j in 0..limit {");
     ArrayPush(lines, "        total = total + xs[j];");
     ArrayPush(lines, "    }");
@@ -156,9 +156,9 @@ func RenderStringWindowCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "    if n == 0 {");
     ArrayPush(lines, "        return 0;");
     ArrayPush(lines, "    }");
-    ArrayPush(lines, "    let mut best: Int = 1;");
-    ArrayPush(lines, "    let mut cur: Int = 1;");
-    ArrayPush(lines, "    let mut i: Int = 1;");
+    ArrayPush(lines, "    var best: Int = 1;");
+    ArrayPush(lines, "    var cur: Int = 1;");
+    ArrayPush(lines, "    var i: Int = 1;");
     ArrayPush(lines, "    while i < n {");
     ArrayPush(lines, "        if Substring(s, i, i + 1) == Substring(s, i - 1, i) {");
     ArrayPush(lines, "            cur = cur + 1;");
@@ -183,8 +183,8 @@ func RenderStringWindowCase(index: Int, base: Int, twist: Int) -> String {
 func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
     let lines: Array<String> = [];
     ArrayPush(lines, "func FuzzSum(xs: Array<Int>) -> Int {");
-    ArrayPush(lines, "    let mut total: Int = 0;");
-    ArrayPush(lines, "    let mut i: Int = 0;");
+    ArrayPush(lines, "    var total: Int = 0;");
+    ArrayPush(lines, "    var i: Int = 0;");
     ArrayPush(lines, "    while i < ArrayLength(xs) {");
     ArrayPush(lines, "        total = total + xs[i];");
     ArrayPush(lines, "        i = i + 1;");
@@ -194,7 +194,7 @@ func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
     ArrayPush(lines, "");
     ArrayPush(lines, "func FuzzBuild(base: Int, n: Int) -> Array<Int> {");
     ArrayPush(lines, "    let xs: Array<Int> = [];");
-    ArrayPush(lines, "    let mut i: Int = 0;");
+    ArrayPush(lines, "    var i: Int = 0;");
     ArrayPush(lines, "    while i < n {");
     ArrayPush(lines, "        ArrayPush(xs, base + i * 2);");
     ArrayPush(lines, "        i = i + 1;");
@@ -315,7 +315,7 @@ func Main() -> Void {
     let manifest: Array<String> = [];
     ArrayPush(manifest, FuzzBackendGeneratorJsonHeader(seed, count));
 
-    let mut i: Int = 0;
+    var i: Int = 0;
     while i < count {
         let variant: Int = Random(9);
         if i == 0 {

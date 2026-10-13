@@ -34,9 +34,9 @@ func PushAndSetThroughNestedMember(inout frame: Frame, inout trace: Int) -> Void
 }
 
 func Main() -> Void {
-    let mut trace: Int = 0;
-    let mut buffer: Buffer = Buffer([]);
-    let mut frame: Frame = Frame(Buffer([]));
+    var trace: Int = 0;
+    var buffer: Buffer = Buffer([]);
+    var frame: Frame = Frame(Buffer([]));
 
     PushWithinCapacity(buffer, trace);
     PushAndSetThroughNestedMember(frame, trace);

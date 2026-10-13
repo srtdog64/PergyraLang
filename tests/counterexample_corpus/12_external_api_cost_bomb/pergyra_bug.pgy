@@ -2,9 +2,9 @@
 // Pergyra: accepted and runs. There is no network or cost budget, and the `retry` word has no
 // execution support (docs/199 line 75); only the host wall-clock watchdog is a backstop.
 subject PaidModelApi {
-    let mut calls: Int;
-    let mut spentCents: Int;
-    let mut reported: Bool;
+    var calls: Int;
+    var spentCents: Int;
+    var reported: Bool;
 
     // Local stand-in for the paid API (no network): 3 cents per call, overloaded (529)
     // for the first 400 calls.

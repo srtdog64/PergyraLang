@@ -7,7 +7,7 @@ Related:
 
 - `docs/42_keyword_orthogonality.md` — capture lives on the **Resource axis**.
 - `docs/124_syntax_pattern_matrix.md` §6/§17/§18 — lambda/closure surface status.
-- `docs/134_language_surface_hygiene.md` — mutability surface (`let` vs `let mut`).
+- `docs/134_language_surface_hygiene.md` — mutability surface (`let` vs `var`).
 - `src/semantic/type_checker_lambda_capture.c` — the current rejection site.
 
 ## 0. Problem

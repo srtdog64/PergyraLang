@@ -1,5 +1,5 @@
 class Counter {
-    let mut n: Int;
+    var n: Int;
     func Bump(self) -> Int { self.n = self.n + 1; return self.n; }
 }
 func Main() -> Void {

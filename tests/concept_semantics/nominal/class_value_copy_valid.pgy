@@ -1,7 +1,7 @@
-class ValueCell { let mut value: Int; }
+class ValueCell { var value: Int; }
 func Main() -> Void {
     let original = ValueCell(7);
-    let mut duplicate = original;
+    var duplicate = original;
     duplicate.value = 19;
     Log(original.value);
     Log(duplicate.value);

@@ -4,7 +4,7 @@ enum IntentValueRequest {
 }
 
 subject IntentValueWorker {
-    let mut observed: Int;
+    var observed: Int;
 
     action Touch(self) -> Bool
         within IntentValueZone

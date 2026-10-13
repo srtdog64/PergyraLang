@@ -1,5 +1,5 @@
 subject Counter {
-    let mut count: Int;
+    var count: Int;
 
     action Advance(self) -> Int {
         self.count = self.count + 1;

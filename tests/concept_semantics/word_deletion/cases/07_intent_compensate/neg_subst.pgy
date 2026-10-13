@@ -1,5 +1,5 @@
 subject Acct {
-    let mut bal: Int;
+    var bal: Int;
     func Debit(self) -> Void { bal = bal - 10; }
     func Undo(self) -> Void { bal = bal + 10; }
 }

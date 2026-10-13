@@ -339,7 +339,7 @@ test_structured_spawn_lifecycle(void)
     EXPECT(structured_spawn_source_matches(
         "async func Worker() -> Int { return 1; }\n"
         "async func Main() -> Void {\n"
-        "  let mut pending: Future<Int> = spawn Worker();\n"
+        "  var pending: Future<Int> = spawn Worker();\n"
         "  Log(await pending);\n"
         "}\n", true));
 
@@ -367,7 +367,7 @@ test_structured_spawn_lifecycle(void)
     EXPECT(structured_spawn_source_matches(
         "async func Worker() -> Int { return 1; }\n"
         "async func Main() -> Void {\n"
-        "  let mut running: Bool = true;\n"
+        "  var running: Bool = true;\n"
         "  while running {\n"
         "    let pending: Future<Int> = spawn Worker();\n"
         "    Log(await pending);\n"

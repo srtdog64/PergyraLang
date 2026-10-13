@@ -82,6 +82,8 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_struct_declaration(parser);
     else if (parser_match(parser, TOKEN_LET))
         node = parser_parse_let_declaration(parser);
+    else if (parser_match(parser, TOKEN_VAR))
+        node = parser_parse_var_declaration(parser);
     else if (parser_match(parser, TOKEN_ENUM))
         node = parser_parse_enum_declaration_after_keyword(parser);
     else if (parser_match(parser, TOKEN_ROSTER))

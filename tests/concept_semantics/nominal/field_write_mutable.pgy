@@ -1,4 +1,4 @@
-struct Mutable { let mut value: Int; }
+struct Mutable { var value: Int; }
 struct Bare { value: Int; }
 struct Frozen { let value: Int; }
 object Projection { value: Int; }

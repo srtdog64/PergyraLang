@@ -25,7 +25,7 @@ func Arrange(inout cells: Array<Cell>) -> Result<Frame, CellError>
 }
 func Main() -> Void
 {
-    let mut cells: Array<Cell> = [];
+    var cells: Array<Cell> = [];
     match Layout(cells)
     {
         case Ok(frame): Log(ToString(frame.count));

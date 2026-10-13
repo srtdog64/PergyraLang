@@ -102,9 +102,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
              * mutation is spelled 'inout', never '&mut': the mutation is
              * value-result (copy-in/copy-out), not a live Rust-style borrow. */
             mode = PARAM_MODE_REF;
-            if (parser_check(parser, TOKEN_IDENTIFIER)
-                && parser->current_token.text != NULL
-                && strcmp(parser->current_token.text, "mut") == 0) {
+            if (parser_current_is_retired_spelling(parser, PGY_RETIRED_SPELLING_MUT)) {
                 parser_error(parser,
                     "'&mut' is not a binding mode in this language.\n"
                     "Reason: the mutation is value-result (copy-in/copy-out), "

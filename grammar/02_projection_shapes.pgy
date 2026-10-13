@@ -6,10 +6,10 @@
 // - `tobject` is a transfer-facing shape for packets, messages, or protocols.
 
 // A subject can carry mutable domain state.
-// `let mut` marks fields that are meant to be changed by actions or helpers.
+// `var` marks fields that are meant to be changed by actions or helpers.
 subject Buyer {
-    let mut name: String;
-    let mut balance: Int;
+    var name: String;
+    var balance: Int;
 }
 
 // An object is a passive internal projection. It is useful for views or local

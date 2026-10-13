@@ -650,9 +650,9 @@ require_term "docs/136_abi_niche_and_explicit_layout.md" "Semantic/DAG proves th
 require_term "docs/136_abi_niche_and_explicit_layout.md" "MIR_ABI_REPR_EXPLICIT_TAG"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "MIR_ABI_REPR_NICHE_RESERVED"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "Current Golden Gates"
-require_term "docs/136_abi_niche_and_explicit_layout.md" '`let mut` and `inout` do not weaken this rule'
-require_term "docs/136_abi_niche_and_explicit_layout.md" '`let mut` is local-storage mutability'
-require_term "docs/136_abi_niche_and_explicit_layout.md" 'reject `let mut` / `inout` access to partial-width packed'
+require_term "docs/136_abi_niche_and_explicit_layout.md" '`var` and `inout` do not weaken this rule'
+require_term "docs/136_abi_niche_and_explicit_layout.md" '`var` is local-storage mutability'
+require_term "docs/136_abi_niche_and_explicit_layout.md" 'reject `var` / `inout` access to partial-width packed'
 require_term "docs/136_abi_niche_and_explicit_layout.md" "reject address-like treatment of bit slices"
 require_term "docs/136_abi_niche_and_explicit_layout.md" 'diagnostic'
 require_term "docs/136_abi_niche_and_explicit_layout.md" 'missing `LayoutFact` owner'

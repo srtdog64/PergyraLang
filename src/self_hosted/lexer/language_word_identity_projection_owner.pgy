@@ -85,7 +85,6 @@ enum LanguageWordId {
     WordMax,
     WordMin,
     WordMove,
-    WordMut,
     WordNamespace,
     WordNondeterministic,
     WordNone,
@@ -142,6 +141,7 @@ enum LanguageWordId {
     WordUnsafe,
     WordUse,
     WordUsing,
+    WordVar,
     WordVessel,
     WordWhere,
     WordWhile,
@@ -239,7 +239,6 @@ func LanguageWordSpelling(id: LanguageWordId) -> String {
     if id == LanguageWordId.WordMax { return "max"; }
     if id == LanguageWordId.WordMin { return "min"; }
     if id == LanguageWordId.WordMove { return "move"; }
-    if id == LanguageWordId.WordMut { return "mut"; }
     if id == LanguageWordId.WordNamespace { return "namespace"; }
     if id == LanguageWordId.WordNondeterministic { return "nondeterministic"; }
     if id == LanguageWordId.WordNone { return "none"; }
@@ -296,6 +295,7 @@ func LanguageWordSpelling(id: LanguageWordId) -> String {
     if id == LanguageWordId.WordUnsafe { return "unsafe"; }
     if id == LanguageWordId.WordUse { return "use"; }
     if id == LanguageWordId.WordUsing { return "using"; }
+    if id == LanguageWordId.WordVar { return "var"; }
     if id == LanguageWordId.WordVessel { return "vessel"; }
     if id == LanguageWordId.WordWhere { return "where"; }
     if id == LanguageWordId.WordWhile { return "while"; }

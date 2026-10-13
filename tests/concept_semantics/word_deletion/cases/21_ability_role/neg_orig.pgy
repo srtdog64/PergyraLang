@@ -1,6 +1,6 @@
 ability Ready { func IsReady(self) -> Bool; }
 subject Worker {
-    let mut jobs: Int;
+    var jobs: Int;
     action Work(self) -> Void requires Ready { jobs = jobs + 1; }
 }
 func Main() -> Void {

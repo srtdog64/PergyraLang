@@ -1,5 +1,5 @@
 subject Counter {
-    let mut n: Int;
+    var n: Int;
     func Bump(self) -> Void { self.n = self.n + 1; }
 }
 func Main() -> Void {

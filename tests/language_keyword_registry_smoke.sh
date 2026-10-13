@@ -201,7 +201,7 @@ hover = {
 }
 highlight = {
     "action", "after", "authorized", "binding", "by", "causes", "concurrent", "exclusive",
-    "failure", "guard", "invariant", "involves", "irreversible", "mut", "on", "post",
+    "failure", "guard", "invariant", "involves", "irreversible", "on", "post",
     "pre", "projection", "requires", "state", "step", "success", "who",
     "within",
 }
@@ -256,6 +256,20 @@ if missing_registry_rows:
     raise SystemExit(
         "parser grammar selector missing from registry: "
         f"{sorted(missing_registry_rows)}"
+    )
+# Retired spellings (`mut` from `let mut` and Rust's `&mut`) are read only to
+# name their replacement in a parse error. They live in one table in
+# src/parser/parser.c and must never return as registry rows or selectors.
+retired_table = re.findall(
+    r'\[PGY_RETIRED_SPELLING_[A-Z0-9_]+\]\s*=\s*"([a-z]+)"',
+    (root / "src/parser/parser.c").read_text(encoding="utf-8"),
+)
+if retired_table != ["mut"]:
+    raise SystemExit(f"retired spelling table drifted: {retired_table}")
+if set(retired_table) & registry_spellings:
+    raise SystemExit(
+        "retired spelling returned as a registry row: "
+        f"{sorted(set(retired_table) & registry_spellings)}"
     )
 parser_non_reserved = parser_selectors - reserved
 # A contextual word the registry declares unimplemented (support 0, pinned in
@@ -382,5 +396,5 @@ grep -Fq "while TextMate scope is" "$INVENTORY" || {
     exit 1
 }
 
-echo "[language-keyword-registry] ok (147 rows; 70 reserved lexer rows; 77 parser selectors; 9 fixtures;" \
+echo "[language-keyword-registry] ok (147 rows; 71 reserved lexer rows; 77 parser selectors; 9 fixtures;" \
      "no reserved word lacks a parser selector)"

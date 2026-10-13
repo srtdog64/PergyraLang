@@ -5,7 +5,7 @@ enum Task { Delivered(Done), Failed(Stop) }
 
 within Office {
     subject Agent {
-        let mut turns: Int;
+        var turns: Int;
 
         action Ask(self) -> Turn
             authorized by self

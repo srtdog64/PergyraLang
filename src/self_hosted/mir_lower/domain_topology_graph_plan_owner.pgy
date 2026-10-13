@@ -10,7 +10,7 @@ struct MirDomainTopologyGraphPlan {
     let valid: Bool;
     let present: Bool;
     let schema: String;
-    let mut plan_digest: Int;
+    var plan_digest: Int;
     let domain_graph_id: String;
     let owner_names: Array<String>;
     let owner_source_syntax_ids: Array<String>;

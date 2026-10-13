@@ -7,7 +7,7 @@
 // value, so the winner's identity cannot leak into the output.
 func Main() -> Void {
     let ch: Channel<Int> = Channel(1);
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     for k in 0..4 { ArrayPush(xs, k); }
     let w: Int = parallel (x in xs) join with any {
         if (x == 0) {

@@ -67,16 +67,12 @@ func NominalConstructorFieldNameStart(
     content: String, content_extent: Int, content_length: Int, start: Int
 ) -> Int {
     let i: Int = start;
-    if SemanticMatchKeywordWithin(content, content_extent, content_length, i, "let") {
-        let after_let: Int = SkipWhitespaceAndCommentsWithin(
+    if SemanticMatchKeywordWithin(content, content_extent, content_length, i, "let") ||
+        SemanticMatchKeywordWithin(content, content_extent, content_length, i, "var") {
+        // `let` and `var` are both three bytes long.
+        return SkipWhitespaceAndCommentsWithin(
             content, content_extent, content_length, i + 3
         );
-        if SemanticMatchKeywordWithin(
-            content, content_extent, content_length, after_let, "mut"
-        ) {
-            return after_let + 3;
-        }
-        return after_let;
     }
     if SemanticMatchKeywordWithin(content, content_extent, content_length, i, "zone") {
         return i + 4;

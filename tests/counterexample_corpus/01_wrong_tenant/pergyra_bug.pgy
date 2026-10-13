@@ -5,7 +5,7 @@ subject Agent {
     let id: Int;
 }
 subject Account {
-    let mut credits: Int;
+    var credits: Int;
     action Debit(self, amount: Int) -> Void {
         self.credits = self.credits - amount;
     }

@@ -18,7 +18,7 @@ func Rewrite(inout values: Array<Int>) -> Result<Int, BufferError> {
 }
 
 func Main() -> Void {
-    let mut values: Array<Int> = [1, 2];
+    var values: Array<Int> = [1, 2];
     match Rewrite(values) {
         case Ok(count): if count != 3 { Exit(1); }
         case Err(_): Exit(1);

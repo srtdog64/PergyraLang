@@ -1,8 +1,8 @@
 // A source bound fresh in each iteration with its witness in the same body.
 func Main() -> Void {
     let words: Array<String> = ["ab", "cde"];
-    let mut i: Int = 0;
-    let mut total: Int = 0;
+    var i: Int = 0;
+    var total: Int = 0;
     while i < ArrayLength(words) {
         let w: String = words[i];
         let n: Int = StringLength(w);

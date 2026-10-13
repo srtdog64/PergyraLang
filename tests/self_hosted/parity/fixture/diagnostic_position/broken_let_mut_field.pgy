@@ -1,0 +1,7 @@
+subject Counter {
+    let mut count: Int;
+}
+
+func Main() -> Void {
+    Log("x");
+}

@@ -4,7 +4,7 @@
 subject Payment {
     let tenant: String;
     let amount: Int;
-    let mut captured: Int;
+    var captured: Int;
 
     func Authorize(self) -> Void { }
     func Capture(self) -> Void { self.captured = self.captured + self.amount; }

@@ -2,7 +2,7 @@ struct Cell { value: Int; }
 struct Keeper { cells: Array<Cell>; }
 func Main() -> Void
 {
-    let mut cells: Array<Cell> = [];
+    var cells: Array<Cell> = [];
     Keep(cells);
     ArrayDrop(cells);
 }

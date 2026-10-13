@@ -8,7 +8,7 @@
 //    where / using <- transfer target.
 
 subject Courier {
-    let mut level: Int;
+    var level: Int;
 
     action Promote(self) -> Void {
         self.level = self.level + 1;

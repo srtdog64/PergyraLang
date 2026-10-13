@@ -107,6 +107,7 @@ bool parser_finalize_composed_intent_parameter_roles(ASTNode *program,
  */
 ASTNode *parser_parse_statement(Parser *parser);
 ASTNode *parser_parse_let_declaration(Parser *parser);
+ASTNode *parser_parse_var_declaration(Parser *parser);
 ASTNode *parser_parse_with_statement(Parser *parser);
 ASTNode *parser_parse_parallel_block(Parser *parser);
 ASTNode *parser_parse_expression_statement(Parser *parser);

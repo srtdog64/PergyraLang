@@ -156,19 +156,19 @@ func Main() -> Void {
     let twoN: Int = n + n;
     let histLen: Int = twoN + 1;
 
-    let mut perm: Array<Int> = [];
+    var perm: Array<Int> = [];
     for k in 0..n { ArrayPush(perm, k + 1); }
 
-    let mut hist: Array<Long> = [];
+    var hist: Array<Long> = [];
     for k in 0..histLen { ArrayPush(hist, 0L); }
 
-    let mut next: Array<Int> = [];
+    var next: Array<Int> = [];
     for k in 0..twoN { ArrayPush(next, 0); }
-    let mut visited: Array<Int> = [];
+    var visited: Array<Int> = [];
     for k in 0..twoN { ArrayPush(visited, 0); }
-    let mut parent: Array<Int> = [];
+    var parent: Array<Int> = [];
     for k in 0..twoN { ArrayPush(parent, 0); }
-    let mut mism: Array<Int> = [];
+    var mism: Array<Int> = [];
     ArrayPush(mism, 0);
 
     HeapGen(n, perm, n, hist, next, visited, parent, mism);

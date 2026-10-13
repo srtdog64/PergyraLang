@@ -2,8 +2,8 @@
 // grows storage (realloc) under every other task's feet; only the
 // `name[binding]` element form carries index-disjointness evidence.
 func Main() -> Void {
-    let mut buckets: Array<Int> = [];
-    let mut k: Int = 0;
+    var buckets: Array<Int> = [];
+    var k: Int = 0;
     while k < 4 { ArrayPush(buckets, 0); k = k + 1; }
     parallel (i in 0..4) join with all {
         ArrayPush(buckets, i);

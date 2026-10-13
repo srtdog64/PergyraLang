@@ -5,7 +5,7 @@
 // function ("invalid storage class"). Two instantiations pin that each
 // specialization gets its own file-scope wrapper.
 func FoldSum<T>(seed: T, n: Int) -> Int {
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     for k in 0..n { ArrayPush(xs, k + 1); }
     let total: Int = parallel (x in xs) join with sum { give x; };
     return total;

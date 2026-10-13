@@ -29,15 +29,11 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
         if i >= end {
             break;
         }
-        if SemanticMatchKeyword(content, i, "let") {
+        if SemanticMatchKeyword(content, i, "let") || SemanticMatchKeyword(content, i, "var") {
+            // `let` and `var` are both three bytes long.
             i = i + 3;
-            let first_name: String = SemanticReadIdent(content, i, cursor);
+            let name: String = SemanticReadIdent(content, i, cursor);
             i = cursor[0];
-            let name: String = first_name;
-            if first_name == "mut" {
-                name = SemanticReadIdent(content, i, cursor);
-                i = cursor[0];
-            }
             let declared_type: String = "Unknown";
             i = SkipWhitespaceAndComments(content, i);
             if CharAt(content, i) == ":" {

@@ -288,7 +288,7 @@ Result<T, E>    // 성공 또는 실패
 ```pergyra
 let x: Int = 1;        // 타입 명시
 let y = 2;             // 타입 추론
-let mut z: Int = 0;    // 가변 선언
+var z: Int = 0;    // 가변 선언
 ```
 
 ### 6.2 디스트럭처링 (위치 기반)
@@ -453,7 +453,7 @@ Pergyra의 핵심 계층입니다.
 
 ```pergyra
 subject Wallet {
-    let mut balance: Int;
+    var balance: Int;
 
     action Spend(self, amount: Int) -> Void
         requires Spendable      // 능력 요구
@@ -825,7 +825,7 @@ Now Sleep SeedRandom Random
 | 패턴 | Pergyra | 상태 |
 |---|---|---|
 | 함수 | `func f(...) -> T` | `stable` |
-| 변수 | `let`, `let mut` | `stable` |
+| 변수 | `let`, `var` | `stable` |
 | 값 레코드 | `struct` | `stable` |
 | 유틸리티 클래스 | `class` | `stable` |
 | 능동 도메인 개체 | `subject` | `stable` |

@@ -3,7 +3,7 @@
 // fail-closed on both backends instead of returning a fake value
 // (same rationale as empty min/max).
 func Main() -> Void {
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     let none: Int = parallel (x in xs) join with any { give x; };
     Log(none);
 }

@@ -1,4 +1,4 @@
-struct Value { let mut value: Int; }
+struct Value { var value: Int; }
 struct Outer { inner: Value; }
 func Main() -> Void {
     let item: Outer = Outer(Value(1));

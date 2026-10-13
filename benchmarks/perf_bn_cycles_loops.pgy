@@ -70,13 +70,13 @@ func Main() -> Void {
     let n: Int = 10;
     let twoN: Int = n + n;
     let histLen: Int = twoN + 1;
-    let mut perm: Array<Int> = [];
+    var perm: Array<Int> = [];
     for k in 0..n { ArrayPush(perm, k + 1); }
-    let mut hist: Array<Long> = [];
+    var hist: Array<Long> = [];
     for k in 0..histLen { ArrayPush(hist, 0L); }
-    let mut next: Array<Int> = [];
+    var next: Array<Int> = [];
     for k in 0..twoN { ArrayPush(next, 0); }
-    let mut visited: Array<Int> = [];
+    var visited: Array<Int> = [];
     for k in 0..twoN { ArrayPush(visited, 0); }
     HeapGen(n, perm, n, hist, next, visited);
     let total: Long = 0L;

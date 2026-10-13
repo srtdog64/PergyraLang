@@ -189,7 +189,7 @@ for owner_term in \
     "$SOURCE_LLVM_EXECUTION|authority execution" \
     "$SOURCE_C_EXECUTION|public zone DriverSourceCZone" \
     "$SOURCE_C_EXECUTION|intent CompilePergyraCArtifact(" \
-    "$SOURCE_C_EXECUTION|let mut outcome: Option<DriverSourceCExecutionOutcome>;" \
+    "$SOURCE_C_EXECUTION|var outcome: Option<DriverSourceCExecutionOutcome>;" \
     "$SOURCE_C_EXECUTION|action ProduceSourceC(" \
     "$SOURCE_C_EXECUTION|action Compile(" \
     "$SOURCE_C_EXECUTION|subject slot execution: DriverSourceCExecution" \

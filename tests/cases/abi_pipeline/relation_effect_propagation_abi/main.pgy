@@ -1,5 +1,5 @@
 subject Player {
-    let mut hp: Int;
+    var hp: Int;
 }
 object PlayerView {
     hp: Int;

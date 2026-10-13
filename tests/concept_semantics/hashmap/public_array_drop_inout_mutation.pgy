@@ -3,7 +3,7 @@ func Fill(inout values: Array<Int>) -> Void {
 }
 
 func Main() -> Void {
-    let mut values: Array<Int> = [];
+    var values: Array<Int> = [];
     Fill(values);
     if ArrayLength(values) != 1 || values[0] != 7 { Exit(1); }
     ArrayDrop(values);

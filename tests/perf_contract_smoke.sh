@@ -109,7 +109,7 @@ fi
 if [ -x "$COMPILE_SPEED_PGY" ]; then
     SPEED_SRC="$WORK_DIR/compile_speed_probe.pgy"
     {
-        printf 'func Main() -> Void {\n    let mut total: Int = 0;\n'
+        printf 'func Main() -> Void {\n    var total: Int = 0;\n'
         i=0
         while [ "$i" -lt 60 ]; do
             printf '    total = total + %d;\n' "$i"

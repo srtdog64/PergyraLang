@@ -4,8 +4,8 @@
 // gives the stack back when it completes, 400 rounds of a 4096-way fan-out
 // overflow the stack.
 func Main() -> Void {
-    let mut buckets: Array<Int> = [];
-    let mut k: Int = 0;
+    var buckets: Array<Int> = [];
+    var k: Int = 0;
     while k < 4096 { ArrayPush(buckets, 0); k = k + 1; }
     let round: Int = 0;
     while round < 400 {

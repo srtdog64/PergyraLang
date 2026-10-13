@@ -68,7 +68,7 @@ grep -Eq 'DriverLlvmArtifactPublished|llvm_artifact_published' "$ACTION" "$PUBLI
     fail "atomic artifact publication was duplicated as a domain lifecycle effect"
 
 for term in 'subject DriverSourceLlvmIntentExecution {' \
-    'let mut outcome: Option<DriverSourceLlvmIntentOutcome>;' \
+    'var outcome: Option<DriverSourceLlvmIntentOutcome>;' \
     'action Compile(' 'within DriverSourceLlvmIntentZone' \
     'authorized by self' 'with caps io_read, io_write {' \
     'DriverSourceMirProducePayloadAdmitted(' \

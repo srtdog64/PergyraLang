@@ -3,7 +3,7 @@
 // Pergyra: a world-owned zone cannot escape into a local; refused at compile time.
 subject Session {
     let tenant: String;
-    let mut calls: Int;
+    var calls: Int;
     action Record(self) -> Void { self.calls = self.calls + 1; }
 }
 

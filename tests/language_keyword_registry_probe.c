@@ -90,7 +90,7 @@ main(void)
         }
     }
 
-    if (reserved_count != 70 || contextual_count != 74 || soft_count != 3)
+    if (reserved_count != 71 || contextual_count != 73 || soft_count != 3)
         return 9;
     if (lexer_keyword_debug_name(PGY_KEYWORD_TOKEN_NONE) != NULL) {
         fprintf(stderr, "non-reserved debug identity leaked into token lookup\n");

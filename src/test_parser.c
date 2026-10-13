@@ -250,6 +250,8 @@ main(void)
     printf("\n");
     failures += run_vessel_keyword_alias_test();
     printf("\n");
+    failures += run_binding_mutability_surface_test();
+    printf("\n");
     failures += run_lexical_zone_context_test();
     printf("\n");
     failures += run_parser_reentry_cleanup_test();

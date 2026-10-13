@@ -164,7 +164,7 @@ run_case "garbage" "reject" 20
 #    at statement ~4096.
 awk 'BEGIN {
     print "func Main() -> Void {";
-    print "    let mut total: Int = 0;";
+    print "    var total: Int = 0;";
     for (i = 0; i < 120000; i++) printf "    total = total + %d;\n", i % 7;
     print "    Log(ToString(total));";
     print "}";
@@ -175,7 +175,7 @@ run_case "big_valid" "accept" 120
 #    path must reject CLEANLY (message + nonzero exit), not crash.
 awk 'BEGIN {
     print "func Main() -> Void {";
-    print "    let mut total: Int = 0;";
+    print "    var total: Int = 0;";
     for (i = 0; i < 300000; i++) printf "    total = total + %d;\n", i % 7;
     print "}";
 }' > "$WORK_DIR/node_budget_bound.pgy"

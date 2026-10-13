@@ -4,8 +4,8 @@ struct Holder {
 }
 
 func Main() -> Void {
-    let mut x: Int = 0;
-    let mut y: Int = 0;
+    var x: Int = 0;
+    var y: Int = 0;
     parallel {
         { let a: Array<Int> = [5, 6]; let h: Holder = Holder(a); x = ArrayLength(h.data) + 3; }
         { y = 2; }

@@ -31,7 +31,7 @@ read-only borrow; callee ordering is not proof of independent release authority.
 ```pgy
 func Fill(inout values: Array<Int>) -> Void { ArrayPush(values, 7); }
 func Main() -> Void {
-    let mut values: Array<Int> = [];
+    var values: Array<Int> = [];
     Fill(values);
     ArrayDrop(values);
 }

@@ -1,6 +1,6 @@
 // Both tasks borrow the subject through a ref parameter: read-only, admitted.
 subject Counter {
-    let mut n: Int;
+    var n: Int;
 }
 
 func Inspect(ref c: Counter) -> Int {
@@ -9,8 +9,8 @@ func Inspect(ref c: Counter) -> Int {
 
 func Main() -> Void {
     let counter: Counter = Counter(4);
-    let mut a: Int = 0;
-    let mut b: Int = 0;
+    var a: Int = 0;
+    var b: Int = 0;
     parallel {
         { a = Inspect(counter); }
         { b = Inspect(counter) * 2; }

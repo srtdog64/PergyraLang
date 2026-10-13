@@ -22,7 +22,7 @@
 // - `expect:` is the expected condition.
 
 subject Actor {
-    let mut score: Int;
+    var score: Int;
 
     action Mark(self) -> Void
         within ArenaZone

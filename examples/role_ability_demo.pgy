@@ -126,7 +126,7 @@ func TestEventDispatch(iterations: Int) -> Int {
 
 // Test 4: Stack vs Slot Performance
 func TestStackPerformance(iterations: Int) -> Int {
-    let mut value = 1000;
+    var value = 1000;
     
     for i in 0..iterations {
         value = value - 1;

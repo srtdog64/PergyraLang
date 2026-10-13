@@ -1,7 +1,7 @@
 struct Cell { value: Int; }
 func Main() -> Void
 {
-    let mut cells: Array<Cell> = [];
+    var cells: Array<Cell> = [];
     Fill(cells);
     if ArrayLength(cells) != 1 || cells[0].value != 7 { Exit(1); }
     ArrayDrop(cells);

@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let mut total: Int = 0;
+    Log("x");
+}

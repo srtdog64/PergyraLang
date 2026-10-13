@@ -1,7 +1,7 @@
 subject Counter {
-    let mut value: Int;
-    let mut active: Bool;
-    let mut label: String;
+    var value: Int;
+    var active: Bool;
+    var label: String;
     action Bump(self, amount: Int) -> Void authorized by self {
         self.value = self.value + amount;
         self.value = self.value + 1;
@@ -10,7 +10,7 @@ subject Counter {
     }
 }
 subject Other {
-    let mut value: Int;
+    var value: Int;
     action Bump(self, amount: Int) -> Void authorized by self {
         self.value = self.value + amount;
     }

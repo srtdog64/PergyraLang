@@ -3,7 +3,7 @@
 // with PGY_SEM_ANCHORED_HANDLE_COPY; Clone(a) or an inline Seat(...) is the
 // declared form (containment_embedding_declared_forms.pgy).
 subject Seat {
-    let mut reserved: Bool;
+    var reserved: Bool;
 }
 
 zone Booking {

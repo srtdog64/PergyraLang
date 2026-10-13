@@ -1,7 +1,7 @@
 // A subject parameter is a live binding too: passing it to a zone
 // constructor forks the caller's subject into the zone-owned slot.
 subject Seat {
-    let mut reserved: Bool;
+    var reserved: Bool;
 }
 
 zone Booking {

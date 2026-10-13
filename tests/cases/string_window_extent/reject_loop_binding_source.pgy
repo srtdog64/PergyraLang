@@ -2,7 +2,7 @@
 // parameters and plain let bindings. Bind the element with `let` first.
 func Main() -> Void {
     let words: Array<String> = ["ab", "cde"];
-    let mut total: Int = 0;
+    var total: Int = 0;
     for w in words {
         total = total + CharCode(w, StringLength(w), 0);
     }

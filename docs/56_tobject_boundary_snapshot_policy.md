@@ -34,7 +34,7 @@ them.
 
 - parser/semantic은 호환 표면으로 `tobject` 안의 passive helper `func`를
   허용한다.
-- declaration grammar는 bare field, `let mut`, default/destructure 표면을
+- declaration grammar는 bare field, `var`, default/destructure 표면을
   공통 value/projection parser에서 받는다. 단순 member assignment 거부만으로
   bare/nested/indexed mutation 전체가 fail-closed라고 주장할 수 없다.
 - typed intent execution wire v2는 enum declaration뿐 아니라 success/failure와
@@ -76,7 +76,7 @@ payload emitter다. 이 소비자들이 nominal spelling이나 `struct-like` sha
 규칙을 재구성하면 안 된다. Backend는 semantic-admitted contract를 투영하고,
 MIR은 stable declaration identity만 운반한다.
 
-최소 negative gate는 method, `let mut`/bare mutable field, destructured/default
+최소 negative gate는 method, `var`/bare mutable field, destructured/default
 mutable storage, direct/nested/indexed/alias write, non-transfer-safe field type,
 `object`/`struct` payload 대체, enum zero/multiple payload, 같은 이름의 foreign
 declaration ID를 각각 거부해야 한다. Positive gate는

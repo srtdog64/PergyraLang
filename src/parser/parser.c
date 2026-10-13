@@ -261,6 +261,20 @@ void parser_error_at(Parser *parser, const Token *at, const char *format, ...) {
     va_end(args);
 }
 
+static const char *const kParserRetiredSpellings[PGY_RETIRED_SPELLING_COUNT] = {
+    [PGY_RETIRED_SPELLING_MUT] = "mut",
+};
+
+bool parser_current_is_retired_spelling(const Parser *parser,
+                                        PgyRetiredSpelling spelling) {
+    if (parser == NULL || (unsigned)spelling >= PGY_RETIRED_SPELLING_COUNT)
+        return false;
+    return parser->current_token.type == TOKEN_IDENTIFIER
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text,
+                  kParserRetiredSpellings[spelling]) == 0;
+}
+
 // 에러 복구 - 다음 문장까지 건너뛰기
 static void parser_synchronize_scan(Parser* parser) {
     /* The failed statement went on past the error to its own `;` or closing
@@ -307,6 +321,7 @@ static void parser_synchronize_scan(Parser* parser) {
             case TOKEN_FUNC:
             case PGY_TOKEN_TYPE:
             case TOKEN_LET:
+            case TOKEN_VAR:
             case TOKEN_INNATE:
             case TOKEN_ABILITY:
             case TOKEN_ROLE:
@@ -406,9 +421,28 @@ parser_reject_reserved_cast_after_expression(Parser *parser)
     }
 }
 
+static ASTNode *parse_binding_declaration(Parser *parser, bool is_mutable);
+
 // 문장 파싱
-// let 선언 파싱
+// let 선언 파싱: `let` has been consumed.
 ASTNode* parser_parse_let_declaration(Parser* parser) {
+    return parse_binding_declaration(parser, false);
+}
+
+// var 선언 파싱: `var` has been consumed. Same grammar as `let`, mutable.
+ASTNode* parser_parse_var_declaration(Parser* parser) {
+    if (parser_check(parser, TOKEN_LPAREN) || parser_check(parser, TOKEN_LBRACE)) {
+        parser_error(parser,
+            "Destructuring is a `let` binding.\n"
+            "Reason: destructured names are immutable; `var` declares one mutable name.\n"
+            "Fix: destructure with `let`, then copy a name into a `var` if it must change.");
+        parser_synchronize(parser);
+        return NULL;
+    }
+    return parse_binding_declaration(parser, true);
+}
+
+static ASTNode *parse_binding_declaration(Parser *parser, bool is_mutable) {
     if (parser_check(parser, TOKEN_LBRACE)) {
         parser_error(parser,
             "Named field destructuring is reserved but not implemented.\n"
@@ -445,11 +479,16 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         return node;
     }
 
-    // 선택적 가변 수정자: let mut name = ...
-    bool let_is_mutable = false;
-    if (parser->current_token.text != NULL
-        && strcmp(parser->current_token.text, "mut") == 0
+    /* `let mut` is retired: a mutable binding is spelled `var`. Report it and
+     * keep parsing the declaration as mutable so one mistake gives one error. */
+    bool let_is_mutable = is_mutable;
+    if (!is_mutable
+        && parser_current_is_retired_spelling(parser, PGY_RETIRED_SPELLING_MUT)
         && parser_peek_next(parser).type == TOKEN_IDENTIFIER) {
+        parser_error(parser,
+            "`let mut` is no longer a binding form.\n"
+            "Reason: a mutable binding is spelled `var`.\n"
+            "Fix: write `var name = ...` instead of `let mut name = ...`.");
         parser_advance(parser);  /* consume 'mut' */
         let_is_mutable = true;
     }

@@ -731,3 +731,82 @@ run_match_arm_and_return_position_test(void)
     lexer_destroy(lexer);
     return failed;
 }
+
+/* `var` is the only mutable-binding spelling; `let mut` is retired and must fail
+ * with the replacement named, and `var` cannot destructure. */
+static int
+binding_surface_parse_error(const char *code, const char *needle)
+{
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+    int failed = 0;
+
+    if (parser == NULL || !parser_has_error(parser) || error == NULL
+        || strstr(error, needle) == NULL) {
+        printf("[FAIL] expected a parse error containing '%s', got: %s\n",
+            needle, error != NULL ? error : "<none>");
+        failed = 1;
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_binding_mutability_surface_test(void)
+{
+    const char *accepted =
+        "subject Counter {\n"
+        "    var count: Int;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    var total: Int = 0;\n"
+        "    let fixed: Int = 1;\n"
+        "    total = total + fixed;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(accepted);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+
+    printf("\n=== Test: Binding Mutability Surface ===\n");
+
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected var bindings and fields to parse, got: %s\n",
+            parser != NULL && parser_get_error(parser) != NULL
+                ? parser_get_error(parser) : "<none>");
+        failed = 1;
+    } else {
+        ASTNode *main_func = ast_program_statement(ast, 1);
+        ASTNode *body = main_func != NULL ? ast_func_body(main_func) : NULL;
+        ASTNode *var_decl = body != NULL ? ast_block_statement(body, 0) : NULL;
+        ASTNode *let_decl = body != NULL ? ast_block_statement(body, 1) : NULL;
+        if (var_decl == NULL || !ast_let_is_mutable(var_decl)) {
+            printf("[FAIL] `var total` must be a mutable binding\n");
+            failed = 1;
+        }
+        if (let_decl == NULL || ast_let_is_mutable(let_decl)) {
+            printf("[FAIL] `let fixed` must not be a mutable binding\n");
+            failed = 1;
+        }
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+
+    failed |= binding_surface_parse_error(
+        "func Main() -> Void {\n    let mut total: Int = 0;\n}\n",
+        "`let mut` is no longer a binding form");
+    failed |= binding_surface_parse_error(
+        "subject Counter {\n    let mut count: Int;\n}\n",
+        "`let mut` is no longer a field form");
+    failed |= binding_surface_parse_error(
+        "func Main() -> Void {\n    var (a, b) = Pair(1, 2);\n}\n",
+        "Destructuring is a `let` binding");
+    if (!failed)
+        printf("[PASS] var binds mutably; let mut and var destructuring are refused\n");
+    return failed;
+}

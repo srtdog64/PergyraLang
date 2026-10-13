@@ -6,17 +6,17 @@
 // actor, and `self` is the actor instance being acted on.
 //
 // Shapes:
-//   subject Name { let mut field: Type; action Verb(self) -> Void { ... } }
+//   subject Name { var field: Type; action Verb(self) -> Void { ... } }
 //   self.field
 //
 // Meaning:
 // - `subject` is a state-bearing domain actor.
-// - `let mut` marks mutable subject state.
+// - `var` marks mutable subject state.
 // - `action` is a domain operation owned by the subject.
 // - `self` is the receiver being acted on.
 
 subject Counter {
-    let mut value: Int;
+    var value: Int;
 
     action Increment(self) -> Void
         authorized by self

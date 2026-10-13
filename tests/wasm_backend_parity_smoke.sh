@@ -79,7 +79,7 @@ EOF
         ;;
     control_flow) cat <<'EOF'
 func Main() -> Void {
-    let mut i: Int = 0;
+    var i: Int = 0;
     while i < 3 {
         if i > 0 { Log(ToString(i)); }
         i = i + 1;

@@ -4,7 +4,7 @@
 // every write after the call.
 subject ToolGate {
     let grants: Int;
-    let mut admitted: Int;
+    var admitted: Int;
 
     action Admit(self, bit: Int) -> Bool
         authorized by self

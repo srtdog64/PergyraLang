@@ -1,7 +1,7 @@
 // A live zone binding passed to a world constructor forks the zone's
 // identity into the world-owned slot; Clone(z) is the declared copy.
 subject Seat {
-    let mut reserved: Bool;
+    var reserved: Bool;
 }
 
 zone Booking {

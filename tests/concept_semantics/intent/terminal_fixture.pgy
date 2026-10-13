@@ -11,7 +11,7 @@ enum AuditPurposeOutcome {
 }
 
 subject AuditWorker {
-    let mut calls: Int;
+    var calls: Int;
 
     action Read(self, succeed: Bool) -> AuditActionOutcome {
         self.calls = self.calls + 1;

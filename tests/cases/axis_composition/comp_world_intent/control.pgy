@@ -4,7 +4,7 @@
 // a single world-less scope. The cross.pgy leg then asks what happens
 // when the zones are owned by two DIFFERENT worlds.
 subject Buyer {
-    let mut hp: Int;
+    var hp: Int;
     action Promote(self) -> Void {
         self.hp = self.hp + 1;
     }

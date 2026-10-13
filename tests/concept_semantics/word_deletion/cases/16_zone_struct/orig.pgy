@@ -1,4 +1,4 @@
-subject Actor { let mut score: Int; }
+subject Actor { var score: Int; }
 zone ArenaZone {
     subject slot actor: Actor
     func Reward(self) -> Void { actor.score = actor.score + 5; }

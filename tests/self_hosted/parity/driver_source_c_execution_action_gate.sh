@@ -41,7 +41,7 @@ for term in 'tobject DriverSourceCExecutionReceipt' \
     'enum DriverSourceCExecutionOutcome' 'func DriverSourceCExecutedOutcome(' 'func DriverSourceCArtifactRejectedOutcome('; do
     require_text "$PROTOCOL_OWNER" "$term"
 done
-for term in 'subject DriverSourceCExecution' 'let mut outcome: Option<DriverSourceCExecutionOutcome>;' 'action Compile(' \
+for term in 'subject DriverSourceCExecution' 'var outcome: Option<DriverSourceCExecutionOutcome>;' 'action Compile(' \
     'within DriverSourceCZone' 'authorized by self' 'public intent CompilePergyraCArtifact(' \
     'public zone DriverSourceCZone' \
     'subject slot execution: DriverSourceCExecution' 'authority execution' \

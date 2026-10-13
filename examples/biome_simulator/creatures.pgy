@@ -59,9 +59,9 @@ subject Creature
     let name: String;
     let species: String;
     let niche: String;
-    let mut energy: Int;
-    let mut hunger: Int;
-    let mut alertness: Int;
+    var energy: Int;
+    var hunger: Int;
+    var alertness: Int;
     vessel cycle: Cycle;
     vessel traits: Traits;
 

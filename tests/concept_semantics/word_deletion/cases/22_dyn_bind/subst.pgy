@@ -6,7 +6,7 @@ func Attack(k: Kind) -> Int {
     }
 }
 func Main() -> Void {
-    let mut k: Kind = Warrior;
+    var k: Kind = Warrior;
     Log(ToString(Attack(k)));
     k = Archer;
     Log(ToString(Attack(k)));

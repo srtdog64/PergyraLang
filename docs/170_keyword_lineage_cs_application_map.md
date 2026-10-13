@@ -45,7 +45,7 @@ independent convergence would be hard to explain.
 | Pergyra surface | Main method | Influenced by | CS basis | Apply in |
 |---|---|---|---|---|
 | `func`, hosted method | ordinary callable abstraction | C#, C, ML-family | lambda calculus, type checking, call ABI | parser, semantic, DAG/type, MIR routine, C/LLVM emit, self-hosted parser/semantic |
-| `let`, `let mut`, assignment | local binding and controlled mutation | ML, Rust, Swift, C# | scope rules, SSA, dataflow | semantic locals, CFG body dataflow, MIR local facts, C/LLVM local emission |
+| `let`, `var`, assignment | local binding and controlled mutation | ML, Rust, Swift, C# | scope rules, SSA, dataflow | semantic locals, CFG body dataflow, MIR local facts, C/LLVM local emission |
 | `if`, `while`, `for`, `break`, `continue` | structured control flow | ALGOL/C-family, Rust | CFG, dominance, reachability, cleanup dataflow | parser statement owners, CFG verifier, MIR block lowering, backend parity |
 | `match`, enum cases | closed branching over values | ML/OCaml/F#/Rust/C# | ADTs, exhaustiveness, pattern matching | semantic pattern owner, CFG facts, MIR branch facts, diagnostics |
 | `struct`, `class` | passive data and nominal behavior | C, C#, Swift | records, nominal type systems, ABI layout | DAG/type owner, ABI/layout rows, C/LLVM struct emit |

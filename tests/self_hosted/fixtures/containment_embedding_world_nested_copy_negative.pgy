@@ -1,7 +1,7 @@
 // A zone constructor nested in a world constructor argument is the same
 // undeclared subject fork as a zone constructor on its own.
 subject Seat {
-    let mut reserved: Bool;
+    var reserved: Bool;
 }
 
 zone Booking {

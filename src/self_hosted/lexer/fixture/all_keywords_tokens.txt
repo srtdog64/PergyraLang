@@ -63,11 +63,12 @@
   62  Token{type: TYPE, text: "type", line: 62, col: 1}
   63  Token{type: UNSAFE, text: "unsafe", line: 63, col: 1}
   64  Token{type: USE, text: "use", line: 64, col: 1}
-  65  Token{type: VESSEL, text: "vessel", line: 65, col: 1}
-  66  Token{type: WHERE, text: "where", line: 66, col: 1}
-  67  Token{type: WHILE, text: "while", line: 67, col: 1}
-  68  Token{type: WITH, text: "with", line: 68, col: 1}
-  69  Token{type: WORLD, text: "world", line: 69, col: 1}
-  70  Token{type: ZONE, text: "zone", line: 70, col: 1}
-  71  Token{type: EOF, text: "", line: 71, col: 1}
-  71 tokens total
+  65  Token{type: VAR, text: "var", line: 65, col: 1}
+  66  Token{type: VESSEL, text: "vessel", line: 66, col: 1}
+  67  Token{type: WHERE, text: "where", line: 67, col: 1}
+  68  Token{type: WHILE, text: "while", line: 68, col: 1}
+  69  Token{type: WITH, text: "with", line: 69, col: 1}
+  70  Token{type: WORLD, text: "world", line: 70, col: 1}
+  71  Token{type: ZONE, text: "zone", line: 71, col: 1}
+  72  Token{type: EOF, text: "", line: 72, col: 1}
+  72 tokens total

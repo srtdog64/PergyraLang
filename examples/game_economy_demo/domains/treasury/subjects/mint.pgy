@@ -11,8 +11,8 @@ ability Minting {
 
 subject Mint {
     let seal: String;
-    let mut issued: Gold;
-    let mut burned: Gold;
+    var issued: Gold;
+    var burned: Gold;
 
     action Issue(self, amount: Gold) -> Gold
         requires Minting
