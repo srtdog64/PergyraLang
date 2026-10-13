@@ -106,6 +106,18 @@ let name: String = "Pergyra";      // 타입 명시
   - `let mut name: Type;` field는 assignment 가능한 mutable field binding이다
   - 읽기 전용/불변 계약은 `object` / `tobject` projection surface에 별도로 적용된다
 
+> **결정 (2026-10-13): 바인딩 가변성은 Swift식 `let` / `var`로 간다. 아직 구현되지 않았다.**
+>
+> - `let`은 불변 바인딩이다. 다시 대입할 수 없고, 그 값을 바꾸는 쓰기(필드·원소 쓰기, `ArrayPush` 같은
+>   변경 빌트인, `inout` 인자 전달)도 거부한다. `var`는 가변 바인딩이다. 한 번도 바뀌지 않는 `var`는 경고한다.
+> - `let mut`은 `var`로 바뀌고 `mut` 단어는 없어진다. 두 철자를 같이 받는 기간은 두지 않는다.
+> - 필드는 그대로다: `name: Type;`은 가변 필드, `let name: Type;`은 생성 후 불변 필드다. 값 의미론이라
+>   `let`으로 받은 구조체는 가변 필드여도 쓸 수 없다(Swift와 같다).
+> - **현재 동작과의 차이**: 지금은 로컬 `let`을 다시 대입하거나, `let`으로 받은 구조체의 가변 필드에 쓰거나,
+>   `let` 배열에 `ArrayPush`해도 오류 없이 통과한다. 거부되는 것은 `let` 필드 쓰기뿐이다.
+> - 이유와 이행 계획은
+>   [`let_var_binding_mutability_2026-10-13.md`](../agent_work_directives/let_var_binding_mutability_2026-10-13.md)에 있다.
+
 구조 분해(destructuring):
 
 ```pergyra

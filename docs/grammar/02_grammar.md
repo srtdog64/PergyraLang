@@ -204,6 +204,12 @@ reassignment compatibility는 별도 strict gate가 닫히기 전까지 남을 �
 있지만, 문서와 새 예제의 표준 spelling은 mutation intent가 있는 바인딩에
 `let mut`을 쓴다.
 
+> **결정 (2026-10-13, 미구현):** 가변성 표면은 Swift식 `let`(불변) / `var`(가변)로 바뀐다. `let mut`과
+> `mut`은 없어지고, 로컬 `let`도 다시 대입과 값 변경(필드·원소 쓰기, 변경 빌트인, `inout` 전달)을 거부한다.
+> 지금은 로컬 `let`에 이 검사가 없어서 위의 "plain local reassignment compatibility"가 실제로 열려 있다.
+> 근거와 이행 순서는
+> [`let_var_binding_mutability_2026-10-13.md`](../agent_work_directives/let_var_binding_mutability_2026-10-13.md).
+
 - 일부 자원 타입은 `let` 초기화 규칙이 더 엄격하다.
   예: `QubitSlot`, `DeviceSlot`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`
 
