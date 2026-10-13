@@ -1,0 +1,14 @@
+struct ReadRows { types: Array<String>; }
+func RetainField(inout rows: ReadRows) -> Void
+{
+    ArrayPush(rows.types, "row");
+}
+func ForwardRetain(inout rows: ReadRows) -> Void
+{
+    RetainField(rows);
+}
+func Main() -> Void
+{
+    let rows: ReadRows = ReadRows(["seed"]);
+    ForwardRetain(rows);
+}

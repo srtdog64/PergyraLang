@@ -1,0 +1,53 @@
+// Project actual field-read facts; body verdicts never authorize target execution.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("PROBE|input-invalid"); Exit(2); return; }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("PROBE|parse-invalid"); Exit(2); return; }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(Concat("PROBE|header-invalid|", analysis.verdict.diagnostic_code)); Exit(2); return; }
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !body.verdict.ok { Log(Concat("PROBE|body-invalid|", body.verdict.diagnostic_code)); Exit(2); return; }
+    Log(Concat("BODY|", body.verdict.diagnostic_code));
+    let reads: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(
+        artifact, analysis.signatures, analysis.expression_surfaces);
+    let keys: Array<String> = MapKeys(reads);
+    Log(Concat("COUNT|", ToString(ArrayLength(keys))));
+    let index: Int = 0;
+    while index < ArrayLength(keys)
+    {
+        Log(Concat("KEY|", keys[index]));
+        index = index + 1;
+    }
+    let routine: Int = 0;
+    while routine < ArrayLength(analysis.signatures.function_node_ids)
+    {
+        let ordinal: Int = 0;
+        while ordinal < analysis.signatures.param_counts[routine]
+        {
+            let parameter: Int = analysis.signatures.param_starts[routine] + ordinal;
+            let prefix: String = Concat(ToString(analysis.signatures.param_node_ids[parameter]), ":");
+            let named: String = Concat(analysis.signatures.names[routine],
+                Concat("|", Concat(analysis.signatures.param_names[parameter], Concat("|", ToString(ordinal)))));
+            Log(Concat("FORMAL|", Concat(named, Concat("|", ToString(analysis.signatures.param_node_ids[parameter])))));
+            index = 0;
+            while index < ArrayLength(keys)
+            {
+                if StartsWith(keys[index], prefix)
+                {
+                    let suffix: String = Substring(keys[index], StringLength(prefix), StringLength(keys[index]) - StringLength(prefix));
+                    Log(Concat("READ|", Concat(named, Concat("|", suffix))));
+                }
+                index = index + 1;
+            }
+            ordinal = ordinal + 1;
+        }
+        routine = routine + 1;
+    }
+}

@@ -1,0 +1,15 @@
+struct ReadRows { types: Array<String>; }
+func WholeRead(own rows: ReadRows) -> Int
+{
+    let kept: ReadRows = rows;
+    return ArrayLength(kept.types);
+}
+func ForwardWhole(own rows: ReadRows) -> Int
+{
+    return WholeRead(rows);
+}
+func Main() -> Void
+{
+    let rows: ReadRows = ReadRows(["seed"]);
+    Log(ForwardWhole(rows));
+}

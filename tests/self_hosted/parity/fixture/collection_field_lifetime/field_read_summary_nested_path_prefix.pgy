@@ -1,0 +1,15 @@
+struct ReadRows { types: Array<String>; }
+struct ReadOuter { inner: ReadRows; other: ReadRows; }
+func NestedRead(ref outer: ReadOuter) -> Int
+{
+    return ArrayLength(outer.inner.types);
+}
+func ForwardNested(ref outer: ReadOuter) -> Int
+{
+    return NestedRead(outer);
+}
+func Main() -> Void
+{
+    let outer: ReadOuter = ReadOuter(ReadRows(["seed"]), ReadRows(["other"]));
+    Log(ForwardNested(outer));
+}

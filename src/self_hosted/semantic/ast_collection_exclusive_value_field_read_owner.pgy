@@ -307,19 +307,35 @@ func SemanticAstCollectionExclusiveFieldReads(
     while changed && remaining > 0 {
         changed = false;
         let keys: Array<String> = MapKeys(reads);
+        // Index this round's immutable key snapshot, retaining bucket order.
+        let heads: HashMap<String, Int> = MapNew();
+        let tails: HashMap<String, Int> = MapNew();
+        let next: Array<Int> = [];
+        let key_index: Int = 0;
+        while key_index < ArrayLength(keys) {
+            ArrayPush(next, 0 - 1);
+            let separator: Int = StringIndexOf(keys[key_index], ":");
+            if separator >= 0 {
+                let prefix: String = Substring(keys[key_index], 0, separator + 1);
+                if MapHas(tails, prefix) { next[MapGet(tails, prefix)] = key_index; }
+                else { MapSet(heads, prefix, key_index); }
+                MapSet(tails, prefix, key_index);
+            }
+            // A key without ':' cannot match any numeric formal prefix.
+            key_index = key_index + 1;
+        }
         let edge: Int = 0;
         while edge < ArrayLength(sources) {
             let source: String = ToString(sources[edge]);
             let target: String = Concat(ToString(targets[edge]), ":");
-            let index: Int = 0;
-            while index < ArrayLength(keys) {
+            let index: Int = 0 - 1;
+            if MapHas(heads, target) { index = MapGet(heads, target); }
+            while index >= 0 {
                 let entry: String = keys[index];
-                if StartsWith(entry, target) {
-                    let field: String = Substring(entry, StringLength(target), StringLength(entry) - StringLength(target));
-                    let copied: String = Concat(source, Concat(":", field));
-                    if !MapHas(reads, copied) { MapSet(reads, copied, 1); changed = true; }
-                }
-                index = index + 1;
+                let field: String = Substring(entry, StringLength(target), StringLength(entry) - StringLength(target));
+                let copied: String = Concat(source, Concat(":", field));
+                if !MapHas(reads, copied) { MapSet(reads, copied, 1); changed = true; }
+                index = next[index];
             }
             edge = edge + 1;
         }

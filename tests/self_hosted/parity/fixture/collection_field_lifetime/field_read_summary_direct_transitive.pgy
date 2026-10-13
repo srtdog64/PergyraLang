@@ -1,0 +1,19 @@
+struct ReadRows { types: Array<String>; }
+func DirectRead(ref rows: ReadRows) -> Int
+{
+    return ArrayLength(rows.types);
+}
+func ForwardRead(ref rows: ReadRows) -> Int
+{
+    return DirectRead(rows);
+}
+func SecondRead(ref rows: ReadRows) -> Int
+{
+    return ForwardRead(rows);
+}
+func Main() -> Void
+{
+    let rows: ReadRows = ReadRows(["seed"]);
+    Log(DirectRead(rows));
+    Log(SecondRead(rows));
+}

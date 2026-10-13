@@ -5189,6 +5189,10 @@ self-host-collection-binding-move-prefix-test-smoke: $(PGY)
 self-host-collection-member-permission-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/member_indexed_read_permission.sh
 
+.PHONY: self-host-collection-field-read-summary-test-smoke
+self-host-collection-field-read-summary-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_field_read_summary_owner.sh
+
 self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
 
