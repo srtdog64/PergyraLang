@@ -324,12 +324,12 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
      * a literal can otherwise hide an affine field from element inference. */
     if (decl_type != NULL
         && ctx->diagnostic_count == initializer_diagnostic_base
-        && !semantic_type_is_future_handle(decl_type)) {
+        && !semantic_type_is_direct_affine_handle(decl_type)) {
         ASTNode *storage_site = ann != NULL ? ann : init;
         if (init != NULL && init->type == AST_CALL
             && ast_call_arg_count(init) > 0)
             storage_site = ast_call_argument(init, 0);
-        semantic_future_reject_aggregate_storage(
+        semantic_reject_affine_aggregate_storage(
             storage_site != NULL && storage_site->line > 0
                 ? storage_site : node,
             decl_type, ctx, "local aggregate binding");

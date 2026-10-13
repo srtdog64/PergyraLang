@@ -121,7 +121,7 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             Type *payload = stdlib_variant_normalize_type(
                 type_check_expression(value, ctx));
             Type *option_type;
-            if (semantic_future_reject_aggregate_storage(
+            if (semantic_reject_affine_aggregate_storage(
                     value, payload, ctx, "Option Some payload"))
                 return TYPE_UNKNOWN;
             semantic_array_storage_escape(value, payload, ctx);

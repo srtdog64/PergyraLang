@@ -275,6 +275,28 @@ copy may create one:
   `TextBuilderNew` at its function's top level, never rebound, never a parameter
   or return type, and finished or dropped exactly once in its declaration scope
   before any return.
+- No aggregate stores a handle: a nominal field, an enum or `Some`/`Ok`/`Err`
+  payload, an array, set or map element or key, a tuple element, and a
+  parameter or return type that contains one are refused
+  (`PGY_SEM_ANCHORED_HANDLE_COPY`, "Handle storage in ... is not admitted"),
+  whether the stored value is a binding or a fresh call. The rule is checked by
+  type at each storage site, not route by route, so a new way to reach storage
+  (a constructor argument, an object initializer, `ArrayPush`) is closed by the
+  same check. It shares one admission owner with `Future`/`RemoteFuture`
+  storage. Before 2026-10-13 the routes were listed one by one and the
+  `Some(handle)` payload was missing: `let held = Some(root); RcDrop(root);
+  RcGet(UnwrapOption(held))` compiled and read freed memory (ASan:
+  heap-use-after-free), the same class as rust-lang/rust#164250, where a bound
+  checked at construction was bypassed through a field assignment.
+
+Slot, SecureSlot and DeviceSlot are anchored resource handles under the same
+copy and storage rules: a slot binding is not copied by `let` or `return`, a
+slot local is never rebound (`PGY_SEM_ANCHORED_HANDLE_COPY` on both front ends;
+the native rebind used to report `PGY_SEM_IMMUTABLE_FIELD_WRITE`), and no
+aggregate stores a slot. The self-host front end had no slot copy rule before
+2026-10-13. A world-owned zone read out as an assigned value
+(`keeper.zone_ref = world.tools`) is refused like the let, return and argument
+escapes of the same zone.
 
 Dropping an Rc or Weak twice through the same binding is not refused
 statically; both backends panic on it (`RcDrop on invalid Rc`,
@@ -282,10 +304,11 @@ statically; both backends panic on it (`RcDrop on invalid Rc`,
 `TextBuilderFinish(builder, pool)` for an `AllocatorPool` lane lives in that
 pool, and nothing yet stops a read after `AllocatorDestroy(pool)`.
 
-Evidence: native semantic (`type_checker_builtin_owner_let_contract.c`), the
-self-host semantic (`ast_single_owner_handle_verdict_owner.pgy`, which has no
-Rc/Weak/`Box<class>` surface yet), and
-`tests/self_hosted/parity/single_owner_handle_owner.sh`.
+Evidence: native semantic (`type_checker_builtin_owner_let_contract.c` for
+copies, `type_checker_future_lifecycle.c` for aggregate storage), the self-host
+semantic (`ast_single_owner_handle_verdict_owner.pgy`, which has no
+Rc/Weak/`Box<class>` surface yet, and `ast_future_storage_admission_owner.pgy`),
+and `tests/self_hosted/parity/single_owner_handle_owner.sh`.
 
 ## Theorem: Slice Borrowed View Safety
 

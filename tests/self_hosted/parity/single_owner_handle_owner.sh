@@ -4,8 +4,13 @@
 # argument) would give one runtime storage two names, and the first release
 # would leave the other dangling. Native semantic owns the rule in
 # type_checker_builtin_owner_let_contract.c; the self-host semantic owns it in
-# ast_single_owner_handle_verdict_owner.pgy. This gate checks that both front
-# ends refuse each copy shape with the same first public code and publish no
+# ast_single_owner_handle_verdict_owner.pgy. Slot, SecureSlot and DeviceSlot
+# are anchored resource handles under the same copy rule. No aggregate (field,
+# payload, element) may store either kind: the admission is the affine storage
+# owner shared with Future (type_checker_future_lifecycle.c and
+# ast_future_storage_admission_owner.pgy); a Some(handle) payload used to
+# compile into a use-after-free. This gate checks that both front ends refuse
+# each copy and storage shape with the same first public code and publish no
 # binary, that the admitted idioms still compile and run, and that a second
 # RcDrop or WeakDrop through one binding panics on both native backends.
 set -euo pipefail
@@ -135,6 +140,20 @@ for name in box_array_let_copy allocator_let_copy allocator_assign_copy \
     expect_refused "$name" "$COPY" native-c default-c default-llvm
 done
 expect_refused allocator_parameter_destroy "$OWNER" native-c default-c default-llvm
+
+# Aggregate storage and anchored copies (rust-lang/rust#164250 shape: the copy
+# reaches storage that outlives the original, which is then released).
+for name in rc_option_payload rc_struct_field; do
+    expect_refused "$name" "$COPY" native-c
+    expect_unsupported "$name" default-c
+done
+for name in allocator_option_payload allocator_struct_field allocator_array_literal     slot_let_copy slot_assign_rebind slot_struct_field slot_option_payload; do
+    expect_refused "$name" "$COPY" native-c default-c
+done
+# A world-owned zone assigned into a field escapes as in a let or return; the
+# self-host route refuses it in the resource layer (zone value transfer).
+expect_refused zone_field_assign_escape "$COPY" native-c
+expect_unsupported zone_field_assign_escape default-c
 expect_refused text_builder_released PGY_SEM_MOVE_FROM_RELEASED native-c default-c default-llvm
 expect_refused text_builder_return_live PGY_SEM_OWNER_NOT_CONSUMED native-c default-c default-llvm
 
@@ -152,4 +171,4 @@ expect_output text-builder-lifecycle \
 expect_panic rc_double_drop_runtime "RcDrop on invalid Rc" native-c native-llvm
 expect_panic weak_double_drop_runtime "WeakDrop on invalid Weak" native-c native-llvm
 
-echo "[$LABEL] handle copies are refused with one code by both front ends, admitted idioms run, and a second Rc/Weak drop panics on both native backends: PASS"
+echo "[$LABEL] handle copies and aggregate storage are refused with one code by both front ends, admitted idioms run, and a second Rc/Weak drop panics on both native backends: PASS"

@@ -1,0 +1,7 @@
+// An array element stores the allocator.
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    let pools: Array<Allocator> = [pool];
+    AllocatorDestroy(pool);
+    AllocatorDestroy(pools[0]);
+}

@@ -1,0 +1,9 @@
+// A slot names one resource; a second binding to it outlives Release.
+func Main() -> Void {
+    let handle: Slot<Int> = ClaimSlot();
+    Write(handle, 1);
+    let copy: Slot<Int> = handle;
+    Release(handle);
+    Write(copy, 5);
+    Log(ToString(Read(copy)));
+}

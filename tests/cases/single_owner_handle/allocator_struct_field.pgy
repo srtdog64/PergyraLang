@@ -1,0 +1,11 @@
+// A nominal field stores the allocator; the copy outlives AllocatorDestroy.
+struct Lane {
+    pool: Allocator;
+}
+
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    let lane: Lane = Lane(pool);
+    AllocatorDestroy(pool);
+    Log(1);
+}

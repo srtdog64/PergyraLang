@@ -1,0 +1,29 @@
+// A world-owned zone read out into a field keeps a live alias; Rotate replaces the
+// world's zone and the alias then writes into the old one.
+subject Session {
+    let tenant: String;
+    var calls: Int;
+    action Record(self) -> Void { self.calls = self.calls + 1; }
+}
+
+zone ToolZone { subject slot session: Session }
+
+world AgentWorld {
+    zone tools: ToolZone
+
+    func Calls(self) -> Int { return tools.session.calls; }
+    func Rotate(self, tenant: String) -> Void { self.tools = ToolZone(Session(tenant, 0)); }
+}
+
+struct Keeper {
+    zone_ref: ToolZone;
+}
+
+func Main() -> Void {
+    let world = AgentWorld(ToolZone(Session("acme", 0)));
+    let keeper: Keeper = Keeper(ToolZone(Session("scratch", 0)));
+    keeper.zone_ref = world.tools;
+    world.Rotate("globex");
+    keeper.zone_ref.session.Record();
+    Log(ToString(world.Calls()));
+}

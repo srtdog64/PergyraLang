@@ -1,0 +1,8 @@
+// A slot local is never rebound.
+func Main() -> Void {
+    let handle: Slot<Int> = ClaimSlot();
+    let other: Slot<Int> = ClaimSlot();
+    other = handle;
+    Release(handle);
+    Write(other, 5);
+}

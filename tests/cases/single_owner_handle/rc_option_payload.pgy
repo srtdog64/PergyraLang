@@ -1,0 +1,8 @@
+// A Some payload copies the handle; the copy dangles after RcDrop.
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let held: Option<Rc<Int>> = Some(root);
+    RcDrop(root);
+    let copy: Rc<Int> = UnwrapOption(held);
+    Log(RcGet(copy));
+}

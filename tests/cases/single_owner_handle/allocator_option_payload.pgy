@@ -1,0 +1,8 @@
+// A Some payload copies the allocator; the second destroy reaches freed storage.
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    let held: Option<Allocator> = Some(pool);
+    AllocatorDestroy(pool);
+    let copy: Allocator = UnwrapOption(held);
+    AllocatorDestroy(copy);
+}

@@ -44,7 +44,7 @@ type_check_enum_decl(ASTNode *node, SemanticContext *ctx)
                     ast_enum_variant_param(node, variant, payload);
                 Type *resolved = semantic_host_resolve_type_ref(
                     payload_type, ctx);
-                semantic_future_reject_aggregate_storage(
+                semantic_reject_affine_aggregate_storage(
                     payload_type, resolved, ctx, "enum payload");
             }
         }

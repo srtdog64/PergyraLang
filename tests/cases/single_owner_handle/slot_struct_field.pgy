@@ -1,0 +1,11 @@
+// A nominal field stores the slot handle.
+struct SlotBox {
+    held: Slot<Int>;
+}
+
+func Main() -> Void {
+    let handle: Slot<Int> = ClaimSlot();
+    let keeper: SlotBox = SlotBox(handle);
+    Release(handle);
+    Write(keeper.held, 5);
+}

@@ -1,0 +1,8 @@
+// A Some payload copies the slot handle.
+func Main() -> Void {
+    let handle: Slot<Int> = ClaimSlot();
+    let held: Option<Slot<Int>> = Some(handle);
+    Release(handle);
+    let copy: Slot<Int> = UnwrapOption(held);
+    Write(copy, 5);
+}

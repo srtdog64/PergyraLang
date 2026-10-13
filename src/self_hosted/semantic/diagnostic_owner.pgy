@@ -53,6 +53,7 @@ func SemanticReason(code: String) -> String {
     if code == "bound_party_escape" { return "a party with a slot bound to a local subject cannot leave the function that bound it"; }
     if code == "subject_value_return" { return "Returning subjects by value is not supported yet"; }
     if code == "single_owner_handle_copy" { return "a single-owner runtime handle cannot be copied: two bindings would name one runtime storage"; }
+    if code == "anchored_handle_copy" { return "an anchored Slot, SecureSlot or DeviceSlot handle cannot be copied or rebound: two bindings would name one resource"; }
     if code == "single_owner_handle_owner_required" { return "the operation requires a handle held by a local of the current function in its declaration scope"; }
     if code == "single_owner_handle_released" { return "the TextBuilder was already finished or dropped"; }
     if code == "single_owner_handle_not_consumed" { return "a TextBuilder must be finished or dropped once before its function returns"; }
@@ -172,6 +173,7 @@ func SemanticFix(code: String) -> String {
     if code == "subject_value_copy" { return "construct a fresh subject or keep using its current binding"; }
     if code == "zone_subject_embedding_copy" || code == "world_zone_embedding_copy" { return "use Clone(binding) for a declared, detached copy, or construct the value inline in the constructor argument"; }
     if code == "single_owner_handle_copy" { return "keep using the existing binding, or take a new handle from its constructor"; }
+    if code == "anchored_handle_copy" { return "keep using the current slot binding, use Read/Write for its value, or Move it across an explicit ownership boundary"; }
     if code == "single_owner_handle_owner_required" { return "name the local that owns the handle and release it in the scope that declared it"; }
     if code == "single_owner_handle_released" { return "create a new TextBuilder instead of reusing a finished one"; }
     if code == "single_owner_handle_not_consumed" { return "call TextBuilderFinish or TextBuilderDrop on the builder before the function returns"; }

@@ -618,7 +618,7 @@ live/retired state.
 
 #### `PGY_SEM_ANCHORED_HANDLE_COPY`
 
-An anchored resource handle (`Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`) was bound into a new `let` without moving; the handle identity would now be duplicated.
+A handle would be duplicated: an anchored resource handle (`Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`) or a single-owner runtime handle (`Rc`, `Weak`, `Box`, `Allocator`, `TextBuilder`) was bound into a new `let` or assigned without moving, a slot local was rebound, or an aggregate (field, payload, element, key, or a parameter or return type that contains one) would store a handle.
 
 - **Reason**: anchored handles are unique per resource; copying them creates two observable bindings for the same resource.
 - **Fix**: use `Move(slot)` to transfer, or keep the original binding and work through it.

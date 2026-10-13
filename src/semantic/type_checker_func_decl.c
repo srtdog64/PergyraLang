@@ -80,8 +80,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool infer_return = (ast_func_return_type(node) == NULL);
     if (infer_return)
         return_type = TYPE_UNKNOWN;
-    if (!infer_return && !semantic_type_is_future_handle(return_type))
-        semantic_future_reject_aggregate_storage(
+    if (!infer_return && !semantic_type_is_direct_affine_handle(return_type))
+        semantic_reject_affine_aggregate_storage(
             ast_func_return_type(node), return_type, ctx,
             "function return type");
     if (type_is_class_object_type(return_type, ctx)) {
@@ -161,8 +161,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             param_types[i] = type_check_func_resolve_param_type(param, ctx);
         }
         if (param->type != NULL
-            && !semantic_type_is_future_handle(param_types[i]))
-            semantic_future_reject_aggregate_storage(
+            && !semantic_type_is_direct_affine_handle(param_types[i]))
+            semantic_reject_affine_aggregate_storage(
                 param->type, param_types[i], ctx,
                 "function parameter type");
         type_check_func_validate_param_boundary(node, ctx, name, param,

@@ -1,10 +1,14 @@
-// Single-owner runtime handles: TextBuilder, Allocator and builtin Box<...>.
+// Single-owner runtime handles: TextBuilder, Allocator and builtin Box<...>,
+// and anchored resource handles: Slot, SecureSlot and DeviceSlot.
 // Rc and Weak have no builtin surface on this front end yet (RcNew is an
 // undefined symbol here), so the native checker owns their copy refusal alone.
 // A handle value is the one owner of its runtime storage. A let, assignment,
 // return or generic argument that copies an existing binding would give that
 // storage a second name, and the first release would leave the other one
-// dangling. A by-value parameter borrows the caller's handle, so the callee
+// dangling. An anchored handle names one resource the same way: a let, return
+// or element/payload copy of a slot binding duplicates it, and a slot local is
+// never rebound (native: type_checker_ownership_let.c and
+// type_checker_ownership_assign.c). A by-value parameter borrows the caller's handle, so the callee
 // may read it but not release it. A TextBuilder also keeps its bounded owner
 // rung: one immutable local made by TextBuilderNew at its function's top
 // level, named by every use, and finished or dropped exactly once in that
@@ -23,6 +27,7 @@ import "ast_expression_identity_fact_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_body_flow_verdict_owner.pgy";
 import "wrapper_type_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
 import "diagnostic_owner.pgy";
 
 // One row per TextBuilder local; consume_ids holds the syntax node of its
@@ -38,6 +43,11 @@ struct SemanticSingleOwnerTextBuilders {
 func SemanticSingleOwnerHandleTypeName(type_name: String, box_builtin: Bool) -> Bool {
     if type_name == "TextBuilder" || type_name == "Allocator" { return true; }
     return box_builtin && IsBoxType(type_name);
+}
+
+func SemanticAnchoredHandleTypeName(type_name: String) -> Bool {
+    return StartsWith(type_name, "Slot<") || StartsWith(type_name, "SecureSlot<") ||
+        StartsWith(type_name, "DeviceSlot<");
 }
 
 func SemanticSingleOwnerHandleIsPlace(kind: Int) -> Bool {
@@ -141,6 +151,15 @@ func SemanticSingleOwnerHandleLocals(
                 return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
                     "single_owner_handle_copy", "type", type_name, "binding", name), node_id);
             }
+        } else if analysis.local_bindings.binding_kinds[row] == SemanticAstLocalBindingKindNormal() &&
+            SemanticAnchoredHandleTypeName(type_name) {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, node_id, AstExpressionLaneValue());
+            if IsSome(root) && SemanticSingleOwnerHandleIsPlace(
+                graph.arena.topology.node_kinds[UnwrapOption(root)]) {
+                return SemanticAstBodyVerdictError("anchored_handle_copy", SemanticError2(
+                    "anchored_handle_copy", "type", type_name, "binding", name), node_id);
+            }
         }
         row = row + 1;
     }
@@ -168,6 +187,10 @@ func SemanticSingleOwnerHandleAssignments(
                     "single_owner_handle_copy", "type", type_name,
                     "target", analysis.assignments.target_texts[index]), node_id);
             }
+        } else if assignment_types.verified[index] == 1 && SemanticAnchoredHandleTypeName(type_name) {
+            return SemanticAstBodyVerdictError("anchored_handle_copy", SemanticError2(
+                "anchored_handle_copy", "type", type_name,
+                "target", analysis.assignments.target_texts[index]), analysis.assignments.node_ids[index]);
         }
         index = index + 1;
     }
@@ -186,8 +209,10 @@ func SemanticSingleOwnerHandleReturns(
         if analysis.statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() {
             let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
                 analysis.signatures, analysis.statements.function_node_ids[row]);
-            if IsSome(signature) && SemanticSingleOwnerHandleTypeName(
-                analysis.signatures.return_types[UnwrapOption(signature)], box_builtin) {
+            let return_type: String = "";
+            if IsSome(signature) { return_type = analysis.signatures.return_types[UnwrapOption(signature)]; }
+            let anchored: Bool = SemanticAnchoredHandleTypeName(return_type);
+            if IsSome(signature) && (anchored || SemanticSingleOwnerHandleTypeName(return_type, box_builtin)) {
                 let node_id: Int = analysis.statements.node_ids[row];
                 let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                     analysis.expression_surfaces, node_id, AstExpressionLaneAtom());
@@ -197,9 +222,10 @@ func SemanticSingleOwnerHandleReturns(
                 if (kind == AstExpressionNodeLeaf() && graph.arena.identities.binding_kinds[value] ==
                     SemanticExpressionBindingFormalParameter()) ||
                     kind == AstExpressionNodeMemberAccess() || kind == AstExpressionNodeIndex() {
-                    return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
-                        "single_owner_handle_copy", "type",
-                        analysis.signatures.return_types[UnwrapOption(signature)],
+                    let code: String = "single_owner_handle_copy";
+                    if anchored { code = "anchored_handle_copy"; }
+                    return SemanticAstBodyVerdictError(code, SemanticError2(
+                        code, "type", return_type,
                         "return", graph.arena.node_texts[value]), node_id);
                 }
             }
@@ -232,6 +258,34 @@ func SemanticSingleOwnerHandleGenericActuals(
             actual = actual + 1;
         }
         row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// A handle binding stored into a variant payload or an array element is a
+// copy, whatever type the containing value is later given. Fields, payload
+// declarations and bound aggregate types are refused by type in
+// ast_future_storage_admission_owner.pgy; this covers values never bound.
+func SemanticHandleStoredLeafVerdict(
+    ref graph: SemanticExpressionGraphFacts,
+    ref leaf_types: Array<String>,
+    value: Int,
+    box_builtin: Bool,
+    boundary: String,
+    use_node: Int
+) -> SemanticAstBodyVerdict {
+    if value < 0 || value >= ArrayLength(leaf_types) ||
+        graph.arena.topology.node_kinds[value] != AstExpressionNodeLeaf() {
+        return SemanticAstBodyVerdictOk();
+    }
+    let type_name: String = leaf_types[value];
+    if SemanticSingleOwnerHandleTypeName(type_name, box_builtin) {
+        return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
+            "single_owner_handle_copy", "type", type_name, "boundary", boundary), use_node);
+    }
+    if SemanticAnchoredHandleTypeName(type_name) {
+        return SemanticAstBodyVerdictError("anchored_handle_copy", SemanticError2(
+            "anchored_handle_copy", "type", type_name, "boundary", boundary), use_node);
     }
     return SemanticAstBodyVerdictOk();
 }
@@ -290,6 +344,7 @@ func SemanticSingleOwnerHandleCalls(
     artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     ref leaf_types: Array<String>,
+    box_builtin: Bool,
     inout builders: SemanticSingleOwnerTextBuilders
 ) -> SemanticAstBodyVerdict {
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
@@ -310,6 +365,29 @@ func SemanticSingleOwnerHandleCalls(
                     graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() &&
                     graph.arena.identities.call_target_syntax_ids[node] == 0 {
                     target = graph.arena.call_target_names[node];
+                }
+                if target == "Some" || target == "Ok" || target == "Err" {
+                    let payload_call: SemanticCallSpineView =
+                        SemanticCallSpineViewFromGraph(graph, call_roots.root_nodes[node]);
+                    if !payload_call.ok || payload_call.call_node != node {
+                        return SemanticSingleOwnerHandleInvalid("SingleOwnerHandlePayload", use_node);
+                    }
+                    let argument: Int = 0;
+                    while argument < ArrayLength(payload_call.argument_nodes) {
+                        let stored: SemanticAstBodyVerdict = SemanticHandleStoredLeafVerdict(
+                            graph, leaf_types, payload_call.argument_nodes[argument], box_builtin,
+                            Concat(target, " payload"), use_node);
+                        if !stored.ok { return stored; }
+                        argument = argument + 1;
+                    }
+                }
+                if graph.arena.topology.node_kinds[node] == AstExpressionNodeArrayElement() {
+                    let edge: SemanticArrayLiteralElementEdge =
+                        SemanticArrayLiteralElementEdgeFromGraph(graph, node);
+                    if !edge.ok { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleArrayElement", use_node); }
+                    let stored: SemanticAstBodyVerdict = SemanticHandleStoredLeafVerdict(
+                        graph, leaf_types, edge.element_node, box_builtin, "array element", use_node);
+                    if !stored.ok { return stored; }
                 }
                 if target == "AllocatorDestroy" || target == "TextBuilderAppend" ||
                     target == "TextBuilderFinish" || target == "TextBuilderDrop" {
@@ -401,7 +479,7 @@ func SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(
     if verdict.ok { verdict = SemanticSingleOwnerHandleAssignments(analysis, assignment_types, box_builtin); }
     if verdict.ok { verdict = SemanticSingleOwnerHandleReturns(analysis, box_builtin); }
     if verdict.ok { verdict = SemanticSingleOwnerHandleGenericActuals(specializations, box_builtin); }
-    if verdict.ok { verdict = SemanticSingleOwnerHandleCalls(artifact, analysis, leaf_types, builders); }
+    if verdict.ok { verdict = SemanticSingleOwnerHandleCalls(artifact, analysis, leaf_types, box_builtin, builders); }
     if verdict.ok { verdict = SemanticSingleOwnerTextBuilderRetirement(analysis, builders); }
     return verdict;
 }

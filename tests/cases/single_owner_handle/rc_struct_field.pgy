@@ -1,0 +1,11 @@
+// A nominal field stores the handle; the constructor argument is a copy.
+struct Holder {
+    held: Rc<Int>;
+}
+
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let holder: Holder = Holder(root);
+    RcDrop(root);
+    Log(RcGet(holder.held));
+}

@@ -410,8 +410,11 @@ if pgy_run "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_SRC" --backend=c --error-format=json
     cat "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_ERR" >&2
     exit 1
 fi
+# No array stores a slot handle at all (affine aggregate storage admission,
+# docs/semantics/04_ownership_abi.md), so the literal is refused for that
+# before the active-view escape is reached.
 check_json "pin-array-literal-owner-active-view" "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_ERR" \
-  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot store or forward slot" in d.get("message", "") and "through array literal" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_ANCHORED_HANDLE_COPY" and d.get("cause_ir") == "semantic:anchored_handle:copy_attempt" and d.get("fix_source") == "use-move-or-retain-binding" and "Handle storage in array literal" in d.get("message", "") and "Slot<Int>" in d.get("message", "") for d in data)'
 
 PIN_RETURN_OWNER_ACTIVE_SRC="$WORK_DIR/pin_return_owner_active_view.pgy"
 cat > "$PIN_RETURN_OWNER_ACTIVE_SRC" <<'EOF'

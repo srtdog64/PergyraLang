@@ -39,6 +39,16 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
         return true;
     }
 
+    /* A world-owned zone read out as the assigned value escapes exactly as it
+     * does in a let initializer, return or call argument; a field target
+     * (`keeper.z = world.tools`) used to keep the live alias. */
+    {
+        size_t diagnostics_before = ctx->diagnostic_count;
+        semantic_reject_world_zone_member_escape(ast_assignment_value(expr), ctx);
+        if (ctx->diagnostic_count != diagnostics_before)
+            return true;
+    }
+
     if (handle_or_move_boundary) {
         if (semantic_validate_borrowed_escape(
                 expr, ast_assignment_value(expr), ctx, value_type, NULL,
@@ -48,9 +58,9 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
             return true;
         }
         if (anchored_boundary) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
-                PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
-                PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+                PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, expr,
                 "Slot-handle (anchored) assignment is not allowed.\n"
                 "Reason:\n"
                 "- slot handles (anchored) such as Slot/SecureSlot/DeviceSlot cannot be copied or rebound with '='\n"
