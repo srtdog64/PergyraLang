@@ -3,6 +3,40 @@
 This repository is in beta-closure mode. Prefer source-of-truth closure over
 cosmetic reshuffling.
 
+## V1 Scope
+
+V1 is two goals and nothing else. Work that serves neither one is out of
+scope. The plan, the measurements and the current state are in
+`docs/agent_work_directives/v1_scope_ownership_and_selfhost_generality_2026-10-14.md`.
+
+- **Ownership automation.** Ownership-based automatic memory management
+  compiles the canonical compiler program with no manual drops. It is done
+  when all of these hold:
+  - zero ownership refusals on the fixed DRV-2 input;
+  - the unchanged full canonical program is admitted;
+  - positive and negative gates are preserved.
+
+  Weakening a safety rule to reach zero does not count.
+- **Self-host generality.** The installed self-host driver compiles every
+  program the native compiler admits, on C and LLVM, with runtime-equal
+  output and no `CODEGEN ERROR` route refusals.
+  - Each backend has one general MIR-consuming emitter, organised by MIR
+    instruction kind, expression node kind and ABI layout row.
+  - Do not add per-program-shape admission routes (`direct_mir_*`). Delete
+    them as the general emitter covers their programs.
+  - The MIR to AST text round trip goes the same way.
+- **One commit.** Both goals hold on the same published commit:
+  - the bootstrap builds and gen2 == gen3;
+  - required CI is green, with the bootstrap and installed-driver jobs
+    actually executed.
+- **Not in V1:**
+  - new language words;
+  - ownership precision beyond the canonical program (later cases are found
+    in use);
+  - performance work that blocks nothing;
+  - SoT rows neither goal passes through. Do not count closed SoT rows as
+    progress.
+
 ## Resume Context
 
 - Start a resumed session with `docs/current_work_handoff.md`, then verify its
