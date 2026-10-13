@@ -3,15 +3,15 @@
 // PGY_SEM_INTENT_STEP_INVALID; `irreversible: "why";` is the explicit opt-out.
 subject Wallet {
     let tenant: String;
-    let mut gold: Int;
+    var gold: Int;
     action Debit(self, amount: Int) -> Void { self.gold = self.gold - amount; }
     action Refund(self, amount: Int) -> Void { self.gold = self.gold + amount; }
     action Notify(self) -> Void { Log("notify " + self.tenant + ": order placed"); }
 }
 
 subject Warehouse {
-    let mut stock: Int;
-    let mut shipped: Int;
+    var stock: Int;
+    var shipped: Int;
     action Ship(self) -> Void { self.stock = self.stock - 1; self.shipped = self.shipped + 1; }
 }
 

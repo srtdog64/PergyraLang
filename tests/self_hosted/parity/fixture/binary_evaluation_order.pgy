@@ -7,7 +7,7 @@ func Touch(inout value: Int) -> Bool {
     return true;
 }
 func Main() -> Void {
-    let mut n: Int = 0;
+    var n: Int = 0;
     Log(Bump(n) * 10 + Bump(n));
     Log(n);
     n = 0;

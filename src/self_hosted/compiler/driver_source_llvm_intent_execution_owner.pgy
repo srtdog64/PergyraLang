@@ -12,7 +12,7 @@ func DriverSourceLlvmIntentExecutionOwnerIdentity() -> String {
 
 subject DriverSourceLlvmIntentExecution {
     let identity: String;
-    let mut outcome: Option<DriverSourceLlvmIntentOutcome>;
+    var outcome: Option<DriverSourceLlvmIntentOutcome>;
 
     action Compile(
         self,

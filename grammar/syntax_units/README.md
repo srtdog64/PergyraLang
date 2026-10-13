@@ -35,7 +35,7 @@ Punctuation rule:
 | `->` | Return-type marker | Separates input parameters from output type: `A, B -> C`. |
 | `:` | Type/ascription marker | Says a name or step field has a type or named meaning. |
 | `let` | Local binding declaration | Introduces a value in a function body. |
-| `let mut` | Mutable field/local marker | Makes intended mutation visible at the declaration site. |
+| `var` | Mutable field/local marker | Makes intended mutation visible at the declaration site. |
 | `;` | Statement terminator | Ends ordinary function-body statements. |
 | `{ ... }` | Block/body delimiter | Groups function bodies, control bodies, and declaration bodies. |
 | `struct` | Passive value record | Groups fields without actor/authority meaning. |

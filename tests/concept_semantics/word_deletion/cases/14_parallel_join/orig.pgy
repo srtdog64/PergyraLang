@@ -3,7 +3,7 @@ func Total(xs: Array<Int>) -> Int {
     return total;
 }
 func Main() -> Void {
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     for k in 0..6 { ArrayPush(xs, k + 1); }
     Log(ToString(Total(xs)));
 }

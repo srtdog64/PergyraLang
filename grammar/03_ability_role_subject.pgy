@@ -13,7 +13,7 @@ ability Spendable {
 
 // A subject is the actor/state-bearing side of the domain.
 subject Wallet {
-    let mut balance: Int;
+    var balance: Int;
 
     // Actions are domain operations. This one says:
     // - it requires the `Spendable` ability,

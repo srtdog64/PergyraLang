@@ -234,6 +234,9 @@ static ASTNode* parser_parse_statement_dispatch(Parser* parser) {
     if (parser_match(parser, TOKEN_LET)) {
         return parser_finalize_statement(parser, parser_parse_let_declaration(parser));
     }
+    if (parser_match(parser, TOKEN_VAR)) {
+        return parser_finalize_statement(parser, parser_parse_var_declaration(parser));
+    }
 
     /* labeled loop: label: while ... / label: for ... */
     if (parser_check(parser, TOKEN_IDENTIFIER)) {

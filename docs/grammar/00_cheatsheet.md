@@ -110,7 +110,7 @@ func F<T>(x: T) -> R where T: Ability { ... }
 | 표기 | 의미 |
 |---|---|
 | `let x` | 바인딩(나중 변경이 의도라고 약속 안 함) |
-| `let mut x` | 로컬/필드 변경 *의도*를 소스에 기록 |
+| `var x` | 로컬/필드 변경 *의도*를 소스에 기록 |
 | `inout p` | 값-결과 caller-visible 변경(라이브 borrow 아님) |
 | `slot` / `pin ... as view` | 자원·권한 변경(런타임 안전 경계) |
 

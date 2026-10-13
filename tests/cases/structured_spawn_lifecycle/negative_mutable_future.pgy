@@ -3,6 +3,6 @@ async func Worker() -> Int {
 }
 
 async func Main() -> Void {
-    let mut pending: Future<Int> = spawn Worker();
+    var pending: Future<Int> = spawn Worker();
     Log(await pending);
 }

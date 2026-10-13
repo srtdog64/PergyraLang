@@ -2,7 +2,7 @@
 // a live binding is a detached copy, and an inline constructor argument is a
 // fresh value with no other name.
 subject Seat {
-    let mut reserved: Bool;
+    var reserved: Bool;
 }
 
 zone Booking {

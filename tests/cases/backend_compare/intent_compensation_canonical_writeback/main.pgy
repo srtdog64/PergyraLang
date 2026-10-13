@@ -4,7 +4,7 @@
 
 subject Payer {
     let name: String;
-    let mut gold: Int;
+    var gold: Int;
 
     action Pay(self, amount: Int) -> Int {
         gold = gold - amount;

@@ -3,7 +3,7 @@
 // Pergyra: mutation through the owning world's method and Clone(...) are admitted.
 subject Session {
     let tenant: String;
-    let mut calls: Int;
+    var calls: Int;
     action Record(self) -> Void { self.calls = self.calls + 1; }
 }
 

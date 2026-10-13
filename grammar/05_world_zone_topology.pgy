@@ -6,7 +6,7 @@
 
 // The subject is the state-bearing value that zones will contain.
 subject Buyer {
-    let mut hp: Int;
+    var hp: Int;
 }
 
 // Passive projection value used inside zones.

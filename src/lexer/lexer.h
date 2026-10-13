@@ -41,6 +41,7 @@ typedef enum
 {
     /* Keywords */
     TOKEN_LET,
+    TOKEN_VAR,
     TOKEN_FUNC,
     TOKEN_SUBJECT,
     TOKEN_CLASS,

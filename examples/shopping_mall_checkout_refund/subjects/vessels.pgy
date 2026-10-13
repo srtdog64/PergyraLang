@@ -1,10 +1,10 @@
 vessel CartState
 {
-    let mut quantity: Int;
-    let mut subtotal: Int;
-    let mut coupon: Int;
-    let mut shipping: Int;
-    let mut lastSku: String;
+    var quantity: Int;
+    var subtotal: Int;
+    var coupon: Int;
+    var shipping: Int;
+    var lastSku: String;
 
     func AddFeatured(self, unitPrice: Int, sku: String, qty: Int) -> Int
     {
@@ -28,10 +28,10 @@ vessel CartState
 
 vessel WalletState
 {
-    let mut credit: Int;
-    let mut reserved: Int;
-    let mut spent: Int;
-    let mut refunded: Int;
+    var credit: Int;
+    var reserved: Int;
+    var spent: Int;
+    var refunded: Int;
 
     func Reserve(self, amount: Int) -> Int
     {
@@ -58,10 +58,10 @@ vessel WalletState
 
 vessel RefundState
 {
-    let mut requested: Int;
-    let mut approved: Int;
-    let mut ticket: String;
-    let mut status: String;
+    var requested: Int;
+    var approved: Int;
+    var ticket: String;
+    var status: String;
 
     func Open(self, amount: Int, ticketId: String) -> Int
     {
@@ -83,10 +83,10 @@ vessel RefundState
 vessel AccountState
 {
     let email: String;
-    let mut privacyAccepted: Int;
-    let mut marketingOptIn: Int;
-    let mut lastPage: String;
-    let mut lastOrder: String;
+    var privacyAccepted: Int;
+    var marketingOptIn: Int;
+    var lastPage: String;
+    var lastOrder: String;
 
     func Visit(self, route: String) -> String
     {
@@ -105,11 +105,11 @@ vessel AccountState
 
 vessel MerchantLedger
 {
-    let mut orders: Int;
-    let mut refunds: Int;
-    let mut gross: Int;
-    let mut reversed: Int;
-    let mut shipments: Int;
+    var orders: Int;
+    var refunds: Int;
+    var gross: Int;
+    var reversed: Int;
+    var shipments: Int;
 
     func RecordOrder(self, amount: Int) -> Int
     {

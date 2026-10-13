@@ -47,11 +47,11 @@
         },
         {
           "name": "keyword.declaration.pergyra",
-          "match": "\\b(?:action|enum|export|extends|extern|func|impl|import|include|let|namespace|type|use)\\b"
+          "match": "\\b(?:action|enum|export|extends|extern|func|impl|import|include|let|namespace|type|use|var)\\b"
         },
         {
           "name": "storage.modifier.pergyra",
-          "match": "\\b(?:async|dyn|innate|local|mut|nondeterministic|override|own|private|public|ref|reflect|remote|secure|unsafe)\\b"
+          "match": "\\b(?:async|dyn|innate|local|nondeterministic|override|own|private|public|ref|reflect|remote|secure|unsafe)\\b"
         },
         {
           "name": "constant.language.pergyra",

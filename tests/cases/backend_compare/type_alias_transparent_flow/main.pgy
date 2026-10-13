@@ -52,7 +52,7 @@ func Describe(result: Result<Int, PayError>) -> String {
 
 subject Keeper {
     let name: String;
-    let mut held: Gold;
+    var held: Gold;
 
     action Add(self, amount: Coin) -> Gold {
         held = held + amount;

@@ -1,5 +1,5 @@
 subject Counter {
-    let mut value: Int;
+    var value: Int;
     func Bump(self) -> Void within ArenaZone {
         self.value = self.value + 1;
     }

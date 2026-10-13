@@ -15,7 +15,7 @@
 // - `Clone(...)` makes the copy/fork explicit at that boundary.
 
 subject Actor {
-    let mut score: Int;
+    var score: Int;
 }
 
 zone ArenaZone {

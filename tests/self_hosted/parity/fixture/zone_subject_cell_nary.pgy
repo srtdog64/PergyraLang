@@ -1,4 +1,4 @@
-subject Counter { let mut value: Int; }
+subject Counter { var value: Int; }
 zone CounterPair {
     subject slot left: Counter
     subject slot middle: Counter

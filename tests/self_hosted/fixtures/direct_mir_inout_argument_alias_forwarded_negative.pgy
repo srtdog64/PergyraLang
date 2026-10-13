@@ -8,7 +8,7 @@ func Twice(inout total: Int) -> Void {
 }
 
 func Main() -> Void {
-    let mut a: Int = 0;
+    var a: Int = 0;
     Twice(a);
     Log(a);
 }

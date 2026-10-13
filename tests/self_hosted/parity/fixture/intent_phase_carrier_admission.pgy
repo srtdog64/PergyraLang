@@ -24,7 +24,7 @@ ability IntentRunnable {
 }
 
 subject IntentWorker {
-    let mut calls: Int;
+    var calls: Int;
 
     action Run(self, succeed: Bool) -> IntentRunOutcome
         requires IntentRunnable

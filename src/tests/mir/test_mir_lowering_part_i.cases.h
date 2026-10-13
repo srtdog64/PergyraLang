@@ -568,8 +568,8 @@ test_mir_lowering_part_i(void)
         const char *src =
             "func Main() -> Void {\n"
             "    let ch: Channel<Int> = Channel(1);\n"
-            "    let mut x: Int = 1;\n"
-            "    let mut seen: Int = -1;\n"
+            "    var x: Int = 1;\n"
+            "    var seen: Int = -1;\n"
             "    parallel {\n"
             "        { x = x + 41; ch <- 1; }\n"
             "        { let go: Int = <- ch; seen = x + go - go; }\n"
@@ -620,7 +620,7 @@ test_mir_lowering_part_i(void)
         const char *src =
             "func Main() -> Void {\n"
             "    let src: Array<Int> = [1, 2, 3, 4];\n"
-            "    let mut dst: Array<Int> = [0, 0, 0, 0];\n"
+            "    var dst: Array<Int> = [0, 0, 0, 0];\n"
             "    parallel (i in 1..4) {\n"
             "        dst[i] = src[i - 1];\n"
             "    }\n"

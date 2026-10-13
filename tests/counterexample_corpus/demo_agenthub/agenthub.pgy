@@ -7,7 +7,7 @@ subject Agent {
 
 subject Account {
     let tenant: String;
-    let mut credits: Int;
+    var credits: Int;
     action Debit(self, amount: Int) -> Void { self.credits = self.credits - amount; }
     action Refund(self, amount: Int) -> Void {
         self.credits = self.credits + amount;
@@ -16,8 +16,8 @@ subject Account {
 }
 
 subject Ledger {
-    let mut capacity: Int;
-    let mut entries: Int;
+    var capacity: Int;
+    var entries: Int;
     action Record(self) -> Void { self.capacity = self.capacity - 1; self.entries = self.entries + 1; }
 }
 
@@ -38,7 +38,7 @@ zone Books { subject slot ledger: Ledger }
 // A tool run must be planned before it executes.
 subject ToolRun {
     let tool: String;
-    let mut executed: Int;
+    var executed: Int;
     func Plan(self) -> Void { }
     func Execute(self) -> Void { self.executed = self.executed + 1; }
 }

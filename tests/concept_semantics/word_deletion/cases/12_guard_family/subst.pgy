@@ -1,4 +1,4 @@
-subject W { let mut calls: Int; action Go(self) -> Void { calls = calls + 1; } }
+subject W { var calls: Int; action Go(self) -> Void { calls = calls + 1; } }
 zone Z { subject slot w: W }
 intent Run(z: Z, w: W) {
     step S { where: Z; using: z; who: w; on: w.Go(); expect: false; }

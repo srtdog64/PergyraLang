@@ -31,9 +31,9 @@ representation meaningful. In short:
   such a boundary may later participate in `bits(...)`, and only if the payload
   type itself has a bit-layout fact.
 
-Short answer for `let mut` plus bitpacking: the current compiler can preserve
+Short answer for `var` plus bitpacking: the current compiler can preserve
 and check runtime ABI layout, but it cannot safely expose source-level
-bitpacked fields yet. `let mut` only proves that a local binding may be
+bitpacked fields yet. `var` only proves that a local binding may be
 mutated. It does not prove that a partial-width field is addressable,
 borrowable, atomic, or safe to update by read-modify-write. Source-level
 bitpacking must wait for `LayoutFact` evidence and matching C/LLVM ABI golden
@@ -189,22 +189,22 @@ before the feature is source-visible. In particular, a packed mutable field may
 not be lowered while another live reference can observe or mutate the same
 storage unit unless a later atomic/borrow rule proves that access pattern.
 
-`let mut` and `inout` do not weaken this rule. A partial-width packed field is
+`var` and `inout` do not weaken this rule. A partial-width packed field is
 not an addressable lvalue, so it cannot be passed as `inout`, borrowed by
 reference, or treated as a pointer-like bit slice until a dedicated layout
 effect owner proves the read-modify-write sequence.
 
-Rule: `let mut` is local-storage mutability, not permission to take an address
+Rule: `var` is local-storage mutability, not permission to take an address
 of a bit slice or to bypass the layout/effect owner.
 
-Implementation note: `let mut` is already valid Pergyra syntax for mutable
+Implementation note: `var` is already valid Pergyra syntax for mutable
 locals and fields. That existing syntax is not a layout capability. If a future
 packed-field or bit-slice spelling reaches the parser, the first compiler
 behavior must still be a structured semantic reject until a `LayoutFact` owner
 proves storage unit, offsets, masks, shift, aliasing, and read-modify-write
 policy.
 
-Future negative fixtures must reject `let mut` / `inout` access to partial-width packed
+Future negative fixtures must reject `var` / `inout` access to partial-width packed
 fields, reject address-like treatment of bit slices, and require the
 diagnostic to name the missing `LayoutFact` owner rather than silently lowering
 through C bitfields.

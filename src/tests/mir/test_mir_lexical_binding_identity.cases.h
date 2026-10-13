@@ -617,10 +617,10 @@ static void
 test_mir_nominal_field_binding_identity(void)
 {
     const char *sources[] = {
-        "subject Host { let mut n: Int; action Change(self) -> Void {"
+        "subject Host { var n: Int; action Change(self) -> Void {"
         " n = n + 1; unsafe { let n: Int = 8; Log(n); } } }"
         "func Main() -> Void {}",
-        "class Host { let mut n: Int; func Change(inout self) -> Void {"
+        "class Host { var n: Int; func Change(inout self) -> Void {"
         " n = n + 1; unsafe { let n: Int = 8; Log(n); } } }"
         "func Main() -> Void {}"
     };

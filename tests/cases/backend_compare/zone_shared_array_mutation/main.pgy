@@ -5,7 +5,7 @@ enum LedgerError { InsufficientFunds, UnknownAccount }
 
 subject Clerk {
     let name: String;
-    let mut posted: Int;
+    var posted: Int;
 
     action Post(self) -> Int {
         posted = posted + 1;

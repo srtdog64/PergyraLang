@@ -1,5 +1,5 @@
 func Choose<T>(first: T, second: T, select_second: Bool) -> T {
-    let mut value: T = first;
+    var value: T = first;
     if select_second { value = second; }
     return value;
 }

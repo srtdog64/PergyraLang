@@ -1,4 +1,4 @@
-subject Actor { let mut n: Int; action Mark(self) -> Void { n = n + 1; } }
+subject Actor { var n: Int; action Mark(self) -> Void { n = n + 1; } }
 zone ArenaZone { subject slot actor: Actor }
 intent Run(arena: ArenaZone, actor: Actor) {
     step Mark {

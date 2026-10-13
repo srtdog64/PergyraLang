@@ -132,13 +132,13 @@ PGYSRC
 cat >"$WORK_DIR/starve.pgy" <<'PGYSRC'
 func Main() -> Void {
     let ch: Channel<Int> = Channel(8);
-    let mut r1: Int = 0;
-    let mut r2: Int = 0;
-    let mut r3: Int = 0;
-    let mut r4: Int = 0;
-    let mut r5: Int = 0;
-    let mut r6: Int = 0;
-    let mut r7: Int = 0;
+    var r1: Int = 0;
+    var r2: Int = 0;
+    var r3: Int = 0;
+    var r4: Int = 0;
+    var r5: Int = 0;
+    var r6: Int = 0;
+    var r7: Int = 0;
     parallel {
         r1 = <- ch;
         r2 = <- ch;

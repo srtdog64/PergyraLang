@@ -2,8 +2,8 @@
 // array must be exactly `name[binding]`. `buckets[0]` writes a fixed
 // element from every replicated task: write-write race by construction.
 func Main() -> Void {
-    let mut buckets: Array<Int> = [];
-    let mut k: Int = 0;
+    var buckets: Array<Int> = [];
+    var k: Int = 0;
     while k < 4 { ArrayPush(buckets, 0); k = k + 1; }
     parallel (i in 0..4) join with all {
         buckets[0] = i;

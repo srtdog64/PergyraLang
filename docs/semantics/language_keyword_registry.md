@@ -8,8 +8,8 @@ C-only table, generated JSON, editor configuration, or documentation mirror.
 
 The registry contains 147 bytewise-sorted, unique spellings:
 
-- 70 `RESERVED` rows with dedicated native token identities;
-- 74 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
+- 71 `RESERVED` rows with dedicated native token identities;
+- 73 `CONTEXTUAL` rows that remain `TOKEN_IDENTIFIER` at the lexer boundary;
 - 3 `SOFT` rows (`current`, `full`, and `none`) used as closed values inside an
   already-selected grammar production.
 
@@ -57,7 +57,7 @@ primary categories does not itself establish a new closure or driver claim.
   reserved-compatibility owners, each below its responsibility-specific hard
   cap. They
   expose collision-free `LanguageWordId.Word*`
-  identities and metadata for all 147 rows; only the 70 reserved rows affect
+  identities and metadata for all 147 rows; only the 71 reserved rows affect
   lexical classification through the legacy `LanguageKeyword*` compatibility
   view. The split is physical ownership only: every projection is regenerated
   together from the same registry SoT.
@@ -73,7 +73,7 @@ primary categories does not itself establish a new closure or driver claim.
   `HOVER`. The seven PascalCase builtin hover entries remain a separate LSP
   presentation fact and are not language keywords.
 - The canonical TextMate view contains the exact spelling-and-scope 93-row
-  `HIGHLIGHT` projection generated from the registry: all 70 reserved rows
+  `HIGHLIGHT` projection generated from the registry: all 71 reserved rows
   plus 23 contextual rows. `domain` and `sync` were removed because no parser
   owner accepts them, and `channel` because its row was removed outright. This is editor projection evidence, not parser
   implementation evidence.
@@ -89,7 +89,7 @@ The first observed defect was `impl/ref/own/type`: the native lexer returned
 dedicated tokens, token debug returned `UNKNOWN`, and the self-host lexer copied
 that presentation defect as classification. Five more reserved spellings
 (`collapse`, `innate`, `local`, `nondeterministic`, and `override`) were absent
-from the self-host table. One exhaustive 70-word lexer fixture now prevents
+from the self-host table. One exhaustive 71-word lexer fixture now prevents
 both failures.
 
 The executable gates reject:

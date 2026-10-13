@@ -1,5 +1,5 @@
 subject Counter {
-    let mut value: Int;
+    var value: Int;
     action Bump(self) -> Void within ArenaZone authorized by self {
         self.value = self.value + 1;
     }

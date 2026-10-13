@@ -5,7 +5,7 @@ ability Payable {
 }
 
 subject Buyer {
-    let mut total: Int;
+    var total: Int;
     action Promote(self) -> Void
         requires Payable
         authorized by self

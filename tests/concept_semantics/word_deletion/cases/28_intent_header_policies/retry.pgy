@@ -1,4 +1,4 @@
-subject W { let mut n: Int; action Go(self) -> Void { n = n + 1; } }
+subject W { var n: Int; action Go(self) -> Void { n = n + 1; } }
 zone Z { subject slot w: W }
 intent Run(z: Z, w: W) with retry(3) {
     step S { where: Z; using: z; who: w; on: w.Go(); expect: z.w.n == 2; }

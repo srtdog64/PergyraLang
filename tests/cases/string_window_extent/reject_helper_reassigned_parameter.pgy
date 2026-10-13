@@ -1,6 +1,6 @@
 // A helper that changes its extent parameter cannot carry a requirement.
 func CodeAt(text: String, n: Int, i: Int) -> Int {
-    let mut m: Int = n;
+    var m: Int = n;
     m = m + 100;
     return CharCode(text, m, i);
 }

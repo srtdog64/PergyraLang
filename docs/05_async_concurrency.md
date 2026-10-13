@@ -73,7 +73,7 @@ beta because capture lifetime and cleanup summaries are not closed.
 The returned handle has one owner. Use an immutable direct binding and retire
 it with `await` on every normal path, or pass it to an explicit `own
 Future<T>` parameter whose callee assumes the same obligation. A bare `spawn`,
-`let mut` Future, Future-to-Future `let` alias, borrowed Future parameter,
+`var` Future, Future-to-Future `let` alias, borrowed Future parameter,
 Future return, scope exit with a live handle, or branch where only one path
 retires the handle is rejected.
 Immediate `await spawn Worker(...)` is the only unbound form.

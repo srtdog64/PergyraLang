@@ -5,9 +5,9 @@
 // compile error.
 
 subject Order {
-    let mut reserved: Int;
-    let mut notified: Int;
-    let mut charged: Int;
+    var reserved: Int;
+    var notified: Int;
+    var charged: Int;
 
     action Reserve(self) -> Void { self.reserved = self.reserved + 1; }
     action Release(self) -> Void { self.reserved = self.reserved - 1; }

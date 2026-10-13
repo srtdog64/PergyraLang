@@ -151,8 +151,8 @@ func ParseNominalDecl(
                 method_blocks = AppendLine(method_blocks, a_block);
                 continue;
             }
-            // Preserve immutable fields in the AST artifact. Bare/vessel and
-            // `let mut` fields have the same mutable field mode.
+            // Preserve immutable fields in the AST artifact. Bare, vessel and
+            // `var` fields have the same mutable field mode.
             let immutable_field: Bool = false;
             let is_role_slot: Bool = false;
             let is_dyn_slot: Bool = false;
@@ -163,11 +163,13 @@ func ParseNominalDecl(
                 immutable_field = true;
                 i = LanguageWordEnd(i, LanguageWordId.WordLet);
                 i = SkipWhitespaceAndComments(content, i);
-                if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
-                    immutable_field = false;
-                    i = LanguageWordEnd(i, LanguageWordId.WordMut);
-                    i = SkipWhitespaceAndComments(content, i);
+                if MatchKeyword(content, i, "mut") {
+                    ParseRefuse(location_context, i, "binding_form_invalid",
+                        "form", "let mut", "construct", "field");
                 }
+            } else if MatchLanguageWord(content, i, LanguageWordId.WordVar) {
+                i = LanguageWordEnd(i, LanguageWordId.WordVar);
+                i = SkipWhitespaceAndComments(content, i);
             } else if MatchLanguageWord(content, i, LanguageWordId.WordVessel) {
                 i = LanguageWordEnd(i, LanguageWordId.WordVessel);
                 i = SkipWhitespaceAndComments(content, i);

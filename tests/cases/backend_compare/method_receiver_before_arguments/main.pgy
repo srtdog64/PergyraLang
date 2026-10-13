@@ -21,7 +21,7 @@ class Outer {
 }
 
 subject Counter {
-    let mut n: Int;
+    var n: Int;
 
     func Step(self, x: Int, y: Int) -> Int {
         self.n = self.n + x * 10 + y;
@@ -30,7 +30,7 @@ subject Counter {
 }
 
 class Holder {
-    let mut counter: Counter;
+    var counter: Counter;
 }
 
 func Tag(t: String) -> Int {

@@ -113,7 +113,7 @@ for field in node_kinds node_texts left_children right_children call_target_kind
     if grep -Eq "$pattern" "$ROWS_BODY"; then
         echo "[self-host-parity:mir-expression-graph-projection] copied graph row field reopened: $field" >&2; exit 1
     fi
-    for prefix in '' 'let ' 'let mut '; do
+    for prefix in '' 'let ' 'var '; do
         printf '    %s%s: Array<String>;\n' "$prefix" "$field" | grep -Eq "$pattern" || {
             echo "[self-host-parity:mir-expression-graph-projection] retired-field negative control missed $field" >&2; exit 1;
         }

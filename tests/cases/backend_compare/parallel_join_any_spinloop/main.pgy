@@ -7,11 +7,11 @@
 // decision. The only reachable give is the winner's, so the output is
 // deterministic and byte-equal on both backends.
 func Main() -> Void {
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     for k in 0..4 { ArrayPush(xs, k); }
     let w: Int = parallel (x in xs) join with any {
         if (x != 0) {
-            let mut i: Int = 0;
+            var i: Int = 0;
             while (i >= 0) {
                 i = i + 1;
                 if (i > 1000000) {

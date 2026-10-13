@@ -27,7 +27,7 @@ imports the path and text-scan owners it consumes. The entrypoint imports only
 `semantic_run_owner.pgy`; stage owner dependencies are declared by the owners
 that consume those facts, not by `main.pgy`. The accepted
 subset is one or more `func` declarations with typed parameters, typed `let`
-and `let mut` declarations, `return` statements, scoped `if` / `while` bodies,
+and `var` declarations, `return` statements, scoped `if` / `while` bodies,
 simple local assignment, and direct calls to known functions.
 
 `semantic_run_owner.pgy` owns the process boundary for this contract: missing

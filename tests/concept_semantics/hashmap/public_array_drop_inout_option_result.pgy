@@ -10,7 +10,7 @@ func AddOptionCell(id: Int, inout cells: Array<OptionCell>) -> Result<OptionBuil
 }
 
 func Main() -> Void {
-    let mut cells: Array<OptionCell> = [];
+    var cells: Array<OptionCell> = [];
     match AddOptionCell(7, cells) {
         case Ok(built): Log(ToString(built.count));
         case Err(_): Exit(1);

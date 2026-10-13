@@ -63,7 +63,7 @@ test_callable_capability_inference(void)
          "Function 'Main' is missing declared capabilities: clock"},
         {"unsupported mutable callable provenance is not pure",
          "func Pure(x: Int) -> Int { return x; }"
-         "func Main() -> Void { let mut f = Pure; f = Pure; Log(f(1)); }",
+         "func Main() -> Void { var f = Pure; f = Pure; Log(f(1)); }",
          "Closed callable capability use has unresolved value provenance"},
         {"unused abstract ability does not claim a closed dynamic call",
          "ability Clockable { func Read(self) -> Int; }"

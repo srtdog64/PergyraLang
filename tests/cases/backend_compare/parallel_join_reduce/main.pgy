@@ -11,7 +11,7 @@
 //   sum over empty range     = 0   (identity; empty min/max panics)
 //   0.5 folded 8 times       = 4.0 (exact in binary floating point)
 func Main() -> Void {
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     for k in 0..8 { ArrayPush(xs, k + 1); }
     let total: Int = parallel (x in xs) join with sum { give x * x; };
     Log(total);
@@ -23,7 +23,7 @@ func Main() -> Void {
     Log(hi);
     let none: Int = parallel (i in 5..5) join with sum { give i; };
     Log(none);
-    let mut fs: Array<Float> = [];
+    var fs: Array<Float> = [];
     for k2 in 0..8 { ArrayPush(fs, 0.5); }
     let fsum: Float = parallel (f in fs) join with sum { give f; };
     if (fsum == 4.0) { Log(1); } else { Log(0); }

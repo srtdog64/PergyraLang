@@ -1,4 +1,4 @@
-struct Value { let mut value: Int; }
+struct Value { var value: Int; }
 func Change(inout item: Value) -> Void { item.value = 7; }
 func Main() -> Void {
     let item: Value = Value(1);

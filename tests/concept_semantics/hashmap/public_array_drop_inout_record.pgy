@@ -5,7 +5,7 @@ func FillRecords(inout values: Array<DropRecord>) -> Void {
 }
 
 func Main() -> Void {
-    let mut values: Array<DropRecord> = [];
+    var values: Array<DropRecord> = [];
     FillRecords(values);
     if ArrayLength(values) != 1 || values[0].x != 9 || !values[0].flag { Exit(1); }
     ArrayDrop(values);

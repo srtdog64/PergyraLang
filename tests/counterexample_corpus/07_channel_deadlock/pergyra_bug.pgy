@@ -4,7 +4,7 @@
 func Main() -> Void {
     let plan_ch: Channel<Int> = Channel(1);
     let capacity_ch: Channel<Int> = Channel(1);
-    let mut steps: Int = 0;
+    var steps: Int = 0;
     parallel {
         {
             let capacity: Int = <- capacity_ch;

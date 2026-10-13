@@ -84,39 +84,35 @@
 
 ## 2. 선언
 
-### 2.1 값 선언 (`let`)
+### 2.1 값 선언 (`let`, `var`)
 
 ```pergyra
 let x = 42;                        // 타입 추론
-let mut count: Int = 0;             // 명시적 가변 바인딩
+var count: Int = 0;                // 가변 바인딩
 let name: String = "Pergyra";      // 타입 명시
 ```
 
-- `let name = expr;` — 기본 선언 (타입 추론)
-- `let mut name = expr;` — mutation intent를 명시하는 선언
-- `let name: Type = expr;` — 타입 명시
-- 바인딩은 `let` 하나로 통일한다 — 추론은 타입 생략, 명시는 `: Type`.
+- `let name = expr;` — 불변 바인딩 (타입 추론)
+- `var name = expr;` — 가변 바인딩. 이후 바뀐다는 사실을 선언에 남긴다
+- `let name: Type = expr;` / `var name: Type = expr;` — 타입 명시
+- 추론은 타입 생략, 명시는 `: Type`.
   과거의 `:=` 단축 선언은 `let x = expr`와 중복이라 제거됐다(A안, 2026-06).
-- `let`과 `let mut`은 분리된 표면이다. `let mut`은 로컬 저장소나 필드가
-  이후 mutation 대상이라는 사실을 source에 남긴다.
-- `let`이 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)
-- nominal field에서는 `let` / `let mut` 구분이 의미를 가진다.
-  - `struct`의 canonical field surface는 `name: Type;`
-  - `let name: Type;` field는 immutable field binding이다
-  - `let mut name: Type;` field는 assignment 가능한 mutable field binding이다
+- `let mut`은 2026-10-13에 `var`로 바뀌었다. `let mut`을 쓰면 "`var`를 쓰라"는 파스 오류가 난다.
+  두 철자를 함께 받는 기간은 없다.
+- `let`/`var`가 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)
+- 구조 분해는 `let` 바인딩이다(`let (a, b) = ...`). `var (a, b)`는 받지 않는다.
+- nominal field:
+  - `struct`의 canonical field surface는 `name: Type;` (가변)
+  - `let name: Type;` field는 생성 후 불변이다
+  - `var name: Type;` field는 대입 가능한 가변 필드다. bare field가 없는 subject/class에서 가변 필드를 쓰는 방법이다
   - 읽기 전용/불변 계약은 `object` / `tobject` projection surface에 별도로 적용된다
 
-> **결정 (2026-10-13): 바인딩 가변성은 Swift식 `let` / `var`로 간다. 아직 구현되지 않았다.**
->
-> - `let`은 불변 바인딩이다. 다시 대입할 수 없고, 그 값을 바꾸는 쓰기(필드·원소 쓰기, `ArrayPush` 같은
->   변경 빌트인, `inout` 인자 전달)도 거부한다. `var`는 가변 바인딩이다. 한 번도 바뀌지 않는 `var`는 경고한다.
-> - `let mut`은 `var`로 바뀌고 `mut` 단어는 없어진다. 두 철자를 같이 받는 기간은 두지 않는다.
-> - 필드는 그대로다: `name: Type;`은 가변 필드, `let name: Type;`은 생성 후 불변 필드다. 값 의미론이라
->   `let`으로 받은 구조체는 가변 필드여도 쓸 수 없다(Swift와 같다).
-> - **현재 동작과의 차이**: 지금은 로컬 `let`을 다시 대입하거나, `let`으로 받은 구조체의 가변 필드에 쓰거나,
->   `let` 배열에 `ArrayPush`해도 오류 없이 통과한다. 거부되는 것은 `let` 필드 쓰기뿐이다.
-> - 이유와 이행 계획은
->   [`let_var_binding_mutability_2026-10-13.md`](../agent_work_directives/let_var_binding_mutability_2026-10-13.md)에 있다.
+> **아직 구현되지 않은 부분 (2026-10-13 결정의 2단계):** 로컬 `let`은 아직 불변으로 검사되지 않는다.
+> 지금은 로컬 `let`을 다시 대입하거나, `let`으로 받은 구조체의 가변 필드에 쓰거나, `let` 배열에
+> `ArrayPush`해도 오류 없이 통과한다. 거부되는 것은 `let` 필드 쓰기뿐이다. 2단계에서 `let`은 다시 대입과
+> 값 변경(필드·원소 쓰기, 변경 빌트인, `inout` 전달)을 모두 거부하고, 한 번도 바뀌지 않는 `var`에는 경고한다.
+> 값 의미론이라 `let`으로 받은 구조체는 가변 필드여도 쓸 수 없게 된다(Swift와 같다). 근거와 순서는
+> [`let_var_binding_mutability_2026-10-13.md`](../agent_work_directives/let_var_binding_mutability_2026-10-13.md).
 
 구조 분해(destructuring):
 

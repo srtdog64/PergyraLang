@@ -1,5 +1,5 @@
 subject Seat {
-    let mut n: Int;
+    var n: Int;
 
     func Show(self) -> Void {
         self.n + 1;

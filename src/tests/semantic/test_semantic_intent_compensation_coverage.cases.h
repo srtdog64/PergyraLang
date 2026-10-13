@@ -5,7 +5,7 @@
  * means nothing on a step without an effect. */
 #define COVERAGE_PRELUDE \
     "subject Wallet {\n" \
-    "    let mut gold: Int;\n" \
+    "    var gold: Int;\n" \
     "    action Pay(self) -> Void { self.gold = self.gold - 1; }\n" \
     "    action Refund(self) -> Void { self.gold = self.gold + 1; }\n" \
     "    action Ship(self) -> Void { self.gold = self.gold; }\n" \

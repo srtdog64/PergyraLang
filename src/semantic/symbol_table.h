@@ -140,7 +140,7 @@ struct Symbol
         int32_t           entangle_pool_id;  /* -1 = no pool */
     } qubit_info;
 
-    /* `let mut` vs `let` for locals (parameters use param_mode instead). */
+    /* `var` vs `let` for locals (parameters use param_mode instead). */
     bool is_mut_binding;
 
     /*

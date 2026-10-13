@@ -12,7 +12,7 @@
 #   - admit_pair          runs on BOTH backends and prints 110
 #   - reject_same_slice   both arms write one half   -> reject
 #   - reject_base_in_arm  arm touches the base array -> reject
-#   - reject_mut_boundary `let mut` split boundary   -> reject (no fact)
+#   - reject_mut_boundary `var` split boundary   -> reject (no fact)
 #   - reject_overlap_views arbitrary overlapping views -> reject (no pair)
 
 set -euo pipefail

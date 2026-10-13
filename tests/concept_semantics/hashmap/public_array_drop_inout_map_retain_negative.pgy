@@ -1,7 +1,7 @@
 struct Cell { value: Int; }
 func Main() -> Void
 {
-    let mut cells: Array<Cell> = [];
+    var cells: Array<Cell> = [];
     Keep(cells);
     ArrayDrop(cells);
 }

@@ -1,5 +1,5 @@
 subject Counter {
-    let mut count: Int;
+    var count: Int;
 
     func Advance(self) -> Int
         within CounterZone

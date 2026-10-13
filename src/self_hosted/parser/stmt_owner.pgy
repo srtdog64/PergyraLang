@@ -268,23 +268,27 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("Return: ", val_text));
     }
-    if MatchLanguageWord(content, head_start, LanguageWordId.WordLet) {
-        // `let IDENT (: TYPE)? = EXPR ;`. The `: TYPE` annotation is
-        // optional; without it the AST emits `Let: IDENT = EXPR` (no
-        // `:` segment), matching type-inferred bindings.
+    let head_is_var: Bool = MatchLanguageWord(content, head_start, LanguageWordId.WordVar);
+    if head_is_var || MatchLanguageWord(content, head_start, LanguageWordId.WordLet) {
+        // `let IDENT (: TYPE)? = EXPR ;` and `var IDENT (: TYPE)? = EXPR ;`.
+        // The `: TYPE` annotation is optional; without it the AST emits
+        // `Let: IDENT = EXPR` (no `:` segment), matching type-inferred
+        // bindings. A `var` binding is recorded as `Let: mut IDENT ...`.
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == "(" {
+            if head_is_var {
+                ParseRefuse(location_context, head_start, "binding_form_invalid",
+                    "form", "var (", "construct", "var");
+            }
             return ParseDestructureLetStmt(
                 content, content_extent, i, cursor_out, stmt_indent, expression_graphs
             );
         }
         ArraySet(cursor_out, 0, i);
-        let mutable_binding: Bool = false;
-        if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
-            mutable_binding = true;
-            i = LanguageWordEnd(i, LanguageWordId.WordMut);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
+        let mutable_binding: Bool = head_is_var;
+        if !head_is_var && MatchKeyword(content, i, "mut") {
+            ParseRefuse(location_context, i, "binding_form_invalid",
+                "form", "let mut", "construct", "let");
         }
         let name_start: Int = i;
         let var_name: String = ReadIdent(content, i, cursor_out);

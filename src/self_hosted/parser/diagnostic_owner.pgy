@@ -137,6 +137,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "add the closing `\"` or escape the quote inside the string"
         );
     }
+    if code == "binding_form_invalid" {
+        return ParseDiagnosticRow(
+            "this binding form is not part of the language: a mutable binding is `var`, and destructuring is a `let` binding",
+            "write `var name = ...` instead of `let mut name = ...`, and destructure with `let (a, b) = ...`"
+        );
+    }
     if code == "binding_name_reserved" {
         return ParseDiagnosticRow(
             "a reserved language word cannot name a local binding",
@@ -267,6 +273,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "block_unclosed" || code == "expected_token" ||
         code == "match_arm_empty" ||
         code == "expression_invalid" || code == "binding_name_reserved" ||
+        code == "binding_form_invalid" ||
         code == "field_name_reserved" || code == "bind_subject_missing" ||
         code == "declaration_name_missing" || code == "type_name_invalid" ||
         code == "import_source_missing" || code == "import_cycle" ||

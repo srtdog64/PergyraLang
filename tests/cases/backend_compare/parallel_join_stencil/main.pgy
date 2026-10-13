@@ -8,8 +8,8 @@
 //   -> next = [0,0,33,33,33,0,0,0] (probes 33/33/33/0/0)
 //   flat[i] = cur[3] + i  pins the arbitrary fixed-index read (100/103)
 func Main() -> Void {
-    let mut cur: Array<Int> = [];
-    let mut next: Array<Int> = [];
+    var cur: Array<Int> = [];
+    var next: Array<Int> = [];
     for k in 0..8 { ArrayPush(cur, 0); ArrayPush(next, 0); }
     ArraySet(cur, 3, 100);
     parallel (i in 1..7) {
@@ -20,7 +20,7 @@ func Main() -> Void {
     Log(next[4]);
     Log(next[1]);
     Log(next[7]);
-    let mut flat: Array<Int> = [];
+    var flat: Array<Int> = [];
     for k2 in 0..4 { ArrayPush(flat, 0); }
     parallel (j in 0..4) {
         flat[j] = cur[3] + j;

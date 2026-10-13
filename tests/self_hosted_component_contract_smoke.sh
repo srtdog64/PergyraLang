@@ -26240,7 +26240,7 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'intent CompilePergyraCArtifact('
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
-    'let mut outcome: Option<DriverSourceCExecutionOutcome>;'
+    'var outcome: Option<DriverSourceCExecutionOutcome>;'
 require_text "src/self_hosted/compiler/driver_source_c_request_owner.pgy" \
     'SourceCManifestVerified(SelfHostMachineLayerDeclaration, Bool)'
 require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \

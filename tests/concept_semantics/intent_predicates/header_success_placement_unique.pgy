@@ -1,6 +1,6 @@
-subject HeaderReserve { let mut calls: Int; }
+subject HeaderReserve { var calls: Int; }
 subject HeaderWorker {
-    let mut calls: Int;
+    var calls: Int;
     action Run(self) -> Void { self.calls = self.calls + 1; }
 }
 zone HeaderZone {

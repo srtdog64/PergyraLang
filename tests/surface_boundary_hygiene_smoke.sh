@@ -131,7 +131,7 @@ PGY
 
 cat > "$WORK_DIR/channel_mut.pgy" <<'PGY'
 func Main() -> Int {
-    let mut ch: Channel<Int> = Channel(4);
+    var ch: Channel<Int> = Channel(4);
     ch <- 1;
     return 0;
 }

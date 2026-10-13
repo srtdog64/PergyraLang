@@ -14,11 +14,11 @@ import "transport_owner.pgy";
 
 class LspLiveSessionState
 {
-    let mut revision: Option<LspDocumentRevision>;
-    let mut document_index: Option<LspDocumentFeatureIndex>;
-    let mut initialized: Bool;
-    let mut shutdown: Bool;
-    let mut exit_requested: Bool;
+    var revision: Option<LspDocumentRevision>;
+    var document_index: Option<LspDocumentFeatureIndex>;
+    var initialized: Bool;
+    var shutdown: Bool;
+    var exit_requested: Bool;
 }
 
 func NewLspLiveSessionState() -> LspLiveSessionState {

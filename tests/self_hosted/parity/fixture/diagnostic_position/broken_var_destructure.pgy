@@ -1,0 +1,4 @@
+func Main() -> Void {
+    var (left, right) = ("a", "b");
+    Log(left);
+}

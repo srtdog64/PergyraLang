@@ -368,7 +368,7 @@ Required invariants before any source-level packed layout is accepted:
 - C and LLVM must consume the same `LayoutFact` row. A backend must not invent
   C bitfields, local mask/shift lowering, or target-specific packing as a
   compatibility fallback.
-- `let mut` is local-storage mutability. It does not by itself prove that a
+- `var` is local-storage mutability. It does not by itself prove that a
   partial-width field is addressable, borrowable, passable as `inout`, atomic,
   or safe to update through an implicit read-modify-write.
 - `inout` / value-result mutation cannot be applied to a bit slice unless the
@@ -401,7 +401,7 @@ Current evidence:
 Remaining proof obligation:
 
 - Add the layout/niche specification, then add negative fixtures for
-  `let mut` / `inout` / address-like packed-field access and C/LLVM ABI golden
+  `var` / `inout` / address-like packed-field access and C/LLVM ABI golden
   fixtures proving both backends consume identical `LayoutFact` rows before
   enabling source-level packed fields.
 

@@ -522,7 +522,7 @@ test_air_parsed_on_receiver_action_contract_provenance(void)
         "    func Ready() -> Bool;\n"
         "}\n"
         "subject Hero {\n"
-        "    let mut hp: Int;\n"
+        "    var hp: Int;\n"
         "    action Protect(self, healer: Healer) -> Void\n"
         "        requires Prepared\n"
         "        within BattleZone\n"

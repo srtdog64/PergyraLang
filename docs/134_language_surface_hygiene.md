@@ -60,13 +60,13 @@ that belong to another axis.
 ## Mutability Surface
 
 Pergyra's mutability surface is not a weakness. The cleanup target is to make
-the current `let` / `let mut` split consistent across docs, tests, and examples.
+the current `let` / `var` split consistent across docs, tests, and examples.
 
 The useful distinction is:
 
 - `let` introduces a binding without promising that later mutation is part of
   the author's intent;
-- `let mut` records local-storage or field mutation intent in the source;
+- `var` records local-storage or field mutation intent in the source;
 - `inout` is value-result caller-visible mutation, not a live borrow;
 - Slot/Pin/View surfaces own resource and authority mutation.
 
@@ -74,9 +74,9 @@ These are different semantic coordinates. Collapsing them into one generic
 "mutable" story would reintroduce the aliasing and ownership ambiguity that the
 language is designed to expose. Current beta enforcement is strongest for
 nominal fields and ABI/layout boundaries: a `let` field is immutable, while a
-`let mut` field may be assigned. Plain local reassignment compatibility may
+`var` field may be assigned. Plain local reassignment compatibility may
 remain during closure, but new documentation and examples should spell mutation
-intent with `let mut` rather than treating bare `let` as the mutable default.
+intent with `var` rather than treating bare `let` as the mutable default.
 
 ## Cleanup Targets
 

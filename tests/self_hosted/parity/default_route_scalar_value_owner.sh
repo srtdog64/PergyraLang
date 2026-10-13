@@ -260,7 +260,7 @@ effect Poisoned for bearer: Player { }
 
 within BattleZone {
     subject Player {
-        let mut hp: Int;
+        var hp: Int;
 
         action Strike(self, amount: Int) -> Swing
             authorized by self
@@ -319,7 +319,7 @@ effect Spent for bearer: Meter { }
 
 within MeterZone {
     subject Meter {
-        let mut used: Int;
+        var used: Int;
         let limit: Int;
 
         func Left(self) -> Int {
@@ -370,7 +370,7 @@ func ShowActive(tag: String) -> Void {
 
 within Desk {
     subject Agent {
-        let mut turns: Int;
+        var turns: Int;
 
         action Work(self) -> Turn
             authorized by self
@@ -384,7 +384,7 @@ within Desk {
 
 within Office {
     subject Lead {
-        let mut asks: Int;
+        var asks: Int;
 
         action Ask(self, desk: Desk, agent: Agent) -> Turn
             authorized by self
@@ -484,7 +484,7 @@ enum Hand { Handed(Done), Dropped(Stop) }
 
 within Desk {
     subject Agent {
-        let mut turns: Int;
+        var turns: Int;
 
         action Work(self, limit: Int) -> Turn
             authorized by self
@@ -552,7 +552,7 @@ enum Hand { Handed(Done), Dropped(Stop) }
 
 within Provider {
     subject Backend {
-        let mut calls: Int;
+        var calls: Int;
 
         action Call(self) -> Int
             authorized by self
@@ -570,7 +570,7 @@ zone Provider {
 
 within Desk {
     subject Agent {
-        let mut turns: Int;
+        var turns: Int;
 
         action Work(self, backend: Backend, limit: Int) -> Turn
             authorized by self
@@ -639,7 +639,7 @@ enum Hand { Handed(Done), Dropped(Stop) }
 
 within Desk {
     subject Agent {
-        let mut turns: Int;
+        var turns: Int;
 
         action Work(self, limit: Int) -> Turn
             authorized by self
@@ -770,7 +770,7 @@ enum Task { Delivered(Done), Failed(Done) }
 
 within Work {
     subject Agent {
-        let mut turns: Int;
+        var turns: Int;
 
         action Ask(self) -> Turn
             authorized by self

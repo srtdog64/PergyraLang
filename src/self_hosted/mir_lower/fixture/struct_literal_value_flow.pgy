@@ -8,7 +8,7 @@ func BuildPair(base: Int) -> Pair {
 }
 
 func Main() -> Void {
-    let mut pair: Pair = Pair { left: 1, right: 2 };
+    var pair: Pair = Pair { left: 1, right: 2 };
     pair = Pair { left: 3, right: 4 };
     let built: Pair = BuildPair(pair.right);
     Log(ToString(built.left + built.right));

@@ -38,7 +38,7 @@ zone Arena {
 }
 
 subject Agent {
-    let mut total: Int;
+    var total: Int;
 
     action Run(self) -> Int
         authorized by self

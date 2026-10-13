@@ -81,5 +81,5 @@ negative_sources = {
 for name, program in negative_sources.items():
     call = "let escaped: Array<Int> = Bad(values);" if name == "return" else "Bad(values);"
     (output / (name + ".pgy")).write_text(
-        program + "\nfunc Main() -> Void { let mut values: Array<Int> = [1]; "
+        program + "\nfunc Main() -> Void { var values: Array<Int> = [1]; "
         + call + " }\n", encoding="utf-8")

@@ -1,4 +1,4 @@
-subject Counter { let mut value: Int; }
+subject Counter { var value: Int; }
 zone CounterZone { subject slot counter: Counter }
 func ObserveCounterZone(ref area: CounterZone) -> Int { return area.counter.value; }
 func Main() -> Void {

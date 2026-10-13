@@ -39,6 +39,18 @@ ASTNode        *parse_type(Parser *parser);
 ASTNode        *parse_type_constraint(Parser *parser);
 void            skip_generic_arguments(Parser *parser);
 Token           parser_peek_next(Parser *parser);
+
+/* Spellings that are not language words. Authors carry them over from older
+ * Pergyra (`let mut`) or from Rust (`&mut`); the parser reads them only to name
+ * the replacement in a parse error, never to select grammar, so they have no
+ * row in the language-keyword registry (the registry gate rejects one). */
+typedef enum {
+    PGY_RETIRED_SPELLING_MUT = 0,
+    PGY_RETIRED_SPELLING_COUNT
+} PgyRetiredSpelling;
+bool            parser_current_is_retired_spelling(const Parser *parser,
+                                                   PgyRetiredSpelling spelling);
+
 bool            parser_check_name_token(Parser *parser);
 bool            parser_match_name_token(Parser *parser);
 Token           consume_name_token(Parser *parser, const char *message);

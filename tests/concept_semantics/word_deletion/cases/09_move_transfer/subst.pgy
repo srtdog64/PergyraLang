@@ -1,4 +1,4 @@
-subject Buyer { let mut hp: Int; action Promote(self) -> Void { hp = hp + 2; } }
+subject Buyer { var hp: Int; action Promote(self) -> Void { hp = hp + 2; } }
 zone CartZone { subject slot buyer: Buyer }
 zone PaymentZone { subject slot buyer: Buyer }
 intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {

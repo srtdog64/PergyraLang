@@ -1,8 +1,8 @@
 // Fix: retry only the overloaded status, at most 3 attempts with backoff, then fail the request.
 // The limit is ordinary user code; Pergyra has no network or cost budget that would enforce it.
 subject PaidModelApi {
-    let mut calls: Int;
-    let mut spentCents: Int;
+    var calls: Int;
+    var spentCents: Int;
 
     // Local stand-in for the paid API (no network): 3 cents per call, overloaded (529)
     // for the first 400 calls.

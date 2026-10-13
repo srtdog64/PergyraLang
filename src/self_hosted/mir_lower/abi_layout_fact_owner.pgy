@@ -386,9 +386,9 @@ func MirAbiLayoutIdFromRow(ref row: JsonObjectFactTable) -> Int {
 // reuse never depends on the 28-bit layout id or on source-buffer identity.
 // Only a tuple which already passed the complete capture/hash check is stored.
 struct MirAbiLayoutValidationSession {
-    let mut required_type_keys: Array<String>;
-    let mut required_ids: Array<Int>;
-    let mut required_layout_keys: Array<String>;
+    var required_type_keys: Array<String>;
+    var required_ids: Array<Int>;
+    var required_layout_keys: Array<String>;
 }
 
 func NewMirAbiLayoutValidationSession() -> MirAbiLayoutValidationSession {

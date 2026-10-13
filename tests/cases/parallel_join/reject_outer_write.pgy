@@ -1,9 +1,9 @@
 // Join arms are logically replicated once per element, so writing ANY
 // outer binding is a write-write race by construction (docs/181 SS1.2).
 func Main() -> Void {
-    let mut xs: Array<Int> = [];
+    var xs: Array<Int> = [];
     ArrayPush(xs, 1);
-    let mut total: Int = 0;
+    var total: Int = 0;
     parallel (x in xs) join with all {
         total = total + x;
     }

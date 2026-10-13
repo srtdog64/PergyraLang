@@ -17,7 +17,7 @@
 // - `authority field` says that slot participates in authority evidence.
 
 subject Actor {
-    let mut score: Int;
+    var score: Int;
 }
 
 zone ArenaZone {

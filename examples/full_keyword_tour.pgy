@@ -83,7 +83,7 @@ zone MarketZone {
 // ============ 4. SUBJECT / ACTION ============================================
 subject Player {
     let name: String;
-    let mut gold: Int;
+    var gold: Int;
     vessel hp: HP;
 
     action Spend(self, amount: Int) -> Void

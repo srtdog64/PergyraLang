@@ -6,7 +6,7 @@ import "../../../commons/types/calling.pgy";
 import "../../../commons/types/gold.pgy";
 
 vessel Purse {
-    let mut gold: Gold;
+    var gold: Gold;
 
     func Has(self, amount: Gold) -> Bool {
         return amount >= 0 && gold >= amount;
@@ -15,9 +15,9 @@ vessel Purse {
 
 // 짐에는 재료와 유물 한 칸이 있다. relic은 품질이고 0이면 빈 칸이다.
 vessel Pack {
-    let mut ore: Int;
-    let mut essence: Int;
-    let mut relic: Int;
+    var ore: Int;
+    var essence: Int;
+    var relic: Int;
 
     func HasMaterials(self, oreNeed: Int, essenceNeed: Int) -> Bool {
         return ore >= oreNeed && essence >= essenceNeed;
@@ -38,7 +38,7 @@ subject Adventurer {
     let power: Int;
     vessel purse: Purse;
     vessel pack: Pack;
-    let mut renown: Int;
+    var renown: Int;
 
     action Earn(self, amount: Gold) -> Gold {
         purse.gold = purse.gold + amount;

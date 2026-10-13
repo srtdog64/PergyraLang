@@ -1,8 +1,9 @@
 # Binding mutability: Swift-style `let` / `var`
 
-Status: PLANNED. Not started. Decision recorded 2026-10-13; the user delegated the
-choice ("네 판단에 맡길게").
-Base: `e2240cb2` with the GPT lane's DRV-2 work uncommitted in the shared tree.
+Status: SLICE 1 LANDED (spelling); slices 2-4 PLANNED. Decision recorded 2026-10-13;
+the user delegated the choice ("네 판단에 맡길게") and paused the GPT lane for slice 1.
+Base: decision at `e2240cb2`; slice 1 built from `c7902a4b6` in a separate worktree,
+while the GPT lane's DRV-2 work stayed uncommitted in the shared tree.
 Outputs: implementation candidate. This directive does not own language semantics;
 the grammar documents and the executable gates do once the slices land.
 
@@ -16,9 +17,13 @@ the grammar documents and the executable gates do once the slices land.
 - `let mut` and the contextual word `mut` are retired. `var` replaces them, so the
   registry keeps the same word count. There is no period in which both spellings
   are accepted.
-- Fields keep their surface: `name: Type;` is a mutable field and `let name: Type;`
-  is immutable after construction. Because structs are values, a struct held by a
-  `let` cannot be written even through a mutable field, as in Swift.
+- Fields: `let name: Type;` is immutable after construction and `var name: Type;`
+  replaces `let mut name: Type;`. A struct also keeps its canonical bare field
+  `name: Type;` (mutable). Subjects and classes have no bare field form, so `var`
+  is how they declare a mutable field (corrected during slice 1; the first draft
+  said `let mut` fields would become bare, which subjects cannot express). Because
+  structs are values, a struct held by a `let` cannot be written even through a
+  mutable field, as in Swift.
 
 Rejected: `let` mutable with `let mut` immutable (the word `mut` would mean its
 opposite); keeping a mutable-by-default `let` and dropping `mut` (no default
@@ -89,6 +94,54 @@ first enforcement slice measures them exactly.
   diagnostics, the keyword registry gate, the VS Code grammar gate,
   `documentation_quality_smoke`, and the full self-host bootstrap after the
   rewrite.
+
+## Slice 1 result (spelling)
+
+- Registry: the contextual `mut` row is replaced by a reserved `var` row with
+  `TOKEN_VAR`; reserved 70 to 71, contextual 74 to 73, 147 words unchanged.
+  Generated projections, the TextMate grammar, the hover table (26 to 27 rows),
+  the exhaustive keyword fixture and the implementation inventory were
+  regenerated. The inventory had also drifted since 2026-10-09 because later
+  commits added fixtures without regenerating it.
+- Native parser: `var` starts a local, top-level or field declaration with exactly
+  the old `let mut` meaning. `let mut` reports "`let mut` is no longer a binding
+  form" (or "field form"), and `var (a, b)` reports that destructuring is a `let`
+  binding.
+- Self-host parser: the same, through `LanguageWordId.WordVar` and the new parse
+  code `binding_form_invalid`. The AST artifact still records a mutable local as
+  `Let: mut NAME ...`; that is internal encoding, not surface.
+- Self-host semantic source scanners (`body_check_owner.pgy`,
+  `program_check_owner.pgy`) read `var` where they read `let`.
+- 671 `let mut` sites in 357 files were rewritten to `var` by
+  a script. Not rewritten: Rust sources and Rust programs inside shell gates,
+  frozen snapshots and archived records, dated logs, the cross-language tables in
+  docs/124 and docs/177, and this directive.
+- `mut` is now a retired spelling: the native parser reads it only through
+  `parser_current_is_retired_spelling()` (one table in `src/parser/parser.c`) to
+  explain `let mut` and Rust's `&mut`. The language-keyword registry gate rejects
+  a registry row with a retired spelling.
+- Negative tests: the native parser test `run_binding_mutability_surface_test`
+  (var is mutable, let is not, `let mut` local and field and `var (a, b)` are
+  refused with the replacement named) and three default-route fixtures in
+  `default_route_diagnostic_position_owner.sh` (`binding_form_invalid`).
+
+### Migrating work in flight
+
+Uncommitted or branch work written before slice 1 still says `let mut`, which
+now fails to parse. Rewrite it the same way slice 1 did, Pergyra text only:
+
+```bash
+git grep -lE '\blet mut\b' -- '*.pgy' '*.h' '*.c' '*.sh' '*.py' '*.txt' ':!*.rs' | xargs sed -i -E 's/\blet mut\b/var/g'
+```
+
+Then undo the hits that are not Pergyra: Rust programs embedded in shell gates
+(lines containing `fn main(`), and text that names the retired form on purpose,
+such as the `let mut` messages in `src/parser/parser.c`, `src/parser/parser_decl.c`,
+`src/self_hosted/parser/stmt_owner.pgy`, `decl_nominal_owner.pgy`,
+`diagnostic_owner.pgy` and the `broken_let_mut_*.pgy` fixtures. Regenerate the
+language-word inventory afterwards, because fixture counts change (the command is
+in `tests/language_keyword_registry_smoke.sh`, with `--write` in place of
+`--check`).
 
 ## Slices, in dependency order
 

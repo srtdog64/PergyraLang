@@ -5,7 +5,7 @@ subject Agent {
     let id: Int;
 }
 subject User {
-    let mut plan: Int;
+    var plan: Int;
     action SetPlan(self, plan: Int) -> Void {
         self.plan = plan;
     }

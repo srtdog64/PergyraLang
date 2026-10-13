@@ -109,7 +109,7 @@ func DriverRung2InstalledPublishSourceLlvm(
 ) -> Void with caps io_read, io_write {
     if !CompilerCompatibilityExecutionViewReady(compatibility_view) { Die("compatibility execution view is invalid at artifact/package boundary"); }
     let history_before: Int = IntentHistoryCount();
-    let mut source_request: DriverSourceMirRequest = SourceMirVerified;
+    var source_request: DriverSourceMirRequest = SourceMirVerified;
     if emit_json_diagnostic { source_request = SourceMirJsonDiagnostic; }
     let outcome: DriverSourceLlvmIntentOutcome =
         CompileSourceToLlvmThroughPgyCompilerWorld(

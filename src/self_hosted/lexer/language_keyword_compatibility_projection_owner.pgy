@@ -3,7 +3,7 @@
 // Responsibility: reserved lexer compatibility view.
 
 func LanguageKeywordRegistryCount() -> Int {
-    return 70;
+    return 71;
 }
 
 func LanguageKeywordSpellingAt(index: Int) -> String {
@@ -71,12 +71,13 @@ func LanguageKeywordSpellingAt(index: Int) -> String {
     if index == 61 { return "type"; }
     if index == 62 { return "unsafe"; }
     if index == 63 { return "use"; }
-    if index == 64 { return "vessel"; }
-    if index == 65 { return "where"; }
-    if index == 66 { return "while"; }
-    if index == 67 { return "with"; }
-    if index == 68 { return "world"; }
-    if index == 69 { return "zone"; }
+    if index == 64 { return "var"; }
+    if index == 65 { return "vessel"; }
+    if index == 66 { return "where"; }
+    if index == 67 { return "while"; }
+    if index == 68 { return "with"; }
+    if index == 69 { return "world"; }
+    if index == 70 { return "zone"; }
     return "";
 }
 
@@ -145,12 +146,13 @@ func LanguageKeywordDebugIdentityAt(index: Int) -> String {
     if index == 61 { return "TYPE"; }
     if index == 62 { return "UNSAFE"; }
     if index == 63 { return "USE"; }
-    if index == 64 { return "VESSEL"; }
-    if index == 65 { return "WHERE"; }
-    if index == 66 { return "WHILE"; }
-    if index == 67 { return "WITH"; }
-    if index == 68 { return "WORLD"; }
-    if index == 69 { return "ZONE"; }
+    if index == 64 { return "VAR"; }
+    if index == 65 { return "VESSEL"; }
+    if index == 66 { return "WHERE"; }
+    if index == 67 { return "WHILE"; }
+    if index == 68 { return "WITH"; }
+    if index == 69 { return "WORLD"; }
+    if index == 70 { return "ZONE"; }
     return "";
 }
 
@@ -219,6 +221,7 @@ func LanguageKeywordDebugIdentity(text: String) -> String {
     if text == "type" { return "TYPE"; }
     if text == "unsafe" { return "UNSAFE"; }
     if text == "use" { return "USE"; }
+    if text == "var" { return "VAR"; }
     if text == "vessel" { return "VESSEL"; }
     if text == "where" { return "WHERE"; }
     if text == "while" { return "WHILE"; }

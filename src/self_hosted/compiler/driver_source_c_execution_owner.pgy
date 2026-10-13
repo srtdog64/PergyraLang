@@ -64,7 +64,7 @@ func DriverSourceCProducePayloadAdmitted(
 subject DriverSourceCExecution {
     let identity: String;
     let topology_identity: String;
-    let mut outcome: Option<DriverSourceCExecutionOutcome>;
+    var outcome: Option<DriverSourceCExecutionOutcome>;
 
     action ProduceSourceC(
         self,

@@ -3,7 +3,7 @@ func MakeValues() -> Array<Int> {
 }
 
 func Main() -> Void {
-    let mut total: Int = 0;
+    var total: Int = 0;
     for outer in MakeValues() {
         for inner in MakeValues() {
             total = total + inner;

@@ -54,6 +54,7 @@ LANGUAGE_WORD_HOVER(
 LANGUAGE_WORD_HOVER(
     "using",
     "**using** - Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be derived from the `transfer` target contract")
+LANGUAGE_WORD_HOVER("var", "**var** - Mutable variable declaration")
 LANGUAGE_WORD_HOVER(
     "where",
     "**where** - Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface")

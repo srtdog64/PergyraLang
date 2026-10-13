@@ -22,7 +22,7 @@ func ReadMembers(ref wrapped: WrappedNumbers) -> Int {
 func StringCount(ref values: Array<String>) -> Int { return ArrayLength(values); }
 func ReadStrings(offset: Int, values: Array<String>) -> Int { return offset + StringCount(values); }
 func Main() -> Void {
-    let mut values: Array<Int> = [1, -2, 2147483647];
+    var values: Array<Int> = [1, -2, 2147483647];
     Log(ToString(Count(values)));
     Log(ToString(Indexed(9, values, 1)));
     Log(ToString(Indexed(0, values, 2)));

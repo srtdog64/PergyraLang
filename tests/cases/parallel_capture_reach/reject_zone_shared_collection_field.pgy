@@ -9,7 +9,7 @@ zone Ledger {
 
 func Main() -> Void {
     let ledger: Ledger = Ledger();
-    let mut n: Int = 0;
+    var n: Int = 0;
     parallel {
         { ledger.Add(1); }
         { n = ArrayLength(ledger.rows); }

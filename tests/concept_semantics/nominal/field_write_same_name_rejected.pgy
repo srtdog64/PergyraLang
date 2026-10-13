@@ -1,4 +1,4 @@
-struct Mutable { let mut value: Int; }
+struct Mutable { var value: Int; }
 struct Frozen { let value: Int; }
 func Main() -> Void {
     let a: Mutable = Mutable(1);

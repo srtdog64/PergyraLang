@@ -4,7 +4,7 @@
 // projection owns presentation prose only.
 
 func LspHoverPresentationLanguageWordCount() -> Int {
-    return 26;
+    return 27;
 }
 
 func LspHoverPresentationBuiltinCount() -> Int {
@@ -12,7 +12,7 @@ func LspHoverPresentationBuiltinCount() -> Int {
 }
 
 func LspHoverPresentationCount() -> Int {
-    return 33;
+    return 34;
 }
 
 func LspHoverPresentationWordAt(index: Int) -> String {
@@ -38,17 +38,18 @@ func LspHoverPresentationWordAt(index: Int) -> String {
     if index == 19 { return "tobject"; }
     if index == 20 { return "transfer"; }
     if index == 21 { return "using"; }
-    if index == 22 { return "where"; }
-    if index == 23 { return "who"; }
-    if index == 24 { return "with"; }
-    if index == 25 { return "within"; }
-    if index == 26 { return "Err"; }
-    if index == 27 { return "Log"; }
-    if index == 28 { return "LogBanner"; }
-    if index == 29 { return "LogBlock"; }
-    if index == 30 { return "LogRaw"; }
-    if index == 31 { return "Ok"; }
-    if index == 32 { return "Unwrap"; }
+    if index == 22 { return "var"; }
+    if index == 23 { return "where"; }
+    if index == 24 { return "who"; }
+    if index == 25 { return "with"; }
+    if index == 26 { return "within"; }
+    if index == 27 { return "Err"; }
+    if index == 28 { return "Log"; }
+    if index == 29 { return "LogBanner"; }
+    if index == 30 { return "LogBlock"; }
+    if index == 31 { return "LogRaw"; }
+    if index == 32 { return "Ok"; }
+    if index == 33 { return "Unwrap"; }
     return "";
 }
 
@@ -75,17 +76,18 @@ func LspHoverPresentationTextAt(index: Int) -> String {
     if index == 19 { return "**tobject** - Transfer object. Boundary transfer data type"; }
     if index == 20 { return "**transfer** - Cross-zone handoff clause\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\n- diagnostics should explain both current contract and the derived target contract"; }
     if index == 21 { return "**using** - Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be derived from the `transfer` target contract"; }
-    if index == 22 { return "**where** - Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface"; }
-    if index == 23 { return "**who** - Intent step participant clause\n- names which intent participant performs the step\n- may be inherited from a unique matching subject action"; }
-    if index == 24 { return "**with** - Two different surfaces share this word\n- `with slot ... as ...` is a scoped binding/resource surface\n- `with effects ...` is a declaration-local effect contract\n- `with effects` is not part of the action -> step contract pack"; }
-    if index == 25 { return "**within** - Action zone contract clause\n- fixes which zone type the action runs inside\n- matching intent steps may reuse this zone contract"; }
-    if index == 26 { return "**Err(message)** - Create error Result"; }
-    if index == 27 { return "**Log(value)** - Print value with newline\n- If argument is multiline string, it is normalized and emitted via banner-style output"; }
-    if index == 28 { return "**LogBanner(text)** - Print banner text with indentation-normalized output"; }
-    if index == 29 { return "**LogBlock(text)** - Print multiline block text with banner-style normalization"; }
-    if index == 30 { return "**LogRaw(value)** - Print raw string value including embedded escapes/newlines"; }
-    if index == 31 { return "**Ok(value)** - Create success Result"; }
-    if index == 32 { return "**Unwrap(result)** - Extract value or panic"; }
+    if index == 22 { return "**var** - Mutable variable declaration"; }
+    if index == 23 { return "**where** - Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface"; }
+    if index == 24 { return "**who** - Intent step participant clause\n- names which intent participant performs the step\n- may be inherited from a unique matching subject action"; }
+    if index == 25 { return "**with** - Two different surfaces share this word\n- `with slot ... as ...` is a scoped binding/resource surface\n- `with effects ...` is a declaration-local effect contract\n- `with effects` is not part of the action -> step contract pack"; }
+    if index == 26 { return "**within** - Action zone contract clause\n- fixes which zone type the action runs inside\n- matching intent steps may reuse this zone contract"; }
+    if index == 27 { return "**Err(message)** - Create error Result"; }
+    if index == 28 { return "**Log(value)** - Print value with newline\n- If argument is multiline string, it is normalized and emitted via banner-style output"; }
+    if index == 29 { return "**LogBanner(text)** - Print banner text with indentation-normalized output"; }
+    if index == 30 { return "**LogBlock(text)** - Print multiline block text with banner-style normalization"; }
+    if index == 31 { return "**LogRaw(value)** - Print raw string value including embedded escapes/newlines"; }
+    if index == 32 { return "**Ok(value)** - Create success Result"; }
+    if index == 33 { return "**Unwrap(result)** - Extract value or panic"; }
     return "";
 }
 
@@ -116,13 +118,14 @@ func LspHoverPresentationLanguageWordAt(index: Int) -> Bool {
     if index == 23 { return true; }
     if index == 24 { return true; }
     if index == 25 { return true; }
-    if index == 26 { return false; }
+    if index == 26 { return true; }
     if index == 27 { return false; }
     if index == 28 { return false; }
     if index == 29 { return false; }
     if index == 30 { return false; }
     if index == 31 { return false; }
     if index == 32 { return false; }
+    if index == 33 { return false; }
     return false;
 }
 
@@ -149,6 +152,7 @@ func LspHoverPresentationTextForWord(word: String) -> Option<String> {
     if word == "tobject" { return Some("**tobject** - Transfer object. Boundary transfer data type"); }
     if word == "transfer" { return Some("**transfer** - Cross-zone handoff clause\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\n- diagnostics should explain both current contract and the derived target contract"); }
     if word == "using" { return Some("**using** - Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be derived from the `transfer` target contract"); }
+    if word == "var" { return Some("**var** - Mutable variable declaration"); }
     if word == "where" { return Some("**where** - Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface"); }
     if word == "who" { return Some("**who** - Intent step participant clause\n- names which intent participant performs the step\n- may be inherited from a unique matching subject action"); }
     if word == "with" { return Some("**with** - Two different surfaces share this word\n- `with slot ... as ...` is a scoped binding/resource surface\n- `with effects ...` is a declaration-local effect contract\n- `with effects` is not part of the action -> step contract pack"); }
@@ -164,7 +168,7 @@ func LspHoverPresentationTextForWord(word: String) -> Option<String> {
 }
 
 func LspHoverPresentationProjectionReady() -> Bool {
-    if LspHoverPresentationLanguageWordCount() != 26 {
+    if LspHoverPresentationLanguageWordCount() != 27 {
         return false;
     }
     if LspHoverPresentationBuiltinCount() != 7 {

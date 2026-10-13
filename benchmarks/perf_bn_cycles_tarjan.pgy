@@ -55,10 +55,10 @@ func HeapGen(
 }
 func Main() -> Void {
     let n: Int = 10; let twoN: Int = n + n; let histLen: Int = twoN + 1;
-    let mut perm: Array<Int> = []; for k in 0..n { ArrayPush(perm, k + 1); }
-    let mut hist: Array<Long> = []; for k in 0..histLen { ArrayPush(hist, 0L); }
-    let mut next: Array<Int> = []; for k in 0..twoN { ArrayPush(next, 0); }
-    let mut parent: Array<Int> = []; for k in 0..twoN { ArrayPush(parent, 0); }
+    var perm: Array<Int> = []; for k in 0..n { ArrayPush(perm, k + 1); }
+    var hist: Array<Long> = []; for k in 0..histLen { ArrayPush(hist, 0L); }
+    var next: Array<Int> = []; for k in 0..twoN { ArrayPush(next, 0); }
+    var parent: Array<Int> = []; for k in 0..twoN { ArrayPush(parent, 0); }
     HeapGen(n, perm, n, hist, next, parent);
     let total: Long = 0L; let c: Int = 0;
     while c < histLen { total = total + hist[c]; c = c + 1; }

@@ -1,5 +1,5 @@
 subject Counter {
-    let mut value: Int;
+    var value: Int;
     action Bump(self) -> Void authorized by self {
         self.value = self.value + 1;
     }

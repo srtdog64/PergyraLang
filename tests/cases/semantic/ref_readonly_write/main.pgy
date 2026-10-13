@@ -1,5 +1,5 @@
 struct Pair {
-    let mut left: Int;
+    var left: Int;
     right: Int;
 }
 

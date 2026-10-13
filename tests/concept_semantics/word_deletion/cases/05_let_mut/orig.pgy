@@ -1,6 +1,6 @@
-struct Score { let mut value: Int; }
+struct Score { var value: Int; }
 func Main() -> Void {
-    let mut n: Int = 1;
+    var n: Int = 1;
     n = n + 1;
     let s: Score = Score(1);
     s.value = 5;

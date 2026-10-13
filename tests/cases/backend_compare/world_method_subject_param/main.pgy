@@ -4,7 +4,7 @@
 
 subject Clerk {
     let name: String;
-    let mut n: Int;
+    var n: Int;
 
     action Bump(self) -> Int {
         n = n + 1;

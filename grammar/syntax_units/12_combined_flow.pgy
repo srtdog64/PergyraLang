@@ -18,7 +18,7 @@ ability Prepared {
 }
 
 subject Hero {
-    let mut hp: Int;
+    var hp: Int;
 
     action Guard(self) -> Void
         requires Prepared

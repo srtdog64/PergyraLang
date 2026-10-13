@@ -41,8 +41,8 @@ func Vruntime(nice: Int) -> Int {
 }
 
 func AuditVruntime(jobs: Int) -> Int {
-    let mut total: Int = 0;
-    let mut id: Int = 0;
+    var total: Int = 0;
+    var id: Int = 0;
     while id < jobs {
         total = total + Vruntime((id / 2) % 4);
         id = id + 1;
@@ -60,15 +60,15 @@ func RunSched() -> Int {
     let epoch_out: Channel<Int> = Channel(1);
     let counts: Channel<Int> = Channel(2);
 
-    let mut vbuckets: Array<Int> = [];
-    let mut z: Int = 0;
+    var vbuckets: Array<Int> = [];
+    var z: Int = 0;
     while z < 8 { ArrayPush(vbuckets, 0); z = z + 1; }
     let mid: Int = 4;
     let cpu0v: Slice<Int> = vbuckets.Slice(0, mid);
     let cpu1v: Slice<Int> = vbuckets.Slice(mid, 4);
 
-    let mut clock: Int = 0;
-    let mut migrated: Int = 0;
+    var clock: Int = 0;
+    var migrated: Int = 0;
 
     parallel {
         // [admission] statement arm: 8 jobs into the bounded run queue.
@@ -81,7 +81,7 @@ func RunSched() -> Int {
         // [balancer] routes by parity, poisons both CPUs, then drains
         // acks through select (default = idle tick, never printed).
         {
-            let mut routed: Int = 0;
+            var routed: Int = 0;
             while routed < 8 {
                 let job: Int = <- runq;
                 if job % 2 == 0 {
@@ -94,9 +94,9 @@ func RunSched() -> Int {
             }
             cpu0q <- 0 - 1;
             cpu1q <- 0 - 1;
-            let mut got0: Int = 0;
-            let mut got1: Int = 0;
-            let mut idle: Int = 0;
+            var got0: Int = 0;
+            var got1: Int = 0;
+            var idle: Int = 0;
             while got0 + got1 < 8 {
                 select {
                     case a = <-ack0:
@@ -112,7 +112,7 @@ func RunSched() -> Int {
         }
         // [cpu0] consumes until poison; writes its OWN split half.
         {
-            let mut running: Int = 1;
+            var running: Int = 1;
             while running == 1 {
                 let job: Int = <- cpu0q;
                 if job < 0 {
@@ -126,7 +126,7 @@ func RunSched() -> Int {
         }
         // [cpu1] the other half, the other queue.
         {
-            let mut running: Int = 1;
+            var running: Int = 1;
             while running == 1 {
                 let job: Int = <- cpu1q;
                 if job < 0 {
@@ -157,9 +157,9 @@ func RunSched() -> Int {
     Log(done1);
     // scheduler invariant: completions == admitted jobs
     if done0 + done1 == clock { Log(1); } else { Log(0); }
-    let mut v0: Int = 0;
-    let mut v1: Int = 0;
-    let mut t: Int = 0;
+    var v0: Int = 0;
+    var v1: Int = 0;
+    var t: Int = 0;
     while t < 4 { v0 = v0 + vbuckets[t]; t = t + 1; }
     while t < 8 { v1 = v1 + vbuckets[t]; t = t + 1; }
     Log(v0);

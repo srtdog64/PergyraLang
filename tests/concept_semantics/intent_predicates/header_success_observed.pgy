@@ -1,5 +1,5 @@
 subject HeaderWorker {
-    let mut calls: Int;
+    var calls: Int;
     action Run(self) -> Void { self.calls = self.calls + 1; }
 }
 zone HeaderZone { subject slot worker: HeaderWorker }
