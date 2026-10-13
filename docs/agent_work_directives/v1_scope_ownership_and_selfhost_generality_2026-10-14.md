@@ -76,6 +76,18 @@ being promoted to `CLOSED`.
 
   That round trip is the text re-parse that
   `docs/self_hosted/14_target_compiler_world.md` rejects as a handoff.
+
+  **The AST fallback is closed to programs that carry ownership facts.**
+  `driver_rung2_scalar_c_substitution_owner.pgy` forces the direct route
+  whenever a routine carries collection ownership facts. Rebuilding cleanup
+  from the AST would throw the MIR fact away. If no shape claims such a
+  program, the route admission ends in `Die`. Each ownership fact that
+  ownership automation adds therefore ties C, too, to the shape list. This is
+  where the two V1 goals meet.
+
+  The rule for extending: when a program fails, add the missing MIR
+  instruction kind, expression node kind or ABI row to the general emitter.
+  Never admit the failing program's shape.
 - **LLVM path.** `DriverRung2PublishMirPayloadLlvmArtifactForIdentity` calls
   only the direct backend. A program no shape claims ends in a typed
   `CodegenRouteRefusal` (`CODEGEN ERROR: ...`). Self-host LLVM is therefore
