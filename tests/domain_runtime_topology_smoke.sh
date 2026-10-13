@@ -22,51 +22,6 @@ fail() {
     exit 1
 }
 
-require_term() {
-    local file="$1"
-    local term="$2"
-    grep -Fq -- "$term" "$ROOT_DIR/$file" \
-        || fail "missing '$term' in $file"
-}
-
-require_term "src/compiler/dir.h" "DIR_DOMAIN_TOPOLOGY_LINK_RELATION"
-require_term "src/compiler/dir.h" "DIR_DOMAIN_TOPOLOGY_APPLY_EFFECT"
-require_term "src/compiler/mir_domain_topology.h" \
-    "MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT"
-require_term "src/compiler/propagation_graph_build.c" \
-    "case MIR_DOMAIN_TOPOLOGY_APPLY_EFFECT:"
-require_term "src/compiler/mir.c" "mir_domain_topology_project_from_dir"
-require_term "src/compiler/mir_json_dump.c" \
-    "mir_json_emit_domain_topology(out, mir)"
-require_term "src/compiler/mir_json_dump_decl.c" "AST_RELATION_DECL"
-require_term "src/compiler/mir_json_dump_decl.c" \
-    'mir_decl_field_source_syntax_id(field)'
-require_term "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
-    "MIR domain topology facts are missing or invalid"
-require_term "src/compiler/driver_app.c" \
-    "mir_lower_request_bind_dir(&mir_request, dir)"
-require_term "src/codegen/transpiler_zone_decl_emit.c" \
-    "pgy_codegen_zone_frontier_graph_pass_limit_from_mir"
-require_term "src/codegen/llvm_domain_zone_sync.c" \
-    "pgy_codegen_zone_frontier_graph_pass_limit_from_mir"
-
-if grep -RInE \
-    'propagation_graph_build_from_zone\(|pgy_codegen_zone_frontier_graph_pass_limit\(' \
-    "$ROOT_DIR/src" >/dev/null; then
-    fail "legacy backend AST zone graph entrypoint remains"
-fi
-
-if grep -nE 'ast_zone_(refreshes|maintained_effects|links)' \
-    "$ROOT_DIR/src/compiler/propagation_graph_build.c" \
-    "$ROOT_DIR/src/codegen/domain_frontier_graph.c" >/dev/null; then
-    fail "zone frontier graph reconstructs DIR-owned topology from AST"
-fi
-
-if grep -nE 'ast_(zone|relation|effect|node|domain)_[a-z_]+\(|owner_node_id|DIRProgram|DIRDomainTopology' \
-    "$ROOT_DIR/src/compiler/mir_json_dump_domain_topology.c" >/dev/null; then
-    fail "MIR JSON topology emitter reopened AST/DIR recovery or leaked a DIR-local id"
-fi
-
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
 pgy_require_runnable_binary_here "domain-runtime-topology" "$PGY" \
@@ -263,7 +218,7 @@ grep -Fq 'size_t _pgy_zone_frontier_pass_limit = 3;' \
     || fail "C output did not preserve the count floor above the graph depth"
 
 if ((ran_llvm == 1)); then
-    echo "[domain-runtime-topology] DIR -> MIR -> C/LLVM zone frontier topology and declaration field identity are exact; AST bypasses are absent"
+    echo "[domain-runtime-topology] DIR -> MIR -> C/LLVM zone frontier topology and declaration field identity are exact"
 else
     echo "[domain-runtime-topology] DIR -> MIR -> C zone frontier topology and declaration field identity are exact; LLVM is owned by an LLVM-enabled gate"
 fi

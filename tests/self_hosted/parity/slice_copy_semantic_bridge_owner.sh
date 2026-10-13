@@ -21,17 +21,6 @@ GROWTH_SAFE_REL="tests/self_hosted/fixtures/slice_growth_before_borrow.pgy"
 MEMBER_GROWTH_REJECT_REL="tests/self_hosted/fixtures/slice_member_growth_after_borrow_reject.pgy"
 MEMBER_GROWTH_SAFE_REL="tests/self_hosted/fixtures/slice_member_growth_before_borrow.pgy"
 MEMBER_SIBLING_SAFE_REL="tests/self_hosted/fixtures/slice_member_sibling_growth_while_borrowed.pgy"
-CALL_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_member_callee_identity_owner.pgy"
-SLICE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_slice_builtin_owner.pgy"
-LLVM_SLICE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_slice_expression_owner.pgy"
-LLVM_ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_control_flow_route_owner.pgy"
-RUNTIME_ALLOCATOR_OWNER="$ROOT_DIR/src/runtime/pgy_runtime_lib_allocator_exports.h"
-NATIVE_SYMBOL_OWNER="$ROOT_DIR/src/semantic/symbol_table.h"
-NATIVE_BORROW_OWNER="$ROOT_DIR/src/semantic/type_checker_ownership_let_slice.c"
-PGY_PLACE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_storage_place_identity_owner.pgy"
-PGY_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy"
-CALL_TARGET_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy"
-CALL_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
@@ -46,49 +35,6 @@ printf '2\n20\n30\n2\nred\nblue\n0\n' >"$WORK_DIR/expected.run"
 printf '99\n99\n' >"$WORK_DIR/growth-safe.expected"
 printf '3\n' >"$WORK_DIR/member-growth-safe.expected"
 printf '2\n2\n' >"$WORK_DIR/member-sibling-safe.expected"
-
-# Static negative ratchets: syntax-id zero is admitted only by the canonical
-# builtin registry, and aggregate Slice returns remain inside one LLVM module
-# instead of crossing a platform-dependent C ABI boundary.
-grep -Fq 'SemanticBuiltinMemberCallableMatches(' "$CALL_IDENTITY_OWNER" ||
-    fail "builtin member admission no longer consults the canonical registry"
-grep -Fq 'name != "Array_Slice" && name != "SliceCopy"' "$SLICE_OWNER" ||
-    fail "direct-MIR Slice owner lost its exact builtin boundary"
-grep -Fq 'define internal %pgy.array.int @pgy.self.slice.copy.Int' "$LLVM_SLICE_OWNER" ||
-    fail "LLVM Int SliceCopy no longer owns its aggregate-return ABI internally"
-grep -Fq 'define internal ${array_type} @pgy.self.slice.copy.String' "$LLVM_SLICE_OWNER" &&
-    grep -Fq 'let array_type: String = abi.llvm_value_type;' "$LLVM_SLICE_OWNER" &&
-    grep -Fq 'DirectMirArrayStringAbiProjectionReadyFor(' "$LLVM_SLICE_OWNER" ||
-    fail "LLVM String SliceCopy no longer owns its aggregate-return ABI internally"
-! grep -Fq 'define internal %pgy.array.string @pgy.self.slice.copy.String' "$LLVM_SLICE_OWNER" ||
-    fail "LLVM String SliceCopy restored a backend-local aggregate ABI spelling"
-if grep -Eq '@pgy_(array_slice|slice_copy)_' "$LLVM_SLICE_OWNER"; then
-    fail "LLVM Slice projection reopened the external aggregate-return ABI"
-fi
-grep -Fq 'pgy_alloc_export' "$LLVM_SLICE_OWNER" &&
-    grep -Fq 'pgy_runtime_panic_internal_invariant_export' "$LLVM_SLICE_OWNER" ||
-    fail "LLVM SliceCopy does not preserve allocation/invariant failure classes"
-! grep -Fq 'call void @abort()' "$LLVM_SLICE_OWNER" ||
-    fail "LLVM SliceCopy collapsed a typed failure back into abort"
-grep -Fq 'pgy_alloc_export' "$RUNTIME_ALLOCATOR_OWNER" ||
-    fail "runtime allocator export for LLVM SliceCopy is missing"
-grep -Fq 'DirectMirScalarCfgSourceLocalTypeSupported(' "$LLVM_ROUTE_OWNER" ||
-    fail "single-routine control-flow routing excludes collection locals"
-grep -Fq 'ASTNode* slice_borrow_base_place;' "$NATIVE_SYMBOL_OWNER" ||
-    fail "native Slice borrow lost its exact storage-place identity"
-grep -Fq 'semantic_find_active_slice_borrow_for_array_place(' "$NATIVE_BORROW_OWNER" ||
-    fail "native Array mutation no longer compares exact borrowed places"
-grep -Fq 'func SemanticAstExpressionStoragePlaceEqual(' "$PGY_PLACE_OWNER" ||
-    fail "self-host exact storage-place identity owner is missing"
-grep -Fq 'SemanticAstExpressionStoragePlaceEqual(' "$PGY_MUTATION_OWNER" ||
-    fail "self-host mutation admission bypasses exact storage-place identity"
-grep -Fq 'SemanticExpressionGraphCallTargetSyntaxId(graph, call.call_node)' \
-    "$CALL_TARGET_OWNER" ||
-    fail "Slice target resolution lost the parser-carried builtin identity"
-grep -Fq 'SemanticBuiltinMemberCallableMatches(' "$CALL_TARGET_OWNER" ||
-    fail "Slice target resolution bypasses the builtin member registry"
-grep -Fq 'SemanticBuiltinMemberSourceParameterOffset(' "$CALL_ARGUMENT_OWNER" ||
-    fail "Slice argument admission lost the builtin receiver offset owner"
 
 for origin in native public; do
     for backend in c llvm; do

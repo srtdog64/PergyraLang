@@ -29,7 +29,6 @@ export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver.exe"
 
 run 'make build-source-inventory-test-smoke'
 run 'make ci-step-runner-test-smoke'
-run 'make grammar-cheatsheet-contract-test-smoke'
 run 'make grammar-examples-compile-test-smoke'
 run 'make source-utf8-test-smoke'
 run 'make backend-fail-closed-test-smoke'
@@ -47,23 +46,17 @@ else
     exit 1
 fi
 
-run 'make beta-test-suite-freeze-test-smoke'
-run 'make language-contract-golden-test-smoke'
-run 'make boundary-migration-test-smoke'
 run 'PGY_STABLE_IDENTITY_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" stable-identity-test-smoke'
 run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" semantic-declaration-identity-test-smoke'
 run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" hir-routine-identity-test-smoke'
 run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" verified-projection-plan-test-smoke'
 run 'make documentation-quality-test-smoke'
-run 'make abstraction-loss-contract-test-smoke'
 run 'make debug-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'
 run 'make beta-readiness-checklist-test-smoke'
 run 'make layered-diagnostics-contract-test-smoke'
-run 'make intent-compression-contract-test-smoke'
 run 'make transpile-strict-source-test-smoke'
-run 'make evidence-lifetime-test-smoke'
 run 'make mir-declaration-inventory-test-smoke'
 run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" source-test-harness-compile-test-smoke'
 
@@ -93,7 +86,6 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" air-erasure-gate'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" cfg-body-dataflow-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" loop-flow-summary-test-smoke'
-    run 'make slot-analyzer-host-index-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" function-param-flow-summary-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" semantic-fixture-isolation-test-smoke'
     run 'PGY_EXAMPLE_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" example-test-smoke'

@@ -49,12 +49,6 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_llvm_emiss
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_scalar_projection_owner.pgy|40
 EOF
     [[ "$total" -le 1800 ]] || fail "inferred generic scalar owner family cap exceeded: $total/1800"
-    grep -Fq 'DirectMirThreeRoutineInferredGenericScalar()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" || fail "mixed-lane classification is not owned"
-    grep -Fq 'CompileAdmittedDirectMirInferredGenericScalar(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" || fail "mixed-lane projection is not routed"
-    for emitter in direct_mir_inferred_generic_scalar_c_emission_owner.pgy direct_mir_inferred_generic_scalar_llvm_emission_owner.pgy; do
-        ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR facts"
-        ! grep -Fq 'CompilerSymbolCGenericSpecializationName' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reconstructed the specialization symbol"
-    done
 }
 
 project() {

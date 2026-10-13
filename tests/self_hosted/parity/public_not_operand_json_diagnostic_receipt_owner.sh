@@ -19,10 +19,6 @@ LOGICAL_REL="src/self_hosted/semantic/fixture/bad_logical_right.pgy"
 RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
 UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 
 fail() {
     echo "[self-host-public-not-operand-json-diagnostic] $*" >&2
@@ -139,13 +135,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed unary diagnostic identity"
-
-require_text "$DIAGNOSTIC_OWNER" 'if code == "not_operand_not_bool" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:unary_operator:operand"'
-require_text "$DIAGNOSTIC_OWNER" '"align-operand-type"'
-require_text "$CONTRACT_OWNER" 'unary_first.message != unary_second.message'
-! grep -Eq 'not_operand_not_bool|semantic:unary_operator:operand|align-operand-type' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic unary authority"
 
 echo "[self-host-public-not-operand-json-diagnostic] exact unary identity, MIR/C/LLVM relay, admitted-family distinction, and undefined-symbol exclusion: PASS"

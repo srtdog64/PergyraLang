@@ -20,28 +20,12 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_int_divide.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_int_divide_mutations.py"
-KIND_ID="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_kind_owner.pgy"
-KIND_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
-READY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_checked_int_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_expression_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_expression_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'DirectMirScalarProgramExprDivideInt() -> Int { return 74; }' "$KIND_ID" ||
-    fail "divide expression identity drifted"
-grep -Fq 'source_kind == AstExpressionNodeDivide()' "$KIND_OWNER" ||
-    fail "divide source/type join is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprDivideInt()' "$READY_OWNER" ||
-    fail "divide readiness is missing"
-grep -Fq 'let callee: String = abi.symbol;' "$C_OWNER" || fail "C checked runtime call is missing"
-grep -Fq '".lhs = trunc i64 "' "$LLVM_OWNER" || fail "LLVM lost the i32 operand boundary"
-if grep -Fq '" = sdiv i64 "' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"; then
-    fail "raw Int sdiv returned"
-fi
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \

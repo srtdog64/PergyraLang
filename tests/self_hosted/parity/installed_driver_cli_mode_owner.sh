@@ -23,7 +23,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
-source "$ROOT_DIR/tests/self_hosted/parity/compiler_root_intent_takeover_gate.sh"
 
 DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 WORK_REL=".tmp/self_hosted/installed-driver-cli-mode"

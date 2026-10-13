@@ -13,30 +13,11 @@ PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
-OWNER="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 PROBE="$ROOT_DIR/tests/self_hosted/fixtures/builtin_signature_contract_ready.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/builtin_signature_registry}"
 
 [[ -x "$PGY" ]] || { echo "[self-host-parity:builtin-signature] missing compiler: $PGY" >&2; exit 1; }
-[[ -f "$OWNER" && -f "$PROBE" ]] || { echo "[self-host-parity:builtin-signature] owner or probe is missing" >&2; exit 1; }
-
-if grep -Eq 'ArrayLength\((names|returns|params)\)[[:space:]]*!=[[:space:]]*[0-9]+' "$OWNER"; then
-    echo "[self-host-parity:builtin-signature] readiness mirrors the registry row count as a numeric fact" >&2
-    exit 1
-fi
-if [[ "$(grep -Fc '"SubstringWithLen^String^String|Int|Int|Int"' "$OWNER")" -ne 1 ]]; then
-    echo "[self-host-parity:builtin-signature] SubstringWithLen row is missing or duplicated" >&2
-    exit 1
-fi
-for row in \
-    'IntentHistoryCount^Int^none' \
-    'IntentActiveConcurrent^Bool^Int' \
-    'IntentActiveStepFailure^String^Int|Int'; do
-    if ! grep -Fq "$row" "$PROBE"; then
-        echo "[self-host-parity:builtin-signature] missing observability row probe: $row" >&2
-        exit 1
-    fi
-done
+[[ -f "$PROBE" ]] || { echo "[self-host-parity:builtin-signature] probe is missing" >&2; exit 1; }
 
 mkdir -p "$BUILD_DIR"
 PROBE_ARG="$(pgy_path_for_compiler "$PGY" "$PROBE")"

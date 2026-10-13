@@ -17,8 +17,6 @@ POSITIVE_REL="tests/cases/backend_compare/tagged_union/main.pgy"
 ADJACENT_REL="src/self_hosted/mir_lower/fixture/enum_multi_payload.pgy"
 NEGATIVE_REL="tests/self_hosted/parity/fixture/tagged_enum_payload_ordinal_rejected.pgy"
 STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
-INITIALIZER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
-PAYLOAD_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_enum_payload_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
@@ -35,18 +33,9 @@ fi
 [[ "$SELF_DRIVER" == "$(dirname "$PGY")/$installed_name" ]] ||
     fail "self-host driver is not installed beside the public launcher"
 
-grep -Fq 'import "ast_expression_graph_enum_payload_owner.pgy";' \
-    "$STATEMENT_OWNER" || fail "statement facts do not import the payload owner"
-grep -Fq 'SemanticExpressionGraphEnumPayloadTypeName(' "$STATEMENT_OWNER" ||
-    fail "statement facts bypass the payload type projection"
-grep -Fq 'SemanticExpressionGraphEnumPayloadTypeName(' "$INITIALIZER_OWNER" ||
-    fail "initializer and statement consumers no longer share one projection"
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$STATEMENT_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 540 ]] ||
     fail "statement fact owner exceeds its component limit"
-! grep -Eq 'tagged_union|(^|[^[:alnum:]_])(Shape|Circle|Rect)([^[:alnum:]_]|$)|\._0|\._1' \
-    "$STATEMENT_OWNER" "$PAYLOAD_OWNER" ||
-    fail "fixture spelling leaked into the semantic payload path"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

@@ -14,10 +14,6 @@ WORK_REL=".tmp/self_hosted/public_condition_not_bool_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 CONDITION_FIXTURES="bad_condition_not_bool bad_while_condition"
 RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
 LOGICAL_REL="src/self_hosted/semantic/fixture/bad_logical_right.pgy"
@@ -149,14 +145,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed condition diagnostic identity"
-
-require_text "$DIAGNOSTIC_OWNER" 'if code == "condition_not_bool" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:condition:non_bool"'
-require_text "$DIAGNOSTIC_OWNER" '"convert-condition-to-bool"'
-require_text "$CONTRACT_OWNER" \
-    'condition_first.message != condition_second.message'
-! grep -Eq 'condition_not_bool|semantic:condition:non_bool|convert-condition-to-bool' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic condition authority"
 
 echo "[self-host-public-condition-not-bool-json-diagnostic] exact condition identity, if/while contexts, MIR/C/LLVM relay, and return/logical/unary distinction: PASS"

@@ -354,19 +354,6 @@ for name in parallel_block channel_send; do
             fail "default-route $mode of native_only_$name.pgy differs from native's"
     done
 done
-# The refusal reads the kind rows before the local-binding rows exist.
-verdict_owner="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
-refusal_at="$(grep -n 'SemanticAstNativePipelineOnlyStatementRefusal(kind_surfaces, purpose)' "$verdict_owner" | cut -d: -f1 || true)"
-locals_at="$(grep -n 'let local_bindings: SemanticAstLocalBindingFacts' "$verdict_owner" | cut -d: -f1 || true)"
-[[ -n "$refusal_at" && -n "$locals_at" && "$refusal_at" -lt "$locals_at" ]] ||
-    fail "artifact admission no longer refuses native-only statements before the local-binding rows"
-# Only the inspection requests (capability manifest, DIR) skip the refusal;
-# public_capability_manifest_installed_self_host_owner.sh and the inspection
-# loop above hold their output equal to native's.
-inspecting="$(grep -RFl --include='*.pgy' 'SemanticAdmissionInspectsOnly' \
-    "$ROOT_DIR/src/self_hosted" | sed "s#^$ROOT_DIR/##" | LC_ALL=C sort | tr '\n' ' ')"
-[[ "$inspecting" == "src/self_hosted/compiler/capability_manifest_owner.pgy src/self_hosted/compiler/dir_text_artifact_owner.pgy src/self_hosted/semantic/native_pipeline_only_statement_owner.pgy " ]] ||
-    fail "a request outside the capability manifest and DIR skips the native-only statement refusal: $inspecting"
 
 # Reserved binding names: native refuses the same spellings, and the words
 # the registry admits as names compile on both front ends.
@@ -495,41 +482,5 @@ fi
 grep -Fq 'Declared signature: TextBuilderNew(Int) -> TextBuilder' \
     "$WORK_DIR/native-arity.log" ||
     { cat "$WORK_DIR/native-arity.log" >&2; fail "native TextBuilderNew arity lost its signature"; }
-
-# Ownership ratchets: one span policy, one binding-name authority, and a
-# location join that fails closed instead of printing `Span: none`.
-grep -Fq 'source-location rows do not join the admitted tree' \
-    "$ROOT_DIR/src/self_hosted/parser/program_parse_owner.pgy" &&
-    ! grep -Fq 'locations = AstSourceLocationFactsUnknown()' \
-        "$ROOT_DIR/src/self_hosted/parser/program_parse_owner.pgy" ||
-    fail "a location join that does not match the tree regained a silent fallback"
-grep -Fq 'func SemanticDiagnosticSpanIsProgramWide(' \
-    "$ROOT_DIR/src/self_hosted/semantic/diagnostic_code_owner.pgy" ||
-    fail "the program-wide span policy left diagnostic_code_owner"
-[[ "$(grep -RFl --include='*.pgy' 'func SemanticDiagnosticSpanIsProgramWide(' \
-    "$ROOT_DIR/src/self_hosted" | wc -l)" -eq 1 ]] ||
-    fail "the program-wide span policy has more than one owner"
-! grep -Eq 'case TOKEN_(SLOT|ZONE|WORLD|PARTY):' "$ROOT_DIR/src/parser/parser_name_tokens.c" ||
-    fail "native binding names regained a hand-written token list"
-grep -Fq 'PGY_KEYWORD_CONTEXT_NAME' "$ROOT_DIR/src/parser/parser_name_tokens.c" ||
-    fail "native binding names no longer read the registry NAME context"
-grep -Fq 'row.context_mask / 256' "$ROOT_DIR/src/self_hosted/parser/cursor_owner.pgy" ||
-    fail "self-host binding names no longer read the registry NAME context"
-# Declaration parsers refuse through ParseRefuse. A bare Exit(1) printed
-# nothing, and Fail/Expect/ConsumeStmtTerminator print an uncoded
-# `PARSE ERROR` with a byte offset; context-free ReadType/ParseExpr refuse
-# with `Span: none`. Nominal and dispatch keep one invariant Exit(1) each.
-for owner in decl_intent_owner decl_zone_owner decl_effect_relation_owner \
-    decl_type_owner decl_event_owner decl_role_owner decl_ability_owner \
-    decl_nominal_owner decl_dispatch_owner domain_projection_map_owner \
-    intent_policy_clause_owner intent_default_clause_owner \
-    intent_terminal_clause_owner intent_variant_binding_owner; do
-    owner_path="$ROOT_DIR/src/self_hosted/parser/$owner.pgy"
-    owner_code="$(sed 's://.*$::' "$owner_path")"
-    ! grep -Eq '(^|[^A-Za-z])(Fail|Expect|ConsumeStmtTerminator|ReadType|ParseExpr)\(' <<<"$owner_code" ||
-        fail "$owner regained an uncoded or unpositioned parse refusal"
-    case "$owner" in decl_nominal_owner|decl_dispatch_owner) continue ;; esac
-    ! grep -Fq 'Exit(1)' <<<"$owner_code" || fail "$owner regained a bare Exit(1)"
-done
 
 echo "[$LABEL] ${#IMPORTED_CASES[@]} imported-file spans, ${#BROKEN_CASES[@]} broken inputs, ${#UNCOVERED_CASES[@]} uncovered native forms, ${#NATIVE_ONLY_STATEMENT_CASES[@]} native-only statements x 4 default legs, reserved binding names, builtin signatures: PASS"

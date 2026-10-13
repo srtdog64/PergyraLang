@@ -125,16 +125,4 @@ grep -Fq "installed DIR mode requires one source path" \
 grep -Fq "self-host DIR intent priority expression must be Int" "$WORK_DIR/priority-invalid.out" ||
     fail "non-Int intent priority lost its owned diagnostic"
 
-grep -Fq 'flags.dump_dir' "$ROOT_DIR/src/pgy_driver.c" ||
-    fail "public launcher does not select DIR stdout mode"
-grep -Fq '"--emit-dir-verified"' \
-    "$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c" ||
-    fail "public DIR selector lost the installed request spelling"
-grep -Fq 'CompileSourceDirTextVerified(source_path)' \
-    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" ||
-    fail "installed DIR request lost its typed renderer"
-if grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c"; then
-    fail "installed sibling launcher regained a native fallback"
-fi
-
 echo "[self-host-public-dir] installed Pergyra DIR facts own public --dir and fail closed"

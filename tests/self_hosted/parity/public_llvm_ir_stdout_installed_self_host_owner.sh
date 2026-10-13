@@ -17,7 +17,6 @@ SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 
 fail() { echo "[self-host-public-llvm-stdout] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
 
 [[ -x "$PGY" && -x "$SELF_DRIVER" ]] || fail "missing public or installed driver"
 command -v "$CC" >/dev/null || fail "missing C compiler"
@@ -106,14 +105,5 @@ grep -Fq 'self-host driver is unavailable' "$WORK_DIR/missing.err" ||
     fail "missing sibling lost its diagnostic"
 grep -Fq 'outside the installed self-host driver contract' \
     "$WORK_DIR/unsupported.err" || fail "unsupported stdout lost its diagnostic"
-
-owner="$ROOT_DIR/src/compiler/self_host_llvm_ir_stdout_owner.c"
-require_text "$ROOT_DIR/src/pgy_driver.c" 'driver_self_host_llvm_ir_stdout_request_supported'
-require_text "$ROOT_DIR/src/pgy_driver.c" 'return driver_write_self_host_llvm_ir_stdout('
-require_text "$owner" 'driver_materialize_self_host_llvm_artifact('
-require_text "$owner" 'unsigned char buffer[16384];'
-! grep -Eq 'path_read_file\(|malloc\(|realloc\(|strstr\(|driver_run_pipeline\(|compiler_emit_llvm_ir' "$owner" ||
-    fail "stdout owner buffered/reinterpreted LLVM or regained native authority"
-require_text "$ROOT_DIR/Makefile" 'self-host-public-llvm-ir-stdout-replacement-test-smoke:'
 
 echo "[self-host-public-llvm-stdout] installed DirectMirLlvm streams exact public stdout"

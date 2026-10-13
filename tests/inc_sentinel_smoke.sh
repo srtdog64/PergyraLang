@@ -2,12 +2,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# Test fragments are capped separately from production source. The current
-# count is intentional: 145 owned fragments exist at HEAD and are split along
-# test-family boundaries to keep every .cases.h file below the 699 LOC gate
-# enforced by test_inc_size_smoke.sh.  Raise this only with a new named test
-# boundary; ordinary growth moves a whole case into an existing fragment.
-MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-145}"
 violations=()
 
 cd "$ROOT_DIR"
@@ -16,13 +10,6 @@ inc_count="$(find src -name '*.inc' -type f | wc -l | tr -d '[:space:]')"
 if ((inc_count > 0)); then
     echo ".inc files are not allowed in the beta source tree:" >&2
     find src -name '*.inc' -type f -print >&2
-    exit 1
-fi
-
-case_count="$(find src/tests -name '*.cases.h' -type f | wc -l | tr -d '[:space:]')"
-if ((case_count > MAX_TEST_CASE_INCLUDES)); then
-    echo "test case include fragment count increased: ${case_count} > ${MAX_TEST_CASE_INCLUDES}" >&2
-    echo "split test case fragments deliberately and update PGY_MAX_TEST_CASE_INCLUDES only with the boundary docs" >&2
     exit 1
 fi
 
@@ -106,4 +93,4 @@ if [[ -n "$orphan_cases" ]]; then
     exit 1
 fi
 
-echo "[inc-sentinel] src .inc files = 0; test case include fragments = ${case_count}/${MAX_TEST_CASE_INCLUDES}"
+echo "[inc-sentinel] src .inc files = 0; test case include fragments are placed, referenced and non-empty"

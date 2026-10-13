@@ -130,13 +130,4 @@ done
 require_text "$WORK_DIR/positive.mir" 'abi-type="Array<Int>"'
 require_text "$WORK_DIR/positive.mir" 'abi-type="Future<Int>"'
 
-OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_future_storage_admission_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-require_text "$OWNER" 'func SemanticAstFutureStorageAdmissionFromFacts('
-require_text "$OWNER" 'SemanticFutureAggregateStorageContainsHandle('
-! grep -Fq 'negative_future_' "$OWNER" ||
-    fail "semantic owner gained fixture-specific spelling"
-! grep -Fq 'task_lifecycle_invalid' "$PROCESS_OWNER" ||
-    fail "native receipt transport gained Future semantic authority"
-
 echo "[future-aggregate-storage] native/public MIR+C+LLVM refusal, exact receipt, no artifact, and value-array control: PASS"

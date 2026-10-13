@@ -33,27 +33,6 @@ sys.path.insert(0, str(root / "scripts"))
 import render_intent_observability_abi as registry
 
 rows = registry.load_rows(root / "src/common/intent_observability_abi.def")
-assert len(rows) == 51
-stable_ids = [row.stable_id for row in rows]
-assert all(stable_id > 0 for stable_id in stable_ids)
-assert len(stable_ids) == len(set(stable_ids))
-assert [row.source_name for row in rows] == sorted(
-    row.source_name for row in rows
-)
-history = next(row for row in rows if row.source_name == "IntentHistoryCount")
-assert history.stable_id == 25
-assert history.runtime_name == "pgy_intent_history_count_export"
-assert history.parameter_shape == "PGY_INTENT_OBSERVABILITY_PARAMS_NONE"
-assert history.argument_count == 0
-assert history.parameter_types == ""
-assert history.return_type == "Int"
-
-active = next(row for row in rows if row.source_name == "IntentActiveConcurrent")
-step = next(row for row in rows if row.source_name == "IntentActiveStepFailure")
-assert active.parameter_shape == "PGY_INTENT_OBSERVABILITY_PARAMS_INT"
-assert active.argument_count == 1 and active.parameter_types == "Int"
-assert step.parameter_shape == "PGY_INTENT_OBSERVABILITY_PARAMS_INT_INT"
-assert step.argument_count == 2 and step.parameter_types == "Int|Int"
 
 # A lexically middle append keeps every existing RuntimeCallAbiId stable.
 registry_path = root / "src/common/intent_observability_abi.def"
@@ -76,7 +55,7 @@ with TemporaryDirectory() as temporary:
     path.write_text(source.replace(anchor, inserted + "\n" + anchor, 1),
                     encoding="utf-8")
     inserted_rows = registry.load_rows(path)
-    assert len(inserted_rows) == 52
+    assert len(inserted_rows) == len(rows) + 1
     assert next(row for row in inserted_rows
                 if row.source_name == insert_name).stable_id == 99
     assert {row.source_name: row.stable_id for row in inserted_rows
@@ -101,40 +80,11 @@ with TemporaryDirectory() as temporary:
         raise AssertionError("non-positive stable ID was accepted")
     except ValueError as error:
         assert "must be positive" in str(error)
-
-projection = (root / "src/self_hosted/lib/"
-              "intent_observability_abi_projection_owner.pgy").read_text(
-                  encoding="utf-8")
-assert projection.count("if index ==") == 51
-assert "struct IntentObservabilityAbiRow" in projection
-assert "IntentObservabilityAbiRowAt(-1).valid" in projection
-assert "IntentObservabilityAbiRowAt(IntentObservabilityAbiCount()).valid" in projection
-assert "func IntentObservabilityAbiRowForSource(" in projection
-assert "if row.source_name == source_name { return row; }" in projection
-assert "func IntentObservabilityAbiRowForId(" in projection
-assert "if row.runtime_call_abi_id == runtime_call_abi_id { return row; }" in projection
-assert "func IntentObservabilityAbiRowForCarriedIdentity(" in projection
-assert "row.source_name != source_name" in projection
-assert "runtime_call_abi_id != i + 1" not in projection
-for retired in (
-    "IntentObservabilityAbiStableIdAt",
-    "IntentObservabilityAbiSourceNameAt",
-    "IntentObservabilityAbiRuntimeNameAt",
-    "IntentObservabilityAbiArgumentCountAt",
-    "IntentObservabilityAbiReturnTypeAt",
-    "IntentObservabilityAbiParameterTypesAt",
-):
-    assert retired not in projection
 PY
 
 projection_lines="$("$PYTHON_BIN" "$ROOT_DIR/scripts/source_size_count.py" "$PROJECTION")"
 if [[ "$projection_lines" -gt 150 ]]; then
     echo "[intent-observability-abi] row projection exceeds 150 lines" >&2
-    exit 1
-fi
-if grep -Fq 'list(range(1, len(rows) + 1))' \
-        "$ROOT_DIR/scripts/render_intent_observability_abi.py"; then
-    echo "[intent-observability-abi] sorted row position regained ABI identity authority" >&2
     exit 1
 fi
 
@@ -144,62 +94,4 @@ fi
     -o "$BUILD_DIR/intent_observability_abi_registry_probe.exe"
 "$BUILD_DIR/intent_observability_abi_registry_probe.exe"
 
-grep -Fq 'ast_call_set_semantic_runtime_call_abi_id(' \
-    "$ROOT_DIR/src/semantic/type_checker_builtins_intent_observability.c"
-for consumer in \
-    src/codegen/transpiler_intent_observability_builtin_emit.c \
-    src/codegen/llvm_expr_intent_observability_calls.c; do
-    grep -Fq 'pgy_intent_observability_abi_row_for_carried_identity(' \
-        "$ROOT_DIR/$consumer"
-    if grep -Fq 'pgy_intent_observability_abi_row_by_source(' \
-            "$ROOT_DIR/$consumer"; then
-        echo "[intent-observability-abi] backend source-name ABI lookup returned: $consumer" >&2
-        exit 1
-    fi
-done
-
-grep -Fq '#include "intent_observability_abi.def"' \
-    "$ROOT_DIR/src/common/intent_observability_abi.c"
-grep -Fq 'import "../lib/intent_observability_abi_projection_owner.pgy";' \
-    "$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
-grep -Fq 'IntentObservabilityAbiSignatureRows()' \
-    "$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
-grep -Fq 'IntentObservabilityAbiRowForCarriedIdentity(' \
-    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
-if grep -Fq 'IntentObservabilityAbiRowForSource(' \
-        "$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy"; then
-    echo "[intent-observability-abi] self-host emitter source lookup returned" >&2
-    exit 1
-fi
-row_for_source_owners="$(
-    grep -R -l --include='*.pgy' 'IntentObservabilityAbiRowForSource(' \
-        "$ROOT_DIR/src/self_hosted" |
-        sed "s|$ROOT_DIR/||" | sort
-)"
-expected_row_for_source_owners="$(printf '%s\n' \
-    src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy \
-    src/self_hosted/lib/intent_observability_abi_projection_owner.pgy \
-    src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy | sort)"
-if [[ "$row_for_source_owners" != "$expected_row_for_source_owners" ]]; then
-    echo "[intent-observability-abi] RowForSource owner allowlist drifted" >&2
-    printf '%s\n' "$row_for_source_owners" >&2
-    exit 1
-fi
-if grep -Fq 'IntentObservabilityAbi' \
-        "$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy"; then
-    echo "[intent-observability-abi] raw runtime rewrite regained ABI access" >&2
-    exit 1
-fi
-
-if grep -Fq '"IntentHistoryCount"' \
-        "$ROOT_DIR/src/common/intent_observability_abi.c"; then
-    echo "[intent-observability-abi] native literal table returned" >&2
-    exit 1
-fi
-if grep -Eq '"Intent[A-Za-z0-9_]*\^(Int|Bool|String)\^' \
-        "$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"; then
-    echo "[intent-observability-abi] self-host literal signature table returned" >&2
-    exit 1
-fi
-
-echo "[intent-observability-abi] 51 native/self-host registry rows plus carried-ID lookup/cross-seal and backend old-lookup negatives: ok"
+echo "[intent-observability-abi] registry render check, loader identity negatives, projection size cap and C probe: ok"

@@ -51,32 +51,6 @@ if (( RUNS <= WARMUP )); then
   exit 1
 fi
 
-require_source_term() {
-  local path="$1"
-  local term="$2"
-  if ! grep -Fq "$term" "$ROOT_DIR/$path"; then
-    echo "[guard-amortization] missing source gate: $path :: $term" >&2
-    exit 1
-  fi
-}
-
-require_source_term "src/compiler/mir_cfg_contract_pin.h" \
-  "mir_block_has_pin_guard_amortization_region"
-require_source_term "src/compiler/mir_cfg_contract_pin.c" \
-  "mir_block_has_pin_cleanup_edge(block)"
-require_source_term "src/codegen/transpiler_mir_pin_emit.c" \
-  "transpiler_emit_mir_plain_pin_preflight_local"
-require_source_term "src/codegen/transpiler_mir_pin_emit.c" \
-  "PgySlot_%s *%s = %s;"
-require_source_term "src/codegen/llvm_mir_pin_region.c" \
-  "mir_block_has_pin_guard_amortization_region(block)"
-require_source_term "benchmarks/perf_guard_amortization.c" \
-  "run_repeated_preflight_view"
-require_source_term "benchmarks/perf_guard_amortization.c" \
-  "repeat-pre"
-require_source_term "benchmarks/perf_guard_amortization.c" \
-  "time-repeat-pre"
-
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_guard_amortization.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 

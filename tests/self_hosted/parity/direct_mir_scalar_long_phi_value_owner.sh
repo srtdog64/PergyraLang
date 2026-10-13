@@ -18,23 +18,11 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_long_phi_value_mutations.py"
 VARIANTS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_long_phi_value_artifact_variants.py"
-OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
-TYPED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy"
-OP="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 for command in "$CC" "$CLANG" python; do command -v "$command" >/dev/null ||
     fail "missing command: $command"; done
-phi_body="$(sed -n '/func DirectMirScalarCfgPhiValueTypeReady(/,/^}/p' "$OWNER")"
-grep -Fq 'CompilerAbiLayoutLongTypeName()' <<<"$phi_body" ||
-    fail "common PhiValue type owner omits Long"
-grep -Fq 'DirectMirScalarCfgPhiValueTypeReady(' "$TYPED" ||
-    fail "typed readiness reclassifies common PhiValue"
-grep -Fq 'func DirectMirScalarCfgOpPhiValue() -> Int { return 29; }' "$OP" ||
-    fail "common PhiValue operation identity drifted"
-! grep -Rq 'DirectMirScalarCfgOpPhiLong' "$ROOT_DIR/src/self_hosted/compiler" ||
-    fail "Long-only phi operation was introduced"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

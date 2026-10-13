@@ -3,34 +3,6 @@
 # effect/zone/role/authority census for a domain document with no topology
 # rows. Non-empty topology has its own typed producer owner/gate.
 
-domain_graph_owner="$ROOT_DIR/src/self_hosted/dir/domain_graph_fact_owner.pgy"
-kind_owner="$ROOT_DIR/src/self_hosted/hir/ast_node_kind_owner.pgy"
-
-for term in 'struct SelfDirDomainGraphFacts' \
-    'SelfDirDomainGraphFactsFromArtifact' \
-    'SelfDirDomainGraphAnchor' \
-    'SelfDirDomainAuthorityEdges'; do
-    grep -Fq -- "$term" "$domain_graph_owner" || {
-        echo "[self-host-parity:driver-rung2] missing self DIR owner term: $term" >&2
-        return 1 2>/dev/null || exit 1
-    }
-done
-for term in TypedAstKindDomainRefreshTag TypedAstKindDomainPublishTag \
-    TypedAstKindDomainProjectionBindTag TypedAstKindDomainMaintainTag \
-    TypedAstKindDomainLinkTag TypedAstKindDomainApplyTag \
-    TypedAstKindDomainDetachTag TypedAstKindDomainUnlinkTag \
-    TypedAstKindDomainStateTag; do
-    grep -Fq -- "$term" "$kind_owner" || {
-        echo "[self-host-parity:driver-rung2] domain directive kind identity was lost: $term" >&2
-        return 1 2>/dev/null || exit 1
-    }
-done
-if grep -Eq 'TypedAstArenaProvenanceText|native_oracle|domain_graph_id = "?1"?' \
-    "$domain_graph_owner"; then
-    echo "[self-host-parity:driver-rung2] self DIR owner reopened text/oracle/constant fallback" >&2
-    return 1 2>/dev/null || exit 1
-fi
-
 pgy_selfhost_verify_driver_rung2_domain_graph_producer() {
     local backend="$1" base="$2" native_mir_json="$3"
     local self_mir_json="$4" driver_bin="$5"

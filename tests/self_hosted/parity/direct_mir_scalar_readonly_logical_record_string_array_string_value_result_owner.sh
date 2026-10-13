@@ -14,16 +14,12 @@ WORK_REL=".tmp/self_hosted/direct_mir_scalar_readonly_record_string_array_string
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_readonly_logical_record_string_array_string_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_readonly_logical_record_string_array_string_value_result_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'signature.param_count != 3' "$POLICY" || fail "parameter count is not exact"
-grep -Fq 'carriages[0] == "readonly-ref"' "$POLICY" || fail "record carriage is not exact"
-grep -Fq 'carriages[2] == "value-result"' "$POLICY" || fail "copyout carriage is not exact"
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \

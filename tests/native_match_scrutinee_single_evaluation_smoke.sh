@@ -29,24 +29,7 @@ fail() {
     exit 1
 }
 
-require_text() {
-    grep -Fq -- "$2" "$ROOT_DIR/$1" ||
-        fail "missing owner contract in $1: $2"
-}
-
 pgy_require_runnable_binary_here "native-match-once" "$PGY" || exit 1
-require_text src/compiler/driver_app.c \
-    'match_subject_single_evaluation_desugar_program(ast);'
-require_text src/compiler/match_subject_single_evaluation_desugar.c \
-    'subject = ast_match_detach_subject(match);'
-require_text src/compiler/match_subject_single_evaluation_desugar.c \
-    'if (!ast_match_attach_subject(match, ident))'
-require_text src/parser/ast_block_match_event_accessors.c \
-    'ast_match_detach_subject(ASTNode* node)'
-require_text src/semantic/match_binding_type_fact.h \
-    'uint32_t binding_syntax_id;'
-require_text src/compiler/mir_source_local_expr_types.c \
-    'mir_routine_match_binding_type_fact_by_binding_syntax_id('
 
 printf 'probe-some\n7\nprobe-none\n0\n' >"$WORK_DIR/expected.out"
 printf '80\n-999\n-998\n80\n-998\n' >"$WORK_DIR/nested.expected.out"

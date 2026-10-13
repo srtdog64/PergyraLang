@@ -214,7 +214,7 @@ Owner: artifact-bound semantic local-binding facts.
 Preserve: Pergyra intent/evidence layering; AIR remains verification-only.
 Forbidden: AST fallback, alias owner, inferred i32 default.
 Bridge: initializer provenance may remain an explicitly named HIR view.
-Gate: missing semantic type fails closed; old accessor cannot reappear.
+Gate: missing semantic type fails closed on a fixture the old accessor answered.
 Non-goal: redesign expression typing in this patch.
 ```
 

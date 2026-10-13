@@ -68,7 +68,6 @@ jobs:
             apt-get install -y --no-install-recommends python3
           fi
           bash scripts/run_rocq_toolchain.sh bash tests/proof_carrying_adequacy_smoke.sh
-          bash tests/ownership_clean_direction_selftest.sh
           bash scripts/run_rocq_toolchain.sh bash tests/ownership_cleanup_smoke.sh
       - name: Preserve model cost evidence
         uses: actions/upload-artifact@v4

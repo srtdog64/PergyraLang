@@ -53,8 +53,7 @@ assert_owner_ratchet() {
     local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy"
     local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
     local terminal="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy"
-    local three="$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy"
-    local owner cap lines term
+    local owner cap lines
     while IFS='|' read -r owner cap; do
         require_file "$owner"
         lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
@@ -70,30 +69,6 @@ $emission|265
 $multi|90
 $terminal|35
 EOF
-    for term in BuildMirDocumentFactIndex CompileMirJsonToCVerified \
-        GenerateCFromVerifiedSemanticArtifact llvm_codegen_ \
-        driver_run_pipeline MirPhiParameterEntryExists; do
-        ! grep -Fq -- "$term" "$param" "$signature" "$graph" \
-            "$identity" "$plan" "$emission" "$multi" "$terminal" ||
-            fail "Array argument owner reopened a forbidden path: $term"
-    done
-    grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission' "$param" ||
-        fail "formal parameter ABI is not admitted from MIR"
-    grep -Fq 'DirectMirArrayIntCapturedAbiReady' "$identity" ||
-        fail "Array argument identity does not consume canonical ABI"
-    grep -Fq 'DirectMirArrayArgumentPlanMutationRejected' "$plan" ||
-        fail "Array argument plan lacks a repaired mutation falsifier"
-    grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' "$terminal" ||
-        fail "terminal multi-routine owner does not route one three-routine decision"
-    grep -Fq 'classification.kind == DirectMirThreeRoutineArrayArgument()' \
-        "$three" || fail "three-routine owner does not classify Array argument MIR"
-    ! grep -Fq '@pgy_' "$emission" ||
-        fail "runtime-free Array argument emission references Pergyra runtime"
-    local source_mir_flag="--emit-mir-json-verified"
-    local source_mir_call='"$DRIVER_BIN" '
-    source_mir_call="${source_mir_call}${source_mir_flag}"
-    [[ "$(grep -Fo -- "$source_mir_call" "$0" | wc -l | tr -d ' ')" == 1 ]] ||
-        fail "gate must produce source MIR exactly once"
 }
 
 project() {

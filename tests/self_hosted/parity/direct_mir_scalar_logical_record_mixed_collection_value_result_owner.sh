@@ -16,23 +16,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_logical_record_mixed_collection_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_mixed_collection_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_logical_record_mixed_collection_value_result_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'let append_node_shape: Bool = signature.param_count == 10;' "$POLICY" ||
-    fail "policy omitted the ten-parameter family"
-grep -Fq 'let compact_bridge_shape: Bool = signature.param_count == 7;' "$POLICY" ||
-    fail "policy omitted the seven-parameter family"
-grep -Fq 'let array_int: Bool = ordinal == 0 || ordinal == 2 ||' "$POLICY" ||
-    fail "policy omitted the four ordered Array<Int> copyouts"
-grep -Fq 'let array_string: Bool = ordinal == 1 || ordinal == 5;' "$POLICY" ||
-    fail "policy omitted the two ordered Array<String> copyouts"
-grep -Fq 'DirectMirScalarProgramLogicalRecordTypeReady(' "$POLICY" ||
-    fail "policy omitted logical-record return identity"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

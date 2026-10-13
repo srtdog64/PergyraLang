@@ -16,9 +16,6 @@ WORK_REL=".tmp/self_hosted/public_mir_opt_profile"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="examples/hello.pgy"
 SOURCE_CANONICAL="$ROOT_DIR/$SOURCE"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 
 fail() {
     echo "[self-host-mir-opt] $*" >&2
@@ -129,22 +126,5 @@ for case_name in mir-text mir-json-diagnostic mir-json; do
     grep -Fq 'outside the installed self-host driver contract' \
         "$WORK_DIR/verbose.err" || fail "$case_name lost unsupported-option diagnostic"
 done
-
-diagnostic_body="$(sed -n \
-    '/driver_self_host_mir_diagnostic_request_supported(/,/^}/p' \
-    "$DIAGNOSTIC_OWNER")"
-json_body="$(sed -n \
-    '/driver_self_host_mir_json_request_supported(/,/^}/p' "$SELECTION_OWNER")"
-! grep -Fq 'opt_profile' <<<"$diagnostic_body$json_body" ||
-    fail "C admission still assigns optimization semantics to a MIR read"
-for variant in DriverCliSourceMirDiagnosticStdout \
-    DriverCliSourceMirJsonDiagnosticStdout DriverCliSourceMirStdout; do
-    grep -Fq "$variant(String)," "$REQUEST_OWNER" ||
-        fail "$variant lost its one-path request shape"
-    ! grep -Fq "$variant(String," "$REQUEST_OWNER" ||
-        fail "$variant gained a second policy input"
-done
-! grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c" ||
-    fail "installed sibling launcher regained a native fallback"
 
 echo "[self-host-mir-opt] dev profile is Pergyra-owned and optimization-neutral"

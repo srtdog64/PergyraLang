@@ -143,16 +143,4 @@ val_thread="$(code_count medium_val "t: AdminToken")"
 tag_plumb="$(code_count medium_tag "Result<Int>")"
 echo "[axis-carriage] medium cost: pos loc=$(arm_loc medium_pos) caps-decl=$pos_caps | val loc=$(arm_loc medium_val) token-threading=$val_thread/3 sigs | tag loc=$(arm_loc medium_tag) result-plumbing=$tag_plumb/3 sigs"
 
-# ---- 대(corpus) scale: what the largest real Pergyra program (self-host)
-# already reaches for, by natural selection. Print-only census + existence
-# floor (the corpus keeps growing; exact counts belong in the doc snapshot).
-SH="$ROOT_DIR/src/self_hosted"
-n_caps="$(grep -rE "with caps" "$SH" --include='*.pgy' | wc -l | tr -d ' ')"
-n_authority="$(grep -rE "^\s*(authority |authorized by:)" "$SH" --include='*.pgy' | wc -l | tr -d ' ')"
-n_errgate="$(grep -rE "return Err\(" "$SH" --include='*.pgy' | wc -l | tr -d ' ')"
-echo "[axis-carriage] corpus census (self_hosted): positional caps=$n_caps, authority/step=$n_authority, runtime Result-gates=$n_errgate, value-typed token threading=0 (observed none)"
-[ "$n_caps" -ge 1 ] || fail "corpus census: expected at least one with-caps site"
-[ "$n_authority" -ge 1 ] || fail "corpus census: expected at least one authority site"
-[ "$n_errgate" -ge 1 ] || fail "corpus census: expected at least one Err gate"
-
 echo "[axis-carriage] measured verdicts locked (c/llvm): cap=STATIC+interproc(depth3), world=STATIC no-silent-copy, zone=STATIC no-silent-copy (closed 2026-07-05), per-type=STATIC(hop-1), tag=RUNTIME(hop-3)"

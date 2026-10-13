@@ -19,25 +19,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_entrypoint_early_return
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
-C_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
-LLVM_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$MUTATIONS" "$ADMISSION" "$C_EMISSION" "$LLVM_EMISSION"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-if grep -Fq 'routine_ordinal == 0 || instruction_row + 1' "$ADMISSION"; then
-    fail "routine admission still rejects every explicit entrypoint return"
-fi
-grep -Fq 'DirectMirScalarProgramCStringArrayCleanup(plan, routine)' "$C_EMISSION" ||
-    fail "C entrypoint return bypasses owned-array cleanup"
-grep -Fq 'DirectMirScalarProgramLlvmStringArrayCleanup(' "$LLVM_EMISSION" ||
-    fail "LLVM entrypoint return bypasses owned-array cleanup"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

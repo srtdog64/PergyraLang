@@ -20,8 +20,6 @@ PGY="$(pgy_select_optional_exe_binary "$PGY")"
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 
 SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/driver_execution_action_abi_probe.pgy"
-C_OWNER="$ROOT_DIR/src/codegen/transpiler_projection_sync.c"
-LLVM_OWNER="$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver_execution_action_optional_within}"
 VARIANT="$BUILD_DIR/driver_execution_action_optional_within.pgy"
 EXPECTED_PREFIX=$'ok\nartifact-written\n17'
@@ -35,7 +33,7 @@ case "$BUILD_DIR" in
 esac
 mkdir -p "$BUILD_DIR"
 
-for required in "$SOURCE" "$C_OWNER" "$LLVM_OWNER"; do
+for required in "$SOURCE"; do
     [[ -f "$required" ]] || {
         echo "[$LABEL] missing owner or fixture: $required" >&2
         exit 1
@@ -59,25 +57,6 @@ grep -Fq "return self.execution.probe.Execute(request);" "$VARIANT" || {
     echo "[$LABEL] falsifying fixture lost the world-embedded action call" >&2
     exit 1
 }
-
-for owner_and_getter in \
-    "$C_OWNER|transpiler_mir_decl_method_within_zone(method_meta)" \
-    "$LLVM_OWNER|llvm_mir_decl_method_within_zone(method_meta)"; do
-    owner="${owner_and_getter%%|*}"
-    getter="${owner_and_getter#*|}"
-    grep -Fq "$getter" "$owner" || {
-        echo "[$LABEL] backend no longer consumes the MIR within owner: $getter" >&2
-        exit 1
-    }
-done
-for forbidden in \
-    "MIR-only C path missing within-zone metadata for self-authorized action" \
-    "MIR-only LLVM path missing within-zone metadata for self-authorized action"; do
-    if grep -Fq "$forbidden" "$C_OWNER" "$LLVM_OWNER"; then
-        echo "[$LABEL] optional within was made mandatory again: $forbidden" >&2
-        exit 1
-    fi
-done
 
 run_self_host_stage() {
     local DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"

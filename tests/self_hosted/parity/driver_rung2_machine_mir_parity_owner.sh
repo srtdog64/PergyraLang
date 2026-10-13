@@ -38,7 +38,6 @@ pgy_selfhost_driver_rung2_is_machine_fixture() {
 }
 
 pgy_selfhost_driver_rung2_machine_manifest_init() {
-    pgy_selfhost_verify_driver_rung2_machine_claim_type_owner || exit 1
     DRIVER_RUNG2_MACHINE_MANIFEST="$ROOT_DIR/tests/self_hosted/fixtures/machine_layer_declaration.json"
     [[ -f "$DRIVER_RUNG2_MACHINE_MANIFEST" ]] || {
         echo "[self-host-parity:driver-rung2] missing target-owned machine declaration fixture" >&2
@@ -47,66 +46,6 @@ pgy_selfhost_driver_rung2_machine_manifest_init() {
     DRIVER_RUNG2_MACHINE_MANIFEST_REL="$(
         pgy_selfhost_path_relative_to_root "$DRIVER_RUNG2_MACHINE_MANIFEST"
     )"
-}
-
-pgy_selfhost_verify_driver_rung2_machine_claim_type_owner() {
-    local owner="$ROOT_DIR/src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy"
-    local layout_owner="$ROOT_DIR/src/self_hosted/mir/abi_layout_json_projection_owner.pgy"
-    grep -Fq \
-        'SelfMirRoutineExpressionRuntimeAbiSsaBaseName(' "$owner" && \
-    grep -Fq \
-        'cfg.instructions.results[instruction_index]' "$owner" || {
-        echo "[self-host-parity:driver-rung2] Claim ABI type lost result-local owner" >&2
-        return 1
-    }
-    if grep -Fq 'return cfg.instructions.expr1s[instruction_index];' "$owner"; then
-        echo "[self-host-parity:driver-rung2] Claim ABI type reopened expr1 text fallback" >&2
-        return 1
-    fi
-    for owner_fact in \
-        'view: SemanticExpressionGraphView' \
-        'SemanticExpressionGraphSubtreeStart(' \
-        'SemanticExpressionGraphNodeKind(' \
-        'SemanticExpressionGraphLeftChild(' \
-        'SemanticExpressionGraphRightChild(' \
-        'SemanticExpressionGraphNodeText(' \
-        'AstExpressionNodeCallArgument()'; do
-        grep -Fq "$owner_fact" "$owner" || {
-            echo "[self-host-parity:driver-rung2] resource receiver graph owner missing: $owner_fact" >&2
-            return 1
-        }
-    done
-    for forbidden in \
-        'let graphs: SelfMirExpressionGraphRows = cfg.instructions.expr0_graphs;' \
-        'graphs.node_starts' \
-        'graphs.node_counts' \
-        'graphs.node_kinds' \
-        'graphs.node_texts' \
-        'graphs.left_children' \
-        'graphs.right_children'; do
-        if grep -Fq "$forbidden" "$owner"; then
-            echo "[self-host-parity:driver-rung2] resource receiver MIR graph copy read reopened: $forbidden" >&2
-            return 1
-        fi
-    done
-    for forbidden in \
-        'cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]' \
-        'SelfMirTextContainsIdentifier('; do
-        if grep -Fq "$forbidden" "$owner"; then
-            echo "[self-host-parity:driver-rung2] resource receiver fallback reopened: $forbidden" >&2
-            return 1
-        fi
-    done
-    # Re-pointed: 1068f93d moved the let-decl layout key onto the carried
-    # abi_type_names row; AST_CALL remains the one source-type exception.
-    for layout_fact in \
-        'rows.abi_type_names[instruction_index] != ""' \
-        'rows.source_types[instruction_index] == "AST_CALL"'; do
-        grep -Fq "$layout_fact" "$layout_owner" || {
-            echo "[self-host-parity:driver-rung2] ABI layout projection owner missing: $layout_fact" >&2
-            return 1
-        }
-    done
 }
 
 pgy_selfhost_driver_rung2_produce_self_mir() {

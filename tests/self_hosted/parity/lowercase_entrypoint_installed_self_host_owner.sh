@@ -21,16 +21,10 @@ WORK_REL=".tmp/self_hosted/lowercase_entrypoint"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="tests/cases/backend_compare/entry_lowercase_main/main.pgy"
 EXPECTED="$ROOT_DIR/tests/cases/backend_compare/entry_lowercase_main/expected.stdout"
-SIGNATURE_CONTRACT="$ROOT_DIR/src/self_hosted/semantic/ast_signature_contract_owner.pgy"
-PIPELINE_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_pipeline_owner.pgy"
 
 fail() {
     echo "[self-host-lowercase-entrypoint] $*" >&2
     exit 1
-}
-
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
 }
 
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -141,13 +135,6 @@ set -e
     fail "worker-only mutation emitted a C artifact"
 grep -Fq "Code: entrypoint_cardinality" "$WORK_DIR/worker.out" "$WORK_DIR/worker.err" ||
     fail "worker-only mutation lost the entrypoint diagnostic"
-
-require_text "$SIGNATURE_CONTRACT" \
-    "crossed_selection.entrypoint_selection.signature_index = 0;"
-require_text "$SIGNATURE_CONTRACT" \
-    "crossed_spelling.entrypoint_selection.lowercase_spelling = true;"
-require_text "$PIPELINE_OWNER" "SemanticAstFunctionSignatureFactsContractReady()"
-require_text "$PIPELINE_OWNER" "if !CompilerDriverPipelineReady()"
 
 (cd "$ROOT_DIR" && unset PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN &&
     "$PGY" examples/hello.pgy --emit-c -o "$WORK_REL/uppercase.c") \

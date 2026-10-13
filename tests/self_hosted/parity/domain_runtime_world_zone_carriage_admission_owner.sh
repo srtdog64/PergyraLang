@@ -178,22 +178,4 @@ for negative_case in copy reassign return; do
     fi
 done
 
-ZONE_CARRIAGE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy"
-ZONE_PARAMETER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
-BODY_VIEW_OWNER="$ROOT_DIR/src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy"
-FUNCTION_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
-STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/stmt_emit.pgy"
-NOMINAL_EMIT_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy"
-
-grep -Fq 'NominalFieldKindWorldZone()' "$ZONE_CARRIAGE_OWNER"
-grep -Fq 'mutable_borrow_parameter_node_ids' "$ZONE_CARRIAGE_OWNER"
-grep -Fq 'resource_field_paths' "$BODY_VIEW_OWNER"
-grep -Fq 'CodegenSemanticMutableResourceParameter(' "$FUNCTION_OWNER"
-grep -Fq 'CodegenSemanticResourceLocalPathOrDie(' "$STATEMENT_OWNER"
-if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
-    "$NOMINAL_EMIT_OWNER"; then
-    echo "embedded-zone policy returned to nominal C emission" >&2
-    exit 1
-fi
-
 echo "[domain-runtime-world-zone-carriage] semantic paths + default identity + mutable borrow + Pergyra/native single/thread-safe lifecycle: PASS"

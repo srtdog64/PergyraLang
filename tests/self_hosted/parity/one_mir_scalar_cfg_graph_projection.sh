@@ -26,8 +26,6 @@ MIR_REL="$WORK_REL/program.json"
 MIR="$ROOT_DIR/$MIR_REL"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
@@ -37,28 +35,6 @@ if [[ -z "$PYTHON_BIN" ]]; then
     PYTHON_BIN="$(command -v python3 || command -v python || true)"
 fi
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
-GRAPH_PHI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy"
-BRANCH_ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_branch_admission_owner.pgy"
-PHI_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/phi_predecessor_binding_fact_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_c_emission_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_emission_owner.pgy"
-ROUTER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-require_text "$ROUTER" 'DirectMirScalarCfgGraphRouteClaimed(admitted)'
-require_text "$ADMISSION" 'DirectMirScalarCfgPhiOperationFromOwners('
-require_text "$GRAPH_PHI" 'MirPhiPredecessorBindingFactFromOwners('
-require_text "$BRANCH_ADMISSION" 'MirRoutineBlockDominates('
-require_text "$PHI_OWNER" 'predecessor_blocks'
-require_text "$C_OWNER" 'DirectMirScalarCfgGraphPlanReady(plan)'
-require_text "$LLVM_OWNER" 'DirectMirScalarCfgGraphPlanReady(plan)'
-for owner in "$ADMISSION" "$GRAPH_PHI" "$PHI_OWNER" "$C_OWNER" "$LLVM_OWNER"; do
-    reject_text "$owner" 'nested_if_in_loop.pgy'
-    reject_text "$owner" 'block_count == 8'
-done
-reject_text "$C_OWNER" '"expr0"'
-reject_text "$LLVM_OWNER" '"expr0"'
-reject_text "$PHI_OWNER" 'uses[predecessor'
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

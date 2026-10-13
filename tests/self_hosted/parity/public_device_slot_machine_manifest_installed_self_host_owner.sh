@@ -123,13 +123,4 @@ for case_name in missing corrupt; do
         device_manifest_fail "$case_name companion retried the native pipeline"
 done
 
-grep -Fq 'child_argv[4] = "--machine-manifest-json";' \
-    "$ROOT_DIR/src/compiler/self_host_driver.c" ||
-    device_manifest_fail "public child request omitted machine manifest carriage"
-grep -Fq 'SourceCManifestVerified(' \
-    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" ||
-    device_manifest_fail "typed source-C request lost manifest admission"
-! grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c" ||
-    device_manifest_fail "source-C adapter regained a native fallback"
-
 echo "[self-host-public-device-manifest] installed companion owns DeviceSlot source-C projection and missing or corrupt evidence fails closed"

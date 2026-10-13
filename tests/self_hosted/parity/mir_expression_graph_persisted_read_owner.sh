@@ -19,7 +19,6 @@ pgy_require_runnable_binary_here "mir-expression-graph-read" "$PGY" \
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/mir_expression_graph_read"
 KIND_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy"
 NODE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy"
-SEQUENCE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy"
 mkdir -p "$BUILD_DIR"
 
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$KIND_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
@@ -28,33 +27,6 @@ source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$KIND_OWN
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$NODE_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 300 ]] ||
     fail "persisted graph node owner exceeds 300 lines"
-grep -Fq 'func MirExpressionGraphKindCodeWithin(' "$KIND_OWNER" ||
-    fail "node kind vocabulary does not consume exact JSON bounds"
-grep -Fq 'func MirExpressionCallTargetKindCodeWithin(' "$KIND_OWNER" ||
-    fail "call-target vocabulary does not consume exact JSON bounds"
-grep -Fq 'func MirExpressionBindingKindCodeWithin(' "$KIND_OWNER" ||
-    fail "binding vocabulary does not consume exact JSON bounds"
-grep -Fq 'inout string_end_scratch: Array<Int>' "$NODE_OWNER" ||
-    fail "node reader omitted reusable string-end scratch"
-grep -Fq 'let string_end_scratch: Array<Int> = [0];' "$SEQUENCE_OWNER" ||
-    fail "graph append omitted its bounded string-end scratch owner"
-grep -Fq 'graph.json, cursor, header.nodes_end, string_end_scratch' \
-    "$SEQUENCE_OWNER" || fail "graph append did not pass the owned scratch"
-for required in \
-    'MirExpressionGraphKindCodeWithin(' \
-    'MirExpressionCallTargetKindCodeWithin(' \
-    'MirExpressionBindingKindCodeWithin('; do
-    grep -Fq "$required" "$NODE_OWNER" ||
-        fail "node reader omitted allocation-free vocabulary read: $required"
-done
-for forbidden in \
-    'let kind: String;' 'let target_kind: String;' \
-    'let binding_kind: String;' 'MirExpressionGraphKindCode(' \
-    'MirExpressionCallTargetKindCode(' \
-    'let decoded_end: Array<Int> = [0];'; do
-    grep -Fq "$forbidden" "$NODE_OWNER" "$SEQUENCE_OWNER" &&
-        fail "persisted graph reintroduced decoded enum String: $forbidden"
-done
 
 run_backend() {
     local backend="$1"

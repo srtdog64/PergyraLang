@@ -82,11 +82,8 @@ DECL="src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.p
 PLAN="src/self_hosted/compiler/direct_mir_role_operator_plan_owner.pgy"
 ABI="src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy"
 EMITTER="src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy"
-ROUTER="src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
-GRAPH="src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
-ROLE_C="src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy"
-for file in "$VOCAB" "$RESOLUTION" "$DECL" "$PLAN" "$ABI" "$EMITTER" \
-    "$ROUTER" "$GRAPH" "$ROLE_C"; do require "$ROOT_DIR/$file"; done
+for file in "$VOCAB" "$RESOLUTION" "$DECL" "$PLAN" "$ABI" "$EMITTER"; do
+    require "$ROOT_DIR/$file"; done
 lines_at_most "$VOCAB" 220; lines_at_most "$RESOLUTION" 340
 lines_at_most "$DECL" 310; lines_at_most "$PLAN" 560
 lines_at_most "$ABI" 140; lines_at_most "$EMITTER" 150
@@ -95,22 +92,6 @@ for file in "$DECL" "$PLAN" "$ABI" "$EMITTER"; do
     family_lines=$((family_lines + $(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$file")))
 done
 [[ "$family_lines" -le 1200 ]] || fail "role direct owner family exceeds 1200 lines"
-grep -Fq 'SemanticRoleOperatorKindSupported(kind)' "$ROOT_DIR/$GRAPH" ||
-    fail "expression graph duplicates the supported role-operator set"
-grep -Fq 'SemanticRoleOperatorKindForMethodName(mname)' "$ROOT_DIR/$ROLE_C" ||
-    fail "legacy C role dispatch does not consume the role vocabulary"
-! grep -Eq 'AstExpressionNodeAdd\(\)|mname == "Add"' "$ROOT_DIR/$ROLE_C" ||
-    fail "legacy C role dispatch restored a private Add selector"
-python - "$ROOT_DIR/$ROUTER" <<'PY'
-import pathlib, sys
-text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
-assert text.index("DirectMirRoleOperatorProgramCandidate(admitted)") < text.index("DirectMirArrayReturnProgramCandidate(admitted)")
-PY
-! grep -Eiq 'IntMath|Arithmetic|Hero|role_operator_dispatch|expected.?123|"123"' \
-    "$ROOT_DIR/$DECL" "$ROOT_DIR/$PLAN" "$ROOT_DIR/$ABI" \
-    "$ROOT_DIR/$EMITTER" || fail "fixture identity leaked into role owners"
-! grep -Eq 'int32_t|i32 %rhs|define internal i32' "$ROOT_DIR/$EMITTER" ||
-    fail "role emitter restored a private Int ABI"
 
 rm -f "$MIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

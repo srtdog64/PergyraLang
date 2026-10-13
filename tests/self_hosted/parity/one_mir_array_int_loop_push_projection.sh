@@ -31,21 +31,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
 
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_readiness_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_c_emission_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_llvm_emission_owner.pgy"
-require_text "$FACT" 'DirectMirScalarCfgArrayIntProgramFact'
-require_text "$READY" 'DirectMirScalarCfgArrayIntProducerOrderReady'
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" 'array_push.pgy'
-    reject_text "$owner" 'pgy_ai_push'
-    reject_text "$owner" 'pgy_array_push_Int'
-done
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

@@ -31,36 +31,13 @@ VALID_OPTION="$ROOT_DIR/src/self_hosted/tools/wrapper_policy_probe/valid.pgy"
 VALID_RESULT="$VALID_OPTION"
 BAD_OPTION="$ROOT_DIR/src/self_hosted/tools/wrapper_policy_probe/bad_option.pgy"
 BAD_UNWRAP="$ROOT_DIR/src/self_hosted/tools/wrapper_policy_probe/bad_unwrap.pgy"
-WRAPPER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy"
-TYPE_OWNER="$ROOT_DIR/src/self_hosted/semantic/wrapper_type_owner.pgy"
-VERDICT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 mkdir -p "$BUILD_DIR"
 
 for input in "$SOURCE" "$EXPECTED" "$BAD_OPTION_EXPECTED" \
     "$BAD_UNWRAP_EXPECTED" "$VALID_OPTION" "$VALID_RESULT" \
-    "$BAD_OPTION" "$BAD_UNWRAP" "$WRAPPER_OWNER" "$TYPE_OWNER" \
-    "$VERDICT_OWNER"; do
+    "$BAD_OPTION" "$BAD_UNWRAP"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
-
-grep -Fq 'SemanticAstArtifactAnalyzeTyped(' "$SOURCE" ||
-    { echo "[$LABEL] probe bypasses typed artifact analysis" >&2; exit 1; }
-if grep -Fq 'AnalyzeCompactBridge' "$SOURCE"; then
-    echo "[$LABEL] probe reopens the compact expression bridge" >&2
-    exit 1
-fi
-grep -Fq 'SemanticExpressionGraphWrapperValueFactFromGraph(' "$VERDICT_OWNER" ||
-    { echo "[$LABEL] final verdict ignores wrapper facts" >&2; exit 1; }
-grep -Fq 'wrapper_call_target' "$WRAPPER_OWNER" ||
-    { echo "[$LABEL] wrapper owner accepts missing target identity" >&2; exit 1; }
-if grep -Eq 'ExprType\(|CheckCall\(' "$WRAPPER_OWNER"; then
-    echo "[$LABEL] wrapper owner reconstructs policy from source text" >&2
-    exit 1
-fi
-grep -Fq 'func OptionPayloadTypeOpt(' "$TYPE_OWNER" ||
-    { echo "[$LABEL] Option payload policy has no canonical owner" >&2; exit 1; }
-grep -Fq 'func ResultPayloadTypeOpt(' "$TYPE_OWNER" ||
-    { echo "[$LABEL] Result payload policy has no canonical owner" >&2; exit 1; }
 
 oracle_path() {
     pgy_path_for_compiler "$PGY" "$1"

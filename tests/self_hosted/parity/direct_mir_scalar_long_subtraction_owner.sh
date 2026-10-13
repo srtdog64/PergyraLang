@@ -24,30 +24,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
-SOURCE_KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy"
-C_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy"
-LLVM_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-
-grep -Fq 'DirectMirScalarProgramExprSubtractLong() -> Int { return 82; }' "$KIND" ||
-    fail "Long subtraction expression identity drifted"
-grep -Fq 'source_kind == AstExpressionNodeSubtract() && longs' "$SOURCE_KIND" ||
-    fail "Long subtraction source/type join is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprSubtractLong()' "$READY" ||
-    fail "Long subtraction readiness is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprSubtractLong()' "$C_EXPR" ||
-    fail "C Long subtraction consumer is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprSubtractLong()' "$LLVM_EXPR" ||
-    fail "LLVM Long subtraction consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema did not advance with Long subtraction"
-! grep -Fq 'pgy_checked_sub_i64_export' "$C_EXPR" ||
-    fail "C changed default Long subtraction into checked arithmetic"
-! grep -Fq 'pgy_checked_sub_i64_export' "$LLVM_EXPR" ||
-    fail "LLVM changed default Long subtraction into checked arithmetic"
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

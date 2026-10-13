@@ -69,29 +69,6 @@ command -v "$CLANG" >/dev/null 2>&1 || fail "missing clang"
 command -v python >/dev/null 2>&1 || fail "missing python"
 mkdir -p "$WORK"
 
-ERASURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy"
-EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy"
-ROOT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-for file in "$ERASURE" "$PLAN" "$EMISSION" "$ROOT_OWNER"; do require "$file"; done
-for term in runtime_materialization_count runtime_layout_count runtime_symbol_count storage_count; do
-    grep -Fq "$term" "$ERASURE" || fail "erasure receipt misses $term"
-done
-for term in Arithmetic Add ability_decl; do
-    ! grep -Fq "$term" "$ERASURE" "$PLAN" "$EMISSION" || fail "fixture dispatch leaked: $term"
-done
-! grep -R -Fq --include='*.pgy' 'DirectMirHelloProjectionFromAdmitted' "$ROOT_DIR/src/self_hosted/compiler" || fail "old hello admission returned"
-! grep -R -Eq --include='*.pgy' 'DirectMirHelloEmit(C|Llvm)' "$ROOT_DIR/src/self_hosted/compiler" || fail "old hello emitter returned"
-grep -Fq 'DirectMirCompileTimeDeclarationErasureRouteClaimed(' "$ROOT_OWNER" || fail "declaration-bearing malformed input can retry another route"
-route_body="$(sed -n '/^func DirectMirCompileTimeDeclarationErasureRouteClaimed(/,/^}/p' "$ERASURE")"
-! grep -Eq 'declarations\.(kinds|nominal_kinds)' <<<"$route_body" || fail "route claim reintroduced semantic kind scanning"
-grep -Fq 'DirectMirLiteralLogPlanFromAdmitted(admitted)' "$ROOT_OWNER" || fail "literal plan is not the production owner"
-! grep -Eq 'Json|MirMachine|source_json|Arithmetic|Add|ability' "$EMISSION" || fail "emitter reopened MIR or declaration policy"
-grep -Fq 'StringRuntimeCInt32LineFormat()' "$PLAN" || fail "literal Int log lost its canonical 32-bit format"
-! grep -Fq 'StringRuntimeCIntLineFormat()' "$PLAN" || fail "literal Int log returned to the Long format"
-grep -Fq '#include <stdint.h>' "$EMISSION" || fail "literal Int C emission omitted the exact-width header"
-grep -Fq 'output = Concat(output, "i32 ");' "$EMISSION" || fail "literal Int LLVM emission is not i32"
-
 rm -f "$MIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$(rel "$FIXTURE")" -o "$(rel "$MIR")") \
     >"$WORK/produce.out" 2>"$WORK/produce.err" || fail "source-to-MIR failed"

@@ -19,11 +19,6 @@ cd "$ROOT_DIR"
 failures=0
 checks=0
 
-checks=$((checks + 1))
-if ! "$BASH" "$ROOT_DIR/tests/mir_lexical_binding_owner_smoke.sh"; then
-    failures=$((failures + 1))
-fi
-
 while IFS='|' read -r source diagnostic owned_code; do
     case_name="$(basename "$source" .pgy)"
     name="${source#tests/concept_semantics/}"

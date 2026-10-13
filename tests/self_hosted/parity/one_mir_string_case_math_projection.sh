@@ -32,28 +32,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-PARAMS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy"
-PARAM_ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_parameter_set_admission_owner.pgy"
-DIRECT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy"
-IDENTITY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy"
-RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
-require_text "$PARAMS" 'let type_names: Array<String>'
-require_text "$PARAMS" 'let param_digests: Array<Int>'
-reject_text "$PARAMS" 'Array<DirectMirRoutineParamFact>'
-require_text "$PARAM_ADMISSION" 'cursor = bounds[1]'
-require_text "$DIRECT" 'DirectMirScalarProgramNaryOperandRows'
-require_text "$IDENTITY" 'ArrayLength(arguments) != plan.routines.parameter_counts[target]'
-require_text "$RUNTIME" 'DirectMirScalarProgramCaseMathRuntimeIdsDigest'
-for owner in "$PARAMS" "$PARAM_ADMISSION" "$DIRECT" "$IDENTITY" "$RUNTIME" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_expression_owner.pgy"; do
-    reject_text "$owner" 'str_case_math.pgy'
-    reject_text "$owner" 'HELLO, WORLD!'
-    reject_text "$owner" 'a+b+a+b'
-done
-
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"

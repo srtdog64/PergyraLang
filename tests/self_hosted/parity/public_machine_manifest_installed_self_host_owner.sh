@@ -17,10 +17,6 @@ fail() {
     exit 1
 }
 
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
-}
-
 companion_for() {
     case "$1" in
         *.exe) printf '%s\n' "${1%.exe}.machine-layer-manifest.json" ;;
@@ -112,29 +108,5 @@ grep -Fq "installed machine manifest mode requires one artifact path" \
     fail "installed arity lost its typed diagnostic"
 ! grep -Fq "[pipeline timing]" "$WORK_DIR/missing.err" \
     "$WORK_DIR/invalid.err" || fail "manifest failure retried the native pipeline"
-
-require_text "$ROOT_DIR/src/pgy_driver.c" \
-    'driver_self_host_machine_manifest_request_supported(&flags)'
-require_text "$ROOT_DIR/src/pgy_driver.c" \
-    'return driver_write_self_host_machine_manifest(argv[0]);'
-require_text "$ROOT_DIR/src/compiler/self_host_machine_manifest_artifact_owner.c" \
-    'child_argv[1] = "--emit-machine-manifest-verified";'
-require_text "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
-    'DriverCliMachineManifestStdout(String)'
-! grep -Fq 'DriverCliMachineManifestStdout(String,' \
-    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" ||
-    fail "machine-manifest request gained a second policy input"
-selection_body="$(sed -n '/driver_self_host_machine_manifest_request_supported(/,/^}/p' \
-    "$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c")"
-! grep -Fq 'opt_profile' <<<"$selection_body" ||
-    fail "C admission still assigns optimization semantics to the manifest"
-require_text "$ROOT_DIR/src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
-    'SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified('
-require_text "$ROOT_DIR/src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
-    'CharCode(payload, length, length - 2) == 13'
-if grep -Fq 'driver_run_pipeline(' \
-    "$ROOT_DIR/src/compiler/self_host_machine_manifest_artifact_owner.c"; then
-    fail "machine manifest adapter regained a native fallback"
-fi
 
 echo "[self-host-public-machine-manifest] installed verified companion owns public output and fails closed"

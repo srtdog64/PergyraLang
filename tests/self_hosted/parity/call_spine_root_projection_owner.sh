@@ -11,10 +11,6 @@ pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy"
-if grep -Fq 'SemanticCallSpineViewForCallNodeWithin' "$VERDICT"; then
-    fail 'named boundary reopened the per-call arena scan'
-fi
-[[ "$(grep -Fc 'SemanticCallSpineRootsFromGraph(graph)' "$VERDICT")" == 1 ]] || fail 'named boundary must project once'
 mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/call-spine-roots.XXXXXX")"
 REL="${WORK#"$ROOT_DIR/"}"

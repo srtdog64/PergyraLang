@@ -24,32 +24,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/mir_lower/fixture/foreach_array_int_sum.pgy"
 MIR="$WORK_DIR/program.json"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_branch_admission_owner.pgy"
-INPUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy"
-LLVM_CONDITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_condition_owner.pgy"
-require_text "$INPUT_OWNER" 'DirectMirScalarCfgForEachFactsFromOwners('
-require_text "$ADMISSION" 'DirectMirScalarCfgConditionForEach()'
-require_text "$FACT" 'collection_value_id'
-require_text "$FACT" 'length_offset'
-require_text "$C_OWNER" 'abi.c_length_type'
-require_text "$LLVM_CONDITION_OWNER" 'abi.length_index'
-for owner in "$ADMISSION" "$INPUT_OWNER" "$C_OWNER" "$LLVM_OWNER" \
-    "$LLVM_CONDITION_OWNER"; do
-    reject_text "$owner" 'foreach_array_int_sum.pgy'
-    reject_text "$owner" 'block_count == 4'
-    reject_text "$owner" '"expr0"'
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

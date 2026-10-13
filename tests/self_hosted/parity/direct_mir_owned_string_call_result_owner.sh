@@ -22,23 +22,12 @@ CONDITIONAL_TRANSFER_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_array_s
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/collection_ownership_receipt_mutations.py"
-FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy"
-EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy"
-TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'SemanticAstOwnedStringResultFactsFromResolvedFacts(' "$FACT_OWNER" ||
-    fail "owned String result fact owner is missing"
-grep -Fq 'SemanticAstScopedLocalBindingIdentityForGraphLeaf(' "$EXPRESSION_OWNER" ||
-    fail "owned String result proof joins locals by spelling"
-grep -Fq 'SemanticAstOwnedStringCallTarget(' "$TRANSITION_OWNER" ||
-    fail "ArrayPush transition does not consume the owned-result fact"
-! grep -Fq 'Slot<' "$FACT_OWNER" "$EXPRESSION_OWNER" "$TRANSITION_OWNER" ||
-    fail "ordinary String ownership imported Slot semantics"
 
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"

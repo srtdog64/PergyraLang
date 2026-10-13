@@ -51,22 +51,6 @@ EOF
         fail "inferred generic nominal owner family cap exceeded: $total/1800"
     lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")" || fail "source-size measurement failed"
     [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
-    grep -Fq 'DirectMirTwoRoutineClassificationFromAdmitted(admitted)' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
-        fail "two-routine structural classification is not routed"
-    grep -Fq 'CompileAdmittedDirectMirInferredGenericNominal(' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
-        fail "inferred generic nominal projection is not routed"
-    for emitter in \
-        direct_mir_inferred_generic_nominal_c_emission_owner.pgy \
-        direct_mir_inferred_generic_nominal_llvm_emission_owner.pgy; do
-        ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' \
-            "$ROOT_DIR/src/self_hosted/compiler/$emitter" ||
-            fail "$emitter reopened admitted JSON or expression graphs"
-        ! grep -Fq 'CompilerSymbolCGenericSpecializationName' \
-            "$ROOT_DIR/src/self_hosted/compiler/$emitter" ||
-            fail "$emitter reconstructed the specialization symbol"
-    done
 }
 
 project() {

@@ -24,32 +24,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
 
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy"
-RANGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_bound_owner.pgy"
-ARRAY_LENGTH_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_length_fact_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy"
-PRODUCER_NATIVE="$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
-PRODUCER_SELF="$ROOT_DIR/src/self_hosted/mir/routine_for_owner.pgy"
-require_text "$RANGE_OWNER" 'DirectMirScalarCfgArrayLengthGraphFactAt(sequence, 0, 1, 2, 3)'
-require_text "$ARRAY_LENGTH_OWNER" 'sequence.arena.call_target_names[call] != "ArrayLength"'
-require_text "$ADMISSION" 'DirectMirScalarCfgStringArrayConcatGraphFactFrom(graph)'
-require_text "$C_OWNER" 'pgy_indexed_collection_'
-require_text "$C_OWNER" '.data['
-require_text "$LLVM_OWNER" 'icmp ult i64'
-require_text "$PRODUCER_NATIVE" 'MIR_BRANCH_FOR_RANGE'
-require_text "$PRODUCER_NATIVE" '? inst->expr1'
-require_text "$PRODUCER_SELF" 'node_id, AstExpressionLaneAuxiliary()'
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" '"expr0"'
-    reject_text "$owner" 'str_array_concat.pgy'
-done
-reject_text "$C_OWNER" '.capacity)'
-reject_text "$LLVM_OWNER" '.capacity = extractvalue'
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

@@ -35,14 +35,6 @@ CFLAGS=(-std=c11 -O1 -fwrapv -fno-strict-aliasing -pthread
 # The exact text is the contract. A reworded warning must come here first.
 INACTIVE_TEXT="worker pool inactive; task runs inline (serial)."
 WORKERS_TEXT="PGY_WORKERS is not a valid worker count (want 1..4096)"
-grep -Fq "$INACTIVE_TEXT" "$ROOT_DIR/src/runtime/pgy_parallel_spawn.h" || {
-    echo "[$LABEL] spawn owner no longer carries the pool-inactive warning text" >&2
-    exit 1
-}
-grep -Fq "$WORKERS_TEXT" "$ROOT_DIR/src/runtime/pgy_parallel_pool_lifecycle.h" || {
-    echo "[$LABEL] pool lifecycle owner no longer carries the PGY_WORKERS warning text" >&2
-    exit 1
-}
 
 if ! "$CC" "${CFLAGS[@]}" -c "$ROOT_DIR/src/runtime/pgy_runtime_cext_lib.c" \
         -o "$WORK/rt.o" 2>"$WORK/rt.err"; then

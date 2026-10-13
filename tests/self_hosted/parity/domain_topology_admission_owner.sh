@@ -26,10 +26,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-OWNER="$ROOT_DIR/src/self_hosted/mir_lower/domain_topology_fact_owner.pgy"
-DECL_INDEX="$ROOT_DIR/src/self_hosted/mir_lower/program_declaration_index_owner.pgy"
 FIELD_INDEX="$ROOT_DIR/src/self_hosted/mir_lower/program_declaration_field_identity_index_owner.pgy"
-INPUT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/mir_json_input_owner.pgy"
 MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/mir_lower/domain_topology_admission"
@@ -38,35 +35,9 @@ VALID="$BUILD_DIR/valid.mir.json"
 
 mkdir -p "$BUILD_DIR"
 
-for term in 'struct MirDomainTopologyFacts' \
-    'MirDomainTopologyFactsFromDocument' \
-    'MirDomainTopologyRowDeclarationJoinReady' \
-    'MirDomainTopologyRelationDeclarationReady'; do
-    grep -Fq -- "$term" "$OWNER" || fail "missing typed topology owner term: $term"
-done
-for term in 'struct MirProgramDeclarationFieldIdentityIndex' \
-    'BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans' \
-    'MirProgramDeclarationFieldIdentityMatches'; do
-    grep -Fq -- "$term" "$FIELD_INDEX" \
-        || fail "missing declaration field identity term: $term"
-done
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$FIELD_INDEX" | tr -d ' ')" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 300 ]] ||
     fail "declaration field identity owner exceeds 300 lines"
-grep -Fq -- 'BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans' \
-    "$DECL_INDEX" || fail "program declaration index does not compose field identity spans"
-if grep -Eq 'BuildMirDocumentFactIndex|MirDeclArrayBounds|MirDeclArrayObjectFactTable' \
-    "$FIELD_INDEX"; then
-    fail "field identity index reopened declaration-array discovery"
-fi
-if grep -Fq -- 'MirDomainTopologyDeclarationFieldKind' "$OWNER"; then
-    fail "topology admission retained name-only declaration field lookup"
-fi
-grep -Fq -- 'MIR domain topology facts are missing or invalid' "$INPUT_OWNER" \
-    || fail "MIR input boundary does not fail closed on topology"
-if grep -Eq 'AstTree|source_path|ReadFile\(' "$OWNER"; then
-    fail "topology admission reopened AST/source recovery"
-fi
 
 if [[ -z "${PGY_SELFHOST_PREBUILT_MIR_LOWER:-}" ]]; then
     (cd "$ROOT_DIR" && "$PGY" \

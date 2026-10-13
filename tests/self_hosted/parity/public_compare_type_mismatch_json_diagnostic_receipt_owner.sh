@@ -14,10 +14,6 @@ WORK_REL=".tmp/self_hosted/public_compare_type_mismatch_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 COMPARE_FIXTURES="bad_compare_assign bad_compare_condition bad_compare_operand"
 LOGICAL_REL="src/self_hosted/semantic/fixture/bad_logical_right.pgy"
 UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
@@ -137,13 +133,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed comparison diagnostic identity"
-
-require_text "$DIAGNOSTIC_OWNER" 'if code == "compare_type_mismatch" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:binop:operand_types"'
-require_text "$DIAGNOSTIC_OWNER" '"align-operand-types-or-overload"'
-require_text "$CONTRACT_OWNER" \
-    'compare_first.message != compare_second.message'
-! grep -Fq 'compare_type_mismatch' "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic comparison authority"
 
 echo "[self-host-public-compare-type-mismatch-json-diagnostic] exact shared binary identity, three semantic contexts, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"

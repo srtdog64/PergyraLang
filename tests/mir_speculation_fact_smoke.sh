@@ -54,10 +54,5 @@ for key, fact in expected.items():
             f"missing speculation fact for expr0={key[0]!r}, expr1={key[1]!r}"
         )
 PY
-grep -Fq 'mir_capture_speculation_facts(&routine)' "$ROOT_DIR/src/compiler/mir.c"
-grep -Fq 'mir_validate_speculation_facts(routine, error_message)' \
-    "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq 'expression is missing speculation safety fact' \
-    "$ROOT_DIR/src/compiler/mir_speculation_facts.c"
 
 echo "[mir-speculation-fact] local/literal safety and composite fail-closed facts ok"

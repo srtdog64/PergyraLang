@@ -268,7 +268,7 @@ typedef struct {
     bool inherited_causes_from_action;
     bool inherited_authorized_by_from_action;
     /* Legacy schema field only. Active beta semantics must not derive
-       approval from local `who`; see intent_compression_contract_smoke.sh. */
+       approval from local `who`. */
     bool derived_authorized_by_from_zone;
     bool derived_where_from_using;
     bool derived_where_from_transfer;

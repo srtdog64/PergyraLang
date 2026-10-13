@@ -61,13 +61,14 @@ cosmetic reshuffling.
   evidence lifetime; otherwise it is a reference, not an implementation plan.
 - If the prompt leaves priorities implicit, use this repository order:
   semantic identity and one SoT, owner-directed facts, fallback removal,
-  negative ratchet, then patch size and conventional architecture.
+  behavioral negative gate, then patch size and conventional architecture.
 - See `docs/131_ai_coding_atomic_units.md` section 3.1 for the objective-card
   template. An AI-probable next step is not proof of the right next step.
 - When ownership moves as the compiler grows, follow
   `docs/180_compiler_logical_spine_handles_gates.md`: keep identity stable,
-  migrate consumers, fail closed, delete the old owner, and ratchet the old
-  read path. Do not leave dual-read or `new ? old` compatibility authority.
+  migrate consumers, fail closed, delete the old owner, and add a behavioral
+  negative gate for the old read path. Do not leave dual-read or `new ? old`
+  compatibility authority.
 - Top-level compiler fact families must be declared in
   `docs/semantics/sot_owner_spine_registry.md`. A registry row fixes owner
   identity; it may be marked `CLOSED` only after consumer migration, missing-
@@ -120,8 +121,18 @@ cosmetic reshuffling.
   that owns any such responsibility is an owner and must be named for it.
 - Do not add unnecessary helper functions or new generic `*_helper*` buckets.
   A one-off wrapper that only hides local logic is debt. Existing legacy helper
-  paths are a shrink-only inventory: they may be renamed into responsibility-
-  named owners or removed, but must not justify another helper bucket.
+  paths may be renamed into responsibility-named owners or removed, but must
+  not justify another helper bucket.
+- Do not add tests that check whether text exists or does not exist in the
+  repository's own docs or source: required or forbidden doc phrases, a symbol
+  that must be named in a file, a removed name or file that must not return,
+  occurrence counts, file lists, CI step or test lists. They pin wording and
+  layout, not behavior, and they were removed on 2026-10-13
+  (`docs/agent_work_directives/test_text_scan_removal_2026-10-13.md`). A gate
+  compiles or runs something and checks its result or the artifacts it
+  emitted. The only static checks are generator drift (`render_* --check`),
+  line-size caps, tree-wide hazard lints with a stated hazard (for example
+  unsafe libc string calls), layer import rules, and link/encoding integrity.
 - Do not add empty `try` / `catch` blocks, silent catch-all handlers, or
   "ignore and continue" error paths. Use `Result`, a structured diagnostic, an
   explicit invariant, or a documented panic boundary.
@@ -150,8 +161,10 @@ cosmetic reshuffling.
    dependency order, and acceptance/falsifying gates before implementation.
 3. Implement the plan in small coherent slices that move the decision and its
    consumers behind the owner; do not substitute isolated diagnostic fixes.
-4. Add or tighten the relevant negative gate so the old path cannot reappear.
-   Run the narrow gate first; broaden after the slice is stable.
+4. Add or tighten a behavioral negative gate: an input the old path accepted
+   or answered must now be refused or fail closed. Deleting the old code is
+   the removal; do not add a text scan that it never returns. Run the narrow
+   gate first; broaden after the slice is stable.
 5. Check the entire planned chain at its integration boundary, including the
    last consumer and old-path deletion. Revisit the plan if new dependencies
    appear instead of silently extending a sequence of local patches.
@@ -180,9 +193,6 @@ cosmetic reshuffling.
 - Treat a test as a falsifier of a named ownership claim, not as the objective
   function. A green row cannot excuse dual authority, an undeleted fallback,
   or repeated reconstruction of an admitted artifact.
-- `tests/self_hosted_component_contract_smoke.sh` is only a structural source
-  inventory and old-path residue ratchet. Do not add behavioral correctness
-  claims to it; executable parity and focused negative gates own those claims.
 - Count completeness and performance work by semantic execution target. When
   multiple inventory rows project to one import-composed program, execute that
   program once per stage/run, record unique checks and reuses, and attribute

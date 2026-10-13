@@ -16,19 +16,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_int_two_array_string_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_int_two_array_string_value_result_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'let int_return: Bool = signature.return_type ==' "$POLICY" ||
-    fail "Int return is not part of the shared ArrayString policy"
-grep -Fq 'value_result_layout != layout' "$POLICY" ||
-    fail "copyout ABI identity equality is not pinned"
-! grep -Fq 'signature.param_count != 4' "$POLICY" || fail "retired exact arity remains"
-! grep -Fq 'ordinal < 2' "$POLICY" || fail "retired positional policy remains"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

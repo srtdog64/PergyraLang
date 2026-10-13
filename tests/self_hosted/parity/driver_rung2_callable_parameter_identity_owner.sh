@@ -18,25 +18,12 @@ SHADOW_SOURCE_REL="tests/self_hosted/fixtures/callable_parameter_builtin_shadow.
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_callable_parameter_identity_mutations.py"
-CALLABLE_VALUE_TYPE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_declared_callable_value_type_owner.pgy"
-EXPRESSION_VERDICT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 command -v python >/dev/null 2>&1 || fail "missing Python"
-grep -Fq 'SemanticExpressionGraphBindingIdentity(' "$CALLABLE_VALUE_TYPE_OWNER" ||
-    fail "callable value typing no longer consumes carried binding identity"
-grep -Fq 'SemanticAstFunctionSignatureIndexForNode(' "$CALLABLE_VALUE_TYPE_OWNER" ||
-    fail "callable value typing no longer joins the exact declaration identity"
-grep -Fq 'SemanticExpressionDeclaredFunctionSyntaxId(' "$CALLABLE_VALUE_TYPE_OWNER" ||
-    fail "callable value typing no longer resolves through the shared identity owner"
-grep -Fq '!EnvContainsName(names,' "$CALLABLE_VALUE_TYPE_OWNER" ||
-    fail "callable value typing no longer protects local shadowing"
-grep -Fq 'SemanticExpressionGraphDeclaredCallableValueTypeName(' \
-    "$EXPRESSION_VERDICT_OWNER" ||
-    fail "call argument typing bypasses the declared callable value owner"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -54,8 +41,6 @@ grep -Fq '"binding_kind":"formal_parameter","binding_ordinal":1' "$MIR" ||
     fail "producer omitted the formal callable identity"
 grep -Fq '"binding_kind":"declared_callable"' "$MIR" ||
     fail "producer omitted the declared callable value identity"
-grep -Fq 'enum CallableEpochMarker' "$ROOT_DIR/$SOURCE_REL" ||
-    fail "callable fixture no longer forces a producer/canonical identity epoch drift"
 
 # The production/default C route deliberately re-enters the semantic graph;
 # it must preserve and validate carried identities instead of rebuilding them.

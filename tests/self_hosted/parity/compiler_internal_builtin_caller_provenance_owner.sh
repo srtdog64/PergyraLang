@@ -17,8 +17,6 @@ OWNER_INDEXED_BORROW="src/self_hosted/semantic/ast_collection_indexed_string_bor
 WRONG_PATH="tests/self_hosted/semantic/fixture/compiler_retire_array_storage_owner_impersonation_rejected.pgy"
 EXTERNAL="tests/self_hosted/semantic/fixture/compiler_retire_array_storage_external_rejected.pgy"
 ARTIFACT_FIXTURE="$ROOT_DIR/tests/self_hosted/semantic/fixture/compiler_internal_builtin_artifact_provenance.pgy"
-DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
-CODEGEN_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap.sh"
 
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
@@ -29,24 +27,6 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
     exit 1
 }
 mkdir -p "$BUILD_DIR"
-
-grep -Fq '"$CODEGEN_BIN" --source "$driver_rel"' "$DRIVER_BOOTSTRAP" || {
-    echo "[compiler-internal-caller] driver bootstrap does not consume the typed source artifact" >&2
-    exit 1
-}
-if grep -Fq 'PARSER_BIN=' "$DRIVER_BOOTSTRAP" ||
-    grep -Fq 'driver_bootstrap.ast.txt' "$DRIVER_BOOTSTRAP"; then
-    echo "[compiler-internal-caller] driver bootstrap restored the provenance-free AST-text bypass" >&2
-    exit 1
-fi
-grep -Fq -- '--source "$tool_source_rel"' "$CODEGEN_BOOTSTRAP" || {
-    echo "[compiler-internal-caller] codegen fixed point lost source provenance" >&2
-    exit 1
-}
-if grep -Fq 'AST_REL=' "$CODEGEN_BOOTSTRAP"; then
-    echo "[compiler-internal-caller] codegen fixed point restored the provenance-free AST bypass" >&2
-    exit 1
-fi
 
 "$PYTHON" "$ROOT_DIR/scripts/render_compiler_internal_builtin_caller_registry.py" \
     "$ROOT_DIR/src/common/compiler_internal_builtin_caller_registry.def" \

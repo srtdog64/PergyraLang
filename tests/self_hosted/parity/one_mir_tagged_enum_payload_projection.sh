@@ -21,27 +21,11 @@ STALE_SOURCE_REL="tests/self_hosted/parity/fixture/tagged_enum_stale_ssa_use.pgy
 STALE_MIR_REL="$WORK_REL/stale.baseline.mir.json"
 STALE_MIR="$ROOT_DIR/$STALE_MIR_REL"
 MUTATOR="$ROOT_DIR/tests/self_hosted/parity/one_mir_tagged_enum_payload_mutations.py"
-ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy"
-REFERENCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy"
-MEMBER_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_expression_owner.pgy"
-BACKEND_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq '"AST_MATCH_CASE"' "$ROUTE_OWNER" ||
-    fail "payload-free enum-match route lacks match-case evidence"
-grep -Fq 'instruction_abi_type_names' "$REFERENCE_OWNER" ||
-    fail "referenced enum owner omits local ABI type evidence"
-grep -Fq 'DirectMirScalarProgramPayloadEnumMemberFromGraph(' "$MEMBER_OWNER" ||
-    fail "tagged-enum payload member has no graph owner"
-grep -Fq 'scalar_program_route.referenced_enum.payload_present' "$BACKEND_OWNER" ||
-    fail "backend route does not consume the sealed payload-enum fact"
-! grep -Eq 'tagged_union|"Shape"|"Circle"|"Rect"' \
-    "$ROUTE_OWNER" "$REFERENCE_OWNER" "$MEMBER_OWNER" "$BACKEND_OWNER" ||
-    fail "fixture spelling leaked into the tagged-enum direct MIR route"
 
 mkdir -p "$WORK"
 rm -f "$WORK"/*

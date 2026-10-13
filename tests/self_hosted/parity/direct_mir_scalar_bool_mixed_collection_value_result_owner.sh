@@ -16,29 +16,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_bool_mixed_collection_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_bool_mixed_collection_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_bool_mixed_collection_value_result_mutations.py"
-TARGET="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_mutation_target_owner.pgy"
-OPCODES="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'return array_bool_count >= 1;' "$POLICY" ||
-    fail "policy omitted the Array<Bool> owner cardinality"
-grep -Fq 'DirectMirScalarCfgScalarTypeSupported(type_name)' "$POLICY" ||
-    fail "policy omitted scalar value validation"
-if grep -Fq 'signature.param_count != 11' "$POLICY" ||
-    grep -Fq 'ordinal == 1' "$POLICY"; then
-    fail "retired 5+1+2 positional policy remains"
-fi
-grep -Fq 'DirectMirScalarCfgOpArrayBoolPush() -> Int { return 39; }' "$OPCODES" ||
-    fail "Array<Bool> push identity is not target-neutral"
-grep -Fq 'DirectMirScalarCfgOpArrayBoolSet() -> Int { return 42; }' "$OPCODES" ||
-    fail "Array<Bool> set identity is not target-neutral"
-! grep -Fq 'DirectMirScalarCfgOpLocalArrayBool' "$TARGET" ||
-    fail "target owner retained local-only Array<Bool> operation identity"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

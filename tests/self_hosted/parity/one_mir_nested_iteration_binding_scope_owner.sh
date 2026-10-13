@@ -14,24 +14,9 @@ WORK_REL=".tmp/self_hosted/one_mir_nested_iteration_binding_scope"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/mir_lower/fixture/nested_iteration_binding_shadow.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" && -n "$PYTHON_BIN" ]] || fail "driver/python unavailable"
 command -v "$CC" >/dev/null && command -v "$CLANG" >/dev/null || fail "toolchain unavailable"
-
-SET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_set_owner.pgy"
-GRAPH_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-LEAF_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy"
-require_text "$SET_OWNER" 'struct DirectMirScalarCfgRangeFactSet {'
-require_text "$SET_OWNER" 'DirectMirScalarCfgRangeFactAtLoopSyntaxId('
-require_text "$GRAPH_OWNER" 'let range_iterations: DirectMirScalarCfgRangeFactSet;'
-require_text "$LEAF_OWNER" 'DirectMirScalarCfgWireExprRefAt('
-for owner in "$ROOT_DIR"/src/self_hosted/compiler/direct_mir_scalar_cfg_*.pgy; do
-    reject_text "$owner" 'let range_iteration: DirectMirScalarCfgRangeIterationFact;'
-    reject_text "$owner" 'range_local_row'
-    reject_text "$owner" 'DirectMirScalarCfgRangeLocalName('
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

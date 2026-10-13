@@ -28,8 +28,6 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_index_owner.pgy"
-IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy"
 MIR_LOWER_SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 VALUE_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/class_method_self_chain/main.pgy"
 IDENTITY_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
@@ -39,26 +37,6 @@ MIR_LOWER="$BUILD_DIR/mir_lower.exe"
 DRIVER_BIN="${PGY_SELFHOST_PREBUILT_DRIVER:-${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}}"
 
 mkdir -p "$BUILD_DIR"
-
-for term in \
-    'let source_syntax_ids: Array<String>;' \
-    'let receiver_carriages: Array<String>;' \
-    'CaptureMirProgramRoutineReceiverIdentity('; do
-    grep -Fq -- "$term" "$OWNER" \
-        || fail "routine index receiver capture term is missing: $term"
-done
-for term in \
-    'MirProgramRoutineOwnerNominalKind' \
-    'MirProgramRoutineReceiverIdentityReady' \
-    'MirProgramDeclarationFieldIdentityPositiveDecimal' \
-    'row != except_row && source_syntax_ids[row] =='; do
-    grep -Fq -- "$term" "$IDENTITY_OWNER" \
-        || fail "routine admission owner term is missing: $term"
-done
-if grep -Eq 'receiver_carriage[[:space:]]*==[[:space:]]*""|owner[[:space:]]*==[[:space:]]*""[[:space:]]*\?' \
-    "$OWNER" "$IDENTITY_OWNER"; then
-    fail "routine admission reopened a missing-carriage/owner fallback"
-fi
 
 if ! (cd "$ROOT_DIR" && "$PGY" \
     "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" \

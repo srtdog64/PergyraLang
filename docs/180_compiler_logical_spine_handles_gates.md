@@ -15,6 +15,11 @@ fact gains more consumers, requires broader context, becomes cacheable, or must
 survive serialization. Identity must remain stable while the owner moves, and a
 gate must prevent the old owner from remaining as a second truth.
 
+Gates are executable (2026-10-13). Sections below that call a gate a
+"ratchet", "residue gate" or "structural owner gate" describe source-text scans
+that were removed; see
+`docs/agent_work_directives/test_text_scan_removal_2026-10-13.md`.
+
 Related contracts:
 
 - `docs/125_source_of_truth_spine.md`
@@ -593,7 +598,9 @@ Every ownership move follows this order:
 4. **Repoint** consumers one at a time to the new owner.
 5. **Fail closed** when the new fact is missing; never use `new ? old`.
 6. **Delete** the old producer/accessor rather than leaving an alias.
-7. **Ratcheting gate** rejects the old symbol, source rescan, and fallback.
+7. **Negative gate** runs an input the old path answered (a stale artifact, a
+   missing fact, a fallback-only shape) and requires a fail-closed refusal.
+   Deleting the old symbol is the removal; no text scan guards it.
 8. **Update** owner, loss, lifetime, compatibility, and self-host manifests.
 
 An allowed migration bridge is one-way and typed. It may expose provenance or a

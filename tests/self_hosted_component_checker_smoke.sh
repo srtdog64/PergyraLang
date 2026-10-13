@@ -10,16 +10,13 @@ ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/component_checker/run.XXXXXX")
 # Exercise the owner's actual functions without running the full inventory.
 # Definitions end at a column-zero brace; embedded awk programs are indented.
 definitions="$(awk '
-    /^(fail|load_text_cache|function_body_text|load_function_body_cache|require_function_text|reject_function_text|require_max_lines|run_line_cap_checks|check_match_pattern_consumer_placement|check_artifact_comparison_transport_placement|check_replacement_frontier_build_graph|check_concrete_scalar_signature_materialization|reject_regex_under|run_regex_scope_checks)\(\) \{/ { capture = 1 }
+    /^(fail|require_max_lines|run_line_cap_checks|check_replacement_frontier_build_graph)\(\) \{/ { capture = 1 }
     capture { print }
     /^}/ { capture = 0 }
 ' "$OWNER")"
 eval "$definitions"
-for checker in fail load_text_cache function_body_text load_function_body_cache \
-        require_function_text reject_function_text require_max_lines run_line_cap_checks \
-        check_match_pattern_consumer_placement check_artifact_comparison_transport_placement \
-        check_replacement_frontier_build_graph check_concrete_scalar_signature_materialization \
-        reject_regex_under run_regex_scope_checks; do
+for checker in fail require_max_lines run_line_cap_checks \
+        check_replacement_frontier_build_graph; do
     declare -F "$checker" >/dev/null || {
         echo "[component-checker] missing checker function: $checker" >&2
         exit 1
@@ -133,16 +130,7 @@ cmp -s "$frontier_fixture_dir/caller-before.rsp" "$frontier_fixture_dir/build/co
 [[ ! -e "$frontier_fixture_dir/recipes.executed" ]] ||
     fail 'frontier graph inventory executed a fixture recipe'
 
-# Bash 3.2 treats an empty array's unguarded expansion as unset under nounset.
-[[ "$definitions" == *'${checked_dirs[@]+"${checked_dirs[@]}"}'* ]] ||
-    fail 'regex scope checker must guard its empty array for Bash 3.2'
-
 LINE_CAP_REQUESTS=()
-FUNCTION_BODY_CACHE_REL=""
-FUNCTION_BODY_CACHE_SIGNATURE=""
-FUNCTION_BODY_CACHE_CONTENT=""
-FUNCTION_BODY_EXTRACTIONS=0
-FUNCTION_BODY_REUSES=0
 
 check_one_cap() {
     LINE_CAP_REQUESTS=()
@@ -217,213 +205,5 @@ expect_rejection malformed-shared-cap 'missing or invalid shared owner cap' requ
 printf '%s\n' "${identity_cap_rows[0]%|*}|2" "${identity_cap_rows[@]:1}" >"$shared_caps"
 expect_rejection tighter-shared-cap 'owner hard cap exceeded' require_scalar_identity_owner_caps
 
-printf '%s\n' 'func Alpha() {' '    return ALPHA;' '}' \
-    'func Beta() {' '    return BETA;' '}' 'func Inline() { return INLINE; }' \
-    >"$ROOT_DIR/one.pgy"
-printf '%s\n' 'func Alpha() {' '    return OTHER;' '}' >"$ROOT_DIR/other.pgy"
-require_function_text one.pgy 'func Alpha(' ALPHA
-reject_function_text one.pgy 'func Alpha(' BETA
-[[ "$FUNCTION_BODY_EXTRACTIONS" -eq 1 && "$FUNCTION_BODY_REUSES" -eq 1 ]] ||
-    fail 'identical adjacent function checks were not reused'
-expect_rejection required-absent 'missing term: BETA' \
-    require_function_text one.pgy 'func Alpha(' BETA
-expect_rejection forbidden-present 'retired term: ALPHA' \
-    reject_function_text one.pgy 'func Alpha(' ALPHA
-require_function_text one.pgy 'func Beta(' BETA
-reject_function_text one.pgy 'func Beta(' ALPHA
-require_function_text other.pgy 'func Alpha(' OTHER
-reject_function_text other.pgy 'func Alpha(' ALPHA
-require_function_text one.pgy 'func Inline(' INLINE
-reject_function_text one.pgy 'func Inline(' BETA
-expect_rejection missing-function 'missing function: func Missing(' \
-    require_function_text one.pgy 'func Missing(' ALPHA
-expect_rejection missing-function-input 'missing function input' \
-    require_function_text absent.pgy 'func Alpha(' ALPHA
-
-# Source-inventory snapshots only; these fixtures are never emitted or run.
-concrete_scalar_rel=src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy
-concrete_scalar_fixture="$ROOT_DIR/$concrete_scalar_rel"
-mkdir -p "${concrete_scalar_fixture%/*}"
-write_concrete_scalar_signature_fixture() {
-    local mutation="${1:-baseline}" selected="${2:-}" fixture_function
-    for fixture_function in SemanticExpressionGraphConcreteScalarValueOwned \
-            SemanticExpressionGraphContextualCallArgumentsOwned \
-            SemanticExpressionGraphResolvedCallArgumentFactsFromGraph; do
-        printf 'func %s() {\n' "$fixture_function"
-        if [[ "$fixture_function" != "$selected" || "$mutation" != missing-length ]]; then
-            printf '%s\n' '    if ArrayLength(function_names) != ArrayLength(function_params) { return false; }'
-        fi
-        if [[ "$fixture_function" != "$selected" || "$mutation" != missing-target ]]; then
-            printf '%s\n' '    if !IsSome(target) { return false; }'
-        fi
-        if [[ "$fixture_function" == "$selected" && "$mutation" == raw-instead ]]; then
-            printf '%s\n' '    signature = function_params[UnwrapOption(target)];'
-        elif [[ "$fixture_function" == "$selected" && "$mutation" == wrong-row ]]; then
-            printf '%s\n' '    signature = Concat("", function_params[0]);'
-        elif [[ "$fixture_function" != "$selected" || "$mutation" != copy-in-other-only ]]; then
-            printf '%s\n' '    signature = Concat("", function_params[UnwrapOption(target)]);'
-        fi
-        if [[ "$fixture_function" == "$selected" && "$mutation" == raw-added ]]; then
-            printf '%s\n' '    signature = function_params[UnwrapOption(target)];'
-        fi
-        if [[ "$fixture_function" != "$selected" || "$mutation" != missing-consumer ]]; then
-            printf '%s\n' '    SemanticSignatureRangeFactsFromSource(signature);'
-        fi
-        printf '}\n'
-    done >"$concrete_scalar_fixture"
-}
-check_concrete_scalar_signature_snapshot() {
-    # Rewriting the same path creates a new snapshot, not a cache generation.
-    TEXT_CACHE_REL=""
-    TEXT_CACHE_CONTENT=""
-    FUNCTION_BODY_CACHE_REL=""
-    FUNCTION_BODY_CACHE_SIGNATURE=""
-    FUNCTION_BODY_CACHE_CONTENT=""
-    check_concrete_scalar_signature_materialization
-}
-write_concrete_scalar_signature_fixture
-check_concrete_scalar_signature_snapshot
-while IFS='|' read -r fixture_function fixture_label; do
-    for mutation in raw-instead raw-added copy-in-other-only missing-length \
-            missing-target missing-consumer wrong-row; do
-        write_concrete_scalar_signature_fixture "$mutation" "$fixture_function"
-        case "$mutation" in
-            raw-instead|copy-in-other-only|wrong-row)
-                diagnostic='missing term: signature = Concat("", function_params[UnwrapOption(target)]);' ;;
-            raw-added)
-                diagnostic='must not contain retired term: signature = function_params[UnwrapOption(target)];' ;;
-            missing-length)
-                diagnostic='missing term: ArrayLength(function_names) != ArrayLength(function_params)' ;;
-            missing-target)
-                diagnostic='missing term: if !IsSome(target)' ;;
-            missing-consumer)
-                diagnostic='missing term: SemanticSignatureRangeFactsFromSource(signature);' ;;
-        esac
-        diagnostic="function func $fixture_function( $diagnostic"
-        expect_rejection "scalar-signature-$fixture_label-$mutation" "$diagnostic" \
-            check_concrete_scalar_signature_snapshot
-    done
-done <<'EOF'
-SemanticExpressionGraphConcreteScalarValueOwned|owned
-SemanticExpressionGraphContextualCallArgumentsOwned|contextual
-SemanticExpressionGraphResolvedCallArgumentFactsFromGraph|resolved
-EOF
-
-SELF_HOST_DIR="$ROOT_DIR/placement"
-mkdir -p "$SELF_HOST_DIR/hir" "$SELF_HOST_DIR/semantic" "$SELF_HOST_DIR/other/hir"
-printf '%s\n' 'AstMatchCasePatternFactFromText(' 'AstMatchCasePatternFactFromReadyArtifact(' \
-    >"$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy"
-printf '%s\n' 'AstMatchCasePatternFactFromReadyArtifact(' \
-    >"$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy"
-check_match_pattern_consumer_placement
-printf '%s\n' 'AstMatchCasePatternFactFromText(' \
-    >"$SELF_HOST_DIR/other/hir/ast_match_pattern_fact_owner.pgy"
-expect_rejection same-basename-owner 'text parse escaped its HIR owner' \
-    check_match_pattern_consumer_placement
-printf '%s\n' 'AstMatchCasePatternFactFromReadyArtifact(' \
-    >"$SELF_HOST_DIR/other/hir/ast_match_pattern_fact_owner.pgy"
-expect_rejection foreign-artifact-consumer 'artifact read escaped statement admission' \
-    check_match_pattern_consumer_placement
-printf '%s\n' '// no match-pattern read' \
-    >"$SELF_HOST_DIR/other/hir/ast_match_pattern_fact_owner.pgy"
-printf '%s\n' 'AstMatchCasePatternFactFromText(' \
-    >"$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy"
-expect_rejection statement-text-parse 'text parse escaped its HIR owner' \
-    check_match_pattern_consumer_placement
-SELF_HOST_DIR="$ROOT_DIR/absent-placement"
-expect_rejection missing-placement-root 'placement scan failed' check_match_pattern_consumer_placement
-
-# A filtered recursive scan may report no matches before opening a missing
-# operand. Root validity belongs to the checker, not to grep's filter order.
-check_placement_with_scan_status() (
-    local placement_scan_status="$1"
-    grep() { return "$placement_scan_status"; }
-    check_match_pattern_consumer_placement
-)
-expect_rejection filtered-missing-placement-root 'placement scan failed' \
-    check_placement_with_scan_status 1
-SELF_HOST_DIR="$ROOT_DIR/empty.txt"
-expect_rejection nondirectory-placement-root 'placement scan failed' \
-    check_match_pattern_consumer_placement
-SELF_HOST_DIR="$ROOT_DIR/empty-placement"
-mkdir -p "$SELF_HOST_DIR"
-check_match_pattern_consumer_placement
-expect_rejection placement-scan-error 'placement scan failed' \
-    check_placement_with_scan_status 2
-
-mkdir -p "$ROOT_DIR/regex-a" "$ROOT_DIR/regex-b" "$ROOT_DIR/regex with spaces"
-printf '%s\n' 'allowed call' >"$ROOT_DIR/regex-a/main.pgy"
-printf '%s\n' 'retired_token' >"$ROOT_DIR/regex-a/ignored.txt"
-printf '%s\n' 'allowed call' >"$ROOT_DIR/regex-b/main.pgy"
-printf '%s\n' 'allowed call' >"$ROOT_DIR/regex with spaces/main.pgy"
-REGEX_SCOPE_DIRS=()
-REGEX_SCOPE_PATTERNS=()
-reject_regex_under regex-a 'retired_token|retired_other'
-reject_regex_under regex-a '(open|close)\('
-reject_regex_under regex-b 'different_forbidden'
-reject_regex_under 'regex with spaces' 'different_forbidden'
-run_regex_scope_checks
-printf '%s\n' 'close(' >"$ROOT_DIR/regex-a/main.pgy"
-expect_rejection second-regex-retained 'must not match retired regex requests' run_regex_scope_checks
-printf '%s\n' 'allowed call' >"$ROOT_DIR/regex-a/main.pgy"
-printf '%s\n' 'different_forbidden' >"$ROOT_DIR/regex-b/main.pgy"
-expect_rejection second-root-retained 'regex-b must not match' run_regex_scope_checks
-REGEX_SCOPE_DIRS=()
-REGEX_SCOPE_PATTERNS=()
-reject_regex_under regex-a '['
-expect_rejection invalid-regex 'directory regex scan failed' run_regex_scope_checks
-expect_rejection missing-regex-root 'missing regex input directory' reject_regex_under absent-dir token
-REGEX_SCOPE_DIRS=()
-REGEX_SCOPE_PATTERNS=()
-expect_rejection missing-regex-requests 'missing or inconsistent directory regex requests' run_regex_scope_checks
-REGEX_SCOPE_DIRS=(regex-a)
-expect_rejection missing-regex-patterns 'missing or inconsistent directory regex requests' run_regex_scope_checks
-REGEX_SCOPE_DIRS=()
-REGEX_SCOPE_PATTERNS=(token)
-expect_rejection missing-regex-directories 'missing or inconsistent directory regex requests' run_regex_scope_checks
-REGEX_SCOPE_DIRS=(regex-a regex-b)
-REGEX_SCOPE_PATTERNS=(token)
-expect_rejection inconsistent-regex-requests 'missing or inconsistent directory regex requests' run_regex_scope_checks
-
-# A scoped byte precheck must not legalize other shell parity decisions.
-transport_rel=tests/self_hosted/parity/llvm_leg_helpers.sh
-transport_file="$ROOT_DIR/$transport_rel"
-transport_baseline="$ROOT_DIR/transport-baseline.txt"
-printf '%s\n' \
-    'pgy_selfhost_compare_expected_text_artifact_file_with_owner() {' \
-    '    cmp -s -- "$expected_file" "$actual_file" || byte_compare_status=$?' \
-    '    "$comparator_bin" "$expected_rel" "$actual_rel" 0 2 "$artifact_kind"' \
-    '}' >"$transport_baseline"
-check_transport_snapshot() {
-    # Each mutation is a new snapshot, not an immutable cached source tree.
-    TEXT_CACHE_REL=""
-    TEXT_CACHE_CONTENT=""
-    FUNCTION_BODY_CACHE_REL=""
-    FUNCTION_BODY_CACHE_SIGNATURE=""
-    FUNCTION_BODY_CACHE_CONTENT=""
-    check_artifact_comparison_transport_placement
-}
-cp "$transport_baseline" "$transport_file"
-check_transport_snapshot
-printf '%s\n' 'foreign_comparison() {' '    cmp -s left right' '}' >>"$transport_file"
-expect_rejection foreign-artifact-comparison 'escaped its file-transport owner' check_transport_snapshot
-cat "$transport_baseline" "$transport_baseline" >"$transport_file"
-expect_rejection duplicate-artifact-transport 'escaped its file-transport owner' check_transport_snapshot
-sed 's/0 2/0 1/' "$transport_baseline" >"$transport_file"
-expect_rejection missing-artifact-owner-call 'missing term:' check_transport_snapshot
-sed '/    cmp -s/d' "$transport_baseline" >"$transport_file"
-expect_rejection missing-artifact-byte-precheck 'missing term:' check_transport_snapshot
-# Keep the same early-success mutant without GNU sed's one-line i extension.
-awk 'NR == 2 { print "    return 0" } { print }' "$transport_baseline" >"$transport_file"
-expect_rejection artifact-shell-early-success 'retired term: return 0' check_transport_snapshot
-sed 's/^pgy_selfhost_compare_expected_text_artifact_file_with_owner/Other/' \
-    "$transport_baseline" >"$transport_file"
-expect_rejection missing-artifact-transport 'missing function:' check_transport_snapshot
-(
-    ROOT_DIR="$REPO_DIR"
-    check_concrete_scalar_signature_snapshot
-    check_transport_snapshot
-)
-
 python3 "$REPO_DIR/tests/source_size_count_test.py" LexicalMetricTests
-echo '[component-checker] line caps, lexical source sizes, missing inputs, selected function identity, concrete scalar signature placement, isolated frontier graph and negative predicates: PASS'
+echo '[component-checker] line caps, lexical source sizes, missing inputs, shared identity caps, isolated frontier graph and negative predicates: PASS'

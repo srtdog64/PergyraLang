@@ -12,9 +12,6 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 WORK_REL=".tmp/self_hosted/direct_mir_owned_sequence_named_value_boundary"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy"
-SHAPE="$ROOT_DIR/src/self_hosted/semantic/array_type_shape_owner.pgy"
-BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 
 NEGATIVE_CASES=(
     "list:tests/self_hosted/fixtures/direct_mir_owned_list_int_unnamed_boundary_negative.pgy"
@@ -32,25 +29,6 @@ NATIVE_FRESH_CASES=(
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
-[[ -f "$OWNER" && -f "$SHAPE" && -f "$BUNDLE" ]] ||
-    fail "semantic owner set is incomplete"
-
-grep -Fq 'SemanticOwnedSequenceElementType(type_name)' "$OWNER" ||
-    fail "named boundary bypasses the canonical owned-sequence shape owner"
-grep -Fq 'SemanticAstNamedValueBoundaryFreshOwnedSequenceConstructor(' "$OWNER" ||
-    fail "fresh owned-sequence constructor policy is missing"
-grep -Fq 'SemanticContextualBuiltinReturnTypeOpt(' "$OWNER" ||
-    fail "fresh constructor policy bypasses the canonical builtin signature owner"
-! grep -Eq 'type_name[[:space:]]*==[[:space:]]*"(List|Queue)<' "$OWNER" ||
-    fail "named boundary contains a List/Queue type-name allowlist"
-grep -Fq 'let prefixes: Array<String> = ["List<", "Queue<"]' "$SHAPE" ||
-    fail "owned-sequence shape does not own List and Queue together"
-grep -Fq '!IsSome(SemanticOwnedSequenceElementType("Slice<Int>"))' "$SHAPE" ||
-    fail "owned-sequence contract does not exclude Slice"
-grep -Fq 'SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(' "$BUNDLE" ||
-    fail "body semantic admission does not consume the verdict"
-! grep -Fq 'direct MIR' "$OWNER" ||
-    fail "semantic owner depends on a backend rejection"
 
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"

@@ -16,17 +16,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_logical_record_array_record_input.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_logical_record_array_record_input_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'let distinct_record_input: Bool = signature.param_count == 4' "$POLICY" ||
-    fail "policy omitted the bounded record-input signature"
-grep -Fq 'record_array_element_type != record_value_type' "$POLICY" ||
-    fail "policy did not keep the two declaration identities distinct"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

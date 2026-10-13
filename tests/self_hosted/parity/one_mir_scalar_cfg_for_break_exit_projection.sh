@@ -18,26 +18,12 @@ MIR_REL="$WORK_REL/program.json"
 MIR="$ROOT_DIR/$MIR_REL"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-
-FOR_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_for_owner.pgy"
-RANGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
-INPUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
-require_text "$FOR_OWNER" 'SelfMirLoopPrepareHeaderLocalVersions('
-require_text "$FOR_OWNER" 'SelfMirLoopExitMergeLocalVersions('
-require_text "$RANGE_OWNER" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
-require_text "$INPUT_OWNER" 'DirectMirScalarCfgRangeIterationFactsFromOwners('
-reject_text "$ADMISSION" 'for_break_exit.pgy'
-reject_text "$INPUT_OWNER" 'for_break_exit.pgy'
-reject_text "$RANGE_OWNER" 'for_break_exit.pgy'
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

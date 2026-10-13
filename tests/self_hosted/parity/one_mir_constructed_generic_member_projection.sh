@@ -54,12 +54,6 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_llvm_em
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_generic_member_projection_owner.pgy
 EOF
     [[ "$total" -le 2400 ]] || fail "constructed generic member owner family cap exceeded: $total/2400"
-    grep -Fq 'DirectMirThreeRoutineConstructedGenericMember()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" || fail "three-routine classification is not owned"
-    grep -Fq 'CompileAdmittedDirectMirConstructedGenericMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" || fail "constructed member projection is not routed"
-    for emitter in direct_mir_constructed_generic_member_c_emission_owner.pgy direct_mir_constructed_generic_member_llvm_emission_owner.pgy; do
-        ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR"
-        ! grep -Fq 'CompilerSymbolCGenericSpecializationName' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reconstructed specialization symbols"
-    done
 }
 
 project() {

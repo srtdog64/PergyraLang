@@ -12,10 +12,6 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 WORK_REL=".tmp/self_hosted/direct_mir_contextual_collection_constructor_argument"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_contextual_builtin_type_owner.pgy"
-CALL_CHECK="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
-EXPRESSION_VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
-INITIALIZER="$ROOT_DIR/src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
 
 MATCHING_CASES=(
     "list:tests/self_hosted/fixtures/direct_mir_owned_list_int_fresh_constructor.pgy"
@@ -28,32 +24,6 @@ BAD_ARITY="tests/self_hosted/fixtures/direct_mir_list_int_fresh_constructor_arit
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
-[[ -f "$OWNER" && -f "$CALL_CHECK" && -f "$EXPRESSION_VERDICT" &&
-    -f "$INITIALIZER" ]] ||
-    fail "contextual owner set is incomplete"
-
-grep -Fq 'func SemanticContextualBuiltinExpectedTypeFromGraph(' "$OWNER" ||
-    fail "contextual expected-type owner is missing"
-grep -Fq 'SemanticContextualBuiltinReturnTypeOpt(' "$OWNER" ||
-    fail "contextual type bypasses the canonical builtin signature owner"
-grep -Fq 'SemanticContextualBuiltinExpectedTypeFromGraph(' "$CALL_CHECK" ||
-    fail "call-argument checker does not consume contextual type facts"
-grep -Fq 'let expected_type: Option<String> = Some(expected);' "$CALL_CHECK" ||
-    fail "call-argument checker does not carry its expected type explicitly"
-grep -Fq 'SemanticContextualBuiltinExpectedTypeFromGraph(' \
-    "$EXPRESSION_VERDICT" ||
-    fail "expression verdict does not consume contextual argument facts"
-grep -Fq 'SemanticAstExpressionCallErrorFromGraph(' "$EXPRESSION_VERDICT" ||
-    fail "contextual call arguments bypass the graph call owner"
-! grep -Fq 'SemanticExpressionGraphContextualCallArgumentsOwned(' \
-    "$EXPRESSION_VERDICT" ||
-    fail "expression verdict revived the superseded contextual call branch"
-grep -Fq 'SemanticContextualBuiltinExpectedTypeFromGraph(' "$INITIALIZER" ||
-    fail "initializer consumer drifted from the shared contextual owner"
-! grep -Eq 'actual[[:space:]]*=[[:space:]]*expected' "$CALL_CHECK" ||
-    fail "call-argument checker contains a generic expected-type coercion"
-! grep -Eq '(List|Queue|Set)<Unknown>' "$CALL_CHECK" ||
-    fail "call-argument checker owns a collection-name allowlist"
 
 [[ "$WORK_DIR" == "$ROOT_DIR/.tmp/self_hosted/direct_mir_contextual_collection_constructor_argument" ]] ||
     fail "refusing to clean an unexpected work directory"

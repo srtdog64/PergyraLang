@@ -12,26 +12,10 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 WORK_REL=".tmp/self_hosted/llvm_intent_value_argument_abi"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 FIXTURE="tests/self_hosted/fixtures/llvm_intent_value_argument_abi.pgy"
-CALL_OWNER="$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 [[ -f "$ROOT_DIR/$FIXTURE" ]] || fail "fixture is missing"
-
-grep -Fq 'bool participant_binding = false;' "$CALL_OWNER" ||
-    fail "intent call loop does not own binding kind locally"
-[[ "$(grep -Fc 'participant_binding = true;' "$CALL_OWNER")" -eq 2 ]] ||
-    fail "MIR and non-MIR participant rows are not the only pointer candidates"
-participant_block="$(awk '
-    /Ordered binding kind owns the call ABI/ { capture = 1 }
-    capture { print }
-    capture && /if \(pointer_self\)/ { exit }
-' "$CALL_OWNER")"
-grep -Fq 'if (participant_binding) {' <<<"$participant_block" ||
-    fail "nominal pointer-self policy is not participant-gated"
-grep -Fq 'llvm_type_name_uses_pointer_self(ctx, type_name);' \
-    <<<"$participant_block" ||
-    fail "participant pointer policy disappeared from its binding-kind guard"
 
 [[ "$WORK_DIR" == "$ROOT_DIR/.tmp/self_hosted/llvm_intent_value_argument_abi" ]] ||
     fail "refusing to clean an unexpected work directory"

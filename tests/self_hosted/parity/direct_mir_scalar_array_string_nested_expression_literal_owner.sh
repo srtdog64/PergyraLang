@@ -12,7 +12,7 @@ WORK_REL=".tmp/self_hosted/direct_mir_array_string_nested_expression_literal"; W
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_array_string_nested_expression_literal.pgy"; MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_string_nested_expression_literal_mutations.py"
 SEED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy"; NESTED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"; READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
+READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
 PARAMETER_CARRIAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy"; C_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy"; LLVM_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
@@ -26,26 +26,6 @@ for pair in "$SEED:35" "$NESTED:70" \
     source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
     [[ "$source_size_lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'func DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(' "$SEED" || fail "common nested array seed owner is missing"
-grep -Fq 'normalized_types[operand] != CompilerAbiLayoutStringTypeName()' "$NESTED" || fail "nested String literal omits normalized operand type identity"
-! grep -Fq 'expected_type' "$NESTED" || fail "nested String literal reused outer type"
-grep -Fq 'while sequence.arena.topology.node_kinds[cursor] ==' "$NESTED" || fail "nested String literal omits the ordered source spine"
-grep -Fq 'node != sequence.roots[0] ||' "$NESTED" || fail "nested String literal bypasses the single-leaf owner"
-grep -Fq 'DirectMirScalarProgramNestedArrayStringLiteralOperandRows(' "$ADMISSION" || fail "general expression admission omits nested String literal carriage"
-grep -Fq 'nary_operands, ArrayLength(kinds),' "$ADMISSION" || fail "mixed String literal omits ordered n-ary carriage"
-! rg -F 'DirectMirScalarProgramNestedSingleArrayStringLiteralOperandRow(' "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
-    fail "retired single-element nested String owner returned"
-grep -Fq 'facts.node_types[operand] ==' "$READINESS" || fail "literal readiness omits normalized String expression operands"
-grep -Fq 'routines.parameter_carriages[parameter]' "$PARAMETER_CARRIAGE" ||
-    fail "mixed String literal omits routine-owned parameter carriage"
-grep -Fq '(owned == 1 && ArrayLength(operands) == 1)' "$PARAMETER_CARRIAGE" ||
-    fail "mixed String literal weakened the owner-handle singleton boundary"
-! rg -F 'DirectMirScalarProgramNestedArrayIntLiteralSeedMarkerReady' "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
-    fail "retired type-specific array seed owner returned"
-grep -Fq 'DirectMirScalarProgramCStringArrayValuesFn()' "$C_LITERAL" ||
-    fail "C populated literal omits growable backing materialization"
-! grep -Fq '.storage = alloca [' "$LLVM_LITERAL" ||
-    fail "LLVM populated literal retained stack-backed array storage"
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \

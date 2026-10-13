@@ -12,19 +12,6 @@ LABEL="self-host-collection-ownership"
 FOCUS="${PGY_COLLECTION_OWNERSHIP_FOCUS:-all}"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy"
-SCAN_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy"
-STATEMENT_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy"
-IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy"
-STATE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy"
-MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy"
-MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy"
-MEMBER_RESULT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy"
-MEMBER_RESTORATION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy"
-MEMBER_CAPTURE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy"
-MEMBER_CAPTURE_SOURCE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_member_capture_source_owner.pgy"
-MEMBER_CAPTURE_SITE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_member_capture_site_owner.pgy"
-BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy"
 DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
 FIELD_FIXTURE_DIR="tests/self_hosted/parity/fixture/collection_field_lifetime"
 CC="${PGY_SELFHOST_CC:-gcc}"
@@ -81,44 +68,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 # The public launcher must consume the same selected driver, not a sibling
 # installed binary when a private acceptance pair is supplied.
 export PGY_SELF_DRIVER_BIN="$(pgy_path_for_compiler "$PGY" "$DRIVER")"
-
-grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$OWNER" ||
-    fail "semantic collection ownership owner is missing"
-grep -Fq 'SemanticExpressionGraphCallTargetSyntaxId(' "$IDENTITY_OWNER" ||
-    fail "owner does not distinguish builtins from same-name declarations"
-grep -Fq 'SemanticExpressionGraphRuntimeCallAbiId(' "$IDENTITY_OWNER" ||
-    fail "owner does not consume carried runtime call identity"
-grep -Fq 'SemanticAstScopedLocalBindingIdentityForGraphLeaf(' "$IDENTITY_OWNER" ||
-    fail "owner joins collection state by spelling instead of binding identity"
-grep -Fq 'import "ast_collection_ownership_statement_transition_owner.pgy";' \
-    "$OWNER" ||
-    fail "verdict owner does not import the collection statement transition owner"
-grep -Fq 'SemanticAstCollectionStatementTransitionForSyntax(' "$SCAN_OWNER" ||
-    fail "ownership scan does not consume syntax-ordered collection transitions"
-! grep -Fq 'SemanticAstCollectionStatementTransitions(' "$OWNER" "$SCAN_OWNER" "$STATEMENT_TRANSITION_OWNER" ||
-    fail "unordered collection statement transition path returned"
-for statement_tag in TypedAstKindArrayPushStmtTag \
-        TypedAstKindArraySetStmtTag TypedAstKindArrayPopStmtTag TypedAstKindAssignStmtTag; do
-    grep -Fq "$statement_tag()" "$STATEMENT_TRANSITION_OWNER" ||
-        fail "statement transition owner ignores $statement_tag"
-done
-grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(' "$BUNDLE" ||
-    fail "body admission does not consume collection ownership verdict"
-! grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$BUNDLE" ||
-    fail "body admission reconstructs its already-issued formal effects"
-grep -Fq 'SemanticAstCollectionMemberMoveIdentityForNode(' "$MEMBER_MOVE_OWNER" ||
-    fail "aggregate member move lacks one stable identity owner"
-grep -Fq 'SemanticAstCollectionFirstInvalidMemberMoveUse(' \
-    "$MEMBER_TRANSITION_OWNER" ||
-    fail "aggregate member move lacks ordered transition validation"
-grep -Fq 'SemanticAstCollectionOriginClone()' "$STATE_OWNER" ||
-    fail "explicit Clone origin is missing from the collection state owner"
-grep -Fq 'SemanticAstCollectionOriginCallResult()' "$STATE_OWNER" ||
-    fail "unknown call-result origin is missing from the collection state owner"
-! grep -Fq 'Slot<' "$OWNER" "$IDENTITY_OWNER" "$STATE_OWNER" \
-        "$MEMBER_MOVE_OWNER" "$MEMBER_TRANSITION_OWNER" "$MEMBER_RESULT_OWNER" \
-        "$MEMBER_RESTORATION_OWNER" "$MEMBER_CAPTURE_OWNER" "$MEMBER_CAPTURE_SOURCE_OWNER" "$MEMBER_CAPTURE_SITE_OWNER" ||
-    fail "ordinary collection ownership imported Slot semantics"
 
 mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/collection_ownership_semantic_owner.XXXXXX")"

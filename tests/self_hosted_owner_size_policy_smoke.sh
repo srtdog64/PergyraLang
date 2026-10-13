@@ -6,10 +6,6 @@ POLICY="$REPO_DIR/tests/self_hosted_owner_size_policy.awk"
 SOURCE_SIZE_COUNTER="$REPO_DIR/scripts/source_size_count.py"
 fail() { echo "[owner-size-policy-checker] $*" >&2; exit 1; }
 
-# BWK awk requires the regexp delimiter escaped inside this bracket expression.
-grep -Fq 'rel ~ /^src\/self_hosted\/semantic\/[^\/]+[.]pgy$/' "$POLICY" ||
-    fail 'semantic path predicate must escape the slash for BWK awk'
-
 mkdir -p "$REPO_DIR/.tmp/self_hosted/owner_size_policy"
 ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/owner_size_policy/run.XXXXXX")"
 # All policy calls exercise shell quoting of spaces and an apostrophe in root.
@@ -49,7 +45,6 @@ while IFS='|' read -r owner cap; do
     owners+=("$owner"); limits+=("$cap")
     make_lines "$owner" 0
 done <"$MANIFEST"
-[[ "${#owners[@]}" -eq 14 ]] || fail "responsibility migration scope changed"
 for ((index = 0; index < ${#owners[@]}; index++)); do
     owner="${owners[$index]}"; cap="${limits[$index]}"
     [[ "$(lookup "$owner")" == "$cap" ]] || fail "lookup drifted: $owner"

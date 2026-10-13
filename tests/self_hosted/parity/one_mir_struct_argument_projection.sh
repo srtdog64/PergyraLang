@@ -41,15 +41,6 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy|35
 EOF
     [[ "$total" -le 1420 ]] || fail "struct owner family cap exceeded: $total/1420"
-    grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" ||
-        fail "terminal multi-routine owner does not route one three-routine decision"
-    grep -Fq 'classification.kind == DirectMirThreeRoutineStructArgument()' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" ||
-        fail "three-routine owner does not classify struct argument MIR"
-    grep -Fq 'routine_block_counts[row] != 1' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_argument_legacy_route_owner.pgy" ||
-        fail "Array and struct candidates are not disjoint"
 }
 project() {
     local input="$1" target="$2" output="$3" stdout="$3.stdout" stderr="$3.stderr"

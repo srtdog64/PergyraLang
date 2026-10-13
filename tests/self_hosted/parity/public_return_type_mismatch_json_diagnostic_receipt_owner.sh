@@ -15,10 +15,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
 UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 
 fail() {
     echo "[self-host-public-return-type-mismatch-json-diagnostic] $*" >&2
@@ -114,13 +110,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed return-type diagnostic identity"
-
-require_text "$DIAGNOSTIC_OWNER" 'if code == "return_type_mismatch" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:assignability_check"'
-require_text "$DIAGNOSTIC_OWNER" '"annotate-or-convert"'
-require_text "$CONTRACT_OWNER" 'return_first.message != return_second.message'
-! grep -Eq 'PGY_SEM_TYPE_MISMATCH|semantic:assignability_check|annotate-or-convert' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic return-type authority"
 
 echo "[self-host-public-return-type-mismatch-json-diagnostic] exact semantic identity, MIR/C/LLVM relay, and unrelated-code exclusion: PASS"

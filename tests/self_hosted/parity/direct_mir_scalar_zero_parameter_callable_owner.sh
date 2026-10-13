@@ -17,36 +17,10 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_zero_parameter_callable.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 
-SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-ENVELOPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy"
-INVENTORY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy"
-C_SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy"
-DIRECT_CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$SIGNATURE_OWNER" "$ENVELOPE_OWNER" "$INVENTORY_OWNER" \
-        "$C_SIGNATURE_OWNER" "$DIRECT_CALL_OWNER"; do
-    [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
-done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'signature.param_count == 0' "$SIGNATURE_OWNER" ||
-    fail "signature owner does not admit the exact zero-parameter case"
-grep -Fq 'DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(' \
-    "$SIGNATURE_OWNER" ||
-    fail "zero-parameter return does not consume the bounded return-type owner"
-grep -Fq 'signature.param_count == 0' "$ENVELOPE_OWNER" ||
-    fail "route envelope does not preserve zero-parameter signatures"
-grep -Fq 'inventory.parameter_counts[row] < 0' "$INVENTORY_OWNER" ||
-    fail "callable inventory still rejects zero-parameter rows"
-! grep -Fq 'inventory.parameter_counts[row] <= 0' "$INVENTORY_OWNER" ||
-    fail "callable inventory restored the positive-count assumption"
-grep -Fq 'output = Concat(output, "void")' "$C_SIGNATURE_OWNER" ||
-    fail "C zero-parameter signature is not an exact void prototype"
-! grep -Fq 'ArrayLength(arguments) < 1' "$DIRECT_CALL_OWNER" ||
-    fail "direct-call readiness restored the positive-argument assumption"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

@@ -1,34 +1,6 @@
 #!/usr/bin/env bash
 # Complete ArrayString layout consumers share one admitted owner in C/LLVM.
 # Every semantic base is issued once per run; adjacent inventory reuses it.
-# Forbidden old-read inventory, enforced here and by the retained move/flow gates:
-# backend_local_array_layout, layout_id_without_row_admission,
-# array_runtime_symbol_guess, backend_string_element_reconstruction,
-# capacity_as_length, post_issue_layout_mutation,
-# scalar_program_preamble_layout_literal, complete_cross_family_row_acceptance,
-# c_dir_walk_positional_array_string_layout,
-# duplicate_scalar_program_array_string_projection_readiness,
-# process_args_array_string_storage_alignment_literal,
-# process_args_without_target_projection,
-# llvm_readonly_ref_array_string_storage_alignment_literal,
-# readonly_ref_array_string_without_target_projection,
-# owner_handle_array_string_without_caller_move_fact,
-# caller_cleanup_after_owner_handle_array_string_move,
-# owner_handle_array_string_use_after_move,
-# multiple_owner_moves_rejected_as_scalar_fact,
-# orphan_or_repeated_consuming_expression, stale_owned_move_flow_receipt,
-# duplicate_final_owned_move_cfg_proof,
-# c_array_descriptor_field_order_literal, c_array_string_positional_initializer,
-# legacy_array_string_storage_alignment_literal,
-# legacy_array_string_element_alignment_literal,
-# llvm_owned_array_string_copyin_alignment_literal,
-# llvm_dir_walk_array_string_storage_alignment_literal,
-# llvm_local_array_string_storage_alignment_literal,
-# llvm_operation_array_string_storage_alignment_literal,
-# llvm_expression_array_string_storage_alignment_literal,
-# llvm_string_join_element_alignment_literal,
-# llvm_string_slice_copy_element_size_literal,
-# llvm_string_slice_copy_descriptor_reconstruction.
 # The original owner-handle/terminal/sealed-flow gates remain independent
 # enforcement obligations; this layout gate does not expand lifetime support.
 set -euo pipefail
@@ -44,7 +16,6 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 [[ "$STAGE" == all || "$STAGE" == static || "$STAGE" == general ]] || fail "unknown stage $STAGE"
-"$PYTHON" "$ROOT_DIR/tests/self_hosted/parity/array_string_layout_consumer_ratchet.py"
 [[ "$STAGE" != static ]] || exit 0
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER"
 command -v timeout >/dev/null || fail "missing bounded execution tool"

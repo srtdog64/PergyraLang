@@ -109,21 +109,4 @@ require_text "$WORK_DIR/malformed.err" 'self-host JSON diagnostic receipt is mal
 require_text "$WORK_DIR/crosswired.err" 'self-host JSON diagnostic receipt is malformed'
 require_text "$WORK_DIR/missing.err" 'without a JSON diagnostic receipt'
 
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-C_REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_request_owner.pgy"
-MIR_REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy"
-require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
-require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
-require_text "$REQUEST_OWNER" '--emit-c-artifact-json-diagnostic-verified'
-require_text "$REQUEST_OWNER" '--emit-source-llvm-ir-json-diagnostic-verified'
-require_text "$C_REQUEST_OWNER" 'DriverSourceCRequestEmitsJsonDiagnostic('
-require_text "$MIR_REQUEST_OWNER" 'SourceMirJsonDiagnostic'
-! grep -Eq 'driver_diag_code_from_message|driver_route_stage|PGY_SEM_UNDEFINED_SYMBOL|semantic:symbol:undefined|import-or-declare-symbol' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport regained semantic diagnostic authority"
-! grep -Eq 'driver_run_pipeline|system\(' "$PROCESS_OWNER" ||
-    fail "artifact transport regained native or string-shell fallback"
-
 echo "[self-host-public-artifact-json-diagnostic] C/LLVM success, exact Pergyra failure identity, and fail-closed wire: PASS"

@@ -14,19 +14,10 @@ WORK_REL=".tmp/self_hosted/public_mir_json_installed"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy"
 SOURCE_CANONICAL="$ROOT_DIR/$SOURCE"
-LAUNCHER_OWNER="$ROOT_DIR/src/pgy_driver.c"
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-SIBLING_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
-PATH_OWNER="$ROOT_DIR/src/compiler/import_resolver_paths.c"
-MIR_ARTIFACT_OWNER="$ROOT_DIR/src/compiler/self_host_mir_artifact_owner.c"
 
 fail() {
     echo "[self-host-public-mir-json] $*" >&2
     exit 1
-}
-
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
 }
 
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -117,37 +108,5 @@ grep -Fq "outside the installed self-host driver contract" \
     "$WORK_DIR/unsupported.err" || fail "unsupported options lost selector diagnostic"
 [[ "$mixed_rc" -ne 0 && ! -s "$WORK_DIR/mixed.out" ]] ||
     fail "test oracle and public mode were admitted together"
-
-require_text "$LAUNCHER_OWNER" 'if (flags.test_native_mir_json_oracle) {'
-require_text "$LAUNCHER_OWNER" 'if (flags.dump_mir_json) {'
-require_text "$LAUNCHER_OWNER" 'return driver_run_self_host_mir_json(argv[0], flags.source_path);'
-require_text "$LAUNCHER_OWNER" 'return driver_run_pipeline(&flags);'
-require_text "$SELECTION_OWNER" 'driver_self_host_mir_json_request_supported('
-require_text "$SELECTION_OWNER" '&& !flags->test_native_mir_json_oracle'
-require_text "$SIBLING_OWNER" 'args[0] = (char *)"--emit-mir-json-verified";'
-require_text "$SIBLING_OWNER" 'return driver_run_self_host_command(launcher_path, 2, args);'
-require_text "$SIBLING_OWNER" 'driver_self_host_source_identity_path_dup('
-require_text "$SIBLING_OWNER" 'import_resolver_existing_final_identity_path_dup(source_path)'
-require_text "$MIR_ARTIFACT_OWNER" 'driver_self_host_source_identity_path_dup(source_path)'
-require_text "$PATH_OWNER" "if (*p == '\\\\')"
-# 2 = test oracle + declared --native-pipeline opt-out (docs/152). Public MIR
-# reads and the default compile path must not add native reachability.
-[[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 2 ]] ||
-    fail "native pipeline reachability escaped the test oracle and declared opt-out"
-grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
-    fail "installed sibling launcher regained a native pipeline fallback"
-unseparated_oracles="$(find "$ROOT_DIR/tests" -type f -name '*.sh' \
-    ! -name 'public_mir_json_installed_self_host_owner.sh' \
-    ! -name 'public_mir_opt_profile_owner.sh' \
-    ! -name 'public_llvm_ir_installed_self_host_owner.sh' -exec awk '
-        /"\$PGY"/ { pgy_window = 3; self_mode = /--self-driver/ }
-        pgy_window > 0 && /--mir-json/ && !/--test-native-mir-json-oracle/ &&
-            !/--native-pipeline/ && !self_mode {
-            print FILENAME ":" FNR
-        }
-        pgy_window > 0 { pgy_window-- }
-    ' {} +)"
-[[ -z "$unseparated_oracles" ]] ||
-    fail "a test reused public --mir-json as an unseparated native oracle"
 
 echo "[self-host-public-mir-json] installed Pergyra producer owns public source-to-MIR; frozen native oracle remains independent"

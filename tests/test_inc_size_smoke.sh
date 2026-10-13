@@ -12,13 +12,9 @@ SEMANTIC_DIAGNOSTIC_OWNER_CAP="$(awk -v root="$ROOT_DIR" -v mode=lookup \
     -v owner=src/self_hosted/semantic/diagnostic_owner.pgy \
     -f "$ROOT_DIR/tests/self_hosted_owner_size_policy.awk")"
 SEMANTIC_DIAGNOSTIC_OWNER_LIMIT="${SEMANTIC_DIAGNOSTIC_OWNER_MAX_LINES:-$SEMANTIC_DIAGNOSTIC_OWNER_CAP}"
-LEGACY_HELPER_PATHS="$ROOT_DIR/tests/fixtures/legacy_production_helper_paths.txt"
 HELPER_LIMIT="${HELPER_OWNER_MAX_LINES:-500}"
 
 bash "$ROOT_DIR/tests/self_hosted_owner_size_policy_smoke.sh"
-
-grep -Fq "Helper-layer escalation rule" "$ROOT_DIR/TODO.md"
-grep -Fq "\`_helpers\` is not an ownership model" "$ROOT_DIR/TODO.md"
 
 inc_files="$(
     cd "$ROOT_DIR"
@@ -39,96 +35,6 @@ implementation_headers="$(
 if [[ -n "$implementation_headers" ]]; then
     echo "header-only _IMPLEMENTATION blocks are not allowed in production headers:" >&2
     echo "$implementation_headers" >&2
-    exit 1
-fi
-
-removed_implementation_headers=(
-    "src/codegen/transpiler_lambda_emit.h"
-    "src/runtime/world_roster_plan_stats.h"
-)
-
-removed_header_violations="$(
-    cd "$ROOT_DIR"
-    for header in "${removed_implementation_headers[@]}"; do
-        if [[ -e "$header" ]]; then
-            echo "$header"
-        fi
-    done
-)"
-
-if [[ -n "$removed_header_violations" ]]; then
-    echo "removed implementation headers must not reappear:" >&2
-    echo "$removed_header_violations" >&2
-    exit 1
-fi
-
-declaration_only_headers=(
-    "src/codegen/transpiler_block_intent_helpers.h"
-    "src/codegen/transpiler_block_intent_rebind_helpers.h"
-    "src/codegen/transpiler_control_flow_emit.h"
-    "src/codegen/transpiler_context.h"
-    "src/codegen/transpiler_event_builtin_emit.h"
-    "src/codegen/transpiler_event_emit.h"
-    "src/codegen/transpiler_call_result_option_builtin_emit.h"
-    "src/codegen/transpiler_domain_constructor_emit.h"
-    "src/codegen/transpiler_expr_builtin_dispatch.h"
-    "src/codegen/transpiler_expr_array_access_emit.h"
-    "src/codegen/transpiler_expr_composite_literal_emit.h"
-    "src/codegen/transpiler_expr_core_emit.h"
-    "src/codegen/transpiler_expr_domain_query_builtin.h"
-    "src/codegen/transpiler_expr_io_builtin.h"
-    "src/codegen/transpiler_expr_stdlib_map_builtin.h"
-    "src/codegen/transpiler_expr_stdlib_misc_builtin.h"
-    "src/codegen/transpiler_expr_stdlib_queue_builtin.h"
-    "src/codegen/transpiler_format.h"
-    "src/codegen/transpiler_helpers.h"
-    "src/codegen/transpiler_intent_observability_builtin_emit.h"
-    "src/codegen/transpiler_intent_cleanup_emit.h"
-    "src/codegen/transpiler_intent_emit.h"
-    "src/codegen/transpiler_intent_emit_metadata_helpers.h"
-    "src/codegen/transpiler_intent_failure_emit.h"
-    "src/codegen/transpiler_intent_prologue_emit.h"
-    "src/codegen/transpiler_intent_step_completion_emit.h"
-    "src/codegen/transpiler_intent_zone_binding_emit.h"
-    "src/codegen/transpiler_match_bindings.h"
-    "src/codegen/transpiler_zone_decl_emit.h"
-    "src/codegen/transpiler_zone_frontier_emit.h"
-    "src/codegen/transpiler_future_type_query.h"
-    "src/codegen/transpiler_let_box_emit.h"
-    "src/codegen/transpiler_let_channel_emit.h"
-    "src/codegen/transpiler_let_collection_emit.h"
-    "src/codegen/transpiler_let_slot_emit.h"
-    "src/codegen/transpiler_let_type_register_emit.h"
-    "src/codegen/transpiler_mir_phi_emit.h"
-    "src/codegen/transpiler_mir_inventory_intent.h"
-    "src/codegen/transpiler_mir_cfg_control_emit.h"
-    "src/codegen/transpiler_mir_match_condition_emit.h"
-    "src/codegen/transpiler_mir_emit_state.h"
-    "src/codegen/transpiler_mir_resource_name_helpers.h"
-    "src/codegen/transpiler_role_ability_helpers.h"
-    "src/codegen/transpiler_zone_specialization_emit.h"
-    "src/codegen/transpiler_zone_struct_emit.h"
-    "src/codegen/llvm_decl_authority.h"
-    "src/codegen/llvm_internal_api.h"
-    "src/compiler/mir_cfg_contract_validate_cleanup.h"
-    "src/semantic/type_checker_assignment.h"
-)
-
-declaration_only_body_violations="$(
-    cd "$ROOT_DIR"
-    for header in "${declaration_only_headers[@]}"; do
-        [[ -f "$header" ]] || continue
-        awk '
-            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
-                print FILENAME ":" FNR ":" $0
-            }
-        ' "$header"
-    done
-)"
-
-if [[ -n "$declaration_only_body_violations" ]]; then
-    echo "declaration-only headers must not grow function bodies:" >&2
-    echo "$declaration_only_body_violations" >&2
     exit 1
 fi
 
@@ -298,19 +204,6 @@ type_system_owners=(
     "src/compiler/mir_decl_header_shape_validate.c"
 )
 
-if grep -Fq "struct MIRProgram" "$ROOT_DIR/src/compiler/mir.h"; then
-    echo "MIRProgram aggregate drifted back into the public MIR API owner" >&2
-    exit 1
-fi
-grep -Fq '#include "mir_program.h"' "$ROOT_DIR/src/compiler/mir.h" || {
-    echo "public MIR API no longer exposes the MIRProgram owner" >&2
-    exit 1
-}
-grep -Fq "struct MIRProgram" "$ROOT_DIR/src/compiler/mir_program.h" || {
-    echo "MIRProgram aggregate is missing from its named owner" >&2
-    exit 1
-}
-
 type_system_owner_violations="$(
     cd "$ROOT_DIR"
     python3 "$ROOT_DIR/scripts/source_size_count.py" --rows "${type_system_owners[@]}" \
@@ -320,33 +213,6 @@ type_system_owner_violations="$(
 if [[ -n "$type_system_owner_violations" ]]; then
     echo "type-system owner size violations; limit is 599 LOC:" >&2
     echo "$type_system_owner_violations" >&2
-    exit 1
-fi
-
-if [[ ! -f "$LEGACY_HELPER_PATHS" ]]; then
-    echo "missing shrink-only legacy helper inventory: $LEGACY_HELPER_PATHS" >&2
-    exit 1
-fi
-
-new_helper_paths="$(
-    cd "$ROOT_DIR"
-    while IFS= read -r rel; do
-        if ! grep -Fxq "$rel" "$LEGACY_HELPER_PATHS"; then
-            echo "$rel"
-        fi
-    done < <(
-        find src -type f \
-            \( -name '*helper*.c' -o -name '*helper*.h' -o \
-               -name '*helper*.pgy' \) \
-            ! -path 'src/tests/*' \
-            ! -name 'test_*.c' \
-            -print | sort
-    )
-)"
-
-if [[ -n "$new_helper_paths" ]]; then
-    echo "new generic helper paths are forbidden; name the responsibility owner:" >&2
-    echo "$new_helper_paths" >&2
     exit 1
 fi
 

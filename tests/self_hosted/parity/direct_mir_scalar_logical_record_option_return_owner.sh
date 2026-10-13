@@ -17,26 +17,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_logical_record_option_return.p
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_logical_record_option_return_mutations.py"
-FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_option_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_option_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT_OWNER" "$C_OWNER" "$LLVM_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'OptionPayloadTypeOpt(referenced_type)' "$FACT_OWNER" ||
-    fail "logical-record inventory does not unwrap Option payload identity"
-grep -Fq 'DirectMirScalarProgramLogicalRecordOptionPayloadType(' "$FACT_OWNER" ||
-    fail "logical-record Option identity has no fact owner"
-for owner in "$FACT_OWNER" "$C_OWNER" "$LLVM_OWNER"; do
-    ! grep -Fq 'ProbeFact' "$owner" || fail "owner is fixture-name keyed"
-    ! grep -Fq 'WrapProbe' "$owner" || fail "owner is routine-name keyed"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

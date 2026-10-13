@@ -24,53 +24,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-KIND_ID="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_kind_owner.pgy"
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_readiness_owner.pgy"
-RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy"
-PROJECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_projection_owner.pgy"
-C_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_expression_owner.pgy"
-LLVM_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_expression_owner.pgy"
-C_MATERIAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_int_math_materialization_owner.pgy"
-LLVM_MATERIAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_int_math_materialization_owner.pgy"
-DIVISION_OWNER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/checked_division_runtime_owner.pgy"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-
-grep -Fq 'DirectMirScalarProgramExprModuloLong() -> Int { return 75; }' "$KIND_ID" ||
-    fail "Long remainder expression identity drifted"
-grep -Fq 'kind != DirectMirScalarProgramExprModuloInt()' "$READY" ||
-    fail "Int remainder did not join the checked expression owner"
-grep -Fq 'source_kind == AstExpressionNodeModulo() && longs' "$KIND" ||
-    fail "Long remainder source/type join is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprModuloLong()' "$READY" ||
-    fail "Long remainder readiness is missing"
-for path in "$RUNTIME" "$PROJECTION" "$C_EXPR" "$LLVM_EXPR"; do
-    grep -Fq 'long_modulo' "$path" || fail "$(basename "$path") omitted long_modulo"
-done
-grep -Fq 'DirectMirScalarProgramExprModuloInt()' "$RUNTIME" ||
-    fail "runtime requirement omitted Int remainder"
-grep -Fq 'DirectMirScalarProgramExprModuloInt()' "$C_EXPR" ||
-    fail "C checked remainder omitted Int"
-grep -Fq 'DirectMirScalarProgramExprModuloInt()' "$LLVM_EXPR" ||
-    fail "LLVM checked remainder omitted Int"
-! grep -Fq 'Concat(" % "' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy" ||
-    fail "C reintroduced raw Int remainder"
-! grep -Fq ' = srem i64 ' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" ||
-    fail "LLVM reintroduced raw Int remainder"
-grep -Fq 'pgy_runtime_panic_checked_inline.h' "$C_MATERIAL" ||
-    fail "C omitted the checked arithmetic runtime owner"
-grep -Fq 'declare i64 @' "$LLVM_MATERIAL" ||
-    fail "LLVM omitted the checked arithmetic runtime declaration"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema did not advance with Long remainder"
-modulo_guard="$(sed -n '/func CheckedDivisionRuntimeCModuloGuard()/,/^}/p' "$DIVISION_OWNER")"
-grep -Fq 'return 0;' <<<"$modulo_guard" ||
-    fail "self-host C modulo lost INT64_MIN remainder semantics"
-! grep -Fq 'ARITHMETIC_OVERFLOW' <<<"$modulo_guard" ||
-    fail "self-host C modulo still reports division overflow"
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

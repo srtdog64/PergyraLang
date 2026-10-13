@@ -53,7 +53,7 @@ assert_owner_ratchet() {
     local multi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
     local backend="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
     local abi_fact="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy"
-    local owner cap lines term multi_line first_row_line
+    local owner cap lines
     while IFS='|' read -r owner cap; do
         require_file "$owner"
         lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
@@ -68,40 +68,6 @@ $multi|110
 $backend|330
 $abi_fact|60
 EOF
-    for term in BuildMirDocumentFactIndex CompileMirJsonToCVerified \
-        GenerateCFromVerifiedSemanticArtifact llvm_codegen_ \
-        driver_run_pipeline; do
-        ! grep -Fq -- "$term" "$graph" "$identity" "$plan" "$emission" "$multi" ||
-            fail "Array return owner reopened a forbidden path: $term"
-    done
-    for term in DirectMirArrayReturnProgramIdentityFromAdmitted \
-        MirRoutineFactIndexUniqueResultDefinition \
-        BuildMirRoutineInstructionUseFacts \
-        MirCapturedRequiredAbiLayoutRowAdmission \
-        DirectMirArrayReturnPlanMutationRejected \
-        caller_owned_fixed_array; do
-        grep -Fq -- "$term" "$identity" "$plan" "$emission" ||
-            fail "Array return plan does not consume owner fact: $term"
-    done
-    grep -Fq 'if routine_count > 1 {' "$backend" ||
-        fail "multi-routine classification is not first"
-    multi_line="$(grep -nF 'if routine_count > 1 {' "$backend" | head -1 | cut -d: -f1)"
-    first_row_line="$(grep -nF 'routine_block_counts[0]' "$backend" | head -1 | cut -d: -f1)"
-    [[ -n "$multi_line" && -n "$first_row_line" && "$multi_line" -lt "$first_row_line" ]] ||
-        fail "root reads routine row zero before multi-routine classification"
-    grep -Fq 'CompileAdmittedDirectMirMultiRoutineForTarget' "$backend" ||
-        fail "backend does not delegate the multi-routine plan"
-    for term in DirectMirLiteralLogPlanFromAdmitted \
-        DirectMirScalarBlockProjectionFromAdmitted \
-        DirectMirArrayIntPlanFromAdmitted \
-        DirectMirOptionMatchCfgPlanFromAdmitted DirectMirCfgPlanFromAdmitted; do
-        ! grep -Fq -- "$term" "$multi" ||
-            fail "multi-routine projection can retry single-routine owner: $term"
-    done
-    grep -Fq 'DirectMirArrayIntCapturedAbiReady' "$abi_fact" ||
-        fail "canonical Array<Int> ABI fact owner is missing"
-    ! grep -Fq '@pgy_' "$emission" ||
-        fail "runtime-free Array return emission references Pergyra runtime"
 }
 
 project() {

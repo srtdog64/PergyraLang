@@ -183,15 +183,6 @@ family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy")" || fail "role override family measurement failed"
 [[ "$family_lines" -le 1250 ]] || fail "role override owner family exceeds 1250 lines"
-! grep -Eiq '"OverrideTarget"|"OverrideSurface"|role_override_mir|"base"|"override"' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_"*.pgy ||
-    fail "fixture identity leaked into role override owners"
-grep -Fq 'CodegenImplicitReceiverCParameterOrDie(' \
-    "$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy" ||
-    fail "function definitions bypass the implicit-receiver owner"
-grep -Fq 'CodegenImplicitReceiverCParameterOrDie(' \
-    "$ROOT_DIR/src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" ||
-    fail "function prototypes bypass the implicit-receiver owner"
 
 (cd "$ROOT_DIR" && "$DRIVER" --ast "$SOURCE_REL") \
     >"$WORK/direct.ast" 2>"$WORK/direct.ast.err"

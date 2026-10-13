@@ -15,11 +15,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 INVALID_REL="tests/self_hosted/parity/fixture/array_index_type_bad.pgy"
 MIN_INVALID_REL="tests/self_hosted/parity/fixture/array_index_type_min_bad.pgy"
 VALID_REL="tests/self_hosted/parity/fixture/array_index_type_valid.pgy"
-GRAPH_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy"
-VERDICT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
-RECEIPT_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 
 fail() {
     echo "[self-host-array-index-type] $*" >&2
@@ -164,15 +159,5 @@ valid_output="$("$valid_bin" | tr -d '\r')" ||
     fail "valid public C control did not run"
 [[ "$valid_output" == $'2\n5\n11' ]] ||
     fail "valid public C control changed runtime output"
-
-require_text "$GRAPH_OWNER" 'func SemanticExpressionGraphOperandErrorFromTree('
-require_text "$GRAPH_OWNER" 'kind == AstExpressionNodeIndex()'
-require_text "$GRAPH_OWNER" '"array_index_type_mismatch"'
-require_text "$VERDICT_OWNER" 'SemanticExpressionGraphOperandErrorFromTree('
-require_text "$RECEIPT_OWNER" 'if code == "array_index_type_mismatch" {'
-! grep -Fq 'primes[' "$GRAPH_OWNER" "$VERDICT_OWNER" ||
-    fail "semantic owner gained fixture-specific source spelling"
-! grep -Fq 'array_index_type_mismatch' "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained array-index semantic authority"
 
 echo "[self-host-array-index-type] graph-owned nested index rejection, exact MIR/C/LLVM receipt, native identity, deletion minimum, and valid execution: PASS"

@@ -31,28 +31,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy"
-CONTRACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy"
-C_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
-LLVM_RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
-require_text "$SIGNATURE" 'StringIndexOf'
-require_text "$SIGNATURE" 'CharAtN'
-require_text "$SIGNATURE" 'CharCode'
-require_text "$SIGNATURE" 'SubIndexOfWithLen'
-require_text "$CONTRACT" 'missing_value == -1'
-require_text "$CONTRACT" 'length_headroom == 1'
-require_text "$C_RUNTIME" 'StringRuntimeCStringIndexOfBlock'
-require_text "$LLVM_RUNTIME" 'phi i64 [ %index, %found ], [ -1, %absent ]'
-for owner in "$SIGNATURE" "$CONTRACT" "$C_RUNTIME" "$LLVM_RUNTIME" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_search_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_search_expression_owner.pgy"; do
-    reject_text "$owner" 'str_indexof.pgy'
-    reject_text "$owner" 'hello,world'
-    reject_text "$owner" 'hello'
-done
-
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \

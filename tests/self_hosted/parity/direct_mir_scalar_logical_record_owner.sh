@@ -15,59 +15,13 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_multi_logical_record.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy"
-INDEX_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_index_owner.pgy"
-EXPR_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_owner.pgy"
-BOOL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy"
-ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy"
-PLAN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT_OWNER" "$INDEX_OWNER" "$EXPR_OWNER" "$TARGET_OWNER" "$C_OWNER" \
-    "$LLVM_OWNER" "$BOOL_OWNER" "$ROUTE_OWNER" "$PLAN_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'declarations.field_identities' "$FACT_OWNER" ||
-    fail "logical record does not consume declaration field identity"
-grep -Fq 'declarations.source_module_paths[declaration_row]' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" ||
-    fail "logical record does not cross-seal declaration provenance"
-grep -Fq 'admitted.routines.instruction_abi_type_names' "$FACT_OWNER" ||
-    fail "local-only record discovery does not consume admitted instruction ABI identity"
-grep -Fq 'let instruction_abi_type_names: Array<String>;' "$INDEX_OWNER" ||
-    fail "program routine index omits instruction ABI type identity"
-grep -Fq 'DirectMirInstructionHasNoPhysicalAbi(' "$FACT_OWNER" ||
-    fail "logical record does not cross-seal instruction ABI absence"
-grep -Fq 'DirectMirScalarProgramLogicalRecordFieldOrdinal(' "$EXPR_OWNER" ||
-    fail "member projection does not consume ordered declaration fields"
-constructor_body="$(awk '/^func DirectMirScalarProgramLogicalRecordConstructorFromGraph\(/,/^}/' "$EXPR_OWNER")"
-[[ "$constructor_body" == *'record_row < 0'* ]] ||
-    fail "logical-record constructor does not consume declaration identity"
-[[ "$constructor_body" != *'expected_type'* ]] ||
-    fail "nested constructor is narrowed by the enclosing expected type"
-! grep -Fq 'while field < ArrayLength(record.field_names)' "$EXPR_OWNER" ||
-    fail "member marker reintroduced program-global field spelling lookup"
-grep -Fq 'type_name: String, field_name: String' "$FACT_OWNER" ||
-    fail "member identity is not scoped by record type"
-grep -Fq 'kind == DirectMirScalarProgramExprLogicalRecordMember()' "$BOOL_OWNER" ||
-    fail "logical Bool member is not admitted by the non-trapping proof"
-grep -Fq 'logical_record: DirectMirScalarProgramLogicalRecordFact' "$ROUTE_OWNER" ||
-    fail "route does not carry the logical record fact"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN_OWNER" ||
-    fail "GraphPlan schema does not seal logical record identity"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'DirectMirScalarProgramLogicalRecordTargetFromFact(' "$owner" ||
-        fail "target emission bypasses the logical record projection"
-    ! grep -Eq 'JsonObjectFact|NominalDeclarationAbiFactFromDocument' "$owner" ||
-        fail "record emission redecoded source declarations instead of consuming the fact"
-done
-grep -Fq 'fact.physical.field_offsets[field]' "$C_OWNER" ||
-    fail "C layout assertions do not consume producer offsets"
-! grep -Fq 'ProbeFact' "$FACT_OWNER" || fail "logical record owner is fixture-keyed"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
@@ -90,19 +44,6 @@ grep -Fq '"type":"ObjectTableFact","carriage":"readonly-ref","resource":"none","
     fail "producer omitted readonly logical-record carriage"
 grep -Fq 'LocalDocumentFact(LocalTableFact(true, json, 2, 8), 0)' "$MIR" ||
     fail "producer omitted the nested logical-record constructor graph"
-grep -Fq 'LocalTableReady(document.declarations)' "$ROOT_DIR/$SOURCE_REL" ||
-    fail "fixture omits readonly-ref logical-record member direct call"
-grep -Fq 'ObjectTableEnd(MakeObjectTable(json, 5))' "$ROOT_DIR/$SOURCE_REL" ||
-    fail "fixture omits nested logical-record value direct call"
-grep -Fq 'DirectMirScalarProgramExprDirectCall()' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy" ||
-    fail "direct-call readiness omits nested value results"
-grep -Fq 'DirectMirScalarProgramExprLogicalRecordConstructor()' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy" ||
-    fail "direct-call readiness omits logical-record constructor values"
-grep -Fq 'ObjectTableEnd(ObjectTableFact(true, json, 5, 8))' \
-    "$ROOT_DIR/$SOURCE_REL" ||
-    fail "fixture omits direct logical-record constructor value call"
 printf 'ok\n3\nobject\n7\n8\n9\nlocal\n9\n8\nmember-ref\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do
     artifact_rel="$WORK_REL/program.$backend"

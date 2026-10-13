@@ -16,17 +16,11 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_payload_enum_match_binding.pgy
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py"
-LOCAL_OPERAND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy"
-MATCH_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_match_condition_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'DirectMirScalarCfgLocalRefMatchBinding()' "$LOCAL_OPERAND" ||
-    fail "direct local operand owner omits match bindings"
-grep -Fq 'binding_local + local_offset' "$MATCH_OWNER" ||
-    fail "payload enum match does not carry its binding local"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

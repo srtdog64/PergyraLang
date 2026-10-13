@@ -16,30 +16,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_bool_sub_equals_short_c
 MIR_REL="$WORK_REL/producer.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_bool_sub_equals_short_circuit_mutations.py"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy"
-RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_runtime_requirement_owner.pgy"
-SHORT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_short_circuit_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for path in "$MUTATIONS" "$SIGNATURE" "$RUNTIME" "$SHORT"; do
+for path in "$MUTATIONS"; do
     [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'DirectMirScalarProgramExprSubEqualsWithLen())' "$SIGNATURE" ||
-    fail "builtin signature omitted stable SubEqualsWithLen identity"
-grep -Fq '"string_int_string_int_to_bool"' "$RUNTIME" ||
-    fail "runtime requirement omitted the canonical call shape"
-grep -Fq '!DirectMirScalarProgramNonTrappingBoolNode(expressions, right)' \
-    "$SHORT" || fail "LLVM short-circuit owner lost conditional evaluation"
-grep -Fq 'while exit_node <= right_node' "$SHORT" ||
-    fail "LLVM nested short-circuit exit owner is missing"
-! grep -Fq 'JsonTrueAt' "$SIGNATURE" ||
-    fail "builtin signature branched on the fixture routine"
-! grep -Fq 'JsonValueEnd' "$SIGNATURE" ||
-    fail "builtin signature reintroduced raw MIR parsing"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

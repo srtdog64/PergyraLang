@@ -16,8 +16,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/codegen/fixture/bool_logic.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 [[ -x "$DRIVER" ]] || fail "current-source self-host driver is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
@@ -34,27 +32,6 @@ done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy")" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 100 ]] ||
     fail "returned-array route owner hard cap exceeded"
-
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
-C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
-LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
-SHORT_CIRCUIT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_short_circuit_owner.pgy"
-require_text "$ROUTE" 'DirectMirScalarProgramRouteAdmissionFromAdmitted'
-require_text "$ROUTE" 'CompileAdmittedDirectMirScalarProgramForTarget'
-for owner in "$C_EMIT" "$LLVM_EMIT"; do
-    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
-        bool_logic.pgy flag-on other-off grouped; do
-        reject_text "$owner" "$term"
-    done
-done
-require_text "$SHORT_CIRCUIT_OWNER" 'func DirectMirScalarProgramLlvmShortCircuitAt('
-require_text "$SHORT_CIRCUIT_OWNER" '!DirectMirScalarProgramNonTrappingBoolNode(expressions, right)'
-require_text "$SHORT_CIRCUIT_OWNER" ' = phi i1 [ '
-require_text "$SHORT_CIRCUIT_OWNER" '  br i1 '
-require_text "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
-    'DirectMirScalarProgramLlvmShortCircuitAt('
-require_text "$ROOT_DIR/src/self_hosted/codegen/fixture/bool_logic.pgy" \
-    'if true || IsEven(0 - 1) {'
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

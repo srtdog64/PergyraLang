@@ -16,34 +16,11 @@ WORK_REL=".tmp/self_hosted/llvm_option_member_assignment_context"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 POSITIVE="tests/self_hosted/fixtures/llvm_option_member_assignment_context.pgy"
 STATEMENT="tests/self_hosted/fixtures/llvm_option_statement_some.pgy"
-ASSIGNMENT_OWNER="$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
-OPTION_CONSUMER="$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
-SEALED_TYPE_OWNER="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_variant.c"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 [[ -f "$ROOT_DIR/$POSITIVE" && -f "$ROOT_DIR/$STATEMENT" ]] ||
     fail "fixture set is incomplete"
-
-grep -Fq 'saved_current_ret_type = ctx->current_ret_type;' \
-    "$ASSIGNMENT_OWNER" || fail "member assignment does not snapshot context"
-grep -Fq 'ctx->current_ret_type = field_type;' "$ASSIGNMENT_OWNER" ||
-    fail "registered field layout is not the RHS context"
-grep -Fq 'ctx->current_ret_type = saved_current_ret_type;' \
-    "$ASSIGNMENT_OWNER" || fail "member assignment context is not restored"
-grep -Fq 'ast_call_set_semantic_value_type_name_copy(expr,' \
-    "$SEALED_TYPE_OWNER" || fail "the checker no longer seals the Some type"
-grep -Fq 'LLVM Some(value) requires contextual Option<T> or a checker-sealed Option type;' \
-    "$OPTION_CONSUMER" || fail "Some without a layout fact no longer fails closed"
-some_layout_owner="$(awk '/^llvm_option_some_layout_type\(/,/^}/' \
-    "$OPTION_CONSUMER")"
-[[ -n "$some_layout_owner" ]] || fail "Some layout owner is missing"
-grep -Fq 'ast_call_semantic_value_type_name(call)' \
-    <<<"$some_layout_owner" ||
-    fail "Some layout does not read the checker-sealed type"
-if grep -Fq 'current_ret_type' <<<"$some_layout_owner"; then
-    fail "Some layout reads the active return layout"
-fi
 
 [[ "$WORK_DIR" == "$ROOT_DIR/.tmp/self_hosted/llvm_option_member_assignment_context" ]] ||
     fail "refusing to clean an unexpected work directory"

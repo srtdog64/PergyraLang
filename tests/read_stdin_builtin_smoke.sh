@@ -14,45 +14,6 @@ TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 [[ -x "$PGY" ]] || fail "missing compiler binary: $PGY"
 pgy_require_runnable_binary_here "read-stdin" "$PGY"
 
-require_text() {
-    local file="$1"
-    local text="$2"
-    grep -Fq "$text" "$ROOT_DIR/$file" ||
-        fail "$file lost required ReadStdin substrate text: $text"
-}
-
-forbid_text() {
-    local file="$1"
-    local text="$2"
-    if grep -Fq "$text" "$ROOT_DIR/$file"; then
-        fail "$file retained forbidden ReadStdin substrate text: $text"
-    fi
-}
-
-require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "HostIORuntimeCReadStdinFn"
-require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "read(STDIN_FILENO"
-require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "if (rd < 0) { free(buf); abort(); }"
-require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" "if (result.tag != PGY_RUNTIME_IO_RESULT_OK)"
-require_text "src/runtime/pgy_runtime_io_qubit_inline.h" "if (result.tag != PGY_RUNTIME_IO_RESULT_OK)"
-require_text "src/runtime/pgy_runtime_io_qubit_inline.h" \
-    "_setmode(_fileno(stdout), _O_BINARY)"
-require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" \
-    "void pgy_print(const char *msg)"
-require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" \
-    "_setmode(_fileno(stdout), _O_BINARY)"
-require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" \
-    "_setmode(_fileno(stdout), _O_BINARY)"
-require_text "src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
-    '{ "Print", "stdlib io", "pgy_print", 1 }'
-forbid_text "src/codegen/llvm_expr_stdlib_scalar_io_calls.c" '"printf"'
-require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
-    'source_name == "ReadStdin"'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "HostIORuntimeCFileIOBlock()"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "#include <errno.h>"
-require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "ReadStdin("
-
 if command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python3)"
 else

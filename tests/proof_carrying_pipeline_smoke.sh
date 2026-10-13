@@ -10,13 +10,6 @@ fail() {
     exit 1
 }
 
-require_text() {
-    local rel="$1"
-    local text="$2"
-    grep -Fq -- "$text" "$ROOT_DIR/$rel" ||
-        fail "$rel missing text: $text"
-}
-
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
@@ -48,12 +41,6 @@ if ! pgy_binary_is_runnable_here "$PGY"; then
     fi
     pgy_require_runnable_binary_here "proof-carrying-pipeline" "$PGY"
 fi
-
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "pgy.proof-carrying-ir.v1"
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "valid certificate + valid owner payloads"
-require_text "docs/semantics/17_proof_carrying_pipeline.md" "negative rejection when a required certificate fact is removed"
-require_text "docs/semantics/pass_contract_manifest.md" "proof_certificate_pipeline"
-require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof-carrying IR"
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 if pgy_binary_expects_windows_paths "$PGY"; then

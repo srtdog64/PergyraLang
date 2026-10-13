@@ -18,44 +18,14 @@ MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 ROLE_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_mutations.py"
 
-FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy"
-CALLABLE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
-SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_value_result_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy"
-CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT_OWNER" "$CALLABLE_OWNER" "$SIGNATURE_OWNER" "$TARGET_OWNER" "$C_OWNER" "$LLVM_OWNER" \
-    "$CALL_OWNER" "$MUTATIONS" "$ROLE_MUTATIONS"; do
+for owner in "$MUTATIONS" "$ROLE_MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-grep -Fq 'DirectMirArrayIntCapturedAbiReady(fact.abi)' "$FACT_OWNER" ||
-    fail "value-result fact does not consume the complete parameter ABI"
-grep -Fq 'DirectMirScalarProgramArrayIntValueResultParameterReady(' "$CALLABLE_OWNER" &&
-    grep -Fq 'DirectMirScalarProgramCallableParameterSupported(' "$CALLABLE_OWNER" ||
-    fail "parameter-role plan omitted the ArrayInt copyout role"
-grep -Fq 'array_int_value_result_count' "$CALLABLE_OWNER" ||
-    fail "parameter-role plan omitted ArrayInt copyout cardinality"
-! grep -Fq 'signature.param_count ==' "$CALLABLE_OWNER" ||
-    fail "callable owner reintroduced an exact arity"
-grep -Fq 'DirectMirScalarProgramComposableCallableSignatureReady(' \
-    "$SIGNATURE_OWNER" || fail "final signature omitted the parameter-role plan"
-! grep -Fq 'json_string_value_result' "$SIGNATURE_OWNER" ||
-    fail "final signature retained the exact JSON-shaped fallback"
-grep -Fq 'DirectMirScalarProgramArrayIntValueResultTargetFromFact(' \
-    "$TARGET_OWNER" || fail "value-result ABI has no target projection"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'DirectMirScalarProgramArrayIntValueResultAt(' "$owner" ||
-        fail "target boundary does not query the sealed parameter identity"
-done
-grep -Fq 'parameter_carriages[parameter_row] != "value-result"' "$CALL_OWNER" ||
-    fail "caller-side value-result identity is not admitted explicitly"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

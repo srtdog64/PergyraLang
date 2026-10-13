@@ -17,24 +17,11 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_int_multiply.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_int_multiply_mutations.py"
-KIND_ID="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_kind_owner.pgy"
-KIND_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
-READY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'DirectMirScalarProgramExprMultiplyInt() -> Int { return 73; }' "$KIND_ID" ||
-    fail "multiply expression identity drifted"
-grep -Fq 'source_kind == AstExpressionNodeMultiply()' "$KIND_OWNER" ||
-    fail "multiply source/type join is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprMultiplyInt()' "$READY_OWNER" ||
-    fail "multiply readiness is missing"
-grep -Fq 'Concat(" * "' "$C_OWNER" || fail "C multiply emission is missing"
-grep -Fq '" = mul i64 "' "$LLVM_OWNER" || fail "LLVM multiply emission is missing"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

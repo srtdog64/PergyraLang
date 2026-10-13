@@ -85,16 +85,4 @@ grep -Fq 'role receiver builtin target is not an admitted plain value' \
 ! grep -Fq '#include <stdio.h>' "$rejected_c" \
     || fail "partial C escaped before role target rejection"
 
-receiver_owner="$ROOT_DIR/src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
-binding_owner="$ROOT_DIR/src/self_hosted/codegen/emission/role_receiver_binding_owner.pgy"
-function_owner="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
-grep -Fq 'role_target_types: Array<String>' "$receiver_owner" \
-    || fail "callable receiver target-type carriage disappeared"
-grep -Fq 'role_target_carriages: Array<String>' "$receiver_owner" \
-    || fail "callable receiver target representation carriage disappeared"
-! grep -Fq 'LookupKindTypeRowPresent(env, target_type, "nk")' "$binding_owner" \
-    || fail "role binding resumed late nominal-kind reconstruction"
-! grep -Fq 'CodegenSemanticRoleReceiverType(' "$function_owner" \
-    || fail "function emission resumed role-target rescanning"
-
 echo "[self-host-codegen-role-receiver] PASS exact base/metamorphic execution and negative admission"

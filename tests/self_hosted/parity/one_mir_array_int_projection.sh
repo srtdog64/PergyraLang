@@ -62,7 +62,7 @@ assert_owner_ratchet() {
     local abi="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
     local emission="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy"
     local backend="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-    local owner cap lines term
+    local owner cap lines
     for owner in "$plan" "$graph" "$abi" "$emission" "$backend"; do
         require_file "$owner"
     done
@@ -77,30 +77,6 @@ $abi|160
 $emission|320
 $backend|200
 EOF
-    for term in BuildMirDocumentFactIndex JsonObjectFactTableFromBounds \
-        CompileMirJsonToCVerified GenerateCFromVerifiedSemanticArtifact \
-        llvm_codegen_ driver_run_pipeline; do
-        ! grep -Fq -- "$term" "$plan" "$graph" "$abi" "$emission" ||
-            fail "Array<Int> owner reopened a forbidden path: $term"
-    done
-    for term in 'admitted.routines.instruction_expressions' \
-        'admitted.routines.instruction_kinds' \
-        'BuildMirRoutineInstructionUseFacts' \
-        'MirCapturedRequiredAbiLayoutRowAdmission' \
-        'DirectMirArrayIntPlanMutationRejected'; do
-        grep -Fq -- "$term" "$plan" ||
-            fail "Array<Int> plan does not consume typed owner: $term"
-    done
-    grep -Fq 'DirectMirArrayIntPlanCandidate(admitted)' "$backend" ||
-        fail "one-block dispatch does not classify Array<Int> before scalar"
-    grep -Fq 'DirectMirArrayIntAbiProjectionFromPlan' "$backend" ||
-        fail "backend does not bind the verified Array<Int> ABI"
-    grep -Fq 'DirectMirArrayIntEmitC' "$backend" ||
-        fail "backend does not consume the Array<Int> plan for C"
-    grep -Fq 'DirectMirArrayIntEmitLlvm' "$backend" ||
-        fail "backend does not consume the Array<Int> plan for LLVM"
-    ! grep -Fq '@pgy_' "$emission" ||
-        fail "runtime-free Array<Int> emission references Pergyra runtime"
 }
 
 project() {

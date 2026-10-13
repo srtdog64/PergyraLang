@@ -24,16 +24,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
 
-for owner in \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_c_operation_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_reverse_llvm_operation_owner.pgy"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" 'array_reverse.pgy'
-    reject_text "$owner" 'pgy_ai_reverse'
-done
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

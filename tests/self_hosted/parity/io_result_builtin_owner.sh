@@ -7,8 +7,8 @@
 #
 # Static rows: the builtin IoError variants are the rows of
 # src/runtime/pgy_runtime_io_error.def, in order. The self-host parser's
-# projection (io_error_builtin_enum_composition_owner.pgy) and the documented
-# list in docs/108_stdlib_beta_freeze.md must equal them, and every runtime
+# projection (io_error_builtin_enum_composition_owner.pgy) must equal them,
+# and every runtime
 # status that pgy_try_read_file_result or pgy_try_write_file_result can
 # return must have a row, so the typed entries never reach their unmapped-
 # status panic.
@@ -41,7 +41,6 @@ WORK_REL=".tmp/self_hosted/io_result_builtin"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 DEF="$ROOT_DIR/src/runtime/pgy_runtime_io_error.def"
 SELF_OWNER="$ROOT_DIR/src/self_hosted/parser/io_error_builtin_enum_composition_owner.pgy"
-DOC="$ROOT_DIR/docs/108_stdlib_beta_freeze.md"
 RUNTIME_IO="$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h"
 RUNTIME_LIB_IO="$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"
 
@@ -65,12 +64,6 @@ sed -n '/^func ParserIoErrorVariantNames/,/^}/p' "$SELF_OWNER" |
 cmp -s "$WORK_DIR/def.names" "$WORK_DIR/self.names" || {
     diff "$WORK_DIR/def.names" "$WORK_DIR/self.names" >&2 || true
     fail "ParserIoErrorVariantNames differs from $DEF"
-}
-sed -n '/^<!-- io-error-variants:start -->$/,/^<!-- io-error-variants:end -->$/p' "$DOC" |
-    sed -nE 's/^[0-9]+\. `([A-Za-z]+)`.*$/\1/p' > "$WORK_DIR/doc.names"
-cmp -s "$WORK_DIR/def.names" "$WORK_DIR/doc.names" || {
-    diff "$WORK_DIR/def.names" "$WORK_DIR/doc.names" >&2 || true
-    fail "the IoError list in docs/108_stdlib_beta_freeze.md differs from $DEF"
 }
 for runtime in "$RUNTIME_IO" "$RUNTIME_LIB_IO"; do
     for entry in pgy_try_read_file_result pgy_try_write_file_result; do
@@ -336,4 +329,4 @@ for program in io cfc; do
 done
 
 CC="${CC:-gcc}" bash "$ROOT_DIR/tests/file_read_error_runtime_smoke.sh"
-echo "[$LABEL] $(wc -l < "$WORK_DIR/def.names" | tr -d ' ') IoError rows equal across runtime, self-host and docs; TryReadFile/TryWriteFile/CharFromCode equal on native C, native LLVM and default C: PASS"
+echo "[$LABEL] $(wc -l < "$WORK_DIR/def.names" | tr -d ' ') IoError rows equal across runtime and self-host; TryReadFile/TryWriteFile/CharFromCode equal on native C, native LLVM and default C: PASS"

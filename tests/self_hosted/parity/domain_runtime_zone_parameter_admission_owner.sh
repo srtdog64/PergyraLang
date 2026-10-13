@@ -129,32 +129,4 @@ cmp -s "$REF_EXPECTED" "$REF_SINGLE_OUT"
 "$REF_THREADSAFE_BIN" | tr -d '\r' >"$REF_THREADSAFE_OUT"
 cmp -s "$REF_EXPECTED" "$REF_THREADSAFE_OUT"
 
-ZONE_PARAMETER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
-FUNCTION_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
-NOMINAL_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy"
-
-grep -Fq 'zone_value_parameter_requires_transfer' "$ZONE_PARAMETER_OWNER"
-grep -Fq 'parameter_mode == 0' "$ZONE_PARAMETER_OWNER"
-grep -Fq 'resource_kind == 2 && parameter_mode == 1' "$ZONE_PARAMETER_OWNER"
-grep -Fq 'mutable_resource_parameter_node_ids' "$ZONE_PARAMETER_OWNER"
-if grep -Fq 'SemanticAstFunctionParam' "$ZONE_PARAMETER_OWNER"; then
-    echo "zone parameter owner forwarded its borrowed signature view" >&2
-    exit 1
-fi
-if grep -Fq 'Pergyra zone by-value parameter requires an admitted transfer plan' \
-    "$FUNCTION_OWNER"; then
-    echo "zone parameter policy returned to C function emission" >&2
-    exit 1
-fi
-if grep -Fq 'Pergyra zone return requires an admitted transfer plan' \
-    "$FUNCTION_OWNER"; then
-    echo "zone return policy returned to C function emission" >&2
-    exit 1
-fi
-if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
-    "$NOMINAL_OWNER"; then
-    echo "retired embedded-zone backend guard returned" >&2
-    exit 1
-fi
-
 echo "[domain-runtime-zone-parameter-admission] default identity native/self single/thread-safe parity + explicit ref + zone/world return rejection: PASS"

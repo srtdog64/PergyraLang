@@ -30,35 +30,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GENERIC="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
-PROGRAM="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy"
-ROUTINE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
-C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
-LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
-CALL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
-for term in DirectMirScalarCfgProgramAdmissionState program.active; do
-    reject_text "$GENERIC" "$term"
-done
-[[ "$(grep -Fc 'DirectMirScalarCfgProgramAppendRoutine(' "$PROGRAM")" -eq 1 ]] ||
-    fail "one loop does not own every scalar-program routine admission"
-require_text "$PROGRAM" 'while ordinal < ArrayLength(routine_rows)'
-[[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
-    fail "program graph must seal exactly once"
-require_text "$ROUTINE" 'func DirectMirScalarCfgProgramAppendRoutine('
-for owner in "$C_EMIT" "$LLVM_EMIT"; do
-    require_text "$owner" 'while routine < ArrayLength(plan.routines.roles)'
-    require_text "$owner" 'plan.routines.block_starts[routine]'
-    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
-        string_equality.pgy; do reject_text "$owner" "$term"; done
-done
-require_text "$ABI" 'CompilerRuntimeCallAbiStringCompareFact('
-require_text "$CALL" 'call_target_syntax_ids[chain.call_node]'
-if grep -RFq -- 'pgy_scalar_callable_0' "$ROOT_DIR/src/self_hosted/compiler" ||
-   grep -RFq -- 'pgy.scalar.callable.0' "$ROOT_DIR/src/self_hosted/compiler"; then
-    fail "retired callable-specific backend symbol returned"
-fi
-
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \

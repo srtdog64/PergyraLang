@@ -19,72 +19,11 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_set_string_value_parameter.pgy
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-ABI="$ROOT_DIR/src/self_hosted/compiler/abi_layout_row_owner.pgy"
-RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/set_runtime_owner.pgy"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
-ROLE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
-VALUE_RESULT_POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_set_string_value_result_policy_owner.pgy"
-VALUE_RESULT_TARGET="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_set_string_value_result_target_owner.pgy"
-C_VALUE_RESULT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_set_string_value_result_owner.pgy"
-LLVM_VALUE_RESULT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_set_string_value_result_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy"
-READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_readiness_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_set_string_expression_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_set_string_expression_owner.pgy"
-LLVM_DECL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy"
-MATERIALIZATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy"
-C_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$ABI" "$RUNTIME" "$POLICY" "$ROLE" \
-        "$VALUE_RESULT_POLICY" "$VALUE_RESULT_TARGET" \
-        "$C_VALUE_RESULT" "$LLVM_VALUE_RESULT" "$SIGNATURE" \
-        "$READINESS" "$C_OWNER" "$LLVM_OWNER" "$LLVM_DECL" \
-        "$MATERIALIZATION" "$C_EMISSION" "$MUTATIONS"; do
-    [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
-done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-for term in 'CompilerAbiLayoutSetStringTypeName()' \
-        'CompilerAbiLayoutSetStringCValueType()' \
-        'CompilerAbiLayoutFieldOrderSetBuffer()'; do
-    grep -Fq "$term" "$ABI" || fail "Set<String> ABI row omits: $term"
-done
-grep -Fq 'type_name == CompilerAbiLayoutSetStringTypeName()' "$POLICY" ||
-    fail "callable policy omits by-value Set<String>"
-grep -Fq 'signature.parameters.type_names[ordinal] == CompilerAbiLayoutSetStringTypeName()' "$ROLE" ||
-    fail "parameter-role plan omits by-value Set<String>"
-grep -Fq 'DirectMirScalarProgramSetStringValueResultParameterReady(' "$POLICY" ||
-    fail "callable policy bypasses the Set<String> value-result owner"
-grep -Fq 'set_string_value_result_count' "$ROLE" ||
-    fail "parameter-role plan omits Set<String> value-result"
-grep -Fq 'DirectMirScalarProgramSetStringValueResultAt(' "$VALUE_RESULT_TARGET" ||
-    fail "GraphPlan target owner omits Set<String> value-result"
-grep -Fq 'DirectMirScalarProgramCSetStringValueResultCopyOut(' "$C_VALUE_RESULT" ||
-    fail "C lifecycle owner omits Set<String> copy-out"
-grep -Fq 'DirectMirScalarProgramLlvmSetStringValueResultCopyOut(' "$LLVM_VALUE_RESULT" ||
-    fail "LLVM lifecycle owner omits Set<String> copy-out"
-for name in SetNew SetAdd SetHas; do
-    grep -Fq "name == \"$name\"" "$SIGNATURE" ||
-        fail "builtin signature owner omits $name"
-done
-for term in DirectMirScalarProgramExprSetStringNew DirectMirScalarProgramExprSetStringAdd \
-        DirectMirScalarProgramExprSetStringHas; do
-    grep -Fq "$term" "$READINESS" || fail "expression readiness omits: $term"
-done
-for term in CollectionSetRuntimeLlvmNewRawFn CollectionSetRuntimeLlvmAddStringRawFn \
-        CollectionSetRuntimeLlvmHasStringRawFn; do
-    grep -Fq "$term" "$LLVM_OWNER" || fail "LLVM expression owner omits: $term"
-    grep -Fq "$term" "$LLVM_DECL" || fail "LLVM declarations omit: $term"
-done
-grep -Fq 'CollectionSetRuntimeFactFromTypeName(' "$C_OWNER" ||
-    fail "C expression owner bypasses the canonical Set runtime fact"
-grep -Fq 'func DirectMirScalarProgramSetStringRuntimeHeaderRequired(' \
-    "$MATERIALIZATION" || fail "Set<String> runtime-header requirement is missing"
-grep -Fq 'DirectMirScalarProgramSetStringRuntimeHeaderRequired(' "$C_EMISSION" ||
-    fail "C emission bypasses the Set<String> runtime-header requirement"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

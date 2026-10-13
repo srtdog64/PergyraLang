@@ -31,25 +31,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
 
-MUTATION_LENGTH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_mutation_length_owner.pgy"
-DOMINANCE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_push_dominance_owner.pgy"
-C_STORAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_storage_emission_owner.pgy"
-C_MUTATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_mutation_emission_owner.pgy"
-LLVM_STORAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy"
-LLVM_MUTATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_mutation_emission_owner.pgy"
-require_text "$MUTATION_LENGTH" 'DirectMirScalarCfgStringArrayExpectedLengthBeforeNextMutation('
-require_text "$DOMINANCE" 'position.local <= last_push.local'
-require_text "$C_MUTATION" 'fact.expected_length_before + 1'
-require_text "$LLVM_MUTATION" '.length.field, align 8'
-for owner in "$C_STORAGE" "$C_MUTATION" "$LLVM_STORAGE" "$LLVM_MUTATION"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" 'str_array_push.pgy'
-    reject_text "$owner" 'pgy_as_push'
-    reject_text "$owner" 'pgy_array_push_String'
-done
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

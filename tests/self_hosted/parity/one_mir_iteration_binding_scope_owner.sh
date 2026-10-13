@@ -19,27 +19,11 @@ MIR_REL="$WORK_REL/program.json"
 MIR="$ROOT_DIR/$MIR_REL"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-
-FOR_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_for_owner.pgy"
-WIRE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy"
-SCOPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy"
-PLAN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy"
-require_text "$FOR_OWNER" 'SelfMirRoutinePushLocal('
-require_text "$SCOPE_OWNER" 'DirectMirScalarCfgWireRangeScopesReady('
-require_text "$PLAN_OWNER" 'DirectMirScalarCfgAppendIterationLocals('
-reject_text "$FOR_OWNER" 'SelfMirRoutineAddLocal('
-reject_text "$PLAN_OWNER" 'DirectMirScalarCfgLocalRow('
-reject_text "$PLAN_OWNER" 'DirectMirScalarCfgRangeLocalRow('
-for owner in "$WIRE_OWNER" "$SCOPE_OWNER" "$PLAN_OWNER"; do
-    reject_text "$owner" 'iteration_binding_shadow.pgy'
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

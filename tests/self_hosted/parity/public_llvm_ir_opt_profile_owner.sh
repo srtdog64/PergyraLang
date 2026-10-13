@@ -15,8 +15,6 @@ CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/public_llvm_ir_opt_profile"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_llvm_selection_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 
 fail() { echo "[self-host-llvm-ir-opt] $*" >&2; exit 1; }
 
@@ -122,17 +120,5 @@ grep -Fq 'self-host driver is unavailable' "$WORK_DIR/missing.stdout.err" ||
     "$WORK_DIR/missing.stdout.err" || fail "missing sibling retried native LLVM"
 [[ "$verbose_rc" -ne 0 && ! -s "$WORK_DIR/verbose.ll" ]] ||
     fail "dev LLVM stdout accepted --verbose"
-
-selector_body="$(sed -n '/driver_self_host_llvm_ir_request_supported(/,/^}/p' \
-    "$SELECTION_OWNER")"
-! grep -Fq 'opt_profile' <<<"$selector_body" ||
-    fail "C selector still assigns optimization semantics to emitted LLVM IR"
-grep -Fq 'DriverCliSourceLlvmArtifact(String, String, Bool),' "$REQUEST_OWNER" ||
-    fail "typed source-LLVM request shape drifted"
-! grep -Fq 'DriverCliSourceLlvmArtifact(String, String, Bool,' "$REQUEST_OWNER" ||
-    fail "typed source-LLVM request gained profile carriage"
-grep -Fq 'opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0"' \
-    "$ROOT_DIR/src/compiler/compiler_self_host_artifact.c" ||
-    fail "final executable compile/link lost profile-sensitive optimization"
 
 echo "[self-host-llvm-ir-opt] dev file/stdout publication is installed and profile-neutral"

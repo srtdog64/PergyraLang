@@ -30,39 +30,6 @@ TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_semantic_decl_identity.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-require_text() {
-    local file="$1"
-    local text="$2"
-    if ! grep -Fq "$text" "$ROOT_DIR/$file"; then
-        echo "[semantic-decl-identity] missing $file contract: $text" >&2
-        exit 1
-    fi
-}
-
-require_text "src/semantic/symbol_table.h" "uint32_t   decl_syntax_id;"
-require_text "src/semantic/symbol_table.h" "bool       is_forward_placeholder;"
-require_text "src/semantic/symbol_table.c" "symbol_is_forward_declaration_for"
-require_text "src/semantic/symbol_table.c" "symbol->decl_syntax_id == syntax_id"
-require_text "src/semantic/type_checker_program.c" \
-    "symbol_mark_declaration(s, ast_node_stable_id(stmt), true);"
-require_text "src/semantic/type_checker_program.c" \
-    "if (ast_node_stable_id(program) == 0"
-require_text "src/semantic/type_checker_program.c" \
-    "&& !ast_assign_stable_ids(program))"
-require_text "src/semantic/type_checker_func_decl.c" \
-    "symbol_is_forward_declaration_for(existing,"
-require_text "src/semantic/type_checker_class_decl.c" \
-    "SYMBOL_CLASS, ast_node_stable_id(node)"
-require_text "src/semantic/type_checker_ability_decl.c" \
-    "SYMBOL_ABILITY, ast_node_stable_id(node)"
-
-if grep -R -n -E 'existing->decl_(line|col)' "$ROOT_DIR/src/semantic" \
-    >"$WORK_DIR/legacy_identity_reads"; then
-    echo "[semantic-decl-identity] line/column declaration identity returned" >&2
-    cat "$WORK_DIR/legacy_identity_reads" >&2
-    exit 1
-fi
-
 positive="$ROOT_DIR/tests/cases/stable_identity_import_merge/main.pgy"
 positive_arg="$(pgy_path_for_compiler "$PGY" "$positive")"
 positive_out="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/positive.c")"

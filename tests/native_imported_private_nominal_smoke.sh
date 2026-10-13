@@ -27,20 +27,7 @@ fail() {
     exit 1
 }
 
-require_text() {
-    grep -Fq -- "$2" "$ROOT_DIR/$1" ||
-        fail "missing owner contract in $1: $2"
-}
-
 pgy_require_runnable_binary_here "native-private-nominal" "$PGY" || exit 1
-require_text src/compiler/module_normalizer_refs.c \
-    'ast_enum_variant_param(node, i, j)'
-require_text src/codegen/transpiler_type_mapping.c \
-    'if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))'
-require_text src/codegen/transpiler_type_result_mapping_helpers.c \
-    'return sanitize_c_suffix(inner, out, out_size);'
-require_text src/codegen/llvm_stmt_type_infer_helpers.c \
-    'variant = llvm_lookup_enum_variant_qualified(ctx, owner, member);'
 
 suffix=""
 pgy_binary_expects_windows_paths "$PGY" && suffix=".exe"

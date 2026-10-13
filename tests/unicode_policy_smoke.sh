@@ -26,33 +26,12 @@ if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
 fi
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 
-POLICY_DOC="$ROOT_DIR/docs/110_string_unicode_policy.md"
-if [[ ! -f "$POLICY_DOC" ]]; then
-    echo "[unicode-policy] missing unicode policy doc: $POLICY_DOC" >&2
-    exit 1
-fi
-for required in \
-    "String And Unicode Beta Policy" \
-    "beta-freeze-source-of-truth" \
-    "UTF-8 string payloads" \
-    "byte-length for beta" \
-    "byte-exact and normalization-blind" \
-    "Unicode identifiers are not beta-stable" \
-    "Locale-sensitive comparison" \
-    "Grapheme-cluster iteration" \
-    "make unicode-policy-test-smoke"; do
-    if ! grep -Fq "$required" "$POLICY_DOC"; then
-        echo "[unicode-policy] policy doc missing: $required" >&2
-        exit 1
-    fi
-done
-
 if [[ ! -x "$PGY" ]]; then
     if [[ "$PGY_WAS_EXPLICIT" -eq 1 ]]; then
         echo "[unicode-policy] missing compiler binary: $PGY" >&2
         exit 1
     fi
-    echo "[unicode-policy] SKIP executable probe; source policy is gated"
+    echo "[unicode-policy] SKIP executable probe; compiler binary unavailable"
     exit 0
 fi
 

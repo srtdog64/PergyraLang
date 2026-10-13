@@ -29,36 +29,12 @@ BAD_EXPECTED="$ROOT_DIR/src/self_hosted/tools/aggregate_field_policy_probe/bad_e
 VALID="$ROOT_DIR/src/self_hosted/tools/aggregate_field_policy_probe/valid.pgy"
 BAD="$ROOT_DIR/src/self_hosted/tools/aggregate_field_policy_probe/bad_field_type.pgy"
 BAD_GENERIC="$ROOT_DIR/src/self_hosted/tools/aggregate_field_policy_probe/bad_generic_field_type.pgy"
-FIELD_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy"
-STRUCT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy"
 mkdir -p "$BUILD_DIR"
 
 for input in "$SOURCE" "$EXPECTED" "$BAD_EXPECTED" "$VALID" "$BAD" \
-    "$BAD_GENERIC" \
-    "$FIELD_OWNER" "$STRUCT_OWNER"; do
+    "$BAD_GENERIC"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
-
-grep -Fq 'SemanticAstArtifactAnalyzeTyped(' "$SOURCE" ||
-    { echo "[$LABEL] probe bypasses typed artifact analysis" >&2; exit 1; }
-grep -Fq 'SemanticExpressionGraphFieldValueTypeName(' "$STRUCT_OWNER" ||
-    { echo "[$LABEL] struct verdict ignores graph field types" >&2; exit 1; }
-grep -Fq 'SemanticExpressionGraphFieldValueAssignableTo(' "$STRUCT_OWNER" ||
-    { echo "[$LABEL] struct verdict ignores graph assignability" >&2; exit 1; }
-if grep -Eq 'ExprType\(|ExpressionAssignableTo\(' "$STRUCT_OWNER"; then
-    echo "[$LABEL] struct verdict reconstructs field types from source text" >&2
-    exit 1
-fi
-if grep -Eq 'ExprType\(|ExpressionAssignableTo\(' "$FIELD_OWNER"; then
-    echo "[$LABEL] field owner reopens source type policy" >&2
-    exit 1
-fi
-grep -Fq 'child-fact-missing=reject' "$SOURCE" ||
-    { echo "[$LABEL] missing child-fact negative" >&2; exit 1; }
-grep -Fq 'generic-leaf-type-drift=reject' "$SOURCE" ||
-    { echo "[$LABEL] missing generic graph-drift negative" >&2; exit 1; }
-grep -Fq 'SemanticExpressionGraphGenericCallFactFromGraph(' "$STRUCT_OWNER" ||
-    { echo "[$LABEL] struct verdict ignores signature-owned generic facts" >&2; exit 1; }
 
 oracle_path() {
     pgy_path_for_compiler "$PGY" "$1"

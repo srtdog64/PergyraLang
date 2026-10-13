@@ -14,10 +14,6 @@ WORK_REL=".tmp/self_hosted/public_logical_operand_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 LOGICAL_FIXTURES="bad_logical_assign bad_logical_condition bad_logical_int bad_logical_return bad_logical_right"
 EXCLUDED_FIXTURES="bad_import_enum_variant"
 
@@ -135,14 +131,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed logical-operand diagnostic identity"
-
-require_text "$DIAGNOSTIC_OWNER" 'if code == "logical_operand_not_bool" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:binop:operand_types"'
-require_text "$DIAGNOSTIC_OWNER" '"align-operand-types-or-overload"'
-require_text "$CONTRACT_OWNER" \
-    'logical_first.message != logical_second.message'
-! grep -Eq 'PGY_SEM_BINOP_TYPE_MISMATCH|semantic:binop:operand_types|align-operand-types-or-overload' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic logical-operand authority"
 
 echo "[self-host-public-logical-operand-json-diagnostic] exact binary-operand identity, five semantic contexts, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"

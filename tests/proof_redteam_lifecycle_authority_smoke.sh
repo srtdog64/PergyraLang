@@ -14,9 +14,5 @@ for owner in "${owners[@]}"; do
     cp "$ROOT_DIR/docs/semantics/proofs/$owner.v" "$snapshot/"
 done
 cp "$ROOT_DIR/tests/coq/LifecycleAuthorityRedteamRegression.v" "$snapshot/"
-if grep -Fq 'Definition with_target_deleg' "$snapshot/PergyraCore.v"; then
-    echo 'lifecycle-authority: FAIL -- retired bulk capability fabrication returned' >&2
-    exit 1
-fi
 PGY_COQ_PROOFS_DIR="$snapshot" PGY_COQ_EXPECTED_AXIOMS='' \
     bash "$ROOT_DIR/tests/coq_kernel_check.sh"

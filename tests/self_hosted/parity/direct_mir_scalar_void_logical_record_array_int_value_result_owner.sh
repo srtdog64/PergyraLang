@@ -16,19 +16,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_void_logical_record_array_int_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_int_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'signature.return_type != "Void" || signature.param_count != 3' "$POLICY" ||
-    fail "policy omitted the exact Void shape"
-grep -Fq 'DirectMirScalarProgramLogicalRecordTypeReady(' "$POLICY" ||
-    fail "policy omitted logical-record declaration identity"
-grep -Fq 'CompilerAbiLayoutArrayIntTypeName()' "$POLICY" ||
-    fail "policy omitted the Array<Int> copyout"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

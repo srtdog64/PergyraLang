@@ -12,18 +12,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
-source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-one-mir-dual-backend"
 DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
 DRIVER_BIN="${PGY_SELFHOST_ONE_MIR_DRIVER_BIN:-$DRIVER_BUILD/driver_seed.exe}"
 WORK_DIR="${PGY_SELFHOST_ONE_MIR_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/one_mir_dual_backend}"
-DIRECT_OWNER_REL="${PGY_SELFHOST_ONE_MIR_DIRECT_OWNER:-src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy}"
-DIRECT_OWNER="$ROOT_DIR/$DIRECT_OWNER_REL"
-DIRECT_ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"; DIRECT_EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
-CLI_REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-RUNTIME_ABI_FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
 CC="${PGY_SELFHOST_CC:-gcc}"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -44,47 +38,6 @@ hash_file() {
 assert_mir_identity() {
     [[ "$(hash_file "$MIR_ARTIFACT")" == "$1" ]] ||
         fail "$CASE backend projection mutated its admitted MIR artifact"
-}
-
-assert_direct_owner_ratchet() {
-    local term
-    require_file "$DIRECT_OWNER"; require_file "$DIRECT_ADMISSION_OWNER"; require_file "$DIRECT_EMISSION_OWNER"; require_file "$RUNTIME_ABI_FACT_OWNER"
-    pgy_selfhost_assert_driver_rung2_execution_action "$ROOT_DIR" ||
-        fail "direct execution action gate failed"
-    for term in '--mir-json-backend=c' '--mir-json-backend=llvm'; do
-        grep -Fq -- "$term" \
-            "$CLI_REQUEST_OWNER" ||
-            fail "CLI request owner is missing direct mode: $term"
-    done
-    for term in \
-        '../parser/' '../semantic/' 'EmitMirProgramTree' \
-        'AstTreeArtifactFromText' 'SemanticAstArtifactAnalyze' \
-        'CompileSourceTo' 'CompileMirJsonToCVerified' \
-        'CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved' \
-        'GenerateCFromVerifiedSemanticArtifact' \
-        '--canonicalize-mir-json' '--canonicalize-oracle-mir-json'; do
-        if grep -Fq -- "$term" \
-            "$DIRECT_OWNER" "$DIRECT_ADMISSION_OWNER" "$DIRECT_EMISSION_OWNER"; then
-            fail "direct MIR backend owner reopened forbidden bridge: $term"
-        fi
-    done
-    for term in 'import "runtime_call_abi_structured_fact_owner.pgy";' \
-        'CompilerRuntimeCallAbiFormattedPrintFact()' \
-        'CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print)' 'CompilerAbiLayoutIntCValueType()'; do
-        grep -Fq -- "$term" "$DIRECT_OWNER" ||
-            fail "direct projection does not consume structured ABI fact: $term"
-    done
-    grep -Fq -- '.symbol' "$DIRECT_EMISSION_OWNER" || fail "direct emission does not consume the structured ABI symbol"
-    for term in 'CompilerRuntimeCallAbiFormattedPrintFact' \
-        'CompilerRuntimeCallAbiFlatFactOwnerReady' \
-        'missing-direct-backend' '!missing.ok'; do
-        grep -Fq -- "$term" "$RUNTIME_ABI_FACT_OWNER" ||
-            fail "runtime ABI unknown lookup is not missing: $term"
-    done
-    ! grep -Fq -- 'Split(' "$RUNTIME_ABI_FACT_OWNER" || fail "structured ABI fact reparses serialized rows"
-    ! grep -Eq -- 'snprintf|long long' "$DIRECT_OWNER" "$DIRECT_EMISSION_OWNER" || fail "direct projection hardcodes an ABI spelling"
-    ! grep -Fq -- 'BuildMirDocumentFactIndex(' "$DIRECT_ADMISSION_OWNER" || fail "direct admission reindexes the MIR document"
-
 }
 
 select_case() {
@@ -267,6 +220,5 @@ run_positive_case() {
 require_file "$DRIVER_BIN"
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER_BIN" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
-assert_direct_owner_ratchet
 mkdir -p "$WORK_DIR"
 source "$ROOT_DIR/tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh"

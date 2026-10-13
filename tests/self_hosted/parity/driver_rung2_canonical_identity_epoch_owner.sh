@@ -31,15 +31,6 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy"
-FIELD_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy"
-EXPRESSION_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_identity_epoch_owner.pgy"
-EXPRESSION_GRAPH_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
-LANE_POLICY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy"
-IDENTITY_RESOLUTION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy"
-EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
-DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
-CARRIER_OWNER="$ROOT_DIR/src/self_hosted/mir/domain_topology_fact_owner.pgy"
 DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 ORDER_DRIFT_FIXTURE="$ROOT_DIR/grammar/04_zone_intent_authority.pgy"
@@ -54,100 +45,6 @@ ORDER_DRIFT_MIR="$BUILD_DIR/non-monotonic-routine-order.mir.json"
 ORDER_DRIFT_C="$BUILD_DIR/non-monotonic-routine-order.c"
 
 mkdir -p "$BUILD_DIR"
-
-for term in \
-    'import "canonical_mir_identity_epoch_owner.pgy"' \
-    'CanonicalMirIdentityArtifactFromTreeTextOrDie'; do
-    grep -Fq -- "$term" "$DRIVER_OWNER" \
-        || fail "driver import/consumer closure is missing: $term"
-done
-for term in \
-    'CanonicalMirIdentityEpochArtifactFromTreeText' \
-    'CanonicalMirIdentityEpochRebindProgramFacts'; do
-    grep -Fq -- "$term" "$EXECUTION_OWNER" \
-        || fail "canonical execution owner lost identity epoch consumption: $term"
-done
-grep -Fq -- 'import "canonical_mir_field_identity_epoch_owner.pgy"' \
-    "$IDENTITY_OWNER" \
-    || fail "tree/directive epoch owner does not import the field epoch owner"
-grep -Fq -- 'CanonicalMirIdentityEpochRemapTopology' "$IDENTITY_OWNER" \
-    || fail "tree/directive epoch owner lost topology composition"
-grep -Fq -- 'ref constructors: SemanticAstNominalConstructorFacts' \
-    "$IDENTITY_OWNER" \
-    || fail "canonical rebind no longer consumes the captured constructor facts"
-if grep -Fq -- 'SemanticAstNominalConstructorFactsFromArtifact(' \
-    "$IDENTITY_OWNER"; then
-    fail "canonical rebind reread the artifact after projection retirement"
-fi
-if grep -Fq -- 'SemanticAstNominalConstructorFactsFromArtifact(artifact)' \
-    "$EXECUTION_OWNER"; then
-    fail "canonical execution reopened constructor facts from the AST"
-fi
-constructor_line="$(grep -nF -- \
-    'verified.analysis.constructors' \
-    "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
-projection_line="$(grep -nF -- \
-    'DriverRung2MirProjectionFromVerifiedFactsObserved(' \
-    "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
-rebind_line="$(grep -nF -- \
-    'CanonicalMirIdentityEpochRebindProgramFacts(' \
-    "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
-[[ -n "$constructor_line" && -n "$projection_line" && -n "$rebind_line" && \
-    "$constructor_line" -lt "$projection_line" && \
-    "$projection_line" -lt "$rebind_line" ]] \
-    || fail "admitted constructor facts must be carried before projection and consumed by rebind"
-for term in \
-    'admitted.domain_topology.layer_slot_source_syntax_ids[row]' \
-    'admitted.domain_topology.target_slot_source_syntax_ids[row]' \
-    'admitted.domain_topology.participant_slot_source_syntax_ids[row]'; do
-    grep -Fq -- "$term" "$IDENTITY_OWNER" \
-        || fail "canonical topology remap lost apply-dependent identity: $term"
-done
-for term in \
-    'CanonicalMirIdentityEpochSourceFieldKind' \
-    'CanonicalMirIdentityEpochCanonicalFieldId' \
-    'CanonicalMirIdentityEpochBindDeclarationFields' \
-    'declarations.field_names[field_index] == field_name' \
-    'declarations.field_kinds[field_index] == field_kind' \
-    'index.field_names[i] == field_name' \
-    'index.field_source_syntax_ids[i] == source_syntax_id'; do
-    grep -Fq -- "$term" "$FIELD_IDENTITY_OWNER" \
-        || fail "exact owner/name/field-kind join closure is missing: $term"
-done
-if grep -Eq 'source_syntax_id[[:space:]]*[+-]|canonical_id[[:space:]]*==[[:space:]]*source_syntax_id' \
-    "$IDENTITY_OWNER" "$FIELD_IDENTITY_OWNER" \
-    "$EXPRESSION_IDENTITY_OWNER"; then
-    fail "canonical identity owner reopened numeric equality/offset remapping"
-fi
-for term in \
-    'MirExpressionIdentityEpochFromArtifactWithSignatures' \
-    'header.param_source_syntax_ids[param]' \
-    'canonical_param_id' \
-    'source_ids[existing] == source_id' \
-    'canonical_ids[existing] == canonical_id' \
-    'ArraySet(source_ids, shift, source_ids[shift - 1])' \
-    'parameter_shape_matches = ArrayLength(header.param_names) == 0' \
-    'MirExpressionIdentityEpochLookup'; do
-    grep -Fq -- "$term" "$EXPRESSION_IDENTITY_OWNER" \
-        || fail "expression identity epoch lost exact routine/parameter join: $term"
-done
-for term in \
-    'MirExpressionIdentityEpochRebindGraphForArtifact('; do
-    grep -Fq -- "$term" "$EXPRESSION_GRAPH_OWNER" \
-        || fail "MIR expression graph bypassed canonical identity rebinding: $term"
-done
-grep -Fq -- 'SemanticAstExpressionGraphLaneCarriesPersistedIdentity' \
-    "$LANE_POLICY_OWNER" \
-    || fail "producer-only identity carriage policy is missing"
-grep -Fq -- 'surface_carries_identity' "$IDENTITY_RESOLUTION_OWNER" \
-    || fail "semantic identity admission bypassed lane carriage policy"
-grep -Fq -- 'graph.topology_row_count != ArrayLength(graph.topology.kinds)' \
-    "$CARRIER_OWNER" \
-    || fail "DIR-to-MIR topology carrier does not consume the typed row arrays"
-if grep -Fq -- 'canonical MIR bridge cannot reconstruct non-empty domain topology' \
-    "$DRIVER_OWNER"; then
-    fail "canonicalizer retained the non-empty topology rejection"
-fi
 
 if [[ -n "$PREBUILT_DRIVER" ]]; then
     DRIVER_BIN="$(pgy_select_optional_exe_binary "$PREBUILT_DRIVER")"

@@ -5,11 +5,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-OWNER="$ROOT_DIR/src/self_hosted/mir_lower/machine_layer_fact_owner.pgy"
-INPUT="$ROOT_DIR/src/self_hosted/mir_lower/mir_json_input_owner.pgy"
-MACHINE_OWNER="$ROOT_DIR/src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy"
-MACHINE_BINDING_OWNER="$ROOT_DIR/src/self_hosted/compiler/machine_layer_runtime_binding_owner.pgy"
-DECLARATION_CONSUMER="$ROOT_DIR/src/self_hosted/compiler/machine_layer_declaration_consumer.pgy"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 pgy_prepend_windows_runtime_paths
@@ -22,38 +17,8 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-require_owner_term() {
-    local owner="$1"
-    local term="$2"
-    grep -Fq -- "$term" "$owner" || {
-        echo "[self-host-mir-machine-layer] missing owner term '$term' in ${owner#"$ROOT_DIR/"}" >&2
-        exit 1
-    }
-}
-
-require_owner_term "$MACHINE_OWNER" 'CompilerRuntimeCallAbiMachineLayerManifestId'
-require_owner_term "$INPUT" 'MirJsonReadMachineAdmittedInputObserved'
-require_owner_term "$OWNER" 'MirMachineLayerAdmitDocumentWithTopologyObserved'
-require_owner_term "$OWNER" 'MirMachineLayerObjectReady'
-require_owner_term "$OWNER" 'machine_contact_kind'
-require_owner_term "$OWNER" 'physical_grant'
-require_owner_term "$OWNER" 'physical_base'
-require_owner_term "$OWNER" 'physical_size'
-require_owner_term "$OWNER" 'physical_mode'
-require_owner_term "$DECLARATION_CONSUMER" 'SelfHostMachineLayerDeclarationFromPath'
-require_owner_term "$MACHINE_BINDING_OWNER" 'CompilerMachineLayerRuntimeBindingBlock'
-require_owner_term "$MACHINE_BINDING_OWNER" 'CompilerMachineLayerRuntimeBindingStatement'
 RIR_VALIDATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/machine_layer_rir_validator/main.pgy"
-require_owner_term "$RIR_VALIDATOR_SOURCE" 'machine_contact'
-require_owner_term "$RIR_VALIDATOR_SOURCE" 'CompilerRuntimeCallAbiMachineLayerContactNameAt'
-JSON_PROJECTION_OWNER="$ROOT_DIR/src/self_hosted/mir/json_projection_owner.pgy"
 PROJECTION_PROBE_SOURCE="$ROOT_DIR/src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy"
-require_owner_term "$JSON_PROJECTION_OWNER" 'machine_contact_kind'
-require_owner_term "$JSON_PROJECTION_OWNER" 'physical_base'
-if grep -Eq -- 'AST_|ReadFile\(' "$OWNER"; then
-    echo "[self-host-mir-machine-layer] machine fact owner reached a source fallback" >&2
-    exit 1
-fi
 
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/mir_machine_layer}"
 mkdir -p "$BUILD_DIR"

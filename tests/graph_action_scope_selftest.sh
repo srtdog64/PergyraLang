@@ -37,11 +37,6 @@ expect_refusal() {
     echo "[graph-action-scope-selftest] refused: $label"
 }
 
-snapshot "$work/missing"
-perl -pi -e 's/^Example deleted_compensation_target_gets_stuck/Example removed_deleted_compensation_target_gets_stuck/' \
-    "$work/missing/docs/semantics/proofs/OwnershipGraphActionScope.v"
-expect_refusal missing "$work/missing" 'lost deleted_compensation_target_gets_stuck'
-
 # Reads of unacquired links admitted: the step theorem must stop compiling.
 snapshot "$work/admission"
 perl -pi -e 's/\| BRead l => In l ls end\./| BRead l => True end./' \
@@ -99,4 +94,4 @@ snapshot "$work/clean"
 PGY_GRAPH_ACTION_RECEIPT_DIR="$receipt/clean" \
     bash "$work/clean/tests/graph_action_scope_smoke.sh" >"$receipt/clean.log" 2>&1
 expect_refusal clean "$work/clean" 'refusing to overwrite an existing receipt'
-echo "[graph-action-scope-selftest] PASS (11 planted regressions; receipt: $receipt)"
+echo "[graph-action-scope-selftest] PASS (10 planted regressions; receipt: $receipt)"

@@ -26,14 +26,6 @@ fail() { echo "[host-task-slot] FAIL: $*" >&2; exit 1; }
 [[ -x "$PGY" ]] || fail "missing compiler binary: $PGY"
 pgy_require_runnable_binary_here "host-task-slot" "$PGY"
 [[ -f "$MODULE" ]] || fail "missing $MODULE"
-grep -Fq 'namespace HostTasks {' "$MODULE" || fail "missing HostTasks namespace"
-grep -Fq 'ticket.generation != slot.generation' "$MODULE" || fail "missing generation guard"
-grep -Fq 'func PublishWait(' "$MODULE" || fail "missing wait publication owner"
-grep -Fq 'func PublishFinal(' "$MODULE" || fail "missing final publication owner"
-grep -Fq 'func Cleanup(' "$MODULE" || fail "missing cleanup owner"
-if grep -Eq 'Promise|Generator|AbortSignal|scheduler|mailbox|spawn[[:space:]]*[(]' "$MODULE"; then
-    fail "module introduced a second task/scheduler surface"
-fi
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_host_task_slot.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT

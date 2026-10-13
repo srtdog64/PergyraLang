@@ -17,52 +17,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_populated_array_int_literal_re
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_populated_array_int_literal_mutations.py"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy"
-OPERAND_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy"
-READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-for owner in "$PLAN" "$ADMISSION" "$OPERAND_OWNER" "$READINESS" "$C_OWNER" "$LLVM_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema does not carry the populated Array<Int> kind"
-grep -Fq 'AstExpressionNodeIntegerLiteral()' "$OPERAND_OWNER" ||
-    fail "Array<Int> literal does not admit canonical Int literals"
-grep -Fq 'DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(' "$OPERAND_OWNER" ||
-    fail "Array<Int> literal does not consume zero-call identity"
-grep -Fq 'DirectMirScalarCfgWireExprRefAt(' "$OPERAND_OWNER" ||
-    fail "Array<Int> literal does not consume parameter LocalRef"
-grep -Fq 'DirectMirScalarCfgLeafOperandFromOwners(' "$OPERAND_OWNER" ||
-    fail "Array<Int> literal does not consume local SSA use identity"
-grep -Fq 'DirectMirScalarProgramExpressionKindFactFromSource(' "$OPERAND_OWNER" ||
-    fail "Array<Int> expression operand bypasses common classification"
-grep -Fq 'DirectMirScalarProgramExprSubtractInt()' "$OPERAND_OWNER" ||
-    fail "Array<Int> literal omits exact Int subtraction operands"
-grep -Fq 'DirectMirScalarProgramNestedArrayIntLiteralOperandRows(' "$ADMISSION" ||
-    fail "nested Array<Int> literal bypasses the populated literal owner"
-grep -Fq 'normalized_types[operand] != CompilerAbiLayoutIntTypeName()' "$ADMISSION" ||
-    fail "nested Array<Int> literal omits normalized operand type identity"
-grep -Fq 'DirectMirRoutineValueParameterOrdinalAtName(' "$OPERAND_OWNER" ||
-    fail "Array<Int> literal does not consume exact parameter ordinal"
-grep -Fq 'DirectMirScalarProgramExprIntLiteral()' "$READINESS" ||
-    fail "Array<Int> literal readiness omits Int literal operands"
-grep -Fq 'DirectMirScalarProgramExprDirectCall()' "$READINESS" ||
-    fail "Array<Int> literal readiness omits zero-call operands"
-grep -Fq 'DirectMirScalarProgramExprParameter()' "$READINESS" ||
-    fail "Array<Int> literal readiness omits parameter operands"
-grep -Fq 'DirectMirScalarProgramExprSubtractInt()' "$READINESS" ||
-    fail "Array<Int> literal readiness omits subtraction operands"
-grep -Fq 'DirectMirScalarProgramExprIntLiteral()' "$C_OWNER" ||
-    fail "C literal owner does not consume normalized literal operands"
-grep -Fq 'ArrayLength(values) < 1' "$LLVM_OWNER" ||
-    fail "LLVM literal owner does not accept the one-or-more operand contract"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

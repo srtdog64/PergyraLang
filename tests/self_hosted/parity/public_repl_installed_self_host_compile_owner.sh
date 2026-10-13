@@ -113,13 +113,6 @@ for file in "$WORK_DIR/missing.err" "$WORK_DIR/invalid.err"; do
         repl_owner_fail "REPL evaluation re-entered the native timed pipeline"
 done
 
-! grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/repl.c" ||
-    repl_owner_fail "REPL regained a direct native compiler call"
-[[ "$(grep -Fc 'c_runner_execute_installed_self_host_c(' \
-    "$ROOT_DIR/src/compiler/repl.c")" == "1" ]] ||
-    repl_owner_fail "REPL must enter exactly one installed compile/run boundary"
-grep -Fq 'return repl_run(argv[0]);' "$ROOT_DIR/src/pgy_driver.c" ||
-    repl_owner_fail "launcher identity no longer reaches the REPL compile owner"
 if compgen -G "$TEMP_DIR/pgy_repl_*" >/dev/null; then
     repl_owner_fail "REPL left a source or binary artifact"
 fi

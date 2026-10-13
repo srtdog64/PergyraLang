@@ -20,37 +20,14 @@ BORROWED_SOURCE="tests/self_hosted/fixtures/direct_mir_borrowed_array_string_own
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy"
-USE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy"
-COVERAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy"
-CLEANUP="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT" "$ADMISSION" "$USE_OWNER" "$COVERAGE" "$CLEANUP" "$C_OWNER" \
-        "$LLVM_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveFact' "$FACT" ||
-    fail "move fact is missing"
-grep -Fq 'caller_routines: Array<Int>' "$FACT" ||
-    fail "move fact does not own an ordered row set"
-grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady(' "$COVERAGE" ||
-    fail "move admission omits complete exit-set proof"
-! grep -Fq 'candidates != 1' "$ADMISSION" ||
-    fail "move admission restored its one-row ceiling"
-grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(' "$CLEANUP" ||
-    fail "cleanup policy does not consume the move fact"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'DirectMirScalarProgramArrayStringLocalCleanupRequired(' "$owner" ||
-        fail "backend cleanup bypasses move retirement: ${owner#"$ROOT_DIR/"}"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

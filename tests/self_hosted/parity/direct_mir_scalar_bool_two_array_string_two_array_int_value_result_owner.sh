@@ -17,32 +17,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_bool_two_array_string_two_array_int_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_bool_two_array_string_two_array_int_value_result_mutations.py"
-C_COPY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_value_result_owner.pgy"
-LLVM_COPY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy"
-C_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'array_string_count == 2 && array_int_count == 2' "$POLICY" ||
-    fail "2+2 collection cardinality is not exact"
-grep -Fq 'array_string_layout != array_int_layout' "$POLICY" ||
-    fail "cross-family ABI identity is not separated"
-! grep -Fq 'ordinal == 0 || ordinal == 1' "$POLICY" ||
-    fail "retired positional collection policy remains"
-! grep -Fq 'signature.param_count != 8' "$POLICY" ||
-    fail "retired exact parameter-count policy remains"
-grep -Fq 'DirectMirScalarProgramCArrayStringCarrierType(' "$C_COPY" || fail "C copy ignores projection"
-! grep -Fq '    pgy_as pgy_param_' "$C_COPY" || fail "C copy spells type locally"
-grep -Fq 'projection.llvm_aggregate_type' "$LLVM_COPY" || fail "LLVM copy ignores type projection"
-grep -Fq 'projection.storage.align' "$LLVM_COPY" || fail "LLVM copy ignores align projection"
-! grep -Fq '%pgy.array.string' "$LLVM_COPY" || fail "LLVM copy spells type locally"
-! grep -Fq 'align 8' "$LLVM_COPY" || fail "LLVM copy spells alignment locally"
-grep -Fq 'DirectMirScalarProgramCArrayStringCarrierType(' "$C_SIGNATURE" || fail "C signature ignores projection"
-! grep -Fq 'CompilerAbiLayoutArrayStringCValueType()' "$C_SIGNATURE" || fail "C signature retains global fallback"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

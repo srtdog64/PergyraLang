@@ -14,21 +14,11 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_collection_phi_value.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
-TYPED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_mutations.py"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 for command in "$CC" "$CLANG" python; do command -v "$command" >/dev/null ||
     fail "missing command: $command"; done
-grep -Fq 'DirectMirScalarCfgPhiValueTypeReady(' "$OWNER" ||
-    fail "phi owner has no value-carrier classification"
-for type_name in ArrayInt ArrayBool ArrayString; do
-    grep -Fq "CompilerAbiLayout${type_name}TypeName()" "$OWNER" ||
-        fail "phi owner omits $type_name"
-done
-grep -Fq 'DirectMirScalarCfgPhiValueTypeReady(' "$TYPED" ||
-    fail "typed readiness reclassifies PhiValue"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

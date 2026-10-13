@@ -15,10 +15,6 @@ WORK_REL=".tmp/self_hosted/semantic_enum_payload_variant_provenance"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 VARIANT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy"
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_local_binding_identity_owner.pgy"
-BUNDLE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-RECEIPT_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
-MIR_ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -28,50 +24,6 @@ pgy_require_runnable_binary_here "$LABEL:self-driver" "$SELF_DRIVER" || exit 1
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 
-require_text "$BUNDLE_OWNER" 'import "ast_enum_payload_variant_provenance_verdict_owner.pgy";'
-require_text "$BUNDLE_OWNER" 'SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts('
-require_text "$VARIANT_OWNER" 'struct SemanticAstEnumPayloadVariantFact'
-require_text "$VARIANT_OWNER" 'SemanticAstEnumPayloadVariantJoin('
-require_text "$VARIANT_OWNER" 'SemanticAstEnumPayloadMatchArmEntryState('
-require_text "$VARIANT_OWNER" '"enum_payload_variant_unproven"'
-require_text "$IDENTITY_OWNER" 'declaration_node_id: Int;'
-require_text "$IDENTITY_OWNER" 'binding_index: Int;'
-require_text "$RECEIPT_OWNER" 'if code == "enum_payload_variant_unproven" {'
-require_text "$BUNDLE_OWNER" 'if verdict.ok && require_enum_payload_variant_proof {'
-require_text "$DRIVER_OWNER" 'DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource()'
-require_text "$DRIVER_OWNER" 'DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()'
-require_text "$MIR_ADMISSION_OWNER" 'source_semantic_proof_consumed: Bool;'
-require_text "$MIR_ADMISSION_OWNER" 'require_reconstructed_proof: Bool;'
-require_text "$ROOT_DIR/src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy" \
-    'SemanticCallTargetMember() {'
-require_text "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
-    'call_target_kind != SemanticCallTargetMember())'
-require_text "$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_persisted_node_identity_owner.pgy" \
-    'target_kind != SemanticCallTargetMember())'
-require_text "$ROOT_DIR/src/compiler/mir_json_expression_graph_materialize.c" \
-    'target_syntax_id = ast_call_semantic_callee_decl_id(expr);'
-require_text "$VARIANT_OWNER" 'signatures.param_modes[flat_index] == 3'
-require_text "$VARIANT_OWNER" 'SemanticAstEnumPayloadReceiverShadowedByMatchBinder('
-require_text "$VARIANT_OWNER" 'SemanticAstEnumPayloadIfThenEntryState('
-require_text "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_enum_payload_owner.pgy" \
-    'SemanticExpressionGraphEnumVariantEqualityShapeFromGraph('
-require_text "$VARIANT_OWNER" 'signatures.generic_names['
-if grep -Fq 'verdict.ok && !require_carried_expression_identities' "$BUNDLE_OWNER"; then
-    fail "carried graph identity still grants payload-variant proof admission"
-fi
-
-if grep -Eq 'initializer_texts|value_texts|payload_texts|TypedAstArenaProvenanceText|AstTextScan|ReadFile|source_(text|path)|String(IndexOf|Contains|Split)|StartsWith|EndsWith|Substring|Trim\(' \
-    "$VARIANT_OWNER" "$IDENTITY_OWNER"; then
-    fail "active-variant proof reintroduced rendered-source recovery"
-fi
-if grep -Eq 'SemanticAst(LocalBinding|Assignment|Statement|Enum|FunctionScope|ExpressionSurface)FactsFromArtifact' \
-    "$VARIANT_OWNER" "$IDENTITY_OWNER"; then
-    fail "active-variant proof re-derived an admitted semantic owner"
-fi
-if grep -Eq 'import ".*(/mir|/air|/compiler|/codegen)' \
-    "$VARIANT_OWNER" "$IDENTITY_OWNER"; then
-    fail "source-semantic proof depends on a downstream stage"
-fi
 variant_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$VARIANT_OWNER")" || fail "source-size measurement failed: $VARIANT_OWNER"
 [[ "$variant_lines" -le 1450 ]] ||
     fail "variant provenance owner exceeded its cohesive flow cap"

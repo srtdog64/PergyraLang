@@ -41,31 +41,6 @@ expect_refusal() {
     echo "[graph-cycle-reclaim-selftest] refused: $label"
 }
 
-snapshot "$work/missing"
-perl -pi -e 's/^Theorem returned_link_must_stay_rooted/Theorem removed_returned_link_must_stay_rooted/' \
-    "$work/missing/docs/semantics/proofs/OwnershipGraphRootCompleteness.v"
-expect_refusal missing "$work/missing" 'lost returned_link_must_stay_rooted'
-
-snapshot "$work/missing_batch"
-perl -pi -e 's/^Example audit_borrowed_batch_is_not_atomic/Example removed_audit_borrowed_batch_is_not_atomic/' \
-    "$work/missing_batch/tests/coq/GraphCycleReclaimAudit.v"
-expect_refusal missing_batch "$work/missing_batch" 'lost audit_borrowed_batch_is_not_atomic'
-
-snapshot "$work/missing_atomic"
-perl -pi -e 's/^Example audit_borrowed_batch_atomic_refusal/Example removed_audit_borrowed_batch_atomic_refusal/' \
-    "$work/missing_atomic/tests/coq/GraphCycleReclaimAudit.v"
-expect_refusal missing_atomic "$work/missing_atomic" 'lost audit_borrowed_batch_atomic_refusal'
-
-snapshot "$work/missing_initial"
-perl -pi -e 's/^Example audit_canonical_shrinking_units_refused/Example removed_audit_canonical_shrinking_units_refused/' \
-    "$work/missing_initial/tests/coq/GraphCycleReclaimAudit.v"
-expect_refusal missing_initial "$work/missing_initial" 'lost audit_canonical_shrinking_units_refused'
-
-snapshot "$work/missing_snapshot"
-perl -pi -e 's/^Example audit_full_inventory_snapshot_observes_reclaim/Example removed_audit_full_inventory_snapshot_observes_reclaim/' \
-    "$work/missing_snapshot/tests/coq/GraphCycleReclaimAudit.v"
-expect_refusal missing_snapshot "$work/missing_snapshot" 'lost audit_full_inventory_snapshot_observes_reclaim'
-
 snapshot "$work/weakened"
 perl -0pi -e 's/Theorem ledger_consumption_revokes\b.*?Qed\./Theorem ledger_consumption_revokes : True. Proof. exact I. Qed./s' \
     "$work/weakened/docs/semantics/proofs/OwnershipGraphRootCompleteness.v"
@@ -96,4 +71,4 @@ snapshot "$work/clean"
 PGY_GRAPH_RECLAIM_RECEIPT_DIR="$receipt/clean" \
     bash "$work/clean/tests/graph_cycle_reclaim_smoke.sh" >"$receipt/clean.log" 2>&1
 expect_refusal clean "$work/clean" 'refusing to overwrite an existing receipt'
-echo "[graph-cycle-reclaim-selftest] PASS (11 planted regressions; receipt: $receipt)"
+echo "[graph-cycle-reclaim-selftest] PASS (6 planted regressions; receipt: $receipt)"

@@ -3,9 +3,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-INDEX="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
-LOWER="$ROOT_DIR/src/self_hosted/mir_lower/routine_lower.pgy"
-DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 pgy_prepend_windows_runtime_paths
@@ -100,13 +97,4 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_STATE_INDEX_REL" >"$BAD_STATE_INDEX_OUT
 fi
 grep -Eq -- "routine LoopFlowSummary facts are incomplete|routine MIR fact index is incomplete" "$BAD_STATE_INDEX_OUT"
 
-grep -Fq -- 'loop_flow_summary_count' "$DUMP"
-grep -Fq -- 'loop_flow_summaries' "$DUMP"
-grep -Fq -- 'loop_flow_state_count' "$DUMP"
-grep -Fq -- 'loop_flow_states' "$DUMP"
-grep -Fq -- 'MirRoutineFactIndexLoopFlowFactsValid' "$INDEX"
-grep -Fq -- 'loop_flow_summary_entry_starts' "$INDEX"
-grep -Fq -- 'routine LoopFlowSummary facts are incomplete' "$LOWER"
-grep -Fq -- 'LoopFlowSummaryProjectionReady' "$LOWER"
-grep -Fq -- 'MirRoutineFactIndexResourceFlowIndexKnown' "$INDEX"
 echo "[self-host-mir-loop-flow] LoopFlowSummary identity and fail-closed gates passed"

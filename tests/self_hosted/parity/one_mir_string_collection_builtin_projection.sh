@@ -32,31 +32,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-INPUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
-JOIN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy"
-LLVM_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
-require_text "$INPUT" 'DirectMirScalarCfgProgramGraphInputFromAdmitted'
-require_text "$KIND" 'DirectMirScalarProgramExpressionKindLast'
-require_text "$ABI" 'DirectMirScalarProgramArrayStringAbiFactFromAdmitted'
-require_text "$JOIN" 'ToString(abi.data_index)'
-require_text "$JOIN" 'ToString(abi.length_index)'
-reject_text "$JOIN" 'extractvalue %pgy.array.string %array, 0'
-reject_text "$JOIN" 'extractvalue %pgy.array.string %array, 1'
-require_text "$LLVM_COLLECTION" 'DirectMirScalarProgramLlvmStringJoinBlock(runtime, abi)'
-for owner in "$INPUT" "$KIND" "$ABI" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_kind_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy"; do
-    reject_text "$owner" 'str_builtins2.pgy'
-    reject_text "$owner" 'a,bb,c'
-    reject_text "$owner" 'hello world'
-done
-
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \

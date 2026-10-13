@@ -17,35 +17,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_populated_array_bool_literal.p
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_populated_array_bool_literal_mutations.py"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_bool_populated_literal_admission_owner.pgy"
-READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_bool_populated_literal_readiness_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_bool_populated_literal_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-for owner in "$PLAN" "$ADMISSION" "$READINESS" "$C_OWNER" "$LLVM_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema does not carry populated Array<Bool>"
-grep -Fq 'AstExpressionNodeBoolLiteral()' "$ADMISSION" ||
-    fail "admission does not consume Bool literal identity"
-grep -Fq 'DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(' "$ADMISSION" ||
-    fail "admission bypasses the canonical array seed"
-grep -Fq 'SemanticExpressionBindingNone()' "$ADMISSION" ||
-    fail "admission does not close binding identity"
-grep -Fq 'ArrayLength(operands) < 1' "$READINESS" ||
-    fail "readiness lost the one-or-more element contract"
-grep -Fq 'CompilerAbiLayoutArrayBoolTypeName()' "$READINESS" ||
-    fail "readiness lost the Array<Bool> ABI type"
-grep -Fq 'out.data = (bool *)malloc(' "$C_OWNER" ||
-    fail "C owner does not allocate typed Bool storage"
-grep -Fq 'store i1 ' "$LLVM_OWNER" ||
-    fail "LLVM owner does not store typed Bool elements"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

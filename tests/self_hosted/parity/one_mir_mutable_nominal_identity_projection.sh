@@ -39,35 +39,7 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_target_pr
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_c_emission_owner.pgy|90
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy|90
 EOF
-    local identity_inventory=("$ROOT_DIR"/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_*.pgy)
-    [[ "${#identity_inventory[@]}" -eq 4 ]] || fail "mutable nominal identity owner inventory drifted"
     [[ "$total" -le 384 ]] || fail "mutable nominal identity owner cap exceeded: $total/384"
-    [[ "$(grep -R -F 'DirectMirNominalLiteralRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal route escaped one definition and one call"
-    [[ "$(grep -R -F 'DirectMirNominalLiteralProgramAdmissionFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal admission escaped one definition and one call"
-    [[ "$(grep -Fc 'DirectMirNominalLiteralProgramAdmissionFromAdmitted(admitted, route)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy")" -eq 1 ]] || fail "common nominal admission is not single-shot"
-    [[ "$(grep -Ec 'MutableNominalIdentityPlanFromAdmission\(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy")" -eq 1 ]] || fail "mutable identity planner was retried"
-    ! grep -R -Eq 'MutableNominalIdentityProgramCandidate|MutableNominalIdentity.*FromAdmitted' "$ROOT_DIR/src/self_hosted/compiler" || fail "mutable identity family re-read admitted MIR"
-    ! grep -R -Fq 'direct_mir_passive_nominal_literal_plan_owner.pgy' "${identity_inventory[@]}" || fail "mutable identity imported the passive value plan"
-    grep -Fq 'storage_count == 1' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy" || fail "mutable identity plan lost exact-one storage"
-    grep -Fq 'stable_pointer_count == 1' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy" || fail "mutable identity plan lost exact-one pointer"
-    grep -Fq 'result_capture_digest' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy" || fail "mutable allocation identity is not definition-sealed"
-    grep -Fq 'CallableReceiverNominalKindUsesMutableIdentity' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy" || fail "mutable identity plan bypassed semantic carriage ownership"
-    grep -Fq 'CallableReceiverNominalKindUsesMutableLiteralIdentity' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy" || fail "nominal literal declaration bypassed the bounded carriage policy"
-    local shared_router_inventory=(
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_route_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy"
-    )
-    ! grep -Eq '"(subject|vessel)"' "${shared_router_inventory[@]}" || fail "shared nominal router recreated a kind allow-list"
-    ! grep -Eq '"(subject|vessel)"|SubjectIdentity|subject identity' "${identity_inventory[@]}" || fail "mutable identity family dispatched on one nominal kind"
-    ! grep -Fq 'aggregate_value' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy" || fail "mutable identity plan widened to passive value carriage"
-    ! grep -Eq 'alloca|getelementptr|insertvalue|extractvalue|\*const|_pgy_identity' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_mutable_nominal_identity_target_projection_owner.pgy" || fail "mutable identity target projection owns emitter syntax"
-    local emitter
-    for emitter in direct_mir_mutable_nominal_identity_c_emission_owner.pgy direct_mir_mutable_nominal_identity_llvm_emission_owner.pgy; do
-        ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened MIR"
-        ! grep -Eq '"(Hero|HP|subject|vessel)"|nominal_(subject|vessel)|fixture' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter dispatched on a fixture spelling"
-    done
-    [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_subject_identity_plan_owner.pgy" ]] || fail "retired subject-only plan path returned"
 }
 
 project() {

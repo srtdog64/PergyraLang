@@ -55,18 +55,6 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_llvm_emiss
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy|40
 EOF
     [[ "$total" -le 2100 ]] || fail "inferred generic member owner family cap exceeded: $total/2100"
-    grep -Fq 'DirectMirTwoRoutineInferredGenericMember()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_two_routine_classification_owner.pgy" || fail "member classification is not owned"
-    grep -Fq 'CompileAdmittedDirectMirInferredGenericMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" || fail "member projection is not routed"
-    [[ "$(grep -Fc 'DirectMirTwoRoutineClassificationFromAdmitted(admitted)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")" -eq 1 ]] || fail "two-routine classification is not single-shot"
-    [[ "$(grep -c '^import ' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy")" -eq 2 ]] || fail "member target selection imported another planner"
-    [[ "$(grep -Ec 'PlanFromAdmitted\(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_projection_owner.pgy")" -eq 1 ]] || fail "member target selection retried another planner"
-    grep -Fq 'internal_single_int_value_class' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" || fail "internal value-class representation is not explicit"
-    grep -Fq 'internal_single_int_mutable_identity_vessel' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy" || fail "mutable-identity vessel representation is not explicit"
-    for emitter in direct_mir_inferred_generic_member_c_emission_owner.pgy direct_mir_inferred_generic_member_llvm_emission_owner.pgy; do
-        ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR"
-        ! grep -Fq 'CompilerSymbolCGenericSpecializationName' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reconstructed the specialization symbol"
-        ! grep -Eq '"(class|vessel|Box|Cell)"|fixture' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter dispatched on a host or fixture spelling"
-    done
 }
 
 project() {

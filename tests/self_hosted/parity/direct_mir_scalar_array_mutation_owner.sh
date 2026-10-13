@@ -17,47 +17,13 @@ MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_mutation_mutations.py"
 BOOL_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_bool_push_mutations.py"
 POP_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_value_result_pop_mutations.py"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_mutation_target_owner.pgy"
-STORAGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy"
-READINESS_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_mutation_readiness_owner.pgy"
-TYPED_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy"
-PLAN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-LEAF_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-for owner in "$TARGET_OWNER" "$STORAGE_OWNER" "$READINESS_OWNER" "$TYPED_OWNER" "$C_OWNER" "$LLVM_OWNER" "$PLAN_OWNER" "$LEAF_OWNER" "$MUTATIONS" "$BOOL_MUTATIONS" "$POP_MUTATIONS"; do
+for owner in "$MUTATIONS" "$BOOL_MUTATIONS" "$POP_MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN_OWNER" ||
-    fail "GraphPlan schema does not carry the secondary index expression row"
-grep -Fq 'operation_name != "ArrayPop"' \
-    "$TARGET_OWNER" || fail "target owner does not classify one mutation family"
-grep -Fq 'secondary_expression_row' "$STORAGE_OWNER" ||
-    fail "operation storage omits the explicit ArraySet index row"
-grep -Fq 'index_row, CompilerAbiLayoutIntTypeName(), routine' "$READINESS_OWNER" ||
-    fail "ArraySet readiness does not require an Int index"
-grep -Fq 'plan.operation_left_locals[row] >= 0' "$TYPED_OWNER" ||
-    fail "typed readiness still classifies a formal mutation as a local target"
-grep -Fq 'pgy_set_' "$C_OWNER" ||
-    fail "C mutation owner does not materialize ordered index/value temporaries"
-grep -Fq 'DirectMirScalarCfgCOperand(plan, -1, target_local, "")' "$C_OWNER" ||
-    fail "C mutation owner does not consume the program-global local row"
-if grep -Fq 'DirectMirScalarCfgCLocal(plan, target_local)' "$C_OWNER"; then
-    fail "C mutation owner reinterprets a local row as a value row"
-fi
-grep -Fq 'DirectMirScalarProgramLlvmLocalArraySetMaterialization' "$LLVM_OWNER" ||
-    fail "LLVM mutation owner omits checked local ArraySet definitions"
-grep -Fq 'DirectMirScalarCfgLlvmOperandLocal(' "$LLVM_OWNER" ||
-    fail "LLVM mutation owner does not consume the program-global local row"
-if grep -Fq 'DirectMirScalarCfgLlvmLocal(plan, target_local)' "$LLVM_OWNER"; then
-    fail "LLVM mutation owner reinterprets a local row as a value row"
-fi
-grep -Fq 'while consumed_use < use_row' "$LEAF_OWNER" ||
-    fail "expression owner cannot reuse an already-consumed receiver ValueId"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

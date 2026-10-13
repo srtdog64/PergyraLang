@@ -17,8 +17,6 @@ WORK_REL="${WORK_DIR#"$ROOT_DIR/"}"
 SOURCE_REL="src/self_hosted/codegen/fixture/string_array_index_return.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 [[ -x "$DRIVER" ]] || fail "current-source self-host driver is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
@@ -27,19 +25,6 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 # Source-size policy belongs to self_hosted_component_contract_smoke.sh;
 # this gate owns executable MIR admission and C/LLVM parity only.
-
-BOUNDARY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy"
-LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy"
-C_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy"
-require_text "$BOUNDARY" 'DirectMirBoundedLiteralIndexReady'
-require_text "$BOUNDARY" 'DirectMirScalarProgramArrayStringAbiMatchesCallable'
-require_text "$C_SIGNATURE" 'DirectMirScalarProgramCArrayStringCarrierType(array_string_abi, projection)'
-for owner in "$BOUNDARY" "$LITERAL"; do
-    for term in source_json expr0 string_array_index_return Pick native_retry \
-        DirectMirScalarCfgStringArrayPlan; do
-        reject_text "$owner" "$term"
-    done
-done
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \

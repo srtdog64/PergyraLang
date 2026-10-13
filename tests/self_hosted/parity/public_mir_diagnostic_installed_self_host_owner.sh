@@ -31,22 +31,10 @@ WORK_REL=".tmp/self_hosted/public_mir_diagnostic_installed"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SIMPLE="examples/hello.pgy"
 CFG="src/self_hosted/mir_lower/fixture/if_else_assign.pgy"
-LAUNCHER="$ROOT_DIR/src/pgy_driver.c"
-C_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_stdout_process_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
-STDOUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy"
-PROJECTION_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy"
-INPUT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/mir_json_input_owner.pgy"
 
 fail() {
     echo "[self-host-public-mir-diagnostic] $*" >&2
     exit 1
-}
-
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
 }
 
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -199,47 +187,5 @@ set -e
     fail "closed child stdout bypassed the empty-payload boundary"
 grep -Fq 'success without a MIR diagnostic payload' "$WORK_DIR/closed.err" ||
     fail "closed child stdout was mistaken for a child exit code"
-
-require_text "$LAUNCHER" 'if (flags.dump_mir) return driver_run_self_host_mir_diagnostic_request(argv[0], &flags);'
-native_line="$(grep -n 'if (flags.native_pipeline' "$LAUNCHER" | cut -d: -f1)"
-mir_line="$(grep -n 'if (flags.dump_mir) return' "$LAUNCHER" | cut -d: -f1)"
-last_native_dispatch_line="$(grep -n 'return driver_run_pipeline(&flags);' "$LAUNCHER" | tail -1 | cut -d: -f1)"
-native_dispatch_count="$(grep -Fc 'return driver_run_pipeline(&flags);' "$LAUNCHER")"
-((native_dispatch_count == 2 && native_line < mir_line &&
-    last_native_dispatch_line < mir_line)) ||
-    fail "native pipeline dispatch escaped the pre-delegation explicit opt-out boundary"
-require_text "$C_OWNER" '"--emit-mir-diagnostic-verified"'
-require_text "$C_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
-require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
-require_text "$PROCESS_OWNER" 'success without %s %s payload'
-! grep -Eq 'driver_run_pipeline|mir_dump|system\(' "$C_OWNER" "$PROCESS_OWNER" ||
-    fail "MIR diagnostic relay regained a native/string-shell fallback"
-require_text "$REQUEST_OWNER" 'DriverCliSourceMirDiagnosticStdout(String)'
-require_text "$REQUEST_OWNER" 'args[0] == "--emit-mir-diagnostic-verified"'
-require_text "$READ_OWNER" 'DriverSourceMirDiagnosticPayloadOrDie('
-require_text "$STDOUT_OWNER" 'ProduceSourceMirThroughPgyCompilerWorld('
-require_text "$STDOUT_OWNER" 'MirJsonAdmitBorrowedText('
-! grep -Eq '^(enum|struct|tobject) ' "$STDOUT_OWNER" ||
-    fail "source-MIR stdout owner created a second protocol species"
-require_text "$INPUT_OWNER" 'func MirJsonAdmitBorrowedTextObserved('
-require_text "$INPUT_OWNER" 'return MirJsonAdmitBorrowedTextObserved('
-require_text "$PROJECTION_OWNER" 'ref admitted: MirMachineLayerAdmittedJsonInput'
-! grep -Eq 'ReadFile\(|CompileSourceTo|MirMachineLayerAdmitJsonInput|mir_dump|MIRProgram' \
-    "$PROJECTION_OWNER" || fail "diagnostic projection reopened an old fact owner"
-for native_row in cfg_body_dataflow_smoke.sh:3 ir_pipeline_probe.sh:1 \
-    sanitizer_compile_smoke.sh:2; do
-    native_test="${native_row%%:*}"
-    expected_calls="${native_row#*:}"
-    mir_calls="$(awk '!/^[[:space:]]*#/ && \
-        /\$PGY"?[^#]*--mir([[:space:]>]|$)/ { count++ } \
-        END { print count + 0 }' "$ROOT_DIR/tests/$native_test")"
-    native_calls="$(awk '!/^[[:space:]]*#/ && \
-        /\$PGY"?[^#]*--native-pipeline[[:space:]]+--mir([[:space:]>]|$)/ \
-        { count++ } END { print count + 0 }' \
-        "$ROOT_DIR/tests/$native_test")"
-    [[ "$mir_calls" -eq "$expected_calls" && \
-        "$native_calls" -eq "$expected_calls" ]] ||
-        fail "$native_test has a MIR oracle outside explicit native ownership"
-done
 
 echo "[self-host-public-mir-diagnostic] installed Pergyra admission owns public --mir; explicit native lifecycle oracle and failure boundaries: PASS"

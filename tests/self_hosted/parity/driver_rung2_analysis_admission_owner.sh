@@ -15,89 +15,12 @@ pgy_require_runnable_binary_here "$LABEL" "$PGY" \
     || fail "PGY_BIN is not runnable"
 
 OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
-CANONICAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
 PROBE_SRC="$ROOT_DIR/tests/self_hosted/fixtures/driver_rung2_mutable_analysis_reject.pgy"
-DIRECT_PROBE="$ROOT_DIR/src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/driver_rung2_analysis_admission"
 PROBE_BIN="$BUILD_DIR/mutable-analysis-reject.exe"
 PROBE_SRC_ARG="$(pgy_selfhost_path_relative_to_root "$PROBE_SRC")"
 PROBE_BIN_ARG="$(pgy_selfhost_path_relative_to_root "$PROBE_BIN")"
 
-function_body() {
-    local owner="$1" name="$2"
-    sed -n "/^func ${name}(/,/^}/p" "$owner"
-}
-
-require_in_function() {
-    local owner="$1" function_name="$2" term="$3"
-    function_body "$owner" "$function_name" | grep -Fq -- "$term" \
-        || fail "$function_name is missing: $term"
-}
-
-reject_in_function() {
-    local owner="$1" function_name="$2" term="$3"
-    if function_body "$owner" "$function_name" | grep -Fq -- "$term"; then
-        fail "$function_name retained forbidden term: $term"
-    fi
-}
-
-require_in_function "$OWNER" VerifyArtifactAnalysisForDriverRung2Observed \
-    'SemanticAstArtifactAnalysisMatches('
-require_in_function "$OWNER" VerifyArtifactAnalysisForDriverRung2Observed \
-    'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-require_in_function "$OWNER" VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved \
-    'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved('
-reject_in_function "$OWNER" VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved \
-    'SemanticAstArtifactAnalysisMatches('
-
-require_in_function "$OWNER" DriverRung2MirProjectionFromAnalysisObserved \
-    'SemanticAstArtifactAnalysisMatches('
-require_in_function "$OWNER" DriverRung2MirProjectionFromAnalysisObserved \
-    'DriverRung2MirProjectionFromAdmittedAnalysisObserved('
-require_in_function "$OWNER" DriverRung2MirProjectionFromAdmittedAnalysisObserved \
-    'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-reject_in_function "$OWNER" DriverRung2MirProjectionFromAdmittedAnalysisObserved \
-    'VerifyArtifactAnalysisForDriverRung2Observed('
-require_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'SemanticAstBodyTypeBundleAdmissionReceiptReadyFor('
-require_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'SelfMirProgramFactsBeforeCanonicalIdsObserved('
-reject_in_function "$OWNER" DriverRung2MirProjectionFromVerifiedFactsObserved 'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-
-for raw_consumer in \
-    CompileArtifactAnalysisToMirJsonVerifiedObserved; do
-    require_in_function "$OWNER" "$raw_consumer" \
-        'DriverRung2MirProjectionFromAnalysisObserved('
-    reject_in_function "$OWNER" "$raw_consumer" \
-        'DriverRung2MirProjectionFromAdmittedAnalysisObserved('
-done
-reject_in_function "$OWNER" CompileArtifactAnalysisToMirJsonFileVerifiedObserved CompileArtifactAnalysisToMirJsonFileVerifiedObserved
-
-for fresh_consumer in \
-    CompileArtifactToMirJsonVerified \
-    CompileSourceToMirJsonPressureObserved; do
-    require_in_function "$OWNER" "$fresh_consumer" 'SemanticAstArtifactAnalyzeTyped('
-    require_in_function "$OWNER" "$fresh_consumer" \
-        'DriverRung2MirProjectionFromAdmittedAnalysisObserved('
-    reject_in_function "$OWNER" "$fresh_consumer" \
-        'DriverRung2MirProjectionFromAnalysisObserved('
-done
-require_in_function "$OWNER" VerifyArtifactForMirProduction \
-    'SemanticAstArtifactAnalyzeTyped('
-require_in_function "$OWNER" VerifyArtifactForMirProduction \
-    'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-require_in_function "$CANONICAL_OWNER" CanonicalizeMirJsonVerified \
-    'SemanticAstArtifactAnalyzeWithExpressionGraph('
-require_in_function "$CANONICAL_OWNER" CanonicalizeMirJsonVerified \
-    'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-require_in_function "$CANONICAL_OWNER" CanonicalizeMirArtifactWithAdmittedTopology 'DriverRung2MirProjectionFromVerifiedFactsObserved('
-reject_in_function "$CANONICAL_OWNER" CanonicalizeMirArtifactWithAdmittedTopology 'DriverRung2MirProjectionFromAdmittedAnalysisObserved('
-reject_in_function "$CANONICAL_OWNER" CanonicalizeMirArtifactWithAdmittedTopology 'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-require_in_function "$OWNER" CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved \
-    'SemanticAstArtifactAnalyzeWithExpressionGraph('
-require_in_function "$OWNER" CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved \
-    'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved('
-
-grep -Fq -- 'DriverRung2MirProjectionFromAnalysisObserved(' "$DIRECT_PROBE" \
-    || fail "external analysis probe no longer uses the checked raw boundary"
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$OWNER")" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 500 ]] \
     || fail "driver_rung2_owner.pgy exceeds its 500-line cap"

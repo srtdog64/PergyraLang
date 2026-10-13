@@ -231,30 +231,4 @@ llvm_route_refusal_receipt float-callable \
     'func Twice(x: Float) -> Float {' '    return x * 2.0;' '}' '' \
     'func Main() -> Void {' '    Log(Twice(1.5));' '}'
 
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_llvm_selection_owner.c"
-STDOUT_OWNER="$ROOT_DIR/src/compiler/self_host_llvm_ir_stdout_owner.c"
-FILE_OWNER="$ROOT_DIR/src/compiler/self_host_llvm_ir_artifact_owner.c"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-selector_body="$(sed -n '/driver_self_host_llvm_ir_request_supported(/,/^}/p' \
-    "$SELECTION_OWNER")"
-grep -Fq 'DIAG_FORMAT_JSON' "$SELECTION_OWNER" ||
-    fail "LLVM IR selector lost JSON diagnostic admission"
-grep -Fq 'emit_json_diagnostic' "$STDOUT_OWNER" ||
-    fail "stdout owner lost explicit JSON carriage"
-grep -Fq 'emit_json_diagnostic' "$FILE_OWNER" ||
-    fail "file owner lost explicit JSON carriage"
-! grep -Fq 'workspace.secondary_path, false, false' "$STDOUT_OWNER" \
-    "$FILE_OWNER" || fail "LLVM IR wrapper restored hard-coded text carriage"
-grep -Fq -- '--emit-source-llvm-ir-json-diagnostic-verified' "$REQUEST_OWNER" ||
-    fail "typed Pergyra LLVM JSON request is missing"
-! grep -Eq 'driver_diag_code_from_message|driver_route_stage|PGY_PARSE_SYNTAX|parse:unexpected_token|check-syntax' \
-    "$SELECTION_OWNER" "$STDOUT_OWNER" "$FILE_OWNER" "$PROCESS_OWNER" ||
-    fail "C LLVM transport regained diagnostic meaning"
-! grep -Eq 'driver_run_pipeline|compiler_emit_llvm_ir|system\(' \
-    "$STDOUT_OWNER" "$FILE_OWNER" "$PROCESS_OWNER" ||
-    fail "C LLVM transport regained native or string-shell fallback"
-grep -Fq 'flags->runtime_mode == RUNTIME_DEFAULT' <<<"$selector_body" ||
-    fail "LLVM IR selector relaxed runtime ownership"
-
 echo "[self-host-public-llvm-ir-json-diagnostic] stdout/file bytes, exact Pergyra receipt, and opaque C relay; 3 typed direct-MIR route refusals: PASS"

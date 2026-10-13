@@ -27,21 +27,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
 
-BREAK_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy"
-EXIT_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_loop_exit_phi_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
-GRAPH_PHI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy"
-ROUTER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-require_text "$BREAK_OWNER" 'SelfMirLocalPredecessorSnapshotsAppend('
-require_text "$EXIT_OWNER" 'SelfMirLoopExitMergeLocalVersions('
-require_text "$ROUTER" 'DirectMirScalarCfgGraphRouteClaimed(admitted)'
-require_text "$ADMISSION" 'DirectMirScalarCfgPhiOperationFromOwners('
-require_text "$GRAPH_PHI" 'MirPhiPredecessorBindingFactFromOwners('
-reject_text "$ADMISSION" 'break_after_stmt.pgy'
-reject_text "$ADMISSION" 'DirectMirScalarCfgBreakExitMergeBridgeRequired('
-[[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_break_exit_bridge_owner.pgy" ]] ||
-    fail "retired break-exit bridge owner reappeared"
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

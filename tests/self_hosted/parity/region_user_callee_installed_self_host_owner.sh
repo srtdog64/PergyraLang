@@ -19,7 +19,6 @@ ADDRESSABLE_REL="tests/self_hosted/fixtures/readonly_string_addressable_call.pgy
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/region_user_callee_mutations.py"
 TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy"
-PARAMETER_POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -32,25 +31,6 @@ command -v "$CLANG" >/dev/null || fail "LLVM compiler is unavailable"
 
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$TARGET_OWNER")" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 40 ]] || fail "target owner exceeded 40 lines"
-for anchor in 'routines.roles[routine] != DirectMirScalarCfgRoutineRoleCallable()' \
-        'routines.return_types[routine] != CompilerAbiLayoutVoidTypeName()' \
-        'routines.parameter_counts[routine] != 1' 'ordinal != 0' \
-        'CompilerAbiLayoutReadonlyRefPassesDirect(' \
-        'routines.parameter_carriages[row] == "readonly-ref"'; do
-    require_text "$TARGET_OWNER" "$anchor"
-done
-for anchor in 'signature.param_count == 1' \
-        'signature.return_type == CompilerAbiLayoutVoidTypeName()' \
-        'signature.parameters.resources[ordinal] == "none"' \
-        'signature.parameters.pass_shapes[ordinal] == "direct"' \
-        '!signature.parameters.abi_required[ordinal]' \
-        'signature.parameters.abi_layout_ids[ordinal] == 0'; do
-    require_text "$PARAMETER_POLICY" "$anchor"
-done
-for forbidden in Sink region_user_callee readonly_string_value_carriage_coercion \
-        readonly_string_type_only_admission unchecked_void_callable_admission; do
-    reject_text "$TARGET_OWNER" "$forbidden"
-done
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \

@@ -30,46 +30,6 @@ fi
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_pkg_module.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-CONTRACT_DOC="$ROOT_DIR/docs/109_package_module_resolver_contract.md"
-if [[ ! -f "$CONTRACT_DOC" ]]; then
-    echo "[package-module] missing resolver contract doc: $CONTRACT_DOC" >&2
-    exit 1
-fi
-for required in \
-    "Package And Module Resolver Beta Contract" \
-    "beta-freeze-source-of-truth" \
-    "import \"relative/path.pgy\";" \
-    "Import paths are resolved relative to the importing file" \
-    "Seashell Manifest Surface" \
-    "pgy.seashell.v1" \
-    "toml-subset" \
-    "pgy.toml stays TOML" \
-    "Seashell is not a second executable" \
-    "Backends consume owner facts, not raw manifest text" \
-    "Package subcommands are dispatched before the launcher's ordinary source-file" \
-    "it never authorizes a native semantic/codegen retry" \
-    "not counted as compiler substitution evidence" \
-    "Unsupported TOML constructs fail closed" \
-    "Non-empty" \
-    "pgy.lock" \
-    "local manifest-driven package commands are stable" \
-    "pgy init <name>" \
-    "pgy check" \
-    "pgy build" \
-    "pgy run" \
-    "pgy test" \
-    "pgy package" \
-    "pgy install" \
-    "pgy publish" \
-    "Dependency version solving" \
-    "supply-chain integrity" \
-    "JSON diagnostics for module-load failures"; do
-    if ! grep -Fq "$required" "$CONTRACT_DOC"; then
-        echo "[package-module] contract doc missing: $required" >&2
-        exit 1
-    fi
-done
-
 INIT_DIR="$WORK_DIR/init_case"
 mkdir -p "$INIT_DIR"
 (

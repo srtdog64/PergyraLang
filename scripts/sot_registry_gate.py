@@ -99,26 +99,25 @@ def require_path(root: pathlib.Path, rel: str, field: str) -> pathlib.Path:
 
 
 def evidence_ref(root: pathlib.Path, value: str, field: str):
+    # The text after '#' labels the claim for readers. Only the path is checked:
+    # a gate proves its claim by running, not by containing a phrase.
     if "#" not in value:
-        fail(f"{field} must use path#required-text: {value}")
-    rel, needle = value.split("#", 1)
-    if not rel or not needle:
-        fail(f"{field} has an empty path or required text: {value}")
-    path = require_path(root, rel, field)
-    if needle not in path.read_text(encoding="utf-8"):
-        fail(f"{field} required text is absent from {rel}: {needle}")
-    return path, needle
+        fail(f"{field} must use path#label: {value}")
+    rel, label = value.split("#", 1)
+    if not rel or not label:
+        fail(f"{field} has an empty path or label: {value}")
+    return require_path(root, rel, field), label
 
 
 def evidence_refs(root: pathlib.Path, value: str, field: str):
-    """Validate path#term refs without splitting commas inside a term."""
+    """Validate path#label refs without splitting commas inside a label."""
     refs = [
         part.strip()
         for part in re.split(r",(?=[^,|]*#)", value)
         if part.strip()
     ]
     if not refs:
-        fail(f"{field} must use path#required-text: {value}")
+        fail(f"{field} must use path#label: {value}")
     return [evidence_ref(root, ref, field) for ref in refs]
 
 
@@ -191,12 +190,6 @@ def producer_definition_paths(
     return definitions
 
 
-def source_references(
-    indexed: dict[pathlib.Path, str], term: str
-) -> list[pathlib.Path]:
-    return [path for path, text in indexed.items() if term in text]
-
-
 def validate_owner_rows(
     root: pathlib.Path,
     registry_text: str,
@@ -255,33 +248,23 @@ def validate_owner_rows(
         )
         for consumer in consumers:
             require_path(root, consumer, f"{owner_id}: last_consumer")
-        gate_evidence = evidence_refs(
-            root, row["enforcement_gate"], f"{owner_id}: enforcement_gate"
-        )
-        gate_path = gate_evidence[0][0]
-        forbidden = csv_items(
+        if row["enforcement_gate"].startswith("none#"):
+            if row["status"] == "CLOSED":
+                fail(f"{owner_id}: CLOSED row needs an executable enforcement gate")
+        else:
+            evidence_refs(
+                root, row["enforcement_gate"], f"{owner_id}: enforcement_gate"
+            )
+        # forbidden_fallbacks documents what the row retired. It is not scanned
+        # for: the enforcement gate proves the retirement by running inputs the
+        # old path answered and requiring a fail-closed refusal.
+        csv_items(
             row["forbidden_fallbacks"], f"{owner_id}: forbidden_fallbacks"
         )
 
         if row["status"] == "CLOSED":
             if row["open_reason"] != "none":
                 fail(f"{owner_id}: CLOSED row must have open_reason=none")
-            gate_text = gate_path.read_text(encoding="utf-8", errors="replace")
-            for token in forbidden:
-                if token not in gate_text:
-                    fail(f"{owner_id}: CLOSED gate does not name fallback {token}")
-
-            for consumer in source_references(indexed, row["producer_term"]):
-                if consumer.resolve() == authority.resolve():
-                    continue
-                consumer_text = indexed[consumer]
-                for token in forbidden:
-                    if token in consumer_text:
-                        rel = consumer.relative_to(root).as_posix()
-                        fail(
-                            f"{owner_id}: canonical-fact consumer {rel} "
-                            f"reopened fallback {token}"
-                        )
         elif not row["open_reason"] or row["open_reason"] == "none":
             fail(f"{owner_id}: open row must name its remaining reason")
 

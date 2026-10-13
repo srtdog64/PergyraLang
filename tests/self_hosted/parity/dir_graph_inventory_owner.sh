@@ -39,113 +39,13 @@ INTENT_RENDERER="$ROOT_DIR/src/self_hosted/compiler/dir_intent_text_artifact_own
 INTENT_PROVENANCE="$ROOT_DIR/src/self_hosted/dir/intent_step_provenance_fact_owner.pgy"
 INTENT_HEADER="$ROOT_DIR/src/self_hosted/semantic/ast_intent_transition_row_owner.pgy"
 INTENT_DEFAULTS="$ROOT_DIR/src/self_hosted/parser/intent_default_clause_owner.pgy"
-INTENT_ROW="$ROOT_DIR/src/self_hosted/dir/intent_row_owner.pgy"
-INTENT_CARRIAGE="$ROOT_DIR/src/self_hosted/dir/intent_step_carriage_contract_owner.pgy"
-AST_KINDS="$ROOT_DIR/src/self_hosted/hir/ast_node_kind_owner.pgy"
-DOMAIN_CENSUS="$ROOT_DIR/src/self_hosted/dir/domain_graph_fact_owner.pgy"
 ZONE_STATE="$ROOT_DIR/src/self_hosted/dir/zone_state_row_fact_owner.pgy"
-ZONE_PARSER="$ROOT_DIR/src/self_hosted/parser/decl_zone_owner.pgy"
 PROBE="$ROOT_DIR/tests/self_hosted/fixtures/dir_graph_inventory_probe.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/dir_graph_inventory"
 PROBE_BIN="$BUILD_DIR/dir_graph_inventory_probe.exe"
 
 mkdir -p "$BUILD_DIR"
 
-for term in 'struct SelfDirGraphInventoryFacts' \
-    'SelfDirGraphInventoryAppendNode' \
-    'SelfDirGraphInventoryAppendEdge' \
-    'SelfDirGraphInventoryNodeIndex'; do
-    grep -Fq -- "$term" "$ROW_OWNER" \
-        || fail "missing exact graph row owner term: $term"
-done
-for term in 'SelfDirGraphInventoryFactsFromAdmittedFacts' \
-    'SelfDirGraphInventoryAppendPrimaryNodes' \
-    'SelfDirGraphInventoryAppendProjectionTopologyEdges' \
-    'zone_states: SelfDirZoneStateRows' \
-    'facts, "zone-state", node_id, node_id' \
-    'SelfDirGraphInventoryFactsReady'; do
-    grep -Fq -- "$term" "$INVENTORY" \
-        || fail "missing exact inventory owner term: $term"
-done
-for term in 'struct SelfDirZoneStateRows' \
-    'SelfDirZoneStateRowsFromArtifact' \
-    'SelfDirFieldSourceSyntaxId(' \
-    'SelfDirZoneStateRowsReady'; do
-    grep -Fq -- "$term" "$ZONE_STATE" \
-        || fail "missing exact zone-state row owner term: $term"
-done
-grep -Fq 'ParserCharAt(content, i) != "\n"' "$ZONE_PARSER" \
-    || fail "zone state parser lost optional-semicolon line termination"
-state_parser_body="$(sed -n \
-    '/LanguageWordId.WordState)/,/LanguageWordId.WordBind)/p' \
-    "$ZONE_PARSER")"
-if grep -Fq 'i = Expect(content, i, ";");' <<<"$state_parser_body"; then
-    fail "zone state parser restored mandatory semicolon admission"
-fi
-for term in 'CompilerDirTextArtifactFromProjection' \
-    'SelfDirGraphInventoryFactsFromAdmittedFacts(' \
-    'self-host DIR node/edge census diverged from its inventory' \
-    'CompilerDirIntentTextFromFacts('; do
-    grep -Fq -- "$term" "$RENDERER" \
-        || fail "missing admitted DIR renderer term: $term"
-done
-for term in 'CompilerDirIntentTextFromFacts' \
-    'facts.steps.provenance' \
-    'authorized_by_provenance action-inherited'; do
-    grep -Fq -- "$term" "$INTENT_RENDERER" \
-        || fail "missing exact intent text owner term: $term"
-done
-for term in 'struct SelfDirIntentStepProvenanceFacts' \
-    'SelfDirIntentStepResolvedProvenance' \
-    'SelfDirIntentStepContractProvenanceFromText' \
-    'SelfDirIntentStepProvenanceFactsReady'; do
-    grep -Fq -- "$term" "$INTENT_PROVENANCE" \
-        || fail "missing typed intent provenance term: $term"
-done
-for term in 'ParserIntentDefaultClauseFromSource' \
-    'ParserIntentStepDefaultsResolve' \
-    'reused who from intent-level default' \
-    'reused zone from intent-level default'; do
-    grep -Fq -- "$term" "$INTENT_DEFAULTS" \
-        || fail "missing intent-level default owner term: $term"
-done
-grep -Fq 'TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }' \
-    "$AST_KINDS" || fail "intent contract provenance lost its appended AST identity"
-grep -Fq 'TypedAstKindIntentStepIntentTag() -> Int { return 89; }' \
-    "$AST_KINDS" || fail "inline intent target lost its appended AST identity"
-grep -Fq 'TypedAstKindIntentPriorityTag() -> Int { return 90; }' \
-    "$AST_KINDS" || fail "intent priority lost its appended AST identity"
-for term in 'struct SemanticAstIntentStepHeaderRow' \
-    'SemanticAstIntentStepHeaderFromText' \
-    'intent_text: String' \
-    'transfer_from_alias' \
-    'transfer_to_alias'; do
-    grep -Fq -- "$term" "$INTENT_HEADER" \
-        || fail "missing typed intent-step header term: $term"
-done
-grep -Fq 'target_expression_node_ids: Array<Int>;' "$INTENT_ROW" \
-    || fail "intent step lost its exact target-expression carrier"
-for term in 'steps.target_kinds[i] == "action"' \
-    'TypedAstKindIntentStepOnTag()' \
-    'TypedAstKindIntentStepIntentTag()' \
-    'steps.target_expression_node_ids[i]'; do
-    grep -Fq -- "$term" "$INTENT_CARRIAGE" \
-        || fail "intent carriage lost target-kind AST validation: $term"
-done
-grep -Fq 'target_ready = target_ready || TypedAstArenaNodeKindIs(' \
-    "$INTENT_CARRIAGE" ||
-    fail "nested intent on:/intent: syntax carriage is not admitted"
-if grep -Eq '(^|[^A-Za-z0-9_])on_node_ids([^A-Za-z0-9_]|$)' \
-    "$INTENT_ROW" "$INTENT_CARRIAGE"; then
-    fail "action-only on-node carriage reappeared"
-fi
-if grep -Eq 'TypedAstArenaProvenanceText|native_oracle|SelfDirDomainGraphAnchor' \
-    "$INVENTORY" "$ROW_OWNER" "$RENDERER" "$INTENT_RENDERER"; then
-    fail "DIR inventory reopened provenance, native-oracle, or count-anchor reconstruction"
-fi
-if grep -Fq 'domain_graph_inventory_owner.pgy' "$DOMAIN_CENSUS"; then
-    fail "normal MIR domain census rebuilt the debug program inventory"
-fi
 source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$INVENTORY" | tr -d ' ')" || fail "source-size measurement failed"
 [[ "$source_size_lines" -le 650 ]] \
     || fail "DIR graph inventory owner exceeds 650 lines"

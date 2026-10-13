@@ -19,24 +19,11 @@ MIR="$ROOT_DIR/$MIR_REL"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-
-SNAPSHOT_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_local_predecessor_snapshot_owner.pgy"
-BINDING_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_loop_header_backedge_binding_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_control_transfer_admission_owner.pgy"
-require_text "$SNAPSHOT_OWNER" 'SelfMirLocalPredecessorSnapshotsAppend('
-require_text "$BINDING_OWNER" 'SelfMirLocalPredecessorVersionAt('
-require_text "$ADMISSION" 'source == "AST_CONTINUE"'
-reject_text "$ADMISSION" 'break_continue.pgy'
-for loop_owner in routine_for_owner.pgy routine_while_owner.pgy; do
-    reject_text "$ROOT_DIR/src/self_hosted/mir/$loop_owner" \
-        'body_block < SelfMirCfgBlockCount(build.cfg)'
-done
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

@@ -18,33 +18,13 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_bool_abi_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_option_bool_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_bool_owner.pgy"
-BUILTIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_bool_builtin_signature_owner.pgy"
-ABSENCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_absence_expression_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$ABI_OWNER" "$C_OWNER" "$LLVM_OWNER" "$BUILTIN_OWNER" \
-        "$ABSENCE_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$ABI_OWNER" ||
-    fail "Option<Bool> path does not consume the MIR ABI receipt"
-grep -Fq 'DirectMirOptionBoolAbiFactReady(fact)' "$C_OWNER" ||
-    fail "C target does not consume the admitted Option<Bool> fact"
-grep -Fq 'DirectMirOptionBoolAbiFactReady(fact)' "$LLVM_OWNER" ||
-    fail "LLVM target does not consume the admitted Option<Bool> fact"
-grep -Fq 'persisted_type == "Option<Unknown>"' "$ABSENCE_OWNER" ||
-    fail "persisted None leaf is not normalized by the absence owner"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'fact.some_tag' "$owner" || fail "target guessed Some tag"
-    grep -Fq 'fact.none_tag' "$owner" || fail "target guessed None tag"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

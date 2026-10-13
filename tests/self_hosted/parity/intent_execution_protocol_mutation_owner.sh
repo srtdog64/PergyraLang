@@ -39,7 +39,6 @@ MULTI_VALID="$BUILD_DIR/multi_routine.mir.json"
 MULTI_INTERLEAVED="$BUILD_DIR/multi_routine_interleaved.mir.json"
 JOIN_MAP="$BUILD_DIR/intent_execution_join_map.tsv"
 MANIFEST="$BUILD_DIR/mutation_manifest.tsv"
-STATIC_OWNER="$ROOT_DIR/tests/self_hosted/parity/intent_execution_protocol_static_owner.py"
 CORPUS_OWNER="$ROOT_DIR/tests/self_hosted/parity/intent_execution_protocol_corpus_owner.py"
 ADMISSION_RUNNER="$ROOT_DIR/tests/self_hosted/parity/intent_execution_protocol_admission_runner.sh"
 
@@ -52,12 +51,10 @@ component_line_budget() {
         || fail "component exceeds $maximum-line owner budget: $path ($lines)"
 }
 component_line_budget "${BASH_SOURCE[0]}" 120
-component_line_budget "$STATIC_OWNER" 180
 component_line_budget "$CORPUS_OWNER" 900
 component_line_budget "$ADMISSION_RUNNER" 100
 
 mkdir -p "$BUILD_DIR"
-"$PYTHON_BIN" "$STATIC_OWNER" "$ROOT_DIR"
 "$PYTHON_BIN" "$CORPUS_OWNER" generate-multi-source \
     "$FIXTURE" "$MULTI_FIXTURE"
 

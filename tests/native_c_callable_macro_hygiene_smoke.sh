@@ -30,15 +30,6 @@ fail() {
 }
 
 pgy_require_runnable_binary_here "native-c-macro" "$PGY" || exit 1
-grep -Fq 'transpiler_c_user_callable_symbol(TranspilerCtx *ctx, const char *name)' \
-    "$ROOT_DIR/src/codegen/transpiler_mangled_name.c" ||
-    fail "native C lost its callable symbol owner"
-if grep -rFq 'transpiler_emit_owned_callable_macro_hygiene' "$ROOT_DIR/src/codegen"; then
-    fail "per-name callable macro hygiene came back beside the symbol owner"
-fi
-grep -Fq 'transpiler_active_externs(ctx, &externs, &exten_count);' \
-    "$ROOT_DIR/src/codegen/transpiler.c" ||
-    fail "extern ABI declarations lost their separate inventory"
 
 suffix=""
 pgy_binary_expects_windows_paths "$PGY" && suffix=".exe"

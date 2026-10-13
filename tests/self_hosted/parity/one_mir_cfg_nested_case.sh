@@ -1,21 +1,6 @@
 # Sourced after the direct-false rung; reuses one admission and gate owner.
 
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/nestedif.pgy"
-NESTED_FACT_OWNER="$ROOT_DIR/src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy"
-NESTED_SHAPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_nested_cfg_shape_owner.pgy"
-NESTED_EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_nested_cfg_emission_owner.pgy"
-for owner in "$NESTED_FACT_OWNER" "$NESTED_SHAPE_OWNER" "$NESTED_EMISSION_OWNER"; do
-    require_file "$owner"
-done
-for term in DirectMirNestedCfgCertificateFactFromIndex \
-    DirectMirNestedCfgCertificateFactMutationRejected; do
-    grep -Fq -- "$term" "$NESTED_FACT_OWNER" || fail "nested AIR fact lacks $term"
-done
-grep -Fq -- 'DirectMirNestedCfgShapeFactsFromOwners' "$NESTED_SHAPE_OWNER" ||
-    fail "nested target-neutral shape projection is missing"
-grep -Fq -- 'DirectMirNestedCfgEmitC' "$NESTED_EMISSION_OWNER" &&
-    grep -Fq -- 'DirectMirNestedCfgEmitLlvm' "$NESTED_EMISSION_OWNER" ||
-    fail "nested emission responsibility must retain both backends"
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
 [[ -s "$MIR_ARTIFACT" &&

@@ -23,14 +23,6 @@ DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver
 DRIVER_BIN="${PGY_SELFHOST_ONE_MIR_DRIVER_BIN:-$DRIVER_BUILD/driver_seed.exe}"
 WORK_DIR="${PGY_SELFHOST_ONE_MIR_CFG_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/one_mir_cfg_air_plan}"
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/ifelse.pgy"
-DIRECT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
-CFG_OWNER_REL="${PGY_SELFHOST_ONE_MIR_CFG_OWNER:-src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy}"
-CFG_OWNER="$ROOT_DIR/$CFG_OWNER_REL"
-PLAN_VALUE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_plan_value_owner.pgy"; PLAN_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_plan_mutation_owner.pgy"
-AIR_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_owner.pgy"; AIR_READY_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_readiness_owner.pgy"
-AIR_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy"
-SHAPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy"
 SCALAR_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_dual_backend_projection.sh"
 CC="${PGY_SELFHOST_CC:-gcc}"
 MIR_ARTIFACT="$WORK_DIR/ifelse.one.mir.json"
@@ -57,62 +49,6 @@ root_relative() { pgy_selfhost_path_relative_to_root "$1"; }
 assert_mir_identity() {
     [[ "$(hash_file "$MIR_ARTIFACT")" == "$1" ]] ||
         fail "$2 mutated the one admitted MIR identity"
-}
-
-assert_shared_plan_ratchet() {
-    local term
-    # CLOSED fallbacks: serialized_air_reparse, unbound_mir_certificate,
-    # certificate_fallback_or_drift, raw_phi_use_reparse,
-    # phi_predecessor_order_assumption, post_issue_identity_mutation,
-    # backend_mir_or_air_read, backend_specific_cfg_plan, full_certificate_plan_retention,
-    # second_shape_plan, unbound_target_fingerprint, post_verification_plan_mutation, topology_specific_break_plan.
-    require_file "$DIRECT_OWNER"; require_file "$EMISSION_OWNER"
-    require_file "$CFG_OWNER"; require_file "$PLAN_VALUE_OWNER"; require_file "$PLAN_MUTATION_OWNER"; require_file "$AIR_OWNER"; require_file "$AIR_READY_OWNER"
-    require_file "$AIR_MUTATION_OWNER"; require_file "$SHAPE_OWNER"
-    for term in DirectMirCfgPlanFromAdmitted DirectMirCfgPlanReady; do
-        grep -Fq -- "$term" "$CFG_OWNER" ||
-            fail "shared CFG/AIR owner is missing $term"
-    done
-    grep -Fq -- 'DirectMirCfgPlanMutationRejected' "$PLAN_MUTATION_OWNER" || fail "shared CFG plan lacks repaired-digest mutation negatives"
-    grep -Fq -- 'DirectMirCfgCertificateReady' "$AIR_READY_OWNER" ||
-        fail "MIR-bound AIR owner is missing DirectMirCfgCertificateReady"
-    grep -Fq -- 'DirectMirCfgCertificateMutationRejected' "$AIR_MUTATION_OWNER" ||
-        fail "MIR-bound AIR owner lacks certificate mutation negatives"
-    [[ "$(grep -R -F --include='*.pgy' 'DirectMirCfgCertificateFromIndex(' "$ROOT_DIR/src/self_hosted" | wc -l | tr -d ' ')" == 2 ]] ||
-        fail "self-host source must contain one certificate definition and one issuer"
-    [[ "$(grep -R -F --include='*.pgy' 'DirectMirCfgPlanFromAdmitted(' "$ROOT_DIR/src/self_hosted" | wc -l | tr -d ' ')" == 2 ]] ||
-        fail "self-host source must contain one plan definition and one producer call"
-    grep -Fq -- 'DirectMirCfgCertificateMutationRejected(certificate_negative)' "$CFG_OWNER" ||
-        fail "certificate digest/fallback/drift negatives are not on the pre-output path"
-    grep -Fq -- 'DirectMirCfgPlanMutationRejected(verified_negative)' "$CFG_OWNER" ||
-        fail "plan identity mutation negatives are not on the pre-output path"
-    for term in 'let bad_digest:' 'let fallback:' 'let drift:'; do
-        grep -Fq -- "$term" "$AIR_MUTATION_OWNER" || fail "AIR certificate negative is missing: $term"
-    done
-    for term in 'let bad_digest:' 'let bad_phi_binding:'; do grep -Fq -- "$term" "$PLAN_MUTATION_OWNER" || fail "plan mutation negative is missing: $term"; done
-    grep -Fq -- 'import "../air/mir_cfg_certificate_owner.pgy";' "$CFG_OWNER" ||
-        fail "shared CFG plan does not import its AIR certificate owner"
-    grep -Fq -- 'import "direct_mir_cfg_plan_owner.pgy";' "$DIRECT_OWNER" ||
-        fail "direct backend projection does not import the shared CFG plan"
-    grep -Fq -- 'DirectMirCfgPlanFromAdmitted' "$DIRECT_OWNER" ||
-        fail "direct backends do not consume the shared CFG/AIR plan"
-    for term in 'MirProgramRoutineIndex' 'MirRoutineFactIndex'; do
-        grep -Fq -- "$term" "$CFG_OWNER" "$SHAPE_OWNER" "$AIR_OWNER" ||
-            fail "CFG/AIR plan bypasses typed owner $term"
-    done
-    for term in '"succ_true"' '"succ_false"' '"expr0"' \
-        'air_json' 'AirJson' 'ifelse.pgy' 'if_else_assign.pgy'; do
-        ! grep -Fq -- "$term" "$CFG_OWNER" "$SHAPE_OWNER" "$AIR_OWNER" "$DIRECT_OWNER" "$EMISSION_OWNER" ||
-            fail "CFG/AIR plan reopened raw or fixture-specific input: $term"
-    done
-    ! grep -Fq -- 'let certificate: DirectMirCfgCertificate;' "$CFG_OWNER" || fail "plan retains the full certificate"
-    ! grep -Eiq -- '(read|parse).*(air[_ -]?json)|air[_ -]?json.*(read|parse)' \
-        "$CFG_OWNER" "$DIRECT_OWNER" "$EMISSION_OWNER" ||
-        fail "a backend path reparses AIR JSON"
-    ! grep -Fq -- 'BuildMirDocumentFactIndex(' "$CFG_OWNER" ||
-        fail "CFG plan rebuilds the already admitted MIR document index"
-    ! grep -R -Eq --include='*.pgy' -- 'DirectMirCfg[A-Za-z0-9_]*(C|Llvm|LLVM)(Reader|Read|Plan)' \
-        "$ROOT_DIR/src/self_hosted/compiler" || fail "CFG facts gained a backend-specific reader"
 }
 
 run_scalar_regression() {
@@ -244,7 +180,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER_BIN" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 mkdir -p "$WORK_DIR"
 run_scalar_regression
-assert_shared_plan_ratchet
 produce_one_mir
 mir_digest="$(hash_file "$MIR_ARTIFACT")"
 project_one_target c "$C_ARTIFACT" "$mir_digest"

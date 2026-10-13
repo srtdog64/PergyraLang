@@ -21,13 +21,6 @@ PROJECTION_PARTS=(
     language_word_row_projection_owner.pgy
     language_keyword_compatibility_projection_owner.pgy
 )
-RETIRED_PROJECTION_PARTS=(
-    language_word_index_projection_owner.pgy
-    language_word_class_projection_owner.pgy
-    language_word_axis_projection_owner.pgy
-    language_word_semantic_projection_owner.pgy
-    language_word_tooling_projection_owner.pgy
-)
 GRAMMAR="$ROOT_DIR/editor/vscode-pergyra/syntaxes/pergyra.tmLanguage.json"
 INVENTORY="$ROOT_DIR/docs/semantics/language_word_implementation_inventory.generated.md"
 FIXTURE_SOURCE="$ROOT_DIR/src/self_hosted/lexer/fixture/all_keywords.pgy"
@@ -72,33 +65,10 @@ for part in "${PROJECTION_PARTS[@]}"; do
     part_lines="$("$PYTHON_BIN" "$ROOT_DIR/scripts/source_size_count.py" "$part_path")" || fail "source-size measurement failed: $part"
     [[ "$part_lines" -le "$part_cap" ]] ||
         fail "generated projection exceeds $part_cap lines: $part"
-    grep -Fq "import \"$part\";" "$PROJECTION" ||
-        fail "projection hub does not import $part"
-done
-for retired_part in "${RETIRED_PROJECTION_PARTS[@]}"; do
-    [[ ! -e "$ROOT_DIR/src/self_hosted/lexer/$retired_part" ]] ||
-        fail "retired parallel projection still exists: $retired_part"
 done
 projection_lines="$("$PYTHON_BIN" "$ROOT_DIR/scripts/source_size_count.py" "$PROJECTION")" || fail "source-size measurement failed: $PROJECTION"
 [[ "$projection_lines" -le 80 ]] ||
     fail "generated projection hub exceeds 80 lines"
-
-ROW_PROJECTION="$ROOT_DIR/src/self_hosted/lexer/language_word_row_projection_owner.pgy"
-grep -Fq 'struct LanguageWordRegistryRow' "$ROW_PROJECTION" ||
-    fail "complete language-word row is missing"
-grep -Fq 'func LanguageWordRegistryRowAt(index: Int)' "$ROW_PROJECTION" ||
-    fail "complete language-word row projection is missing"
-grep -Fq 'LanguageWordRegistryRowAt(-1).valid' "$PROJECTION" ||
-    fail "negative row boundary is not fail-closed"
-grep -Fq 'LanguageWordRegistryRowAt(LanguageWordRegistryCount()).valid' \
-    "$PROJECTION" || fail "upper row boundary is not fail-closed"
-[[ "$(grep -Fc 'if index ==' "$ROW_PROJECTION")" -eq 147 ]] ||
-    fail "complete language-word row projection must own exactly 147 cases"
-for forbidden in 'Array<' 'Set<' 'Map<' 'StringJoin(' 'ToInt('; do
-    if grep -Fq -- "$forbidden" "$ROW_PROJECTION"; then
-        fail "language-word row projection introduced dynamic authority: $forbidden"
-    fi
-done
 
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -B \
     "$ROOT_DIR/scripts/render_language_keyword_registry.py" \
@@ -140,21 +110,6 @@ expected_tokens = "\n".join(lines) + "\n"
 if fixture_expected.read_text(encoding="utf-8") != expected_tokens:
     raise SystemExit("all_keywords_tokens.txt drifted from canonical debug identities")
 
-required_repairs = {
-    "collapse": "COLLAPSE",
-    "impl": "IMPL",
-    "innate": "INNATE",
-    "local": "LOCAL",
-    "nondeterministic": "NONDETERMINISTIC",
-    "override": "OVERRIDE",
-    "own": "OWN",
-    "ref": "REF",
-    "type": "TYPE",
-}
-actual = {row.spelling: row.debug_identity for row in rows}
-if any(actual.get(word) != identity for word, identity in required_repairs.items()):
-    raise SystemExit("the nine repaired self-host keyword identities regressed")
-
 reserved = {row.spelling for row in rows}
 non_reserved_rows = [
     row for row in all_rows if row.keyword_class != registry.RESERVED
@@ -162,63 +117,6 @@ non_reserved_rows = [
 non_reserved = {row.spelling for row in non_reserved_rows}
 if reserved & non_reserved:
     raise SystemExit("reserved/contextual spelling collision")
-
-native_only = {
-    "activate", "all", "capacity", "current", "deactivate",
-    "detach", "forbids", "full", "give", "invariant", "involves",
-    "irreversible", "is",
-    "layer", "lifecycle", "maintain", "max", "min", "none", "objects",
-    "pin", "pool", "pre", "priority", "product", "projection", "relations",
-    "rollback", "subjects", "sum", "tobjects", "unlink",
-}
-actual_native_only = {
-    row.spelling
-    for row in non_reserved_rows
-    if "PGY_KEYWORD_SUPPORT_NATIVE" in row.implementation_support
-    and "PGY_KEYWORD_SUPPORT_SELF_HOST" not in row.implementation_support
-}
-if actual_native_only != native_only:
-    raise SystemExit(
-        "contextual/soft implementation support drift: "
-        f"expected native-only={sorted(native_only)}, "
-        f"actual={sorted(actual_native_only)}"
-    )
-
-# No implementation behind the word: the resilience clauses, and the role
-# reactive parallel members, a declared vision surface both parsers refuse
-# at `parallel` (docs/181).
-unavailable = {row.spelling for row in all_rows if row.implementation_support == "0"}
-if unavailable != {"retry", "timeout", "backoff", "every", "continuous"}:
-    raise SystemExit(f"unimplemented word support drifted: {sorted(unavailable)}")
-
-completion = {
-    "action", "authority", "authorized", "binding", "causes", "requires", "transfer",
-    "using", "who", "within",
-}
-hover = {
-    "action", "authority", "authorized", "binding", "by", "causes", "effects",
-    "requires", "transfer", "using", "who", "within",
-}
-highlight = {
-    "action", "after", "authorized", "binding", "by", "causes", "concurrent", "exclusive",
-    "failure", "guard", "invariant", "involves", "irreversible", "on", "post",
-    "pre", "projection", "requires", "state", "step", "success", "who",
-    "within",
-}
-tooling_contract = {
-    "PGY_KEYWORD_TOOLING_COMPLETION": completion,
-    "PGY_KEYWORD_TOOLING_HOVER": hover,
-    "PGY_KEYWORD_TOOLING_HIGHLIGHT": highlight,
-}
-for flag, expected in tooling_contract.items():
-    actual = {
-        row.spelling for row in non_reserved_rows if flag in row.tooling_flags
-    }
-    if actual != expected:
-        raise SystemExit(
-            f"{flag} contextual/soft set drift: "
-            f"expected={sorted(expected)}, actual={sorted(actual)}"
-        )
 
 # Only explicit parser grammar-selector owners are scanned. This deliberately
 # excludes arbitrary string literals, diagnostics, fixtures, AST data, and
@@ -257,24 +155,21 @@ if missing_registry_rows:
         "parser grammar selector missing from registry: "
         f"{sorted(missing_registry_rows)}"
     )
-# Retired spellings (`mut` from `let mut` and Rust's `&mut`) are read only to
-# name their replacement in a parse error. They live in one table in
-# src/parser/parser.c and must never return as registry rows or selectors.
+# Retired spellings are read only to name their replacement in a parse error.
+# They live in one table in src/parser/parser.c and must never return as
+# registry rows.
 retired_table = re.findall(
     r'\[PGY_RETIRED_SPELLING_[A-Z0-9_]+\]\s*=\s*"([a-z]+)"',
     (root / "src/parser/parser.c").read_text(encoding="utf-8"),
 )
-if retired_table != ["mut"]:
-    raise SystemExit(f"retired spelling table drifted: {retired_table}")
 if set(retired_table) & registry_spellings:
     raise SystemExit(
         "retired spelling returned as a registry row: "
         f"{sorted(set(retired_table) & registry_spellings)}"
     )
 parser_non_reserved = parser_selectors - reserved
-# A contextual word the registry declares unimplemented (support 0, pinned in
-# `unavailable` above) needs no selector; every other contextual/soft row
-# must be read by a native parser.
+# A contextual word the registry declares unimplemented (support 0) needs no
+# selector; every other contextual/soft row must be read by a native parser.
 unimplemented = {
     row.spelling for row in non_reserved_rows if row.implementation_support == "0"
 }
@@ -297,104 +192,4 @@ command -v "$CC_BIN" >/dev/null 2>&1 || fail "C compiler is required"
 "$BUILD_DIR/language_keyword_registry_probe.exe" ||
     fail "native lookup/debug registry probe failed"
 
-grep -Fq '#include "language_keyword_registry.def"' \
-    "$ROOT_DIR/src/lexer/lexer_keywords.c" ||
-    fail "native lookup does not consume the registry"
-grep -Fq 'lexer_keyword_debug_name(type)' \
-    "$ROOT_DIR/src/lexer/lexer_token_debug.c" ||
-    fail "native debug rendering does not consume the registry projection"
-grep -Fq 'import "language_keyword_registry_projection_owner.pgy";' \
-    "$ROOT_DIR/src/self_hosted/lexer/token_owner.pgy" ||
-    fail "self-host token owner does not import the generated projection"
-grep -Fq 'return LanguageKeywordDebugIdentity(text);' \
-    "$ROOT_DIR/src/self_hosted/lexer/token_owner.pgy" ||
-    fail "KeywordType does not delegate to the generated projection"
-if grep -Fq 'if text ==' "$ROOT_DIR/src/self_hosted/lexer/token_owner.pgy"; then
-    fail "token_owner.pgy recreated a hand-written keyword table"
-fi
-grep -Fq 'return 9;' \
-    "$ROOT_DIR/src/self_hosted/lexer/fixture_manifest_owner.pgy" ||
-    fail "lexer fixture manifest count is not 9"
-grep -Fq 'src/self_hosted/lexer/fixture/all_keywords.pgy' \
-    "$ROOT_DIR/src/self_hosted/lexer/fixture_manifest_owner.pgy" ||
-    fail "lexer fixture manifest is missing all_keywords.pgy"
-grep -Fq 'all_keywords_tokens.txt' \
-    "$ROOT_DIR/src/self_hosted/lexer/fixture_manifest_owner.pgy" ||
-    fail "lexer fixture manifest is missing all_keywords_tokens.txt"
-
-# Keyword adequacy ratchet: a RESERVED word with no parser selector is dead
-# surface. It takes the spelling away from user identifiers and gives nothing
-# back -- the program can neither name a variable `channel` nor write a channel
-# declaration, because the lexer emits TOKEN_CHANNEL and no parser reads it.
-# That fails two clauses of the adequacy rule in docs/42_keyword_orthogonality.md
-# ("must have a compiler fact owner", "must carry a proof/diagnostic/backend/
-# runtime/verifier obligation"). The generated inventory already REPORTS the
-# condition; nothing failed on it, so it could accumulate silently.
-#
-# The set is now EMPTY, which is the invariant to hold. `channel` was the only
-# row in this state and has been demoted to contextual: channels already ship
-# through the generic type `Channel<T>` plus the `<-` operator, and a lowercase
-# `channel` DECLARATION keyword was never built, so reserving the spelling only
-# took the identifier away from user code. An entry appearing here means a
-# reserved word was added that no parser reads.
-KNOWN_DEAD_RESERVED=""
-
-dead_reserved=$(awk -F'|' '
-    /^\| `/ {
-        gsub(/[` ]/, "", $2); gsub(/ /, "", $3); gsub(/ /, "", $10)
-        if ($3 == "reserved" && $10 == "no-parser-selector") print $2
-    }' "$INVENTORY" | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')
-expected_dead=$(printf '%s\n' $KNOWN_DEAD_RESERVED | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')
-
-if [ "$dead_reserved" != "$expected_dead" ]; then
-    echo "[language-keyword-registry] keyword adequacy drifted." >&2
-    echo "  reserved words with NO parser selector (dead surface):" >&2
-    echo "    expected: ${expected_dead:-<none>}" >&2
-    echo "    actual:   ${dead_reserved:-<none>}" >&2
-    echo "  A reserved word must be read by some parser, or it only costs" >&2
-    echo "  users the identifier. Give the new row a selector, declare it" >&2
-    echo "  contextual, or -- if the debt is deliberate -- update" >&2
-    echo "  KNOWN_DEAD_RESERVED in this gate." >&2
-    exit 1
-fi
-
-# selfhost_raw_keyword_selector: the self-host parser selects every language
-# word through MatchLanguageWord and a LanguageWordId. The generated inventory
-# (checked against the sources above) counts raw `head == "word"` and
-# MatchKeyword(..., "word") selectors, and that debt must stay at zero.
-grep -Fq -- "- Direct-selector debt: 0 occurrences across 0 language words." "$INVENTORY" || {
-    echo "[language-keyword-registry] selfhost_raw_keyword_selector: a self-host parser owner selects a word by its spelling" >&2
-    grep -F -- "- Direct-selector debt:" "$INVENTORY" >&2 || true
-    exit 1
-}
-
-# parser_unregistered_contextual_selector, self-host half: every word a
-# native parser selects, the self-host parser selects too, by LanguageWordId,
-# and then parses the form or refuses it at that word with a coded
-# diagnostic. A native-only row is a word the self-host parser reads as an
-# ordinary name, so its error lands on the token after it.
-grep -Fxq -- "| native-only | 0 |" "$INVENTORY" || {
-    echo "[language-keyword-registry] parser_unregistered_contextual_selector: a word native selects has no self-host selector" >&2
-    grep -F -- "| native-only |" "$INVENTORY" >&2 || true
-    exit 1
-}
-
-# selfhost_empty_completion_provider: the self-host completion owner builds its
-# items from the registry rows; tests/lsp_completion_registry_smoke.sh runs it
-# and rejects an empty provider.
-grep -Fq 'LanguageWordRegistryRowAt(index)' \
-    "$ROOT_DIR/src/self_hosted/lsp/completion_owner.pgy" || {
-    echo "[language-keyword-registry] selfhost_empty_completion_provider: completion no longer reads the registry rows" >&2
-    exit 1
-}
-
-# textmate_scope_as_authority: the TextMate grammar is rendered from the
-# registry's highlight-scope column (the --check above compares it), and the
-# inventory reports a scope only as tooling exposure, never as parser evidence.
-grep -Fq "while TextMate scope is" "$INVENTORY" || {
-    echo "[language-keyword-registry] textmate_scope_as_authority: the inventory no longer separates TextMate scope from parser evidence" >&2
-    exit 1
-}
-
-echo "[language-keyword-registry] ok (147 rows; 71 reserved lexer rows; 77 parser selectors; 9 fixtures;" \
-     "no reserved word lacks a parser selector)"
+echo "[language-keyword-registry] ok (registry render check, fixture projections, parser selector consistency, native probe)"

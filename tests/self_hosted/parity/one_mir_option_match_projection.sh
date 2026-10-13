@@ -53,54 +53,6 @@ hash_file() {
     fi
 }
 
-assert_owner_ratchet() {
-    local owner term
-    local owners=(
-        "$ROOT_DIR/src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/air/mir_option_match_graph_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_abi_capture_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_abi_projection_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_mutation_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/mir_lower/match_json_fact_owner.pgy"
-        "$ROOT_DIR/src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy"
-    )
-    for owner in "${owners[@]}"; do require_file "$owner"; done
-    for term in JsonObject Substring BuildMirDocumentFactIndex \
-        MirAbiLayoutRowCaptureWithin CompileMirJsonToCVerified \
-        GenerateCFromVerifiedSemanticArtifact; do
-        ! grep -Fq -- "$term" \
-            "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy" \
-            "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_emission_owner.pgy" ||
-            fail "Option plan/emitter reopened raw or whole compiler path: $term"
-    done
-    for term in JsonObjectFactTableFromBounds \
-        MirMatchInstructionCaptureFromTable; do
-        ! grep -Fq -- "$term" \
-            "$ROOT_DIR/src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" ||
-            fail "AIR certificate reopened raw match JSON: $term"
-    done
-    grep -Fq 'MirRoutineInstructionMatchAtGlobal' \
-        "$ROOT_DIR/src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" ||
-        fail "AIR certificate does not consume indexed typed match facts"
-    grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy" ||
-        fail "Option plan does not consume its bounded ABI admission owner"
-    grep -Fq 'DirectMirOptionMatchCfgPlanFromAdmitted' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" ||
-        fail "direct backend does not consume the Option match plan owner"
-    grep -Fq 'DirectMirOptionMatchCfgPlanMutationRejected' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy" ||
-        fail "Option plan does not execute repaired-digest negatives"
-    grep -Fq 'CompilerTargetCapabilityFingerprint()' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy" ||
-        fail "Option plan is not bound to the target capability owner"
-}
-
 project() {
     local target="$1" output="$2" stdout stderr
     stdout="$WORK_DIR/project-$target.out"
@@ -141,7 +93,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER_BIN" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM IR compiler: $CLANG"
 [[ -n "$PYTHON_BIN" ]] || fail "python3/python is required for typed mutations"
-assert_owner_ratchet
 mkdir -p "$WORK_DIR"
 
 rm -f "$MIR" "$C_ARTIFACT" "$LLVM_ARTIFACT"

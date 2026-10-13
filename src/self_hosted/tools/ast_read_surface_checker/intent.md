@@ -2,8 +2,8 @@
 
 **Status:** *rung-2 DirWalk-owned* (2026-07-06). This tool owns the
 CFG/MIR source-of-truth ratchet report inside Pergyra. The shell
-`tests/ast_read_surface_smoke.sh` remains a separate production ratchet gate,
-not the clean oracle for this self-hosted parity rung.
+`tests/ast_read_surface_smoke.sh` gate that once ran beside it was removed
+on 2026-10-13 with the other source-text scans.
 
 ## Intent
 

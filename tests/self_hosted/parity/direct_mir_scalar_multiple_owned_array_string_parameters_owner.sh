@@ -17,17 +17,11 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_multiple_owned_array_string_parameters.pgy"
 NEGATIVE_SOURCE_REL="tests/self_hosted/fixtures/direct_mir_duplicate_owned_array_string_parameter_move.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'caller_routines: Array<Int>' "$FACT" || fail "move row set is missing"
-grep -Fq 'ArrayPush(caller_routines, routine)' "$ADMISSION" ||
-    fail "admission does not append each independent move"
-! grep -Fq 'candidates != 1' "$ADMISSION" || fail "one-row ceiling returned"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

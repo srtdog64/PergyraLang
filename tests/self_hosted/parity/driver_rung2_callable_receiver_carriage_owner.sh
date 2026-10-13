@@ -1,58 +1,6 @@
 #!/usr/bin/env bash
 # Owns admitted callable receiver carriage consumption in general self C.
 
-receiver_fact_owner="$ROOT_DIR/src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
-receiver_bridge_owner="$ROOT_DIR/src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy"
-receiver_function_owner="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
-# Env construction moved up to the program emitter; function_emit stays the
-# per-function consumer that must not re-read role targets.
-receiver_env_owner="$ROOT_DIR/src/self_hosted/codegen/emission/program_emit.pgy"
-receiver_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
-receiver_semantic_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
-
-for term in 'struct CodegenCallableReceiverFacts' \
-    'role_target_types: Array<String>' \
-    'role_target_carriages: Array<String>' \
-    'CodegenRoleReceiverTargetCarriageOrDie' \
-    'CodegenCallableReceiverFactsFromAdmittedRowsOrDie' \
-    'routine_source_syntax_ids[r] == facts.source_syntax_ids[i]' \
-    'routine_receiver_carriages[found] != facts.carriages[i]' \
-    'CodegenCallableReceiverEnvRows'; do
-    grep -Fq -- "$term" "$receiver_fact_owner" || {
-        echo "[self-host-parity:driver-rung2] callable receiver owner drifted: $term" >&2
-        return 1 2>/dev/null || exit 1
-    }
-done
-if grep -Fq 'CodegenSemanticRoleReceiverType(' "$receiver_function_owner"; then
-    echo "[self-host-parity:driver-rung2] function emission re-read role targets" >&2
-    return 1 2>/dev/null || exit 1
-fi
-grep -Fq 'admitted.routines.receiver_carriages' "$receiver_bridge_owner" || {
-    echo "[self-host-parity:driver-rung2] admitted receiver bridge drifted" >&2
-    return 1 2>/dev/null || exit 1
-}
-grep -Fq 'BuildFunctionEnv(' "$receiver_env_owner" || {
-    echo "[self-host-parity:driver-rung2] function env lost receiver carriage" >&2
-    return 1 2>/dev/null || exit 1
-}
-grep -Fq 'mutable-identity member call requires a stable receiver address' \
-    "$receiver_call_owner" || {
-    echo "[self-host-parity:driver-rung2] member call lost stable receiver address" >&2
-    return 1 2>/dev/null || exit 1
-}
-for term in 'SemanticExpressionGraphPlaceKind(' \
-    'SemanticExpressionPlaceKindAddressable('; do
-    grep -Fq -- "$term" "$receiver_semantic_call_owner" || {
-        echo "[self-host-parity:driver-rung2] semantic receiver place fact drifted: $term" >&2
-        return 1 2>/dev/null || exit 1
-    }
-done
-if grep -Fq 'SemanticExpressionGraphNodeKind(graph, member.receiver_node)' \
-    "$receiver_semantic_call_owner"; then
-    echo "[self-host-parity:driver-rung2] receiver addressability was re-inferred from syntax" >&2
-    return 1 2>/dev/null || exit 1
-fi
-
 pgy_selfhost_verify_driver_rung2_callable_receiver_carriage() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
     [[ "$base" == "zone_layer_projection_runtime" ]] || return 0

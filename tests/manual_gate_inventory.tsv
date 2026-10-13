@@ -1,6 +1,5 @@
 # Exact scripts intentionally run by hand; a row is not automated coverage.
 # Format: repository-relative path<TAB>reason and owner of the manual run.
-tests/ast_read_surface_smoke.sh	Manual readiness-scorecard probe; not push or platform proof.
 tests/bench_backend.sh	Manual backend performance measurement; no routine CI budget.
 tests/concept_semantics/authority_effect/run.sh	Manual concept counterexample campaign driver; explicit run only.
 tests/concept_semantics/callable_capability_admission.sh	Manual concept counterexample campaign; explicit run only.
@@ -20,16 +19,13 @@ tests/concept_semantics/source_admission_parity.sh	Manual concept source-admissi
 tests/concept_semantics/typed_intent_publication.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/world_zone_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/zone_rule_admission.sh	Manual concept counterexample campaign; explicit run only.
-tests/mir_lexical_binding_owner_smoke.sh	Manual source-admission campaign dependency; caller is manual.
 tests/mir_or_abort_invariant_smoke.sh	Manual readiness-scorecard probe; not push or platform proof.
 tests/perf/array_pixel_storage_benchmark.sh	Manual Pixel storage timing benchmark (flat, Array<Pixel>, nested member); timing evidence, no routine CI budget.
 tests/perf_close_to_c_smoke.sh	Manual compiler performance measurement; no routine CI budget.
 tests/self_host_ast_text_assignment_colon_literal_smoke.sh	Manual isolated parser regression probe; no automatic coverage claim.
-tests/self_host_readiness_scorecard.sh	Manual readiness report, not an executable acceptance gate.
 tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/capability_admission_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/driver_execution_action_abi_parity.sh	Manual isolated parity probe; not current CI evidence.
-tests/self_hosted/parity/driver_rung2_structured_expression_order_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/effect_builtin_execution_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/effect_builtin_normalized_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/effect_call_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
@@ -44,18 +40,11 @@ tests/self_hosted/parity/machine_layer_air_validator_parity.sh	Manual isolated p
 tests/self_hosted/parity/machine_layer_mir_projection_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/machine_layer_rir_validator_parity.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh	Manual isolated parity probe; not current CI evidence.
-tests/self_hosted/parity/mir_resource_graph_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/nominal_field_write_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/parser_scale_probe.sh	Manual compiler-scale resource measurement; no routine CI budget.
 tests/self_hosted/parity/regen_expected.sh	Manual expected-artifact regeneration tool; never proof of correctness.
-tests/self_hosted/parity/semantic_ability_bound_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
-tests/self_hosted/parity/semantic_initializer_pressure_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
-tests/self_hosted/parity/semantic_role_constraint_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
-tests/self_hosted/parity/semantic_try_operand_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
-tests/self_hosted/parity/semantic_tuple_shape_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/zone_authority_fact_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/zone_rule_admission_owner.sh	Manual isolated parity probe; not current CI evidence.
-tests/source_ast_inventory.sh	Manual source inventory companion; not an acceptance result.
 tests/verify_arena_closure.sh	Manual readiness-scorecard probe; explicit run only.
 tests/self_hosted/parity/codegen_qualified_kind_match_owner.sh	P0 inout/ArrayDrop checkpoint falsifier run by hand at each checkpoint (docs/agent_work_directives/inout_array_release_2026-10-05.md); no make target yet, not push or platform proof.
 tests/self_hosted/parity/collection_borrowed_descriptor_read.sh	P0 inout/ArrayDrop checkpoint falsifier run by hand at each checkpoint (docs/agent_work_directives/inout_array_release_2026-10-05.md); no make target yet, not push or platform proof.
@@ -70,3 +59,7 @@ tests/self_hosted/parity/collection_bootstrap_closure_rules.sh	Bootstrap-closure
 tests/self_hosted/parity/collection_member_place_rules.sh	Member-place and text-formal ownership falsifier run by hand with the P0 inout/ArrayDrop checkpoint gates (docs/audits/2026-10-06_collection_member_place_shape_audit.md); no make target yet, not push or platform proof.
 tests/counterexample_corpus_smoke.sh	Manual counterexample corpus (docs/198 bug classes vs TypeScript, C#, Python); needs tsc, dotnet and python, run by hand.
 tests/counterexample_corpus/demo_agenthub/demo.sh	Manual AgentHub differentiation demo; run by tests/counterexample_corpus_smoke.sh or by hand.
+tests/concurrency_examples_smoke.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
+tests/self_hosted/parity/direct_mir_scalar_runtime_value_lifecycle_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
+tests/self_hosted/parity/expression_root_consumption_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.
+tests/self_hosted/parity/slice_length_codegen_source_owner.sh	Not wired into any target; only a removed source-text check named it (2026-10-13). Run by hand until a target owns it.

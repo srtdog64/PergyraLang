@@ -32,26 +32,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_route_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
-NARY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nary_operand_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
-require_text "$ROUTE" 'SemanticCallTargetDirect()'
-require_text "$SIGNATURE" '../semantic/builtin_signature_owner.pgy'
-require_text "$NARY" 'operand_rows'
-for field in string_length_id string_substring_id string_substring_with_len_id; do
-    require_text "$ABI" "$field"
-done
-for owner in "$ROUTE" "$SIGNATURE" "$NARY" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_expression_owner.pgy"; do
-    reject_text "$owner" 'str_builtins.pgy'
-    reject_text "$owner" 'perg-yra'
-done
-
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"

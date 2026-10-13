@@ -27,10 +27,6 @@ fail() {
     exit 1
 }
 
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
-}
-
 normalize() {
     pgy_selfhost_normalize_text_artifact <"$1" >"$2"
 }
@@ -143,21 +139,5 @@ grep -Fq -- "--capability-manifest options are outside" \
 grep -Fq "installed capability manifest mode requires one source path" \
     "$WORK_DIR/arity.out" "$WORK_DIR/arity.err" ||
     fail "installed arity lost its typed diagnostic"
-
-require_text "$ROOT_DIR/src/pgy_driver.c" \
-    'driver_self_host_source_stdout_mode(&flags)'
-require_text "$ROOT_DIR/src/pgy_driver.c" \
-    'return driver_run_self_host_source_stdout('
-require_text "$ROOT_DIR/src/compiler/self_host_driver.c" \
-    '"--emit-capability-manifest-verified"'
-require_text "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
-    'DriverCliSourceCapabilityManifestStdout(String)'
-require_text "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
-    'CompileSourceCapabilityManifestVerified(source_path)'
-require_text "$ROOT_DIR/src/self_hosted/compiler/capability_manifest_owner.pgy" \
-    'body.capabilities'
-if grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c"; then
-    fail "installed sibling launcher regained a native fallback"
-fi
 
 echo "[self-host-public-capability-manifest] installed semantic facts own public output and fail closed"

@@ -15,9 +15,5 @@ fi
 
 OUTPUT="$($MIR_TEST)"
 grep -Fq -- "MIR carries HIR function parameter flow summaries by stable identity" <<<"$OUTPUT"
-grep -Fq -- "MIRFunctionParamFlowSummary" "$ROOT_DIR/src/compiler/mir_types.h"
-grep -Fq -- "mir_validate_function_param_flow_summaries" \
-    "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
-grep -Fq -- "has_function_param_flow_facts" "$ROOT_DIR/src/compiler/mir_program.h"
 
 echo "[mir-function-param-flow] HIR summary rows reach MIR with stable identity and fail-closed validation"

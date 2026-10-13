@@ -53,15 +53,6 @@ OBSERVED_PGY_MATH_COMMIT="$(git -C "$PGY_MATH_ROOT" rev-parse HEAD 2>/dev/null)"
 command -v "$NODE_BIN" >/dev/null 2>&1 || fail "node is required"
 command -v lake.exe >/dev/null 2>&1 || command -v lake >/dev/null 2>&1 ||
     fail "Lean lake is required for the PgyMath adversarial audit"
-grep -Fq '`+ - *` overflow is **defined wraparound**, not UB' \
-    "$ROOT_DIR/docs/semantics/11_arithmetic_ub_model.md" ||
-    fail "the Pergyra wrapping-Int semantic owner drifted"
-grep -Fq "$PGY_EXEC_INT_DOMAIN" \
-    "$ROOT_DIR/docs/semantics/11_arithmetic_ub_model.md" ||
-    fail "the Pergyra executable Int domain identity is not owned"
-grep -Fq "$PGY_VERIFY_INT_DOMAIN" \
-    "$ROOT_DIR/docs/semantics/18_pgy_math_adversarial_matrix.md" ||
-    fail "the verifier Int domain identity is not documented"
 export PGY_SELF_DRIVER_BIN="$SELF_DRIVER"
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
@@ -191,11 +182,6 @@ record "PGY-ADV-RUNTIME-LIFETIME-01" "UNMEASURED" \
     "scalar ToString allocation lifetime" \
     "parity passed, but the Windows gate has no leak-enabled sanitizer oracle"
 
-grep -Fq 'layers["abi"].get("status") == "manifest-only"' \
-    "$ROOT_DIR/tests/proof_carrying_pipeline_smoke.sh" ||
-    fail "proof certificate ABI boundary changed; rerun this attack design"
-grep -Fq '"id": "backend"' "$ROOT_DIR/tests/proof_carrying_pipeline_smoke.sh" ||
-    fail "proof certificate backend layer is missing"
 printf '{"layout":"v1"}\n' >"$WORK_DIR/abi-artifact.json"
 printf 'backend-v1\n' >"$WORK_DIR/backend-artifact.bin"
 "$PYTHON_BIN" - \

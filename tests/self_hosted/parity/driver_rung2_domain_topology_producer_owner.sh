@@ -4,66 +4,6 @@
 # native topology JSON grafting or canonical identity repair. Runtime layer
 # materialization is a later substitution rung.
 
-domain_topology_row_owner="$ROOT_DIR/src/self_hosted/dir/domain_topology_row_owner.pgy"
-domain_topology_mir_owner="$ROOT_DIR/src/self_hosted/mir/domain_topology_fact_owner.pgy"
-constructor_signature_owner="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
-constructor_argument_owner="$ROOT_DIR/src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy"
-constructor_layout_owner="$ROOT_DIR/src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy"
-constructor_call_owner="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
-
-for term in 'struct SelfDirDomainTopologyRows' \
-    'SelfDirDomainTopologyRowsFromArtifact' \
-    'SelfDirFieldSourceSyntaxId' \
-    'SelfDirProjectionFieldSourceSyntaxId' \
-    'topology_kind == "refresh"' \
-    'topology_kind == "publish"' \
-    'topology_kind != "bind"' \
-    'kind == TypedAstKindDomainApplyTag()' \
-    'ArrayPush(kinds, "apply-effect")' \
-    'SelfDirDomainTopologyRowsReady'; do
-    grep -Fq -- "$term" "$domain_topology_row_owner" || {
-        echo "[self-host-parity:driver-rung2] missing self DIR topology term: $term" >&2
-        return 1 2>/dev/null || exit 1
-    }
-done
-grep -Fq 'SemanticAstNominalConstructorFieldIsArgument' \
-    "$constructor_signature_owner" || {
-    echo "[self-host-parity:driver-rung2] zone constructor signature policy call drifted" >&2
-    return 1 2>/dev/null || exit 1
-}
-for term in 'SemanticAstNominalConstructorFieldIsArgument' \
-    'NominalFieldKindSubjectSlot()' 'NominalFieldKindBindingSlot()'; do
-    grep -Fq -- "$term" "$constructor_argument_owner" || {
-        echo "[self-host-parity:driver-rung2] zone constructor input policy drifted: $term" >&2
-        return 1 2>/dev/null || exit 1
-    }
-done
-if grep -Fq 'kind == NominalFieldKindObjectSlot()' \
-    "$constructor_argument_owner" || \
-   grep -Fq 'kind == NominalFieldKindTObjectSlot()' \
-    "$constructor_argument_owner"; then
-    echo "[self-host-parity:driver-rung2] projection storage reentered zone constructor inputs" >&2
-    return 1 2>/dev/null || exit 1
-fi
-grep -Fq '=constructor_fields:' "$constructor_layout_owner" || {
-    echo "[self-host-parity:driver-rung2] constructor field inventory projection drifted" >&2
-    return 1 2>/dev/null || exit 1
-}
-grep -Fq '"constructor_fields"' \
-    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_struct_call_emit_owner.pgy" || {
-    echo "[self-host-parity:driver-rung2] struct call reopened storage-field arity" >&2
-    return 1 2>/dev/null || exit 1
-}
-grep -Fq 'RewriteSemanticStructCall(' "$constructor_call_owner" || {
-    echo "[self-host-parity:driver-rung2] call owner no longer delegates struct calls to the struct-call owner" >&2
-    return 1 2>/dev/null || exit 1
-}
-if grep -Eq 'TypedAstArenaProvenanceText|native_oracle|ordinal|source_syntax_id[[:space:]]*\+' \
-    "$domain_topology_row_owner"; then
-    echo "[self-host-parity:driver-rung2] topology producer reopened provenance/oracle/ordinal identity" >&2
-    return 1 2>/dev/null || exit 1
-fi
-
 pgy_selfhost_verify_driver_rung2_domain_topology_producer() {
     local backend="$1" base="$2" native_mir_json="$3"
     local self_mir_json="$4" driver_bin="$5"

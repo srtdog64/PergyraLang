@@ -29,12 +29,6 @@ NEGATIVE=(own_indexed_copy_retirement_borrowed_negative
 sha256sum "$PGY" "$PROBE" "$INVALID" "${BASH_SOURCE[0]}" "${POSITIVE[@]}" >"$B/input.sha256"
 for name in "${NEGATIVE[@]}"; do sha256sum "$F/$name.pgy" >>"$B/input.sha256"; done
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$B/import.sha256"
-for consumer in ast_collection_formal_use_owner ast_collection_argument_permission_effect_owner ast_collection_ownership_argument_transfer_owner; do
-    grep -Fq 'SemanticAstCollectionBuiltinReleaseArgument(' "src/self_hosted/semantic/$consumer.pgy" || fail "$consumer bypassed release identity"
-    ! grep -Fq '"CompilerRetireArrayStorage"' "src/self_hosted/semantic/$consumer.pgy" || fail "$consumer rebuilt release classification"
-done
-! grep -Fq 'ArrayPush(bodies, mode != 2' src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy || fail "own mode replaced body availability"
-! grep -Fq 'mode != 2 &&' src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy || fail "readiness rebuilt mode-based body policy"
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$INPUT" -o "$B/$backend-epoch.exe" >"$B/$backend-epoch.compile" 2>&1 || fail "$backend production epoch did not compile"
     timeout 30 "$B/$backend-epoch.exe" >"$B/$backend-epoch.raw" 2>"$B/$backend-epoch.err" || fail "$backend production epoch failed"

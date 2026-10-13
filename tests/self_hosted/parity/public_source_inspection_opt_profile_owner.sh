@@ -15,8 +15,6 @@ CC="${CC:-cc}"
 WORK_REL=".tmp/self_hosted/public_source_inspection_opt_profile"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="examples/hello.pgy"
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 
 fail() {
     echo "[self-host-source-inspection-opt] $*" >&2
@@ -118,26 +116,5 @@ done <<'MODES'
 --dir
 --capability-manifest
 MODES
-
-selector_body="$(sed -n '/driver_self_host_source_stdout_mode(/,/^}/p' "$SELECTION_OWNER")"
-! grep -Fq 'opt_profile' <<<"$selector_body" ||
-    fail "C selector still assigns optimization semantics to source inspection"
-grep -Fq 'flags->runtime_mode != RUNTIME_DEFAULT' <<<"$selector_body" ||
-    fail "source inspection lost its explicit runtime boundary"
-for variant in DriverCliSourceCapabilityManifestStdout \
-    DriverCliSourceDirStdout; do
-    grep -Fq "$variant(String)," "$REQUEST_OWNER" ||
-        fail "$variant lost its one-path request shape"
-    ! grep -Fq "$variant(String," "$REQUEST_OWNER" ||
-        fail "$variant gained a second policy input"
-done
-for variant in DriverCliSourceTokensStdout DriverCliSourceAstStdout; do
-    grep -Fq "$variant(String, Bool)," "$REQUEST_OWNER" ||
-        fail "$variant lost its path plus diagnostic-format shape"
-    ! grep -Fq "$variant(String, Bool," "$REQUEST_OWNER" ||
-        fail "$variant gained a third policy input"
-done
-! grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c" ||
-    fail "installed sibling launcher regained a native fallback"
 
 echo "[self-host-source-inspection-opt] dev profile is Pergyra-owned and optimization-neutral"

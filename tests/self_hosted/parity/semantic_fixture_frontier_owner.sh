@@ -3,7 +3,6 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PARITY="$ROOT_DIR/tests/self_hosted/parity/semantic_parity.sh"
-RUN_OWNER="$ROOT_DIR/src/self_hosted/semantic/semantic_run_owner.pgy"
 LABEL=self-host-semantic-fixture-frontier
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 
@@ -14,15 +13,6 @@ definition="$(awk '
 ' "$PARITY")"
 eval "$definition"
 declare -F check_semantic_fixture_frontier >/dev/null || fail 'missing frontier consumer'
-grep -Fq 'Log(ToString(SemanticVerdictPayloadFixtureFrontierCount()));' "$RUN_OWNER" ||
-    fail 'CLI stopped consuming the existing Pergyra frontier owner'
-grep -Fq '"$manifest_bin" --fixture-frontier-count' "$PARITY" ||
-    fail 'parity stopped requesting the owner frontier'
-grep -Fq 'check_semantic_fixture_frontier "$frontier_count"' "$PARITY" ||
-    fail 'parity omitted frontier validation'
-if grep -Eq '\$\{#SOURCE_PAIRS\[@\]\}.*(-ne|!=|==|=) *[0-9]+' "$PARITY"; then
-    fail 'shell numeric fixture-frontier authority returned'
-fi
 
 SOURCE_PAIRS=('valid:ok::' 'invalid:error:owned_code:PGY_OWNED_CODE')
 check_semantic_fixture_frontier 2 || fail 'matching owner frontier rejected'

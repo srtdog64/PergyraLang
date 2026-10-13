@@ -33,18 +33,11 @@ PASS_RESULTS_REL="src/self_hosted/tools/gate_dashboard/results_pass.tsv"
 UNKNOWN_RESULTS_REL="src/self_hosted/tools/gate_dashboard/results_unknown.tsv"
 DUPLICATE_RESULTS_REL="src/self_hosted/tools/gate_dashboard/results_duplicate.tsv"
 OVER_BUDGET_RESULTS_REL="src/self_hosted/tools/gate_dashboard/results_over_budget.tsv"
-RUNNER="$ROOT_DIR/tests/self_hosted/parity/gate_dashboard_runner.sh"
 mkdir -p "$BUILD_DIR"
 for input in "$SOURCE" "$EXPECTED" "$PASS_RESULTS" "$UNKNOWN_RESULTS" \
-    "$DUPLICATE_RESULTS" "$OVER_BUDGET_RESULTS" "$RUNNER"; do
+    "$DUPLICATE_RESULTS" "$OVER_BUDGET_RESULTS"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
-grep -Fq 'source "$ROOT_DIR/tests/portable_process_helpers.sh"' "$RUNNER" ||
-    { echo "[$LABEL] runner lost portable timeout owner" >&2; exit 1; }
-grep -Fq 'pgy_run_with_timeout' "$RUNNER" ||
-    { echo "[$LABEL] runner no longer enforces gate budgets" >&2; exit 1; }
-grep -Fq '"$budget" "$stdout_log" "$stderr_log"' "$RUNNER" ||
-    { echo "[$LABEL] runner does not consume manifest budget" >&2; exit 1; }
 
 compile_dashboard() {
     local backend="$1"

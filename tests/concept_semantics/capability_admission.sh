@@ -165,17 +165,5 @@ for name in manifest_clean manifest_declared_ok manifest_violation manifest_inte
         echo "[capability-admission] PASS $name manifest"
     fi
 done
-forbidden='SemanticAstCapabilityFactsFromAdmittedBody('
-checks=$((checks + 1))
-if grep -Fq "$forbidden" src/self_hosted/compiler/capability_manifest_owner.pgy ||
-    ! grep -Fq "$forbidden" src/self_hosted/semantic/ast_body_type_bundle_owner.pgy; then
-    echo '[capability-admission] FAIL manifest-only inference returned' >&2
-    failures=$((failures + 1))
-fi
-checks=$((checks + 1))
-if ! grep -Fq 'ast_func_declared_capabilities(stmt)' src/semantic/type_checker_program.c; then
-    echo '[capability-admission] FAIL forward signature lost declared capabilities' >&2
-    failures=$((failures + 1))
-fi
 echo "[capability-admission] $checks checks / $failures failures"
 [[ "$failures" == 0 ]]

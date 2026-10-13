@@ -21,55 +21,13 @@ MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 INDEX_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_logical_record_collection_index_mutations.py"
 
-FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy"
-JOIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_collection_abi_owner.pgy"
-INT_FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy"
-INT_LITERAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy"
-TYPED_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy"
-LEAF_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy"
-EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT_OWNER" "$JOIN_OWNER" "$INT_FACT_OWNER" \
-        "$INT_LITERAL_OWNER" "$TYPED_OWNER" "$LEAF_OWNER" \
-        "$EXPRESSION_OWNER" "$C_OWNER" "$LLVM_OWNER" \
-        "$MUTATIONS" "$INDEX_MUTATIONS"; do
+for owner in "$MUTATIONS" "$INDEX_MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(' "$FACT_OWNER" ||
-    fail "logical record does not own terminal collection field identity"
-for type_name in ArrayInt ArrayString; do
-    grep -Fq "CompilerAbiLayout${type_name}TypeName()" "$FACT_OWNER" ||
-        fail "logical record omits $type_name field identity"
-done
-grep -Fq 'DirectMirScalarProgramLogicalRecordCollectionAbiReady(' "$JOIN_OWNER" ||
-    fail "logical record collection ABI join is missing"
-grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$INT_FACT_OWNER" ||
-    fail "Array<Int> local instruction ABI is not captured"
-grep -Fq 'DirectMirArrayLiteralEmptyReady(sequence)' "$INT_LITERAL_OWNER" ||
-    fail "Array<Int> empty literal admission is not exact"
-! grep -Fq 'DirectMirArrayIntLiteralElements(' "$INT_LITERAL_OWNER" ||
-    fail "bounded empty Array<Int> admission widened to populated storage"
-grep -Fq 'plan.program.array_int_value_result.present' "$TYPED_OWNER" ||
-    fail "typed plan accepts Array<Int> without a present ABI receipt"
-grep -Fq 'DirectMirScalarProgramArrayIntValueResultFactReady(' "$TYPED_OWNER" ||
-    fail "typed plan does not join the admitted Array<Int> ABI fact"
-grep -Fq 'wire_expr0_carriage: Bool' "$LEAF_OWNER" ||
-    fail "leaf operand owner does not name the expr0-only carriage boundary"
-grep -Fq 'if wire_expr0_carriage {' "$LEAF_OWNER" ||
-    fail "leaf operand owner reads expr0 carriage for every graph lane"
-grep -Fq 'graph_field == "expr0_graph"' "$EXPRESSION_OWNER" ||
-    fail "program expression admission does not preserve LocalRef graph lane identity"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    ! grep -Eq 'offset|offsetof' "$owner" ||
-        fail "logical record target invented collection field offsets"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

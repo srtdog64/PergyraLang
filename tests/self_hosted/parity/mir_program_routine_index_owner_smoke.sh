@@ -23,7 +23,6 @@ DECLARATION_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_declaration_index
 ROUTINE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_index_owner.pgy"
 BLOCK_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_block_fact_owner.pgy"
 ROUTINE_FACT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
-INPUT_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/mir_json_input_owner.pgy"
 MACHINE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/machine_layer_fact_owner.pgy"
 
 fail() {
@@ -39,74 +38,11 @@ lines_at_most() {
         fail "${file#"$ROOT_DIR/"} exceeds $limit lines"
 }
 
-pgy_function_body() {
-    local file="$1"
-    local signature="$2"
-    awk -v signature="$signature" '
-        index($0, signature) == 1 { found = 1 }
-        found { print }
-        found && /^}/ { exit }
-    ' "$file"
-}
-
 lines_at_most "$DECLARATION_OWNER" 120
 lines_at_most "$ROUTINE_OWNER" 530
 lines_at_most "$BLOCK_OWNER" 180
 lines_at_most "$ROUTINE_FACT_OWNER" 600
 lines_at_most "$MACHINE_OWNER" 440
-
-declaration_body="$(pgy_function_body \
-    "$DECLARATION_OWNER" \
-    'func BuildMirProgramDeclarationIndexFromTable(')"
-grep -Fq 'JsonArrayObjectFactTableReady(declarations)' <<<"$declaration_body" ||
-    fail "declaration index must consume a ready document-owned table"
-grep -Fq 'i + 1 == array_end' "$DECLARATION_OWNER" ||
-    fail "declaration table end must be exact"
-grep -Fq 'MirDeclArrayBounds(' <<<"$declaration_body" &&
-    fail "declaration index reopened raw document bounds"
-
-routine_body="$(pgy_function_body \
-    "$ROUTINE_OWNER" 'func BuildMirProgramRoutineIndexFromTable(')"
-block_body="$(pgy_function_body \
-    "$BLOCK_OWNER" 'func MirProgramRoutineBlockCaptureWithin(')"
-routine_fact_body="$(pgy_function_body \
-    "$ROUTINE_FACT_OWNER" 'func BuildMirRoutineFactIndex(')"
-grep -Fq 'declarations.valid && declarations.field_identities.valid' \
-    <<<"$routine_body" || fail "routine index ignored carried declarations"
-for forbidden in \
-    'BuildMirProgramDeclarationIndex(' \
-    'BuildMirProgramDeclarationIndexFromTable(' \
-    'BuildMirDocumentFactIndex(' \
-    'MirDeclArrayBounds('; do
-    grep -Fq "$forbidden" <<<"$routine_body" &&
-        fail "routine index reintroduced forbidden declaration read: $forbidden"
-done
-grep -Fq 'MirProgramRoutineBlockCaptureWithin(' <<<"$routine_body" ||
-    fail "routine index did not consume the one-pass block capture"
-grep -Fq 'ArrayPush(instruction_abi_type_names,' <<<"$routine_body" ||
-    fail "routine index omitted instruction ABI type identity"
-grep -Fq 'instruction_count != ArrayLength(index.instruction_abi_type_names)' \
-    "$ROUTINE_OWNER" || fail "routine index omitted ABI carrier cardinality"
-grep -Fq 'let is_instructions: Bool' <<<"$block_body" ||
-    fail "block capture omitted instruction bounds"
-grep -Fq 'let is_succ_false: Bool' <<<"$block_body" ||
-    fail "block capture omitted successor facts"
-grep -Fq '"instructions"' <<<"$routine_body" &&
-    fail "routine index reopened block instruction bounds"
-for forbidden in '"reachable"' '"succ_true"' '"succ_false"'; do
-    grep -Fq "$forbidden" <<<"$routine_fact_body" &&
-        fail "routine fact index reopened block fact: $forbidden"
-done
-grep -Fq 'BuildMirProgramDeclarationIndexFromTable(document.declarations)' \
-    "$INPUT_OWNER" || fail "production input did not carry declaration table"
-grep -Fq 'document.routines, declarations' "$MACHINE_OWNER" ||
-    fail "machine admission did not carry declaration index"
-grep -Fq 'document.declarations.end + 1' "$SOURCE" ||
-    fail "missing extended declaration-bound negative"
-grep -Fq 'cross_document_index.valid' "$SOURCE" ||
-    fail "missing cross-document declaration negative"
-grep -Fq 'nonsequential_block_id' "$SOURCE" ||
-    fail "missing non-sequential block-id negative"
 
 run_backend() {
     local backend="$1"

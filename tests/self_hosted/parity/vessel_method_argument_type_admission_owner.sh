@@ -15,11 +15,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 INVALID_REL="tests/self_hosted/parity/fixture/vessel_method_argument_type_bad.pgy"
 VALID_REL="tests/self_hosted/parity/fixture/vessel_method_argument_type_valid.pgy"
 GENERAL_REL="src/self_hosted/semantic/fixture/bad_user_arg.pgy"
-GRAPH_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
-VERDICT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
-RECEIPT_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 
 fail() {
     echo "[self-host-vessel-method-argument-type] $*" >&2
@@ -144,16 +139,5 @@ valid_bin="$WORK_DIR/valid-c"
     >"$WORK_DIR/valid-c.out" 2>"$WORK_DIR/valid-c.err" ||
     fail "valid public C control did not compile"
 "$valid_bin" || fail "valid public C control did not run"
-
-require_text "$GRAPH_OWNER" 'if target_fact.kind == SemanticCallTargetMember() {'
-require_text "$GRAPH_OWNER" '"member_call_arg_type_mismatch"'
-require_text "$GRAPH_OWNER" 'func SemanticExpressionGraphResolvedCallArgumentsOwned('
-! grep -Fq 'func SemanticExpressionGraphResolvedCallArgumentsOwned(' \
-    "$VERDICT_OWNER" || fail "expression verdict consumer regained resolved-call argument ownership"
-require_text "$RECEIPT_OWNER" 'if code == "member_call_arg_type_mismatch" {'
-! grep -Fq 'vessel V' "$GRAPH_OWNER" "$VERDICT_OWNER" ||
-    fail "semantic owner gained fixture-specific vessel syntax"
-! grep -Fq 'member_call_arg_type_mismatch' "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic member-call authority"
 
 echo "[self-host-vessel-method-argument-type] graph-owned vessel method argument rejection, exact MIR/C/LLVM receipt, native identity, general-call distinction, and valid control: PASS"

@@ -18,31 +18,13 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_value_result_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy"
-ROUTINE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
-BUILTIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$ABI_OWNER" "$C_OWNER" "$LLVM_OWNER" "$ROUTINE_OWNER" "$BUILTIN_OWNER" \
-    "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'value_result_routine_ordinals' "$ABI_OWNER" ||
-    fail "Array<String> ABI does not carry value-result identity"
-grep -Fq 'DirectMirScalarCfgVoidReturnExpressionRow()' "$ROUTINE_OWNER" ||
-    fail "Void return edges are not represented by the GraphPlan owner"
-grep -Fq 'DirectMirScalarProgramCArrayStringValueResultCopyOut(' "$C_OWNER" ||
-    fail "C copy-out owner is missing"
-grep -Fq 'DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(' "$LLVM_OWNER" ||
-    fail "LLVM copy-out owner is missing"
-grep -Fq 'name == "ArrayPushOwnedString"' "$BUILTIN_OWNER" ||
-    fail "owned String push is missing from the canonical builtin projection"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

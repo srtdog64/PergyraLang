@@ -31,34 +31,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-PROGRAM="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"
-BUILTIN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy"
-BUILTIN_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
-DIRECT_CALL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy"
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-[[ "$(grep -Fc 'DirectMirScalarCfgProgramAppendRoutine(' "$PROGRAM")" -eq 1 ]] ||
-    fail "one loop must own every scalar-program routine admission"
-[[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
-    fail "program graph must seal exactly once"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
-reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v18'
-require_text "$BUILTIN" 'direct_mir_scalar_program_builtin_signature_projection_owner.pgy'
-require_text "$BUILTIN_SIGNATURE" '../semantic/builtin_signature_owner.pgy'
-reject_text "$BUILTIN" '../semantic/builtin_signature_owner.pgy'
-require_text "$ADMISSION" 'DirectMirScalarProgramCallsComplete('
-reject_text "$DIRECT_CALL" 'ToString'
-for field in string_compare_id string_concat_id string_to_string_id \
-    string_to_upper_id string_to_lower_id; do require_text "$ABI" "$field"; done
-for owner in "$ADMISSION" "$BUILTIN" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"; do
-    for term in string_concat_op.pgy foobar 'Hello, Pergyra!' 'foo/bar/end'; do
-        reject_text "$owner" "$term"
-    done
-done
-
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \

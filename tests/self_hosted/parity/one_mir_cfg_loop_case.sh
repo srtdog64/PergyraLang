@@ -1,25 +1,6 @@
 # Sourced after the nested rung; reuses one admission and gate owner.
 
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/whileloop.pgy"
-LOOP_FACT_OWNER="$ROOT_DIR/src/self_hosted/air/mir_loop_cfg_certificate_fact_owner.pgy"
-LOOP_SHAPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_loop_cfg_shape_owner.pgy"
-LOOP_PLAN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy"
-LOOP_EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_loop_cfg_emission_owner.pgy"
-for owner in "$LOOP_FACT_OWNER" "$LOOP_SHAPE_OWNER" \
-    "$LOOP_PLAN_OWNER" "$LOOP_EMISSION_OWNER"; do
-    require_file "$owner"
-done
-for term in DirectMirLoopCfgCertificateFactFromIndex \
-    DirectMirLoopCfgCertificateFactMutationRejected; do
-    grep -Fq -- "$term" "$LOOP_FACT_OWNER" || fail "loop AIR fact lacks $term"
-done
-grep -Fq -- 'DirectMirLoopCfgShapeFactFromOwners' "$LOOP_SHAPE_OWNER" ||
-    fail "loop target-neutral shape projection is missing"
-grep -Fq -- 'DirectMirLoopCfgPlanFactMutationRejected' "$LOOP_PLAN_OWNER" ||
-    fail "loop fixed-plan mutation ratchet is missing"
-grep -Fq -- 'DirectMirLoopCfgEmitC' "$LOOP_EMISSION_OWNER" &&
-    grep -Fq -- 'DirectMirLoopCfgEmitLlvm' "$LOOP_EMISSION_OWNER" ||
-    fail "loop emission responsibility must retain both backends"
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
 [[ -s "$MIR_ARTIFACT" &&

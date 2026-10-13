@@ -30,37 +30,8 @@ TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_stable_identity.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-AST_IDENTITY="$ROOT_DIR/src/parser/ast_identity.c"
-AST_API="$ROOT_DIR/src/parser/ast_api.h"
-PARSER_PROGRAM="$ROOT_DIR/src/parser/parser_program.c"
-IMPORT_RESOLVER="$ROOT_DIR/src/compiler/import_resolver.c"
 FIXTURE="$ROOT_DIR/tests/cases/stable_identity_import_merge/main.pgy"
 EMITTED_C="$WORK_DIR/stable_identity.c"
-
-require_text() {
-    local file="$1"
-    local text="$2"
-    if ! grep -Fq "$text" "$file"; then
-        echo "[stable-identity] missing contract text in $file: $text" >&2
-        exit 1
-    fi
-}
-
-require_text "$AST_API" "bool ast_assign_stable_ids(ASTNode* root);"
-require_text "$AST_API" "bool ast_complete_stable_ids(ASTNode* root);"
-require_text "$ROOT_DIR/src/compiler/driver_app.c" "if (!ast_complete_stable_ids(ast))"
-require_text "$ROOT_DIR/src/tests/mir/test_mir_lexical_binding_identity.cases.h" "test_ast_growth_preserves_binding_identity"
-require_text "$AST_IDENTITY" "uint64_t next_id;"
-require_text "$AST_IDENTITY" "next_id->next_id > UINT32_MAX"
-require_text "$AST_IDENTITY" "return !next_id.exhausted;"
-require_text "$PARSER_PROGRAM" "if (!ast_assign_stable_ids(program))"
-require_text "$IMPORT_RESOLVER" "if (program != NULL && !ast_assign_stable_ids(program))"
-require_text "$IMPORT_RESOLVER" "syntax node identity space exhausted after import merge"
-
-if grep -Fq "(void)ast_assign_stable_ids" "$PARSER_PROGRAM" "$IMPORT_RESOLVER"; then
-    echo "[stable-identity] stable identity failure is ignored" >&2
-    exit 1
-fi
 
 fixture_arg="$(pgy_path_for_compiler "$PGY" "$FIXTURE")"
 emitted_arg="$(pgy_path_for_compiler "$PGY" "$EMITTED_C")"
@@ -126,4 +97,4 @@ for backend in $backends; do
     echo "[stable-identity] backend=$backend import-merge identities unique"
 done
 
-echo "[stable-identity] overflow fail-close and duplicate-ID regression locked"
+echo "[stable-identity] import-merge duplicate-ID regression locked"

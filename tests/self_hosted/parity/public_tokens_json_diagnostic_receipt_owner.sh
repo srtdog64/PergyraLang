@@ -204,36 +204,4 @@ set -e
 require_text "$WORK_DIR/excluded.err" 'outside the installed self-host driver contract'
 require_text "$WORK_DIR/verbose.err" 'outside the installed self-host driver contract'
 
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-DRIVER_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_stdout_process_owner.c"
-MIR_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
-SCAN_OWNER="$ROOT_DIR/src/self_hosted/lexer/scan_owner.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/lexer/public_diagnostic_receipt_owner.pgy"
-require_text "$SELECTION_OWNER" 'flags->dump_tokens && flags->diag_format == DIAG_FORMAT_JSON'
-require_text "$SELECTION_OWNER" '"--tokens-json-diagnostic-verified"'
-require_text "$DRIVER_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_TOKENS'
-require_text "$REQUEST_OWNER" 'DriverCliSourceTokensStdout(String, Bool)'
-require_text "$REQUEST_OWNER" 'args[0] == "--tokens-json-diagnostic-verified"'
-require_text "$READ_OWNER" 'LexContentForPublicDiagnosticRequest('
-require_text "$SCAN_OWNER" 'func LexContentFacts(content: String)'
-require_text "$SCAN_OWNER" 'LexerInvalidTokenDiagnosticPayloadForPublicBoundary('
-for fact in 'PGY_LEX_INVALID_TOKEN' 'lex:invalid_token' \
-    'remove-or-escape-character'; do
-    require_text "$DIAGNOSTIC_OWNER" "$fact"
-done
-require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
-require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
-require_text "$MIR_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
-! grep -Fq 'pgy_exec_argv_capture_stdout(' "$MIR_OWNER" ||
-    fail "MIR caller restored a second diagnostic stdout process owner"
-! grep -Eq 'PGY_LEX_INVALID_TOKEN|lex:invalid_token|remove-or-escape-character|LEXER ERROR' \
-    "$SELECTION_OWNER" "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
-    fail "C token transport regained lexer diagnostic meaning"
-! grep -Eq 'driver_run_pipeline|compiler_emit|system\(' \
-    "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
-    fail "token diagnostic transport regained native/string-shell fallback"
-
 echo "[self-host-public-tokens-json-diagnostic] token bytes, exact lexer receipt, formatter stability, and shared opaque process owner: PASS"

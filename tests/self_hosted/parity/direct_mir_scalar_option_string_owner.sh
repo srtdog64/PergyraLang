@@ -18,47 +18,14 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 RECORD_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_option_int_logical_record_mutations.py"
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_string_abi_owner.pgy"
-PARAM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
-SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_option_string_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_string_owner.pgy"
-BUILTIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_string_builtin_signature_owner.pgy"
-CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
-CALLABLE_INVENTORY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy"
-EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$ABI_OWNER" "$PARAM_OWNER" "$SIGNATURE_OWNER" "$C_OWNER" "$LLVM_OWNER" "$BUILTIN_OWNER" "$CALL_OWNER" "$CALLABLE_INVENTORY" "$EXPRESSION_OWNER" "$MUTATIONS" "$RECORD_MUTATIONS"; do
+for owner in "$MUTATIONS" "$RECORD_MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$ABI_OWNER" ||
-    fail "Option<String> path does not consume the MIR ABI receipt"
-grep -Fq 'own parameter: DirectMirRoutineParamFact' "$ABI_OWNER" ||
-    fail "Option<String> parameter ABI projection does not own the forwarded receipt"
-grep -Fq 'DirectMirOptionStringAbiFactFromCapture(abi_capture)' "$ABI_OWNER" ||
-    fail "Option<String> parameter ABI projection omits the named transfer binding"
-! grep -Fq 'DirectMirOptionStringAbiFactFromCapture(parameter.abi)' "$ABI_OWNER" ||
-    fail "Option<String> parameter ABI projection forwarded an unnamed boundary value"
-grep -Fq 'let option_return: Bool' "$SIGNATURE_OWNER" ||
-    fail "Option return family is not composed once"
-grep -Fq 'DirectMirScalarProgramCallableParameterRolePlanReady(' "$SIGNATURE_OWNER" ||
-    fail "Option return family does not consume the parameter-role plan"
-grep -Fq 'DirectMirScalarProgramLogicalRecordParameterReady(' "$PARAM_OWNER" ||
-    fail "parameter-role plan omitted readonly logical records"
-grep -Fq 'DirectMirScalarProgramAbiValueParameterReady(' "$PARAM_OWNER" ||
-    fail "parameter-role plan omitted by-value Option<String>"
-grep -Fq 'DirectMirOptionStringAbiFactReady(fact)' "$C_OWNER" ||
-    fail "C target does not consume the admitted Option<String> fact"
-grep -Fq 'DirectMirOptionStringAbiFactReady(fact)' "$LLVM_OWNER" ||
-    fail "LLVM target does not consume the admitted Option<String> fact"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'fact.some_tag' "$owner" || fail "target guessed Some tag"
-    grep -Fq 'fact.none_tag' "$owner" || fail "target guessed None tag"
-done
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
@@ -77,12 +44,6 @@ grep -Fq '"type":"Option<String>","carriage":"value"' "$MIR" ||
     fail "producer omitted by-value Option<String> parameter role"
 grep -Fq '"call_target_name":"OptionStringIsMissing"' "$MIR" ||
     fail "producer omitted the nested Option<String> None call identity"
-grep -Fq 'func DirectMirScalarProgramDirectCallArgumentExpectedType(' \
-    "$CALL_OWNER" || fail "direct-call owner omitted argument expected types"
-grep -Fq 'func DirectMirScalarCfgProgramCallableParameterTypeBySyntaxId(' \
-    "$CALLABLE_INVENTORY" || fail "callable inventory omitted parameter type lookup"
-grep -Fq 'DirectMirScalarProgramDirectCallArgumentExpectedType(' \
-    "$EXPRESSION_OWNER" || fail "None admission bypasses the direct-call type"
 
 printf 'option-string\nrecord-string\nmissing\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do

@@ -18,57 +18,10 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_owner.pgy"
-ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy"
-ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy"
-ENVELOPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy"
-TERMINAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$ABI_OWNER" "$TARGET_OWNER" "$C_OWNER" "$LLVM_OWNER" \
-    "$ROUTE_OWNER" "$ADMISSION_OWNER" "$ENVELOPE_OWNER" \
-    "$TERMINAL_OWNER" "$MUTATIONS"; do
-    [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
-done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'DirectMirNominalDeclarationAbiFactFromDocument(' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" ||
-    fail "program nominal fact does not consume declaration ABI identity"
-grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$ABI_OWNER" ||
-    fail "program nominal fact does not cross-seal instruction ABI rows"
-grep -Fq 'DirectMirScalarProgramLogicalRecordPhysicalTargetReady(' "$TARGET_OWNER" ||
-    fail "program nominal fact lost its physical-shape proof"
-grep -Fq 'while row < count' "$ABI_OWNER" ||
-    fail "program nominal fact does not scan the admitted declaration index"
-if grep -Eq 'count[[:space:]]*==[[:space:]]*1' "$ABI_OWNER"; then
-    fail "program nominal fact regressed to a one-declaration classifier"
-fi
-grep -Fq 'DirectMirScalarProgramLogicalRecordTargetReadyFor(' "$TARGET_OWNER" ||
-    fail "nominal target projection has no capability receipt gate"
-grep -Fq 'CompilerTargetCapabilityFingerprint()' "$TARGET_OWNER" ||
-    fail "nominal target projection lost its capability fingerprint"
-grep -Fq 'logical_record: DirectMirScalarProgramLogicalRecordFact' "$ROUTE_OWNER" ||
-    fail "route does not carry the record identity and physical receipt"
-! grep -Fq 'nominal:' "$ROUTE_OWNER" || fail "route reintroduced the second nominal owner"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'DirectMirScalarProgramLogicalRecordTargetFromFact(' "$owner" ||
-        fail "target emission bypasses the nominal projection"
-done
-if grep -Eq 'routine_count[[:space:]]*==[[:space:]]*4' "$ROUTE_OWNER"; then
-    fail "nominal support regressed to a fixture-count route"
-fi
-grep -Fq 'DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(' \
-    "$ADMISSION_OWNER" || fail "route admission reconstructs callable policy"
-grep -Fq 'DirectMirScalarProgramRouteAdmissionRefusal(' "$TERMINAL_OWNER" ||
-    fail "terminal projector discards the scalar route receipt"
-! grep -Fq 'terminal multi-routine graph is unsupported' "$TERMINAL_OWNER" ||
-    fail "terminal projector retained the coarse fallback diagnostic"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

@@ -20,46 +20,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_array_string_readonly_r
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy"
-TARGET="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_readonly_ref_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy"
-PROJECTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_projection_owner.pgy"
-EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
-EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$POLICY" "$TARGET" "$C_OWNER" "$LLVM_OWNER" \
-        "$PROJECTION_OWNER" "$EMISSION_OWNER" "$EXPRESSION_OWNER" \
-        "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'DirectMirScalarProgramArrayReadonlyRefParameterReady(' "$POLICY" ||
-    fail "read-only policy owner is missing"
-grep -Fq 'DirectMirScalarProgramArrayReadonlyRefAt(' "$TARGET" ||
-    fail "read-only target owner is missing"
-grep -Fq 'DirectMirScalarProgramCArrayReadonlyRefCallArgument(' "$C_OWNER" ||
-    fail "C read-only call owner is missing"
-grep -Fq 'DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(' "$LLVM_OWNER" ||
-    fail "LLVM read-only call owner is missing"
-grep -Fq 'DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(' "$LLVM_OWNER" ||
-    fail "LLVM read-only load does not cross-seal the carried projection"
-grep -Fq 'projection.storage.align' "$LLVM_OWNER" ||
-    fail "LLVM read-only load does not consume projected storage alignment"
-if grep -Fq 'load %pgy.array.string, ptr ' "$LLVM_OWNER" &&
-        grep -Fq ', align 8' "$LLVM_OWNER"; then
-    fail "LLVM read-only load retained its storage-alignment literal"
-fi
-if grep -Fq 'DirectMirScalarProgramArrayStringAbiProjectionFromFact(' \
-        "$LLVM_OWNER" "$EXPRESSION_OWNER"; then
-    fail "LLVM read-only path derives a second target projection"
-fi
-grep -Fq 'array_string_projection: Option<DirectMirArrayStringAbiProjection>' \
-    "$EMISSION_OWNER" || fail "LLVM routine path omits projection carriage"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

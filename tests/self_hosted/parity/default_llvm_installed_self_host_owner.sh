@@ -162,18 +162,4 @@ set -e
 [[ "$stale_runtime_rc" -ne 0 && ! -e "$WORK_DIR/stale-runtime-program$suffix" ]] || fail "stale prebuilt LLVM runtime published a binary"
 grep -Fq "Prebuilt LLVM runtime object is stale or missing" "$WORK_DIR/stale-runtime.err" || fail "stale prebuilt LLVM runtime lost its owned diagnostic"
 
-runner_body="$(sed -n '/^llvm_runner_execute_installed_self_host_llvm(/,/^#ifdef PGY_LLVM_ENABLED/p' \
-    "$ROOT_DIR/src/compiler/llvm_runner.c")"
-[[ "$(grep -Fc 'driver_materialize_self_host_llvm_artifact(' <<< "$runner_body")" == "1" ]] ||
-    fail "public LLVM runner must materialize one intent-owned artifact"
-grep -Fq "compiler_compile_link_self_host_llvm_artifact(" <<< "$runner_body" ||
-    fail "public LLVM runner lacks the clang-only host boundary"
-! grep -Eq 'driver_run_pipeline\(|compiler_build_native_llvm\(|llvm_codegen_' <<< "$runner_body" ||
-    fail "public LLVM runner reintroduced native semantic/libLLVM ownership"
-grep -Fq "compiler_llvm_runtime_object_ensure(" "$ROOT_DIR/src/compiler/compiler_self_host_artifact.c" || fail "public LLVM host boundary omitted the canonical runtime object owner"
-! grep -Eq 'compiler_runtime_prebuilt_object_path\(|compiler_runtime_cache_object_path\(|PGY_RUNTIME_LIB_C' \
-    "$ROOT_DIR/src/compiler/compiler_llvm.c" || fail "native LLVM consumer rebuilt the canonical runtime owner locally"
-! grep -Eq 'path_read_file\(|strstr\(' \
-    "$ROOT_DIR/src/compiler/self_host_llvm_driver.c" || fail "native LLVM materializer inferred runtime policy from artifact text"
-
 echo "[self-host-default-llvm] installed compiler intent artifact and canonical runtime own public LLVM compile/run"

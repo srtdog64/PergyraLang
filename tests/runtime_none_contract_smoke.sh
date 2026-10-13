@@ -25,38 +25,9 @@ PGY_BIN="$(pgy_select_optional_exe_binary "$PGY_BIN")"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-none.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-require_term() {
-    local rel="$1"
-    local term="$2"
-    grep -Fq -- "$term" "$ROOT_DIR/$rel" ||
-        { echo "[runtime-none-contract] $rel missing term: $term" >&2; exit 1; }
-}
-
-require_term "src/pgy_driver.c" "--runtime=none"
-require_term "src/compiler/driver_app.c" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
-require_term "src/compiler/driver_app.c" "freestanding backend lowering is not implemented yet"
-require_term "src/compiler/runtime_none_contract.c" "runtime-dependent surface"
-require_term "src/compiler/runtime_none_contract.c" "ast_array_literal_element(node, i), scan))"
-require_term "src/compiler/runtime_none_contract.c" "ast_tuple_literal_element(node, i), scan))"
-require_term "src/compiler/runtime_none_contract.c" 'runtime_none_record(scan, node, "pin")'
-require_term "src/compiler/driver_diag.c" "PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED"
-require_term "src/semantic/diag_codes.h" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
-require_term "src/semantic/diag_codes.h" "driver:runtime:none_unsupported"
-
-if grep -Fq "if (runtime_none_scan_node(ast_array_literal_element(node, i), scan))" \
-    "$ROOT_DIR/src/compiler/runtime_none_contract.c"; then
-    echo "[runtime-none-contract] array literal scan returns before later elements" >&2
-    exit 1
-fi
-if grep -Fq "if (runtime_none_scan_node(ast_tuple_literal_element(node, i), scan))" \
-    "$ROOT_DIR/src/compiler/runtime_none_contract.c"; then
-    echo "[runtime-none-contract] tuple literal scan returns before later elements" >&2
-    exit 1
-fi
-
 if [[ ! -x "$PGY_BIN" ]]; then
     if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
-        echo "[runtime-none-contract] SKIP executable probe; source contract is gated"
+        echo "[runtime-none-contract] SKIP executable probe; compiler binary unavailable"
         exit 0
     fi
     echo "[runtime-none-contract] missing compiler binary: $PGY_BIN" >&2
@@ -71,7 +42,7 @@ if ! pgy_binary_is_runnable_here "$PGY_BIN"; then
 fi
 if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
     if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
-        echo "[runtime-none-contract] SKIP executable probe; source contract is gated"
+        echo "[runtime-none-contract] SKIP executable probe; compiler binary unavailable"
         exit 0
     fi
     echo "[runtime-none-contract] compiler binary is not runnable: $PGY_BIN" >&2

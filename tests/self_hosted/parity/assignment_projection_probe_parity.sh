@@ -43,93 +43,9 @@ fi
 
 PROBE_SOURCE="$ROOT_DIR/${paths[11]}"
 EXPECTED="$ROOT_DIR/${paths[12]}"
-ASSIGN_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/assign_emit_owner.pgy"
-ASSIGN_FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
-ASSIGN_TYPE_FACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 for input in "$PROBE_SOURCE" "$EXPECTED"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
-grep -Fq 'import "expression_normalization_owner.pgy";' "$ASSIGN_FACT_OWNER" ||
-    { echo "[$LABEL] assignment fact owner bypasses normalization SoT" >&2; exit 1; }
-if grep -Fq 'Trim(' "$ASSIGN_FACT_OWNER"; then
-    echo "[$LABEL] assignment fact owner retains allocation-returning trim" >&2
-    exit 1
-fi
-if grep -Fq 'SemanticExpressionGraphArenaUnclassified(' "$PROBE_SOURCE" \
-    || ! grep -Fq 'SemanticExpressionPlaceBinding()' "$PROBE_SOURCE" \
-    || ! grep -Fq 'SemanticExpressionPlaceValue()' "$PROBE_SOURCE"; then
-    echo "[$LABEL] probe stopped carrying semantic-owned place facts" >&2
-    exit 1
-fi
-if grep -Fq 'target_texts: Array<String>;' "$ASSIGN_TYPE_FACT_OWNER" ||
-    grep -Fq 'ArrayPush(target_texts' "$ASSIGN_TYPE_FACT_OWNER" ||
-    grep -Fq 'ArrayLength(facts.target_texts)' "$ROOT_DIR/src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" ||
-    grep -Fq 'facts.target_texts[i]' "$ROOT_DIR/src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy"; then
-    echo "[$LABEL] assignment type fact owner duplicated assignment target text" >&2
-    exit 1
-fi
-
-# Registry ratchets:
-# - source_assignment_type_rescan: expected type must not be recovered with ExprKind.
-# - backend_assignment_type_guess: indexed target type must not come from env lookup.
-# - missing_expected_type_success: missing facts must fail in both generated probes.
-# - missing_direct_call_target_success: call identity must come from semantic facts.
-# - assignment_target_name_as_c_binding: target text is not a C binding fact.
-# - assignment_target_local_sanitize: EmitAssign must not remangle target text.
-# - collection_target_name_as_c_binding: ArraySet/ArrayPush/ArrayPop targets
-#   read the env-owned C binding row and fail closed when it is missing.
-# - collection_target_cref_fallback: readonly-ref rows already own their exact
-#   dereferenced `cbind`; the raw `cref` pointer is not an interchangeable name.
-# - let_binding_name_as_c_binding: let/try-let/loop-var C names come from the
-#   function value binding fact owner, never a statement-local sanitize call.
-# - runtime_call_argument_abi_owner: the registered LLVM function signature
-#   owns each runtime argument's expected type; no AST call re-scan or
-#   wrapper-specific C inference path may substitute for that boundary fact.
-STMT_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/stmt_emit.pgy"
-TRY_LET_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
-CALL_TYPE_INFER="$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
-CALL_FACT_OWNER="$ROOT_DIR/src/compiler/mir_source_local_expr_call_facts.c"
-CALL_ARG_EMITTER="$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
-if grep -Fq 'ExprKind(expr, env)' "$ASSIGN_EMITTER"; then
-    echo "[$LABEL] assignment expected type was re-derived from source text" >&2
-    exit 1
-fi
-if grep -Fq 'LookupKindType(env, arr_name' "$ASSIGN_EMITTER"; then
-    echo "[$LABEL] indexed assignment target type was guessed by codegen" >&2
-    exit 1
-fi
-if grep -Fq 'CompilerSymbolCBindingName(' "$STMT_EMITTER" "$TRY_LET_EMITTER"; then
-    echo "[$LABEL] statement emitter re-sanitized a binding name instead of consuming the binding fact owner" >&2
-    exit 1
-fi
-BINDING_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/collection_element_emit_owner.pgy"
-if ! grep -Fq 'CodegenCollectionTargetCBindingOrDie(env,' "$STMT_EMITTER"; then
-    echo "[$LABEL] collection mutation targets stopped consuming the binding fact owner" >&2
-    exit 1
-fi
-if ! grep -Fq 'collection target C binding fact is missing' "$BINDING_OWNER"; then
-    echo "[$LABEL] binding fact owner lost the fail-closed missing-binding diagnostic" >&2
-    exit 1
-fi
-if grep -Fq 'LookupKindType(env, source_name, "cref")' "$BINDING_OWNER"; then
-    echo "[$LABEL] collection target restored a raw cref fallback instead of consuming cbind" >&2
-    exit 1
-fi
-if grep -Fq 'mir_source_local_call_expr_type_name' "$CALL_TYPE_INFER"; then
-    echo "[$LABEL] LLVM call inference restored an AST/MIR call re-scan fallback" >&2
-    exit 1
-fi
-if grep -Fq '"UnwrapOption"' "$CALL_TYPE_INFER" "$CALL_FACT_OWNER"; then
-    echo "[$LABEL] native call inference reintroduced a direct UnwrapOption type guess" >&2
-    exit 1
-fi
-if ! grep -Fq 'ctx->expected_abi_type = expected_abi_type' "$CALL_ARG_EMITTER" \
-    || ! grep -Fq 'ctx->expected_abi_type = saved_expected_abi_type' "$CALL_ARG_EMITTER" \
-    || ! grep -Fq 'LLVMTypeOf(args[i]) != expected_abi_type' "$CALL_ARG_EMITTER" \
-    || ! grep -Fq 'return ctx->expected_abi_type' "$CALL_TYPE_INFER"; then
-    echo "[$LABEL] LLVM runtime call argument stopped consuming its ABI-owned expected type" >&2
-    exit 1
-fi
 
 compile_probe() {
     local backend="$1"

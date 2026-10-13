@@ -17,27 +17,11 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_void_scalar_process_exit.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_void_process_exit_mutations.py"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy"
-PROCESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_process_exit_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'signature.return_type == "Void"' "$SIGNATURE" ||
-    fail "direct scalar signature owner omitted Void"
-grep -Fq 'DirectMirScalarProgramCallableParameterRolePlanFromSignature(' "$POLICY" ||
-    fail "direct scalar signature owner omitted the shared parameter-role plan"
-! grep -Fq 'signature.param_count < 1' "$POLICY" ||
-    fail "Void scalar signature owner still rejects zero parameters"
-grep -Fq 'DirectMirScalarProgramComposableCallableSignatureReady(' "$ROUTE" ||
-    fail "callable route envelope does not consume the composable role plan"
-grep -Fq 'DirectMirScalarCfgOpProcessExit()' "$PROCESS" ||
-    fail "process-exit operation inventory is missing"
-grep -Fq 'DirectMirScalarProgramBlockEndsWithProcessExit(' "$PROCESS" ||
-    fail "terminal return readiness has no exact process-exit receipt"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

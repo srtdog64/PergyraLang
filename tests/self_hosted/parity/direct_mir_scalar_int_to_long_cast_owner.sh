@@ -25,39 +25,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_numeric_cast_expression_readiness_owner.pgy"
-C_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy"
-LLVM_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-
-grep -Fq 'DirectMirScalarProgramExprTypeNameLong() -> Int { return 83; }' "$KIND" ||
-    fail "Long type-name expression identity drifted"
-grep -Fq 'DirectMirScalarProgramExprCastIntToLong() -> Int { return 84; }' "$KIND" ||
-    fail "Int-to-Long cast expression identity drifted"
-grep -Fq 'DirectMirScalarProgramExprTypeNameInt() -> Int { return 86; }' "$KIND" ||
-    fail "Int type-name expression identity drifted"
-grep -Fq 'DirectMirScalarProgramExprCastLongToInt() -> Int { return 87; }' "$KIND" ||
-    fail "Long-to-Int cast expression identity drifted"
-grep -Fq 'source_kind == AstExpressionNodeTypeName()' "$KIND" ||
-    fail "Long type-name source identity is missing"
-grep -Fq 'source_kind == AstExpressionNodeCast()' "$KIND" ||
-    fail "Int-to-Long source/type join is missing"
-grep -Fq 'facts.node_kinds[right] == DirectMirScalarProgramExprTypeNameLong()' "$READY" ||
-    fail "cast readiness does not consume the exact Long type-name row"
-grep -Fq 'facts.node_kinds[right] == DirectMirScalarProgramExprTypeNameInt()' "$READY" ||
-    fail "cast readiness does not consume the exact Int type-name row"
-grep -Fq 'DirectMirScalarProgramExprCastIntToLong()' "$C_EXPR" ||
-    fail "C Int-to-Long cast consumer is missing"
-grep -Fq 'DirectMirScalarProgramExprCastIntToLong()' "$LLVM_EXPR" ||
-    fail "LLVM Int-to-Long cast consumer is missing"
-grep -Fq 'DirectMirScalarProgramExprCastLongToInt()' "$C_EXPR" ||
-    fail "C Long-to-Int cast consumer is missing"
-grep -Fq 'DirectMirScalarProgramExprCastLongToInt()' "$LLVM_EXPR" ||
-    fail "LLVM Long-to-Int cast consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema did not advance with exact Int/Long casts"
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

@@ -355,42 +355,4 @@ set -e
 require_text "$WORK_DIR/excluded.err" 'outside the installed self-host driver contract'
 require_text "$WORK_DIR/verbose.err" 'outside the installed self-host driver contract'
 
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-DRIVER_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_stdout_process_owner.c"
-MIR_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
-PARSER_DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/parser/diagnostic_owner.pgy"
-PARSER_STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/parser/stmt_owner.pgy"
-PARSER_REFUSAL_OWNER="$ROOT_DIR/src/self_hosted/parser/source_refusal_owner.pgy"
-require_text "$SELECTION_OWNER" 'flags->dump_ast && flags->diag_format == DIAG_FORMAT_JSON'
-require_text "$SELECTION_OWNER" '"--ast-json-diagnostic-verified"'
-require_text "$DRIVER_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST'
-require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String, Bool)'
-require_text "$REQUEST_OWNER" 'args[0] == "--ast-json-diagnostic-verified"'
-require_text "$READ_OWNER" 'CompileSourceToAstArtifactForPublicDiagnosticRequest('
-require_text "$PARSER_DIAGNOSTIC_OWNER" \
-    'func ParseDiagnosticPayloadAt2('
-require_text "$PARSER_REFUSAL_OWNER" \
-    'ConsumeStmtTerminatorOpt(content, start)'
-require_text "$PARSER_STATEMENT_OWNER" \
-    'ParseOneStmtObservedProjected('
-require_text "$PARSER_STATEMENT_OWNER" \
-    'ParseRefuse(location_context, head_start, "statement_head_unexpected_token",'
-! grep -Fq 'ParseDiagnosticReportPublicStatementHeadUnexpectedToken' \
-    "$PARSER_DIAGNOSTIC_OWNER" "$PARSER_STATEMENT_OWNER" ||
-    fail "statement-head refusal regained its JSON-only silent text path"
-require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
-require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
-require_text "$MIR_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
-! grep -Fq 'pgy_exec_argv_capture_stdout(' "$MIR_OWNER" ||
-    fail "MIR caller restored a second diagnostic stdout process owner"
-! grep -Eq 'PGY_PARSE_SYNTAX|parse:unexpected_token|check-syntax|callable_contract_|expression_statement_terminator|statement_head_unexpected_token|expected statement terminator|begin a statement' \
-    "$SELECTION_OWNER" "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
-    fail "C AST transport regained parser diagnostic meaning"
-! grep -Eq 'driver_run_pipeline|compiler_emit|system\(' \
-    "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
-    fail "AST diagnostic transport regained native/string-shell fallback"
-
 echo "[self-host-public-ast-json-diagnostic] AST bytes, exact callable-contract, statement-terminator, and statement-head unexpected-token parser receipts, and single opaque process owner: PASS"

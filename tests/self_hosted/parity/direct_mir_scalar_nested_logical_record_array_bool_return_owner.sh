@@ -18,73 +18,13 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 
-FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy"
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_bool_abi_owner.pgy"
-ABI_ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_bool_abi_capture_owner.pgy"
-ABI_CAPTURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_bool_abi_fact_owner.pgy"
-JOIN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_collection_abi_owner.pgy"
-POLICY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
-SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-TYPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy"
-C_ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_bool_materialization_owner.pgy"
-LLVM_ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_bool_materialization_owner.pgy"
-C_RECORD_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy"
-LLVM_RECORD_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_owner.pgy"
-RECORD_READY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy"
-PLAN_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT_OWNER" "$ABI_OWNER" "$ABI_ADMISSION_OWNER" "$ABI_CAPTURE_OWNER" "$JOIN_OWNER" \
-        "$POLICY_OWNER" "$SIGNATURE_OWNER" "$TYPE_OWNER" "$C_ABI_OWNER" "$LLVM_ABI_OWNER" \
-        "$C_RECORD_OWNER" "$LLVM_RECORD_OWNER" "$RECORD_READY_OWNER" \
-        "$PLAN_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'CompilerAbiLayoutArrayBoolTypeName()' "$FACT_OWNER" ||
-    fail "logical-record terminal inventory omits Array<Bool>"
-grep -Fq 'BuildMirRoutineFactIndex(' "$ABI_ADMISSION_OWNER" ||
-    fail "Array<Bool> admission does not consume the admitted routine inventory"
-grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$ABI_ADMISSION_OWNER" ||
-    fail "Array<Bool> ABI owner bypasses captured layout admission"
-grep -Fq 'DirectMirArrayBoolCapturedAbiReady(' "$ABI_CAPTURE_OWNER" ||
-    fail "Array<Bool> capture owner is missing"
-grep -Fq 'stage = "array-bool"' \
-        "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_extension_abi_seal_owner.pgy" ||
-    fail "extension ABI seal erases the Array<Bool> failure stage"
-grep -Fq 'needs_bool' "$JOIN_OWNER" ||
-    fail "logical-record collection join omits Array<Bool> dependency"
-grep -Fq '!array_bool.present' "$JOIN_OWNER" ||
-    fail "logical-record collection join accepts a missing Array<Bool> receipt"
-grep -Fq 'signature.parameters.carriages[ordinal] == "value"' "$POLICY_OWNER" ||
-    fail "logical-record value carriage is not explicit"
-grep -Fq 'signature.parameters.pass_shapes[ordinal] == "direct"' "$POLICY_OWNER" ||
-    fail "logical-record value pass shape is not direct"
-grep -Fq 'int_or_option && !composable_callable' "$SIGNATURE_OWNER" ||
-    fail "Int return shape overrides an admitted logical-record parameter"
-grep -Fq 'DirectMirScalarProgramLogicalRecordArgumentRows(' "$RECORD_READY_OWNER" ||
-    fail "logical-record readiness reconstructs only n-ary constructors"
-grep -Fq 'nary && (facts.node_lefts[node] != -1' "$RECORD_READY_OWNER" ||
-    fail "logical-record readiness accepts mixed binary/n-ary storage"
-grep -Fq 'type_name == CompilerAbiLayoutArrayBoolTypeName()' "$TYPE_OWNER" ||
-    fail "Array<Bool> is not admitted as an exact source-local carrier"
-collection_body="$(awk '/^func DirectMirScalarCfgCollectionTypeSupported\(/,/^}/' "$TYPE_OWNER")"
-[[ "$collection_body" != *'CompilerAbiLayoutArrayBoolTypeName()'* ]] ||
-    fail "Array<Bool> leaked into the broader collection algorithm family"
-grep -Fq 'DirectMirArrayStorageAbiProjectionFromTarget(target)' "$C_ABI_OWNER" ||
-    fail "C Array<Bool> materialization does not consume target storage facts"
-grep -Fq 'DirectMirArrayStorageAbiProjectionFromTarget(target)' "$LLVM_ABI_OWNER" ||
-    fail "LLVM Array<Bool> materialization does not consume target storage facts"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN_OWNER" ||
-    fail "GraphPlan schema does not seal nested Array<Bool> records"
-for owner in "$FACT_OWNER" "$ABI_OWNER" "$ABI_ADMISSION_OWNER" "$JOIN_OWNER" "$POLICY_OWNER" "$SIGNATURE_OWNER" \
-        "$C_ABI_OWNER" "$LLVM_ABI_OWNER" "$C_RECORD_OWNER" "$LLVM_RECORD_OWNER"; do
-    ! grep -Eq 'ProgramIndex|ReachabilityRows|WrongProgramIndex' "$owner" ||
-        fail "production owner contains fixture-name fallback: ${owner#"$ROOT_DIR/"}"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

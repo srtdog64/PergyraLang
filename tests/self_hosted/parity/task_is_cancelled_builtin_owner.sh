@@ -17,52 +17,15 @@ VALID=tests/concept_semantics/authority_effect/effect_is_cancelled_valid.pgy
 MISSING_EFFECT=tests/concept_semantics/authority_effect/effect_is_cancelled_rejected.pgy
 WRONG_ARITY=tests/concept_semantics/authority_effect/effect_is_cancelled_wrong_arity_rejected.pgy
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/task_is_cancelled_builtin_mutations.py"
-TASK_ABI="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy"
-TASK_BUILTIN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy"
-SIGNATURES="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
-IDENTITY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_expression_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy"
-SEMANTIC_C_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for path in "$TASK_ABI" "$TASK_BUILTIN" "$SIGNATURES" "$IDENTITY" \
-        "$C_OWNER" "$LLVM_OWNER" "$SEMANTIC_C_OWNER" "$MUTATIONS"; do
-    [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
-done
+[[ -f "$MUTATIONS" ]] || fail "missing owner: ${MUTATIONS#"$ROOT_DIR/"}"
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 [[ -n "$PYTHON_BIN" ]] || fail "Python is required"
 for tool in "$CC" "$CLANG" timeout; do
     command -v "$tool" >/dev/null || fail "missing $tool"
 done
-
-grep -Fq 'func TaskRuntimeIsCancelledSymbol()' "$TASK_ABI" &&
-    grep -Fq 'return "pgy_task_is_cancelled_export";' "$TASK_ABI" ||
-    fail "task ABI owner lost the one export identity"
-grep -Fq 'static inline bool pgy_task_is_cancelled_export(void) { return pgy_task_is_cancelled(); }' \
-        "$TASK_ABI" || fail "self-contained C projection lost its runtime adapter"
-grep -Fq 'declare i1 @pgy_task_is_cancelled_export()' "$TASK_ABI" ||
-    fail "LLVM projection lost the task declaration"
-grep -Fq 'func SemanticBuiltinIsCancelledName() -> String { return "IsCancelled"; }' \
-        "$SIGNATURES" &&
-    grep -Fq 'Concat(SemanticBuiltinIsCancelledName(), "^Bool^none")' \
-        "$SIGNATURES" ||
-    fail "semantic builtin registry lost the zero-argument Bool signature owner"
-grep -Fq 'CompilerRuntimeCallAbiTaskIsCancelledFactReady(runtime)' \
-        "$TASK_BUILTIN" || fail "task expression bypasses its structured ABI fact"
-grep -Fq 'DirectMirScalarProgramTaskExpressionKind(signature.expression_kind)' \
-        "$IDENTITY" || fail "builtin identity admission omitted the task expression"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'DirectMirScalarProgramTaskRuntimeFact()' "$owner" ||
-        fail "$(basename "$owner") bypasses the task ABI fact"
-    ! grep -Fq 'pgy_task_is_cancelled_export' "$owner" ||
-        fail "$(basename "$owner") hard-codes the physical task symbol"
-done
-grep -Fq 'CompilerRuntimeCallAbiTaskIsCancelledFact()' "$SEMANTIC_C_OWNER" ||
-    fail "semantic C emission bypasses the task ABI fact"
-! grep -Fq 'pgy_task_is_cancelled_export' "$SEMANTIC_C_OWNER" ||
-    fail "semantic C emission hard-codes the physical task symbol"
 
 mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/task-is-cancelled.XXXXXX")"

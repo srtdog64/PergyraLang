@@ -33,21 +33,6 @@ for pair in "$ADMISSION:120" "$OPERAND:120" "$READINESS:110" \
     [[ "$source_size_lines" -le "$cap" ]] ||
         fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'DirectMirScalarProgramArrayStringSingleElementFromOwners(' "$ADMISSION" ||
-    fail "literal admission omits the formal-element owner"
-grep -Fq 'SemanticExpressionBindingFormalParameter()' "$OPERAND" ||
-    fail "formal-element owner omits persisted binding identity"
-grep -Fq 'DirectMirRoutineValueParameterOrdinalAtName(' "$OPERAND" ||
-    fail "formal-element owner omits value-carriage identity"
-grep -Fq 'wire.required && wire_ref != expected_ref' "$OPERAND" ||
-    fail "formal-element owner does not enforce required LocalRef evidence"
-grep -Fq 'dynamic_count == 0 || ArrayLength(operands) == 1 ||' "$READINESS" ||
-    fail "readiness does not keep the dynamic extension exact"
-for owner in "$ADMISSION" "$OPERAND" "$READINESS"; do
-    for term in ParserExpressionLeaf routine_index source_json native_retry; do
-        ! grep -Fq "$term" "$owner" || fail "forbidden spelling branch: $term"
-    done
-done
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

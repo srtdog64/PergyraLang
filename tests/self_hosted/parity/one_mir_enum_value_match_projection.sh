@@ -79,11 +79,10 @@ PLAN="src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy"
 PLAN_MUTATION="src/self_hosted/compiler/direct_mir_enum_value_match_plan_mutation_owner.pgy"
 AIR="src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy"
 AIR_MUTATION="src/self_hosted/air/mir_identity_match_cfg_certificate_mutation_owner.pgy"
-ROOT_OWNER="src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 EMITTER="src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy"
 INDEX="src/self_hosted/mir_lower/program_enum_variant_index_owner.pgy"
 for file in "$ROUTE" "$ABI" "$PLAN_FACT" "$PLAN" "$PLAN_MUTATION" "$AIR" \
-    "$AIR_MUTATION" "$ROOT_OWNER" "$EMITTER" "$INDEX"; do require "$ROOT_DIR/$file"; done
+    "$AIR_MUTATION" "$EMITTER" "$INDEX"; do require "$ROOT_DIR/$file"; done
 lines_at_most "$ROUTE" 90; lines_at_most "$ABI" 100; lines_at_most "$PLAN_FACT" 120
 lines_at_most "$PLAN" 420; lines_at_most "$PLAN_MUTATION" 70; lines_at_most "$AIR" 220
 lines_at_most "$AIR_MUTATION" 50; lines_at_most "$INDEX" 240; lines_at_most "$EMITTER" 500
@@ -92,16 +91,6 @@ for file in "$ROUTE" "$ABI" "$PLAN_FACT" "$PLAN" "$PLAN_MUTATION"; do
     family_lines=$((family_lines + $(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$file")))
 done
 [[ "$family_lines" -le 770 ]] || fail "enum semantic owner family exceeds 770 lines"
-[[ "$(grep -R -F --include='*.pgy' 'DirectMirEnumValueMatchRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted" | wc -l | tr -d ' ')" == 2 ]] || fail "enum route must have one definition and one issuer"
-[[ "$(grep -R -F --include='*.pgy' 'DirectMirCfgPlanFromAdmitted(' "$ROOT_DIR/src/self_hosted" | wc -l | tr -d ' ')" == 2 ]] || fail "CFG plan must remain the only plan issuer"
-python - "$ROOT_DIR/$ROOT_OWNER" <<'PY'
-import pathlib, sys
-text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
-assert text.index("DirectMirEnumValueMatchRouteFactFromAdmitted(admitted)") < text.index("DirectMirNominalLiteralRouteFactFromAdmitted(admitted)")
-PY
-! grep -R -Eq --include='*.pgy' 'DirectMirEnum[A-Za-z0-9_]*Emit(C|Llvm|LLVM)' "$ROOT_DIR/src/self_hosted" || fail "target-specific enum emitter returned"
-! grep -Eiq 'Direction|South|enum_simple|expected.?300' "$ROOT_DIR/$ROUTE" "$ROOT_DIR/$ABI" "$ROOT_DIR/$PLAN_FACT" "$ROOT_DIR/$PLAN" "$ROOT_DIR/$AIR" || fail "fixture identity leaked into owners"
-grep -Fq 'CallableReceiverNominalKindOwnsCompileTimeContractOnly' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy" || fail "erasure route is not narrowed"
 
 rm -f "$MIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$(rel "$FIXTURE")" -o "$(rel "$MIR")") \

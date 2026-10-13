@@ -13,23 +13,6 @@ pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 mkdir -p "$ROOT_DIR/.tmp"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/collection-ownership-fact-projection.XXXXXX")"
 
-! grep -Fq 'string_array_ownership' "$ROOT_DIR/src/semantic/symbol_table.h" ||
-    fail "Symbol still owns mutable Array<String> provenance"
-! grep -Fq 'PGY_STRING_ARRAY_RETIRED' "$ROOT_DIR/src/semantic/symbol_table.h" ||
-    fail "retirement is still encoded in Symbol ownership state"
-grep -Eq 'PgyCollectionOwnershipFact[[:space:]]+\*collection_ownership_facts' \
-    "$ROOT_DIR/src/semantic/semantic.h" ||
-    fail "semantic result does not carry stable collection ownership rows"
-grep -Eq 'HIRCollectionOwnershipFact[[:space:]]+\*collection_ownership_facts' \
-    "$ROOT_DIR/src/compiler/hir.h" ||
-    fail "HIR does not carry stable collection ownership rows"
-grep -Eq 'MIRCollectionOwnershipFact[[:space:]]+\*collection_ownership_facts' \
-    "$ROOT_DIR/src/compiler/mir_types.h" ||
-    fail "MIR does not carry stable collection ownership rows"
-grep -Fq 'collection_ownership_facts' \
-    "$ROOT_DIR/src/compiler/mir_json_dump.c" ||
-    fail "MIR JSON does not publish collection ownership rows"
-
 OWNED_JSON="$WORK_DIR/owned.json"
 BORROWED_JSON="$WORK_DIR/borrowed.json"
 EMPTY_JSON="$WORK_DIR/empty.json"
@@ -127,5 +110,5 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/borrowed.err" ||
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/empty.err" ||
     fail "empty oracle emitted diagnostics"
 
-echo "[$LABEL] stable semantic -> HIR -> MIR rows and Symbol-owner deletion PASS"
+echo "[$LABEL] stable semantic -> HIR -> MIR rows PASS"
 echo "[$LABEL] borrowed/owned/empty-literal origin rows PASS"

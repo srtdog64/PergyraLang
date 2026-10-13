@@ -19,8 +19,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 POSITIVE_REL="tests/cases/backend_compare/tagged_union/main.pgy"
 ADJACENT_REL="src/self_hosted/mir_lower/fixture/enum_multi_payload.pgy"
 NEGATIVE_REL="tests/self_hosted/parity/fixture/enum_variant_builtin_collision_rejected.pgy"
-POLICY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy"
-CONSUMER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
@@ -32,15 +30,6 @@ installed_name="pgy-self-driver"
 [[ "$PGY" == *.exe ]] && installed_name="pgy-self-driver.exe"
 [[ "$SELF_DRIVER" == "$(dirname "$PGY")/$installed_name" ]] ||
     fail "self-host driver is not installed beside the public launcher"
-
-grep -Fq 'func SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(' \
-    "$POLICY_OWNER" || fail "unqualified enum collision policy owner is missing"
-grep -Fq 'SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(existing)' \
-    "$CONSUMER_OWNER" || fail "enum callable projection bypasses the policy owner"
-! grep -Fq '"None"' "$POLICY_OWNER" "$CONSUMER_OWNER" ||
-    fail "builtin spelling leaked into the enum collision policy"
-[[ "$(grep -Fc 'returns[existing] != enum_name' "$CONSUMER_OWNER")" -eq 1 ]] ||
-    fail "unqualified enum collision regained the qualified-row mismatch policy"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

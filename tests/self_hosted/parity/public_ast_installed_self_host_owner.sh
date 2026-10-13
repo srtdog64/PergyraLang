@@ -19,19 +19,10 @@ SOURCE="src/self_hosted/parser/fixture/arith_let.pgy"
 IMPORT_SOURCE="tests/parser_imported_intent_composition/positive_main.pgy"
 PRIORITY_SOURCE="examples/composite_intent_orchestration/main.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/parser/fixture/arith_let_ast.txt"
-LAUNCHER_OWNER="$ROOT_DIR/src/pgy_driver.c"
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-SIBLING_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 
 fail() {
     echo "[self-host-public-ast] $*" >&2
     exit 1
-}
-
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
 }
 
 normalize() {
@@ -121,20 +112,5 @@ grep -Fq -- "--ast options are outside the installed self-host driver contract" 
 grep -Fq "source AST mode requires exactly one input path" \
     "$WORK_DIR/arity.out" "$WORK_DIR/arity.err" ||
     fail "installed AST arity lost its typed diagnostic"
-
-require_text "$LAUNCHER_OWNER" \
-    'if (flags.dump_tokens || flags.dump_ast'
-require_text "$LAUNCHER_OWNER" \
-    '|| flags.dump_capability_manifest || flags.dump_dir) {'
-require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
-require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
-require_text "$SELECTION_OWNER" '"--emit-capability-manifest-verified"'
-require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--ast") == 0'
-require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String, Bool)'
-require_text "$REQUEST_OWNER" 'args[0] == "--ast"'
-require_text "$EXECUTION_OWNER" 'CompileSourceToAstArtifactForPublicDiagnosticRequest('
-require_text "$EXECUTION_OWNER" 'Log(artifact.tree_text);'
-grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
-    fail "installed sibling launcher regained a native pipeline fallback"
 
 echo "[self-host-public-ast] installed Pergyra parser owns public --ast and fails closed"

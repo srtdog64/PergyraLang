@@ -24,19 +24,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
 
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_readiness_owner.pgy"
-require_text "$FACT" 'DirectMirScalarCfgArrayIntReadOnlyInitializedMode'
-require_text "$READY" 'DirectMirScalarCfgArrayIntReadOnlyOperationsReady'
-for owner in \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_c_emission_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_read_only_llvm_emission_owner.pgy"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" 'array_max.pgy'
-done
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

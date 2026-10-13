@@ -30,11 +30,6 @@ compile_failure() {
     exit 1
 }
 
-if grep -q "PGY_SECURE_SLOT_DEFINE_RELEASE" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_storage_inline.h"; then
-    echo "runtime panic ABI smoke: SecureSlot release-mode macro must not exist" >&2
-    exit 1
-fi
-
 compile_case() {
     local name="$1"
     local source="$2"

@@ -72,20 +72,4 @@ done
 expect_child_panic runtime set-invalid-map "$INVALID" 'op=map_set_bool_int reason=map is not initialized'
 expect_child_panic raw-runtime set-invalid-map "$INVALID" 'op=map_set_bool reason=map is not initialized'
 
-for forbidden in pgy_map_format_bool_key pgy_map_bool_key_string_export \
-    'invalid stored bool key'; do
-    if grep -R -Fq --include='*.h' --include='*.c' "$forbidden" src/runtime; then
-        echo "[hashmap-bool-runtime] retired Bool string bridge returned: $forbidden" >&2
-        exit 1
-    fi
-done
-for required in pgy_map_new_bool_int pgy_map_new_bool_string \
-    pgy_hashmap_hash_bool PGY_HASHMAP_KEY_STORAGE_BOOL \
-    PGY_MAP_RAW_BOOL_KEYS pgy_map_raw_require_storage_kind; do
-    grep -R -Fq "$required" src/runtime || {
-        echo "[hashmap-bool-runtime] required owner term missing: $required" >&2
-        exit 1
-    }
-done
-
 echo "[hashmap-bool-runtime] inline+raw true/false/update/delete-reinsert/MapKeys/OOM/string-alias/mismatch PASS: $WORK"

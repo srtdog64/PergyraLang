@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Subject of this gate: the native C and LLVM backends' zone-authority
-# instrumentation (the expected stdout carries native authority telemetry
-# and the greps pin native codegen owners). Delegated, the self-host
-# driver's standalone emission would be judged against native-owned pins.
+# instrumentation (the expected stdout carries native authority
+# telemetry). Delegated, the self-host driver's standalone emission would
+# be judged against native-owned output.
 # See docs/152_validation_isolation_policy.md.
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
@@ -21,22 +21,15 @@ fi
 pgy_reject_wsl_windows_pgy_parity_mix "$LABEL" "$PGY"
 
 SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/driver_execution_action_abi_probe.pgy"
-C_AUTHORITY_SYNC="$ROOT_DIR/src/codegen/transpiler_projection_sync.c"
-C_AUTHORITY_CALLER="$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
-LLVM_AUTHORITY_SYNC="$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"
-LLVM_AUTHORITY_CALLER="$ROOT_DIR/src/codegen/llvm_member_call_emit.c"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver_execution_action_abi}"
 EXPECTED_OUTPUT=$'ok\nartifact-written\n17\ntrue\nDriverExecutionActionAbiZone\nprobe'
 EXPECTED_FILE_CONTENT="driver-action-abi"
 mkdir -p "$BUILD_DIR"
 
-for required_file in "$SOURCE" "$C_AUTHORITY_SYNC" "$C_AUTHORITY_CALLER" \
-    "$LLVM_AUTHORITY_SYNC" "$LLVM_AUTHORITY_CALLER"; do
-    [[ -f "$required_file" ]] || {
-        echo "[$LABEL] missing authority owner/caller: $required_file" >&2
-        exit 1
-    }
-done
+[[ -f "$SOURCE" ]] || {
+    echo "[$LABEL] missing fixture: $SOURCE" >&2
+    exit 1
+}
 
 require_source_term() {
     local term="$1"
@@ -46,108 +39,10 @@ require_source_term() {
     }
 }
 
-require_source_term "enum DriverExecutionActionAbiStage"
-require_source_term "struct DriverExecutionActionAbiRequest"
-require_source_term "struct DriverExecutionActionAbiResult"
-require_source_term "let stage: DriverExecutionActionAbiStage;"
-require_source_term "subject DriverExecutionActionAbiProbe"
 require_source_term "request: DriverExecutionActionAbiRequest"
-require_source_term ") -> DriverExecutionActionAbiResult"
-require_source_term "within DriverExecutionActionAbiZone"
 require_source_term "authorized by self"
-require_source_term "zone DriverExecutionActionAbiZone"
-require_source_term "subject slot other: DriverExecutionActionAbiOther"
 require_source_term "authority probe"
-require_source_term "world DriverExecutionActionAbiWorld"
-require_source_term "let compiler_world = DriverExecutionActionAbiWorld("
-require_source_term "WriteFile(request.output_path, request.payload);"
-require_source_term "let observed: String = ReadFile(request.output_path);"
 require_source_term "compiler_world.Execute(request);"
-require_source_term "pgy_zone_authority_last_ok_rt_export()"
-require_source_term "pgy_zone_authority_last_zone_rt_export()"
-require_source_term "pgy_zone_authority_last_participant_rt_export()"
-
-require_authority_owner_term() {
-    local owner="$1"
-    local term="$2"
-    grep -Fq -- "$term" "$owner" || {
-        echo "[$LABEL] world-action authority helper lost fail-closed term: $term" >&2
-        exit 1
-    }
-}
-
-for term in \
-    'transpiler_mir_decl_method_authorized_by_count(method_meta) != 1' \
-    'transpiler_set_mir_inventory_missing(ctx,' \
-    'MIR-only C path cannot bind multiple authorities for a world-embedded action' \
-    "MIR-only C path cannot bind named authority '%s' for a world-embedded action" \
-    'MIR-only C path cannot bind indirect world action authority to exact zone/subject slots' \
-    'if (*check_out == NULL)' \
-    'MIR-only C path failed to materialize the world action authority check'; do
-    require_authority_owner_term "$C_AUTHORITY_SYNC" "$term"
-done
-for term in \
-    'llvm_mir_decl_method_authorized_by_count(method_meta) != 1' \
-    'llvm_set_mir_inventory_missing(ctx,' \
-    'MIR-only LLVM path cannot bind multiple authorities for a world-embedded action' \
-    "MIR-only LLVM path cannot bind named authority '%s' for a world-embedded action" \
-    'MIR-only LLVM path cannot bind indirect world action authority to exact zone/subject slots'; do
-    require_authority_owner_term "$LLVM_AUTHORITY_SYNC" "$term"
-done
-
-for owner_and_term in \
-    "$C_AUTHORITY_SYNC|MIR-only C path cannot bind multiple authorities for a world-embedded action" \
-    "$C_AUTHORITY_SYNC|MIR-only C path cannot bind named authority '%s' for a world-embedded action" \
-    "$C_AUTHORITY_SYNC|MIR-only C path cannot bind indirect world action authority to exact zone/subject slots" \
-    "$LLVM_AUTHORITY_SYNC|MIR-only LLVM path cannot bind multiple authorities for a world-embedded action" \
-    "$LLVM_AUTHORITY_SYNC|MIR-only LLVM path cannot bind named authority '%s' for a world-embedded action" \
-    "$LLVM_AUTHORITY_SYNC|MIR-only LLVM path cannot bind indirect world action authority to exact zone/subject slots"; do
-    owner="${owner_and_term%%|*}"
-    term="${owner_and_term#*|}"
-    [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] || {
-        echo "[$LABEL] authority rejection diagnostic must occur exactly once: $term" >&2
-        exit 1
-    }
-done
-
-awk '
-    /emit_world_embedded_action_authority_check\(/ {
-        calls++
-        pending = 6
-        next
-    }
-    pending > 0 {
-        if (/ctx->backend_error != NULL/) {
-            checked++
-            pending = 0
-            next
-        }
-        pending--
-    }
-    END { exit !(calls == 1 && checked == calls) }
-' "$C_AUTHORITY_CALLER" || {
-    echo "[$LABEL] C authority caller can continue after an explicit helper error" >&2
-    exit 1
-}
-awk '
-    /llvm_emit_world_embedded_action_authority_check\(/ {
-        calls++
-        pending = 4
-        next
-    }
-    pending > 0 {
-        if (/if \(ctx->has_error\)/) {
-            checked++
-            pending = 0
-            next
-        }
-        pending--
-    }
-    END { exit !(calls > 0 && checked == calls) }
-' "$LLVM_AUTHORITY_CALLER" || {
-    echo "[$LABEL] LLVM authority caller can continue after an explicit helper error" >&2
-    exit 1
-}
 
 run_backend() {
     local backend="$1"

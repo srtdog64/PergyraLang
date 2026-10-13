@@ -28,59 +28,6 @@ fail() {
     exit 1
 }
 
-require_text() {
-    local path="$1" term="$2"
-    grep -Fq -- "$term" "$ROOT_DIR/$path" \
-        || fail "missing '$term' in $path"
-}
-
-require_text src/compiler/verified_projection_plan.h \
-    "PgyVerifiedParallelCapturePlan"
-require_text src/compiler/verified_projection_plan.h \
-    "pgy_verified_parallel_capture_plan_from_air"
-require_text src/compiler/verified_parallel_capture_plan.c \
-    "pgy_verified_parallel_capture_plan_identity_ready"
-require_text src/compiler/verified_parallel_capture_plan.c \
-    "Every MIR capture boundary must have certified AIR evidence"
-require_text src/compiler/compiler.c \
-    "pgy_verified_parallel_capture_plan_from_air"
-require_text src/compiler/compiler.c \
-    "transpile_from_mir_with_projection_plans"
-require_text src/compiler/compiler_llvm.c \
-    "pgy_verified_parallel_capture_plan_from_air"
-require_text src/compiler/compiler_llvm.c \
-    "llvm_codegen_from_mir_with_projection_plans"
-
-for path in \
-    src/codegen/transpiler_async_parallel_emit.c \
-    src/codegen/transpiler_parallel_join_emit.c \
-    src/codegen/llvm_stmt_parallel_async.c \
-    src/codegen/llvm_stmt_parallel_join_capture.c; do
-    if grep -Fq -- "mir_parallel_capture_disposition_find" "$ROOT_DIR/$path"; then
-        fail "$path directly consumes the MIR capture disposition owner"
-    fi
-    require_text "$path" "pgy_verified_parallel_capture_disposition_find"
-done
-
-for path in src/compiler/verified_parallel_capture_plan.c \
-            src/compiler/mir_parallel_capture_facts.c; do
-    require_text "$path" "MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY"
-done
-
-# The old API surface is intentionally still callable for source compatibility,
-# but active compiler entrypoints pass NULL and fail closed.  This keeps a
-# missing carrier observable instead of silently restoring backend-local reads.
-require_text src/codegen/transpiler_entry.c \
-    "C backend: verified parallel-capture plan required"
-require_text src/codegen/llvm_api.c \
-    "LLVM backend: verified parallel-capture plan required"
-# Module-level runtime declarations read static rows by type name; a
-# runtime-call row lookup without an active MIR routine fails closed.
-require_text src/codegen/llvm_runtime_row.c \
-    "llvm_runtime_declaration_row(const char *abi_type_name"
-require_text src/codegen/llvm_runtime_row.c \
-    "MIR-only LLVM path missing active routine for runtime-call ABI row"
-
 # Exercise the carrier through both production backends.  This fixture has a
 # real snapshot capture, so a declaration-only LLVM success is insufficient.
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
@@ -118,5 +65,3 @@ if [[ -x "$PGY" ]] && pgy_binary_is_runnable_here "$PGY"; then
 else
     echo "[$LABEL] SKIP executable parity probe; compiler is unavailable here"
 fi
-
-echo "[$LABEL] MIR owner -> AIR carrier -> C/LLVM consumers are wired; direct owner lookup is absent"

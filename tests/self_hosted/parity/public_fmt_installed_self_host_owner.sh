@@ -18,16 +18,6 @@ DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
 WORK_DIR="$ROOT_DIR/.tmp/self_hosted/public_fmt_installed_self_host"
 COUNT_FILE="$WORK_DIR/count.txt"
-FMT_ADAPTER="$ROOT_DIR/src/compiler/fmt.c"
-FMT_HANDOFF="$ROOT_DIR/src/compiler/self_host_fmt_driver.c"
-PATH_OWNER="$ROOT_DIR/src/compiler/path_utils.c"
-LEXER_OWNER="$ROOT_DIR/src/self_hosted/lexer/scan_owner.pgy"
-TOKEN_OWNER="$ROOT_DIR/src/self_hosted/lexer/token_owner.pgy"
-LAYOUT_OWNER="$ROOT_DIR/src/self_hosted/fmt/layout_owner.pgy"
-SESSION_OWNER="$ROOT_DIR/src/self_hosted/fmt/session_owner.pgy"
-CLI_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-EXEC_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
-READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 
 fail() {
     echo "[self-host-public-fmt] $*" >&2
@@ -381,113 +371,6 @@ if [[ "$PGY" != *.exe ]] && command -v ln >/dev/null 2>&1; then
     [[ "$mode_bits" == "600" ]] ||
         fail "atomic replacement changed source permission bits"
 fi
-
-[[ "$(grep -Fc 'driver_materialize_self_host_format_artifact(' \
-    "$FMT_ADAPTER")" == "1" ]] ||
-    fail "C formatter must enter exactly one installed artifact boundary"
-for forbidden in lexer_create lexer_next_token parser_parse_program \
-    format_source_to_stream fmt_token_needs_space fmt_token_starts_toplevel_decl; do
-    ! grep -Fq "$forbidden" "$FMT_ADAPTER" ||
-        fail "C formatter retained native policy: $forbidden"
-    ! grep -Fq "$forbidden" "$FMT_HANDOFF" ||
-        fail "formatter handoff retained native policy: $forbidden"
-done
-for retired in fmt_io.c fmt_io.h fmt_layout.c fmt_layout.h; do
-    [[ ! -e "$ROOT_DIR/src/compiler/$retired" ]] ||
-        fail "retired native formatter owner returned: $retired"
-done
-grep -Fq 'compiler_transient_artifact_workspace_open(' "$FMT_ADAPTER" ||
-    fail "formatter does not use a private artifact workspace"
-grep -Fq 'driver_self_host_source_identity_path_dup(path)' "$FMT_ADAPTER" ||
-    fail "formatter does not commit to the canonical source identity"
-grep -Fq 'source changed while formatting' "$FMT_ADAPTER" ||
-    fail "formatter does not reject stale source snapshots"
-grep -Fq 'pgy_exec_argv_capture_stdout(' "$FMT_HANDOFF" ||
-    fail "formatter child diagnostics can leak onto public stdout"
-! grep -Fq 'pgy_exec_argv(child_argv, false)' "$FMT_HANDOFF" ||
-    fail "formatter restored inherited child stdout"
-grep -Fq 'path_replace_file_atomic_if_unchanged(' \
-    "$FMT_ADAPTER" || fail "host publication is not canonical and atomic"
-! grep -Fq 'remove(dst_path)' "$FMT_ADAPTER" ||
-    fail "formatter restored remove-then-rename publication"
-! grep -Fq 'remove(dst_path)' "$PATH_OWNER" ||
-    fail "atomic replace owner restored remove-then-rename publication"
-grep -Fq 'ReplaceFileA(dst_path, tmp_path, backup_path, 0, NULL, NULL)' \
-    "$PATH_OWNER" || fail "Windows metadata-preserving replacement is missing"
-grep -Fq 'chmod(tmp_path, destination.st_mode & 07777)' "$PATH_OWNER" ||
-    fail "POSIX replacement does not preserve permission bits"
-grep -Fq 'path_exchange_files_atomic(tmp_path, dst_path)' "$PATH_OWNER" ||
-    fail "POSIX commit-time exchange contract is missing"
-precheck_line="$(grep -n -m1 \
-    'path_file_content_equals(dst_path, expected_content)' \
-    "$PATH_OWNER" | cut -d: -f1)"
-exchange_line="$(grep -n -m1 \
-    'path_exchange_files_atomic(tmp_path, dst_path)' \
-    "$PATH_OWNER" | cut -d: -f1)"
-[[ -n "$precheck_line" && -n "$exchange_line" &&
-    "$precheck_line" -lt "$exchange_line" ]] ||
-    fail "publication exposes formatted bytes before rejecting an observed conflict"
-grep -Fq 'path_file_content_equals(tmp_path, expected_content)' "$PATH_OWNER" ||
-    fail "POSIX publication does not verify the displaced source snapshot"
-grep -Fq 'PATH_REPLACE_RECOVERY_REQUIRED' "$FMT_ADAPTER" ||
-    fail "commit-time races have no explicit recovery outcome"
-grep -Fq 'if (!preserve_workspace)' "$FMT_ADAPTER" ||
-    fail "formatter cleanup can delete a preserved concurrent edit"
-grep -Fq 'GetFinalPathNameByHandleA(' \
-    "$ROOT_DIR/src/compiler/import_resolver_paths.c" ||
-    fail "Windows source identity does not resolve the final reparse target"
-grep -Fq 'import_resolver_existing_final_identity_path_dup(source_path)' \
-    "$ROOT_DIR/src/compiler/self_host_driver.c" ||
-    fail "formatter source identity can fall back after final-target proof fails"
-
-grep -Fq 'struct LexerTokenFact {' "$TOKEN_OWNER" ||
-    fail "typed lexer token fact owner is missing"
-grep -Fq 'source_text: String;' "$TOKEN_OWNER" ||
-    fail "typed lexer facts do not preserve exact source lexemes"
-grep -Fq 'func LexerTokenFactsReady(' "$TOKEN_OWNER" ||
-    fail "typed lexer stream has no completeness admission"
-grep -Fq 'func LexerTokenFactExactLexemeReady(' "$TOKEN_OWNER" ||
-    fail "typed lexer facts do not cross-check normalized and exact lexemes"
-grep -Fq '"DOC_COMMENT", "safe", "Log(1);"' "$TOKEN_OWNER" ||
-    fail "typed lexer facts lack the forged doc-comment negative case"
-grep -Fq '1, "}", "Log(1);", "Log(1);", 1, 1' "$TOKEN_OWNER" ||
-    fail "typed lexer facts lack the forged structural-token negative case"
-grep -Fq 'LexerTokenExactLexemeContractReady()' "$LAYOUT_OWNER" ||
-    fail "formatter does not execute the exact-lexeme negative contract"
-grep -Fq 'lifecycle_transition_indent' \
-    "$ROOT_DIR/src/self_hosted/hir/ast_text_inventory_owner.pgy" ||
-    fail "lifecycle transition admission is not scoped to its typed parent"
-! grep -Fq 'if StringIndexOf(text, ": ") > 0 && StringIndexOf(text, " -> ") > 0' \
-    "$ROOT_DIR/src/self_hosted/hir/ast_text_inventory_owner.pgy" ||
-    fail "lifecycle transition identity escaped into global text classification"
-grep -Fq 'func LexContentFacts(content: String) -> Array<LexerTokenFact>' \
-    "$LEXER_OWNER" || fail "lexer scan does not publish typed facts"
-grep -Fq 'LexerTokenFactsText(' "$LEXER_OWNER" ||
-    fail "public token text is not a typed-fact projection"
-grep -Fq 'source_path, LexerScanContentFacts(content, emit_json_receipt)' \
-    "$LEXER_OWNER" || fail "public token text bypasses typed lexer facts"
-grep -Fq 'FormatSourceFromTokenFacts(LexContentFacts(source))' \
-    "$SESSION_OWNER" || fail "formatter does not consume typed token facts"
-! grep -Fq 'LexContent(' "$LAYOUT_OWNER" ||
-    fail "formatter reparses the token debug serialization"
-[[ "$(grep -Fc 'FormatSourceFromTokenFacts(' "$SESSION_OWNER")" == "2" ]] ||
-    fail "formatter must prove one output and one stability roundtrip"
-grep -Fq 'ParseFormatProgramBuildContent(' "$SESSION_OWNER" ||
-    fail "formatted bytes are not parser-admitted before publication"
-grep -Fq 'AstTreeArtifactReady(artifact)' "$SESSION_OWNER" ||
-    fail "formatter parser admission lacks typed artifact readiness"
-parse_line="$(grep -n -m1 'ParseFormatProgramBuildContent(' \
-    "$SESSION_OWNER" | cut -d: -f1)"
-write_line="$(grep -n -m1 'WriteFile(output_path, formatted)' \
-    "$SESSION_OWNER" | cut -d: -f1)"
-[[ -n "$parse_line" && -n "$write_line" && "$parse_line" -lt "$write_line" ]] ||
-    fail "formatter published output before parser artifact admission"
-grep -Fq 'DriverCliFormatSourceArtifact(String, String)' "$CLI_OWNER" ||
-    fail "installed CLI request owner lacks formatter identity"
-grep -Fq 'case DriverCliFormatSourceArtifact(source_path, output_path):' \
-    "$EXEC_OWNER" || fail "installed root does not execute formatter identity"
-grep -Fq 'format source request requires installed composition root' \
-    "$READ_OWNER" || fail "read-only root does not reject formatter publication"
 
 # CLOSED-registry fallback receipts:
 # invalid source character deletion

@@ -18,35 +18,15 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 
-ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy"
-INVENTORY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy"
-GRAPH_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy"
-PARTITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_owner.pgy"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 require_file() { [[ -f "$1" ]] || fail "missing file: ${1#"$ROOT_DIR/"}"; }
 
-for owner in "$ROUTE_OWNER" "$INVENTORY_OWNER" "$GRAPH_OWNER" \
-    "$PARTITION_OWNER" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     require_file "$owner"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'routine_rows: Array<Int>' "$ROUTE_OWNER" ||
-    fail "route does not carry admitted routine rows"
-grep -Fq 'DirectMirScalarCfgProgramCallableInventoryFromAdmitted(' \
-    "$GRAPH_OWNER" || fail "GraphPlan does not build one callable inventory"
-grep -Fq 'DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(' \
-    "$INVENTORY_OWNER" || fail "callable inventory has no syntax-id join"
-grep -Fq 'while ordinal < ArrayLength(route.routine_rows)' "$GRAPH_OWNER" ||
-    fail "GraphPlan does not admit every routed routine"
-for owner in "$ROUTE_OWNER" "$GRAPH_OWNER" "$PARTITION_OWNER"; do
-    if grep -Eq 'routine_count[[:space:]]*==[[:space:]]*(3|4)|routine_count[[:space:]]*<=[[:space:]]*2' "$owner"; then
-        fail "exact routine-count classifier returned: ${owner#"$ROOT_DIR/"}"
-    fi
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

@@ -12,51 +12,13 @@ CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_scalar_option_int"; WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_option_int_callables.pgy"; MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"; PARAM_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_direct_scalar_mutations.py"; RECORD_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_option_int_logical_record_mutations.py"
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_int_abi_owner.pgy"; PARAM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
-LOCAL_TYPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy"; SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-RECORD_POLICY="$PARAM_OWNER"; C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_owner.pgy"; LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_int_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$ABI_OWNER" "$PARAM_OWNER" "$LOCAL_TYPE_OWNER" "$SIGNATURE_OWNER" "$RECORD_POLICY" "$C_OWNER" "$LLVM_OWNER" "$MUTATIONS" "$PARAM_MUTATIONS" "$RECORD_MUTATIONS"; do
+for owner in "$MUTATIONS" "$PARAM_MUTATIONS" "$RECORD_MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$ABI_OWNER" ||
-    fail "Option<Int> program path does not consume the MIR ABI receipt"
-grep -Fq 'DirectMirScalarProgramOptionIntAbiFromParameter(' "$ABI_OWNER" || fail "Option<Int> parameter path bypasses the MIR ABI receipt"
-grep -Fq 'own parameter: DirectMirRoutineParamFact' "$ABI_OWNER" ||
-    fail "Option<Int> parameter ABI projection does not own the forwarded receipt"
-grep -Fq 'DirectMirOptionMatchAbiFactFromCapture(abi_capture)' "$ABI_OWNER" ||
-    fail "Option<Int> parameter ABI projection omits the named transfer binding"
-! grep -Fq 'DirectMirOptionMatchAbiFactFromCapture(parameter.abi)' "$ABI_OWNER" ||
-    fail "Option<Int> parameter ABI projection forwarded an unnamed boundary value"
-grep -Fq 'DirectMirScalarProgramComposableCallableSignatureReady(' "$SIGNATURE_OWNER" ||
-    fail "Option<Int> signature does not consume the parameter-role plan"
-grep -Fq 'CompilerAbiLayoutOptionIntTypeName()' "$LOCAL_TYPE_OWNER" ||
-    fail "source-local type owner omits Option<Int>"
-! grep -Fq 'signature.param_count ==' "$PARAM_OWNER" ||
-    fail "direct scalar parameter owner reintroduced an exact arity"
-grep -Fq 'logical_record_input_count' "$RECORD_POLICY" ||
-    fail "parameter-role plan omitted record-input cardinality"
-! grep -Fq 'signature.param_count ==' "$RECORD_POLICY" ||
-    fail "logical-record input owner reintroduced an exact arity"
-grep -Fq 'DirectMirScalarProgramLogicalRecordParameterReady(' "$RECORD_POLICY" ||
-    fail "logical-record input owner duplicated the admitted record role"
-grep -Fq 'DirectMirScalarProgramDirectScalarParameterReady(' "$RECORD_POLICY" ||
-    fail "logical-record input owner duplicated the direct scalar role"
-grep -Fq 'claim_count != 1' "$RECORD_POLICY" ||
-    fail "parameter-role plan omitted unique role admission"
-grep -Fq 'DirectMirOptionMatchAbiProjectionFromFact(' "$C_OWNER" ||
-    fail "C Option<Int> representation does not consume the ABI projection"
-grep -Fq 'DirectMirOptionMatchAbiProjectionFromFact(' "$LLVM_OWNER" ||
-    fail "LLVM Option<Int> representation does not consume the ABI projection"
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'fact.some_tag' "$owner" ||
-        fail "target owner guessed the Some discriminant"
-    grep -Fq 'fact.none_tag' "$owner" ||
-        fail "target owner guessed the None discriminant"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

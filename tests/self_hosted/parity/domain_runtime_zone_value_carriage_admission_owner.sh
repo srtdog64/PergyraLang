@@ -39,28 +39,4 @@ for negative_case in copy reassign; do
     fi
 done
 
-ZONE_CARRIAGE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy"
-ZONE_PARAMETER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
-BODY_BUNDLE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/stmt_emit.pgy"
-
-grep -Fq 'func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(' \
-    "$ZONE_CARRIAGE_OWNER"
-grep -Fq 'SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(' \
-    "$ZONE_PARAMETER_OWNER"
-grep -Fq 'SemanticAstZoneCarriageVerdictFromAdmittedFacts(' \
-    "$BODY_BUNDLE_OWNER"
-grep -Fq 'CodegenSemanticResourceLocalIndex(body_types, idx)' "$STATEMENT_OWNER"
-if grep -Fq 'func CodegenFreshZoneLocal(' "$STATEMENT_OWNER"; then
-    echo "zone fresh identity returned to statement-emission inference" >&2
-    exit 1
-fi
-if grep -Fq 'Pergyra zone local copy requires an admitted transfer plan' \
-    "$STATEMENT_OWNER" || \
-   grep -Fq 'Pergyra zone reassignment requires an admitted transfer plan' \
-    "$STATEMENT_OWNER"; then
-    echo "zone carriage policy returned to C statement emission" >&2
-    exit 1
-fi
-
 echo "[domain-runtime-zone-carriage-admission] copy/reassignment semantic admission and backend error ratchet: PASS"

@@ -16,8 +16,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/codegen/fixture/array_param.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 [[ -x "$DRIVER" ]] || fail "current-source self-host driver is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
@@ -46,30 +44,6 @@ src/self_hosted/compiler/direct_mir_collection_program_llvm_emission_owner.pgy|1
 src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy|45
 src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy|35
 EOF
-
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
-ROUTE_FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_route_fact_owner.pgy"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy"
-C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_c_emission_owner.pgy"
-LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_llvm_emission_owner.pgy"
-ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
-require_text "$PLAN" 'DirectMirScalarCfgCollectionPlan'
-require_text "$PLAN" 'DirectMirCollectionProgramPlanMutationRejected'
-require_text "$PLAN" 'producer_reallocating_array_value_main_single_cleanup'
-require_text "$ROUTE_FACT" 'let claimed: Bool = routine_count == 3 && entrypoints == 1 &&'
-require_text "$ROUTE_FACT" 'producers == 1 && consumers == 1;'
-[[ "$(grep -Fc 'admitted.routines.routine_block_counts[row] == 4' "$ROUTE_FACT")" -eq 2 ]] ||
-    fail "collection route does not distinguish producer/consumer CFG shapes"
-require_text "$ABI" 'StringRuntimeCLongPrintArgumentType()'
-route_line="$(grep -n 'if collection_route.claimed' "$ROUTE" | cut -d: -f1)"
-scalar_line="$(grep -n 'scalar-route:start' "$ROUTE" | cut -d: -f1)"
-[[ "$route_line" -lt "$scalar_line" ]] || fail "collection route follows broad scalar admission"
-for owner in "$C_EMIT" "$LLVM_EMIT"; do
-    for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
-        array_param.pgy DirectMirArrayArgument; do
-        reject_text "$owner" "$term"
-    done
-done
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

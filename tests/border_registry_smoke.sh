@@ -15,7 +15,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SRC="$ROOT_DIR/src"
-DOC="$ROOT_DIR/docs/154_border_registry.md"
 
 fail() { echo "[border-registry] FAIL: $*" >&2; exit 1; }
 
@@ -42,7 +41,6 @@ check_runtime_twin_include_boundary() {
 }
 
 bash "$ROOT_DIR/tests/border_registry_checker_smoke.sh"
-[ -f "$DOC" ] || fail "missing docs/154_border_registry.md"
 
 # --- backend border: transpiler_* and llvm_* never include each other ----
 cd "$SRC/codegen"
@@ -83,10 +81,5 @@ check_runtime_twin_include_boundary "$SRC/runtime"
 # AIR headers live at src/compiler/air*.h (air.h, air_internal.h, ...).
 hits="$(grep -rl '#include "\.\./compiler/air' "$SRC/codegen" 2>/dev/null || true)"
 [ -z "$hits" ] || fail "codegen includes AIR headers (verification-only): $hits"
-
-# --- registry text stays honest ---------------------------------------------
-grep -Fq "사인된 face" "$DOC" || fail "docs/154 lost the registered-face table"
-grep -Fq '`callable_contract_vocabulary.h`' "$DOC" || fail "docs/154 lost the callable vocabulary face"
-grep -Fq "B-2" "$DOC" || fail "docs/154 lost the rung ladder"
 
 echo "[border-registry] all crossings registered (backend/stage/twin/AIR faces clean)"

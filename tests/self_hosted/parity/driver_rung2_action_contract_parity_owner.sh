@@ -7,17 +7,6 @@
 # callable_kind_default_function, backend_contract_recovery,
 # independent_contract_vocabulary, multi_impl_role_declaration_drop.
 
-if grep -Fq 'if impl_count > 1' \
-    "$ROOT_DIR/src/self_hosted/mir/declaration_rows_owner.pgy"; then
-    echo "[self-host-parity:driver-rung2] multi-ability role declaration fallback returned" >&2
-    return 1 2>/dev/null || exit 1
-fi
-grep -Fq 'SemanticAstAbilityIndexForName(' \
-    "$ROOT_DIR/src/self_hosted/mir/declaration_rows_owner.pgy" || {
-    echo "[self-host-parity:driver-rung2] role impl method partition lost its ability owner" >&2
-    return 1 2>/dev/null || exit 1
-}
-
 pgy_selfhost_driver_rung2_action_contract_reject() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
     local suffix="$5" from="$6" to="$7" diagnostic="$8"

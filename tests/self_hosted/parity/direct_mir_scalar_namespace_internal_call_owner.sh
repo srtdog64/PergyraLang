@@ -17,46 +17,15 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_namespace_internal_call
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-MARKER_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy"
-DECLARED_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_declared_call_callee_identity_owner.pgy"
-IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy"
-CALL_TARGET_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
-CALL_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy"
-EXPECTED_TYPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy"
-ZERO_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_zero_argument_call_admission_owner.pgy"
-IDENTITY_BOUND_C_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$MUTATIONS" "$MARKER_OWNER" "$DECLARED_IDENTITY_OWNER" \
-        "$IDENTITY_OWNER" "$CALL_TARGET_OWNER" "$CALL_ARGUMENT_OWNER" "$EXPECTED_TYPE_OWNER" \
-        "$ZERO_ARGUMENT_OWNER" "$IDENTITY_BOUND_C_OWNER"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-grep -Fq 'sequence.arena.identities.call_target_syntax_ids[node] > 0' \
-    "$MARKER_OWNER" || fail "call marker ignores carried SyntaxNodeId"
-grep -Fq 'SemanticCallTargetNamespace()' "$MARKER_OWNER" ||
-    fail "callee identity owner omits namespace-call topology"
-grep -Fq 'func DirectMirScalarProgramDeclaredCallCalleeIdentityReady(' \
-    "$DECLARED_IDENTITY_OWNER" || fail "declared-call callee identity owner is missing"
-grep -Fq 'SemanticCallTargetNamespace()' "$IDENTITY_OWNER" ||
-    fail "semantic identity owner omits namespace-call SyntaxNodeId"
-grep -Fq 'graph.arena.topology.left_children[node + 1] ==' \
-    "$IDENTITY_OWNER" || fail "semantic identity owner lost exact call-callee edge"
-grep -Fq 'signatures, canonical_target_name' "$CALL_TARGET_OWNER" ||
-    fail "call-target admission lost canonical declared-callable identity"
-if grep -Fq 'signatures, UnwrapOption(source_name)' "$CALL_TARGET_OWNER"; then fail "call-target admission reopened namespace-local callee spelling"; fi
-for owner in "$CALL_ARGUMENT_OWNER" "$EXPECTED_TYPE_OWNER" \
-        "$ZERO_ARGUMENT_OWNER"; do
-    if grep -Fq 'node_texts[callee] != callables.names' "$owner"; then fail "declared-call admission reopened callee display-text identity"; fi
-done
-for key in 'CodegenCallableBindingSyntaxKey(binding.syntax_id)' 'CodegenDeclaredCallableSyntaxKey(binding.syntax_id)'; do grep -Fq "$key" "$IDENTITY_BOUND_C_OWNER" || fail "identity-bound C emitter lost SyntaxNodeId lookup: $key"; done
-if grep -Fq 'SemanticExpressionGraphNodeText(' "$IDENTITY_BOUND_C_OWNER" || grep -Fq 'source_name' "$IDENTITY_BOUND_C_OWNER"; then
-    fail "identity-bound C emitter reopened formal display-text authority"
-fi
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

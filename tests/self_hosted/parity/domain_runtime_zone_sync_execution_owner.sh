@@ -188,23 +188,4 @@ if [[ -n "${PGY_SELFHOST_EXACT_AST:-}" || \
         "$PGY_SELFHOST_EXACT_AST" "$PGY_SELFHOST_EXACT_C" exact
 fi
 
-BRIDGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/domain_runtime_c_codegen_bridge_owner.pgy"
-DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_pipeline_owner.pgy"
-[[ "$(grep -Fc 'func CompilerDomainRuntimeCZoneSyncBlock(' "$BRIDGE_OWNER")" == 1 ]]
-if grep -Fq '"zone frontier recompute exceeded bounded pass limit"' \
-    "$BRIDGE_OWNER"; then
-    echo "self-host zone bridge duplicated the frontier-policy reason" >&2
-    exit 1
-fi
-grep -Fq 'admitted.declarations' "$BRIDGE_OWNER"
-if grep -Fq 'BuildMirProgramDeclarationIndex' "$BRIDGE_OWNER"; then
-    echo "domain runtime C bridge reintroduced a declaration-root rescan" >&2
-    exit 1
-fi
-grep -Fq 'GenerateCUnitFromAdmittedSemanticArtifact(' "$DRIVER_OWNER"
-if grep -Fq 'CodegenDomainRuntimeFactsEmpty(true)' "$DRIVER_OWNER"; then
-    echo "production driver reintroduced the empty domain-runtime fallback" >&2
-    exit 1
-fi
-
 echo "[domain-runtime-zone-sync] PASS"

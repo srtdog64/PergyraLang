@@ -29,17 +29,6 @@ fi
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 CASE_ROOT="$ROOT_DIR/tests/cases/abi_pipeline"
 
-SCHEMA_DOC="$ROOT_DIR/docs/112_observability_trace_schema.md"
-SCHEMA_HEADER="$ROOT_DIR/src/runtime/pgy_runtime_observability_schema.h"
-if [[ ! -f "$SCHEMA_DOC" ]]; then
-    echo "[observability-schema] missing schema doc: $SCHEMA_DOC" >&2
-    exit 1
-fi
-if [[ ! -f "$SCHEMA_HEADER" ]]; then
-    echo "[observability-schema] missing schema header: $SCHEMA_HEADER" >&2
-    exit 1
-fi
-
 require_text() {
     local path="$1"
     local text="$2"
@@ -49,46 +38,12 @@ require_text() {
     fi
 }
 
-for required in \
-    "Observability And Trace Schema Beta Contract" \
-    "beta-freeze-source-of-truth" \
-    "IntentLast*" \
-    "IntentHistory*" \
-    "IntentActive*" \
-    "IntentRecent*" \
-    "Active registry aggregate queries use the active registry index" \
-    "Active step field queries use a stable active intent handle" \
-    "runtime-borrowed strings" \
-    "authority-token-mismatch" \
-    "newest-first" \
-    "General event streaming schema" \
-    "Structured JSON trace export" \
-    "make observability-schema-test-smoke"; do
-    require_text "$SCHEMA_DOC" "$required"
-done
-
-for required in \
-    "PGY_OBSERVABILITY_ABI_SCHEMA" \
-    "pgy.intent.observability.v1" \
-    "PGY_OBSERVABILITY_TRACE_SCHEMA" \
-    "pgy.intent.trace.v1" \
-    "PGY_OBSERVABILITY_SURFACE_LAST" \
-    "PGY_OBSERVABILITY_SURFACE_HISTORY" \
-    "PGY_OBSERVABILITY_SURFACE_ACTIVE" \
-    "PGY_OBSERVABILITY_SURFACE_RECENT" \
-    "PGY_OBSERVABILITY_EVENT_INTENT_ENTER" \
-    "PGY_OBSERVABILITY_EVENT_TRANSFER" \
-    "PGY_OBSERVABILITY_FIELD_FROM_ZONE" \
-    "PGY_OBSERVABILITY_FIELD_TO_SLOT"; do
-    require_text "$SCHEMA_HEADER" "$required"
-done
-
 if [[ ! -x "$PGY" ]]; then
     if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
         echo "[observability-schema] missing explicit compiler binary: $PGY" >&2
         exit 1
     fi
-    echo "[observability-schema] SKIP executable probe; source schema is gated"
+    echo "[observability-schema] SKIP executable probe; compiler binary unavailable"
     exit 0
 fi
 

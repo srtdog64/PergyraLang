@@ -3,27 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TRANSPILE_DIR="$ROOT_DIR/src/tests/transpile"
-HELPERS="$TRANSPILE_DIR/test_transpile_helpers_1.cases.h"
-HELPERS_TAIL="$TRANSPILE_DIR/test_transpile_helpers_2.cases.h"
-
-if [[ ! -f "$HELPERS" ]]; then
-    echo "[transpile-strict-source] missing helpers: $HELPERS" >&2
-    exit 1
-fi
-if [[ ! -f "$HELPERS_TAIL" ]]; then
-    echo "[transpile-strict-source] missing helper tail: $HELPERS_TAIL" >&2
-    exit 1
-fi
-
-if ! grep -Fq "lower_program_to_mir_strict" "$HELPERS"; then
-    echo "[transpile-strict-source] strict MIR helper is missing" >&2
-    exit 1
-fi
-
-if ! grep -Fq "allow_synthetic_fallback" "$HELPERS"; then
-    echo "[transpile-strict-source] fallback policy flag is missing" >&2
-    exit 1
-fi
 
 bad_matches="$(
     grep -RIn 'lower_program_to_mir(program, &hir, &rir)' "$TRANSPILE_DIR" \
@@ -71,13 +50,4 @@ if [[ -n "$parsed_fallback_matches" ]]; then
     exit 1
 fi
 
-synthetic_matches="$(
-    grep -RInE 'lower_program_to_mir\((prog|make_program)' "$TRANSPILE_DIR" \
-        --include='*.cases.h' || true
-)"
-if [[ -z "$synthetic_matches" ]]; then
-    echo "[transpile-strict-source] synthetic fallback coverage disappeared; remove or update this gate intentionally" >&2
-    exit 1
-fi
-
-echo "[transpile-strict-source] parsed-source transpile fixtures are strict; synthetic AST fallback remains explicit"
+echo "[transpile-strict-source] parsed-source transpile fixtures are strict"

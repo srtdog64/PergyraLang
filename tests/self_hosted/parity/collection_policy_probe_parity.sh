@@ -28,37 +28,11 @@ EXPECTED="$ROOT_DIR/src/self_hosted/tools/collection_policy_probe/expected.txt"
 BAD_EXPECTED="$ROOT_DIR/src/self_hosted/tools/collection_policy_probe/bad_value_param_expected.txt"
 VALID="$ROOT_DIR/src/self_hosted/tools/collection_policy_probe/valid.pgy"
 BAD="$ROOT_DIR/src/self_hosted/tools/collection_policy_probe/bad_value_param.pgy"
-POLICY_OWNER="$ROOT_DIR/src/self_hosted/semantic/collection_mutation_policy_owner.pgy"
-GRAPH_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy"
-STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
-CALL_OWNER="$ROOT_DIR/src/self_hosted/semantic/call_check_owner.pgy"
 mkdir -p "$BUILD_DIR"
 
-for input in "$SOURCE" "$EXPECTED" "$BAD_EXPECTED" "$VALID" "$BAD" \
-    "$POLICY_OWNER" "$GRAPH_OWNER" "$STATEMENT_OWNER" "$CALL_OWNER"; do
+for input in "$SOURCE" "$EXPECTED" "$BAD_EXPECTED" "$VALID" "$BAD"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
 done
-
-grep -Fq 'SemanticAstArtifactAnalyzeTyped(' "$SOURCE" ||
-    { echo "[$LABEL] probe bypasses typed artifact analysis" >&2; exit 1; }
-grep -Fq 'SemanticExpressionGraphCollectionReceiverMutationFact(' \
-    "$STATEMENT_OWNER" ||
-    { echo "[$LABEL] statement ignores the graph-owned policy fact" >&2; exit 1; }
-if grep -Fq 'SemanticCollectionMutationError(' "$STATEMENT_OWNER"; then
-    echo "[$LABEL] statement restored a direct policy call beside the graph owner" >&2
-    exit 1
-fi
-grep -Fq 'SemanticExpressionGraphCollectionMutationFactFromGraph(' \
-    "$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy" ||
-    { echo "[$LABEL] graph verdict ignores collection policy facts" >&2; exit 1; }
-grep -Fq 'collection_call_target' "$GRAPH_OWNER" ||
-    { echo "[$LABEL] graph owner accepts missing target identity" >&2; exit 1; }
-if grep -Eq 'ExprType\(|CheckCall\(|FirstArg' "$GRAPH_OWNER"; then
-    echo "[$LABEL] graph owner reconstructs collection policy from source" >&2
-    exit 1
-fi
-grep -Fq 'false, false' "$CALL_OWNER" ||
-    { echo "[$LABEL] graph call checker still replays source collection policy" >&2; exit 1; }
 
 oracle_path() {
     pgy_path_for_compiler "$PGY" "$1"

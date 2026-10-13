@@ -26,20 +26,6 @@ fail() { echo "[host-task-policy] FAIL: $*" >&2; exit 1; }
 [[ -x "$PGY" ]] || fail "missing compiler binary: $PGY"
 pgy_require_runnable_binary_here "host-task-policy" "$PGY"
 [[ -f "$MODULE" ]] || fail "missing $MODULE"
-grep -Fq 'export enum HostTaskApplyPolicy' "$MODULE" ||
-    fail "missing typed policy vocabulary"
-grep -Fq 'func ApplyPolicy(' "$MODULE" ||
-    fail "missing policy admission owner"
-grep -Fq '"task_already_exists"' "$MODULE" ||
-    fail "duplicate spawn is not distinguishable"
-grep -Fq '"skipped"' "$MODULE" ||
-    fail "normal skip is not distinguishable"
-if grep -Eq 'action[[:space:]]+[A-Za-z]|subject[[:space:]]+[A-Za-z]|Promise|Generator|AbortSignal|scheduler' "$MODULE"; then
-    fail "pure admission policy introduced authority or a second concurrency model"
-fi
-if grep -Eq 'policy[[:space:]]*:[[:space:]]*String' "$MODULE"; then
-    fail "policy regressed to string dispatch"
-fi
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_host_task_policy.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT

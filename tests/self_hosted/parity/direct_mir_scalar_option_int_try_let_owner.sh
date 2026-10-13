@@ -16,34 +16,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_option_int_try_let.pgy"
 MIR_REL="$WORK_REL/producer.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_option_int_try_let_mutations.py"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_option_int_try_admission_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_try_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_int_try_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for path in "$MUTATIONS" "$ADMISSION" "$C_OWNER" "$LLVM_OWNER"; do
+for path in "$MUTATIONS"; do
     [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'AstExpressionNodeTry()' "$ADMISSION" ||
-    fail "try admission omitted the semantic root kind"
-grep -Fq 'CompilerAbiLayoutOptionIntTypeName()' "$ADMISSION" ||
-    fail "try admission omitted the Option<Int> ABI identity"
-grep -Fq 'signature.parameters.carriages[ordinal] == "value-result"' "$ADMISSION" ||
-    fail "try admission omitted the first-rung copy-out rejection"
-! grep -Fq 'JsonValueEnd' "$ADMISSION" ||
-    fail "try admission reintroduced raw JSON expression parsing"
-! grep -Fq 'PickTryValue' "$ADMISSION" ||
-    fail "try admission branched on the fixture routine spelling"
-grep -Fq 'DirectMirScalarProgramExprIsSomeInt()' "$C_OWNER" ||
-    fail "C try projection omitted the admitted Option<Int> test"
-grep -Fq 'pgy.try.none.' "$LLVM_OWNER" ||
-    fail "LLVM try projection omitted the None return edge"
-grep -Fq 'pgy.try.some.' "$LLVM_OWNER" ||
-    fail "LLVM try projection omitted the Some unwrap edge"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

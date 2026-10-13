@@ -10,29 +10,11 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_scalar_owned_logical_record_return"; WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_owned_logical_record_return.pgy"; MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy"; SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy"; LLVM_CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy"
-LLVM_RECORD_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy"; LLVM_RECORD_MEMBER_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_mutations.py"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'signature.param_count != 1' "$POLICY" || fail "parameter count is not exact"
-grep -Fq '== "owner-handle"' "$POLICY" || fail "owner carriage is not exact"
-grep -Fq 'type_names[0] != signature.return_type' "$POLICY" || fail "return identity is not exact"
-grep -Fq 'signature.parameters.carriages[0] == "value-result"' "$SIGNATURE_OWNER" ||
-    fail "same-record return boundary is not explicit"
-grep -Fq 'callables.parameter_carriages[parameter_row] != "owner-handle"' "$CALL_OWNER" ||
-    fail "direct-call admission omitted the admitted owner handle"
-grep -Fq 'carriages[ordinal] == "owner-handle"' "$LLVM_CALL_OWNER" ||
-    fail "LLVM direct-call projection omitted the owner handle"
-grep -Fq 'routines.parameter_carriages[source_row] == "owner-handle"' \
-    "$LLVM_RECORD_ARGUMENT_OWNER" ||
-    fail "LLVM readonly borrow omitted the source owner handle"
-grep -Fq 'routines.parameter_carriages[source_row] == "owner-handle"' \
-    "$LLVM_RECORD_MEMBER_ARGUMENT_OWNER" ||
-    fail "LLVM member borrow omitted the source owner handle"
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \
     >"$WORK_DIR/producer.out" 2>"$WORK_DIR/producer.err" || {

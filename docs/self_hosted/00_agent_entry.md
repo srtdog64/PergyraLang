@@ -42,7 +42,8 @@ This document is for future agents working on self-hosting.
 
 1. Name the source-of-truth seam being closed.
 2. Make the smallest code change that moves the decision behind that owner.
-3. Add or tighten a smoke gate so the old path cannot reappear.
+3. Add or tighten a behavioral negative gate: an input the old path answered
+   must now fail closed. Do not add a text scan of docs or source.
 4. Run the narrow gate first; run broader tests only after the slice is stable.
 
 ## Current Truth

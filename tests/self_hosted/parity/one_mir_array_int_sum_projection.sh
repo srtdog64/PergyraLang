@@ -31,20 +31,6 @@ command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
 
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_program_fact_owner.pgy"
-STATIC="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_mutation_admission_owner.pgy"
-for owner in \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_c_emission_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_int_static_llvm_emission_owner.pgy"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" 'array_sum.pgy'
-    reject_text "$owner" 'pgy_array_set_Int'
-done
-require_text "$FACT" 'DirectMirScalarCfgArrayIntStaticSetMode'
-require_text "$STATIC" 'collection_uses != 5'
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

@@ -14,30 +14,12 @@ WORK_REL=".tmp/self_hosted/one_mir_mixed_collection_foreach"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/codegen/fixture/for_each.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy"
-TYPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy"
-STRING_OP="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
-ELEMENTS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_element_owner.pgy"
-BACKEND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-require_text "$TYPE_OWNER" 'DirectMirScalarCfgIterationTypePairSupported('
-require_text "$STRING_OP" 'DirectMirScalarCfgOpConcatString()'
-require_text "$STRING_OP" 'SemanticCallTargetDirect()'
-require_text "$ELEMENTS" 'DirectMirScalarCfgForEachElementFacts'
-require_text "$BACKEND" 'DirectMirScalarCfgGraphRouteClaimed(admitted)'
-reject_text "$ROUTE" 'block_count == 7'
-reject_text "$ROUTE" 'source_local_types['
-for owner in "$TYPE_OWNER" "$STRING_OP" "$ELEMENTS"; do
-    reject_text "$owner" 'for_each.pgy'
-    reject_text "$owner" '"expr0"'
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

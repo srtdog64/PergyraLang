@@ -41,14 +41,6 @@ pgy_prepend_windows_runtime_paths
 
 fail() { echo "[parallel-capture-reach] FAIL: $*" >&2; exit 1; }
 
-# Both capture checks consult the reach owner; neither may fall back to the
-# name-only answer.
-CHECKER="$ROOT_DIR/src/semantic/type_checker_flow_parallel.c"
-grep -Fq 'parallel_task_writes_through_binding(' "$CHECKER" ||
-    fail "the scalar race check no longer counts writes through a binding"
-grep -Fq 'parallel_capture_type_reaches_storage(' "$CHECKER" ||
-    fail "the collection capture check no longer follows aggregate fields"
-
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"

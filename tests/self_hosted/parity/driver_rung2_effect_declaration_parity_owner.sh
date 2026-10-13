@@ -9,11 +9,6 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
     "$ROOT_DIR/src/compiler/mir_decl_field_kind_vocabulary.def" \
     "$ROOT_DIR/src/self_hosted/lib/mir_decl_field_kind_vocabulary_projection_owner.pgy" \
     --check
-grep -Fq '#include "mir_decl_field_kind_vocabulary.def"' \
-    "$ROOT_DIR/src/compiler/mir_json_dump_decl.c" || {
-    echo "[self-host-parity:driver-rung2] native field-kind registry projection detached" >&2
-    return 1 2>/dev/null || exit 1
-}
 
 pgy_selfhost_driver_rung2_effect_declaration_reject() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"

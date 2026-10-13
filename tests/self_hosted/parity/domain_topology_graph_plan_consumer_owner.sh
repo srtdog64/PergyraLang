@@ -35,57 +35,7 @@ PLAN_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/domain_topology_graph_plan_owner
 BUILD_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/domain_topology_graph_build_owner.pgy"
 SCHEDULE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/domain_topology_graph_schedule_owner.pgy"
 CONSUMER_OWNER="$ROOT_DIR/src/self_hosted/compiler/domain_topology_graph_plan_consumer_owner.pgy"
-MACHINE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/machine_layer_fact_owner.pgy"
-DIRECT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
-GENERAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 
-for file in "$PLAN_OWNER" "$BUILD_OWNER" "$SCHEDULE_OWNER" \
-    "$CONSUMER_OWNER" "$MACHINE_OWNER" "$DIRECT_OWNER" "$GENERAL_OWNER"; do
-    [[ -f "$file" ]] || fail "missing owner: ${file#"$ROOT_DIR/"}"
-done
-for term in 'struct MirDomainTopologyGraphPlan' \
-    'MirDomainTopologyGraphPlanDigest' \
-    'MirDomainTopologyGraphPlanFromFacts' \
-    'MirDomainTopologyGraphPlanReady'; do
-    grep -Fq -- "$term" "$PLAN_OWNER" || fail "plan owner missing: $term"
-done
-for term in 'MirDomainTopologyOwnerGraphAddEdge' \
-    'MirDomainTopologyOwnerGraphSchedule'; do
-    grep -Fq -- "$term" "$SCHEDULE_OWNER" || fail "schedule owner missing: $term"
-done
-grep -Fq -- 'kind == "apply-effect"' "$BUILD_OWNER" \
-    || fail "owner graph builder does not explicitly admit apply-effect"
-grep -Fq -- 'edge_ok = true' "$BUILD_OWNER" \
-    || fail "apply-effect no-edge lifecycle admission is missing"
-for term in 'MirDomainTopologyGraphPlanConsumptionFromAdmitted' \
-    'MirDomainTopologyGraphPlanConsumptionMutationRejected' \
-    'MirDomainTopologyGraphPlanAttachToC' \
-    'MirDomainTopologyGraphPlanAttachToLlvm'; do
-    grep -Fq -- "$term" "$CONSUMER_OWNER" || fail "consumer owner missing: $term"
-done
-grep -Fq -- 'domain_topology_plan: MirDomainTopologyGraphPlan;' \
-    "$MACHINE_OWNER" || fail "admission does not carry the one graph plan"
-grep -Fq -- 'MirDomainTopologyGraphPlanAttachAdmittedToLlvm' "$DIRECT_OWNER" \
-    || fail "direct C/LLVM production path does not consume the plan"
-for term in 'MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted)' \
-    'MirDomainTopologyGraphPlanAttachToC(' \
-    'topology_receipt, admitted.domain_topology_plan,'; do
-    grep -Fq -- "$term" "$GENERAL_OWNER" \
-        || fail "general emitted-C production path lost its admitted plan receipt: $term"
-done
-if grep -Fq -- 'MirDomainTopologyGraphPlanReady(' \
-    "$CONSUMER_OWNER" "$DIRECT_OWNER" "$GENERAL_OWNER"; then
-    fail "production consumer repeated full graph-plan validation after admission"
-fi
-[[ "$(grep -Fc -- 'MirDomainTopologyGraphPlanReady(domain_topology_plan)' "$MACHINE_OWNER")" == 1 ]] \
-    || fail "machine admission must be the one full graph-plan validation boundary"
-[[ "$(grep -R --include='*.pgy' -Fh -- 'MirDomainTopologyGraphPlanReady(' \
-    "$ROOT_DIR/src/self_hosted" | wc -l)" == 2 ]] \
-    || fail "full graph-plan validation escaped its definition and one admission call"
-if grep -Eiq -- 'AstTree|source_path|ReadFile\(|count_floor|from_zone' \
-    "$PLAN_OWNER" "$BUILD_OWNER" "$SCHEDULE_OWNER" "$CONSUMER_OWNER"; then
-    fail "graph plan reopened AST/source/backend or count-floor authority"
-fi
 for file in "$PLAN_OWNER" "$BUILD_OWNER" "$SCHEDULE_OWNER" "$CONSUMER_OWNER"; do
     lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$file")" || fail "source-size measurement failed"
     (( lines <= 600 )) || fail "owner exceeds 600-line component limit: ${file#"$ROOT_DIR/"} ($lines)"

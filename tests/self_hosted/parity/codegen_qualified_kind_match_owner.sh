@@ -28,9 +28,6 @@ for name in "${NEGATIVE[@]}"; do
     sha256sum "$FIXTURES/$name.pgy" >>"$B/input.sha256"
 done
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$B/import.sha256"
-grep -Fq 'func LookupQualifiedKindTypeMatches(' src/self_hosted/codegen/type_facts/type_env.pgy || fail "query owner missing"
-grep -Fq 'LookupQualifiedKindTypeMatches(' src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy || fail "member consumer bypasses query owner"
-! grep -Fq 'retired_variant_key' src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy || fail "branch-local retirement path reopened"
 printf 'QUALIFIED KIND MATCH PASS\n' >"$B/expected"
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$INPUT" \

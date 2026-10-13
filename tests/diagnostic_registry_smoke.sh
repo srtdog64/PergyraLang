@@ -4,51 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
-require_literal() {
-    local rel="$1"
-    local term="$2"
-    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
-        echo "[diagnostic-registry] $rel missing: $term" >&2
-        exit 1
-    }
-}
-
-run_literal_contract_smoke() {
-    require_literal "src/semantic/diag_codes.h" "PGY_CODE_"
-    require_literal "src/semantic/diag_codes.h" "PGY_CAUSE_"
-    require_literal "src/semantic/diag_codes.h" "PGY_FIX_"
-    require_literal "docs/72_diagnostic_codes.md" "PGY_PARSE_SYNTAX"
-    require_literal "docs/72_diagnostic_codes.md" "PGY_LEX_INVALID_TOKEN"
-    require_literal "src/semantic/type_checker_diag.c" "semantic_error_with_hints"
-    require_literal "src/semantic/type_checker_diag.c" "semantic_warning_with_hints"
-
-    local missing=()
-    while IFS= read -r literal; do
-        [[ -n "$literal" ]] || continue
-        if ! grep -Fq -- "$literal" "$ROOT_DIR/docs/72_diagnostic_codes.md"; then
-            missing+=("$literal")
-        fi
-    done < <(
-        sed ':join; /\\$/ { N; s/\\\n[[:space:]]*/ /; b join; }' \
-            "$ROOT_DIR/src/semantic/diag_codes.h" |
-        sed -nE \
-            's/^[[:space:]]*#define[[:space:]]+PGY_CODE_[A-Z0-9_]+[[:space:]]+"([^"]+)".*/\1/p' \
-    )
-    if (( ${#missing[@]} > 0 )); then
-        echo "[diagnostic-registry] docs/72_diagnostic_codes.md missing diagnostic code(s): ${missing[*]}" >&2
-        exit 1
-    fi
-
-    echo "[diagnostic-registry] macros and docs are source-gated (literal fallback)"
-}
-
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        run_literal_contract_smoke
+        echo "[diagnostic-registry] SKIP: python is required for the call-site registry lint" >&2
         exit 0
     fi
 fi
@@ -59,40 +21,12 @@ import re
 import sys
 
 root = pathlib.Path(sys.argv[1])
-diag_header = root / "src" / "semantic" / "diag_codes.h"
-diag_doc = root / "docs" / "72_diagnostic_codes.md"
 semantic_root = root / "src" / "semantic"
 callsite_skip = {
     pathlib.Path("src/semantic/diag_codes.h"),
     pathlib.Path("src/semantic/type_checker.h"),
     pathlib.Path("src/semantic/type_checker_diag.c"),
 }
-
-header_text = re.sub(
-    r"\\\r?\n[ \t]*",
-    " ",
-    diag_header.read_text(encoding="utf-8"),
-)
-doc_text = diag_doc.read_text(encoding="utf-8")
-
-defines = dict(re.findall(
-    r"^\s*#define\s+(PGY_(?:CODE|CAUSE|FIX)_[A-Z0-9_]+)\s+\"([^\"]+)\"",
-    header_text,
-    flags=re.M,
-))
-
-if not defines:
-    raise SystemExit("diag_codes.h exposes no PGY_CODE/CAUSE/FIX macros")
-
-missing_codes = [
-    literal for name, literal in defines.items()
-    if name.startswith("PGY_CODE_") and literal not in doc_text
-]
-if missing_codes:
-    raise SystemExit(
-        "docs/72_diagnostic_codes.md missing diagnostic code(s): "
-        + ", ".join(sorted(missing_codes))
-    )
 
 
 def find_matching_paren(text: str, open_index: int) -> int:

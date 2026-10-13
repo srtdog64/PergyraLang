@@ -33,21 +33,6 @@ for pair in "$ADMISSION:120" "$OPERAND:120" "$READINESS:110" \
     [[ "$source_size_lines" -le "$cap" ]] ||
         fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'DirectMirScalarCfgLeafOperandFromOwners(' "$OPERAND" ||
-    fail "operand owner omits the existing local identity join"
-grep -Fq 'value_types.local_types[local_row]' "$OPERAND" ||
-    fail "operand owner omits the local String type join"
-grep -Fq 'local_row + local_offset, operand.use_count' "$OPERAND" ||
-    fail "operand owner omits local row/use carriage"
-grep -Fq 'use_offset = use_offset + single.consumed_uses' "$ADMISSION" ||
-    fail "literal admission omits exact use consumption"
-grep -Fq 'DirectMirScalarProgramExprLocal()' "$READINESS" ||
-    fail "literal readiness omits the normalized local operand"
-for owner in "$ADMISSION" "$OPERAND" "$READINESS"; do
-    for term in ParserExpressionLongLiteral source_text.1 source_json native_retry; do
-        ! grep -Fq "$term" "$owner" || fail "forbidden spelling branch: $term"
-    done
-done
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

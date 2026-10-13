@@ -243,20 +243,6 @@ if grep -Fq -- 'pgy_machine_layer_runtime_bind_export(UINT64_C' "$C_OUT" \
          && grep -Fq -- 'call i32 @pgy_machine_layer_runtime_bind_export' "$LLVM_OUT"; }; then
     fail 'backend emitted the legacy fingerprint-only machine-layer bind path'
 fi
-require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_machine_layer_inline.h" \
-    'pgy_machine_layer_runtime_bind_export'
-require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_lib_machine_layer_exports.h" \
-    'pgy_machine_layer_runtime_bind_export'
-require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_machine_layer_inline.h" \
-    'pgy_machine_layer_runtime_provider_bind_export'
-require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_lib_machine_layer_exports.h" \
-    'pgy_machine_layer_runtime_provider_bind_export'
-require_file_text "$ROOT_DIR/src/compiler/verified_projection_plan.h" \
-    'machine_layer_runtime_provider_required'
-require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_machine_layer_inline.h" \
-    'provider_required != 0'
-require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_lib_machine_layer_exports.h" \
-    'provider_required != 0'
 # Physical projections must remain distinct in the emitted LLVM type graph.
 # Opaque pointers alone cannot carry the distinction, so the named aggregate
 # and the DeviceSlot alloca are the negative/positive ratchet here.
@@ -266,116 +252,9 @@ if [[ "$LLVM_AVAILABLE" -eq 1 ]]; then
     require_file_text "$LLVM_OUT" '%PgyDeviceSlot_Int = type'
     require_file_text "$LLVM_OUT" 'alloca %PgyDeviceSlot_Int'
 fi
-grep -A8 -F -- 'case PGY_TK_DEVICE_SLOT:' \
-    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" |
-    grep -Fq -- 'return llvm_device_slot_struct_type' ||
-    fail 'LLVM DeviceSlot type mapping is not owned by the distinct device projection'
-if grep -A8 -F -- 'case PGY_TK_DEVICE_SLOT:' \
-    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" |
-    grep -Fq -- 'return llvm_slot_struct_type'; then
-    fail 'LLVM DeviceSlot fell back to the ordinary Slot named type'
-fi
-for term in \
-    'llvm_device_slot_struct_type' \
-    'LLVMTypeRef device_slot_ty' \
-    'LLVMTypeRef device_ptr_ty'; do
-    grep -Fq -- "$term" \
-        "$ROOT_DIR/src/codegen/llvm_registry_resource_types.c" \
-        "$ROOT_DIR/src/codegen/llvm_runtime.c" \
-        "$ROOT_DIR/src/codegen/llvm_stmt_let_slots.c" \
-        "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" ||
-        fail "LLVM physical projection owner term missing: $term"
-done
 require_file_text "$C_REMOTE_OUT" pgy_submit_device_read_
 if [[ "$LLVM_AVAILABLE" -eq 1 ]]; then
     require_file_text "$LLVM_REMOTE_OUT" pgy_submit_device_read_
-fi
-
-# AIR/LSP test links are a separate consumer set from MIR_CORE_OBJECTS; keep
-# the machine-layer owner objects in that set so AIR verification cannot drift
-# into an unresolved or silently omitted machine fact path.
-require_file_text "$ROOT_DIR/Makefile" '$(BUILD_DIR)/compiler/machine_layer_manifest.o'
-require_file_text "$ROOT_DIR/Makefile" '$(BUILD_DIR)/compiler/mir_machine_layer.o'
-require_file_text "$ROOT_DIR/tests/machine_layer_manifest_smoke.sh" \
-    'C and LLVM consume distinct physical projections with checked physical declaration and fail-closed owner validation'
-require_file_text "$ROOT_DIR/src/compiler/air_validate_machine_layer.c" \
-    'pgy_machine_layer_manifest_validate_site'
-require_file_text "$ROOT_DIR/src/compiler/mir_json_dump.c" \
-    'machine_contact_kind'
-require_file_text "$ROOT_DIR/src/pgy_driver.c" \
-    '"--rir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_rir_json), true'
-require_file_text "$ROOT_DIR/src/pgy_driver.c" \
-    '"--machine-manifest-json"'
-require_file_text "$ROOT_DIR/src/compiler/driver_app.c" \
-    'rir_dump_json(rir, stdout)'
-require_file_text "$ROOT_DIR/src/compiler/driver_app.c" \
-    '!flags->dump_rir_json'
-require_file_text "$ROOT_DIR/src/compiler/driver_app.c" \
-    'pgy_machine_layer_physical_manifest_bind'
-require_file_text "$ROOT_DIR/src/compiler/driver_app.h" \
-    'machine_layer_physical_manifest'
-require_file_text "$ROOT_DIR/src/compiler/driver_usage.c" \
-    '--rir-json <source.pgy>'
-require_file_text "$ROOT_DIR/src/compiler/mir_machine_layer.c" \
-    'machine_layer_fact_required = true'
-require_file_text "$ROOT_DIR/src/compiler/mir_program_validate.c" \
-    'inst->machine_layer_fact_required'
-if grep -Fq -- 'pgy_machine_layer_manifest_operation_at' \
-    "$ROOT_DIR/src/compiler/air_validate_machine_layer.c"; then
-    fail "AIR validation duplicated manifest operation traversal"
-fi
-
-# Negative ratchet: every consumer must still reject a missing/invalid owner
-# fact. This is intentionally source-level because manufacturing a malformed
-# MIR object is outside the CLI surface; the runtime gates below are exercised
-# by the successful fixture path.
-for path in \
-    "$ROOT_DIR/src/compiler/mir_program_validate.c" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" \
-    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" \
-    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_slots.c"; do
-    grep -Fq -- "mir_machine_layer_fact_is_valid" "$path" ||
-        fail "negative gate missing owner validation in $path"
-done
-grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" ||
-    fail "runtime-operation identity gate missing in the MIR resource emitter"
-grep -Fq -- "transpiler_slot_runtime_row_for_source_operation" \
-    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" ||
-    fail "C slot builtin bypassed the shared runtime-row owner"
-grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" \
-    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c" ||
-    fail "C shared runtime-row owner lost machine-operation identity validation"
-grep -Fq -- "llvm_slot_runtime_row_for_operation" \
-    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" ||
-    fail "LLVM device-slot consumer bypassed the shared runtime-row owner"
-grep -Fq -- "mir_machine_layer_fact_matches_runtime_operation" \
-    "$ROOT_DIR/src/codegen/llvm_runtime_row.c" ||
-    fail "LLVM shared runtime-row owner lost machine-operation identity validation"
-for path in \
-    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" \
-    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"; do
-    grep -Fq -- "transpiler_machine_layer_projection_is_bound" "$path" ||
-        fail "C backend machine projection did not consume the verified plan row in $path"
-    if grep -Fq -- "pgy_machine_layer_projection_ready_for_backend" "$path"; then
-        fail "C backend re-read the machine manifest in $path"
-    fi
-done
-for path in \
-    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_slots.c"; do
-    grep -Fq -- "llvm_machine_layer_projection_is_bound" "$path" ||
-        fail "LLVM backend machine projection did not consume the verified plan row in $path"
-    if grep -Fq -- "pgy_machine_layer_projection_ready_for_backend" "$path"; then
-        fail "LLVM backend re-read the machine manifest in $path"
-    fi
-done
-if grep -Fq -- 'mir_machine_layer_ast_requires_fact' \
-    "$ROOT_DIR/src/compiler/mir_program_validate.c" \
-    "$ROOT_DIR/src/compiler/mir_machine_layer.c" \
-    "$ROOT_DIR/src/compiler/mir_machine_layer.h"; then
-    fail 'machine-layer validation still scans AST/source names instead of the typed RIR requirement'
 fi
 
 echo "[machine-layer-pipeline] GREEN -- RIR JSON/MIR/AIR facts and C/LLVM contact lowering are connected; distinct C/LLVM physical projection rows, checked host-sim MachineDeclaration provenance envelope, self-host startup mapping, and fail-closed manifest validation"

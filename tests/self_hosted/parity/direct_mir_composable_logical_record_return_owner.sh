@@ -13,14 +13,9 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_composable_logical_record_return.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_composable_logical_record_return_mutations.py"
-SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-ARRAY_STRING_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 for tool in "$CC" "$CLANG" python; do command -v "$tool" >/dev/null 2>&1 || fail "missing tool: $tool"; done
-grep -Fq 'DirectMirScalarProgramLogicalRecordTypeReady(' "$SIGNATURE_OWNER" || fail "logical-record return bypasses the role plan"
-grep -Fq 'logical_record_return && !composable_callable' "$SIGNATURE_OWNER" || fail "specialized record policy still overrides the composable plan"
-grep -Fq 'DirectMirScalarProgramComposableCallableSignatureReady(signature, logical_record, payload_free_enum)' "$ARRAY_STRING_OWNER" || fail "Array<String> return ABI bypasses the composable plan"
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" 2>"$WORK_DIR/producer.err" || { cat "$WORK_DIR/producer.err" >&2; fail "MIR production failed"; }
 grep -Fq '"name":"AdvanceProbe"' "$MIR" || fail "producer omitted callable"

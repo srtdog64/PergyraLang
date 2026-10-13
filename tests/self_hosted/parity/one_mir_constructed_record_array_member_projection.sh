@@ -62,22 +62,6 @@ EOF
         source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner")" || fail "source-size measurement failed"
         [[ "$source_size_lines" -le "$aggregate_cap" ]] || fail "aggregate owner hard cap exceeded: $aggregate_owner"
     done
-    grep -Fq 'DirectMirThreeRoutineMixedConstructedGenericMember()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" || fail "mixed classification is not owned"
-    grep -Fq 'CompileAdmittedDirectMirConstructedRecordArrayMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" || fail "record Array projection is not routed"
-    for emitter in direct_mir_constructed_record_array_member_c_emission_owner.pgy direct_mir_constructed_record_array_member_llvm_emission_owner.pgy; do
-        ! grep -Eq 'MirMachineLayerAdmittedJsonInput|MirExpressionGraphSequence|JsonObjectFact' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter reopened admitted MIR"
-        ! grep -Eq 'malloc\(|realloc\(|free\(|pgy_array_[A-Za-z0-9_]*\(' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter owns a runtime fallback"
-    done
-    grep -Fq 'direct_mir_array_storage_abi_projection_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_abi_projection_owner.pgy" || fail "record Array target ABI bypassed the storage projection owner"
-    ! grep -Fq 'direct_mir_array_storage_layout_contract_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_abi_projection_owner.pgy" || fail "record Array target ABI reopened the storage layout owner"
-    grep -Fq 'DirectMirAggregateValueFlowFactReady(plan.aggregate_flow)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" || fail "record Array plan bypassed the aggregate value-flow fact"
-    grep -Fq 'DirectMirAggregateValueFlowTypedArrayAbsenceNominalElementAbi()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" || fail "record Array plan lost typed-absence nominal ABI provenance"
-    ! grep -Eq 'MirMachineLayerAdmittedJsonInput|JsonObjectFact|ClassificationFact|target_projection|CompilerTargetCpu' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" || fail "aggregate value-flow owner reopened family or target input"
-    ! grep -Fq 'direct_mir_closed_module_call_abi_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy" || fail "record Array plan reconstructed the shared call receipt"
-    for emitter in direct_mir_constructed_record_array_member_c_emission_owner.pgy direct_mir_constructed_record_array_member_llvm_emission_owner.pgy; do
-        grep -Fq 'direct_mir_aggregate_value_flow_target_projection_owner.pgy' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter bypassed the aggregate target projection"
-        ! grep -Eq 'plan\.(representation|call_abi|storage_count|selected_index|value_carriage)|plan\.aggregate_flow\.selected_index|define internal|\[1 x|i64 1,|ptr null|, 1, 1, NULL|\[0\] =' "$ROOT_DIR/src/self_hosted/compiler/$emitter" || fail "$emitter re-owned aggregate decisions"
-    done
 }
 
 project() {

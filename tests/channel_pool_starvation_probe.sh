@@ -45,42 +45,6 @@ LABEL="channel-pool-starvation"
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
 
-require_runtime_term() {
-    local rel="$1"
-    local term="$2"
-    if ! grep -Fq "$term" "$ROOT_DIR/$rel"; then
-        echo "[$LABEL] missing runtime contract in $rel: $term" >&2
-        exit 1
-    fi
-}
-
-require_runtime_term "src/runtime/pgy_parallel_pool_lifecycle.h" \
-    "pgy_pool_channel_blocked_tick(void)"
-require_runtime_term "src/runtime/pgy_parallel_pool_lifecycle.h" \
-    "atomic_init(&pool->spare_count, 0);"
-require_runtime_term "src/runtime/pgy_parallel_pool_lifecycle.h" \
-    "+ atomic_load_explicit(&g_pgy_pool.spare_count"
-require_runtime_term "src/runtime/pgy_runtime.h" \
-    "#include \"pgy_parallel.h\""
-require_runtime_term "src/runtime/pgy_runtime_channel_inline.h" \
-    "#include \"pgy_parallel.h\""
-require_runtime_term "src/runtime/pgy_runtime_channel_inline.h" \
-    "PGY_CHANNEL_BLOCKED_TICK();"
-require_runtime_term "src/runtime/pgy_runtime_channel_string_inline.h" \
-    "#include \"pgy_parallel.h\""
-require_runtime_term "src/runtime/pgy_runtime_channel_string_inline.h" \
-    "PGY_CHANNEL_BLOCKED_TICK();"
-if grep -R -Fq '#define PGY_CHANNEL_BLOCKED_TICK() ((void)0)' \
-        "$ROOT_DIR/src/runtime"; then
-    echo "[$LABEL] silent no-op compensation fallback reappeared" >&2
-    exit 1
-fi
-if grep -R -E -q "PGY_CHANNEL_POOL_HELP_ONE|pgy_pool_channel_wait_help_one" \
-        "$ROOT_DIR/src/runtime"; then
-    echo "[$LABEL] removed inline-help channel path reappeared" >&2
-    exit 1
-fi
-
 if [[ ! -x "$PGY" ]]; then
     echo "[$LABEL] SKIP missing compiler binary: $PGY"
     exit 0

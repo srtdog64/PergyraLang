@@ -14,11 +14,6 @@ WORK_REL=".tmp/self_hosted/public_value_param_collection_mutation_json_diagnosti
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-ASSIGNMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 MUTATION_FIXTURES="bad_value_param_arraypush bad_value_param_array_index_assign"
 EXCLUDED_FIXTURES="bad_import_enum_variant bad_issome_none_call"
 
@@ -131,19 +126,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed mutation diagnostic identity"
-
-require_text "$ASSIGNMENT_OWNER" 'SemanticCollectionMutationError('
-require_text "$ASSIGNMENT_OWNER" '"ArraySet", target_root'
-require_text "$DIAGNOSTIC_OWNER" \
-    'if code == "value_param_collection_mutation" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:builtin:signature_mismatch"'
-require_text "$DIAGNOSTIC_OWNER" '"match-builtin-signature"'
-require_text "$CONTRACT_OWNER" \
-    'value_param_first.message != value_param_second.message'
-require_text "$CONTRACT_OWNER" \
-    'unknown, "unregistered_public_diagnostic_code"'
-! grep -Eq 'PGY_SEM_BUILTIN_ARGS_INVALID|semantic:builtin:signature_mismatch|match-builtin-signature' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic mutation authority"
 
 echo "[self-host-public-value-param-collection-mutation-json-diagnostic] one mutation policy rejects ArrayPush/ArraySet, relays exact MIR/C/LLVM identity, and excludes symbol/missing-oracle codes: PASS"

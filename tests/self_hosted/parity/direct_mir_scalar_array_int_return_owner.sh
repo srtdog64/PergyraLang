@@ -17,24 +17,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_array_int_return.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$POLICY" "$SIGNATURE" "$FACT" "$MUTATIONS"; do
+for owner in "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'type_name == CompilerAbiLayoutArrayIntTypeName() ||' "$POLICY" ||
-    fail "callable return policy omits Array<Int>"
-grep -Fq 'array_int_return || nominal_passthrough' "$SIGNATURE" ||
-    fail "callable signature shape omits Array<Int> returns"
-grep -Fq 'instruction_kinds[global] != "return"' "$FACT" ||
-    fail "Array<Int> ABI fact rejects return receipts"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

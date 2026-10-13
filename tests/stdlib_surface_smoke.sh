@@ -35,41 +35,6 @@ printf 'one\n' > "$WORK_DIR/walk_root/a/one.txt"
 printf 'two\n' > "$WORK_DIR/walk_root/b/two.txt"
 printf 'root\n' > "$WORK_DIR/walk_root/root.txt"
 
-FREEZE_DOC="$ROOT_DIR/docs/108_stdlib_beta_freeze.md"
-if [[ ! -f "$FREEZE_DOC" ]]; then
-    echo "[stdlib-smoke] missing stdlib freeze doc: $FREEZE_DOC" >&2
-    exit 1
-fi
-for required in \
-    "Stdlib Beta Freeze" \
-    "beta-freeze-source-of-truth" \
-    "Stable Builtin Stdlib Surface" \
-    "\`FileOpen\`, \`FileRead\`, \`FileWrite\`, \`FileClose\`, \`ReadFile\`" \
-    "\`WriteFile\`, \`FileExists\`, \`DirWalk\`" \
-    "\`Args\`" \
-    "\`SliceCopy(Slice<T>) -> Array<T>\`" \
-    "\`AllocatorScratch\`, \`AllocatorResult\`, \`AllocatorPersistent\`" \
-    "\`AllocatorDestroy(allocator)\`" \
-    "Stable \`use\` Modules" \
-    "Known But Experimental Modules" \
-    "\`datetime\`" \
-    "\`money\`" \
-    "\`host_task_slot\`" \
-    "\`timer\`" \
-    "\`versioning\`" \
-    "\`ledger\`" \
-    "\`obligation\`" \
-    "\`device_adapter\`" \
-    "\`http\`: transport adapter draft" \
-    "\`storage\`: persistence adapter draft" \
-    "\`page\`: UI/page adapter draft" \
-    "\`spray\`: GPU/Spray design placeholder"; do
-    if ! grep -Fq "$required" "$FREEZE_DOC"; then
-        echo "[stdlib-smoke] freeze doc missing: $required" >&2
-        exit 1
-    fi
-done
-
 cat > "$WORK_DIR/stable_stdlib.pgy" <<'EOF'
 enum Color { Red, Green }
 

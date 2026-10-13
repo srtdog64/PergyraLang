@@ -16,20 +16,12 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_logical_record_array_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy"
-TARGET="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_target_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_result_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'let mixed_copyout: Bool = record_array_count == 1' "$POLICY" ||
-    fail "mixed signature policy does not require both copyout families"
-grep -Fq 'layout.llvm_aggregate_type' "$TARGET" ||
-    fail "LLVM projection does not consume the nominal-array layout owner"
-grep -Fq 'layout.field_order != "data,len,cap"' "$TARGET" ||
-    fail "target projection does not reject the public four-field Array shape"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

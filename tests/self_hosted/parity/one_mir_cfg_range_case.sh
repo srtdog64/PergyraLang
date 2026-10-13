@@ -1,27 +1,6 @@
 # Compatibility hook: range execution is owned by the general scalar CFG plan.
 
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/forloop.pgy"
-RANGE_AIR_OWNER="$ROOT_DIR/src/self_hosted/air/mir_range_cfg_certificate_fact_owner.pgy"
-RANGE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_iteration_owner.pgy"
-RANGE_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_range_emission_owner.pgy"
-GENERAL_ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy"
-for owner in "$RANGE_AIR_OWNER" "$RANGE_OWNER" "$RANGE_EMISSION" \
-    "$GENERAL_ROUTE"; do
-    require_file "$owner"
-done
-grep -Fq -- 'DirectMirRangeCfgCertificateFactMutationRejected' "$RANGE_AIR_OWNER" ||
-    fail "range AIR evidence mutation ratchet is missing"
-grep -Fq -- 'DirectMirScalarCfgRangeIterationFactsFromOwners' "$RANGE_OWNER" ||
-    fail "general scalar CFG range receipt is missing"
-grep -Fq -- 'DirectMirScalarCfgRangeCBlockEffect' "$RANGE_EMISSION" &&
-    grep -Fq -- 'DirectMirScalarCfgRangeLlvmBlockEffect' "$RANGE_EMISSION" ||
-    fail "general range block effect must retain both backends"
-for retired in direct_mir_range_cfg_shape_owner.pgy \
-    direct_mir_range_cfg_plan_fact_owner.pgy \
-    direct_mir_range_cfg_emission_owner.pgy; do
-    [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/$retired" ]] ||
-        fail "retired range mini-compiler reappeared: $retired"
-done
 
 run_range_projected_and_compare() {
     local expected="$1" target actual

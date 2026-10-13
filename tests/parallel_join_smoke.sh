@@ -116,21 +116,6 @@ PY
     fi
 }
 
-# Join capture disposition is executable truth. Semantic analysis owns the
-# verdict and both emitters consume the MIR projection; AST compatibility
-# storage would restore a second source of truth.
-if grep -R -E -q \
-    'ast_parallel_(reset_join_index_arrays|add_join_index_array|join_index_array_admitted|reset_join_readonly_arrays|add_join_readonly_array|join_readonly_array_admitted)|join_index_arrays|join_readonly_arrays' \
-    "$ROOT_DIR/src/parser" "$ROOT_DIR/src/semantic" "$ROOT_DIR/src/codegen"; then
-    fail "parallel join disposition leaked back into AST/backend storage"
-fi
-grep -Fq 'MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT' \
-    "$ROOT_DIR/src/codegen/transpiler_parallel_join_emit.c" \
-    || fail "C join emitter does not consume MIR index-disjoint facts"
-grep -Fq 'MIR_PARALLEL_CAPTURE_JOIN_READONLY' \
-    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_join_capture.c" \
-    || fail "LLVM join emitter does not consume MIR readonly facts"
-
 INDEX_MIR="$OUT_DIR/join_index.mir.json"
 STENCIL_MIR="$OUT_DIR/join_stencil.mir.json"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \

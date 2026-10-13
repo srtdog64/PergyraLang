@@ -16,54 +16,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_inferred_option_local.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_inferred_option_local_mutations.py"
-TYPE_FAMILY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy"
-TYPE_PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy"
-INVENTORY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy"
-LOCAL_REF="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy"
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy"
-ROUTINE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
-PHI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
-OP_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for file in "$MUTATIONS" "$TYPE_FAMILY" "$TYPE_PLAN" "$INVENTORY" "$LOCAL_REF" "$GRAPH" "$ROUTINE" "$PHI_OWNER" "$OP_OWNER"; do
+for file in "$MUTATIONS"; do
     [[ -f "$file" ]] || fail "missing owner: ${file#"$ROOT_DIR/"}"
 done
-phi_body="$(sed -n '/func DirectMirScalarCfgPhiValueTypeReady(/,/^}/p' "$PHI_OWNER")"
-grep -Fq 'CompilerAbiLayoutOptionIntTypeName()' <<<"$phi_body" ||
-    fail "common PhiValue type owner omits Option<Int>"
-grep -Fq 'CompilerAbiLayoutOptionStringTypeName()' <<<"$phi_body" ||
-    fail "common PhiValue type owner omits Option<String>"
-grep -Fq 'func DirectMirScalarCfgOpPhiValue() -> Int { return 29; }' "$OP_OWNER" ||
-    fail "common PhiValue operation identity drifted"
-! grep -Rq 'DirectMirScalarCfgOpPhiOptionInt' "$ROOT_DIR/src/self_hosted/compiler" ||
-    fail "Option<Int>-only phi operation was introduced"
-! grep -Rq 'DirectMirScalarCfgOpPhiOptionString' "$ROOT_DIR/src/self_hosted/compiler" ||
-    fail "Option<String>-only phi operation was introduced"
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'func DirectMirScalarCfgSourceLocalTypeMatchesResolved(' "$TYPE_FAMILY" ||
-    fail "type-family owner omitted inferred source-local matching"
-grep -Fq 'source_type == "Option<Unknown>"' "$TYPE_FAMILY" ||
-    fail "type-family owner omitted the exact inferred Option source type"
-grep -Fq 'DirectMirScalarCfgSourceLocalTypeMatchesResolved(' "$INVENTORY" ||
-    fail "source-local inventory does not consume resolved type evidence"
-grep -Fq 'local_names: Array<String>, local_types: Array<String>' "$INVENTORY" ||
-    fail "source-local inventory omitted the aligned local type table"
-! grep -Fq 'DirectMirScalarCfgLocalInventoryReady(' "$LOCAL_REF" ||
-    fail "LocalRef normalization still admits inventory before type consensus"
-for owner in "$GRAPH" "$ROUTINE"; do
-    # Both owners plan types before admitting the inventory, but the routine
-    # owner reaches the referenced-enum variants of the same two boundaries.
-    # Match the owner name without its argument list so the order assertion
-    # keeps following either spelling.
-    type_line="$(grep -n 'DirectMirScalarCfgValueTypePlanFromOwners' "$owner" | head -n1 | cut -d: -f1)"
-    inventory_line="$(grep -n 'DirectMirScalarCfgLocalInventoryReady' "$owner" | head -n1 | cut -d: -f1)"
-    [[ -n "$type_line" && -n "$inventory_line" && "$type_line" -lt "$inventory_line" ]] ||
-        fail "inventory admission does not follow complete type planning"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

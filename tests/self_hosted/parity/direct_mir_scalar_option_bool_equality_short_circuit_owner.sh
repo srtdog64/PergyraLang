@@ -16,23 +16,14 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_option_bool_equality_sh
 MIR_REL="$WORK_REL/producer.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_option_bool_equality_short_circuit_mutations.py"
-KIND_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
-BOOL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for path in "$MUTATIONS" "$KIND_OWNER" "$BOOL_OWNER"; do
+for path in "$MUTATIONS"; do
     [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-
-grep -Fq 'func DirectMirScalarProgramExprEqualBool() -> Int { return 72; }' \
-    "$KIND_OWNER" || fail "stable Bool equality identity is missing"
-grep -Fq 'DirectMirScalarProgramExprEqualBool()' "$BOOL_OWNER" ||
-    fail "Bool equality lost its recursive non-trapping proof"
-! grep -Fq 'Matches' "$KIND_OWNER" ||
-    fail "expression identity branched on the fixture routine"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

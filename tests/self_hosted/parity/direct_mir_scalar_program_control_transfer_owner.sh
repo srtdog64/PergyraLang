@@ -19,26 +19,12 @@ MIR_REL="$WORK_REL/program.json"
 MIR="$ROOT_DIR/$MIR_REL"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-
-TRANSFER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_control_transfer_admission_owner.pgy"
-BRANCH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_branch_admission_owner.pgy"
-PROGRAM="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
-for owner in "$BRANCH" "$PROGRAM"; do
-    require_text "$owner" 'DirectMirScalarCfgControlTransferFromOwners('
-done
-require_text "$TRANSFER" 'source == "AST_BREAK"'
-require_text "$TRANSFER" 'source == "AST_CONTINUE"'
-require_text "$TRANSFER" 'MirRoutineBlockDominates('
-reject_text "$BRANCH" 'source == "AST_BREAK"'
-reject_text "$PROGRAM" 'source == "AST_CONTINUE"'
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

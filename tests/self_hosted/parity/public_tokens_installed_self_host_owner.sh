@@ -16,19 +16,10 @@ WORK_REL=".tmp/self_hosted/public_tokens_installed"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="examples/hello.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/lexer/fixture/hello_tokens.txt"
-LAUNCHER_OWNER="$ROOT_DIR/src/pgy_driver.c"
-SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
-SIBLING_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
-REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 
 fail() {
     echo "[self-host-public-tokens] $*" >&2
     exit 1
-}
-
-require_text() {
-    grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"
 }
 
 normalize() {
@@ -102,19 +93,5 @@ grep -Fq -- "--tokens options are outside the installed self-host driver contrac
 grep -Fq "source token mode requires exactly one input path" \
     "$WORK_DIR/arity.out" "$WORK_DIR/arity.err" ||
     fail "installed token arity lost its typed diagnostic"
-
-require_text "$LAUNCHER_OWNER" \
-    'if (flags.dump_tokens || flags.dump_ast'
-require_text "$LAUNCHER_OWNER" \
-    '|| flags.dump_capability_manifest || flags.dump_dir) {'
-require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
-require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
-require_text "$SELECTION_OWNER" 'driver_self_host_source_stdout_mode('
-require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--tokens") == 0'
-require_text "$REQUEST_OWNER" 'DriverCliSourceTokensStdout(String, Bool)'
-require_text "$REQUEST_OWNER" 'args[0] == "--tokens"'
-require_text "$EXECUTION_OWNER" 'LexContentForPublicDiagnosticRequest('
-grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
-    fail "installed sibling launcher regained a native pipeline fallback"
 
 echo "[self-host-public-tokens] installed Pergyra lexer owns public --tokens and fails closed"

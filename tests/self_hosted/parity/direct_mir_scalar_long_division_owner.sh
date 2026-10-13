@@ -24,40 +24,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-KIND_ID="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_kind_owner.pgy"
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_readiness_owner.pgy"
-RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy"
-PROJECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_projection_owner.pgy"
-C_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_expression_owner.pgy"
-LLVM_EXPR="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_expression_owner.pgy"
-C_MATERIAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_int_math_materialization_owner.pgy"
-LLVM_MATERIAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_int_math_materialization_owner.pgy"
-DIVISION_OWNER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/checked_division_runtime_owner.pgy"
-ABI_ROWS="$ROOT_DIR/src/self_hosted/compiler/expected/runtime_call_abi_rows.txt"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-
-grep -Fq 'DirectMirScalarProgramExprDivideLong() -> Int { return 79; }' "$KIND_ID" ||
-    fail "Long division expression identity drifted"
-grep -Fq 'source_kind == AstExpressionNodeDivide() && longs' "$KIND" ||
-    fail "Long division source/type join is missing"
-grep -Fq 'kind == DirectMirScalarProgramExprDivideLong()' "$READY" ||
-    fail "Long division readiness is missing"
-for path in "$RUNTIME" "$PROJECTION" "$C_EXPR" "$LLVM_EXPR"; do
-    grep -Fq 'long_division' "$path" || fail "$(basename "$path") omitted long_division"
-done
-grep -Fq 'pgy_runtime_panic_checked_inline.h' "$C_MATERIAL" ||
-    fail "C omitted the checked arithmetic runtime owner"
-grep -Fq 'projection.long_division.symbol' "$LLVM_MATERIAL" ||
-    fail "LLVM omitted the Long division declaration owner"
-grep -Fq '247|checked-arithmetic|long-division|pgy_checked_div_i64_export|function|target_library|long_long_to_long' "$ABI_ROWS" ||
-    fail "append-only Long division runtime ABI row drifted"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema did not advance with Long division"
-divide_guard="$(sed -n '/func CheckedDivisionRuntimeCDivideGuard()/,/^}/p' "$DIVISION_OWNER")"
-grep -Fq 'PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW' <<<"$divide_guard" ||
-    fail "self-host division lost INT64_MIN/-1 overflow guard"
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \

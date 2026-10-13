@@ -32,11 +32,6 @@ for name in "${NEGATIVE[@]}"; do
     sha256sum "$FIXTURES/$name.pgy" >>"$B/input.sha256"
 done
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$B/import.sha256"
-grep -Fq 'SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(' src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy || fail "formal transfer bypasses shared borrow owner"
-! grep -Fq 'SemanticAstOwnedStringLiteralTransferBorrowUseReady(' src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy || fail "duplicate borrow policy reopened"
-! grep -Fq '"COMPILER_ARTIFACT_WRITE"' src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy || fail "formal transfer rebuilt a builtin exception"
-grep -Fq 'SemanticAstOwnedStringFreshConcatCallReady(' src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy || fail "actual exclusivity bypasses the fresh primitive owner"
-! grep -Fq '"CONCAT"' src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy || fail "actual exclusivity rebuilt primitive identity policy"
 printf 'OWNED STATEMENT PREFIX PASS\n' >"$B/expected"
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" "$INPUT" \

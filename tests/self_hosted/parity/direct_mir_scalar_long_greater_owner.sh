@@ -14,14 +14,6 @@ WORK_REL=".tmp/self_hosted/direct_mir_scalar_long_greater"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_long_greater.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
-OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_kind_owner.pgy"
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_readiness_owner.pgy"
-BOOL_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy"
-NON_TRAPPING="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_long_greater_mutations.py"
 VARIANTS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_long_greater_artifact_variants.py"
 
@@ -29,46 +21,6 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 for command in "$CC" "$CLANG" python; do command -v "$command" >/dev/null ||
     fail "missing command: $command"; done
-grep -Fq 'DirectMirScalarProgramExprGreaterLong() -> Int { return 76; }' "$OWNER" ||
-    fail "Long greater expression identity drifted"
-grep -Fq 'DirectMirScalarProgramExprEqualLong() -> Int { return 77; }' "$OWNER" ||
-    fail "Long equality expression identity drifted"
-grep -Fq 'DirectMirScalarProgramExprNotEqualLong() -> Int { return 80; }' "$OWNER" ||
-    fail "Long inequality expression identity drifted"
-grep -Fq 'DirectMirScalarProgramExprLessLong() -> Int { return 85; }' "$OWNER" ||
-    fail "Long less expression identity drifted"
-grep -Fq 'DirectMirScalarProgramComparisonExpressionKindFact(' "$KIND" ||
-    fail "expression admission bypasses the comparison owner"
-for term in CompilerAbiLayoutLongTypeName CompilerAbiLayoutBoolTypeName; do
-    grep -Fq "$term()" "$READY" || fail "comparison readiness omits $term"
-done
-grep -Fq 'DirectMirScalarProgramNonTrappingComparisonKind(kind)' "$BOOL_READY" &&
-    grep -Fq 'DirectMirScalarProgramNonTrappingComparisonNode(facts, node)' "$BOOL_READY" ||
-    fail "nested Bool readiness bypasses the comparison owner"
-for term in Greater Equal NotEqual Less; do
-    grep -Fq "DirectMirScalarProgramExpr${term}Long()" "$NON_TRAPPING" ||
-        fail "non-trapping comparison owner omits Long $term"
-done
-grep -Fq 'DirectMirScalarProgramExprGreaterLong()' "$C_OWNER" ||
-    fail "C comparison emitter omits Long greater"
-grep -Fq 'DirectMirScalarProgramExprEqualLong()' "$C_OWNER" ||
-    fail "C comparison emitter omits Long equality"
-grep -Fq 'DirectMirScalarProgramExprNotEqualLong()' "$C_OWNER" ||
-    fail "C comparison emitter omits Long inequality"
-grep -Fq 'DirectMirScalarProgramExprLessLong()' "$C_OWNER" ||
-    fail "C comparison emitter omits Long less"
-grep -Fq 'DirectMirScalarProgramExprGreaterLong()' "$LLVM_OWNER" ||
-    fail "LLVM comparison emitter omits Long greater"
-grep -Fq 'DirectMirScalarProgramExprEqualLong()' "$LLVM_OWNER" ||
-    fail "LLVM comparison emitter omits Long equality"
-grep -Fq 'DirectMirScalarProgramExprNotEqualLong()' "$LLVM_OWNER" ||
-    fail "LLVM comparison emitter omits Long inequality"
-grep -Fq 'DirectMirScalarProgramExprLessLong()' "$LLVM_OWNER" ||
-    fail "LLVM comparison emitter omits Long less"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema did not advance with typed Long comparison"
-[[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_int_comparison_expression_kind_owner.pgy" ]] ||
-    fail "retired Int-only comparison owner remains"
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

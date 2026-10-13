@@ -171,30 +171,4 @@ grep -Fq "self-host driver is unavailable" "$WORK_DIR/missing.err" ||
 ! grep -Fq "[pipeline timing]" "$WORK_DIR/missing.err" ||
     fail "missing package driver entered the native compiler pipeline"
 
-pkg_body="$(sed -n '/^pkg_run_entry(/,/^static int$/p' \
-    "$ROOT_DIR/src/compiler/pkg.c")"
-grep -Fq 'if (native_pipeline)' <<<"$pkg_body" ||
-    fail "package native opt-out is not explicit"
-[[ "$(grep -Fc 'driver_run_pipeline(' <<<"$pkg_body")" == "1" ]] ||
-    fail "package entry has a hidden native pipeline path"
-grep -Fq 'pkg_verify_entry_with_installed_self_host(' <<<"$pkg_body" ||
-    fail "package checks do not consume the installed MIR owner"
-grep -Fq 'c_runner_execute_installed_self_host_c(' <<<"$pkg_body" ||
-    fail "package C binary does not consume the installed C runner"
-grep -Fq 'llvm_runner_execute_installed_self_host_llvm(' <<<"$pkg_body" ||
-    fail "package LLVM binary does not consume the installed LLVM runner"
-! grep -Fq 'getenv("PGY_NATIVE_PIPELINE")' "$ROOT_DIR/src/compiler/pkg.c" ||
-    fail "package owner duplicated the launcher execution-lane decision"
-
-llvm_owner="$(sed -n '/^driver_materialize_self_host_llvm_artifact(/,/^}/p' \
-    "$ROOT_DIR/src/compiler/self_host_llvm_driver.c")"
-[[ "$(grep -Fc 'driver_run_self_host_artifact_process(' <<<"$llvm_owner")" == "1" ]] ||
-    fail "LLVM materializer does not invoke one compiler intent"
-grep -Fq '"--emit-source-llvm-ir-verified"' <<<"$llvm_owner" ||
-    fail "LLVM materializer lost the canonical compiler-intent request"
-grep -Fq '"--emit-source-llvm-ir-json-diagnostic-verified"' <<<"$llvm_owner" ||
-    fail "LLVM materializer lost the JSON diagnostic request"
-! grep -Eq 'driver_materialize_self_host_mir_artifact|--mir-json-backend=llvm' \
-    <<<"$llvm_owner" || fail "LLVM materializer regained two-step C orchestration"
-
 echo "[self-host-package-commands] package commands consume installed MIR/C/LLVM artifacts and fail closed"

@@ -64,47 +64,6 @@ EXEC_MISSING_GOLDEN="$ROOT_DIR/${harness_paths[4]}"
 [ -f "$EXEC_GOLDEN" ] || fail "missing lane executor contract golden: $EXEC_GOLDEN"
 [ -f "$EXEC_MISSING_GOLDEN" ] || fail "missing lane executor missing-term golden: $EXEC_MISSING_GOLDEN"
 
-grep -Fq "positive_movable_value_authority|MovableScheduler" "$GOLDEN" \
-    || fail "golden must pin the MovableScheduler positive row"
-grep -Fq "negative_pin_requires_movability|Reject" "$GOLDEN" \
-    || fail "golden must pin pin+movability rejection"
-grep -Fq "negative_raw_slot_requires_movability|Reject" "$GOLDEN" \
-    || fail "golden must pin raw-slot+movability rejection"
-grep -Fq "producer_rejects_resource_movable|Reject" "$GOLDEN" \
-    || fail "golden must pin producer-side resource rejection"
-grep -Fq "air_channel_raw_channel_pins|PinnedZone" "$GOLDEN" \
-    || fail "golden must pin raw-channel materialization"
-grep -Fq "air_parallel_raw_channel_pins|PinnedZone" "$GOLDEN" \
-    || fail "golden must pin raw-channel resource evidence outside channel boundary kind"
-grep -Fq "negative_parallel_raw_channel_requires_movability|Reject" "$GOLDEN" \
-    || fail "golden must pin raw-channel+movability rejection from boundary-local evidence"
-grep -Fq "lane|Reject|(rejected)|fail_closed" "$EXEC_GOLDEN" \
-    || fail "executor golden must pin Reject fail-closed behavior"
-grep -Fq "lane|MovableScheduler|MovableExecutor|mn_workers_run_to_completion" "$EXEC_GOLDEN" \
-    || fail "executor golden must honestly pin the MovableScheduler M:N run-to-completion depth (docs/194 R2)"
-grep -Fq "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term" "$EXEC_MISSING_GOLDEN" \
-    || fail "executor missing-term golden must pin fail-closed missing evidence"
-
-grep -Fq "struct BoundaryLaneInputFact" "$SRC" \
-    || fail "self-host lane classifier must consume a typed BoundaryLaneInputFact"
-grep -Fq "func CaptureFactFromBoundaryFact" "$SRC" \
-    || fail "self-host lane classifier must derive capture facts from typed input"
-grep -Fq "func BoundaryFactWithMirValueCaptureEvidence" "$SRC" \
-    || fail "self-host lane classifier must mirror MIR value-capture evidence production"
-grep -Fq "func BoundaryHasResourceCaptureEvidence" "$SRC" \
-    || fail "self-host lane classifier must reject resource captures before value-only promotion"
-grep -Fq "has_rir_zone_pin_evidence" "$SRC" \
-    || fail "self-host lane classifier must consume RIR zone-pin evidence"
-if grep -Fq "BoundarySourceKind" "$SRC" || grep -Fq "source_kind" "$SRC"; then
-    fail "self-host lane classifier reintroduced source-kind lane evidence"
-fi
-if grep -Fq "CaptureFactFromBoundarySource" "$SRC"; then
-    fail "self-host lane classifier reintroduced source-string capture fact API"
-fi
-if grep -Fq "LaneFromBoundarySource" "$SRC"; then
-    fail "self-host lane classifier reintroduced source-string lane API"
-fi
-
 backends="c"
 # Only attempt LLVM if this build advertises it.
 if PATH="$PGY_COMPILER_PATH" "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then

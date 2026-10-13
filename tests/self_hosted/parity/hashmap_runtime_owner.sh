@@ -8,58 +8,6 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here hashmap-runtime "$PGY"
 cd "$ROOT_DIR"
 "${PYTHON_BIN:-python3}" scripts/render_hashmap_key_abi.py --check
-if grep -Fq 'storage_kind_values = {"STRING"' scripts/render_hashmap_key_abi.py ||
-    ! grep -Fq 'src/common/hashmap_key_storage_kind.h' scripts/render_hashmap_key_abi.py; then
-    echo '[hashmap-runtime] self-host storage tags have an independent numeric authority' >&2
-    exit 1
-fi
-for retired in pgy_map_format_i32_key pgy_map_i32_key_string_export \
-    pgy_map_format_i64_key pgy_map_i64_key_string_export \
-    pgy_map_format_bool_key pgy_map_bool_key_string_export; do
-    if grep -R -Fq --include='*.h' --include='*.c' "$retired" src/runtime; then
-        echo "[hashmap-runtime] retired Int string projection returned: $retired" >&2
-        exit 1
-    fi
-done
-for term in \
-    'pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_BOOL)' \
-    'PGY_MAP_RAW_BOOL_KEYS(map)[h] == key' \
-    'pgy_map_keys_raw_bool_export'; do
-    grep -R -Fq "$term" src/runtime || {
-        echo "[hashmap-runtime] Bool storage owner term missing: $term" >&2
-        exit 1
-    }
-done
-for term in \
-    'pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I64)' \
-    'PGY_MAP_RAW_I64_KEYS(map)[h] == key' \
-    'pgy_map_keys_raw_i64_export'; do
-    grep -R -Fq "$term" src/runtime || {
-        echo "[hashmap-runtime] Long storage owner term missing: $term" >&2
-        exit 1
-    }
-done
-for term in \
-    'pgy_map_new_raw_export(void *map_ptr, int64_t value_size,' \
-    'pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I32)' \
-    'PGY_MAP_RAW_I32_KEYS(map)[h] == key' \
-    'map->deleted_count++'; do
-    grep -R -Fq "$term" src/runtime || {
-        echo "[hashmap-runtime] Int storage owner term missing: $term" >&2
-        exit 1
-    }
-done
-if grep -Fq 'func CollectionListRuntimeHashMapCValueType(' src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy; then
-    echo '[hashmap-runtime] retired List-only HashMap ABI guess returned' >&2
-    exit 1
-fi
-grep -Fq 'CollectionHashMapRuntimeFactFromTypeName(element_type)' src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy
-grep -Fq 'type_name == CompilerAbiLayoutArrayLongTypeName()' src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy
-grep -Fq 'left_type == CompilerAbiLayoutArrayLongTypeName()' src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy
-grep -Fq 'CodegenHashMapCallProtocol(graph, call)' src/self_hosted/codegen/emission/expr_semantic_call_type_owner.pgy
-grep -Fq 'collection_protocol.family == "HashMap"' src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
-grep -Fq 'pgy_map_drop_raw_export' src/codegen/llvm_runtime_raw_collections.c
-grep -Fq 'pgy_map_drop_string_value_raw_export' src/codegen/llvm_runtime_raw_collections.c
 mkdir -p .tmp/self_hosted
 WORK="$(mktemp -d .tmp/self_hosted/hashmap-runtime.XXXXXX)"
 echo "[hashmap-runtime] evidence: $WORK"

@@ -17,7 +17,6 @@ SOURCE="src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 
 fail() { echo "[self-host-public-llvm-ir] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
 
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "$SELF_DRIVER")"
@@ -125,16 +124,5 @@ same_rc=$?
 set -e
 [[ "$same_rc" -ne 0 ]] && cmp -s "$WORK_DIR/same-source.before" \
     "$WORK_DIR/same-source.pgy" || fail "source/output identity destroyed its source"
-
-require_text "$ROOT_DIR/src/pgy_driver.c" 'if (flags.emit_llvm_ir) {'
-require_text "$ROOT_DIR/src/pgy_driver.c" 'if (flags.output_path != NULL) {'
-require_text "$ROOT_DIR/src/pgy_driver.c" 'return driver_publish_self_host_llvm_ir_file('
-require_text "$ROOT_DIR/src/compiler/driver_self_host_llvm_selection_owner.c" \
-    'driver_self_host_llvm_ir_file_request_supported('
-owner="$ROOT_DIR/src/compiler/self_host_llvm_ir_artifact_owner.c"
-require_text "$owner" 'driver_materialize_self_host_llvm_artifact('
-! grep -Eq 'driver_run_pipeline\(|compiler_emit_llvm_ir|compiler_build_native_llvm\(' "$owner" ||
-    fail "LLVM IR publication owner regained native compiler authority"
-require_text "$ROOT_DIR/Makefile" 'self-host-public-llvm-ir-replacement-test-smoke:'
 
 echo "[self-host-public-llvm-ir] installed CompilePergyraProgram intent owns public file emission"

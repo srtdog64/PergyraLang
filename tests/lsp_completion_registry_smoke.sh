@@ -7,9 +7,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
-PROTOCOL="$ROOT_DIR/src/lsp/pgy_lsp_protocol.c"
-INTERNAL="$ROOT_DIR/src/lsp/pgy_lsp_internal.h"
-CALLSITE="$ROOT_DIR/src/lsp/pgy_lsp.c"
 SELF_HOST_OWNER="$ROOT_DIR/src/self_hosted/lsp/completion_owner.pgy"
 SELF_HOST_FEATURE="$ROOT_DIR/src/self_hosted/lsp/feature_owner.pgy"
 SELF_HOST_RESPONSE="$ROOT_DIR/src/self_hosted/lsp/response_owner.pgy"
@@ -25,77 +22,10 @@ fail() {
     exit 1
 }
 
-grep -Fq 'lexer_keyword_registry_count()' "$PROTOCOL" ||
-    fail "completion owner does not enumerate the registry"
-grep -Fq 'lexer_keyword_registry_row(row_index)' "$PROTOCOL" ||
-    fail "completion owner does not read registry rows"
-grep -Fq 'PGY_KEYWORD_TOOLING_COMPLETION' "$PROTOCOL" ||
-    fail "completion owner does not select the registry completion flag"
-grep -Fq 'lsp_completion_items_json()' "$CALLSITE" ||
-    fail "completion request does not consume the registry projection"
-grep -Fq 'lsp_build_completion_items_json' "$INTERNAL" ||
-    fail "completion builder contract is not declared"
-
 for path in "$SELF_HOST_OWNER" "$SELF_HOST_FEATURE" \
     "$SELF_HOST_RESPONSE" "$SELF_HOST_MAIN"; do
     [[ -f "$path" ]] || fail "missing ${path#"$ROOT_DIR/"}"
 done
-for retired in LanguageWordSpellingAt LanguageWordDebugIdentityAt \
-    LanguageWordClassAt LanguageWordClassNameAt LanguageWordAxisAt \
-    LanguageWordAxisNameAt LanguageWordContextMaskAt \
-    LanguageWordImplementationSupportAt LanguageWordToolingFlagsAt \
-    LanguageWordHighlightScopeAt LanguageWordCompletionEnabledAt \
-    LanguageWordCompletionOwnedAt; do
-    if grep -Fq -- "$retired(" "$SELF_HOST_OWNER"; then
-        fail "self-host completion reopened retired projection: $retired"
-    fi
-done
-for term in 'LanguageWordRegistryCount()' \
-    'LanguageWordRegistryProjectionReady()' \
-    'LanguageWordRegistryRowAt(index)' \
-    'row.completion_enabled' \
-    'row.spelling' \
-    'row.class_name' \
-    'row.axis_name' \
-    'LspCompletionSpellingStrictlyAfter(previous, row.spelling)' \
-    'JsonEmitFieldString("label", spelling)' \
-    'JsonEmitFieldNumber("kind", "14")' \
-    'JsonEmitFieldString("detail", detail)'; do
-    grep -Fq -- "$term" "$SELF_HOST_OWNER" ||
-        fail "self-host completion owner is missing $term"
-done
-grep -Fq 'import "completion_owner.pgy";' "$SELF_HOST_FEATURE" ||
-    fail "self-host feature dispatch does not import completion owner"
-grep -Fq 'return LspCompletionItemsJson();' "$SELF_HOST_FEATURE" ||
-    fail "self-host completion response does not consume registry projection"
-grep -Fq '\"completionProvider\":{\"resolveProvider\":false}' \
-    "$SELF_HOST_RESPONSE" ||
-    fail "self-host server does not advertise completionProvider"
-if grep -Fq 'semanticTokensProvider' "$SELF_HOST_RESPONSE"; then
-    fail "self-host initialize unexpectedly advertises semanticTokens"
-fi
-if grep -Fq '"items", "[]"' "$SELF_HOST_FEATURE" \
-    || grep -Fq '"items":[]' "$SELF_HOST_FEATURE"; then
-    fail "advertised self-host completion restored the empty fallback"
-fi
-if grep -R -Fq --include='*.pgy' '\"items\":[]' \
-    "$ROOT_DIR/src/self_hosted/lsp" \
-    || grep -R -Fq --include='*.pgy' '"items", "[]"' \
-        "$ROOT_DIR/src/self_hosted/lsp" \
-    || grep -R -Fq --include='*.pgy' 'JsonEmitFieldRaw("items"' \
-        "$ROOT_DIR/src/self_hosted/lsp"; then
-    fail "self-host LSP source reintroduced an independent empty items fallback"
-fi
-if grep -Eq '\\"label\\":\\"[A-Za-z_]' "$SELF_HOST_OWNER"; then
-    fail "self-host completion owner reintroduced word-specific labels"
-fi
-
-if grep -Eq '\\"label\\":\\"[A-Za-z_]' "$PROTOCOL"; then
-    fail "word-specific completion JSON labels reappeared"
-fi
-if grep -Eq 'const[[:space:]]+char[[:space:]]*\*[[:space:]]*lsp_completion_items[[:space:]]*=' "$PROTOCOL"; then
-    fail "the removed hardcoded completion array reappeared"
-fi
 
 "$CC_BIN" -std=c11 -Wall -Wextra -Werror -I"$ROOT_DIR/src" \
     "$ROOT_DIR/tests/lsp_completion_registry_probe.c" \

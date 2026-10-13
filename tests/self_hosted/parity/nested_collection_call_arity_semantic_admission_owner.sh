@@ -15,10 +15,6 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 INVALID_REL="tests/self_hosted/parity/fixture/nested_setsize_arity_invalid.pgy"
 EXPECTED="$ROOT_DIR/tests/self_hosted/parity/fixture/nested_setsize_arity_expected.diag"
 VALID_REL="tests/self_hosted/parity/fixture/nested_setsize_arity_valid.pgy"
-VERDICT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
-PROTOCOL_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_collection_call_protocol_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 
 fail() {
     echo "[self-host-nested-collection-call-arity] $*" >&2
@@ -126,15 +122,5 @@ valid_bin="$WORK_DIR/valid-c"
     >"$WORK_DIR/valid-c.out" 2>"$WORK_DIR/valid-c.err" ||
     fail "valid public C control did not compile"
 "$valid_bin" || fail "valid public C control did not run"
-
-require_text "$PROTOCOL_OWNER" 'if name == "SetSize" {'
-require_text "$PROTOCOL_OWNER" 'true, "Set", name, 1, 0, -1, -1, "Int"'
-require_text "$VERDICT_OWNER" \
-    'if expected_count != ArrayLength(call.argument_nodes) {'
-! grep -Fq 'SetSize' "$VERDICT_OWNER" ||
-    fail "concrete scalar traversal gained a function-name table"
-! grep -Eq 'PGY_SEM_BUILTIN_ARGS_INVALID|semantic:builtin:signature_mismatch|match-builtin-signature' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic nested-call authority"
 
 echo "[self-host-nested-collection-call-arity] graph-owned nested SetSize arity rejects before MIR, exact public MIR/C receipt, native identity, and valid-call control: PASS"

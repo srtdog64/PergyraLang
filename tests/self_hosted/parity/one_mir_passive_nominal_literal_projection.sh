@@ -39,31 +39,9 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_abi_absence_owner.
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_program_admission_owner.pgy|220
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy|110
 EOF
-    local shared_inventory=("$ROOT_DIR"/src/self_hosted/compiler/direct_mir_nominal_literal_*.pgy)
-    [[ "${#shared_inventory[@]}" -eq 8 ]] || fail "shared nominal literal owner inventory drifted"
     [[ "$shared_total" -le 900 ]] || fail "shared nominal literal owner cap exceeded: $shared_total/900"
-    for retired in plan target_projection c_emission llvm_emission; do
-        [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_passive_nominal_literal_${retired}_owner.pgy" ]] || fail "retired passive literal owner reappeared: $retired"
-    done
-    ! grep -R -Eq 'DirectMirPassiveNominalLiteral|direct_mir_passive_nominal_literal_' "$ROOT_DIR/src/self_hosted/compiler" || fail "passive literal bypass reappeared"
-    grep -Fq 'CallableReceiverNominalKindUsesMutableLiteralIdentity(kind)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_route_fact_owner.pgy" || fail "literal route claims passive values again"
-    grep -Fq 'CallableReceiverNominalKindUsesValue(declarations.nominal_kinds[declaration_row])' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" || fail "logical records lost the canonical value policy"
-    grep -Fq 'MirAbiAllBoundsPresent(starts, ends)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" || fail "logical records lost their exact ABI envelope"
     source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" | tr -d ' ')" || fail "source-size measurement failed"
     [[ "$source_size_lines" -le 90 ]] || fail "exact JSON-array cardinality owner hard cap exceeded"
-    [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy" ]] || fail "retired inferred-family array-shape owner reappeared"
-    ! grep -R -Eq 'DirectMirInferredGenericMemberExact(Object|String)ArrayCount' "$ROOT_DIR/src/self_hosted/compiler" || fail "exact JSON-array cardinality retained a family-local owner"
-    [[ "$(grep -R -F 'DirectMirNominalLiteralRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal route constructor escaped one definition and one call"
-    [[ "$(grep -R -F 'DirectMirNominalLiteralProgramAdmissionFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal admission escaped one definition and one call"
-    [[ "$(grep -Fc 'DirectMirNominalLiteralRouteFactFromAdmitted(admitted)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy")" -eq 1 ]] || fail "nominal literal classification is not single-shot"
-    ! grep -R -Eq 'NominalLiteralProgramCandidate|MutableNominalIdentityProgramCandidate' "$ROOT_DIR/src/self_hosted/compiler" || fail "nominal literal route was re-evaluated"
-    grep -Fq 'CompileAdmittedDirectMirNominalLiteral(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" || fail "nominal literal projection is not routed"
-    ! grep -R -Fq 'CompileAdmittedDirectMirPassiveNominalLiteral' "$ROOT_DIR/src/self_hosted/compiler" || fail "retired passive-only composition root reappeared"
-    grep -Fq 'DirectMirExactObjectArrayCount(methods, 0)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy" || fail "non-object declaration tail is not rejected"
-    for retired in direct_mir_passive_nominal_declaration_fact_owner.pgy direct_mir_passive_nominal_literal_route_fact_owner.pgy direct_mir_passive_nominal_literal_graph_fact_owner.pgy direct_mir_passive_nominal_literal_program_identity_owner.pgy direct_mir_passive_nominal_literal_instruction_envelope_owner.pgy direct_mir_passive_nominal_literal_abi_absence_owner.pgy direct_mir_passive_nominal_literal_program_admission_owner.pgy direct_mir_passive_nominal_literal_projection_owner.pgy; do
-        [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/$retired" ]] || fail "retired passive-only common owner reappeared: $retired"
-    done
-
 }
 
 project() {

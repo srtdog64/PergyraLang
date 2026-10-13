@@ -33,28 +33,6 @@ while IFS='|' read -r owner cap; do
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
-GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy"
-CONTRACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_trim_runtime_owner.pgy"
-C_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
-LLVM_RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_trim_materialization_owner.pgy"
-LLVM_DECLS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
-require_text "$SIGNATURE" 'StringTrim'
-require_text "$CONTRACT" 'ascii_whitespace_mask == 15'
-require_text "$CONTRACT" 'returns_owned_string'
-require_text "$C_RUNTIME" 'StringRuntimeCStringTrimBlock'
-require_text "$LLVM_RUNTIME" '%leading.ws = or i1'
-require_text "$LLVM_DECLS" 'needs_memcpy'
-reject_text "$LLVM_RUNTIME" 'declare ptr @memcpy'
-for owner in "$SIGNATURE" "$CONTRACT" "$C_RUNTIME" "$LLVM_RUNTIME" "$LLVM_DECLS" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_transform_expression_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_transform_expression_owner.pgy"; do
-    reject_text "$owner" 'str_trim.pgy'
-    reject_text "$owner" 'hello world'
-    reject_text "$owner" 'hello codex'
-done
-
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \

@@ -10,36 +10,9 @@ DRIVER="$(pgy_select_optional_exe_binary "$(pgy_path_for_bash_tool "${PGY_SELF_D
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-
-PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_admission_owner.pgy"
-DOMINANCE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_dominance_owner.pgy"
-GUARD="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_array_guard_dominance_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy"
-require_text "$PLAN" 'DirectMirScalarCfgStringArrayAccessSetKind()'
-require_text "$ADMISSION" 'DirectMirScalarCfgStringArrayWhileLengthGraphFactFrom(graph)'
-require_text "$ADMISSION" 'DirectMirScalarCfgStringArrayAccessSetKind()'
-require_text "$DOMINANCE" 'DirectMirScalarCfgArrayGuardEdgeReady('
-require_text "$GUARD" 'MirRoutineBlockDominates('
-require_text "$GUARD" 'predecessor_count == 1'
-require_text "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy" \
-    'fact.index.value_row >= ArrayLength(plan.value_types)'
-require_text "$C_OWNER" '.length'
-require_text "$LLVM_OWNER" 'icmp ult i64'
-for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    reject_text "$owner" 'source_json'
-    reject_text "$owner" 'JsonObjectFactTable'
-    reject_text "$owner" 'MirExpressionGraphSequence'
-    reject_text "$owner" 'str_array.pgy'
-done
-reject_text "$C_OWNER" '.capacity)'
-reject_text "$LLVM_OWNER" '.capacity = extractvalue'
 
 WORK_BASE="$ROOT_DIR/.tmp/self_hosted"
 mkdir -p "$WORK_BASE"

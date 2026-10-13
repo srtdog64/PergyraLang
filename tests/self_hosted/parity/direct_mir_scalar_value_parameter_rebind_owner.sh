@@ -13,19 +13,10 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_value_parameter_rebind.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_value_parameter_rebind_mutations.py"
-PARAMETERS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy"
-INVENTORY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy"
-TYPES="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'DirectMirRoutineLocalParameterTypeAtName(' "$INVENTORY" ||
-    fail "local inventory does not consume the formal identity"
-grep -Fq 'parameter_type != type_name' "$TYPES" ||
-    fail "working-local type is not joined to the formal type"
-grep -Fq 'fact.carriages[ordinal] != "value"' "$PARAMETERS" ||
-    fail "parameter owner does not pin value carriage"
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \
     >"$WORK_DIR/producer.out" 2>"$WORK_DIR/producer.err" || fail "MIR production failed"

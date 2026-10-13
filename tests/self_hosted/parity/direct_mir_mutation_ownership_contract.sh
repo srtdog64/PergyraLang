@@ -13,8 +13,6 @@ POSITIVE="$ROOT_DIR/tests/self_hosted/fixtures/direct_mir_array_argument_mutatio
 NEGATIVE="$ROOT_DIR/tests/self_hosted/fixtures/borrowed_ref_constructor_store_reject.pgy"
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || fail "PGY_BIN is not runnable"
 [[ -f "$POSITIVE" && -f "$NEGATIVE" ]] || fail "ownership fixture is missing"
-"$BASH" \
-    "$ROOT_DIR/tests/self_hosted/parity/direct_mir_mutation_ownership_signature_contract.sh"
 BUILD_DIR="$BUILD_DIR/run_$$"
 mkdir -p "$BUILD_DIR"; POSITIVE_BIN="$BUILD_DIR/positive.exe"
 (cd "$ROOT_DIR" && "$PGY" \

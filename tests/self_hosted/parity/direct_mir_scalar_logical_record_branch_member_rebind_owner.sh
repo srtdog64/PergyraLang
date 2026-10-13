@@ -16,25 +16,13 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_logical_record_bool_first_rebi
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_logical_record_branch_member_rebind_mutations.py"
-OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy"
-PATH_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_path_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 for command in "$CC" "$CLANG" python; do command -v "$command" >/dev/null ||
     fail "missing command: $command"; done
-for file in "$MUTATIONS" "$OWNER"; do [[ -f "$file" ]] ||
+for file in "$MUTATIONS"; do [[ -f "$file" ]] ||
     fail "missing owner: ${file#"$ROOT_DIR/"}"; done
-grep -Fq 'func DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(' "$OWNER" ||
-    fail "member owner omitted the CFG-aware use-prefix fact"
-grep -Fq 'MirRoutineLatestDominatingLocalValueRow(' "$OWNER" ||
-    fail "member owner omitted canonical dominance"
-grep -Fq 'capture.arg1 == "default_param"' "$OWNER" ||
-    fail "member owner omitted by-value parameter copy identity"
-grep -Fq 'required_carriage = "value"' "$PATH_OWNER" ||
-    fail "member owner does not join default_param to value carriage"
-! grep -Fq 'previous_results' "$OWNER" ||
-    fail "member owner restored linear instruction-order predecessor state"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

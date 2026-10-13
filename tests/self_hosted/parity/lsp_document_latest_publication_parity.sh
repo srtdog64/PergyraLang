@@ -12,8 +12,6 @@ pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
 LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
-STORE_OWNER="$ROOT_DIR/src/self_hosted/lsp/document_store_owner.pgy"
-REVISION_OWNER="$ROOT_DIR/src/self_hosted/lsp/document_revision_owner.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/lsp/expected/document_store_latest.json"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_document_latest}"
 
@@ -21,28 +19,9 @@ fail() { echo "[self-host-parity:lsp-document-latest] FAIL: $*" >&2; exit 1; }
 
 [[ -x "$PGY" ]] || fail "missing compiler binary: $PGY"
 pgy_require_runnable_binary_here "self-host-parity:lsp-document-latest" "$PGY"
-for path in "$LSP_SOURCE" "$STORE_OWNER" "$REVISION_OWNER" "$EXPECTED"; do
+for path in "$LSP_SOURCE" "$EXPECTED"; do
     [[ -f "$path" ]] || fail "missing input: $path"
 done
-
-grep -Fq 'import "../../../stdlib/host_task_slot.pgy";' "$REVISION_OWNER" ||
-    fail "typed revision owner does not import its HostTaskSlot dependency"
-if grep -Fq 'import "../../../stdlib/host_task_slot.pgy";' "$STORE_OWNER"; then
-    fail "document store re-owns the revision owner's HostTaskSlot dependency"
-fi
-grep -Fq 'import "document_revision_owner.pgy";' "$STORE_OWNER" ||
-    fail "production document-store graph bypasses typed revision owner"
-grep -Fq 'LspDocumentRevisionChange(' "$STORE_OWNER" ||
-    fail "didChange bypasses typed revision admission"
-grep -Fq 'LspDocumentPublicationAdmissionFor(' "$STORE_OWNER" ||
-    fail "publication bypasses current-ticket admission"
-grep -Fq 'HostTasks_ApplyPolicy(' "$REVISION_OWNER" ||
-    fail "revision change does not consume HostTask policy owner"
-grep -Fq 'HostTasks_IsCurrent(' "$REVISION_OWNER" ||
-    fail "publication does not consume current generation"
-if grep -Eq 'let (uris|versions|texts): Array<String>|ArraySet\((versions|texts),' "$STORE_OWNER"; then
-    fail "parallel string-array document mutation bypass reappeared"
-fi
 
 mkdir -p "$BUILD_DIR"
 

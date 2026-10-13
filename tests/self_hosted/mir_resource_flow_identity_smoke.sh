@@ -12,9 +12,6 @@ if ! command -v dirname >/dev/null 2>&1 \
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-INDEX="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
-LOWER="$ROOT_DIR/src/self_hosted/mir_lower/routine_lower.pgy"
-DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
@@ -87,17 +84,5 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_REL" >"$BAD_OUT" 2>&1); then
     exit 1
 fi
 grep -Eq -- "routine ResourceFlowUniverse facts are incomplete|routine MIR fact index is incomplete" "$BAD_OUT"
-
-grep -Fq -- 'resource_flow_symbol_count' "$DUMP"
-grep -Fq -- 'resource_flow_symbols' "$DUMP"
-grep -Fq -- 'MirRoutineFactIndexResourceFlowFactsValid' "$INDEX"
-grep -Fq -- 'resource_flow_stable_indices' "$INDEX"
-grep -Fq -- 'routine ResourceFlowUniverse facts are incomplete' "$LOWER"
-grep -Fq -- 'MIRResourceFlowSymbol *resource_flow_symbols' \
-    "$ROOT_DIR/src/compiler/mir_types.h"
-grep -Fq -- 'mir_copy_resource_flow_symbols' \
-    "$ROOT_DIR/src/compiler/mir_hir_fact_transfer.c"
-grep -Fq -- 'mir_validate_resource_flow_symbols' \
-    "$ROOT_DIR/src/compiler/mir_program_fact_validate.c"
 
 echo "[self-host-mir-resource-flow] MIR-owned ResourceFlowUniverse rows reach self-host identity and malformed counts fail closed"

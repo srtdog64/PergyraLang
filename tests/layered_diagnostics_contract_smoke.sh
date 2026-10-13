@@ -9,48 +9,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-require_text() {
-    local path="$1"
-    local text="$2"
-    if ! grep -Fq "$text" "$ROOT_DIR/$path"; then
-        echo "[layered-diagnostics] missing '$text' in $path" >&2
-        exit 1
-    fi
-}
-
-require_text "src/common/diagnostic_layer.h" "typedef enum"
-require_text "src/common/diagnostic_layer.h" "DIAG_LAYER_RESOURCE"
-require_text "src/common/diagnostic_layer.h" "DIAG_LAYER_CONCURRENCY"
-require_text "src/common/diagnostic_layer.h" "DIAG_LAYER_DOMAIN"
-require_text "src/common/diagnostic_layer.h" "diagnostic_layer_name"
-require_text "src/common/diagnostic_layer.h" "diagnostic_layer_from_tags"
-require_text "src/common/diagnostic_layer.c" "diagnostic_layer_from_tags"
-require_text "src/common/diagnostic_layer.c" "\"resource\""
-require_text "src/common/diagnostic_layer.c" "\"concurrency\""
-require_text "src/common/diagnostic_layer.c" "\"domain\""
-require_text "src/common/diagnostic_layer.c" "\"syntax\""
-require_text "src/common/diagnostic_layer.c" "\"driver\""
-require_text "src/common/diagnostic_layer.c" "\"backend\""
-require_text "src/common/diagnostic_layer.c" "\"pin\""
-require_text "src/common/diagnostic_layer.c" "\"cfg\""
-require_text "src/common/diagnostic_layer.c" "\"control\""
-require_text "src/common/diagnostic_layer.c" "semantic:assignability_check"
-require_text "src/common/diagnostic_layer.c" "_CHANNEL_"
-require_text "src/common/diagnostic_layer.c" "_INTENT_"
-require_text "src/semantic/diagnostic_types.h" "DiagnosticLayer layer;"
-
-require_text "src/semantic/semantic_diagnostic_json.c" "\\\"layer\\\":"
-require_text "tests/diagnostics_json_smoke.sh" ".get(\"layer\")"
-require_text "src/compiler/driver_diag.c" "diagnostic_layer_from_tags"
-require_text "src/compiler/driver_diag.c" "\\\"layer\\\":"
-require_text "src/lsp/pgy_lsp_diagnostics.c" "\\\"data\\\":{\\\"layer\\\""
-require_text "src/lsp/pgy_lsp_diagnostics.c" "diagnostic_layer_name"
-require_text "src/lsp/pgy_lsp_diagnostics.c" "PGY_CODE_PARSE_SYNTAX"
-require_text "tests/tooling_conformance_smoke.sh" "\"data\":{\"layer\":\"syntax\""
-require_text "tests/tooling_conformance_smoke.sh" "\"code\":\"PGY_PARSE_SYNTAX\""
-require_text "src/semantic/type_checker_func_decl.c" "PGY_CAUSE_CFG_MISSING_RETURN"
-require_text "src/semantic/type_checker_flow_effects.c" "PGY_CAUSE_CFG_UNREACHABLE_STATEMENT"
-
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_layered_diag.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -70,7 +28,6 @@ int main(void) { return 0; }
 C
     if ! "$CC_BIN" "$WORK_DIR/cc_probe.c" -o "$WORK_DIR/cc_probe" >/dev/null 2>&1; then
         echo "[layered-diagnostics] SKIP runtime classifier harness (C compiler probe failed)"
-        echo "[layered-diagnostics] layer contract is source-gated"
         exit 0
     fi
     cat >"$WORK_DIR/layer_check.c" <<'C'
@@ -138,4 +95,4 @@ else
     echo "[layered-diagnostics] SKIP runtime classifier harness (no C compiler)"
 fi
 
-echo "[layered-diagnostics] layer contract is source-gated"
+echo "[layered-diagnostics] layer classifier harness done"

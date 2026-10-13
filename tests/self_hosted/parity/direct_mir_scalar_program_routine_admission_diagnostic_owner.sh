@@ -14,22 +14,9 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_int_multiply.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_program_routine_admission_diagnostic_mutations.py"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy"
-FAILURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_failure_owner.pgy"
-ROUTINE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
-grep -Fq 'func DirectMirScalarCfgProgramRoutineAdmissionFailed(' "$DIAGNOSTIC_OWNER" ||
-    fail "routine-stage diagnostic owner is missing"
-grep -Fq 'struct DirectMirScalarProgramExpressionAdmissionFailure' "$FAILURE_OWNER" ||
-    fail "expression failure receipt is missing"
-grep -Fq 'stage=' "$DIAGNOSTIC_OWNER" && grep -Fq 'node=' "$DIAGNOSTIC_OWNER" ||
-    fail "expression diagnostic does not consume stage/node"
-for stage in statement instruction_kind; do
-    grep -Fq "\"$stage\", routine_ordinal, block, global_row, source" "$ROUTINE_OWNER" ||
-        fail "$stage rejection is not attributed"
-done
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

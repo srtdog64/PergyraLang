@@ -17,37 +17,12 @@ WORK_REL=".tmp/self_hosted/one_mir_returned_array_foreach"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/mir_lower/fixture/for_each_call.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2"; }
 
 DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
 [[ -x "$DRIVER" ]] || fail "installed self-host driver is unavailable"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 [[ -n "$PYTHON_BIN" ]] || fail "python is required for structured falsifiers"
-PROGRAM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_foreach_program_owner.pgy"
-PRODUCER_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy"
-COLLECTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy"
-CALL_ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_foreach_call_abi_owner.pgy"
-SET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_set_owner.pgy"
-ROUTER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
-SHARED_ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy"
-require_text "$ROUTER" 'DirectMirReturnedArrayForEachProgramCandidate(admitted)'
-require_text "$PROGRAM_OWNER" 'DirectMirReturnedArrayForEachProgramFactFromAdmitted'
-require_text "$PRODUCER_OWNER" 'DirectMirArrayIntProducerFactFromRoutine'
-require_text "$COLLECTION_OWNER" 'DirectMirArrayReturnProducerName(graph)'
-require_text "$COLLECTION_OWNER" 'DirectMirReturnedArrayForEachCallAbiAdmission('
-require_text "$CALL_ABI_OWNER" 'MirCapturedRequiredAbiLayoutRowAdmission('
-require_text "$CALL_ABI_OWNER" 'producer.abi_layout_id'
-require_text "$SET_OWNER" 'DirectMirScalarCfgForEachStorageRow('
-reject_text "$SHARED_ROUTE" 'entrypoint_block_count'
-require_text "$PROGRAM_OWNER" \
-    'DirectMirScalarCfgCollectionIterationCount(admitted, index) > 0'
-for owner in "$PROGRAM_OWNER" "$PRODUCER_OWNER" "$COLLECTION_OWNER" "$CALL_ABI_OWNER"; do
-    reject_text "$owner" 'for_each_call.pgy'
-    reject_text "$owner" '"MakeValues()"'
-    reject_text "$owner" 'routine_block_counts[main_row] == 10'
-done
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \

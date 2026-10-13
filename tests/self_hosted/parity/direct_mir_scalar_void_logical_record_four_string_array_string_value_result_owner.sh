@@ -14,16 +14,12 @@ WORK_REL=".tmp/self_hosted/direct_mir_scalar_void_record_four_string_array_copyo
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_void_logical_record_four_string_array_string_value_result.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_void_logical_record_four_string_array_string_value_result_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'string_count != 0 && string_count != 3 && string_count != 4' "$POLICY" || fail "policy omitted exact String-tail family"
-grep -Fq 'let ordinal: Int = 2;' "$POLICY" || fail "policy omitted String-tail verification"
-grep -Fq 'DirectMirScalarProgramLogicalRecordTypeReady(' "$POLICY" || fail "policy omitted declaration-keyed record value"
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" 2>"$WORK_DIR/producer.err" || {

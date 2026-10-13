@@ -88,21 +88,4 @@ for invalid_type in Bool Void Unknown; do
     fi
 done
 
-DIR_OWNER="$ROOT_DIR/src/self_hosted/dir/intent_result_contract_owner.pgy"
-MIR_OWNER="$ROOT_DIR/src/self_hosted/mir/intent_routine_owner.pgy"
-for term in \
-    'result_modes: Array<String>' \
-    'return_type_names: Array<String>' \
-    'SelfDirIntentResultContractReady' \
-    'typed && return_type == "Bool"' \
-    '!typed && return_type != "Bool"'; do
-    grep -Fq -- "$term" "$DIR_OWNER" \
-        || fail "missing DIR result-carriage ratchet: $term"
-done
-grep -Fq 'ArrayPush(return_types, return_type_name)' "$MIR_OWNER" \
-    || fail "MIR intent routine does not consume the DIR return type"
-if grep -Fq 'ArrayPush(return_types, "Void")' "$MIR_OWNER"; then
-    fail "MIR intent return-type Void fallback returned"
-fi
-
 echo "[self-host-intent-result-signature] typed enum + explicit legacy Bool carriage: PASS"

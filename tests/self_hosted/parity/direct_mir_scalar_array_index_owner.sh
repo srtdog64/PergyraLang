@@ -25,39 +25,6 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_kind_owner.pgy"
-READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_readiness_owner.pgy"
-C_VALUE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_value_expression_owner.pgy"
-LLVM_VALUE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy"
-BUILTIN_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
-ARRAY_VALUE_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_value_signature_owner.pgy"
-C_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy"
-LLVM_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy"
-BOUNDS="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/collection_bounds_owner.pgy"
-for term in DirectMirScalarProgramExprArrayIntIndex DirectMirScalarProgramExprArrayBoolIndex; do
-    grep -Fq "$term" "$KIND" || fail "kind owner omitted $term"
-    grep -Fq "$term" "$READY" || fail "readiness owner omitted $term"
-    grep -Fq "$term" "$C_VALUE" || fail "C consumer omitted $term"
-    grep -Fq "$term" "$LLVM_VALUE" || fail "LLVM consumer omitted $term"
-done
-grep -Fq 'DirectMirScalarProgramArrayValueSignatureForCall(' "$BUILTIN_SIGNATURE" ||
-    fail "builtin signature dispatcher lost the array value owner"
-for term in CompilerAbiLayoutArrayIntTypeName CompilerAbiLayoutArrayBoolTypeName; do
-    grep -Fq "$term" "$ARRAY_VALUE_SIGNATURE" ||
-        fail "ArrayLength signature omitted $term"
-    grep -Fq "$term" "$C_COLLECTION" ||
-        fail "C ArrayLength consumer omitted $term"
-    grep -Fq "$term" "$LLVM_COLLECTION" ||
-        fail "LLVM ArrayLength consumer omitted $term"
-done
-grep -Fq 'CollectionRuntimeCGuardedGetWithLength(' "$BOUNDS" ||
-    fail "C storage accessor lost its bounds owner"
-grep -Fq 'pgy_runtime_panic_out_of_bounds_export' "$BOUNDS" ||
-    fail "LLVM storage accessor lost the canonical panic export"
-scalar_c_body="$(sed -n '/DirectMirScalarProgramExprArrayIntIndex()/,/if kind != DirectMirScalarProgramExprLogicalRecordArrayIndex()/p' "$C_VALUE")"
-! grep -Eq '\.data\[[^]]+\]' <<<"$scalar_c_body" ||
-    fail "C scalar-array consumer reopened raw indexing"
-
 for name in positive oob; do
     source="$POSITIVE"; [[ "$name" == oob ]] && source="$OOB"
     (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$source" \

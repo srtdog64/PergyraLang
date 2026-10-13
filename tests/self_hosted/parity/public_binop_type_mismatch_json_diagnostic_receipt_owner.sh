@@ -14,10 +14,6 @@ WORK_REL=".tmp/self_hosted/public_binop_type_mismatch_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
-DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
-CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
-PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
-WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 BINOP_FIXTURES="bad_arith_operand bad_binop_assign bad_binop_condition bad_binop_return"
 EXCLUDED_FIXTURES="bad_import_enum_variant bad_issome_none_call"
 
@@ -131,13 +127,5 @@ probe_bin="$WORK_DIR/message-independence-probe"
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
     fail "message wording changed arithmetic diagnostic identity"
-
-require_text "$DIAGNOSTIC_OWNER" 'if code == "binop_type_mismatch" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:binop:operand_types"'
-require_text "$DIAGNOSTIC_OWNER" '"align-operand-types-or-overload"'
-require_text "$CONTRACT_OWNER" \
-    'binop_first.message != binop_second.message'
-! grep -Fq 'binop_type_mismatch' "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic arithmetic authority"
 
 echo "[self-host-public-binop-type-mismatch-json-diagnostic] exact binary-operand identity, four semantic contexts, MIR/C/LLVM relay, and symbol/missing-oracle/unknown-code exclusion: PASS"

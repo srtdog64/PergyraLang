@@ -105,13 +105,4 @@ if [[ "$seen_selfhost$seen_parser$seen_codegen$seen_air_graph$seen_driver$seen_c
     exit 1
 fi
 
-for required in \
-    "PGY_SELFHOST_COMPLETENESS_SOURCES" \
-    "PGY_SELFHOST_COMPLETENESS_STAGES"; do
-    if ! grep -Fq "$required" "$ROOT_DIR/tests/self_hosted/parity/completeness_ledger.sh"; then
-        echo "[self-host-completeness-impact] completeness runner does not consume $required" >&2
-        exit 1
-    fi
-done
-
 echo "[self-host-completeness-impact] impact manifest ok"

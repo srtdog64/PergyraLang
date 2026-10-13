@@ -9,14 +9,7 @@
 #      contract, M:N needs the full conjunction), and the declared codegen
 #      reachability all hold;
 #   2. the LLVM-compiled manifest is artifact-equal to the C-compiled one
-#      (assert_llvm_leg), so the policy is backend-invariant;
-#   3. every projection site (lane enum, classifier header and source, both
-#      spawn emitters) still carries the exact required terms the OWNER
-#      declares -- the pin list is parsed out of the compiled manifest's
-#      require| rows, so it has no second home in shell;
-#   4. no emitter names a concrete executor export (the pre-SEA shape where
-#      each backend made its own lane decision);
-#   5. self-test: the pin check must be able to report absence.
+#      (assert_llvm_leg), so the policy is backend-invariant.
 #
 # The reachable| rows are deliberately part of the golden. Since WO-PAR-NOVEL
 # step 2, both spawn emitters consume the AIR-classified lane through the
@@ -52,9 +45,8 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 MANIFEST_SOURCE="$ROOT_DIR/src/self_hosted/parallel/lane_policy_manifest.pgy"
-OWNER_SOURCE="$ROOT_DIR/src/self_hosted/parallel/lane_policy_owner.pgy"
 EXPECTED_FILE="$ROOT_DIR/src/self_hosted/parallel/expected_lane_policy_manifest.txt"
-for path in "$MANIFEST_SOURCE" "$OWNER_SOURCE" "$EXPECTED_FILE"; do
+for path in "$MANIFEST_SOURCE" "$EXPECTED_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[$LABEL] missing input: $path" >&2
         exit 1
@@ -94,78 +86,4 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
 # 2) backend invariance of the policy tool itself (C leg == LLVM leg)
 assert_llvm_leg "$LABEL" "$TOOL_ARG" "$BUILD_DIR"
 
-# 3) required-term pins, parsed from the OWNER's own require| rows
-term_present() { # $1 = repo-relative path, $2 = exact term
-    grep -qF -- "$2" "$ROOT_DIR/$1"
-}
-
-require_rows=0
-selftest_path=""
-# `|| [[ -n ... ]]`: the normalized artifact has no trailing newline, and a
-# bare `read` loop would silently drop the final (unterminated) row.
-while IFS='|' read -r kind pin_path pin_term || [[ -n "${kind:-}" ]]; do
-    [[ "$kind" == "require" ]] || continue
-    if [[ -z "$pin_path" || -z "$pin_term" ]]; then
-        echo "[$LABEL] malformed require row: $kind|$pin_path|$pin_term" >&2
-        exit 1
-    fi
-    if [[ ! -f "$ROOT_DIR/$pin_path" ]]; then
-        echo "[$LABEL] pinned projection file missing: $pin_path" >&2
-        exit 1
-    fi
-    if ! term_present "$pin_path" "$pin_term"; then
-        echo "[$LABEL] projection drift: '$pin_term' not found in $pin_path" >&2
-        echo "[$LABEL] the lane policy owner and this projection must move in lockstep" >&2
-        exit 1
-    fi
-    if [[ -z "$selftest_path" ]]; then
-        selftest_path="$pin_path"
-    fi
-    require_rows=$((require_rows + 1))
-done <"$C_OUT"
-
-if [[ "$require_rows" -lt 13 ]]; then
-    echo "[$LABEL] expected at least 13 require rows, saw $require_rows" >&2
-    exit 1
-fi
-
-# 4) forbidden projections, parsed from the OWNER's forbid| rows
-forbid_rows=0
-while IFS='|' read -r kind pin_path pin_term || [[ -n "${kind:-}" ]]; do
-    [[ "$kind" == "forbid" ]] || continue
-    if [[ -z "$pin_path" || -z "$pin_term" ]]; then
-        echo "[$LABEL] malformed forbid row: $kind|$pin_path|$pin_term" >&2
-        exit 1
-    fi
-    if [[ ! -f "$ROOT_DIR/$pin_path" ]]; then
-        echo "[$LABEL] forbidden projection file missing: $pin_path" >&2
-        exit 1
-    fi
-    if term_present "$pin_path" "$pin_term"; then
-        echo "[$LABEL] emitter names a concrete executor: '$pin_term' in $pin_path" >&2
-        echo "[$LABEL] the lane decision has one owner; backends consume the facade" >&2
-        exit 1
-    fi
-    forbid_rows=$((forbid_rows + 1))
-done <"$C_OUT"
-if [[ "$forbid_rows" -lt 2 ]]; then
-    echo "[$LABEL] expected at least 2 forbid rows, saw $forbid_rows" >&2
-    exit 1
-fi
-
-# 5) self-test: the pin check must be able to report absence
-SELFTEST_TERM="definitely_missing_parallel_lane_policy_term"
-if ! grep -qF -- "$SELFTEST_TERM" "$OWNER_SOURCE"; then
-    echo "[$LABEL] self-test sentinel disappeared from the owner" >&2
-    exit 1
-fi
-if [[ -z "$selftest_path" ]]; then
-    echo "[$LABEL] self-test has no owner-provided projection path" >&2
-    exit 1
-fi
-if term_present "$selftest_path" "$SELFTEST_TERM"; then
-    echo "[$LABEL] self-test broken: known-missing term reported present" >&2
-    exit 1
-fi
-
-echo "[$LABEL] ok (golden decision table + llvm-leg parity + $require_rows projection pins + $forbid_rows executor rejection + self-test)"
+echo "[$LABEL] ok (golden decision table + llvm-leg parity)"

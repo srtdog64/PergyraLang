@@ -14,48 +14,13 @@ WORK_REL=".tmp/self_hosted/direct_mir_scalar_direct_scalar_callable"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_direct_scalar_string_return.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
-SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_direct_scalar_mutations.py"
-LITERAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy"
-LLVM_LITERAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_literal_owner.pgy"
 LITERAL_MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_string_literal_mutations.py"
-STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy"
-READINESS_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'DirectMirScalarCfgScalarTypeSupported(signature.return_type)' "$SIGNATURE" ||
-    fail "direct scalar owner omitted scalar return validation"
-grep -Fq 'DirectMirScalarProgramCallableParameterRolePlanFromSignature(' "$POLICY" ||
-    fail "direct scalar callable omitted the shared parameter-role plan"
-grep -Fq 'signature.parameters.carriages[ordinal] == "value"' "$POLICY" ||
-    fail "direct scalar parameter owner omitted value carriage validation"
-grep -Fq 'DirectMirScalarProgramCallableParameterSupported(' "$POLICY" ||
-    fail "direct scalar role duplicated the common parameter policy"
-! grep -Fq 'signature.param_count ==' "$POLICY" ||
-    fail "direct scalar owner reintroduced an exact arity"
-grep -Fq 'int_or_option && !composable_callable' "$SIGNATURE" ||
-    fail "final signature owner re-narrows direct scalar Int returns"
-grep -Fq 'ReadJsonStringBounded(' "$LITERAL_OWNER" ||
-    fail "string literal fact does not consume the bounded decoder"
-grep -Fq 'DirectMirScalarProgramLlvmStringLiteralPayload(' "$LLVM_LITERAL_OWNER" ||
-    fail "LLVM string literal payload owner is missing"
-grep -Fq 'DirectMirScalarCfgProgramDiscardedCallExpressionReady(' "$STATEMENT_OWNER" ||
-    fail "statement owner omits discarded-result call identity"
-grep -Fq 'statement_type, routine' "$READINESS_OWNER" ||
-    fail "GraphPlan readiness recreates Void for discarded call results"
-grep -Fq 'DirectMirScalarProgramExprPrintString()' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" ||
-    fail "Print expression identity is missing"
-grep -Fq 'CompilerRuntimeCallAbiPrintFactReady(runtime.string_print)' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_expression_owner.pgy" ||
-    fail "C Print expression bypasses the runtime ABI fact"
-grep -Fq 'CompilerRuntimeCallAbiPrintFactReady(runtime.string_print)' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_expression_owner.pgy" ||
-    fail "LLVM Print expression bypasses the runtime ABI fact"
 
 mkdir -p "$WORK_DIR"; rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \

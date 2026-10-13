@@ -80,18 +80,6 @@ assert_release_primary "$LLVM_BIN" LLVM
 assert_release_primary "$NATIVE_C_BIN" NATIVE_C
 assert_release_primary "$NATIVE_LLVM_BIN" NATIVE_LLVM
 
-for consumer in compiler.c compiler_llvm.c compiler_self_host_artifact.c; do
-    grep -Fq '#include "compiler_release_artifact_policy.h"' \
-        "$ROOT_DIR/src/compiler/$consumer" \
-        || fail "$consumer does not consume the shared release policy"
-    if grep -Eq '"-s"|"-Wl,-S,-x"' "$ROOT_DIR/src/compiler/$consumer"; then
-        fail "$consumer reconstructs a backend-local strip policy"
-    fi
-done
-[[ "$(grep -Fc 'compiler_release_artifact_link_flag(opt_profile)' \
-    "$ROOT_DIR/src/compiler/compiler_self_host_artifact.c")" -eq 2 ]] \
-    || fail "self-host C/LLVM final links do not both consume the policy"
-
 # The typed policy must be release-only. The explicit native developer lane is
 # the currently supported owner for line metadata; it must remain inspectable.
 DEV_BIN="$TMP_ROOT/hello-dev"
