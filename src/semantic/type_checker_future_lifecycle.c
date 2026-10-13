@@ -393,6 +393,16 @@ affine_storage_type_contains(const Type *type,
     return false;
 }
 
+#define AFFINE_RUNTIME_HANDLE_STORAGE_MESSAGE \
+        "Handle storage in %s is not admitted for type '%s'.\n" \
+        "Reason:\n" \
+        "- Rc, Weak, Box, Allocator and TextBuilder are single-owner runtime handles; Slot, SecureSlot and DeviceSlot are anchored resource handles\n" \
+        "- a stored copy would name the same runtime storage as its source, and releasing either one would leave the other dangling\n" \
+        "- no aggregate move/retirement plan is admitted for these handles\n" \
+        "Fix:\n" \
+        "- keep the handle in its own binding\n" \
+        "- or store the value it manages instead of the handle"
+
 bool
 semantic_reject_affine_aggregate_storage(ASTNode *site,
                                          const Type *stored_type,
@@ -423,22 +433,24 @@ semantic_reject_affine_aggregate_storage(ASTNode *site,
     if (!affine_storage_type_contains(stored_type, ctx, 0,
                                       AFFINE_STORAGE_FAMILY_RUNTIME_HANDLE))
         return false;
+    if (affine_storage_type_contains(stored_type, ctx, 0,
+                                     AFFINE_STORAGE_FAMILY_ANCHORED_HANDLE)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+            PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            site,
+            AFFINE_RUNTIME_HANDLE_STORAGE_MESSAGE,
+            boundary != NULL ? boundary : "aggregate storage",
+            type_name_or_unknown(stored_type));
+        return true;
+    }
     semantic_error_with_hints(ctx,
         PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
-        affine_storage_type_contains(stored_type, ctx, 0,
-                                     AFFINE_STORAGE_FAMILY_ANCHORED_HANDLE)
-            ? PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT
-            : PGY_CAUSE_MOVABLE_HANDLE_COPY_ATTEMPT,
+        PGY_CAUSE_MOVABLE_HANDLE_COPY_ATTEMPT,
         PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
         site,
-        "Handle storage in %s is not admitted for type '%s'.\n"
-        "Reason:\n"
-        "- Rc, Weak, Box, Allocator and TextBuilder are single-owner runtime handles; Slot, SecureSlot and DeviceSlot are anchored resource handles\n"
-        "- a stored copy would name the same runtime storage as its source, and releasing either one would leave the other dangling\n"
-        "- no aggregate move/retirement plan is admitted for these handles\n"
-        "Fix:\n"
-        "- keep the handle in its own binding\n"
-        "- or store the value it manages instead of the handle",
+        AFFINE_RUNTIME_HANDLE_STORAGE_MESSAGE,
         boundary != NULL ? boundary : "aggregate storage",
         type_name_or_unknown(stored_type));
     return true;
