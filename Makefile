@@ -2866,6 +2866,10 @@ runtime-bc-contract-test-smoke:
 runtime-cext-contract-test-smoke:
 	"$(BASH)" tests/runtime_cext_contract_smoke.sh
 
+.PHONY: string-value-copy-test-smoke
+string-value-copy-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/string_value_copy_smoke.sh
+
 runtime-cache-identity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_cache_identity_smoke.sh
 
