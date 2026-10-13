@@ -1,9 +1,40 @@
 # Current Work Handoff
 
-Updated: 2026-10-11 KST (Asia/Seoul). Navigation only. Current source, the
+Updated: 2026-10-14 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
-## Active self-host context — DRV-2 ownership-entry frontier: exclusive values, text containment, field-level growth and last-use refinements land (Claude 2026-10-10 to 2026-10-11; handed over after the B slice)
+## Active self-host context — cleanup integrated; bootstrap ownership remains RED
+
+Implementation base `c08dfc6e9f6bcfd88163a2de35e232126a32621c` is on main
+and remote. Cleanup commits13d93fe59/95262d972/c08dfc6e9 were already pushed;
+root integrated them without a duplicate commit or new branch. Root verified
+547 unrelated dirty paths unchanged, retained a560-path backup and13-overlap
+stash, resolved conflicts and did not publish the large implementation WIP.
+
+Exact base CI38418999774: Windows/macOS/Rocq/TSan PASS; codegen bootstrap
+FAIL at gen1 node107421/unproved_exclusive_member_mutation/Array<String>;
+six dependents SKIP. Docs-filtered/skipped green is not compiler acceptance.
+
+Current priority/chain/lane plan:
+[`compiler_closure_priorities_2026-10-14.md`](agent_work_directives/compiler_closure_priorities_2026-10-14.md).
+No source/doc text-presence tests may be resurrected. Preserve real execution
+and generated-artifact negatives, allowed drift/size/hazard checks and the
+three user-retained security twins. Two former text-only SoT closures remain
+BRIDGE; the new local function-param publication migration is unverified WIP.
+
+Frozen focus17+HashMap receiver2 candidate is still RED in the original MIR
+control:81942/digest1311964338/node67139, inferred_types formal67100 at ordinal3
+of PartRepack, unknown/retiring/descriptor site0. The prepared v2 producer
+observer has not run. Rebind to the new base, validate the input generation,
+enumerate actual events and decide the whole publication/lifetime chain
+before editing. Do not silence the fence or default to manual copies/ref marks.
+
+Finish line: fixed DRV-2 zero, full canonical admission, preserved behavioral
+negatives, actual bootstrap/installed-driver/dependent CI green on one
+implementation SHA. Then activate the next reached SoT substitution seam.
+Historical first errors/counts and local query green do not close this chain.
+
+## Historical archive — pre-cleanup DRV-2 context, lookup only
 
 Pushed `2c7f6f6e` (graph proofs), `2b08d86d` (compiler) and `1c1e0308` (P1b)
 to `origin/main`. CI run `38065600591` (at `1c1e0308`) passed codegen bootstrap
