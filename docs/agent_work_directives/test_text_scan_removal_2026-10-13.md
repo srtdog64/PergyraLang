@@ -1,6 +1,6 @@
 # Remove text-scan tests over docs and source
 
-Status: `IMPLEMENTATION COMPLETE` (2026-10-13), security subset pending
+Status: `IMPLEMENTATION COMPLETE` (2026-10-14)
 Base revision: `da227fcf8` (origin/main)
 Integration owner: Claude lane
 
@@ -69,23 +69,21 @@ artifacts it emitted. AGENTS.md states the rule.
   - `AGENTS.md`, `docs/180`, `docs/131` and `docs/self_hosted/00_agent_entry.md`;
   - the registry gate and the registry field descriptions.
 
-## Pending: security-related text checks
+## Security-related text checks
 
-These were left unchanged because they guard security or memory-safety claims.
-They are still source-text checks, and the owner decides whether they go:
+The first pass left the security-related checks unchanged so the owner could
+decide on them. On 2026-10-14 the owner decided:
 
-- `tests/security_portability_contract_smoke.sh`: crypto API and secure-open
-  names that must appear in runtime sources, plus the Makefile preflight
-  wiring. It runs nothing.
-- `tests/memory_string_safety_smoke.sh`: a tree-wide ban on unsafe libc string
-  calls, which stays either way, plus about 500 lines of named-file
-  require/reject pins.
-- `tests/memory_adversarial_catalog_smoke.sh`: memory-safety corpus manifest
-  integrity, coverage floors, and greps that the sanitizer CI jobs are wired.
-- `tests/capability/run_{budget,cap_env_manifest,channel}_twin_parity.sh`: the
-  C-inline and LLVM-export runtime twins must enforce the same budget charges,
-  capability intersection and channel ops. They compare the two sources as
-  text.
+- **Kept:** `tests/capability/run_{budget,cap_env_manifest,channel}_twin_parity.sh`.
+  They hold the C-inline and LLVM-export runtime twins to the same budget
+  charges, capability intersection and channel ops. A behavior fixture cannot
+  easily reach that.
+- **Removed:** `tests/security_portability_contract_smoke.sh` and
+  `tests/memory_adversarial_catalog_smoke.sh`. The first checked crypto API
+  names in runtime sources, the second the manifest counts and CI wiring.
+- **Stripped:** `tests/memory_string_safety_smoke.sh` keeps only its four
+  tree-wide hazard lints: unsafe libc string calls, `strtok`, truncated
+  `snprintf` stack copies, and `+= snprintf` offset accumulation.
 
 ## Integration gate
 
