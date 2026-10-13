@@ -80,16 +80,26 @@ being promoted to `CLOSED`.
   only the direct backend. A program no shape claims ends in a typed
   `CodegenRouteRefusal` (`CODEGEN ERROR: ...`). Self-host LLVM is therefore
   limited to the claimed shapes.
-- **MIR is not yet self-sufficient.** Native MIR has 10 instruction kinds, and
-  its instructions still hold AST pointers (`expr0`, `expr1`, `ast`, match
-  patterns; `src/compiler/mir_types.h`). The native C backend is still mostly
-  AST-driven by size:
-  - `transpiler_*`: 1.8 MB, against 0.5 MB for `transpiler_mir_*`;
-  - LLVM: 2.3 MB non-MIR, against 0.3 MB for `llvm_mir_*`.
-
-  A general MIR emitter therefore needs MIR, and the MIR JSON the self-host
-  reads, to carry everything emission needs. This is the
-  `docs/193_mir_only_abi_first_backend_closure.md` track.
+- **The general emitter is smaller than the shape code it replaces.**
+  - **The input exists.** The self-host direct route reads only the admitted
+    MIR JSON (`MirMachineLayerAdmittedJsonInput`). For the shapes it claims,
+    that JSON already carries everything emission needs: records, arrays,
+    strings, options, enums and nested intents. The C fallback rebuilds an AST
+    because the general codegen it reuses is AST-based. Nothing on that route
+    names a fact that MIR lacks.
+  - **Still to measure.** Whether the JSON carries enough for the whole
+    native-admitted corpus is measured on the installed driver, not assumed.
+  - **The work is bounded.** MIR has 10 instruction kinds, the expression
+    graph has 41 expression node kinds, and types arrive as ABI layout rows.
+  - **A reference point.** The native oracle's MIR-level emitters are about
+    22,000 lines: `transpiler_mir_*` about 13,200 and `llvm_mir_*` about
+    8,900.
+  - **Pieces to reuse.** The per-operation C/LLVM text inside the `direct_mir_*`
+    owners, such as the comparison and integer-wrap projections, can be
+    consolidated into per-kind emitters instead of being rewritten.
+  - Native in-memory MIR still holds AST pointers (`expr0`, `expr1`, `ast`;
+    `src/compiler/mir_types.h`). That limits the native oracle, not the JSON
+    contract the self-host reads.
 - **Bootstrap.** The bootstrap has been red since 2026-10-02 at the DRV-2
   frontier (`borrow_boundary_escape` / `unproved_exclusive_member_mutation`).
   No installed driver can be built from main, so no generality claim can be
