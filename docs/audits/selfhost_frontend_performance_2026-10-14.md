@@ -15,8 +15,9 @@ could do once?
 
 ## Method
 
-- **Machine:** WSL Ubuntu, 16 cores, one run per input. Every number is
-  single-threaded wall time from `/usr/bin/time`.
+- **Machine:** WSL Ubuntu, 16 cores, one run per input. Through stage 14
+  every number is single-threaded wall time from `/usr/bin/time`. Stages
+  15–18 are compared by user CPU time; see their subsection.
 - **Inputs:** gen0 built with
   `bin/pgy src/self_hosted/codegen/main.pgy --native-pipeline --backend=c`,
   then run as `gen0 --source <input>` on the two sources above.
@@ -61,9 +62,10 @@ could do once?
 | 12 | `7e2077927` | semantic graph shape rechecked by about 28 admissions | 10.9 s | 30.6 s |
 | 13–14 | `e01f7e4ce`, `6e0aaca0f`, `34d2fb3bf` | export scan measured the file per offset; forward parent search per leaf; intent seeds copied facts | 10.6 s | 24.4 s |
 
-Overall: codegen input 190 s → 10.6 s (18×), driver input 716 s → 24.4 s
-(29×). Both stage 13–14 numbers are the fastest of three rotation runs
-against stage 12 (11.0 s / 27.2 s). Peak memory stayed between 1.9 and 4.4 GB throughout.
+Overall to stage 14: codegen input 190 s → 10.6 s (18×), driver input
+716 s → 24.4 s (29×). Both stage 13–14 numbers are the fastest of three
+rotation runs against stage 12 (11.0 s / 27.2 s). Peak memory stayed
+between 1.9 and 4.4 GB throughout.
 
 The table gives one run per stage. Repeat runs of the same build differ by
 10–20%, which is more than stages 8–10 changed. Those four builds were
@@ -83,7 +85,39 @@ steady 6–8%. Stage 12 removes most of the graph readiness samples (377 of
 3124 → 46 of 2777). It shows on the codegen input but not beyond noise on
 the driver input.
 
-Two attempts were measured and dropped:
+### Stages 15–18
+
+Another program kept the machine busy during these stages, and wall time
+varied by up to 2× between runs of one build. They were compared by user
+CPU seconds, fastest of three rotation runs, with main before stage 15 in
+every rotation. All three rotations gave the same order. The last one ran on
+a quieter machine:
+
+| Stage | Commit | Repeated work removed | codegen | driver |
+|---|---|---|---:|---:|
+| main before 15 | `259c13fe0` | | 10.2 s | 23.3 s |
+| 15 | `63eaeeb35`, `03e939a56`, `7b0b6899d`, `9903bea9c` | an error verdict built and thrown away for each checked statement; a parent walk for each local of each environment seed; receiver rows compared pairwise; every callable name rewritten before lookup; the graph shape checked again after call-target capture and both attaches | | |
+| 16–17 | `761f820a6`, `a37a89118` | the name of each earlier local compared as a string; keyword checks measured the whole file | | |
+| 18 | `be8d84b05` | character reads measured the whole file | 8.4 s | 19.4 s |
+
+The two earlier rotations, on the loaded machine, give the steps between:
+codegen 12.0 → 10.4 (stage 15) → 9.9–10.2 (16–17) → 9.9 s (18), and driver
+28.5 → 25.3 → 23.8–24.0 → 23.2 s. Stages 15–18 cut user CPU by about 18% on
+the codegen input and 17% on the driver input.
+
+Wall time, fastest of three rotation runs on the quieter machine: main
+before stage 15 took 10.6 s and 24.7 s, matching the stage 13–14 row, and
+stage 18 took 8.5 s and 21.3 s. Overall: codegen input 190 s → 8.5 s (22×),
+driver input 716 s → 21.3 s (34×).
+
+Three attempts were measured and dropped:
+- **Build generic specialization spine views only at call nodes** (after
+  stage 18). `SemanticAstGenericSpecializationFactsFromAdmittedBody` walks
+  the whole graph twice and builds a call spine view at every node,
+  1,343,205 of the 5,589,068 views on the codegen input. Skipping non-call
+  nodes gives the same facts, because an argument row's view equals its
+  call node's view and the call node has the lower id. User CPU did not
+  move (8.35 s / 19.41 s against 8.36 s / 19.35 s), so it was not committed.
 - **Check only the new root when the parser combines expression arenas.**
   It saved nothing measurable. The binary-node arenas it skipped were
   small. Most of the time is in whole-program row checks.
@@ -96,31 +130,38 @@ Two attempts were measured and dropped:
   at node 15463. Only the verdict gate caught it. The verdict gate needs
   gen0 itself; type-checking the self-host source is not enough.
 
-## What remains (sampled on stage 10, codegen input; stage 12 removed the first item)
+## What remains (stage 18, both inputs)
 
-- **Done in stage 12: whole-graph validation, about 12%.** The shape rows
-  (topology, texts, payloads, children) are now checked once when a
-  surface graph is finished. Overlays (call targets, identities, place
-  kinds) are still checked at every admission, because body passes write
-  them. A generation counter was rejected: about ten files write overlays
-  through unencapsulated fields, so one missed bump would skip a check on a
-  changed graph.
-- **About 11%: per-root environment construction.**
-  `SemanticAstExpressionSeedVisibleLocals` and
-  `SemanticAstScopedLocalBindingIdentityForName` both walk scopes through
-  `TypedAstArenaParentId`.
-- **Done in stage 13: `MatchKeyword` on the export scan.** The scan now
-  passes the extent it holds (`MatchKeywordWithin`), so it no longer
-  measures the file at every offset. It accounted for 75 of the 140
-  `MatchKeyword` samples. The other parser callers still measure their
-  content per call. Switching the callers that hold a `content_extent`
-  parameter made the native extent prover refuse unrelated calls in
-  `ParseMatchStmt`. That step waits on the prover.
-- **Done in stage 13: the parent search in
-  `SemanticAstBorrowedTextConsumer`.** A sealed surface graph now carries
-  each node's first consumer, so the lookup is constant time. Callers in
-  the exclusive-value family are unchanged.
-- **Done in stage 14: intent environment seeds** take their facts by ref.
-- **Still open: `SemanticAstCollectionExclusiveFieldReads`, about 5%.** Its
-  own loop sits in the exclusive-value owner family, which another lane's
-  uncommitted work is restructuring.
+The stage 18 profile is flat. Outside the ownership verdict family, no
+function holds more than about 5% of the samples. Call counts below come
+from a gprof build on the codegen input, which has 63,308 verdict roots and
+42,586 call nodes.
+
+- **Another lane's files: the collection ownership verdict, 33% of the
+  driver input including callees.** `SemanticAstCollectionExclusiveFieldReads`
+  alone is about 10%. These owners are in that lane's uncommitted work.
+- **Leaf identities resolved again by name, 4–5%.**
+  `SemanticAstScopedLocalBindingIdentityForName` ran 2,044,720 times, almost
+  all through `SemanticAstScopedLocalBindingIdentityForGraphLeaf` from the
+  same ownership family, for the same leaves again and again. The graph
+  also carries identity overlay rows (`binding_syntax_ids`,
+  `binding_ordinals`). This audit did not check whether they answer the
+  same question. Either way the fix is a consumer change inside that
+  family, and the identity resolution owner is also in that lane's work.
+  Stage 16 made each lookup cheaper; the repeated calls remain.
+- **Call targets resolved again inside one verdict, about 4%.**
+  `SemanticExpressionGraphResolvedCallTarget` ran 1,471,533 times, about 35
+  times per call node. Scalar types, return types, generic captures,
+  argument facts and constructor facts each resolve the target again. Its
+  inputs are fixed for one verdict, so a memo per verdict would be exact,
+  but it has to pass through about fifteen verdict functions. The whole
+  expression verdict family is about 12% including callees.
+- **Parsing, about 9% including callees.** It is spread across the
+  recursive-descent functions. Stages 17 and 18 removed the content
+  measurements in the hot ones. The other parser functions that hold an
+  extent still call `MatchLanguageWord` and `ParserCharAt`.
+- **The rest is under 3% each.** `SemanticStripOuterParens` (1,568,274 calls)
+  normalizes each node's text once. `SemanticExpressionGraphArenaOverlayReady`
+  runs at each admission because body passes write overlays.
+  `AstExpressionGraphRowsReady` checks the parser rows five times between
+  the parser and the semantic graph producer.
