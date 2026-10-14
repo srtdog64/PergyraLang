@@ -9,6 +9,7 @@ import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_identity_fact_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 import "ast_expression_place_kind_owner.pgy";
+import "ast_expression_graph_consumer_owner.pgy";
 
 struct SemanticExpressionGraphArena {
     // Parser/HIR owns the immutable topology. Semantic owns only overlays.
@@ -30,6 +31,8 @@ struct SemanticExpressionGraphArena {
     // so the mark holds until the arena is replaced; every constructor starts
     // false and only a finished surface graph is sealed.
     shape_ready: Bool;
+    // Sealed arenas only: each node's first consuming row, or -1.
+    consumer_rows: Array<Int>;
 }
 
 struct SemanticExpressionGraphFacts {
@@ -72,13 +75,14 @@ func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
     let call_target_names: Array<String> = [];
     let call_return_type_names: Array<String> = [];
     let place_kinds: Array<Int> = [];
+    let consumer_rows: Array<Int> = [];
     return SemanticExpressionGraphArena(
         AstExpressionArena(
             node_kinds, node_texts, left_children, right_children
         ),
         node_texts, call_target_kinds, call_target_names,
         call_return_type_names,
-        SemanticExpressionIdentityRowsUnknown(0), place_kinds, false
+        SemanticExpressionIdentityRowsUnknown(0), place_kinds, false, consumer_rows
     );
 }
 
@@ -121,12 +125,13 @@ func SemanticExpressionGraphArenaFromTopology(
     call_return_type_names: Array<String>,
     place_kinds: Array<Int>
 ) -> SemanticExpressionGraphArena {
+    let unsealed_consumer_rows: Array<Int> = [];
     return SemanticExpressionGraphArena(
         topology, node_texts, call_target_kinds, call_target_names,
         call_return_type_names,
         SemanticExpressionIdentityRowsUnknown(
             AstExpressionArenaNodeCount(topology)
-        ), place_kinds, false
+        ), place_kinds, false, unsealed_consumer_rows
     );
 }
 
@@ -142,9 +147,11 @@ func SemanticExpressionGraphArenaFromTopologyWithIdentities(
     // Callers that already carry admitted identity rows must not pay for an
     // Unknown(node_count) row set they would discard unread: per-occurrence
     // appends over a whole-program surface made that allocation quadratic.
+    let unsealed_consumer_rows: Array<Int> = [];
     return SemanticExpressionGraphArena(
         topology, node_texts, call_target_kinds, call_target_names,
-        call_return_type_names, identities, place_kinds, false
+        call_return_type_names, identities, place_kinds, false,
+        unsealed_consumer_rows
     );
 }
 

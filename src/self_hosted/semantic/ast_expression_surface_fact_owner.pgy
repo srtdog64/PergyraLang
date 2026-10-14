@@ -346,6 +346,9 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     // arena carries the mark, so later readiness calls check only overlays.
     let sealed: SemanticExpressionGraphFacts = graph;
     sealed.arena.shape_ready = SemanticExpressionGraphArenaShapeReady(sealed.arena);
+    if sealed.arena.shape_ready {
+        sealed.arena.consumer_rows = SemanticExpressionGraphConsumerRows(sealed.arena.topology);
+    }
     let failure_node_id: Int = facts.failure_node_id;
     let failure_lane: String = facts.failure_lane;
     let valid: Bool = facts.ok &&
