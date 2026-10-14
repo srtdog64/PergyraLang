@@ -15,6 +15,14 @@ func ParserCharAt(s: String, i: Int) -> String {
     return CharAtN(s, n, i);
 }
 
+// The same read for a caller that already holds the content's extent.
+func ParserCharAtWithin(s: String, s_extent: Int, i: Int) -> String {
+    if i < 0 || i >= s_extent {
+        return "";
+    }
+    return CharAtN(s, s_extent, i);
+}
+
 // Read an identifier (sequence of alphanum/underscore). Returns the
 // identifier text; advances the cursor by storing in an out-array of 1.
 func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {

@@ -13,7 +13,7 @@ func ParseUnaryFact(
     let i: Int = SkipWhitespaceAndComments(content, start);
     // Native reads `reflect X` as a compile-time projection; not covered yet.
     if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordReflect) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
-    if ParserCharAt(content, i) == "!" && ParserCharAt(content, i + 1) != "=" {
+    if ParserCharAtWithin(content, content_extent, i) == "!" && ParserCharAtWithin(content, content_extent, i + 1) != "=" {
         i = i + 1;
         let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
@@ -21,24 +21,24 @@ func ParseUnaryFact(
             Concat("(!", Concat(operand.text, ")")), operand
         );
     }
-    if ParserCharAt(content, i) == "-" {
+    if ParserCharAtWithin(content, content_extent, i) == "-" {
         i = i + 1;
         // The magnitudes of INT32_MIN and INT64_MIN are not positive Int and
         // Long values, so these two signed spellings are one literal, as in
         // native parse_unary. Any other magnitude stays a negation.
         let magnitude_start: Int = SkipWhitespaceAndComments(content, i);
-        if IsDigit(ParserCharAt(content, magnitude_start)) {
+        if IsDigit(ParserCharAtWithin(content, content_extent, magnitude_start)) {
             let magnitude_cursor: Array<Int> = [magnitude_start];
             let magnitude: String =
                 ReadNumber(content, magnitude_start, magnitude_cursor);
             let magnitude_end: Int = magnitude_cursor[0];
-            let suffix: String = ParserCharAt(content, magnitude_end);
+            let suffix: String = ParserCharAtWithin(content, content_extent, magnitude_end);
             if magnitude == "2147483648" && !IsAlpha(suffix) {
                 ArraySet(cursor_out, 0, magnitude_end);
                 return ParserExpressionIntegerLiteral("-2147483648");
             }
             if magnitude == "9223372036854775808" && suffix == "L" &&
-                !IsAlpha(ParserCharAt(content, magnitude_end + 1)) {
+                !IsAlpha(ParserCharAtWithin(content, content_extent, magnitude_end + 1)) {
                 ArraySet(cursor_out, 0, magnitude_end + 1);
                 return ParserExpressionLongLiteral("-9223372036854775808");
             }
@@ -49,13 +49,13 @@ func ParseUnaryFact(
             Concat("(-", Concat(operand.text, ")")), operand
         );
     }
-    if ParserCharAt(content, i) == "&" && ParserCharAt(content, i + 1) != "&" {
+    if ParserCharAtWithin(content, content_extent, i) == "&" && ParserCharAtWithin(content, content_extent, i + 1) != "&" {
         i = i + 1;
         let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         if !operand.ok { return operand; }
         return ParserExpressionLeaf(Concat("(&", Concat(operand.text, ")")));
     }
-    if ParserCharAt(content, i) == "<" && ParserCharAt(content, i + 1) == "-" {
+    if ParserCharAtWithin(content, content_extent, i) == "<" && ParserCharAtWithin(content, content_extent, i + 1) == "-" {
         i = i + 2;
         let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         if !operand.ok { return operand; }
@@ -201,7 +201,7 @@ func ParsePipeFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) != "|" || ParserCharAt(content, i + 1) != ">" {
+        if ParserCharAtWithin(content, content_extent, i) != "|" || ParserCharAtWithin(content, content_extent, i + 1) != ">" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
@@ -221,9 +221,9 @@ func ParsePipeFact(
             call, left
         );
         if !call.ok { return call; }
-        if ParserCharAt(content, after_fn) == "(" {
+        if ParserCharAtWithin(content, content_extent, after_fn) == "(" {
             i = SkipWhitespaceAndComments(content, after_fn + 1);
-            if ParserCharAt(content, i) != ")" {
+            if ParserCharAtWithin(content, content_extent, i) != ")" {
                 while true {
                     ArraySet(cursor_out, 0, i);
                     let argument: ParserExpressionFact = ParseExprFact(
@@ -242,7 +242,7 @@ func ParsePipeFact(
                     );
                     if !call.ok { return call; }
                     i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "," { i = i + 1; continue; }
+                    if ParserCharAtWithin(content, content_extent, i) == "," { i = i + 1; continue; }
                     break;
                 }
             }

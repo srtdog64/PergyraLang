@@ -91,14 +91,14 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         }
         i = LanguageWordEnd(i, LanguageWordId.WordSlot);
         i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) != "<" {
+        if ParserCharAtWithin(content, content_extent, i) != "<" {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = i + 1;
         ArraySet(cursor_out, 0, i);
         let with_type: String = ReadType(content, content_extent, i, cursor_out);
         i = cursor_out[0];
-        if ParserCharAt(content, i) != ">" {
+        if ParserCharAtWithin(content, content_extent, i) != ">" {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = i + 1;
@@ -156,7 +156,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
                 ParseRefuse(location_context, head_start, "block_unclosed",
                     "construct", "transaction", "source_offset", ToString(head_start));
             }
-            if ParserCharAt(content, i) == "}" {
+            if ParserCharAtWithin(content, content_extent, i) == "}" {
                 i = i + 1;
                 break;
             }
@@ -218,11 +218,11 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         // only when it begins on the same source line.
         let fail_cursor: Int = i;
         let reason_start: Int = i;
-        while ParserCharAt(content, reason_start) == " " || ParserCharAt(content, reason_start) == "\t" || ParserCharAt(content, reason_start) == "\r" {
+        while ParserCharAtWithin(content, content_extent, reason_start) == " " || ParserCharAtWithin(content, content_extent, reason_start) == "\t" || ParserCharAtWithin(content, content_extent, reason_start) == "\r" {
             reason_start = reason_start + 1;
         }
         let fail_out: String = Concat(IndentStr(stmt_indent), "Fail:");
-        if ParserCharAt(content, reason_start) == "\n" || ParserCharAt(content, reason_start) == ";" || ParserCharAt(content, reason_start) == "}" {
+        if ParserCharAtWithin(content, content_extent, reason_start) == "\n" || ParserCharAtWithin(content, content_extent, reason_start) == ";" || ParserCharAtWithin(content, content_extent, reason_start) == "}" {
             i = ParseStatementTerminatorIn(location_context, content, fail_cursor, "statement");
             ArraySet(cursor_out, 0, i);
             return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), "(null)"));
@@ -249,7 +249,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     if MatchLanguageWordWithin(content, content_extent, head_start, LanguageWordId.WordReturn) {
         // `return ;`  or  `return EXPR ;`
         i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) == ";" {
+        if ParserCharAtWithin(content, content_extent, i) == ";" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
             return Concat(IndentStr(stmt_indent), "Return");
@@ -275,7 +275,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         // `Let: IDENT = EXPR` (no `:` segment), matching type-inferred
         // bindings. A `var` binding is recorded as `Let: mut IDENT ...`.
         i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) == "(" {
+        if ParserCharAtWithin(content, content_extent, i) == "(" {
             if head_is_var {
                 ParseRefuse(location_context, head_start, "binding_form_invalid",
                     "form", "var (", "construct", "var");
@@ -304,7 +304,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         i = SkipWhitespaceAndComments(content, i);
         let var_type: String = "";
         let has_type: Bool = false;
-        if ParserCharAt(content, i) == ":" {
+        if ParserCharAtWithin(content, content_extent, i) == ":" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
             var_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
@@ -361,7 +361,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     // at the statement indent. The C parser uses this shape for
     // `event += handler` registration; non-event `+=` is a parse error
     // upstream so we don't need to reject misuse here.
-    if ParserCharAt(content, peek) == "+" && ParserCharAt(content, peek + 1) == "=" {
+    if ParserCharAtWithin(content, content_extent, peek) == "+" && ParserCharAtWithin(content, content_extent, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
         let rhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
@@ -373,7 +373,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     }
     // Event unsubscription: `LHS -= RHS ;` emits
     //   EventUnsubscribe: LHS -= RHS
-    if ParserCharAt(content, peek) == "-" && ParserCharAt(content, peek + 1) == "=" {
+    if ParserCharAtWithin(content, content_extent, peek) == "-" && ParserCharAtWithin(content, content_extent, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
         let unsub_rhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
@@ -386,7 +386,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     // Channel send statement: `LHS <- RHS ;` emits
     //   ChannelSend: LHS <- RHS
     // at the statement indent.
-    if ParserCharAt(content, peek) == "<" && ParserCharAt(content, peek + 1) == "-" {
+    if ParserCharAtWithin(content, content_extent, peek) == "<" && ParserCharAtWithin(content, content_extent, peek + 1) == "-" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
         let send_rhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
@@ -396,7 +396,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         let send_text: String = Concat("ChannelSend: ", Concat(lhs, Concat(" <- ", send_rhs)));
         return Concat(IndentStr(stmt_indent), send_text);
     }
-    if ParserCharAt(content, peek) == "=" && ParserCharAt(content, peek + 1) != "=" {
+    if ParserCharAtWithin(content, content_extent, peek) == "=" && ParserCharAtWithin(content, content_extent, peek + 1) != "=" {
         i = peek + 1;
         ArraySet(cursor_out, 0, i);
         let rhs_fact: ParserExpressionFact = ParseExprFactIn(

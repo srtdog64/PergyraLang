@@ -43,7 +43,7 @@ func ApplyPostfixFact(
     // leading turbofish whose ordered type actuals belong to the call graph.
     while true {
         let after_ws: Int = SkipWhitespaceAndComments(content, i);
-        let nc: String = ParserCharAt(content, after_ws);
+        let nc: String = ParserCharAtWithin(content, content_extent, after_ws);
         if nc == "<" {
             // First prove this is a call suffix. Comparison `<` remains owned
             // by precedence parsing and is never consumed here. The probe is
@@ -54,9 +54,9 @@ func ApplyPostfixFact(
             let tf_ok: Bool = false;
             let tf_first: Int = SkipWhitespaceAndComments(content, tf);
             let tf_scanning: Bool = IsAlpha(
-                ParserCharAt(content, tf_first)
-            ) || (ParserCharAt(content, tf_first) == "(" &&
-                ParserCharAt(content, tf_first + 1) == ")");
+                ParserCharAtWithin(content, content_extent, tf_first)
+            ) || (ParserCharAtWithin(content, content_extent, tf_first) == "(" &&
+                ParserCharAtWithin(content, content_extent, tf_first + 1) == ")");
             while tf_scanning && tf < StringLength(content) &&
                 tf_depth > 0 {
                 let tf_after_trivia: Int =
@@ -65,7 +65,7 @@ func ApplyPostfixFact(
                     tf = tf_after_trivia;
                     continue;
                 }
-                let tc: String = ParserCharAt(content, tf);
+                let tc: String = ParserCharAtWithin(content, content_extent, tf);
                 if tc == "<" {
                     tf_depth = tf_depth + 1;
                 } else if tc == ">" {
@@ -73,14 +73,14 @@ func ApplyPostfixFact(
                 } else if IsAlphaNum(tc) || tc == "," {
                     // Written type-name surface.
                 } else if tc == "(" &&
-                    ParserCharAt(content, tf + 1) == ")" {
+                    ParserCharAtWithin(content, content_extent, tf + 1) == ")" {
                     // Written Void type `()`.
                     tf = tf + 1;
                 } else if tc == "&" &&
-                    ParserCharAt(content, tf + 1) != "&" {
+                    ParserCharAtWithin(content, content_extent, tf + 1) != "&" {
                     // Type intersection.
                 } else if tc == "-" &&
-                    ParserCharAt(content, tf + 1) == ">" {
+                    ParserCharAtWithin(content, content_extent, tf + 1) == ">" {
                     // Function-type arrow; its `>` does not close the
                     // surrounding generic actual list.
                     tf = tf + 1;
@@ -91,7 +91,7 @@ func ApplyPostfixFact(
             }
             if tf_scanning && tf_depth == 0 {
                 let after_gt: Int = SkipWhitespaceAndComments(content, tf);
-                if ParserCharAt(content, after_gt) == "(" {
+                if ParserCharAtWithin(content, content_extent, after_gt) == "(" {
                     tf_ok = true;
                     i = tf;
                 }
@@ -121,14 +121,14 @@ func ApplyPostfixFact(
                     actual_cursor = SkipWhitespaceAndComments(
                         content, actual_cursor
                     );
-                    if ParserCharAt(content, actual_cursor) == "," {
+                    if ParserCharAtWithin(content, content_extent, actual_cursor) == "," {
                         actual_cursor = actual_cursor + 1;
                         continue;
                     }
                     break;
                 }
                 if actual_count == 0 ||
-                    ParserCharAt(content, actual_cursor) != ">" {
+                    ParserCharAtWithin(content, content_extent, actual_cursor) != ">" {
                     return ParserExpressionInvalidAt(
                         actual_cursor, "expected_token");
                 }
@@ -141,15 +141,15 @@ func ApplyPostfixFact(
         if nc == "{" {
             let field_probe: Int = SkipWhitespaceAndComments(content, after_ws + 1);
             let probe: Int = field_probe;
-            while IsAlphaNum(ParserCharAt(content, probe)) {
+            while IsAlphaNum(ParserCharAtWithin(content, content_extent, probe)) {
                 probe = probe + 1;
             }
             let after_field_probe: Int = SkipWhitespaceAndComments(content, probe);
             // `default` is a reserved match arm, never a nominal field name.
             // Leave its brace with the statement parser even for a sole arm.
             if MatchLanguageWord(content, field_probe, LanguageWordId.WordDefault) ||
-                !IsAlpha(ParserCharAt(content, field_probe)) ||
-                ParserCharAt(content, after_field_probe) != ":" {
+                !IsAlpha(ParserCharAtWithin(content, content_extent, field_probe)) ||
+                ParserCharAtWithin(content, content_extent, after_field_probe) != ":" {
                 ArraySet(cursor_out, 0, i);
                 break;
             }
@@ -161,7 +161,7 @@ func ApplyPostfixFact(
                 );
             if !struct_literal.ok { return struct_literal; }
             i = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, i) != "}" {
+            if ParserCharAtWithin(content, content_extent, i) != "}" {
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
@@ -203,7 +203,7 @@ func ApplyPostfixFact(
                     );
                     if !struct_literal.ok { return struct_literal; }
                     i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "," {
+                    if ParserCharAtWithin(content, content_extent, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -231,7 +231,7 @@ func ApplyPostfixFact(
                 if !call.ok { return call; }
             }
             i = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, i) != ")" {
+            if ParserCharAtWithin(content, content_extent, i) != ")" {
                 while true {
                     ArraySet(cursor_out, 0, i);
                     let argument: ParserExpressionFact = ParseExprFact(
@@ -256,7 +256,7 @@ func ApplyPostfixFact(
                         if !call.ok { return call; }
                     }
                     i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "," {
+                    if ParserCharAtWithin(content, content_extent, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -301,7 +301,7 @@ func ApplyPostfixFact(
             if !base.ok { return base; }
             continue;
         }
-        if nc == "?" && ParserCharAt(content, after_ws + 1) != "?" {
+        if nc == "?" && ParserCharAtWithin(content, content_extent, after_ws + 1) != "?" {
             i = after_ws + 1;
             let try_text: String = Concat("?", base.text);
             base = ParserExpressionUnary(
@@ -311,7 +311,7 @@ func ApplyPostfixFact(
             base.text = Concat("(", Concat(try_text, ")"));
             continue;
         }
-        if nc == "." && ParserCharAt(content, after_ws + 1) != "." {
+        if nc == "." && ParserCharAtWithin(content, content_extent, after_ws + 1) != "." {
             i = after_ws + 1;
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);

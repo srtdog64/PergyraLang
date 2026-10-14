@@ -32,7 +32,7 @@ func IsPrimitiveType(base_type: String) -> Bool {
 // process; ReadType/ReadTypeIn decide that for their callers.
 func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
-    if ParserCharAt(content, i) == "(" && ParserCharAt(content, i + 1) == ")" {
+    if ParserCharAtWithin(content, content_extent, i) == "(" && ParserCharAtWithin(content, content_extent, i + 1) == ")" {
         ArraySet(cursor_out, 0, i + 2);
         return "Void";
     }
@@ -54,11 +54,11 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
     }
     let type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFunc) && ParserCharAt(content, after_ws) == "(" {
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFunc) && ParserCharAtWithin(content, content_extent, after_ws) == "(" {
         i = after_ws + 1;
         let params: String = "";
         i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) != ")" {
+        if ParserCharAtWithin(content, content_extent, i) != ")" {
             while true {
                 ArraySet(cursor_out, 0, i);
                 let param_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
@@ -73,19 +73,19 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
                     params = Concat(params, Concat(", ", param_type));
                 }
                 i = SkipWhitespaceAndComments(content, i);
-                if ParserCharAt(content, i) == "," {
+                if ParserCharAtWithin(content, content_extent, i) == "," {
                     i = SkipWhitespaceAndComments(content, i + 1);
                     continue;
                 }
                 break;
             }
         }
-        if ParserCharAt(content, i) != ")" {
+        if ParserCharAtWithin(content, content_extent, i) != ")" {
             ArraySet(cursor_out, 0, i);
             return "";
         }
         i = SkipWhitespaceAndComments(content, i + 1);
-        if ParserCharAt(content, i) != "-" || ParserCharAt(content, i + 1) != ">" {
+        if ParserCharAtWithin(content, content_extent, i) != "-" || ParserCharAtWithin(content, content_extent, i + 1) != ">" {
             ArraySet(cursor_out, 0, i);
             return "";
         }
@@ -98,7 +98,7 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
             return "";
         }
         type_text = Concat("func(", Concat(params, Concat(") -> ", ret_type)));
-    } else if ParserCharAt(content, after_ws) == "<" {
+    } else if ParserCharAtWithin(content, content_extent, after_ws) == "<" {
         i = after_ws + 1;
         let args: String = "";
         while true {
@@ -127,13 +127,13 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
                 args = Concat(args, Concat(", ", printed));
             }
             i = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, i) == "," {
+            if ParserCharAtWithin(content, content_extent, i) == "," {
                 i = i + 1;
                 continue;
             }
             break;
         }
-        if ParserCharAt(content, i) != ">" {
+        if ParserCharAtWithin(content, content_extent, i) != ">" {
             ArraySet(cursor_out, 0, i);
             return "";
         }
@@ -141,7 +141,7 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         type_text = Concat(base, Concat("<", Concat(args, ">")));
     }
     let arrow_i: Int = SkipWhitespaceAndComments(content, i);
-    if ParserCharAt(content, arrow_i) == "-" && ParserCharAt(content, arrow_i + 1) == ">" {
+    if ParserCharAtWithin(content, content_extent, arrow_i) == "-" && ParserCharAtWithin(content, content_extent, arrow_i + 1) == ">" {
         i = arrow_i + 2;
         ArraySet(cursor_out, 0, i);
         let ret_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
@@ -153,7 +153,7 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         type_text = Concat("func(", Concat(type_text, Concat(") -> ", ret_type)));
     }
     let intersection_i: Int = SkipWhitespaceAndComments(content, i);
-    while ParserCharAt(content, intersection_i) == "&" && ParserCharAt(content, intersection_i + 1) != "&" {
+    while ParserCharAtWithin(content, content_extent, intersection_i) == "&" && ParserCharAtWithin(content, content_extent, intersection_i + 1) != "&" {
         i = intersection_i + 1;
         ArraySet(cursor_out, 0, i);
         let rhs_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
