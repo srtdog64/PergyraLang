@@ -31,7 +31,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let head_start: Int = i;
     ArraySet(cursor_out, 0, i);
-    let head: String = ReadIdent(content, i, cursor_out);
+    let head: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(head) == 0 {
         ParseRefuse(location_context, head_start, "statement_head_unexpected_token",
@@ -48,7 +48,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         // a role alone leaves the role's self without a subject.
         let subject_start: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, subject_start);
-        let subject_name: String = ReadIdent(content, subject_start, cursor_out);
+        let subject_name: String = ReadIdentWithin(content, content_extent, subject_start, cursor_out);
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor_out[0]);
         if StringLength(subject_name) == 0 || !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAs) {
             ParseRefuse(location_context, subject_start, "bind_subject_missing",
@@ -56,7 +56,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         }
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordAs));
         ArraySet(cursor_out, 0, i);
-        let role_name: String = ReadIdent(content, i, cursor_out);
+        let role_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         if StringLength(role_name) == 0 {
             ParseRefuse(location_context, i, "expected_token", "construct", "bind", "source_offset", ToString(i));
         }
@@ -109,7 +109,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         i = LanguageWordEnd(i, LanguageWordId.WordAs);
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
-        let as_name: String = ReadIdent(content, i, cursor_out);
+        let as_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(as_name) == 0 {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
@@ -291,7 +291,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
                 "form", "let mut", "construct", "let");
         }
         let name_start: Int = i;
-        let var_name: String = ReadIdent(content, i, cursor_out);
+        let var_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(var_name) == 0 {
             ParseRefuse(location_context, name_start, "declaration_name_missing",

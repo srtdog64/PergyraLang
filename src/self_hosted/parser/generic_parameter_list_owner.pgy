@@ -8,7 +8,7 @@ func ParseGenericParameterListText(
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
     let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
-    if ParserCharAt(content, i) != "<" {
+    if ParserCharAtWithin(content, content_extent, i) != "<" {
         ArraySet(cursor_out, 0, i);
         return "";
     }
@@ -17,14 +17,14 @@ func ParseGenericParameterListText(
     while true {
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
-        let name: String = ReadIdent(content, i, cursor_out);
+        let name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if name == "" {
             Fail("expected generic parameter name", content, i);
         }
         let parameter: String = name;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        if ParserCharAt(content, i) == "=" {
+        if ParserCharAtWithin(content, content_extent, i) == "=" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
             let default_type: String = ReadType(content, content_extent, i, cursor_out);
@@ -40,11 +40,11 @@ func ParseGenericParameterListText(
             parameters = Concat(parameters, Concat(", ", parameter));
         }
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        if ParserCharAt(content, i) == "," {
+        if ParserCharAtWithin(content, content_extent, i) == "," {
             i = i + 1;
             continue;
         }
-        if ParserCharAt(content, i) != ">" {
+        if ParserCharAtWithin(content, content_extent, i) != ">" {
             Fail("expected ',' or '>' in generic parameter list", content, i);
         }
         i = i + 1;

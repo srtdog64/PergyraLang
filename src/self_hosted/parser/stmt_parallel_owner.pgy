@@ -18,7 +18,7 @@ func ParseParallelStmt(
     // `parallel on` is a role reactive form, a declared vision surface
     // (docs/181). In a statement position native expects `{` after
     // `parallel` and refuses at `on`; so does this parser.
-    if MatchLanguageWord(content, parallel_probe, LanguageWordId.WordOn) {
+    if MatchLanguageWordWithin(content, content_extent, parallel_probe, LanguageWordId.WordOn) {
         ParseRefuse(location_context, parallel_probe, "expected_token",
             "expected", "{", "construct", "parallel");
     }
@@ -29,7 +29,7 @@ func ParseParallelStmt(
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     // The join form `parallel (x in xs) [join with MODE] { body }` prints its
     // body as one Block under `Parallel:`; native's tree omits the header.
-    if ParserCharAt(content, i) == "(" {
+    if ParserCharAtWithin(content, content_extent, i) == "(" {
         let header: ParserParallelJoinHeader = ParserParallelJoinHeaderAt(content, content_extent, i);
         if !header.ok && header.expected == "" {
             ParseExpressionRefuse(location_context, header.failure, header.at, "parallel_join");

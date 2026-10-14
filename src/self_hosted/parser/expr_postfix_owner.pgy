@@ -57,7 +57,7 @@ func ApplyPostfixFact(
                 ParserCharAtWithin(content, content_extent, tf_first)
             ) || (ParserCharAtWithin(content, content_extent, tf_first) == "(" &&
                 ParserCharAtWithin(content, content_extent, tf_first + 1) == ")");
-            while tf_scanning && tf < StringLength(content) &&
+            while tf_scanning && tf < content_extent &&
                 tf_depth > 0 {
                 let tf_after_trivia: Int =
                     SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, tf);
@@ -147,7 +147,7 @@ func ApplyPostfixFact(
             let after_field_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, probe);
             // `default` is a reserved match arm, never a nominal field name.
             // Leave its brace with the statement parser even for a sole arm.
-            if MatchLanguageWord(content, field_probe, LanguageWordId.WordDefault) ||
+            if MatchLanguageWordWithin(content, content_extent, field_probe, LanguageWordId.WordDefault) ||
                 !IsAlpha(ParserCharAtWithin(content, content_extent, field_probe)) ||
                 ParserCharAtWithin(content, content_extent, after_field_probe) != ":" {
                 ArraySet(cursor_out, 0, i);
@@ -165,7 +165,7 @@ func ApplyPostfixFact(
                 while true {
                     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     ArraySet(cursor_out, 0, i);
-                    let init_name: String = ReadIdent(content, i, cursor_out);
+                    let init_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
                     i = cursor_out[0];
                     if StringLength(init_name) == 0 {
                         return ParserExpressionInvalidAt(i, "expected_token");
@@ -315,7 +315,7 @@ func ApplyPostfixFact(
             i = after_ws + 1;
             i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor_out, 0, i);
-            let member: String = ReadIdent(content, i, cursor_out);
+            let member: String = ReadIdentWithin(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(member) == 0 {
                 return ParserExpressionInvalidAt(i, "expected_token");

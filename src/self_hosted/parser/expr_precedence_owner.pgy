@@ -136,7 +136,7 @@ func ParseMulFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        let op: String = ParserCharAt(content, i);
+        let op: String = ParserCharAtWithin(content, content_extent, i);
         if op != "*" && op != "/" && op != "%" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
@@ -169,7 +169,7 @@ func ParseAdditiveFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        let op: String = ParserCharAt(content, i);
+        let op: String = ParserCharAtWithin(content, content_extent, i);
         if op != "+" && op != "-" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
@@ -207,7 +207,7 @@ func ParsePipeFact(
         }
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i + 2);
         ArraySet(cursor_out, 0, i);
-        let fn_name: String = ReadIdent(content, i, cursor_out);
+        let fn_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if fn_name == "" { return ParserExpressionInvalidAt(i, "expected_token"); }
         let after_fn: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
@@ -269,8 +269,8 @@ func ParseComparisonFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        let c0: String = ParserCharAt(content, i);
-        let c1: String = ParserCharAt(content, i + 1);
+        let c0: String = ParserCharAtWithin(content, content_extent, i);
+        let c1: String = ParserCharAtWithin(content, content_extent, i + 1);
         let op: String = "";
         if c0 == "=" && c1 == "=" { op = "=="; }
         else if c0 == "!" && c1 == "=" { op = "!="; }
@@ -331,7 +331,7 @@ func ParseLogicalAndFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        if ParserCharAt(content, i) != "&" || ParserCharAt(content, i + 1) != "&" {
+        if ParserCharAtWithin(content, content_extent, i) != "&" || ParserCharAtWithin(content, content_extent, i + 1) != "&" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
@@ -360,7 +360,7 @@ func ParseLogicalOrFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        if ParserCharAt(content, i) != "|" || ParserCharAt(content, i + 1) != "|" {
+        if ParserCharAtWithin(content, content_extent, i) != "|" || ParserCharAtWithin(content, content_extent, i + 1) != "|" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
@@ -391,8 +391,8 @@ func ParseCoalesceFact(
     while true {
         let before_ws: Int = i;
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-        if ParserCharAt(content, i) != "?" ||
-            ParserCharAt(content, i + 1) != "?" {
+        if ParserCharAtWithin(content, content_extent, i) != "?" ||
+            ParserCharAtWithin(content, content_extent, i + 1) != "?" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }

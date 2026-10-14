@@ -80,13 +80,13 @@ func ParseForStmt(
     // terminates the lower bound and this owner consumes the upper explicitly.
     let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, after_head);
     ArraySet(cursor_out, 0, i);
-    let var_name: String = ReadIdent(content, i, cursor_out);
+    let var_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(var_name) == 0 {
         ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
     }
     i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-    if !MatchLanguageWord(content, i, LanguageWordId.WordIn) {
+    if !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordIn) {
         ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
     }
     i = LanguageWordEnd(i, LanguageWordId.WordIn);
@@ -103,7 +103,7 @@ func ParseForStmt(
     i = cursor_out[0];
     let range_text: String = "";
     let after_lower: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
-    if ParserCharAt(content, after_lower) == "." && ParserCharAt(content, after_lower + 1) == "." {
+    if ParserCharAtWithin(content, content_extent, after_lower) == "." && ParserCharAtWithin(content, content_extent, after_lower + 1) == "." {
         i = after_lower + 2;
         ArraySet(cursor_out, 0, i);
         let upper_fact: ParserExpressionFact = ParseExprFact(

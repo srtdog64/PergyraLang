@@ -28,21 +28,21 @@ func ParseZoneSlotGroupRows(
     let group_word: LanguageWordId = LanguageWordId.WordSubjects;
     let row_label: String = "SubjectSlot";
     let layer: Bool = false;
-    if MatchLanguageWord(content, start, LanguageWordId.WordObjects) {
+    if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordObjects) {
         group_word = LanguageWordId.WordObjects;
         row_label = "ObjectSlot";
-    } else if MatchLanguageWord(content, start, LanguageWordId.WordTobjects) {
+    } else if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordTobjects) {
         group_word = LanguageWordId.WordTobjects;
         row_label = "TObjectSlot";
-    } else if MatchLanguageWord(content, start, LanguageWordId.WordEffects) {
+    } else if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordEffects) {
         group_word = LanguageWordId.WordEffects;
         row_label = "EffectSlot";
         layer = true;
-    } else if MatchLanguageWord(content, start, LanguageWordId.WordRelations) {
+    } else if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordRelations) {
         group_word = LanguageWordId.WordRelations;
         row_label = "RelationSlot";
         layer = true;
-    } else if !MatchLanguageWord(content, start, LanguageWordId.WordSubjects) {
+    } else if !MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordSubjects) {
         ArraySet(cursor_out, 0, start);
         return ParserZoneSlotGroupRows(false, false, "");
     }
@@ -53,7 +53,7 @@ func ParseZoneSlotGroupRows(
         ArrayPush(names, ParseNameIn(context, content, i,
             "slot name in group", "zone_slot_group", cursor_out));
         i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor_out[0]);
-        if ParserCharAt(content, i) != "," {
+        if ParserCharAtWithin(content, content_extent, i) != "," {
             break;
         }
         i = i + 1;

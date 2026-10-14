@@ -22,9 +22,9 @@ func ParseIntentTerminalClause(
     let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let step_offset: Int = i;
     let step_name: String = "";
-    if ParserCharAt(content, i) != ":" {
+    if ParserCharAtWithin(content, content_extent, i) != ":" {
         ArraySet(cursor_out, 0, i);
-        step_name = ReadIdent(content, i, cursor_out);
+        step_name = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if step_name == "" {
             ParseRefuse(context, i, "expected_token",

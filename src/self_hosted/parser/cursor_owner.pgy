@@ -27,8 +27,16 @@ func ParserCharAtWithin(s: String, s_extent: Int, i: Int) -> String {
 // identifier text; advances the cursor by storing in an out-array of 1.
 func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
+    return ReadIdentWithin(content, n, start, cursor_out);
+}
+
+// The same read for a caller that already holds the content's extent.
+func ReadIdentWithin(
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
+) -> String {
     let i: Int = start;
-    while i < n && SourceByteIsAlphaNum(SourceByteAt(content, n, n, i)) {
+    while i < content_extent &&
+        SourceByteIsAlphaNum(SourceByteAt(content, content_extent, content_extent, i)) {
         i = i + 1;
     }
     ArraySet(cursor_out, 0, i);
