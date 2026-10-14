@@ -27,6 +27,9 @@ import "format_surface_decl_owner.pgy";
 func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
     let n: Int = StringLength(content);
     let cursor: Array<Int> = [0];
+    // The word is looked up once; a match must start with its first byte.
+    let export_word: String = LanguageWordSpelling(LanguageWordId.WordExport);
+    let export_first: Int = CharCode(export_word, StringLength(export_word), 0);
     let i: Int = 0;
     while i < n {
         i = SkipWhitespaceAndCommentsWithin(content, n, n, i);
@@ -42,7 +45,8 @@ func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
             i = cursor[0];
             continue;
         }
-        if MatchLanguageWordWithin(content, n, i, LanguageWordId.WordExport) &&
+        if SourceByteAt(content, n, n, i) == export_first &&
+            MatchKeywordWithin(content, n, i, export_word) &&
             (i == 0 || !SourceByteIsAlphaNum(SourceByteAt(content, n, n, i - 1))) {
             return true;
         }
