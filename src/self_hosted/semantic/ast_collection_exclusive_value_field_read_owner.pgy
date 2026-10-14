@@ -231,6 +231,48 @@ func SemanticAstCollectionExclusiveValueRead(
 // Field-read summaries of aggregate formals: a member read reads its field,
 // a whole argument to another aggregate formal reads what that one reads, and
 // any other whole use reads every field (a fixed point over forwarding).
+// Copy `field`, which the formal `target` reads, to every formal passed on
+// as an argument to `target`, recording each key that is new in `added`.
+func SemanticAstCollectionExclusiveFollowRead(
+    target: String, field: String,
+    first_edges: HashMap<String, Int>, ref next_edges: Array<Int>, ref sources: Array<Int>,
+    inout reads: HashMap<String, Int>, inout added: HashMap<String, Int>
+) -> Void {
+    if !MapHas(first_edges, target) { return; }
+    let index: Int = MapGet(first_edges, target);
+    while index >= 0 {
+        let copied: String = Concat(ToString(sources[index]), Concat(":", field));
+        if !MapHas(reads, copied) {
+            MapSet(reads, Concat("", copied), 1);
+            MapSet(added, copied, 1);
+        }
+        index = next_edges[index];
+    }
+}
+
+// Follow each key of `frontier_keys` one edge, then the keys that added. Each
+// key is followed in the round after it appears, so each is followed once.
+func SemanticAstCollectionExclusiveCloseReads(
+    frontier_keys: HashMap<String, Int>, first_edges: HashMap<String, Int>,
+    ref next_edges: Array<Int>, ref sources: Array<Int>, inout reads: HashMap<String, Int>
+) -> Void {
+    let frontier: Array<String> = MapKeys(frontier_keys);
+    if ArrayLength(frontier) == 0 { return; }
+    let added: HashMap<String, Int> = MapNew();
+    let at: Int = 0;
+    while at < ArrayLength(frontier) {
+        let separator: Int = StringIndexOf(frontier[at], ":");
+        // A key without ':' cannot match any numeric formal prefix.
+        if separator >= 0 {
+            SemanticAstCollectionExclusiveFollowRead(Substring(frontier[at], 0, separator),
+                Substring(frontier[at], separator + 1, StringLength(frontier[at]) - separator - 1),
+                first_edges, next_edges, sources, reads, added);
+        }
+        at = at + 1;
+    }
+    SemanticAstCollectionExclusiveCloseReads(added, first_edges, next_edges, sources, reads);
+}
+
 func SemanticAstCollectionExclusiveFieldReads(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts
@@ -302,46 +344,28 @@ func SemanticAstCollectionExclusiveFieldReads(
         }
         slot = slot + 1;
     }
-    let changed: Bool = true;
-    let remaining: Int = ArrayLength(sources) + 2;
-    while changed && remaining > 0 {
-        changed = false;
-        let keys: Array<String> = MapKeys(reads);
-        // Index this round's immutable key snapshot, retaining bucket order.
-        let heads: HashMap<String, Int> = MapNew();
-        let tails: HashMap<String, Int> = MapNew();
-        let next: Array<Int> = [];
-        let key_index: Int = 0;
-        while key_index < ArrayLength(keys) {
-            ArrayPush(next, 0 - 1);
-            let separator: Int = StringIndexOf(keys[key_index], ":");
-            if separator >= 0 {
-                let prefix: String = Substring(keys[key_index], 0, separator + 1);
-                if MapHas(tails, prefix) { next[MapGet(tails, prefix)] = key_index; }
-                else { MapSet(heads, prefix, key_index); }
-                MapSet(tails, prefix, key_index);
-            }
-            // A key without ':' cannot match any numeric formal prefix.
-            key_index = key_index + 1;
-        }
-        let edge: Int = 0;
-        while edge < ArrayLength(sources) {
-            let source: String = ToString(sources[edge]);
-            let target: String = Concat(ToString(targets[edge]), ":");
-            let index: Int = 0 - 1;
-            if MapHas(heads, target) { index = MapGet(heads, target); }
-            while index >= 0 {
-                let entry: String = keys[index];
-                let field: String = Substring(entry, StringLength(target), StringLength(entry) - StringLength(target));
-                let copied: String = Concat(source, Concat(":", field));
-                if !MapHas(reads, copied) { MapSet(reads, copied, 1); changed = true; }
-                index = next[index];
-            }
-            edge = edge + 1;
-        }
-        remaining = remaining - 1;
+    // Close the reads under the argument edges: a formal passed on as an
+    // argument reads whatever its target formal reads. A shortest chain of
+    // edges is no longer than the edge list, so the bounded rounds this
+    // replaces always reached this same closure.
+    let first_edges: HashMap<String, Int> = MapNew();
+    let next_edges: Array<Int> = [];
+    let edge: Int = 0;
+    while edge < ArrayLength(sources) {
+        ArrayPush(next_edges, 0 - 1);
+        let edge_target: String = ToString(targets[edge]);
+        if MapHas(first_edges, edge_target) { next_edges[edge] = MapGet(first_edges, edge_target); }
+        MapSet(first_edges, edge_target, edge);
+        edge = edge + 1;
     }
-    if changed { MapSet(reads, "unconverged", 1); }
+    let frontier_keys: HashMap<String, Int> = MapNew();
+    let snapshot: Array<String> = MapKeys(reads);
+    let at: Int = 0;
+    while at < ArrayLength(snapshot) {
+        MapSet(frontier_keys, Concat("", snapshot[at]), 1);
+        at = at + 1;
+    }
+    SemanticAstCollectionExclusiveCloseReads(frontier_keys, first_edges, next_edges, sources, reads);
     return reads;
 }
 
