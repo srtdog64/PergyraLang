@@ -98,6 +98,11 @@ func SemanticAstMatchMaterializationFactsAttach(
 
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
+    // Rows a marked input already passed; the appends below only add rows.
+    let sealed_rows: Int = -1;
+    if graph.arena.shape_ready {
+        sealed_rows = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    }
     let topology: AstExpressionArena = graph.arena.topology;
     let graph_node_texts: Array<String> = graph.arena.node_texts;
     let target_kinds: Array<Int> = graph.arena.call_target_kinds;
@@ -162,6 +167,8 @@ func SemanticAstMatchMaterializationFactsAttach(
             ),
             place_kinds
         );
+    arena.shape_ready = sealed_rows >= 0 &&
+        SemanticExpressionGraphArenaShapeReady(arena, sealed_rows);
     let attached: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
             SemanticExpressionGraphArenaReady(arena),

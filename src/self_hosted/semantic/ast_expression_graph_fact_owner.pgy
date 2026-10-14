@@ -28,8 +28,9 @@ struct SemanticExpressionGraphArena {
     place_kinds: Array<Int>;
     // True once SemanticExpressionGraphArenaShapeReady held for this arena.
     // The shape (topology, node texts) is never written after construction,
-    // so the mark holds until the arena is replaced; every constructor starts
-    // false and only a finished surface graph is sealed.
+    // so the mark holds until the arena is replaced. Every constructor starts
+    // false. The graph producer marks what it checked, and an arena built
+    // from a marked one is marked after its appended rows pass.
     shape_ready: Bool;
     // Sealed arenas only: each node's first consuming row, or -1.
     consumer_rows: Array<Int>;
@@ -263,6 +264,7 @@ func SemanticExpressionGraphFactsFromAstRows(
             rows.arena, texts, call_target_kinds, call_target_names,
             call_return_type_names, place_kinds
     );
+    arena.shape_ready = SemanticExpressionGraphArenaShapeReady(arena, 0);
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         ok, roots, has_roots, arena
     );
@@ -284,23 +286,26 @@ func SemanticExpressionGraphArenaNodeCount(
 func SemanticExpressionGraphArenaReady(
     ref arena: SemanticExpressionGraphArena
 ) -> Bool {
-    return (arena.shape_ready || SemanticExpressionGraphArenaShapeReady(arena)) &&
+    return (arena.shape_ready || SemanticExpressionGraphArenaShapeReady(arena, 0)) &&
         SemanticExpressionGraphArenaOverlayReady(arena);
 }
 
-// Topology, node texts and literal payloads, and child structure.
+// Topology, node texts and literal payloads, and child structure, for rows
+// from `verified_rows` on. Rows below it must be the unchanged rows of an
+// arena whose shape passed; each row reads only rows below it.
 func SemanticExpressionGraphArenaShapeReady(
-    ref arena: SemanticExpressionGraphArena
+    ref arena: SemanticExpressionGraphArena,
+    verified_rows: Int
 ) -> Bool {
     let count: Int = SemanticExpressionGraphArenaNodeCount(arena);
-    if !AstExpressionArenaReady(arena.topology) ||
+    if !AstExpressionArenaRowsReady(arena.topology, verified_rows) ||
         ArrayLength(arena.node_texts) != count ||
         ArrayLength(arena.topology.node_texts) != count ||
         ArrayLength(arena.topology.left_children) != count ||
         ArrayLength(arena.topology.right_children) != count {
         return false;
     }
-    let i: Int = 0;
+    let i: Int = verified_rows;
     while i < count {
         let kind: Int = arena.topology.node_kinds[i];
         let left: Int = arena.topology.left_children[i];
