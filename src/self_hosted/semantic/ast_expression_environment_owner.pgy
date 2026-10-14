@@ -90,12 +90,14 @@ func SemanticAstExpressionSeedEnumValues(
         ArrayLength(names) == ArrayLength(modes);
 }
 
+// The first of the rows below `limit` named `name`, or -1.
 func SemanticAstExpressionFunctionRowIndex(
     ref names: Array<String>,
-    name: String
+    name: String,
+    limit: Int
 ) -> Int {
     let i: Int = 0;
-    while i < ArrayLength(names) {
+    while i < limit && i < ArrayLength(names) {
         if names[i] == name {
             return i;
         }
@@ -115,6 +117,10 @@ func SemanticAstExpressionFunctionTables(
     if !SeedSemanticOwnedBuiltinSignaturesUnclaimed(signatures, names, returns, params) {
         return false;
     }
+    // Builtin rows are searched directly; each later row's name is indexed
+    // as it is added, so a lookup finds the first row with that name.
+    let seeded_rows: Int = ArrayLength(names);
+    let first_rows: HashMap<String, Int> = MapNew();
     if !SemanticAstNominalConstructorRowsReady(constructors) {
         return false;
     }
@@ -123,7 +129,9 @@ func SemanticAstExpressionFunctionTables(
     }
     let constructor_index: Int = 0;
     while constructor_index < SemanticAstNominalConstructorCount(constructors) {
-        ArrayPushOwnedString(names, constructors.names[constructor_index]);
+        let constructor_name: String = constructors.names[constructor_index];
+        if !MapHas(first_rows, constructor_name) { MapSet(first_rows, Concat("", constructor_name), ArrayLength(names)); }
+        ArrayPushOwnedString(names, constructor_name);
         ArrayPushOwnedString(returns, constructors.return_type_names[constructor_index]);
         let constructor_params: String = "";
         let param_index: Int = 0;
@@ -160,10 +168,7 @@ func SemanticAstExpressionFunctionTables(
         let variant_params: String = "";
         let param_index: Int = 0;
         while param_index < param_count {
-            let param_type: Option<String> =
-                SemanticAstEnumVariantPayloadTypeAt(
-                    enums, enum_name, variant_name, param_index
-                );
+            let param_type: Option<String> = SemanticAstEnumVariantPayloadTypeAt(enums, enum_name, variant_name, param_index);
             if !IsSome(param_type) {
                 return false;
             }
@@ -175,26 +180,24 @@ func SemanticAstExpressionFunctionTables(
             );
             param_index = param_index + 1;
         }
-        let qualified_name: String = SemanticCallableCanonicalDeclaredName(
-            enum_name, variant_name
-        );
-        let existing: Int = SemanticAstExpressionFunctionRowIndex(
-            names, qualified_name
-        );
+        let qualified_name: String = SemanticCallableCanonicalDeclaredName(enum_name, variant_name);
+        let existing: Int = SemanticAstExpressionFunctionRowIndex(names, qualified_name, seeded_rows);
+        if existing < 0 { existing = SemanticCallableNameTableValue(first_rows, qualified_name); }
         if existing >= 0 {
             if returns[existing] != enum_name ||
                 params[existing] != variant_params {
                 return false;
             }
         } else {
+            MapSet(first_rows, Concat("", qualified_name), ArrayLength(names));
             ArrayPushOwnedString(names, qualified_name);
             ArrayPushOwnedString(returns, enum_name);
             ArrayPushOwnedString(params, variant_params);
         }
-        existing = SemanticAstExpressionFunctionRowIndex(
-            names, variant_name
-        );
+        existing = SemanticAstExpressionFunctionRowIndex(names, variant_name, seeded_rows);
+        if existing < 0 { existing = SemanticCallableNameTableValue(first_rows, variant_name); }
         if SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(existing) {
+            MapSet(first_rows, Concat("", variant_name), ArrayLength(names));
             ArrayPushOwnedString(names, variant_name);
             ArrayPushOwnedString(returns, enum_name);
             ArrayPushOwnedString(params, variant_params);
@@ -213,12 +216,9 @@ func SemanticAstExpressionFunctionTables(
         if !IsSome(name) || !IsSome(owner) || !IsSome(return_type) {
             return false;
         }
-        let declared_name: String = SemanticCallableCanonicalDeclaredName(
-            UnwrapOption(owner), UnwrapOption(name)
-        );
+        let declared_name: String = SemanticCallableCanonicalDeclaredName(UnwrapOption(owner), UnwrapOption(name));
         let param_row: String = "";
-        let param_count_opt: Option<Int> =
-            SemanticAstFunctionParamCountAt(signatures, i);
+        let param_count_opt: Option<Int> = SemanticAstFunctionParamCountAt(signatures, i);
         if !IsSome(param_count_opt) {
             return false;
         }
@@ -235,15 +235,15 @@ func SemanticAstExpressionFunctionTables(
             param_row = Concat(param_row, UnwrapOption(param_type));
             p = p + 1;
         }
-        let existing: Int = SemanticAstExpressionFunctionRowIndex(
-            names, declared_name
-        );
+        let existing: Int = SemanticAstExpressionFunctionRowIndex(names, declared_name, seeded_rows);
+        if existing < 0 { existing = SemanticCallableNameTableValue(first_rows, declared_name); }
         if existing >= 0 {
             if (returns[existing] != UnwrapOption(return_type) || params[existing] != param_row) &&
                 (UnwrapOption(owner) != "" || SemanticAstEnumVariantRowForBareName(enums, declared_name) < 0) {
                 return false;
             }
         } else {
+            MapSet(first_rows, Concat("", declared_name), ArrayLength(names));
             ArrayPushOwnedString(names, declared_name);
             ArrayPushOwnedString(returns, UnwrapOption(return_type));
             ArrayPushOwnedString(params, param_row);
@@ -271,7 +271,7 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
         let intent_index: Int = 0;
         while intent_index < SemanticAstIntentSignatureCount(intents) {
             let intent_name: String = intents.names[intent_index];
-            if SemanticAstExpressionFunctionRowIndex(names, intent_name) >= 0 {
+            if SemanticAstExpressionFunctionRowIndex(names, intent_name, ArrayLength(names)) >= 0 {
                 ok = false;
                 intent_index = intent_index + 1;
                 continue;
