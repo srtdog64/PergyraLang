@@ -26,7 +26,8 @@ func EnvValueLookup(
     ref names: Array<String>, ref types: Array<String>,
     ref scope: SemanticAstEnumValueScope, name: String
 ) -> String {
-    if EnvContainsName(names, name) { return EnvLookup(names, types, name); }
+    let local_row: Int = EnvRowForName(names, name);
+    if local_row >= 0 { return Concat("", types[local_row]); }
     let row: Int = EnvValueRow(scope, name);
     if row < 0 { return "Unknown"; }
     return Concat("", scope.types[row]);
@@ -36,7 +37,8 @@ func EnvValueMode(
     ref names: Array<String>, ref modes: Array<String>,
     ref scope: SemanticAstEnumValueScope, name: String
 ) -> String {
-    if EnvContainsName(names, name) { return EnvMode(names, modes, name); }
+    let local_row: Int = EnvRowForName(names, name);
+    if local_row >= 0 { return Concat("", modes[local_row]); }
     if EnvValueRow(scope, name) < 0 { return "unknown"; }
     return "enum_value";
 }
