@@ -17,7 +17,7 @@ could do once?
 
 - **Machine:** WSL Ubuntu, 16 cores, one run per input. Through stage 14
   every number is single-threaded wall time from `/usr/bin/time`. Stages
-  15–18 are compared by user CPU time; see their subsection.
+  15–19 are compared by user CPU time; see their subsection.
 - **Inputs:** gen0 built with
   `bin/pgy src/self_hosted/codegen/main.pgy --native-pipeline --backend=c`,
   then run as `gen0 --source <input>` on the two sources above.
@@ -85,7 +85,7 @@ steady 6–8%. Stage 12 removes most of the graph readiness samples (377 of
 3124 → 46 of 2777). It shows on the codegen input but not beyond noise on
 the driver input.
 
-### Stages 15–18
+### Stages 15–19
 
 Another program kept the machine busy during these stages, and wall time
 varied by up to 2× between runs of one build. They were compared by user
@@ -99,16 +99,29 @@ a quieter machine:
 | 15 | `63eaeeb35`, `03e939a56`, `7b0b6899d`, `9903bea9c` | an error verdict built and thrown away for each checked statement; a parent walk for each local of each environment seed; receiver rows compared pairwise; every callable name rewritten before lookup; the graph shape checked again after call-target capture and both attaches | | |
 | 16–17 | `761f820a6`, `a37a89118` | the name of each earlier local compared as a string; keyword checks measured the whole file | | |
 | 18 | `be8d84b05` | character reads measured the whole file | 8.4 s | 19.4 s |
+| 19 | `dd38f6511` | each round of the collection field-read closure listed and indexed every key again (11 rounds over up to 63,988 keys) | 8.0 s | 18.4 s |
 
 The two earlier rotations, on the loaded machine, give the steps between:
 codegen 12.0 → 10.4 (stage 15) → 9.9–10.2 (16–17) → 9.9 s (18), and driver
 28.5 → 25.3 → 23.8–24.0 → 23.2 s. Stages 15–18 cut user CPU by about 18% on
 the codegen input and 17% on the driver input.
 
-Wall time, fastest of three rotation runs on the quieter machine: main
-before stage 15 took 10.6 s and 24.7 s, matching the stage 13–14 row, and
-stage 18 took 8.5 s and 21.3 s. Overall: codegen input 190 s → 8.5 s (22×),
-driver input 716 s → 21.3 s (34×).
+Stage 19's row comes from a later rotation against main before 15 (10.3 s /
+24.1 s) and stage 18 (8.5 s / 19.6 s). Stage 19 changed a file that also
+has another lane's uncommitted edits; a three-way merge of those edits onto
+it applies without conflict. Its closure gives the same key sets as the old
+rounds on both inputs (63,988 and 162,729 keys). The first versions moved
+key snapshots through an owned array, and the self-host checker refused the
+function itself (`owned_element_escape`, then
+`unproved_formal_element_use_entry`); only the gen0 verdict showed it.
+
+Wall time, fastest of three rotation runs. Stage 18 against main before 15:
+8.5 s / 21.3 s against 10.6 s / 24.7 s, the latter matching the stage 13–14
+row. Stage 19 in a later rotation: 9.0 s / 20.5 s against 11.8 s / 26.8 s,
+so the machine ran about 10% slower that time. Both rotations put stages
+15–19 at about 23% less wall time than main before stage 15. Scaled to the
+stage 13–14 row, that is about 8.2 s and 19 s: codegen input 190 s → about
+8.2 s (23×), driver input 716 s → about 19 s (37×).
 
 Three attempts were measured and dropped:
 - **Build generic specialization spine views only at call nodes** (after
@@ -130,16 +143,18 @@ Three attempts were measured and dropped:
   at node 15463. Only the verdict gate caught it. The verdict gate needs
   gen0 itself; type-checking the self-host source is not enough.
 
-## What remains (stage 18, both inputs)
+## What remains (stage 19, both inputs)
 
-The stage 18 profile is flat. Outside the ownership verdict family, no
+The stage 19 profile is flat. Outside the ownership verdict family, no
 function holds more than about 5% of the samples. Call counts below come
 from a gprof build on the codegen input, which has 63,308 verdict roots and
 42,586 call nodes.
 
-- **Another lane's files: the collection ownership verdict, 33% of the
-  driver input including callees.** `SemanticAstCollectionExclusiveFieldReads`
-  alone is about 10%. These owners are in that lane's uncommitted work.
+- **Another lane's files: the collection ownership verdict, 28% of the
+  driver input including callees** (33% before stage 19, which removed
+  `SemanticAstCollectionExclusiveFieldReads`, about 10%). Most of what is
+  left sits in owners with large uncommitted edits from that lane, such as
+  the consumption owner.
 - **Leaf identities resolved again by name, 4–5%.**
   `SemanticAstScopedLocalBindingIdentityForName` ran 2,044,720 times, almost
   all through `SemanticAstScopedLocalBindingIdentityForGraphLeaf` from the
