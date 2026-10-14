@@ -207,10 +207,13 @@ func SemanticAstCollectionAggregateSinkAliasesForFunction(
         changed = false;
         let row: Int = 0;
         while row < ArrayLength(locals.node_ids) {
-            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
-                surfaces, locals.node_ids[row], AstExpressionLaneValue());
-            if locals.function_node_ids[row] == function_id && IsSome(value) &&
-                SemanticAstCollectionAggregateSinkAliasRow(aliases, row) < 0 {
+            // Only this function's locals can alias its root.
+            let value: Option<Int> = None;
+            if locals.function_node_ids[row] == function_id {
+                value = SemanticAstExpressionGraphRootForNode(
+                    surfaces, locals.node_ids[row], AstExpressionLaneValue());
+            }
+            if IsSome(value) && SemanticAstCollectionAggregateSinkAliasRow(aliases, row) < 0 {
                 let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
                     artifact, signatures, locals, inferred_types, surfaces, function_id,
                     locals.node_ids[row], UnwrapOption(value));

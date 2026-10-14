@@ -57,36 +57,33 @@ func SemanticAstExpressionSeedEnumValues(
     if !SemanticAstEnumRowsReady(enums) {
         return false;
     }
-    let i: Int = 0;
-    while i < ArrayLength(enums.variant_names) {
-        if enums.variant_param_counts[i] == 0 {
-            let variant: String = enums.variant_names[i];
-            let enum_name: String = enums.variant_enum_names[i];
-            let qualified: String = enums.variant_qualified_names[i];
-            let qualified_exists: Bool = false;
-            let name_index: Int = 0;
-            while name_index < ArrayLength(names) && !qualified_exists {
-                qualified_exists = names[name_index] == qualified;
-                name_index = name_index + 1;
-            }
-            if !qualified_exists {
-                ArrayPushOwnedString(names, qualified);
-                ArrayPushOwnedString(types, enum_name);
-                ArrayPushOwnedString(modes, "enum_value");
-            }
-            let variant_exists: Bool = false;
-            name_index = 0;
-            while name_index < ArrayLength(names) && !variant_exists {
-                variant_exists = names[name_index] == variant;
-                name_index = name_index + 1;
-            }
-            if !variant_exists {
-                ArrayPushOwnedString(names, variant);
-                ArrayPushOwnedString(types, enum_name);
-                ArrayPushOwnedString(modes, "enum_value");
-            }
+    // A binding already in scope keeps its name; each other value row is
+    // appended once, in the enum owner's seed order.
+    let shadowed: Array<Bool> = [];
+    let row: Int = 0;
+    while row < ArrayLength(enums.value_names) {
+        ArrayPush(shadowed, false);
+        row = row + 1;
+    }
+    let name_index: Int = 0;
+    while name_index < ArrayLength(names) {
+        // The lookup reads a copy; a bound name stays with its row.
+        let bound: String = Concat("", names[name_index]);
+        let value_row: Int =
+            SemanticCallableNameTableValue(enums.value_rows, bound);
+        if value_row >= 0 { shadowed[value_row] = true; }
+        name_index = name_index + 1;
+    }
+    row = 0;
+    while row < ArrayLength(enums.value_names) {
+        if !shadowed[row] {
+            let value: String = enums.value_names[row];
+            let enum_name: String = enums.value_types[row];
+            ArrayPushOwnedString(names, value);
+            ArrayPushOwnedString(types, enum_name);
+            ArrayPushOwnedString(modes, "enum_value");
         }
-        i = i + 1;
+        row = row + 1;
     }
     return ArrayLength(names) == ArrayLength(types) &&
         ArrayLength(names) == ArrayLength(modes);
