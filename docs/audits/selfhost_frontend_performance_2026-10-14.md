@@ -146,6 +146,87 @@ Three attempts were measured and dropped:
   at node 15463. Only the verdict gate caught it. The verdict gate needs
   gen0 itself; type-checking the self-host source is not enough.
 
+### Stages 21–26
+
+| Stage | Commit | Repeated work removed |
+|---|---|---|
+| 21 | `23d81dd9f` | a local looked up by walking every local of its function (3,131,924 lookups on the codegen input) |
+| 22 | `4a1124c84` | each new function table row looked up by scanning every earlier row; codegen user CPU about 1.4% lower |
+| 23 | `a71f95d26`, `0b448a681` | every builtin name reservation split once per signature, the pieces never freed; the export word looked up in the word registry at every offset of an imported source |
+| 24 | `ef2b8d4ed`, `5436ce84e` | a one-character string per identifier character, never freed; the environment scanned twice per value or mode lookup |
+| 25 | `9271f7520` | literal checks built a one-character string per character; a call target fact built a spine view for a root that is not a call |
+| 26 | `55842c700` | none; it restores the negative gates that stages 4, 6 and 16 broke (next subsection) |
+
+Stages 23–24 lowered peak memory from 1.46 to 1.31 GB on the codegen input
+and from 3.17 to 2.87 GB on the driver input. One rotation, five runs each,
+user CPU, median:
+
+| Build | codegen | driver |
+|---|---:|---:|
+| stage 24 | 7.55 s | 16.86 s |
+| stage 25 | 7.49 s | 16.88 s |
+| stage 26 | 7.59 s | 16.94 s |
+
+Stage 25 is within noise on the driver input. Stage 26 costs about 1% on the
+codegen input; that is the price of the restored checks.
+
+### Fact frames edited in place
+
+Three stages moved a check or a lookup out of each use and into the facts
+producer, and each commit said nothing changes the facts afterwards:
+
+- stage 4 ran `SemanticAstEnumRowsReady` once in the enum facts producer and
+  folded the result into `ok`;
+- stage 6 indexed nominal declarations by name;
+- stage 16 kept a length-and-first-byte key beside every local name.
+
+The negative probes do change them. They edit one row of admitted facts in
+place, or build a facts struct by hand with `ok` copied from good facts,
+and expect the consumer to refuse. Five such checks in four probes failed
+on stage 24 and passed on `af8ede6f0`:
+
+- `collection_constructor_escape_identity_probe` mutation 1 renames a
+  second declaration to the constructor's name. The index still counted one
+  row, so the duplicate was not refused.
+- The same probe's mutation 12 renames a local to the constructor's name.
+  Its stale key hid the local from the lookup.
+- `collection_member_identity_probe` mutation 29 and the last check of
+  `nominal_constructor_field_identity` make the same kind of duplicate.
+- `enum_qualified_environment_fact_probe` builds enum facts with wrong
+  qualified names and the good facts' `ok`. The seed accepted them.
+
+No CI job ran these probes. Every Linux job waits for
+`self-host-codegen-bootstrap-linux`, and that job stops at the P0 ownership
+refusal. The lane's struct changes had also broken 34 test programs that
+import self-host owners. A native type check of all 162 such programs on
+`af8ede6f0` and on the lane found them. After the fixes, none differ. The
+negative probes were found by running each touched parity script on both
+trees.
+
+Stage 26 changes:
+- **Local name keys removed.** Stage 21 already made the walk short.
+- **The nominal name index stays, and is checked.** A lookup refuses when
+  the indexed row no longer carries the name. The artifact match check
+  compares each name's index entry with the rebuilt facts' entry. An index
+  cannot see another row renamed to the same name unless it reads every
+  row, which is the scan stage 6 removed. The two rename probes therefore
+  and the field identity check rebuild the index with the producer's
+  `SemanticAstNominalConstructorNameIndexFill` after renaming, so the
+  duplicate is a real one, and the lookup still refuses it.
+  `nominal_constructor_field_identity` gains a check: a forged index entry
+  fails both the artifact match and the lookup. The stage 24 code passes
+  both of those, so the new check falsifies it.
+- **The enum seed runs `SemanticAstEnumRowsReady` again.** Since stage 7
+  the walkers no longer call the seed for every expression root.
+
+The first version compared the index sizes with `MapSize` on a facts
+field. The native compiler accepted it. gen0 refused its own source with
+`ast_artifact_invalid` (`owner: expression_graph_type`) at the first
+expression root, before any ownership check. So did
+`collection_borrowed_descriptor_read`, whose observer analyzes a source
+that imports the owner. The per-name comparison alone is enough, because
+a key that no row carries fails the lookup's row check.
+
 ## What remains (stage 20, both inputs)
 
 The stage 20 profile is flat. Outside the ownership verdict family, no
@@ -166,7 +247,8 @@ from a gprof build on the codegen input, which has 63,308 verdict roots and
   `binding_ordinals`). This audit did not check whether they answer the
   same question. Either way the fix is a consumer change inside that
   family, and the identity resolution owner is also in that lane's work.
-  Stage 16 made each lookup cheaper; the repeated calls remain.
+  Stage 21 made each lookup walk back only from the use (stage 26 removed
+  stage 16's name key); the repeated calls remain.
 - **Call targets resolved again inside one verdict, about 3% after stage 20
   (4.5% before).**
   `SemanticExpressionGraphResolvedCallTarget` ran 1,471,533 times, about 35
