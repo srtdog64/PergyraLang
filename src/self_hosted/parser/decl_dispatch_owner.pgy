@@ -42,7 +42,7 @@ func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
             i = cursor[0];
             continue;
         }
-        if MatchLanguageWord(content, i, LanguageWordId.WordExport) &&
+        if MatchLanguageWordWithin(content, n, i, LanguageWordId.WordExport) &&
             (i == 0 || !SourceByteIsAlphaNum(SourceByteAt(content, n, n, i - 1))) {
             return true;
         }
