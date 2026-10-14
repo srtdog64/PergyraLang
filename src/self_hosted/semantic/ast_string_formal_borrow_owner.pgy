@@ -116,16 +116,20 @@ func SemanticAstBorrowedTextThroughToString(
 }
 
 // The first later node in (node, root] that names `node` as an operand its
-// arity admits: the graph's left/right child reads, one arity per row.
+// arity admits. Rows past the arena never match, and arity is read only for
+// a row whose child slot names `node`; admitted arenas carry known kinds.
 func SemanticAstBorrowedTextConsumer(ref graph: SemanticExpressionGraphFacts, node: Int, root: Int) -> Int {
     if !graph.ok { return -1; }
-    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    let last: Int = SemanticExpressionGraphArenaNodeCount(graph.arena) - 1;
+    if root < last { last = root; }
     let consumer: Int = node + 1;
-    while consumer <= root {
-        if consumer >= 0 && consumer < count {
+    if consumer < 0 { consumer = 0; }
+    while consumer <= last {
+        let left_match: Bool = graph.arena.topology.left_children[consumer] == node;
+        let right_match: Bool = graph.arena.topology.right_children[consumer] == node;
+        if left_match || right_match {
             let arity: Int = AstExpressionNodeArity(graph.arena.topology.node_kinds[consumer]);
-            if (arity >= 1 && graph.arena.topology.left_children[consumer] == node) ||
-                (arity >= 2 && graph.arena.topology.right_children[consumer] == node) { return consumer; }
+            if (left_match && arity >= 1) || (right_match && arity >= 2) { return consumer; }
         }
         consumer = consumer + 1;
     }

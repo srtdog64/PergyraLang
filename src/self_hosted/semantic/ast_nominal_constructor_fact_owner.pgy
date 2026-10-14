@@ -438,15 +438,22 @@ func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstru
             facts.field_write_modes[field_i] != 1 { return false; }
         field_i = field_i + 1;
     }
+    // Field source ids are positive and unique: find the largest, mark each once.
+    let max_source_id: Int = 0;
     field_i = 0;
     while field_i < ArrayLength(facts.field_source_syntax_ids) {
-        if facts.field_source_syntax_ids[field_i] <= 0 { return false; }
-        let prior_i: Int = 0;
-        while prior_i < field_i {
-            if facts.field_source_syntax_ids[prior_i] ==
-                facts.field_source_syntax_ids[field_i] { return false; }
-            prior_i = prior_i + 1;
-        }
+        let candidate_id: Int = facts.field_source_syntax_ids[field_i];
+        if candidate_id <= 0 { return false; }
+        if candidate_id > max_source_id { max_source_id = candidate_id; }
+        field_i = field_i + 1;
+    }
+    let seen_source_ids: Array<Bool> = [];
+    while ArrayLength(seen_source_ids) <= max_source_id { ArrayPush(seen_source_ids, false); }
+    field_i = 0;
+    while field_i < ArrayLength(facts.field_source_syntax_ids) {
+        let field_source_id: Int = facts.field_source_syntax_ids[field_i];
+        if seen_source_ids[field_source_id] { return false; }
+        seen_source_ids[field_source_id] = true;
         field_i = field_i + 1;
     }
     return expected_param_count == ArrayLength(facts.field_source_syntax_ids) &&
