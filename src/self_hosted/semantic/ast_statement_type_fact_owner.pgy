@@ -193,13 +193,6 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 artifact, statements.node_ids[i]
             );
         if checks_expression {
-            let expression_verdict: SemanticAstExpressionVerdict =
-                SemanticAstExpressionVerdictError(
-                    statements.payload_texts[i],
-                    SemanticError1(
-                        "ast_artifact_invalid", "owner", "expression_graph"
-                    )
-                );
             let graph_root: Option<Int> =
                 SemanticAstExpressionGraphRootForNode(
                     expression_surfaces, statements.node_ids[i],
@@ -211,7 +204,8 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     artifact, "expression_graph"
                 );
             }
-            expression_verdict = SemanticAstExpressionVerdictFromGraph(
+            let expression_verdict: SemanticAstExpressionVerdict =
+                SemanticAstExpressionVerdictFromGraph(
                 statements.payload_texts[i],
                 expression_surfaces.expression_graph,
                 UnwrapOption(graph_root), constructors, enum_facts,
