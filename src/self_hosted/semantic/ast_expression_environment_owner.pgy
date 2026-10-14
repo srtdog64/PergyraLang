@@ -54,7 +54,7 @@ func SemanticAstExpressionSeedEnumValues(
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
-    if !SemanticAstEnumRowsReady(enums) {
+    if !enums.ok || ArrayLength(enums.value_names) != ArrayLength(enums.value_types) {
         return false;
     }
     // A binding already in scope keeps its name; each other value row is

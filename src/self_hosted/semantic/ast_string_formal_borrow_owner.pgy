@@ -115,12 +115,18 @@ func SemanticAstBorrowedTextThroughToString(
         SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ToString");
 }
 
+// The first later node in (node, root] that names `node` as an operand its
+// arity admits: the graph's left/right child reads, one arity per row.
 func SemanticAstBorrowedTextConsumer(ref graph: SemanticExpressionGraphFacts, node: Int, root: Int) -> Int {
+    if !graph.ok { return -1; }
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     let consumer: Int = node + 1;
     while consumer <= root {
-        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
-        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);
-        if (IsSome(left) && UnwrapOption(left) == node) || (IsSome(right) && UnwrapOption(right) == node) { return consumer; }
+        if consumer >= 0 && consumer < count {
+            let arity: Int = AstExpressionNodeArity(graph.arena.topology.node_kinds[consumer]);
+            if (arity >= 1 && graph.arena.topology.left_children[consumer] == node) ||
+                (arity >= 2 && graph.arena.topology.right_children[consumer] == node) { return consumer; }
+        }
         consumer = consumer + 1;
     }
     return -1;

@@ -153,12 +153,16 @@ func SemanticAstEnumFactsFromArtifact(
         }
         row = row + 1;
     }
-    return SemanticAstEnumFacts(
+    let facts: SemanticAstEnumFacts = SemanticAstEnumFacts(
         ok, artifact.count, node_ids, enum_names, variant_enum_names, variant_names,
         variant_qualified_names,
         variant_param_starts, variant_param_counts,
         variant_param_type_names, value_names, value_types, value_rows
     );
+    // Rows are checked once here; an environment seed trusts `ok` and reads
+    // only the value rows, so it does not walk the variants again.
+    facts.ok = SemanticAstEnumRowsReady(facts);
+    return facts;
 }
 
 func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
