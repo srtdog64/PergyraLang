@@ -58,9 +58,10 @@ could do once?
 | 8 | `df2e7b21a` | second walk over locals just to push their modes | 14.0 s | 34.7 s |
 | 9 | `85d16ffa3` | 0.4–1.7 KB facts structs copied per seed call | 13.5 s | 33.8 s |
 | 10 | `461f6e475` | whole-program graph rows rechecked on every artifact admission | 12.2 s | 31.8 s |
+| 12 | `7e2077927` | semantic graph shape rechecked by about 28 admissions | 10.9 s | 30.6 s |
 
-Overall: codegen input 190 s → 12.2 s (15.6×), driver input 716 s → 31.8 s
-(22.5×). Peak memory stayed between 1.9 and 4.4 GB throughout.
+Overall: codegen input 190 s → 10.9 s (17×), driver input 716 s → 30.6 s
+(23×). Peak memory stayed between 1.9 and 4.4 GB throughout.
 
 The table gives one run per stage. Repeat runs of the same build differ by
 10–20%, which is more than stages 8–10 changed. Those four builds were
@@ -73,15 +74,19 @@ table below gives the fastest run:
 | stage 8 | 13.0 s | 34.0 s |
 | stage 9 | 12.7 s | 33.8 s |
 | stage 10 | 11.6 s | 31.8 s |
+| stage 12 (separate rotation with stage 10: 11.7 s / 30.4 s) | 11.0 s | 30.4 s |
 
 Stages 8 and 9 are small steps in the right direction. Stage 10 gives a
-steady 6–8%.
+steady 6–8%. Stage 12 removes most of the graph readiness samples (377 of
+3124 → 46 of 2777). It shows on the codegen input but not beyond noise on
+the driver input.
 
 Two attempts were measured and dropped:
 - **Check only the new root when the parser combines expression arenas.**
   It saved nothing measurable. The binary-node arenas it skipped were
   small. Most of the time is in whole-program row checks.
-- **Pass the typed AST arena by ref to its accessors.** There was no
+- **Pass the typed AST arena by ref to its accessors** (stage 11, not
+  committed). There was no
   difference beyond noise; the C compiler likely already inlines these
   small accessors. The first version also passed a borrowed `Array<Int>`
   on to a by-value parameter (`ChildAt` → `ChildAtFromEdges`). The native
@@ -89,14 +94,15 @@ Two attempts were measured and dropped:
   at node 15463. Only the verdict gate caught it. The verdict gate needs
   gen0 itself; type-checking the self-host source is not enough.
 
-## What remains (sampled on stage 10, codegen input)
+## What remains (sampled on stage 10, codegen input; stage 12 removed the first item)
 
-- **About 12%: whole-graph validation.**
-  `SemanticExpressionGraphArenaReady` and the topology check inside it
-  validate the semantic expression graph 28 times per run. The graph does
-  change between passes (place kinds, identities, call targets), so
-  removing calls needs a validated-generation rule. That is a change to
-  admission, not only to speed.
+- **Done in stage 12: whole-graph validation, about 12%.** The shape rows
+  (topology, texts, payloads, children) are now checked once when a
+  surface graph is finished. Overlays (call targets, identities, place
+  kinds) are still checked at every admission, because body passes write
+  them. A generation counter was rejected: about ten files write overlays
+  through unencapsulated fields, so one missed bump would skip a check on a
+  changed graph.
 - **About 11%: per-root environment construction.**
   `SemanticAstExpressionSeedVisibleLocals` and
   `SemanticAstScopedLocalBindingIdentityForName` both walk scopes through
