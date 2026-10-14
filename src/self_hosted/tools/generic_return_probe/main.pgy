@@ -2,6 +2,7 @@
 
 import "../../semantic/ast_body_type_bundle_owner.pgy";
 import "../../semantic/ast_expression_graph_generic_call_owner.pgy";
+import "../../semantic/ast_signature_canonical_name_index_owner.pgy";
 import "../../semantic/ast_expression_identity_resolution_owner.pgy";
 import "../../parser/program_parse_owner.pgy";
 
@@ -198,6 +199,10 @@ func Main() -> Void with caps io_read, env {
         let unique_nodes: Array<Int> = [101, 202];
         let unique_owners: Array<String> = ["Box", ""];
         let unique_names: Array<String> = ["Get", "Main"];
+        let unique_first_rows: HashMap<String, Int> = MapNew();
+        let unique_row_counts: HashMap<String, Int> = MapNew();
+        SemanticAstSignatureCanonicalNameIndexFill(unique_owners, unique_names,
+            unique_first_rows, unique_row_counts);
         let unique: SemanticAstFunctionSignatureFacts =
             SemanticAstFunctionSignatureFacts(
                 base.ok, base.diagnostic_code, base.diagnostic_message,
@@ -210,7 +215,8 @@ func Main() -> Void with caps io_read, env {
                 base.generic_counts, base.generic_names, base.generic_constraint_type_names, base.param_starts,
                 base.param_counts, base.receiver_source_param_offsets,
                 base.param_node_ids, base.param_names,
-                base.param_types, base.param_modes
+                base.param_types, base.param_modes,
+                unique_first_rows, unique_row_counts
             );
         let exact: Option<Int> = SemanticGenericCallSignatureIndex(
             unique, "Box_Get"
@@ -225,6 +231,10 @@ func Main() -> Void with caps io_read, env {
         let collision_nodes: Array<Int> = [301, 302];
         let collision_owners: Array<String> = ["A_B", "A"];
         let collision_names: Array<String> = ["C_D", "B_C_D"];
+        let collision_first_rows: HashMap<String, Int> = MapNew();
+        let collision_row_counts: HashMap<String, Int> = MapNew();
+        SemanticAstSignatureCanonicalNameIndexFill(collision_owners, collision_names,
+            collision_first_rows, collision_row_counts);
         let collision: SemanticAstFunctionSignatureFacts =
             SemanticAstFunctionSignatureFacts(
                 base.ok, base.diagnostic_code, base.diagnostic_message,
@@ -237,7 +247,8 @@ func Main() -> Void with caps io_read, env {
                 base.generic_counts, base.generic_names, base.generic_constraint_type_names, base.param_starts,
                 base.param_counts, base.receiver_source_param_offsets,
                 base.param_node_ids, base.param_names,
-                base.param_types, base.param_modes
+                base.param_types, base.param_modes,
+                collision_first_rows, collision_row_counts
             );
         let collision_index: Option<Int> =
             SemanticGenericCallSignatureIndex(collision, "A_B_C_D");
@@ -245,6 +256,10 @@ func Main() -> Void with caps io_read, env {
         let invalid_nodes: Array<Int> = [0];
         let invalid_owners: Array<String> = ["Box"];
         let invalid_names: Array<String> = ["Get"];
+        let invalid_first_rows: HashMap<String, Int> = MapNew();
+        let invalid_row_counts: HashMap<String, Int> = MapNew();
+        SemanticAstSignatureCanonicalNameIndexFill(invalid_owners, invalid_names,
+            invalid_first_rows, invalid_row_counts);
         let invalid: SemanticAstFunctionSignatureFacts =
             SemanticAstFunctionSignatureFacts(
                 base.ok, base.diagnostic_code, base.diagnostic_message,
@@ -257,7 +272,8 @@ func Main() -> Void with caps io_read, env {
                 base.generic_counts, base.generic_names, base.generic_constraint_type_names, base.param_starts,
                 base.param_counts, base.receiver_source_param_offsets,
                 base.param_node_ids, base.param_names,
-                base.param_types, base.param_modes
+                base.param_types, base.param_modes,
+                invalid_first_rows, invalid_row_counts
             );
         let invalid_index: Option<Int> = SemanticGenericCallSignatureIndex(
             invalid, "Box_Get"

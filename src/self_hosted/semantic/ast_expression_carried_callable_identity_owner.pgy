@@ -1,6 +1,7 @@
 // Exact carried identity checks for formal and declared callable lanes.
 
 import "ast_signature_fact_owner.pgy";
+import "ast_signature_canonical_name_index_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
 import "ast_callable_type_shape_owner.pgy";
 import "callable_resolution_owner.pgy";
@@ -54,31 +55,20 @@ func SemanticExpressionDeclaredFunctionSyntaxId(
     if target_name == "" {
         return Err("declared callable identity facts are invalid");
     }
-    let found: Int = 0;
-    let matches: Int = 0;
-    let signature: Int = 0;
-    while signature < SemanticAstFunctionSignatureCount(signatures) {
-        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
-            signatures, signature);
-        let name: Option<String> = SemanticAstFunctionNameAt(
-            signatures, signature);
-        let node: Option<Int> = SemanticAstFunctionNodeAt(
-            signatures, signature);
-        if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
-            return Err("declared callable identity facts are invalid");
-        }
-        if SemanticCallableCanonicalDeclaredNameEquals(
-                UnwrapOption(owner), UnwrapOption(name), target_name) {
-            matches = matches + 1;
-            found = UnwrapOption(node);
-            if matches > 1 || found <= 0 {
-                return Err("declared callable identity facts are invalid");
-            }
-        }
-        signature = signature + 1;
+    // The canonical name index replaces a scan of every signature row per call.
+    let row_count: Int = SemanticAstSignatureCanonicalNameValue(
+        signatures.canonical_name_row_counts, target_name);
+    if row_count < 0 { return Ok(0); }
+    if row_count > 1 {
+        return Err("declared callable identity facts are invalid");
     }
-    if matches == 0 { return Ok(0); }
-    return Ok(found);
+    let node: Option<Int> = SemanticAstFunctionNodeAt(signatures,
+        SemanticAstSignatureCanonicalNameValue(
+            signatures.canonical_name_first_rows, target_name));
+    if !IsSome(node) || UnwrapOption(node) <= 0 {
+        return Err("declared callable identity facts are invalid");
+    }
+    return Ok(UnwrapOption(node));
 }
 
 func SemanticExpressionDeclaredCallableSyntaxId(

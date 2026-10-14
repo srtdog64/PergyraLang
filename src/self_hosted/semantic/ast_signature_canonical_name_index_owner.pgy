@@ -1,0 +1,37 @@
+// Canonical declared-name index over function signature rows.
+//
+// One pass at signature construction maps each canonical declared name
+// (SemanticCallableCanonicalDeclaredName: owner_local, or local without an
+// owner) to its first row and to how many rows share it. Name lookups read the
+// index instead of rescanning every row per call, which was quadratic in the
+// program's function count. A count above one keeps the ambiguity the row
+// scan reported.
+import "callable_resolution_owner.pgy";
+
+func SemanticAstSignatureCanonicalNameIndexFill(
+    ref owner_names: Array<String>,
+    ref names: Array<String>,
+    inout first_rows: HashMap<String, Int>,
+    inout row_counts: HashMap<String, Int>
+) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(names) && row < ArrayLength(owner_names) {
+        let key: String =
+            SemanticCallableCanonicalDeclaredName(owner_names[row], names[row]);
+        if MapHas(row_counts, key) {
+            MapSet(row_counts, key, MapGet(row_counts, key) + 1);
+        } else {
+            MapSet(first_rows, key, row);
+            MapSet(row_counts, key, 1);
+        }
+        row = row + 1;
+    }
+}
+
+// The stored value for a canonical name, or -1 when no row has it.
+func SemanticAstSignatureCanonicalNameValue(
+    index: HashMap<String, Int>, canonical_name: String
+) -> Int {
+    if !MapHas(index, canonical_name) { return -1; }
+    return MapGet(index, canonical_name);
+}

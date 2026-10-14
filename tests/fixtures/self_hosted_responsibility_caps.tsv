@@ -21,5 +21,6 @@ src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy|7
 src/self_hosted/semantic/ast_expression_environment_owner.pgy|680
 src/self_hosted/semantic/ast_expression_verdict_owner.pgy|614
 src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy|615
-src/self_hosted/semantic/ast_signature_fact_owner.pgy|615
+# +4 for the canonical declared-name index (import, two fields, its fill).
+src/self_hosted/semantic/ast_signature_fact_owner.pgy|619
 src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy|677

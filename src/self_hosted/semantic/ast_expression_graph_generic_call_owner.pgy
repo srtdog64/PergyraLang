@@ -1,6 +1,7 @@
 // Generic return substitution over carried call-target and signature facts.
 
 import "ast_signature_fact_owner.pgy";
+import "ast_signature_canonical_name_index_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
@@ -55,23 +56,11 @@ func SemanticGenericCallSignatureIndex(
     signatures: SemanticAstFunctionSignatureFacts,
     callable_name: String
 ) -> Option<Int> {
-    let i: Int = 0;
-    while i < SemanticAstFunctionSignatureCount(signatures) {
-        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
-            signatures, i
-        );
-        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
-        if !IsSome(owner) || !IsSome(name) {
-            return None;
-        }
-        if SemanticCallableCanonicalDeclaredNameEquals(
-            UnwrapOption(owner), UnwrapOption(name), callable_name
-        ) {
-            return Some(i);
-        }
-        i = i + 1;
-    }
-    return None;
+    // First row with this canonical name, from the signature index.
+    let row: Int = SemanticAstSignatureCanonicalNameValue(
+        signatures.canonical_name_first_rows, callable_name);
+    if row < 0 { return None; }
+    return Some(row);
 }
 
 func SemanticExpressionGraphGenericCallFactCaptureFromGraph(

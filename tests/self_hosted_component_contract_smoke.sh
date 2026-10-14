@@ -547,7 +547,7 @@ require_max_lines "src/self_hosted/semantic/ast_body_analysis_admission_owner.pg
 require_max_lines "src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy" 240
 require_max_lines \
     "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy" 120
-require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 615
+require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 619
 require_max_lines "src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy" 677
 require_max_lines "src/self_hosted/semantic/ast_signature_type_binding_owner.pgy" 599
 require_max_lines \
