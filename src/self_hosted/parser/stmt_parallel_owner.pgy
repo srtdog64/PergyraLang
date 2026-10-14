@@ -14,7 +14,7 @@ func ParseParallelStmt(
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let i: Int = after_head;
-    let parallel_probe: Int = SkipWhitespaceAndComments(content, i);
+    let parallel_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     // `parallel on` is a role reactive form, a declared vision surface
     // (docs/181). In a statement position native expects `{` after
     // `parallel` and refuses at `on`; so does this parser.
@@ -26,7 +26,7 @@ func ParseParallelStmt(
     // compact: `Parallel:` header at stmt_indent, then body stmts
     // directly under it at stmt_indent + 2 (no intermediate `Block:`
     // wrapper).
-    i = SkipWhitespaceAndComments(content, i);
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     // The join form `parallel (x in xs) [join with MODE] { body }` prints its
     // body as one Block under `Parallel:`; native's tree omits the header.
     if ParserCharAt(content, i) == "(" {

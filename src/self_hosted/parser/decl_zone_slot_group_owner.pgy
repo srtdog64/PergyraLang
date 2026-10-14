@@ -52,7 +52,7 @@ func ParseZoneSlotGroupRows(
     while true {
         ArrayPush(names, ParseNameIn(context, content, i,
             "slot name in group", "zone_slot_group", cursor_out));
-        i = SkipWhitespaceAndComments(content, cursor_out[0]);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor_out[0]);
         if ParserCharAt(content, i) != "," {
             break;
         }
@@ -68,7 +68,7 @@ func ParseZoneSlotGroupRows(
         ArraySet(cursor_out, 0, i);
         group_type = ReadTypeIn(context, content, content_extent, i, cursor_out);
         if group_type == "" {
-            ParseRefuse(context, SkipWhitespaceAndComments(content, i),
+            ParseRefuse(context, SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i),
                 "type_name_invalid", "construct", "zone_slot_group", "", "");
         }
     }

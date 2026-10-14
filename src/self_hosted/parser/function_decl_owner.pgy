@@ -177,7 +177,7 @@ func ParseFunctionObserved(
         ParseRefuse(location_context, start, "expected_token",
             "expected", LanguageWordSpelling(fn_word), "construct", "function");
     }
-    let i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(start, fn_word));
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(start, fn_word));
     ArraySet(cursor_out, 0, i);
     let fn_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
@@ -198,27 +198,27 @@ func ParseFunctionObserved(
     i = cursor_out[0];
     i = ParseExpectIn(location_context, content, i, "(", "function");
     let param_lines: Array<String> = [];
-    i = SkipWhitespaceAndComments(content, i);
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if ParserCharAt(content, i) != ")" {
         while true {
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             let param_mode_prefix: String = "";
             if MatchLanguageWord(content, i, LanguageWordId.WordInout) {
                 param_mode_prefix = "inout ";
                 i = LanguageWordEnd(i, LanguageWordId.WordInout);
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             } else if MatchLanguageWord(content, i, LanguageWordId.WordOwn) {
                 param_mode_prefix = "own ";
                 i = LanguageWordEnd(i, LanguageWordId.WordOwn);
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             } else if MatchLanguageWord(content, i, LanguageWordId.WordRef) {
                 param_mode_prefix = "ref ";
                 i = LanguageWordEnd(i, LanguageWordId.WordRef);
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             } else if ParserCharAt(content, i) == "&" {
                 param_mode_prefix = "ref ";
                 i = i + 1;
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             }
             ArraySet(cursor_out, 0, i);
             let p_name: String = ReadIdent(content, i, cursor_out);
@@ -230,7 +230,7 @@ func ParseFunctionObserved(
             // `self` parameter has no `: TYPE` annotation. Emit a bare
             // `self` row when the name is `self` and the next char is
             // not `:`.
-            let after_pname: Int = SkipWhitespaceAndComments(content, i);
+            let after_pname: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if p_name == "self" && ParserCharAt(content, after_pname) != ":" {
                 ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, "self")));
                 i = after_pname;
@@ -249,7 +249,7 @@ func ParseFunctionObserved(
                     "construct", "parameter", "name", p_name);
             }
             ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, Concat(p_name, Concat(": ", p_type)))));
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
@@ -279,10 +279,10 @@ func ParseFunctionObserved(
     let saw_effects: Bool = false;
     let is_action: Bool = fn_word == LanguageWordId.WordAction;
     if !signature_done {
-    i = SkipWhitespaceAndComments(content, i);
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if ParserCharAt(content, i) == "-" && ParserCharAt(content, i + 1) == ">" {
         i = i + 2;
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         ret_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
         i = cursor_out[0];
@@ -301,20 +301,20 @@ func ParseFunctionObserved(
         if is_signature && ParserSignatureMemberBoundaryAt(content, i) {
             break;
         }
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if MatchLanguageWord(content, i, LanguageWordId.WordRequires) {
             if !is_action || saw_requires { Exit(1); }
             saw_requires = true;
             i = LanguageWordEnd(i, LanguageWordId.WordRequires);
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor_out, 0, i);
             req_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
             i = cursor_out[0];
             while true {
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                 if ParserCharAt(content, i) == "," {
                     i = i + 1;
-                    i = SkipWhitespaceAndComments(content, i);
+                    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     ArraySet(cursor_out, 0, i);
                     let next_req: String = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
                     i = cursor_out[0];
@@ -330,7 +330,7 @@ func ParseFunctionObserved(
             if saw_within { Fail("action within clause is duplicated", content, i); }
             saw_within = true;
             i = LanguageWordEnd(i, LanguageWordId.WordWithin);
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor_out, 0, i);
             within_zone = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
@@ -341,7 +341,7 @@ func ParseFunctionObserved(
             if !is_action || saw_causes { Exit(1); }
             saw_causes = true;
             i = LanguageWordEnd(i, LanguageWordId.WordCauses);
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor_out, 0, i);
             causes_effect = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
@@ -349,20 +349,20 @@ func ParseFunctionObserved(
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordAuthorized) {
             if !is_action || saw_authorized_by { Exit(1); }
-            let next_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordAuthorized));
+            let next_i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordAuthorized));
             if MatchLanguageWord(content, next_i, LanguageWordId.WordBy) {
                 saw_authorized_by = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordBy);
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                 ArraySet(cursor_out, 0, i);
                 auth_by = ReadIdent(content, i, cursor_out);
                 i = cursor_out[0];
                 if StringLength(auth_by) == 0 { Exit(1); }
                 while true {
-                    i = SkipWhitespaceAndComments(content, i);
+                    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
-                        i = SkipWhitespaceAndComments(content, i);
+                        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                         ArraySet(cursor_out, 0, i);
                         let next_auth: String = ReadIdent(content, i, cursor_out);
                         i = cursor_out[0];
@@ -376,13 +376,13 @@ func ParseFunctionObserved(
             }
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordWith) {
-            let next_i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordWith));
+            let next_i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordWith));
             if MatchLanguageWord(content, next_i, LanguageWordId.WordEffects) {
                 if saw_effects { Exit(1); }
                 saw_effects = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordEffects);
                 while true {
-                    i = SkipWhitespaceAndComments(content, i);
+                    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     let effect_word: ParserEffectWordRead =
                         ParserReservedEffectWordAt(content, i);
                     let effect_name: String = "";
@@ -401,7 +401,7 @@ func ParseFunctionObserved(
                     ) { Exit(1); }
                     // Look for the next `,` without moving past a line end
                     // that may close an ability signature.
-                    let after_name: Int = SkipWhitespaceAndComments(content, i);
+                    let after_name: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     if ParserCharAt(content, after_name) == "," {
                         i = after_name + 1;
                         continue;
@@ -415,7 +415,7 @@ func ParseFunctionObserved(
                 saw_caps = true;
                 i = LanguageWordEnd(next_i, LanguageWordId.WordCaps);
                 while true {
-                    i = SkipWhitespaceAndComments(content, i);
+                    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     ArraySet(cursor_out, 0, i);
                     let cap_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
@@ -426,7 +426,7 @@ func ParseFunctionObserved(
                     ) { Exit(1); }
                     // Look for the next `,` without moving past a line end
                     // that may close an ability signature.
-                    let after_name: Int = SkipWhitespaceAndComments(content, i);
+                    let after_name: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                     if ParserCharAt(content, after_name) == "," {
                         i = after_name + 1;
                         continue;

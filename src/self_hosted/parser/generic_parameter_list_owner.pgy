@@ -7,7 +7,7 @@ import "type_name_owner.pgy";
 func ParseGenericParameterListText(
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     if ParserCharAt(content, i) != "<" {
         ArraySet(cursor_out, 0, i);
         return "";
@@ -15,7 +15,7 @@ func ParseGenericParameterListText(
     i = i + 1;
     let parameters: String = "";
     while true {
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         let name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
@@ -23,7 +23,7 @@ func ParseGenericParameterListText(
             Fail("expected generic parameter name", content, i);
         }
         let parameter: String = name;
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAt(content, i) == "=" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
@@ -39,7 +39,7 @@ func ParseGenericParameterListText(
         } else {
             parameters = Concat(parameters, Concat(", ", parameter));
         }
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAt(content, i) == "," {
             i = i + 1;
             continue;

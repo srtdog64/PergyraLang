@@ -21,16 +21,18 @@ struct CodegenAstTextNode {
 }
 
 func TypedAstTextKindOf(text: String) -> Int {
+    // Measured once: every prefix check below reads within it.
+    let text_extent: Int = StringLength(text);
     if text == "Program:" {
         return TypedAstKindProgramTag();
     }
     if text == "Parameters:" {
         return TypedAstKindParametersTag();
     }
-    if StartsWith(text, "Generic params:") {
+    if SubStartsWithLen(text, text_extent, 0, "Generic params:") {
         return TypedAstKindGenericParamsTag();
     }
-    if StartsWith(text, "Constraints:") {
+    if SubStartsWithLen(text, text_extent, 0, "Constraints:") {
         return TypedAstKindGenericConstraintsTag();
     }
     if text == "Body:" {
@@ -42,218 +44,218 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "Then:" {
         return TypedAstKindThenTag();
     }
-    if StartsWith(text, "Returns:") {
+    if SubStartsWithLen(text, text_extent, 0, "Returns:") {
         return TypedAstKindReturnsTag();
     }
     if text == "Fields:" {
         return TypedAstKindFieldsHeaderTag();
     }
-    if StartsWith(text, "Field:") || StartsWith(text, "Shared:") ||
-        StartsWith(text, "SubjectSlot:") ||
-        StartsWith(text, "BindingSlot:") || StartsWith(text, "ObjectSlot:") ||
-        StartsWith(text, "TObjectSlot:") ||
-        StartsWith(text, "EffectSlot:") ||
-        StartsWith(text, "RelationSlot:") || StartsWith(text, "EffectPool:") ||
-        StartsWith(text, "RelationPool:") || StartsWith(text, "SystemicSlot:") ||
-        StartsWith(text, "WorldSystemic:") || StartsWith(text, "WorldZone:") {
+    if SubStartsWithLen(text, text_extent, 0, "Field:") || SubStartsWithLen(text, text_extent, 0, "Shared:") ||
+        SubStartsWithLen(text, text_extent, 0, "SubjectSlot:") ||
+        SubStartsWithLen(text, text_extent, 0, "BindingSlot:") || SubStartsWithLen(text, text_extent, 0, "ObjectSlot:") ||
+        SubStartsWithLen(text, text_extent, 0, "TObjectSlot:") ||
+        SubStartsWithLen(text, text_extent, 0, "EffectSlot:") ||
+        SubStartsWithLen(text, text_extent, 0, "RelationSlot:") || SubStartsWithLen(text, text_extent, 0, "EffectPool:") ||
+        SubStartsWithLen(text, text_extent, 0, "RelationPool:") || SubStartsWithLen(text, text_extent, 0, "SystemicSlot:") ||
+        SubStartsWithLen(text, text_extent, 0, "WorldSystemic:") || SubStartsWithLen(text, text_extent, 0, "WorldZone:") {
         return TypedAstKindFieldTag();
     }
-    if StartsWith(text, "RoleSlot:") {
+    if SubStartsWithLen(text, text_extent, 0, "RoleSlot:") {
         return TypedAstKindRoleSlotTag();
     }
-    if StartsWith(text, "Impl ability:") {
+    if SubStartsWithLen(text, text_extent, 0, "Impl ability:") {
         return TypedAstKindImplAbilityTag();
     }
     if text == "Override" {
         return TypedAstKindOverrideFuncTag();
     }
-    if StartsWith(text, "Include role ") {
+    if SubStartsWithLen(text, text_extent, 0, "Include role ") {
         return TypedAstKindRoleIncludeTag();
     }
-    if StartsWith(text, "Function:") {
+    if SubStartsWithLen(text, text_extent, 0, "Function:") {
         return TypedAstKindFuncDeclTag();
     }
     if text == "AsyncBlock:" {
         return TypedAstKindAsyncBlockTag();
     }
-    if StartsWith(text, "Action:") {
+    if SubStartsWithLen(text, text_extent, 0, "Action:") {
         return TypedAstKindActionDeclTag();
     }
-    if StartsWith(text, "Requires:") {
+    if SubStartsWithLen(text, text_extent, 0, "Requires:") {
         return TypedAstKindActionRequiresTag();
     }
-    if StartsWith(text, "Within:") {
+    if SubStartsWithLen(text, text_extent, 0, "Within:") {
         return TypedAstKindActionWithinTag();
     }
-    if StartsWith(text, "Causes:") {
+    if SubStartsWithLen(text, text_extent, 0, "Causes:") {
         return TypedAstKindActionCausesTag();
     }
-    if StartsWith(text, "Authorized by:") {
+    if SubStartsWithLen(text, text_extent, 0, "Authorized by:") {
         return TypedAstKindActionAuthorizedByTag();
     }
-    if StartsWith(text, "Caps:") {
+    if SubStartsWithLen(text, text_extent, 0, "Caps:") {
         return TypedAstKindCallableCapsTag();
     }
-    if StartsWith(text, "Effects:") {
+    if SubStartsWithLen(text, text_extent, 0, "Effects:") {
         return TypedAstKindCallableEffectsTag();
     }
-    if StartsWith(text, "Authority:") {
+    if SubStartsWithLen(text, text_extent, 0, "Authority:") {
         return TypedAstKindZoneAuthorityTag();
     }
-    if StartsWith(text, "Refresh:") { return TypedAstKindDomainRefreshTag(); }
-    if StartsWith(text, "Publish:") { return TypedAstKindDomainPublishTag(); }
-    if StartsWith(text, "Bind:") {
+    if SubStartsWithLen(text, text_extent, 0, "Refresh:") { return TypedAstKindDomainRefreshTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Publish:") { return TypedAstKindDomainPublishTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Bind:") {
         return TypedAstKindDomainProjectionBindTag();
     }
-    if StartsWith(text, "ProjectionMap:") {
+    if SubStartsWithLen(text, text_extent, 0, "ProjectionMap:") {
         return TypedAstKindDomainProjectionMapEntryTag();
     }
-    if StartsWith(text, "Maintain:") { return TypedAstKindDomainMaintainTag(); }
-    if StartsWith(text, "Link:") { return TypedAstKindDomainLinkTag(); }
-    if StartsWith(text, "Apply:") { return TypedAstKindDomainApplyTag(); }
-    if StartsWith(text, "Detach:") { return TypedAstKindDomainDetachTag(); }
-    if StartsWith(text, "Unlink:") { return TypedAstKindDomainUnlinkTag(); }
-    if StartsWith(text, "State:") { return TypedAstKindDomainStateTag(); }
-    if StartsWith(text, "Role:") {
+    if SubStartsWithLen(text, text_extent, 0, "Maintain:") { return TypedAstKindDomainMaintainTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Link:") { return TypedAstKindDomainLinkTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Apply:") { return TypedAstKindDomainApplyTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Detach:") { return TypedAstKindDomainDetachTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Unlink:") { return TypedAstKindDomainUnlinkTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "State:") { return TypedAstKindDomainStateTag(); }
+    if SubStartsWithLen(text, text_extent, 0, "Role:") {
         return TypedAstKindRoleDeclTag();
     }
-    if StartsWith(text, "IntentMode:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentMode:") {
         return TypedAstKindIntentModeTag();
     }
-    if StartsWith(text, "IntentRollback:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentRollback:") {
         return TypedAstKindIntentRollbackTag();
     }
-    if StartsWith(text, "IntentPriority:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentPriority:") {
         return TypedAstKindIntentPriorityTag();
     }
-    if StartsWith(text, "IntentRetry:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentRetry:") {
         return TypedAstKindIntentRetryTag();
     }
-    if StartsWith(text, "IntentInvolves:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentInvolves:") {
         return TypedAstKindIntentInvolvesTag();
     }
-    if StartsWith(text, "IntentValue:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentValue:") {
         return TypedAstKindIntentValueTag();
     }
-    if StartsWith(text, "IntentStep:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentStep:") {
         return TypedAstKindIntentStepTag();
     }
-    if StartsWith(text, "IntentSuccess:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentSuccess:") {
         return TypedAstKindIntentSuccessTag();
     }
-    if StartsWith(text, "IntentFailure:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentFailure:") {
         return TypedAstKindIntentFailureTag();
     }
-    if StartsWith(text, "IntentReturns:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentReturns:") {
         return TypedAstKindIntentReturnsTag();
     }
-    if StartsWith(text, "IntentStepSuccess:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentStepSuccess:") {
         return TypedAstKindIntentStepSuccessTag();
     }
-    if StartsWith(text, "IntentStepFailure:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentStepFailure:") {
         return TypedAstKindIntentStepFailureTag();
     }
-    if StartsWith(text, "IntentTerminalSuccess:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentTerminalSuccess:") {
         return TypedAstKindIntentTerminalSuccessTag();
     }
-    if StartsWith(text, "IntentTerminalFailure:") {
+    if SubStartsWithLen(text, text_extent, 0, "IntentTerminalFailure:") {
         return TypedAstKindIntentTerminalFailureTag();
     }
-    if StartsWith(text, "Who:") {
+    if SubStartsWithLen(text, text_extent, 0, "Who:") {
         return TypedAstKindIntentStepWhoTag();
     }
-    if StartsWith(text, "Using:") {
+    if SubStartsWithLen(text, text_extent, 0, "Using:") {
         return TypedAstKindIntentStepUsingTag();
     }
-    if StartsWith(text, "Transfer:") {
+    if SubStartsWithLen(text, text_extent, 0, "Transfer:") {
         return TypedAstKindIntentStepTransferTag();
     }
-    if StartsWith(text, "On:") {
+    if SubStartsWithLen(text, text_extent, 0, "On:") {
         return TypedAstKindIntentStepOnTag();
     }
-    if StartsWith(text, "Outcome:") {
+    if SubStartsWithLen(text, text_extent, 0, "Outcome:") {
         return TypedAstKindIntentStepOutcomeTag();
     }
-    if StartsWith(text, "Compensate:") {
+    if SubStartsWithLen(text, text_extent, 0, "Compensate:") {
         return TypedAstKindIntentStepCompensateTag();
     }
-    if StartsWith(text, "Guard:") {
+    if SubStartsWithLen(text, text_extent, 0, "Guard:") {
         return TypedAstKindIntentStepGuardTag();
     }
-    if StartsWith(text, "Pre:") {
+    if SubStartsWithLen(text, text_extent, 0, "Pre:") {
         return TypedAstKindIntentStepPreTag();
     }
-    if StartsWith(text, "Invariant:") {
+    if SubStartsWithLen(text, text_extent, 0, "Invariant:") {
         return TypedAstKindIntentStepInvariantTag();
     }
-    if StartsWith(text, "Post:") {
+    if SubStartsWithLen(text, text_extent, 0, "Post:") {
         return TypedAstKindIntentStepPostTag();
     }
-    if StartsWith(text, "AuthorizedBy:") {
+    if SubStartsWithLen(text, text_extent, 0, "AuthorizedBy:") {
         return TypedAstKindIntentStepAuthorizedByTag();
     }
-    if StartsWith(text, "Expect:") {
+    if SubStartsWithLen(text, text_extent, 0, "Expect:") {
         return TypedAstKindIntentStepExpectTag();
     }
-    if StartsWith(text, "ContractProvenance:") {
+    if SubStartsWithLen(text, text_extent, 0, "ContractProvenance:") {
         return TypedAstKindIntentStepContractProvenanceTag();
     }
-    if StartsWith(text, "Intent:") {
+    if SubStartsWithLen(text, text_extent, 0, "Intent:") {
         return TypedAstKindIntentDeclTag();
     }
-    if StartsWith(text, "Roster:") {
+    if SubStartsWithLen(text, text_extent, 0, "Roster:") {
         return TypedAstKindRosterDeclTag();
     }
-    if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
-        StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
-        StartsWith(text, "Vessel:") || StartsWith(text, "Zone:") ||
-        StartsWith(text, "World:") || StartsWith(text, "Party:") ||
-        StartsWith(text, "Effect:") || StartsWith(text, "Relation:") {
+    if SubStartsWithLen(text, text_extent, 0, "Struct:") || SubStartsWithLen(text, text_extent, 0, "Class:") || SubStartsWithLen(text, text_extent, 0, "Subject:") ||
+        SubStartsWithLen(text, text_extent, 0, "Object:") || SubStartsWithLen(text, text_extent, 0, "TObject:") ||
+        SubStartsWithLen(text, text_extent, 0, "Vessel:") || SubStartsWithLen(text, text_extent, 0, "Zone:") ||
+        SubStartsWithLen(text, text_extent, 0, "World:") || SubStartsWithLen(text, text_extent, 0, "Party:") ||
+        SubStartsWithLen(text, text_extent, 0, "Effect:") || SubStartsWithLen(text, text_extent, 0, "Relation:") {
         return TypedAstKindNominalDeclTag();
     }
-    if StartsWith(text, "Enum:") {
+    if SubStartsWithLen(text, text_extent, 0, "Enum:") {
         return TypedAstKindEnumDeclTag();
     }
-    if StartsWith(text, "Event:") {
+    if SubStartsWithLen(text, text_extent, 0, "Event:") {
         return TypedAstKindEventDeclTag();
     }
-    if StartsWith(text, "Ability:") {
+    if SubStartsWithLen(text, text_extent, 0, "Ability:") {
         return TypedAstKindAbilityDeclTag();
     }
-    if StartsWith(text, "Extern Block (") {
+    if SubStartsWithLen(text, text_extent, 0, "Extern Block (") {
         return TypedAstKindExternBlockTag();
     }
-    if StartsWith(text, "Use: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Use: ") {
         return TypedAstKindUseDeclTag();
     }
-    if StartsWith(text, "Lifecycle: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Lifecycle: ") {
         return TypedAstKindLifecycleDeclTag();
     }
     if text == "Return" {
         return TypedAstKindBareReturnStmtTag();
     }
-    if StartsWith(text, "Return:") {
+    if SubStartsWithLen(text, text_extent, 0, "Return:") {
         return TypedAstKindValueReturnStmtTag();
     }
-    if StartsWith(text, "Let: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Let: ") {
         return TypedAstKindLetStmtTag();
     }
     if text == "AST node type 6" {
         return TypedAstKindDestructureStmtTag();
     }
-    if StartsWith(text, "Assign: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Assign: ") {
         return TypedAstKindAssignStmtTag();
     }
-    if StartsWith(text, "BindStmt: ") {
+    if SubStartsWithLen(text, text_extent, 0, "BindStmt: ") {
         return TypedAstKindBindStmtTag();
     }
-    if StartsWith(text, "ChannelSend: ") {
+    if SubStartsWithLen(text, text_extent, 0, "ChannelSend: ") {
         return TypedAstKindChannelSendStmtTag();
     }
     if text == "Parallel:" || text == "Parallel On:" {
         return TypedAstKindParallelBlockTag();
     }
-    if StartsWith(text, "With slot<") {
+    if SubStartsWithLen(text, text_extent, 0, "With slot<") {
         return TypedAstKindWithStmtTag();
     }
     if text == "TransactionBlock:" {
@@ -263,28 +265,28 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "Fail:" {
         return TypedAstKindFailStmtTag();
     }
-    if StartsWith(text, "EventSubscribe: ") {
+    if SubStartsWithLen(text, text_extent, 0, "EventSubscribe: ") {
         return TypedAstKindEventSubscribeStmtTag();
     }
-    if StartsWith(text, "EventUnsubscribe: ") {
+    if SubStartsWithLen(text, text_extent, 0, "EventUnsubscribe: ") {
         return TypedAstKindEventUnsubscribeStmtTag();
     }
-    if StartsWith(text, "For: ") {
+    if SubStartsWithLen(text, text_extent, 0, "For: ") {
         return TypedAstKindForStmtTag();
     }
-    if StartsWith(text, "While: ") {
+    if SubStartsWithLen(text, text_extent, 0, "While: ") {
         return TypedAstKindWhileStmtTag();
     }
-    if StartsWith(text, "If: ") {
+    if SubStartsWithLen(text, text_extent, 0, "If: ") {
         return TypedAstKindIfStmtTag();
     }
     if text == "Else:" {
         return TypedAstKindElseStmtTag();
     }
-    if StartsWith(text, "Match: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Match: ") {
         return TypedAstKindMatchStmtTag();
     }
-    if StartsWith(text, "Case: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Case: ") {
         return TypedAstKindMatchCaseStmtTag();
     }
     if text == "Default:" {
@@ -299,7 +301,7 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "Continue" {
         return TypedAstKindContinueStmtTag();
     }
-    if StartsWith(text, "Call: ") {
+    if SubStartsWithLen(text, text_extent, 0, "Call: ") {
         return TypedAstKindBareCallStmtTag();
     }
     if IsSingleCall(text) {

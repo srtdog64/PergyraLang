@@ -41,10 +41,10 @@ func ParseIfStmt(
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let i: Int = after_head;
-    let if_probe: Int = SkipWhitespaceAndComments(content, i);
+    let if_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if MatchLanguageWord(content, if_probe, LanguageWordId.WordLet) {
         i = LanguageWordEnd(if_probe, LanguageWordId.WordLet);
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         let variant_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
@@ -52,7 +52,7 @@ func ParseIfStmt(
             ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
         }
         i = ParseExpectIn(location_context, content, i, "(", "statement");
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         let case_payload: String = ParseIfLetPayload(location_context, content, i, cursor_out);
         i = cursor_out[0];
@@ -98,10 +98,10 @@ func ParseIfStmt(
         out = Concat(out, Concat("\n", then_body));
     }
     let saved_i: Int = i;
-    let after_ws: Int = SkipWhitespaceAndComments(content, i);
+    let after_ws: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if MatchLanguageWord(content, after_ws, LanguageWordId.WordElse) {
         i = LanguageWordEnd(after_ws, LanguageWordId.WordElse);
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         // `else if` chains: emit the nested `If:` directly under
         // `Else:` with no intermediate `Block:`. The nested If's
         // column equals the Block: column of a plain else

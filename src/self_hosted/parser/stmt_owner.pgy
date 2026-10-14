@@ -28,7 +28,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
     inout owner_kind_out: Array<Int>, diagnostic_projection: ParseDiagnosticProjection) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let head_start: Int = i;
     ArraySet(cursor_out, 0, i);
     let head: String = ReadIdent(content, i, cursor_out);
@@ -39,22 +39,22 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     }
     ParseRefuseUncoveredStatementSurface(content, head_start, location_context);
     if MatchLanguageWordWithin(content, content_extent, head_start, LanguageWordId.WordBind) {
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         let bind_lhs: String = ParseExprFactIn(location_context, content, content_extent, i, cursor_out).text;
         i = cursor_out[0];
         i = ParseExpectIn(location_context, content, i, "=", "statement");
         // docs/206 section 1: the slot borrows a local subject through a role;
         // a role alone leaves the role's self without a subject.
-        let subject_start: Int = SkipWhitespaceAndComments(content, i);
+        let subject_start: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, subject_start);
         let subject_name: String = ReadIdent(content, subject_start, cursor_out);
-        i = SkipWhitespaceAndComments(content, cursor_out[0]);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor_out[0]);
         if StringLength(subject_name) == 0 || !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAs) {
             ParseRefuse(location_context, subject_start, "bind_subject_missing",
                 "construct", "bind", "subject", subject_name);
         }
-        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordAs));
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordAs));
         ArraySet(cursor_out, 0, i);
         let role_name: String = ReadIdent(content, i, cursor_out);
         if StringLength(role_name) == 0 {
@@ -85,12 +85,12 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         //   With slot<TYPE> as VAR
         //     Block:
         //       <body at stmt_indent + 4>
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordSlot) {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = LanguageWordEnd(i, LanguageWordId.WordSlot);
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) != "<" {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
@@ -102,12 +102,12 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = i + 1;
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAs) {
             ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = LanguageWordEnd(i, LanguageWordId.WordAs);
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         let as_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
@@ -151,7 +151,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         tx_out = AppendLine(tx_out, Concat(IndentStr(stmt_indent + 2), "Block:"));
         let n_tx: Int = StringLength(content);
         while true {
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if i >= n_tx {
                 ParseRefuse(location_context, head_start, "block_unclosed",
                     "construct", "transaction", "source_offset", ToString(head_start));
@@ -187,7 +187,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         //   Defer:
         //     Block:
         //       <body at stmt_indent + 4>
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         let out: String = Concat(IndentStr(stmt_indent), "Defer:");
         out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
         ArraySet(cursor_out, 0, i);
@@ -248,7 +248,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     }
     if MatchLanguageWordWithin(content, content_extent, head_start, LanguageWordId.WordReturn) {
         // `return ;`  or  `return EXPR ;`
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) == ";" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
@@ -274,7 +274,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         // The `: TYPE` annotation is optional; without it the AST emits
         // `Let: IDENT = EXPR` (no `:` segment), matching type-inferred
         // bindings. A `var` binding is recorded as `Let: mut IDENT ...`.
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if ParserCharAtWithin(content, content_extent, i) == "(" {
             if head_is_var {
                 ParseRefuse(location_context, head_start, "binding_form_invalid",
@@ -301,7 +301,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
             ParseRefuse(location_context, name_start, "binding_name_reserved",
                 "name", var_name, "construct", "let");
         }
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         let var_type: String = "";
         let has_type: Bool = false;
         if ParserCharAtWithin(content, content_extent, i) == ":" {
@@ -310,7 +310,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
             var_type = ReadTypeIn(location_context, content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(var_type) == 0 {
-                ParseRefuse(location_context, SkipWhitespaceAndComments(content, i),
+                ParseRefuse(location_context, SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i),
                     "type_name_invalid", "construct", "let", "name", var_name);
             }
             has_type = true;
@@ -355,7 +355,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
     }
     let lhs: String = lhs_fact.text;
     let i_after_lhs: Int = cursor_out[0];
-    let peek: Int = SkipWhitespaceAndComments(content, i_after_lhs);
+    let peek: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i_after_lhs);
     // Event subscription: `LHS += RHS ;` emits
     //   EventSubscribe: LHS += RHS
     // at the statement indent. The C parser uses this shape for
@@ -476,7 +476,7 @@ func ParseOneStmtObservedProjected(
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
     diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
-    let observed_start: Int = SkipWhitespaceAndComments(content, start);
+    let observed_start: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let slot: Int = ParserSourceLocationReserve(
         location_context, observed_start, source_locations
     );

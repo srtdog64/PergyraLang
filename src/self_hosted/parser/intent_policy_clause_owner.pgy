@@ -54,7 +54,7 @@ func ParserIntentPolicyClauseFromSource(
         }
         let value_start: Int = ParseExpectIn(context, content,
             LanguageWordEnd(start, LanguageWordId.WordRollback), ":", "intent_rollback");
-        value_start = SkipWhitespaceAndComments(content, value_start);
+        value_start = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, value_start);
         // Only the existing full-rollback execution owner is substituted.
         // Native's other policies are refused as uncovered, never accepted
         // and erased to this default.
