@@ -276,7 +276,7 @@ func SemanticAstLocalBindingFactsMatchArtifact(
 }
 
 func SemanticAstLocalBindingRangeForFunction(
-    facts: SemanticAstLocalBindingFacts,
+    ref facts: SemanticAstLocalBindingFacts,
     function_node_id: Int
 ) -> SemanticAstLocalBindingFunctionRange {
     let count: Int = SemanticAstLocalBindingCount(facts);
@@ -383,7 +383,7 @@ func SemanticAstLocalBindingOrdinalAt(
 }
 
 func SemanticAstLocalBindingDeclaredTypeAt(
-    facts: SemanticAstLocalBindingFacts,
+    ref facts: SemanticAstLocalBindingFacts,
     index: Int
 ) -> Option<String> {
     if index < 0 || index >= SemanticAstLocalBindingCount(facts) ||

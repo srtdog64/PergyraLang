@@ -38,7 +38,7 @@ func SemanticAstLocalBindingIdentityRowsReady(
 }
 
 func SemanticAstScopedLocalBindingIdentityForName(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     function_node_id: Int,
@@ -113,7 +113,7 @@ func SemanticAstScopedLocalBindingIdentityForName(
 }
 
 func SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     function_node_id: Int,

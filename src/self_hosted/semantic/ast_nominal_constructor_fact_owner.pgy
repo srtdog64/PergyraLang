@@ -476,7 +476,7 @@ func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstru
         expected_role_slot_count == ArrayLength(facts.role_slot_type_names);
 }
 func SemanticAstNominalConstructorParamTypeAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     param_index: Int
 ) -> Option<String> {
     if constructor_index < 0 ||
@@ -522,13 +522,13 @@ func SemanticAstNominalRoleSlotTypeAt(
     return Some(facts.role_slot_type_names[facts.role_slot_starts[constructor_index] + slot_index]);
 }
 func SemanticAstNominalConstructorFieldTypeAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     field_index: Int
 ) -> Option<String> {
     return SemanticAstNominalConstructorParamTypeAt(facts, constructor_index, field_index);
 }
 func SemanticAstNominalConstructorFieldNameAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     field_index: Int
 ) -> Option<String> {
     if constructor_index < 0 ||

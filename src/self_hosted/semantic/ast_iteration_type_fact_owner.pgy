@@ -81,8 +81,8 @@ func SemanticAstIterationCollectionIsBoundIdentifier(
 }
 
 func SemanticAstIterationSeedVisibleRows(
-    artifact: AstTreeArtifact,
-    statements: SemanticAstStatementFacts,
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
     iteration_node_ids: Array<Int>,
     binding_type_names: Array<String>,
     iteration_verified: Array<Int>,
@@ -421,8 +421,8 @@ func SemanticAstIterationTypeCount(
 }
 
 func SemanticAstIterationSeedVisibleBindings(
-    artifact: AstTreeArtifact,
-    statements: SemanticAstStatementFacts,
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
     facts: SemanticAstIterationTypeFacts,
     function_node_id: Int,
     use_node_id: Int,

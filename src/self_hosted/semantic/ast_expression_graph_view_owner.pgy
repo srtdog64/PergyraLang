@@ -58,7 +58,7 @@ func SemanticAstExpressionIntentNodeAt(ref facts: SemanticAstExpressionSurfaceFa
     return Some(node_id);
 }
 func SemanticAstExpressionFunctionNodeAt(ref facts: SemanticAstExpressionSurfaceFacts,
-    signatures: SemanticAstFunctionSignatureFacts, surface_index: Int) -> Option<Int> {
+    ref signatures: SemanticAstFunctionSignatureFacts, surface_index: Int) -> Option<Int> {
     if !facts.ok || !signatures.ok || signatures.artifact_node_count != facts.artifact_node_count ||
         surface_index < 0 || surface_index >= ArrayLength(facts.node_ids) ||
         surface_index >= ArrayLength(facts.function_node_ids) {

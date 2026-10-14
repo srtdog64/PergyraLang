@@ -44,8 +44,8 @@ func SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
 // body stages may call this once per expression surface without reopening the
 // quadratic field-identity proof in SemanticAstNominalConstructorRowsReady.
 func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
-    signatures: SemanticAstFunctionSignatureFacts,
-    constructors: SemanticAstNominalConstructorFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
     function_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,

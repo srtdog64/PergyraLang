@@ -325,7 +325,7 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
 }
 
 func SemanticAstExpressionSeedParameterModes(
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int,
     inout modes: Array<String>
 ) -> Bool {
@@ -464,8 +464,8 @@ func SemanticAstExpressionSeedParameters(
 }
 
 func SemanticAstExpressionSeedVisibleLocals(
-    artifact: AstTreeArtifact,
-    locals: SemanticAstLocalBindingFacts,
+    ref artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
     inferred_types: Array<String>,
     function_node_id: Int,
     use_node_id: Int,
@@ -524,7 +524,7 @@ func SemanticAstExpressionEnvironmentClear(
 }
 
 func SemanticAstExpressionSeedVisibleIterationRows(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     iteration_node_ids: Array<Int>,
     iteration_function_node_ids: Array<Int>,
     iteration_binding_names: Array<String>,
