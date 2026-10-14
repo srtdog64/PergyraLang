@@ -355,9 +355,9 @@ func ParsePrimaryFact(
         base = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         preserves_bool_literal_fact =
-            MatchLanguageWord(content, base_start, LanguageWordId.WordTrue) ||
-            MatchLanguageWord(content, base_start, LanguageWordId.WordFalse);
-        if MatchLanguageWord(content, base_start, LanguageWordId.WordParallel) {
+            MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordTrue) ||
+            MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFalse);
+        if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordParallel) {
             i = SkipWhitespaceAndComments(content, i);
             // The tree keeps a parallel expression as one leaf, but its join
             // header is read and refused like native's.
@@ -386,7 +386,7 @@ func ParsePrimaryFact(
             base = "parallel {...}";
             ArraySet(cursor_out, 0, i);
         }
-        if MatchLanguageWord(content, base_start, LanguageWordId.WordAsync) {
+        if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordAsync) {
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) == "{" {
                 let async_depth: Int = 1;

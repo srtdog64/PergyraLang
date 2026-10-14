@@ -44,17 +44,17 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         ArraySet(cursor_out, 0, i);
         return base;
     }
-    if MatchLanguageWord(content, base_start, LanguageWordId.WordSlot) {
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordSlot) {
         base = "Slot";
     }
-    if MatchLanguageWord(content, base_start, LanguageWordId.WordImpl) {
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordImpl) {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
         return ReadTypeFact(content, content_extent, i, cursor_out);
     }
     let type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if MatchLanguageWord(content, base_start, LanguageWordId.WordFunc) && ParserCharAt(content, after_ws) == "(" {
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFunc) && ParserCharAt(content, after_ws) == "(" {
         i = after_ws + 1;
         let params: String = "";
         i = SkipWhitespaceAndComments(content, i);
@@ -103,7 +103,7 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         let args: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
-            if MatchLanguageWord(content, i, LanguageWordId.WordAny) {
+            if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAny) {
                 i = LanguageWordEnd(i, LanguageWordId.WordAny);
                 i = SkipWhitespaceAndComments(content, i);
             }

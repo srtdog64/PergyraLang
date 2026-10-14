@@ -12,7 +12,7 @@ func ParseUnaryFact(
 ) -> ParserExpressionFact {
     let i: Int = SkipWhitespaceAndComments(content, start);
     // Native reads `reflect X` as a compile-time projection; not covered yet.
-    if MatchLanguageWord(content, i, LanguageWordId.WordReflect) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
+    if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordReflect) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
     if ParserCharAt(content, i) == "!" && ParserCharAt(content, i + 1) != "=" {
         i = i + 1;
         let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
@@ -61,16 +61,16 @@ func ParseUnaryFact(
         if !operand.ok { return operand; }
         return ParserExpressionLeaf(Concat("<-", operand.text));
     }
-    if MatchLanguageWord(content, i, LanguageWordId.WordSpawn) {
+    if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordSpawn) {
         i = LanguageWordEnd(i, LanguageWordId.WordSpawn);
         let after_spawn: Int = SkipWhitespaceAndComments(content, i);
-        if MatchLanguageWord(content, after_spawn, LanguageWordId.WordBlocking) { i = LanguageWordEnd(after_spawn, LanguageWordId.WordBlocking); }
+        if MatchLanguageWordWithin(content, content_extent, after_spawn, LanguageWordId.WordBlocking) { i = LanguageWordEnd(after_spawn, LanguageWordId.WordBlocking); }
         let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeSpawn(), Concat("spawn ", operand.text), operand
         );
     }
-    if MatchLanguageWord(content, i, LanguageWordId.WordAwait) {
+    if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAwait) {
         i = LanguageWordEnd(i, LanguageWordId.WordAwait);
         let operand: ParserExpressionFact = ParseUnaryFact(content, content_extent, i, cursor_out);
         return ParserExpressionUnary(
@@ -95,8 +95,8 @@ func ParseCastFact(
         let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         // Native reads `expr is Type` as a type test; not covered yet.
-        if MatchLanguageWord(content, i, LanguageWordId.WordIs) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
-        if !MatchLanguageWord(content, i, LanguageWordId.WordAs) {
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordIs) { return ParserExpressionInvalidAt(i, "surface_not_covered"); }
+        if !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAs) {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
