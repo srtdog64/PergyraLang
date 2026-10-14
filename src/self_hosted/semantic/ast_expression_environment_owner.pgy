@@ -461,14 +461,13 @@ func SemanticAstExpressionSeedVisibleLocals(
     if !range.ok {
         return false;
     }
-    let chain: Array<Int> =
-        SemanticAstExpressionScopeChain(artifact.arena, use_node_id);
+    // Rows are in node id order: only rows before `before` precede the use.
+    let before: Int = SemanticAstLocalBindingFirstRowFrom(locals, range.start, range.end, use_node_id);
+    if before == range.start { return true; }
+    let chain: Array<Int> = SemanticAstExpressionScopeChain(artifact.arena, use_node_id);
     let i: Int = range.start;
-    while i < range.end {
-        if locals.node_ids[i] < use_node_id &&
-            SemanticAstExpressionScopeChainContains(
-                chain, locals.scope_node_ids[i]
-            ) {
+    while i < before {
+        if SemanticAstExpressionScopeChainContains(chain, locals.scope_node_ids[i]) {
             let declared: Option<String> =
                 SemanticAstLocalBindingDeclaredTypeAt(locals, i);
             if IsSome(declared) {
