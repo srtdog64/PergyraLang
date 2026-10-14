@@ -59,9 +59,11 @@ could do once?
 | 9 | `85d16ffa3` | 0.4–1.7 KB facts structs copied per seed call | 13.5 s | 33.8 s |
 | 10 | `461f6e475` | whole-program graph rows rechecked on every artifact admission | 12.2 s | 31.8 s |
 | 12 | `7e2077927` | semantic graph shape rechecked by about 28 admissions | 10.9 s | 30.6 s |
+| 13–14 | `e01f7e4ce`, `6e0aaca0f`, `34d2fb3bf` | export scan measured the file per offset; forward parent search per leaf; intent seeds copied facts | 10.6 s | 24.4 s |
 
-Overall: codegen input 190 s → 10.9 s (17×), driver input 716 s → 30.6 s
-(23×). Peak memory stayed between 1.9 and 4.4 GB throughout.
+Overall: codegen input 190 s → 10.6 s (18×), driver input 716 s → 24.4 s
+(29×). Both stage 13–14 numbers are the fastest of three rotation runs
+against stage 12 (11.0 s / 27.2 s). Peak memory stayed between 1.9 and 4.4 GB throughout.
 
 The table gives one run per stage. Repeat runs of the same build differ by
 10–20%, which is more than stages 8–10 changed. Those four builds were
@@ -107,16 +109,18 @@ Two attempts were measured and dropped:
   `SemanticAstExpressionSeedVisibleLocals` and
   `SemanticAstScopedLocalBindingIdentityForName` both walk scopes through
   `TypedAstArenaParentId`.
-- **5%: `MatchKeyword`.** It runs `strlen` on the whole source on every
-  keyword check. Most of the calls come from
-  `ParserImportedSourceHasExplicitExport`, which checks every byte offset.
-  Passing the length the caller already has would make that linear. The
-  file, `parser/decl_dispatch_owner.pgy`, is part of another lane's
-  uncommitted work.
-- **5%: `SemanticAstCollectionExclusiveFieldReads`, and the parent search
-  in `SemanticAstBorrowedTextConsumer`.** These belong to the
-  exclusive-value owner family, which is also in another lane's
-  uncommitted work. A first-consumer row per graph node would make the
-  search constant time.
-- **Intent environment seeds still take facts structs by value.** Turning
-  them into refs reaches into the intent action owners.
+- **Done in stage 13: `MatchKeyword` on the export scan.** The scan now
+  passes the extent it holds (`MatchKeywordWithin`), so it no longer
+  measures the file at every offset. It accounted for 75 of the 140
+  `MatchKeyword` samples. The other parser callers still measure their
+  content per call. Switching the callers that hold a `content_extent`
+  parameter made the native extent prover refuse unrelated calls in
+  `ParseMatchStmt`. That step waits on the prover.
+- **Done in stage 13: the parent search in
+  `SemanticAstBorrowedTextConsumer`.** A sealed surface graph now carries
+  each node's first consumer, so the lookup is constant time. Callers in
+  the exclusive-value family are unchanged.
+- **Done in stage 14: intent environment seeds** take their facts by ref.
+- **Still open: `SemanticAstCollectionExclusiveFieldReads`, about 5%.** Its
+  own loop sits in the exclusive-value owner family, which another lane's
+  uncommitted work is restructuring.
