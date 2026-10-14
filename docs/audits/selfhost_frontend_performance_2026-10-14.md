@@ -17,7 +17,7 @@ could do once?
 
 - **Machine:** WSL Ubuntu, 16 cores, one run per input. Through stage 14
   every number is single-threaded wall time from `/usr/bin/time`. Stages
-  15–19 are compared by user CPU time; see their subsection.
+  15–20 are compared by user CPU time; see their subsection.
 - **Inputs:** gen0 built with
   `bin/pgy src/self_hosted/codegen/main.pgy --native-pipeline --backend=c`,
   then run as `gen0 --source <input>` on the two sources above.
@@ -85,7 +85,7 @@ steady 6–8%. Stage 12 removes most of the graph readiness samples (377 of
 3124 → 46 of 2777). It shows on the codegen input but not beyond noise on
 the driver input.
 
-### Stages 15–19
+### Stages 15–20
 
 Another program kept the machine busy during these stages, and wall time
 varied by up to 2× between runs of one build. They were compared by user
@@ -100,6 +100,7 @@ a quieter machine:
 | 16–17 | `761f820a6`, `a37a89118` | the name of each earlier local compared as a string; keyword checks measured the whole file | | |
 | 18 | `be8d84b05` | character reads measured the whole file | 8.4 s | 19.4 s |
 | 19 | `dd38f6511` | each round of the collection field-read closure listed and indexed every key again (11 rounds over up to 63,988 keys) | 8.0 s | 18.4 s |
+| 20 | `67d1b1c15` | the core verdict and the scalar type resolved one call's target once per fact (1,471,533 resolutions for 42,586 call nodes) | 7.9 s | 17.6 s |
 
 The two earlier rotations, on the loaded machine, give the steps between:
 codegen 12.0 → 10.4 (stage 15) → 9.9–10.2 (16–17) → 9.9 s (18), and driver
@@ -107,7 +108,9 @@ codegen 12.0 → 10.4 (stage 15) → 9.9–10.2 (16–17) → 9.9 s (18), and dr
 the codegen input and 17% on the driver input.
 
 Stage 19's row comes from a later rotation against main before 15 (10.3 s /
-24.1 s) and stage 18 (8.5 s / 19.6 s). Stage 19 changed a file that also
+24.1 s) and stage 18 (8.5 s / 19.6 s). Stage 20's comes from a rotation
+against stage 19 (8.1 s / 18.0 s); its gain is small, 3% and 2%, but the run
+ranges did not overlap. Stage 19 changed a file that also
 has another lane's uncommitted edits; a three-way merge of those edits onto
 it applies without conflict. Its closure gives the same key sets as the old
 rounds on both inputs (63,988 and 162,729 keys). The first versions moved
@@ -143,9 +146,9 @@ Three attempts were measured and dropped:
   at node 15463. Only the verdict gate caught it. The verdict gate needs
   gen0 itself; type-checking the self-host source is not enough.
 
-## What remains (stage 19, both inputs)
+## What remains (stage 20, both inputs)
 
-The stage 19 profile is flat. Outside the ownership verdict family, no
+The stage 20 profile is flat. Outside the ownership verdict family, no
 function holds more than about 5% of the samples. Call counts below come
 from a gprof build on the codegen input, which has 63,308 verdict roots and
 42,586 call nodes.
@@ -164,13 +167,15 @@ from a gprof build on the codegen input, which has 63,308 verdict roots and
   same question. Either way the fix is a consumer change inside that
   family, and the identity resolution owner is also in that lane's work.
   Stage 16 made each lookup cheaper; the repeated calls remain.
-- **Call targets resolved again inside one verdict, about 4%.**
+- **Call targets resolved again inside one verdict, about 3% after stage 20
+  (4.5% before).**
   `SemanticExpressionGraphResolvedCallTarget` ran 1,471,533 times, about 35
-  times per call node. Scalar types, return types, generic captures,
-  argument facts and constructor facts each resolve the target again. Its
-  inputs are fixed for one verdict, so a memo per verdict would be exact,
-  but it has to pass through about fifteen verdict functions. The whole
-  expression verdict family is about 12% including callees.
+  times per call node. Stage 20 shares the root target inside the core
+  verdict and the scalar type. Argument facts, domain queries and the call
+  error path still resolve their own, and each verdict resolves the same
+  call again for every subtree it checks. A memo for one verdict would be
+  exact, but it has to pass through about fifteen verdict functions. The
+  whole expression verdict family is about 13% including callees.
 - **Parsing, about 9% including callees.** It is spread across the
   recursive-descent functions. Stages 17 and 18 removed the content
   measurements in the hot ones. The other parser functions that hold an
