@@ -50,10 +50,10 @@ func SemanticExpressionGraphResolvedCallTarget(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticExpressionCallTargetFact {
-    if ArrayLength(function_names) != ArrayLength(function_returns) {
+    if ArrayLength(function_names.names) != ArrayLength(function_returns) {
         return SemanticExpressionCallTargetFact(
             false, SemanticCallTargetNone(), "", 0
         );
@@ -93,7 +93,7 @@ func SemanticExpressionGraphResolvedCallTarget(
                 true, SemanticCallTargetDirect(), callee_name, 0
             );
         }
-        let direct: Option<Int> = SemanticCallableIndex(
+        let direct: Option<Int> = SemanticCallableIndexInTable(
             function_names, callee_name
         );
         if !IsSome(direct) {
@@ -112,7 +112,7 @@ func SemanticExpressionGraphResolvedCallTarget(
         }
         return SemanticExpressionCallTargetFact(
             true, SemanticCallTargetDirect(),
-            Concat("", function_names[UnwrapOption(direct)]), 0
+            Concat("", function_names.names[UnwrapOption(direct)]), 0
         );
     }
     let member: SemanticMemberAccessView =
@@ -130,13 +130,13 @@ func SemanticExpressionGraphResolvedCallTarget(
             false, SemanticCallTargetNamespace(), "", 0
         );
     }
-    let namespace_target: Option<Int> = SemanticCallableIndex(
+    let namespace_target: Option<Int> = SemanticCallableIndexInTable(
         function_names, UnwrapOption(qualified_name)
     );
     if IsSome(namespace_target) {
         return SemanticExpressionCallTargetFact(
             true, SemanticCallTargetNamespace(),
-            Concat("", function_names[UnwrapOption(namespace_target)]), 0
+            Concat("", function_names.names[UnwrapOption(namespace_target)]), 0
         );
     }
     let member_name: Option<String> = SemanticExpressionGraphNodeText(
@@ -159,7 +159,7 @@ func SemanticExpressionGraphResolvedCallTarget(
         IsSome(carried_syntax_id) &&
         UnwrapOption(carried_kind) == SemanticCallTargetMember() &&
         UnwrapOption(carried_syntax_id) == 0 &&
-        IsSome(SemanticCallableIndex(
+        IsSome(SemanticCallableIndexInTable(
             function_names, UnwrapOption(carried_name)
         )) && SemanticBuiltinMemberCallableMatches(
             UnwrapOption(carried_name), UnwrapOption(member_name)
@@ -185,7 +185,7 @@ func SemanticExpressionGraphResolvedCallTarget(
         receiver_type_fact.nominal_base_name,
         Concat(".", UnwrapOption(member_name))
     );
-    let method: Option<Int> = SemanticCallableIndex(
+    let method: Option<Int> = SemanticCallableIndexInTable(
         function_names, source_target
     );
     if !IsSome(method) {
@@ -195,7 +195,7 @@ func SemanticExpressionGraphResolvedCallTarget(
     }
     return SemanticExpressionCallTargetFact(
         true, SemanticCallTargetMember(),
-        Concat("", function_names[UnwrapOption(method)]), 1
+        Concat("", function_names.names[UnwrapOption(method)]), 1
     );
 }
 

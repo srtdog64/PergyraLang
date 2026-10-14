@@ -138,7 +138,7 @@ func SemanticRoleOperatorResolutionForNode(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticRoleOperatorResolution {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(

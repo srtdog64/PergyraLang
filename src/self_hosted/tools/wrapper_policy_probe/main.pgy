@@ -86,10 +86,11 @@ func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
     ) {
         return false;
     }
+    let function_names_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(function_names);
     let fact: SemanticExpressionGraphWrapperValueFact =
         SemanticExpressionGraphWrapperValueFactFromGraph(
             graph, call_node, analysis.constructors,
-            ["some"], ["Option<Int>"], function_names, function_returns,
+            ["some"], ["Option<Int>"], function_names_callables, function_returns,
             function_params
         );
     return fact.applies && !fact.ok &&

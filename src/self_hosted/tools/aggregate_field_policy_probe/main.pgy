@@ -115,10 +115,11 @@ func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
     }
     let empty_names: Array<String> = [];
     let empty_types: Array<String> = [];
+    let function_names_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(function_names);
     let error: String = SemanticExpressionGraphStructValueTypeError(
         graph, root_id, analysis.constructors, analysis.signatures,
         empty_names, empty_types,
-        function_names, function_returns
+        function_names_callables, function_returns
     );
     let code: Option<String> = SemanticDiagnosticCodeFromMessage(error);
     return IsSome(code) && UnwrapOption(code) == "call_arg_type_mismatch";
@@ -193,10 +194,11 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
     }
     let empty_names: Array<String> = [];
     let empty_types: Array<String> = [];
+    let function_names_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(function_names);
     let error: String = SemanticExpressionGraphStructValueTypeError(
         graph, UnwrapOption(generic_root), analysis.constructors,
         analysis.signatures, empty_names, empty_types,
-        function_names, function_returns
+        function_names_callables, function_returns
     );
     let code: Option<String> = SemanticDiagnosticCodeFromMessage(error);
     return IsSome(code) && UnwrapOption(code) == "call_arg_type_mismatch";

@@ -33,7 +33,7 @@ func SemanticAstExpressionCallErrorFromGraph(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     ref function_params: Array<String>,
     member_root_names: Array<String>,
@@ -178,7 +178,7 @@ func SemanticAstExpressionCallTreeErrorFromGraphNode(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     ref function_params: Array<String>,
     member_root_names: Array<String>,
@@ -269,7 +269,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     ref function_params: Array<String>,
     member_root_names: Array<String>,
@@ -500,7 +500,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
     }
     let identifier_fact: SemanticExpressionGraphIdentifierFact =
         SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
-            graph, root_id, names, function_names, member_root_names,
+            graph, root_id, names, function_names.names, member_root_names,
             domain_queries.symbolic_identifier_nodes
         );
     if !identifier_fact.ok {
@@ -598,7 +598,7 @@ func SemanticAstExpressionVerdictFromGraph(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     ref function_params: Array<String>,
     member_root_names: Array<String>,

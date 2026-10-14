@@ -30,7 +30,7 @@ func SemanticAstExpressionGraphTypeFailClosedContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             "ghost", graph, 0, analysis.constructors,
             analysis.enums, analysis.signatures, empty, empty, empty,
-            analysis.function_tables.names,
+            analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params,
             empty, analysis.signatures.function_node_ids[0]
@@ -143,7 +143,7 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             valid_text, valid_graph, valid_fact.root,
             analysis.constructors, analysis.enums, analysis.signatures,
-            names, types, modes, analysis.function_tables.names,
+            names, types, modes, analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params, member_roots,
             analysis.signatures.function_node_ids[0]
@@ -152,7 +152,7 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             inverse_text, inverse_graph, inverse_fact.root,
             analysis.constructors, analysis.enums, analysis.signatures,
-            names, types, modes, analysis.function_tables.names,
+            names, types, modes, analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params, member_roots,
             analysis.signatures.function_node_ids[0]
@@ -161,7 +161,7 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             invalid_text, invalid_graph, invalid_fact.root,
             analysis.constructors, analysis.enums, analysis.signatures,
-            names, types, modes, analysis.function_tables.names,
+            names, types, modes, analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params, member_roots,
             analysis.signatures.function_node_ids[0]

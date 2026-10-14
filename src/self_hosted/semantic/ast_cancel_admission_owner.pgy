@@ -61,7 +61,7 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
                             SemanticError1("cancel_argument_invalid", "boundary", "Cancel requires exactly one Future/RemoteFuture"), syntax_id);
                     }
                     let task_type: String = SemanticExpressionGraphScalarTypeName(graph,
-                        call.argument_nodes[0], analysis.constructors, names, types, tables.names, tables.returns);
+                        call.argument_nodes[0], analysis.constructors, names, types, tables.callables, tables.returns);
                     let payload: Option<String> = FuturePayloadTypeOpt(task_type);
                     if !IsSome(payload) { payload = RemoteFuturePayloadTypeOpt(task_type); }
                     if !IsSome(payload) {

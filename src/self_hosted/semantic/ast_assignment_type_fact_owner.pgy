@@ -173,7 +173,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
             target_type = SemanticExpressionGraphScalarTypeName(
                 expression_surfaces.expression_graph,
                 UnwrapOption(target_base_root), constructors, names, types,
-                function_tables.names, function_tables.returns
+                function_tables.callables, function_tables.returns
             );
             if target_type == "Unknown" || target_type == "" {
                 row_code = "assignment_type_unresolved";
@@ -189,7 +189,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                 let write: SemanticDiagnosticMessageFact = SemanticAstMemberWriteVerdict(
                     expression_surfaces.expression_graph, UnwrapOption(target_graph_root),
                     target_binding_mode, constructors, names, types,
-                    function_tables.names, function_tables.returns);
+                    function_tables.callables, function_tables.returns);
                 if write.code != "" {
                     row_code = write.code;
                     row_message = SemanticDiagnosticMessageFactRender(write);
@@ -219,7 +219,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         assignments.target_index_texts[i],
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, enum_facts, signatures,
-                        names, types, modes, function_tables.names,
+                        names, types, modes, function_tables.callables,
                         function_tables.returns, function_tables.params,
                         member_root_names, assignments.function_node_ids[i]
                     );
@@ -230,7 +230,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                     index_type = SemanticExpressionGraphScalarTypeName(
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, names, types,
-                        function_tables.names, function_tables.returns
+                        function_tables.callables, function_tables.returns
                     );
                 }
                 if row_code == "" && (!IsSome(element_type_opt) ||
@@ -265,7 +265,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         expression_surfaces.expression_graph,
                         UnwrapOption(value_root), constructors, enum_facts, signatures,
                         names, types, modes,
-                        function_tables.names, function_tables.returns,
+                        function_tables.callables, function_tables.returns,
                         function_tables.params,
                         member_root_names, assignments.function_node_ids[i]
                     );
@@ -281,12 +281,12 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
                             expression_surfaces.expression_graph,
                             UnwrapOption(value_root), expected, constructors,
-                            names, types, function_tables.names,
+                            names, types, function_tables.callables,
                             function_tables.returns
                         ) || SemanticExpressionGraphSetLiteralMatchesDeclaredType(
                             expression_surfaces.expression_graph,
                             UnwrapOption(value_root), expected, constructors,
-                            names, types, function_tables.names,
+                            names, types, function_tables.callables,
                             function_tables.returns
                         ) {
                             inferred = expected;

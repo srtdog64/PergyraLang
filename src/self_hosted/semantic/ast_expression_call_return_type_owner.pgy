@@ -102,8 +102,8 @@ func SemanticExpressionCallReturnProjectionAt(
             true, true, UnwrapOption(resolved)
         );
     }
-    let function_index: Option<Int> = SemanticCallableIndex(
-        function_tables.names, target_name
+    let function_index: Option<Int> = SemanticCallableIndexInTable(
+        function_tables.callables, target_name
     );
     if !IsSome(function_index) {
         return SemanticExpressionCallReturnProjection(false, false, "");

@@ -161,7 +161,7 @@ func SemanticExpressionGraphQueueCallFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticExpressionGraphQueueCallFact {
     let target: SemanticExpressionCallTargetFact =

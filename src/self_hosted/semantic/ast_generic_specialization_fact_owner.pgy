@@ -408,7 +408,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                             SemanticExpressionGraphGenericCallFactCaptureFromGraph(
                                 expression_surfaces.expression_graph, current,
                                 signatures, constructors, names, types,
-                                function_tables.names, function_tables.returns,
+                                function_tables.callables, function_tables.returns,
                                 actual_type_names,
                                 true
                             );

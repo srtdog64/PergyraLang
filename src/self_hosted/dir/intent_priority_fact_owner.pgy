@@ -112,7 +112,7 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
     }
     let type_name: String = SemanticExpressionGraphScalarTypeName(
         expression_surfaces.expression_graph, UnwrapOption(root),
-        constructors, names, types, function_tables.names,
+        constructors, names, types, function_tables.callables,
         function_tables.returns
     );
     if type_name != "Int" {

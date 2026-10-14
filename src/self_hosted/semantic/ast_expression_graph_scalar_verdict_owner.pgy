@@ -14,7 +14,7 @@ func SemanticExpressionGraphOperandErrorFromTree(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> String {
     let pending: Array<Int> = [root_id];
@@ -106,7 +106,7 @@ func SemanticExpressionGraphNumericOperandError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> String {
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
@@ -147,7 +147,7 @@ func SemanticExpressionGraphScalarOperatorError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
@@ -277,7 +277,7 @@ func SemanticExpressionGraphScalarOperandError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> String {
     let start: Int = root_id;

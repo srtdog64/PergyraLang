@@ -121,7 +121,7 @@ func SemanticExpressionGraphDomainQueryValidateCall(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     inout symbolic_identifier_nodes: Array<Int>
 ) -> SemanticExpressionGraphDomainQueryFact {
@@ -306,7 +306,7 @@ func SemanticExpressionGraphDomainQueryFactsFromTree(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticExpressionGraphDomainQueryFact {
     let symbolic_identifier_nodes: Array<Int> = [];

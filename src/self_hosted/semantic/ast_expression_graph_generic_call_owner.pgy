@@ -70,7 +70,7 @@ func SemanticExpressionGraphGenericCallFactCaptureFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     inout captured_actual_type_names: Array<String>,
     capture_actual_type_names: Bool
@@ -364,7 +364,7 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticExpressionGraphGenericCallFact {
     let ignored_actual_type_names: Array<String> = [];
@@ -381,7 +381,7 @@ func SemanticExpressionGraphGenericSpawnFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticExpressionGraphGenericCallFact {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);

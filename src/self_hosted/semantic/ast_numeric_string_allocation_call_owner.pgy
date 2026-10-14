@@ -63,7 +63,7 @@ func SemanticAstNumericStringAllocationRecordResolvedCall(
     if !call.ok || call.call_node != call_node || ArrayLength(call.argument_nodes) != 1 { return false; }
     let operand_type: String = SemanticExpressionGraphScalarTypeName(
         graph, call.argument_nodes[0], constructors, names, types,
-        function_tables.names, function_tables.returns);
+        function_tables.callables, function_tables.returns);
     if !SemanticAstNumericStringAllocationOperandType(operand_type) { return true; }
     if owner_node_id < 0 || lane < AstExpressionLaneAtom() ||
         lane > AstExpressionLaneAuxiliary() || local_call_ordinal < 0 ||

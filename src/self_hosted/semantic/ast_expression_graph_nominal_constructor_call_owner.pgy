@@ -48,7 +48,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(

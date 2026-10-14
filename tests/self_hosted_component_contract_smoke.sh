@@ -557,7 +557,7 @@ require_max_lines \
 require_max_lines "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" 599
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 599
 require_max_lines "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" 600
-require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 680
+require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 682
 require_max_lines "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 548
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy" 80

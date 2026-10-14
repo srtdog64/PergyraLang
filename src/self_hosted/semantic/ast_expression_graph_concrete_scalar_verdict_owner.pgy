@@ -25,7 +25,7 @@ func SemanticExpressionGraphCallTargetSourceParameterOffset(
 func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressionGraphFacts,
     node_id: Int, ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts, names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>,
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
     ref function_params: Array<String>) -> Bool {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind_opt) { return false; }
@@ -76,7 +76,7 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
                 function_returns, function_params
             );
     }
-    if ArrayLength(function_names) != ArrayLength(function_params) {
+    if ArrayLength(function_names.names) != ArrayLength(function_params) {
         return false;
     }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
@@ -99,7 +99,7 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
             local_callable
         );
     } else {
-        let target: Option<Int> = SemanticCallableIndex(
+        let target: Option<Int> = SemanticCallableIndexInTable(
             function_names, target_fact.name
         );
         if !IsSome(target) { return false; }
@@ -138,10 +138,10 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>,
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> Bool {
-    if ArrayLength(function_names) != ArrayLength(function_params) {
+    if ArrayLength(function_names.names) != ArrayLength(function_params) {
         return false;
     }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
@@ -164,7 +164,7 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
             local_callable
         );
     } else {
-        let target: Option<Int> = SemanticCallableIndex(
+        let target: Option<Int> = SemanticCallableIndexInTable(
             function_names, target_fact.name
         );
         if !IsSome(target) { return false; }
@@ -226,7 +226,7 @@ func SemanticExpressionGraphHashMapCallError(
     ref graph: SemanticExpressionGraphFacts, node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>
 ) -> String {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
     if !call.ok { return ""; }
@@ -275,7 +275,7 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> SemanticExpressionGraphResolvedCallArgumentFacts {
@@ -291,7 +291,7 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     let empty_ranges: SemanticDelimitedRangeFacts =
         SemanticDelimitedRangeFacts(0, empty_starts, empty_lengths);
     if !call.ok ||
-        ArrayLength(function_names) != ArrayLength(function_params) {
+        ArrayLength(function_names.names) != ArrayLength(function_params) {
         return SemanticExpressionGraphResolvedCallArgumentFacts(
             call, empty_target, false, "", empty_ranges, 0
         );
@@ -316,7 +316,7 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
             local_callable
         );
     } else {
-        let target: Option<Int> = SemanticCallableIndex(
+        let target: Option<Int> = SemanticCallableIndexInTable(
             function_names, target_fact.name
         );
         if !IsSome(target) {
@@ -370,7 +370,7 @@ func SemanticExpressionGraphResolvedCallArgumentsOwned(
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>,
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> Bool {
     let facts: SemanticExpressionGraphResolvedCallArgumentFacts =
@@ -403,7 +403,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>,
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(

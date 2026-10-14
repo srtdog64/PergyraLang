@@ -58,7 +58,7 @@ func SemanticSetLiteralElementTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
     let nested: SemanticSetLiteralView =
@@ -87,7 +87,7 @@ func SemanticExpressionGraphSetLiteralTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
     let view: SemanticSetLiteralView =
@@ -121,7 +121,7 @@ func SemanticSetLiteralElementMatchesDeclaredType(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Bool {
     if StartsWith(element_type, "Set<") {
@@ -153,7 +153,7 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Bool {
     let shape: SemanticConstructedTypeNameFact =
@@ -200,8 +200,9 @@ func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let empty: Array<String> = [];
+    let empty_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(empty);
     let inferred: Option<String> = SemanticExpressionGraphSetLiteralTypeName(
-        graph, fact.root, constructors, empty, empty, empty, empty
+        graph, fact.root, constructors, empty, empty, empty_callables, empty
     );
     let empty_cursor: Array<Int> = [0];
     let empty_fact: ParserExpressionFact = ParseExprFact(
@@ -218,12 +219,12 @@ func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
     return IsSome(inferred) && UnwrapOption(inferred) == "Set<Int>" &&
         SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             graph, fact.root, "Set<Int>", constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         ) && !SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             graph, fact.root, "Set<String>", constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         ) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             empty_graph, empty_fact.root, "Set<String>", constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         );
 }

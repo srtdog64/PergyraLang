@@ -223,7 +223,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 UnwrapOption(graph_root), constructors, enum_facts,
                 signatures,
                 names, types, modes,
-                function_tables.names, function_tables.returns,
+                function_tables.callables, function_tables.returns,
                 function_tables.params,
                 member_root_names, statements.function_node_ids[i]
             );
@@ -231,7 +231,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 SemanticExpressionGraphEnumPayloadTypeName(
                     expression_surfaces.expression_graph, UnwrapOption(graph_root),
                     constructors, enum_facts, names, types,
-                    function_tables.names, function_tables.returns);
+                    function_tables.callables, function_tables.returns);
             if expression_verdict.ok && IsSome(enum_payload_type) { expression_verdict =
                 SemanticAstExpressionVerdictOk(statements.payload_texts[i], UnwrapOption(enum_payload_type)); }
             inferred = expression_verdict.inferred_type_name;
@@ -294,7 +294,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             let target_verdict: SemanticAstExpressionVerdict = SemanticAstExpressionVerdictFromGraph(
                 target, expression_surfaces.expression_graph, UnwrapOption(target_root),
                 constructors, enum_facts, signatures, names, types, modes,
-                function_tables.names, function_tables.returns, function_tables.params,
+                function_tables.callables, function_tables.returns, function_tables.params,
                 member_root_names, statements.function_node_ids[i]);
             let target_type: String = target_verdict.inferred_type_name;
             let element_type_opt: Option<String> =
@@ -333,7 +333,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, enum_facts,
                         signatures,
-                        names, types, modes, function_tables.names,
+                        names, types, modes, function_tables.callables,
                         function_tables.returns, function_tables.params,
                         member_root_names, statements.function_node_ids[i]
                     );
@@ -379,7 +379,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         value_text, expression_surfaces.expression_graph,
                         UnwrapOption(value_root), constructors, enum_facts,
                         signatures,
-                        names, types, modes, function_tables.names,
+                        names, types, modes, function_tables.callables,
                         function_tables.returns, function_tables.params,
                         member_root_names, statements.function_node_ids[i]
                     );
@@ -430,12 +430,12 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
                     expression_surfaces.expression_graph,
                     UnwrapOption(return_root), expected, constructors,
-                    names, types, function_tables.names,
+                    names, types, function_tables.callables,
                     function_tables.returns
                 ) || SemanticExpressionGraphSetLiteralMatchesDeclaredType(
                     expression_surfaces.expression_graph,
                     UnwrapOption(return_root), expected, constructors,
-                    names, types, function_tables.names,
+                    names, types, function_tables.callables,
                     function_tables.returns
                 ) {
                     inferred = expected;

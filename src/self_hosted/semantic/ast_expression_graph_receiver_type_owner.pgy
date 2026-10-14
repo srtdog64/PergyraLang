@@ -250,10 +250,10 @@ func SemanticExpressionGraphValueReceiverTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
-    if ArrayLength(function_names) != ArrayLength(function_returns) {
+    if ArrayLength(function_names.names) != ArrayLength(function_returns) {
         return None;
     }
     let spine: SemanticExpressionGraphValueReceiverSpine =
@@ -272,7 +272,7 @@ func SemanticExpressionGraphValueReceiverTypeName(
                 graph, spine);
         if !IsSome(target_name) { return None; }
         let target: Option<Int> =
-            SemanticCallableIndex(function_names, UnwrapOption(target_name));
+            SemanticCallableIndexInTable(function_names, UnwrapOption(target_name));
         if !IsSome(target) ||
             function_returns[UnwrapOption(target)] == "" ||
             function_returns[UnwrapOption(target)] == "Unknown" {

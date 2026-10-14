@@ -18,7 +18,7 @@ func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     constructor_index: Int, argument_index: Int,
     names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>
 ) -> SemanticExpressionGraphNominalConstructorArgumentFact {
     let invalid: SemanticExpressionGraphNominalConstructorArgumentFact =
         SemanticExpressionGraphNominalConstructorArgumentFact(false, false, 0, "", "");

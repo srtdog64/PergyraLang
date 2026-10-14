@@ -320,8 +320,10 @@ func SemanticAstExpressionFunctionTableFactsFromArtifact(
     } else if ok {
         ok = false;
     }
+    let callables: SemanticCallableNameTable =
+        SemanticCallableNameTableFromNames(names);
     return SemanticAstExpressionFunctionTableFacts(
-        ok, names, returns, params
+        ok, names, returns, params, callables
     );
 }
 

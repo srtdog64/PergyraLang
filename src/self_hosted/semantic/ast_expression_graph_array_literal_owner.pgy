@@ -42,7 +42,7 @@ func SemanticExpressionGraphArrayLiteralTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
     let view: SemanticArrayLiteralView =
@@ -124,7 +124,7 @@ func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Bool {
     let element_type_opt: Option<String> =
@@ -228,20 +228,22 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
     let empty: Array<String> = [];
     let call_names: Array<String> = ["TypedAstKindBareCallStmtTag"];
     let call_returns: Array<String> = ["Int"];
+    let empty_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(empty);
     let inferred: Option<String> =
         SemanticExpressionGraphArrayLiteralTypeName(
             graph, fact.root, constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         );
     let nested_inferred: Option<String> =
         SemanticExpressionGraphArrayLiteralTypeName(
             nested_graph, nested_fact.root, constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         );
+    let call_names_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(call_names);
     let call_inferred: Option<String> =
         SemanticExpressionGraphArrayLiteralTypeName(
             call_graph, call_fact.root, constructors,
-            empty, empty, call_names, call_returns
+            empty, empty, call_names_callables, call_returns
         );
     return IsSome(inferred) && UnwrapOption(inferred) == "Array<Int>" &&
         IsSome(call_inferred) &&
@@ -250,12 +252,12 @@ func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
         UnwrapOption(nested_inferred) == "Array<Array<Int>>" &&
         SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
             graph, fact.root, "Array<Int>", constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         ) && !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
             graph, fact.root, "Array<String>", constructors,
-            empty, empty, empty, empty
+            empty, empty, empty_callables, empty
         ) && SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
             nested_graph, nested_fact.root, "Array<Array<Int>>",
-            constructors, empty, empty, empty, empty
+            constructors, empty, empty, empty_callables, empty
         );
 }
