@@ -153,10 +153,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             signatures, locals.function_node_ids[i], modes
         ) && SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, inferred_type_names,
-            locals.function_node_ids[i], locals.node_ids[i], names, types
-        ) && SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, locals.function_node_ids[i],
-            locals.node_ids[i], modes
+            locals.function_node_ids[i], locals.node_ids[i], names, types, modes
         );
         if !environment_ok || ArrayLength(names) != ArrayLength(types) ||
             ArrayLength(names) != ArrayLength(modes) {

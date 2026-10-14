@@ -470,7 +470,8 @@ func SemanticAstExpressionSeedVisibleLocals(
     function_node_id: Int,
     use_node_id: Int,
     inout names: Array<String>,
-    inout types: Array<String>
+    inout types: Array<String>,
+    inout modes: Array<String>
 ) -> Bool {
     let range: SemanticAstLocalBindingFunctionRange =
         SemanticAstLocalBindingRangeForFunction(locals, function_node_id);
@@ -492,6 +493,7 @@ func SemanticAstExpressionSeedVisibleLocals(
                 }
                 ArrayPushOwnedString(names, locals.names[i]);
                 ArrayPushOwnedString(types, type_name);
+                ArrayPushOwnedString(modes, "local");
             } else {
                 if i >= ArrayLength(inferred_types) ||
                     inferred_types[i] == "" ||
@@ -500,32 +502,8 @@ func SemanticAstExpressionSeedVisibleLocals(
                 }
                 ArrayPushOwnedString(names, locals.names[i]);
                 ArrayPushOwnedString(types, inferred_types[i]);
+                ArrayPushOwnedString(modes, "local");
             }
-        }
-        i = i + 1;
-    }
-    return true;
-}
-
-func SemanticAstExpressionSeedVisibleLocalModes(
-    artifact: AstTreeArtifact,
-    locals: SemanticAstLocalBindingFacts,
-    function_node_id: Int,
-    use_node_id: Int,
-    inout modes: Array<String>
-) -> Bool {
-    let range: SemanticAstLocalBindingFunctionRange =
-        SemanticAstLocalBindingRangeForFunction(locals, function_node_id);
-    if !range.ok {
-        return false;
-    }
-    let i: Int = range.start;
-    while i < range.end {
-        if locals.node_ids[i] < use_node_id &&
-            SemanticAstExpressionScopeVisible(
-                artifact.arena, locals.scope_node_ids[i], use_node_id
-            ) {
-            ArrayPushOwnedString(modes, "local");
         }
         i = i + 1;
     }
@@ -637,12 +615,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     }
     if !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, inferred, locals.function_node_ids[0],
-            artifact.count - 1, names, types) {
-        return false;
-    }
-    if !SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, locals.function_node_ids[0],
-            artifact.count - 1, modes) {
+            artifact.count - 1, names, types, modes) {
         return false;
     }
     if ArrayLength(names) != 3 || names[0] != "p" || names[1] != "x" ||

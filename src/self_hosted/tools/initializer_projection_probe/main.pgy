@@ -763,9 +763,7 @@ func ProbeInitializerEnvironmentDestructureAtomic() -> Bool {
     let modes: Array<String> = [];
     if !SemanticAstExpressionSeedVisibleLocals(
         artifact, fake, inferred, actual.function_node_ids[0],
-        actual.node_ids[0], names, types
-    ) || !SemanticAstExpressionSeedVisibleLocalModes(
-        artifact, fake, actual.function_node_ids[0], actual.node_ids[0], modes
+        actual.node_ids[0], names, types, modes
     ) || ArrayLength(names) != 0 || ArrayLength(types) != 0 ||
         ArrayLength(modes) != 0 {
         Log("destructure sibling observed an earlier binding from the group");
@@ -774,9 +772,7 @@ func ProbeInitializerEnvironmentDestructureAtomic() -> Bool {
     let later_use_node_id: Int = artifact.count - 1;
     if !SemanticAstExpressionSeedVisibleLocals(
         artifact, fake, inferred, actual.function_node_ids[0],
-        later_use_node_id, names, types
-    ) || !SemanticAstExpressionSeedVisibleLocalModes(
-        artifact, fake, actual.function_node_ids[0], later_use_node_id, modes
+        later_use_node_id, names, types, modes
     ) || ArrayLength(names) != 2 ||
         names[0] != "left" || names[1] != "right" ||
         types[0] != "Int" || types[1] != "Int" ||

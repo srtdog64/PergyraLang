@@ -120,8 +120,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
         else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(signatures, constructors, assignments.function_node_ids[i], names, types, modes) { environment_fact = "SeedOwnerFields"; }
         else if !SemanticAstExpressionSeedParameters(signatures, constructors, assignments.function_node_ids[i], names, types) { environment_fact = "SeedParameters"; }
         else if !SemanticAstExpressionSeedParameterModes(signatures, assignments.function_node_ids[i], modes) { environment_fact = "SeedParameterModes"; }
-        else if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types) { environment_fact = "SeedVisibleLocals"; }
-        else if !SemanticAstExpressionSeedVisibleLocalModes(artifact, locals, assignments.function_node_ids[i], assignments.node_ids[i], modes) { environment_fact = "SeedVisibleLocalModes"; }
+        else if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes) { environment_fact = "SeedVisibleLocals"; }
         else if !SemanticAstIterationSeedVisibleBindings(artifact, statements, iteration_types, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes) { environment_fact = "SeedIterationBindings"; }
         else if !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(artifact, statements, expression_surfaces, constructors, enum_facts, function_scopes, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes, function_tables) { environment_fact = "SeedMatchBindings"; }
         else if ArrayLength(names) != ArrayLength(modes) { environment_fact = "EnvironmentModeCount"; }

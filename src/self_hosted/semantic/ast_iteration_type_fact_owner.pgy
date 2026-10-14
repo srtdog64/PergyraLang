@@ -207,10 +207,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
         ) || !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,
             statements.function_node_ids[i], statements.node_ids[i],
-            names, types
-        ) || !SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, statements.function_node_ids[i],
-            statements.node_ids[i], modes
+            names, types, modes
         ) || !SemanticAstIterationSeedVisibleRows(
             artifact, statements, node_ids, binding_types, verified,
             statements.function_node_ids[i], statements.node_ids[i],

@@ -160,12 +160,8 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         else if !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,
             statements.function_node_ids[i], statements.node_ids[i],
-            names, types
+            names, types, modes
         ) { environment_fact = Concat("local_environment@function=", Concat(ToString(statements.function_node_ids[i]), Concat(":statement=", ToString(statements.node_ids[i])))); }
-        else if !SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, statements.function_node_ids[i],
-            statements.node_ids[i], modes
-        ) { environment_fact = "local_mode_environment"; }
         else if !SemanticAstIterationSeedVisibleBindings(
             artifact, statements, iteration_types,
             statements.function_node_ids[i], statements.node_ids[i],
