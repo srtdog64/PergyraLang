@@ -12,7 +12,8 @@ import "result_call_type_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
-// Reads bytes: a non-ASCII character fails the class checks either way.
+// These checks read bytes: text with a non-ASCII character fails them
+// either way, and ASCII text gives the same answer as the character form.
 func IsIdentText(text: String) -> Bool {
     let n: Int = StringLength(text);
     if n == 0 {
@@ -36,14 +37,14 @@ func IsIntLiteral(text: String) -> Bool {
     if n == 0 {
         return false;
     }
-    if CharAt(text, 0) == "-" {
+    if SourceByteAt(text, n, n, 0) == SourceByteOf("-") {
         i = 1;
     }
     if i >= n {
         return false;
     }
     while i < n {
-        if !IsDigit(CharAt(text, i)) {
+        if !SourceByteIsDigit(SourceByteAt(text, n, n, i)) {
             return false;
         }
         i = i + 1;
@@ -53,17 +54,17 @@ func IsIntLiteral(text: String) -> Bool {
 func IsLongLiteral(text: String) -> Bool {
     let i: Int = 0;
     let n: Int = StringLength(text);
-    if n < 2 || CharAt(text, n - 1) != "L" {
+    if n < 2 || SourceByteAt(text, n, n, n - 1) != SourceByteOf("L") {
         return false;
     }
-    if CharAt(text, 0) == "-" {
+    if SourceByteAt(text, n, n, 0) == SourceByteOf("-") {
         i = 1;
     }
     if i >= n - 1 {
         return false;
     }
     while i < n - 1 {
-        if !IsDigit(CharAt(text, i)) {
+        if !SourceByteIsDigit(SourceByteAt(text, n, n, i)) {
             return false;
         }
         i = i + 1;
@@ -78,15 +79,15 @@ func IsFloatLiteral(text: String) -> Bool {
     if n == 0 {
         return false;
     }
-    if CharAt(text, 0) == "-" {
+    if SourceByteAt(text, n, n, 0) == SourceByteOf("-") {
         i = 1;
     }
     if i >= n {
         return false;
     }
     while i < n {
-        let c: String = CharAt(text, i);
-        if c == "." {
+        let c: Int = SourceByteAt(text, n, n, i);
+        if c == SourceByteOf(".") {
             if seen_dot {
                 return false;
             }
@@ -94,7 +95,7 @@ func IsFloatLiteral(text: String) -> Bool {
             i = i + 1;
             continue;
         }
-        if !IsDigit(c) {
+        if !SourceByteIsDigit(c) {
             return false;
         }
         seen_digit = true;

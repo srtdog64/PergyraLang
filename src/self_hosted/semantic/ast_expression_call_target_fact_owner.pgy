@@ -60,6 +60,15 @@ func SemanticExpressionGraphResolvedCallTarget(
             false, SemanticCallTargetNone(), "", 0
         );
     }
+    // A spine view forms only from a call or a call argument row; any other
+    // root fails it the same way without building one.
+    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
+    if !IsSome(root_kind) || (UnwrapOption(root_kind) != AstExpressionNodeCall() &&
+        UnwrapOption(root_kind) != AstExpressionNodeCallArgument()) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), "", 0
+        );
+    }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
     );
