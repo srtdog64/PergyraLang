@@ -12,6 +12,7 @@ import "ast_statement_fact_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 
 struct SemanticAstEnumPayloadBindingIdentity {
     ok: Bool;

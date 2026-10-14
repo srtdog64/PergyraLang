@@ -92,7 +92,7 @@ func ConstructorInput(arguments: Int, corruption: Int) -> ConstructorQueryInput 
         arena.identities.runtime_call_abi_ids, arena.identities.binding_syntax_ids,
         arena.identities.binding_kinds, arena.identities.binding_ordinals,
         [], false, 0);
-    arena = SemanticExpressionGraphArena(arena.topology, arena.node_texts,
+    arena = SemanticExpressionGraphArenaFromTopologyWithIdentities(arena.topology, arena.node_texts,
         arena.call_target_kinds, arena.call_target_names, arena.call_return_type_names,
         identities, arena.place_kinds);
     let node: Int = 1 + 2 * arguments; let roots: Array<Int> = [node]; let ordinals: Array<Int> = [];

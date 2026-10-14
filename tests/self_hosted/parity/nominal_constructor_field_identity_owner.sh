@@ -18,7 +18,7 @@ sha256sum "$SOURCE" "$SOURCE_PROBE" \
     src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy \
     src/self_hosted/semantic/ast_expression_verdict_owner.pgy >"$WORK/source.before.sha256"
 sha256sum "$PGY" >"$WORK/native.before.sha256"
-for ((i=0; i<31; i++)); do printf 'true\n'; done >"$WORK/expected"
+for ((i=0; i<32; i++)); do printf 'true\n'; done >"$WORK/expected"
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline "$SOURCE" "--backend=$backend" \
         --opt=dev -o "$REL/$backend.exe" >"$WORK/$backend.compile" 2>&1
@@ -26,7 +26,7 @@ for backend in c llvm; do
     tr -d '\r' <"$WORK/$backend.raw" >"$WORK/$backend.run"
     [[ ! -s "$WORK/$backend.err" ]]
     cmp "$WORK/expected" "$WORK/$backend.run"
-    echo "[nominal-constructor-field-identity] native-$backend: 31 identity/type/shadow checks PASS"
+    echo "[nominal-constructor-field-identity] native-$backend: 32 identity/type/shadow checks PASS"
 done
 timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" --backend=c --opt=dev \
     -o "$REL/source-probe.exe" >"$WORK/source-probe.compile" 2>&1

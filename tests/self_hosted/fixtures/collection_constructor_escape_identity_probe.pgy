@@ -235,7 +235,14 @@ func Main() -> Void with caps env, io_read {
     let owner: Int = UnwrapOption(index);
     let field: Int = constructors.param_starts[owner];
     let expected: Int = constructors.field_source_syntax_ids[field];
-    if mutation == 1 { constructors.names[UnwrapOption(decoy)] = "Carrier"; }
+    if mutation == 1 {
+        // A second declaration spelled "Carrier", indexed the way the facts
+        // producer indexes names.
+        constructors.names[UnwrapOption(decoy)] = "Carrier";
+        let first_rows: HashMap<String, Int> = MapNew(); let row_counts: HashMap<String, Int> = MapNew();
+        SemanticAstNominalConstructorNameIndexFill(constructors.names, first_rows, row_counts);
+        constructors.name_first_rows = first_rows; constructors.name_row_counts = row_counts;
+    }
     else if mutation == 2 { constructors.field_source_syntax_ids[field] = 0; }
     else if mutation == 3 { constructors.node_ids[owner] = 0; }
     else if mutation == 4 { edge.ordinal = 2; }

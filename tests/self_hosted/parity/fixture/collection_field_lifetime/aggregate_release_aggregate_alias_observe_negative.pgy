@@ -3,8 +3,10 @@ import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fa
 struct OuterFacts { tables: SemanticAstExpressionFunctionTableFacts; }
 
 func Main() -> Void {
+    let callables_names: Array<String> = [];
+    let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(callables_names);
     let outer: OuterFacts = OuterFacts(
-        SemanticAstExpressionFunctionTableFacts(true, [], [], []));
+        SemanticAstExpressionFunctionTableFacts(true, [], [], [], callables));
     let alias: OuterFacts = outer;
     let tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
     SemanticAstExpressionFunctionTableFactsRelease(tables);

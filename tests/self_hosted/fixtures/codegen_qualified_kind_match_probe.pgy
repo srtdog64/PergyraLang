@@ -34,7 +34,7 @@ func Main() -> Void {
     let empty: Array<String> = ["", "", ""];
     let zeros: Array<Int> = [0, 0, 0];
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        true, [2], [true], SemanticExpressionGraphArena(
+        true, [2], [true], SemanticExpressionGraphArenaFromTopologyWithIdentities(
             AstExpressionArena(kinds, texts, left, right), texts,
             zeros, empty, empty, SemanticExpressionIdentityRowsUnknown(3), zeros));
     let selected: Option<String> = CodegenExpressionMemberTypeFromGraph(graph, 2, env);

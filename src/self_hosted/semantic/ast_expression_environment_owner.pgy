@@ -55,7 +55,9 @@ func SemanticAstExpressionSeedEnumValues(
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
-    if !SemanticAstEnumValueRowsReady(enums) {
+    // The seed checks the variant rows itself: facts built outside the
+    // producer carry an `ok` the producer never checked.
+    if !SemanticAstEnumRowsReady(enums) {
         return false;
     }
     // A binding already in scope keeps its name; each other value row is

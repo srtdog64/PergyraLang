@@ -3,8 +3,9 @@ import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fa
 func Main() -> Void {
     let seed: Array<String> = ["x"];
     let values: Array<String> = Clone(seed);
+    let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(values);
     let facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(
-            true, values, values, values);
+            true, values, values, values, callables);
     SemanticAstExpressionFunctionTableFactsRelease(facts);
 }

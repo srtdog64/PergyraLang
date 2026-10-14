@@ -9,8 +9,9 @@ func Main() -> Void
     ArrayPushOwnedString(names, "OwnedCallable");
     ArrayPushOwnedString(returns, "Void");
     ArrayPushOwnedString(params, "");
+    let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(names);
     let facts: SemanticAstExpressionFunctionTableFacts =
-        SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+        SemanticAstExpressionFunctionTableFacts(true, names, returns, params, callables);
     if !SemanticAstExpressionFunctionTableFactsReady(facts) ||
         ArrayLength(facts.names) != 1
     {

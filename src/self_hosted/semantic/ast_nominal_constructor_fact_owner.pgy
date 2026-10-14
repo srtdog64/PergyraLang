@@ -371,12 +371,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     }
     let name_first_rows: HashMap<String, Int> = MapNew();
     let name_row_counts: HashMap<String, Int> = MapNew();
-    let name_row: Int = 0;
-    while name_row < ArrayLength(names) {
-        SemanticCallableNameTableCount(name_first_rows, name_row_counts,
-            Concat("", names[name_row]), name_row);
-        name_row = name_row + 1;
-    }
+    SemanticAstNominalConstructorNameIndexFill(names, name_first_rows, name_row_counts);
     return SemanticAstNominalConstructorFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
@@ -386,6 +381,17 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names,
         role_slot_dynamic, name_first_rows, name_row_counts
     );
+}
+// The name index of the facts: the first row and the number of rows per
+// name. Only the facts producer builds it, once, from `names`; the artifact
+// match check compares it with a rebuilt one.
+func SemanticAstNominalConstructorNameIndexFill(ref names: Array<String>,
+    inout first_rows: HashMap<String, Int>, inout row_counts: HashMap<String, Int>) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        SemanticCallableNameTableCount(first_rows, row_counts, Concat("", names[row]), row);
+        row = row + 1;
+    }
 }
 func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int { return ArrayLength(facts.node_ids); }
 func SemanticAstNominalConstructorIndexForNode(ref facts: SemanticAstNominalConstructorFacts, node_id: Int) -> Option<Int> {

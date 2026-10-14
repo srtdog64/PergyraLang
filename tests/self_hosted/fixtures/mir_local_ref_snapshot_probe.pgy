@@ -7,7 +7,7 @@ func Main() -> Void {
     let zeros: Array<Int> = [0];
     let empty_text: Array<String> = [""];
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        true, [0], [true], SemanticExpressionGraphArena(
+        true, [0], [true], SemanticExpressionGraphArenaFromTopologyWithIdentities(
             AstExpressionArena(kinds, texts, edges, edges), texts,
             zeros, empty_text, empty_text,
             SemanticExpressionIdentityRowsUnknown(1), zeros));

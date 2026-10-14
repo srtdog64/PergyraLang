@@ -54,8 +54,10 @@ func ConstructorResult(expression: String, shadow: Int,
     if shadow == 7 { ArrayPush(names, "Pair"); ArrayPush(types, "func(Array<String>,Array<String>) -> Pair"); }
     let functions: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
     let returns: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
+    let function_table: SemanticCallableNameTable = SemanticCallableNameTableFromNames(functions);
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     return SemanticExpressionGraphNominalConstructorCallFactFromGraph(
-        graph, graph.roots[0], constructors, signatures, names, types, functions, returns);
+        graph, graph.roots[0], constructors, signatures, names, types, function_table, returns, no_enum_values);
 }
 
 func ConstructorFieldsMatch(ref result: SemanticExpressionGraphNominalConstructorCallFact,
@@ -75,12 +77,14 @@ func ConstructorFieldsMatch(ref result: SemanticExpressionGraphNominalConstructo
     let names: Array<String> = []; let types: Array<String> = [];
     let functions: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
     let returns: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
+    let function_table: SemanticCallableNameTable = SemanticCallableNameTableFromNames(functions);
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let ordinal: Int = 0;
     while ordinal < supplied {
         let argument: SemanticExpressionGraphNominalConstructorArgumentFact =
             SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
                 graph, call.argument_nodes[ordinal], constructors, UnwrapOption(index), ordinal,
-                names, types, functions, returns);
+                names, types, function_table, returns, no_enum_values);
         let expected: Int = first;
         if ordinal == 1 { expected = second; }
         if !argument.ok || !argument.assignable ||
@@ -154,6 +158,16 @@ func Main() -> Void {
     ArrayPop(constructors.nominal_kinds);
     value = ConstructorResult("Buff()", 0, constructors, signatures);
     Log(ConstructorRefuses(value, "ast_artifact_invalid"));
+    // A name index that disagrees with the names fails admission, and the
+    // lookup through it fails closed.
+    constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let forged_first_rows: HashMap<String, Int> = MapNew();
+    let forged_row_counts: HashMap<String, Int> = MapNew();
+    SemanticAstNominalConstructorNameIndexFill(constructors.names, forged_first_rows, forged_row_counts);
+    MapSet(forged_first_rows, "Pair", 1);
+    constructors.name_first_rows = forged_first_rows;
+    Log(!SemanticAstNominalConstructorFactsMatchArtifact(artifact, constructors) &&
+        IsErr(SemanticAstNominalConstructorUniqueIndexForName(constructors, "Pair")));
     constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let declared_artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Pair\n    Parameters:\n      a: Array<String>\n      b: Array<String>\n    Returns: Pair\n    Body:\n      Return: Pair(a, b)\n");
@@ -163,6 +177,13 @@ func Main() -> Void {
     value = ConstructorResult("Pair([])", 0, constructors, signatures);
     Log(signatures.ok && SemanticAstFunctionSignatureCount(signatures) == 1 && !value.applies);
     constructors.names[1] = "Pair";
+    // Index the duplicated name the way the facts producer does, so the
+    // lookup sees two "Pair" rows.
+    let duplicate_first_rows: HashMap<String, Int> = MapNew();
+    let duplicate_row_counts: HashMap<String, Int> = MapNew();
+    SemanticAstNominalConstructorNameIndexFill(constructors.names, duplicate_first_rows, duplicate_row_counts);
+    constructors.name_first_rows = duplicate_first_rows;
+    constructors.name_row_counts = duplicate_row_counts;
     signatures = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     value = ConstructorResult("Pair([])", 0, constructors, signatures);
     Log(!value.applies && value.constructor_source_syntax_id == 0);

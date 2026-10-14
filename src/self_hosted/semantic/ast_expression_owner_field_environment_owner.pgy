@@ -2,6 +2,7 @@
 
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 
 func SemanticAstExpressionOwnerFieldType(
     ref signatures: SemanticAstFunctionSignatureFacts,

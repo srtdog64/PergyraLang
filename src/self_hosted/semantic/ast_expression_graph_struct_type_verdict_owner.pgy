@@ -52,9 +52,7 @@ func SemanticExpressionGraphStructValueTypeError(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>,
-    ref enum_values: SemanticAstEnumValueScope
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>, ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     let struct_root: Option<Int> = SemanticExpressionGraphStructValueRoot(
         graph, root_id

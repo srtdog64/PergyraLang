@@ -3,8 +3,10 @@ import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fa
 
 func Main() -> Void
 {
+    let callables_names: Array<String> = [];
+    let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(callables_names);
     let facts: SemanticAstExpressionFunctionTableFacts =
-        SemanticAstExpressionFunctionTableFacts(true, [], [], []);
+        SemanticAstExpressionFunctionTableFacts(true, [], [], [], callables);
     if !SemanticAstExpressionFunctionTableFactsReady(facts)
     {
         Log("empty-table-shape-invalid");

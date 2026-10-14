@@ -14,6 +14,7 @@ import "ast_expression_graph_node_view_owner.pgy";
 import "env_owner.pgy";
 import "diagnostic_owner.pgy";
 import "env_value_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 
 struct SemanticAstBindStatementTypeVerdict {
     verified: Int;

@@ -747,14 +747,12 @@ func ProbeInitializerEnvironmentDestructureAtomic() -> Bool {
         Log("cursor destructure fixture owner is invalid");
         return false;
     }
-    let fake_names: Array<String> = ["left", "right"];
-    let fake_name_keys: Array<Int> = SemanticAstLocalBindingNameKeys(fake_names);
     let fake: SemanticAstLocalBindingFacts = SemanticAstLocalBindingFacts(
         true, "", "", SemanticDiagnosticMessageFactEmpty(), artifact.count,
         [actual.node_ids[0], actual.node_ids[0]],
         [actual.function_node_ids[0], actual.function_node_ids[0]],
         [actual.scope_node_ids[0], actual.scope_node_ids[0]],
-        fake_names, fake_name_keys, ["Int", "Int"], [1, 1], ["pair", "pair"],
+        ["left", "right"], ["Int", "Int"], [1, 1], ["pair", "pair"],
         [SemanticAstLocalBindingKindDestructure(),
             SemanticAstLocalBindingKindDestructure()],
         [0, 1], [2, 2]

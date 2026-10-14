@@ -41,6 +41,19 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
         }
         i = i + 1;
     }
+    // Every name must have the index entry the producer builds for it. A
+    // key no row carries fails the lookup itself, which checks the row.
+    i = 0;
+    while i < count {
+        let name: String = Concat("", rebuilt.names[i]);
+        if SemanticCallableNameTableValue(facts.name_first_rows, name) !=
+                SemanticCallableNameTableValue(rebuilt.name_first_rows, name) ||
+            SemanticCallableNameTableValue(facts.name_row_counts, name) !=
+                SemanticCallableNameTableValue(rebuilt.name_row_counts, name) {
+            return false;
+        }
+        i = i + 1;
+    }
     let p: Int = 0;
     while p < ArrayLength(facts.param_type_names) {
         if facts.field_source_syntax_ids[p] !=

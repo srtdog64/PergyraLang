@@ -31,7 +31,6 @@ func SemanticAstLocalBindingIdentityRowsReady(
         ArrayLength(locals.function_node_ids) == count &&
         ArrayLength(locals.scope_node_ids) == count &&
         ArrayLength(locals.names) == count &&
-        ArrayLength(locals.name_keys) == count &&
         ArrayLength(locals.declared_type_names) == count &&
         ArrayLength(locals.has_declared_types) == count &&
         ArrayLength(locals.binding_indices) == count &&
@@ -75,7 +74,6 @@ func SemanticAstScopedLocalBindingIdentityForName(
         use_node_id >= artifact.count {
         return SemanticAstLocalBindingIdentityUnresolved();
     }
-    let identifier_key: Int = SemanticAstLocalBindingNameKey(identifier);
     // Rows are in node id order, the producer's traversal order. The binding
     // chosen is the visible match with the largest node id, then the largest
     // binding index, then the lowest row. Walking down from the last row
@@ -87,8 +85,7 @@ func SemanticAstScopedLocalBindingIdentityForName(
     ) - 1;
     while row >= range.start &&
         (selected < 0 || locals.node_ids[row] == locals.node_ids[selected]) {
-        if locals.name_keys[row] == identifier_key &&
-            locals.names[row] == identifier &&
+        if locals.names[row] == identifier &&
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[row], use_node_id
             ) {
