@@ -252,15 +252,24 @@ func SemanticCallableIndexInTable(
     if !SemanticCallableSourceNameValid(source_name) {
         return None;
     }
-    let lookup_name: String =
-        SemanticCallableCanonicalLookupName(source_name);
+    if StringIndexOf(source_name, ".") >= 0 {
+        let lookup_name: String =
+            SemanticCallableCanonicalLookupName(source_name);
+        if SemanticCallableNameTableValue(
+                table.exact_row_counts, lookup_name) == 1 {
+            return Some(SemanticCallableNameTableValue(
+                table.exact_first_rows, lookup_name));
+        }
+        return None;
+    }
+    // Without a dot the canonical lookup name is the source name itself.
     let exact_count: Int =
-        SemanticCallableNameTableValue(table.exact_row_counts, lookup_name);
+        SemanticCallableNameTableValue(table.exact_row_counts, source_name);
     if exact_count == 1 {
         return Some(SemanticCallableNameTableValue(
-            table.exact_first_rows, lookup_name));
+            table.exact_first_rows, source_name));
     }
-    if exact_count > 1 || StringIndexOf(source_name, ".") >= 0 {
+    if exact_count > 1 {
         return None;
     }
     if SemanticCallableNameTableValue(table.suffix_row_counts, source_name) == 1 {
