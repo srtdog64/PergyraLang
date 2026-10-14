@@ -223,6 +223,25 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
             graph, root_id, constructors, names, types,
             function_names, function_returns, enum_values
         );
+    return SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
+        graph, root_id, target, constructors, names, types,
+        function_names, function_returns, enum_values
+    );
+}
+
+// The same return type for a caller that already resolved this call's
+// target with these inputs.
+func SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    target: SemanticExpressionCallTargetFact,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
+) -> Option<String> {
     if !target.ok { return None; }
     let local_callable: SemanticAstCallableTypeShape =
         SemanticAstCallableTypeShapeFromName(EnvValueLookup(names, types, enum_values, target.name));

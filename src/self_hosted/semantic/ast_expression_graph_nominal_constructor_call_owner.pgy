@@ -53,17 +53,37 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
     ref function_returns: Array<String>,
     ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
+    let target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns, enum_values
+        );
+    return SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
+        graph, root_id, target, constructors, signatures, names, types,
+        function_names, function_returns, enum_values
+    );
+}
+
+// The same fact for a caller that already resolved this call's target with
+// these inputs.
+func SemanticExpressionGraphNominalConstructorCallFactFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    target: SemanticExpressionCallTargetFact,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphNominalConstructorCallFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
     );
     if !call.ok || ArrayLength(call.generic_actual_type_names) > 0 {
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
     }
-    let target: SemanticExpressionCallTargetFact =
-        SemanticExpressionGraphResolvedCallTarget(
-            graph, root_id, constructors, names, types,
-            function_names, function_returns, enum_values
-        );
     if !target.ok || target.kind != SemanticCallTargetDirect() {
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
     }

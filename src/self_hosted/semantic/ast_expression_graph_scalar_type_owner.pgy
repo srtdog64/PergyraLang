@@ -92,7 +92,7 @@ func SemanticExpressionGraphScalarTypeName(
                 function_names, function_returns, enum_values
             );
         if !target_fact.ok { return "Unknown"; }
-        let callee: String = target_fact.name;
+        let callee: String = Concat("", target_fact.name);
         if callee == "None" { return "Option<Unknown>"; }
         if callee == "IsSome" || callee == "IsOk" || callee == "IsErr" {
             return "Bool";
@@ -188,8 +188,8 @@ func SemanticExpressionGraphScalarTypeName(
             return "Unknown";
         }
         let resolved: Option<String> =
-            SemanticExpressionGraphResolvedCallReturnTypeName(
-                graph, root_id, constructors, names, types,
+            SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
+                graph, root_id, target_fact, constructors, names, types,
                 function_names, function_returns, enum_values
             );
         if IsSome(resolved) { return UnwrapOption(resolved); }

@@ -225,17 +225,21 @@ struct SemanticExpressionGraphResolvedCallArgumentFacts {
     signature_count: Int;
 }
 
-func SemanticExpressionGraphHashMapCallError(
-    ref graph: SemanticExpressionGraphFacts, node_id: Int,
-    ref constructors: SemanticAstNominalConstructorFacts,
-    names: Array<String>, types: Array<String>,
+func SemanticExpressionGraphHashMapCallError(ref graph: SemanticExpressionGraphFacts, node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts, names: Array<String>, types: Array<String>,
     ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
-    ref enum_values: SemanticAstEnumValueScope
-) -> String {
+    ref enum_values: SemanticAstEnumValueScope) -> String {
+    return SemanticExpressionGraphHashMapCallErrorFromResolvedTarget(graph, node_id, SemanticExpressionGraphResolvedCallTarget(
+        graph, node_id, constructors, names, types, function_names, function_returns, enum_values),
+        constructors, names, types, function_names, function_returns, enum_values);
+}
+// The same check for a caller that already resolved this call's target.
+func SemanticExpressionGraphHashMapCallErrorFromResolvedTarget(ref graph: SemanticExpressionGraphFacts, node_id: Int,
+    target: SemanticExpressionCallTargetFact, ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>, types: Array<String>, ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>, ref enum_values: SemanticAstEnumValueScope) -> String {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
     if !call.ok { return ""; }
-    let target: SemanticExpressionCallTargetFact = SemanticExpressionGraphResolvedCallTarget(
-        graph, node_id, constructors, names, types, function_names, function_returns, enum_values);
     if !target.ok || target.kind != SemanticCallTargetDirect() ||
         graph.arena.identities.call_target_syntax_ids[call.call_node] > 0 { return ""; }
     let bound_callable: SemanticAstCallableTypeShape = SemanticAstCallableTypeShapeFromName(
