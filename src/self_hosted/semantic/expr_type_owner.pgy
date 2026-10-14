@@ -12,16 +12,18 @@ import "result_call_type_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
+// Reads bytes: a non-ASCII character fails the class checks either way.
 func IsIdentText(text: String) -> Bool {
-    if StringLength(text) == 0 {
+    let n: Int = StringLength(text);
+    if n == 0 {
         return false;
     }
-    if !IsAlpha(CharAt(text, 0)) {
+    if !SourceByteIsAlpha(SourceByteAt(text, n, n, 0)) {
         return false;
     }
     let i: Int = 1;
-    while i < StringLength(text) {
-        if !IsAlphaNum(CharAt(text, i)) {
+    while i < n {
+        if !SourceByteIsAlphaNum(SourceByteAt(text, n, n, i)) {
             return false;
         }
         i = i + 1;
