@@ -202,12 +202,20 @@ func SemanticAstCollectionAggregateSinkAliasesForFunction(
     let nodes: Array<Int> = [];
     let aliases: SemanticAstCollectionAggregateSinkAliases =
         SemanticAstCollectionAggregateSinkAliases(keys, starts, counts, nodes);
+    // Only this function's locals can alias its root: its row range, the one
+    // the scoped local identity lookup also reads.
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingRangeForFunction(locals, function_id);
+    if !range.ok {
+        let refused_range_keys: Array<Int> = [];
+        aliases.keys = refused_range_keys;
+        return aliases;
+    }
     let changed: Bool = true;
     while changed {
         changed = false;
-        let row: Int = 0;
-        while row < ArrayLength(locals.node_ids) {
-            // Only this function's locals can alias its root.
+        let row: Int = range.start;
+        while row < range.end {
             let value: Option<Int> = None;
             if locals.function_node_ids[row] == function_id {
                 value = SemanticAstExpressionGraphRootForNode(
