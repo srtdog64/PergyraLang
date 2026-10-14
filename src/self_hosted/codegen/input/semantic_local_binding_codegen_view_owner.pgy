@@ -41,9 +41,10 @@ func CodegenSemanticLocalBindingsForInstance(
         ArrayPush(indices, facts.binding_indices[row]); ArrayPush(arities, facts.binding_arities[row]);
         row = row + 1;
     }
+    let name_keys: Array<Int> = SemanticAstLocalBindingNameKeys(names);
     return SemanticAstLocalBindingFacts(facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.diagnostic_fact, facts.artifact_node_count, nodes, functions, scopes, names,
-        types, declared, initializers, kinds, indices, arities);
+        name_keys, types, declared, initializers, kinds, indices, arities);
 }
 
 func CodegenSemanticLocalBindingIs(

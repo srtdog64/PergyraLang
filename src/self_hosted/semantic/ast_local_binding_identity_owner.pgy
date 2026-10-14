@@ -31,6 +31,7 @@ func SemanticAstLocalBindingIdentityRowsReady(
         ArrayLength(locals.function_node_ids) == count &&
         ArrayLength(locals.scope_node_ids) == count &&
         ArrayLength(locals.names) == count &&
+        ArrayLength(locals.name_keys) == count &&
         ArrayLength(locals.declared_type_names) == count &&
         ArrayLength(locals.has_declared_types) == count &&
         ArrayLength(locals.binding_indices) == count &&
@@ -74,10 +75,12 @@ func SemanticAstScopedLocalBindingIdentityForName(
         use_node_id >= artifact.count {
         return SemanticAstLocalBindingIdentityUnresolved();
     }
+    let identifier_key: Int = SemanticAstLocalBindingNameKey(identifier);
     let selected: Int = -1;
     let row: Int = range.start;
     while row < range.end {
         if locals.node_ids[row] < use_node_id &&
+            locals.name_keys[row] == identifier_key &&
             locals.names[row] == identifier &&
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[row], use_node_id
