@@ -60,7 +60,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
             expression_surfaces.expression_graph,
             UnwrapOption(subject_root), constructors, names, types,
-            function_tables
+            function_tables, enums.value_scope
         );
     if !IsSome(subject_type_fact) {
         return false;

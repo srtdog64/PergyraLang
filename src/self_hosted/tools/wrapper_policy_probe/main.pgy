@@ -53,6 +53,7 @@ func WrapperPolicyProbeRejected(
 }
 
 func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let source_path: String =
         "src/self_hosted/tools/wrapper_policy_probe/valid.pgy";
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
@@ -91,7 +92,7 @@ func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
         SemanticExpressionGraphWrapperValueFactFromGraph(
             graph, call_node, analysis.constructors,
             ["some"], ["Option<Int>"], function_names_callables, function_returns,
-            function_params
+            function_params, no_enum_values
         );
     return fact.applies && !fact.ok &&
         fact.diagnostic_code == "ast_artifact_invalid";

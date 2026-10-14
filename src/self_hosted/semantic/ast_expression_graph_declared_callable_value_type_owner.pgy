@@ -8,13 +8,15 @@ import "ast_callable_type_shape_owner.pgy";
 import "ast_expression_carried_callable_identity_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
+import "env_value_owner.pgy";
 
 func SemanticExpressionGraphDeclaredCallableValueTypeName(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
-    current_type: String
+    current_type: String,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     if current_type != "" && current_type != "Unknown" {
         return current_type;
@@ -32,7 +34,7 @@ func SemanticExpressionGraphDeclaredCallableValueTypeName(
         binding.syntax_id > 0 {
         syntax_id = binding.syntax_id;
     } else if binding.kind == SemanticExpressionBindingNone() &&
-        !EnvContainsName(names, UnwrapOption(text)) {
+        !EnvValueContainsName(names, enum_values, UnwrapOption(text)) {
         let resolved: Result<Int> = SemanticExpressionDeclaredFunctionSyntaxId(
             signatures, UnwrapOption(text)
         );

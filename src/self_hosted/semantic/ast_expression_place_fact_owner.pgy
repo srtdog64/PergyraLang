@@ -13,6 +13,7 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
 import "ast_body_analysis_admission_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "env_value_owner.pgy";
 
 func SemanticExpressionPlaceKindForNode(
     ref graph: SemanticExpressionGraphFacts,
@@ -20,7 +21,8 @@ func SemanticExpressionPlaceKindForNode(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    modes: Array<String>
+    modes: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Int {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind) { return SemanticExpressionPlaceUnknown(); }
@@ -29,10 +31,10 @@ func SemanticExpressionPlaceKindForNode(
             graph, node_id
         );
         if !IsSome(text) || !IsIdentifier(UnwrapOption(text)) ||
-            !EnvContainsName(names, UnwrapOption(text)) {
+            !EnvValueContainsName(names, enum_values, UnwrapOption(text)) {
             return SemanticExpressionPlaceValue();
         }
-        let mode: String = EnvMode(names, modes, UnwrapOption(text));
+        let mode: String = EnvValueMode(names, modes, enum_values, UnwrapOption(text));
         if mode == "enum_value" || mode == "" {
             return SemanticExpressionPlaceValue();
         }
@@ -51,7 +53,7 @@ func SemanticExpressionPlaceKindForNode(
         !SemanticExpressionPlaceKindAddressable(
             graph.arena.place_kinds[member.receiver_node]
         ) || !IsSome(SemanticExpressionGraphReceiverTypeName(
-            graph, node_id, constructors, names, types
+            graph, node_id, constructors, names, types, enum_values
         )) {
         return SemanticExpressionPlaceValue();
     }
@@ -142,9 +144,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                 let intent_node_id: Option<Int> =
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
-                let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
-                    analysis.enums, names, types, modes
-                );
+                let environment_ok: Bool = SemanticAstEnumValueRowsReady(analysis.enums);
                 if environment_ok && IsSome(function_node_id) {
                         environment_ok =
                             SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
@@ -186,7 +186,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         analysis.intent_signatures,
                         analysis.intent_transitions,
                         UnwrapOption(intent_node_id), use_node_id,
-                        names, types, modes
+                        names, types, modes, analysis.enums.value_scope
                     );
                 } else {
                     environment_ok = false;
@@ -202,7 +202,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         let place_kind: Int =
                             SemanticExpressionPlaceKindForNode(
                                 graph, node_id, analysis.constructors,
-                                names, types, modes
+                                names, types, modes, analysis.enums.value_scope
                             );
                         if place_kind == SemanticExpressionPlaceUnknown() {
                             valid = false;

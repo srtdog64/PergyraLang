@@ -58,12 +58,13 @@ func SemanticAstNumericStringAllocationRecordResolvedCall(
     names: Array<String>, types: Array<String>,
     owner_node_id: Int, lane: Int, local_call_ordinal: Int, call_node: Int, terminal_node: Int
 ) -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     if !SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ToString") { return true; }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, terminal_node);
     if !call.ok || call.call_node != call_node || ArrayLength(call.argument_nodes) != 1 { return false; }
     let operand_type: String = SemanticExpressionGraphScalarTypeName(
         graph, call.argument_nodes[0], constructors, names, types,
-        function_tables.callables, function_tables.returns);
+        function_tables.callables, function_tables.returns, no_enum_values);
     if !SemanticAstNumericStringAllocationOperandType(operand_type) { return true; }
     if owner_node_id < 0 || lane < AstExpressionLaneAtom() ||
         lane > AstExpressionLaneAuxiliary() || local_call_ordinal < 0 ||

@@ -22,6 +22,7 @@ func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout mo
     }
 }
 func CheckBody(content: String, content_extent: Int, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>, ref func_params: Array<String>, internal_caller_ready: Bool) -> String {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let i: Int = start;
     let cursor: Array<Int> = [0];
     while i < end {
@@ -297,7 +298,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
                             names.Slice(0, ArrayLength(names)),
                             types.Slice(0, ArrayLength(types)),
                             modes.Slice(0, ArrayLength(modes)),
-                            internal_caller_ready
+                            internal_caller_ready, no_enum_values
                         );
                         if mutation_error != "" { return mutation_error; }
                     }

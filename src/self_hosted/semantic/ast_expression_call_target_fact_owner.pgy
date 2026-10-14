@@ -14,6 +14,7 @@ import "env_owner.pgy";
 import "ast_domain_query_protocol_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "env_value_owner.pgy";
 
 struct SemanticExpressionCallTargetFact {
     ok: Bool;
@@ -51,7 +52,8 @@ func SemanticExpressionGraphResolvedCallTarget(
     names: Array<String>,
     types: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionCallTargetFact {
     if ArrayLength(function_names.names) != ArrayLength(function_returns) {
         return SemanticExpressionCallTargetFact(
@@ -86,7 +88,7 @@ func SemanticExpressionGraphResolvedCallTarget(
         let callee_name: String = UnwrapOption(callee_text);
         let local_callable: SemanticAstCallableTypeShape =
             SemanticAstCallableTypeShapeFromName(
-                EnvLookup(names, types, callee_name)
+                EnvValueLookup(names, types, enum_values, callee_name)
             );
         if local_callable.ok {
             return SemanticExpressionCallTargetFact(
@@ -172,7 +174,7 @@ func SemanticExpressionGraphResolvedCallTarget(
     let receiver_type: Option<String> =
         SemanticExpressionGraphValueReceiverTypeName(
             graph, member.receiver_node, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
     if !IsSome(receiver_type) {
         return SemanticExpressionCallTargetFact(

@@ -59,19 +59,20 @@ func SemanticSetLiteralElementTypeName(
     names: Array<String>,
     types: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
     let nested: SemanticSetLiteralView =
         SemanticSetLiteralViewFromGraph(graph, node_id);
     if nested.ok {
         return SemanticExpressionGraphSetLiteralTypeName(
             graph, node_id, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
     }
     let actual: String = SemanticExpressionGraphScalarTypeName(
         graph, node_id, constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     if actual == "Unknown" || actual == "" {
         return SemanticExpressionGraphIntrinsicTypeName(
@@ -88,7 +89,8 @@ func SemanticExpressionGraphSetLiteralTypeName(
     names: Array<String>,
     types: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
     let view: SemanticSetLiteralView =
         SemanticSetLiteralViewFromGraph(graph, root_id);
@@ -101,7 +103,7 @@ func SemanticExpressionGraphSetLiteralTypeName(
     while i < ArrayLength(view.element_nodes) {
         let actual: Option<String> = SemanticSetLiteralElementTypeName(
             graph, view.element_nodes[i], constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
         if !IsSome(actual) { return None; }
         if element_type == "" {
@@ -122,7 +124,8 @@ func SemanticSetLiteralElementMatchesDeclaredType(
     names: Array<String>,
     types: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Bool {
     if StartsWith(element_type, "Set<") {
         let nested_view: SemanticSetLiteralView =
@@ -130,13 +133,13 @@ func SemanticSetLiteralElementMatchesDeclaredType(
         if nested_view.ok {
             return SemanticExpressionGraphSetLiteralMatchesDeclaredType(
                 graph, node_id, element_type, constructors, names, types,
-                function_names, function_returns
+                function_names, function_returns, enum_values
             );
         }
     }
     let actual: Option<String> = SemanticSetLiteralElementTypeName(
         graph, node_id, constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     let text: Option<String> = SemanticExpressionGraphNodeText(
         graph, node_id
@@ -154,7 +157,8 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
     names: Array<String>,
     types: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Bool {
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(declared_type);
@@ -171,7 +175,7 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
     while i < ArrayLength(view.element_nodes) {
         if !SemanticSetLiteralElementMatchesDeclaredType(
             graph, view.element_nodes[i], element_type, constructors,
-            names, types, function_names, function_returns
+            names, types, function_names, function_returns, enum_values
         ) {
             return false;
         }
@@ -181,6 +185,7 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
 }
 
 func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let source: String = "{1, 2, 2}";
     let source_extent: Int = StringLength(source);
     let cursor: Array<Int> = [0];
@@ -202,7 +207,7 @@ func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
     let empty: Array<String> = [];
     let empty_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(empty);
     let inferred: Option<String> = SemanticExpressionGraphSetLiteralTypeName(
-        graph, fact.root, constructors, empty, empty, empty_callables, empty
+        graph, fact.root, constructors, empty, empty, empty_callables, empty, no_enum_values
     );
     let empty_cursor: Array<Int> = [0];
     let empty_fact: ParserExpressionFact = ParseExprFact(
@@ -219,12 +224,12 @@ func SemanticExpressionGraphSetLiteralContractReady() -> Bool {
     return IsSome(inferred) && UnwrapOption(inferred) == "Set<Int>" &&
         SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             graph, fact.root, "Set<Int>", constructors,
-            empty, empty, empty_callables, empty
+            empty, empty, empty_callables, empty, no_enum_values
         ) && !SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             graph, fact.root, "Set<String>", constructors,
-            empty, empty, empty_callables, empty
+            empty, empty, empty_callables, empty, no_enum_values
         ) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             empty_graph, empty_fact.root, "Set<String>", constructors,
-            empty, empty, empty_callables, empty
+            empty, empty, empty_callables, empty, no_enum_values
         );
 }

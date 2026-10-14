@@ -23,6 +23,7 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis, initializers: SemanticAstInitializerTypeFacts,
     iterations: SemanticAstIterationTypeFacts, tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstBodyVerdict {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
     let needed: Bool = false; let node: Int = 0;
     while node < ArrayLength(graph.arena.call_target_names) {
@@ -61,7 +62,7 @@ func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
                             SemanticError1("cancel_argument_invalid", "boundary", "Cancel requires exactly one Future/RemoteFuture"), syntax_id);
                     }
                     let task_type: String = SemanticExpressionGraphScalarTypeName(graph,
-                        call.argument_nodes[0], analysis.constructors, names, types, tables.callables, tables.returns);
+                        call.argument_nodes[0], analysis.constructors, names, types, tables.callables, tables.returns, no_enum_values);
                     let payload: Option<String> = FuturePayloadTypeOpt(task_type);
                     if !IsSome(payload) { payload = RemoteFuturePayloadTypeOpt(task_type); }
                     if !IsSome(payload) {

@@ -5,6 +5,7 @@ import "ast_expression_graph_build_owner.pgy";
 import "ast_expression_builtin_member_call_target_contract_owner.pgy";
 
 func SemanticExpressionCallTargetFactContractReady() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Struct: Pair\n    Fields:\n      left: Int\n      right: Int\n  Function: Math_Add\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 7\n"
         + "  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: self.value\n"
@@ -224,7 +225,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let derived_member: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             wrong_member, member_build.root_id, constructors,
-            ["box"], ["Box"], member_callables, member_function_returns
+            ["box"], ["Box"], member_callables, member_function_returns, no_enum_values
         );
     if !derived_member.ok ||
         derived_member.kind != SemanticCallTargetMember() ||
@@ -275,13 +276,13 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         SemanticExpressionGraphResolvedCallTarget(
             chain_graph, chain_build.root_id, constructors,
             empty_names, empty_types,
-            chain_callables, chain_function_returns
+            chain_callables, chain_function_returns, no_enum_values
         );
     let missing_return_target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             chain_graph, chain_build.root_id, constructors,
             empty_names, empty_types,
-            chain_callables, missing_returns
+            chain_callables, missing_returns, no_enum_values
         );
     return member_verified.ok && chain_build.ok && chain_target.ok &&
         chain_target.kind == SemanticCallTargetMember() &&

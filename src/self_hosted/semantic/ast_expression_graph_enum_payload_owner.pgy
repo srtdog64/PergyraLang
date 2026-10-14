@@ -172,7 +172,7 @@ func SemanticExpressionGraphEnumPayloadTypeName(
         SemanticExpressionGraphValueReceiverTypeName(
             graph, shape.receiver_node,
             constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_facts.value_scope
         );
     if !IsSome(enum_type) { return None; }
     return SemanticAstEnumVariantPayloadTypeAt(

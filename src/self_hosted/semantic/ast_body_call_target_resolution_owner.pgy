@@ -14,6 +14,7 @@ func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
     iteration_types: SemanticAstIterationTypeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     if !analysis.verdict.ok || !analysis.signatures.ok ||
         !analysis.constructors.ok ||
         ArrayLength(inferred_types) !=
@@ -72,7 +73,7 @@ func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
                                     analysis.expression_surfaces.expression_graph,
                                     node_id, analysis.constructors,
                                     names, types, function_tables.callables,
-                                    function_tables.returns
+                                    function_tables.returns, no_enum_values
                                 );
                             if !target.ok {
                                 valid = false;

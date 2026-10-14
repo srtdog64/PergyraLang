@@ -20,6 +20,7 @@ func SemanticAstBodyExpressionEnvironmentSeed(
     inout types: Array<String>,
     inout modes: Array<String>
 ) -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let environment_ok: Bool = false;
     if IsSome(function_node_id) {
         environment_ok =
@@ -52,7 +53,7 @@ func SemanticAstBodyExpressionEnvironmentSeed(
         ) && SemanticAstIntentExpressionSeedEnvironment(
             artifact, analysis.signatures, intent_signatures,
             analysis.intent_transitions,
-            UnwrapOption(intent_node_id), use_node_id, names, types, modes
+            UnwrapOption(intent_node_id), use_node_id, names, types, modes, no_enum_values
         );
     }
     return environment_ok && ArrayLength(names) == ArrayLength(modes) &&

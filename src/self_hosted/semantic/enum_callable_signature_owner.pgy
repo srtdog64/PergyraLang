@@ -187,11 +187,12 @@ func SemanticEnumCallableProjectionContractReady() -> Bool {
     let empty_ints: Array<Int> = [];
     let empty_texts: Array<String> = [];
     let empty_value_rows: HashMap<String, Int> = MapNew();
+    let empty_value_scope: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let broken: SemanticAstEnumFacts = SemanticAstEnumFacts(
         false, 0, empty_ints, empty_texts, empty_texts, empty_texts,
         empty_texts,
         empty_ints, empty_ints, empty_texts, empty_texts, empty_texts,
-        empty_value_rows
+        empty_value_rows, empty_value_scope
     );
     let preserved_names: Array<String> = ["Keep"];
     let preserved_returns: Array<String> = ["Keep"];

@@ -4,6 +4,7 @@ import "ast_expression_graph_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "env_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "env_value_owner.pgy";
 
 func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
     return kind == AstExpressionNodeLogicalOr() ||
@@ -110,7 +111,8 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     names: Array<String>,
-    types: Array<String>
+    types: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, node_id
@@ -127,7 +129,7 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
             graph, node_id
         );
         if !IsSome(text) { return "Unknown"; }
-        let bound: String = EnvLookup(names, types, UnwrapOption(text));
+        let bound: String = EnvValueLookup(names, types, enum_values, UnwrapOption(text));
         if bound != "" { return bound; }
         return "Unknown";
     }
@@ -142,7 +144,7 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
             return "Unknown";
         }
         let source: String = SemanticExpressionGraphCallArgumentScalarTypeName(
-            graph, UnwrapOption(operand), names, types
+            graph, UnwrapOption(operand), names, types, enum_values
         );
         if SemanticExpressionGraphNumericTypeName(source) {
             return UnwrapOption(target);
@@ -159,11 +161,11 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
         if !IsSome(receiver) || !IsSome(index) { return "Unknown"; }
         let receiver_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
-                graph, UnwrapOption(receiver), names, types
+                graph, UnwrapOption(receiver), names, types, enum_values
             );
         let index_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
-                graph, UnwrapOption(index), names, types
+                graph, UnwrapOption(index), names, types, enum_values
             );
         let element_type: Option<String> =
             SemanticArrayElementType(receiver_type);
@@ -175,7 +177,7 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
     let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
     if !IsSome(left) { return "Unknown"; }
     let left_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
-        graph, UnwrapOption(left), names, types
+        graph, UnwrapOption(left), names, types, enum_values
     );
     let unary: String = SemanticExpressionGraphScalarUnaryResultTypeName(
         kind, left_type
@@ -184,7 +186,7 @@ func SemanticExpressionGraphCallArgumentScalarTypeName(
     let right: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
     if !IsSome(right) { return "Unknown"; }
     let right_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
-        graph, UnwrapOption(right), names, types
+        graph, UnwrapOption(right), names, types, enum_values
     );
     return SemanticExpressionGraphScalarBinaryResultTypeName(
         kind, left_type, right_type

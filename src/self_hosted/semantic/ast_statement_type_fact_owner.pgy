@@ -146,9 +146,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         let types: Array<String> = [];
         let modes: Array<String> = [];
         let environment_fact: String = "";
-        if !SemanticAstExpressionSeedEnumValues(
-            enum_facts, names, types, modes
-        ) { environment_fact = "enum_environment"; }
+        if !SemanticAstEnumValueRowsReady(enum_facts) { environment_fact = "enum_environment"; }
         else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, statements.function_node_ids[i],
             names, types, modes
@@ -282,7 +280,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     UnwrapOption(target_root),
                     names.Slice(0, ArrayLength(names)),
                     types.Slice(0, ArrayLength(types)),
-                    modes.Slice(0, ArrayLength(modes)), false);
+                    modes.Slice(0, ArrayLength(modes)), false, enum_facts.value_scope);
             if mutation.ok {
                 mutation = SemanticExpressionGraphArrayStorageMutationFact(
                     artifact, locals, initializer_types.inferred_type_names,
@@ -431,12 +429,12 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     expression_surfaces.expression_graph,
                     UnwrapOption(return_root), expected, constructors,
                     names, types, function_tables.callables,
-                    function_tables.returns
+                    function_tables.returns, enum_facts.value_scope
                 ) || SemanticExpressionGraphSetLiteralMatchesDeclaredType(
                     expression_surfaces.expression_graph,
                     UnwrapOption(return_root), expected, constructors,
                     names, types, function_tables.callables,
-                    function_tables.returns
+                    function_tables.returns, enum_facts.value_scope
                 ) {
                     inferred = expected;
                 }
@@ -509,7 +507,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         if row_verified == 1 && kind == TypedAstKindBindStmtTag() {
             let bind_verdict: SemanticAstBindStatementTypeVerdict = SemanticAstBindStatementTypeVerdictFor(
                 constructors, role_facts, names, types, statements, i,
-                expression_surfaces, locals, artifact);
+                expression_surfaces, locals, artifact, enum_facts.value_scope);
             row_verified = bind_verdict.verified;
             row_code = bind_verdict.diagnostic_code;
             row_message = bind_verdict.diagnostic_message;

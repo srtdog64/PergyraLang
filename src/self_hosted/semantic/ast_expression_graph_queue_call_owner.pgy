@@ -40,7 +40,8 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
     root_id: Int,
     target: SemanticExpressionCallTargetFact,
     names: Array<String>,
-    types: Array<String>
+    types: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphQueueCallFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
@@ -92,7 +93,7 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
     }
     let queue_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
         graph, call.argument_nodes[protocol.receiver_argument_index],
-        names, types
+        names, types, enum_values
     );
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(queue_type);
@@ -120,7 +121,7 @@ func SemanticExpressionGraphQueueCallFactFromResolvedTarget(
         let value_type: String =
             SemanticExpressionGraphCallArgumentScalarTypeName(
                 graph, call.argument_nodes[protocol.value_argument_index],
-                names, types
+                names, types, enum_values
             );
         let value_text: Option<String> = SemanticExpressionGraphNodeText(
             graph, call.argument_nodes[protocol.value_argument_index]
@@ -162,14 +163,15 @@ func SemanticExpressionGraphQueueCallFactFromGraph(
     names: Array<String>,
     types: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphQueueCallFact {
     let target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             graph, root_id, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
     return SemanticExpressionGraphQueueCallFactFromResolvedTarget(
-        graph, root_id, target, names, types
+        graph, root_id, target, names, types, enum_values
     );
 }

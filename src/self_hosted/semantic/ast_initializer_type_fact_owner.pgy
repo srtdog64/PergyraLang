@@ -144,9 +144,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         let names: Array<String> = [];
         let types: Array<String> = [];
         let modes: Array<String> = [];
-        let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
-            enum_facts, names, types, modes
-        ) && SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+        let environment_ok: Bool = SemanticAstEnumValueRowsReady(enum_facts) && SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, locals.function_node_ids[i],
             names, types, modes
         ) && SemanticAstExpressionSeedParameters(
@@ -281,11 +279,11 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
                 expression_surfaces.expression_graph,
                 UnwrapOption(graph_root), UnwrapOption(declared),
                 constructors, names, types,
-                function_tables.callables, function_tables.returns
+                function_tables.callables, function_tables.returns, enum_facts.value_scope
         ) {
             inferred = UnwrapOption(declared);
         }
-        if expression_verdict.ok && IsSome(declared) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(expression_surfaces.expression_graph, UnwrapOption(graph_root), UnwrapOption(declared), constructors, names, types, function_tables.callables, function_tables.returns) { inferred = UnwrapOption(declared); }
+        if expression_verdict.ok && IsSome(declared) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(expression_surfaces.expression_graph, UnwrapOption(graph_root), UnwrapOption(declared), constructors, names, types, function_tables.callables, function_tables.returns, enum_facts.value_scope) { inferred = UnwrapOption(declared); }
         if expression_verdict.ok {
             let context_error: String = SemanticHashMapContextualTypeError(declared, inferred);
             if context_error != "" {

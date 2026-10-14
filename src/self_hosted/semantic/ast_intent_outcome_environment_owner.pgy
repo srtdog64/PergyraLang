@@ -6,6 +6,7 @@ import "ast_signature_fact_owner.pgy";
 import "env_owner.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
+import "env_value_owner.pgy";
 
 func SemanticAstIntentExpressionSeedOutcome(
     artifact: AstTreeArtifact,
@@ -16,7 +17,8 @@ func SemanticAstIntentExpressionSeedOutcome(
     expression_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,
-    inout modes: Array<String>
+    inout modes: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Bool {
     if !SemanticAstIntentTransitionFactsReady(artifact, transitions) {
         return false;
@@ -39,8 +41,8 @@ func SemanticAstIntentExpressionSeedOutcome(
             }
             t = t + 1;
         }
-        if terminal_index < 0 || EnvContainsName(
-            names, transitions.terminal_payload_source_names[terminal_index]
+        if terminal_index < 0 || EnvValueContainsName(
+            names, enum_values, transitions.terminal_payload_source_names[terminal_index]
         ) { return false; }
         ArrayPushOwnedString(names,
             transitions.terminal_payload_source_names[terminal_index]);
@@ -91,7 +93,7 @@ func SemanticAstIntentExpressionSeedOutcome(
                 let predecessor_row: Int = start + predecessor_index;
                 let payload_name: String =
                     transitions.success_payload_names[predecessor_row];
-                if payload_name == "" || EnvContainsName(names, payload_name) {
+                if payload_name == "" || EnvValueContainsName(names, enum_values, payload_name) {
                     return false;
                 }
                 ArrayPushOwnedString(names, payload_name);
@@ -141,7 +143,7 @@ func SemanticAstIntentExpressionSeedOutcome(
         );
     }
     if outcome_name == "" { return true; }
-    if on_text == "" || EnvContainsName(names, outcome_name) { return false; }
+    if on_text == "" || EnvValueContainsName(names, enum_values, outcome_name) { return false; }
     let intent_index: Int = -1;
     let i: Int = 0;
     while i < SemanticAstIntentSignatureCount(facts) {

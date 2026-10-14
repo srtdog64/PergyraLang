@@ -13,6 +13,7 @@ import "env_owner.pgy";
 import "diagnostic_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "env_value_owner.pgy";
 
 struct SemanticExpressionGraphDomainQueryFact {
     applies: Bool;
@@ -123,7 +124,8 @@ func SemanticExpressionGraphDomainQueryValidateCall(
     modes: Array<String>,
     ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
-    inout symbolic_identifier_nodes: Array<Int>
+    inout symbolic_identifier_nodes: Array<Int>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphDomainQueryFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
@@ -138,7 +140,7 @@ func SemanticExpressionGraphDomainQueryValidateCall(
     let target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             graph, root_id, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
     if !target.ok { return SemanticExpressionGraphDomainQueryReady(symbolic_identifier_nodes); }
     let protocol: SemanticAstDomainQueryProtocol =
@@ -156,7 +158,7 @@ func SemanticExpressionGraphDomainQueryValidateCall(
             ), symbolic_identifier_nodes
         );
     }
-    let owner_type: String = EnvLookup(names, types, "self");
+    let owner_type: String = EnvValueLookup(names, types, enum_values, "self");
     let owner_index: Option<Int> =
         SemanticAstNominalConstructorIndexForName(constructors, owner_type);
     if !IsSome(owner_index) {
@@ -307,7 +309,8 @@ func SemanticExpressionGraphDomainQueryFactsFromTree(
     types: Array<String>,
     modes: Array<String>,
     ref function_names: SemanticCallableNameTable,
-    ref function_returns: Array<String>
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphDomainQueryFact {
     let symbolic_identifier_nodes: Array<Int> = [];
     let pending: Array<Int> = [root_id];
@@ -339,7 +342,7 @@ func SemanticExpressionGraphDomainQueryFactsFromTree(
             let target: SemanticExpressionCallTargetFact =
                 SemanticExpressionGraphResolvedCallTarget(
                     graph, node_id, constructors, names, types,
-                    function_names, function_returns
+                    function_names, function_returns, enum_values
                 );
             if target.ok &&
                 SemanticAstDomainQueryProtocolFromName(target.name).applies {
@@ -348,7 +351,7 @@ func SemanticExpressionGraphDomainQueryFactsFromTree(
                     SemanticExpressionGraphDomainQueryValidateCall(
                         graph, node_id, constructors, names, types, modes,
                         function_names, function_returns,
-                        symbolic_identifier_nodes
+                        symbolic_identifier_nodes, enum_values
                     );
                 if !query.ok { return query; }
             }

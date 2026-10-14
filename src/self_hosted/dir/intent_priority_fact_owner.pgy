@@ -67,6 +67,7 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
     function_tables: SemanticAstExpressionFunctionTableFacts,
     intent_node_id: Int
 ) -> SelfDirIntentPriorityFact {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let priority_node_id: Int = 0;
     let priority_count: Int = 0;
     let child_index: Int = 0;
@@ -104,7 +105,7 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
     let types: Array<String> = [];
     let modes: Array<String> = [];
     if !SemanticAstIntentExpressionSeedParameters(
-            intent_signatures, intent_node_id, names, types, modes
+            intent_signatures, intent_node_id, names, types, modes, no_enum_values
         ) || ArrayLength(names) != ArrayLength(modes) {
         return SelfDirIntentPriorityFactError(
             "self-host DIR intent priority environment is incomplete"
@@ -113,7 +114,7 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
     let type_name: String = SemanticExpressionGraphScalarTypeName(
         expression_surfaces.expression_graph, UnwrapOption(root),
         constructors, names, types, function_tables.callables,
-        function_tables.returns
+        function_tables.returns, no_enum_values
     );
     if type_name != "Int" {
         return SelfDirIntentPriorityFactError(

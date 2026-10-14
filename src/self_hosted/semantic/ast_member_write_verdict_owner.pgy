@@ -11,7 +11,8 @@ func SemanticAstMemberWriteVerdict(
     root_mode: String,
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>, types: Array<String>,
-    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticDiagnosticMessageFact {
     let node: Int = target_node;
     while node >= 0 {
@@ -36,7 +37,7 @@ func SemanticAstMemberWriteVerdict(
         if !IsSome(field) { break; }
         let receiver_type: String = SemanticExpressionGraphScalarTypeName(
             graph, member.receiver_node, constructors, names, types,
-            function_names, function_returns);
+            function_names, function_returns, enum_values);
         let receiver: SemanticCanonicalTypeNameFact =
             SemanticCanonicalTypeNameFactFrom(receiver_type);
         let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(
