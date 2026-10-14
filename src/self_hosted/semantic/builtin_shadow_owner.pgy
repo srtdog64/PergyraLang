@@ -145,11 +145,18 @@ func SemanticBuiltinNameReservationFor(name: String) -> SemanticBuiltinNameReser
         return SemanticBuiltinNameReservation(true, "CAPABILITY");
     }
     let rows: Array<String> = SemanticBuiltinNameReservationRows();
+    // A row "LAYER^name" with exactly one "^" names `name` when the text
+    // after its first "^" is `name` and `name` holds no "^".
+    if StringIndexOf(name, "^") >= 0 {
+        return SemanticBuiltinNameReservation(false, "");
+    }
+    let name_length: Int = StringLength(name);
     let i: Int = 0;
     while i < ArrayLength(rows) {
-        let parts: Array<String> = Split(rows[i], "^");
-        if ArrayLength(parts) == 2 && parts[1] == name {
-            return SemanticBuiltinNameReservation(true, parts[0]);
+        let separator: Int = StringIndexOf(rows[i], "^");
+        if separator >= 0 && StringLength(rows[i]) - separator - 1 == name_length &&
+            Substring(rows[i], separator + 1, name_length) == name {
+            return SemanticBuiltinNameReservation(true, Substring(rows[i], 0, separator));
         }
         i = i + 1;
     }
