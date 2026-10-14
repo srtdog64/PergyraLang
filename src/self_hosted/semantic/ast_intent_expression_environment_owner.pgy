@@ -7,8 +7,8 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 
 
 func SemanticAstIntentExpressionSeedEnvironment(
-    artifact: AstTreeArtifact,
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref facts: SemanticAstIntentSignatureFacts,
     ref transitions: SemanticAstIntentTransitionFacts,
     intent_node_id: Int,

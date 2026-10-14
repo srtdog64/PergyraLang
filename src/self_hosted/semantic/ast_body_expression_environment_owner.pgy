@@ -7,7 +7,7 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
 
 func SemanticAstBodyExpressionEnvironmentSeed(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis,
     inferred_types: Array<String>,
     iteration_types: SemanticAstIterationTypeFacts,

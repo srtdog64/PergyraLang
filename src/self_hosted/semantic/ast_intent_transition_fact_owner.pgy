@@ -531,7 +531,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
 }
 
 func SemanticAstIntentTransitionFactsReady(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref facts: SemanticAstIntentTransitionFacts
 ) -> Bool {
     let steps: Int = ArrayLength(facts.step_node_ids);

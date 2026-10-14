@@ -22,7 +22,7 @@ struct SemanticAstIntentStepActorFact {
 }
 
 func SemanticAstIntentActionSignatureIndex(
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     owner_name: String,
     action_name: String
 ) -> Int {
@@ -39,7 +39,7 @@ func SemanticAstIntentActionSignatureIndex(
 }
 
 func SemanticAstIntentActionCallFromText(
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref participants: SemanticAstIntentSignatureFacts,
     intent_index: Int,
     text: String
