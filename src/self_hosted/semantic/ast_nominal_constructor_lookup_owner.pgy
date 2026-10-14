@@ -11,16 +11,11 @@ func SemanticAstNominalConstructorUniqueIndexForName(
         ArrayLength(facts.names) != ArrayLength(facts.node_ids) {
         return Err("nominal_constructor_identity");
     }
-    let found: Int = -1;
-    let i: Int = 0;
-    while i < SemanticAstNominalConstructorCount(facts) {
-        if facts.names[i] == name {
-            if found >= 0 { return Err("nominal_constructor_identity"); }
-            found = i;
-        }
-        i = i + 1;
-    }
-    return Ok(found);
+    // The facts producer counted every name row once.
+    let count: Int = SemanticCallableNameTableValue(facts.name_row_counts, name);
+    if count > 1 { return Err("nominal_constructor_identity"); }
+    if count == 1 { return Ok(SemanticCallableNameTableValue(facts.name_first_rows, name)); }
+    return Ok(-1);
 }
 
 func SemanticAstNominalConstructorIndexForName(
@@ -32,9 +27,9 @@ func SemanticAstNominalConstructorIndexForName(
     return Some(Unwrap(found));
 }
 
-// The same unique lookup for a name held in a borrowed table row. The row is
-// compared in place, never bound or stored, so a readonly table formal stays
-// a read at every caller.
+// The same unique lookup for a name held in a borrowed table row. Only a copy
+// of the row is looked up, never the row itself, so a readonly table formal
+// stays a read at every caller.
 func SemanticAstNominalConstructorIndexForNameAt(
     ref facts: SemanticAstNominalConstructorFacts,
     ref names: Array<String>, row: Int
@@ -43,17 +38,9 @@ func SemanticAstNominalConstructorIndexForNameAt(
         ArrayLength(facts.names) != ArrayLength(facts.node_ids) {
         return None;
     }
-    let found: Int = -1;
-    let i: Int = 0;
-    while i < SemanticAstNominalConstructorCount(facts) {
-        if facts.names[i] == names[row] {
-            if found >= 0 { return None; }
-            found = i;
-        }
-        i = i + 1;
-    }
-    if found < 0 { return None; }
-    return Some(found);
+    let wanted: String = Concat("", names[row]);
+    if SemanticCallableNameTableValue(facts.name_row_counts, wanted) != 1 { return None; }
+    return Some(SemanticCallableNameTableValue(facts.name_first_rows, wanted));
 }
 
 // Field identity is scoped by the owning declaration, never by field type.
@@ -77,4 +64,31 @@ func SemanticAstNominalConstructorFieldRowForName(
     }
     if found < 0 { return None; }
     return Some(found);
+}
+
+// The first declaration named `nominal_name` owns the field or role slot.
+func SemanticAstNominalFieldType(
+    ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
+    field_name: String
+) -> Option<String> {
+    let constructor_index: Int =
+        SemanticCallableNameTableValue(facts.name_first_rows, nominal_name);
+    if constructor_index < 0 { return None; }
+    let field_index: Int = 0;
+    while field_index < facts.param_counts[constructor_index] {
+        let row: Int = facts.param_starts[constructor_index] + field_index;
+        if facts.field_names[row] == field_name {
+            return Some(facts.param_type_names[row]);
+        }
+        field_index = field_index + 1;
+    }
+    let slot_index: Int = 0;
+    while slot_index < facts.role_slot_counts[constructor_index] {
+        let slot_row: Int = facts.role_slot_starts[constructor_index] + slot_index;
+        if facts.role_slot_names[slot_row] == field_name {
+            return Some(facts.role_slot_type_names[slot_row]);
+        }
+        slot_index = slot_index + 1;
+    }
+    return None;
 }

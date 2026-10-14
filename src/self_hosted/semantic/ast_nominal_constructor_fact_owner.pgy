@@ -8,6 +8,7 @@ import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_generic_parameter_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
+import "callable_resolution_owner.pgy";
 struct SemanticAstNominalConstructorFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -30,6 +31,9 @@ struct SemanticAstNominalConstructorFacts {
     role_slot_names: Array<String>;
     role_slot_type_names: Array<String>;
     role_slot_dynamic: Array<Int>;
+    // First row and row count per declaration name, filled once from `names`.
+    name_first_rows: HashMap<String, Int>;
+    name_row_counts: HashMap<String, Int>;
 }
 func SemanticAstNominalConstructorFactsFromArtifact(
     artifact: AstTreeArtifact
@@ -365,6 +369,14 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         );
         node_id = node_id + 1;
     }
+    let name_first_rows: HashMap<String, Int> = MapNew();
+    let name_row_counts: HashMap<String, Int> = MapNew();
+    let name_row: Int = 0;
+    while name_row < ArrayLength(names) {
+        SemanticCallableNameTableCount(name_first_rows, name_row_counts,
+            Concat("", names[name_row]), name_row);
+        name_row = name_row + 1;
+    }
     return SemanticAstNominalConstructorFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
@@ -372,7 +384,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         node_ids, nominal_kinds, names, return_types, param_starts,
         param_counts, field_source_syntax_ids, field_names, field_kinds, field_write_modes,
         param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names,
-        role_slot_dynamic
+        role_slot_dynamic, name_first_rows, name_row_counts
     );
 }
 func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int { return ArrayLength(facts.node_ids); }
@@ -572,34 +584,3 @@ func SemanticAstNominalRoleSlotDynamic(
     return None;
 }
 
-func SemanticAstNominalFieldType(
-    ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
-    field_name: String
-) -> Option<String> {
-    let constructor_index: Int = 0;
-    while constructor_index < SemanticAstNominalConstructorCount(facts) {
-        if facts.names[constructor_index] == nominal_name {
-            let field_index: Int = 0;
-            while field_index < facts.param_counts[constructor_index] {
-                let row: Int = facts.param_starts[constructor_index] +
-                    field_index;
-                if facts.field_names[row] == field_name {
-                    return Some(facts.param_type_names[row]);
-                }
-                field_index = field_index + 1;
-            }
-            let slot_index: Int = 0;
-            while slot_index < facts.role_slot_counts[constructor_index] {
-                let slot_row: Int = facts.role_slot_starts[constructor_index] +
-                    slot_index;
-                if facts.role_slot_names[slot_row] == field_name {
-                    return Some(facts.role_slot_type_names[slot_row]);
-                }
-                slot_index = slot_index + 1;
-            }
-            return None;
-        }
-        constructor_index = constructor_index + 1;
-    }
-    return None;
-}
