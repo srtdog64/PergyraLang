@@ -146,7 +146,7 @@ Three attempts were measured and dropped:
   at node 15463. Only the verdict gate caught it. The verdict gate needs
   gen0 itself; type-checking the self-host source is not enough.
 
-### Stages 21–26
+### Stages 21–29
 
 | Stage | Commit | Repeated work removed |
 |---|---|---|
@@ -155,7 +155,10 @@ Three attempts were measured and dropped:
 | 23 | `a71f95d26`, `0b448a681` | every builtin name reservation split once per signature, the pieces never freed; the export word looked up in the word registry at every offset of an imported source |
 | 24 | `ef2b8d4ed`, `5436ce84e` | a one-character string per identifier character, never freed; the environment scanned twice per value or mode lookup |
 | 25 | `9271f7520` | literal checks built a one-character string per character; a call target fact built a spine view for a root that is not a call |
-| 26 | `55842c700` | none; it restores the negative gates that stages 4, 6 and 16 broke (next subsection) |
+| 26 | `55842c700`, `f54eca9ae` | none; it restores the negative gates that stages 4, 6 and 16 broke (next subsection) |
+| 27 | `9fdb707d9` | parser functions holding the content's extent measured the content again in each whitespace skip (171 calls in 18 functions); parenthesis stripping measured its text four times; AST text kind checks measured the text twice per prefix (up to 99 prefixes) |
+| 28 | `0894932e3` | each callee name compared with all 23 collection protocol names; the sink alias fixed point walked every local of the program in each round |
+| 29 | `4afe1e0b6` | the same parser functions measured the content again for character reads, language word matches, identifier reads and loop bounds |
 
 Stages 23–24 lowered peak memory from 1.46 to 1.31 GB on the codegen input
 and from 3.17 to 2.87 GB on the driver input. One rotation, five runs each,
@@ -169,6 +172,26 @@ user CPU, median:
 
 Stage 25 is within noise on the driver input. Stage 26 costs about 1% on the
 codegen input; that is the price of the restored checks.
+
+Stages 27–29 were each timed against the stage before them, five runs per
+build, user CPU, median:
+
+| Step | codegen | driver |
+|---|---:|---:|
+| stage 26 → 27 | 7.64 → 7.30 s | 17.02 → 16.37 s |
+| stage 27 → 28 | 7.25 → 7.16 s | 16.51 → 16.09 s |
+| stage 28 → 29 | 7.19 → 7.08 s | 16.02 → 16.10 s |
+
+Stage 29's gain shows on the codegen input only. The driver input stays
+within the noise.
+
+Since stage 20, `SemanticStripOuterParens` has stayed at about 3% of the
+driver input. The parser wraps every binary node's text in parentheses, so
+each such node needs a full depth scan. A shortcut would have to rely on how
+the parser builds those texts. `ParserExpressionBinary` copies both child
+arenas, texts included, for every binary node. Building into the left
+arena in place would mean mutating a by-value parameter's member arrays,
+and that pattern is what the P0 refusal is about.
 
 ### Fact frames edited in place
 
