@@ -33,10 +33,12 @@ func Main() -> Void {
     let right: Array<Int> = [-1, -1, 1];
     let empty: Array<String> = ["", "", ""];
     let zeros: Array<Int> = [0, 0, 0];
+    let consumer_rows: Array<Int> = [];
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        true, [2], [true], SemanticExpressionGraphArenaFromTopologyWithIdentities(
+        true, [2], [true], SemanticExpressionGraphArena(
             AstExpressionArena(kinds, texts, left, right), texts,
-            zeros, empty, empty, SemanticExpressionIdentityRowsUnknown(3), zeros));
+            zeros, empty, empty, SemanticExpressionIdentityRowsUnknown(3), zeros,
+            false, consumer_rows));
     let selected: Option<String> = CodegenExpressionMemberTypeFromGraph(graph, 2, env);
     if !IsSome(selected) || UnwrapOption(selected) != "Shape.Circle" { Exit(1); }
     ArraySet(texts, 1, "Other");

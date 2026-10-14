@@ -20,11 +20,12 @@ func Main() -> Void {
     let edges: Array<Int> = [-1];
     let zeros: Array<Int> = [0];
     let empty_text: Array<String> = [""];
+    let consumer_rows: Array<Int> = [];
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        true, [0], [true], SemanticExpressionGraphArenaFromTopologyWithIdentities(
+        true, [0], [true], SemanticExpressionGraphArena(
             AstExpressionArena(kinds, texts, edges, edges), texts,
             zeros, empty_text, empty_text,
-            SemanticExpressionIdentityRowsUnknown(1), zeros));
+            SemanticExpressionIdentityRowsUnknown(1), zeros, false, consumer_rows));
     let view: SemanticExpressionGraphView = SemanticExpressionGraphView(true, 0, graph);
     let build: SelfMirRoutineBuild = SelfMirRoutineBuild(
         true, "", SelfMirCfgRowsEmpty(), 0, 0, [0],
