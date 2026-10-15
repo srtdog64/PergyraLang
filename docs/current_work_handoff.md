@@ -7,8 +7,12 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 The owner resumed work on 2026-10-16 and requested one main branch. The
 inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
-`3721a901c` is being merged into main. This combined source is not yet
-validated. Do not reuse either parent's gate receipts as integrated acceptance.
+`3721a901c` was merged at `5684085b2`. The only local branch is `main`;
+the former performance worktree is detached with its files preserved. Latest
+committed integration repair: `9003ce030`. Native-flow instrumentation,
+structural reconciliation and focused-probe changes are still uncommitted.
+This combined source is not yet accepted. Do not reuse either parent's gate
+receipts as integrated acceptance.
 
 Current execution plan:
 [`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md).
@@ -16,6 +20,24 @@ Reconcile the inherited formal-effect/publication changes with the lane's
 single final focus carrier, then run narrow gates, full memory measurement,
 bootstrap, installed-driver checks and required exact-SHA CI. Preserve all
 negative fixtures; the known non-CI focus failure is not an exemption.
+
+Current blocker: after adding the reached `IsSome` input-retention fact, the
+full codegen source's first native failure moves from the unchanged 4096-work
+cap to `parameter program-point index allocation failed`. The subsequent
+18408 diagnostics are largely failed publication/borrow consumers, not a
+request for source annotations. Distinguish index currency from allocation
+failure before choosing another repair; do not raise the work limit or weaken
+escape rules. Root's pre-correction native phase unit passed 3679 checks;
+A observed 3708 checks after the bounded correction. Full canonical admission
+remains RED. Source/API merge repairs do not establish bootstrap or driver
+acceptance.
+
+The three implementers own native flow, structural gates, and the existing
+focus-recovery behavioral gate respectively; root owns commits, integration,
+full bootstrap/install/memory evidence and publication. One heavy WSL build
+at a time. Next falsifiers are local whole-binding reassignment versus an
+aliased payload write, zero-row ordinary nominal forwarding versus real
+restoration, and the unchanged 4096/4097 demand-budget controls.
 
 The WSL remaining-target process is no longer running after WSL restart;
 its legacy-intent log ends in `Hangup`, not a pass. No published CI-green or

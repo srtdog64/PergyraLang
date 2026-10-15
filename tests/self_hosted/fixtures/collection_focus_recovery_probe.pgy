@@ -382,11 +382,17 @@ func Main() -> Void with caps env, io_read, io_write
     let groups: Int = ArrayLength(bundle.collection_focus_recovery.group_function_ids);
     let parts: Int = ArrayLength(bundle.collection_focus_recovery.part_local_binding_ids);
     let exits: Int = ArrayLength(bundle.collection_focus_recovery.exit_group_indices);
-    if mode != "manual-control" && (groups == 0 || parts == 0 || exits == 0)
+    // A read-only nominal forwarding control has no extracted descriptor or
+    // pending writeback. Prove that premise without bypassing body admission.
+    if mode == "ordinary-control" && (groups != 0 || parts != 0 || exits != 0)
+    {
+        Log("PROBE|ordinary-control-has-recovery"); Exit(3); return;
+    }
+    if mode != "manual-control" && mode != "ordinary-control" && (groups == 0 || parts == 0 || exits == 0)
     {
         Log("PROBE|recovery-missing"); Exit(3); return;
     }
-    if mode == "emit" || mode == "manual-control"
+    if mode == "emit" || mode == "manual-control" || mode == "ordinary-control"
     {
         // Reuse the produced body and its receipt at the real admitted seam.
         // The convenience source entry would run body analysis a second time.

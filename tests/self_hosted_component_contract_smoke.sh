@@ -565,7 +565,7 @@ require_max_lines "src/self_hosted/semantic/ast_initializer_type_query_owner.pgy
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 60
 # Body assembly also seals and carries retained result/formal projections.
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy" 325
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy" 330
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_contract_owner.pgy" 180
 require_max_lines "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" 200
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 615
@@ -631,7 +631,7 @@ require_max_lines \
 require_max_lines "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy" 115
 require_max_lines "tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh" 80
 require_max_lines \
-    "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" 90
+    "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" 95
 require_max_lines \
     "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_schema_owner.pgy" 40
 require_max_lines "src/self_hosted/semantic/ast_collection_execution_context_fact_owner.pgy" 150
@@ -773,7 +773,7 @@ require_max_lines \
 require_max_lines \
     "src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy" 100
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
-require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 120
+require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 130
 require_max_lines "src/self_hosted/mir_lower/expression_graph_tagged_enum_match_owner.pgy" 220
 require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 280
 require_max_lines "src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy" 120
@@ -975,7 +975,7 @@ require_max_lines "src/self_hosted/mir/routine_loop_exit_phi_owner.pgy" 90
 require_max_lines "src/self_hosted/mir/routine_for_owner.pgy" 180
 require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 150
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" 100
-require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" 80
+require_max_lines "src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.pgy" 90
 require_max_lines "src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy" 220
 require_max_lines \
     "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" 70
@@ -1143,7 +1143,7 @@ require_max_lines "src/self_hosted/mir_lower/json_fact_read.pgy" 454
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy" 180
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy" 195
+    "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy" 200
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy" 225
 require_max_lines \
@@ -1165,7 +1165,7 @@ require_max_lines \
 require_max_lines \
     "tests/self_hosted/parity/one_mir_array_argument_mutations.py" 130
 require_max_lines \
-    "src/self_hosted/mir/routine_param_json_projection_owner.pgy" 60
+    "src/self_hosted/mir/routine_param_json_projection_owner.pgy" 65
 for collection_program_owner_cap in \
     direct_mir_collection_local_context_fact_owner.pgy:100 \
     direct_mir_collection_program_route_fact_owner.pgy:100 \
@@ -2902,7 +2902,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:596 \
     src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:384 \
     src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:416 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:442 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:450 \
     src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \

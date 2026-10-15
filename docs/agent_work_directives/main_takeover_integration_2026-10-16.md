@@ -60,8 +60,34 @@ as actual refusal locations; an earlier censored refusal is not attack coverage.
 Static owner checks: 60 seconds; focused parity: 300 seconds; integration shard:
 1800 seconds. One heavy bootstrap/consumer run at a time in shared WSL.
 
-No delegated edit scope is active during the main integration. Independent
-review/proof outputs remain separate evidence, not a second semantic authority.
+The main merge is complete. The resumed three-implementer workflow now has
+three non-overlapping scopes on the same main checkout and the same P0 chain:
+
+- A: inherited native parameter-publication/flow owners and their behavioral
+  controls. Determine the complete canonical refusal causes; preserve the 4096
+  cap and setter/escape negatives. No source annotations or copies to bypass it.
+  The measured selector also reaches the existing builtin-retention registry:
+  The reached Option tag observation `IsSome` has no retained payload, but
+  lacks a row. Extend this same owner, regenerate its Pergyra projection, and check
+  exact typed stdlib identity/arity, forged identity, user shadowing and
+  retained `Some` payload negatives. C and LLVM both inspect only the tag;
+  neither the constructor nor payload extraction receives a no-retain grant.
+  This is a reached dependency, not a parallel retention policy or name bypass.
+  `IsNone` remains native-only and is not part of this correction.
+- B: structural reconciliation, existing JSON row-owner placement and static
+  gate machinery. Preserve real behavioral tests and remove inherited forbidden
+  source/doc phrase assertions. No semantic admission edits or blanket cap raises.
+- C: the existing focus-recovery behavioral gate and its reached producer/
+  consumer obligations, including the known nominal-forward red. Preserve
+  corruption/restoration controls; distinguish optional focus from a permission.
+
+Root owns integration, main commits/publication, the full source/binary-bound
+canonical/bootstrap/install/memory/CI gate and the active handoff. No agent
+creates a branch/worktree, commits, pushes, kills a process, or runs a heavy
+shared WSL bootstrap. Request the root's compile lease before a large probe.
+The common acceptance remains the complete integrated compiler chain, not
+three independent green reports. Unexpected cross-scope dependencies return
+to root and this map before edits.
 
 ## Observations
 
@@ -70,6 +96,20 @@ review/proof outputs remain separate evidence, not a second semantic authority.
 - WSL was restarted before takeover: the handed-off remaining-target process
   is no longer running. Its log, not a running-job assumption, owns the result.
 - Publication and CI-green claims remain OPEN.
+- The bounded `IsSome` correction passes the native publication phase unit
+  (3708 checks, zero failures, observed by A) and generator drift. The full
+  canonical still refuses: its first owned error moves from the 4096 demand
+  cap to `parameter program-point index allocation failed`; the unchanged
+  18408 total includes cascading publication/borrow failures. Diagnose actual
+  index currency/allocation before choosing the next repair. The local heap
+  rebinding experiment did not unblock the chain and was removed completely.
+- Structural reconciliation: routine generic-constraint JSON projection moves
+  unchanged from the aggregate serializer to the existing routine-parameter
+  JSON owner (already imported by both consumers). Function identity and
+  emitted bytes stay stable; there is no second projection or fallback.
+  This keeps the aggregate owner below its unchanged 600-line ceiling. Small
+  per-responsibility cap deltas below 600 cover the lane's actual owned-text
+  copies and final bundle field, not compressed code or permission changes.
 - Shared WIP checkpoint: `78cc0ba23`. Merge resolution keeps the lane's coherent
   copy-edge/last-use API and final focus schema instead of the incompatible
   earlier typed-edge API; the earlier source remains recoverable in this

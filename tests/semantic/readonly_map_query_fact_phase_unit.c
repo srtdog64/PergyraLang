@@ -597,7 +597,7 @@ static void checked_input_reader(const char *source, bool result_not_fresh)
     CHECK(!semantic_param_publication_local_call(ctx, call, 0));
     CHECK(ast_call_set_semantic_callee_value_binding_id(call, 0));
     size_t arity = call->data.call.arg_count;
-    call->data.call.arg_count = 1;
+    call->data.call.arg_count = arity == 1 ? 0 : 1;
     CHECK(!semantic_param_publication_local_call(ctx, call, 0));
     call->data.call.arg_count = arity;
     ASTNode *argument = ast_call_argument(call, 0);
@@ -2493,6 +2493,7 @@ int main(void)
     checked_no_output_header("func EchoText(text:String)->String{return text;}", 0);
     checked_no_output_header("struct Held{text:String} func EchoRecord(value:Held)->Held{return value;}", 1);
     checked_scalar_local_store();
+    checked_nonlocal_scalar_store("struct Cell{text:String} func Store(cell:Cell,text:String)->Void{var alias=cell;alias.text=text;}", 1);
     checked_nonlocal_scalar_store("func SetNumber(inout destination:Int,value:Int)->Void{destination=value;}", 0);
     checked_nonlocal_scalar_store("struct Counter{count:Int} func Touch(ref text:String)->Bool{var cell=Counter(0);cell.count=StringLength(text);return cell.count>0;}", 1);
     checked_readonly_mutual_recursion();
@@ -2562,6 +2563,7 @@ int main(void)
     checked_input_reader("struct TextRecord{ text:String } func Inspect(ref record:TextRecord)->Void{let result=StringReplace(record.text,\"x\",\"y\");}", true);
     checked_input_reader("struct TextRecord{ text:String } func Inspect(ref record:TextRecord)->Void{let result=Split(record.text,\"x\");}", true);
     checked_input_reader("struct TextRecord{ text:String, rows:HashMap<String,Int> } func Inspect(ref record:TextRecord)->Void{let result=MapHas(record.rows,record.text);}", false);
+    checked_input_reader("struct Wrapped{value:Option<String>} func Inspect(ref record:Wrapped)->Void{let result=IsSome(record.value);}", false);
     reached_producer_source("func Main()->Void{let text=CharAtN(\"abc\",1);}", false);
     reached_producer_source("func Main()->Void{let text=SubstringWithLen(\"abc\",0,1);}", false);
     checked_loop_execution_source("func Main()->Void { for i in 0..0 { Log(i); } }", false);

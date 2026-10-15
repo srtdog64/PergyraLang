@@ -218,7 +218,7 @@ def invoke(tool,name,mode,label,output=None,expected_rc=0):
     source=source_paths[name]
     destination=output or work/(label+'.forbidden.c')
     text=run(label,[tool,source.relative_to(root),mode,destination.relative_to(root)],30,expected_rc)
-    if mode not in ('emit','manual-control') and destination.exists(): raise RuntimeError(label+': forbidden target artifact')
+    if mode not in ('emit','manual-control','ordinary-control') and destination.exists(): raise RuntimeError(label+': forbidden target artifact')
     return text
 try:
     tools={}
@@ -304,6 +304,9 @@ try:
             artifact=work/(backend+'-'+name+'.c')
             mode='manual-control' if name in ('manual_writeback_control','map_writeback_plain',
                 'map_writeback_early_return','map_dead_holder_paths','map_disjoint_backing','map_single_reader','map_bodyful_forward') else 'emit'
+            # This fixture only forwards a nominal value to ArrayLength. Its
+            # producer barrier is tested above; no descriptor needs restoration.
+            if name == 'nominal_bodyful_forward': mode='ordinary-control'
             text=invoke(tool,name,mode,backend+'-'+name+'-emit',artifact)
             if text!='PROBE|emitted-c\n' or not artifact.is_file() or not artifact.stat().st_size: raise RuntimeError(name+': no admitted emitted C')
             emitted.append(artifact.read_bytes()); guards[artifact]=digest(artifact)

@@ -225,16 +225,6 @@ func SelfMirJsonBlock(facts: SelfMirProgramFacts,
     return JsonEmitObject(fields);
 }
 
-func SelfMirJsonRoutineGenericConstraint(
-    ref rows: SelfMirRoutineRows, generic_row: Int
-) -> String {
-    let fields: Array<String> = [
-        JsonEmitFieldString("name", rows.generic_names[generic_row]),
-        JsonEmitFieldString("constraint", rows.generic_constraints[generic_row])
-    ];
-    return JsonEmitObject(fields);
-}
-
 func SelfMirJsonRoutine(
     facts: SelfMirProgramFacts,
     routine_index: Int

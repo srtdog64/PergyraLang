@@ -1,10 +1,20 @@
-// One pgy.mir.v1 routine-parameter row, including its physical ABI receipt.
+// pgy.mir.v1 routine parameters and their generic constraints, including ABI receipts.
 
 import "program_fact_owner.pgy";
 import "abi_layout_json_projection_owner.pgy";
 import "nominal_abi_layout_json_projection_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "../lib/json_emit.pgy";
+
+func SelfMirJsonRoutineGenericConstraint(
+    ref rows: SelfMirRoutineRows, generic_row: Int
+) -> String {
+    let fields: Array<String> = [
+        JsonEmitFieldString("name", rows.generic_names[generic_row]),
+        JsonEmitFieldString("constraint", rows.generic_constraints[generic_row])
+    ];
+    return JsonEmitObject(fields);
+}
 
 func SelfMirJsonRoutineParam(
     ref declarations: SelfMirDeclarationRows,
