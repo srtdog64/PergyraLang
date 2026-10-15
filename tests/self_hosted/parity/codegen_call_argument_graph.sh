@@ -39,7 +39,7 @@ for case_name in nominal_return_valid nominal_return_bad scalar_return_bad colle
         fi
         "$PGY" --native-pipeline --emit-c "$source_rel" -o "$B/native.c" \
             >"$B/native.out" 2>"$B/native.err" || fail "native rejected the valid control"
-        printf 'result=Array<Int>Int;\n7\n2\n1\n' >"$B/expected.txt"
+        printf 'result=Array<Int>Int;\n7\n2\n1\n2\n' >"$B/expected.txt"
         for producer in native codegen; do
             compile_c_artifact_with_bounded_log "$producer" "$B/$producer.c" \
                 "$B/$producer.exe" || fail "$producer C did not compile"

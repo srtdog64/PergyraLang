@@ -16,6 +16,16 @@ func Distance(ref true_edges: Array<Int>, ref false_edges: Array<Int>) -> Int {
     let distances: Array<Int> = MirRoutineGraphDistances(true_edges, false_edges, 0);
     return distances[2];
 }
+// A comma inside a parameter type must not shift the types after it:
+// `names` stays a ref Array<String>, passed by address.
+func CountNames(inout counts: HashMap<String, Int>, label: String, ref names: Array<String>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        MapSet(counts, label + names[i], i + 1);
+        i = i + 1;
+    }
+    return ArrayLength(names) > 0;
+}
 func Main() -> Void {
     let source: Fragment = Fragment("Int");
     let result: Fragment = Wrap("Array<" + source.text + ">", source);
@@ -28,4 +38,8 @@ func Main() -> Void {
     let false_edges: Array<Int> = [-1, -1, -1];
     Log(Distance(true_edges, false_edges));
     Log(true_edges[0]);
+    let counts: HashMap<String, Int> = MapNew();
+    let names: Array<String> = ["a", "b"];
+    CountNames(counts, "x", names);
+    Log(MapGet(counts, "xb"));
 }
