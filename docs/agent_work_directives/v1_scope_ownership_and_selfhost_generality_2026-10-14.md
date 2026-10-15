@@ -275,6 +275,40 @@ program. They are now `ArrayPush(facts.F, Concat("", x))`, which makes the
 same one copy the builtin made. Removal condition: the self-host emitter
 takes an addressable field place for the owned-string builtins.
 
+**Collection ownership rows across MIR.** The driver fixed point is the
+first run that lowers the whole canonical program through the self-host MIR
+producer since 10-01. That run found two contract gaps. Neither came from
+this lane; both were hidden behind the gen1 refusal.
+
+- **The MIR row vocabulary stopped at 09-30.** From 10-02 to 10-05 the
+  semantic verdict added new states. They are formal and local string
+  transfers, `Retired` ownership after an aggregate release, a named input
+  or an owned-result return, owned elements after an owned push, and an
+  unknown borrowed literal after an unknown call. The MIR producer check,
+  the JSON names and the mir_lower reader each kept the old table, so the
+  driver failed on 53 rows. The JSON names had also silently renamed the
+  new values to `unknown`.
+  - Now one table, `mir/collection_ownership_state_table_owner.pgy`, names
+    the admitted (origin, ownership, disposition) triples for both sides of
+    the JSON boundary. Its rows are the ones the verdict publishes on the
+    canonical program.
+  - Every older negative stays refused, including `empty_literal_owned`.
+  - A value outside the vocabulary now has no name, so no row can carry
+    it under another state's name.
+  - The direct backends match states by string. They do not admit the new
+    states yet; those programs end in a typed route refusal.
+- **An indexed assignment's receipt had no instruction to attach to.** The
+  semantic owner gives `a[i] = v` on an empty-literal `Array<String>` a
+  shallow-mutation receipt keyed by its statement. MIR never recorded the
+  source statement of an assignment instruction, so even a three-line
+  program failed. The assignment instruction now carries it.
+
+The full DRV-2 MIR is 374 MB. Its 136k instructions hold 980k expression
+graph nodes, about 259 bytes per node in the JSON encoding. No graph repeats.
+The native-built runtime's `ReadFile` stops at 64 MiB. The self-host-built
+seed, which the bootstrap uses to read this file, does not. The cap and the
+encoding are unchanged here.
+
 ## Measurements to track
 
 - `direct_mir_*` file and line count inside the driver import closure. It

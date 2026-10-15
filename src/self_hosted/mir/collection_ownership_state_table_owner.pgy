@@ -1,0 +1,58 @@
+// The collection ownership states a routine row may carry across MIR.
+//
+// The semantic ownership verdict publishes each Array<String> binding's
+// origin with its final element ownership and disposition. The MIR producer
+// check and the MIR JSON reader both admit a row only when this table names
+// its (origin, ownership, disposition) triple, so the two sides of the JSON
+// boundary read one rule. Source identity and receipts stay with each side.
+//
+// Beyond an origin's own ownership, the verdict reaches:
+// - "unknown" when an unknown call effect removes a live borrowed literal's
+//   permission;
+// - "owned-elements" retired, when a member move or a call result received
+//   owned strings and a deep drop then retired it;
+// - "retired" ownership, only with a retired disposition, when an aggregate
+//   release, a named input reservation or an owned-result return consumed
+//   the storage.
+// A string transfer from a formal or a local carries owned elements.
+func MirCollectionOwnershipStateAdmitted(
+    origin: String, ownership: String, disposition: String
+) -> Bool {
+    if disposition != "live" && disposition != "retired" { return false; }
+    let retired: Bool = disposition == "retired";
+    if ownership == "retired" {
+        return retired && (origin == "empty-literal" ||
+            origin == "member-move" || origin == "clone" ||
+            origin == "call-result");
+    }
+    if origin == "unknown" { return ownership == "unknown"; }
+    if origin == "borrowed-literal" {
+        return ownership == "borrowed-elements" ||
+            (ownership == "unknown" && !retired);
+    }
+    if origin == "map-keys" { return ownership == "map-keys-snapshot"; }
+    if origin == "empty-literal" { return ownership == "unknown"; }
+    if origin == "member-move" || origin == "call-result" {
+        return ownership == "unknown" ||
+            (ownership == "owned-elements" && retired);
+    }
+    if origin == "clone" { return ownership == "owned-elements"; }
+    if origin == "formal-string-transfer" || origin == "local-string-transfer" {
+        return ownership == "owned-elements";
+    }
+    if origin == "binding" {
+        return ownership == "unknown" || ownership == "borrowed-elements" ||
+            ownership == "owned-elements" || ownership == "map-keys-snapshot";
+    }
+    return false;
+}
+
+// A retired row with these states needs no binding destination: its
+// elements are owned and the retirement released them, or its storage was
+// already consumed.
+func MirCollectionOwnershipRetiredWithoutDestination(
+    origin: String, ownership: String
+) -> Bool {
+    return origin == "member-move" || ownership == "owned-elements" ||
+        ownership == "map-keys-snapshot" || ownership == "retired";
+}

@@ -3,6 +3,7 @@
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_local_ref_attachment_owner.pgy";
+import "routine_source_statement_attachment_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 
@@ -114,6 +115,9 @@ func SelfMirLowerAssignmentFromArtifact(
         target, binding_mode, expression, target_text, "AST_ASSIGNMENT", uses
     );
     build = SelfMirRoutineAttachLastPrimaryLocalRef(build, local_index);
+    // The statement is this instruction's source: an indexed assignment's
+    // collection ownership receipt attaches here by that identity.
+    build = SelfMirRoutineAttachLastSourceStatement(build, node_id);
     build = SelfMirRoutineAttachLastAbiTypeName(
         build, build.local_types[local_index]
     );

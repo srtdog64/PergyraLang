@@ -7,6 +7,7 @@ import "expression_graph_sequence_owner.pgy";
 import "collection_ownership_binding_move_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
+import "../mir/collection_ownership_state_table_owner.pgy";
 
 struct MirCollectionOwnershipFacts {
     valid: Bool;
@@ -303,33 +304,33 @@ func BuildMirCollectionOwnershipFacts(
                     }
                 }
             }
+            // The state table owns which ownership each origin reaches; here
+            // each origin's source identity and MIR receipt are checked.
             let origin_consistent: Bool =
-                (origin == "unknown" &&
-                    ownership == "unknown" &&
+                MirCollectionOwnershipStateAdmitted(
+                    origin, ownership, disposition) &&
+                (((origin == "unknown" || origin == "borrowed-literal" ||
+                   origin == "map-keys" || origin == "clone") &&
                     source_id == "0") ||
-                (origin == "borrowed-literal" &&
-                    ownership == "borrowed-elements" && source_id == "0") ||
-                (origin == "map-keys" &&
-                    ownership == "map-keys-snapshot" && source_id == "0") ||
-                (origin == "empty-literal" &&
-                    ownership == "unknown" && source_id == "0" &&
+                (origin == "empty-literal" && source_id == "0" &&
                     numeric &&
                     MirCollectionOwnershipEmptyLiteralReceipt(
                         routines, routine_row, ToInt(binding_id))) ||
                 (origin == "member-move" && numeric &&
-                    ownership == "unknown" &&
                     ToInt(source_id) > 0 &&
                     ToInt(source_id) != ToInt(binding_id) &&
                     MirCollectionOwnershipMemberSourceReady(
                         routines, routine_start, routine_end,
                         local_types, local_binding_syntax_ids,
                         ToInt(source_id), ToInt(origin_id))) ||
-                (origin == "clone" &&
-                    ownership == "owned-elements" && source_id == "0") ||
-                (origin == "call-result" && numeric &&
-                    ownership == "unknown" && source_id == "0" &&
+                (origin == "call-result" && numeric && source_id == "0" &&
                     MirCollectionOwnershipCallResultSourceReady(
                         routines, ToInt(origin_id))) ||
+                ((origin == "formal-string-transfer" ||
+                  origin == "local-string-transfer") && numeric &&
+                    ToInt(source_id) > 0 &&
+                    ToInt(source_id) != ToInt(binding_id) &&
+                    ToInt(source_id) == ToInt(origin_id)) ||
                 (origin == "binding" && numeric &&
                     ToInt(source_id) > 0 &&
                     ToInt(source_id) != ToInt(binding_id) &&
@@ -340,7 +341,7 @@ func BuildMirCollectionOwnershipFacts(
                     dispositions[source_fact_row] == "retired" &&
                     disposition == "live" &&
                     MirCollectionOwnershipBindingMoveSourceReady(
-                        binding_moves, ToInt(binding_id), ToInt(source_id)));
+                        binding_moves, ToInt(binding_id), ToInt(source_id))));
             let duplicate: Bool = false;
             let prior: Int = 0;
             while numeric && prior < ArrayLength(binding_ids) {
@@ -354,11 +355,6 @@ func BuildMirCollectionOwnershipFacts(
                 ToInt(binding_id) <= 0 || ToInt(origin_id) <= 0 ||
                 ToInt(source_id) < 0 || local_row < 0 ||
                 local_types[local_row] != "Array<String>" ||
-                (ownership != "unknown" &&
-                 ownership != "borrowed-elements" &&
-                 ownership != "owned-elements" &&
-                 ownership != "map-keys-snapshot") ||
-                (disposition != "live" && disposition != "retired") ||
                 !origin_consistent || duplicate {
                 valid = false;
                 stage = "collection_ownership_row";
@@ -377,9 +373,8 @@ func BuildMirCollectionOwnershipFacts(
     let retired_row: Int = 0;
     while valid && retired_row < ArrayLength(binding_ids) {
         if dispositions[retired_row] == "retired" &&
-            origins[retired_row] != "member-move" &&
-            ownerships[retired_row] != "owned-elements" &&
-            ownerships[retired_row] != "map-keys-snapshot" {
+            !MirCollectionOwnershipRetiredWithoutDestination(
+                origins[retired_row], ownerships[retired_row]) {
             let destination_count: Int = 0;
             let destination: Int = 0;
             while destination < ArrayLength(binding_ids) {
