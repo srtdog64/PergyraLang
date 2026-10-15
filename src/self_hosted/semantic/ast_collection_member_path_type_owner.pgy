@@ -1,0 +1,37 @@
+// The type of a member path that the collection ownership owners read.
+//
+// A struct field path projects through the nominal field rows. A
+// `subject.Variant._N` path is the payload path the MIR round trip writes
+// for a match binding (`let b: T = subject.Variant._N`). Only the enum owner
+// types that path, and the initializer facts carry its type for the `let`
+// that the path initializes. The path has no type anywhere else here, so
+// the owners keep refusing it there.
+import "ast_expression_graph_enum_payload_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+
+func SemanticAstCollectionMemberPathTypeName(
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    syntax_id: Int, node: Int, depth: Int, root_type: String
+) -> Option<String> {
+    if !SemanticExpressionGraphEnumPayloadShapeFromGraph(surfaces.expression_graph, node).ok {
+        return SemanticExpressionGraphValueReceiverProjectedTypeName(
+            surfaces.expression_graph, node, constructors, depth, root_type);
+    }
+    let binding_row: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, syntax_id);
+    let initializer: Option<Int> =
+        SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneValue());
+    if !IsSome(binding_row) || !IsSome(initializer) || UnwrapOption(initializer) != node {
+        return None;
+    }
+    let row: Int = UnwrapOption(binding_row);
+    if row >= ArrayLength(inferred_types) ||
+        locals.binding_kinds[row] != SemanticAstLocalBindingKindNormal() ||
+        inferred_types[row] == "" || inferred_types[row] == "Unknown" {
+        return None;
+    }
+    return Some(Concat("", inferred_types[row]));
+}

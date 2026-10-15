@@ -4,6 +4,7 @@
 import "ast_assignment_fact_owner.pgy";
 import "ast_collection_member_capture_source_owner.pgy";
 import "ast_collection_member_capture_site_owner.pgy";
+import "ast_expression_graph_enum_payload_owner.pgy";
 
 struct SemanticAstCollectionMemberCaptureWitness {
     ready: Bool;
@@ -62,6 +63,15 @@ func SemanticAstCollectionMemberCaptureObligationAt(
                 if target.ok { destination = target.source_binding_syntax_id; }
             }
         }
+    }
+    // A match binding's payload `let` (the round trip's
+    // `subject.Variant._N`) is part of its subject, as a source match binding
+    // is: it records the readonly origin for the binding's own later stores,
+    // and is no store itself.
+    if destination > 0 && destination == syntax && site.expression_id == root &&
+        SemanticExpressionGraphEnumPayloadShapeFromGraph(surfaces.expression_graph, site.expression_id).ok {
+        if !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, destination) { ArrayPush(readonly_origins, destination); }
+        return witness;
     }
     if destination > 0 {
         if !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, destination) { ArrayPush(readonly_origins, destination); }

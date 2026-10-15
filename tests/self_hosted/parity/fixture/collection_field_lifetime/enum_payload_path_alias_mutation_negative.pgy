@@ -1,0 +1,25 @@
+// The payload path the MIR round trip writes for a match binding, spelled
+// directly. The `let` it initializes aliases the subject's storage, as a
+// match binding does, so growing the alias's field is refused as for
+// `match holder { case Full(table): ... }`.
+struct Table { names: Array<String>; }
+enum Holder {
+    Full(Table),
+    Empty,
+}
+func Grow(ref holder: Holder) -> Int {
+    if holder == Holder.Full {
+        let alias: Table = holder.Full._0;
+        let names: Array<String> = alias.names;
+        ArrayPush(names, "x");
+        alias.names = names;
+        return ArrayLength(alias.names);
+    }
+    return 0;
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "owned");
+    let holder: Holder = Holder.Full(Table(names));
+    if Grow(holder) != 2 { Exit(1); }
+}

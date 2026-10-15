@@ -8,6 +8,9 @@
 #   the other arm moved a field out twice (member_use_after_move).
 # - The end of a Void body is not a `return` statement. An aggregate field
 #   release needs a straight-line body (aggregate_release_incomplete).
+# - A match binding comes back as `let b: T = subject.Variant._N`. The
+#   ownership owners type that payload path from the `let`, so the binding
+#   aliases its subject as a match binding does.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -23,6 +26,7 @@ FIXTURES="tests/concept_semantics/hashmap"
 CASES=(
     "member_move_after_guard_chain_valid.pgy|4 1 1 2 2 3 0|pgy_as_push(&names pgy_as_push(&labels"
     "inout_field_drop_restore_valid.pgy|1 0|"
+    "match_payload_aggregate_binding_valid.pgy|11 1 0|"
 )
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }

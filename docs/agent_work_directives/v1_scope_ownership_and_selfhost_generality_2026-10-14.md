@@ -329,6 +329,27 @@ this lane; both were hidden behind the gen1 refusal.
   body is now emitted as the end of the body. The self-host source checker
   still refuses an explicit trailing `return;` there, which native admits.
   That is precision the canonical program does not need.
+- **The round trip's match bindings had no type in the ownership owners.**
+  The round trip writes `case V(b):` as `if subject == E.V { let b: T =
+  subject.V._0; ... }`. Only the enum owner types the payload path, and the
+  receiver projection that the capture source and the aggregate storage
+  owner use reads struct fields only. So the payload `let` was
+  `ast_artifact_invalid` (`collection_member_read_permission`) or
+  `aggregate_release_incomplete`, and 202 such `let`s in the canonical
+  program (172 on a parameter) were refused. One owner,
+  `ast_collection_member_path_type_owner.pgy`, now types a member path for
+  both: a payload path gets the type that the initializer facts carry for
+  the `let` it initializes, and has no type anywhere else. The binding then
+  aliases its subject as a source match binding does. Growing its field is
+  refused as for the source `match` (`unproved_exclusive_member_mutation`),
+  and a payload read with no variant guard stays
+  `enum_payload_variant_unproven`.
+  - Under a `ref` subject the payload `let` was a store, so the round trip
+    refused `readonly_aggregate_capture` where the source match binding is a
+    view. The capture obligation owner now treats that `let` as part of its
+    subject: it records the readonly origin and is no store itself. Storing
+    the binding again stays `readonly_aggregate_capture`, as for
+    `case Full(table): let alias: Table = table;` under `ref holder`.
 - **Still refused: an owned call result held live to the end of its scope.**
   The canonical program never holds one. Its owned results are retired by a
   drop or a return. Admitting the state needs the callee's owned-result

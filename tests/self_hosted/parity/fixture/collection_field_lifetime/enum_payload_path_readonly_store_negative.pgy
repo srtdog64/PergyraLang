@@ -1,0 +1,23 @@
+// The payload path the MIR round trip writes for a match binding, spelled
+// directly, from a readonly subject. The binding is part of that subject, so
+// storing it again is a readonly capture, as for `case Full(table):` under
+// `ref holder`.
+struct Table { names: Array<String>; }
+enum Holder {
+    Full(Table),
+    Empty,
+}
+func Peek(ref holder: Holder) -> Int {
+    if holder == Holder.Full {
+        let table: Table = holder.Full._0;
+        let alias: Table = table;
+        return ArrayLength(alias.names);
+    }
+    return 0;
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "owned");
+    let holder: Holder = Holder.Full(Table(names));
+    if Peek(holder) != 1 { Exit(1); }
+}

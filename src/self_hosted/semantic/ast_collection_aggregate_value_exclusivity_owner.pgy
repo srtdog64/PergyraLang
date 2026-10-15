@@ -9,6 +9,7 @@ import "ast_assignment_fact_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_collection_member_path_type_owner.pgy";
 import "ast_collection_argument_permission_effect_owner.pgy";
 import "ast_collection_ownership_member_result_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
@@ -169,8 +170,8 @@ func SemanticAstCollectionAggregateMemberStorageBindingForNode(
             if IsSome(signature) { returned = Some(Concat("", signatures.return_types[UnwrapOption(signature)])); }
         }
         if !IsSome(returned) { return -1; }
-        let member_type: Option<String> = SemanticExpressionGraphValueReceiverProjectedTypeName(
-            surfaces.expression_graph, node, constructors, spine.depth, UnwrapOption(returned));
+        let member_type: Option<String> = SemanticAstCollectionMemberPathTypeName(
+            locals, inferred_types, surfaces, constructors, syntax_id, node, spine.depth, UnwrapOption(returned));
         if !IsSome(member_type) || SemanticAstCollectionOwnershipIsStringArray(UnwrapOption(member_type)) { return -1; }
         return 0;
     }
@@ -189,8 +190,8 @@ func SemanticAstCollectionAggregateMemberStorageBindingForNode(
         if !leaf_local.ok && leaf_binding.ok && leaf_binding.kind == SemanticExpressionBindingNone() { return 0; }
         return -1;
     }
-    let projected: Option<String> = SemanticExpressionGraphValueReceiverProjectedTypeName(
-        surfaces.expression_graph, node, constructors, spine.depth, root.type_name);
+    let projected: Option<String> = SemanticAstCollectionMemberPathTypeName(
+        locals, inferred_types, surfaces, constructors, syntax_id, node, spine.depth, root.type_name);
     if !IsSome(projected) { return -1; }
     if !SemanticAstCollectionOwnershipIsStringArray(UnwrapOption(projected)) { return 0; }
     return root.source_binding_syntax_id;
