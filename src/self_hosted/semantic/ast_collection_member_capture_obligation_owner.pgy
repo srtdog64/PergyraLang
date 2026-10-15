@@ -5,6 +5,7 @@ import "ast_assignment_fact_owner.pgy";
 import "ast_collection_member_capture_source_owner.pgy";
 import "ast_collection_member_capture_site_owner.pgy";
 import "ast_expression_graph_enum_payload_owner.pgy";
+import "ast_collection_member_read_block_transition_owner.pgy";
 
 struct SemanticAstCollectionMemberCaptureWitness {
     ready: Bool;
@@ -28,7 +29,8 @@ func SemanticAstCollectionMemberCaptureObligationAt(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     ref statements: SemanticAstStatementFacts,
     slot: Int, node: Int, root: Int, witness: SemanticAstCollectionMemberCaptureWitness,
-    inout readonly_origins: Array<Int>, inout blocked: HashMap<String, Int>
+    inout readonly_origins: Array<Int>, inout blocked: HashMap<String, Int>,
+    inout read_hazards: SemanticAstCollectionMemberReadHazardSites
 ) -> SemanticAstCollectionMemberCaptureWitness {
     let site: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSiteForNode(
         artifact, signatures, constructors, locals, inferred_types, surfaces, slot, node, root);
@@ -75,7 +77,7 @@ func SemanticAstCollectionMemberCaptureObligationAt(
     }
     if destination > 0 {
         if !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, destination) { ArrayPush(readonly_origins, destination); }
-        MapSet(blocked, ToString(destination), 1);
+        SemanticAstCollectionMemberReadBlockTransition(artifact, blocked, read_hazards, destination, 0);
     }
     // A supported store with no exact target (e.g. multi-binding) is still a
     // semantic readonly escape, never artifact corruption or a fresh owner.
