@@ -1,0 +1,36 @@
+// The inner loop rebuilds the callee from itself. The outer binding it came
+// from is not read in that loop, and takes the result back after it.
+struct Rows {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func RowsAdd(rows: Rows, name: String) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, name);
+    return Rows(rows.ok, names);
+}
+
+func RowsChain(seed: Array<String>, count: Int) -> Rows {
+    let base: Rows = Rows(true, seed);
+    let outer: Int = 0;
+    while outer < count {
+        let callee: Rows = base;
+        let inner: Int = 0;
+        while inner < 2 {
+            callee = RowsAdd(callee, "g");
+            if !callee.ok { return callee; }
+            inner = inner + 1;
+        }
+        base = callee;
+        outer = outer + 1;
+    }
+    return base;
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    let rows: Rows = RowsChain(seed, 3);
+    Log(ToString(ArrayLength(rows.names)));
+    return 0;
+}

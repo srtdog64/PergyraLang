@@ -442,7 +442,7 @@ func SemanticAstCollectionFocusRecoveryCopiesReady(
     let unrestored: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlace(false, false, 0, -1, -1, no_chain);
     let aliases: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliasesForFunction(
         artifact, signatures, locals, inferred_types, surfaces, assignments, function_id,
-        0 - facts.group_root_binding_ids[group], unrestored);
+        0 - facts.group_root_binding_ids[group], unrestored, -1);
     if ArrayLength(aliases.keys) == 0 { return false; }
     let alias: Int = 0;
     while alias < ArrayLength(aliases.keys) {
@@ -468,7 +468,7 @@ func SemanticAstCollectionFocusRecoveryCopiesReady(
         if !place.ok || place.temporary || place.formal_mode != 1 ||
             SemanticAstCollectionExclusivePlaceRoot(locals, place) != facts.group_root_binding_ids[group] { return false; }
         let family: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliasesForFunction(
-            artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, UnwrapOption(row), place);
+            artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, UnwrapOption(row), place, -1);
         if ArrayLength(family.keys) == 0 { return false; }
         let uses: Array<Int> = SemanticAstCollectionExclusiveFamilyUses(artifact, signatures, locals, inferred_types,
             surfaces, assignments, family, place, first_surface, end_surface, function_id, facts.part_definition_ids[part]);

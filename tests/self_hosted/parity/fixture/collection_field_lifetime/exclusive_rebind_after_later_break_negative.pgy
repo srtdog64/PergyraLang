@@ -1,0 +1,31 @@
+// The jump sits between the append and the rebinding: a pass that breaks
+// there leaves the rows the append took, and the return reads them.
+struct Rows {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func RowsAdd(rows: Rows, name: String) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, name);
+    return Rows(rows.ok, names);
+}
+
+func RowsFill(seed: Array<String>, limit: Int) -> Rows {
+    let rows: Rows = Rows(true, seed);
+    let index: Int = 0;
+    while index < limit {
+        let added: Rows = RowsAdd(rows, "x");
+        if index == 1 { break; }
+        rows = added;
+        index = index + 1;
+    }
+    return rows;
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    let rows: Rows = RowsFill(seed, 3);
+    Log(ToString(ArrayLength(rows.names)));
+    return 0;
+}

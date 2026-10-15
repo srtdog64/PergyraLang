@@ -23,21 +23,20 @@ func SelfMirDeclarationAppendNominalGenericRows(
         if TypedAstArenaNodeKindIs(
             artifact.arena, child, TypedAstKindGenericParamsTag()
         ) {
-            let names: Array<String> = [];
-            let defaults: Array<String> = [];
+            // The rows land in the output columns directly: no local column
+            // keeps their texts, and the caller drops every column on None.
+            let before: Int = ArrayLength(generic_names);
             if !SemanticAstGenericParameterDefaultRowsFromNode(
-                artifact.arena, child, names, defaults
+                artifact.arena, child, generic_names, generic_defaults
             ) {
                 return None;
             }
-            let row: Int = 0;
-            while row < ArrayLength(names) {
-                ArrayPush(generic_names, names[row]);
+            let row: Int = before;
+            while row < ArrayLength(generic_names) {
                 ArrayPush(generic_constraints, "");
-                ArrayPush(generic_defaults, defaults[row]);
                 row = row + 1;
             }
-            appended = appended + ArrayLength(names);
+            appended = appended + ArrayLength(generic_names) - before;
         }
         child_index = child_index + 1;
         child_opt = TypedAstArenaChildAt(

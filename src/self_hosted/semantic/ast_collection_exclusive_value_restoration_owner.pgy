@@ -145,7 +145,7 @@ func SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(
         let covers: Bool = kind == SemanticAstCollectionFocusExitFallthrough() && scope == facts.group_scope_ids[group];
         if kind != SemanticAstCollectionFocusExitFallthrough() {
             covers = write < syntax && SemanticAstCollectionNodeEnclosedBy(artifact, syntax, scope) &&
-                SemanticAstCollectionExclusiveBlockJumpFree(artifact, scope, artifact.count);
+                SemanticAstCollectionExclusiveBlockJumpFree(artifact, scope, 0, artifact.count);
         }
         if covers && write > restored && SemanticAstCollectionFocusRecoveryRepackAt(
                 artifact, signatures, locals, inferred_types, surfaces, assignments, facts, group, part, write) { restored = write; }

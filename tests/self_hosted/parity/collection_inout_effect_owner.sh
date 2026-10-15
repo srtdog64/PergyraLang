@@ -271,6 +271,11 @@ INPUTS=(
     exclusive_other_branch_loop_negative.pgy exclusive_later_holder_negative.pgy
     exclusive_alias_element_write_negative.pgy exclusive_dead_alias_positive.pgy
     exclusive_dead_alias_partial_negative.pgy
+    exclusive_rebind_after_earlier_break_positive.pgy exclusive_rebind_after_later_break_negative.pgy
+    exclusive_branch_rebind_positive.pgy exclusive_branch_rebind_missing_else_negative.pgy
+    exclusive_branch_rebind_continue_negative.pgy exclusive_branch_rebind_reads_old_negative.pgy
+    exclusive_loop_old_alias_unread_positive.pgy exclusive_loop_old_alias_reread_negative.pgy
+    exclusive_alias_after_use_positive.pgy exclusive_alias_after_use_loop_negative.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
@@ -534,6 +539,11 @@ for backend in c llvm; do
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            exclusive_inout_exit_before_writeback_negative.pgy)
+                # The original no-writeback source now carries a produced focus
+                # recovery group. collection_focus_recovery_owner.sh owns its
+                # negative contract: the missing or poisoned recovery fact.
+                printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy|main.pgy|intent_zone_authority_transition.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
@@ -624,7 +634,6 @@ exclusive_stale_failure_consumed_negative.pgy|unproved_exclusive_member_mutation
 exclusive_destination_field_stale_negative.pgy|unproved_exclusive_member_mutation|left|HolderExtendStale
 exclusive_focus_reads_grown_field_negative.pgy|unproved_exclusive_sink_entry|facts|NodeSetUpdate
 exclusive_formal_reassign_share_negative.pgy|unproved_exclusive_sink_entry|picked|Main
-exclusive_inout_exit_before_writeback_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowChecked
 exclusive_loop_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|appended|RowsAppendAll
 exclusive_return_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrow
 exclusive_return_loop_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowUntil
@@ -647,6 +656,12 @@ exclusive_other_branch_loop_negative.pgy|unproved_exclusive_sink_entry|grown|Pic
 exclusive_later_holder_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_alias_element_write_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_dead_alias_partial_negative.pgy|unproved_exclusive_sink_entry|grown|Build
+exclusive_rebind_after_later_break_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_branch_rebind_missing_else_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_branch_rebind_continue_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_branch_rebind_reads_old_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_loop_old_alias_reread_negative.pgy|unproved_exclusive_sink_entry|callee|RowsChain
+exclusive_alias_after_use_loop_negative.pgy|unproved_exclusive_sink_entry|call|RowsPipe
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.
