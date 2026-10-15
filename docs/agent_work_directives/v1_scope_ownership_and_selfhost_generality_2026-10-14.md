@@ -302,6 +302,17 @@ this lane; both were hidden behind the gen1 refusal.
   shallow-mutation receipt keyed by its statement. MIR never recorded the
   source statement of an assignment instruction, so even a three-line
   program failed. The assignment instruction now carries it.
+- **An owned call result named itself as its origin.** The reader proves a
+  call-result row by its origin naming a routine that returns
+  `Array<String>`. The verdict's owned-result activation switched the origin
+  to call-result but kept the binding's own id, so the seed's reader refused
+  eight canonical rows at `gen2_emit`. The activation now records the callee
+  it already holds.
+- **Still refused: an owned call result held live to the end of its scope.**
+  The canonical program never holds one. Its owned results are retired by a
+  drop or a return. Admitting the state needs the callee's owned-result
+  summary in MIR. Without that summary, `call_result_owned_without_summary`
+  would pass, so the state stays out of the table.
 
 The full DRV-2 MIR is 374 MB. Its 136k instructions hold 980k expression
 graph nodes, about 259 bytes per node in the JSON encoding. No graph repeats.

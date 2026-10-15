@@ -10,7 +10,7 @@ func SemanticAstCollectionCompleteDefinition(
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
     slot: Int, inout current: Array<Int>, inout effects: SemanticAstCollectionCallEffectFacts,
     inout ownership: Array<Int>, inout dispositions: Array<Int>, inout origins: Array<Int>,
-    inout transitions: Array<Int>, inout source_binding_ids: Array<Int>
+    inout origin_syntax_ids: Array<Int>, inout transitions: Array<Int>, inout source_binding_ids: Array<Int>
 ) -> SemanticAstCollectionOwnershipVerdict {
     let definition: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, slot);
     if definition < 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
@@ -55,6 +55,8 @@ func SemanticAstCollectionCompleteDefinition(
         ownership[row] = SemanticAstCollectionOwnershipOwnedElements();
         dispositions[row] = SemanticAstCollectionDispositionLive();
         origins[row] = SemanticAstCollectionOriginCallResult();
+        // A call result names the callee whose owned result it holds.
+        origin_syntax_ids[row] = owned_result_function;
         transitions[row] = SemanticAstCollectionTransitionOwned();
         source_binding_ids[row] = 0;
     } else if definition >= definitions.local_count {

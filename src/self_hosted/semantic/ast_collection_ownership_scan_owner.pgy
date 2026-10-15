@@ -313,7 +313,7 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
         }
         let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
             artifact, locals, surfaces, definitions, storage, root_slot, current_definitions, call_effects,
-            ownership, dispositions, origins, transition_states, source_binding_syntax_ids);
+            ownership, dispositions, origins, origin_syntax_ids, transition_states, source_binding_syntax_ids);
         if !completed.ok { verdict = completed; return; }
         let completed_definition: Int =
             SemanticAstCollectionDefinitionCompletedAtSlot(

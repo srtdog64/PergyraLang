@@ -21,10 +21,11 @@ FIELD_FIXTURES="tests/self_hosted/parity/fixture/collection_field_lifetime"
 # States the semantic verdict publishes after transitions, each with the
 # origin|ownership|disposition triple its MIR row must carry.
 STATE_SOURCES=(
-    "owned_string_literal_transfer_positive.pgy|formal-string-transfer|owned-elements|retired"
-    "owned_string_local_literal_transfer_positive.pgy|local-string-transfer|owned-elements|retired"
-    "aggregate_release_alternative_returns_positive.pgy|member-move|retired|retired"
-    "owned_result_forward_late_positive.pgy|call-result|owned-elements|retired"
+    "$FIELD_FIXTURES/owned_string_literal_transfer_positive.pgy|formal-string-transfer|owned-elements|retired"
+    "$FIELD_FIXTURES/owned_string_local_literal_transfer_positive.pgy|local-string-transfer|owned-elements|retired"
+    "$FIELD_FIXTURES/aggregate_release_alternative_returns_positive.pgy|member-move|retired|retired"
+    "$FIELD_FIXTURES/owned_result_forward_late_positive.pgy|call-result|owned-elements|retired"
+    "tests/concept_semantics/hashmap/owned_call_result_branch_return_valid.pgy|call-result|retired|retired"
 )
 CC="${PGY_SELFHOST_CC:-gcc}"
 
@@ -97,7 +98,7 @@ grep -Fq 'borrow_boundary_escape' \
 state_index=0
 for state in "${STATE_SOURCES[@]}"; do
     IFS='|' read -r state_file state_origin state_ownership state_disposition <<<"$state"
-    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$FIELD_FIXTURES/$state_file" \
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$state_file" \
         -o "$WORK_REL/self-state-$state_index.json") \
         >"$WORK_DIR/self-state-$state_index.out" 2>"$WORK_DIR/self-state-$state_index.err" || {
         cat "$WORK_DIR/self-state-$state_index.out" "$WORK_DIR/self-state-$state_index.err" >&2
@@ -117,6 +118,12 @@ if wanted not in rows:
     raise SystemExit(f"no {wanted} row among {sorted(set(rows))}")
 PY
         fail "$state_file lost its $state_origin $state_ownership $state_disposition row"
+    # The installed driver's own MIR reader indexes every routine of it.
+    (cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/self-state-$state_index.json"         -o "$WORK_REL/self-state-$state_index.c")         >"$WORK_DIR/self-state-$state_index.read.out" 2>&1 || true
+    if grep -Fq 'routine MIR fact index is incomplete' "$WORK_DIR/self-state-$state_index.read.out"; then
+        cat "$WORK_DIR/self-state-$state_index.read.out" >&2
+        fail "installed self-host reader refused the $state_origin $state_ownership row"
+    fi
     state_index=$((state_index + 1))
 done
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$INDEXED_SOURCE" \
