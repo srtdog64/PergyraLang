@@ -16,6 +16,17 @@ UNKNOWN_SOURCE="tests/concept_semantics/hashmap/unknown_string_array_drop.pgy"
 MOVE_SOURCE="tests/concept_semantics/hashmap/borrowed_string_array_shallow_copy.pgy"
 CALL_RESULT_SOURCE="tests/concept_semantics/hashmap/call_result_string_array_fact_valid.pgy"
 PROBE="tests/self_hosted/parity/fixture/collection_ownership_fact_reader_probe.pgy"
+INDEXED_SOURCE="tests/concept_semantics/hashmap/indexed_string_array_set_receipt_valid.pgy"
+FIELD_FIXTURES="tests/self_hosted/parity/fixture/collection_field_lifetime"
+# States the semantic verdict publishes after transitions, each with the
+# origin|ownership|disposition triple its MIR row must carry.
+STATE_SOURCES=(
+    "$FIELD_FIXTURES/owned_string_literal_transfer_positive.pgy|formal-string-transfer|owned-elements|retired"
+    "$FIELD_FIXTURES/owned_string_local_literal_transfer_positive.pgy|local-string-transfer|owned-elements|retired"
+    "$FIELD_FIXTURES/aggregate_release_alternative_returns_positive.pgy|member-move|retired|retired"
+    "$FIELD_FIXTURES/owned_result_forward_late_positive.pgy|call-result|owned-elements|retired"
+    "tests/concept_semantics/hashmap/owned_call_result_branch_return_valid.pgy|call-result|retired|retired"
+)
 CC="${PGY_SELFHOST_CC:-gcc}"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -84,6 +95,60 @@ grep -Fq 'borrow_boundary_escape' \
     "$WORK_DIR/self-call-result.json")" == 1 ]] ||
     fail "call-result provenance did not attach exactly once"
 
+state_index=0
+for state in "${STATE_SOURCES[@]}"; do
+    IFS='|' read -r state_file state_origin state_ownership state_disposition <<<"$state"
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$state_file" \
+        -o "$WORK_REL/self-state-$state_index.json") \
+        >"$WORK_DIR/self-state-$state_index.out" 2>"$WORK_DIR/self-state-$state_index.err" || {
+        cat "$WORK_DIR/self-state-$state_index.out" "$WORK_DIR/self-state-$state_index.err" >&2
+        fail "installed self-host MIR producer rejected the $state_origin $state_ownership state"
+    }
+    python3 - "$WORK_DIR/self-state-$state_index.json" "$state_origin" \
+        "$state_ownership" "$state_disposition" <<'PY' ||
+import json
+import sys
+
+document = json.load(open(sys.argv[1], encoding="utf-8"))
+wanted = tuple(sys.argv[2:5])
+rows = [(row["origin"], row["element_ownership"], row["disposition"])
+        for routine in document["routines"]
+        for row in routine.get("collection_ownership_facts") or []]
+if wanted not in rows:
+    raise SystemExit(f"no {wanted} row among {sorted(set(rows))}")
+PY
+        fail "$state_file lost its $state_origin $state_ownership $state_disposition row"
+    # The installed driver's own MIR reader indexes every routine of it.
+    (cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/self-state-$state_index.json"         -o "$WORK_REL/self-state-$state_index.c")         >"$WORK_DIR/self-state-$state_index.read.out" 2>&1 || true
+    if grep -Fq 'routine MIR fact index is incomplete' "$WORK_DIR/self-state-$state_index.read.out"; then
+        cat "$WORK_DIR/self-state-$state_index.read.out" >&2
+        fail "installed self-host reader refused the $state_origin $state_ownership row"
+    fi
+    state_index=$((state_index + 1))
+done
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$INDEXED_SOURCE" \
+    -o "$WORK_REL/self-indexed.json") >"$WORK_DIR/self-indexed.out" \
+    2>"$WORK_DIR/self-indexed.err" || {
+    cat "$WORK_DIR/self-indexed.out" "$WORK_DIR/self-indexed.err" >&2
+    fail "installed self-host MIR producer lost the indexed assignment receipt"
+}
+python3 - "$WORK_DIR/self-indexed.json" <<'PY' ||
+import json
+import sys
+
+document = json.load(open(sys.argv[1], encoding="utf-8"))
+main = next(row for row in document["routines"] if row.get("name") == "Main")
+binding = main["collection_ownership_facts"][0]["binding_syntax_id"]
+receipts = [instruction for block in main["blocks"]
+            for instruction in block["instructions"]
+            if instruction.get("kind") == "def" and
+            (instruction.get("collection_ownership_receipt") or {}).get("kind") == "shallow-mutation" and
+            instruction["collection_ownership_receipt"].get("receiver_binding_syntax_id") == binding]
+if len(receipts) != 1:
+    raise SystemExit(f"assignment receipts: {len(receipts)}")
+PY
+    fail "the indexed assignment did not carry exactly one shallow-mutation receipt"
+
 (cd "$ROOT_DIR" && "$PGY" "$PROBE" --native-pipeline --backend=c \
     -o "$WORK_REL/probe-native.exe") >"$WORK_DIR/probe-native.compile" 2>&1 || {
     tail -c 65536 "$WORK_DIR/probe-native.compile" >&2
@@ -134,6 +199,18 @@ cmp -s "$WORK_DIR/native-meaning" "$WORK_DIR/self-meaning" || {
     diff -u "$WORK_DIR/native-meaning" "$WORK_DIR/self-meaning" >&2 || true
     fail "native/self-host collection ownership meaning drifted"
 }
+
+# Both reader builds admit every routine of each state artifact.
+for consumer in native self; do
+    for artifact in "$WORK_DIR"/self-state-*.json "$WORK_DIR/self-indexed.json"; do
+        (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" "${artifact#"$ROOT_DIR/"}") \
+            >"$artifact.$consumer.out" 2>"$artifact.$consumer.err" || true
+        if grep -Fq 'collection ownership probe rejected' "$artifact.$consumer.out" "$artifact.$consumer.err"; then
+            cat "$artifact.$consumer.out" "$artifact.$consumer.err" >&2
+            fail "$consumer reader rejected $(basename "$artifact")"
+        fi
+    done
+done
 
 for producer in native-empty self-empty; do
     for consumer in native self; do
@@ -577,6 +654,43 @@ emit_move("unknown_declaration_name", lambda main: move_target_instruction(main)
     "arg0", "missing_binding_move_local"))
 PY
 
+python3 - "$WORK_DIR/self-state-0.json" "$WORK_DIR/self-state-2.json" \
+    "$WORK_DIR/mutations" <<'PY'
+import copy
+import json
+import pathlib
+import sys
+
+transfer = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+release = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+target = pathlib.Path(sys.argv[3])
+
+def mutate(document, name, select, change):
+    candidate = copy.deepcopy(document)
+    for routine in candidate["routines"]:
+        for row in routine.get("collection_ownership_facts") or []:
+            if select(row):
+                change(row)
+                (target / f"{name}.json").write_text(
+                    json.dumps(candidate, separators=(",", ":")) + "\n", encoding="utf-8")
+                return
+    raise SystemExit(f"{name}: no row to mutate")
+
+is_transfer = lambda row: row["origin"] == "formal-string-transfer"
+is_released = lambda row: row["element_ownership"] == "retired" and row["origin"] == "member-move"
+mutate(transfer, "transfer_source_mismatch", is_transfer,
+       lambda row: row.__setitem__("source_binding_syntax_id", row["origin_syntax_id"] + 1))
+mutate(transfer, "transfer_borrowed", is_transfer,
+       lambda row: row.__setitem__("element_ownership", "borrowed-elements"))
+mutate(release, "retired_ownership_live", is_released,
+       lambda row: row.__setitem__("disposition", "live"))
+mutate(release, "retired_borrowed_literal",
+       lambda row: row["element_ownership"] == "retired" and row["origin"] == "empty-literal",
+       lambda row: row.__setitem__("origin", "borrowed-literal"))
+mutate(release, "borrowed_unknown_retired", lambda row: row["origin"] == "borrowed-literal",
+       lambda row: row.update({"element_ownership": "unknown", "disposition": "retired"}))
+PY
+
 mutation_count=0
 for mutation in "$WORK_DIR"/mutations/*.json; do
     mutation_count=$((mutation_count + 1))
@@ -591,7 +705,7 @@ for mutation in "$WORK_DIR"/mutations/*.json; do
         fail "mutation $(basename "$mutation") did not fail at the ownership reader"
     }
 done
-[[ "$mutation_count" -ge 34 ]] ||
+[[ "$mutation_count" -ge 39 ]] ||
     fail "mutation corpus is incomplete: $mutation_count"
 
 echo "[$LABEL] native/self-host producer-consumer parity and $mutation_count malformed-row refusals PASS"

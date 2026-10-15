@@ -26,6 +26,15 @@ func SemanticExpressionGraphCollectionCallProtocolNotApplicable(
 func SemanticExpressionGraphCollectionCallProtocolFromName(
     name: String
 ) -> SemanticExpressionGraphCollectionCallProtocolFact {
+    // Every protocol name below starts with List, Map, Queue or Set; any
+    // other name has no protocol, without comparing it to each one.
+    let name_extent: Int = StringLength(name);
+    if !SubStartsWithLen(name, name_extent, 0, "List") &&
+        !SubStartsWithLen(name, name_extent, 0, "Map") &&
+        !SubStartsWithLen(name, name_extent, 0, "Queue") &&
+        !SubStartsWithLen(name, name_extent, 0, "Set") {
+        return SemanticExpressionGraphCollectionCallProtocolNotApplicable();
+    }
     if name == "ListPush" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
             true, "List", name, 2, 0, -1, 1, "Void", -1

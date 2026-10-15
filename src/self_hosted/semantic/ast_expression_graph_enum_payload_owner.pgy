@@ -162,7 +162,7 @@ func SemanticExpressionGraphEnumPayloadTypeName(
     enum_facts: SemanticAstEnumFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
     let shape: SemanticExpressionGraphEnumPayloadShape =
@@ -172,7 +172,7 @@ func SemanticExpressionGraphEnumPayloadTypeName(
         SemanticExpressionGraphValueReceiverTypeName(
             graph, shape.receiver_node,
             constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_facts.value_scope
         );
     if !IsSome(enum_type) { return None; }
     return SemanticAstEnumVariantPayloadTypeAt(

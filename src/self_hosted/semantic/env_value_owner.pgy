@@ -1,0 +1,81 @@
+// Expression environment lookup with the program's payload-free enum values.
+//
+// Body expression environments hold only scope bindings. A payload-free enum
+// value is in scope everywhere the walker says so, through the enum facts'
+// value scope: a lookup asks the bindings first and the value scope second,
+// so a binding named like a value hides it, as a binding seeded after the
+// values used to. An empty scope keeps the environment's own answer.
+import "env_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+
+// The scope row a name selects, or -1 when it names no value in scope.
+func EnvValueRow(ref scope: SemanticAstEnumValueScope, name: String) -> Int {
+    let length: Int = StringLength(name);
+    if ArrayLength(scope.bucket_starts) != 257 || length == 0 { return -1; }
+    let first_byte: Int = CharCode(name, length, 0);
+    if first_byte < 0 { return -1; }
+    let row: Int = scope.bucket_starts[first_byte];
+    while row < scope.bucket_starts[first_byte + 1] {
+        if scope.names[row] == name { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func EnvValueLookup(
+    ref names: Array<String>, ref types: Array<String>,
+    ref scope: SemanticAstEnumValueScope, name: String
+) -> String {
+    let local_row: Int = EnvRowForName(names, name);
+    if local_row >= 0 { return Concat("", types[local_row]); }
+    let row: Int = EnvValueRow(scope, name);
+    if row < 0 { return "Unknown"; }
+    return Concat("", scope.types[row]);
+}
+
+func EnvValueMode(
+    ref names: Array<String>, ref modes: Array<String>,
+    ref scope: SemanticAstEnumValueScope, name: String
+) -> String {
+    let local_row: Int = EnvRowForName(names, name);
+    if local_row >= 0 { return Concat("", modes[local_row]); }
+    if EnvValueRow(scope, name) < 0 { return "unknown"; }
+    return "enum_value";
+}
+
+func EnvValueContainsName(
+    ref names: Array<String>, ref scope: SemanticAstEnumValueScope, name: String
+) -> Bool {
+    return EnvContainsName(names, name) || EnvValueRow(scope, name) >= 0;
+}
+
+func EnvValueSliceLookup(
+    names: Slice<String>, types: Slice<String>,
+    ref scope: SemanticAstEnumValueScope, name: String
+) -> String {
+    if ArrayLength(names) != ArrayLength(types) { return "Unknown"; }
+    if EnvSliceContainsName(names, name) { return EnvSliceLookup(names, types, name); }
+    let row: Int = EnvValueRow(scope, name);
+    if row < 0 { return "Unknown"; }
+    return Concat("", scope.types[row]);
+}
+
+func EnvValueSliceMode(
+    names: Slice<String>, modes: Slice<String>,
+    ref scope: SemanticAstEnumValueScope, name: String
+) -> String {
+    if ArrayLength(names) != ArrayLength(modes) { return "unknown"; }
+    if EnvSliceContainsName(names, name) { return EnvSliceMode(names, modes, name); }
+    if EnvValueRow(scope, name) < 0 { return "unknown"; }
+    return "enum_value";
+}
+
+func EnvSliceContainsName(names: Slice<String>, name: String) -> Bool {
+    let i: Int = ArrayLength(names) - 1;
+    while i >= 0 {
+        let candidate: String = Concat("", names[i]);
+        if candidate == name { return true; }
+        i = i - 1;
+    }
+    return false;
+}

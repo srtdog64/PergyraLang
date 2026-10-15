@@ -10,13 +10,16 @@ import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
 import "wrapper_type_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "env_value_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 
 func SemanticExpressionGraphReceiverTypeName(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
-    types: Array<String>
+    types: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
     let current: Int = node_id;
     let member_depth: Int = 0;
@@ -37,7 +40,7 @@ func SemanticExpressionGraphReceiverTypeName(
     if remaining <= 0 { return None; }
     let name: Option<String> = SemanticExpressionGraphNodeText(graph, current);
     if !IsSome(name) { return None; }
-    let receiver_type: String = EnvLookup(names, types, UnwrapOption(name));
+    let receiver_type: String = EnvValueLookup(names, types, enum_values, UnwrapOption(name));
     if receiver_type == "" { return None; }
     let layer: Int = member_depth;
     while layer > 0 {
@@ -250,10 +253,11 @@ func SemanticExpressionGraphValueReceiverTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
-    if ArrayLength(function_names) != ArrayLength(function_returns) {
+    if ArrayLength(function_names.names) != ArrayLength(function_returns) {
         return None;
     }
     let spine: SemanticExpressionGraphValueReceiverSpine =
@@ -263,7 +267,7 @@ func SemanticExpressionGraphValueReceiverTypeName(
     if spine.leaf_node >= 0 {
         let leaf_type: Option<String> =
             SemanticExpressionGraphReceiverTypeName(
-                graph, spine.leaf_node, constructors, names, types);
+                graph, spine.leaf_node, constructors, names, types, enum_values);
         if !IsSome(leaf_type) { return None; }
         value_type = Concat("", UnwrapOption(leaf_type));
     } else {
@@ -272,7 +276,7 @@ func SemanticExpressionGraphValueReceiverTypeName(
                 graph, spine);
         if !IsSome(target_name) { return None; }
         let target: Option<Int> =
-            SemanticCallableIndex(function_names, UnwrapOption(target_name));
+            SemanticCallableIndexInTable(function_names, UnwrapOption(target_name));
         if !IsSome(target) ||
             function_returns[UnwrapOption(target)] == "" ||
             function_returns[UnwrapOption(target)] == "Unknown" {
@@ -290,7 +294,8 @@ func SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_tables: SemanticAstExpressionFunctionTableFacts
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
     if !function_tables.ok ||
         ArrayLength(function_tables.names) !=
@@ -306,7 +311,7 @@ func SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
     if spine.leaf_node >= 0 {
         let leaf_type: Option<String> =
             SemanticExpressionGraphReceiverTypeName(
-                graph, spine.leaf_node, constructors, names, types);
+                graph, spine.leaf_node, constructors, names, types, enum_values);
         if !IsSome(leaf_type) { return None; }
         value_type = Concat("", UnwrapOption(leaf_type));
     } else {

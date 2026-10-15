@@ -14,8 +14,9 @@ func SemanticExpressionGraphOperandErrorFromTree(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     let pending: Array<Int> = [root_id];
     while ArrayLength(pending) > 0 {
@@ -56,7 +57,7 @@ func SemanticExpressionGraphOperandErrorFromTree(
             }
             let actual: String = SemanticExpressionGraphScalarTypeName(
                 graph, UnwrapOption(index_node), constructors, names, types,
-                function_names, function_returns
+                function_names, function_returns, enum_values
             );
             if actual != "Int" {
                 return SemanticError2(
@@ -70,7 +71,7 @@ func SemanticExpressionGraphOperandErrorFromTree(
             let numeric_error: String =
                 SemanticExpressionGraphNumericOperandError(
                     graph, node_id, kind, constructors, names, types,
-                    function_names, function_returns
+                    function_names, function_returns, enum_values
                 );
             if StringLength(numeric_error) > 0 { return numeric_error; }
         }
@@ -106,8 +107,9 @@ func SemanticExpressionGraphNumericOperandError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
     let right_opt: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
@@ -118,11 +120,11 @@ func SemanticExpressionGraphNumericOperandError(
     }
     let left: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(left_opt), constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     let right: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(right_opt), constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     if kind == AstExpressionNodeModulo() &&
         (left == "Float" || left == "Double") {
@@ -147,8 +149,9 @@ func SemanticExpressionGraphScalarOperatorError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, node_id
@@ -171,7 +174,7 @@ func SemanticExpressionGraphScalarOperatorError(
     }
     let left: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(left_opt), constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     if kind == AstExpressionNodeLogicalNot() {
         if left != "Unknown" && left != "Bool" {
@@ -208,7 +211,7 @@ func SemanticExpressionGraphScalarOperatorError(
     }
     let right: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(right_opt), constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     if kind == AstExpressionNodeCoalesce() {
         let payload: Option<String> = OptionPayloadTypeOpt(left);
@@ -265,7 +268,7 @@ func SemanticExpressionGraphScalarOperatorError(
     if kind == AstExpressionNodeModulo() {
         return SemanticExpressionGraphNumericOperandError(
             graph, node_id, kind, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
     }
     return "";
@@ -277,9 +280,10 @@ func SemanticExpressionGraphScalarOperandError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> String {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let start: Int = root_id;
     let needed: Int = 1;
     while start >= 0 && needed > 0 {
@@ -346,7 +350,7 @@ func SemanticExpressionGraphScalarOperandError(
         let operator_error: String =
             SemanticExpressionGraphScalarOperatorError(
                 graph, node, constructors, names, types,
-                function_names, function_returns
+                function_names, function_returns, no_enum_values
             );
         if StringLength(operator_error) > 0 { return operator_error; }
         node = node + 1;

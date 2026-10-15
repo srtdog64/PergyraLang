@@ -9,19 +9,19 @@ func ParseDestructureLetStmt(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: AstExpressionGraphRows
 ) -> String {
     let names: Array<String> = [];
     let i: Int = start + 1;
     while true {
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
-        let name: String = ReadIdent(content, i, cursor_out);
+        let name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(name) == 0 { Exit(1); }
         ArrayPush(names, name);
-        i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) == "," {
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+        if ParserCharAtWithin(content, content_extent, i) == "," {
             i = i + 1;
             continue;
         }

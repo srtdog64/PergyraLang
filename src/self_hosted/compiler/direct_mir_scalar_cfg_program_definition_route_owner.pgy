@@ -143,6 +143,9 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         return DirectMirScalarCfgProgramDefinitionRoute(
             true, "", indexed_route.operations, indexed_route.expressions);
     }
+    // The route took the sets by value; an unclaimed route hands them back.
+    operations = indexed_route.operations;
+    expressions = indexed_route.expressions;
     if source != "AST_LET_DECL" &&
             DirectMirScalarProgramInstructionHasTryRoot(instruction) {
         return DirectMirScalarCfgProgramDefinitionRouteInvalid(

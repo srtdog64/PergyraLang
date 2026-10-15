@@ -21,7 +21,7 @@ func DirectMirScalarProgramCCaseMathExpression(kind: Int, left: String, right: S
         ready = runtime.case_math.replace.ok;
         let ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
-            ArrayPush(values, arguments[ordinal]); ordinal = ordinal + 1;
+            ArrayPush(values, Concat("", arguments[ordinal])); ordinal = ordinal + 1;
         }
     } else if kind == DirectMirScalarProgramExprAbsInt() {
         symbol = runtime.case_math.abs.symbol;

@@ -81,8 +81,10 @@ func SemanticAstCollectionExclusiveRedefinesPlace(
     return true;
 }
 
-// No break or continue inside `block` leaves it.
-func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, block: Int) -> Bool {
+// No break or continue inside `block`, in its statements from `from` up to
+// `before`, leaves it. A jump outside them cannot keep a path that starts at
+// `from` from running `before`.
+func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, block: Int, from: Int, before: Int) -> Bool {
     let pending: Array<Int> = [block];
     while ArrayLength(pending) > 0 {
         let node: Int = pending[ArrayLength(pending) - 1];
@@ -104,7 +106,9 @@ func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, 
         while index < artifact.arena.child_counts[node] {
             let slot: Int = artifact.arena.first_children[node] + index;
             if slot < 0 || slot >= ArrayLength(artifact.arena.children) { return false; }
-            ArrayPush(pending, artifact.arena.children[slot]);
+            if node != block || (artifact.arena.children[slot] >= from && artifact.arena.children[slot] < before) {
+                ArrayPush(pending, artifact.arena.children[slot]);
+            }
             index = index + 1;
         }
     }
@@ -120,17 +124,73 @@ func SemanticAstCollectionExclusiveBlockExits(ref artifact: AstTreeArtifact, blo
     let terminal: Int = artifact.arena.children[edge];
     if terminal < child || terminal >= artifact.count ||
         !SemanticAstCollectionEffectSiteTerminatesFlow(artifact, terminal) { return false; }
-    return SemanticAstCollectionExclusiveBlockJumpFree(artifact, block);
+    return SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, 0, artifact.count);
 }
 
 // Every path from `definition` that goes on runs `statement`: it sits directly
-// in a jump-free block around the definition.
+// in a block around the definition that no jump leaves between them. The
+// block's statements before the one holding the definition ran already.
 func SemanticAstCollectionExclusiveRunsAfter(ref artifact: AstTreeArtifact, definition: Int, statement: Int) -> Bool {
     if statement <= definition || statement >= artifact.count { return false; }
     let block: Int = artifact.arena.parents[statement];
-    return block >= 0 && block < artifact.count && artifact.arena.kinds[block] == TypedAstKindBlockTag() &&
-        SemanticAstCollectionNodeEnclosedBy(artifact, definition, block) &&
-        SemanticAstCollectionExclusiveBlockJumpFree(artifact, block);
+    if block < 0 || block >= artifact.count || artifact.arena.kinds[block] != TypedAstKindBlockTag() { return false; }
+    let head: Int = definition;
+    while head >= 0 && head < artifact.count && artifact.arena.parents[head] != block {
+        head = artifact.arena.parents[head];
+    }
+    return head >= 0 && head < artifact.count &&
+        SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, head, statement);
+}
+
+// The last node of the `if` at `statement` when each of its branches, every
+// `else if` and a final `else`, writes the place: directly in the branch block
+// with no jump leaving the block before, or by ending in a function exit.
+// Writes at `settle_from` or later settle the place. -1 otherwise.
+func SemanticAstCollectionExclusiveBranchesWrite(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, statement: Int, ref place: SemanticAstCollectionAggregateSinkPlace, settle_from: Int
+) -> Int {
+    if !TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindIfStmtTag()) { return -1; }
+    let blocks: Array<Int> = [];
+    let branch: Int = statement;
+    while branch >= 0 {
+        let then_node: Option<Int> = TypedAstArenaChildAt(artifact.arena, branch, 0);
+        let else_node: Option<Int> = TypedAstArenaChildAt(artifact.arena, branch, 1);
+        if !IsSome(then_node) || !IsSome(else_node) { return -1; }
+        let then_block: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(then_node), 0);
+        let target: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(else_node), 0);
+        if !IsSome(then_block) || !IsSome(target) { return -1; }
+        ArrayPush(blocks, UnwrapOption(then_block));
+        branch = -1;
+        if TypedAstArenaNodeKindIs(artifact.arena, UnwrapOption(target), TypedAstKindIfStmtTag()) {
+            branch = UnwrapOption(target);
+        } else { ArrayPush(blocks, UnwrapOption(target)); }
+    }
+    let index: Int = 0;
+    while index < ArrayLength(blocks) {
+        let block: Int = blocks[index];
+        if !TypedAstArenaNodeKindIs(artifact.arena, block, TypedAstKindBlockTag()) { return -1; }
+        let count: Int = artifact.arena.child_counts[block];
+        let written: Bool = false;
+        let child_index: Int = 0;
+        while child_index < count && !written {
+            let child: Int = artifact.arena.children[artifact.arena.first_children[block] + child_index];
+            written = ((child >= settle_from && SemanticAstCollectionExclusiveRedefinesPlace(artifact, signatures,
+                    locals, inferred_types, surfaces, assignments, function_id, child, place)) ||
+                (child_index == count - 1 && SemanticAstCollectionEffectSiteTerminatesFlow(artifact, child))) &&
+                SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, 0, child);
+            child_index = child_index + 1;
+        }
+        if !written { return -1; }
+        index = index + 1;
+    }
+    let last: Int = blocks[ArrayLength(blocks) - 1];
+    while artifact.arena.child_counts[last] > 0 {
+        last = artifact.arena.children[artifact.arena.first_children[last] + artifact.arena.child_counts[last] - 1];
+    }
+    return last;
 }
 
 // Every loop that repeats `use_site` but keeps the binding declared at
@@ -168,7 +228,7 @@ func SemanticAstCollectionExclusiveWriteCoversExit(
         if write < exit_site && block >= 0 && block < artifact.count &&
             artifact.arena.kinds[block] == TypedAstKindBlockTag() &&
             SemanticAstCollectionNodeEnclosedBy(artifact, exit_site, block) &&
-            SemanticAstCollectionExclusiveBlockJumpFree(artifact, block) { return true; }
+            SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, 0, artifact.count) { return true; }
         index = index + 1;
     }
     return false;

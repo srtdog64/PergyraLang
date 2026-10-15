@@ -5,6 +5,7 @@ import "ast_expression_graph_build_owner.pgy";
 import "ast_expression_builtin_member_call_target_contract_owner.pgy";
 
 func SemanticExpressionCallTargetFactContractReady() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Struct: Pair\n    Fields:\n      left: Int\n      right: Int\n  Function: Math_Add\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 7\n"
         + "  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: self.value\n"
@@ -218,11 +219,13 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         return false;
     }
     let member_function_names: Array<String> = ["Box_Get", "Other_Get"];
+    let member_callables: SemanticCallableNameTable =
+        SemanticCallableNameTableFromNames(member_function_names);
     let member_function_returns: Array<String> = ["Int", "Int"];
     let derived_member: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             wrong_member, member_build.root_id, constructors,
-            ["box"], ["Box"], member_function_names, member_function_returns
+            ["box"], ["Box"], member_callables, member_function_returns, no_enum_values
         );
     if !derived_member.ok ||
         derived_member.kind != SemanticCallTargetMember() ||
@@ -266,18 +269,20 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let empty_types: Array<String> = [];
     let missing_returns: Array<String> = [];
     let chain_function_names: Array<String> = ["MakeBox", "Box_Get"];
+    let chain_callables: SemanticCallableNameTable =
+        SemanticCallableNameTableFromNames(chain_function_names);
     let chain_function_returns: Array<String> = ["Box", "Int"];
     let chain_target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             chain_graph, chain_build.root_id, constructors,
             empty_names, empty_types,
-            chain_function_names, chain_function_returns
+            chain_callables, chain_function_returns, no_enum_values
         );
     let missing_return_target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             chain_graph, chain_build.root_id, constructors,
             empty_names, empty_types,
-            chain_function_names, missing_returns
+            chain_callables, missing_returns, no_enum_values
         );
     return member_verified.ok && chain_build.ok && chain_target.ok &&
         chain_target.kind == SemanticCallTargetMember() &&

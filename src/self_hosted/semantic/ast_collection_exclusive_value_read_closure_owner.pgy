@@ -1,0 +1,48 @@
+// Closure of collection field-read keys over argument edges.
+//
+// A key "formal:field" read by a target formal is also read by every formal
+// passed on as an argument to it. The field-read owner builds the edge index
+// and the first frontier; this owner follows each new key once.
+
+// Copy `field`, which the formal `target` reads, to every formal passed on
+// as an argument to `target`, recording each key that is new in `added`.
+// `forwarding` holds the edges as (source formal, target formal) pairs.
+func SemanticAstCollectionExclusiveFollowRead(
+    target: String, field: String,
+    first_edges: HashMap<String, Int>, ref next_edges: Array<Int>, ref forwarding: Array<Int>,
+    inout reads: HashMap<String, Int>, inout added: HashMap<String, Int>
+) -> Void {
+    if !MapHas(first_edges, target) { return; }
+    let index: Int = MapGet(first_edges, target);
+    while index >= 0 {
+        let copied: String = Concat(ToString(forwarding[index * 2]), Concat(":", field));
+        if !MapHas(reads, copied) {
+            MapSet(reads, Concat("", copied), 1);
+            MapSet(added, copied, 1);
+        }
+        index = next_edges[index];
+    }
+}
+
+// Follow each key of `frontier_keys` one edge, then the keys that added. Each
+// key is followed in the round after it appears, so each is followed once.
+func SemanticAstCollectionExclusiveCloseReads(
+    frontier_keys: HashMap<String, Int>, first_edges: HashMap<String, Int>,
+    ref next_edges: Array<Int>, ref forwarding: Array<Int>, inout reads: HashMap<String, Int>
+) -> Void {
+    let frontier: Array<String> = MapKeys(frontier_keys);
+    if ArrayLength(frontier) == 0 { return; }
+    let added: HashMap<String, Int> = MapNew();
+    let at: Int = 0;
+    while at < ArrayLength(frontier) {
+        let separator: Int = StringIndexOf(frontier[at], ":");
+        // A key without ':' cannot match any numeric formal prefix.
+        if separator >= 0 {
+            SemanticAstCollectionExclusiveFollowRead(Substring(frontier[at], 0, separator),
+                Substring(frontier[at], separator + 1, StringLength(frontier[at]) - separator - 1),
+                first_edges, next_edges, forwarding, reads, added);
+        }
+        at = at + 1;
+    }
+    SemanticAstCollectionExclusiveCloseReads(added, first_edges, next_edges, forwarding, reads);
+}

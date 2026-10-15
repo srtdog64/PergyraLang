@@ -1,0 +1,33 @@
+struct FocusMapRows
+{
+    values: HashMap<String, Int>;
+    paths: Array<Int>;
+}
+extern "C"
+{
+    func KeepRows(rows: FocusMapRows) -> Void;
+}
+func Count(rows: FocusMapRows) -> Int
+{
+    KeepRows(rows);
+    return 0;
+}
+func Populate(inout rows: FocusMapRows) -> Int
+{
+    var values: HashMap<String, Int> = rows.values;
+    let count: Int = Count(rows);
+    var index: Int = 0;
+    while index < 40
+    {
+        MapSet(values, ToString(index), index);
+        index = index + 1;
+    }
+    rows.values = values;
+    return count;
+}
+func Main() -> Void
+{
+    var values: HashMap<String, Int> = MapNew();
+    var rows: FocusMapRows = FocusMapRows(values, [1]);
+    Log(Populate(rows));
+}

@@ -1,12 +1,43 @@
 // Exclusive-value field reads: which fields of an aggregate a statement or
 // a summarized formal reads, which a destination writes, and which value
 // reads observe no tracked storage.
+import "ast_collection_exclusive_value_read_closure_owner.pgy";
 import "ast_collection_exclusive_value_copy_owner.pgy";
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
-import "ast_collection_exclusive_value_field_label_owner.pgy";
+
+// One function-scoped identity lookup owns both mode and type projections.
+func SemanticAstCollectionExclusiveFormalIndex(
+    ref signatures: SemanticAstFunctionSignatureFacts, function_id: Int, root_id: Int
+) -> Option<Int> {
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !IsSome(signature) { return None; }
+    let start: Int = signatures.param_starts[UnwrapOption(signature)];
+    let index: Int = 0;
+    while index < signatures.param_counts[UnwrapOption(signature)] {
+        if signatures.param_node_ids[start + index] == root_id { return Some(start + index); }
+        index = index + 1;
+    }
+    return None;
+}
+
+// The fields of a struct type, or none when the type has no constructor.
+func SemanticAstCollectionExclusiveTypeFields(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
+) -> Array<String> {
+    let fields: Array<String> = [];
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if !IsSome(constructor) { return fields; }
+    let start: Int = constructors.param_starts[UnwrapOption(constructor)];
+    let index: Int = 0;
+    while index < constructors.param_counts[UnwrapOption(constructor)] {
+        ArrayPush(fields, Concat("", constructors.field_names[start + index]));
+        index = index + 1;
+    }
+    return fields;
+}
 
 // The declared type of the binding `root_id`, a local or a formal of `function_id`.
 func SemanticAstCollectionExclusiveRootType(
@@ -15,30 +46,18 @@ func SemanticAstCollectionExclusiveRootType(
 ) -> String {
     let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, root_id);
     if IsSome(declared) { return Concat("", inferred_types[UnwrapOption(declared)]); }
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) { return ""; }
-    let start: Int = signatures.param_starts[UnwrapOption(signature)];
-    let index: Int = 0;
-    while index < signatures.param_counts[UnwrapOption(signature)] {
-        if signatures.param_node_ids[start + index] == root_id { return Concat("", signatures.param_types[start + index]); }
-        index = index + 1;
-    }
-    return "";
+    let formal: Option<Int> = SemanticAstCollectionExclusiveFormalIndex(signatures, function_id, root_id);
+    if !IsSome(formal) { return ""; }
+    return Concat("", signatures.param_types[UnwrapOption(formal)]);
 }
 
 // The mode of the formal `root_id` of `function_id`, or -1 for a local.
 func SemanticAstCollectionExclusiveRootMode(
     ref signatures: SemanticAstFunctionSignatureFacts, function_id: Int, root_id: Int
 ) -> Int {
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) { return -1; }
-    let start: Int = signatures.param_starts[UnwrapOption(signature)];
-    let index: Int = 0;
-    while index < signatures.param_counts[UnwrapOption(signature)] {
-        if signatures.param_node_ids[start + index] == root_id { return signatures.param_modes[start + index]; }
-        index = index + 1;
-    }
-    return -1;
+    let formal: Option<Int> = SemanticAstCollectionExclusiveFormalIndex(signatures, function_id, root_id);
+    if !IsSome(formal) { return -1; }
+    return signatures.param_modes[UnwrapOption(formal)];
 }
 
 // Types whose values hold no Array buffer the verdict tracks. Array<Int> is
@@ -80,6 +99,19 @@ func SemanticAstCollectionExclusiveSummarizedTarget(
     let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     if !formal.ok || MapHas(field_reads, Concat(ToString(formal.syntax_id), ":*")) { return 0; }
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
+    if !IsSome(callee) { return 0; }
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, UnwrapOption(callee));
+    let original: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, UnwrapOption(callee));
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, edge.call_node);
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(surfaces.expression_graph, edge.call_node);
+    let abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(surfaces.expression_graph, edge.call_node);
+    let spine: SemanticCallSpineView = SemanticCallSpineViewForCallNodeWithin(surfaces.expression_graph, edge.call_node, root);
+    if !binding.ok || binding.kind != SemanticExpressionBindingDeclaredCallable() || binding.syntax_id != signatures.function_node_ids[formal.signature_row] ||
+        !IsSome(original) || !IsSome(target_name) || UnwrapOption(original) != signatures.names[formal.signature_row] || UnwrapOption(target_name) != UnwrapOption(original) ||
+        !IsSome(target_kind) || UnwrapOption(target_kind) != SemanticCallTargetDirect() || !IsSome(abi) || UnwrapOption(abi) != 0 ||
+        !spine.ok || ArrayLength(spine.argument_nodes) != signatures.param_counts[formal.signature_row] ||
+        edge.ordinal < 0 || edge.ordinal >= ArrayLength(spine.argument_nodes) || spine.argument_nodes[edge.ordinal] != node { return 0; }
     return formal.syntax_id;
 }
 
@@ -144,16 +176,9 @@ func SemanticAstCollectionExclusivePlaceType(
         if place.key >= ArrayLength(inferred_types) { return None; }
         type_name = Concat("", inferred_types[place.key]);
     } else {
-        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-        if !IsSome(signature) { return None; }
-        let start: Int = signatures.param_starts[UnwrapOption(signature)];
-        let index: Int = 0;
-        while index < signatures.param_counts[UnwrapOption(signature)] {
-            if signatures.param_node_ids[start + index] == 0 - place.key {
-                type_name = Concat("", signatures.param_types[start + index]);
-            }
-            index = index + 1;
-        }
+        let formal: Option<Int> = SemanticAstCollectionExclusiveFormalIndex(signatures, function_id, 0 - place.key);
+        if !IsSome(formal) { return None; }
+        type_name = Concat("", signatures.param_types[UnwrapOption(formal)]);
     }
     let step: Int = 0;
     while step < ArrayLength(place.chain) && type_name != "" {
@@ -197,10 +222,9 @@ func SemanticAstCollectionExclusiveValueRead(
         // call still evaluates its arguments.
         let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
             signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-        let key: String = ToString(formal.syntax_id);
         return formal.ok && formal.signature_row >= 0 &&
             formal.signature_row < ArrayLength(signatures.return_types) &&
-            !MapHas(field_reads, Concat(key, ":!")) &&
+            !MapHas(field_reads, Concat(ToString(formal.syntax_id), ":!")) &&
             SemanticAstCollectionExclusiveUntrackedType(signatures.return_types[formal.signature_row]) &&
             signatures.return_types[formal.signature_row] != "" &&
             call >= 0 && node >= call_start && node <= call;
@@ -221,8 +245,7 @@ func SemanticAstCollectionExclusiveFieldReads(
     ref surfaces: SemanticAstExpressionSurfaceFacts
 ) -> HashMap<String, Int> {
     let reads: HashMap<String, Int> = MapNew();
-    let sources: Array<Int> = [];
-    let targets: Array<Int> = [];
+    let forwarding: Array<Int> = [];
     let slot: Int = 0;
     while slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[slot] {
@@ -239,6 +262,7 @@ func SemanticAstCollectionExclusiveFieldReads(
                     let key: String = ToString(formal.syntax_id);
                     let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
                     let handled: Bool = false;
+                    let opaque_target: Bool = false;
                     if consumer >= 0 && formal.mode != 2 {
                         let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
                             surfaces.expression_graph, consumer);
@@ -253,7 +277,7 @@ func SemanticAstCollectionExclusiveFieldReads(
                             }
                             // "!": the body keeps or changes what it reads.
                             if !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, surfaces.node_ids[slot / 3],
-                                    slot % 3, root, node, true, formal.declared_type_name) {
+                                    slot % 3, root, node, true) {
                                 MapSet(reads, Concat(key, ":!"), 1);
                             }
                         } else if surfaces.expression_graph.arena.topology.node_kinds[consumer] ==
@@ -264,10 +288,11 @@ func SemanticAstCollectionExclusiveFieldReads(
                                 let target: SemanticAstCollectionArgumentFormalTarget =
                                     SemanticAstCollectionArgumentFormalTargetForArgument(
                                         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-                                if target.ok {
-                                    ArrayPush(sources, formal.syntax_id);
-                                    ArrayPush(targets, target.syntax_id);
-                                    handled = true;
+                                if target.ok && SemanticAstCollectionExclusiveSummarizedTarget(signatures, surfaces, reads, node, root) == target.syntax_id {
+                                    ArrayPush(forwarding, formal.syntax_id);
+                                    ArrayPush(forwarding, target.syntax_id);
+                                    opaque_target = target.signature_row >= ArrayLength(signatures.action_contracts.body_node_ids) || signatures.action_contracts.body_node_ids[target.signature_row] <= 0;
+                                    handled = !opaque_target;
                                 }
                             }
                         }
@@ -276,8 +301,8 @@ func SemanticAstCollectionExclusiveFieldReads(
                     // the body may also keep or change it.
                     if !handled {
                         MapSet(reads, Concat(key, ":*"), 1);
-                        if formal.mode == 2 || !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces,
-                                surfaces.node_ids[slot / 3], slot % 3, root, node, true, formal.declared_type_name) {
+                        if formal.mode == 2 || opaque_target || !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces,
+                                surfaces.node_ids[slot / 3], slot % 3, root, node, true) {
                             MapSet(reads, Concat(key, ":!"), 1);
                         }
                     }
@@ -287,46 +312,28 @@ func SemanticAstCollectionExclusiveFieldReads(
         }
         slot = slot + 1;
     }
-    let changed: Bool = true;
-    let remaining: Int = ArrayLength(sources) + 2;
-    while changed && remaining > 0 {
-        changed = false;
-        let keys: Array<String> = MapKeys(reads);
-        // Index this round's immutable key snapshot, retaining bucket order.
-        let heads: HashMap<String, Int> = MapNew();
-        let tails: HashMap<String, Int> = MapNew();
-        let next: Array<Int> = [];
-        let key_index: Int = 0;
-        while key_index < ArrayLength(keys) {
-            ArrayPush(next, 0 - 1);
-            let separator: Int = StringIndexOf(keys[key_index], ":");
-            if separator >= 0 {
-                let prefix: String = Substring(keys[key_index], 0, separator + 1);
-                if MapHas(tails, prefix) { next[MapGet(tails, prefix)] = key_index; }
-                else { MapSet(heads, prefix, key_index); }
-                MapSet(tails, prefix, key_index);
-            }
-            // A key without ':' cannot match any numeric formal prefix.
-            key_index = key_index + 1;
-        }
-        let edge: Int = 0;
-        while edge < ArrayLength(sources) {
-            let source: String = ToString(sources[edge]);
-            let target: String = Concat(ToString(targets[edge]), ":");
-            let index: Int = 0 - 1;
-            if MapHas(heads, target) { index = MapGet(heads, target); }
-            while index >= 0 {
-                let entry: String = keys[index];
-                let field: String = Substring(entry, StringLength(target), StringLength(entry) - StringLength(target));
-                let copied: String = Concat(source, Concat(":", field));
-                if !MapHas(reads, copied) { MapSet(reads, copied, 1); changed = true; }
-                index = next[index];
-            }
-            edge = edge + 1;
-        }
-        remaining = remaining - 1;
+    // Close the reads under the argument edges: a formal passed on as an
+    // argument reads whatever its target formal reads. A shortest chain of
+    // edges is no longer than the edge list, so the bounded rounds this
+    // replaces always reached this same closure.
+    let first_edges: HashMap<String, Int> = MapNew();
+    let next_edges: Array<Int> = [];
+    let edge_row: Int = 0;
+    while edge_row < ArrayLength(forwarding) / 2 {
+        ArrayPush(next_edges, 0 - 1);
+        let edge_target: String = ToString(forwarding[edge_row * 2 + 1]);
+        if MapHas(first_edges, edge_target) { next_edges[edge_row] = MapGet(first_edges, edge_target); }
+        MapSet(first_edges, edge_target, edge_row);
+        edge_row = edge_row + 1;
     }
-    if changed { MapSet(reads, "unconverged", 1); }
+    let frontier_keys: HashMap<String, Int> = MapNew();
+    let snapshot: Array<String> = MapKeys(reads);
+    let at: Int = 0;
+    while at < ArrayLength(snapshot) {
+        MapSet(frontier_keys, Concat("", snapshot[at]), 1);
+        at = at + 1;
+    }
+    SemanticAstCollectionExclusiveCloseReads(frontier_keys, first_edges, next_edges, forwarding, reads);
     return reads;
 }
 
@@ -342,16 +349,13 @@ func SemanticAstCollectionExclusiveDestinationFields(
     let row: Int = 1;
     while row < ArrayLength(family.keys) {
         if family.chain_counts[row] == 0 { return false; }
-        let text: Option<String> = SemanticExpressionGraphNodeText(
-            surfaces.expression_graph, family.chain_nodes[family.chain_starts[row]]);
-        if !IsSome(text) { return false; }
-        MapSet(fields, UnwrapOption(text), 1);
         let path: String = "";
         let step: Int = 0;
         while step < family.chain_counts[row] {
             let name: Option<String> = SemanticExpressionGraphNodeText(
                 surfaces.expression_graph, family.chain_nodes[family.chain_starts[row] + step]);
             if !IsSome(name) { return false; }
+            if step == 0 { MapSet(fields, UnwrapOption(name), 1); }
             if path == "" { path = UnwrapOption(name); } else { path = Concat(path, Concat(".", UnwrapOption(name))); }
             step = step + 1;
         }

@@ -22,6 +22,7 @@ import "ast_collection_formal_effect_readiness_owner.pgy";
 import "ast_collection_owned_result_plan_owner.pgy";
 import "ast_collection_exclusive_value_restoration_owner.pgy";
 import "ast_collection_ownership_member_restoration_owner.pgy";
+import "ast_collection_focus_recovery_admission_owner.pgy";
 
 func SemanticAstBodyTypeBundleReadinessError(
     artifact: AstTreeArtifact,
@@ -81,7 +82,7 @@ func SemanticAstBodyTypeBundleReadinessError(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, bundle.initializer_types.inferred_type_names,
             analysis.expression_surfaces, analysis.statements,
-            analysis.assignments, bundle.collection_ownership.focus_recovery) {
+            analysis.assignments, bundle.collection_formal_effects, bundle.collection_focus_recovery) {
         return "collection_focus_recovery_rows";
     }
     if !SemanticAstCapabilityFactsReady(artifact, analysis, bundle.capabilities) ||

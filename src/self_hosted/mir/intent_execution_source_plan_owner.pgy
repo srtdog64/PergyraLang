@@ -151,10 +151,9 @@ func SelfMirIntentExecutionPlanAppend(
                 if facts.cfg.instructions.names[instruction] == "IntentEval" &&
                     facts.cfg.instructions.arg0s[instruction] == "compensate" &&
                     facts.cfg.instructions.slot_anchors[instruction] == name {
-                    let graphs: SelfMirExpressionGraphRows = facts.cfg.instructions.expr0_graphs;
-                    let root: Int = graphs.roots[instruction];
+                    let root: Int = facts.cfg.instructions.expr0_graphs.roots[instruction];
                     let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(facts.expression_graph, root);
-                    if graphs.has_roots[instruction] != 1 ||
+                    if facts.cfg.instructions.expr0_graphs.has_roots[instruction] != 1 ||
                         !IsSome(target_id) || compensation_count >= intents.steps.compensate_counts[step] {
                         return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
                             "typed Intent compensation identity is missing");
@@ -187,8 +186,9 @@ func SelfMirIntentExecutionPlanAppend(
                         intents.steps.compensate_starts[step] + compensation_count]);
                     ArrayPush(c.instruction_block_ids, facts.cfg.blocks.ids[block]);
                     ArrayPush(c.instruction_ids, facts.cfg.instructions.ids[instruction]);
-                    ArrayPush(c.graph_root_ids, root - graphs.node_starts[instruction]);
-                    ArrayPush(c.graph_digests, SelfMirExpressionGraphDigest(graphs, facts.expression_graph, instruction));
+                    ArrayPush(c.graph_root_ids, root - facts.cfg.instructions.expr0_graphs.node_starts[instruction]);
+                    ArrayPush(c.graph_digests, SelfMirExpressionGraphDigest(
+                        facts.cfg.instructions.expr0_graphs, facts.expression_graph, instruction));
                     ArrayPush(c.call_target_names, target_name);
                     ArrayPush(c.call_target_syntax_ids, UnwrapOption(target_id));
                     steps.compensations = c;
@@ -255,7 +255,6 @@ func SelfMirIntentExecutionPlanAppend(
             payload = intents.transitions.success_payload_names[source];
             payload_type = intents.transitions.success_payload_type_names[source];
         }
-        let graphs: SelfMirExpressionGraphRows = facts.cfg.instructions.expr0_graphs;
         ArrayPush(terminals.terminal_transition_ids, expression_id);
         ArrayPush(terminals.routine_syntax_ids, routine_id);
         ArrayPush(terminals.roles, intents.transitions.terminal_roles[terminal]);
@@ -280,8 +279,10 @@ func SelfMirIntentExecutionPlanAppend(
         ArrayPush(terminals.result_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
             facts.declarations, intents.transitions.terminal_payload_type_names[terminal]));
         ArrayPush(terminals.expression_syntax_ids, expression_id);
-        ArrayPush(terminals.graph_root_ids, graphs.roots[instruction] - graphs.node_starts[instruction]);
-        ArrayPush(terminals.graph_digests, SelfMirExpressionGraphDigest(graphs, facts.expression_graph, instruction));
+        ArrayPush(terminals.graph_root_ids, facts.cfg.instructions.expr0_graphs.roots[instruction] -
+            facts.cfg.instructions.expr0_graphs.node_starts[instruction]);
+        ArrayPush(terminals.graph_digests, SelfMirExpressionGraphDigest(
+            facts.cfg.instructions.expr0_graphs, facts.expression_graph, instruction));
         terminal = terminal + 1;
     }
     facts.intent_execution = MirIntentExecutionPlan(false, true,

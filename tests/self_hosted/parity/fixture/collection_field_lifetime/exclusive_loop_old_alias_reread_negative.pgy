@@ -1,0 +1,36 @@
+// The inner loop reads the outer binding again on each pass after the callee
+// took its rows and the append grew them.
+struct Rows {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func RowsAdd(rows: Rows, name: String) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, name);
+    return Rows(rows.ok, names);
+}
+
+func RowsChain(seed: Array<String>, count: Int) -> Int {
+    let base: Rows = Rows(true, seed);
+    let total: Int = 0;
+    let outer: Int = 0;
+    while outer < count {
+        let callee: Rows = base;
+        let inner: Int = 0;
+        while inner < 2 {
+            total = total + StringLength(base.names[0]);
+            callee = RowsAdd(callee, "g");
+            inner = inner + 1;
+        }
+        base = callee;
+        outer = outer + 1;
+    }
+    return total + ArrayLength(base.names);
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    Log(ToString(RowsChain(seed, 3)));
+    return 0;
+}

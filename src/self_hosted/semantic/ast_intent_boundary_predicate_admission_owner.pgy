@@ -11,6 +11,7 @@ func SemanticAstIntentBoundaryPredicateAdmission(
     ref analysis: SemanticAstArtifactAnalysis,
     ref function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstBodyVerdict {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let member_roots: Array<String> = [];
     let member_roots_ready: Bool = false;
     let row: Int = 0;
@@ -51,7 +52,7 @@ func SemanticAstIntentBoundaryPredicateAdmission(
             if !SemanticAstExpressionSeedEnumValues(analysis.enums, names, types, modes) ||
                 !SemanticAstIntentExpressionSeedEnvironment(artifact,
                     analysis.signatures, analysis.intent_signatures,
-                    analysis.intent_transitions, intent_node, node_id, names, types, modes) {
+                    analysis.intent_transitions, intent_node, node_id, names, types, modes, no_enum_values) {
                 SemanticAstExpressionEnvironmentClear(names, types, modes);
                 return SemanticAstBodyVerdictError("ast_artifact_invalid",
                     SemanticError1("ast_artifact_invalid", "owner", "IntentPredicateEnvironment"), node_id);
@@ -62,7 +63,7 @@ func SemanticAstIntentBoundaryPredicateAdmission(
                     analysis.expression_surfaces.expression_graph, UnwrapOption(root),
                     analysis.constructors, analysis.enums, analysis.signatures,
                     names, types, modes,
-                    function_tables.names, function_tables.returns,
+                    function_tables.callables, function_tables.returns,
                     function_tables.params, member_roots, -1);
             if !expression.ok {
                 let diagnostic_code: String = Concat(

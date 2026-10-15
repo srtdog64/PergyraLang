@@ -124,7 +124,8 @@ func MirGenericSpecializationAppendUnique(
     i = 0;
     while i < ArrayLength(actuals) {
         if actuals[i] == "" { return false; }
-        ArrayPush(actual_type_names, actuals[i]);
+        // The rows keep their own copy of each borrowed actual.
+        ArrayPush(actual_type_names, Concat("", actuals[i]));
         i = i + 1;
     }
     return true;

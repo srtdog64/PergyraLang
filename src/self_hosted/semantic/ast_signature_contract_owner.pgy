@@ -47,6 +47,29 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     if !valid_rows {
         return false;
     }
+    // Index corruption must fail admission, and the exact index admits. Each
+    // case corrupts a fresh index, never the admitted facts' own maps.
+    let index_case: Int = 0;
+    while index_case < 5 {
+        // The three rows checked above: Box.Get, Main and SourceUnit.Read.
+        let first: HashMap<String, Int> = MapNew();
+        let counts: HashMap<String, Int> = MapNew();
+        MapSet(first, SemanticCallableCanonicalDeclaredName("Box", "Get"), 0);
+        MapSet(first, SemanticCallableCanonicalDeclaredName("", "Main"), 1);
+        MapSet(first, SemanticCallableCanonicalDeclaredName("SourceUnit", "Read"), 2);
+        MapSet(counts, SemanticCallableCanonicalDeclaredName("Box", "Get"), 1);
+        MapSet(counts, SemanticCallableCanonicalDeclaredName("", "Main"), 1);
+        MapSet(counts, SemanticCallableCanonicalDeclaredName("SourceUnit", "Read"), 1);
+        if index_case == 0 { MapSet(first, "Box_Get", 1); }
+        if index_case == 1 { MapSet(counts, "Box_Get", 2); }
+        if index_case == 2 { MapRemove(counts, "Box_Get"); }
+        if index_case == 3 { MapRemove(first, "Box_Get"); }
+        let indexed: SemanticAstFunctionSignatureFacts = facts;
+        indexed.canonical_name_first_rows = first;
+        indexed.canonical_name_row_counts = counts;
+        if SemanticAstFunctionSignatureFactsMatchArtifact(artifact, indexed) != (index_case == 4) { return false; }
+        index_case = index_case + 1;
+    }
     let crossed_selection: SemanticAstFunctionSignatureFacts = facts;
     crossed_selection.entrypoint_selection.signature_index = 0;
     if SemanticAstFunctionSignatureFactsMatchArtifact(

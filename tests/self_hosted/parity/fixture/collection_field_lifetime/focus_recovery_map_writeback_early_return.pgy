@@ -1,0 +1,33 @@
+struct FocusMapRows
+{
+    values: HashMap<String, Int>;
+}
+func Populate(inout rows: FocusMapRows, shouldReturn: Bool) -> Int
+{
+    var values: HashMap<String, Int> = rows.values;
+    var index: Int = 0;
+    while index < 40
+    {
+        MapSet(values, ToString(index), index);
+        index = index + 1;
+    }
+    if shouldReturn
+    {
+        MapRemove(values, "0");
+        let completedCount: Int = MapSize(values);
+        rows.values = values;
+        return completedCount;
+    }
+    let completedCount: Int = MapSize(values);
+    rows.values = values;
+    return completedCount;
+}
+
+func Main() -> Void
+{
+    var values: HashMap<String, Int> = MapNew();
+    MapSet(values, "seed", 7);
+    var rows: FocusMapRows = FocusMapRows(values);
+    Log(Populate(rows, true));
+    Log(MapHas(rows.values, "0"));
+}

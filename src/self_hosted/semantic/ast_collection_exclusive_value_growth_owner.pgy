@@ -4,21 +4,6 @@
 import "ast_collection_exclusive_value_owner.pgy";
 import "ast_collection_storage_mutation_owner.pgy";
 
-// The mode of the formal `formal_id` of `function_id`.
-func SemanticAstCollectionExclusiveFormalMode(
-    ref signatures: SemanticAstFunctionSignatureFacts, function_id: Int, formal_id: Int
-) -> Option<Int> {
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) { return None; }
-    let start: Int = signatures.param_starts[UnwrapOption(signature)];
-    let index: Int = 0;
-    while index < signatures.param_counts[UnwrapOption(signature)] {
-        if signatures.param_node_ids[start + index] == formal_id { return Some(signatures.param_modes[start + index]); }
-        index = index + 1;
-    }
-    return None;
-}
-
 // Records that the binding `id` grows storage at its first field `field`
 // ("*": any field). Returns whether it is new.
 func SemanticAstCollectionExclusiveMarkGrown(inout mutating: HashMap<String, Int>, id: Int, field: String) -> Bool {
@@ -44,20 +29,25 @@ func SemanticAstCollectionExclusiveMarkRoot(
         if dep_locals[row] == root_id {
             // The root's field `field` holds the formal's source field when
             // the dependency lands there or at the whole root.
+            let grown: String = "*";
             let reaches: Bool = true;
-            let dest: String = "";
-            let source: String = "";
-            if dep_paths[row] >= 0 {
-                dest = paths[2 * dep_paths[row]];
-                source = paths[2 * dep_paths[row] + 1];
-            }
-            let grown: String = source;
-            if grown == "" { grown = "*"; }
             if field != "*" {
+                let dest: String = "";
+                let source: String = "";
+                if dep_paths[row] >= 0 {
+                    dest = paths[2 * dep_paths[row]];
+                    source = paths[2 * dep_paths[row] + 1];
+                }
                 if dest == "" {
                     grown = source;
                     if source == "" { grown = field; }
-                } else if dest != field { reaches = false; }
+                } else if dest == field {
+                    if source != "" { grown = source; }
+                } else { reaches = false; }
+            } else if dep_paths[row] >= 0 && paths[2 * dep_paths[row] + 1] != "" {
+                // The root holds the formal only inside the field it copied:
+                // any growth of the root grows that field.
+                grown = paths[2 * dep_paths[row] + 1];
             }
             if reaches && !MapHas(mutating, ToString(dep_formals[row])) {
                 MapSet(mutating, ToString(dep_formals[row]), 1);
@@ -68,8 +58,8 @@ func SemanticAstCollectionExclusiveMarkRoot(
         row = row + 1;
     }
     if IsSome(SemanticAstLocalBindingIndexForNode(locals, root_id)) { return changed; }
-    let mode: Option<Int> = SemanticAstCollectionExclusiveFormalMode(signatures, function_id, root_id);
-    if IsSome(mode) && (UnwrapOption(mode) == 0 || UnwrapOption(mode) == 1) && !MapHas(mutating, ToString(root_id)) {
+    let mode: Int = SemanticAstCollectionExclusiveRootMode(signatures, function_id, root_id);
+    if (mode == 0 || mode == 1) && !MapHas(mutating, ToString(root_id)) {
         MapSet(mutating, ToString(root_id), 1);
         return true;
     }
@@ -88,6 +78,17 @@ func SemanticAstCollectionMutatingFormals(
     ref dep_locals: Array<Int>, ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>
 ) -> HashMap<String, Int> {
     let mutating: HashMap<String, Int> = MapNew();
+    let dependency_row: Int = 0;
+    if ArrayLength(dep_locals) != ArrayLength(dep_formals) || ArrayLength(dep_locals) != ArrayLength(dep_paths) ||
+        ArrayLength(paths) % 2 != 0 || ArrayLength(origins) != ArrayLength(source_binding_syntax_ids) {
+        MapSet(mutating, "unconverged", 1); return mutating;
+    }
+    while dependency_row < ArrayLength(dep_paths) {
+        if dep_paths[dependency_row] < -1 || dep_paths[dependency_row] >= ArrayLength(paths) / 2 {
+            MapSet(mutating, "unconverged", 1); return mutating;
+        }
+        dependency_row = dependency_row + 1;
+    }
     // "rebound:<row>": a whole assignment rebinds the local, so a member
     // alias no longer names its first field.
     let assignment_row: Int = 0;
@@ -127,30 +128,32 @@ func SemanticAstCollectionMutatingFormals(
                             let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
                                 artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id,
                                 edge.argument_node);
-                            let builtin_mutation: Int = 0;
-                            if edge.ordinal == 0 {
-                                builtin_mutation = SemanticAstCollectionStorageMutationKind(surfaces.expression_graph, edge.call_node);
-                            }
-                            // Non-Array descriptors have no Array<String> origin row.
-                            // Their admitted place and dependency paths own the summary.
-                            if builtin_mutation > 1 && place.ok && !place.temporary {
-                                root_id = SemanticAstCollectionExclusivePlaceRoot(locals, place);
-                                if ArrayLength(place.chain) > 0 {
-                                    let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
-                                    if IsSome(first) { field = UnwrapOption(first); }
-                                }
-                            }
                             if place.ok && !place.temporary && place.key >= 0 && ArrayLength(place.chain) == 0 &&
                                 origins[place.key] == SemanticAstCollectionOriginMemberMove() {
                                 // A member alias: a reallocating mutation grows its root's
                                 // field. ArraySet writes in place and retires no buffer.
+                                let builtin_mutation: Bool = edge.ordinal == 0 &&
+                                    (SemanticAstCollectionStorageMutationKind(surfaces.expression_graph, edge.call_node) == 1 ||
+                                     SemanticAstCollectionStorageMutationKind(surfaces.expression_graph, edge.call_node) == 2);
                                 let target: Int = SemanticAstCollectionSourceArrayFormalForArgument(
                                     signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
                                 let effect: Int = 0;
                                 if target > 0 && MapHas(proved, ToString(target)) { effect = MapGet(proved, ToString(target)); }
-                                if builtin_mutation == 1 || effect == 2 || effect == SemanticAstCollectionFormalShallowMutationEffect() {
+                                if builtin_mutation || effect == 2 || effect == SemanticAstCollectionFormalShallowMutationEffect() {
                                     root_id = source_binding_syntax_ids[place.key];
                                     field = SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, place.key);
+                                }
+                            }
+                            if edge.ordinal == 0 &&
+                                SemanticAstCollectionStorageMutationKind(surfaces.expression_graph, edge.call_node) == 2 && root_id == 0 {
+                                if !place.ok || place.temporary {
+                                    MapSet(mutating, "unconverged", 1); return mutating;
+                                }
+                                root_id = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+                                if ArrayLength(place.chain) > 0 {
+                                    let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+                                    if !IsSome(first) { MapSet(mutating, "unconverged", 1); return mutating; }
+                                    field = UnwrapOption(first);
                                 }
                             }
                             let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
@@ -186,11 +189,21 @@ func SemanticAstCollectionMutatingFormals(
                 let function_id: Int = statements.function_node_ids[statement];
                 let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
                     artifact, locals, inferred_types, surfaces, function_id, statements.node_ids[statement]);
-                if target.ok && target.row < ArrayLength(origins) &&
-                    origins[target.row] == SemanticAstCollectionOriginMemberMove() &&
+                let mutation_root: Int = 0;
+                let mutation_field: String = "*";
+                if target.ok && target.row < ArrayLength(origins) && origins[target.row] == SemanticAstCollectionOriginMemberMove() {
+                    mutation_root = source_binding_syntax_ids[target.row];
+                    mutation_field = SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, target.row);
+                } else if target.ok {
+                    let dependency: Int = 0;
+                    while dependency < ArrayLength(dep_locals) {
+                        if dep_locals[dependency] == target.declaration_node_id { mutation_root = target.declaration_node_id; }
+                        dependency = dependency + 1;
+                    }
+                }
+                if mutation_root > 0 &&
                     SemanticAstCollectionExclusiveMarkRoot(signatures, locals, dep_locals, dep_formals,
-                        dep_paths, paths, function_id, source_binding_syntax_ids[target.row],
-                        SemanticAstCollectionExclusiveAliasField(surfaces, locals, mutating, target.row), mutating) {
+                        dep_paths, paths, function_id, mutation_root, mutation_field, mutating) {
                     changed = true;
                 }
             }

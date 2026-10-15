@@ -11,12 +11,13 @@ func SemanticExpressionGraphFieldValueTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Option<String> {
     let scalar: String = SemanticExpressionGraphScalarTypeName(
         graph, node_id, constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, enum_values
     );
     if scalar != "" && scalar != "Unknown" {
         return Some(scalar);
@@ -24,7 +25,7 @@ func SemanticExpressionGraphFieldValueTypeName(
     let array_literal: Option<String> =
         SemanticExpressionGraphArrayLiteralTypeName(
             graph, node_id, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
     if IsSome(array_literal) { return array_literal; }
     return SemanticExpressionGraphIntrinsicTypeName(

@@ -1,0 +1,23 @@
+// The constructor copies `marks` into `facts.marks`. Growing the marks taken
+// out of `facts` retires the buffer `marks` still names, and the return reads
+// it.
+struct Facts {
+    rows: Array<String>;
+    marks: Array<String>;
+}
+
+func Build() -> Int {
+    let rows: Array<String> = ["r"];
+    let marks: Array<String> = ["m0"];
+    let facts: Facts = Facts(rows, marks);
+    let grown: Array<String> = facts.marks;
+    ArrayPush(grown, "m");
+    ArrayPush(grown, "n");
+    facts.marks = grown;
+    return StringLength(marks[0]) + ArrayLength(facts.marks);
+}
+
+func Main() -> Int {
+    Log(ToString(Build()));
+    return 0;
+}

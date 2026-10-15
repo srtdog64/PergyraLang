@@ -52,8 +52,7 @@ func SemanticExpressionGraphStructValueTypeError(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>, ref enum_values: SemanticAstEnumValueScope
 ) -> String {
     let struct_root: Option<Int> = SemanticExpressionGraphStructValueRoot(
         graph, root_id
@@ -158,7 +157,7 @@ func SemanticExpressionGraphStructValueTypeError(
         let generic_call: SemanticExpressionGraphGenericCallFact =
             SemanticExpressionGraphGenericCallFactFromGraph(
                 graph, field.value_node, signatures, constructors,
-                names, types, function_names, function_returns
+                names, types, function_names, function_returns, enum_values
             );
         let generic_applies: Bool = generic_call.applies;
         let generic_ok: Bool = generic_call.ok;
@@ -173,7 +172,7 @@ func SemanticExpressionGraphStructValueTypeError(
         } else {
             actual_opt = SemanticExpressionGraphFieldValueTypeName(
                 graph, field.value_node, constructors, names, types,
-                function_names, function_returns
+                function_names, function_returns, enum_values
             );
         }
         let actual: String = "Unknown";

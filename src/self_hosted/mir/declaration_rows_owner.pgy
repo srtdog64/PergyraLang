@@ -339,17 +339,19 @@ func SelfMirDeclarationsFromAnalysis(
             let generic_row: Int =
                 analysis.roles.ability_generic_starts[ability_i] +
                 ability_generic_i;
-            ArrayPush(
+            // The generic name and default columns own their texts: nominal
+            // rows are parsed fresh, so ability rows enter as owned copies.
+            ArrayPushOwnedString(
                 generic_names,
-                analysis.roles.ability_generic_names[generic_row]
+                Concat("", analysis.roles.ability_generic_names[generic_row])
             );
             ArrayPush(
                 generic_constraints,
                 analysis.roles.ability_generic_constraint_type_names[generic_row]
             );
-            ArrayPush(
+            ArrayPushOwnedString(
                 generic_defaults,
-                analysis.roles.ability_generic_default_type_names[generic_row]
+                Concat("", analysis.roles.ability_generic_default_type_names[generic_row])
             );
             ability_generic_i = ability_generic_i + 1;
         }

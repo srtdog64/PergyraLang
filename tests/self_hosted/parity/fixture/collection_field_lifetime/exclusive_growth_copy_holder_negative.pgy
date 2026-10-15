@@ -1,0 +1,38 @@
+// `kept` holds a copy of `analysis.surfaces`. The inout attach grows that
+// field in place, and the caller reads `kept` afterwards.
+struct Graph {
+    texts: Array<String>;
+}
+
+struct Surfaces {
+    graph: Graph;
+}
+
+struct Analysis {
+    surfaces: Surfaces;
+    names: Array<String>;
+}
+
+struct Kept {
+    surfaces: Surfaces;
+}
+
+func Attach(inout analysis: Analysis) -> Int {
+    let surfaces: Surfaces = analysis.surfaces;
+    let texts: Array<String> = surfaces.graph.texts;
+    ArrayPush(texts, "x");
+    ArrayPush(texts, "y");
+    let count: Int = ArrayLength(texts);
+    analysis.surfaces = Surfaces(Graph(texts));
+    return count;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["n"];
+    let texts: Array<String> = ["t"];
+    let analysis: Analysis = Analysis(Surfaces(Graph(texts)), names);
+    let kept: Kept = Kept(analysis.surfaces);
+    let grown: Int = Attach(analysis);
+    Log(ToString(grown + StringLength(kept.surfaces.graph.texts[0]) + ArrayLength(analysis.names)));
+    return 0;
+}

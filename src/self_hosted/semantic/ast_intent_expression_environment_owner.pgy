@@ -7,21 +7,22 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 
 
 func SemanticAstIntentExpressionSeedEnvironment(
-    artifact: AstTreeArtifact,
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref facts: SemanticAstIntentSignatureFacts,
     ref transitions: SemanticAstIntentTransitionFacts,
     intent_node_id: Int,
     expression_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,
-    inout modes: Array<String>
+    inout modes: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Bool {
     return SemanticAstIntentExpressionSeedParameters(
-        facts, intent_node_id, names, types, modes
+        facts, intent_node_id, names, types, modes, enum_values
     ) && SemanticAstIntentExpressionSeedOutcome(
         artifact, signatures, facts, transitions,
         intent_node_id, expression_node_id,
-        names, types, modes
+        names, types, modes, enum_values
     );
 }

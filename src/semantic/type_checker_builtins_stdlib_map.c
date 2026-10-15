@@ -220,12 +220,11 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
                 stdlib_map_arg(expr, 1), ctx);
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
-            if (kind == STDLIB_MAP_BUILTIN_GET)
-            {
+            if (kind == STDLIB_MAP_BUILTIN_GET) {
                 Type *result = stdlib_map_normalize_type(type_constructed_arg(map_type, 1));
-                if (result == TYPE_UNKNOWN || (result->kind == TYPE_KIND_PRIMITIVE &&
-                        result->name != NULL && (strcmp(result->name, "<unknown>") == 0 ||
-                            strcmp(result->name, "Unknown") == 0))) {
+                if (result == NULL || result == TYPE_UNKNOWN ||
+                    (result->name != NULL &&
+                     (strcmp(result->name, "<unknown>") == 0 || strcmp(result->name, "Unknown") == 0))) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                         PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
                         expr, "MapGet requires a concrete value type; Unknown cannot establish result ownership");

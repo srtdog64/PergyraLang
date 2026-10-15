@@ -64,25 +64,6 @@ func SelfMirJsonExpr0LocalRefs(
     return JsonEmitArray(items);
 }
 
-func SelfMirJsonAppendLocalRefFields(
-    rows: SelfMirInstructionLocalRefRows,
-    instruction_index: Int,
-    enabled: Bool,
-    inout fields: Array<String>
-) -> Void {
-    if !enabled { return; }
-    ArrayPush(fields, JsonEmitFieldRaw(
-        "local_ref", SelfMirJsonOptionalString(
-            SelfMirOptionalString(rows.primary_refs[instruction_index])
-        )
-    ));
-    ArrayPush(fields, JsonEmitFieldRaw(
-        "expr0_local_refs", SelfMirJsonExpr0LocalRefs(
-            rows, instruction_index
-        )
-    ));
-}
-
 func SelfMirJsonLocalRefsWriteFile(
     rows: SelfMirInstructionLocalRefRows,
     instruction_index: Int,

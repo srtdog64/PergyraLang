@@ -138,9 +138,10 @@ func SemanticRoleOperatorResolutionForNode(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> SemanticRoleOperatorResolution {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, node_id
     );
@@ -168,11 +169,11 @@ func SemanticRoleOperatorResolutionForNode(
     }
     let left_type: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(left_node), constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, no_enum_values
     );
     let right_type: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(right_node), constructors, names, types,
-        function_names, function_returns
+        function_names, function_returns, no_enum_values
     );
     if left_type == "" || left_type == "Unknown" || right_type == "" ||
         right_type == "Unknown" {

@@ -42,10 +42,14 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
         let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
         let key: String = ToString(formal);
         let consuming: Bool = releasing;
+        // A ref formal is a read-only borrow: both checkers refuse growth,
+        // drops and moves through it, so it retires nothing of the argument.
+        let borrowed: Bool = false;
         if MapHas(formal_rows, key) {
             let row: Int = MapGet(formal_rows, key);
             if row < 0 || row >= ArrayLength(formal_modes) { return effect; }
             consuming = formal_modes[row] == 2;
+            borrowed = formal_modes[row] == 3;
         }
         let opaque: Bool = MapHas(descriptor_effects, key) && MapGet(descriptor_effects, key) ==
             SemanticAstCollectionFormalOpaqueExecutionEffect();
@@ -54,13 +58,15 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
         let unproved: Bool = !MapHas(descriptor_effects, key) || opaque ||
             MapGet(descriptor_effects, key) ==
                 SemanticAstCollectionFormalUnprovedElementUseEffect();
+        // Only a formal the effect analysis read in a body keeps that contract.
+        borrowed = borrowed && MapHas(proved, key) && !opaque;
         effect.storage_escape = effect.storage_escape || opaque;
-        effect.unknown = !consuming && unproved;
-        effect.retiring = consuming || unproved || shallow;
+        effect.unknown = !consuming && unproved && !borrowed;
+        effect.retiring = consuming || ((unproved || shallow) && !borrowed);
         effect.non_deep = effect.retiring && !deep_drop;
         // Shallow copyout invalidates siblings, not the descriptor written
         // back to the exact caller binding. Consumption still invalidates both.
-        effect.descriptor_retiring = consuming || unproved;
+        effect.descriptor_retiring = consuming || (unproved && !borrowed);
     }
     effect.ok = true;
     return effect;

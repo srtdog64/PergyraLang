@@ -26,16 +26,16 @@ func ParserIntentPolicyClauseFromSource(
     context: ParserSourceLocationContext,
     content: String, content_extent: Int, start: Int, current: ParserIntentPolicyClause
 ) -> ParserIntentPolicyClause {
-    if MatchLanguageWord(content, start, LanguageWordId.WordExclusive) ||
-        MatchLanguageWord(content, start, LanguageWordId.WordConcurrent) {
+    if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordExclusive) ||
+        MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordConcurrent) {
         if current.mode_explicit {
             ParseRefuse(context, start, "declaration_clause_duplicate",
                 "clause", "execution mode", "construct", "intent");
         }
         let mode: String = "exclusive";
         let word: LanguageWordId = LanguageWordId.WordExclusive;
-        if MatchLanguageWord(
-            content, start, LanguageWordId.WordConcurrent
+        if MatchLanguageWordWithin(
+            content, content_extent, start, LanguageWordId.WordConcurrent
         ) {
             mode = "concurrent";
             word = LanguageWordId.WordConcurrent;
@@ -47,26 +47,26 @@ func ParserIntentPolicyClauseFromSource(
             current.priority_expression, true, current.rollback_explicit
         );
     }
-    if MatchLanguageWord(content, start, LanguageWordId.WordRollback) {
+    if MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordRollback) {
         if current.rollback_explicit {
             ParseRefuse(context, start, "declaration_clause_duplicate",
                 "clause", "rollback policy", "construct", "intent");
         }
         let value_start: Int = ParseExpectIn(context, content,
             LanguageWordEnd(start, LanguageWordId.WordRollback), ":", "intent_rollback");
-        value_start = SkipWhitespaceAndComments(content, value_start);
+        value_start = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, value_start);
         // Only the existing full-rollback execution owner is substituted.
         // Native's other policies are refused as uncovered, never accepted
         // and erased to this default.
-        if MatchLanguageWord(content, value_start, LanguageWordId.WordCurrent) {
+        if MatchLanguageWordWithin(content, content_extent, value_start, LanguageWordId.WordCurrent) {
             ParseRefuse(context, value_start, "surface_not_covered",
                 "surface", "intent rollback current", "construct", "intent");
         }
-        if MatchLanguageWord(content, value_start, LanguageWordId.WordNone) {
+        if MatchLanguageWordWithin(content, content_extent, value_start, LanguageWordId.WordNone) {
             ParseRefuse(context, value_start, "surface_not_covered",
                 "surface", "intent rollback none", "construct", "intent");
         }
-        if !MatchLanguageWord(content, value_start, LanguageWordId.WordFull) {
+        if !MatchLanguageWordWithin(content, content_extent, value_start, LanguageWordId.WordFull) {
             ParseRefuse(context, value_start, "expected_token",
                 "expected", "full, current or none", "construct", "intent_rollback");
         }
@@ -76,7 +76,7 @@ func ParserIntentPolicyClauseFromSource(
             true, next, current.mode, current.priority_text,
             current.priority_expression, current.mode_explicit, true);
     }
-    if !MatchLanguageWord(content, start, LanguageWordId.WordPriority) {
+    if !MatchLanguageWordWithin(content, content_extent, start, LanguageWordId.WordPriority) {
         return ParserIntentPolicyClause(
             false, start, current.mode, current.priority_text,
             current.priority_expression, current.mode_explicit, current.rollback_explicit
@@ -101,7 +101,7 @@ func ParserIntentPolicyClauseFromSource(
 
 func ParserIntentPolicyTreeAppend(
     out: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     policy: ParserIntentPolicyClause
 ) -> String {
     let result: String = AppendLine(

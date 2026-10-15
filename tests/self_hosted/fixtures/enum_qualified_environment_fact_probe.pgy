@@ -10,7 +10,8 @@ func EnumQualifiedProjectionRejected(
         facts.ok, facts.artifact_node_count, facts.node_ids, facts.enum_names,
         facts.variant_enum_names, facts.variant_names, qualified_names,
         facts.variant_param_starts, facts.variant_param_counts,
-        facts.variant_param_type_names
+        facts.variant_param_type_names, facts.value_names, facts.value_types,
+        facts.value_rows, facts.value_scope
     );
     let names: Array<String> = ["Keep"];
     let types: Array<String> = ["Int"];

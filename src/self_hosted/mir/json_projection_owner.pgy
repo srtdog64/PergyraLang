@@ -160,10 +160,27 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
         ArrayPush(fields, JsonEmitFieldRaw("binding_source_syntax_id",
             ToString(rows.binding_source_syntax_ids[instruction_index])));
     }
-    SelfMirJsonAppendLocalRefFields(
-        facts.cfg.local_refs, instruction_index, emit_local_refs, fields
-    );
-    SelfMirJsonAppendRuntimeCallAbiFields(rows, instruction_index, fields);
+    if emit_local_refs {
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "local_ref", SelfMirJsonOptionalString(
+                SelfMirOptionalString(facts.cfg.local_refs.primary_refs[instruction_index])
+            )
+        ));
+        ArrayPush(fields, JsonEmitFieldRaw(
+            "expr0_local_refs", SelfMirJsonExpr0LocalRefs(
+                facts.cfg.local_refs, instruction_index
+            )
+        ));
+    }
+    let runtime_call_abi: String = SelfMirJsonRuntimeCallAbiField(rows, instruction_index);
+    if runtime_call_abi != "" {
+        if rows.runtime_call_abi.present[instruction_index] == 1 {
+            ArrayPush(fields, JsonEmitFieldBool("runtime_call_abi_required", true));
+        }
+        ArrayPush(fields, runtime_call_abi);
+    }
+    let runtime_call_abi_aux: String = SelfMirJsonRuntimeCallAbiAuxField(rows, instruction_index);
+    if runtime_call_abi_aux != "" { ArrayPush(fields, runtime_call_abi_aux); }
     return JsonEmitObject(fields);
 }
 

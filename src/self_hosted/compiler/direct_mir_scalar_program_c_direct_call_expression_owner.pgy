@@ -68,18 +68,21 @@ func DirectMirScalarProgramCDirectCallExpression(
     arguments: Array<String>, callable_ordinal: Int
 ) -> Option<String> {
     if kind != DirectMirScalarProgramExprDirectCall() { return None; }
-    let values: Array<String> = arguments;
-    if ArrayLength(values) == 0 {
-        if left != "" { ArrayPush(values, left); }
-        if right != "" { ArrayPush(values, right); }
-    }
     if callable_ordinal < 0 { return None; }
     let output: String = Concat("pgy_scalar_routine_",
         Concat(ToString(callable_ordinal), "("));
+    // A call without argument rows takes its operands from `left` and
+    // `right`; the borrowed rows are never grown here.
+    if ArrayLength(arguments) == 0 {
+        let separator: String = "";
+        if left != "" { output = Concat(output, left); separator = ", "; }
+        if right != "" { output = Concat(output, Concat(separator, right)); }
+        return Some(Concat(output, ")"));
+    }
     let ordinal: Int = 0;
-    while ordinal < ArrayLength(values) {
+    while ordinal < ArrayLength(arguments) {
         if ordinal > 0 { output = Concat(output, ", "); }
-        output = Concat(output, values[ordinal]);
+        output = Concat(output, arguments[ordinal]);
         ordinal = ordinal + 1;
     }
     return Some(Concat(output, ")"));

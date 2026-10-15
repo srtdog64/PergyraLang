@@ -1,0 +1,32 @@
+// A jump before the append cannot skip the rebinding after it: every pass
+// that reaches the append rebinds the rows before the next one reads them.
+struct Rows {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func RowsAdd(rows: Rows, name: String) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, name);
+    return Rows(rows.ok, names);
+}
+
+func RowsFill(seed: Array<String>, limit: Int) -> Rows {
+    let rows: Rows = Rows(true, seed);
+    let index: Int = 0;
+    while index < limit {
+        if index == 7 { break; }
+        let added: Rows = RowsAdd(rows, "x");
+        if !added.ok { return added; }
+        rows = added;
+        index = index + 1;
+    }
+    return rows;
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    let rows: Rows = RowsFill(seed, 3);
+    Log(ToString(ArrayLength(rows.names)));
+    return 0;
+}

@@ -6,6 +6,7 @@ import "callable_resolution_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 import "../parser/expr_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "env_value_owner.pgy";
 
 struct SemanticExpressionGraphIdentifierFact {
     ok: Bool;
@@ -34,11 +35,11 @@ func SemanticExpressionGraphIdentifierEvidence(
     ref callable_names: Array<String>,
     member_root_names: Array<String>
 ) -> SemanticExpressionGraphIdentifierFact {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let symbolic_identifier_nodes: Array<Int> = [];
     return SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
         graph, root_id, names, callable_names, member_root_names,
-        symbolic_identifier_nodes
-    );
+        symbolic_identifier_nodes, no_enum_values);
 }
 
 func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
@@ -47,7 +48,7 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
     names: Array<String>,
     ref callable_names: Array<String>,
     member_root_names: Array<String>,
-    symbolic_identifier_nodes: Array<Int>
+    symbolic_identifier_nodes: Array<Int>, ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphIdentifierFact {
     let pending: Array<Int> = [root_id];
     while ArrayLength(pending) > 0 {
@@ -78,7 +79,7 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
             }
             if symbolic { continue; }
             if text != "true" && text != "false" && text != "None" &&
-                IsIdentifier(text) && !EnvContainsName(names, text) &&
+                IsIdentifier(text) && !EnvValueContainsName(names, enum_values, text) &&
                 !IsSome(SemanticCallableIndex(callable_names, text)) {
                 return SemanticExpressionGraphIdentifierUndefined(text);
             }
@@ -106,7 +107,7 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
                 }
                 let receiver_name: String = UnwrapOption(receiver_text);
                 if IsIdentifier(receiver_name) &&
-                    !EnvContainsName(names, receiver_name) &&
+                    !EnvValueContainsName(names, enum_values, receiver_name) &&
                     !EnvContainsName(member_root_names, receiver_name) {
                     return SemanticExpressionGraphIdentifierUndefined(
                         receiver_name

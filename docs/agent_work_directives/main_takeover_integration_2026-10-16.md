@@ -70,3 +70,12 @@ review/proof outputs remain separate evidence, not a second semantic authority.
 - WSL was restarted before takeover: the handed-off remaining-target process
   is no longer running. Its log, not a running-job assumption, owns the result.
 - Publication and CI-green claims remain OPEN.
+- Shared WIP checkpoint: `78cc0ba23`. Merge resolution keeps the lane's coherent
+  copy-edge/last-use API and final focus schema instead of the incompatible
+  earlier typed-edge API; the earlier source remains recoverable in this
+  checkpoint. The inherited native publication and typed Map query checks,
+  indexed import membership, and both independent inout fixture sets are kept.
+  The remaining non-overlapping WIP is included and must be validated too.
+- A Windows mapped-file replacement refusal occurred while resolving one
+  owner. Mechanical resolution now uses atomic replacement with previous
+  conflict contents retained under `.tmp/p0-merge-recovery-20261016/`.

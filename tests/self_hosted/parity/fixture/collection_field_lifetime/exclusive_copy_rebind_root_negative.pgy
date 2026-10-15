@@ -1,0 +1,33 @@
+// `facts` holds `graph` inside its `graph` field, and each append grows
+// that field's nodes. Rebinding `facts` keeps the copy relation, so
+// `graph`, read afterwards, names the retired buffer.
+struct Graph {
+    nodes: Array<String>;
+}
+
+struct Facts {
+    graph: Graph;
+    rows: Array<String>;
+}
+
+func FactsMake(graph: Graph) -> Facts {
+    let rows: Array<String> = [];
+    return Facts(graph, rows);
+}
+
+func FactsAppendNode(facts: Facts, node: String) -> Facts {
+    let held: Graph = facts.graph;
+    let nodes: Array<String> = held.nodes;
+    ArrayPush(nodes, node);
+    return Facts(Graph(nodes), facts.rows);
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(["a"]);
+    let facts: Facts = FactsMake(graph);
+    facts = FactsAppendNode(facts, "x");
+    facts = FactsAppendNode(facts, "y");
+    Log(graph.nodes[0]);
+    Log(facts.graph.nodes[1]);
+    return 0;
+}

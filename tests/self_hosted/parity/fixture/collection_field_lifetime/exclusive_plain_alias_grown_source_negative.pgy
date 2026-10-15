@@ -1,0 +1,23 @@
+// The grow takes the original while its plain alias still names the same rows
+// and is read afterwards.
+struct Facts {
+    rows: Array<String>;
+    marks: Array<String>;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "x");
+    ArrayPush(rows, "y");
+    return Facts(rows, facts.marks);
+}
+
+func Main() -> Int {
+    let rows: Array<String> = ["r"];
+    let marks: Array<String> = ["m"];
+    let facts: Facts = Facts(rows, marks);
+    let alias: Facts = facts;
+    let grown: Facts = Grow(facts);
+    Log(ToString(StringLength(alias.rows[0]) + ArrayLength(grown.rows)));
+    return 0;
+}

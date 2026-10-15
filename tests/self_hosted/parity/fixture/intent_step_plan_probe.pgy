@@ -63,9 +63,7 @@ func Main() -> Void with caps env, io_read {
         MirIntentRoutineCarrierProjectionFromRoutine(routines, index, routine, routines.names[routine]);
     if !carriers.valid { Die(carriers.diagnostic_message); }
     let bindings: MirIntentBindingProjection = MirIntentBindingProjectionFromCarriers(
-        carriers.carrier_names, carriers.carrier_arg0s, carriers.carrier_arg1s,
-        carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
-        routines.names[routine], purpose);
+        carriers, routines.names[routine], purpose);
     let phases: MirIntentPhaseProjection = MirIntentPhaseProjectionFromCarriers(
         routines, routine, false, bindings.step_names, carriers.carrier_names,
         carriers.carrier_arg0s, carriers.carrier_arg1s, carriers.carrier_slots,

@@ -81,8 +81,8 @@ func SemanticAstIterationCollectionIsBoundIdentifier(
 }
 
 func SemanticAstIterationSeedVisibleRows(
-    artifact: AstTreeArtifact,
-    statements: SemanticAstStatementFacts,
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
     iteration_node_ids: Array<Int>,
     binding_type_names: Array<String>,
     iteration_verified: Array<Int>,
@@ -207,10 +207,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
         ) || !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,
             statements.function_node_ids[i], statements.node_ids[i],
-            names, types
-        ) || !SemanticAstExpressionSeedVisibleLocalModes(
-            artifact, locals, statements.function_node_ids[i],
-            statements.node_ids[i], modes
+            names, types, modes
         ) || !SemanticAstIterationSeedVisibleRows(
             artifact, statements, node_ids, binding_types, verified,
             statements.function_node_ids[i], statements.node_ids[i],
@@ -245,7 +242,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
                 UnwrapOption(first_root), constructors, enum_facts,
                 signatures,
                 names, types, modes,
-                function_tables.names, function_tables.returns,
+                function_tables.callables, function_tables.returns,
                 function_tables.params,
                 member_root_names, statements.function_node_ids[i]
             );
@@ -270,7 +267,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
                 UnwrapOption(last_root), constructors, enum_facts,
                 signatures,
                     names, types, modes,
-                    function_tables.names, function_tables.returns,
+                    function_tables.callables, function_tables.returns,
                     function_tables.params,
                     member_root_names, statements.function_node_ids[i]
                 );
@@ -424,8 +421,8 @@ func SemanticAstIterationTypeCount(
 }
 
 func SemanticAstIterationSeedVisibleBindings(
-    artifact: AstTreeArtifact,
-    statements: SemanticAstStatementFacts,
+    ref artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
     facts: SemanticAstIterationTypeFacts,
     function_node_id: Int,
     use_node_id: Int,

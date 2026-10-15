@@ -22,10 +22,11 @@ func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout mo
     }
 }
 func CheckBody(content: String, content_extent: Int, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>, ref func_params: Array<String>, internal_caller_ready: Bool) -> String {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let i: Int = start;
     let cursor: Array<Int> = [0];
     while i < end {
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if i >= end {
             break;
         }
@@ -35,7 +36,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
             let name: String = SemanticReadIdent(content, i, cursor);
             i = cursor[0];
             let declared_type: String = "Unknown";
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             if CharAt(content, i) == ":" {
                 declared_type = ReadTypeName(content, i + 1, cursor);
                 i = cursor[0];
@@ -176,7 +177,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
                 }
                 i = block_close + 1;
                 if SemanticMatchKeyword(content, i, "else") {
-                    let else_start: Int = SkipWhitespaceAndComments(content, i) + 4;
+                    let else_start: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i) + 4;
                     if SemanticMatchKeyword(content, else_start, "if") {
                         i = else_start;
                         continue;
@@ -234,7 +235,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
             continue;
         }
         let asn_name: String = SemanticReadIdent(content, i, cursor);
-        let asn_after: Int = SkipWhitespaceAndComments(content, cursor[0]);
+        let asn_after: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor[0]);
         if StringLength(asn_name) > 0 && CharAt(content, asn_after) == "=" && CharAt(content, asn_after + 1) != "=" {
             if !EnvContainsName(names, asn_name) {
                 return SemanticError1("undefined_symbol", "name", asn_name);
@@ -297,7 +298,7 @@ func CheckBody(content: String, content_extent: Int, start: Int, end: Int, retur
                             names.Slice(0, ArrayLength(names)),
                             types.Slice(0, ArrayLength(types)),
                             modes.Slice(0, ArrayLength(modes)),
-                            internal_caller_ready
+                            internal_caller_ready, no_enum_values
                         );
                         if mutation_error != "" { return mutation_error; }
                     }
@@ -331,7 +332,7 @@ func CheckFunction(source_path: String, content: String, content_extent: Int, fu
     }
     i = UnwrapOption(open_match);
     while true {
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if CharAt(content, i) == ")" {
             i = i + 1;
             break;
@@ -356,7 +357,7 @@ func CheckFunction(source_path: String, content: String, content_extent: Int, fu
         ArrayPush(names, param_name);
         ArrayPush(types, param_type);
         ArrayPush(modes, param_mode);
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         if CharAt(content, i) == "," {
             i = i + 1;
             continue;
@@ -367,21 +368,21 @@ func CheckFunction(source_path: String, content: String, content_extent: Int, fu
         }
     }
     let return_type: String = "Void";
-    i = SkipWhitespaceAndComments(content, i);
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if CharAt(content, i) == "-" && CharAt(content, i + 1) == ">" {
         return_type = ReadTypeName(content, i + 2, cursor);
         i = cursor[0];
     }
-    i = SkipWhitespaceAndComments(content, i);
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     if SemanticMatchKeyword(content, i, "with") {
-        let caps_probe: Int = SkipWhitespaceAndComments(content, i + 4);
+        let caps_probe: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i + 4);
         if SemanticMatchKeyword(content, caps_probe, "caps") {
             i = caps_probe + 4;
             while true {
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                 let cap_name: String = SemanticReadIdent(content, i, cursor);
                 i = cursor[0];
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
                 if CharAt(content, i) == "," {
                     i = i + 1;
                     continue;

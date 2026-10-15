@@ -94,6 +94,8 @@ func SemanticAstCollectionFocusRecoveryUsesReady(
 // A genuine no-focus artifact has a current, valid empty carrier. A candidate
 // without a complete use/exit certificate remains invalid, never an empty grant.
 
+
+
 func SemanticAstCollectionApplyMemberMoveRestorations(
     ref locals: SemanticAstLocalBindingFacts, ref moved_use: SemanticAstCollectionMemberMoveUse,
     inout dispositions: Array<Int>

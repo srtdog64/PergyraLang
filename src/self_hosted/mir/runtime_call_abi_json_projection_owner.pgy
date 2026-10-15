@@ -134,28 +134,6 @@ func SelfMirJsonRuntimeCallAbiAuxField(
     );
 }
 
-func SelfMirJsonAppendRuntimeCallAbiFields(
-    rows: SelfMirInstructionRows,
-    instruction_index: Int,
-    inout fields: Array<String>
-) -> Void {
-    let primary: String = SelfMirJsonRuntimeCallAbiField(
-        rows, instruction_index
-    );
-    if primary != "" {
-        if rows.runtime_call_abi.present[instruction_index] == 1 {
-            ArrayPush(fields, JsonEmitFieldBool(
-                "runtime_call_abi_required", true
-            ));
-        }
-        ArrayPush(fields, primary);
-    }
-    let auxiliary: String = SelfMirJsonRuntimeCallAbiAuxField(
-        rows, instruction_index
-    );
-    if auxiliary != "" { ArrayPush(fields, auxiliary); }
-}
-
 func SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
     rows: SelfMirInstructionRows,
     instruction_index: Int,

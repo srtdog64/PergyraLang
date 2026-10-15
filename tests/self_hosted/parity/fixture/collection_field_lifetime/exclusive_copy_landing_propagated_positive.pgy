@@ -1,0 +1,28 @@
+// `view` holds a copy of `rows`; the constructor puts `view` in
+// `facts.rows`, so `facts` holds `rows` only there. Growing the marks taken
+// out of `facts` touches nothing `rows` still names.
+struct Rows {
+    items: Array<String>;
+}
+
+struct Facts {
+    rows: Rows;
+    marks: Array<String>;
+}
+
+func Build() -> Int {
+    let rows: Rows = Rows(["r"]);
+    let view: Rows = rows;
+    let marks: Array<String> = [];
+    let facts: Facts = Facts(view, marks);
+    let grown: Array<String> = facts.marks;
+    ArrayPush(grown, "m");
+    ArrayPush(grown, "n");
+    facts.marks = grown;
+    return StringLength(rows.items[0]) + ArrayLength(facts.marks);
+}
+
+func Main() -> Int {
+    Log(ToString(Build()));
+    return 0;
+}

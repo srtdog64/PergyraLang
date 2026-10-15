@@ -9,25 +9,25 @@ import "source_refusal_owner.pgy";
 func ParseEventDecl(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
     location_context: ParserSourceLocationContext) -> String {
     let i: Int = LanguageWordEnd(start, LanguageWordId.WordEvent);
-    i = SkipWhitespaceAndComments(content, i);
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     ArraySet(cursor_out, 0, i);
-    let ev_name: String = ReadIdent(content, i, cursor_out);
+    let ev_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(ev_name) == 0 {
         ParseRefuse(location_context, i, "declaration_name_missing", "construct", "event", "", "");
     }
-    i = SkipWhitespaceAndComments(content, i);
-    if ParserCharAt(content, i) == ":" {
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+    if ParserCharAtWithin(content, content_extent, i) == ":" {
         i = i + 1;
     }
     i = ParseExpectIn(location_context, content, i, "(", "event");
     let ev_params: Array<String> = [];
-    i = SkipWhitespaceAndComments(content, i);
-    if ParserCharAt(content, i) != ")" {
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+    if ParserCharAtWithin(content, content_extent, i) != ")" {
         while true {
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             ArraySet(cursor_out, 0, i);
-            let p_name: String = ReadIdent(content, i, cursor_out);
+            let p_name: String = ReadIdentWithin(content, content_extent, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_name) == 0 {
                 ParseRefuse(location_context, i, "declaration_name_missing", "construct", "event_parameter", "", "");
@@ -40,8 +40,8 @@ func ParseEventDecl(content: String, content_extent: Int, start: Int, inout curs
                 ParseRefuse(location_context, i, "type_name_invalid", "construct", "event_parameter", "", "");
             }
             ArrayPush(ev_params, Concat("      Let: ", Concat(p_name, Concat(" : ", Concat(p_type, " = (null)")))));
-            i = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, i) == "," {
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+            if ParserCharAtWithin(content, content_extent, i) == "," {
                 i = i + 1;
                 continue;
             }

@@ -8,7 +8,7 @@ func ParseMatchStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
@@ -39,10 +39,9 @@ func ParseMatchStmt(
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "statement");
     let out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", scrut));
-    let n_m: Int = content_extent;
     while true {
         i = SkipWhitespaceAndComments(content, i);
-        if i >= n_m {
+        if i >= content_extent {
             ParseRefuse(location_context, open_at, "block_unclosed", "construct", "statement", "", "");
         }
         if ParserCharAt(content, i) == "}" {
@@ -56,7 +55,7 @@ func ParseMatchStmt(
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             let case_pattern: ParserExpressionFact = ParseExprFact(
-                content, n_m, i, cursor_out
+                content, content_extent, i, cursor_out
             );
             if !case_pattern.ok { ParseExpressionRefuse(location_context, case_pattern, i, "statement"); }
             // Native refuses a String subject in semantic; its literal
@@ -82,7 +81,7 @@ func ParseMatchStmt(
                 pattern_at = i;
                 ArraySet(cursor_out, 0, i);
                 let alternative: ParserExpressionFact = ParseExprFact(
-                    content, n_m, i, cursor_out
+                    content, content_extent, i, cursor_out
                 );
                 if !alternative.ok { ParseExpressionRefuse(location_context, alternative, i, "statement"); }
                 if StartsWith(alternative.text, "\"") {
@@ -125,7 +124,7 @@ func ParseMatchStmt(
         out = AppendLine(out, Concat(IndentStr(stmt_indent + 4), "Block:"));
         while true {
             i = SkipWhitespaceAndComments(content, i);
-            if i >= n_m {
+            if i >= content_extent {
                 ParseRefuse(location_context, open_at, "block_unclosed", "construct", "statement", "", "");
             }
             if ParserCharAt(content, i) == "}" || MatchLanguageWord(content, i, LanguageWordId.WordCase) || MatchLanguageWord(content, i, LanguageWordId.WordDefault) {
@@ -133,7 +132,7 @@ func ParseMatchStmt(
             }
             ArraySet(cursor_out, 0, i);
             let case_body: String = ParseOneStmtObserved(
-                content, n_m, i, cursor_out, stmt_indent + 6, expression_graphs,
+                content, content_extent, i, cursor_out, stmt_indent + 6, expression_graphs,
                 location_context, source_locations
             );
             i = cursor_out[0];

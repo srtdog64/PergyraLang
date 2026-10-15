@@ -27,35 +27,39 @@ func MirExpressionGraphSequenceError(sequence: MirExpressionGraphSequence
     failed.ok = false;
     return failed;
 }
-func MirExpressionGraphSequenceFromExtendedRows(sequence: MirExpressionGraphSequence,
+// The sequence that extends a ready sequence of `prefix` nodes to the given
+// rows. The prefix's topology texts, return types and identities are taken as
+// the rows to extend, so a caller hands over those columns, not the sequence
+// the other columns were copied from. The topology and the node texts never
+// share one buffer: an attach grows each of them.
+func MirExpressionGraphSequenceFromExtendedRows(ready: Bool, prefix: Int,
     roots: Array<Int>, kinds: Array<Int>, texts: Array<String>,
     lefts: Array<Int>, rights: Array<Int>, target_kinds: Array<Int>, target_names: Array<String>,
-    places: Array<Int>
+    places: Array<Int>, prefix_topology_texts: Array<String>, prefix_return_types: Array<String>,
+    identities: SemanticExpressionIdentityRows
 ) -> MirExpressionGraphSequence {
-    let prefix: Int = sequence.ready_node_count;
     let count: Int = ArrayLength(kinds);
-    if !sequence.ok || prefix < 0 || prefix > count ||
+    if !ready || prefix < 0 || prefix > count ||
         ArrayLength(texts) != count || ArrayLength(lefts) != count ||
         ArrayLength(rights) != count || ArrayLength(target_kinds) != count ||
         ArrayLength(target_names) != count || ArrayLength(places) != count ||
-        ArrayLength(sequence.arena.call_return_type_names) != prefix ||
-        ArrayLength(sequence.arena.identities.call_target_syntax_ids) != prefix ||
-        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) != prefix || ArrayLength(sequence.arena.identities.binding_syntax_ids) != prefix ||
-        ArrayLength(sequence.arena.identities.binding_kinds) != prefix ||
-        ArrayLength(sequence.arena.identities.binding_ordinals) != prefix {
-        return MirExpressionGraphSequenceError(sequence);
+        ArrayLength(prefix_topology_texts) != prefix || ArrayLength(prefix_return_types) != prefix ||
+        ArrayLength(identities.call_target_syntax_ids) != prefix ||
+        ArrayLength(identities.runtime_call_abi_ids) != prefix || ArrayLength(identities.binding_syntax_ids) != prefix ||
+        ArrayLength(identities.binding_kinds) != prefix ||
+        ArrayLength(identities.binding_ordinals) != prefix {
+        return MirExpressionGraphSequenceError(MirExpressionGraphSequenceEmpty());
     }
-    let return_types: Array<String> = sequence.arena.call_return_type_names;
-    let syntax_ids: Array<Int> =
-        sequence.arena.identities.call_target_syntax_ids;
-    let runtime_ids: Array<Int> =
-        sequence.arena.identities.runtime_call_abi_ids;
-    let binding_ids: Array<Int> = sequence.arena.identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> = sequence.arena.identities.binding_kinds;
-    let binding_ordinals: Array<Int> =
-        sequence.arena.identities.binding_ordinals;
+    let topology_texts: Array<String> = prefix_topology_texts;
+    let return_types: Array<String> = prefix_return_types;
+    let syntax_ids: Array<Int> = identities.call_target_syntax_ids;
+    let runtime_ids: Array<Int> = identities.runtime_call_abi_ids;
+    let binding_ids: Array<Int> = identities.binding_syntax_ids;
+    let binding_kinds: Array<Int> = identities.binding_kinds;
+    let binding_ordinals: Array<Int> = identities.binding_ordinals;
     let i: Int = prefix;
     while i < count {
+        ArrayPush(topology_texts, Concat("", texts[i]));
         ArrayPush(return_types, ""); ArrayPush(syntax_ids, 0);
         ArrayPush(runtime_ids, 0); ArrayPush(binding_ids, 0);
         ArrayPush(binding_kinds, SemanticExpressionBindingNone());
@@ -63,7 +67,7 @@ func MirExpressionGraphSequenceFromExtendedRows(sequence: MirExpressionGraphSequ
     }
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
-            AstExpressionArena(kinds, texts, lefts, rights), texts,
+            AstExpressionArena(kinds, topology_texts, lefts, rights), texts,
             target_kinds, target_names, return_types,
             SemanticExpressionIdentityRows(
                 syntax_ids, runtime_ids, binding_ids, binding_kinds,
@@ -120,6 +124,7 @@ func MirExpressionGraphSequenceAppend(
     }
     let local_root: Int = header.root;
     let kinds: Array<Int> = sequence.arena.topology.node_kinds;
+    let topology_texts: Array<String> = sequence.arena.topology.node_texts;
     let texts: Array<String> = sequence.arena.node_texts;
     let left_children: Array<Int> = sequence.arena.topology.left_children;
     let right_children: Array<Int> = sequence.arena.topology.right_children;
@@ -139,7 +144,7 @@ func MirExpressionGraphSequenceAppend(
         sequence.arena.identities.binding_ordinals;
     let place_kinds: Array<Int> = sequence.arena.place_kinds;
     let offset: Int = ArrayLength(kinds);
-    if sequence.ready_node_count != offset ||
+    if sequence.ready_node_count != offset || ArrayLength(topology_texts) != offset ||
         ArrayLength(texts) != offset || ArrayLength(left_children) != offset ||
         ArrayLength(right_children) != offset ||
         ArrayLength(call_target_kinds) != offset ||
@@ -263,6 +268,7 @@ func MirExpressionGraphSequenceAppend(
             return MirExpressionGraphSequenceError(sequence);
         }
         ArrayPush(kinds, kind);
+        ArrayPush(topology_texts, Concat("", node_text));
         ArrayPush(texts, node_text);
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
@@ -290,7 +296,7 @@ func MirExpressionGraphSequenceAppend(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             AstExpressionArena(
-                kinds, texts, left_children, right_children
+                kinds, topology_texts, left_children, right_children
             ),
             texts, call_target_kinds, call_target_names,
             call_return_type_names,

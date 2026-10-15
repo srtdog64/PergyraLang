@@ -157,7 +157,6 @@ subject DriverSourceMirExecution {
             SelfMirProgramJsonWriteArtifactVerified(
                 projection.facts, output_path
             );
-        DriverRung2MirProjectionRelease(projection);
         match committed {
             case SelfMirArtifactCommitted(receipt):
                 DriverRung2PressureStage(observe_pressure, "json-write:done");

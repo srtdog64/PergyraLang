@@ -30,7 +30,7 @@ func SemanticAstExpressionGraphTypeFailClosedContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             "ghost", graph, 0, analysis.constructors,
             analysis.enums, analysis.signatures, empty, empty, empty,
-            analysis.function_tables.names,
+            analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params,
             empty, analysis.signatures.function_node_ids[0]
@@ -44,6 +44,7 @@ func SemanticAstExpressionGraphTypeFailClosedContractReady() -> Bool {
 }
 
 func SemanticAstExpressionGraphNominalCallComparisonContractReady() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let artifact: AstTreeArtifact = SemanticAstTreeArtifactFromText(
         "Program:\n  Enum: Stage { Begin, Cleanup }\n  Struct: Failure\n    Fields:\n      stage: Stage\n      status: Int\n  Function: StageFor\n    Parameters:\n      status: Int\n    Returns: Stage\n    Body:\n      Block:\n        Return: Begin\n"
     );
@@ -70,10 +71,10 @@ func SemanticAstExpressionGraphNominalCallComparisonContractReady() -> Bool {
         SemanticExpressionGraphConcreteScalarValueOwned(
             graph, fact.root, constructors, signatures,
             ["failure"], ["Failure"], function_names,
-            function_returns, function_params
+            function_returns, function_params, no_enum_values
         ) && SemanticExpressionGraphScalarTypeName(
             graph, fact.root, constructors, ["failure"], ["Failure"],
-            function_names, function_returns
+            function_names, function_returns, no_enum_values
         ) == "Bool";
 }
 
@@ -143,7 +144,7 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             valid_text, valid_graph, valid_fact.root,
             analysis.constructors, analysis.enums, analysis.signatures,
-            names, types, modes, analysis.function_tables.names,
+            names, types, modes, analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params, member_roots,
             analysis.signatures.function_node_ids[0]
@@ -152,7 +153,7 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             inverse_text, inverse_graph, inverse_fact.root,
             analysis.constructors, analysis.enums, analysis.signatures,
-            names, types, modes, analysis.function_tables.names,
+            names, types, modes, analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params, member_roots,
             analysis.signatures.function_node_ids[0]
@@ -161,7 +162,7 @@ func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
         SemanticAstExpressionVerdictFromGraph(
             invalid_text, invalid_graph, invalid_fact.root,
             analysis.constructors, analysis.enums, analysis.signatures,
-            names, types, modes, analysis.function_tables.names,
+            names, types, modes, analysis.function_tables.callables,
             analysis.function_tables.returns,
             analysis.function_tables.params, member_roots,
             analysis.signatures.function_node_ids[0]

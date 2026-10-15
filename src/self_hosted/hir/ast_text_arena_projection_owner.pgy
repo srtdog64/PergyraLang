@@ -347,7 +347,8 @@ func AstTreeArtifactIdentityDigest(
             ArrayLength(expression_graphs.roots) ||
         ArrayLength(expression_graphs.root_lanes) !=
             ArrayLength(expression_graphs.roots) ||
-        !ProgramExpressionGraphStorageRowsAligned(expression_graphs.arena) {
+        !ProgramExpressionGraphStorageRowsAligned(expression_graphs.arena) ||
+        !AstExpressionGraphRowsReady(expression_graphs) {
         return 0;
     }
     let hash: Long = AstTreeArtifactIdentityHashInt(
@@ -428,10 +429,13 @@ func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
     );
 }
 
+// The identity digest is nonzero only for expression graph rows that were
+// ready when it was taken, and every artifact producer takes it from the rows
+// it stores (or keeps the digest of unchanged rows), so a nonzero digest
+// stands for the rows check instead of walking every graph again.
 func AstTreeArtifactReady(artifact: AstTreeArtifact) -> Bool {
     return TypedAstArenaParallelRowsReady(artifact.arena) &&
         TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
-        AstExpressionGraphRowsReady(artifact.expression_graphs) &&
         AstSourceModuleFactsReady(artifact.arena, artifact.source_modules) &&
         artifact.identity_digest > 0;
 }

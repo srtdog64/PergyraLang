@@ -1,0 +1,38 @@
+// The join takes a fresh call and the left rows. `left` takes the call only
+// after the join, and each pass declares the call again, so at the join the
+// left rows share nothing with the call.
+struct Rows {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func RowsFresh() -> Rows {
+    let names: Array<String> = ["c"];
+    return Rows(true, names);
+}
+
+func RowsJoin(rows: Rows, other: Rows) -> Rows {
+    let names: Array<String> = rows.names;
+    ArrayPush(names, ToString(ArrayLength(other.names)));
+    return Rows(rows.ok && other.ok, names);
+}
+
+func RowsPipe(seed: Array<String>, count: Int) -> Rows {
+    let left: Rows = Rows(true, seed);
+    let index: Int = 0;
+    while index < count {
+        let call: Rows = RowsFresh();
+        call = RowsJoin(call, left);
+        if !call.ok { return call; }
+        left = call;
+        index = index + 1;
+    }
+    return left;
+}
+
+func Main() -> Int {
+    let seed: Array<String> = ["s"];
+    let rows: Rows = RowsPipe(seed, 3);
+    Log(ToString(ArrayLength(rows.names)));
+    return 0;
+}

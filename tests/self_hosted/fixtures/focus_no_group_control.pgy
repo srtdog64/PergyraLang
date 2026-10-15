@@ -1,0 +1,2 @@
+// Admission-only regression control; do not emit or run a target here.
+func Main() -> Void { Log(7); }

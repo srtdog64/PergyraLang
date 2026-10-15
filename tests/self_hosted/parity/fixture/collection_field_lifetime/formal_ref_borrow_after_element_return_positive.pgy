@@ -1,0 +1,24 @@
+// `FirstName` borrows its ref formal and returns one element of it. A ref
+// formal can neither grow, drop nor move the array, so the caller's own ref
+// formal still reads its elements afterwards.
+func FirstName(ref names: Array<String>) -> String {
+    return names[0];
+}
+
+func Describe(ref names: Array<String>, flag: Bool) -> Int {
+    if flag {
+        let first: String = FirstName(names);
+        return StringLength(first);
+    }
+    return Count(names);
+}
+
+func Count(ref names: Array<String>) -> Int {
+    return ArrayLength(names) + StringLength(names[0]);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a", "b"];
+    Log(ToString(Describe(names, true) + Describe(names, false)));
+    return 0;
+}

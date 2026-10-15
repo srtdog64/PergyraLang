@@ -62,14 +62,19 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
             logical_record, indexed_assignments, signature.parameters
         );
     if !local_refs.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
+    let local_names: Array<String> = local_refs.local_names;
+    let value_names: Array<String> = local_refs.value_names;
+    let value_local_rows: Array<Int> = local_refs.value_local_rows;
+    let value_definition_blocks: Array<Int> = local_refs.value_definition_blocks;
     let type_plan: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanFromOwners(
             input.index, local_refs, foreach_elements, logical_record,
             signature.parameters
         );
     if !type_plan.valid { Die("direct MIR scalar CFG value type plan is invalid"); }
+    let local_types: Array<String> = type_plan.local_types;
     if !DirectMirScalarCfgLocalInventoryReady(
-        input.index, local_refs.local_names, type_plan.local_types,
+        input.index, local_names, local_types,
         foreach_sources, string_array_source, array_int_source,
         collection_source, logical_record, signature.parameters
     ) { Die(Concat(
@@ -90,7 +95,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     }
     let foreach_iterations: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactsAtLocalRows(
-            foreach_sources, local_refs.local_names,
+            foreach_sources, local_names,
             local_refs.local_ref_kinds, local_refs.local_ref_syntax_ids
         );
     if DirectMirScalarCfgForEachFactCount(foreach_iterations) !=
@@ -103,10 +108,6 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     ) {
         Die("direct MIR scalar CFG loop facts are invalid");
     }
-    let local_names: Array<String> = local_refs.local_names;
-    let value_names: Array<String> = local_refs.value_names;
-    let value_local_rows: Array<Int> = local_refs.value_local_rows;
-    let value_definition_blocks: Array<Int> = local_refs.value_definition_blocks;
     let array_int_program: DirectMirScalarCfgArrayIntProgramFact =
         DirectMirScalarCfgArrayIntProgramAtValueRows(
             array_int_source, value_names, range_iterations

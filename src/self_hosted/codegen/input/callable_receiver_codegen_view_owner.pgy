@@ -301,6 +301,10 @@ func CodegenCallableReceiverFactsReady(
     if !CodegenCallableReceiverFactsShapeReady(facts, signatures) {
         return false;
     }
+    // Earlier rows by syntax id and by owner and name. The owner's length
+    // leads the pair key, so two different pairs never share a key.
+    let prior_syntax_ids: HashMap<String, Int> = MapNew();
+    let prior_owner_names: HashMap<String, Int> = MapNew();
     let i: Int = 0;
     while i < count {
         if facts.source_syntax_ids[i] != ToString(
@@ -332,15 +336,17 @@ func CodegenCallableReceiverFactsReady(
                     CallableReceiverCarriageNone())) {
             return false;
         }
-        let prior: Int = 0;
-        while prior < i {
-            if facts.source_syntax_ids[prior] == facts.source_syntax_ids[i] ||
-                (facts.owners[prior] == facts.owners[i] &&
-                    facts.names[prior] == facts.names[i]) {
-                return false;
-            }
-            prior = prior + 1;
+        let syntax_key: String = Concat("", facts.source_syntax_ids[i]);
+        let pair_key: String = Concat(
+            Concat(ToString(StringLength(facts.owners[i])), ":"),
+            Concat(facts.owners[i], facts.names[i])
+        );
+        if MapHas(prior_syntax_ids, syntax_key) ||
+            MapHas(prior_owner_names, pair_key) {
+            return false;
         }
+        MapSet(prior_syntax_ids, syntax_key, i);
+        MapSet(prior_owner_names, pair_key, i);
         i = i + 1;
     }
     return true;

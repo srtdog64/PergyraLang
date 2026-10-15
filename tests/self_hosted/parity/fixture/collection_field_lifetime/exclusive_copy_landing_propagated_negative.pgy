@@ -1,0 +1,29 @@
+// `view` holds a copy of `rows`; the constructor puts `view` in
+// `facts.rows`. Growing the items taken out of `facts.rows` retires the
+// buffer `rows` still names, and the return reads it.
+struct Rows {
+    items: Array<String>;
+}
+
+struct Facts {
+    rows: Rows;
+    marks: Array<String>;
+}
+
+func Build() -> Int {
+    let rows: Rows = Rows(["r"]);
+    let view: Rows = rows;
+    let marks: Array<String> = [];
+    let facts: Facts = Facts(view, marks);
+    let held: Rows = facts.rows;
+    let grown: Array<String> = held.items;
+    ArrayPush(grown, "m");
+    ArrayPush(grown, "n");
+    facts.rows = Rows(grown);
+    return StringLength(rows.items[0]) + ArrayLength(facts.marks);
+}
+
+func Main() -> Int {
+    Log(ToString(Build()));
+    return 0;
+}

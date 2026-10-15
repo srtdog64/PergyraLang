@@ -27,13 +27,13 @@ func Main() -> Void with caps env, io_read
         if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, body) {
             Log("PROBE|receipt-invalid"); Exit(3); return;
         }
-        let groups: Int = ArrayLength(body.collection_ownership.focus_recovery.group_function_ids);
-        let parts: Int = ArrayLength(body.collection_ownership.focus_recovery.part_local_binding_ids);
-        let exits: Int = ArrayLength(body.collection_ownership.focus_recovery.exit_group_indices);
+        let groups: Int = ArrayLength(body.collection_focus_recovery.group_function_ids);
+        let parts: Int = ArrayLength(body.collection_focus_recovery.part_local_binding_ids);
+        let exits: Int = ArrayLength(body.collection_focus_recovery.exit_group_indices);
         if groups == 0 || parts == 0 || exits == 0 {
             Log("PROBE|recovery-premise-invalid"); Exit(3); return;
         }
-        if StartsWith(mode, "missing-") { body.collection_ownership.focus_recovery.ok = false; }
+        if StartsWith(mode, "missing-") { body.collection_focus_recovery.ok = false; }
         let generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
             analysis.signatures, body.generic_specializations, analysis.function_scopes);
         if mode == "recovery-admitted" || mode == "missing-admitted" {

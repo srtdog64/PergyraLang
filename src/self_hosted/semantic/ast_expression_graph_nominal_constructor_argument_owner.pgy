@@ -18,7 +18,8 @@ func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     constructor_index: Int, argument_index: Int,
     names: Array<String>, types: Array<String>,
-    ref function_names: Array<String>, ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable, ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphNominalConstructorArgumentFact {
     let invalid: SemanticExpressionGraphNominalConstructorArgumentFact =
         SemanticExpressionGraphNominalConstructorArgumentFact(false, false, 0, "", "");
@@ -35,7 +36,7 @@ func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
     if expected == "" || expected == "Unknown" { return invalid; }
     let actual: Option<String> = SemanticExpressionGraphFieldValueTypeName(
         graph, argument_node_id, constructors, names, types,
-        function_names, function_returns);
+        function_names, function_returns, enum_values);
     // The declared field contextualizes empty values; nonempty values retain
     // their own type. The call owner consumes this same identity/type fact.
     let array_view: SemanticArrayLiteralView =
@@ -45,7 +46,7 @@ func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
     if set_view.ok {
         actual = SemanticExpressionGraphSetLiteralTypeName(
             graph, argument_node_id, constructors, names, types,
-            function_names, function_returns);
+            function_names, function_returns, enum_values);
     }
     let empty: Bool =
         (array_view.ok && ArrayLength(array_view.element_nodes) == 0) ||
@@ -53,10 +54,10 @@ func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
     if empty &&
         (SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
             graph, argument_node_id, expected, constructors, names, types,
-            function_names, function_returns) ||
+            function_names, function_returns, enum_values) ||
          SemanticExpressionGraphSetLiteralMatchesDeclaredType(
             graph, argument_node_id, expected, constructors, names, types,
-            function_names, function_returns)) { actual = Some(expected); }
+            function_names, function_returns, enum_values)) { actual = Some(expected); }
     if !IsSome(actual) { return invalid; }
     return SemanticExpressionGraphNominalConstructorArgumentFact(
         true, SemanticExpressionGraphFieldValueAssignableTo(

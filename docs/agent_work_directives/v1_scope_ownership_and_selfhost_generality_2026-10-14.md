@@ -184,6 +184,207 @@ P0 is active. The lanes, in order:
      deleted, and in what order. This is a plan for after P0; no C-path edit
      starts while P0 is open.
 
+## P0 takeover: copies added and manual drops removed (2026-10-15)
+
+The GPT lane paused, and the owner asked the Claude lane to finish P0
+itself (branch `claude/p0-v16`, worktree `pgy-wt/perf`). These are the
+source changes outside the checker. AGENTS.md asks each copy or annotation
+to name its reason, missing fact, last consumer and removal condition.
+
+**Copies of borrowed text (`Concat("", x)`).** In each case, the String
+element of a borrowed array leaves the call: it is stored in another array,
+or it goes into a returned fact.
+
+- Missing fact: a lifetime relation between the result and the array it
+  borrows from. The formal-use owner keeps such escapes fail-closed "until
+  the language has an owned transfer".
+- Last consumer: the returned fact, or the destination rows.
+- Removal condition: the checker can state "result borrows from argument"
+  for a String element.
+- Sites:
+  - the direct-MIR builtin signature owners (collection clone, ToString,
+    ArrayValue, HashMap receiver, record Option);
+  - the slice builtin owner and the builtin call fact;
+  - the expression admission parameter type;
+  - the C and LLVM case-math operands;
+  - the C record temporary search (`StringIndexOf` is not yet a registered
+    borrowing builtin; the GPT lane's uncommitted registry adds it);
+  - the canonical routine ids that zone authority transitions parse
+    (`ToInt` is not a registered borrowing builtin either);
+  - the payload-enum and direct-call LLVM type projections;
+  - the for-each string elements;
+  - the generic specialization actuals;
+  - the CFG use replacement;
+  - the identity-epoch member names;
+  - the or-pattern alternatives.
+
+**Manual drops removed.** V1 says no manual drops. The checker refused each
+of these, because it cannot prove the dropped value owned.
+
+- `DriverRung2MirProjectionRelease` and its six call sites.
+- `MirJsonOwnedInputRelease` and the `retire_owned_source_json` flag. It
+  released `admitted.routines.source_json` through a `ref`.
+- The function-table release before C emission.
+- Six `JsonOwnedFragmentWriteFile` calls whose actual may be borrowed or a
+  literal. They now use `CompilerArtifactWrite`.
+- Four one-element `ArrayDropOwnedStrings` boxes in the LLVM scalar emitter
+  and the intent-execution JSON writer.
+- `ArrayDrop(forwarding)` in the collection field-read owner, which the v16
+  candidate added. The release verdict counts the `let` that reads an
+  element (`ToString(forwarding[i])`) as a second descriptor store. The scan
+  census hid this verdict until it reached zero.
+
+Cost to measure before landing: the MIR JSON input now lives until C
+emission returns. Measure it on the installed-driver `--mir-json` route
+with `--observe-mir-consumer-stages`; the baseline peak was 1.78 GB.
+
+**Real aliasing fixed in source.**
+
+- The string-array plan lookup no longer names the rows it grows.
+- The ArrayString and ArrayBool ABI candidates no longer hold the
+  value-result rows.
+- The C direct-call expression no longer pushes into a copy of its borrowed
+  `arguments`.
+- `MirExpressionGraphSequenceFromExtendedRows` takes the prefix columns it
+  extends, not the whole sequence whose topology columns the caller has
+  already copied and grown.
+- The MIR expression graph builders gave the topology and the node texts one
+  buffer. The iteration and match attaches push to each of them, so one
+  buffer grew through two descriptors. The topology now keeps its own text
+  rows.
+- Three refusal and rebinding paths in the direct-MIR program admission
+  returned or reread a descriptor that an inout or by-value growth had
+  replaced: the statement admission, the definition route and the
+  declaration rows.
+- The MIR facts builder now attaches the semantic expression graph after
+  the routine appends stop growing the facts. Before, every append carried
+  a facts value that shared the analysis' graph.
+
+**Second names removed.** `SelfMirIntentExecutionPlanAppend` bound
+`let graphs = facts.cfg.instructions.expr0_graphs` and read it inside
+pushes. The name was dead before the return, but the checker cannot follow
+a holder into a push argument, so the returned `cfg` counted as shared and
+every routine append of the facts refused. The function now reads the path
+directly. No copy was added.
+
+**Owned-string pushes into fields.** The v16 focus-recovery facts used
+`ArrayPushOwnedString(facts.F, x)` four times. The native transpiler
+accepts a field path there, but the self-host C emitter passes the array
+`inout` and requires a variable, so gen0 died while emitting the canonical
+program. They are now `ArrayPush(facts.F, Concat("", x))`, which makes the
+same one copy the builtin made. Removal condition: the self-host emitter
+takes an addressable field place for the owned-string builtins.
+
+**Collection ownership rows across MIR.** The driver fixed point is the
+first run that lowers the whole canonical program through the self-host MIR
+producer since 10-01. That run found two contract gaps. Neither came from
+this lane; both were hidden behind the gen1 refusal.
+
+- **The MIR row vocabulary stopped at 09-30.** From 10-02 to 10-05 the
+  semantic verdict added new states. They are formal and local string
+  transfers, `Retired` ownership after an aggregate release, a named input
+  or an owned-result return, owned elements after an owned push, and an
+  unknown borrowed literal after an unknown call. The MIR producer check,
+  the JSON names and the mir_lower reader each kept the old table, so the
+  driver failed on 53 rows. The JSON names had also silently renamed the
+  new values to `unknown`.
+  - Now one table, `mir/collection_ownership_state_table_owner.pgy`, names
+    the admitted (origin, ownership, disposition) triples for both sides of
+    the JSON boundary. Its rows are the ones the verdict publishes on the
+    canonical program.
+  - Every older negative stays refused, including `empty_literal_owned`.
+  - A value outside the vocabulary now has no name, so no row can carry
+    it under another state's name.
+  - The direct backends match states by string. They do not admit the new
+    states yet; those programs end in a typed route refusal.
+- **An indexed assignment's receipt had no instruction to attach to.** The
+  semantic owner gives `a[i] = v` on an empty-literal `Array<String>` a
+  shallow-mutation receipt keyed by its statement. MIR never recorded the
+  source statement of an assignment instruction, so even a three-line
+  program failed. The assignment instruction now carries it.
+- **An owned call result named itself as its origin.** The reader proves a
+  call-result row by its origin naming a routine that returns
+  `Array<String>`. The verdict's owned-result activation switched the origin
+  to call-result but kept the binding's own id, so the seed's reader refused
+  eight canonical rows at `gen2_emit`. The activation now records the callee
+  it already holds.
+- **The MIR to AST round trip copied the code after a closed arm.** The
+  consumer's tree emitter stops each arm of an `if` at the branch's
+  structural merge. When one arm always returns (a guard chain in the true
+  arm, or the last `else { return }` of an else-if chain), the arms never
+  meet and the merge was empty, so the emitter copied the continuation into
+  the other arm and again after the `if`. The semantic re-check then saw the
+  same field moved out twice and refused `gen2_emit` with
+  `member_use_after_move`. Now an arm that only the branch enters is closed,
+  and the other arm's start is the merge. Gate:
+  `self-host-mir-round-trip-semantic-test-smoke`.
+- **The round trip ended every Void body with `return`.** MIR writes the
+  same void return row for an explicit trailing `return;` and for the end of
+  the body, and the emitter rendered it as a `Return` statement. An aggregate
+  field release (move a field out, drop it, restore it) is admitted only in
+  a straight-line body, and a `return` statement breaks that. So every such
+  routine passed at the source and was refused in the round trip with
+  `aggregate_release_incomplete`, for example
+  `CodegenTypeEnvStateReleaseLocal`. A bare return that ends the top-level
+  body is now emitted as the end of the body. The self-host source checker
+  still refuses an explicit trailing `return;` there, which native admits.
+  That is precision the canonical program does not need.
+- **The round trip's match bindings had no type in the ownership owners.**
+  The round trip writes `case V(b):` as `if subject == E.V { let b: T =
+  subject.V._0; ... }`. Only the enum owner types the payload path, and the
+  receiver projection that the capture source and the aggregate storage
+  owner use reads struct fields only. So the payload `let` was
+  `ast_artifact_invalid` (`collection_member_read_permission`) or
+  `aggregate_release_incomplete`, and 202 such `let`s in the canonical
+  program (172 on a parameter) were refused. One owner,
+  `ast_collection_member_path_type_owner.pgy`, now types a member path for
+  both: a payload path gets the type that the initializer facts carry for
+  the `let` it initializes, and has no type anywhere else. The binding then
+  aliases its subject as a source match binding does. Growing its field is
+  refused as for the source `match` (`unproved_exclusive_member_mutation`),
+  and a payload read with no variant guard stays
+  `enum_payload_variant_unproven`.
+  - Under a `ref` subject the payload `let` was a store, so the round trip
+    refused `readonly_aggregate_capture` where the source match binding is a
+    view. The capture obligation owner now treats that `let` as part of its
+    subject: it records the readonly origin and is no store itself. Storing
+    the binding again stays `readonly_aggregate_capture`, as for
+    `case Full(table): let alias: Table = table;` under `ref holder`.
+- **Still refused: an owned call result held live to the end of its scope.**
+  The canonical program never holds one. Its owned results are retired by a
+  drop or a return. Admitting the state needs the callee's owned-result
+  summary in MIR. Without that summary, `call_result_owned_without_summary`
+  would pass, so the state stays out of the table.
+
+The full DRV-2 MIR is 374 MB. Its 136k instructions hold 980k expression
+graph nodes, about 259 bytes per node in the JSON encoding. No graph repeats.
+The native-built runtime's `ReadFile` stops at 64 MiB. The self-host-built
+seed, which the bootstrap uses to read this file, does not. The cap and the
+encoding are unchanged here.
+
+**Memory of the round trip's semantic pass.** With the fixes above, the
+consumer route emits C for the full DRV-2 MIR. A native-built driver peaked
+at 16.3 GB doing it, above a standard Linux CI runner's 16 GB, and the
+fixed point runs that route twice.
+- The repeated operation: the ownership scan returns a verdict from every
+  event check, and each successful check built an empty verdict whose focus
+  recovery facts hold four HashMaps. The runtime frees little, so they
+  stay. On the round trip of one 269-file module (peak 3.2 GB, 2.4 GB
+  requested), 54.7% of the requested bytes were
+  `SemanticAstCollectionFocusRecoveryFactsEmpty`, all through
+  `SemanticAstCollectionOwnershipVerdictOk`. 74% of those calls came from
+  the three per-node event checks.
+- Only the final verdict has focus recovery facts. They now leave the
+  verdict owner through an `inout` parameter and travel in the body type
+  bundle as `collection_focus_recovery`. No semantic decision changes.
+
+**Open, not in CI:** `self-host-collection-focus-recovery-test-smoke`
+(added with the v16 candidate) fails at
+`c-nominal_bodyful_forward-emit` with `PROBE|recovery-missing`: the
+nominal bodyful-forward fixture produces no focus groups in `emit` mode,
+while its `nominal-forward-producer` mode passes. The base of this lane
+fails the same way. No CI job runs this target.
+
 ## Measurements to track
 
 - `direct_mir_*` file and line count inside the driver import closure. It

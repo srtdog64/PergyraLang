@@ -29,9 +29,9 @@ for backend in c llvm; do
         tr -d '\r' <"$WORK/$backend-$input.raw" >"$WORK/$backend-$input.run"
         [[ ! -s "$WORK/$backend-$input.err" ]]
         case "$input" in
-            callable_table_owned_release_positive) printf 'inputs=3\nnamed=3\nempty=0\nunproved=0\nreplaced=0\n' ;;
-            callable_table_empty_release_positive) printf 'inputs=3\nnamed=0\nempty=3\nunproved=0\nreplaced=0\n' ;;
-            callable_table_borrowed_negative) printf 'inputs=3\nnamed=0\nempty=0\nunproved=3\nreplaced=0\n' ;;
+            callable_table_owned_release_positive) printf 'inputs=4\nnamed=4\nempty=0\nunproved=0\nreplaced=0\n' ;;
+            callable_table_empty_release_positive) printf 'inputs=4\nnamed=1\nempty=3\nunproved=0\nreplaced=0\n' ;;
+            callable_table_borrowed_negative) printf 'inputs=4\nnamed=1\nempty=0\nunproved=3\nreplaced=0\n' ;;
             constructor_field_current_definition_input) printf 'inputs=4\nnamed=2\nempty=1\nunproved=1\nreplaced=1\n' ;;
             constructor_field_candidate_input) printf 'inputs=5\nnamed=0\nempty=0\nunproved=5\nreplaced=0\n' ;;
             constructor_field_absent_input) printf 'inputs=0\nnamed=0\nempty=0\nunproved=0\nreplaced=0\n' ;;

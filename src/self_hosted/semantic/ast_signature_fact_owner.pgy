@@ -7,6 +7,7 @@ import "ast_generic_parameter_fact_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_action_contract_fact_owner.pgy";
 import "ast_entrypoint_selection_policy_owner.pgy";
+import "ast_signature_canonical_name_index_owner.pgy";
 struct SemanticAstFunctionSignatureFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -33,6 +34,7 @@ struct SemanticAstFunctionSignatureFacts {
     param_names: Array<String>;
     param_types: Array<String>;
     param_modes: Array<Int>;
+    canonical_name_first_rows: HashMap<String, Int>; canonical_name_row_counts: HashMap<String, Int>;
 }
 struct SemanticAstFunctionOwnerFact {
     name: String;
@@ -435,6 +437,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let entrypoint: SemanticAstEntrypointSelectionFact =
         SemanticAstEntrypointSelectionFinish(entrypoint_accumulator);
     ArrayDropOwnedStrings(generic_default_type_names);
+    let canonical_first_rows: HashMap<String, Int> = MapNew(); let canonical_row_counts: HashMap<String, Int> = MapNew();
+    SemanticAstSignatureCanonicalNameIndexFill(owner_names, names, canonical_first_rows, canonical_row_counts);
     return SemanticAstFunctionSignatureFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
@@ -445,7 +449,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         generic_starts, generic_counts, generic_names, generic_constraint_type_names,
         param_starts, param_counts, receiver_source_param_offsets,
         param_node_ids, param_names,
-        param_types, param_modes
+        param_types, param_modes, canonical_first_rows, canonical_row_counts
     );
 }
 func SemanticAstFunctionSignatureCount(

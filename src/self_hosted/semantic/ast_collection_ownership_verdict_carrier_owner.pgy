@@ -7,59 +7,13 @@ import "ast_collection_ownership_receipt_owner.pgy";
 
 // One joint unpack/repack plan. Rows are subordinate to collection admission;
 // neither a field name nor an exit kind is an ownership permission by itself.
-struct SemanticAstCollectionFocusRecoveryFacts {
-    ok: Bool;
-    artifact_node_count: Int;
-    artifact_identity_digest: Int;
-    mutating_formals: HashMap<String, Int>;
-    exclusive_copies: HashMap<String, Int>;
-    exclusive_field_reads: HashMap<String, Int>;
-    exclusive_copy_count: Int;
-    exclusive_field_read_count: Int;
-    group_function_ids: Array<Int>;
-    group_root_binding_ids: Array<Int>;
-    group_scope_ids: Array<Int>;
-    group_activation_ids: Array<Int>;
-    group_end_ids: Array<Int>;
-    group_part_starts: Array<Int>;
-    group_part_counts: Array<Int>;
-    group_root_type_names: Array<String>;
-    group_copy_signatures: Array<String>;
-    part_local_binding_ids: Array<Int>;
-    part_definition_ids: Array<Int>;
-    part_field_ids: Array<Int>;
-    part_field_names: Array<String>;
-    part_type_names: Array<String>;
-    exit_group_indices: Array<Int>;
-    exit_function_ids: Array<Int>;
-    exit_scope_ids: Array<Int>;
-    exit_syntax_ids: Array<Int>;
-    exit_kinds: Array<Int>;
-    exit_part_starts: Array<Int>;
-    exit_part_counts: Array<Int>;
-    active_part_indices: Array<Int>;
-    active_definition_ids: Array<Int>;
-}
+//
+// The scan returns one of these from every event check, millions of times on
+// the canonical program. The final focus recovery facts leave the verdict
+// owner beside the verdict, so an event check's success builds no maps.
 
-func SemanticAstCollectionFocusRecoveryFactsEmpty() -> SemanticAstCollectionFocusRecoveryFacts {
-    let ints: Array<Int> = [];
-    let names: Array<String> = [];
-    let mutating: HashMap<String, Int> = MapNew();
-    let copies: HashMap<String, Int> = MapNew();
-    let field_reads: HashMap<String, Int> = MapNew();
-    return SemanticAstCollectionFocusRecoveryFacts(false, 0, 0,
-        mutating, copies, field_reads, 0, 0,
-        ints, ints, ints, ints, ints, ints, ints, names, names,
-        ints, ints, ints, names, names,
-        ints, ints, ints, ints, ints, ints, ints, ints, ints);
-}
 
-func SemanticAstCollectionFocusExitValueReturn() -> Int { return 1; }
-func SemanticAstCollectionFocusExitBareReturn() -> Int { return 2; }
-func SemanticAstCollectionFocusExitFallthrough() -> Int { return 3; }
-func SemanticAstCollectionFocusExitBreak() -> Int { return 4; }
-func SemanticAstCollectionFocusExitContinue() -> Int { return 5; }
-func SemanticAstCollectionFocusExitTryError() -> Int { return 6; }
+
 
 struct SemanticAstCollectionOwnershipVerdict {
     ok: Bool;
@@ -76,7 +30,6 @@ struct SemanticAstCollectionOwnershipVerdict {
     origins: Array<Int>;
     fresh_owned_result_function_syntax_ids: Array<Int>;
     receipts: SemanticAstCollectionOwnershipReceiptRows;
-    focus_recovery: SemanticAstCollectionFocusRecoveryFacts;
 }
 
 func SemanticAstCollectionOwnershipVerdictOk(
@@ -94,8 +47,7 @@ func SemanticAstCollectionOwnershipVerdictOk(
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty(),
-        SemanticAstCollectionFocusRecoveryFactsEmpty()
+        SemanticAstCollectionOwnershipReceiptRowsEmpty()
     );
 }
 
@@ -115,7 +67,7 @@ func SemanticAstCollectionOwnershipVerdictOkWithFacts(
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
-        receipts, SemanticAstCollectionFocusRecoveryFactsEmpty()
+        receipts
     );
 }
 
@@ -137,7 +89,6 @@ func SemanticAstCollectionOwnershipVerdictError(
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty(),
-        SemanticAstCollectionFocusRecoveryFactsEmpty()
+        SemanticAstCollectionOwnershipReceiptRowsEmpty()
     );
 }

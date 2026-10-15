@@ -25,17 +25,13 @@ func CanonicalizeMirArtifactWithAdmittedTopology(
             facts, admitted, identity_epoch, constructors
         );
     if !rebound.ok {
-        DriverRung2MirProjectionRelease(projection);
         Die("canonical MIR identity epoch remap is invalid");
     }
     facts = rebound.facts;
     if !SelfMirProgramFactsReady(facts) {
-        DriverRung2MirProjectionRelease(projection);
         Die(SelfMirProgramFactsValidationError(facts));
     }
-    let result: String = SelfMirProgramJson(facts);
-    DriverRung2MirProjectionRelease(projection);
-    return result;
+    return SelfMirProgramJson(facts);
 }
 
 func CanonicalizeMirJsonVerified(

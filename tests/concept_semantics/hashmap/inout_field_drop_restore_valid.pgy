@@ -1,0 +1,22 @@
+// A Void routine that moves a field out of an inout aggregate, drops its
+// owned strings and restores it. The MIR round trip must not end the body
+// with a `return` the source did not write: an aggregate field release
+// needs a straight-line body.
+struct Rows { names: Array<String>; count: Int; }
+
+func Clear(inout rows: Rows) -> Void {
+    let names: Array<String> = rows.names;
+    ArrayDropOwnedStrings(names);
+    rows.names = names;
+    rows.count = 0;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("a", "b"));
+    let rows: Rows = Rows(names, 1);
+    Log(ToString(ArrayLength(rows.names)));
+    Clear(rows);
+    Log(ToString(ArrayLength(rows.names) + rows.count));
+    return 0;
+}

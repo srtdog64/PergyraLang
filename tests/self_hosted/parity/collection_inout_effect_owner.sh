@@ -327,6 +327,27 @@ INPUTS=(
     exclusive_map_disjoint_field_positive.pgy exclusive_map_shared_field_negative.pgy
     exclusive_set_shared_mutation_negative.pgy exclusive_list_shared_mutation_negative.pgy
     exclusive_queue_shared_mutation_negative.pgy
+    exclusive_rebind_after_earlier_break_positive.pgy exclusive_rebind_after_later_break_negative.pgy
+    exclusive_branch_rebind_positive.pgy exclusive_branch_rebind_missing_else_negative.pgy
+    exclusive_branch_rebind_continue_negative.pgy exclusive_branch_rebind_reads_old_negative.pgy
+    exclusive_loop_old_alias_unread_positive.pgy exclusive_loop_old_alias_reread_negative.pgy
+    exclusive_alias_after_use_positive.pgy exclusive_alias_after_use_loop_negative.pgy
+    exclusive_copy_landing_other_field_positive.pgy exclusive_copy_landing_same_field_negative.pgy
+    exclusive_copy_landing_call_positive.pgy exclusive_copy_landing_call_crossed_negative.pgy
+    exclusive_copy_landing_whole_result_negative.pgy
+    exclusive_copy_landing_propagated_positive.pgy exclusive_copy_landing_propagated_negative.pgy
+    exclusive_copy_rebind_root_positive.pgy exclusive_copy_rebind_root_negative.pgy
+    exclusive_growth_copied_field_positive.pgy exclusive_growth_copied_field_shared_negative.pgy
+    exclusive_growth_copy_holder_negative.pgy
+    exclusive_plain_alias_read_only_positive.pgy exclusive_plain_alias_grown_alias_negative.pgy
+    exclusive_plain_alias_grown_source_negative.pgy
+    exclusive_scalar_set_holder_positive.pgy exclusive_scalar_set_holder_growth_negative.pgy
+    exclusive_push_before_copy_positive.pgy exclusive_push_after_copy_negative.pgy
+    formal_ref_borrow_after_element_return_positive.pgy
+    exclusive_nested_copy_sibling_read_positive.pgy exclusive_nested_copy_grown_read_negative.pgy
+    exclusive_nested_copy_prefix_read_negative.pgy
+    aggregate_release_scalar_member_temporary_positive.pgy aggregate_release_array_member_temporary_negative.pgy
+    aggregate_release_enum_variant_local_positive.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
@@ -667,6 +688,11 @@ for backend in c llvm; do
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            exclusive_inout_exit_before_writeback_negative.pgy)
+                # The original no-writeback source now carries a produced focus
+                # recovery group. collection_focus_recovery_owner.sh owns its
+                # negative contract: the missing or poisoned recovery fact.
+                printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy|main.pgy|intent_zone_authority_transition.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
@@ -757,7 +783,6 @@ exclusive_stale_failure_consumed_negative.pgy|unproved_exclusive_member_mutation
 exclusive_destination_field_stale_negative.pgy|unproved_exclusive_member_mutation|left|HolderExtendStale
 exclusive_focus_reads_grown_field_negative.pgy|unproved_exclusive_sink_entry|facts|NodeSetUpdate
 exclusive_formal_reassign_share_negative.pgy|unproved_exclusive_sink_entry|picked|Main
-exclusive_inout_exit_before_writeback_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowChecked
 exclusive_loop_rebind_branch_negative.pgy|unproved_exclusive_sink_entry|appended|RowsAppendAll
 exclusive_return_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrow
 exclusive_return_loop_after_growth_negative.pgy|unproved_exclusive_member_mutation|types|NodeSetGrowUntil
@@ -789,6 +814,12 @@ exclusive_set_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|S
 exclusive_map_old_query_negative.pgy|unproved_exclusive_storage_mutation|MapSet(copy, "seed", 1)|Main
 exclusive_list_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|ListPush(copy, 1)|Main
 exclusive_queue_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|QueuePush(copy, 1)|Main
+exclusive_rebind_after_later_break_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_branch_rebind_missing_else_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_branch_rebind_continue_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_branch_rebind_reads_old_negative.pgy|unproved_exclusive_sink_entry|added|RowsFill
+exclusive_loop_old_alias_reread_negative.pgy|unproved_exclusive_sink_entry|callee|RowsChain
+exclusive_alias_after_use_loop_negative.pgy|unproved_exclusive_sink_entry|call|RowsPipe
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.

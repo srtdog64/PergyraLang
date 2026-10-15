@@ -1,0 +1,34 @@
+// The attach grows a local that holds only `analysis.surfaces`, so it grows
+// that field and no other. The caller's analysis shares only its `names`
+// field with a live value, which the attach never grows.
+struct Graph {
+    texts: Array<String>;
+}
+
+struct Surfaces {
+    graph: Graph;
+}
+
+struct Analysis {
+    surfaces: Surfaces;
+    names: Array<String>;
+}
+
+func Attach(inout analysis: Analysis) -> Int {
+    let surfaces: Surfaces = analysis.surfaces;
+    let texts: Array<String> = surfaces.graph.texts;
+    ArrayPush(texts, "x");
+    ArrayPush(texts, "y");
+    let count: Int = ArrayLength(texts);
+    analysis.surfaces = Surfaces(Graph(texts));
+    return count;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["n"];
+    let texts: Array<String> = ["t"];
+    let analysis: Analysis = Analysis(Surfaces(Graph(texts)), names);
+    let grown: Int = Attach(analysis);
+    Log(ToString(grown + StringLength(names[0]) + ArrayLength(analysis.surfaces.graph.texts)));
+    return 0;
+}

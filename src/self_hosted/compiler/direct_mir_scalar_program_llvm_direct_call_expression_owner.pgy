@@ -146,7 +146,7 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
                     true, false, "", "");
             }
             argument_type = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-                argument_types[ordinal], logical_record,
+                Concat("", argument_types[ordinal]), logical_record,
                 payload_free_enum, referenced_enum);
         }
         if argument_type == "" {

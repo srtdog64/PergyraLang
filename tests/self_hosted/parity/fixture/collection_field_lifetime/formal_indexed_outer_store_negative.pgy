@@ -1,0 +1,14 @@
+func Append(inout output: Array<String>, ref values: Array<String>) -> Void
+{
+    ArrayPush(output, values[0]);
+}
+
+func Main() -> Void
+{
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "source");
+    var output: Array<String> = [];
+    Append(output, values);
+    ArrayDropOwnedStrings(values);
+    Log(StringLength(output[0]));
+}

@@ -8,6 +8,7 @@ import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_generic_parameter_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
+import "callable_resolution_owner.pgy";
 struct SemanticAstNominalConstructorFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -30,6 +31,9 @@ struct SemanticAstNominalConstructorFacts {
     role_slot_names: Array<String>;
     role_slot_type_names: Array<String>;
     role_slot_dynamic: Array<Int>;
+    // First row and row count per declaration name, filled once from `names`.
+    name_first_rows: HashMap<String, Int>;
+    name_row_counts: HashMap<String, Int>;
 }
 func SemanticAstNominalConstructorFactsFromArtifact(
     artifact: AstTreeArtifact
@@ -365,6 +369,9 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         );
         node_id = node_id + 1;
     }
+    let name_first_rows: HashMap<String, Int> = MapNew();
+    let name_row_counts: HashMap<String, Int> = MapNew();
+    SemanticAstNominalConstructorNameIndexFill(names, name_first_rows, name_row_counts);
     return SemanticAstNominalConstructorFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
@@ -372,8 +379,19 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         node_ids, nominal_kinds, names, return_types, param_starts,
         param_counts, field_source_syntax_ids, field_names, field_kinds, field_write_modes,
         param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names,
-        role_slot_dynamic
+        role_slot_dynamic, name_first_rows, name_row_counts
     );
+}
+// The name index of the facts: the first row and the number of rows per
+// name. Only the facts producer builds it, once, from `names`; the artifact
+// match check compares it with a rebuilt one.
+func SemanticAstNominalConstructorNameIndexFill(ref names: Array<String>,
+    inout first_rows: HashMap<String, Int>, inout row_counts: HashMap<String, Int>) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        SemanticCallableNameTableCount(first_rows, row_counts, Concat("", names[row]), row);
+        row = row + 1;
+    }
 }
 func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int { return ArrayLength(facts.node_ids); }
 func SemanticAstNominalConstructorIndexForNode(ref facts: SemanticAstNominalConstructorFacts, node_id: Int) -> Option<Int> {
@@ -438,15 +456,22 @@ func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstru
             facts.field_write_modes[field_i] != 1 { return false; }
         field_i = field_i + 1;
     }
+    // Field source ids are positive and unique: find the largest, mark each once.
+    let max_source_id: Int = 0;
     field_i = 0;
     while field_i < ArrayLength(facts.field_source_syntax_ids) {
-        if facts.field_source_syntax_ids[field_i] <= 0 { return false; }
-        let prior_i: Int = 0;
-        while prior_i < field_i {
-            if facts.field_source_syntax_ids[prior_i] ==
-                facts.field_source_syntax_ids[field_i] { return false; }
-            prior_i = prior_i + 1;
-        }
+        let candidate_id: Int = facts.field_source_syntax_ids[field_i];
+        if candidate_id <= 0 { return false; }
+        if candidate_id > max_source_id { max_source_id = candidate_id; }
+        field_i = field_i + 1;
+    }
+    let seen_source_ids: Array<Bool> = [];
+    while ArrayLength(seen_source_ids) <= max_source_id { ArrayPush(seen_source_ids, false); }
+    field_i = 0;
+    while field_i < ArrayLength(facts.field_source_syntax_ids) {
+        let field_source_id: Int = facts.field_source_syntax_ids[field_i];
+        if seen_source_ids[field_source_id] { return false; }
+        seen_source_ids[field_source_id] = true;
         field_i = field_i + 1;
     }
     return expected_param_count == ArrayLength(facts.field_source_syntax_ids) &&
@@ -457,7 +482,7 @@ func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstru
         expected_role_slot_count == ArrayLength(facts.role_slot_type_names);
 }
 func SemanticAstNominalConstructorParamTypeAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     param_index: Int
 ) -> Option<String> {
     if constructor_index < 0 ||
@@ -503,13 +528,13 @@ func SemanticAstNominalRoleSlotTypeAt(
     return Some(facts.role_slot_type_names[facts.role_slot_starts[constructor_index] + slot_index]);
 }
 func SemanticAstNominalConstructorFieldTypeAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     field_index: Int
 ) -> Option<String> {
     return SemanticAstNominalConstructorParamTypeAt(facts, constructor_index, field_index);
 }
 func SemanticAstNominalConstructorFieldNameAt(
-    facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
+    ref facts: SemanticAstNominalConstructorFacts, constructor_index: Int,
     field_index: Int
 ) -> Option<String> {
     if constructor_index < 0 ||
@@ -565,34 +590,3 @@ func SemanticAstNominalRoleSlotDynamic(
     return None;
 }
 
-func SemanticAstNominalFieldType(
-    ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
-    field_name: String
-) -> Option<String> {
-    let constructor_index: Int = 0;
-    while constructor_index < SemanticAstNominalConstructorCount(facts) {
-        if facts.names[constructor_index] == nominal_name {
-            let field_index: Int = 0;
-            while field_index < facts.param_counts[constructor_index] {
-                let row: Int = facts.param_starts[constructor_index] +
-                    field_index;
-                if facts.field_names[row] == field_name {
-                    return Some(facts.param_type_names[row]);
-                }
-                field_index = field_index + 1;
-            }
-            let slot_index: Int = 0;
-            while slot_index < facts.role_slot_counts[constructor_index] {
-                let slot_row: Int = facts.role_slot_starts[constructor_index] +
-                    slot_index;
-                if facts.role_slot_names[slot_row] == field_name {
-                    return Some(facts.role_slot_type_names[slot_row]);
-                }
-                slot_index = slot_index + 1;
-            }
-            return None;
-        }
-        constructor_index = constructor_index + 1;
-    }
-    return None;
-}

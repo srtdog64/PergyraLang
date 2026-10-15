@@ -1,0 +1,31 @@
+// First consumers in an expression topology: the row that takes a node as an
+// operand. The topology is immutable once built, so a sealed surface graph can
+// carry these rows instead of searching forward from each node.
+import "../hir/ast_expression_graph_owner.pgy";
+
+// Whether `row` names `node` in a child slot its arity admits.
+func SemanticExpressionGraphRowConsumes(ref topology: AstExpressionArena, row: Int, node: Int) -> Bool {
+    let left_match: Bool = topology.left_children[row] == node;
+    let right_match: Bool = topology.right_children[row] == node;
+    if !left_match && !right_match { return false; }
+    let arity: Int = AstExpressionNodeArity(topology.node_kinds[row]);
+    return (left_match && arity >= 1) || (right_match && arity >= 2);
+}
+
+// For every node, the first later row that consumes it, or -1.
+func SemanticExpressionGraphConsumerRows(ref topology: AstExpressionArena) -> Array<Int> {
+    let count: Int = AstExpressionArenaNodeCount(topology);
+    let rows: Array<Int> = [];
+    while ArrayLength(rows) < count { ArrayPush(rows, -1); }
+    let row: Int = 0;
+    while row < count {
+        let left: Int = topology.left_children[row];
+        let right: Int = topology.right_children[row];
+        if left >= 0 && left < row && rows[left] < 0 &&
+            SemanticExpressionGraphRowConsumes(topology, row, left) { rows[left] = row; }
+        if right >= 0 && right < row && rows[right] < 0 &&
+            SemanticExpressionGraphRowConsumes(topology, row, right) { rows[right] = row; }
+        row = row + 1;
+    }
+    return rows;
+}

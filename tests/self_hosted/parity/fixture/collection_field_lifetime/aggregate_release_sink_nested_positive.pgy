@@ -23,7 +23,8 @@ func OwnedTables() -> SemanticAstExpressionFunctionTableFacts {
     ArrayPushOwnedString(names, "OwnedCallable");
     ArrayPushOwnedString(returns, "Void");
     ArrayPushOwnedString(params, "");
-    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+    let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(names);
+    return SemanticAstExpressionFunctionTableFacts(true, names, returns, params, callables);
 }
 
 func HolderFromTablesTwice(tables: SemanticAstExpressionFunctionTableFacts) -> TableHolder {

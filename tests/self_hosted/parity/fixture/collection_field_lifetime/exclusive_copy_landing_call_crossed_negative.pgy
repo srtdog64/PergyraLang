@@ -1,0 +1,27 @@
+// The callee's return carries `rows` into `facts.marks`. Growing the marks
+// taken out of `facts` retires the buffer `rows` still names, and the return
+// reads it.
+struct Facts {
+    rows: Array<String>;
+    marks: Array<String>;
+}
+
+func FactsSwap(rows: Array<String>, marks: Array<String>) -> Facts {
+    return Facts(marks, rows);
+}
+
+func Build() -> Int {
+    let rows: Array<String> = ["r"];
+    let marks: Array<String> = [];
+    let facts: Facts = FactsSwap(rows, marks);
+    let grown: Array<String> = facts.marks;
+    ArrayPush(grown, "m");
+    ArrayPush(grown, "n");
+    facts.marks = grown;
+    return StringLength(rows[0]) + ArrayLength(facts.marks);
+}
+
+func Main() -> Int {
+    Log(ToString(Build()));
+    return 0;
+}

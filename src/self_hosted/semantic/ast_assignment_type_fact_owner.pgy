@@ -22,6 +22,7 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
 import "ast_member_write_verdict_owner.pgy";
+import "env_value_owner.pgy";
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -115,14 +116,11 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
         let types: Array<String> = [];
         let modes: Array<String> = [];
         let environment_fact: String = "";
-        if !SemanticAstExpressionSeedEnumValues(
-            enum_facts, names, types, modes
-        ) { environment_fact = "SeedEnumValues"; }
+        if !SemanticAstEnumValueRowsReady(enum_facts) { environment_fact = "SeedEnumValues"; }
         else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(signatures, constructors, assignments.function_node_ids[i], names, types, modes) { environment_fact = "SeedOwnerFields"; }
         else if !SemanticAstExpressionSeedParameters(signatures, constructors, assignments.function_node_ids[i], names, types) { environment_fact = "SeedParameters"; }
         else if !SemanticAstExpressionSeedParameterModes(signatures, assignments.function_node_ids[i], modes) { environment_fact = "SeedParameterModes"; }
-        else if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types) { environment_fact = "SeedVisibleLocals"; }
-        else if !SemanticAstExpressionSeedVisibleLocalModes(artifact, locals, assignments.function_node_ids[i], assignments.node_ids[i], modes) { environment_fact = "SeedVisibleLocalModes"; }
+        else if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes) { environment_fact = "SeedVisibleLocals"; }
         else if !SemanticAstIterationSeedVisibleBindings(artifact, statements, iteration_types, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes) { environment_fact = "SeedIterationBindings"; }
         else if !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(artifact, statements, expression_surfaces, constructors, enum_facts, function_scopes, assignments.function_node_ids[i], assignments.node_ids[i], names, types, modes, function_tables) { environment_fact = "SeedMatchBindings"; }
         else if ArrayLength(names) != ArrayLength(modes) { environment_fact = "EnvironmentModeCount"; }
@@ -156,7 +154,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
             return SemanticAstAssignmentTypeStructuralError(artifact, "AssignmentTargetBinding");
         }
         let target_root: String = UnwrapOption(target_binding_name);
-        let target_binding_mode: String = EnvMode(names, modes, target_root);
+        let target_binding_mode: String = EnvValueMode(names, modes, enum_facts.value_scope, target_root);
         let expected: String = "";
         let target_type: String = "";
         let index_type: String = "";
@@ -164,7 +162,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
         let row_verified: Int = 0;
         let row_code: String = "";
         let row_message: String = "";
-        if !EnvContainsName(names, target_root) {
+        if !EnvValueContainsName(names, enum_facts.value_scope, target_root) {
             row_code = "undefined_symbol";
             row_message = SemanticError1(
                 "undefined_symbol", "name", target_root
@@ -173,7 +171,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
             target_type = SemanticExpressionGraphScalarTypeName(
                 expression_surfaces.expression_graph,
                 UnwrapOption(target_base_root), constructors, names, types,
-                function_tables.names, function_tables.returns
+                function_tables.callables, function_tables.returns, enum_facts.value_scope
             );
             if target_type == "Unknown" || target_type == "" {
                 row_code = "assignment_type_unresolved";
@@ -181,7 +179,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                     "assignment_type_unresolved",
                     "target", assignments.target_texts[i],
                     "root", target_root,
-                    "root_type", EnvLookup(names, types, target_root)
+                    "root_type", EnvValueLookup(names, types, enum_facts.value_scope, target_root)
                 );
             }
             expected = target_type;
@@ -189,7 +187,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                 let write: SemanticDiagnosticMessageFact = SemanticAstMemberWriteVerdict(
                     expression_surfaces.expression_graph, UnwrapOption(target_graph_root),
                     target_binding_mode, constructors, names, types,
-                    function_tables.names, function_tables.returns);
+                    function_tables.callables, function_tables.returns, enum_facts.value_scope);
                 if write.code != "" {
                     row_code = write.code;
                     row_message = SemanticDiagnosticMessageFactRender(write);
@@ -200,7 +198,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                     "ArraySet", target_root,
                     names.Slice(0, ArrayLength(names)),
                     types.Slice(0, ArrayLength(types)),
-                    modes.Slice(0, ArrayLength(modes)), false);
+                    modes.Slice(0, ArrayLength(modes)), false, enum_facts.value_scope);
                 if StringLength(mutation_error) > 0 { row_code = "value_param_collection_mutation"; row_message = mutation_error; }
             }
             if row_code == "" && assignments.target_is_indexed[i] == 1 {
@@ -219,7 +217,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         assignments.target_index_texts[i],
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, enum_facts, signatures,
-                        names, types, modes, function_tables.names,
+                        names, types, modes, function_tables.callables,
                         function_tables.returns, function_tables.params,
                         member_root_names, assignments.function_node_ids[i]
                     );
@@ -230,7 +228,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                     index_type = SemanticExpressionGraphScalarTypeName(
                         expression_surfaces.expression_graph,
                         UnwrapOption(index_root), constructors, names, types,
-                        function_tables.names, function_tables.returns
+                        function_tables.callables, function_tables.returns, enum_facts.value_scope
                     );
                 }
                 if row_code == "" && (!IsSome(element_type_opt) ||
@@ -265,7 +263,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         expression_surfaces.expression_graph,
                         UnwrapOption(value_root), constructors, enum_facts, signatures,
                         names, types, modes,
-                        function_tables.names, function_tables.returns,
+                        function_tables.callables, function_tables.returns,
                         function_tables.params,
                         member_root_names, assignments.function_node_ids[i]
                     );
@@ -281,13 +279,13 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                         if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
                             expression_surfaces.expression_graph,
                             UnwrapOption(value_root), expected, constructors,
-                            names, types, function_tables.names,
-                            function_tables.returns
+                            names, types, function_tables.callables,
+                            function_tables.returns, enum_facts.value_scope
                         ) || SemanticExpressionGraphSetLiteralMatchesDeclaredType(
                             expression_surfaces.expression_graph,
                             UnwrapOption(value_root), expected, constructors,
-                            names, types, function_tables.names,
-                            function_tables.returns
+                            names, types, function_tables.callables,
+                            function_tables.returns, enum_facts.value_scope
                         ) {
                             inferred = expected;
                         }

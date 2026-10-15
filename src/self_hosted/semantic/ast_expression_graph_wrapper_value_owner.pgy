@@ -66,9 +66,10 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
-    ref function_params: Array<String>
+    ref function_params: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphWrapperValueFact {
     let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, root_id
@@ -98,8 +99,8 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
         return SemanticExpressionGraphWrapperNotApplicable();
     }
     let name: String = UnwrapOption(callee_text);
-    if ArrayLength(function_names) != ArrayLength(function_returns) ||
-        ArrayLength(function_names) != ArrayLength(function_params) {
+    if ArrayLength(function_names.names) != ArrayLength(function_returns) ||
+        ArrayLength(function_names.names) != ArrayLength(function_params) {
         return SemanticExpressionGraphWrapperError(
             "ast_artifact_invalid",
             SemanticError1(
@@ -123,7 +124,7 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
             )
         );
     }
-    let signature_index: Option<Int> = SemanticCallableIndex(
+    let signature_index: Option<Int> = SemanticCallableIndexInTable(
         function_names, name
     );
     if !IsSome(signature_index) {
@@ -158,7 +159,7 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
     while i < actual_count {
         let actual: String = SemanticExpressionGraphScalarTypeName(
             graph, call.argument_nodes[i], constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
         let expected: String = SemanticDelimitedRangeText(
             signature_facts, signature_text, i

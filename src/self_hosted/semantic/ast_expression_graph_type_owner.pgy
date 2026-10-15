@@ -9,11 +9,11 @@ import "ast_expression_graph_node_view_owner.pgy";
 func SemanticExpressionGraphStructLiteralTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
     if !graph.ok ||
-        ArrayLength(function_names) != ArrayLength(function_returns) {
+        ArrayLength(function_names.names) != ArrayLength(function_returns) {
         return None;
     }
     let literal: SemanticStructLiteralView =
@@ -32,8 +32,8 @@ func SemanticExpressionGraphStructLiteralTypeName(
     }
     let name: String = UnwrapOption(type_name);
     let i: Int = 0;
-    while i < ArrayLength(function_names) {
-        if function_names[i] == name && function_returns[i] == name {
+    while i < ArrayLength(function_names.names) {
+        if function_names.names[i] == name && function_returns[i] == name {
             return Some(name);
         }
         i = i + 1;
@@ -44,7 +44,7 @@ func SemanticExpressionGraphStructLiteralTypeName(
 func SemanticExpressionGraphIntrinsicTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>
 ) -> Option<String> {
     let direct: Option<String> =
@@ -99,8 +99,9 @@ func SemanticExpressionGraphIntrinsicTypeContractReady() -> Bool {
     );
     let names: Array<String> = ["Pair"];
     let returns: Array<String> = ["Pair"];
+    let names_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(names);
     let type_name: Option<String> = SemanticExpressionGraphIntrinsicTypeName(
-        graph, 1, names, returns
+        graph, 1, names_callables, returns
     );
     let option_kinds: Array<Int> = [
         AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
@@ -126,12 +127,13 @@ func SemanticExpressionGraphIntrinsicTypeContractReady() -> Bool {
         );
     let option_type: Option<String> =
         SemanticExpressionGraphIntrinsicTypeName(
-            option_graph, 4, names, returns
+            option_graph, 4, names_callables, returns
         );
     let missing: Array<String> = ["Other"];
+    let missing_callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(missing);
     return IsSome(type_name) && UnwrapOption(type_name) == "Pair" &&
         IsSome(option_type) && UnwrapOption(option_type) == "Option<Pair>" &&
         !IsSome(SemanticExpressionGraphIntrinsicTypeName(
-            graph, 1, missing, returns
+            graph, 1, missing_callables, returns
         ));
 }

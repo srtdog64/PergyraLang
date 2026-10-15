@@ -207,6 +207,8 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     }
     let target_names: Array<String> = graph.arena.call_target_names;
     let target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    let input_shape_ready: Bool = graph.arena.shape_ready;
+    let input_rows: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     let valid: Bool = true;
     let member_names: Array<String> = [];
     let signature_index: Int = 0;
@@ -308,13 +310,11 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
         }
         node_id = node_id + 1;
     }
-    let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopologyWithIdentities(
-        graph.arena.topology, graph.arena.node_texts,
-        target_kinds, target_names, graph.arena.call_return_type_names,
-        graph.arena.identities,
-        graph.arena.place_kinds
-    );
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopologyWithIdentities(
+        graph.arena.topology, graph.arena.node_texts, target_kinds, target_names,
+        graph.arena.call_return_type_names, graph.arena.identities, graph.arena.place_kinds);
+    // Same topology and node texts as the input: only call targets changed.
+    arena.shape_ready = input_shape_ready && SemanticExpressionGraphArenaShapeReady(arena, input_rows);
     if failure_node_id >= 0 {
         let failure_callee_id: Int = graph.arena.topology.left_children[failure_node_id];
         failure_lane = Concat(failure_lane, Concat(

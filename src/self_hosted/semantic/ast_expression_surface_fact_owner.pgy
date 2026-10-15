@@ -342,17 +342,28 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     facts: SemanticAstExpressionSurfaceFacts,
     graph: SemanticExpressionGraphFacts
 ) -> SemanticAstExpressionSurfaceFacts {
+    // The surface graph is finished here. An arena without the shape mark is
+    // checked now and carries the mark, so later readiness calls check only
+    // overlays; a sealed arena also carries each node's first consumer.
+    let sealed: SemanticExpressionGraphFacts = graph;
+    if !sealed.arena.shape_ready {
+        sealed.arena.shape_ready = SemanticExpressionGraphArenaShapeReady(sealed.arena, 0);
+    }
+    if sealed.arena.shape_ready && ArrayLength(sealed.arena.consumer_rows) !=
+        SemanticExpressionGraphArenaNodeCount(sealed.arena) {
+        sealed.arena.consumer_rows = SemanticExpressionGraphConsumerRows(sealed.arena.topology);
+    }
     let failure_node_id: Int = facts.failure_node_id;
     let failure_lane: String = facts.failure_lane;
     let valid: Bool = facts.ok &&
         SemanticExpressionGraphFactsReady(
-            graph, SemanticAstExpressionSurfaceCount(facts) * 3
+            sealed, SemanticAstExpressionSurfaceCount(facts) * 3
         );
     if facts.ok && !valid && failure_lane == "" {
         failure_lane = Concat(
             "graph_shape|",
             SemanticExpressionGraphFactsReadinessSummary(
-                graph, SemanticAstExpressionSurfaceCount(facts) * 3
+                sealed, SemanticAstExpressionSurfaceCount(facts) * 3
             )
         );
     }
@@ -372,21 +383,21 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
             );
         let atom_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
-                graph, i, AstExpressionLaneAtom()
+                sealed, i, AstExpressionLaneAtom()
             );
         let value_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
-                graph, i, AstExpressionLaneValue()
+                sealed, i, AstExpressionLaneValue()
             );
         let auxiliary_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
-                graph, i, AstExpressionLaneAuxiliary()
+                sealed, i, AstExpressionLaneAuxiliary()
         );
         if migrated_atom {
             migrated_root_count = migrated_root_count + 1;
             if !atom_view.ok ||
                 !SemanticAstExpressionGraphRootSpellingMatches(
-                    graph, atom_view.root_id, facts.normalized_atoms[i]
+                    sealed, atom_view.root_id, facts.normalized_atoms[i]
                 ) {
                 if failure_lane == "" {
                     failure_node_id = node_id;
@@ -407,7 +418,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
             migrated_root_count = migrated_root_count + 1;
             if !value_view.ok ||
                 !SemanticAstExpressionGraphRootSpellingMatches(
-                    graph, value_view.root_id, facts.normalized_values[i]
+                    sealed, value_view.root_id, facts.normalized_values[i]
                 ) {
                 if failure_lane == "" {
                     failure_node_id = node_id;
@@ -426,7 +437,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
             migrated_root_count = migrated_root_count + 1;
             if !auxiliary_view.ok ||
                 !SemanticAstExpressionGraphRootSpellingMatches(
-                    graph, auxiliary_view.root_id,
+                    sealed, auxiliary_view.root_id,
                     facts.normalized_auxiliary_values[i]
                 ) {
                 if failure_lane == "" {
@@ -445,7 +456,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         i = i + 1;
     }
     if migrated_root_count == 0 &&
-        SemanticExpressionGraphArenaNodeCount(graph.arena) != 0 {
+        SemanticExpressionGraphArenaNodeCount(sealed.arena) != 0 {
         if failure_lane == "" { failure_lane = "orphan_graph"; }
         valid = false;
     }
@@ -455,7 +466,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         facts.has_atoms, facts.atoms, facts.has_values, facts.values,
         facts.has_auxiliary_values, facts.auxiliary_values,
         facts.normalized_atoms, facts.normalized_values,
-        facts.normalized_auxiliary_values, facts.operator_rows, graph
+        facts.normalized_auxiliary_values, facts.operator_rows, sealed
     );
 }
 

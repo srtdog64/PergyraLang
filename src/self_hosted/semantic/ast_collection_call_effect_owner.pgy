@@ -100,7 +100,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                     if effect.constructor_field.field_syntax_id > 0 && SemanticAstCollectionOwnershipIsStringArray(effect.constructor_field.field_type_name) {
                         let input_binding: Int = -1;
                         if local_array { input_binding = binding.row; }
-                        if !SemanticAstCollectionConstructorFieldInputRecord(locals, definitions, surfaces, slot, node, call,
+                        if !SemanticAstCollectionConstructorFieldInputRecord(artifact, locals, inferred_types, definitions, surfaces, slot, node, call,
                             effect.constructor_field, input_binding, current, constructor_inputs) {
                             return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention);
                         }

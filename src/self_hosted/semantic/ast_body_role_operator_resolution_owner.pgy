@@ -132,7 +132,7 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                                 SemanticRoleOperatorResolutionForNode(
                                     graph, node_id, analysis.constructors,
                                     analysis.roles, analysis.signatures,
-                                    names, types, function_tables.names,
+                                    names, types, function_tables.callables,
                                     function_tables.returns
                                 );
                             if !resolved.ok {

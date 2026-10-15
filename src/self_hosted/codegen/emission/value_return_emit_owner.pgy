@@ -8,6 +8,7 @@ import "expr_semantic_graph_emit_owner.pgy";
 import "option_value_emit_owner.pgy";
 import "../input/semantic_body_type_codegen_view_owner.pgy";
 import "../../semantic/ast_collection_exclusive_value_restoration_owner.pgy";
+import "../../semantic/ast_collection_focus_recovery_schema_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 
 // The semantic exit owner selects and orders groups. Names below only render
@@ -33,7 +34,9 @@ func EmitAdmittedFocusRecovery(
         let end: Int = active + body_types.focus_recovery.exit_part_counts[row];
         while active < end {
             let part: Int = body_types.focus_recovery.active_part_indices[active];
-            let field: String = CompilerSymbolCFieldName(body_types.focus_recovery.part_field_names[part]);
+            // A copy of the row: the symbol owner may hand its argument back.
+            let field_name: String = Concat("", body_types.focus_recovery.part_field_names[part]);
+            let field: String = CompilerSymbolCFieldName(field_name);
             let local_name: String = CompilerSymbolCBindingName(body_types.focus_local_names[part]);
             output = Concat(output, Concat(pad, Concat(root, Concat(".", Concat(field,
                 Concat(" = ", Concat(local_name, ";\n")))))));

@@ -137,7 +137,6 @@ func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, outpu
             CompilerArtifactWrite(output, fields[f]);
             f = f + 1;
         }
-        ArrayDropOwnedStrings(fields);
         CompilerArtifactWrite(output, ",\"compensations\":[");
         let c: Int = plan.steps.compensation_starts[row];
         let end: Int = c + plan.steps.compensation_counts[row];

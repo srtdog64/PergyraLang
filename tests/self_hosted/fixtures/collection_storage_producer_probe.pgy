@@ -81,7 +81,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if slot < 0 || !edge.ok || argument_surface < 0 { return false; }
     let current: Array<Int> = [];
     let ownership: Array<Int> = []; let dispositions: Array<Int> = []; let origins: Array<Int> = [];
-    let transitions: Array<Int> = []; let source_ids: Array<Int> = [];
+    let transitions: Array<Int> = []; let source_ids: Array<Int> = []; let origin_ids: Array<Int> = [];
     let retained: Array<Bool> = [];
     row = 0;
     while row < ArrayLength(definitions.syntax_ids) { ArrayPush(retained, false); row = row + 1; }
@@ -89,7 +89,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     while row < definitions.local_count {
         ArrayPush(current, -1); ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
         ArrayPush(dispositions, SemanticAstCollectionDispositionLive()); ArrayPush(origins, SemanticAstCollectionOriginUnknown());
-        ArrayPush(transitions, SemanticAstCollectionTransitionUntracked()); ArrayPush(source_ids, 0); row = row + 1;
+        ArrayPush(transitions, SemanticAstCollectionTransitionUntracked()); ArrayPush(source_ids, 0); ArrayPush(origin_ids, 0); row = row + 1;
     }
     let requirements: HashMap<String, Int> = MapNew();
     let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
@@ -115,7 +115,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
         ok = SemanticAstCollectionDefinitionStorageSource(storage, definitions, unknown, current[unknown]) == 0;
     }
     let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
-        artifact, locals, surfaces, definitions, storage, slot, current, effects, ownership, dispositions, origins, transitions, source_ids);
+        artifact, locals, surfaces, definitions, storage, slot, current, effects, ownership, dispositions, origins, origin_ids, transitions, source_ids);
     if mode == 90 {
         let after: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,

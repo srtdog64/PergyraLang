@@ -4,7 +4,7 @@
 import "ast_assignment_fact_owner.pgy";
 import "ast_collection_member_capture_source_owner.pgy";
 import "ast_collection_member_capture_site_owner.pgy";
-import "ast_collection_member_read_block_transition_owner.pgy";
+import "ast_expression_graph_enum_payload_owner.pgy";
 
 struct SemanticAstCollectionMemberCaptureWitness {
     ready: Bool;
@@ -28,8 +28,7 @@ func SemanticAstCollectionMemberCaptureObligationAt(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     ref statements: SemanticAstStatementFacts,
     slot: Int, node: Int, root: Int, witness: SemanticAstCollectionMemberCaptureWitness,
-    inout readonly_origins: Array<Int>, inout blocked: HashMap<String, Int>,
-    inout read_hazards: SemanticAstCollectionMemberReadHazardSites
+    inout readonly_origins: Array<Int>, inout blocked: HashMap<String, Int>
 ) -> SemanticAstCollectionMemberCaptureWitness {
     let site: SemanticAstCollectionMemberCaptureSite = SemanticAstCollectionMemberCaptureSiteForNode(
         artifact, signatures, constructors, locals, inferred_types, surfaces, slot, node, root);
@@ -65,9 +64,18 @@ func SemanticAstCollectionMemberCaptureObligationAt(
             }
         }
     }
+    // A match binding's payload `let` (the round trip's
+    // `subject.Variant._N`) is part of its subject, as a source match binding
+    // is: it records the readonly origin for the binding's own later stores,
+    // and is no store itself.
+    if destination > 0 && destination == syntax && site.expression_id == root &&
+        SemanticExpressionGraphEnumPayloadShapeFromGraph(surfaces.expression_graph, site.expression_id).ok {
+        if !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, destination) { ArrayPush(readonly_origins, destination); }
+        return witness;
+    }
     if destination > 0 {
         if !SemanticAstCollectionMemberReadonlyCaptureContains(readonly_origins, destination) { ArrayPush(readonly_origins, destination); }
-        SemanticAstCollectionMemberReadBlockTransition(artifact, blocked, read_hazards, destination, 0);
+        MapSet(blocked, ToString(destination), 1);
     }
     // A supported store with no exact target (e.g. multi-binding) is still a
     // semantic readonly escape, never artifact corruption or a fresh owner.

@@ -1,0 +1,56 @@
+struct FocusMapRows
+{
+    values: HashMap<String, Int>;
+    paths: Array<Int>;
+}
+func CountPaths(rows: FocusMapRows) -> Int
+{
+    return ArrayLength(rows.paths);
+}
+func ReadMap(values: HashMap<String, Int>, key: String) -> Int
+{
+    if !MapHas(values, key) { return 0; }
+    return MapGet(values, key);
+}
+func Path(inout rows: FocusMapRows) -> Void
+{
+    var paths: Array<Int> = rows.paths;
+    ArrayPush(paths, 9);
+    rows.paths = paths;
+}
+func Populate(inout rows: FocusMapRows, shouldReturn: Bool) -> Int
+{
+    var oldHolder: HashMap<String, Int> = rows.values;
+    if shouldReturn
+    {
+        MapSet(oldHolder, "early", 99);
+        let completedCount: Int = MapSize(oldHolder);
+        rows.values = oldHolder;
+        return completedCount;
+    }
+    var values: HashMap<String, Int> = rows.values;
+    let priorValue: Int = ReadMap(values, "seed");
+    let priorPaths: Int = CountPaths(rows);
+    Path(rows);
+    var index: Int = 0;
+    while index < 40
+    {
+        MapSet(values, ToString(index), index);
+        index = index + 1;
+    }
+    MapRemove(values, "0");
+    let completedCount: Int = MapSize(values);
+    rows.values = values;
+    return completedCount + priorPaths + priorValue;
+}
+
+func Main() -> Void
+{
+    var values: HashMap<String, Int> = MapNew();
+    MapSet(values, "seed", 7);
+    var rows: FocusMapRows = FocusMapRows(values, [1]);
+    Log(Populate(rows, false));
+    Log(MapHas(rows.values, "0"));
+    Log(Populate(rows, true));
+    Log(ArrayLength(rows.paths));
+}

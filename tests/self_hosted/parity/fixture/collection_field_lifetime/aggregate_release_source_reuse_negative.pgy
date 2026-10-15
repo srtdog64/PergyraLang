@@ -5,9 +5,10 @@ func Main() -> Void {
     let names: Array<String> = Clone(seed);
     let returns: Array<String> = [];
     let params: Array<String> = [];
+    let callables: SemanticCallableNameTable = SemanticCallableNameTableFromNames(names);
     let facts: SemanticAstExpressionFunctionTableFacts =
         SemanticAstExpressionFunctionTableFacts(
-            true, names, returns, params);
+            true, names, returns, params, callables);
     Log(names[0]);
     SemanticAstExpressionFunctionTableFactsRelease(facts);
 }

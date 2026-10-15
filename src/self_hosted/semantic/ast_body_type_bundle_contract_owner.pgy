@@ -73,8 +73,8 @@ func SemanticAstBodyTypeBundleCallReturnPartitionContractReady() -> Bool {
     if !direct_ok || !generic_ok || !structural_absent || first_call < 0 {
         return false;
     }
-    let direct_row: Option<Int> = SemanticCallableIndex(
-        analysis.function_tables.names, "Direct"
+    let direct_row: Option<Int> = SemanticCallableIndexInTable(
+        analysis.function_tables.callables, "Direct"
     );
     if !IsSome(direct_row) { return false; }
     analysis.function_tables.returns[UnwrapOption(direct_row)] = "Unknown";

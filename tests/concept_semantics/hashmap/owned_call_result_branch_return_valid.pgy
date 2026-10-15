@@ -1,0 +1,30 @@
+// An owned call result received in a branch, grown and returned. Its MIR row
+// names the callee whose owned result it holds, so the reader can prove
+// the callee returns Array<String>.
+struct Count { value: Int; }
+
+func Children(text: String, count: Int) -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, text);
+    return rows;
+}
+
+func Shape(text: String) -> Array<String> {
+    let n: Int = StringLength(text);
+    if n > 0 {
+        let shape: Array<String> = Children(text, 1);
+        if ArrayLength(shape) >= 1 {
+            ArrayPushOwnedString(shape, text);
+        }
+        return shape;
+    }
+    let leaf: Array<String> = [];
+    ArrayPushOwnedString(leaf, text);
+    return leaf;
+}
+
+func Main() -> Int {
+    let count: Count = Count(ArrayLength(Shape("a")));
+    Log(ToString(count.value));
+    return 0;
+}

@@ -1,8 +1,18 @@
-func Grow(inout source: HashMap<String, Int>) -> Void { MapSet(source, "grow", 1); }
-func Main() -> Int {
-    let source: HashMap<String, Int> = MapNew();
+func Grow(inout source: HashMap<String, Int>) -> Void
+{
+    var index: Int = 0;
+    while index < 33
+    {
+        MapSet(source, ToString(index), index);
+        index = index + 1;
+    }
+}
+
+func Main() -> Void
+{
+    var source: HashMap<String, Int> = MapNew();
+    MapSet(source, "seed", 7);
     let observed: HashMap<String, Int> = source;
     Grow(source);
-    Log(MapHas(observed, "old"));
-    return 0;
+    Log(MapHas(observed, "seed"));
 }

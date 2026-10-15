@@ -18,8 +18,12 @@ src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy|800
 # Grown past the 600 stage default while the bootstrap red hid this gate;
 # pinned at the closure checkpoint size until each owner is split.
 src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy|710
-src/self_hosted/semantic/ast_expression_environment_owner.pgy|680
-src/self_hosted/semantic/ast_expression_verdict_owner.pgy|614
+# The enum value scope joined every scalar-type projection (P0 v16 candidate);
+# pinned at that size until the scalar projection splits from the verdict.
+src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy|608
+src/self_hosted/semantic/ast_expression_environment_owner.pgy|629
+src/self_hosted/semantic/ast_expression_verdict_owner.pgy|613
 src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy|615
-src/self_hosted/semantic/ast_signature_fact_owner.pgy|615
+# +4 for the canonical declared-name index (import, two fields, its fill).
+src/self_hosted/semantic/ast_signature_fact_owner.pgy|619
 src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy|677

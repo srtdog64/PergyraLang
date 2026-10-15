@@ -1,0 +1,54 @@
+// Lexical scope visibility over the typed AST parent chain.
+//
+// A scope is visible from a use node when the bounded parent walk from that
+// node reaches it. The walk is bounded by the arena's node count.
+import "../hir/typed_ast_arena_owner.pgy";
+
+func SemanticAstExpressionScopeVisible(
+    arena: AstArena,
+    scope_node_id: Int,
+    use_node_id: Int
+) -> Bool {
+    let cursor: Option<Int> = Some(use_node_id);
+    let traversed: Int = 0;
+    while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
+        let node_id: Int = UnwrapOption(cursor);
+        if node_id == scope_node_id {
+            return true;
+        }
+        cursor = TypedAstArenaParentId(arena, node_id);
+        traversed = traversed + 1;
+    }
+    return false;
+}
+
+// The nodes SemanticAstExpressionScopeVisible visits from one use node, in
+// order and under the same bound, for callers that test many scopes there.
+func SemanticAstExpressionScopeChain(
+    arena: AstArena,
+    use_node_id: Int
+) -> Array<Int> {
+    let chain: Array<Int> = [];
+    let cursor: Option<Int> = Some(use_node_id);
+    let limit: Int = TypedAstArenaNodeCount(arena);
+    while IsSome(cursor) && ArrayLength(chain) < limit {
+        let node_id: Int = UnwrapOption(cursor);
+        ArrayPush(chain, node_id);
+        cursor = TypedAstArenaParentId(arena, node_id);
+    }
+    return chain;
+}
+
+func SemanticAstExpressionScopeChainContains(
+    ref chain: Array<Int>,
+    scope_node_id: Int
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(chain) {
+        if chain[i] == scope_node_id {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}

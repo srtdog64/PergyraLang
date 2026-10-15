@@ -15,12 +15,28 @@ func ParserCharAt(s: String, i: Int) -> String {
     return CharAtN(s, n, i);
 }
 
+// The same read for a caller that already holds the content's extent.
+func ParserCharAtWithin(s: String, s_extent: Int, i: Int) -> String {
+    if i < 0 || i >= s_extent {
+        return "";
+    }
+    return CharAtN(s, s_extent, i);
+}
+
 // Read an identifier (sequence of alphanum/underscore). Returns the
 // identifier text; advances the cursor by storing in an out-array of 1.
 func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
+    return ReadIdentWithin(content, n, start, cursor_out);
+}
+
+// The same read for a caller that already holds the content's extent.
+func ReadIdentWithin(
+    content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
+) -> String {
     let i: Int = start;
-    while i < n && SourceByteIsAlphaNum(SourceByteAt(content, n, n, i)) {
+    while i < content_extent &&
+        SourceByteIsAlphaNum(SourceByteAt(content, content_extent, content_extent, i)) {
         i = i + 1;
     }
     ArraySet(cursor_out, 0, i);
@@ -31,17 +47,26 @@ func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> Str
 // is not a word char, so `else` matches but `elsewhere` does not.
 func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
     let n: Int = StringLength(content);
+    return MatchKeywordWithin(content, n, i, kw);
+}
+
+// The same match for a caller that already holds the content's extent, so a
+// scan over every offset does not measure the whole content at each one.
+func MatchKeywordWithin(
+    content: String, content_extent: Int, i: Int, kw: String
+) -> Bool {
     let kl: Int = StringLength(kw);
-    if i + kl > n {
+    if i + kl > content_extent {
         return false;
     }
-    if !SubEqualsWithLen(content, n, i, kl, kw) {
+    if !SubEqualsWithLen(content, content_extent, i, kl, kw) {
         return false;
     }
-    if i + kl == n {
+    if i + kl == content_extent {
         return true;
     }
-    return !SourceByteIsAlphaNum(SourceByteAt(content, n, n, i + kl));
+    return !SourceByteIsAlphaNum(
+        SourceByteAt(content, content_extent, content_extent, i + kl));
 }
 
 // Parser owners select language words by registry identity. The spelling
@@ -53,6 +78,12 @@ func MatchLanguageWord(
     id: LanguageWordId
 ) -> Bool {
     return MatchKeyword(content, i, LanguageWordSpelling(id));
+}
+
+func MatchLanguageWordWithin(
+    content: String, content_extent: Int, i: Int, id: LanguageWordId
+) -> Bool {
+    return MatchKeywordWithin(content, content_extent, i, LanguageWordSpelling(id));
 }
 
 func LanguageWordEnd(start: Int, id: LanguageWordId) -> Int {

@@ -1,12 +1,14 @@
 // Ordered participant/value environment rows owned by one intent signature.
 import "ast_intent_signature_fact_owner.pgy";
+import "env_value_owner.pgy";
 
 func SemanticAstIntentExpressionSeedParameters(
     ref facts: SemanticAstIntentSignatureFacts,
     intent_node_id: Int,
     inout names: Array<String>,
     inout types: Array<String>,
-    inout modes: Array<String>
+    inout modes: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> Bool {
     let intent_index: Int = -1;
     let i: Int = 0;
@@ -30,6 +32,8 @@ func SemanticAstIntentExpressionSeedParameters(
             if names[prior] == facts.param_names[row] { return false; }
             prior = prior + 1;
         }
+        // A payload-free enum value in scope is a name the parameter would hide.
+        if EnvValueRow(enum_values, facts.param_names[row]) >= 0 { return false; }
         ArrayPushOwnedString(names, facts.param_names[row]);
         ArrayPushOwnedString(types, facts.param_types[row]);
         if facts.param_is_values[row] {

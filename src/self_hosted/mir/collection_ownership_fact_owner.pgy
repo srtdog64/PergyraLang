@@ -4,6 +4,7 @@
 // only validate the typed inventory; they are never the lookup authority.
 
 import "../semantic/ast_collection_ownership_verdict_owner.pgy";
+import "collection_ownership_state_table_owner.pgy";
 
 struct SelfMirCollectionOwnershipFactRows {
     routine_starts: Array<Int>;
@@ -59,7 +60,10 @@ func SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
     );
 }
 
+// Each name is the state's own; a value outside the vocabulary has none, so
+// no row can carry it under another state's name.
 func SelfMirCollectionOwnershipName(value: Int) -> String {
+    if value == SemanticAstCollectionOwnershipUnknown() { return "unknown"; }
     if value == SemanticAstCollectionOwnershipBorrowedElements() {
         return "borrowed-elements";
     }
@@ -69,17 +73,20 @@ func SelfMirCollectionOwnershipName(value: Int) -> String {
     if value == SemanticAstCollectionOwnershipMapKeysSnapshot() {
         return "map-keys-snapshot";
     }
-    return "unknown";
+    if value == SemanticAstCollectionOwnershipRetired() { return "retired"; }
+    return "";
 }
 
 func SelfMirCollectionDispositionName(value: Int) -> String {
     if value == SemanticAstCollectionDispositionRetired() {
         return "retired";
     }
-    return "live";
+    if value == SemanticAstCollectionDispositionLive() { return "live"; }
+    return "";
 }
 
 func SelfMirCollectionOriginName(value: Int) -> String {
+    if value == SemanticAstCollectionOriginUnknown() { return "unknown"; }
     if value == SemanticAstCollectionOriginBorrowedLiteral() {
         return "borrowed-literal";
     }
@@ -95,7 +102,13 @@ func SelfMirCollectionOriginName(value: Int) -> String {
     if value == SemanticAstCollectionOriginCallResult() {
         return "call-result";
     }
-    return "unknown";
+    if value == SemanticAstCollectionOriginFormalStringTransfer() {
+        return "formal-string-transfer";
+    }
+    if value == SemanticAstCollectionOriginLocalStringTransfer() {
+        return "local-string-transfer";
+    }
+    return "";
 }
 
 func SelfMirCollectionOwnershipFactRowsReady(
@@ -302,35 +315,31 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                 }
                 prior = prior + 1;
             }
+            let origin_name: String = SelfMirCollectionOriginName(origin);
+            let ownership_name: String = SelfMirCollectionOwnershipName(ownership);
+            // The state table owns which ownership each origin reaches; here
+            // each origin's source identity is checked.
             let origin_consistent: Bool =
-                (origin == SemanticAstCollectionOriginUnknown() &&
-                    ownership == SemanticAstCollectionOwnershipUnknown() &&
-                    source_id == 0) ||
-                (origin == SemanticAstCollectionOriginBorrowedLiteral() &&
-                    ownership ==
-                        SemanticAstCollectionOwnershipBorrowedElements() &&
-                    source_id == 0) ||
-                (origin == SemanticAstCollectionOriginMapKeys() &&
-                    ownership ==
-                        SemanticAstCollectionOwnershipMapKeysSnapshot() &&
-                    source_id == 0) ||
-                (origin == SemanticAstCollectionOriginEmptyLiteral() &&
-                    ownership == SemanticAstCollectionOwnershipUnknown() &&
+                MirCollectionOwnershipStateAdmitted(origin_name, ownership_name,
+                    SelfMirCollectionDispositionName(disposition)) &&
+                (((origin == SemanticAstCollectionOriginUnknown() ||
+                   origin == SemanticAstCollectionOriginBorrowedLiteral() ||
+                   origin == SemanticAstCollectionOriginMapKeys() ||
+                   origin == SemanticAstCollectionOriginEmptyLiteral() ||
+                   origin == SemanticAstCollectionOriginClone() ||
+                   origin == SemanticAstCollectionOriginCallResult()) &&
                     source_id == 0) ||
                 (origin == SemanticAstCollectionOriginMemberMove() &&
-                    ownership == SemanticAstCollectionOwnershipUnknown() &&
                     source_id > 0 && source_id != binding_id &&
                     SelfMirCollectionOwnershipMemberSourceReady(
                         constructors, inventory_types,
                         inventory_binding_syntax_ids,
                         parameter_types, parameter_binding_syntax_ids,
                         source_id, facts.origin_syntax_ids[row])) ||
-                (origin == SemanticAstCollectionOriginClone() &&
-                    ownership == SemanticAstCollectionOwnershipOwnedElements() &&
-                    source_id == 0) ||
-                (origin == SemanticAstCollectionOriginCallResult() &&
-                    ownership == SemanticAstCollectionOwnershipUnknown() &&
-                    source_id == 0) ||
+                ((origin == SemanticAstCollectionOriginFormalStringTransfer() ||
+                  origin == SemanticAstCollectionOriginLocalStringTransfer()) &&
+                    source_id > 0 && source_id != binding_id &&
+                    source_id == facts.origin_syntax_ids[row]) ||
                 (origin == SemanticAstCollectionOriginBinding() &&
                     source_id > 0 && source_id != binding_id &&
                     source_row >= 0 &&
@@ -338,19 +347,12 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                     source_fact_row >= 0 &&
                     ownerships[source_fact_row] == ownership &&
                     dispositions[source_fact_row] ==
-                        SemanticAstCollectionDispositionRetired());
+                        SemanticAstCollectionDispositionRetired()));
             if binding_id <= 0 || facts.origin_syntax_ids[row] <= 0 ||
                 inventory_row < 0 ||
                 inventory_types[inventory_row] != "Array<String>" ||
-                ownership < SemanticAstCollectionOwnershipUnknown() ||
-                ownership > SemanticAstCollectionOwnershipMapKeysSnapshot() ||
-                (disposition != SemanticAstCollectionDispositionLive() &&
-                 disposition != SemanticAstCollectionDispositionRetired()) ||
                 (disposition == SemanticAstCollectionDispositionRetired() &&
-                 origin != SemanticAstCollectionOriginMemberMove() &&
-                 ownership != SemanticAstCollectionOwnershipOwnedElements() &&
-                 ownership !=
-                    SemanticAstCollectionOwnershipMapKeysSnapshot() &&
+                 !MirCollectionOwnershipRetiredWithoutDestination(origin_name, ownership_name) &&
                  !SelfMirCollectionOwnershipRetiredSourceHasDestination(
                     facts, function_syntax_id, binding_id, ownership)) ||
                 !origin_consistent || duplicate {

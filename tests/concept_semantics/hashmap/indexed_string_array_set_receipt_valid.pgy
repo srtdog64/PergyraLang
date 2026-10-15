@@ -1,0 +1,13 @@
+// An indexed assignment into an empty-literal Array<String> is a shallow
+// mutation. Its collection ownership receipt attaches to the assignment's own
+// MIR instruction by source statement identity.
+struct Capture { result: String; }
+
+func Main() -> Int {
+    let previous: Array<String> = [];
+    ArrayPush(previous, "");
+    let capture: Capture = Capture("x");
+    previous[0] = capture.result;
+    Log(previous[0]);
+    return 0;
+}

@@ -3,6 +3,7 @@
 // not acquire an argument-to-return alias by inference here.
 import "ast_collection_member_capture_provenance_owner.pgy";
 import "tuple_type_shape_owner.pgy";
+import "ast_collection_member_path_type_owner.pgy";
 
 func SemanticAstCollectionMemberCaptureSourceForNode(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -30,8 +31,9 @@ func SemanticAstCollectionMemberCaptureSourceForNode(
     // The body environment also types implicit receiver fields. A scalar
     // field needs no aggregate backing declaration; an unknown type does.
     if spine.leaf_node >= ArrayLength(resolved_leaf_types) { return invalid; }
-    let captured_type: Option<String> = SemanticExpressionGraphValueReceiverProjectedTypeName(
-        surfaces.expression_graph, node, constructors, spine.depth, Concat("", resolved_leaf_types[spine.leaf_node]));
+    let captured_type: Option<String> = SemanticAstCollectionMemberPathTypeName(
+        locals, inferred_types, surfaces, constructors, syntax_id, node, spine.depth,
+        Concat("", resolved_leaf_types[spine.leaf_node]));
     if !IsSome(captured_type) { return invalid; }
     let aggregate: Bool = SemanticAstCollectionMemberTypeIsAggregate(constructors, UnwrapOption(captured_type));
     if !aggregate && destructure {

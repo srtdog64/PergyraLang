@@ -235,11 +235,21 @@ func AstExpressionOwnerKindKnown(kind: Int) -> Bool {
 }
 
 func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
+    return AstExpressionArenaRowsReady(arena, 0);
+}
+
+// Rows from `start` on. Rows below it must be rows that already passed, unchanged;
+// each row reads only rows below it.
+func AstExpressionArenaRowsReady(
+    ref arena: AstExpressionArena,
+    start: Int
+) -> Bool {
     let count: Int = AstExpressionArenaNodeCount(arena);
-    if !ProgramExpressionGraphStorageRowsAligned(arena) {
+    if !ProgramExpressionGraphStorageRowsAligned(arena) ||
+        start < 0 || start > count {
         return false;
     }
-    let i: Int = 0;
+    let i: Int = start;
     while i < count {
         let kind: Int = arena.node_kinds[i];
         let left: Int = arena.left_children[i];

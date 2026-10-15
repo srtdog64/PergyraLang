@@ -10,6 +10,7 @@ import "ast_expression_graph_view_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "ast_expression_storage_place_identity_owner.pgy";
+import "env_value_owner.pgy";
 func SemanticCompilerRetireArrayStorageCallerReady(
     signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int
@@ -143,7 +144,8 @@ func SemanticExpressionGraphArrayStorageMutationFact(
 func SemanticExpressionGraphCollectionReceiverMutationFact(
     callee: String, ref graph: SemanticExpressionGraphFacts,
     receiver_id: Int, names: Slice<String>, types: Slice<String>,
-    modes: Slice<String>, internal_caller_ready: Bool
+    modes: Slice<String>, internal_caller_ready: Bool,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphCollectionMutationFact {
     if ArrayLength(names) != ArrayLength(types) ||
         ArrayLength(names) != ArrayLength(modes) {
@@ -165,7 +167,7 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
         } else if UnwrapOption(kind) == AstExpressionNodeLeaf() &&
             IsIdentText(UnwrapOption(text)) {
             let receiver: String = UnwrapOption(text);
-            let root_mode: String = EnvSliceMode(names, modes, receiver);
+            let root_mode: String = EnvValueSliceMode(names, modes, enum_values, receiver);
             if node != receiver_id &&
                 (root_mode == "ref_param" || root_mode == "default_param") {
                 let mode_name: String = "ref";
@@ -176,7 +178,7 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
                         "param", receiver, "mode", mode_name));
             }
             let message: String = SemanticCollectionMutationError(
-                callee, receiver, names, types, modes, internal_caller_ready);
+                callee, receiver, names, types, modes, internal_caller_ready, enum_values);
             if message != "" {
                 return SemanticExpressionGraphCollectionMutationError(
                     "value_param_collection_mutation", message);
@@ -197,7 +199,8 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
     names: Slice<String>,
     types: Slice<String>,
     modes: Slice<String>,
-    internal_caller_ready: Bool
+    internal_caller_ready: Bool,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphCollectionMutationFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
@@ -292,7 +295,7 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
         );
     }
     return SemanticExpressionGraphCollectionReceiverMutationFact(
-        callee, graph, receiver_node, names, types, modes, internal_caller_ready
+        callee, graph, receiver_node, names, types, modes, internal_caller_ready, enum_values
     );
 }
 

@@ -203,19 +203,30 @@ func TypeEnvSemanticValueType(
     return LookupKindType(env, source_name, "type");
 }
 
+// The `want`th comma-separated item. A comma inside a type's brackets
+// (`HashMap<String, Int>`, `(Int, Int) -> Bool`) does not end an item, and
+// the `>` of `->` closes nothing; otherwise each type after such a parameter
+// would be read one item late.
 func CsvAt(csv: String, want: Int) -> String {
     let i: Int = 0;
     let idx: Int = 0;
     let start: Int = 0;
+    let depth: Int = 0;
+    let previous: Int = 0;
     let n: Int = StringLength(csv);
     while i <= n {
-        if i == n || CodegenCharCodeAt(csv, n, n, i) == 44 {
+        let code: Int = 0;
+        if i < n { code = CodegenCharCodeAt(csv, n, n, i); }
+        if code == 60 || code == 40 || code == 91 { depth = depth + 1; }
+        if depth > 0 && ((code == 62 && previous != 45) || code == 41 || code == 93) { depth = depth - 1; }
+        if i == n || (code == 44 && depth == 0) {
             if idx == want {
                 return Substring(csv, start, i - start);
             }
             idx = idx + 1;
             start = i + 1;
         }
+        previous = code;
         i = i + 1;
     }
     return "";

@@ -157,7 +157,52 @@ func MirRoutineGraphStructuralMerge(
         }
         candidate = candidate + 1;
     }
+    // Arms that never meet, one of them closed: only the branch enters it,
+    // so every path through it ends inside it (a nested guard, a return
+    // chain, the `else { return }` of an else-if chain). The other arm is
+    // the continuation, as for the single terminal block above. Without a
+    // merge, a structured emitter copies the continuation into the open arm
+    // and again after the branch.
+    if merge < 0 {
+        if MirRoutineGraphArmClosed(block_succ_true, block_succ_false,
+            branch, true_start, true_distance) {
+            return false_start;
+        }
+        if MirRoutineGraphArmClosed(block_succ_true, block_succ_false,
+            branch, false_start, false_distance) {
+            return true_start;
+        }
+    }
     return merge;
+}
+
+// No edge enters the blocks an arm reaches from outside them, other than
+// the branch's own edge to the arm's start.
+func MirRoutineGraphArmClosed(
+    ref block_succ_true: Array<Int>, ref block_succ_false: Array<Int>,
+    branch: Int, start: Int, ref reached: Array<Int>
+) -> Bool {
+    if reached[branch] >= 0 { return false; }
+    let block_count: Int = ArrayLength(reached);
+    let source: Int = 0;
+    while source < block_count {
+        if reached[source] < 0 {
+            let true_target: Int = block_succ_true[source];
+            let false_target: Int = block_succ_false[source];
+            if true_target >= 0 && true_target < block_count &&
+                reached[true_target] >= 0 &&
+                !(source == branch && true_target == start) {
+                return false;
+            }
+            if false_target >= 0 && false_target < block_count &&
+                reached[false_target] >= 0 &&
+                !(source == branch && false_target == start) {
+                return false;
+            }
+        }
+        source = source + 1;
+    }
+    return true;
 }
 
 func MirRoutineBackedgeHeaders(

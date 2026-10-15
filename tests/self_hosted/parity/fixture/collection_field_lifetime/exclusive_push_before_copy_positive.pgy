@@ -1,0 +1,14 @@
+// The rows grow before anything copies them; the copy made afterwards names
+// the grown buffer, so both may be read.
+struct Facts {
+    rows: Array<Int>;
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [];
+    ArrayPush(rows, 1);
+    ArrayPush(rows, 2);
+    let facts: Facts = Facts(rows);
+    Log(ToString(rows[0] + facts.rows[1]));
+    return 0;
+}

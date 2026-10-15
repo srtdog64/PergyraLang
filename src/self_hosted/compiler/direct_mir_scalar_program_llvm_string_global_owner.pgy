@@ -18,10 +18,7 @@ func DirectMirScalarProgramLlvmStringGlobals(
             TextBuilderAppend(output, " = private unnamed_addr constant [");
             TextBuilderAppend(output, ToString(StringLength(literal) + 1));
             TextBuilderAppend(output, " x i8] c\"");
-            let owned_payload: Array<String> = [
-                DirectMirScalarProgramLlvmStringLiteralPayload(literal)];
-            TextBuilderAppend(output, owned_payload[0]);
-            if owned_payload[0] != "" { ArrayDropOwnedStrings(owned_payload); }
+            TextBuilderAppend(output, DirectMirScalarProgramLlvmStringLiteralPayload(literal));
             TextBuilderAppend(output, "\\00\"\n");
         }
         node = node + 1;

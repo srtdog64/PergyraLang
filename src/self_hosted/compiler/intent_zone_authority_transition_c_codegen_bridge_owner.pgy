@@ -33,22 +33,22 @@ func CodegenIntentZoneAuthorityTransitionsFromMirOrDie(
     let row: Int = 0;
     while row < ArrayLength(source.routine_rows) {
         let routine: Int = source.routine_rows[row];
-        if routine < 0 || routine >= ArrayLength(routines.names) ||
-            routines.kinds[routine] != "intent" ||
+        if routine < 0 || routine >= ArrayLength(routines.names) {
+            Die("MIR Intent Zone authority transition identity is stale");
+        }
+        // ToInt is not a registered borrowing builtin; parse a copy.
+        let canonical_text: String = Concat("", canonical_routine_source_syntax_ids[routine]);
+        let canonical_id: Int = ToInt(canonical_text);
+        if routines.kinds[routine] != "intent" ||
             routines.names[routine] != source.intent_names[row] ||
             ToInt(routines.source_syntax_ids[routine]) !=
                 source.routine_source_syntax_ids[row] ||
             ToString(source.routine_source_syntax_ids[row]) !=
                 routines.source_syntax_ids[routine] ||
-            ToInt(canonical_routine_source_syntax_ids[routine]) <= 0 ||
-            ToString(ToInt(canonical_routine_source_syntax_ids[routine])) !=
-                canonical_routine_source_syntax_ids[routine] {
+            canonical_id <= 0 || ToString(canonical_id) != canonical_text {
             Die("MIR Intent Zone authority transition identity is stale");
         }
-        ArrayPush(
-            canonical_ids,
-            ToInt(canonical_routine_source_syntax_ids[routine])
-        );
+        ArrayPush(canonical_ids, canonical_id);
         ArrayPush(intent_names, source.intent_names[row]);
         ArrayPush(step_names, source.step_names[row]);
         ArrayPush(zone_aliases, source.zone_aliases[row]);

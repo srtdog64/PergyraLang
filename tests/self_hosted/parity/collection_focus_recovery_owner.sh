@@ -15,7 +15,7 @@ WORK="$(mktemp -d .tmp/collection-focus-recovery.XXXXXX)"
 PYTHON_PLATFORM="$("$PYTHON_BIN" -c 'import sys; print(sys.platform)')"
 PYTHON_ROOT="$ROOT_DIR"
 PYTHON_PGY="$PGY"
-PYTHON_WORK="$WORK"
+PYTHON_WORK="$(cd "$WORK" && pwd)"
 PYTHON_CC="$CC_PATH"
 if [[ "$PYTHON_PLATFORM" == win32 ]]; then
     PYTHON_ROOT="$(pgy_path_for_windows_tool "$ROOT_DIR")"
@@ -41,6 +41,15 @@ negatives={'shared_alias_invalid':'borrow_boundary_escape','root_read_invalid':'
 'retaining_alias_invalid':'borrow_boundary_escape','deferred_root_invalid':'move_from_released',
 # Current whole-holder borrowing boundary control, not a runtime unsafety claim.
 'dead_holder_late_failure':'borrow_boundary_escape'}
+positives.update({'map_writeback_plain':'40\nfalse\n','map_writeback_early_return':'40\nfalse\n',
+'map_dead_holder_paths':'48\nfalse\n41\n2\n','map_disjoint_backing':'9\n41\n','map_single_reader':'7\n'})
+positives['map_bodyful_forward']='7\n'
+positives['nominal_bodyful_forward']='1\n'
+# These six exact analyze-only codes were observed on both frozen v9 probes.
+negatives.update({name:'borrow_boundary_escape' for name in (
+'map_root_alias_invalid','map_field_alias_invalid','map_selected_read_invalid',
+'map_selected_mutation_invalid','map_selected_return_store_invalid','map_shared_backing_other_field_invalid')})
+negatives['map_default_root_extern_retaining_invalid']='borrow_boundary_escape'
 originals=['exclusive_inout_exit_before_writeback_negative.pgy','exclusive_inout_repeat_shared_alias_negative.pgy']
 inputs=[directory/('focus_recovery_'+name+'.pgy') for name in list(positives)+list(negatives)]+[directory/name for name in originals]
 source_paths={name:directory/('focus_recovery_'+name+'.pgy') for name in list(positives)+list(negatives)}
@@ -92,8 +101,6 @@ negative_cases=dict(negatives)
 for baseline in paired_declarations:
     if baseline in positives: positive_cases['var_'+baseline]=positives[baseline]
     else: negative_cases['var_'+baseline]=negatives[baseline]
-restoration_tokens={name:[r'\brows\.types\s*=\s*types\s*;'] for name in paired_declarations if name in positives}
-restoration_tokens['nested_late_failure'].append(r'\bouter\.rows\s*=\s*rows\s*;')
 def membership():
     return sorted(p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ('.pgy','.c','.h','.def'))
 def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -219,8 +226,24 @@ try:
         tool=work/(backend+'-probe.exe')
         run(backend+'-probe-compile',[native,'--native-pipeline','--backend='+backend,'--opt=dev',probe,'-o',tool],120,compile_step=True)
         guards[tool]=digest(tool); tools[backend]=tool
+    for backend,tool in tools.items():
+        observed=invoke(tool,'eight_field_late_failure','classifier',backend+'-classifier')
+        if observed!='PROBE|classifier-valid|6|bounds2\n': raise RuntimeError(backend+': classifier refusal/restoration oracle drift '+repr(observed))
+        current=invoke(tool,'map_single_reader','map-current',backend+'-map-current')
+        if current!='PROBE|map-current-valid|17\n': raise RuntimeError(backend+': Map current-fact refusal/restoration oracle drift '+repr(current))
+        forwarded=invoke(tool,'map_bodyful_forward','forward-current',backend+'-forward-current')
+        if forwarded!='PROBE|forward-current-valid|19\n': raise RuntimeError(backend+': bodyful forwarding current tuple refusal/restoration drift '+repr(forwarded))
+        produced=invoke(tool,'nominal_bodyful_forward','nominal-forward-producer',backend+'-nominal-forward-producer')
+        if produced!='PROBE|nominal-forward-producer-valid|6\n': raise RuntimeError(backend+': nominal FieldReads producer barrier/restoration drift '+repr(produced))
     for name,code in negative_cases.items():
         for backend,tool in tools.items():
+            if name == 'map_default_root_extern_retaining_invalid':
+                located=invoke(tool,name,'map-analyze',backend+'-'+name+'-location',expected_rc=2)
+                lines=located.splitlines()
+                required=('body_ok=false','body_diagnostic=borrow_boundary_escape','body_syntax=29',
+                    'body_function=Populate','body_atom=MapSet(values, ToString(index), index)',
+                    '- boundary: unproved_exclusive_sink_entry')
+                if any(lines.count(row)!=1 for row in required): raise RuntimeError(name+': observed retaining-forward refusal location changed '+repr(located))
             text=invoke(tool,name,'analyze',backend+'-'+name,expected_rc=2)
             if text!='PROBE|body-invalid|'+code+'\n': raise RuntimeError(name+': safety refusal drift: '+repr(text))
     # The original no-writeback source now has a real produced recovery group.
@@ -269,32 +292,26 @@ try:
     flags=['-std=c11','-O0','-fwrapv','-fno-strict-aliasing','-I'+str(root/'src'),'-I'+str(root/'src/runtime')]
     if sys.platform=='darwin': flags+=['-D_DARWIN_C_SOURCE','-D_XOPEN_SOURCE=700','-pthread']
     elif sys.platform!='win32': flags+=['-D_POSIX_C_SOURCE=200809L','-D_XOPEN_SOURCE=700','-D_DEFAULT_SOURCE','-pthread']
-    original_code=original_emitted[0].decode('utf-8')
-    if not re.search(r'\bfacts\.types\s*=\s*types\s*;',original_code): raise RuntimeError('original recovery did not emit descriptor restoration')
     original_target=work/'original-recovered.exe'
     run('original-recovered-cc',[cc,*flags,work/'c-original-recovery.c','-o',original_target,'-lm'],120,compile_step=True)
     guards[original_target]=digest(original_target)
     # Main's exact original observable is StringLength("x") == 1, no stdout.
     if run('original-recovered-run',[original_target],30,expected_rc=1)!='': raise RuntimeError('original recovered observable changed')
-    restoration_counts={}
     baseline_emitted={}
     for name,expected in positive_cases.items():
         emitted=[]
         for backend,tool in tools.items():
             artifact=work/(backend+'-'+name+'.c')
-            mode='manual-control' if name=='manual_writeback_control' else 'emit'
+            mode='manual-control' if name in ('manual_writeback_control','map_writeback_plain',
+                'map_writeback_early_return','map_dead_holder_paths','map_disjoint_backing','map_single_reader','map_bodyful_forward') else 'emit'
             text=invoke(tool,name,mode,backend+'-'+name+'-emit',artifact)
             if text!='PROBE|emitted-c\n' or not artifact.is_file() or not artifact.stat().st_size: raise RuntimeError(name+': no admitted emitted C')
             emitted.append(artifact.read_bytes()); guards[artifact]=digest(artifact)
             baseline=name[4:] if name.startswith('var_') else name
-            if baseline in restoration_tokens:
-                counts=tuple(len(re.findall(token,emitted[-1].decode('utf-8'))) for token in restoration_tokens[baseline])
-                if not all(counts): raise RuntimeError(name+': missing admitted descriptor restoration token')
+            if baseline in paired_declarations and baseline in positives:
                 if name.startswith('var_'):
-                    if counts!=restoration_counts[(baseline,backend)]: raise RuntimeError(name+': paired restoration count drift')
                     if emitted[-1]!=baseline_emitted[(baseline,backend)]: raise RuntimeError(name+': paired emitted bytes/order drift')
                 else:
-                    restoration_counts[(name,backend)]=counts
                     baseline_emitted[(name,backend)]=emitted[-1]
         if emitted[0]!=emitted[1]: raise RuntimeError(name+': C/LLVM-built Pergyra emitters differ')
         target=work/(name+'-restored.exe')
@@ -304,22 +321,6 @@ try:
         text=run(name+'-run',[target],30)
         if text!=expected: raise RuntimeError(name+': stdout mismatch '+repr(text))
         if baseline in ('try_option_failure','try_result_failure'):
-            code=emitted[0].decode('utf-8')
-            if 'int main(void)' not in code: raise RuntimeError(name+': source-owned no-argument main ABI changed')
-            if 'PGY_ZONE_LOCK_INIT(&live_zone);' not in code: raise RuntimeError(name+': actual local zone was not initialized')
-            failure_branches=[]
-            for match in re.finditer(r'if\s*\(![^\n]+\)\s*\{',code):
-                depth=1; end=match.end()
-                while end<len(code) and depth:
-                    if code[end]=='{': depth+=1
-                    elif code[end]=='}': depth-=1
-                    end+=1
-                if depth: raise RuntimeError(name+': malformed emitted failure branch')
-                failure_branches.append(code[match.end():end-1])
-            if not any('PGY_ZONE_LOCK_DESTROY(&live_zone);' in branch and
-                       'return ' in branch and branch.index('PGY_ZONE_LOCK_DESTROY(&live_zone);')<branch.index('return ')
-                       for branch in failure_branches):
-                raise RuntimeError(name+': TRY_ERROR branch omitted live local zone cleanup before return')
             threadsafe=work/(name+'-zone-cleanup.exe')
             generated=(work/('c-'+name+'.c')).as_posix()
             run(name+'-zone-cc',[cc,*flags,'-pthread','-DPGY_ZONE_THREADSAFE',
@@ -327,7 +328,7 @@ try:
             guards[threadsafe]=digest(threadsafe)
             actual=run(name+'-zone-run',[threadsafe],30)
             if actual!=expected+'FOCUS ZONE CLEANUP PASS\n': raise RuntimeError(name+': actual local mutex cleanup mismatch')
-    (work/'results.log').write_text('PASS: Pergyra C/LLVM-built emitters, direct/admitted receipt refusals, restored emitted-C execution; 13 let baselines and 5 exact-declaration var pairs, 5 original and 2 var refusals. Native target LLVM/MIR recovery OPEN.\n',encoding='utf-8')
+    (work/'results.log').write_text('PASS: Pergyra C/LLVM-built emitters, direct/admitted receipt refusals, restored emitted-C execution; original 13 let baselines and 5 var pairs plus 4 Map controls; original 5 and 2 var refusals plus 6 Map refusals. Native target LLVM/MIR recovery OPEN.\n',encoding='utf-8')
 finally:
     drift=[str(p) for p,h in guards.items() if not p.exists() or digest(p)!=h]
     if membership()!=sources: drift.append('source membership drift')

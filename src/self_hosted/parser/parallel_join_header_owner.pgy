@@ -25,15 +25,15 @@ func ParserParallelJoinHeaderExpected(at: Int, expected: String) -> ParserParall
 
 // `open` is the offset of the header's `(`.
 func ParserParallelJoinHeaderAt(content: String, content_extent: Int, open: Int) -> ParserParallelJoinHeader {
-    let i: Int = SkipWhitespaceAndComments(content, open + 1);
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, open + 1);
     let cursor: Array<Int> = [i];
-    let binding: String = ReadIdent(content, i, cursor);
-    let after_binding: Int = SkipWhitespaceAndComments(content, cursor[0]);
+    let binding: String = ReadIdentWithin(content, content_extent, i, cursor);
+    let after_binding: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor[0]);
     // Native reads the join form only for `NAME in`; any other target is the
     // binding-less sketch it refuses.
     if StringLength(binding) == 0 ||
         LanguageKeywordDebugIdentity(binding) != "IDENTIFIER" ||
-        !MatchLanguageWord(content, after_binding, LanguageWordId.WordIn) {
+        !MatchLanguageWordWithin(content, content_extent, after_binding, LanguageWordId.WordIn) {
         return ParserParallelJoinHeaderExpected(i, "element binding");
     }
     i = LanguageWordEnd(after_binding, LanguageWordId.WordIn);
@@ -42,40 +42,40 @@ func ParserParallelJoinHeaderAt(content: String, content_extent: Int, open: Int)
     if !collection.ok {
         return ParserParallelJoinHeader(false, i, "", collection);
     }
-    i = SkipWhitespaceAndComments(content, cursor[0]);
-    if ParserCharAt(content, i) == "." && ParserCharAt(content, i + 1) == "." {
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor[0]);
+    if ParserCharAtWithin(content, content_extent, i) == "." && ParserCharAtWithin(content, content_extent, i + 1) == "." {
         ArraySet(cursor, 0, i + 2);
         let range_end: ParserExpressionFact = ParseExprFact(content, content_extent, i + 2, cursor);
         if !range_end.ok {
             return ParserParallelJoinHeader(false, i + 2, "", range_end);
         }
-        i = SkipWhitespaceAndComments(content, cursor[0]);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, cursor[0]);
     }
-    if ParserCharAt(content, i) != ")" {
+    if ParserCharAtWithin(content, content_extent, i) != ")" {
         return ParserParallelJoinHeaderExpected(i, ")");
     }
-    i = SkipWhitespaceAndComments(content, i + 1);
-    if MatchLanguageWord(content, i, LanguageWordId.WordJoin) {
-        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordJoin));
-        if !MatchLanguageWord(content, i, LanguageWordId.WordWith) {
+    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i + 1);
+    if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordJoin) {
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordJoin));
+        if !MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordWith) {
             return ParserParallelJoinHeaderExpected(i, "with");
         }
-        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordWith));
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, LanguageWordEnd(i, LanguageWordId.WordWith));
         // The closed join modes: `all` (the default), `any`, and the reduce
         // combinators `sum`, `product`, `min` and `max`.
         let mode_end: Int = i;
-        if MatchLanguageWord(content, i, LanguageWordId.WordAll) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAll); }
-        if MatchLanguageWord(content, i, LanguageWordId.WordAny) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAny); }
-        if MatchLanguageWord(content, i, LanguageWordId.WordSum) { mode_end = LanguageWordEnd(i, LanguageWordId.WordSum); }
-        if MatchLanguageWord(content, i, LanguageWordId.WordProduct) { mode_end = LanguageWordEnd(i, LanguageWordId.WordProduct); }
-        if MatchLanguageWord(content, i, LanguageWordId.WordMin) { mode_end = LanguageWordEnd(i, LanguageWordId.WordMin); }
-        if MatchLanguageWord(content, i, LanguageWordId.WordMax) { mode_end = LanguageWordEnd(i, LanguageWordId.WordMax); }
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAll) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAll); }
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAny) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAny); }
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordSum) { mode_end = LanguageWordEnd(i, LanguageWordId.WordSum); }
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordProduct) { mode_end = LanguageWordEnd(i, LanguageWordId.WordProduct); }
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordMin) { mode_end = LanguageWordEnd(i, LanguageWordId.WordMin); }
+        if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordMax) { mode_end = LanguageWordEnd(i, LanguageWordId.WordMax); }
         if mode_end == i {
             return ParserParallelJoinHeaderExpected(i, "join mode");
         }
-        i = SkipWhitespaceAndComments(content, mode_end);
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, mode_end);
     }
-    if ParserCharAt(content, i) != "{" {
+    if ParserCharAtWithin(content, content_extent, i) != "{" {
         return ParserParallelJoinHeaderExpected(i, "{");
     }
     return ParserParallelJoinHeader(true, i, "", collection);

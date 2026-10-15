@@ -579,7 +579,20 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:done"); }
-    ArrayPushOwnedString(chunks, region);
+    // The end of a Void body needs no statement. MIR writes the same void
+    // return row for an explicit trailing `return;` and for the end of the
+    // body, and the semantic owners read a `return` statement as control
+    // flow (an aggregate field release needs a straight-line body). A bare
+    // return that ends the top-level body is emitted as the end of the body.
+    let tail_return: String = Concat(item_pad, "  Return\n");
+    let body_length: Int = StringLength(region) - StringLength(tail_return);
+    if rtype == "Void" && body_length >= 0 &&
+        Substring(region, body_length, StringLength(tail_return)) == tail_return &&
+        (body_length == 0 || Substring(region, body_length - 1, 1) == "\n") {
+        ArrayPushOwnedString(chunks, Concat("", Substring(region, 0, body_length)));
+    } else {
+        ArrayPushOwnedString(chunks, region);
+    }
     let rendered: String = StringJoin(chunks, "");
     ArrayDropOwnedStrings(chunks);
     return rendered;

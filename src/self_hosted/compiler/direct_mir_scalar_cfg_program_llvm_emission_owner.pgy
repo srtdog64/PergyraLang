@@ -303,9 +303,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarLlvmFormatPayload(string_line_format));
     TextBuilderAppend(output, "\\00\", align 1\n");
-    let owned_string_globals: Array<String> = [DirectMirScalarProgramLlvmStringGlobals(plan.program.expressions)];
-    TextBuilderAppend(output, owned_string_globals[0]);
-    if owned_string_globals[0] != "" { ArrayDropOwnedStrings(owned_string_globals); }
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmStringGlobals(plan.program.expressions));
     TextBuilderAppend(output,
         DirectMirScalarCfgLlvmForeignDeclarations(plan));
     TextBuilderAppend(output,
@@ -347,12 +345,10 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output, "\n");
     let routine: Int = 0;
     while routine < ArrayLength(plan.routines.roles) {
-        let owned_routine: Array<String> = [DirectMirScalarCfgProgramLlvmRoutine(
+        TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRoutine(
             plan, routine, formatted_print, process_exit, runtime,
             int_line_format, string_line_format, array_string_projection, array_int_projection,
-            target)];
-        TextBuilderAppend(output, owned_routine[0]);
-        ArrayDropOwnedStrings(owned_routine);
+            target));
         routine = routine + 1;
     }
     let program: String = TextBuilderFinish(output, output_allocator);

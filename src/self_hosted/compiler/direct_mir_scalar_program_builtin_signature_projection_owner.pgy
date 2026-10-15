@@ -169,7 +169,8 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
         if actual_types[0] == CompilerAbiLayoutStringTypeName() {
             kind = DirectMirScalarProgramExprToStringString();
         }
-        let parameter_types: Array<String> = [actual_types[0]];
+        // The fact keeps its own copy of the borrowed type name.
+        let parameter_types: Array<String> = [Concat("", actual_types[0])];
         return DirectMirScalarProgramBuiltinSignatureFact(true, fact.registry_row, fact.name,
             CompilerAbiLayoutStringTypeName(), parameter_types, kind, fact.runtime_call_abi_id);
     }

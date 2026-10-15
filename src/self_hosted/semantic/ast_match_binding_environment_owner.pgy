@@ -12,11 +12,11 @@ import "env_owner.pgy";
 import "wrapper_type_owner.pgy";
 
 func SemanticAstExpressionSeedMatchCaseBindings(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
-    enums: SemanticAstEnumFacts,
+    ref enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts,
     function_node_id: Int,
@@ -60,7 +60,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
             expression_surfaces.expression_graph,
             UnwrapOption(subject_root), constructors, names, types,
-            function_tables
+            function_tables, enums.value_scope
         );
     if !IsSome(subject_type_fact) {
         return false;
@@ -139,11 +139,11 @@ func SemanticAstExpressionSeedMatchCaseBindings(
 // entrypoint may walk only the use-site ancestry and individual case pattern;
 // it must not rebuild enum or function-scope inventories per use site.
 func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    constructors: SemanticAstNominalConstructorFacts,
-    enums: SemanticAstEnumFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
     function_node_id: Int,
     use_node_id: Int,

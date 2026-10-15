@@ -15,11 +15,32 @@ mkdir -p "$ROOT/.tmp/self_hosted"
 WORK="$(mktemp -d "$ROOT/.tmp/self_hosted/native-storage-escape.XXXXXX")"
 REL=".tmp/self_hosted/${WORK##*/}"
 echo "[$LABEL] evidence=$REL compiler=$PGY"
+SECONDS=0
+run_admission_bounded() {
+    local remaining=$((300-SECONDS))
+    (( remaining > 0 )) || fail "native storage total budget exhausted"
+    (( remaining <= 30 )) || remaining=30
+    timeout --signal=TERM --kill-after=2s "$remaining" "$@"
+}
 # Freeze every native source/header, including the owner/flow-state ABI.
 (cd "$ROOT"; git ls-files -z -- src Makefile | while IFS= read -r -d '' path; do
     case "$path" in *.c|*.h|Makefile) sha256sum "$path" ;; esac
 done) >"$WORK/native-sources.sha256"
 sha256sum "$PGY" >"$WORK/native-binary.sha256"
+find "$ROOT/src/self_hosted" -type f -name '*.pgy' -print0 | sort -z >"$WORK/import-paths.before"
+xargs -0 sha256sum <"$WORK/import-paths.before" >"$WORK/imports.sha256"
+finish_guards() {
+    local original_status=$? guard_status=0
+    for manifest in native-sources native-binary imports inputs; do
+        [[ ! -f "$WORK/$manifest.sha256" ]] ||
+            (cd "$ROOT"; sha256sum --quiet -c "$WORK/$manifest.sha256") || guard_status=1
+    done
+    find "$ROOT/src/self_hosted" -type f -name '*.pgy' -print0 | sort -z >"$WORK/import-paths.after"
+    cmp "$WORK/import-paths.before" "$WORK/import-paths.after" || guard_status=1
+    ((guard_status==0)) || { echo "[$LABEL] input generation drift" >&2; exit 1; }
+    exit "$original_status"
+}
+trap finish_guards EXIT
 NEGATIVES=(
     'field_ctor_clone_drop_negative|ArrayDropOwnedStrings|values'
     'field_ctor_empty_drop_negative|ArrayDropOwnedStrings|values'
@@ -37,10 +58,12 @@ NEGATIVES=(
 POSITIVES=(field_ctor_readonly_positive field_ctor_duplicate_readonly_positive
     field_ctor_indexed_readonly_positive field_ctor_fresh_assign_positive
     own_named_clone_positive native_unescaped_string_storage_positive)
+# These six are native type/transfer checks only, never target execution or
+# runtime allocation/free evidence. Pergyra whole-import body remains separate.
 for entry in "${NEGATIVES[@]}"; do
     IFS='|' read -r input operation receiver <<<"$entry"
     sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
-    if (cd "$ROOT"; timeout 30 "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
+    if (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
         >"$WORK/$input.mir.json" 2>"$WORK/$input.err"; then
         fail "accepted $input; rejected input was not executed"
     else
@@ -59,7 +82,7 @@ for entry in "${NEGATIVES[@]}"; do
 done
 for input in "${POSITIVES[@]}"; do
     sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
-    (cd "$ROOT"; timeout 30 "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
+    (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json "$FIXTURES/$input.pgy") \
         >"$WORK/$input.mir.json" 2>"$WORK/$input.err" || fail "rejected safe $input"
     [[ -s "$WORK/$input.mir.json" ]] || fail "missing safe MIR for $input"
     grep -Fxq '0 error(s), 0 warning(s)' <(tr -d '\r' <"$WORK/$input.err") || fail "safe diagnostic drift for $input"
@@ -67,15 +90,15 @@ done
 # No escaped-control program is executed. Only two independent owner controls
 # run; readonly construction/fresh replacement above is admission-only evidence.
 for input in own_named_clone_positive native_unescaped_string_storage_positive; do
-    (cd "$ROOT"; timeout 30 "$PGY" --native-pipeline --emit-c "$FIXTURES/$input.pgy" -o "$REL/$input.c") \
+    (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --emit-c "$FIXTURES/$input.pgy" -o "$REL/$input.c") \
         >"$WORK/$input.emit.out" 2>"$WORK/$input.emit.err" || fail "safe C emit failed for $input"
     command=("$CC" -std=c11 "$WORK/$input.c")
     if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK/$input.c"; then
         command+=("-I$ROOT/src" "-I$ROOT/src/runtime" -pthread)
     fi
     command+=(-o "$WORK/$input.exe")
-    "${command[@]}" >"$WORK/$input.compile.out" 2>"$WORK/$input.compile.err" || fail "safe C compile failed for $input"
-    (cd "$ROOT"; timeout 30 "$WORK/$input.exe") >"$WORK/$input.raw" 2>"$WORK/$input.run.err" || fail "safe C execution failed for $input"
+    run_admission_bounded "${command[@]}" >"$WORK/$input.compile.out" 2>"$WORK/$input.compile.err" || fail "safe C compile failed for $input"
+    (cd "$ROOT"; run_admission_bounded "$WORK/$input.exe") >"$WORK/$input.raw" 2>"$WORK/$input.run.err" || fail "safe C execution failed for $input"
     [[ ! -s "$WORK/$input.run.err" ]] || fail "runtime stderr for $input"
     tr -d '\r' <"$WORK/$input.raw" >"$WORK/$input.run"
     if [[ "$input" == own_named_clone_positive ]]; then printf 'named-clone-retired\n' >"$WORK/expected";

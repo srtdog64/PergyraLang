@@ -1,6 +1,7 @@
 // Generic return substitution over carried call-target and signature facts.
 
 import "ast_signature_fact_owner.pgy";
+import "ast_signature_canonical_name_index_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
@@ -55,23 +56,11 @@ func SemanticGenericCallSignatureIndex(
     signatures: SemanticAstFunctionSignatureFacts,
     callable_name: String
 ) -> Option<Int> {
-    let i: Int = 0;
-    while i < SemanticAstFunctionSignatureCount(signatures) {
-        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
-            signatures, i
-        );
-        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
-        if !IsSome(owner) || !IsSome(name) {
-            return None;
-        }
-        if SemanticCallableCanonicalDeclaredNameEquals(
-            UnwrapOption(owner), UnwrapOption(name), callable_name
-        ) {
-            return Some(i);
-        }
-        i = i + 1;
-    }
-    return None;
+    // First row with this canonical name, from the signature index.
+    let row: Int = SemanticAstSignatureCanonicalNameValue(
+        signatures.canonical_name_first_rows, callable_name);
+    if row < 0 { return None; }
+    return Some(row);
 }
 
 func SemanticExpressionGraphGenericCallFactCaptureFromGraph(
@@ -81,16 +70,40 @@ func SemanticExpressionGraphGenericCallFactCaptureFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
+    ref function_names: SemanticCallableNameTable,
     ref function_returns: Array<String>,
     inout captured_actual_type_names: Array<String>,
-    capture_actual_type_names: Bool
+    capture_actual_type_names: Bool,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphGenericCallFact {
     let target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
             graph, root_id, constructors, names, types,
-            function_names, function_returns
+            function_names, function_returns, enum_values
         );
+    return SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
+        graph, root_id, target, signatures, constructors, names, types,
+        function_names, function_returns, captured_actual_type_names,
+        capture_actual_type_names, enum_values
+    );
+}
+
+// The same capture for a caller that already resolved the target of the call
+// at `root_id` with these inputs.
+func SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    target: SemanticExpressionCallTargetFact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    inout captured_actual_type_names: Array<String>,
+    capture_actual_type_names: Bool,
+    ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphGenericCallFact {
     if !target.ok {
         return SemanticExpressionGraphGenericCallNotApplicable();
     }
@@ -207,7 +220,7 @@ func SemanticExpressionGraphGenericCallFactCaptureFromGraph(
             SemanticExpressionGraphGenericCallFactCaptureFromGraph(
                 graph, call.argument_nodes[i], signatures, constructors,
                 names, types, function_names, function_returns,
-                captured_actual_type_names, false
+                captured_actual_type_names, false, enum_values
             );
         if nested_generic.applies && !nested_generic.ok {
             input_failure = nested_generic;
@@ -219,7 +232,7 @@ func SemanticExpressionGraphGenericCallFactCaptureFromGraph(
         } else {
             actual = SemanticExpressionGraphScalarTypeName(
                 graph, call.argument_nodes[i], constructors, names, types,
-                function_names, function_returns
+                function_names, function_returns, enum_values
             );
         }
         if actual == "" || actual == "Unknown" {
@@ -375,13 +388,33 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphGenericCallFact {
     let ignored_actual_type_names: Array<String> = [];
     return SemanticExpressionGraphGenericCallFactCaptureFromGraph(
         graph, root_id, signatures, constructors, names, types,
-        function_names, function_returns, ignored_actual_type_names, false
+        function_names, function_returns, ignored_actual_type_names, false, enum_values
+    );
+}
+
+func SemanticExpressionGraphGenericCallFactFromResolvedTarget(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    target: SemanticExpressionCallTargetFact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
+) -> SemanticExpressionGraphGenericCallFact {
+    let ignored_actual_type_names: Array<String> = [];
+    return SemanticExpressionGraphGenericCallFactCaptureFromResolvedTarget(
+        graph, root_id, target, signatures, constructors, names, types,
+        function_names, function_returns, ignored_actual_type_names, false, enum_values
     );
 }
 
@@ -392,8 +425,9 @@ func SemanticExpressionGraphGenericSpawnFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>
+    ref function_names: SemanticCallableNameTable,
+    ref function_returns: Array<String>,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticExpressionGraphGenericCallFact {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
     if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeSpawn() {
@@ -413,7 +447,7 @@ func SemanticExpressionGraphGenericSpawnFactFromGraph(
     let call: SemanticExpressionGraphGenericCallFact =
         SemanticExpressionGraphGenericCallFactFromGraph(
             graph, UnwrapOption(operand), signatures, constructors,
-            names, types, function_names, function_returns
+            names, types, function_names, function_returns, enum_values
         );
     if !call.applies || !call.ok { return call; }
     if call.return_type_name == "" || call.return_type_name == "Unknown" ||

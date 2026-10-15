@@ -12,6 +12,17 @@ func EnvLookup(
     }
     return "Unknown";
 }
+// The last row named `name`, or -1.
+func EnvRowForName(ref names: Array<String>, name: String) -> Int {
+    let i: Int = ArrayLength(names) - 1;
+    while i >= 0 {
+        if names[i] == name {
+            return i;
+        }
+        i = i - 1;
+    }
+    return 0 - 1;
+}
 func EnvContainsName(ref names: Array<String>, name: String) -> Bool {
     let i: Int = ArrayLength(names) - 1;
     while i >= 0 {

@@ -31,34 +31,34 @@ func IsPrimitiveType(base_type: String) -> Bool {
 // malformed type (cursor left where it went wrong). It never stops the
 // process; ReadType/ReadTypeIn decide that for their callers.
 func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
-    if ParserCharAt(content, i) == "(" && ParserCharAt(content, i + 1) == ")" {
+    let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
+    if ParserCharAtWithin(content, content_extent, i) == "(" && ParserCharAtWithin(content, content_extent, i + 1) == ")" {
         ArraySet(cursor_out, 0, i + 2);
         return "Void";
     }
     ArraySet(cursor_out, 0, i);
     let base_start: Int = i;
-    let base: String = ReadIdent(content, i, cursor_out);
+    let base: String = ReadIdentWithin(content, content_extent, i, cursor_out);
     i = cursor_out[0];
     if StringLength(base) == 0 {
         ArraySet(cursor_out, 0, i);
         return base;
     }
-    if MatchLanguageWord(content, base_start, LanguageWordId.WordSlot) {
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordSlot) {
         base = "Slot";
     }
-    if MatchLanguageWord(content, base_start, LanguageWordId.WordImpl) {
-        i = SkipWhitespaceAndComments(content, i);
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordImpl) {
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
         ArraySet(cursor_out, 0, i);
         return ReadTypeFact(content, content_extent, i, cursor_out);
     }
     let type_text: String = base;
-    let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if MatchLanguageWord(content, base_start, LanguageWordId.WordFunc) && ParserCharAt(content, after_ws) == "(" {
+    let after_ws: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+    if MatchLanguageWordWithin(content, content_extent, base_start, LanguageWordId.WordFunc) && ParserCharAtWithin(content, content_extent, after_ws) == "(" {
         i = after_ws + 1;
         let params: String = "";
-        i = SkipWhitespaceAndComments(content, i);
-        if ParserCharAt(content, i) != ")" {
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+        if ParserCharAtWithin(content, content_extent, i) != ")" {
             while true {
                 ArraySet(cursor_out, 0, i);
                 let param_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
@@ -72,20 +72,20 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
                 } else {
                     params = Concat(params, Concat(", ", param_type));
                 }
-                i = SkipWhitespaceAndComments(content, i);
-                if ParserCharAt(content, i) == "," {
-                    i = SkipWhitespaceAndComments(content, i + 1);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+                if ParserCharAtWithin(content, content_extent, i) == "," {
+                    i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i + 1);
                     continue;
                 }
                 break;
             }
         }
-        if ParserCharAt(content, i) != ")" {
+        if ParserCharAtWithin(content, content_extent, i) != ")" {
             ArraySet(cursor_out, 0, i);
             return "";
         }
-        i = SkipWhitespaceAndComments(content, i + 1);
-        if ParserCharAt(content, i) != "-" || ParserCharAt(content, i + 1) != ">" {
+        i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i + 1);
+        if ParserCharAtWithin(content, content_extent, i) != "-" || ParserCharAtWithin(content, content_extent, i + 1) != ">" {
             ArraySet(cursor_out, 0, i);
             return "";
         }
@@ -94,18 +94,18 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
         let ret_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(ret_type) == 0 {
-            ArraySet(cursor_out, 0, SkipWhitespaceAndComments(content, i));
+            ArraySet(cursor_out, 0, SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i));
             return "";
         }
         type_text = Concat("func(", Concat(params, Concat(") -> ", ret_type)));
-    } else if ParserCharAt(content, after_ws) == "<" {
+    } else if ParserCharAtWithin(content, content_extent, after_ws) == "<" {
         i = after_ws + 1;
         let args: String = "";
         while true {
-            i = SkipWhitespaceAndComments(content, i);
-            if MatchLanguageWord(content, i, LanguageWordId.WordAny) {
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+            if MatchLanguageWordWithin(content, content_extent, i, LanguageWordId.WordAny) {
                 i = LanguageWordEnd(i, LanguageWordId.WordAny);
-                i = SkipWhitespaceAndComments(content, i);
+                i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
             }
             ArraySet(cursor_out, 0, i);
             let arg: String = ReadTypeFact(content, content_extent, i, cursor_out);
@@ -126,44 +126,44 @@ func ReadTypeFact(content: String, content_extent: Int, start: Int, inout cursor
             } else {
                 args = Concat(args, Concat(", ", printed));
             }
-            i = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, i) == "," {
+            i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+            if ParserCharAtWithin(content, content_extent, i) == "," {
                 i = i + 1;
                 continue;
             }
             break;
         }
-        if ParserCharAt(content, i) != ">" {
+        if ParserCharAtWithin(content, content_extent, i) != ">" {
             ArraySet(cursor_out, 0, i);
             return "";
         }
         i = i + 1;
         type_text = Concat(base, Concat("<", Concat(args, ">")));
     }
-    let arrow_i: Int = SkipWhitespaceAndComments(content, i);
-    if ParserCharAt(content, arrow_i) == "-" && ParserCharAt(content, arrow_i + 1) == ">" {
+    let arrow_i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+    if ParserCharAtWithin(content, content_extent, arrow_i) == "-" && ParserCharAtWithin(content, content_extent, arrow_i + 1) == ">" {
         i = arrow_i + 2;
         ArraySet(cursor_out, 0, i);
         let ret_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(ret_type) == 0 {
-            ArraySet(cursor_out, 0, SkipWhitespaceAndComments(content, i));
+            ArraySet(cursor_out, 0, SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i));
             return "";
         }
         type_text = Concat("func(", Concat(type_text, Concat(") -> ", ret_type)));
     }
-    let intersection_i: Int = SkipWhitespaceAndComments(content, i);
-    while ParserCharAt(content, intersection_i) == "&" && ParserCharAt(content, intersection_i + 1) != "&" {
+    let intersection_i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
+    while ParserCharAtWithin(content, content_extent, intersection_i) == "&" && ParserCharAtWithin(content, content_extent, intersection_i + 1) != "&" {
         i = intersection_i + 1;
         ArraySet(cursor_out, 0, i);
         let rhs_type: String = ReadTypeFact(content, content_extent, i, cursor_out);
         i = cursor_out[0];
         if StringLength(rhs_type) == 0 {
-            ArraySet(cursor_out, 0, SkipWhitespaceAndComments(content, i));
+            ArraySet(cursor_out, 0, SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i));
             return "";
         }
         type_text = Concat(type_text, Concat(" & ", rhs_type));
-        intersection_i = SkipWhitespaceAndComments(content, i);
+        intersection_i = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, i);
     }
     ArraySet(cursor_out, 0, i);
     return type_text;
@@ -176,7 +176,7 @@ func ReadTypeIn(
     context: ParserSourceLocationContext,
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>
 ) -> String {
-    let type_start: Int = SkipWhitespaceAndComments(content, start);
+    let type_start: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
     let type_text: String = ReadTypeFact(content, content_extent, start, cursor_out);
     if type_text == "" && cursor_out[0] > type_start {
         ParseRefuse(context, cursor_out[0], "type_name_invalid",

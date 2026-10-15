@@ -13,7 +13,7 @@ func ParseRoleDecl(
     inout cursor_out: Array<Int>,
     decl_prefix: String,
     within_zone: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
     let i: Int = start;

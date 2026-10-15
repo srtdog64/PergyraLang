@@ -7,6 +7,29 @@ import "ast_type_name_canonical_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 
+// The payload-free value rows grouped by first byte for environment lookups:
+// a name's candidates are names[bucket_starts[b]] .. names[bucket_starts[b + 1]].
+// An empty scope (no bucket rows) brings no enum value into an environment.
+struct SemanticAstEnumValueScope {
+    bucket_starts: Array<Int>;
+    names: Array<String>;
+    types: Array<String>;
+}
+
+// CharCode's length proof holds for a ref row read through one unchanged index.
+func SemanticAstEnumValueFirstByte(ref names: Array<String>, row: Int) -> Int {
+    let declared_row: Int = row;
+    let declared_len: Int = StringLength(names[declared_row]);
+    return CharCode(names[declared_row], declared_len, 0);
+}
+
+func SemanticAstEnumValueScopeEmpty() -> SemanticAstEnumValueScope {
+    let bucket_starts: Array<Int> = [];
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    return SemanticAstEnumValueScope(bucket_starts, names, types);
+}
+
 struct SemanticAstEnumFacts {
     ok: Bool;
     artifact_node_count: Int;
@@ -18,6 +41,11 @@ struct SemanticAstEnumFacts {
     variant_param_starts: Array<Int>;
     variant_param_counts: Array<Int>;
     variant_param_type_names: Array<String>;
+    // Payload-free values in environment seed order, each spelling once.
+    value_names: Array<String>;
+    value_types: Array<String>;
+    value_rows: HashMap<String, Int>;
+    value_scope: SemanticAstEnumValueScope;
 }
 
 func SemanticAstEnumFactsFromArtifact(
@@ -125,12 +153,65 @@ func SemanticAstEnumFactsFromArtifact(
         }
         node_id = node_id + 1;
     }
-    return SemanticAstEnumFacts(
+    // Each payload-free variant offers its qualified name, then its bare
+    // name; the first variant to spell a name owns that value row.
+    let value_names: Array<String> = [];
+    let value_types: Array<String> = [];
+    let value_rows: HashMap<String, Int> = MapNew();
+    let row: Int = 0;
+    while row < ArrayLength(variant_names) {
+        if variant_param_counts[row] == 0 {
+            let owner_name: String = variant_enum_names[row];
+            let qualified: String = variant_qualified_names[row];
+            let bare: String = variant_names[row];
+            if !MapHas(value_rows, qualified) {
+                MapSet(value_rows, qualified, ArrayLength(value_names));
+                ArrayPushOwnedString(value_names, qualified);
+                ArrayPushOwnedString(value_types, owner_name);
+            }
+            if !MapHas(value_rows, bare) {
+                MapSet(value_rows, bare, ArrayLength(value_names));
+                ArrayPushOwnedString(value_names, bare);
+                ArrayPushOwnedString(value_types, owner_name);
+            }
+        }
+        row = row + 1;
+    }
+    let bucket_starts: Array<Int> = [];
+    let scope_names: Array<String> = [];
+    let scope_types: Array<String> = [];
+    let first_byte: Int = 0;
+    while first_byte < 256 {
+        ArrayPush(bucket_starts, ArrayLength(scope_names));
+        row = 0;
+        while row < ArrayLength(value_names) {
+            if SemanticAstEnumValueFirstByte(value_names, row) == first_byte {
+                ArrayPushOwnedString(scope_names, value_names[row]);
+                ArrayPushOwnedString(scope_types, value_types[row]);
+            }
+            row = row + 1;
+        }
+        first_byte = first_byte + 1;
+    }
+    ArrayPush(bucket_starts, ArrayLength(scope_names));
+    let value_scope: SemanticAstEnumValueScope =
+        SemanticAstEnumValueScope(bucket_starts, scope_names, scope_types);
+    let facts: SemanticAstEnumFacts = SemanticAstEnumFacts(
         ok, artifact.count, node_ids, enum_names, variant_enum_names, variant_names,
         variant_qualified_names,
         variant_param_starts, variant_param_counts,
-        variant_param_type_names
+        variant_param_type_names, value_names, value_types, value_rows, value_scope
     );
+    // Rows are checked once here; an environment seed trusts `ok` and reads
+    // only the value rows, so it does not walk the variants again.
+    facts.ok = SemanticAstEnumRowsReady(facts);
+    return facts;
+}
+
+// Value rows an environment may read: the facts passed their row check when
+// built, and each value name has its owning enum.
+func SemanticAstEnumValueRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
+    return facts.ok && ArrayLength(facts.value_names) == ArrayLength(facts.value_types);
 }
 
 func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
@@ -139,7 +220,8 @@ func SemanticAstEnumRowsReady(ref facts: SemanticAstEnumFacts) -> Bool {
         ArrayLength(facts.variant_enum_names) != variant_count ||
         ArrayLength(facts.variant_qualified_names) != variant_count ||
         ArrayLength(facts.variant_param_starts) != variant_count ||
-        ArrayLength(facts.variant_param_counts) != variant_count {
+        ArrayLength(facts.variant_param_counts) != variant_count ||
+        ArrayLength(facts.value_names) != ArrayLength(facts.value_types) {
         return false;
     }
     let expected_start: Int = 0;

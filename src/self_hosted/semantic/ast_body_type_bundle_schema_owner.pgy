@@ -8,6 +8,7 @@ import "ast_assignment_type_fact_owner.pgy";
 import "ast_statement_type_fact_owner.pgy";
 import "ast_match_materialization_fact_owner.pgy";
 import "ast_collection_ownership_verdict_owner.pgy";
+import "ast_collection_focus_recovery_schema_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
 import "ast_capability_fact_owner.pgy";
@@ -22,6 +23,7 @@ struct SemanticAstBodyTypeBundle {
     match_materializations: SemanticAstMatchMaterializationFacts;
     collection_formal_effects: SemanticAstCollectionFormalEffects;
     collection_ownership: SemanticAstCollectionOwnershipVerdict;
+    collection_focus_recovery: SemanticAstCollectionFocusRecoveryFacts;
     zone_carriage: SemanticAstZoneValueCarriageVerdict;
     generic_specializations: SemanticAstGenericSpecializationFacts;
     capabilities: SemanticAstCapabilityFacts;
@@ -56,6 +58,7 @@ func SemanticAstBodyTypeBundleAdmissionError(
         SemanticAstCollectionOwnershipVerdictError(
             "body_analysis_admission", message, -1, -1
         ),
+        SemanticAstCollectionFocusRecoveryFactsEmpty(),
         SemanticAstZoneValueCarriageVerdictError(
             "body_analysis_admission", message, -1
         ),

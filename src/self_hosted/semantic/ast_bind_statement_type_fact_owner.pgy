@@ -13,6 +13,8 @@ import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "env_owner.pgy";
 import "diagnostic_owner.pgy";
+import "env_value_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 
 struct SemanticAstBindStatementTypeVerdict {
     verified: Int;
@@ -55,12 +57,13 @@ func SemanticAstBindStatementTypeVerdictFor(
     row: Int,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     ref locals: SemanticAstLocalBindingFacts,
-    artifact: AstTreeArtifact
+    artifact: AstTreeArtifact,
+    ref enum_values: SemanticAstEnumValueScope
 ) -> SemanticAstBindStatementTypeVerdict {
     let party_binding: String = statements.payload_texts[row];
     let role_name: String = statements.type_name_texts[row];
     let slot_name: String = statements.auxiliary_texts[row];
-    let party_type: String = EnvLookup(names, types, party_binding);
+    let party_type: String = EnvValueLookup(names, types, enum_values, party_binding);
     let ability_type: Option<String> = SemanticAstNominalFieldType(
         constructors, party_type, slot_name
     );
@@ -101,7 +104,7 @@ func SemanticAstBindStatementTypeVerdictFor(
     let role_index: Option<Int> = SemanticAstRoleIndexForName(roles, role_name);
     let target: Option<String> = None;
     if IsSome(role_index) { target = SemanticAstRoleTargetTypeAt(roles, UnwrapOption(role_index)); }
-    let subject_type: String = EnvLookup(names, types, subject_name);
+    let subject_type: String = EnvValueLookup(names, types, enum_values, subject_name);
     if subject_name == "" || subject_type == "" {
         return SemanticAstBindSubjectInvalid(subject_name, "not_local", party_binding);
     }

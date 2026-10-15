@@ -5069,6 +5069,11 @@ self-host-collection-aggregate-release-source-test-smoke: $(PGY)
 self-host-enum-qualified-environment-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/enum_qualified_environment_fact_owner.sh
 
+.PHONY: self-host-mir-round-trip-semantic-test-smoke
+self-host-mir-round-trip-semantic-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/mir_round_trip_semantic_owner.sh
+
 .PHONY: self-host-collection-ownership-fact-carrier-test-smoke
 self-host-collection-ownership-fact-carrier-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

@@ -38,7 +38,7 @@ func SemanticAstLocalBindingIdentityRowsReady(
 }
 
 func SemanticAstScopedLocalBindingIdentityForName(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     function_node_id: Int,
@@ -74,23 +74,27 @@ func SemanticAstScopedLocalBindingIdentityForName(
         use_node_id >= artifact.count {
         return SemanticAstLocalBindingIdentityUnresolved();
     }
+    // Rows are in node id order, the producer's traversal order. The binding
+    // chosen is the visible match with the largest node id, then the largest
+    // binding index, then the lowest row. Walking down from the last row
+    // before the use, the first match fixes that node id, so only rows with
+    // the same node id are checked after it.
     let selected: Int = -1;
-    let row: Int = range.start;
-    while row < range.end {
-        if locals.node_ids[row] < use_node_id &&
-            locals.names[row] == identifier &&
+    let row: Int = SemanticAstLocalBindingFirstRowFrom(
+        locals, range.start, range.end, use_node_id
+    ) - 1;
+    while row >= range.start &&
+        (selected < 0 || locals.node_ids[row] == locals.node_ids[selected]) {
+        if locals.names[row] == identifier &&
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[row], use_node_id
             ) {
             if selected < 0 ||
-                locals.node_ids[row] > locals.node_ids[selected] ||
-                (locals.node_ids[row] == locals.node_ids[selected] &&
-                 locals.binding_indices[row] >
-                    locals.binding_indices[selected]) {
+                locals.binding_indices[row] >= locals.binding_indices[selected] {
                 selected = row;
             }
         }
-        row = row + 1;
+        row = row - 1;
     }
     if selected < 0 {
         return SemanticAstLocalBindingIdentityUnresolved();
@@ -113,7 +117,7 @@ func SemanticAstScopedLocalBindingIdentityForName(
 }
 
 func SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-    artifact: AstTreeArtifact,
+    ref artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     function_node_id: Int,

@@ -56,6 +56,7 @@ func CollectionPolicyProbeGraphFacts(
 }
 
 func CollectionPolicyProbeGraphOwned() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let graph: SemanticExpressionGraphFacts =
         CollectionPolicyProbeGraphFacts();
     if !graph.ok || ArrayLength(graph.roots) != 1 ||
@@ -75,13 +76,13 @@ func CollectionPolicyProbeGraphOwned() -> Bool {
         SemanticExpressionGraphCollectionMutationFactFromGraph(
             graph, root_id, names.Slice(0, ArrayLength(names)),
             types.Slice(0, ArrayLength(types)),
-            default_modes.Slice(0, ArrayLength(default_modes)), false
+            default_modes.Slice(0, ArrayLength(default_modes)), false, no_enum_values
         );
     let admitted: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
             graph, root_id, names.Slice(0, ArrayLength(names)),
             types.Slice(0, ArrayLength(types)),
-            inout_modes.Slice(0, ArrayLength(inout_modes)), false
+            inout_modes.Slice(0, ArrayLength(inout_modes)), false, no_enum_values
         );
     let ready: Bool = rejected.applies && !rejected.ok &&
         rejected.diagnostic_code == "value_param_collection_mutation" &&
@@ -94,6 +95,7 @@ func CollectionPolicyProbeGraphOwned() -> Bool {
 }
 
 func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
+    let no_enum_values: SemanticAstEnumValueScope = SemanticAstEnumValueScopeEmpty();
     let graph: SemanticExpressionGraphFacts =
         CollectionPolicyProbeGraphFacts();
     if !graph.ok || !graph.has_roots[0] { return false; }
@@ -118,7 +120,7 @@ func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
         SemanticExpressionGraphCollectionMutationFactFromGraph(
             graph, graph.roots[0], names.Slice(0, ArrayLength(names)),
             types.Slice(0, ArrayLength(types)),
-            modes.Slice(0, ArrayLength(modes)), false
+            modes.Slice(0, ArrayLength(modes)), false, no_enum_values
         );
     let ready: Bool = fact.applies && !fact.ok &&
         fact.diagnostic_code == "ast_artifact_invalid";

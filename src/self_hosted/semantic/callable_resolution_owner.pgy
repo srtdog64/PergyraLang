@@ -153,6 +153,132 @@ func SemanticCallableIndex(
     return None;
 }
 
+// One declared-name array with its exact and '_'-suffix lookups, built once
+// per callable table. SemanticCallableIndex scans the array on every call; a
+// table answers the same question by map lookup. Suffix keys are every
+// non-empty text after a '_' in a name, so a source name matches a row exactly
+// when the row ends with "_" + that name, as in the scan.
+struct SemanticCallableNameTable {
+    names: Array<String>;
+    exact_first_rows: HashMap<String, Int>;
+    exact_row_counts: HashMap<String, Int>;
+    suffix_first_rows: HashMap<String, Int>;
+    suffix_row_counts: HashMap<String, Int>;
+}
+
+func SemanticCallableNameTableCount(
+    inout first_rows: HashMap<String, Int>,
+    inout row_counts: HashMap<String, Int>,
+    key: String, row: Int
+) -> Void {
+    if MapHas(row_counts, key) {
+        MapSet(row_counts, key, MapGet(row_counts, key) + 1);
+        return;
+    }
+    MapSet(first_rows, key, row);
+    MapSet(row_counts, key, 1);
+}
+
+// Scans with a ref array: CharCode's length proof holds for ref rows only.
+func SemanticCallableNameTableFill(
+    ref names: Array<String>,
+    inout exact_first_rows: HashMap<String, Int>,
+    inout exact_row_counts: HashMap<String, Int>,
+    inout suffix_first_rows: HashMap<String, Int>,
+    inout suffix_row_counts: HashMap<String, Int>
+) -> Void {
+    let separator: Int = SourceByteOf("_");
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        // One unchanged row index lets every read observe the row in place.
+        let declared_row: Int = row;
+        let declared_len: Int = StringLength(names[declared_row]);
+        let separators: Array<Int> = [];
+        let at: Int = 0;
+        while at < declared_len - 1 {
+            if CharCode(names[declared_row], declared_len, at) == separator {
+                ArrayPush(separators, at);
+            }
+            at = at + 1;
+        }
+        let slot: Int = 0;
+        while slot < ArrayLength(separators) {
+            let start: Int = separators[slot] + 1;
+            SemanticCallableNameTableCount(
+                suffix_first_rows, suffix_row_counts,
+                Substring(names[declared_row], start, declared_len - start),
+                declared_row);
+            slot = slot + 1;
+        }
+        // The count keeps its key, so it receives a copy, never the row itself.
+        SemanticCallableNameTableCount(exact_first_rows, exact_row_counts,
+            Concat("", names[declared_row]), declared_row);
+        row = row + 1;
+    }
+}
+
+// The table owns copies of the names; the caller keeps its own rows.
+func SemanticCallableNameTableFromNames(
+    ref names: Array<String>
+) -> SemanticCallableNameTable {
+    let table_names: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        ArrayPushOwnedString(table_names, names[row]);
+        row = row + 1;
+    }
+    let exact_first_rows: HashMap<String, Int> = MapNew();
+    let exact_row_counts: HashMap<String, Int> = MapNew();
+    let suffix_first_rows: HashMap<String, Int> = MapNew();
+    let suffix_row_counts: HashMap<String, Int> = MapNew();
+    SemanticCallableNameTableFill(table_names, exact_first_rows, exact_row_counts,
+        suffix_first_rows, suffix_row_counts);
+    return SemanticCallableNameTable(table_names, exact_first_rows,
+        exact_row_counts, suffix_first_rows, suffix_row_counts);
+}
+
+// The stored value for a key, or -1 when no row has it.
+func SemanticCallableNameTableValue(
+    index: HashMap<String, Int>, key: String
+) -> Int {
+    if !MapHas(index, key) { return -1; }
+    return MapGet(index, key);
+}
+
+func SemanticCallableIndexInTable(
+    ref table: SemanticCallableNameTable,
+    source_name: String
+) -> Option<Int> {
+    if !SemanticCallableSourceNameValid(source_name) {
+        return None;
+    }
+    if StringIndexOf(source_name, ".") >= 0 {
+        let lookup_name: String =
+            SemanticCallableCanonicalLookupName(source_name);
+        if SemanticCallableNameTableValue(
+                table.exact_row_counts, lookup_name) == 1 {
+            return Some(SemanticCallableNameTableValue(
+                table.exact_first_rows, lookup_name));
+        }
+        return None;
+    }
+    // Without a dot the canonical lookup name is the source name itself.
+    let exact_count: Int =
+        SemanticCallableNameTableValue(table.exact_row_counts, source_name);
+    if exact_count == 1 {
+        return Some(SemanticCallableNameTableValue(
+            table.exact_first_rows, source_name));
+    }
+    if exact_count > 1 {
+        return None;
+    }
+    if SemanticCallableNameTableValue(table.suffix_row_counts, source_name) == 1 {
+        return Some(SemanticCallableNameTableValue(
+            table.suffix_first_rows, source_name));
+    }
+    return None;
+}
+
 func SemanticCallableResolutionContractReady() -> Bool {
     let names: Array<String> = [
         "SelfHostPath_IsAbsolute", "SelfHostPath_JoinRelativePath", "Main"

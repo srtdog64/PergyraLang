@@ -244,6 +244,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "collection-formal-effects:done");
     let collection_ownership: SemanticAstCollectionOwnershipVerdict =
         SemanticAstCollectionOwnershipVerdictOk();
+    let collection_focus_recovery: SemanticAstCollectionFocusRecoveryFacts =
+        SemanticAstCollectionFocusRecoveryFactsEmpty();
     SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:start");
     if verdict.ok {
         collection_ownership =
@@ -252,7 +254,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.expression_surfaces, analysis.function_scopes, resolved_leaf_types, numeric_string_allocations,
             call_roots, owned_string_result_domains, analysis.statements,
             analysis.assignments, assignment_types,
-            collection_formal_effects);
+            collection_formal_effects, collection_focus_recovery);
         if !collection_ownership.ok {
             verdict = SemanticAstBodyVerdictError(
                 collection_ownership.diagnostic_code,
@@ -328,6 +330,6 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     return SemanticAstBodyTypeBundle(verdict,
         initializer_types, iteration_types, assignment_types, statement_types, match_materializations,
         collection_formal_effects,
-        collection_ownership,
+        collection_ownership, collection_focus_recovery,
         zone_carriage, generic_specializations, capabilities, numeric_string_allocations, owned_string_result_domains);
 }

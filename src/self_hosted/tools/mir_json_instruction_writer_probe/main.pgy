@@ -66,6 +66,5 @@ func Main() -> Void with caps env, io_read, io_write {
     if ReadFile(args[3]) != "writer-preopen-sentinel" {
         Die("invalid MIR facts opened or truncated the output artifact");
     }
-    DriverRung2MirProjectionRelease(projection);
     Log("mir-json-instruction-writer-byte-probe-ok");
 }

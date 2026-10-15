@@ -1,0 +1,27 @@
+// A call builds the holder; its return carries `rows` into `facts.rows` and
+// `marks` into `facts.marks`. Growing the marks taken out of `facts` touches
+// nothing `rows` still names, so the later read of `rows` is no reader.
+struct Facts {
+    rows: Array<String>;
+    marks: Array<String>;
+}
+
+func FactsMake(rows: Array<String>, marks: Array<String>) -> Facts {
+    return Facts(rows, marks);
+}
+
+func Build() -> Int {
+    let rows: Array<String> = ["r"];
+    let marks: Array<String> = [];
+    let facts: Facts = FactsMake(rows, marks);
+    let grown: Array<String> = facts.marks;
+    ArrayPush(grown, "m");
+    ArrayPush(grown, "n");
+    facts.marks = grown;
+    return StringLength(rows[0]) + ArrayLength(facts.marks);
+}
+
+func Main() -> Int {
+    Log(ToString(Build()));
+    return 0;
+}

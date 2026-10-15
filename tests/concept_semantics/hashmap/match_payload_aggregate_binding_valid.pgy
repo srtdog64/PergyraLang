@@ -1,0 +1,38 @@
+// A match binding of an aggregate payload, from an owned and from a readonly
+// subject. The MIR round trip writes each binding as
+// `let table: Table = holder.Full._0`, and the semantic re-check must type
+// that payload path to decide whether the binding captures storage.
+struct Table { names: Array<String>; }
+enum Holder {
+    Full(Table),
+    Empty,
+}
+
+func Count(holder: Holder) -> Int {
+    match holder {
+        case Full(table):
+            return ArrayLength(table.names);
+        case Empty:
+            return 0;
+    }
+}
+
+func Peek(ref holder: Holder) -> Int {
+    match holder {
+        case Full(table):
+            return ArrayLength(table.names) + 10;
+        case Empty:
+            return 10;
+    }
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPush(names, "a");
+    let holder: Holder = Holder.Full(Table(names));
+    Log(ToString(Peek(holder)));
+    Log(ToString(Count(holder)));
+    let empty: Holder = Holder.Empty;
+    Log(ToString(Count(empty)));
+    return 0;
+}

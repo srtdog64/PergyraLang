@@ -1,0 +1,50 @@
+// Member moves after an if one of whose arms always returns: a guard chain
+// in the true arm, or the last `else` of an else-if chain. The MIR round trip
+// must emit the code after the if once; a copy inside the other arm would
+// move the field out twice.
+struct Rows { names: Array<String>; count: Int; }
+
+func Classify(flag: Bool, ok: Bool, early: Bool) -> Int {
+    let empty: Array<String> = [];
+    let rows: Rows = Rows(empty, 0);
+    if flag {
+        if ok {
+            if early { return 1; }
+            return 2;
+        }
+        rows.count = 3;
+    }
+    let names: Array<String> = rows.names;
+    ArrayPush(names, "x");
+    rows.names = names;
+    return ArrayLength(rows.names) + rows.count;
+}
+
+func Pick(mode: Int) -> Int {
+    let empty: Array<String> = [];
+    let rows: Rows = Rows(empty, 0);
+    let weight: Int = 0;
+    if mode == 1 {
+        if rows.count > 0 { return 9; }
+        weight = 1;
+    } else if mode == 2 {
+        weight = 2;
+    } else {
+        return 0;
+    }
+    let labels: Array<String> = rows.names;
+    ArrayPush(labels, "y");
+    rows.names = labels;
+    return ArrayLength(rows.names) + weight;
+}
+
+func Main() -> Int {
+    Log(ToString(Classify(true, false, false)));
+    Log(ToString(Classify(false, false, false)));
+    Log(ToString(Classify(true, true, true)));
+    Log(ToString(Classify(true, true, false)));
+    Log(ToString(Pick(1)));
+    Log(ToString(Pick(2)));
+    Log(ToString(Pick(3)));
+    return 0;
+}
