@@ -97,12 +97,48 @@ to root and this map before edits.
   is no longer running. Its log, not a running-job assumption, owns the result.
 - Publication and CI-green claims remain OPEN.
 - The bounded `IsSome` correction passes the native publication phase unit
-  (3708 checks, zero failures, observed by A) and generator drift. The full
+  (3708 checks, zero failures, repeated independently by root) and generator drift. The full
   canonical still refuses: its first owned error moves from the 4096 demand
   cap to `parameter program-point index allocation failed`; the unchanged
   18408 total includes cascading publication/borrow failures. Diagnose actual
   index currency/allocation before choosing the next repair. The local heap
   rebinding experiment did not unblock the chain and was removed completely.
+- Index failure classification now identifies a current, prepared index whose
+  claims reject an unreachable constructor call after `Die`. The selector
+  visited that dead statement even though the existing CFG/execution owner
+  supplied no live call publication. The intended repair consumes the existing
+  execution fact before descending a dead statement and snapshots its presence
+  and reachability for current replay. Stale/missing execution evidence must not
+  create a no-output permission; reachable opaque calls remain conservative.
+  Paired live/dead calls and changed-deadness controls falsify this repair.
+- The next fixed-demand census (same input/cap) is `EmitStmtList` parameter 5,
+  `ref CodegenSemanticBodyTypeFacts`: 159 summary evaluations + 3776 backing
+  nodes + 161 graph nodes = 4096. The reached pure type lookup pays for opaque
+  scalar arguments and zero-argument local constant calls. Repair this facet
+  coherently: use current physical-scalar argument evidence only to exclude
+  carried backing (still visit the argument expression), and let the original
+  publication identify an exact call-level local callee for the existing
+  closed-body graph. No ordinal is invented for a zero-argument call. Typed
+  identity, arity, binding and header currency remain mandatory. Preserve
+  actual inout/heap-alias walks and separate RETURN/CALL/CHANNEL/result-origin
+  facts. Falsifiers: retained heap setters, opaque/extern/indirect zero-argument
+  targets, changed callee/body/type facts, and the unchanged work-budget cases.
+- Root's clean Linux `b791c0b7a` observations: component contract PASS 11.45 s
+  within 60 s; native summary behavior and unchanged 4096/4097 demand controls
+  PASS 10.01 s, including the 3708-check publication unit. Receipts:
+  `/root/pgy-main-20261016.component-joined.log` and
+  `/root/pgy-main-20261016.native-summary-controls.log`. Focus recovery remains
+  blocked before probe execution: `c-probe-compile`, not a restoration result;
+  `/root/pgy-main-20261016.focus-main.log`. No integrated bootstrap, installed
+  driver, memory or current GitHub CI acceptance yet.
+- Native candidate checkpoint `59af37fb6` implements the sealed dead-statement,
+  physical-value and original call-level graph corrections, without new owners
+  or language syntax. Root independently repeated its publication unit: 3761
+  checks, zero failures (0.02 s). An instrumented full-input run outlived the
+  300-second budget and was terminated on its verified own PID at 306 s. That
+  is INCOMPLETE_BUDGET, not successful admission. Remove instrumentation and
+  measure the identical input with `timeout 300` before deciding whether any
+  reached repeated operation is actually closure-blocking.
 - Structural reconciliation: routine generic-constraint JSON projection moves
   unchanged from the aggregate serializer to the existing routine-parameter
   JSON owner (already imported by both consumers). Function identity and

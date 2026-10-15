@@ -9,8 +9,10 @@ The owner resumed work on 2026-10-16 and requested one main branch. The
 inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
 `3721a901c` was merged at `5684085b2`. The only local branch is `main`;
 the former performance worktree is detached with its files preserved. Latest
-committed integration repair: `9003ce030`. Native-flow instrumentation,
-structural reconciliation and focused-probe changes are still uncommitted.
+committed native implementation: `59af37fb6`, following integration/gate
+checkpoints `29b2a8a96` and `b791c0b7a`. The native source has no temporary
+instrumentation; only these two navigation documents were dirty immediately
+after that commit. Published main remains `571ae8c3a`.
 This combined source is not yet accepted. Do not reuse either parent's gate
 receipts as integrated acceptance.
 
@@ -21,23 +23,30 @@ single final focus carrier, then run narrow gates, full memory measurement,
 bootstrap, installed-driver checks and required exact-SHA CI. Preserve all
 negative fixtures; the known non-CI focus failure is not an exemption.
 
-Current blocker: after adding the reached `IsSome` input-retention fact, the
-full codegen source's first native failure moves from the unchanged 4096-work
-cap to `parameter program-point index allocation failed`. The subsequent
-18408 diagnostics are largely failed publication/borrow consumers, not a
-request for source annotations. Distinguish index currency from allocation
-failure before choosing another repair; do not raise the work limit or weaken
-escape rules. Root's pre-correction native phase unit passed 3679 checks;
-A observed 3708 checks after the bounded correction. Full canonical admission
-remains RED. Source/API merge repairs do not establish bootstrap or driver
-acceptance.
+Current executable rung: verify full native admission, then actual codegen
+bootstrap, DRV-2 consumer memory, installed driver and required CI. The index
+failure was an unreachable constructor after `Die`, not allocation exhaustion.
+`59af37fb6` seals original execution/scalar facts, joins exact zero-argument
+local calls to the existing closed-body graph, and preserves inout/heap/opaque
+and CALL/RETURN/CHANNEL boundaries. No source ceremony or work-limit increase.
+
+At `b791c0b7a`, root independently passed the native phase unit
+(3708 checks), physical-return and recursive-summary controls, independent
+4097-query admission and oversized 4096-work refusal (10.01 s total). Component
+contract passed in 11.45 s against 60 s. The focus gate stopped at native
+probe compilation, before its recovery behavior; it is not PASS. Root repeated
+the final `59af37fb6` publication unit: 3761 checks, zero failures (0.02 s).
+The full-input instrumented run was terminated as INCOMPLETE_BUDGET after
+306 s; no success is inferred from its lack of a diagnostic. An uninstrumented
+same-input run is now bounded by `timeout 300`. Canonical acceptance remains
+OPEN; bootstrap, driver, memory and GitHub CI have not been accepted.
 
 The three implementers own native flow, structural gates, and the existing
 focus-recovery behavioral gate respectively; root owns commits, integration,
 full bootstrap/install/memory evidence and publication. One heavy WSL build
-at a time. Next falsifiers are local whole-binding reassignment versus an
-aliased payload write, zero-row ordinary nominal forwarding versus real
-restoration, and the unchanged 4096/4097 demand-budget controls.
+at a time. Next falsifiers are same-input admission within budget, changed
+execution/type/zero-argument callee evidence, ordinary zero-row nominal
+forwarding versus real restoration, and unchanged 4096/4097 demand controls.
 
 The WSL remaining-target process is no longer running after WSL restart;
 its legacy-intent log ends in `Hangup`, not a pass. No published CI-green or
