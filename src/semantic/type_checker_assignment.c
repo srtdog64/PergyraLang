@@ -5,6 +5,7 @@
 #include "type_checker_builtins_internal.h"
 #include "collection_ownership_fact.h"
 #include "indexed_string_borrow_owner.h"
+#include "function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_resolution_internal.h"
@@ -294,6 +295,12 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
             target_sym->is_consumed = false;
         semantic_indexed_string_borrow_record_assignment(
             target_sym, value, expr, ctx);
+        if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
+            target_sym != NULL && !target_sym->is_parameter && !target_sym->is_host_field &&
+            !type_is_slot_handle(target_type) && !type_is_resource_handle(target_type) &&
+            !semantic_param_publication_record_assignment_replacement(ctx, expr,
+                target_sym->decl_syntax_id, target_type))
+            semantic_error(ctx, expr, "Checked local assignment replacement publication failed");
     }
     return target_type;
 }

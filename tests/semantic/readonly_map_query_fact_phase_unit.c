@@ -1272,6 +1272,84 @@ static void checked_scalar_local_store(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_local_assignment_replacement(const char *source, size_t declaration)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    ASTNode *decl = ast_program_statement(program, declaration);
+    ASTNode *body = ast_func_body(decl);
+    ASTNode *local = ast_block_statement(body, 0);
+    ASTNode *assignment = ast_block_statement(body, 1);
+    ASTNode *target = ast_assignment_target(assignment), *value = ast_assignment_value(assignment);
+    CHECK(semantic_param_publication_assignment_replacement(ctx, assignment));
+    SlotFunctionLookup lookup = {ctx, program};
+    (void)function_param_flow_summary_demand(&lookup, decl, 0);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+    CHECK(index != NULL && !index->mutable_output_required);
+    CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    uint32_t binding = ast_identifier_binding_syntax_id(target);
+    ASTNodeType target_shape = target->type, value_shape = value->type, local_shape = local->type;
+    PublishedNode *published = NULL;
+    for (size_t p = 0; p < ctx->function_param_publications->node_capacity; p++)
+        if (ctx->function_param_publications->nodes[p].node == assignment) published = &ctx->function_param_publications->nodes[p];
+    CHECK(published != NULL);
+    char *typed_name = assignment->data.assignment.semantic_binding_type_name;
+    for (unsigned fault = 0; fault < 10; fault++) {
+        if (fault == 0) local->data.let_decl.is_alias = true;
+        if (fault == 1) local->type = AST_RETURN;
+        if (fault == 2) ast_identifier_set_binding_syntax_id(target, ast_func_param_stable_id(ast_func_param(decl, 0)));
+        if (fault == 3) target->type = AST_ARRAY_ACCESS;
+        if (fault == 4) value->type = AST_CHANNEL_SEND;
+        if (fault == 5 && published != NULL) published->assignment_replacement = false;
+        if (fault == 6) assignment->stable_id++;
+        if (fault == 7) assignment->data.assignment.semantic_binding_type_name = "Slot<Int>";
+        if (fault == 8) value->stable_id++;
+        if (fault == 9) target->stable_id++;
+        CHECK(!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+        CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        local->type = local_shape; local->data.let_decl.is_alias = false;
+        ast_identifier_set_binding_syntax_id(target, binding);
+        target->type = target_shape; value->type = value_shape;
+        if (published != NULL) published->assignment_replacement = true;
+        if (fault == 6) assignment->stable_id--;
+        assignment->data.assignment.semantic_binding_type_name = typed_name;
+        if (fault == 8) value->stable_id--;
+        if (fault == 9) target->stable_id--;
+        CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+        CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_slot_assignment_operation(bool pin_view)
+{
+    const char *source = pin_view ?
+        "func Probe(text:String)->Void{let slot:Slot<Int> =ClaimSlot();pin slot as view:WriteView<Int>{view=1;}Release(slot);}" :
+        "func Probe(text:String)->Void{let slot:Slot<String> =ClaimSlot();slot=text;Release(slot);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    ASTNode *decl = ast_program_statement(program, 0);
+    ASTNode *assignment = ast_block_statement(ast_func_body(decl), 1);
+    if (pin_view) {
+        CHECK(ast_let_is_alias(ast_block_statement(assignment, 0)));
+        assignment = ast_block_statement(assignment, 1);
+    }
+    CHECK(assignment != NULL && assignment->type == AST_ASSIGNMENT);
+    CHECK(!semantic_param_publication_assignment_replacement(ctx, assignment));
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_shared_backing_validation(void)
 {
     const char *source =
@@ -2661,11 +2739,21 @@ int main(void)
     checked_no_output_header("struct Held{text:String} func EchoRecord(value:Held)->Held{return value;}", 1);
     checked_scalar_local_store();
     checked_dead_output_subtree();
+    checked_local_assignment_replacement("func Rebind(text:String)->Bool{var held:String=text;held=\"fresh\";return StringLength(held)>0;}", 0);
+    checked_local_assignment_replacement("func Rebind(text:String)->Bool{var held:Option<Int> =Some(0);held=Some(StringLength(text));return IsSome(held);}", 0);
+    checked_local_assignment_replacement("struct State{count:Int} func Rebind(text:String)->Bool{var held=State(0);held=State(StringLength(text));return held.count>0;}", 1);
+    checked_slot_assignment_operation(false);
+    checked_slot_assignment_operation(true);
+    checked_nonlocal_scalar_store("struct Cell{text:String} func Store(ref output:Cell,text:String)->Void{using output.text as target_alias;target_alias=text;}", 1);
+    checked_nonlocal_scalar_store("func Store(text:String)->Void{let local_slot:Slot<String> =ClaimSlot();local_slot=text;Release(local_slot);}", 0);
     checked_shared_backing_validation();
     checked_zero_argument_output_graph();
     checked_unclosed_output_graph("func Probe(text:String)->Bool{let line=ReadLine();return StringLength(text)>0;}", 0);
     checked_unclosed_output_graph("extern \"C\"{func Opaque()->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque();}", 1);
     checked_unclosed_output_graph("func Probe(text:String)->Bool{let indirect:func()->Int=()=>1;return StringLength(text)>indirect();}", 0);
+    checked_unclosed_output_graph("extern \"C\"{func Opaque(value:Int)->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque(1);}", 1);
+    checked_unclosed_output_graph("func Probe(text:String)->Bool{let indirect:func(Int)->Int=(value:Int)=>value+StringLength(text);return StringLength(text)>indirect(1);}", 0);
+    checked_unclosed_output_graph("class Box{let amount:Int;func Add(self,value:Int)->Int{return self.amount+value;}} func Probe(text:String,box:Box)->Bool{return StringLength(text)>box.Add(1);}", 1);
     checked_unclosed_output_graph("struct Cell{text:String} func Retain(inout output:Cell,text:String)->Int{output.text=text;return 1;} func Probe(inout output:Cell,text:String)->Bool{return StringLength(text)>Retain(output,text);}", 2);
     checked_nonlocal_scalar_store("struct Cell{text:String} func Store(cell:Cell,text:String)->Void{var alias=cell;alias.text=text;}", 1);
     checked_nonlocal_scalar_store("func SetNumber(inout destination:Int,value:Int)->Void{destination=value;}", 0);

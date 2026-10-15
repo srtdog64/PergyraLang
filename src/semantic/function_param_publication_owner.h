@@ -75,6 +75,10 @@ typedef struct {
     uint32_t id, target_id, caller_id, builtin, declaration, value_binding, binding_id;
     bool value_present, copy_escape, meta, execution_present, reachable;
     bool call_present, kind_present, stdlib, local, cast_present;
+    bool assignment_replacement;
+    const ASTNode *assignment_rhs;
+    uint32_t assignment_rhs_id, assignment_rhs_binding;
+    ASTNodeType assignment_rhs_shape;
     uint32_t category;
     ASTNodeType value_shape;
     bool origin_ready, string_value, physical_scalar;
@@ -169,6 +173,10 @@ bool semantic_param_publication_checked_argument(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_checked_call(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_record_assignment_replacement(SemanticContext *ctx,
+    ASTNode *assignment, uint32_t binding, const Type *target_type);
+bool semantic_param_publication_assignment_replacement(const SemanticContext *ctx, const ASTNode *assignment);
+bool semantic_param_publication_value_call_target(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_callee(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_finalize(SemanticContext *ctx);

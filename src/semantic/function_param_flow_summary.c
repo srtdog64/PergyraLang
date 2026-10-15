@@ -168,29 +168,33 @@ function_param_flow_fail(FunctionParamFlowSummaryStore *store,
         reason != NULL ? reason : "unknown owner failure");
 }
 
-static bool function_param_flow_scalar_local(SemanticContext *ctx,
-    FunctionParamFlowProgramPointIndex *index, ASTNode *node)
+static bool function_param_flow_local_replacement(SemanticContext *ctx,
+    FunctionParamFlowProgramPointIndex *index, ASTNode *assignment)
 {
+    if (!semantic_param_publication_assignment_replacement(ctx, assignment)) return false;
+    ASTNode *node = ast_assignment_target(assignment);
+    if (!function_param_flow_index_claim_record(ctx, index, node)) return false;
     uint32_t binding = semantic_param_publication_binding(ctx, node);
-    if (binding == 0 || !semantic_param_publication_value_is_physical_scalar(ctx, node)) return false;
-    for (size_t i = 0; i < index->scalar_local_count; i++)
-        if (binding == index->scalar_local_ids[i] &&
-            binding == ast_node_stable_id(index->scalar_local_definitions[i])) return true;
+    if (binding == 0 || node->type != AST_IDENTIFIER) return false;
+    for (size_t i = 0; i < index->local_count; i++)
+        if (binding == index->local_ids[i] && !ast_let_is_alias(index->local_definitions[i]) &&
+            binding == ast_node_stable_id(index->local_definitions[i])) return true;
     return false;
 }
-static bool function_param_flow_scalar_local_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node)
+static bool function_param_flow_local_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node)
 {
-    size_t count = index->scalar_local_count;
+    if (ast_let_is_alias(node)) return true;
+    size_t count = index->local_count;
     if (ast_node_stable_id(node) == 0 || count == SIZE_MAX / sizeof(ASTNode *)) return false;
-    ASTNode **definitions = realloc(index->scalar_local_definitions, (count + 1) * sizeof(*definitions));
+    ASTNode **definitions = realloc(index->local_definitions, (count + 1) * sizeof(*definitions));
     if (definitions == NULL) return false;
-    index->scalar_local_definitions = definitions;
-    uint32_t *ids = realloc(index->scalar_local_ids, (count + 1) * sizeof(*ids));
+    index->local_definitions = definitions;
+    uint32_t *ids = realloc(index->local_ids, (count + 1) * sizeof(*ids));
     if (ids == NULL) return false;
-    index->scalar_local_ids = ids;
+    index->local_ids = ids;
     definitions[count] = node;
     ids[count] = ast_node_stable_id(node);
-    index->scalar_local_count++;
+    index->local_count++;
     return true;
 }
 bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *decl, FunctionParamFlowProgramPointIndex *index, ASTNode *node)
@@ -201,10 +205,12 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
     if (semantic_param_publication_execution(ctx, node, &reachable) && !reachable) return false;
     switch (node->type) {
     case AST_LET_DECL:
-        return !function_param_flow_scalar_local_record(index, node) ||
+        return !function_param_flow_local_record(index, node) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
     case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
     case AST_CALL:
+        if (!semantic_param_publication_value_call_target(ctx, node) &&
+            !function_param_flow_no_store_call_append(ctx, index, node)) return true;
         if (ast_call_arg_count(node) == 0)
             return !function_param_flow_no_store_call_append(ctx, index, node);
         for (size_t p = 0; p < ast_call_arg_count(node); p++) {
@@ -221,8 +227,7 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
         }
         return false;
     case AST_ASSIGNMENT:
-        return !function_param_flow_scalar_local(ctx, index, ast_assignment_target(node)) ||
-            !semantic_param_publication_value_is_physical_scalar(ctx, ast_assignment_value(node)) ||
+        return !function_param_flow_local_replacement(ctx, index, node) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_assignment_value(node));
     case AST_BLOCK:
         for (size_t i = 0; i < ast_block_statement_count(node); i++)

@@ -135,6 +135,7 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
         row->child_ids[c] = ast_node_stable_id(row->children[c]);
     }
     if (node->type == AST_IDENTIFIER) row->binding = ast_identifier_binding_syntax_id(node);
+    if (node->type == AST_LET_DECL) row->local_alias = ast_let_is_alias(node);
     if (node->type == AST_CALL) {
         row->result_relation = semantic_param_publication_checked_result_relation(ctx, node, 0,
             &row->result_depends, &row->external_retains);
@@ -156,12 +157,7 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
     if (node->type == AST_ASSIGNMENT) {
         ASTNode *target = ast_assignment_target(node);
         row->binding = semantic_param_publication_binding(ctx, target);
-        bool local = false;
-        for (size_t i = 0; i < claims->count; i++)
-            if (claims->rows[i].shape == AST_LET_DECL && claims->rows[i].id == row->binding) local = true;
-        row->physical_assignment = local && target != NULL && target->type == AST_IDENTIFIER &&
-            semantic_param_publication_value_is_physical_scalar(ctx, target) &&
-            semantic_param_publication_value_is_physical_scalar(ctx, ast_assignment_value(node));
+        row->assignment_replacement = semantic_param_publication_assignment_replacement(ctx, node);
     }
     return row->id != 0;
 }
@@ -169,9 +165,9 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
     const FunctionParamFlowProgramPointIndex *index)
 {
     if (index->claims == NULL || index->claims->failed) return false;
-    for (size_t i = 0; i < index->scalar_local_count; i++)
-        if (index->scalar_local_definitions[i]->type != AST_LET_DECL ||
-            ast_node_stable_id(index->scalar_local_definitions[i]) != index->scalar_local_ids[i]) return false;
+    for (size_t i = 0; i < index->local_count; i++)
+        if (index->local_definitions[i]->type != AST_LET_DECL || ast_let_is_alias(index->local_definitions[i]) ||
+            ast_node_stable_id(index->local_definitions[i]) != index->local_ids[i]) return false;
     for (size_t i = 0; i < index->claims->count; i++) {
         const FunctionParamFlowIndexClaim *row = &index->claims->rows[i];
         if (row->shape != row->node->type || row->id != ast_node_stable_id(row->node) ||
@@ -180,6 +176,7 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
             if (row->children[c] != function_param_flow_claim_child(row->node, c) ||
                 row->child_ids[c] != ast_node_stable_id(row->children[c])) return false;
         if (row->shape == AST_IDENTIFIER && row->binding != ast_identifier_binding_syntax_id(row->node)) return false;
+        if (row->shape == AST_LET_DECL && row->local_alias != ast_let_is_alias(row->node)) return false;
         bool reachable = false;
         bool execution_present = semantic_param_publication_execution(ctx, row->node, &reachable);
         if (row->execution_present != execution_present ||
@@ -204,10 +201,8 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
         if (row->shape == AST_ASSIGNMENT && ast_assignment_target(row->node) != NULL &&
             ast_assignment_target(row->node)->type == AST_IDENTIFIER &&
             row->binding != semantic_param_publication_binding(ctx, ast_assignment_target(row->node))) return false;
-        if (row->physical_assignment && (row->binding == 0 ||
-            row->binding != semantic_param_publication_binding(ctx, ast_assignment_target(row->node)) ||
-            !semantic_param_publication_value_is_physical_scalar(ctx, ast_assignment_target(row->node)) ||
-            !semantic_param_publication_value_is_physical_scalar(ctx, ast_assignment_value(row->node)))) return false;
+        if (row->shape == AST_ASSIGNMENT && row->assignment_replacement !=
+            semantic_param_publication_assignment_replacement(ctx, row->node)) return false;
     }
     return true;
 }
@@ -350,8 +345,8 @@ function_param_flow_program_point_index_destroy(
     free(index->dependency_roots);
     free(index->dependency_root_ids);
     free(index->no_store_calls);
-    free(index->scalar_local_definitions);
-    free(index->scalar_local_ids);
+    free(index->local_definitions);
+    free(index->local_ids);
     if (index->claims != NULL) {
         for (size_t c = 0; c < index->claims->count; c++) {
             free(index->claims->rows[c].children); free(index->claims->rows[c].child_ids);

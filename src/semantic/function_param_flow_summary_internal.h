@@ -59,7 +59,7 @@ typedef struct {
     ASTNode **children;
     uint32_t *child_ids;
     size_t child_count;
-    bool physical_assignment;
+    bool assignment_replacement, local_alias;
     bool execution_present, reachable, physical_value;
     bool numeric_cast;
     char *cast_target;
@@ -92,9 +92,9 @@ typedef struct
     /* Original call identities; zero-argument edges need no invented ordinal. */
     ASTNode **no_store_calls;
     size_t no_store_call_count;
-    ASTNode **scalar_local_definitions;
-    uint32_t *scalar_local_ids;
-    size_t scalar_local_count;
+    ASTNode **local_definitions;
+    uint32_t *local_ids;
+    size_t local_count;
     FunctionParamFlowBackingFact *backing;
     FunctionParamFlowIndexClaims *claims;
 } FunctionParamFlowProgramPointIndex;

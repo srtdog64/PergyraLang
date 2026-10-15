@@ -528,6 +528,63 @@ static PendingRoutine *publication_routine(FunctionParamPublicationStore *store,
     PendingRoutine *row = &store->routines[node->routine_index - 1];
     return row->id == id && row->decl == node->node && ast_node_stable_id(row->decl) == id ? row : NULL;
 }
+bool semantic_param_publication_record_assignment_replacement(SemanticContext *ctx,
+    ASTNode *assignment, uint32_t binding, const Type *target_type)
+{
+    if (!semantic_param_publication_pending(ctx) || assignment == NULL ||
+        assignment->type != AST_ASSIGNMENT || binding == 0 || target_type == NULL ||
+        target_type == TYPE_UNKNOWN || type_is_slot_handle(target_type) ||
+        type_is_resource_handle(target_type)) return false;
+    ASTNode *target = ast_assignment_target(assignment), *value = ast_assignment_value(assignment);
+    const char *type_name = ast_assignment_semantic_binding_type_name(assignment);
+    if (target == NULL || target->type != AST_IDENTIFIER || value == NULL ||
+        ast_identifier_binding_syntax_id(target) != binding || ast_node_stable_id(target) == 0 ||
+        ast_node_stable_id(value) == 0 || type_name == NULL || target_type->name == NULL ||
+        strcmp(type_name, target_type->name) != 0) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, assignment, true);
+    char *name = pergyra_strdup(type_name);
+    if (row == NULL || name == NULL) { free(name); return false; }
+    free(row->target_name); row->target_name = name;
+    row->target = target; row->target_id = ast_node_stable_id(target);
+    row->target_shape = target->type; row->target_binding = binding;
+    row->assignment_rhs = value; row->assignment_rhs_id = ast_node_stable_id(value);
+    row->assignment_rhs_shape = value->type;
+    row->assignment_rhs_binding = ast_identifier_binding_syntax_id(value);
+    row->assignment_replacement = true;
+    return true;
+}
+bool semantic_param_publication_assignment_replacement(const SemanticContext *ctx, const ASTNode *assignment)
+{
+    PublishedNode *row = publication_current_value(ctx, assignment);
+    if (row == NULL || !row->assignment_replacement || assignment->type != AST_ASSIGNMENT ||
+        row->target == NULL || row->target != ast_assignment_target(assignment) ||
+        row->target->type != AST_IDENTIFIER || row->target_shape != row->target->type ||
+        row->target_id == 0 || row->target_id != ast_node_stable_id(row->target) ||
+        row->target_binding == 0 || row->target_binding != semantic_param_publication_binding(ctx, row->target) ||
+        row->assignment_rhs == NULL || row->assignment_rhs != ast_assignment_value(assignment) ||
+        row->assignment_rhs_id == 0 || row->assignment_rhs_id != ast_node_stable_id(row->assignment_rhs) ||
+        row->assignment_rhs_shape != row->assignment_rhs->type ||
+        row->assignment_rhs_binding != ast_identifier_binding_syntax_id(row->assignment_rhs) ||
+        !semantic_param_publication_value(ctx, row->assignment_rhs).ok || row->target_name == NULL ||
+        ast_assignment_semantic_binding_type_name(assignment) == NULL ||
+        strcmp(row->target_name, ast_assignment_semantic_binding_type_name(assignment)) != 0) return false;
+    return true;
+}
+bool semantic_param_publication_value_call_target(const SemanticContext *ctx, const ASTNode *call)
+{
+    if (!semantic_param_publication_checked_call(ctx, call)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, false);
+    if (row == NULL || row->value_binding != 0 || row->target == NULL ||
+        row->target->type != AST_IDENTIFIER) return false;
+    if (row->nominal_result != NULL) {
+        bool depends = false, retains = true;
+        return semantic_nominal_result_snapshot_current(ctx, call, row->nominal_result) &&
+            (row->argument_count == 0 ||
+             (semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains) && !retains));
+    }
+    return row->kind_present && row->declaration == 0 &&
+        (row->builtin != BUILTIN_NOT_BUILTIN || row->stdlib);
+}
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call)
 {
     if (!semantic_param_publication_checked_call(ctx, call)) return NULL;
