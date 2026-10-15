@@ -1,5 +1,6 @@
 ﻿#include "array_storage_deferred_preservation_owner.h"
 #include <stdlib.h>
+#include "function_param_publication_owner.h"
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -541,7 +542,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     /*
      * Pass 2: full type-check
      */
-    if (!semantic_array_storage_deferral_begin(ctx))
+    if (!semantic_param_publication_begin(ctx) || !semantic_array_storage_deferral_begin(ctx))
         return program_report_resolution_oom(ctx, program,
             "inout preservation deferral");
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
@@ -576,6 +577,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         type_check_stmt_debug_visit_report();
     }
 
+    if (!semantic_param_publication_finalize(ctx)) {
+        if (!ctx->has_error)
+            semantic_error(ctx, program, "Final typed parameter publication failed closed");
+        free(topo_order);
+        return false;
+    }
     if (!semantic_array_storage_deferral_finalize(ctx)
         || !semantic_collection_owned_element_requirements_finalize(ctx)
         || !semantic_string_window_extent_finalize(ctx)) {

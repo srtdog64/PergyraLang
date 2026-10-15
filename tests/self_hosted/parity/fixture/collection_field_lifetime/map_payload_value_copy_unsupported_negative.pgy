@@ -1,0 +1,8 @@
+// Runtime String value copy is safe; typed non-retention is not yet admitted.
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    let view: String = MapGet(table, "key");
+    MapSet(table, "key", view);
+    return MapSize(table);
+}

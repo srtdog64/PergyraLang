@@ -6,6 +6,63 @@ import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "option_value_emit_owner.pgy";
+import "../input/semantic_body_type_codegen_view_owner.pgy";
+import "../../semantic/ast_collection_exclusive_value_restoration_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+// The semantic exit owner selects and orders groups. Names below only render
+// already joined original binding identities; they never select ownership.
+func EmitAdmittedFocusRecovery(
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    function_id: Int, scope_id: Int, syntax_id: Int, kind: Int, pad: String
+) -> String {
+    if ArrayLength(body_types.focus_root_names) != ArrayLength(body_types.focus_recovery.group_function_ids) ||
+        ArrayLength(body_types.focus_local_names) != ArrayLength(body_types.focus_recovery.part_local_binding_ids) {
+        Die("codegen focus recovery binding projection is missing");
+    }
+    let exit: SemanticAstCollectionFocusRecoveryExit =
+        SemanticAstCollectionFocusRecoveryExitForNode(body_types.focus_recovery, function_id, scope_id, syntax_id, kind);
+    if !exit.ok { Die("codegen focus recovery exit receipt is missing or stale"); }
+    if !exit.found { return ""; }
+    let output: String = "";
+    let row: Int = exit.exit_start;
+    while row < exit.exit_start + exit.exit_count {
+        let group: Int = body_types.focus_recovery.exit_group_indices[row];
+        let root: String = CompilerSymbolCBindingName(body_types.focus_root_names[group]);
+        let active: Int = body_types.focus_recovery.exit_part_starts[row];
+        let end: Int = active + body_types.focus_recovery.exit_part_counts[row];
+        while active < end {
+            let part: Int = body_types.focus_recovery.active_part_indices[active];
+            let field: String = CompilerSymbolCFieldName(body_types.focus_recovery.part_field_names[part]);
+            let local_name: String = CompilerSymbolCBindingName(body_types.focus_local_names[part]);
+            output = Concat(output, Concat(pad, Concat(root, Concat(".", Concat(field,
+                Concat(" = ", Concat(local_name, ";\n")))))));
+            active = active + 1;
+        }
+        row = row + 1;
+    }
+    return output;
+}
+
+func EmitContinuingExitCleanup(
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    function_id: Int, scope_id: Int, syntax_id: Int, kind: Int,
+    routine_defers: String, scope_cleanup: String, active_defers: String,
+    routine_copyout: String, pad: String
+) -> String {
+    let recovery: String = EmitAdmittedFocusRecovery(
+        body_types, function_id, scope_id, syntax_id, kind, pad);
+    return Concat(routine_defers, Concat(scope_cleanup,
+        Concat(active_defers, Concat(recovery, routine_copyout))));
+}
+
+func EmitFocusScopeCleanup(
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    function_id: Int, scope_id: Int, cleanup: String, pad: String
+) -> String {
+    return Concat(cleanup, EmitAdmittedFocusRecovery(body_types, function_id,
+        scope_id, scope_id, SemanticAstCollectionFocusExitFallthrough(), pad));
+}
 
 func EmitReturnValue(
     rexpr: String,

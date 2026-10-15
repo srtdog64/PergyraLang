@@ -171,6 +171,7 @@ void semantic_record_callee_effect_provenance(SemanticContext *ctx, uint32_t eff
 void semantic_record_capability(SemanticContext *ctx, uint32_t capability_mask);
 void semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask);
 void semantic_record_callee_body_summary(SemanticContext *ctx,
+                                         ASTNode *call,
                                          const Type *callee_type);
 void semantic_record_callable_decl_summary(SemanticContext *ctx,
                                            ASTNode *callable_decl,
@@ -457,6 +458,9 @@ bool type_check_intent_update_existing_signature(ASTNode *intent,
                                                  SemanticContext *ctx);
 void type_check_intent_resolve_binding_types(ASTNode *intent,
                                              SemanticContext *ctx);
+Type *intent_binding_context_resolve_binding_type(ASTNode *intent,
+                                                  const char *alias,
+                                                  SemanticContext *ctx);
 void type_check_intent_declare_binding_symbols(ASTNode *intent,
                                                SemanticContext *ctx);
 Type *intent_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);

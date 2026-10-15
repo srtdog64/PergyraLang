@@ -63,7 +63,8 @@ if [ "$production_corpus" -eq 1 ]; then
                     ReuseIdentityAudit ProofRedteamMainRegression \
                     OwnershipCleanGCComparisonAudit MemoryBoundaryCompositionAudit \
                     OwnershipTeardownRedteam OwnershipCutoverPreflightAudit \
-                    GraphCycleReclaimAudit GraphActionScopeAudit; do
+                    GraphCycleReclaimAudit GraphActionScopeAudit \
+                    OwnershipRefusalExplanationAudit; do
         cp "$ROOT_DIR/tests/coq/$consumer.v" "$PROOFS_DIR/"
     done
 fi

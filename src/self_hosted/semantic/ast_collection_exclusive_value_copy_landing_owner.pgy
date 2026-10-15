@@ -1,82 +1,9 @@
-// Exclusive-value copy landings: the first fields of a root its copies
-// reach, and the last-use proofs that read only the copies a growth can
-// reach (a sink argument, or a place whose other readers are its copies).
+// Copy landing consumers use the admitted source/destination field pair.
 import "ast_collection_exclusive_value_consumption_owner.pgy";
 
-// Where the copies of `root` reach it: first fields of holders' copies of a
-// root field, a ref source's copies at the root's shared fields, and a formal
-// source's copies at the fields its dependency paths land at. Not `ok` when a
-// copy is whole or comes from a local.
-struct SemanticAstCollectionExclusiveCopyLanding {
-    ok: Bool;
-    fields: Array<String>;
-    sources: Array<Int>;
-}
 
-func SemanticAstCollectionExclusiveCopyLandingFor(
-    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
-    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>, copies: HashMap<String, Int>,
-    shared_locals: HashMap<String, Int>, ref dep_locals: Array<Int>, ref dep_formals: Array<Int>,
-    ref dep_paths: Array<Int>, ref paths: Array<String>, function_id: Int, root: Int
-) -> SemanticAstCollectionExclusiveCopyLanding {
-    let fields: Array<String> = [];
-    let sources: Array<Int> = [];
-    let root_fields: Array<String> = SemanticAstCollectionExclusiveTypeFields(constructors,
-        SemanticAstCollectionExclusiveRootType(signatures, locals, inferred_types, function_id, root));
-    let from: String = Concat("from:", ToString(root));
-    let index: Int = 0;
-    while index < SemanticAstCollectionExclusiveCopyCount(copies, from) {
-        let edge: String = ToString(MapGet(copies, Concat(from, Concat(":", ToString(index)))));
-        if MapHas(copies, Concat("edge_whole:", edge)) {
-            return SemanticAstCollectionExclusiveCopyLanding(false, fields, sources);
-        }
-        let field_index: Int = 0;
-        while field_index < ArrayLength(root_fields) {
-            if MapHas(copies, Concat("edge_field:", Concat(edge, Concat(":", root_fields[field_index])))) {
-                ArrayPush(fields, root_fields[field_index]);
-            }
-            field_index = field_index + 1;
-        }
-        index = index + 1;
-    }
-    let into: String = Concat("into:", ToString(root));
-    index = 0;
-    while index < SemanticAstCollectionExclusiveCopyCount(copies, into) {
-        let source: Int = MapGet(copies, Concat("edge_root:", ToString(MapGet(copies,
-            Concat(into, Concat(":", ToString(index)))))));
-        let mode: Int = SemanticAstCollectionExclusiveRootMode(signatures, function_id, source);
-        let landed: Int = ArrayLength(fields);
-        if mode == 3 {
-            let field_index: Int = 0;
-            while field_index < ArrayLength(root_fields) {
-                if MapHas(shared_locals, Concat(ToString(root), Concat(".", root_fields[field_index]))) {
-                    ArrayPush(fields, root_fields[field_index]);
-                }
-                field_index = field_index + 1;
-            }
-        } else if mode >= 0 {
-            let row: Int = 0;
-            while row < ArrayLength(dep_locals) {
-                if dep_locals[row] == root && dep_formals[row] == source {
-                    if dep_paths[row] < 0 || paths[2 * dep_paths[row]] == "" {
-                        return SemanticAstCollectionExclusiveCopyLanding(false, fields, sources);
-                    }
-                    ArrayPush(fields, paths[2 * dep_paths[row]]);
-                }
-                row = row + 1;
-            }
-        }
-        if ArrayLength(fields) == landed { return SemanticAstCollectionExclusiveCopyLanding(false, fields, sources); }
-        ArrayPush(sources, source);
-        index = index + 1;
-    }
-    return SemanticAstCollectionExclusiveCopyLanding(ArrayLength(fields) > 0, fields, sources);
-}
-
-// The last-use proof of a sink argument that grows only the first fields
-// `grown`: a copy outside them is not a reader of grown storage.
 func SemanticAstCollectionExclusiveSinkArgumentConsumed(
-    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    artifact: AstTreeArtifact, ref exit_facts: SemanticAstCollectionExclusiveExitFacts, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
@@ -85,6 +12,13 @@ func SemanticAstCollectionExclusiveSinkArgumentConsumed(
     inout consumed: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int,
     ref grown: Array<String>, ref ignored_sources: Array<Int>
 ) -> Bool {
+    if !exit_facts.ok { return false; }
+    let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+    if !place.ok || place.temporary { return false; }
+    let signature: String = SemanticAstCollectionExclusiveCopySignature(copies, constructors,
+        SemanticAstCollectionExclusivePlaceRoot(locals, place));
+    if signature == "" { return false; }
     let key: String = Concat("sink:", Concat(ToString(syntax_id), Concat(":", ToString(node))));
     let index: Int = 0;
     while index < ArrayLength(grown) { key = Concat(key, Concat(",", grown[index])); index = index + 1; }
@@ -93,53 +27,43 @@ func SemanticAstCollectionExclusiveSinkArgumentConsumed(
         key = Concat(key, Concat(";", ToString(ignored_sources[index])));
         index = index + 1;
     }
-    key = Concat(key, Concat("@", ToString(SemanticAstCollectionExclusiveCopyCount(copies, "edges"))));
+    key = Concat(key, Concat("@", signature));
     if MapHas(consumed, key) { return MapGet(consumed, key) == 1; }
-    let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, signatures, constructors, locals,
+    let recovery_only: Bool = false;
+    let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, exit_facts, signatures, constructors, locals,
         inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, function_id,
-        syntax_id, node, grown, ignored_sources);
+        syntax_id, node, grown, ignored_sources, recovery_only);
+    if !result && recovery_only { MapSet(consumed, Concat("recovery:", key), 1); }
     if result { MapSet(consumed, key, 1); } else { MapSet(consumed, key, 2); }
     return result;
 }
 
-// The formal sources of copies `root` holds whose every recorded path lands
-// at a first field of `root` outside `grown`.
+// Ignore a source only when every admitted landing from it is outside growth.
 func SemanticAstCollectionExclusiveUngrownSources(
-    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
-    copies: HashMap<String, Int>, shared_locals: HashMap<String, Int>, ref dep_locals: Array<Int>,
-    ref dep_formals: Array<Int>, ref dep_paths: Array<Int>, ref paths: Array<String>, function_id: Int, root: Int,
-    ref grown: Array<String>
+    ref constructors: SemanticAstNominalConstructorFacts, copies: HashMap<String, Int>, root: Int, ref grown: Array<String>
 ) -> Array<Int> {
-    // A ref source classifies shared, so its copies land at shared fields.
-    let shared_outside: Bool = !MapHas(shared_locals, ToString(root));
-    let grown_index: Int = 0;
-    while grown_index < ArrayLength(grown) {
-        if MapHas(shared_locals, Concat(ToString(root), Concat(".", grown[grown_index]))) { shared_outside = false; }
-        grown_index = grown_index + 1;
-    }
     let ignored: Array<Int> = [];
-    let into: String = Concat("into:", ToString(root));
+    let prefix: String = Concat("into:", ToString(root));
+    let count: Int = SemanticAstCollectionExclusiveCopyCount(copies, prefix);
     let index: Int = 0;
-    while index < SemanticAstCollectionExclusiveCopyCount(copies, into) {
-        let source: Int = MapGet(copies, Concat("edge_root:", ToString(MapGet(copies,
-            Concat(into, Concat(":", ToString(index)))))));
-        let mode: Int = SemanticAstCollectionExclusiveRootMode(signatures, function_id, source);
-        let lands: Bool = mode == 3 && shared_outside;
-        let outside: Bool = mode >= 0;
+    while index < count {
+        let key: String = Concat(prefix, Concat(":", ToString(index)));
+        if !MapHas(copies, key) { return []; }
+        let edge: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, MapGet(copies, key));
+        if !edge.ok || edge.holder != root { return []; }
+        let outside: Bool = true;
         let row: Int = 0;
-        while row < ArrayLength(dep_locals) && outside && mode != 3 {
-            if dep_locals[row] == root && dep_formals[row] == source {
-                lands = true;
-                if dep_paths[row] < 0 || paths[2 * dep_paths[row]] == "" { outside = false; }
-                let field_index: Int = 0;
-                while outside && field_index < ArrayLength(grown) {
-                    if dep_paths[row] >= 0 && paths[2 * dep_paths[row]] == grown[field_index] { outside = false; }
-                    field_index = field_index + 1;
-                }
+        while row < count && outside {
+            let other_key: String = Concat(prefix, Concat(":", ToString(row)));
+            if !MapHas(copies, other_key) { return []; }
+            let other: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, MapGet(copies, other_key));
+            if !other.ok || other.holder != root { return []; }
+            if other.root == edge.root && SemanticAstCollectionExclusiveCopyFieldGrown(constructors, other.destination_field, grown) {
+                outside = false;
             }
             row = row + 1;
         }
-        if lands && outside { ArrayPush(ignored, source); }
+        if outside { ArrayPush(ignored, edge.root); }
         index = index + 1;
     }
     return ignored;

@@ -10,6 +10,8 @@
 #include "transpiler_context.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_type_require.h"
+#include "transpiler_type_declarator.h"
+#include "transpiler_inventory_view.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -178,26 +180,40 @@ transpiler_emit_mut_ref_writebacks(TranspilerCtx *ctx)
 }
 
 const char *
-transpiler_emit_mut_ref_return_capture(TranspilerCtx *ctx,
+transpiler_emit_return_capture(TranspilerCtx *ctx,
                                        const char *return_expr,
                                        char *temp_name,
-                                       size_t temp_name_size)
+                                       size_t temp_name_size,
+                                       const MIRBasicBlock *return_block)
 {
     char ctype[256];
     int written;
 
     if (ctx == NULL || return_expr == NULL)
         return NULL;
-    if (ctx->mut_ref_param_count == 0)
+    bool cleanup = ctx->mut_ref_param_count > 0 || ctx->region_scope_active;
+    if (ctx->defer_scope_depth < 0 || ctx->defer_scope_depth > TRANSPILE_MAX_SCOPE_DEPTH) {
+        transpiler_set_mir_topology_invalid(ctx, "Return capture has invalid defer scope depth");
+        return NULL;
+    }
+    for (int depth = 0; depth < ctx->defer_scope_depth; depth++)
+        cleanup |= ctx->defer_body_counts[depth] > 0;
+    if (return_block != NULL) {
+        const MIRRoutine *routine = ctx->active_mir_routine;
+        if (routine == NULL || routine->blocks == NULL || return_block->id >= routine->block_count ||
+            &routine->blocks[return_block->id] != return_block) {
+            transpiler_set_mir_topology_invalid(ctx, "Return capture block is not owned by the active MIR routine");
+            return NULL;
+        }
+        cleanup |= return_block->is_pin_region;
+        for (int i = 0; i < ctx->typed_var_count; i++)
+            cleanup |= ctx->typed_vars[i].requires_embedded_zone_cleanup &&
+                ctx->typed_vars[i].embedded_zone_cleanup_routine == routine;
+    }
+    if (!cleanup)
         return return_expr;
     if (temp_name == NULL || temp_name_size == 0)
         return NULL;
-    if (!transpiler_require_type_name_c_type_copy(ctx,
-            ctx->current_return_type, "inout return capture",
-            ctype, sizeof(ctype))) {
-        return NULL;
-    }
-
     written = snprintf(temp_name, temp_name_size,
         "_pgy_return_value_%d", ++ctx->tmp_counter);
     if (written < 0 || (size_t)written >= temp_name_size) {
@@ -205,12 +221,44 @@ transpiler_emit_mut_ref_return_capture(TranspilerCtx *ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-            "C backend could not mint a bounded inout return temporary");
+            "C backend could not mint a bounded return temporary");
         return NULL;
     }
-
+    const MIRCallableSig *callable = return_block == NULL ? NULL :
+        transpiler_mir_routine_return_callable_sig(ctx->active_mir_routine);
+    char *declaration = NULL;
+    if (callable != NULL)
+        declaration = pergyra_func_pointer_declarator_from_type_names_in_ctx(ctx,
+            callable->return_type_name, callable->param_count, callable->param_type_names, temp_name);
+    else if (ctx->current_return_callable_type != NULL) {
+        if (ctx->current_return_callable_type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_INSPECT_MIR_INVENTORY,
+                "Return capture callable type has no admitted handler shape");
+            return NULL;
+        }
+        declaration = pergyra_ast_typed_declarator_in_ctx(ctx, ctx->current_return_callable_type, temp_name);
+    } else if (!transpiler_require_type_name_c_type_copy(ctx,
+            ctx->current_return_type, "return capture", ctype, sizeof(ctype)))
+        return NULL;
+    if ((callable != NULL || ctx->current_return_callable_type != NULL) && declaration == NULL) {
+        if (ctx->backend_error == NULL)
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_INSPECT_MIR_INVENTORY,
+                "Return capture is missing an admitted callable declarator");
+        return NULL;
+    }
+    if (declaration == NULL && strcmp(ctype, "void") == 0) {
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_INSPECT_MIR_INVENTORY,
+            "Void return cannot capture a value before cleanup");
+        return NULL;
+    }
     write_indent(ctx);
-    codebuf_write(ctx->out, "%s %s = %s;\n",
-        ctype, temp_name, return_expr);
+    if (declaration != NULL)
+        codebuf_write(ctx->out, "%s = %s;\n", declaration, return_expr);
+    else
+        codebuf_write(ctx->out, "%s %s = %s;\n", ctype, temp_name, return_expr);
+    free(declaration);
     return temp_name;
 }

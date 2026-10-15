@@ -548,7 +548,7 @@ MOVE_CLONE_CASES=(
     collection_field_restore_valid
     borrowed_string_array_shallow_copy
     unknown_string_array_alias_without_drop
-    map_keys_shallow_copy
+    readonly_map_query_snapshot_transfer_valid
 )
 for name in "${MOVE_CLONE_CASES[@]}"; do
     source="tests/concept_semantics/hashmap/$name.pgy"
@@ -568,7 +568,7 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
             fail "aggregate member-move origin was not carried into MIR"
     elif [[ "$name" == borrowed_string_array_shallow_copy ||
             "$name" == unknown_string_array_alias_without_drop ||
-            "$name" == map_keys_shallow_copy ]]; then
+            "$name" == readonly_map_query_snapshot_transfer_valid ]]; then
         grep -Fq '"origin":"binding"' "$ROOT_DIR/$mir_rel" ||
             fail "local declaration move origin was not carried into MIR"
         grep -Fq '"disposition":"retired"' "$ROOT_DIR/$mir_rel" ||
@@ -582,7 +582,7 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
         printf 'alpha\n' >"$expected"
     elif [[ "$name" == borrowed_string_array_shallow_copy ||
             "$name" == unknown_string_array_alias_without_drop ||
-            "$name" == map_keys_shallow_copy ]]; then
+            "$name" == readonly_map_query_snapshot_transfer_valid ]]; then
         printf '1\n' >"$expected"
     else
         printf 'moved\n' >"$expected"
@@ -696,13 +696,13 @@ for name in borrowed_string_array_shallow_copy \
     done
 done
 
-MAP_KEYS_MOVE_C_REL="$WORK_REL/map_keys_shallow_copy-direct.c"
-MAP_KEYS_MOVE_LLVM_REL="$WORK_REL/map_keys_shallow_copy-direct.ll"
+MAP_KEYS_MOVE_C_REL="$WORK_REL/readonly_map_query_snapshot_transfer_valid-direct.c"
+MAP_KEYS_MOVE_LLVM_REL="$WORK_REL/readonly_map_query_snapshot_transfer_valid-direct.ll"
 for backend in c llvm; do
     output_rel="$MAP_KEYS_MOVE_C_REL"
     [[ "$backend" == llvm ]] && output_rel="$MAP_KEYS_MOVE_LLVM_REL"
     (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
-        "$WORK_REL/map_keys_shallow_copy.mir.json" "$backend" "$output_rel") \
+        "$WORK_REL/readonly_map_query_snapshot_transfer_valid.mir.json" "$backend" "$output_rel") \
         >"$WORK_DIR/map-keys-direct-$backend.out" \
         2>"$WORK_DIR/map-keys-direct-$backend.err" || {
         cat "$WORK_DIR/map-keys-direct-$backend.out" \
@@ -813,6 +813,29 @@ for row in hashmap-early-return:2 hashmap-normal-exit:1; do
             fail "generated $name $backend output drifted"
     done
 done
+
+# The revised MapKeys fixture is a real old-source use after the destination's
+# deep release, not the historical valid single move. Analyze it only.
+MAP_KEYS_MOVED_SOURCE="tests/concept_semantics/hashmap/map_keys_shallow_copy.pgy"
+map_keys_status=0
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --mir-json --error-format=json \
+    "$MAP_KEYS_MOVED_SOURCE") >"$WORK_DIR/map-keys-moved-source.out" \
+    2>"$WORK_DIR/map-keys-moved-source.err" || map_keys_status=$?
+[[ "$map_keys_status" == 1 ]] || fail "native analysis accepted retired MapKeys source"
+! grep -Fq '"pgy.mir.v1"' "$WORK_DIR/map-keys-moved-source.out" ||
+    fail "native analysis published retired MapKeys source"
+grep -Fq 'PGY_SEM_MOVE_FROM_RELEASED' "$WORK_DIR/map-keys-moved-source.out" \
+    "$WORK_DIR/map-keys-moved-source.err" || fail "native analysis lost exact MapKeys move diagnostic"
+map_keys_status=0
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$MAP_KEYS_MOVED_SOURCE" \
+    -o "$WORK_REL/map-keys-moved-source-self.mir.json") \
+    >"$WORK_DIR/map-keys-moved-source-self.out" \
+    2>"$WORK_DIR/map-keys-moved-source-self.err" || map_keys_status=$?
+[[ "$map_keys_status" == 1 ]] || fail "installed self-host analysis accepted retired MapKeys source"
+[[ ! -e "$ROOT_DIR/$WORK_REL/map-keys-moved-source-self.mir.json" ]] ||
+    fail "installed self-host published retired MapKeys source"
+grep -Fq 'move_from_released' "$WORK_DIR/map-keys-moved-source-self.out" \
+    "$WORK_DIR/map-keys-moved-source-self.err" || fail "installed self-host lost MapKeys move diagnostic"
 
 MOVE_NEGATIVE_CASES=(
     collection_field_use_after_move

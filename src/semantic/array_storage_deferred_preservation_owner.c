@@ -5,6 +5,7 @@
 #include "slot_analyzer_internal.h"
 #include "slot_summary.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 #include <stdlib.h>
 
@@ -139,21 +140,15 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
 {
     ArrayStorageDeferredPreservationStore *store =
         ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
-    if (store == NULL || !store->active)
+    if (store == NULL || !store->active || !semantic_param_publication_ready(ctx))
         return false;
     store->active = false;
-    /* Summaries taken during Pass 2 may have read bodies that were not yet
-     * checked. Decide over a fresh store and keep the Pass 2 store, whose
-     * masks other owners snapshot, unchanged. */
-    FunctionParamFlowSummaryStore *pass2_store = ctx->function_param_flow_summaries;
-    ctx->function_param_flow_summaries = NULL;
+    /* The final owner supplies one all-typed store to every consumer. */
     for (size_t i = 0; i < store->call_count; i++) {
         ArrayStoragePendingCall *pending = &store->calls[i];
         pending->preserved = function_param_flow_preserves_array_storage(
             ctx, pending->callee_decl, pending->ordinal);
     }
-    function_param_flow_summary_store_destroy(ctx);
-    ctx->function_param_flow_summaries = pass2_store;
     store->finalized = true;
     for (size_t i = 0; i < store->drop_count; i++) {
         const ArrayStoragePendingDrop *drop = &store->drops[i];

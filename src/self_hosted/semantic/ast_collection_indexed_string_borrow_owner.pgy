@@ -6,41 +6,9 @@ import "ast_collection_definition_storage_authority_owner.pgy";
 import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
 import "ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_map_payload_event_owner.pgy";
 
-struct SemanticAstIndexedStringBorrowState {
-    ok: Bool;
-    source_storage_ids: Array<Int>;
-    invalidated: Array<Bool>;
-}
-
-func SemanticAstIndexedStringBorrowStateForLocals(
-    ref locals: SemanticAstLocalBindingFacts
-) -> SemanticAstIndexedStringBorrowState {
-    let sources: Array<Int> = [];
-    let invalidated: Array<Bool> = [];
-    let row: Int = 0;
-    while row < ArrayLength(locals.node_ids) {
-        ArrayPush(sources, 0);
-        ArrayPush(invalidated, false);
-        row = row + 1;
-    }
-    return SemanticAstIndexedStringBorrowState(
-        locals.ok, sources, invalidated
-    );
-}
-
-func SemanticAstIndexedStringBorrowStateRetire(
-    inout state: SemanticAstIndexedStringBorrowState
-) -> Void {
-    // Replace field descriptors before retiring the exact last consumers.
-    let source_storage_ids: Array<Int> = state.source_storage_ids;
-    let invalidated: Array<Bool> = state.invalidated;
-    state.source_storage_ids = [];
-    state.invalidated = [];
-    SemanticAstIndexedStringBorrowSourceStorageRetire(source_storage_ids);
-    SemanticAstIndexedStringBorrowInvalidationStorageRetire(invalidated);
-    state.ok = false;
-}
+import "ast_collection_indexed_string_borrow_state_owner.pgy";
 
 func SemanticAstIndexedStringBorrowUseAtEvent(
     artifact: AstTreeArtifact,
@@ -48,7 +16,7 @@ func SemanticAstIndexedStringBorrowUseAtEvent(
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref assignments: SemanticAstAssignmentFacts,
-    ref state: SemanticAstIndexedStringBorrowState,
+    inout state: SemanticAstIndexedStringBorrowState,
     root_slot: Int, node: Int
 ) -> SemanticAstCollectionOwnershipVerdict {
     let surface_row: Int = root_slot / 3;
@@ -74,11 +42,15 @@ func SemanticAstIndexedStringBorrowUseAtEvent(
         );
     if binding.ok && binding.type_name == "String" &&
         binding.row < ArrayLength(state.invalidated) &&
-        state.invalidated[binding.row] {
+        (state.invalidated[binding.row] || SemanticAstMapStringPayloadInvalidated(
+            artifact, surfaces, state, state.source_storage_ids[binding.row],
+            surfaces.node_ids[surface_row])) {
+        let boundary: String = "indexed_string_use_after_deep_drop";
+        if !state.invalidated[binding.row] { boundary = "map_string_use_after_mutation"; }
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",
-                "indexed_string_use_after_deep_drop", "type", "String"),
+                boundary, "type", "String"),
             surfaces.node_ids[surface_row], node
         );
     }
@@ -135,7 +107,7 @@ func SemanticAstIndexedStringBorrowCompleteValue(
     let root: Int = surfaces.expression_graph.roots[root_slot];
     let incoming: Int = SemanticAstIndexedStringBorrowSourceForRoot(
         artifact, locals, inferred_types, surfaces, definitions, storage,
-        current_definitions, state.source_storage_ids, surface_row, root
+        current_definitions, state.source_storage_ids, state.map_payload_sources, surface_row, root
     );
     if IsSome(declared) {
         state.source_storage_ids[target_row] = incoming;

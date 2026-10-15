@@ -1,0 +1,14 @@
+func CountKeys(ref values: HashMap<String, Int>) -> Int {
+    let keys: Array<String> = MapKeys(values);
+    let count: Int = ArrayLength(keys);
+    ArrayDropOwnedStrings(keys);
+    return count;
+}
+func Main() -> Void {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "first", 29);
+    Log(CountKeys(values));
+    MapSet(values, "second", 31);
+    Log(CountKeys(values));
+    Log(MapGet(values, "first"));
+}

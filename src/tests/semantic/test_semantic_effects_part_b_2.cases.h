@@ -29,8 +29,10 @@
 
         /* Direct checker entry must receive the same stable identities as
          * semantic_analyze supplies for a parsed program. */
-        bool assigned_ids = ast_assign_stable_ids(func);
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        bool assigned_ids = ast_assign_stable_ids(program);
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "CallLambda");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -44,7 +46,7 @@
             && (body_summary & BODY_SUMMARY_MAY_RETURN) == 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("structured comment @effects merges declared effect into function");
@@ -61,7 +63,10 @@
         ret->data.return_stmt.value = make_number(1, 2);
         ast_add_statement(func->data.func_decl.body, ret);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "PlanRemote");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -71,7 +76,7 @@
             && type_effect_mask_has(effects, EFFECT_SECURE));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("source-level /// @effects flows from parser into semantic effects");

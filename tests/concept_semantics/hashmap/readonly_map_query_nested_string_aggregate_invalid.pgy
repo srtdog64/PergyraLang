@@ -1,0 +1,7 @@
+struct NestedCapturedMap { entries: HashMap<String, String>; }
+struct NestedCapturedQueries { inventory: NestedCapturedMap; }
+struct NestedCapturedText { value: String; }
+func CaptureNestedMapText(ref record: NestedCapturedQueries) -> NestedCapturedText {
+    return NestedCapturedText(MapGet(record.inventory.entries, "entry"));
+}
+func Main() -> Void {}

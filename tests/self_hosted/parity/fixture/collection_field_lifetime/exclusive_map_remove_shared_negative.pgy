@@ -1,0 +1,12 @@
+func Seeded() -> HashMap<String, Int> {
+    let table: HashMap<String, Int> = MapNew();
+    MapSet(table, "seed", 1);
+    return table;
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = Seeded();
+    let copy: HashMap<String, Int> = table;
+    MapRemove(copy, "seed");
+    return MapSize(table);
+}

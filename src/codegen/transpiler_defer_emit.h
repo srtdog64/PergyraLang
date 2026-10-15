@@ -18,8 +18,9 @@ bool transpiler_mut_ref_param_is_copy_in_local(const TranspilerCtx *ctx,
     const char *name);
 void transpiler_emit_mut_ref_copyins(TranspilerCtx *ctx);
 void transpiler_emit_mut_ref_writebacks(TranspilerCtx *ctx);
-const char *transpiler_emit_mut_ref_return_capture(
+/* Capture the value before actual exit cleanup; no cleanup leaves it inline. */
+const char *transpiler_emit_return_capture(
     TranspilerCtx *ctx, const char *return_expr,
-    char *temp_name, size_t temp_name_size);
+    char *temp_name, size_t temp_name_size, const MIRBasicBlock *return_block);
 
 #endif /* PGY_SRC_CODEGEN_TRANSPILER_DEFER_EMIT_H */

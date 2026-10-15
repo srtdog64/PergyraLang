@@ -1,0 +1,12 @@
+// The caller precedes its callee: no early untyped summary may become final.
+func ForwardValue(ref values: HashMap<String, Int>) -> Int {
+    return ReadValue(values);
+}
+func Main() -> Void {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "entry", 11);
+    Log(ForwardValue(values));
+}
+func ReadValue(ref values: HashMap<String, Int>) -> Int {
+    return MapGet(values, "entry");
+}

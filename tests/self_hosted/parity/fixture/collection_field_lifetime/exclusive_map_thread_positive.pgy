@@ -1,0 +1,15 @@
+struct MapState { entries: HashMap<String, Int>; }
+
+func Grow(state: MapState) -> MapState {
+    let entries: HashMap<String, Int> = state.entries;
+    MapSet(entries, "next", 2);
+    return MapState(entries);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let state: MapState = MapState(table);
+    state = Grow(state);
+    let result: HashMap<String, Int> = state.entries;
+    return MapSize(result);
+}

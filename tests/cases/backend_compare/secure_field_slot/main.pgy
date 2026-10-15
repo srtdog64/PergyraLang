@@ -1,6 +1,7 @@
+// C/LLVM token-gated field-storage parity only; no encrypted policy is claimed.
 class Vault
 {
-    private let (_coinSlot, _coinToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED)
+    private let (_coinSlot, _coinToken) = ClaimSecureSlot<Int>()
 
     public func Run() -> Void
     {

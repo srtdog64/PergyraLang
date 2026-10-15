@@ -1,0 +1,12 @@
+struct TextRecord { text: String; }
+extern "C" { func Keep(text: String) -> Void; }
+func RetainingNumber(ref text: String) -> Int { Keep(text); return 1; }
+func ReadRecord(ref record: TextRecord) -> Bool {
+    let observed = RetainingNumber(record.text) as Long;
+    return observed > (0 as Long);
+}
+func Publish() -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return ReadRecord(record);
+}
+func Main() -> Void { Log(Publish()); }

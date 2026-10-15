@@ -20,6 +20,8 @@ class RetentionRow:
     identity: str
     source_name: str
     argument_ordinal: int | None
+    macro: str
+    physical_arity: int | None
 
 
 def _strip_comments(source: str) -> str:
@@ -67,13 +69,25 @@ def load_rows(path: Path) -> list[RetentionRow]:
             raise ValueError(f"retention row {row_number} has out-of-range argument ordinal")
         if kind != BORROWED:
             raise ValueError(f"retention row {row_number} has unknown retention kind")
-        rows.append(RetentionRow(identity, source_match.group(1), argument_ordinal))
+        rows.append(RetentionRow(identity, source_match.group(1), argument_ordinal,
+                                 macro, int(fields[4]) if macro == STDLIB_ROW_MACRO else None))
     if not rows:
         raise ValueError("builtin argument-retention registry is empty")
-    if len({row.identity for row in rows}) != len(rows):
-        raise ValueError("builtin argument-retention identities must be unique")
-    if len({row.source_name for row in rows}) != len(rows):
-        raise ValueError("builtin argument-retention names must be unique")
+    identities: dict[str, tuple[str, str, int | None]] = {}
+    names: dict[str, str] = {}
+    ordinals: dict[str, set[int | None]] = {}
+    for row in rows:
+        metadata = (row.source_name, row.macro, row.physical_arity)
+        if row.identity in identities and identities[row.identity] != metadata:
+            raise ValueError("builtin identity source name, macro and arity must agree")
+        if row.source_name in names and names[row.source_name] != row.identity:
+            raise ValueError("builtin source name must resolve to one identity")
+        seen = ordinals.setdefault(row.identity, set())
+        if row.argument_ordinal in seen or None in seen or (row.argument_ordinal is None and seen):
+            raise ValueError("builtin argument-retention ordinals duplicate or overlap ANY")
+        identities[row.identity] = metadata
+        names[row.source_name] = row.identity
+        seen.add(row.argument_ordinal)
     return rows
 
 
@@ -152,18 +166,21 @@ def render(rows: list[RetentionRow]) -> str:
         "}",
         "",
         "func SemanticBuiltinArgumentRetentionProjectionReady() -> Bool {",
-        "    let seen_identities: HashMap<String, Int> = MapNew();",
-        "    let seen_names: HashMap<String, Int> = MapNew();",
         "    let row_index: Int = 0;",
         "    while row_index < SemanticBuiltinArgumentRetentionCount() {",
         "        let row: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(row_index);",
         "        if !row.valid || row.builtin_identity == \"\" || row.source_name == \"\" ||",
         "            (row.any_argument && row.argument_ordinal != -1) ||",
-        "            (!row.any_argument && row.argument_ordinal < 0) ||",
-        "            MapHas(seen_identities, row.builtin_identity) ||",
-        "            MapHas(seen_names, row.source_name) { return false; }",
-        "        MapSet(seen_identities, row.builtin_identity, 1);",
-        "        MapSet(seen_names, row.source_name, 1);",
+        "            (!row.any_argument && row.argument_ordinal < 0) { return false; }",
+        "        let prior_index: Int = 0;",
+        "        while prior_index < row_index {",
+        "            let prior: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(prior_index);",
+        "            if row.builtin_identity == prior.builtin_identity {",
+        "                if row.source_name != prior.source_name || row.any_argument || prior.any_argument ||",
+        "                    row.argument_ordinal == prior.argument_ordinal { return false; }",
+        "            } else if row.source_name == prior.source_name { return false; }",
+        "            prior_index = prior_index + 1;",
+        "        }",
         "        row_index = row_index + 1;",
         "    }",
         "    let string_length: Option<String> =",

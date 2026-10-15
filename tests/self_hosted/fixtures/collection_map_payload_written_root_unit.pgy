@@ -1,0 +1,111 @@
+// Direct owner checks: no source-program ownership verdict may mask a claim.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_map_payload_written_root_owner.pgy";
+
+func InspectWrittenRoot(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    function_id: Int, syntax_id: Int, node: Int, expected: Bool
+) -> Bool {
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+        analysis.signatures, function_id, analysis.expression_surfaces.expression_graph, node);
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, analysis.local_bindings, analysis.local_bindings.declared_type_names,
+        function_id, syntax_id, analysis.expression_surfaces.expression_graph, node);
+    let identity: Int = 0;
+    if formal.ok { identity = formal.syntax_id; }
+    else if binding.ok { identity = binding.declaration_node_id; }
+    if identity <= 0 { return false; }
+    let result: Bool = SemanticAstMapPayloadRootWrittenBefore(artifact, analysis.signatures,
+        analysis.local_bindings, analysis.local_bindings.declared_type_names,
+        analysis.expression_surfaces, analysis.assignments, function_id, syntax_id, identity, formal.ok);
+    if result != expected { return false; }
+    if !expected {
+        analysis.assignments.ok = false;
+        let missing: Bool = SemanticAstMapPayloadRootWrittenBefore(artifact, analysis.signatures,
+            analysis.local_bindings, analysis.local_bindings.declared_type_names,
+            analysis.expression_surfaces, analysis.assignments, function_id, syntax_id, identity, formal.ok);
+        analysis.assignments.ok = true;
+        analysis.assignments.artifact_node_count = artifact.count + 1;
+        let stale: Bool = SemanticAstMapPayloadRootWrittenBefore(artifact, analysis.signatures,
+            analysis.local_bindings, analysis.local_bindings.declared_type_names,
+            analysis.expression_surfaces, analysis.assignments, function_id, syntax_id, identity, formal.ok);
+        analysis.assignments.artifact_node_count = artifact.count;
+        let saved_functions: Array<Int> = analysis.assignments.function_node_ids;
+        let empty_functions: Array<Int> = [];
+        analysis.assignments.function_node_ids = empty_functions;
+        let malformed: Bool = SemanticAstMapPayloadRootWrittenBefore(artifact, analysis.signatures,
+            analysis.local_bindings, analysis.local_bindings.declared_type_names,
+            analysis.expression_surfaces, analysis.assignments, function_id, syntax_id, identity, formal.ok);
+        analysis.assignments.function_node_ids = saved_functions;
+        if !missing || !stale || !malformed { return false; }
+        let mode: Int = 0;
+        while mode < 6 {
+            if mode == 0 { analysis.expression_surfaces.ok = false; }
+            if mode == 1 { analysis.expression_surfaces.artifact_node_count = artifact.count + 1; }
+            if mode == 2 { analysis.local_bindings.ok = false; }
+            if mode == 3 { analysis.local_bindings.artifact_node_count = artifact.count + 1; }
+            if mode == 4 { analysis.signatures.ok = false; }
+            if mode == 5 { analysis.signatures.artifact_node_count = artifact.count + 1; }
+            let refused: Bool = SemanticAstMapPayloadRootWrittenBefore(artifact, analysis.signatures,
+                analysis.local_bindings, analysis.local_bindings.declared_type_names,
+                analysis.expression_surfaces, analysis.assignments, function_id, syntax_id, identity, formal.ok);
+            analysis.expression_surfaces.ok = true;
+            analysis.expression_surfaces.artifact_node_count = artifact.count;
+            analysis.local_bindings.ok = true;
+            analysis.local_bindings.artifact_node_count = artifact.count;
+            analysis.signatures.ok = true;
+            analysis.signatures.artifact_node_count = artifact.count;
+            if !refused { return false; }
+            mode = mode + 1;
+        }
+    }
+    return true;
+}
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("expected written-root fact fixture path"); Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("written-root fixture parse refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
+    // Assembly admits expression identities before collection ownership. Its
+    // later verdict is deliberately not this direct backing-fact assertion.
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.initializer_types.ok || !analysis.expression_surfaces.expression_graph.ok {
+        Log(bundle.verdict.diagnostic_code); Log(bundle.verdict.diagnostic_message); Exit(2);
+    }
+    let checked: Int = 0;
+    let surface: Int = 0;
+    while surface < ArrayLength(analysis.expression_surfaces.node_ids) {
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, analysis.expression_surfaces.node_ids[surface], AstExpressionLaneAtom());
+        if IsSome(root) {
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph, UnwrapOption(root));
+            let node: Int = UnwrapOption(root) + 1;
+            if IsSome(start) { node = UnwrapOption(start); }
+            while node <= UnwrapOption(root) {
+                let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(analysis.expression_surfaces.expression_graph, node);
+                if call.ok && ArrayLength(call.argument_nodes) == 1 &&
+                    SemanticAstCollectionOwnershipBuiltinCall(analysis.expression_surfaces.expression_graph, call.call_node, "MapSize") {
+                    let function_id: Int = analysis.expression_surfaces.function_node_ids[surface];
+                    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function_id);
+                    if !IsSome(signature) || ArrayLength(call.argument_nodes) != 1 {
+                        Log("written-root call identity/arity refused"); Log(ToString(function_id));
+                        Log(ToString(ArrayLength(call.argument_nodes))); Exit(3);
+                    }
+                    let expected: Bool = StartsWith(analysis.signatures.names[UnwrapOption(signature)], "Unsafe");
+                    if !InspectWrittenRoot(artifact, analysis, function_id, analysis.expression_surfaces.node_ids[surface],
+                            call.argument_nodes[0], expected) { Log(analysis.signatures.names[UnwrapOption(signature)]); Exit(3); }
+                    checked = checked + 1;
+                }
+                node = node + 1;
+            }
+        }
+        surface = surface + 1;
+    }
+    if checked != 6 { Log("missing direct written-root controls"); Exit(3); }
+    Log("MAP PAYLOAD WRITTEN ROOT PASS");
+}

@@ -121,6 +121,16 @@ ast_call_semantic_value_type_name(const ASTNode *node)
 }
 
 bool
+ast_call_clear_semantic_value_type_name(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_CALL)
+        return false;
+    free(node->data.call.semantic_value_type_name);
+    node->data.call.semantic_value_type_name = NULL;
+    return true;
+}
+
+bool
 ast_call_set_semantic_value_type_name_copy(ASTNode *node,
                                            const char *type_name)
 {

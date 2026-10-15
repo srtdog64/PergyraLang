@@ -1,0 +1,12 @@
+func StoreText(ref output: Slot<String>, ref text: String) -> Void { Write(output, text); }
+func StoreNumber(ref output: Slot<Int>, number: Int) -> Void { Write(output, number); }
+func Main() -> Void {
+    let text: Slot<String> = ClaimSlot();
+    StoreText(text, "literal");
+    Log(Read(text));
+    Release(text);
+    let number: Slot<Int> = ClaimSlot();
+    StoreNumber(number, 7);
+    Log(Read(number));
+    Release(number);
+}

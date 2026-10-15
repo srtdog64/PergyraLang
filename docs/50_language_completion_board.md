@@ -5,6 +5,14 @@ Last updated: 2026-06-08
 This board is the compact language-completion index. It intentionally does not
 duplicate the operational beta checklist.
 
+Convergence navigation updated 2026-10-13: the body below remains the
+2026-06-08 readiness snapshot, not today's completion percentage or CI verdict.
+The current decision is to converge the existing core, not add core concepts:
+[VISION](00_vision.md#기존-핵심-수렴과-완료-기준).
+See the dated [SoT closure review](audits/closure_convergence_review_2026-10-13.md)
+for declared registry transitions and their evidence limits, and
+[current handoff](current_work_handoff.md) for the active executable rung.
+
 Live source of truth:
 
 - Beta execution checklist: `docs/100_beta_readiness_checklist.md`
@@ -13,7 +21,7 @@ Live source of truth:
 - Source-of-truth spine: `docs/125_source_of_truth_spine.md`
 - Post-beta self-hosting handoff: `docs/self_hosted/README.md`
 
-## Current Readiness
+## Readiness Snapshot 2026-06-08
 
 Feature-surface feel is about 85%. Strict beta readiness is about 83%.
 Do not raise the official number beyond the low-80% band until the remaining

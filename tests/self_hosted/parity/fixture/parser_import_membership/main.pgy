@@ -1,0 +1,4 @@
+import "./left.pgy";
+import "./right.pgy";
+import "././common.pgy";
+func Main() -> Int { return LeftImported() + RightImported(); }

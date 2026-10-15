@@ -1,0 +1,9 @@
+func ObservePayload(ref table: HashMap<String, String>) -> Int {
+    let view: String = MapGet(table, "key");
+    return StringLength(view);
+}
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    return ObservePayload(table);
+}

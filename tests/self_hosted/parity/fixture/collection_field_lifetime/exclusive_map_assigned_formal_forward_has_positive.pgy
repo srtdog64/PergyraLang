@@ -1,0 +1,17 @@
+func Seed() -> HashMap<String, Int> {
+    let rows: HashMap<String, Int> = MapNew();
+    MapSet(rows, "old", 1);
+    return rows;
+}
+func Grow(inout target: HashMap<String, Int>) -> Void { MapSet(target, "new", 2); }
+func Update(inout map: HashMap<String, Int>) -> Int {
+    let source_map: HashMap<String, Int> = Seed();
+    map = source_map;
+    Grow(map);
+    if MapHas(map, "old") { return 1; }
+    return 0;
+}
+func Main() -> Int {
+    let map: HashMap<String, Int> = MapNew();
+    return Update(map);
+}

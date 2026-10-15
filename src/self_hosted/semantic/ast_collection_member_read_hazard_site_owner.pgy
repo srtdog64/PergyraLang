@@ -1,0 +1,85 @@
+// Same-generation first hazard projection. Zero is opaque and remains sticky.
+// Publication owns the carrier; later production access is ref-only through this owner.
+import "ast_collection_member_read_hazard_normalization_owner.pgy";
+
+struct SemanticAstCollectionMemberReadHazardSites {
+    ok: Bool;
+    artifact_identity_digest: Int;
+    artifact_node_count: Int;
+    first_sites: HashMap<String, Int>;
+}
+struct SemanticAstCollectionMemberReadHazardSite { ok: Bool; site: Int; }
+
+func SemanticAstCollectionMemberReadHazardSitesFrom(ref artifact: AstTreeArtifact) -> SemanticAstCollectionMemberReadHazardSites {
+    let sites: HashMap<String, Int> = MapNew();
+    return SemanticAstCollectionMemberReadHazardSites(true, artifact.identity_digest, artifact.count, sites);
+}
+func SemanticAstCollectionMemberReadHazardSitesReady(
+    ref artifact: AstTreeArtifact, ref sites: SemanticAstCollectionMemberReadHazardSites
+) -> Bool {
+    return sites.ok && artifact.count > 0 && artifact.identity_digest > 0 &&
+        sites.artifact_identity_digest == artifact.identity_digest &&
+        sites.artifact_node_count == artifact.count && ArrayLength(artifact.arena.parents) == artifact.count &&
+        ArrayLength(artifact.arena.kinds) == artifact.count;
+}
+func SemanticAstCollectionMemberReadHazardSiteMerge(
+    ref artifact: AstTreeArtifact, inout sites: SemanticAstCollectionMemberReadHazardSites, root: Int, site: Int
+) -> Bool {
+    if !SemanticAstCollectionMemberReadHazardSitesReady(artifact, sites) || root <= 0 || root >= artifact.count ||
+        site < 0 || (site > 0 && SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, site) != site) {
+        sites.ok = false; return false;
+    }
+    let key: String = ToString(root);
+    let entries: HashMap<String, Int> = sites.first_sites;
+    if !MapHas(entries, key) {
+        MapSet(entries, key, site); sites.first_sites = entries; return true;
+    }
+    let prior: Int = MapGet(entries, key);
+    if prior < 0 || (prior > 0 && SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, prior) != prior) {
+        sites.ok = false; return false;
+    }
+    if site == 0 || (prior > 0 && site < prior) { MapSet(entries, key, site); }
+    sites.first_sites = entries;
+    return true;
+}
+func SemanticAstCollectionMemberReadHazardSiteForRoot(
+    ref artifact: AstTreeArtifact, ref sites: SemanticAstCollectionMemberReadHazardSites, root: Int
+) -> SemanticAstCollectionMemberReadHazardSite {
+    let absent: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSite(false, 0);
+    if !SemanticAstCollectionMemberReadHazardSitesReady(artifact, sites) || root <= 0 || root >= artifact.count { return absent; }
+    return SemanticAstCollectionMemberReadHazardSiteRowsForRoot(artifact, sites.first_sites, root);
+}
+// Borrow the map as a named formal: no ref-record descriptor escapes into a binding.
+func SemanticAstCollectionMemberReadHazardSiteRowsForRoot(
+    ref artifact: AstTreeArtifact, ref entries: HashMap<String, Int>, root: Int
+) -> SemanticAstCollectionMemberReadHazardSite {
+    let absent: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSite(false, 0);
+    if root <= 0 || root >= artifact.count || !MapHas(entries, ToString(root)) { return absent; }
+    let site: Int = MapGet(entries, ToString(root));
+    if site < 0 || (site > 0 && SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, site) != site) { return absent; }
+    return SemanticAstCollectionMemberReadHazardSite(true, site);
+}
+// Publication validates the whole projection once; occurrence queries stay local.
+func SemanticAstCollectionMemberReadHazardSitesAdmit(
+    ref artifact: AstTreeArtifact, blocked: HashMap<String, Int>, ref sites: SemanticAstCollectionMemberReadHazardSites
+) -> Bool {
+    if !SemanticAstCollectionMemberReadHazardSitesReady(artifact, sites) { return false; }
+    return SemanticAstCollectionMemberReadHazardSiteRowsAdmit(artifact, blocked, sites.first_sites);
+}
+// Own the complete row validation and retire both independent MapKeys snapshots.
+func SemanticAstCollectionMemberReadHazardSiteRowsAdmit(
+    ref artifact: AstTreeArtifact, ref blocked: HashMap<String, Int>, ref entries: HashMap<String, Int>
+) -> Bool {
+    let roots: Array<String> = MapKeys(blocked);
+    let projected: Array<String> = MapKeys(entries);
+    let ready: Bool = ArrayLength(roots) == ArrayLength(projected);
+    let row: Int = 0;
+    while row < ArrayLength(roots) && ready {
+        let root: Int = ToInt(roots[row]);
+        let site: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteRowsForRoot(artifact, entries, root);
+        ready = ToString(root) == roots[row] && MapGet(blocked, roots[row]) == 1 && site.ok;
+        row = row + 1;
+    }
+    ArrayDropOwnedStrings(roots); ArrayDropOwnedStrings(projected);
+    return ready;
+}

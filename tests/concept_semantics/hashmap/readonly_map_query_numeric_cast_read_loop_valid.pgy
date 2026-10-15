@@ -1,0 +1,11 @@
+struct NumberRecord { count: Int; }
+func ReadCast(ref record: NumberRecord) -> Long {
+    let limit: Long = record.count as Long;
+    let cursor: Long = 0;
+    while cursor < limit { cursor = cursor + (1 as Long); }
+    return cursor as Long;
+}
+func Main() -> Void {
+    let record = NumberRecord(3);
+    Log(ReadCast(record));
+}

@@ -417,3 +417,212 @@ into an outliving inout array.
 R, then S, then E, then L and M. Each family lands with its fixtures in a
 focused gate and an instrumented DRV-2 recount. No family is called closed
 while its refusals remain or while a falsifier above is admitted.
+
+## Handover continuation: collection structural mutations (GPT)
+
+Status: IMPLEMENTATION IN PROGRESS, base `23d1e65f`. The B checkpoint is
+preserved; main is the only production editor. This is the existing DRV-2
+ownership-entry rung, not another memory-model or SoT track.
+
+- Objective/priority: reject descriptor-copy mutation hazards before reducing
+  the remaining driver refusals; preserve B's last-use and restore rules,
+  admitted identities, no additional caller annotation/copy, and gate budgets.
+- Reached chain: source-to-MIR driver -> admitted expression/call identity and
+  exclusive-value facts -> mutating-formal fixed point -> ordered ownership
+  scan -> call argument and builtin mutation admission -> body bundle verdict.
+  C and LLVM compile these Pergyra owners into the source probes; DRV-2 must
+  consume the same verdict. No driver-name exemption or backend-local policy.
+- Owners/changes: one bounded operation owner classifies admitted builtin
+  mutations; growth consumes it for map receiver/field propagation, and the
+  existing mutation admission consumes it for receiver exclusivity. MapNew
+  is fresh only under its admitted builtin identity. Existing last-use,
+  copy/field classes, sink-entry and restoration remain the only proof of
+  descriptor exclusivity. Set/List/Queue mutation has no new value model and
+  refuses an unproved exclusive receiver.
+- Effects: MapSet may relocate backing and replace entries. MapRemove is a
+  conservative structural invalidation (entry removal), not a claim that the
+  runtime always reallocates. The current summary requires exclusivity for
+  both. Returned payload-view lifetimes are a separate existing obligation.
+- Forbidden paths to remove: Array-only builtin mutation enumeration at the
+  growth consumer and silent acceptance of map/Set/List/Queue mutation just
+  because their descriptors are absent from Array<String> origin rows.
+- Order: record/analyze negative fixtures on B; connect operation effects and
+  receiver admission; replay map restore positives and the full existing
+  corpus; run unchanged inout-effect C/LLVM gate and structural gates; recount
+  fixed DRV-2; only then investigate its shared direct-MIR first field.
+- Integration owner/gate: main, `collection_inout_effect_owner.sh` with a
+  current-source native compiler. Its compiler-scale identity unit remains
+  60 seconds. Source-admission probes never execute unsafe fixture programs.
+  Budgets remain 60 s static, 5 min focused and 30 min integration shards.
+- Falsifiers: map copy -> insertion -> old descriptor read; forwarded map
+  mutation; removal through a shared descriptor; shared Set/List/Queue
+  receiver; foreign/user target identity on the MapSet spelling (source-level
+  builtin names are reserved); field move-out/restore and threaded
+  exclusive map positives. Missing/unconverged summary remains a refusal.
+- Evidence: baseline/candidate source and executable hashes, actual verdicts,
+  integration and CI outcomes will be recorded after execution. This plan
+  alone changes no CLOSED status or substitution count.
+
+### Continuation observations (2026-10-12; not a closure receipt)
+
+- Private native compiler: SHA-256
+  `103470c2ee4d14c9b52dc2534a926e487462a1db7b35f62eb2f430ee840a9fc3`.
+  Installed binaries are untouched. Source admission inputs were never run.
+- The unchanged-budget inout-effect gate completed on C/LLVM with 522 source
+  inputs per backend and four new identity guards at
+  `.tmp/self_hosted/collection-inout-effect.K2ocKX`. The subsequently added
+  disjoint-map-field positive/shared-map-field negative pair passed both frozen
+  probes; the current script registers 524 inputs and awaits final full replay.
+  B accepted all eight new safety negatives. Existing expectations were not
+  lowered, including the 60 s compiler-scale identity check.
+- Full structural component inventory and source-scan passed. Counted owner
+  lines: exclusive values 531/565, growth 235/235, mutation 201/300,
+  operation identity 16/40. No existing cap was raised. On the fixed edited
+  source boundary, no caller annotation, restoration sequence, explicit copy
+  or deep-drop was added. The one `ref` in the new internal operation-query
+  signature denotes its read-only admitted graph view, shared by the growth
+  and mutation consumers; it is not a workaround imposed on user code.
+- Borrowed-descriptor matrix: the five-minute attempt has no full receipt;
+  it reached the imported runtime-ABI input. Replay at its integration
+  boundary, without changing the script's intrinsic conditions.
+- Whole DRV-2 diagnostic census: both dev-profile analyzers ended at 1800 s
+  before a complete list; hashes of the fixed source set still match. A
+  300 s phase-observed dev replay reached `expression-places:start`. A
+  separately built production/release-profile baseline/candidate comparison
+  runs on the same 247926-node import-composed program. These are diagnostic
+  profiles, not substituted dev-gate or installed-driver receipts. Do not
+  report a new remaining count or source admission from a partial scan.
+- Newly reached dependency: parser import membership has two SetAdd sites,
+  one SetHas consumer and two inout dispatch signatures, all in
+  `parser/program_parse_owner.pgy`, `decl_dispatch_owner.pgy` and
+  `source_path_owner.pgy`. B admits `parser/main.pgy`; the candidate refuses
+  `SetAdd(import_paths, source_path)` at the new exclusive-storage boundary.
+  Any representation migration must preserve normalized path identity,
+  shared-import deduplication, cycle-before-seen refusal, traversal/declaration
+  order and diagnostic positions, migrate the full signature chain and
+  retire its old structural gate path. This dependency is not a reason to
+  admit unmodelled Set mutation. Decide the complete migration after the
+  current full refusal comparison; parser parity and import negative cases
+  are its acceptance/falsifying gates.
+- Exact HEAD Actions: `38148691868` at `23d1e65f` is docs-only success with
+  ten skipped jobs, B's `38148668461` is cancelled, and the preceding G
+  implementation run `38130176872` failed. No candidate compiler-green
+  Actions, installed pair, C-path replacement or CLOSED registry promotion.
+
+### Fixed-input census and reached repair order (2026-10-12)
+
+- The complete release-profile diagnostic scans finished on the same frozen
+  247926-node DRV-2 input: B owners 97 refusal sites (1486.77 s), candidate
+  owners 115 (1427.72 s). All 97 old source/callee sites remain; exactly 18
+  sites are newly exposed. This is a refusal census, not source admission,
+  a dev-profile gate receipt, a 3 GiB measurement or substitution progress.
+  `census-inputs.final-recheck.log` validates the frozen source hashes.
+- The 18 reached sites form one dependency chain: parser import-membership
+  Set (one mutation and two forwarding sites); exclusive-value fact-table
+  updates (twelve MapSet sites); and three forwarding calls into the
+  exclusive classifier. Do not exempt these compiler routines or hide map
+  growth from the summary. Resolve them before publishing the candidate.
+- First executable repair: preserve the import-composition contract while
+  representing the parser's private membership table as
+  `HashMap<String, Int>` (`1` denotes membership). Priority is path identity,
+  cycle-before-seen refusal, one composition per normalized import and exact
+  declaration/diagnostic order, then representation size. `program_parse_owner`
+  issues the sole table, `decl_dispatch_owner` threads/inserts it, and
+  `source_path_owner` consumes it for membership. The last consumer is the
+  parser's composed artifact delivered to semantic admission. No Set fallback,
+  duplicate membership table, iteration over map keys or path renormalization.
+  Migrate both dispatch signatures and all recursive calls together; replace
+  and negatively ratchet the old structural inventory assertions. Acceptance:
+  current-source parser C/LLVM parity (198 manifest cases), parser-source
+  admission, normalized shared-import/cycle/missing-import observations, then
+  the full unchanged-condition collection gate. These checks do not claim an
+  installed-driver or compiler-green CI receipt.
+- Independently diagnosed old frontier: the direct-MIR `types` member alias
+  remains exclusive (`member_ready=true`), but its current descriptor is made
+  unknown by a loop-bound element-escape call. Minimal scratch falsifiers
+  `text_escape_descriptor_positive.pgy` and its loop variant reproduce the
+  false retirement without compiler names: return borrowed literal text,
+  then read the still-live array. Distinguish descriptor effects from element
+  retention at their existing formal-effect owner; do not discard element
+  lifetime, mixed mutation, consuming, opaque or missing-fact obligations.
+  This is a reached fact-producer issue, not permission to downgrade effect 5.
+- Native field `inout` is still unsupported, and the Pergyra type owner rejects
+  a direct member MapSet receiver. The scratch direct-member probe confirmed
+  both boundaries. Do not rewrite fact-table updates to direct field calls
+  until their typed-place and native/backend consumers have been surveyed and
+  admitted. Adding more manual copies/restoration is not the default repair.
+- Fact-table alias repair: the family-use owner treats MapHas as a possible
+  grow/retain use, so a read-only early return incorrectly requires writeback.
+  The scratch `map_read_early_exit_positive.pgy` reproduces this refusal;
+  `map_old_query_negative.pgy` requires rejection of a stale descriptor query.
+  Mark only admitted receiver-ordinal MapHas/MapSize calls as observational
+  family uses. Keep MapHas in the later-source-read scan: it dereferences
+  buckets and must never be ignored after a backing move. Do not admit MapGet
+  here; its payload lifetime is separate. Existing copy, exit, restore and
+  field-read owners remain authoritative. Verify both falsifiers and the full
+  map fact-table input, then replay the unchanged-budget integration gate.
+- Integration replay `.tmp/self_hosted/collection-inout-effect.GOhDET` reaches
+  all 527 C source observations and the identity/negative checks, but stops at
+  the unchanged 60 s compiler-scale actual-formal unit (line 1112). LLVM has
+  not run; this is not a green matrix. The current observation-type producer
+  unnecessarily resolves the binding again although its callers already own
+  an admitted sink place. Consume that place's local row / exact formal key
+  and the same canonical type tables instead. This is owner-directed type
+  projection, not permission to guess a missing type or a measured bottleneck
+  claim. Retain foreign-call, unknown/member-type and stale-descriptor refusals,
+  and replay the exact input at 60 s after migration of both consumers.
+- Payload review: independently rerunning the C/LLVM source analyzers confirms
+  that MapGet<String> -> same-key MapSet/MapRemove -> retained text use is
+  still admitted. These unsafe programs were not executed. The registry already
+  keeps `mapget_string_borrow_escape` OPEN. Backing exclusivity alone does not
+  discharge this payload obligation; connect its result borrow and payload
+  invalidation before claiming map lifetime closure.
+- The full classifier input still refuses RecordReturn after the first query
+  repair. Its remaining read-only forwarding reaches CopyCount's MapGet on
+  `HashMap<String, Int>`. Refine the same family-use owner with the admitted
+  receiver's canonical type: MapGet of an Int map returns a copied scalar and
+  neither retains nor mutates that family. Do not extend this to String values,
+  member paths with unknown receiver type, unbound calls or unknown generics.
+  Thread the existing local/formal type into all family-read consumers; retain
+  the separate later-source-read check for MapGet after descriptor invalidation.
+  Falsifiers are an old map queried after copy growth and a retained scalar
+  used after safe growth; the full classifier remains the integration input.
+
+### Reached conditional / loop alias closure plan
+
+Objective: admit the existing single-owner fact-table update chain without
+compiler-name exceptions, extra copies, annotations or weakened map growth.
+Priority: exact place identity, no stale descriptor read, restoration on every
+reachable growing path, negative ratchet, then source size. The exclusive-value
+flow/copy/consumption owners produce these facts; mutation admission and the
+ordered ownership scan are the last consumers before the body verdict.
+
+The fixed classifier input exposes three connected limitations, not twelve
+independent MapSet fixes: later lexical reads after a returning mutation branch;
+aliases from before a loop that are dead or disjoint inside it; and conditional
+write-back inside the same growing branch rather than an unconditional write
+on a path that may not grow. Private instrumentation binds each to admitted
+places, families, statement IDs and the existing block/loop predicates.
+
+Required changes, if the private candidate survives falsification:
+
+1. Ignore a later lexical reader only when every relevant family growth exits
+   the routine before it; deferred bodies and jumps that leave the block refuse.
+2. Check old-alias reads on the loop backedge as well as later in source order.
+   A dead alias or a different field is not itself a repeated read; a live old
+   descriptor read at the beginning of the next iteration must still refuse.
+3. Certify write-back after each growing family use in its own dominating,
+   jump-free block, before exits or the next iteration that reloads the source.
+   Do not replace that certificate with a missing-write-back exemption.
+4. Keep source-read and copy-holder checks separate from restoration; querying
+   a stale map or keeping an alias through growth stays a negative case.
+5. Migrate every reached consumer behind these predicates, remove the blanket
+   dead-alias refusal only with its replacement, register responsibility-owned
+   sources/caps, and verify all twelve map mutation and three forwarding sites
+   on the fixed classifier input, not just its first diagnostic.
+
+Acceptance/falsifiers: returning-branch restoration; conditional loop restoration;
+missing restoration; stale read in the next loop iteration; break/continue before
+restoration; deferred reads; disjoint-field updates; then unchanged-condition
+C/LLVM collection integration and a new fixed-input DRV-2 diagnostic census.
+The private prototype is not production admission or a CLOSED registry row.

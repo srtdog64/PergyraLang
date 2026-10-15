@@ -384,7 +384,7 @@
         hir_destroy(hir);
     }
 
-    TEST("operator overload dispatch uses operator_add_Type");
+    TEST("undeclared raw operator types refuse the actual lowering pipeline");
     {
         FuncParam **op_params = calloc(2, sizeof(FuncParam *));
         FuncParam **main_params = calloc(2, sizeof(FuncParam *));
@@ -419,13 +419,33 @@
         ASTNode *prog = make_program(stmts, 2);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
-        ctx = transpiler_ctx_create();
-        ctx->mir = mir;
-        emit_program(ctx);
+        MIRProgram *mir = lower_program_to_mir_strict(prog, &hir, &rir);
+        EXPECT(mir == NULL);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(prog);
+    }
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Vec2(");
-        transpiler_ctx_destroy(ctx);
+    TEST("operator overload dispatch uses operator_add_Type");
+    {
+        const char *source =
+            "struct Vec2 { x: Int; y: Int; }\n"
+            "func operator_add_Vec2(a: Vec2, b: Vec2) -> Vec2 { return a; }\n"
+            "func Main(a: Vec2, b: Vec2) -> Vec2 { return a + b; }\n";
+        ASTNode *prog = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &prog, &hir, &rir, &mir);
+        EXPECT(ok && mir != NULL);
+        if (ok && mir != NULL) {
+            ctx = transpiler_ctx_create();
+            ctx->mir = mir;
+            emit_program(ctx);
+            EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Vec2(");
+            transpiler_ctx_destroy(ctx);
+        }
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

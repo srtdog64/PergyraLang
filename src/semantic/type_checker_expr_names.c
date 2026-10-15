@@ -7,6 +7,7 @@
 
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "function_param_publication_owner.h"
 
 char *
 flatten_static_member_access(const ASTNode *expr, char separator)
@@ -57,6 +58,13 @@ lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx)
         sym != NULL ? sym->decl_syntax_id : 0);
     ast_identifier_set_binding_host_field(expr,
         sym != NULL && sym->is_host_field);
+    /* Source identifiers keep the actual resolved binding/type classification.
+     * Compiler-owned ephemeral lookup nodes have no source publication row. */
+    if (sym != NULL && sym->type != NULL && sym->type != TYPE_UNKNOWN &&
+        ast_node_stable_id(expr) != 0 && semantic_param_publication_pending(ctx) &&
+        (!semantic_param_publication_begin_value(ctx, expr) ||
+         !semantic_param_publication_record_value(ctx, expr, sym->type, false)))
+        semantic_error(ctx, expr, "Resolved binding value publication failed");
     return sym;
 }
 

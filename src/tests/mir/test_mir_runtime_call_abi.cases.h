@@ -414,11 +414,48 @@ test_mir_runtime_call_abi_facts(void)
         hir_destroy(hir);
     }
 
+    /* Actual original Claim calls, not a synthetic publication witness. */
+    {
+        const char *sources[] = {
+            "func Main() { let s: Slot<Int> = ClaimSlot(); }",
+            "func Main() { let s = ClaimSlot<Int>(); }",
+            "func Main() { let s: SecureSlot<Int> = ClaimSecureSlot<Int>(); Write(s, 1, s_token); }",
+            "func Main() { let (s, token) = ClaimSecureSlot<Int>(); Write(s, 1, token); }",
+            "func Main() { let s: SecureSlot<Int> = ClaimSecureSlot<Int>(1); }",
+            "func Main() { let (s, token) = ClaimSecureSlot<Int>(1); }",
+            "func Main() { let s: Slot<Int> = ClaimSlot(1); }",
+            "func Main() { let (s, token) = ClaimSecureSlot<Int>(\"bad\"); }",
+            "func Main() { let s: SecureSlot<Int> = ClaimSecureSlot<Int>(2); }",
+            "func Main() { let (s, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE); }"
+        };
+        for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); i++) {
+            TEST("Claim original call preserves checked no-argument signature");
+            Lexer *lexer = lexer_create(sources[i]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *ast = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(ast);
+            bool exact_error = false;
+            if (result != NULL) for (size_t d = 0; d < result->diagnostic_count; d++) {
+                Diagnostic *diag = result->diagnostics[d];
+                if (diag != NULL && diag->code != NULL && diag->cause_ir != NULL
+                    && strcmp(diag->code, "PGY_SEM_BUILTIN_ARGS_INVALID") == 0
+                    && strcmp(diag->cause_ir, "semantic:builtin:signature_mismatch") == 0)
+                    exact_error = true;
+            }
+            EXPECT(!parser_has_error(parser) && result != NULL
+                && (i < 4 ? result->success : !result->success && exact_error));
+            semantic_result_destroy(result);
+            ast_destroy(ast);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("MIR runtime-row lookup does not synthesize after all owner facts are removed");
     {
         const char *src =
             "func Main() -> Void {\n"
-            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>();\n"
             "    Write(ss, 42, ss_token);\n"
             "    Log(ss);\n"
             "}\n";
@@ -574,7 +611,7 @@ test_mir_runtime_call_abi_facts(void)
     {
         const char *src =
             "class Vault {\n"
-            "    private let (_coinSlot, _coinToken) = ClaimSecureSlot<Int>(2)\n"
+            "    private let (_coinSlot, _coinToken) = ClaimSecureSlot<Int>()\n"
             "    public func Run() -> Void {\n"
             "        Write(_coinSlot, 100, _coinToken)\n"
             "    }\n"

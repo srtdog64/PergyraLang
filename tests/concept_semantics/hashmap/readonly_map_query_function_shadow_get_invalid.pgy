@@ -1,0 +1,3 @@
+// Reserved-name rejection is identity evidence, not a borrow-lifetime test.
+func MapGet(values: HashMap<String, Int>, key: String) -> Int { return 1; }
+func Main() -> Void {}

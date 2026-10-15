@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-static Type *
+Type *
 intent_binding_context_resolve_binding_type(ASTNode *intent,
                                             const char *alias,
                                             SemanticContext *ctx)

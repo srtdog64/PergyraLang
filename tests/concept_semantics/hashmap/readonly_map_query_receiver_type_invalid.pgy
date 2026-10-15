@@ -1,0 +1,2 @@
+func Query(ref values: Array<Int>) -> Int { return MapGet(values, "key"); }
+func Main() -> Void {}

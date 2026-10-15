@@ -1,0 +1,26 @@
+// The admission receipt seals both facets from the same formal-use generation.
+import "ast_collection_formal_effect_readiness_owner.pgy";
+
+func SemanticAstCollectionFormalEffectReceiptDigest(
+    facts: SemanticAstCollectionFormalEffects
+) -> Int {
+    let digest: Int = 17;
+    let owned_push_leaf_formals: HashMap<String, Int> = facts.owned_push_leaf_formals;
+    let row: Int = 0;
+    while row < ArrayLength(facts.inventory.formal_nodes) {
+        let node: Int = facts.inventory.formal_nodes[row];
+        let effect: Int = SemanticAstCollectionFormalEffectForNode(facts.effects, node);
+        let descriptor: Int = SemanticAstCollectionFormalEffectForNode(facts.descriptor_effects, node);
+        let owned_push_leaf_call: Int = -1;
+        let key: String = ToString(node);
+        if MapHas(owned_push_leaf_formals, key) {
+            owned_push_leaf_call = MapGet(owned_push_leaf_formals, key);
+        }
+        // With the 15,000,000 modulus every valid intermediate fits Int32.
+        digest = ((digest * 131) + ((node % 104729) * 7) +
+            (((owned_push_leaf_call + 1) % 104729) * 11) +
+            (descriptor * 13) + effect + 1) % 15000000;
+        row = row + 1;
+    }
+    return digest;
+}

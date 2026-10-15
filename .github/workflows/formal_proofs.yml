@@ -69,6 +69,10 @@ jobs:
           fi
           bash scripts/run_rocq_toolchain.sh bash tests/proof_carrying_adequacy_smoke.sh
           bash scripts/run_rocq_toolchain.sh bash tests/ownership_cleanup_smoke.sh
+      - name: Check ownership refusal explanations and extracted witness checker
+        run: |
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership_refusal_explanation_smoke.sh
+          bash scripts/run_rocq_toolchain.sh bash tests/ownership_refusal_explanation_selftest.sh
       - name: Preserve model cost evidence
         uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,2 @@
+func Mutate(ref values: HashMap<String, Int>) -> Void { MapSet(values, "key", 1); }
+func Main() -> Void {}

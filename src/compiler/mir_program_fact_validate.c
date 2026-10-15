@@ -430,6 +430,35 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
                 }
                 return false;
             }
+            bool initializer_absent = fact->initializer_collection_producer == 0
+                && fact->initializer_call_syntax_id == 0
+                && fact->initializer_call_value_type_name == NULL;
+            bool initializer_ready = (fact->initializer_collection_producer == 1
+                    || fact->initializer_collection_producer == 2)
+                && fact->initializer_call_syntax_id != 0
+                && fact->initializer_call_value_type_name != NULL
+                && fact->initializer_call_value_type_name[0] != '\0'
+                && !fact->is_callable && !fact->is_closure_local;
+            if (!initializer_absent && !initializer_ready) {
+                if (error_message != NULL)
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' source-local type fact[%zu] has malformed private initializer receipt",
+                        routine->name != NULL ? routine->name : "(anonymous)", j);
+                return false;
+            }
+            if (initializer_ready) {
+                for (size_t k = 0; k < j; k++) {
+                    if (routine->source_local_types[k].initializer_call_syntax_id
+                        == fact->initializer_call_syntax_id) {
+                        if (error_message != NULL)
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' source-local initializer receipts duplicate call identity %u",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                (unsigned)fact->initializer_call_syntax_id);
+                        return false;
+                    }
+                }
+            }
             for (size_t k = 0; k < j; k++) {
                 if (routine->source_local_types[k].binding_syntax_id
                     != fact->binding_syntax_id)

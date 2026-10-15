@@ -1,0 +1,17 @@
+struct Rows { types: Array<String>; }
+func CaptureDeferredRoot(inout rows: Rows) -> Void
+{
+    let types: Array<String> = rows.types;
+    defer { Log(ArrayLength(rows.types)); }
+    let count: Int = 0;
+    while count < 8
+    {
+        ArrayPush(types, "row");
+        count = count + 1;
+    }
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    CaptureDeferredRoot(rows);
+}

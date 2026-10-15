@@ -1,0 +1,4 @@
+func CountBoth(ref left: Array<Int>, ref right: Array<Int>) -> Int {
+    return ArrayLength(left) + ArrayLength(right);
+}
+func Main() -> Void { let values: Array<Int> = [4, 5]; Log(CountBoth(values, values)); }

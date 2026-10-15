@@ -10,6 +10,8 @@
 #include <string.h>
 
 #include "slot_analyzer_internal.h"
+#include "typed_map_query_fact_owner.h"
+#include "function_param_publication_owner.h"
 
 bool
 slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
@@ -68,11 +70,10 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
 
     for (size_t i = 0; i < param_count && i < ast_call_arg_count(call); i++) {
         FuncParam *param = ast_func_param(func_decl, i);
-        ASTNode *arg = ast_call_argument(call, i);
+        const ASTNode *root = NULL;
         unsigned mask = 0;
-
-        if (param == NULL || arg == NULL || arg->type != AST_IDENTIFIER
-            || ast_identifier_name(arg) == NULL)
+        if (!slot_checked_call_argument_root(program_root, call, i, &root)) return false;
+        if (param == NULL || root == NULL)
             continue;
         if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
             continue;
@@ -81,17 +82,17 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
             program_root, func_decl, i);
         if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
             if (!slot_access_record(entries, count, capacity,
-                    ast_identifier_name(arg), SLOT_ACCESS_READ))
+                    ast_identifier_name(root), SLOT_ACCESS_READ))
                 return false;
         }
         if ((mask & SLOT_PARAM_SUMMARY_WRITE) != 0) {
             if (!slot_access_record(entries, count, capacity,
-                    ast_identifier_name(arg), SLOT_ACCESS_WRITE))
+                    ast_identifier_name(root), SLOT_ACCESS_WRITE))
                 return false;
         }
         if ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0) {
             if (!slot_access_record(entries, count, capacity,
-                    ast_identifier_name(arg), SLOT_ACCESS_RELEASE))
+                    ast_identifier_name(root), SLOT_ACCESS_RELEASE))
                 return false;
         }
     }
@@ -106,6 +107,9 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
 
     if (node == NULL || symbol_name == NULL)
         return 0;
+    bool reachable;
+    if (program_root != NULL && semantic_param_publication_execution(program_root->ctx, node, &reachable)
+        && !reachable) return 0;
 
     switch (node->type) {
     case AST_BLOCK:
@@ -214,12 +218,16 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
             && ast_call_callee(node)->type == AST_IDENTIFIER) {
             const char *name = ast_identifier_name(ast_call_callee(node));
             unsigned access_mask = slot_builtin_access_mask(name);
+            const ASTNode *root = NULL;
+            if (ast_call_arg_count(node) > 0 &&
+                !slot_checked_call_argument_root(program_root, node, 0, &root))
+                return SLOT_ACCESS_READ | SLOT_ACCESS_WRITE | SLOT_ACCESS_RELEASE;
+            if (program_root != NULL && semantic_typed_map_query_receiver_read(program_root->ctx, node, 0))
+                access_mask |= SLOT_ACCESS_READ;
             if (access_mask != 0
                 && ast_call_arg_count(node) >= 1
-                && ast_call_argument(node, 0) != NULL
-                && ast_call_argument(node, 0)->type == AST_IDENTIFIER
-                && ast_identifier_name(ast_call_argument(node, 0)) != NULL
-                && strcmp(ast_identifier_name(ast_call_argument(node, 0)),
+                && root != NULL
+                && strcmp(ast_identifier_name(root),
                           symbol_name) == 0) {
                 mask |= access_mask;
             } else if (program_root != NULL) {
@@ -230,12 +238,12 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
                     if (ast_func_body(callee_decl) != NULL) {
                         for (size_t i = 0; i < param_count && i < ast_call_arg_count(node); i++) {
                             FuncParam *param = ast_func_param(callee_decl, i);
-                            ASTNode *arg = ast_call_argument(node, i);
+                            const ASTNode *argument_root = NULL;
                             unsigned callee_mask;
-                            if (param == NULL || param->name == NULL || arg == NULL
-                                || arg->type != AST_IDENTIFIER
-                                || ast_identifier_name(arg) == NULL
-                                || strcmp(ast_identifier_name(arg), symbol_name) != 0)
+                            if (!slot_checked_call_argument_root(program_root, node, i, &argument_root))
+                                return SLOT_ACCESS_READ | SLOT_ACCESS_WRITE | SLOT_ACCESS_RELEASE;
+                            if (param == NULL || param->name == NULL || argument_root == NULL
+                                || strcmp(ast_identifier_name(argument_root), symbol_name) != 0)
                                 continue;
                             if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
                                 continue;
@@ -304,6 +312,9 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
 {
     if (node == NULL)
         return true;
+    bool reachable;
+    if (program_root != NULL && semantic_param_publication_execution(program_root->ctx, node, &reachable)
+        && !reachable) return true;
 
     switch (node->type) {
     case AST_BLOCK:
@@ -404,13 +415,19 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
             && ast_call_callee(node)->type == AST_IDENTIFIER) {
             const char *name = ast_identifier_name(ast_call_callee(node));
             unsigned access_mask = slot_builtin_access_mask(name);
+            const ASTNode *root = NULL;
+            if (ast_call_arg_count(node) > 0 &&
+                !slot_checked_call_argument_root(program_root, node, 0, &root)) {
+                if (failed_out != NULL) *failed_out = true;
+                return false;
+            }
+            if (program_root != NULL && semantic_typed_map_query_receiver_read(program_root->ctx, node, 0))
+                access_mask |= SLOT_ACCESS_READ;
             if (access_mask != 0
                 && ast_call_arg_count(node) >= 1
-                && ast_call_argument(node, 0) != NULL
-                && ast_call_argument(node, 0)->type == AST_IDENTIFIER
-                && ast_identifier_name(ast_call_argument(node, 0)) != NULL) {
+                && root != NULL) {
                 if (!slot_access_record(entries, count, capacity,
-                        ast_identifier_name(ast_call_argument(node, 0)),
+                        ast_identifier_name(root),
                         access_mask))
                     return false;
             }

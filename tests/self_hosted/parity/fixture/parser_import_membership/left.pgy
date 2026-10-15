@@ -1,0 +1,2 @@
+import "common.pgy";
+func LeftImported() -> Int { return SharedImported(); }

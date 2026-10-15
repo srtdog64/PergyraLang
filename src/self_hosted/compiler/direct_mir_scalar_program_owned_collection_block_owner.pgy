@@ -1,0 +1,133 @@
+// Owned-local final-disposition witnesses over admitted operation/CFG storage.
+// Masks: unborn=1, current owned=2, current retired=4, prior live generation=8.
+// A fresh allocation is not evidence that older live allocations were cleaned.
+import "direct_mir_scalar_program_owned_collection_definition_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+
+func DirectMirOwnedCollectionRowTracked(ref index: MirRoutineFactIndex, row: Int) -> Bool {
+    if !index.collection_ownership_facts.valid || row < 0 ||
+        row >= ArrayLength(index.collection_ownership_facts.origins) ||
+        row >= ArrayLength(index.collection_ownership_facts.element_ownerships) ||
+        row >= ArrayLength(index.collection_ownership_facts.dispositions) ||
+        row >= ArrayLength(index.collection_ownership_facts.binding_syntax_ids) ||
+        row >= ArrayLength(index.collection_ownership_facts.source_binding_syntax_ids) ||
+        row >= ArrayLength(index.collection_ownership_facts.origin_syntax_ids) { return false; }
+    let origin: String = index.collection_ownership_facts.origins[row];
+    let ownership: String = index.collection_ownership_facts.element_ownerships[row];
+    return index.collection_ownership_facts.binding_syntax_ids[row] > 0 &&
+        index.collection_ownership_facts.origin_syntax_ids[row] > 0 &&
+        (index.collection_ownership_facts.dispositions[row] == "live" ||
+         index.collection_ownership_facts.dispositions[row] == "retired") &&
+        (origin == "map-keys" || origin == "clone" || origin == "binding") &&
+        (ownership == "owned-elements" || ownership == "map-keys-snapshot");
+}
+
+func DirectMirOwnedCollectionRowForLocal(
+    ref index: MirRoutineFactIndex, ref storage: DirectMirScalarCfgProgramGraphStorage,
+    target: Int
+) -> Int {
+    if target < 0 || target >= ArrayLength(storage.values.local_ref_value_ids) ||
+        target >= ArrayLength(storage.values.local_ref_kinds) ||
+        storage.values.local_ref_kinds[target] != DirectMirScalarCfgLocalRefValue() { return -1; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(index.collection_ownership_facts.binding_syntax_ids) {
+        let binding: Int = index.collection_ownership_facts.binding_syntax_ids[row];
+        if binding > 0 && storage.values.local_ref_value_ids[target] ==
+            Concat("declaration:", Concat(ToString(binding), ":0")) {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirOwnedCollectionStateJoin(left: Int, right: Int) -> Int {
+    let joined: Int = 0;
+    if left % 2 == 1 || right % 2 == 1 { joined = joined + 1; }
+    if (left / 2) % 2 == 1 || (right / 2) % 2 == 1 { joined = joined + 2; }
+    if (left / 4) % 2 == 1 || (right / 4) % 2 == 1 { joined = joined + 4; }
+    if left >= 8 || right >= 8 { joined = joined + 8; }
+    return joined;
+}
+
+func DirectMirOwnedCollectionDefinitionReady(
+    ref index: MirRoutineFactIndex, ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref definition: DirectMirOwnedCollectionDefinition, row: Int
+) -> Bool {
+    if !definition.ok || !DirectMirOwnedCollectionRowTracked(index, row) ||
+        DirectMirOwnedCollectionRowForLocal(index, storage, definition.target) != row { return false; }
+    let origin: String = index.collection_ownership_facts.origins[row];
+    if origin == "map-keys" { return definition.producer == 1 &&
+        index.collection_ownership_facts.element_ownerships[row] == "map-keys-snapshot" &&
+        index.collection_ownership_facts.source_binding_syntax_ids[row] == 0; }
+    if origin == "clone" { return definition.producer == 2 &&
+        index.collection_ownership_facts.element_ownerships[row] == "owned-elements" &&
+        index.collection_ownership_facts.source_binding_syntax_ids[row] == 0; }
+    if definition.producer != 3 { return false; }
+    let source: Int = DirectMirOwnedCollectionRowForLocal(index, storage, definition.source);
+    return DirectMirOwnedCollectionRowTracked(index, source) &&
+        index.collection_ownership_facts.origins[source] != "binding" &&
+        index.collection_ownership_facts.dispositions[source] == "retired" &&
+        index.collection_ownership_facts.element_ownerships[source] ==
+            index.collection_ownership_facts.element_ownerships[row] &&
+        index.collection_ownership_facts.binding_syntax_ids[source] ==
+            index.collection_ownership_facts.source_binding_syntax_ids[row];
+}
+
+func DirectMirOwnedCollectionBlockOutput(
+    ref index: MirRoutineFactIndex, ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    block: Int, target: Int, row: Int, input: Int
+) -> Int {
+    if block < 0 || block >= ArrayLength(storage.blocks.operation_starts) ||
+        block >= ArrayLength(storage.blocks.operation_counts) { return 0; }
+    let state: Int = input;
+    let operation: Int = storage.blocks.operation_starts[block];
+    let end: Int = operation + storage.blocks.operation_counts[block];
+    if operation < 0 || end < operation || end > ArrayLength(storage.operations.kinds) ||
+        end > ArrayLength(storage.operations.result_values) ||
+        end > ArrayLength(storage.operations.expression_rows) { return 0; }
+    while operation < end {
+        let result: Int = storage.operations.result_values[operation];
+        let result_local: Int = -1;
+        if result >= 0 && result < ArrayLength(storage.values.value_local_rows) {
+            result_local = storage.values.value_local_rows[result];
+        }
+        let definition: DirectMirOwnedCollectionDefinition =
+            DirectMirOwnedCollectionDefinitionFrom(storage, expressions, operation);
+        if result_local == target {
+            if !DirectMirOwnedCollectionDefinitionReady(index, storage, definition, row) { return 0; }
+            let prior: Int = 0;
+            if state >= 8 { prior = 8; }
+            if definition.producer == 3 {
+                if state != 1 && state != 4 && state != 5 { return 0; }
+            } else if (state / 2) % 2 == 1 { prior = 8; }
+            state = 2 + prior;
+        } else if definition.ok && definition.producer == 3 && definition.source == target {
+            let destination: Int = DirectMirOwnedCollectionRowForLocal(index, storage, definition.target);
+            if !DirectMirOwnedCollectionDefinitionReady(index, storage, definition, destination) || state != 2 {
+                return 0;
+            }
+            state = 4;
+        }
+        let receiver: Int = -1;
+        let effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(storage, expressions, operation, receiver);
+        if effect != 0 && receiver == target {
+            if state % 8 != 2 || (effect != 1 && effect != 3) { return 0; }
+            if effect == 3 {
+                let prior: Int = 0;
+                if state >= 8 { prior = 8; }
+                state = 4 + prior;
+            }
+        }
+        operation = operation + 1;
+    }
+    return state;
+}
+
+

@@ -1,0 +1,16 @@
+struct TextRecord { text: String; }
+struct TextPayload { text: String; count: Int; }
+func ReadPayload(ref record: TextRecord, ref output: Slot<String>) -> Bool {
+    let payload = TextPayload(count: 3, text: record.text);
+    Write(output, payload.text);
+    return true;
+}
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return ReadPayload(record, output);
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Release(output);
+}

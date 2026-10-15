@@ -1,0 +1,6 @@
+func Main() -> Bool {
+    let table: HashMap<String, Int> = MapNew();
+    let copy: HashMap<String, Int> = table;
+    MapSet(copy, "seed", 1);
+    return MapHas(table, "seed");
+}

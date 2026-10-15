@@ -1,0 +1,7 @@
+struct TextRecord { text: String; }
+func GetText(ref text: String) -> String { return text; }
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    let observed = GetText(record.text);
+    Log(StringLength(observed));
+}

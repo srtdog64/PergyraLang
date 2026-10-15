@@ -1,0 +1,8 @@
+func Forward(value: String) -> String { return value; }
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    let view: String = Forward(MapGet(table, "key"));
+    MapSet(table, "key", "new");
+    return StringLength(view);
+}

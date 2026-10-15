@@ -1,0 +1,6 @@
+func Capture(ref values: HashMap<String, String>) -> Array<String> {
+    let captured: Array<String> = [];
+    ArrayPush(captured, MapGet(values, "key"));
+    return captured;
+}
+func Main() -> Void {}

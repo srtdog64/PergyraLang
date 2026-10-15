@@ -27,10 +27,13 @@ test_quantum_extensions(void)
         let_c->data.let_decl.initializer = into;
         ast_add_statement(func->data.func_decl.body, let_c);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(!ctx->has_error);
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("IntoClassical on unmeasured qubit triggers error");
@@ -77,10 +80,13 @@ test_quantum_extensions(void)
         ASTNode *rel = make_call("ReleaseQubit", &rel_arg, 1, 3);
         ast_add_statement(func->data.func_decl.body, rel);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(!ctx->has_error);
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 }
 

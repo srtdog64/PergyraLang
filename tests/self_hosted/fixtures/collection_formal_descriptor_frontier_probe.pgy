@@ -26,7 +26,7 @@ func Main() -> Void with caps env, io_read {
     let calls: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
         bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-        formals.inventory.row_by_formal, formals.inventory.modes, formals.effects,
+        formals.inventory.row_by_formal, formals.inventory.modes, formals.descriptor_effects,
         definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(calls, definitions.local_count) {
         Log("call-effect owner not reached"); Exit(2);

@@ -271,6 +271,8 @@ bool ast_call_set_semantic_callee_declared_callable(ASTNode *node,
 const char *ast_call_semantic_value_type_name(const ASTNode *node);
 bool ast_call_set_semantic_value_type_name_copy(ASTNode *node,
                                                 const char *type_name);
+/* Rechecking a producer must remove its previous success before validation. */
+bool ast_call_clear_semantic_value_type_name(ASTNode *node);
 /* The checker's type argument for each generic parameter of the callee, in
  * declaration order and MIR type grammar. A count of zero means the checker
  * sealed no binding for this call. Sealing replaces a previous binding and,

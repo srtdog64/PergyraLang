@@ -1,4 +1,5 @@
 import "../../../src/self_hosted/mir/local_ref_fact_owner.pgy";
+import "../../../src/self_hosted/mir/local_ref_json_projection_owner.pgy";
 
 func Main() -> Void {
     let kinds: Array<Int> = [AstExpressionNodeLeaf()];
@@ -55,5 +56,25 @@ func Main() -> Void {
         appended.expr0_starts[1] != 1 || appended.expr0_counts[1] != 1 ||
         appended.expr0_nodes[0] != 0 || appended.expr0_refs[0] != "parameter:99:0" ||
         appended.expr0_nodes[1] != 0 || appended.expr0_refs[1] != "declaration:200:0" { Exit(1); }
+    let wire: SelfMirProgramFacts = SelfMirProgramFactsEmpty(1, graph);
+    wire.routines.local_starts = [0]; wire.routines.local_counts = [0];
+    wire.routines.param_starts = [0]; wire.routines.param_counts = [0];
+    wire.routines.block_starts = [0]; wire.routines.block_counts = [0];
+    wire.routines.iteration_counts = [0];
+    wire.routines.collection_ownership_facts = SelfMirCollectionOwnershipFactRows(
+        [0], [1], [1], [200], [200], [0],
+        [SemanticAstCollectionOwnershipMapKeysSnapshot()],
+        [SemanticAstCollectionDispositionLive()], [SemanticAstCollectionOriginMapKeys()]);
+    if !SelfMirRoutineLocalRefWireRequired(wire, 0) { Exit(2); }
+    wire.routines.collection_ownership_facts.origins = [SemanticAstCollectionOriginClone()];
+    wire.routines.collection_ownership_facts.element_ownerships = [SemanticAstCollectionOwnershipOwnedElements()];
+    if !SelfMirRoutineLocalRefWireRequired(wire, 0) { Exit(2); }
+    wire.routines.collection_ownership_facts.origins = [SemanticAstCollectionOriginBinding()];
+    wire.routines.collection_ownership_facts.source_binding_syntax_ids = [100];
+    wire.routines.collection_ownership_facts.dispositions = [SemanticAstCollectionDispositionRetired()];
+    if !SelfMirRoutineLocalRefWireRequired(wire, 0) { Exit(2); }
+    wire.routines.collection_ownership_facts.origins = [SemanticAstCollectionOriginBorrowedLiteral()];
+    wire.routines.collection_ownership_facts.element_ownerships = [SemanticAstCollectionOwnershipBorrowedElements()];
+    if SelfMirRoutineLocalRefWireRequired(wire, 0) { Exit(2); }
     Log("MIR LOCAL REF SNAPSHOT PASS");
 }

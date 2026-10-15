@@ -1,0 +1,16 @@
+struct TextRecord { text: String; }
+func Forward(ref record: TextRecord, ref output: Slot<String>, depth: Int) -> Bool {
+    if depth > 0 { return Forward(record, output, depth - 1); }
+    let observed = Some(record.text);
+    Write(output, UnwrapOption(observed));
+    return true;
+}
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return Forward(record, output, 1);
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Release(output);
+}

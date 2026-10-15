@@ -338,7 +338,6 @@ func BuildMirCollectionOwnershipFacts(
                     source_fact_row >= 0 &&
                     ownerships[source_fact_row] == ownership &&
                     dispositions[source_fact_row] == "retired" &&
-                    disposition == "live" &&
                     MirCollectionOwnershipBindingMoveSourceReady(
                         binding_moves, ToInt(binding_id), ToInt(source_id)));
             let duplicate: Bool = false;

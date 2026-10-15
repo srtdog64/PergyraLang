@@ -16,6 +16,7 @@
 #include "type_checker.h"
 #include "slot_analyzer.h"
 #include "slot_analyzer_internal.h"
+#include "function_param_publication_owner.h"
 #include "lifecycle_analyze.h"
 #include "../compiler/import_resolver.h"
 
@@ -278,6 +279,10 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     if (timing)
         t_mark = semantic_timing_now();
     semantic_preload_stdlib_uses(ast);
+    /* Imports bring independent identity namespaces. Finalize the composed
+     * graph before any semantic index or publication generation is admitted. */
+    if (!ast_assign_stable_ids(ast))
+        semantic_error(ctx, ast, "Syntax node identity space exhausted after import composition");
     if (timing) {
         t_preload = semantic_timing_now() - t_mark;
         t_mark = semantic_timing_now();
@@ -290,10 +295,15 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
         t_mark = semantic_timing_now();
     }
 
-    semantic_run_legacy_slot_resource_analysis(ast, ctx);
-    if (!function_param_flow_summary_snapshot(ctx)) {
-        semantic_error(ctx, ast,
-            "Function parameter flow summary snapshot allocation failed");
+    if (!semantic_param_publication_ready(ctx)) {
+        if (!ctx->has_error)
+            semantic_error(ctx, ast, "Final parameter facts are not published");
+    } else {
+        semantic_run_legacy_slot_resource_analysis(ast, ctx);
+        if (!function_param_flow_summary_snapshot(ctx)) {
+            semantic_error(ctx, ast,
+                "Function parameter flow summary snapshot allocation failed");
+        }
     }
     if (ctx->loop_flow_summary_capture_failed) {
         semantic_error(ctx, ast,

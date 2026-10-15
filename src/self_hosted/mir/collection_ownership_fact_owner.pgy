@@ -25,6 +25,26 @@ func SelfMirCollectionOwnershipFactRowsEmpty(
     );
 }
 
+// Classification for exact identity publication, not release permission.
+// Both typed rows and admitted wire rows consume these canonical labels.
+func SelfMirCollectionOwnershipIdentityWireRequired(
+    ref origin: String, ref ownership: String
+) -> Bool {
+    if origin == "empty-literal" { return true; }
+    return (ownership == "owned-elements" || ownership == "map-keys-snapshot") &&
+        (origin == "map-keys" || origin == "clone" || origin == "binding");
+}
+
+func SelfMirCollectionOwnershipRowRequiresExactLocalRef(
+    ref rows: SelfMirCollectionOwnershipFactRows, row: Int
+) -> Bool {
+    if row < 0 || row >= ArrayLength(rows.origins) ||
+        row >= ArrayLength(rows.element_ownerships) { return false; }
+    let origin: String = SelfMirCollectionOriginName(rows.origins[row]);
+    let ownership: String = SelfMirCollectionOwnershipName(rows.element_ownerships[row]);
+    return SelfMirCollectionOwnershipIdentityWireRequired(origin, ownership);
+}
+
 func SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
     rows: SelfMirCollectionOwnershipFactRows
 ) -> SelfMirCollectionOwnershipFactRows {

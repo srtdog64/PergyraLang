@@ -1,0 +1,37 @@
+// Exact indexed String source projection, over the admitted array definition.
+import "ast_collection_definition_storage_authority_owner.pgy";
+
+func SemanticAstIndexedStringBorrowIndexSource(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>, surface_row: Int, root: Int
+) -> Int {
+    let base: Option<Int> = SemanticExpressionGraphLeftChild(
+        surfaces.expression_graph, root
+    );
+    if !IsSome(base) {
+        return 0;
+    }
+    let source: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types,
+            surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], surfaces.expression_graph,
+            UnwrapOption(base)
+        );
+    if !source.ok ||
+        !SemanticAstCollectionOwnershipIsStringArray(source.type_name) ||
+        source.row >= ArrayLength(current_definitions) {
+        return 0;
+    }
+    let definition: Int = current_definitions[source.row];
+    let source_id: Int = SemanticAstCollectionDefinitionStorageSource(
+        storage, definitions, source.row, definition
+    );
+    if source_id <= 0 {
+        return 0;
+    }
+    return source_id;
+}

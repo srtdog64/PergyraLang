@@ -220,7 +220,17 @@ ownership_let_validate_channel_binding(ASTNode *node,
     if (!ast_let_is_mutable(node)
         && callee_name != NULL
         && strcmp(callee_name, "Channel") == 0) {
-        return true;
+        if (ast_call_arg_count(init) != 1) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, init,
+                "Channel requires exactly one Int capacity argument");
+            return false;
+        }
+        ASTNode *capacity = ast_call_argument(init, 0);
+        Type *capacity_type = type_check_expression(capacity, ctx);
+        require_assignable(capacity_type, TYPE_INT, capacity, ctx);
+        return !ctx->has_error;
     }
 
     semantic_error_with_hints(ctx,

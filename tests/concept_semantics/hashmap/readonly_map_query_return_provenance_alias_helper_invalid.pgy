@@ -1,0 +1,14 @@
+struct TextRecord { text: String; }
+extern "C" { func Keep(text: String) -> Void; }
+func Observe(ref text: String) -> String { return text; }
+func ForwardRetained(text: String) -> Void { Keep(text); }
+func ReadRecord(ref record: TextRecord) -> Bool {
+    let observed = Observe(record.text);
+    ForwardRetained(observed);
+    return true;
+}
+func Publish() -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return ReadRecord(record);
+}
+func Main() -> Void { Log(Publish()); }

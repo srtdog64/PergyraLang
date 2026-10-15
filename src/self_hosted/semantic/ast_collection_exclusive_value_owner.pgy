@@ -1,10 +1,9 @@
 // Exclusive aggregate values (docs/semantics/27_ownership_clean.md section
 // 2.3 step 7, for the storage the collection verdict tracks). A value is
-// exclusive when no other live value names an Array buffer it reaches. Only
-// such a buffer may grow through a member alias, because growth frees the
-// old buffer every other copy still names.
+// exclusive when no other live value names tracked storage it reaches. Only
+// such storage may be structurally mutated through a descriptor alias.
 //
-// - An array literal, a Clone and a MapKeys result are fresh.
+// - An array literal, a Clone, a MapNew and a MapKeys result are fresh.
 // - A constructor is exclusive when every tracked argument is exclusive,
 //   consumed, and distinct from the other arguments.
 // - A user call is exclusive when its routine's result is, and the argument
@@ -20,6 +19,8 @@ import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_exclusive_value_copy_observation_owner.pgy";
+import "ast_collection_exclusive_value_copy_partition_owner.pgy";
 
 // Two tracked constructor arguments name overlapping storage.
 func SemanticAstCollectionExclusivePlacesOverlap(
@@ -43,7 +44,7 @@ func SemanticAstCollectionExclusivePlacesOverlap(
 // `consume`, a binding or member path must also be the last use of its place.
 // `holder` is the binding the definition writes, or 0.
 func SemanticAstCollectionExclusiveClassify(
-    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    artifact: AstTreeArtifact, ref exit_facts: SemanticAstCollectionExclusiveExitFacts, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
@@ -53,14 +54,17 @@ func SemanticAstCollectionExclusiveClassify(
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
     inout consumed: HashMap<String, Int>, inout copied: HashMap<String, Int>,
     empty_locals: HashMap<String, Int>, field_reads: HashMap<String, Int>,
-    function_id: Int, syntax_id: Int, node: Int, consume: Bool, depth: Int, holder: Int
+    function_id: Int, syntax_id: Int, node: Int, consume: Bool, depth: Int, holder: Int, landing_field: Int
 ) -> SemanticAstCollectionExclusiveClass {
-    if depth > 32 { return SemanticAstCollectionExclusiveShared(); }
+    if !exit_facts.ok || depth > 32 || !SemanticAstCollectionExclusiveCopyFieldReady(constructors, landing_field) {
+        return SemanticAstCollectionExclusiveShared();
+    }
     let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(surfaces.expression_graph, node);
     if literal.ok { return SemanticAstCollectionExclusiveFresh(); }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, node);
     if call.ok {
         if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "Clone") ||
+            SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "MapNew") ||
             SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "MapKeys") {
             return SemanticAstCollectionExclusiveFresh();
         }
@@ -82,11 +86,13 @@ func SemanticAstCollectionExclusiveClassify(
             let index: Int = 0;
             while index < ArrayLength(call.argument_nodes) {
                 if !SemanticAstCollectionExclusiveUntrackedType(constructors.param_type_names[start + index]) {
+                    let child_landing: Int = landing_field;
+                    if child_landing == -1 { child_landing = start + index; }
                     let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
-                        artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                        artifact, exit_facts, signatures, constructors, locals, inferred_types, surfaces, assignments,
                         shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths,
                         surface_starts, surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id,
-                        call.argument_nodes[index], true, depth + 1, holder);
+                        call.argument_nodes[index], true, depth + 1, holder, child_landing);
                     SemanticAstCollectionExclusiveJoinField(result, part,
                         constructors.field_names[start + index]);
                     let here: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
@@ -132,10 +138,10 @@ func SemanticAstCollectionExclusiveClassify(
             if !formal.ok { return SemanticAstCollectionExclusiveShared(); }
             if MapHas(carrying, ToString(formal.syntax_id)) {
                 let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
-                    artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                    artifact, exit_facts, signatures, constructors, locals, inferred_types, surfaces, assignments,
                     shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths,
                     surface_starts, surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id,
-                    call.argument_nodes[ordinal], true, depth + 1, holder);
+                    call.argument_nodes[ordinal], true, depth + 1, holder, landing_field);
                 // Each carried path lands the argument (or its source field)
                 // at the result (or a result field).
                 let formal_key: String = ToString(formal.syntax_id);
@@ -170,10 +176,10 @@ func SemanticAstCollectionExclusiveClassify(
             member = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, receiver);
         }
         if receiver == node { return SemanticAstCollectionExclusiveShared(); }
-        return SemanticAstCollectionExclusiveClassify(artifact, signatures, constructors, locals, inferred_types,
+        return SemanticAstCollectionExclusiveClassify(artifact, exit_facts, signatures, constructors, locals, inferred_types,
             surfaces, assignments, shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths,
             surface_starts, surface_ends, consumed, copied, empty_locals, field_reads, function_id, syntax_id, receiver, consume,
-            depth + 1, holder);
+            depth + 1, holder, landing_field);
     }
     if place.key >= 0 && ArrayLength(place.chain) == 0 &&
         MapHas(empty_locals, ToString(locals.node_ids[place.key])) {
@@ -184,40 +190,56 @@ func SemanticAstCollectionExclusiveClassify(
         SemanticAstCollectionExclusiveHolderFollowed(artifact, signatures, locals, inferred_types, surfaces,
             surface_starts, surface_ends, copied, function_id, holder);
     let copy_shared: Array<String> = [];
-    if consume && !SemanticAstCollectionExclusiveConsumedAt(artifact, signatures, constructors, locals,
+    let consumption_ready: Bool = !consume || SemanticAstCollectionExclusiveConsumedAt(artifact, exit_facts, signatures, constructors, locals,
             inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copied, consumed,
-            function_id, syntax_id, node) {
+            function_id, syntax_id, node);
+
+    if !consumption_ready {
         // A place whose only later readers are copies it shares moves, and
         // stays exclusive outside the fields those copies reach.
         let only_copies: Bool = false;
         if depth == 0 || followed || holder == root_id {
-            let landing: SemanticAstCollectionExclusiveCopyLanding = SemanticAstCollectionExclusiveCopyLandingFor(
-                signatures, constructors, locals, inferred_types, copied, shared_locals, dep_locals, dep_formals,
-                dep_paths, paths, function_id, root_id);
-            let whole_copies: Array<String> = ["*"];
-            only_copies = landing.ok && SemanticAstCollectionExclusiveSinkArgumentConsumed(artifact, signatures,
+            let partition: SemanticAstCollectionExclusiveCopyPartition = SemanticAstCollectionExclusiveCopyPartitionFor(
+                constructors, copied, root_id, SemanticAstCollectionExclusiveRootType(
+                    signatures, locals, inferred_types, function_id, root_id));
+            let ignored: Array<Int> = SemanticAstCollectionExclusiveUngrownSources(
+                constructors, copied, root_id, partition.remaining);
+            only_copies = partition.ok && SemanticAstCollectionExclusiveSinkArgumentConsumed(artifact, exit_facts, signatures,
                 constructors, locals, inferred_types, surfaces, assignments, surface_starts, surface_ends,
-                field_reads, copied, consumed, function_id, syntax_id, node, whole_copies, landing.sources);
-            if only_copies { copy_shared = landing.fields; }
+                field_reads, copied, consumed, function_id, syntax_id, node, partition.remaining, ignored);
+            if only_copies { copy_shared = partition.shared_fields; }
         }
         // A copy inside a call or constructor makes the destination a second
         // holder that keeps the place's dependencies. A plain alias, or a
         // holder the fixed point cannot follow, shares the place instead.
-        if !only_copies && (depth == 0 || !followed) {
+        // A contained observational alias stays shared itself. Its exact copy
+        // edge lets later source consumption check its actual liveness rather
+        // than sharing the source forever. Growth/escape of that alias refuses.
+        let observed_alias: Bool = SemanticAstCollectionExclusiveObservedAliasReady(artifact, signatures, locals,
+            inferred_types, surfaces, assignments, surface_starts, surface_ends, function_id, syntax_id, place,
+            holder, depth, followed);
+        if !only_copies && (depth == 0 || !followed) && !observed_alias {
             SemanticAstCollectionExclusiveRecordCopy(surfaces, locals, place, copied);
             return SemanticAstCollectionExclusiveShared();
         }
-        let field: String = "";
-        if ArrayLength(place.chain) > 0 {
-            let first: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
-            if !IsSome(first) { return SemanticAstCollectionExclusiveShared(); }
-            field = UnwrapOption(first);
+        let field: Option<Int> = SemanticAstCollectionExclusiveCopyFieldForPlace(constructors,
+            SemanticAstCollectionExclusiveRootType(signatures, locals, inferred_types, function_id, root_id), surfaces, place.chain);
+        if !IsSome(field) { return SemanticAstCollectionExclusiveShared(); }
+        if depth > 0 || observed_alias {
+            let admitted: SemanticAstCollectionExclusiveCopyAdmission = SemanticAstCollectionExclusiveRecordCopyEdge(
+                copied, constructors, root_id, UnwrapOption(field), holder, landing_field);
+            if !admitted.ok { return SemanticAstCollectionExclusiveShared(); }
         }
-        if depth > 0 { SemanticAstCollectionExclusiveRecordCopyEdge(copied, root_id, field, holder); }
+        if observed_alias { return SemanticAstCollectionExclusiveShared(); }
     }
     // The destination of a holder holds what it holds.
     if holder > 0 && holder != root_id && followed {
-        SemanticAstCollectionExclusivePropagateCopies(copied, root_id, holder);
+        let projection: Option<Int> = SemanticAstCollectionExclusiveCopyFieldForPlace(constructors,
+            SemanticAstCollectionExclusiveRootType(signatures, locals, inferred_types, function_id, root_id), surfaces, place.chain);
+        if !IsSome(projection) { return SemanticAstCollectionExclusiveShared(); }
+        let propagated: SemanticAstCollectionExclusiveCopyAdmission = SemanticAstCollectionExclusivePropagateCopies(
+            copied, constructors, root_id, UnwrapOption(projection), holder, landing_field);
+        if !propagated.ok { return SemanticAstCollectionExclusiveShared(); }
     }
     // A whole root whose fields were shared one by one keeps the rest.
     let partly_shared: Array<String> = [];
@@ -233,6 +255,7 @@ func SemanticAstCollectionExclusiveClassify(
             root_field = root_field + 1;
         }
     } else if SemanticAstCollectionExclusiveCopiedPlace(surfaces, locals, shared_locals, place) {
+
         return SemanticAstCollectionExclusiveShared();
     }
     let copy_index: Int = 0;
@@ -419,10 +442,12 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
         artifact, signatures, locals, inferred_types, surfaces, assignments, statements);
     let field_reads: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(artifact, signatures, surfaces);
     let no_copies: HashMap<String, Int> = MapNew();
+    let exit_facts: SemanticAstCollectionExclusiveExitFacts =
+        SemanticAstCollectionExclusiveExitFactsFromStatements(artifact, signatures, statements);
     let facts: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFacts(
         false, shared_results, carrying, shared_locals, dep_locals, dep_formals, dep_paths, paths, starts, ends, consumed_uses,
-        empty_locals, field_reads, no_copies);
-    if !locals.ok || !assignments.ok || !statements.ok ||
+        empty_locals, field_reads, no_copies, exit_facts);
+    if !locals.ok || !assignments.ok || !statements.ok || !exit_facts.ok ||
         ArrayLength(inferred_types) != ArrayLength(locals.node_ids) ||
         MapHas(field_reads, "unconverged") { return facts; }
     // A definition of a place no path reads aliases nothing.
@@ -485,11 +510,11 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
                     surfaces, locals.node_ids[local_row], AstExpressionLaneValue());
                 if IsSome(value) {
                     let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveClassify(
-                        artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                        artifact, exit_facts, signatures, constructors, locals, inferred_types, surfaces, assignments,
                         facts.shared_results, facts.carrying, facts.shared_locals, facts.dep_locals,
                         facts.dep_formals, facts.dep_paths, facts.paths, starts, ends, consumed, copied, facts.empty_locals, facts.field_reads,
                         locals.function_node_ids[local_row],
-                        locals.node_ids[local_row], UnwrapOption(value), true, 0, locals.node_ids[local_row]);
+                        locals.node_ids[local_row], UnwrapOption(value), true, 0, locals.node_ids[local_row], -1);
                     if SemanticAstCollectionExclusiveRecordLocal(facts, locals.node_ids[local_row], part) {
                         changed = true;
                     }
@@ -510,11 +535,11 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
                 let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveShared();
                 if IsSome(value) {
                     part = SemanticAstCollectionExclusiveClassify(
-                        artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                        artifact, exit_facts, signatures, constructors, locals, inferred_types, surfaces, assignments,
                         facts.shared_results, facts.carrying, facts.shared_locals, facts.dep_locals,
                         facts.dep_formals, facts.dep_paths, facts.paths, starts, ends, consumed, copied, facts.empty_locals, facts.field_reads,
                         assignments.function_node_ids[row],
-                        assignments.node_ids[row], UnwrapOption(value), true, 0, target_id);
+                        assignments.node_ids[row], UnwrapOption(value), true, 0, target_id, -1);
                 }
                 if SemanticAstCollectionExclusiveRecordLocal(facts, target_id, part) {
                     changed = true;
@@ -535,10 +560,10 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
                     let part: SemanticAstCollectionExclusiveClass = SemanticAstCollectionExclusiveShared();
                     if IsSome(value) {
                         part = SemanticAstCollectionExclusiveClassify(
-                            artifact, signatures, constructors, locals, inferred_types, surfaces, assignments,
+                            artifact, exit_facts, signatures, constructors, locals, inferred_types, surfaces, assignments,
                             facts.shared_results, facts.carrying, facts.shared_locals, facts.dep_locals,
                             facts.dep_formals, facts.dep_paths, facts.paths, starts, ends, consumed, copied, facts.empty_locals, facts.field_reads, function_id,
-                            statements.node_ids[row], UnwrapOption(value), false, 0, 0);
+                            statements.node_ids[row], UnwrapOption(value), false, 0, 0, -1);
                     }
                     if SemanticAstCollectionExclusiveRecordReturn(facts, function_id, part) { changed = true; }
                 }

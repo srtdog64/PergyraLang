@@ -9,6 +9,7 @@ import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
 import "ast_collection_aggregate_release_transition_owner.pgy";
 import "ast_expression_call_identity_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_collection_builtin_receipt_issue_owner.pgy";
 
 func SemanticAstCollectionBuiltinTransitionAtCompletion(
     artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
@@ -203,22 +204,6 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                         transition_states[binding.row] =
                             SemanticAstCollectionTransitionRetired();
                     }
-                    let identity:
-                        SemanticExpressionCallIdentity =
-                            SemanticExpressionCallIdentityForNode(
-                                surfaces, node);
-                    if !identity.ok {
-                        return SemanticAstCollectionOwnershipVerdictError(
-                            "ast_artifact_invalid",
-                            SemanticError1(
-                                "ast_artifact_invalid",
-                                "owner",
-                                "collection_ownership_call_identity"
-                            ),
-                            surfaces.node_ids[surface_row],
-                            node
-                        );
-                    }
                     let effect: Int =
                         SemanticAstCollectionOwnershipEffectDrop();
                     if owned_push {
@@ -228,17 +213,10 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                         effect =
                             SemanticAstCollectionOwnershipEffectShallowMutation();
                     }
-                    receipts =
-                        SemanticAstCollectionOwnershipReceiptRowsAppend(
-                            receipts,
-                            surfaces.function_node_ids[
-                                surface_row],
-                            identity.owner_node_id,
-                            identity.lane,
-                            identity.local_call_ordinal,
-                            effect,
-                            locals.node_ids[binding.row], 0
-                        );
+                    let issued: SemanticAstCollectionOwnershipVerdict =
+                        SemanticAstCollectionBuiltinReceiptIssue(locals, surfaces,
+                            surface_row, node, binding.row, effect, receipts);
+                    if !issued.ok { return issued; }
                 } else if (owned_push || deep_drop) &&
                     (state ==
                         SemanticAstCollectionOwnershipBorrowedElements() ||
@@ -293,6 +271,15 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                     deep_drop &&
                     (state == SemanticAstCollectionOwnershipOwnedElements() ||
                      state == SemanticAstCollectionOwnershipMapKeysSnapshot()) {
+                    if origins[binding.row] == SemanticAstCollectionOriginMapKeys() ||
+                        origins[binding.row] == SemanticAstCollectionOriginClone() ||
+                        origins[binding.row] == SemanticAstCollectionOriginBinding() {
+                        let issued: SemanticAstCollectionOwnershipVerdict =
+                            SemanticAstCollectionBuiltinReceiptIssue(locals, surfaces,
+                                surface_row, node, binding.row,
+                                SemanticAstCollectionOwnershipEffectDrop(), receipts);
+                        if !issued.ok { return issued; }
+                    }
                     dispositions[binding.row] =
                         SemanticAstCollectionDispositionRetired();
                 }

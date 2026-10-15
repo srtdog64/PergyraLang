@@ -1,0 +1,2 @@
+func MapKeys(values: HashMap<String, Int>) -> Array<String> { return ["owned"]; }
+func Main() -> Void {}

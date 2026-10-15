@@ -1,0 +1,8 @@
+struct ReaderArity { text: String; }
+func ObserveReaderArity(ref inputs: ReaderArity) -> Int {
+    return StringIndexOf(inputs.text);
+}
+func Main() -> Void {
+    let inputs: ReaderArity = ReaderArity("a,b");
+    Log(ObserveReaderArity(inputs));
+}

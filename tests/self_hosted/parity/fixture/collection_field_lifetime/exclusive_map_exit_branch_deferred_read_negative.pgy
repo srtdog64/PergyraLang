@@ -1,0 +1,17 @@
+struct Tables { rows: HashMap<String, Int>; }
+func Update(inout tables: Tables, whole: Bool) -> Void {
+    let rows: HashMap<String, Int> = tables.rows;
+    defer { Log(MapSize(rows)); }
+    if whole {
+        let next_rows: HashMap<String, Int> = tables.rows;
+        MapSet(next_rows, "whole", 1);
+        tables.rows = next_rows;
+        return;
+    }
+}
+func Main() -> Int {
+    let rows: HashMap<String, Int> = MapNew();
+    let tables: Tables = Tables(rows);
+    Update(tables, true);
+    return 0;
+}

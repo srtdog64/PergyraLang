@@ -1,0 +1,10 @@
+func SetText(inout destination: String, ref text: String) -> Void { destination = text; }
+func SetNumber(inout destination: Int, number: Int) -> Void { destination = number; }
+func Main() -> Void {
+    var destination: String = "";
+    SetText(destination, "literal");
+    Log(destination);
+    var number: Int = 0;
+    SetNumber(number, 7);
+    Log(number);
+}

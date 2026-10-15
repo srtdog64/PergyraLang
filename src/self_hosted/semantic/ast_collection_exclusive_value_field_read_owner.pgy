@@ -6,22 +6,7 @@ import "ast_collection_formal_effect_identity_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
-
-// The fields of a struct type, or none when the type has no constructor.
-func SemanticAstCollectionExclusiveTypeFields(
-    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
-) -> Array<String> {
-    let fields: Array<String> = [];
-    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
-    if !IsSome(constructor) { return fields; }
-    let start: Int = constructors.param_starts[UnwrapOption(constructor)];
-    let index: Int = 0;
-    while index < constructors.param_counts[UnwrapOption(constructor)] {
-        ArrayPush(fields, Concat("", constructors.field_names[start + index]));
-        index = index + 1;
-    }
-    return fields;
-}
+import "ast_collection_exclusive_value_field_label_owner.pgy";
 
 // The declared type of the binding `root_id`, a local or a formal of `function_id`.
 func SemanticAstCollectionExclusiveRootType(
@@ -268,7 +253,7 @@ func SemanticAstCollectionExclusiveFieldReads(
                             }
                             // "!": the body keeps or changes what it reads.
                             if !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, surfaces.node_ids[slot / 3],
-                                    slot % 3, root, node, true) {
+                                    slot % 3, root, node, true, formal.declared_type_name) {
                                 MapSet(reads, Concat(key, ":!"), 1);
                             }
                         } else if surfaces.expression_graph.arena.topology.node_kinds[consumer] ==
@@ -292,7 +277,7 @@ func SemanticAstCollectionExclusiveFieldReads(
                     if !handled {
                         MapSet(reads, Concat(key, ":*"), 1);
                         if formal.mode == 2 || !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces,
-                                surfaces.node_ids[slot / 3], slot % 3, root, node, true) {
+                                surfaces.node_ids[slot / 3], slot % 3, root, node, true, formal.declared_type_name) {
                             MapSet(reads, Concat(key, ":!"), 1);
                         }
                     }

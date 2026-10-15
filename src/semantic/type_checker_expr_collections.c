@@ -6,6 +6,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_diag_internal.h"
 #include "diag_codes.h"
@@ -172,6 +173,10 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
             if (expr_collection_reject_unsupported_nested_sequence(expr, expected_elem,
                     ctx))
                 return TYPE_UNKNOWN;
+            if (semantic_param_publication_pending(ctx) &&
+                (!semantic_param_publication_begin_value(ctx, expr) ||
+                 !semantic_param_publication_record_value(ctx, expr, expected_seq, false)))
+                semantic_error(ctx, expr, "Checked collection value publication failed");
             return expected_seq;
         }
         return wrap_constructed(seq_ctor, TYPE_UNKNOWN);

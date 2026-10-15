@@ -1,0 +1,20 @@
+// Structural storage mutations, selected only by admitted builtin identity.
+// 1: the existing Array path; 2: map invalidation; 3: collections whose
+// value model is not yet admitted. Both summary and admission read this owner.
+import "ast_collection_ownership_identity_owner.pgy";
+
+func SemanticAstCollectionStorageMutationKind(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int
+) -> Int {
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(graph, call_node);
+    if !IsSome(name) { return 0; }
+    let builtin: String = UnwrapOption(name);
+    if !SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, builtin) { return 0; }
+    if builtin == "ArrayPush" || builtin == "ArrayPop" || builtin == "ArrayPushOwnedString" { return 1; }
+    // Remove need not relocate the backing; it still invalidates entries.
+    if builtin == "MapSet" || builtin == "MapRemove" { return 2; }
+    if builtin == "SetAdd" || builtin == "SetRemove" ||
+        builtin == "ListPush" || builtin == "ListSet" || builtin == "ListRemove" ||
+        builtin == "QueuePush" || builtin == "QueuePop" { return 3; }
+    return 0;
+}

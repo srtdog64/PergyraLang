@@ -102,7 +102,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         SemanticAstMatchMaterializationFactsAttach(artifact, analysis, statement_types);
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:start");
     let named_boundary: SemanticAstNamedValueBoundaryVerdict =
-        SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(analysis.signatures,
+        SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(artifact, analysis.local_bindings, initializer_types.inferred_type_names, analysis.signatures,
             analysis.expression_surfaces.expression_graph,
             analysis.expression_surfaces, statement_types);
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:done");

@@ -1,0 +1,14 @@
+struct CopyPair { left: Array<String>; right: Array<String>; }
+func CopyGrow(pair: CopyPair) -> CopyPair {
+    let left: Array<String> = pair.left;
+    ArrayPush(left, "g");
+    return CopyPair(left, pair.right);
+}
+func Main() -> Void {
+    let left: Array<String> = ["l"];
+    let right: Array<String> = ["r"];
+    let pair: CopyPair = CopyPair(left, right);
+    let kept: CopyPair = pair;
+    pair = CopyGrow(pair);
+    Log(ArrayLength(kept.left));
+}

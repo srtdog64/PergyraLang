@@ -432,8 +432,6 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             }
             break;
         case MIR_INST_RETURN:
-            llvm_emit_defers_from(ctx, 0);
-            llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (inst->expr0 != NULL) {
                 ASTNode *return_expr = inst->expr0;
                 const char *saved_expected_type_name = ctx->expected_type_name;
@@ -447,6 +445,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     llvm_mir_return_callable_type(ctx, routine);
                 LLVMValueRef val;
                 if (function_ret_type == ctx->type_void) {
+                    llvm_emit_defers_from(ctx, 0);
+                    llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                     llvm_set_error_at_with_hints(ctx, return_expr,
                         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -466,6 +466,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         "LLVM MIR return cannot consume a Void expression value")) {
                     ctx->expected_callable_type = saved_expected_callable_type;
                     ctx->expected_type_name = saved_expected_type_name;
+                    llvm_emit_defers_from(ctx, 0);
+                    llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                     return;
                 }
                 val = llvm_emit_expression(return_expr, ctx);
@@ -480,6 +482,10 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                      * module (ret float in a double function). */
                     val = llvm_mir_coerce_value_for_store(
                         ctx, val, function_ret_type);
+                }
+                llvm_emit_defers_from(ctx, 0);
+                llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+                if (val != NULL) {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
                     if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
@@ -505,6 +511,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     return;
                 }
             } else {
+                llvm_emit_defers_from(ctx, 0);
+                llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
                 if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,

@@ -1,0 +1,7 @@
+// Rehashing the copy must not leave the original descriptor readable.
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let copy: HashMap<String, Int> = table;
+    MapSet(copy, "next", 2);
+    return MapSize(table);
+}

@@ -1,0 +1,3 @@
+func Mutate(inout target: Int) -> Void { target = target + 1; }
+func Forward(ref value: Int) -> Void { Mutate(value); }
+func Main() -> Void { var value: Int = 1; Forward(value); }

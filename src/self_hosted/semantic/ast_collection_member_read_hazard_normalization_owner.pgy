@@ -1,0 +1,21 @@
+// Same-generation syntax-order normalization rejects repeated or malformed execution.
+import "ast_collection_call_retirement_owner.pgy";
+
+// Validate the complete bounded parent chain before consuming retirement facts.
+func SemanticAstCollectionMemberReadHazardSiteNormalize(ref artifact: AstTreeArtifact, syntax: Int) -> Int {
+    if syntax <= 0 || syntax >= artifact.count || ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count { return 0; }
+    let ancestor: Int = syntax;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if ancestor >= artifact.count { return 0; }
+        let parent: Int = artifact.arena.parents[ancestor];
+        if parent < -1 || parent == ancestor { return 0; }
+        ancestor = parent;
+        remaining = remaining - 1;
+    }
+    if ancestor >= 0 { return 0; }
+    let site: Int = SemanticAstCollectionCallRetirementSite(artifact, syntax);
+    if site != syntax { return 0; }
+    return site;
+}

@@ -45,6 +45,8 @@ typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
 typedef struct CallableCapabilityStore CallableCapabilityStore;
 typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
 typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
+typedef struct FunctionParamPublicationStore FunctionParamPublicationStore;
+typedef struct TypedMapQueryFactStore TypedMapQueryFactStore;
 typedef struct CollectionOwnedElementRequirementStore CollectionOwnedElementRequirementStore;
 typedef struct ArrayStorageDeferredPreservationStore ArrayStorageDeferredPreservationStore;
 typedef struct StringWindowExtentStore StringWindowExtentStore;
@@ -168,6 +170,8 @@ struct SemanticContext
     ResourceFlowUniverse *resource_flow_universe;
     LoopFlowSummaryStore *loop_flow_summaries;
     FunctionParamFlowSummaryStore *function_param_flow_summaries;
+    FunctionParamPublicationStore *function_param_publications;
+    TypedMapQueryFactStore *typed_map_query_facts;
     size_t       resource_flow_epoch;
     PgyResourceFlowFact *resource_flow_facts;
     size_t       resource_flow_fact_count;

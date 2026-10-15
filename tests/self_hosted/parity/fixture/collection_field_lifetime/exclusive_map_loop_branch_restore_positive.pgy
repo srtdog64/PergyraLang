@@ -1,0 +1,28 @@
+struct Tables { rows: HashMap<String, Int>; other: HashMap<String, Int>; }
+func Update(inout tables: Tables, count: Int) -> Void {
+    let old_rows: HashMap<String, Int> = tables.rows;
+    if MapHas(old_rows, "stop") { return; }
+    let i: Int = 0;
+    while i < count {
+        let rows: HashMap<String, Int> = tables.rows;
+        if !MapHas(rows, ToString(i)) {
+            MapSet(rows, ToString(i), i);
+            tables.rows = rows;
+        }
+        let other: HashMap<String, Int> = tables.other;
+        if !MapHas(other, ToString(i)) {
+            MapSet(other, ToString(i), i);
+            tables.other = other;
+        }
+        i = i + 1;
+    }
+}
+func Main() -> Int {
+    let rows: HashMap<String, Int> = MapNew();
+    let other: HashMap<String, Int> = MapNew();
+    let tables: Tables = Tables(rows, other);
+    Update(tables, 100);
+    let final_rows: HashMap<String, Int> = tables.rows;
+    Log(MapSize(final_rows));
+    return 0;
+}

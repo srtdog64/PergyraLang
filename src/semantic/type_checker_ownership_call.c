@@ -11,6 +11,7 @@
 #include "type_checker_ownership_diag_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_support_internal.h"
+#include "function_param_publication_owner.h"
 
 #include <string.h>
 
@@ -55,7 +56,7 @@ semantic_call_arg_is_named_move_source(ASTNode *arg_expr,
 }
 
 static bool
-semantic_check_movable_call_argument(ASTNode *arg_expr,
+semantic_check_movable_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                      SemanticContext *ctx,
                                      const char *display_name,
                                      size_t arg_index,
@@ -85,6 +86,12 @@ semantic_check_movable_call_argument(ASTNode *arg_expr,
             ctx, callee_decl, arg_expr, arg_index, pmode)) {
         unsigned callee_mask;
         borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
+        if (semantic_param_publication_pending(ctx)) {
+            if (borrowed_name != NULL && !semantic_param_publication_record_call(ctx, call_expr, arg_expr, callee_decl, arg_index,
+                    arg_type, borrowed_name, display_name, "slot handle (movable)"))
+                semantic_error(ctx, arg_expr, "Pending ref call identity/allocation failed");
+            return true;
+        }
         callee_mask = semantic_callable_param_escape_summary(
             callee_decl, arg_index, ctx);
         if (borrowed_name != NULL
@@ -130,7 +137,7 @@ semantic_check_movable_call_argument(ASTNode *arg_expr,
 }
 
 static bool
-semantic_check_subject_call_argument(ASTNode *arg_expr,
+semantic_check_subject_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                      SemanticContext *ctx,
                                      const char *display_name,
                                      size_t arg_index,
@@ -141,7 +148,7 @@ semantic_check_subject_call_argument(ASTNode *arg_expr,
         ctx, display_name, arg_index, &pmode);
 
     if (!semantic_validate_borrowed_boundary_call_argument(
-            arg_expr,
+            arg_expr, call_expr,
             ctx,
             callee_decl,
             display_name,
@@ -160,7 +167,7 @@ semantic_check_subject_call_argument(ASTNode *arg_expr,
 }
 
 static bool
-semantic_check_value_boundary_call_argument(ASTNode *arg_expr,
+semantic_check_value_boundary_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                             SemanticContext *ctx,
                                             const char *display_name,
                                             size_t arg_index,
@@ -171,7 +178,7 @@ semantic_check_value_boundary_call_argument(ASTNode *arg_expr,
         ctx, display_name, arg_index, &pmode);
 
     if (!semantic_validate_borrowed_boundary_call_argument(
-            arg_expr,
+            arg_expr, call_expr,
             ctx,
             callee_decl,
             display_name,
@@ -282,7 +289,7 @@ semantic_check_anchored_live_view_conflict(ASTNode *arg_expr,
 }
 
 static bool
-semantic_check_anchored_call_argument(ASTNode *arg_expr,
+semantic_check_anchored_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                       SemanticContext *ctx,
                                       const char *display_name,
                                       size_t arg_index,
@@ -312,7 +319,7 @@ semantic_check_anchored_call_argument(ASTNode *arg_expr,
         return true;
     }
     if (!semantic_validate_borrowed_boundary_call_argument(
-            arg_expr,
+            arg_expr, call_expr,
             ctx,
             callee_decl,
             display_name,
@@ -328,7 +335,7 @@ semantic_check_anchored_call_argument(ASTNode *arg_expr,
 }
 
 bool
-semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
+semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                                 SemanticContext *ctx,
                                                 const char *display_name,
                                                 size_t arg_index,
@@ -357,7 +364,7 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
             return true;
         }
         return semantic_check_movable_call_argument(
-            arg_expr, ctx, display_name, arg_index, param_type, arg_type);
+            arg_expr, call_expr, ctx, display_name, arg_index, param_type, arg_type);
     }
 
     if (param_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
@@ -382,7 +389,7 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
             return true;
         }
         return semantic_check_subject_call_argument(
-            arg_expr, ctx, display_name, arg_index, arg_type);
+            arg_expr, call_expr, ctx, display_name, arg_index, arg_type);
     }
 
     if (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
@@ -420,7 +427,7 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
             return true;
         }
         return semantic_check_value_boundary_call_argument(
-            arg_expr, ctx, display_name, arg_index, arg_type);
+            arg_expr, call_expr, ctx, display_name, arg_index, arg_type);
     }
 
     if (param_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE
@@ -439,14 +446,14 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
             return true;
         }
         return semantic_check_anchored_call_argument(
-            arg_expr, ctx, display_name, arg_index, arg_type);
+            arg_expr, call_expr, ctx, display_name, arg_index, arg_type);
     }
 
     return true;
 }
 
 bool
-semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
+semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                                   SemanticContext *ctx,
                                                   ASTNode *callee_decl,
                                                   const char *display_name,
@@ -518,6 +525,13 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
         if (!semantic_call_is_direct_sync_self_ref_reborrow(
                 ctx, callee_decl, arg_expr, arg_index, pmode)) {
+            if (semantic_param_publication_pending(ctx)) {
+                if (borrowed_name != NULL && !semantic_param_publication_record_call(ctx, call_expr, arg_expr, callee_decl, arg_index,
+                        arg_type, borrowed_name, display_name, local_fix_label)) {
+                    semantic_error(ctx, arg_expr, "Pending ref call identity/allocation failed");
+                    return false;
+                }
+            } else {
             unsigned callee_mask =
                 semantic_callable_param_escape_summary(
                     callee_decl, arg_index, ctx);
@@ -529,6 +543,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
                     display_name != NULL ? display_name : "<callee>",
                     NULL, true, NULL, local_fix_label);
                 return false;
+            }
             }
         }
     }

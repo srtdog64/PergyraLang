@@ -13,11 +13,15 @@ for name in borrowed_string_array_deep_drop map_keys_shallow_push \
     map_keys_shallow_set map_keys_shallow_pop map_keys_shallow_copy \
     map_keys_double_drop; do
     status=0
+    expected_code=PGY_SEM_BORROW_ESCAPE
+    if [[ "$name" == map_keys_shallow_copy ]]; then
+        expected_code=PGY_SEM_MOVE_FROM_RELEASED
+    fi
     "$PGY" --native-pipeline --mir-json --error-format=json \
         "tests/concept_semantics/hashmap/$name.pgy" \
         >"$WORK/$name.out" 2>"$WORK/$name.err" || status=$?
     if [[ "$status" != 1 ]] || grep -Fq '"pgy.mir.v1"' "$WORK/$name.out" ||
-        ! grep -Fq 'PGY_SEM_BORROW_ESCAPE' "$WORK/$name.out" "$WORK/$name.err"; then
+        ! grep -Fq "$expected_code" "$WORK/$name.out" "$WORK/$name.err"; then
         echo "[hashmap-owned-string-provenance] missing refusal: $name (status $status)" >&2
         exit 1
     fi
@@ -29,4 +33,4 @@ done
 grep -Fq '"pgy.mir.v1"' "$WORK/valid.out"
 [[ ! -s "$WORK/valid.err" ]]
 
-echo "[hashmap-owned-string-provenance] borrowed drops, MapKeys shallow mutation/copy/double-drop refusals and owned-drop control PASS"
+echo "[hashmap-owned-string-provenance] borrowed drops, MapKeys shallow mutation/use-after-move/double-drop refusals and owned-drop control PASS"

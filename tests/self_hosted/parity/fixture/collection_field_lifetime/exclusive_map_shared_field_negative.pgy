@@ -1,0 +1,27 @@
+struct Analysis { entries: HashMap<String, Int>; }
+struct State { entries: HashMap<String, Int>; names: Array<String>; }
+
+func Empty(entries: HashMap<String, Int>) -> State {
+    let names: Array<String> = [];
+    return State(entries, names);
+}
+
+func Grow(state: State) -> State {
+    let entries: HashMap<String, Int> = state.entries;
+    MapSet(entries, "count", 1);
+    return State(entries, state.names);
+}
+
+func Build(analysis: Analysis) -> Int {
+    let state: State = Empty(analysis.entries);
+    state = Grow(state);
+    let kept: HashMap<String, Int> = analysis.entries;
+    let current: HashMap<String, Int> = state.entries;
+    return MapSize(kept) + MapSize(current);
+}
+
+func Main() -> Int {
+    let entries: HashMap<String, Int> = MapNew();
+    let analysis: Analysis = Analysis(entries);
+    return Build(analysis);
+}

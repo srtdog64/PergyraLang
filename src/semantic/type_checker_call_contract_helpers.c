@@ -6,6 +6,7 @@
  */
 
 #include "slot_summary.h"
+#include "function_param_publication_owner.h"
 #include "type_checker_internal.h"
 
 #include <string.h>
@@ -39,22 +40,10 @@ semantic_callable_decl_function_type(SemanticContext *ctx,
     return sym->type;
 }
 
-static bool
-semantic_callable_summary_proves_no_ref_escape(SemanticContext *ctx,
-                                               ASTNode *callee_decl)
-{
-    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
-    uint32_t summary = type_function_body_summary(function_type);
-
-    return type_function_has_body_summary(function_type)
-        && (summary & BODY_SUMMARY_MAY_ESCAPE_REF) == 0;
-}
-
 /* True when the callee's body-summary inventory positively proves the named
  * fact bit is NOT in the callee's body. Returns false when summary inventory
  * is absent (so the caller must fall back to AST walk or the legacy summary).
- * The shape mirrors `semantic_callable_summary_proves_no_ref_escape` so
- * consumers can read body-summary bits through one stable seam instead of
+ * Consumers read body-summary bits through one stable seam instead of
  * re-walking the callee body in every analyzer. */
 bool
 semantic_callable_summary_proves_no_drop_resource(SemanticContext *ctx,
@@ -202,8 +191,6 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
                                        size_t arg_index,
                                        SemanticContext *ctx)
 {
-    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
-
     if (callee_decl == NULL
         || callee_decl->type != AST_FUNC_DECL
         || ast_func_body(callee_decl) == NULL
@@ -211,20 +198,12 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
         return 0u;
     }
 
-    if (type_function_has_param_escape_summary(function_type, arg_index))
-        return type_function_param_escape_summary(function_type, arg_index);
-
-    if (semantic_callable_summary_proves_no_ref_escape(ctx, callee_decl))
-        return 0u;
-
+    if (!semantic_param_publication_inputs_ready(ctx)) {
+        semantic_error(ctx, callee_decl, "Callable summary requires sealed typed inputs");
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
     unsigned mask = function_param_flow_summary_for_param(
         ctx, callee_decl, arg_index);
-
-    /* The summary owner over-approximates channel escape on receive-only
-     * call shapes. When the callee's body-summary inventory proves that no
-     * channel send happens, strip that bit. */
-    if (semantic_callable_summary_proves_no_send_channel(ctx, callee_decl))
-        mask &= ~SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
 
     return mask;
 }

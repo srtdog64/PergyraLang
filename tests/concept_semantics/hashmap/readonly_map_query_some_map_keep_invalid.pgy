@@ -1,0 +1,11 @@
+extern "C" { func Keep(text: String) -> Void; }
+func ReadMaybe(ref values: HashMap<String, String>) -> Bool {
+    let observed = Some(MapGet(values, "key"));
+    Keep(UnwrapOption(observed));
+    return true;
+}
+func Main() -> Void {
+    let values: HashMap<String, String> = MapNew();
+    MapSet(values, "key", Concat("heap", " text"));
+    Log(ReadMaybe(values));
+}

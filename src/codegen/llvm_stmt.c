@@ -37,14 +37,13 @@ static void
 llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
     ASTNode *value = ast_return_value(node);
-
-    llvm_emit_defers_from(ctx, 0);
+    LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
+    if (function_ret_type == NULL)
+        function_ret_type = ctx->current_ret_type;
 
     if (value != NULL) {
-        LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
-        if (function_ret_type == NULL)
-            function_ret_type = ctx->current_ret_type;
         if (function_ret_type == ctx->type_void) {
+            llvm_emit_defers_from(ctx, 0);
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -54,6 +53,7 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
         }
         if (!llvm_stmt_require_non_void_value(ctx, value,
                 "LLVM return statement cannot consume a Void expression value")) {
+            llvm_emit_defers_from(ctx, 0);
             return;
         }
         const char *saved_expected_type_name = ctx->expected_type_name;
@@ -92,8 +92,11 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
                         ? LLVMBuildFPExt(ctx->builder, val, ret_type, llvm_tmp_name(ctx))
                         : LLVMBuildFPTrunc(ctx->builder, val, ret_type, llvm_tmp_name(ctx));
             }
+        }
+        llvm_emit_defers_from(ctx, 0);
+        if (val != NULL)
             LLVMBuildRet(ctx->builder, val);
-        } else {
+        else {
             if (ctx != NULL && !ctx->has_error) {
                 llvm_set_error_at_with_hints(ctx, value,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -105,9 +108,7 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildUnreachable(ctx->builder);
         }
     } else {
-        LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
-        if (function_ret_type == NULL)
-            function_ret_type = ctx->current_ret_type;
+        llvm_emit_defers_from(ctx, 0);
         if (function_ret_type == ctx->type_void)
             LLVMBuildRetVoid(ctx->builder);
         else {

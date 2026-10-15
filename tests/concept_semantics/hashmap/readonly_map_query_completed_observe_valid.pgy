@@ -1,0 +1,10 @@
+struct TextRecord { text: String; }
+func Observe(ref text: String) -> String { return text; }
+func ReadRecord(ref record: TextRecord) -> Bool {
+    let observed = Observe(record.text);
+    return StringLength(observed) > 0;
+}
+func Main() -> Void {
+    let record: TextRecord = TextRecord(Concat("heap", " text"));
+    Log(ReadRecord(record));
+}

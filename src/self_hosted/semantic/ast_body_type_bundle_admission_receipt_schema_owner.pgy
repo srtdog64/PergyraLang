@@ -13,6 +13,12 @@ tobject SemanticAstBodyTypeBundleAdmissionReceipt {
     collection_formal_count: Int;
     collection_formal_proved_count: Int;
     collection_formal_effect_digest: Int;
+    collection_focus_group_count: Int;
+    collection_focus_part_count: Int;
+    collection_focus_exit_count: Int;
+    collection_focus_active_part_count: Int;
+    collection_focus_selection_count: Int;
+    collection_focus_recovery_digest: Int;
     zone_resource_identity_count: Int;
     zone_resource_path_count: Int;
     zone_mutable_borrow_count: Int;
@@ -20,5 +26,5 @@ tobject SemanticAstBodyTypeBundleAdmissionReceipt {
 }
 
 func SemanticAstBodyTypeBundleAdmissionSchema() -> String {
-    return "pgy.semantic-body-type-bundle-admission.v4";
+    return "pgy.semantic-body-type-bundle-admission.v6";
 }

@@ -1,4 +1,5 @@
 #include "hir.h"
+#include "hir_collection_owned_local_transition_adapter.h"
 
 #include "../common/string_compat.h"
 #include "../semantic/semantic.h"
@@ -406,9 +407,7 @@ hir_append_collection_ownership_fact(
                 || source_fact->element_ownership
                     != fact->element_ownership
                 || source_fact->disposition
-                    != PGY_COLLECTION_DISPOSITION_RETIRED
-                || fact->disposition
-                    != PGY_COLLECTION_DISPOSITION_LIVE))
+                    != PGY_COLLECTION_DISPOSITION_RETIRED))
         || (fact->origin != PGY_COLLECTION_ORIGIN_BINDING
             && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
             && fact->source_binding_syntax_id != 0)) {
@@ -533,6 +532,8 @@ hir_attach_collection_ownership_facts(
                     "Retired HIR collection ownership source lacks one move destination");
             return false;
         }
+        if (!hir_collection_owned_local_transitions_validate(&hir->routines[r], error_message))
+            return false;
     }
     hir->has_collection_ownership_facts = fact_count != 0;
     return true;

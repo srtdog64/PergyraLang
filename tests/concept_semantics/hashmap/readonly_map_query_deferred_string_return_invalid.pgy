@@ -1,0 +1,9 @@
+struct TextRecord { text: String; }
+func DeferredExtract(ref record: TextRecord) -> String {
+    defer { Log("cleanup"); }
+    return record.text;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(DeferredExtract(record));
+}

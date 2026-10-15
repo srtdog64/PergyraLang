@@ -1,0 +1,5 @@
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    MapSet(table, "seed", 1);
+    return MapGet(table, "seed");
+}

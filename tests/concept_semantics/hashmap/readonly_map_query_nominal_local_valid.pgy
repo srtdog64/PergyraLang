@@ -1,0 +1,11 @@
+struct TextRecord { text: String; }
+struct TextPayload { text: String; count: Int; }
+func ReadPayload(ref record: TextRecord) -> Int {
+    let positional = TextPayload(record.text, 3);
+    let named = TextPayload(count: 5, text: record.text);
+    return StringLength(positional.text) + positional.count + named.count;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(ReadPayload(record));
+}

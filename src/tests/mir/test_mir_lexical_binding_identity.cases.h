@@ -121,6 +121,75 @@ test_mir_lexical_binding_identity(void)
     mir_destroy(mir);
     rir_destroy(rir);
     hir_destroy(hir);
+
+    /* Actual owned lowerings, not raw fact rows: wire identity is mandatory
+     * for each supported origin regardless of its final disposition. */
+    for (size_t origin_case = 0; origin_case < 3; origin_case++) {
+        for (size_t dropped = 0; dropped < 2; dropped++) {
+            char owned_source[512];
+            const char *initializer = origin_case == 1
+                ? "let values: Array<String> = [\"key\"]; let owned: Array<String> = Clone(values);"
+                : origin_case == 2
+                    ? "let keys: Array<String> = MapKeys(table); let owned: Array<String> = keys;"
+                    : "let owned: Array<String> = MapKeys(table);";
+            snprintf(owned_source, sizeof(owned_source),
+                "func Main() -> Void { let table: HashMap<String, Int> = MapNew();"
+                " MapSet(table, \"key\", 7); %s Log(ArrayLength(owned)); %s }",
+                initializer, dropped ? "ArrayDropOwnedStrings(owned);" : "");
+            hir = NULL; rir = NULL; mir = NULL;
+            bool owned_ok = lower_mir_from_source(owned_source, &hir, &rir, &mir);
+            routine = owned_ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+            MIRInstruction *owned_def = NULL;
+            const MIRCollectionOwnershipFact *owned_fact = NULL;
+            if (routine != NULL) {
+                for (size_t b = 0; b < routine->block_count; b++) {
+                    for (size_t i = 0; i < routine->blocks[b].instruction_count; i++) {
+                        MIRInstruction *inst = &routine->blocks[b].instructions[i];
+                        if (inst->kind == MIR_INST_DEF && inst->arg0 != NULL
+                            && strcmp(inst->arg0, "owned") == 0)
+                            owned_def = inst;
+                    }
+                }
+                if (owned_def != NULL)
+                    owned_fact = mir_routine_collection_ownership_fact(
+                        routine, owned_def->binding_syntax_id);
+            }
+            uint32_t expected_origin = origin_case == 1 ? PGY_COLLECTION_ORIGIN_CLONE
+                : origin_case == 2 ? PGY_COLLECTION_ORIGIN_BINDING : PGY_COLLECTION_ORIGIN_MAP_KEYS;
+            TEST("owned snapshot local-ref controls retain actual origin and final disposition");
+            EXPECT(owned_ok && owned_fact != NULL && owned_fact->origin == expected_origin
+                && owned_fact->disposition == (dropped ? PGY_COLLECTION_DISPOSITION_RETIRED
+                                                       : PGY_COLLECTION_DISPOSITION_LIVE)
+                && mir_validate(mir, NULL));
+            TEST("owned MapKeys Clone and moved locals require wire identity in both final states");
+            EXPECT(routine != NULL && mir_json_routine_local_refs_required(routine));
+            bool published = false;
+            FILE *wire = tmpfile();
+            if (wire != NULL && owned_def != NULL && owned_ok && mir_validate(mir, NULL)) {
+                mir_dump_json(mir, wire);
+                if (fflush(wire) == 0 && fseek(wire, 0, SEEK_END) == 0) {
+                    long size = ftell(wire);
+                    if (size >= 0 && (unsigned long)size < SIZE_MAX) {
+                        char *json = malloc((size_t)size + 1);
+                        if (json != NULL && fseek(wire, 0, SEEK_SET) == 0
+                            && fread(json, 1, (size_t)size, wire) == (size_t)size) {
+                            char expected_ref[96];
+                            json[size] = '\0';
+                            snprintf(expected_ref, sizeof(expected_ref),
+                                "\"local_ref\":\"declaration:%u:0\"",
+                                (unsigned)owned_def->binding_syntax_id);
+                            published = strstr(json, expected_ref) != NULL;
+                        }
+                        free(json);
+                    }
+                }
+            }
+            if (wire != NULL) fclose(wire);
+            TEST("normal MIR JSON publishes the retained owned DEF declaration LocalRef");
+            EXPECT(published && mir_validate(mir, NULL));
+            mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+        }
+    }
 }
 
 static void

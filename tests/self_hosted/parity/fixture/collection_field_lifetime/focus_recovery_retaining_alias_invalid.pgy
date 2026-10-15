@@ -1,0 +1,16 @@
+extern "C" { func Keep(values: Array<String>) -> Void; }
+struct Rows { types: Array<String>; }
+func CaptureRetaining(inout rows: Rows) -> Bool
+{
+    let types: Array<String> = rows.types;
+    Keep(types);
+    let count: Int = 0;
+    while count < 8 { ArrayPush(types, "row"); count = count + 1; }
+    rows.types = types;
+    return true;
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    Log(CaptureRetaining(rows));
+}

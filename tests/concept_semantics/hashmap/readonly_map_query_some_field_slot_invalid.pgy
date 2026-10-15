@@ -1,0 +1,15 @@
+struct TextRecord { text: String; }
+func ReadMaybe(ref record: TextRecord, ref output: Slot<String>) -> Bool {
+    let observed = Some(record.text);
+    Write(output, UnwrapOption(observed));
+    return true;
+}
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return ReadMaybe(record, output);
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Release(output);
+}

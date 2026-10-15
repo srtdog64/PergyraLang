@@ -12,6 +12,7 @@
 #include "mir_destructure_type_facts.h"
 #include "../parser/ast_api.h"
 #include "mir_type_helpers.h"
+#include "../semantic/builtin_kind.h"
 
 void
 mir_routine_source_local_type_names_clear(MIRRoutine *routine)
@@ -22,6 +23,7 @@ mir_routine_source_local_type_names_clear(MIRRoutine *routine)
         for (size_t i = 0; i < routine->source_local_type_count; i++) {
             free(routine->source_local_types[i].name);
             free(routine->source_local_types[i].type_name);
+            free(routine->source_local_types[i].initializer_call_value_type_name);
             free(routine->source_local_types[i].callable_return_type_name);
             if (routine->source_local_types[i].callable_param_type_names != NULL) {
                 for (size_t j = 0;
@@ -104,6 +106,9 @@ mir_source_local_type_append_name(const MIRProgram *program,
         binding_syntax_id;
     routine->source_local_types[routine->source_local_type_count].is_callable =
         false;
+    routine->source_local_types[routine->source_local_type_count].initializer_call_syntax_id = 0;
+    routine->source_local_types[routine->source_local_type_count].initializer_collection_producer = 0;
+    routine->source_local_types[routine->source_local_type_count].initializer_call_value_type_name = NULL;
     routine->source_local_types[routine->source_local_type_count]
         .is_closure_local = false;
     routine->source_local_types[routine->source_local_type_count]
@@ -337,6 +342,54 @@ mir_source_local_callable_type_from_initializer(const MIRProgram *program,
 }
 
 static bool
+mir_source_local_initializer_call_capture(MIRRoutine *routine, ASTNode *declaration)
+{
+    ASTNode *call = ast_let_initializer(declaration);
+    ASTNode *callee = call != NULL && call->type == AST_CALL ? ast_call_callee(call) : NULL;
+    uint32_t producer = 0, builtin = 0;
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || ast_identifier_binding_syntax_id(callee) != 0
+        || ast_call_semantic_callee_decl_id(call) != 0
+        || ast_call_semantic_callee_value_binding_id(call) != 0
+        || ast_call_semantic_callee_declared_callable(call))
+        return true;
+    if (ast_call_semantic_callee_is_stdlib(call)
+        && strcmp(ast_identifier_name(callee), "MapKeys") == 0)
+        producer = 1;
+    else if (ast_call_semantic_callee_is_stdlib(call)
+        && ast_call_semantic_callee_builtin_kind(call, &builtin)
+        && builtin == BUILTIN_CLONE)
+        producer = 2;
+    if (producer == 0) return true;
+    const char *actual = ast_call_semantic_value_type_name(call);
+    uint32_t call_id = ast_node_stable_id(call);
+    if (actual == NULL || actual[0] == '\0' || call_id == 0 || ast_call_arg_count(call) != 1)
+        return false;
+    MIRSourceLocalType *target = NULL;
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        if (routine->source_local_types[i].binding_syntax_id == ast_node_stable_id(declaration)) {
+            if (target != NULL) return false;
+            target = &routine->source_local_types[i];
+        }
+    }
+    if (target == NULL) return false;
+    if (target->initializer_collection_producer != 0)
+        return target->initializer_collection_producer == producer
+            && target->initializer_call_syntax_id == call_id
+            && target->initializer_call_value_type_name != NULL
+            && strcmp(target->initializer_call_value_type_name, actual) == 0;
+    if (target->initializer_call_syntax_id != 0
+        || target->initializer_call_value_type_name != NULL)
+        return false;
+    char *copy = pergyra_strdup(actual);
+    if (copy == NULL) return false;
+    target->initializer_collection_producer = producer;
+    target->initializer_call_syntax_id = call_id;
+    target->initializer_call_value_type_name = copy;
+    return true;
+}
+
+static bool
 mir_source_local_type_capture_node(const MIRProgram *program,
                                    MIRRoutine *routine,
                                    ASTNode *node)
@@ -387,7 +440,8 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         }
         if (type_node != NULL)
             return mir_source_local_type_append(program, routine,
-                ast_let_name(node), type_node, ast_node_stable_id(node));
+                ast_let_name(node), type_node, ast_node_stable_id(node))
+                && mir_source_local_initializer_call_capture(routine, node);
         callable_type = mir_source_local_callable_type_from_initializer(
             program, ast_let_initializer(node));
         if (callable_type != NULL) {
@@ -397,7 +451,8 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         return mir_source_local_type_append_name(program, routine,
             ast_let_name(node),
             mir_source_local_expr_type_name(program, routine, &scratch,
-                ast_let_initializer(node)), ast_node_stable_id(node));
+                ast_let_initializer(node)), ast_node_stable_id(node))
+            && mir_source_local_initializer_call_capture(routine, node);
     }
     case AST_LET_DESTRUCTURE: {
         size_t name_count = ast_let_destructure_name_count(node);

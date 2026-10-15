@@ -1,0 +1,20 @@
+// One generic callable signature from admitted collection protocol metadata.
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
+
+func SemanticBuiltinCollectionProtocolSignatureRow(
+    ref protocol: SemanticExpressionGraphCollectionCallProtocolFact
+) -> Option<String> {
+    if !protocol.applies || protocol.family != "HashMap" { return None; }
+    let result: String = protocol.return_kind;
+    if result == "constructor" { result = "HashMap<Unknown, Unknown>"; }
+    if result == "element" { result = "Unknown"; }
+    if result == "keys" { result = "Array<Unknown>"; }
+    let params: String = "none";
+    let parameter: Int = 0;
+    while parameter < protocol.expected_arity {
+        if parameter == 0 { params = "Unknown"; }
+        else { params = params + "|Unknown"; }
+        parameter = parameter + 1;
+    }
+    return Some(protocol.operation + "^" + result + "^" + params);
+}

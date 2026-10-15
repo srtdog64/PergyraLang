@@ -11,8 +11,64 @@
 #include "slot_analyzer_internal.h"
 #include "type_checker.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 #define INITIAL_ENTRY_CAPACITY 16
+
+static const ASTNode *
+slot_storage_path_next(const ASTNode *node)
+{
+    if (node == NULL) return NULL;
+    if (node->type == AST_MEMBER_ACCESS) return ast_member_object(node);
+    if (node->type == AST_ARRAY_ACCESS) return ast_array_access_array(node);
+    return NULL;
+}
+
+bool
+slot_call_argument_storage_root(const ASTNode *argument,
+                                 const ASTNode **root_out)
+{
+    if (root_out == NULL) return false;
+    *root_out = NULL;
+    const ASTNode *cursor = argument;
+    const ASTNode *slow = argument, *fast = argument;
+    for (;;) {
+        if (cursor == NULL) return false;
+        if (cursor->type == AST_IDENTIFIER) {
+            if (ast_identifier_name(cursor) == NULL ||
+                ast_node_stable_id(cursor) == 0 ||
+                ast_identifier_binding_syntax_id(cursor) == 0) return false;
+            *root_out = cursor;
+            return true;
+        }
+        if (cursor->type == AST_MEMBER_ACCESS) {
+            cursor = ast_member_object(cursor);
+        } else if (cursor->type == AST_ARRAY_ACCESS) {
+            cursor = ast_array_access_array(cursor);
+        } else {
+            return true;
+        }
+        slow = slot_storage_path_next(slow);
+        fast = slot_storage_path_next(slot_storage_path_next(fast));
+        if (slow != NULL && slow == fast) return false;
+    }
+}
+
+bool slot_checked_call_argument_root(const SlotFunctionLookup *lookup,
+    const ASTNode *call, size_t ordinal, const ASTNode **root_out)
+{
+    if (root_out == NULL) return false;
+    *root_out = NULL;
+    const SemanticContext *ctx = lookup == NULL ? NULL : lookup->ctx;
+    if (!semantic_param_publication_checked_argument(ctx, call, ordinal)) return false;
+    const ASTNode *argument = ast_call_argument(call, ordinal);
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, argument);
+    if (!value.ok) return false;
+    if (value.meta) return true;
+    /* Scalar copies still carry their owning aggregate's read dependency. */
+    if (!slot_call_argument_storage_root(argument, root_out)) return false;
+    return *root_out == NULL || semantic_param_publication_value(ctx, *root_out).ok;
+}
 
 /* -----------------------------------------------------------------
  * Lifecycle

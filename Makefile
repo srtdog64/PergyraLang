@@ -591,6 +591,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_expr_enum.c \
                    $(SEMANTIC_DIR)/type_checker_expr_lambda.c \
                    $(SEMANTIC_DIR)/type_checker_expr.c \
+                   $(SEMANTIC_DIR)/type_checker_expr_member.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
@@ -666,8 +667,11 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_summary.c \
+                   $(SEMANTIC_DIR)/function_param_flow_program_point_index_owner.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
+                   $(SEMANTIC_DIR)/function_param_publication_owner.c \
+                   $(SEMANTIC_DIR)/typed_map_query_fact_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \
                    $(SEMANTIC_DIR)/iteration_type_fact.c \
                    $(SEMANTIC_DIR)/destructure_type_fact.c \
@@ -1010,6 +1014,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_generic_method_specialization_validate.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
+                   $(COMPILER_DIR)/collection_owned_local_transition_owner.c \
+                   $(COMPILER_DIR)/hir_collection_owned_local_transition_adapter.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_provenance.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
@@ -1548,6 +1554,8 @@ HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_routine_cfg.o \
                    $(BUILD_DIR)/compiler/hir_callgraph.o \
                    $(BUILD_DIR)/compiler/hir_semantic_fact_projection.o \
+                   $(BUILD_DIR)/compiler/collection_owned_local_transition_owner.o \
+                   $(BUILD_DIR)/compiler/hir_collection_owned_local_transition_adapter.o \
                    $(BUILD_DIR)/compiler/hir_region_escape_facts.o \
                    $(BUILD_DIR)/compiler/hir_region_escape_validate.o \
                    $(BUILD_DIR)/compiler/hir.o \
@@ -1757,7 +1765,10 @@ ALL_BUILD_OBJECTS = $(sort \
 define pgy_clean_build_artifacts
 $(BASH) -c "if [ -d '$(BUILD_DIR)' ]; then find '$(BUILD_DIR)' -type f \( -name '*.o' -o -name '*.d' \) -delete; fi"
 endef
-ALL_DEP_FILES = $(ALL_BUILD_OBJECTS:.o=.d)
+ALL_DEP_FILES = $(ALL_BUILD_OBJECTS:.o=.d) $(BUILD_DIR)/tests/readonly_map_query_fact_phase_unit.d $(BUILD_DIR)/tests/collection_owned_local_transition_unit.d
+ifeq ($(LLVM_ENABLED),1)
+ALL_DEP_FILES += $(BUILD_DIR)/tests/llvm_map_receiver_metadata_unit.d
+endif
 
 # -----------------------------------------------------------------
 # Executables
@@ -1935,6 +1946,46 @@ endif
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+$(BUILD_DIR)/tests/readonly_map_query_fact_phase_unit.o: tests/semantic/readonly_map_query_fact_phase_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/readonly_map_query_fact_phase_unit.o | $(BIN_DIR)
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: readonly-map-query-fact-phase-test
+readonly-map-query-fact-phase-test: $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT))
+
+$(BUILD_DIR)/tests/collection_owned_local_transition_unit.o: tests/compiler/collection_owned_local_transition_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/collection_owned_local_transition_unit$(EXEEXT): $(BUILD_DIR)/compiler/collection_owned_local_transition_owner.o $(BUILD_DIR)/tests/collection_owned_local_transition_unit.o | $(BIN_DIR)
+	$(call pgy_link,)
+
+.PHONY: collection-owned-local-transition-test
+collection-owned-local-transition-test: $(BIN_DIR)/collection_owned_local_transition_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/collection_owned_local_transition_unit$(EXEEXT))
+
+ifeq ($(LLVM_ENABLED),1)
+$(BUILD_DIR)/tests/llvm_map_receiver_metadata_unit.o: tests/compiler/llvm_map_receiver_metadata_unit.c
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -I$(SRC_DIR) -c $< -o $@
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
+
+$(BIN_DIR)/llvm_map_receiver_metadata_unit$(EXEEXT): $(FRONTEND_OBJECTS) $(BUILD_DIR)/tests/llvm_map_receiver_metadata_unit.o | $(BIN_DIR)
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
+
+.PHONY: llvm-map-receiver-metadata-test
+llvm-map-receiver-metadata-test: $(BIN_DIR)/llvm_map_receiver_metadata_unit$(EXEEXT)
+	$(call pgy_run_native,$(BIN_DIR)/llvm_map_receiver_metadata_unit$(EXEEXT))
+test-mir: llvm-map-receiver-metadata-test
+endif
 
 ifeq ($(LLVM_ENABLED),1)
 ALL_DEP_FILES += $(BUILD_DIR)/tests/llvm_nested_array_clone_transport_unit.d
@@ -2389,7 +2440,7 @@ test-mir: $(MIR_TEST) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh
 
-test-hir: $(HIR_TEST)
+test-hir: $(HIR_TEST) collection-owned-local-transition-test
 	@echo "=== HIR Test ==="
 	$(call pgy_run_native,$(HIR_TEST))
 
@@ -2633,9 +2684,13 @@ iteration-type-fact-test-smoke: $(PGY)
 compatibility-evolution-native-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/compatibility_evolution_native_smoke.sh
 
-function-param-flow-summary-test-smoke:
+function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
+
+.PHONY: readonly-map-query-test-smoke
+readonly-map-query-test-smoke: $(PGY) $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)
+	PGY_BIN="$(abspath $(PGY))" READONLY_MAP_FACT_UNIT="$(abspath $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT))" "$(BASH)" tests/readonly_map_query_smoke.sh
 
 hir-function-param-flow-summary-test-smoke: $(HIR_TEST)
 	"$(BASH)" tests/hir_function_param_flow_summary_smoke.sh
@@ -4983,7 +5038,11 @@ self-host-collection-member-permission-test-smoke: $(PGY)
 self-host-collection-field-read-summary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_field_read_summary_owner.sh
 
-self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke $(PGY)
+.PHONY: self-host-collection-focus-recovery-test-smoke
+self-host-collection-focus-recovery-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_focus_recovery_owner.sh
+
+self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke self-host-collection-focus-recovery-test-smoke $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
 
 .PHONY: self-host-collection-owned-result-test-smoke

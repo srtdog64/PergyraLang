@@ -1,0 +1,5 @@
+struct NestedWrongKeyQueries { entries: HashMap<String, Int>; }
+func Main() -> Void {
+    let record: NestedWrongKeyQueries = NestedWrongKeyQueries(MapNew());
+    Log(MapGet(record.entries, 4));
+}

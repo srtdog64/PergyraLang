@@ -1,0 +1,12 @@
+extern "C" { func Keep(text: String) -> Void; }
+struct TextRecord { text: String; }
+struct TextPayload { text: String; count: Int; }
+func ReadPayload(ref record: TextRecord) -> Bool {
+    let payload = TextPayload(record.text, 3);
+    Keep(payload.text);
+    return true;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(ReadPayload(record));
+}

@@ -1,0 +1,65 @@
+// Actual typed definition identity for owned local collection generations.
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+import "direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "direct_mir_scalar_program_slice_expression_readiness_owner.pgy";
+
+struct DirectMirOwnedCollectionDefinition {
+    ok: Bool;
+    target: Int;
+    source: Int;
+    producer: Int;
+}
+
+func DirectMirOwnedCollectionDefinitionFrom(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int
+) -> DirectMirOwnedCollectionDefinition {
+    let invalid: DirectMirOwnedCollectionDefinition = DirectMirOwnedCollectionDefinition(false, -1, -1, 0);
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) ||
+        operation >= ArrayLength(storage.operations.result_values) ||
+        operation >= ArrayLength(storage.operations.expression_rows) ||
+        storage.operations.kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() {
+        return invalid;
+    }
+    let result: Int = storage.operations.result_values[operation];
+    if result < 0 || result >= ArrayLength(storage.values.value_local_rows) { return invalid; }
+    let target: Int = storage.values.value_local_rows[result];
+    if target < 0 || target >= ArrayLength(storage.values.local_types) ||
+        storage.values.local_types[target] != CompilerAbiLayoutArrayStringTypeName() { return invalid; }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) { return invalid; }
+    let root: Int = expressions.graph_roots[graph];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        root >= ArrayLength(expressions.node_types) ||
+        root >= ArrayLength(expressions.node_lefts) || root >= ArrayLength(expressions.node_rights) ||
+        root >= ArrayLength(expressions.node_local_rows) || root >= ArrayLength(expressions.node_parameter_ordinals) ||
+        root >= ArrayLength(expressions.node_member_ordinals) || root >= ArrayLength(expressions.node_literals) ||
+        root >= ArrayLength(expressions.node_callable_rows) || root >= ArrayLength(expressions.node_runtime_call_abi_ids) ||
+        expressions.node_types[root] != CompilerAbiLayoutArrayStringTypeName() { return invalid; }
+    let left: Int = expressions.node_lefts[root];
+    if left >= 0 && (left >= root || left >= ArrayLength(expressions.node_types) ||
+        left >= ArrayLength(expressions.node_kinds)) { return invalid; }
+    let kind: Int = expressions.node_kinds[root];
+    if kind == DirectMirScalarProgramExprMapKeys() &&
+        DirectMirScalarProgramHashMapNodeReady(expressions, root) {
+        return DirectMirOwnedCollectionDefinition(true, target, -1, 1);
+    }
+    if kind == DirectMirScalarProgramExprArrayClone() {
+        let ready: Option<Bool> = DirectMirScalarProgramSliceExpressionNodeReady(expressions, root);
+        if IsSome(ready) && UnwrapOption(ready) {
+            return DirectMirOwnedCollectionDefinition(true, target, -1, 2);
+        }
+    }
+    if kind == DirectMirScalarProgramExprLocal() && root < ArrayLength(expressions.node_local_rows) {
+        let source: Int = expressions.node_local_rows[root];
+        if source >= 0 && source < ArrayLength(storage.values.local_types) && source != target &&
+            storage.values.local_types[source] == CompilerAbiLayoutArrayStringTypeName() {
+            return DirectMirOwnedCollectionDefinition(true, target, source, 3);
+        }
+    }
+    return invalid;
+}

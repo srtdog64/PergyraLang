@@ -1,6 +1,7 @@
 // Ordered callable parameter-type projection into the routine partition.
 
 import "direct_mir_routine_signature_fact_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
 
 func DirectMirScalarCfgProgramAppendParameterTypes(
     inout types: Array<String>,
@@ -9,8 +10,10 @@ func DirectMirScalarCfgProgramAppendParameterTypes(
     if !DirectMirRoutineSignatureFactReady(signature) { return false; }
     let ordinal: Int = 0;
     while ordinal < signature.param_count {
-        let type_name: String = signature.parameters.type_names[ordinal];
-        if type_name == "" { return false; }
+        let raw: String = signature.parameters.type_names[ordinal];
+        if raw == "" || raw == "Unknown" || raw == "<unknown>" { return false; }
+        let type_name: String = SemanticCanonicalTypeName(raw);
+        if type_name == "" || type_name == "Unknown" || type_name == "<unknown>" { return false; }
         ArrayPush(types, type_name);
         ordinal = ordinal + 1;
     }

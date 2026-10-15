@@ -1,4 +1,5 @@
-// Possible effects are syntax bounds, never permission changes in a prepass.
+// Descriptor effects are syntax bounds, never permission changes in a prepass.
+// The admitted physical facet cannot discharge borrowed-payload obligations.
 import "ast_collection_formal_effect_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
@@ -16,7 +17,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     formal_rows: HashMap<String, Int>, ref formal_modes: Array<Int>,
-    proved: HashMap<String, Int>, ref definitions: SemanticAstCollectionDefinitionFacts,
+    descriptor_effects: HashMap<String, Int>, ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts
 ) -> SemanticAstCollectionCallEffectFacts {
     let unknown: Array<Int> = [];
@@ -94,7 +95,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                         continue;
                     }
                     let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffectFromEdge(
-                        artifact, signatures, constructors, locals, inferred_types, surfaces, slot / 3, call, formal_rows, formal_modes, proved);
+                        artifact, signatures, constructors, locals, inferred_types, surfaces, slot / 3, call, formal_rows, formal_modes, descriptor_effects);
                     if !effect.ok { return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs, descriptor_retiring, formal_descriptor_retiring, retention); }
                     if effect.constructor_field.field_syntax_id > 0 && SemanticAstCollectionOwnershipIsStringArray(effect.constructor_field.field_type_name) {
                         let input_binding: Int = -1;

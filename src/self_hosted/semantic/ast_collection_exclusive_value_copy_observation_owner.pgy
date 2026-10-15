@@ -1,0 +1,30 @@
+// An exact canonical Int-map alias may observe storage without granting its
+// destination mutation rights. Later and backedge reads still own liveness.
+import "ast_collection_exclusive_value_consumption_owner.pgy";
+
+func SemanticAstCollectionExclusiveObservedAliasReady(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
+    function_id: Int, syntax_id: Int, ref place: SemanticAstCollectionAggregateSinkPlace,
+    holder: Int, depth: Int, followed: Bool
+) -> Bool {
+    let holder_row: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, holder);
+    let function_key: String = ToString(function_id);
+    let int_map: Bool = false;
+    if IsSome(holder_row) && UnwrapOption(holder_row) < ArrayLength(inferred_types) {
+        let type_name: String = inferred_types[UnwrapOption(holder_row)];
+        int_map = type_name == "HashMap<String, Int>" || type_name == "HashMap<Int, Int>";
+    }
+    if depth != 0 || !followed || !int_map || !IsSome(holder_row) ||
+        !MapHas(surface_starts, function_key) || !MapHas(surface_ends, function_key) ||
+        MapGet(surface_starts, function_key) < 0 { return false; }
+    let family: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliasesForFunction(
+        artifact, signatures, locals, inferred_types, surfaces, assignments, function_id,
+        UnwrapOption(holder_row), place);
+    let uses: Array<Int> = SemanticAstCollectionExclusiveFamilyUses(artifact, signatures, locals,
+        inferred_types, surfaces, assignments, family, place, MapGet(surface_starts, function_key),
+        MapGet(surface_ends, function_key), function_id, syntax_id);
+    return ArrayLength(family.keys) > 0 && ArrayLength(uses) == 0;
+}

@@ -44,7 +44,7 @@ import pathlib
 # Each names the facts a real capability machine would have to project from it.
 FIXTURES = [
     ("tests/air_erasure/fixtures/03_secure_slot.pgy",
-     "secure slot + hardware-authority token gates every Write/Read/Release"),
+     "secure slot + token-capability gates every Write/Read/Release; no physical security policy proof"),
     ("tests/air_erasure/fixtures/05_zone_intent.pgy",
      "zone authority `authorized by hero requires Prepared` over a Guard action"),
     ("tests/air_erasure/fixtures/01_slot_provable_with.pgy",

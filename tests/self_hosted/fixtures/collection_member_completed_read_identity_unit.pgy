@@ -1,0 +1,141 @@
+// Bounded consumer fact controls. Actual local/field provenance is tested by
+// supplied sources; this unit does not claim raw carrier rows prove ownership.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_member_read_completion_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_call_effect_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    let mode: Int = ToInt(args[1]);
+    if mode < 0 || mode > 30 || args[1] != ToString(mode) { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.verdict.ok { Log("baseline refused"); Exit(2); }
+    let facts: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        facts.inventory.row_by_formal, facts.inventory.modes, facts.descriptor_effects, definitions, storage);
+    if !SemanticAstCollectionCallEffectFactsReady(effects, ArrayLength(analysis.local_bindings.node_ids)) { Exit(2); }
+    let root: Int = -1;
+    let hazard: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        if analysis.local_bindings.names[row] == "pair" { root = analysis.local_bindings.node_ids[row]; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(analysis.assignments.node_ids) {
+        if analysis.assignments.target_texts[row] == "alias" { hazard = analysis.assignments.node_ids[row]; }
+        row = row + 1;
+    }
+    let selected_node: Int = -1;
+    let surface: Int = -1;
+    let node: Int = 0;
+    while node < ArrayLength(analysis.expression_surfaces.expression_graph.arena.topology.node_kinds) {
+        let candidate: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
+        if candidate.ok {
+            let name: Option<String> = SemanticExpressionGraphCallTargetName(analysis.expression_surfaces.expression_graph, candidate.call_node);
+            if IsSome(name) && UnwrapOption(name) == "Reads" { selected_node = node; }
+        }
+        node = node + 1;
+    }
+    if root <= 0 || hazard <= 0 || selected_node < 0 { Exit(2); }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, selected_node);
+    row = 0;
+    while row < ArrayLength(analysis.expression_surfaces.node_ids) {
+        let lane: Int = 0;
+        while lane < 3 {
+            let slot: Int = row * 3 + lane;
+            if analysis.expression_surfaces.expression_graph.has_roots[slot] {
+                let end: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph, end);
+                if IsSome(start) && selected_node >= UnwrapOption(start) && selected_node <= end { surface = row; }
+            }
+            lane = lane + 1;
+        }
+        row = row + 1;
+    }
+    if surface < 0 { Exit(2); }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        analysis.signatures, analysis.expression_surfaces.expression_graph, edge.call_node, edge.ordinal);
+    if !target.ok { Exit(2); }
+    let key: String = ToString(target.syntax_id);
+    let reads: HashMap<String, Int> = MapNew(); MapSet(reads, ToString(edge.argument_node), root);
+    let blocked: HashMap<String, Int> = MapNew(); MapSet(blocked, ToString(root), 1);
+    let hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, hazards, root, hazard) ||
+        !SemanticAstCollectionMemberReadHazardSitesAdmit(artifact, blocked, hazards) { Exit(2); }
+    let first_sites: HashMap<String, Int> = hazards.first_sites;
+    if mode == 1 { MapRemove(first_sites, ToString(root)); }
+    if mode == 2 { hazards.artifact_identity_digest = hazards.artifact_identity_digest + 1; }
+    if mode == 3 { hazards.artifact_node_count = hazards.artifact_node_count + 1; }
+    if mode == 4 { MapSet(first_sites, ToString(root), 0); }
+    if mode == 5 { MapSet(first_sites, ToString(root), -1); }
+    if mode == 6 { MapSet(first_sites, ToString(root), analysis.expression_surfaces.node_ids[surface]); }
+    if mode == 7 { MapSet(first_sites, ToString(root), root); }
+    if mode == 8 { MapSet(first_sites, ToString(root), analysis.signatures.function_node_ids[target.signature_row]); }
+    hazards.first_sites = first_sites;
+    let payloads: HashMap<String, Int> = facts.effects;
+    let descriptors: HashMap<String, Int> = facts.descriptor_effects;
+    if mode == 9 { MapRemove(payloads, key); }
+    if mode == 10 { MapRemove(descriptors, key); }
+    if mode == 11 { MapSet(payloads, key, 5); }
+    if mode == 12 { MapSet(descriptors, key, 2); }
+    facts.effects = payloads; facts.descriptor_effects = descriptors;
+    let inventory_row: Int = MapGet(facts.inventory.row_by_formal, key);
+    if mode == 13 { facts.inventory.formal_nodes[inventory_row] = 0; }
+    if mode == 14 { effects.formal_descriptor_retention.ok = false; }
+    let retention: SemanticAstCollectionFormalDescriptorRetention = effects.formal_descriptor_retention;
+    let retained: Array<Int> = retention.retained_formals;
+    if mode == 15 { ArrayPush(retained, target.syntax_id); }
+    retention.retained_formals = retained; effects.formal_descriptor_retention = retention;
+    if mode == 16 { facts.execution_contexts.ok = false; }
+    let unsafe_functions: HashMap<String, Int> = facts.execution_contexts.unsafe_functions;
+    if mode == 17 { MapSet(unsafe_functions, ToString(analysis.expression_surfaces.function_node_ids[surface]), 1); }
+    if mode == 18 { MapSet(unsafe_functions, ToString(analysis.signatures.function_node_ids[target.signature_row]), 1); }
+    facts.execution_contexts.unsafe_functions = unsafe_functions;
+    if mode == 20 { MapRemove(reads, ToString(edge.argument_node)); }
+    if mode == 21 { MapSet(reads, ToString(edge.argument_node), artifact.count); }
+    if mode == 22 { effects.ok = false; }
+    if mode == 23 { MapSet(first_sites, ToString(root), artifact.count); hazards.first_sites = first_sites; }
+    if mode == 24 { facts.execution_contexts.artifact_identity_digest = facts.execution_contexts.artifact_identity_digest + 1; }
+    if mode == 25 { facts.inventory.modes[inventory_row] = 2; }
+    if mode == 26 { facts.inventory.ordinals[inventory_row] = facts.inventory.ordinals[inventory_row] + 1; }
+    if mode == 27 {
+        let sources: Array<Int> = [root]; let targets: Array<Int> = [root];
+        let closed: Bool = SemanticAstCollectionMemberReadBlockedRootsClosure(artifact, sources, targets, blocked, hazards);
+        let opaque: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, hazards, root);
+        Log(closed && opaque.ok && opaque.site == 0); return;
+    }
+    if mode == 28 {
+        let missing_hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+        Log(!SemanticAstCollectionMemberReadHazardSitesAdmit(artifact, blocked, missing_hazards)); return;
+    }
+    let restored: Array<Int> = []; let restoration_sites: Array<Int> = [];
+    let escapes: HashMap<String, Int> = MapNew();
+    let capture_site: Int = -1;
+    if mode == 30 { capture_site = root; }
+    let moved: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUse(
+        mode == 29, -1, -1, restored, restoration_sites, reads, blocked, hazards, escapes,
+        capture_site, -1, mode != 19);
+    let admitted: Bool = SemanticAstCollectionMemberIndexedReadReady(artifact, analysis.signatures,
+        analysis.expression_surfaces, moved, facts, effects, surface, edge);
+    if mode == 0 {
+        Log(admitted && SemanticAstCollectionMemberReadRootForOccurrence(moved.readable_members, edge.argument_node) == root &&
+            SemanticAstCollectionMemberReadFormalRowForIdentity(facts.inventory.row_by_formal, target.syntax_id) == inventory_row &&
+            SemanticAstCollectionMemberReadPairedFacetsReady(facts.effects, facts.descriptor_effects, target.syntax_id));
+        return;
+    }
+    Log(!admitted);
+}

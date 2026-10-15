@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let first: Int = 1;
+    let second: Int = 2;
+    while first < 0 { let repeated: Int = 3; Log(repeated); }
+    defer { let delayed: Int = 4; Log(delayed); }
+    Log(first + second);
+}

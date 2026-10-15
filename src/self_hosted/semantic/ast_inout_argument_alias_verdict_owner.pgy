@@ -18,6 +18,9 @@ import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
 import "ast_expression_place_kind_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
 
 struct SemanticAstInoutArgumentRefusal {
     present: Bool;
@@ -25,15 +28,39 @@ struct SemanticAstInoutArgumentRefusal {
     message: String;
 }
 
-// Parameter mode 1 is `inout` in the typed AST arena (TypedAstArenaMode).
+// TypedAstArena modes are 1=inout, 2=own, 3=ref; not native ParamMode ordinals.
 func SemanticAstInoutArgumentRefusalFor(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
     ref graph: SemanticExpressionGraphFacts,
     ref call: SemanticCallSpineView,
     callee: String
 ) -> SemanticAstInoutArgumentRefusal {
-    let inout_bindings: Array<String> = [];
+    let requires_mutable: Bool = false;
+    let parameter: Int = 0;
+    while parameter < ArrayLength(call.argument_nodes) {
+        let selected_mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, signature_index, parameter);
+        if !IsSome(selected_mode) || UnwrapOption(selected_mode) < 0 || UnwrapOption(selected_mode) > 3 { return SemanticAstInoutArgumentRefusal(true,
+            "ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "inout_parameter_mode")); }
+        if UnwrapOption(selected_mode) == 1 { requires_mutable = true; }
+        parameter = parameter + 1;
+    }
+    if !requires_mutable { return SemanticAstInoutArgumentRefusal(false, "", ""); }
+    let identity: SemanticExpressionCallIdentity = SemanticExpressionCallIdentityForNode(surfaces, call.call_node);
+    let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, identity.owner_node_id);
+    if !identity.ok || !IsSome(surface) || !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
+        return SemanticAstInoutArgumentRefusal(true, "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "inout_call_identity"));
+    }
+    let function_id: Int = surfaces.function_node_ids[UnwrapOption(surface)];
+    let use_id: Int = identity.owner_node_id;
+    let caller: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    let binding_ids: Array<Int> = [];
+    let binding_indices: Array<Int> = [];
+    let binding_modes: Array<Int> = [];
     let argument_index: Int = 0;
     while argument_index < ArrayLength(call.argument_nodes) {
         let argument_node_id: Int = call.argument_nodes[argument_index];
@@ -41,36 +68,69 @@ func SemanticAstInoutArgumentRefusalFor(
             signatures, signature_index, argument_index);
         let place: Option<Int> = SemanticExpressionGraphPlaceKind(
             graph, argument_node_id);
-        let binding: Option<String> = SemanticExpressionGraphNodeText(
-            graph, argument_node_id);
         if IsSome(mode) && UnwrapOption(mode) == 1 && IsSome(place) &&
-            IsSome(binding) &&
             !SemanticExpressionPlaceKindDirectBinding(UnwrapOption(place)) {
+            ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
             return SemanticAstInoutArgumentRefusal(true,
                 "inout_argument_not_variable", SemanticError3(
                     "inout_argument_not_variable", "callee", callee,
-                    "argument", UnwrapOption(binding),
+                    "argument", ToString(argument_node_id),
                     "argument_index", ToString(argument_index)
                 ));
         }
-        if IsSome(mode) && UnwrapOption(mode) == 1 && IsSome(place) &&
-            UnwrapOption(place) == SemanticExpressionPlaceBinding() &&
-            IsSome(binding) {
+        if !IsSome(mode) || !IsSome(place) {
+            ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
+            return SemanticAstInoutArgumentRefusal(true, "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "inout_argument_place"));
+        }
+        if (UnwrapOption(mode) == 1 || UnwrapOption(mode) == 3) &&
+            SemanticExpressionPlaceKindDirectBinding(UnwrapOption(place)) {
+            let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, argument_node_id);
+            let binding_id: Int = -1;
+            let binding_index: Int = -1;
+            let source_mode: Int = 0;
+            if carried.ok && carried.kind == SemanticExpressionBindingFormalParameter() && IsSome(caller) && carried.has_ordinal {
+                let source_id: Option<Int> = SemanticAstFunctionParamNodeAt(signatures, UnwrapOption(caller), carried.ordinal);
+                let source_mode_fact: Option<Int> = SemanticAstFunctionParamModeAt(signatures, UnwrapOption(caller), carried.ordinal);
+                if IsSome(source_id) && IsSome(source_mode_fact) && UnwrapOption(source_id) == carried.syntax_id {
+                    binding_id = carried.syntax_id;
+                    source_mode = UnwrapOption(source_mode_fact);
+                }
+            } else if carried.ok && carried.kind == SemanticExpressionBindingNone() && carried.syntax_id == 0 {
+                let local_identity: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, inferred_types, function_id, use_id, graph, argument_node_id);
+                if local_identity.ok {
+                    binding_id = local_identity.declaration_node_id;
+                    binding_index = local_identity.binding_index;
+                }
+            }
+            let display_binding: Option<String> = SemanticExpressionGraphNodeText(graph, argument_node_id);
+            if binding_id < 0 || !IsSome(display_binding) ||
+                (UnwrapOption(mode) == 1 && (source_mode == 3 || UnwrapOption(place) == SemanticExpressionPlaceReadonlyRefBinding())) {
+                ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
+                return SemanticAstInoutArgumentRefusal(true, "inout_argument_not_variable",
+                    SemanticError2("inout_argument_not_variable", "callee", callee, "reason", "readonly_or_missing_binding_identity"));
+            }
             let seen: Int = 0;
-            while seen < ArrayLength(inout_bindings) {
-                if inout_bindings[seen] == UnwrapOption(binding) {
+            while seen < ArrayLength(binding_ids) {
+                if binding_ids[seen] == binding_id && binding_indices[seen] == binding_index &&
+                    (UnwrapOption(mode) == 1 || binding_modes[seen] == 1) {
+                    ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
                     return SemanticAstInoutArgumentRefusal(true,
                         "inout_argument_alias", SemanticError3(
                             "inout_argument_alias", "callee", callee,
-                            "binding", UnwrapOption(binding),
+                            "binding", UnwrapOption(display_binding),
                             "argument_index", ToString(argument_index)
                         ));
                 }
                 seen = seen + 1;
             }
-            ArrayPush(inout_bindings, UnwrapOption(binding));
+            ArrayPush(binding_ids, binding_id);
+            ArrayPush(binding_indices, binding_index);
+            ArrayPush(binding_modes, UnwrapOption(mode));
         }
         argument_index = argument_index + 1;
     }
+    ArrayDrop(binding_ids); ArrayDrop(binding_indices); ArrayDrop(binding_modes);
     return SemanticAstInoutArgumentRefusal(false, "", "");
 }

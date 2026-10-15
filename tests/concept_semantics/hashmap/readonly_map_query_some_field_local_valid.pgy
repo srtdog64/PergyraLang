@@ -1,0 +1,9 @@
+struct TextRecord { text: String; }
+func ReadMaybe(ref record: TextRecord) -> Bool {
+    let observed = Some(record.text);
+    return StringLength(UnwrapOption(observed)) > 0;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(ReadMaybe(record));
+}

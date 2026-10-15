@@ -1,0 +1,79 @@
+import "ast_collection_exclusive_value_read_owner.pgy";
+
+// Old aliases only survive a backedge when their declaration lies outside
+// a loop that encloses both the read and the consuming definition.
+func SemanticAstCollectionExclusiveRepeatedReaders(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref aliases: SemanticAstCollectionAggregateSinkAliases, definition: Int, statement: Int
+) -> SemanticAstCollectionAggregateSinkAliases {
+    let keys: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(aliases.keys) {
+        let key: Int = aliases.keys[row];
+        let origin: Int = 0 - key;
+        if key >= 0 && key < ArrayLength(locals.node_ids) { origin = locals.node_ids[key]; }
+        let ancestor: Int = definition;
+        let remaining: Int = artifact.count;
+        let held: Bool = false;
+        while ancestor >= 0 && ancestor < artifact.count && remaining > 0 && !held {
+            if (artifact.arena.kinds[ancestor] == TypedAstKindWhileStmtTag() ||
+                artifact.arena.kinds[ancestor] == TypedAstKindForStmtTag()) &&
+                SemanticAstCollectionNodeEnclosedBy(artifact, statement, ancestor) &&
+                !SemanticAstCollectionNodeEnclosedBy(artifact, origin, ancestor) { held = true; }
+            ancestor = artifact.arena.parents[ancestor];
+            remaining = remaining - 1;
+        }
+        if held || ancestor >= 0 {
+            ArrayPush(keys, key);
+            ArrayPush(starts, ArrayLength(nodes));
+            ArrayPush(counts, aliases.chain_counts[row]);
+            let step: Int = 0;
+            while step < aliases.chain_counts[row] {
+                ArrayPush(nodes, aliases.chain_nodes[aliases.chain_starts[row] + step]);
+                step = step + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstCollectionAggregateSinkAliases(keys, starts, counts, nodes);
+}
+
+// Read checks include earlier source statements on the next loop iteration.
+func SemanticAstCollectionExclusiveLoopAliasesUnread(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref aliases: SemanticAstCollectionAggregateSinkAliases,
+    field_reads: HashMap<String, Int>, first_surface: Int, end: Int, function_id: Int,
+    syntax_id: Int, node: Int, ref chain: Array<Int>, consumed_formal: Int,
+    destination_fields: HashMap<String, Int>, destination_known: Bool, ref destination_paths: Array<String>,
+    consumed_call_start: Int, consumed_call: Int
+) -> Bool {
+    if ArrayLength(aliases.keys) > 0 {
+        let read_surface: Int = first_surface;
+        while read_surface < end {
+            let earlier: Int = surfaces.node_ids[read_surface];
+            if earlier < syntax_id {
+                let readers: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionExclusiveRepeatedReaders(
+                    artifact, locals, aliases, syntax_id, earlier);
+                let lane: Int = 0;
+                while lane < 3 && ArrayLength(readers.keys) > 0 {
+                    let slot: Int = read_surface * 3 + lane;
+                    if slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] &&
+                        !SemanticAstCollectionExclusiveTreeUnread(artifact, signatures, constructors, locals,
+                            inferred_types, surfaces, readers, field_reads, function_id, earlier,
+                            surfaces.expression_graph.roots[slot], node, chain, consumed_formal,
+                            destination_fields, destination_known, destination_paths, consumed_call_start, consumed_call) {
+                        return false;
+                    }
+                    lane = lane + 1;
+                }
+            }
+            read_surface = read_surface + 1;
+        }
+    }
+    return true;
+}

@@ -1,0 +1,15 @@
+struct MapState { entries: HashMap<String, Int>; }
+
+func Insert(inout state: MapState) -> Void {
+    let entries: HashMap<String, Int> = state.entries;
+    MapSet(entries, "seed", 1);
+    state.entries = entries;
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let state: MapState = MapState(table);
+    Insert(state);
+    let result: HashMap<String, Int> = state.entries;
+    return MapGet(result, "seed");
+}

@@ -1,0 +1,39 @@
+func ObserveInteger() -> Int {
+    let value: Int = 1;
+    defer { value = 2; }
+    return value;
+}
+func ObserveOption() -> Option<Int> {
+    let value: Option<Int> = Some(1);
+    defer { value = Some(2); }
+    return value;
+}
+func Signal() -> Int {
+    Log("once");
+    return 5;
+}
+func ObserveOnce() -> Int {
+    defer { Log("cleanup"); }
+    return Signal();
+}
+func UpdateOutput(inout output: Int) -> Int {
+    let value: Int = 1;
+    defer { output = 7; value = 2; }
+    return value;
+}
+func FinishVoid() -> Void {
+    defer { Log("void cleanup"); }
+    Log("void body");
+    return;
+}
+func PlainInteger() -> Int { return 4; }
+func Main() -> Void {
+    Log(ObserveInteger());
+    Log(UnwrapOption(ObserveOption()));
+    Log(ObserveOnce());
+    var output: Int = 0;
+    Log(UpdateOutput(output));
+    Log(output);
+    FinishVoid();
+    Log(PlainInteger());
+}

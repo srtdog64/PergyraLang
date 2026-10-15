@@ -1,5 +1,6 @@
 #include "array_storage_deferred_preservation_owner.h"
 #include <stdarg.h>
+#include "function_param_publication_owner.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -205,6 +206,7 @@ semantic_context_destroy(SemanticContext *ctx)
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
     function_param_flow_summary_store_destroy(ctx);
+    semantic_param_publication_destroy(ctx);
     callable_capability_destroy(ctx);
     semantic_collection_owned_element_requirements_destroy(
         ctx->collection_owned_element_requirements);

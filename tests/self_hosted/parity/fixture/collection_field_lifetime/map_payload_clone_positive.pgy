@@ -1,0 +1,9 @@
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    let view: String = Concat("", MapGet(table, "key"));
+    let seed: Array<String> = ["independent"];
+    let snapshot: Array<String> = Clone(seed);
+    MapSet(table, "key", "new");
+    return StringLength(view) + ArrayLength(snapshot);
+}

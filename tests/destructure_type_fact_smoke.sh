@@ -23,6 +23,28 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 mkdir -p "$(dirname "$OUT")"
+# Preserve explicit policy requests as rejection witnesses, not downgraded
+# noarg safety claims. Analyze only; malformed programs are never emitted/run.
+"$PYTHON_BIN" - "$ROOT_DIR" "$PGY" <<'PY'
+import hashlib, pathlib, subprocess, sys
+root, native = map(pathlib.Path, sys.argv[1:])
+fixtures = [root / 'tests/concept_semantics/secure_slot' / name for name in (
+    'claim_hardware_local_invalid.pgy', 'claim_hardware_method_invalid.pgy',
+    'claim_encrypted_field_invalid.pgy')]
+paths = [native, root / 'tests/destructure_type_fact_smoke.sh', *fixtures]
+before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+for source in fixtures:
+    result = subprocess.run([str(native), '--native-pipeline', '--mir-json',
+        '--error-format=json', str(source)], capture_output=True, timeout=30)
+    output = (result.stdout + result.stderr).decode(errors='replace')
+    if (result.returncode != 1 or '"pgy.mir.v1"' in output
+        or 'PGY_SEM_BUILTIN_ARGS_INVALID' not in output
+        or 'semantic:builtin:signature_mismatch' not in output):
+        raise SystemExit(f'unsupported Claim policy was not exactly rejected: {source}, rc={result.returncode}, {output}')
+if any(hashlib.sha256(p.read_bytes()).hexdigest() != digest for p, digest in before.items()):
+    raise SystemExit('Claim policy input/binary guard drift')
+print('[destructure-type-fact] original hardware/encrypted requests rejected; no physical policy support claim')
+PY
 "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$OUT"
 "$PGY" --test-native-mir-json-oracle \

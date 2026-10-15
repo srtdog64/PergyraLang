@@ -81,7 +81,10 @@
         ret->data.return_stmt.value = make_number(1, 4);
         ast_add_statement(func->data.async_func_decl.body, ret);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "Dispatch");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -96,7 +99,7 @@
             && (body_summary & BODY_SUMMARY_MAY_RETURN) != 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("function body summary records param boundary modes");
@@ -115,7 +118,10 @@
             make_func_param("borrowed", ast_create_type("Int"));
         func->data.func_decl.params[1]->mode = PARAM_MODE_REF;
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "Boundary");
         uint32_t body_summary = sym != NULL && sym->type != NULL
@@ -125,15 +131,32 @@
             && (body_summary & BODY_SUMMARY_BORROWS_PARAM) != 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("function call propagates callee body summary");
     {
         SemanticContext *ctx = semantic_context_create();
-        Type *worker_type = type_create_function(NULL, 0, TYPE_VOID);
+        ASTNode *program = ast_create_program();
+        ASTNode *worker = ast_create_function("Worker");
+        ASTNode *func = ast_create_function("Caller");
+        worker->data.func_decl.return_type = ast_create_type("Void");
+        worker->data.func_decl.body = ast_create_block();
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        ast_add_statement(func->data.func_decl.body,
+            make_call("Worker", NULL, 0, 2));
+        ast_add_statement(program, worker);
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        ctx->program_root = program;
+        EXPECT(semantic_build_host_decl_index(ctx, program));
+        EXPECT(semantic_param_publication_begin(ctx));
+        type_check_func_decl(worker, ctx);
         Symbol *worker_sym;
-
+        worker_sym = scope_lookup(ctx->scope, "Worker");
+        Type *worker_type = worker_sym->type;
+        /* White-box MAY projection only; no absent-bit borrow permission. */
         worker_type->data.function.effect_mask = EFFECT_REMOTE;
         worker_type->data.function.body_summary_mask =
             BODY_SUMMARY_EFFECTS
@@ -141,16 +164,8 @@
             | BODY_SUMMARY_SENDS_CHANNEL
             | BODY_SUMMARY_DROPS_RESOURCE
             | BODY_SUMMARY_MAY_RETURN;
-        worker_sym = symbol_create_function("Worker", worker_type, 1, 1);
-        scope_declare(ctx->scope, worker_sym);
-
-        ASTNode *func = ast_create_function("Caller");
-        func->data.func_decl.return_type = ast_create_type("Void");
-        func->data.func_decl.body = ast_create_block();
-        ast_add_statement(func->data.func_decl.body,
-            make_call("Worker", NULL, 0, 2));
-
         type_check_func_decl(func, ctx);
+        EXPECT(semantic_param_publication_finalize(ctx));
 
         Symbol *sym = scope_lookup(ctx->scope, "Caller");
         uint32_t body_summary = sym != NULL && sym->type != NULL
@@ -163,7 +178,7 @@
             && (body_summary & BODY_SUMMARY_MAY_RETURN) == 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("callable summary prove helpers read body_summary bits directly");
@@ -174,7 +189,6 @@
         ASTNode *quiet = ast_create_function("Quiet");
         /* Active callee: spawns task, sends channel, drops resource, requires zone. */
         ASTNode *active = ast_create_function("Active");
-        Symbol *qsym;
         Symbol *asym;
 
         ctx->program_root = program;
@@ -182,12 +196,12 @@
         quiet->data.func_decl.return_type = ast_create_type("Void");
         quiet->data.func_decl.body = ast_create_block();
         ast_add_statement(program, quiet);
-        type_check_func_decl(quiet, ctx);
 
         active->data.func_decl.return_type = ast_create_type("Void");
         active->data.func_decl.body = ast_create_block();
         ast_add_statement(program, active);
-        type_check_func_decl(active, ctx);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         /* Synthetically set body_summary_mask bits on the Active callee's
          * function type so the prove helpers exercise each named bit. */
@@ -200,12 +214,6 @@
                 | BODY_SUMMARY_SPAWNS_TASK
                 | BODY_SUMMARY_SENDS_CHANNEL
                 | BODY_SUMMARY_REQUIRES_ZONE;
-        }
-        qsym = scope_lookup(ctx->scope, "Quiet");
-        if (qsym != NULL && qsym->type != NULL
-            && qsym->type->kind == TYPE_KIND_FUNCTION) {
-            qsym->type->data.function.has_body_summary_facts = true;
-            qsym->type->data.function.body_summary_mask = BODY_SUMMARY_NONE;
         }
 
         /* Quiet callee positively proves every bit absent. */
@@ -245,7 +253,13 @@
             make_func_param("borrowed", ast_create_type("Int"));
         boundary->data.func_decl.params[1]->mode = PARAM_MODE_REF;
         ast_add_statement(program, boundary);
-        type_check_func_decl(boundary, ctx);
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        ast_add_statement(func->data.func_decl.body,
+            make_call("Boundary", args, 2, 3));
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         {
             Symbol *boundary_sym = scope_lookup(ctx->scope, "Boundary");
             Type *boundary_type = boundary_sym != NULL ? boundary_sym->type : NULL;
@@ -257,11 +271,6 @@
                    == SLOT_PARAM_SUMMARY_NONE);
         }
 
-        func->data.func_decl.return_type = ast_create_type("Void");
-        func->data.func_decl.body = ast_create_block();
-        ast_add_statement(func->data.func_decl.body,
-            make_call("Boundary", args, 2, 3));
-        type_check_func_decl(func, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "Caller");
         uint32_t body_summary = sym != NULL && sym->type != NULL
@@ -271,7 +280,6 @@
             && (body_summary & BODY_SUMMARY_BORROWS_PARAM) != 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
         ast_destroy(program);
     }
 
@@ -307,8 +315,19 @@
         vault->data.class_decl.methods[0] = method;
         vault->data.class_decl.method_count = 1;
         ast_add_statement(program, vault);
-        (void)ast_assign_stable_ids(program);
+        func = ast_create_function("Caller");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        ASTNode *args[1] = { make_number(7, 3) };
+        call = make_call_expr(
+            make_member_access(make_identifier("v", 3), "Sync", 3),
+            args, 1, 3);
+        ast_add_statement(func->data.func_decl.body, call);
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
         ctx->program_root = program;
+        EXPECT(semantic_build_host_decl_index(ctx, program));
+        EXPECT(semantic_param_publication_begin(ctx));
         /* This focused summary test constructs the method AST directly. Keep
          * the surrounding checker in an async-capable context so the joined
          * spawn remains valid without changing the method/action union shape. */
@@ -320,16 +339,8 @@
             scope_lookup(ctx->scope, "Vault")->type, 2, 1);
         scope_declare(ctx->scope, vsym);
 
-        func = ast_create_function("Caller");
-        func->data.func_decl.return_type = ast_create_type("Void");
-        func->data.func_decl.body = ast_create_block();
-        ASTNode *args[1] = { make_number(7, 3) };
-        call = make_call_expr(
-            make_member_access(make_identifier("v", 3), "Sync", 3),
-            args, 1, 3);
-        ast_add_statement(func->data.func_decl.body, call);
-
         type_check_func_decl(func, ctx);
+        EXPECT(semantic_param_publication_finalize(ctx));
 
         Symbol *sym = scope_lookup(ctx->scope, "Caller");
         uint32_t body_summary = sym != NULL && sym->type != NULL
@@ -342,7 +353,6 @@
             && (body_summary & BODY_SUMMARY_SPAWNS_TASK) != 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
         ast_destroy(program);
     }
 
@@ -417,7 +427,10 @@
         decl->data.let_decl.initializer = lambda;
         ast_add_statement(func->data.func_decl.body, decl);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "MakeLambda");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -430,7 +443,7 @@
             && (body_summary & BODY_SUMMARY_MAY_RETURN) == 0);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("lambda value-type local is captured by copy (docs/135 Stage A)");
@@ -453,7 +466,10 @@
         decl->data.let_decl.initializer = lambda;
         ast_add_statement(func->data.func_decl.body, decl);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         /* Int is a copy-value type, so the capture is accepted and recorded on
          * the lambda node (the backends build the closure environment). */
@@ -461,7 +477,7 @@
         EXPECT(ast_lambda_capture_count(lambda) == 1);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("lambda expr body is type-checked even with expected type (docs/135)");
@@ -542,12 +558,15 @@
         outer->data.let_decl.initializer = make_number(1, 5);
         ast_add_statement(func->data.func_decl.body, outer);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("lambda parameter or local that rebinds an enclosing local is refused");

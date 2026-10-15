@@ -9,6 +9,7 @@
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loops.h"
+#include "function_param_publication_owner.h"
 #include "../common/numeric_parse.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING statement census: per-kind INCLUSIVE time for
@@ -285,6 +286,10 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
     for (size_t i = 0; i < ast_block_statement_count(node); i++) {
         if (!flow_has_fallthrough(flags)) {
             flow_record_unreachable_statement(ctx, ast_block_statement(node, i));
+            for (size_t rest = i + 1; rest < ast_block_statement_count(node); rest++)
+                if (semantic_param_publication_pending(ctx) &&
+                    !semantic_param_publication_record_execution(ctx, ast_block_statement(node, rest), false))
+                    semantic_error(ctx, node, "Unreachable statement publication failed");
             break;
         }
 
@@ -407,6 +412,10 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return FLOW_FALLTHROUGH;
     if (!semantic_stmt_flow_depth_enter(ctx, node))
         return FLOW_FALLTHROUGH;
+    if (semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_execution(ctx, node,
+            ctx->future_lifecycle_unreachable_depth == 0))
+        semantic_error(ctx, node, "Statement execution publication failed");
     if (!stmt_census_enabled()) {
         flags = type_check_statement_flow_dispatch(node, ctx, loop_flow);
         semantic_stmt_flow_depth_leave();

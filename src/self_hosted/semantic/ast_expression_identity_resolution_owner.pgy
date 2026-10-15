@@ -432,7 +432,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             !SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
                                 retention_selection, graph,
                                 use_node_id, root_slot % 3,
-                                local_call_ordinal, node) {
+                                local_call_ordinal, node, call_roots.root_nodes[node]) {
                             valid = false;
                         }
                         if valid && !SemanticAstNumericStringAllocationRecordResolvedCall(

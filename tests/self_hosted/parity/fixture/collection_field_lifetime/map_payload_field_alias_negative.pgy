@@ -1,0 +1,10 @@
+struct State { entries: HashMap<String, String>; }
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    let state: State = State(table);
+    let alias: HashMap<String, String> = state.entries;
+    let view: String = MapGet(alias, "key");
+    MapSet(alias, "key", "new");
+    return StringLength(view);
+}

@@ -1,0 +1,69 @@
+// Routine exits are projected once from the admitted statement owner, including
+// bare returns that have no expression surface. Surface rows cannot own exits.
+import "ast_statement_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+
+struct SemanticAstCollectionExclusiveExitFacts {
+    ok: Bool;
+    starts: Array<Int>;
+    counts: Array<Int>;
+    nodes: Array<Int>;
+}
+
+func SemanticAstCollectionExclusiveExitFactsFromStatements(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref statements: SemanticAstStatementFacts
+) -> SemanticAstCollectionExclusiveExitFacts {
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(signatures.function_node_ids) {
+        ArrayPush(starts, -1);
+        ArrayPush(counts, 0);
+        row = row + 1;
+    }
+    let ready: Bool = statements.ok && statements.artifact_node_count == artifact.count &&
+        ArrayLength(statements.node_ids) == ArrayLength(statements.kind_tags) &&
+        ArrayLength(statements.node_ids) == ArrayLength(statements.function_node_ids);
+    row = 0;
+    while row < ArrayLength(statements.node_ids) && ready {
+        let kind: Int = statements.kind_tags[row];
+        if kind == TypedAstKindValueReturnStmtTag() || kind == TypedAstKindBareReturnStmtTag() {
+            let function_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                signatures, statements.function_node_ids[row]);
+            let node: Int = statements.node_ids[row];
+            ready = IsSome(function_row) && node >= 0 && node < artifact.count &&
+                TypedAstArenaNodeKindIs(artifact.arena, node, kind) &&
+                SemanticAstCollectionNodeEnclosedBy(artifact, node, statements.function_node_ids[row]);
+            if ready {
+                let index: Int = UnwrapOption(function_row);
+                if counts[index] == 0 { starts[index] = ArrayLength(nodes); }
+                ready = starts[index] + counts[index] == ArrayLength(nodes);
+                if ready {
+                    ArrayPush(nodes, node);
+                    counts[index] = counts[index] + 1;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstCollectionExclusiveExitFacts(ready, starts, counts, nodes);
+}
+
+func SemanticAstCollectionExclusiveRoutineExits(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstCollectionExclusiveExitFacts, function_id: Int
+) -> Array<Int> {
+    let exits: Array<Int> = [];
+    let row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !facts.ok || !IsSome(row) || ArrayLength(facts.starts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(facts.counts) != ArrayLength(facts.starts) { return exits; }
+    let index: Int = UnwrapOption(row);
+    let at: Int = 0;
+    while at < facts.counts[index] {
+        ArrayPush(exits, facts.nodes[facts.starts[index] + at]);
+        at = at + 1;
+    }
+    return exits;
+}

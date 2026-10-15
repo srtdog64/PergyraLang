@@ -1,0 +1,19 @@
+// Falsify the operation classifier directly; a source spelling is not identity.
+func InspectCollectionStorageMutationIdentity(
+    inout analysis: SemanticAstArtifactAnalysis, mutation: Int
+) -> Bool {
+    let node: Int = 0;
+    while node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
+        if SemanticAstCollectionStorageMutationKind(analysis.expression_surfaces.expression_graph, node) == 2 {
+            let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, node);
+            if !IsSome(callee) { return false; }
+            if mutation == 129 { analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = 1; }
+            if mutation == 130 { analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[node] = 9; }
+            if mutation == 131 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[UnwrapOption(callee)] = 1; }
+            if mutation == 132 { analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node] = SemanticCallTargetMember(); }
+            return SemanticAstCollectionStorageMutationKind(analysis.expression_surfaces.expression_graph, node) == 0;
+        }
+        node = node + 1;
+    }
+    return false;
+}

@@ -69,8 +69,9 @@ func ParseProgramBuildContentWithImportPolicyObserved(
 
     let src_dir: String = SelfHostPath.Dirname(source_path);
     let involve_types: Array<String> = [];
-    let import_paths: Set<String> = SetNew();
-    SetAdd(import_paths, source_path);
+    // Membership only: normalized paths are never enumerated from this table.
+    let import_paths: HashMap<String, Int> = MapNew();
+    MapSet(import_paths, source_path, 1);
     // A fresh descriptor keeps its exclusive identity across both composition calls.
     let import_chain: Array<String> = [];
     ArrayPush(import_chain, source_path);

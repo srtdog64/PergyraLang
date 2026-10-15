@@ -12,6 +12,7 @@
 #include "type_checker_builtins_internal.h"
 #include "array_storage_release_owner.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 #include "../common/match_variant_policy.h"
 
 typedef enum StdlibVariantBuiltinKind {
@@ -47,6 +48,16 @@ static Type *
 stdlib_variant_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+/* Optional dependence requires resolved payload types, not provisional names. */
+static bool stdlib_variant_relation_type_ready(const Type *type)
+{
+    if (type == NULL || type == TYPE_UNKNOWN || type->kind == TYPE_KIND_GENERIC) return false;
+    if (type->kind == TYPE_KIND_CONSTRUCTED)
+        for (size_t i = 0; i < type_constructed_arg_count(type); i++)
+            if (!stdlib_variant_relation_type_ready(type_constructed_arg(type, i))) return false;
+    return true;
 }
 
 /* Records the checker's type for the call's value (Some, UnwrapOption) so
@@ -130,6 +141,10 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
              * declares an Option type for it; MIR types a local from it. */
             if (payload != TYPE_UNKNOWN)
                 stdlib_variant_seal_value_type(expr, option_type, ctx);
+            if (!ctx->has_error && stdlib_variant_relation_type_ready(payload) &&
+                semantic_param_publication_pending(ctx) &&
+                !semantic_param_publication_record_checked_result_relation(ctx, expr, payload, option_type, 0, 0))
+                semantic_error(ctx, expr, "Checked Some result relation publication failed");
             return option_type;
         }
     case STDLIB_VARIANT_NONE:
@@ -165,6 +180,10 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             /* The operand's payload type; MIR types a local from it. */
             if (payload != TYPE_UNKNOWN)
                 stdlib_variant_seal_value_type(expr, payload, ctx);
+            if (!ctx->has_error && stdlib_variant_relation_type_ready(payload) &&
+                semantic_param_publication_pending(ctx) &&
+                !semantic_param_publication_record_checked_result_relation(ctx, expr, ot, payload, 0, 0))
+                semantic_error(ctx, expr, "Checked UnwrapOption result relation publication failed");
             return payload;
         }
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,

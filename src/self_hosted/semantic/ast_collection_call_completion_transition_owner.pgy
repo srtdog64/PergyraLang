@@ -1,0 +1,108 @@
+// Ordered completed-call transitions over the same admitted ownership state.
+// This owner preserves payload checks, reservations and physical builtin order.
+import "ast_collection_ownership_statement_transition_owner.pgy";
+import "ast_collection_lifetime_event_order_owner.pgy";
+import "ast_collection_indexed_string_borrow_owner.pgy";
+import "ast_collection_map_payload_event_owner.pgy";
+import "ast_collection_aggregate_release_transition_owner.pgy";
+import "ast_owned_string_literal_transfer_owner.pgy";
+import "ast_collection_read_literal_argument_owner.pgy";
+import "ast_collection_call_argument_verdict_owner.pgy";
+import "ast_collection_element_escape_entry_owner.pgy";
+import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "ast_collection_builtin_transition_owner.pgy";
+import "ast_collection_definition_transition_owner.pgy";
+import "ast_collection_owned_result_return_owner.pgy";
+import "ast_collection_ownership_argument_transfer_owner.pgy";
+import "ast_collection_ownership_member_restoration_owner.pgy";
+import "ast_collection_aggregate_release_element_borrow_owner.pgy";
+import "ast_collection_call_effect_owner.pgy";
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstCollectionCallCompletionTransition(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref definitions: SemanticAstCollectionDefinitionFacts, ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>, inout origins: Array<Int>,
+    inout transition_states: Array<Int>, ref current_definitions: Array<Int>,
+    ref source_binding_syntax_ids: Array<Int>,
+    inout receipts: SemanticAstCollectionOwnershipReceiptRows,
+    inout call_effects: SemanticAstCollectionCallEffectFacts,
+    inout aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan,
+    inout indexed_string_borrows: SemanticAstIndexedStringBorrowState,
+    ref exclusive_values: SemanticAstCollectionExclusiveValueFacts,
+    mutating_formals: HashMap<String, Int>, ref focus_recovery: SemanticAstCollectionFocusRecoveryFacts,
+    root_slot: Int, completed_call: Int, node: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    let map_payload_event: SemanticAstCollectionOwnershipVerdict =
+        SemanticAstMapStringPayloadAtCallCompletion(artifact, signatures, constructors,
+            locals, initializer_types.inferred_type_names, surfaces, assignments,
+            definitions, storage, current_definitions, indexed_string_borrows.source_storage_ids,
+            formal_effects.borrowed_text_formals, mutating_formals,
+            indexed_string_borrows, root_slot, completed_call, node);
+    if !map_payload_event.ok {
+        return map_payload_event;
+    }
+    let aggregate_reservation:
+        SemanticAstCollectionOwnershipVerdict =
+        SemanticAstCollectionAggregateReleaseReserveAtCompletion(
+            artifact, locals, surfaces, root_slot / 3,
+            completed_call, call_effects, storage,
+            definitions, current_definitions, ownership,
+            dispositions, origins, transition_states,
+            aggregate_release_plan);
+    if !aggregate_reservation.ok {
+        return aggregate_reservation;
+    }
+    let aggregate_owned_push_leaf:
+        SemanticAstCollectionOwnershipVerdict =
+        SemanticAstCollectionAggregateOwnedPushLeafAtCompletion(
+            artifact, signatures, locals,
+            initializer_types.inferred_type_names,
+            surfaces, root_slot / 3,
+            completed_call, node,
+            formal_effects.owned_push_leaf_formals,
+            field_requirements, aggregate_release_plan,
+            ownership, dispositions, origins,
+            transition_states);
+    if !aggregate_owned_push_leaf.ok {
+        return aggregate_owned_push_leaf;
+    }
+    let completed: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, node);
+    let receiver_root_ready: Bool = true;
+    if completed.ok && ArrayLength(completed.argument_nodes) > 0 {
+        receiver_root_ready = SemanticAstCollectionExclusiveAliasRootReadyAt(
+            artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
+            exclusive_values.shared_locals, mutating_formals, origins, source_binding_syntax_ids,
+            root_slot / 3, completed.argument_nodes[0], focus_recovery);
+    }
+    let builtin_transition: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
+        artifact, locals, initializer_types.inferred_type_names, signatures, surfaces, root_slot / 3,
+        completed_call, node, receiver_root_ready, call_effects,
+        field_requirements, aggregate_release_plan,
+        ownership, dispositions, origins, transition_states,
+        receipts);
+    if !builtin_transition.ok {
+        return builtin_transition;
+    }
+    if !SemanticAstIndexedStringBorrowRecordDeepDrop(
+            artifact, locals,
+            initializer_types.inferred_type_names, surfaces,
+            definitions, storage, current_definitions,
+            indexed_string_borrows, root_slot / 3,
+            completed_call, node) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "indexed_string_deep_drop"),
+            surfaces.node_ids[root_slot / 3], node
+        );
+    }
+
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

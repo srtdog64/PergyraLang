@@ -1,0 +1,89 @@
+import "ast_collection_exclusive_value_field_read_owner.pgy";
+
+
+// The sink owner's later-read scan, with field summaries: a whole root that
+// enters a summarized formal reads only the fields that formal reads.
+func SemanticAstCollectionExclusiveTreeUnread(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref aliases: SemanticAstCollectionAggregateSinkAliases, field_reads: HashMap<String, Int>,
+    function_id: Int, syntax_id: Int, root: Int, argument_node: Int,
+    ref argument_chain: Array<Int>, consumed_formal: Int,
+    destination_fields: HashMap<String, Int>, destination_known: Bool, ref destination_paths: Array<String>,
+    call_start: Int, call: Int
+) -> Bool {
+    let no_fields: Array<Int> = [];
+    let pending: Array<Int> = [root];
+    while ArrayLength(pending) > 0 {
+        let node: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+        if node != argument_node && IsSome(kind) {
+            if UnwrapOption(kind) == AstExpressionNodeLeaf() || UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+                let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+                    artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+                let row: Int = -1;
+                if place.ok && !place.temporary { row = SemanticAstCollectionAggregateSinkAliasRow(aliases, place.key); }
+                if row >= 0 && SemanticAstCollectionAggregateSinkOverlaps(surfaces, constructors, aliases, row,
+                        place.chain, argument_chain, no_fields) &&
+                    !SemanticAstCollectionExclusiveValueRead(signatures, constructors, inferred_types, surfaces,
+                        function_id, place, node, root, call_start, call, field_reads) {
+                    let effective: Int = aliases.chain_counts[row] + ArrayLength(place.chain);
+                    let consumed: Int = ArrayLength(argument_chain);
+                    let disjoint: Bool = false;
+                    if effective < consumed {
+                        let reader: Int = SemanticAstCollectionExclusiveSummarizedTarget(
+                            signatures, surfaces, field_reads, node, root);
+                        let step: Option<String> = SemanticExpressionGraphNodeText(
+                            surfaces.expression_graph, argument_chain[effective]);
+                        disjoint = reader > 0 && IsSome(step) &&
+                            !MapHas(field_reads, Concat(ToString(reader), Concat(":", UnwrapOption(step))));
+                        // The consumed subtree is touched only at the paths
+                        // its destination family uses.
+                        if reader > 0 && !disjoint && destination_known && ArrayLength(destination_paths) > 0 {
+                            let base: String = "";
+                            let at: Int = effective;
+                            while at < consumed {
+                                let name: Option<String> = SemanticExpressionGraphNodeText(
+                                    surfaces.expression_graph, argument_chain[at]);
+                                if IsSome(name) {
+                                    if base == "" { base = UnwrapOption(name); }
+                                    else { base = Concat(base, Concat(".", UnwrapOption(name))); }
+                                }
+                                at = at + 1;
+                            }
+                            disjoint = base != "";
+                            let path: Int = 0;
+                            while path < ArrayLength(destination_paths) && disjoint {
+                                disjoint = destination_paths[path] != "" && !SemanticAstCollectionExclusivePathRead(
+                                    field_reads, reader, Concat(base, Concat(".", destination_paths[path])));
+                                path = path + 1;
+                            }
+                        }
+                    } else if effective > consumed {
+                        let step_name: String = SemanticAstCollectionExclusiveStepName(
+                            surfaces, aliases, row, place.chain, consumed);
+                        disjoint = step_name != "" && (
+                            (consumed_formal > 0 &&
+                                !MapHas(field_reads, Concat(ToString(consumed_formal), Concat(":", step_name)))) ||
+                            (destination_known && !MapHas(destination_fields, step_name)));
+                    }
+                    if !disjoint { return false; }
+                }
+                let receiver: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+                if row < 0 && UnwrapOption(kind) == AstExpressionNodeMemberAccess() &&
+                    IsSome(receiver) && UnwrapOption(receiver) >= 0 {
+                    ArrayPush(pending, UnwrapOption(receiver));
+                }
+            } else {
+                let left: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+                let right: Option<Int> = SemanticExpressionGraphRightChild(surfaces.expression_graph, node);
+                if IsSome(left) && UnwrapOption(left) >= 0 { ArrayPush(pending, UnwrapOption(left)); }
+                if IsSome(right) && UnwrapOption(right) >= 0 { ArrayPush(pending, UnwrapOption(right)); }
+            }
+        }
+    }
+    return true;
+}

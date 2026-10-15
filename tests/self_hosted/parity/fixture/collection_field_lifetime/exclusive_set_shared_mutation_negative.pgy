@@ -1,0 +1,6 @@
+func Main() -> Int {
+    let values: Set<Int> = SetNew();
+    let copy: Set<Int> = values;
+    SetAdd(copy, 1);
+    return SetSize(values);
+}

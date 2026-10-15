@@ -1,0 +1,10 @@
+func First(ref values: HashMap<String, Int>) -> Int { return Second(values); }
+func Second(ref values: HashMap<String, Int>) -> Int { return Third(values); }
+func Third(ref values: HashMap<String, Int>) -> Int { return MapGet(values, "entry"); }
+func Main() -> Void {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "entry", 13);
+    Log(First(values));
+    MapSet(values, "entry", 17);
+    Log(Second(values));
+}

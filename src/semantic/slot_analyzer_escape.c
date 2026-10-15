@@ -10,6 +10,9 @@
 #include <string.h>
 
 #include "slot_analyzer_internal.h"
+#include "typed_map_query_fact_owner.h"
+#include "function_param_publication_owner.h"
+#include "function_param_flow_summary_internal.h"
 
 bool
 slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
@@ -46,18 +49,6 @@ slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
     (*entries)[*count].mask = mask;
     (*count)++;
     return true;
-}
-
-static bool
-slot_call_is_non_escape_builtin(ASTNode *callee)
-{
-    if (callee == NULL || callee->type != AST_IDENTIFIER
-        || ast_identifier_name(callee) == NULL) {
-        return false;
-    }
-
-    return slot_builtin_call_is_local_non_escape(
-        ast_identifier_name(callee));
 }
 
 unsigned
@@ -100,6 +91,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
 {
     if (node == NULL)
         return true;
+    bool reachable;
+    if (program_root != NULL && semantic_param_publication_execution(program_root->ctx, node, &reachable)
+        && !reachable) return true;
 
     switch (node->type) {
     case AST_BLOCK:
@@ -159,67 +153,73 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             return false;
         break;
     case AST_CALL: {
-        ASTNode *callee_decl = NULL;
-        size_t param_count = 0;
-        ASTNode *body = NULL;
         ASTNode *callee = ast_call_callee(node);
 
         if (!collect_slot_escapes(callee, entries, count, capacity,
                 program_root, origin, failed_out))
             return false;
-        if (callee != NULL
-            && callee->type == AST_IDENTIFIER
-            && ast_identifier_name(callee) != NULL
-            && program_root != NULL) {
-            callee_decl = slot_analyzer_find_function_decl(
-                program_root, ast_identifier_name(callee));
-            if (callee_decl != NULL) {
-                param_count = ast_func_param_count(callee_decl);
-                body = ast_func_body(callee_decl);
-            }
-        }
-
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             ASTNode *arg = ast_call_argument(node, i);
-            if (arg != NULL && arg->type == AST_IDENTIFIER
-                && !(callee_decl == NULL && slot_call_is_non_escape_builtin(callee))
-                && ast_identifier_name(arg) != NULL) {
-                bool handled = false;
+            const ASTNode *root = NULL;
+            const SemanticContext *ctx = program_root == NULL ? NULL : program_root->ctx;
+            ASTNode *callee_decl = semantic_param_publication_callee(ctx, node, i);
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, arg);
+            bool local = semantic_param_publication_local_call(ctx, node, i);
+            bool read = semantic_typed_map_query_receiver_read(ctx, node, i);
+            bool result_depends = false, external_retains = true;
+            bool relation = semantic_param_publication_checked_result_relation(ctx, node, i, &result_depends, &external_retains);
+            local |= relation && !external_retains;
+            if (!semantic_param_publication_checked_argument(ctx, node, i) ||
+                (!local && !value.ok) || (((!local && !read) || (relation && result_depends)) && !value.meta && !value.copy_escape &&
+                (!slot_call_argument_storage_root(arg, &root) ||
+                 (root != NULL && !semantic_param_publication_value(ctx, root).ok)))) {
+                if (failed_out != NULL) *failed_out = true;
+                return false;
+            }
+            if (root != NULL && ((!local && !read) || (relation && result_depends))
+                && ast_identifier_name(root) != NULL) {
+                bool handled = relation && !external_retains;
+                if (relation && result_depends && !slot_escape_record(entries, count, capacity,
+                        ast_identifier_name(root), SLOT_ESCAPE_RETURN)) return false;
 
-                if (body != NULL && i < param_count) {
+                if (!handled && callee_decl != NULL) {
                     FuncParam *param = ast_func_param(callee_decl, i);
                     if (param != NULL && param->name != NULL) {
-                        if (param->mode == PARAM_MODE_REF) {
+                        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_DEFAULT) {
                             bool direct_self_reborrow = origin != NULL
+                                && param->mode == PARAM_MODE_REF && arg == root
                                 && callee_decl == origin->function_decl
                                 && !callee_decl->is_async_decl
                                 && i == origin->param_index
                                 && origin->param_name != NULL
-                                && strcmp(ast_identifier_name(arg),
-                                          origin->param_name) == 0;
+                                && strcmp(ast_identifier_name(root),
+                                          origin->param_name) == 0
+                                && ast_identifier_binding_syntax_id(root) ==
+                                   ast_func_param_stable_id(ast_func_param(
+                                       origin->function_decl, origin->param_index));
                             unsigned callee_mask = direct_self_reborrow
                                 ? SLOT_PARAM_SUMMARY_NONE
-                                : function_param_flow_summary_demand(
-                                    program_root, callee_decl, i);
+                                : function_param_flow_summary_for_call(
+                                    program_root, node, i);
                             if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                                 if (!slot_escape_record(entries, count, capacity,
-                                        ast_identifier_name(arg), SLOT_ESCAPE_RETURN))
+                                        ast_identifier_name(root), SLOT_ESCAPE_RETURN))
                                     return false;
                             }
                             if ((callee_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
                                 if (!slot_escape_record(entries, count, capacity,
-                                        ast_identifier_name(arg), SLOT_ESCAPE_CHANNEL))
+                                        ast_identifier_name(root), SLOT_ESCAPE_CHANNEL))
                                     return false;
                             }
                             if ((callee_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
                                 if (!slot_escape_record(entries, count, capacity,
-                                        ast_identifier_name(arg), SLOT_ESCAPE_CALL))
+                                        ast_identifier_name(root), SLOT_ESCAPE_CALL))
                                     return false;
                             }
                             handled = true;
                         } else if (param->mode == PARAM_MODE_OWN) {
                             if (!slot_escape_record(entries, count, capacity,
-                                    ast_identifier_name(arg), SLOT_ESCAPE_CALL))
+                                    ast_identifier_name(root), SLOT_ESCAPE_CALL))
                                 return false;
                             handled = true;
                         }
@@ -228,7 +228,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
 
                 if (!handled) {
                     if (!slot_escape_record(entries, count, capacity,
-                            ast_identifier_name(arg), SLOT_ESCAPE_CALL))
+                            ast_identifier_name(root), SLOT_ESCAPE_CALL))
                         return false;
                 }
             }
@@ -253,19 +253,27 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 capacity, program_root, origin, failed_out))
             return false;
         break;
-    case AST_RETURN:
-        if (ast_return_value(node) != NULL
-            && ast_return_value(node)->type == AST_IDENTIFIER
-            && ast_identifier_name(ast_return_value(node)) != NULL) {
-            if (!slot_escape_record(entries, count, capacity,
-                    ast_identifier_name(ast_return_value(node)),
-                    SLOT_ESCAPE_RETURN))
+    case AST_RETURN: {
+        ASTNode *value = ast_return_value(node);
+        if (value != NULL && (value->type == AST_IDENTIFIER ||
+            value->type == AST_MEMBER_ACCESS || value->type == AST_ARRAY_ACCESS)) {
+            const SemanticContext *ctx = program_root == NULL ? NULL : program_root->ctx;
+            SemanticPublishedValue published = semantic_param_publication_value(ctx, value);
+            const ASTNode *root = NULL;
+            if (!published.ok || (!published.meta && !published.copy_escape &&
+                (!slot_call_argument_storage_root(value, &root) ||
+                 (root != NULL && !semantic_param_publication_value(ctx, root).ok)))) {
+                if (failed_out != NULL) *failed_out = true;
                 return false;
+            }
+            if (root != NULL && !slot_escape_record(entries, count, capacity,
+                    ast_identifier_name(root), SLOT_ESCAPE_RETURN)) return false;
         }
         if (!collect_slot_escapes(ast_return_value(node), entries, count,
                 capacity, program_root, origin, failed_out))
             return false;
         break;
+    }
     default:
         break;
     }

@@ -408,8 +408,15 @@ type_check_intent_step_sequence(
         }
 
         if (using_expr != NULL) {
+            /* Derived context belongs to the verified intent participant,
+             * not to the synthetic display identifier's source identity. */
+            bool derived_using = using_expr->type == AST_IDENTIFIER &&
+                (ast_intent_step_derived_using_from_transfer(step) ||
+                 ast_intent_step_derived_using_from_where(step));
             Type *using_type = intent_normalize_type(
-                type_check_expression(using_expr, ctx));
+                derived_using ? intent_binding_context_resolve_binding_type(
+                    node, ast_identifier_name(using_expr), ctx) :
+                    type_check_expression(using_expr, ctx));
             Type *zone_type = intent_normalize_type(
                 intent_resolve_step_where_type(step, ctx));
             intent_clause_rejects_control_transfer(using_expr, ctx,

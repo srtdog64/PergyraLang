@@ -1,0 +1,45 @@
+// Whole String borrow-state schema and storage lifecycle.
+import "ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy";
+
+struct SemanticAstIndexedStringBorrowState {
+    ok: Bool;
+    source_storage_ids: Array<Int>;
+    invalidated: Array<Bool>;
+    map_payload_sources: HashMap<String, Int>;
+    map_payload_syntax_ids: HashMap<String, Int>;
+    map_payload_invalidations: HashMap<String, Int>;
+    map_payload_functions: HashMap<String, Int>;
+}
+
+func SemanticAstIndexedStringBorrowStateForLocals(
+    ref locals: SemanticAstLocalBindingFacts
+) -> SemanticAstIndexedStringBorrowState {
+    let sources: Array<Int> = [];
+    let invalidated: Array<Bool> = [];
+    let row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        ArrayPush(sources, 0);
+        ArrayPush(invalidated, false);
+        row = row + 1;
+    }
+    let map_sources: HashMap<String, Int> = MapNew();
+    let map_syntax_ids: HashMap<String, Int> = MapNew();
+    let map_invalidations: HashMap<String, Int> = MapNew();
+    let map_functions: HashMap<String, Int> = MapNew();
+    return SemanticAstIndexedStringBorrowState(
+        locals.ok, sources, invalidated, map_sources, map_syntax_ids, map_invalidations, map_functions
+    );
+}
+
+func SemanticAstIndexedStringBorrowStateRetire(
+    inout state: SemanticAstIndexedStringBorrowState
+) -> Void {
+    // Replace field descriptors before retiring the exact last consumers.
+    let source_storage_ids: Array<Int> = state.source_storage_ids;
+    let invalidated: Array<Bool> = state.invalidated;
+    state.source_storage_ids = [];
+    state.invalidated = [];
+    SemanticAstIndexedStringBorrowSourceStorageRetire(source_storage_ids);
+    SemanticAstIndexedStringBorrowInvalidationStorageRetire(invalidated);
+    state.ok = false;
+}

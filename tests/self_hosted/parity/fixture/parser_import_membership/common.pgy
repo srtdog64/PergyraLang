@@ -1,0 +1,1 @@
+export func SharedImported() -> Int { return 1; }

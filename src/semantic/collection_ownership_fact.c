@@ -684,7 +684,15 @@ semantic_collection_record_call_effect_from(
         return false;
     }
     fact = receiver_collection_fact(receiver, ctx, &binding);
-    if (fact == NULL || fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL)
+    if (fact == NULL)
+        return true;
+    bool owned_local_drop = kind == PGY_COLLECTION_EFFECT_DROP
+        && (fact->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
+            || fact->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+        && (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
+            || fact->origin == PGY_COLLECTION_ORIGIN_CLONE
+            || fact->origin == PGY_COLLECTION_ORIGIN_BINDING);
+    if (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL && !owned_local_drop)
         return true;
     binding_id = receiver_binding_syntax_id(receiver, binding);
     return binding_id != 0

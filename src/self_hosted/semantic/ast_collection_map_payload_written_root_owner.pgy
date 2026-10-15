@@ -1,0 +1,80 @@
+// Prior or loop-carried writes retire immutable backing provenance. Formal targets consume
+// exact SourceFormalIdentity, never an inferred aggregate-place key encoding.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+
+func SemanticAstMapPayloadAssignmentRootNode(
+    ref graph: SemanticExpressionGraphFacts, target: Int
+) -> Int {
+    let node: Int = target;
+    let remaining: Int = 64;
+    while remaining > 0 {
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+        if member.ok { node = member.receiver_node; }
+        else {
+            let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+            if !IsSome(kind) { return -1; }
+            if UnwrapOption(kind) == AstExpressionNodeLeaf() { return node; }
+            if UnwrapOption(kind) != AstExpressionNodeIndex() { return -1; }
+            let receiver: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+            if !IsSome(receiver) { return -1; }
+            node = UnwrapOption(receiver);
+        }
+        remaining = remaining - 1;
+    }
+    return -1;
+}
+
+func SemanticAstMapPayloadRootWrittenBefore(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int, root_syntax_id: Int, formal_root: Bool
+) -> Bool {
+    let count: Int = ArrayLength(assignments.node_ids);
+    if !assignments.ok || assignments.artifact_node_count != artifact.count ||
+        ArrayLength(assignments.function_node_ids) != count || ArrayLength(assignments.scope_node_ids) != count ||
+        ArrayLength(assignments.target_texts) != count || ArrayLength(assignments.target_base_names) != count ||
+        ArrayLength(assignments.target_root_names) != count || ArrayLength(assignments.target_is_indexed) != count ||
+        ArrayLength(assignments.target_index_texts) != count || ArrayLength(assignments.value_texts) != count ||
+        !signatures.ok || signatures.artifact_node_count != artifact.count ||
+        ArrayLength(signatures.param_starts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_counts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_modes) != ArrayLength(signatures.param_node_ids) ||
+        ArrayLength(signatures.param_types) != ArrayLength(signatures.param_node_ids) ||
+        locals.artifact_node_count != artifact.count || !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) ||
+        !surfaces.ok || surfaces.artifact_node_count != artifact.count || !surfaces.expression_graph.ok ||
+        ArrayLength(surfaces.function_node_ids) != ArrayLength(surfaces.node_ids) ||
+        ArrayLength(surfaces.expression_graph.roots) != ArrayLength(surfaces.node_ids) * 3 ||
+        ArrayLength(surfaces.expression_graph.has_roots) != ArrayLength(surfaces.node_ids) * 3 { return true; }
+    let current: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, syntax_id);
+    if !IsSome(current) || root_syntax_id <= 0 || root_syntax_id >= artifact.count ||
+        function_id < 0 || function_id >= artifact.count { return true; }
+    let row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        if assignments.function_node_ids[row] == function_id {
+            let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, assignments.node_ids[row]);
+            let target: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, assignments.node_ids[row], AstExpressionLaneAtom());
+            if !IsSome(surface) || !IsSome(target) { return true; }
+            if UnwrapOption(surface) <= UnwrapOption(current) || SemanticAstCollectionExclusiveLoopCarries(
+                    artifact, root_syntax_id, assignments.node_ids[row], syntax_id) {
+                let root: Int = SemanticAstMapPayloadAssignmentRootNode(surfaces.expression_graph, UnwrapOption(target));
+                if root < 0 { return true; }
+                if formal_root {
+                    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+                        signatures, function_id, surfaces.expression_graph, root);
+                    if formal.ok && formal.syntax_id == root_syntax_id { return true; }
+                } else {
+                    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, locals, inferred_types, function_id, assignments.node_ids[row],
+                        surfaces.expression_graph, root);
+                    if binding.ok && binding.declaration_node_id == root_syntax_id { return true; }
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return false;
+}

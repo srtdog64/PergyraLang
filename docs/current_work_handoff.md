@@ -1,40 +1,1571 @@
 # Current Work Handoff
 
-Updated: 2026-10-14 KST (Asia/Seoul). Navigation only. Current source, the
-SoT registry, admitted contracts, and executable gates override this note.
+Updated: 2026-10-14 KST. Navigation only; current source, owner contracts and
+executable evidence override this snapshot. The archive below is lookup only.
 
-## Active self-host context — cleanup integrated; bootstrap ownership remains RED
+## Active self-host context — P0 bootstrap recovery, USER-PAUSED
 
-Implementation base `c08dfc6e9f6bcfd88163a2de35e232126a32621c` is on main
-and remote. Cleanup commits13d93fe59/95262d972/c08dfc6e9 were already pushed;
-root integrated them without a duplicate commit or new branch. Root verified
-547 unrelated dirty paths unchanged, retained a560-path backup and13-overlap
-stash, resolved conflicts and did not publish the large implementation WIP.
+Paused at the user's explicit request on 2026-10-14 20:42 KST. Do not resume
+implementation, verification or optimization until the user asks. The pending
+implementer was interrupted; the WSL user service inventory has no running
+compile (only dbus). All frozen sources, receipts and shared WIP are preserved.
+No implementation commit/push or CI-green claim was made.
 
-Exact base CI38418999774: Windows/macOS/Rocq/TSan PASS; codegen bootstrap
-FAIL at gen1 node107421/unproved_exclusive_member_mutation/Array<String>;
-six dependents SKIP. Docs-filtered/skipped green is not compiler acceptance.
+Latest observed source is v16: structural PASS6.849s/60 and focus
+FAIL140.786s/300, guards0. Nominal internal forwarding six-fault production
+and restoration pass on C/LLVM. Dead-holder first refusal has moved from
+oldHolder MapSet44 to Path(rows)51; the last sink consumer still receives
+overly broad growth. Wrong Array<Int> field restoration passes body/receipt
+and admitted diagnostic-view creation without a focus group; runtime was
+never emitted/run. Receipts: `.tmp/ci-map-carrier-v16-diagnostic-root-20261014/`
+and `.tmp/ci-v16-wrong-restore-carrier-root-20261014/`.
 
-Current priority/chain/lane plan:
-[`compiler_closure_priorities_2026-10-14.md`](agent_work_directives/compiler_closure_priorities_2026-10-14.md).
-No source/doc text-presence tests may be resurrected. Preserve real execution
-and generated-artifact negatives, allowed drift/size/hazard checks and the
-three user-retained security twins. Two former text-only SoT closures remain
-BRIDGE; the new local function-param publication migration is unverified WIP.
+Unintegrated A11 draft: `C:/Temp/pgy-map-focus-A11-20261014/src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy`,
+SHA867e182573c04b6bce097fe075a3c644b44832a0dda5af8c3822d7c5bdd7932c.
+A10 native HIR passed12.339s, but that is not A11 validation or final packet
+acceptance. The pending repair remains existing MarkRoot source-field
+projection plus typed member growth issuance even for a shared classification;
+unknown rebind must fail closed. No extra root permission is selected.
 
-Frozen focus17+HashMap receiver2 candidate is still RED in the original MIR
-control:81942/digest1311964338/node67139, inferred_types formal67100 at ordinal3
-of PartRepack, unknown/retiring/descriptor site0. The prepared v2 producer
-observer has not run. Rebind to the new base, validate the input generation,
-enumerate actual events and decide the whole publication/lifetime chain
-before editing. Do not silence the fence or default to manual copies/ref marks.
+- Shared main: `af8ede6f0bf6a38f389b09f29d04b84b875c461d`.
+  Origin/main now is `7e6f449484ae5a134364c6566e0dac9613a68eab`.
+  Frozen v16 still uses published1d9e00053 as its parent. The later published
+  lookup changes must be preserved before landing. Exported delta:
+  `.tmp/remote-semantic-lookup-index-7e6f44948.patch`,
+  SHAc805fdab7d46b16485b7236abc75ab4361b4fae2ad212b5a8faf996cb1f0ce29.
+  Apply-check fails only at concrete_scalar_verdict and resolved_call_type;
+  nothing was applied to shared or frozen sources. Resolve against both
+  semantic changes before any next integrated gate, not by choosing one side.
+  Shared index is empty;231 tracked dirty paths and unrelated untracked WIP
+  are preserved. No implementation commit/push is claimed in this session.
+- Selected source: `/home/c/pgy-ci-p0-recovery-v16-root-20261014/source`.
+  Manifest: `.tmp/ci-p0-recovery-v16-root-20261014/`; private Git context
+  fixes the published 1d9e00053 parent. v9 and all failed intermediates remain
+  frozen. v14 fixes only the v13 duplicate binding; v15 adds the distinct
+  nominal internal-forwarding producer falsifier. v16 adds A9's exact
+  cross-group source-written repack; production is A7/A8/A9. Later work below
+  is historical pending context, not permission to continue while paused.
+- Work owner/order:
+  [P0 closure plan](agent_work_directives/compiler_closure_priorities_2026-10-14.md);
+  [V1 boundary](agent_work_directives/v1_scope_ownership_and_selfhost_generality_2026-10-14.md).
+  GPT implements this one P0 chain; Claude/independent review is read-only.
+  No general emitter, descriptor-split WIP or unrelated SoT track is active.
 
-Finish line: fixed DRV-2 zero, full canonical admission, preserved behavioral
-negatives, actual bootstrap/installed-driver/dependent CI green on one
-implementation SHA. Then activate the next reached SoT substitution seam.
-Historical first errors/counts and local query green do not close this chain.
+### Selected whole-chain repair
 
-## Historical archive — pre-cleanup DRV-2 context, lookup only
+Exact metadata query rows publish independent owned String columns; current
+handled-error/last-emission consumers retire them. Routine-exit retirement
+consumes existing same-generation exit facts. Checked MapSet/Remove participate
+in the growable-storage boundary. These repairs are a manual internal P0
+bridge, not V1 automatic cleanup completion.
+
+A4 proves exact initial-local-empty/no-prior-use constructor capture, retains
+positive binding/definition identity and rejects missing/stale evidence.
+B5 consumes current member identities, both assignment sides, exact existing
+extraction/restoration rows and current formal call effects before finalization.
+It moves the whole AliasReady consumer into the existing finalization owner,
+deletes the old body, and keeps original caps and global SourceID unchanged.
+The selected AF/v7 formal-effect contract has one `effects` map; the separate
+shared descriptor-split WIP has a different schema and is not this candidate.
+
+Selected incremental packets:
+`.tmp/B-postcapture-alias-v5-20261014/implementation.patch`
+SHA `b0005690d6450711f2fae25e552f147889ccc049b2c53bc3e21590fef9e6746f`;
+`.tmp/C-empty-capture-final53-20261014/incremental-v7.patch`
+SHA `e8a05fc56e5985b879738c0c04cd43da6ed82a1df2d701eeeeb8560ab6070fd0`.
+C preserves original37, adds measured alias negatives, keeps full-body/query13
+requirements and hashes all four compiled source/query binaries before use/EXIT.
+Unsafe supplied programs are analyzed only, never emitted/run.
+
+v9 adds one existing-owner repair: after exact inferred/constructor type
+equality, `FocusPartForLocal` classifies that constructor-owned type. Both
+classification uses move together; row, field and identity checks remain.
+Patch `.tmp/B-v8-focus-type-classification-v1-20261014/implementation.patch`
+SHA `2fb0ad8c402a697415deadd48eb6740387e1745a9333d3b74033d738f81348a7`.
+The existing focus probes now execute classifier bounds, six fact faults and
+restoration on both backends; no duplicate probe build or safety exemption.
+Test patch `.tmp/C-v8-focus-classifier-wired-20261014/classifier-wired.patch`
+SHA `10c617ce71fe369e4f34f43f603129694e3ccc69032f5e6da31ba75d5ab7e99a`.
+
+### Last observed gates and exact remaining obligation
+
+- v15 structural PASS6.574s/60, guard0. Its added nominal producer six-fault
+  mode is source-ready only, not yet observed. The full focus gate is running;
+  no concurrent heavy compile is authorized.
+- v14 structural PASS6.117s/60; focus FAIL139.784s/300, guards0.
+  C/LLVM classifier, MapCurrent17, scalar ForwardCurrent19 and exact extern
+  negative location pass, but dead-holder still fails at oldHolder MapSet44
+  before emission. Reused binaries analyze24 inputs in1s, guards0/noemit;
+  selected3 remain censored at old-holder45/43/42. Receipt:
+  `.tmp/ci-map-carrier-v14-diagnostic-root-20261014/`. The new growth delta has
+  not established the intended focus permission; observe its actual issued
+  dependencies/groups and first false, rather than infer the next grant.
+- v13 structural PASS5.826s/60, guard0; focus FAIL6.607s/300, guard0,
+  before probe compilation: growth194 reuses the function-wide local name
+  `dependency` already declared at77. No behavioral or runtime result follows.
+  Fix only that private binding name, then run native HIR before integration.
+- v12 structural PASS6.225s/60; generic/callable/index-currentness parity
+  C/LLVM PASS212.221s/300; guards0. Focus FAIL145.240s/300, guards0:
+  classifier and actual MapCurrent17 pass on both compiled backends, but
+  dead-holder is still body-invalid before target emission. Existing binaries
+  analyze24 inputs in1s/guard0/noemit: opaque external forwarding now refuses
+  at its later growth, early/plain/disjoint/single-reader remain valid, and
+  dead-holder/three selected attacks still fail at the early oldHolder MapSet.
+  Full focus runtime and installed driver remain OPEN. The actual unchanged
+  v12 bootstrap FAIL162.115s/1800, guard0: nominal MIR control still refuses
+  node78850 `unproved_exclusive_sink_entry`/nominal aggregate, before gen1/fixpoint.
+  Receipt: `.tmp/ci-map-carrier-v12-diagnostic-root-20261014/`.
+- v11 structural PASS6.116s/60, guards0. Focus FAIL137.951s/300,
+  guards0: C/LLVM probe builds complete and classifier passes; dead-holder
+  body fails before map-current17. Existing binaries then analyze22 inputs
+  in1s/guards0/noemit: early-return is newly body-valid, plain/disjoint stay
+  valid, dead-holder fails at Populate node44's oldHolder MapSet. Three
+  selected-access negatives still fail there first, not at their attack site.
+  Extern-forwarding nominal reader is body-valid on both v11 and v9 baseline;
+  this is an existing unknown-summary gap, not a newly observed regression.
+  Receipts: `.tmp/ci-map-carrier-v11-diagnostic-root-20261014/` and
+  `.tmp/ci-map-extern-v9-baseline-root-20261014/`.
+- v10 joins remote signature index, A3 focus lifetime/target/field footprint,
+  B scalar Map inventory/use/currentness, C ten inputs and 17 fact faults,
+  and root whole-signature index validation/contract. Structural PASS6.623s/60,
+  guards0. Focus fails747ms/300 before probe compilation: new local binding
+  named reserved word `local`. No target gate/runtime acceptance follows.
+  A's separate corrected-copy native HIR check then passes13s, stderr0,
+  source/tool guards0; this is syntax/type evidence only, not ownership parity.
+- v9 structural PASS6.067s/60; focus PASS129.296s/300, peak1.9GiB,
+  guards0. Both actual compiled C/LLVM classifier runs report
+  `PROBE|classifier-valid|6|bounds2`, stderr0; original focus modes pass.
+  Aggregate C/LLVM53/query13 PASS157.490s/300, peak1.6GiB, guards0.
+  Full unchanged bootstrap FAIL181.323s/1800, guards0, at nominal MIR control
+  `unproved_exclusive_sink_entry`/nominal aggregate. The matching fresh
+  no-emission observer identifies78237. No gen1/fixpoint/install evidence.
+- v9 formal-key C/LLVM PASS75.893s/300, guards0; native storage
+  PASS14.759s/300, guards0 (12 pre-MIR refusals, six admissions, two safe
+  native-C executions). Existing unreachable warnings remain explicit.
+- v8 structural gate PASS5.807s/60, source/tool/private-index guards0.
+- v8 aggregate C/LLVM53 + query13 PASS157.436s/300, guards0. Four compiled
+  source/query binaries are hashed before first use and checked on EXIT.
+- v8 unchanged full bootstrap FAIL178.818s/1800, guards0, memory peak1.8GiB.
+  First observed nominal MIR-control refusal is node67321,
+  `unproved_formal_indexed_read_entry`/`Array<String>` before alias finalization.
+  Fresh82551-node parser mapping identifies the `FocusPartRepack` call;
+  caller ref `inferred_types` formal67278, target formal66927. Completed issuer
+  observation finds earlier PartForLocal formal66824/effect5; 842 negative
+  issuer events are not body-refusal counts. Its three reads were mapped
+  before selecting the same-value repair above.
+- B's same-input/no-emission candidate FAIL227.456s/300, guards0. Node67321
+  refusal is gone; fresh82551-node/digest1253853219 artifact first refuses
+  node78237, `unproved_exclusive_sink_entry`/nominal aggregate. Fresh mapping
+  identifies `ExclusiveRecordLocal`'s `MapSet(shared_rows, key, 1)` at
+  `ast_collection_exclusive_value_class_owner.pgy:187:9`, after extraction of
+  `facts.shared_locals` and before source-written restoration. Exact receiver
+  observer completed224.212s/300, status2/guards0/noemit:129 receivers,
+  12 completed-stage refusals over3 functions/5 locals, all HashMap<String,Int>.
+  First local9411/root78229 is shared, nonexclusive, focus inactive. Copies926
+  key/value/count rows and consumed0 remain exactly unchanged. This census is
+  not ordered later-body admission; an unproved carrier gets no permission.
+- B5 private C53/query13 PASS42.426s/300, guards0, warnings retained.
+  Independent review checked exact C diagnoses; LLVM was not part of that run.
+- Earlier joined v7: formal-key PASS75.454s; focus PASS130.497s;
+  native storage PASS15.169s. These are not v8 full-bootstrap evidence.
+- Earlier full unchanged bootstrap v6 FAIL196.108s at nominal MIR control
+  node80071/`aggregate_release_plan_unproved`; gen1/fixpoint/install unverified.
+  [Receipts and limits](audits/p0_owned_metadata_integration_2026-10-14.md).
+- AF CI38438582078 is documentation-filtered green: compiler jobs SKIP.
+  Last actual compiler run38418999774 is RED at gen1; six dependents SKIP.
+  Neither establishes compiler acceptance.
+- New origin CI38534793945 is RED at gen1 node107439,
+  `unproved_exclusive_member_mutation`/Array<String>; nominal-array control
+  passes. The remote optimization does not claim ownership closure.
+
+Next: join the three private implementations of the observed Map chain:
+existing focus lifetime/checked-target/disjoint-backing facts, complete scalar
+Map readonly formal effects, and existing-probe behavioral/fact-fault gates.
+The completed receiver observation above is the planning input, not a new
+work queue. Freeze exact patches before the next root integration run.
+Current exact delta: split sequential same-field captures at the existing
+group issuer, replay that identity in Current, carry old-holder last-use
+across groups and deny bodyless forwarding at the existing field-read owner.
+Do not restore the old descriptor after a later holder grows. C keeps all
+dead-holder/attack cases, and observes Map reader fact faults separately.
+The source changes are present in v12, but dead-holder still fails. A2's
+log-only observation now identifies the actual first false: CountPaths' exact
+default-mode call passes, then Path's inout formal26 has no matching callee
+focus group. Issuance has two caller groups; both CopiesReady checks pass.
+Formal26 has paths/@paths and retaining-or-changing `:!` rows, but no mutation
+key; that absence is not permission. Trace: `/home/c/pgy-focus-observer-A2-20261014/receipt/`.
+Compile rc0/79.444s, unchanged analysis rc2/0.016s, source/tool/inverse guards
+pass. The automatic prefix-only log filter failed on multiline Log output;
+a separate CRLF-normalized comparison of the complete original diagnostic
+passes. No target emission/execution or verdict/state change occurred.
+Next: A repairs the existing focus/field-read/growth producer-consumer chain;
+B checks scalar formal target contracts; C preserves the dangerous-location
+and forwarding-target falsifiers. No missing-summary default grant or user
+source rearrangement is allowed. v12 full unchanged bootstrap is now observed
+FAIL162.115s/1800, guards0, before gen1/fixpoint; no installed-driver evidence.
+
+Latest A5 actual observer on v14 PASS82.556s: original analysis rc2 and full
+diagnostic parity, inverse/source/tool/binary guards pass, no target emission
+or execution. Actual Path local30 -> formal26/path0 dependency is present;
+growth conservatively emits formal26 wildcard without unconverged. Issuer
+now produces Path group(fn24/root26/local30/field4/end32) plus the two
+Populate groups. All CopiesReady and Path UsesReady pass; CountPaths/Path
+root tuples pass. The next false is Populate g1's non-call RootUseReady.
+Enumerating every source root35 use leaves only the final rows.values=values
+Atom; g2's completed exact source-repack identity seals end59. A9 will connect
+that other approved group's restoration at the same function/root, keeping
+Atom receiver identity and every affected older Map part's settled/last-use
+proof. Arbitrary assignment or stale old-holder restoration remains forbidden.
+Preserve v8/v9 and every failed receipt. Rerun unchanged full bootstrap,
+gen2==gen3, actual installed driver/full fixpoint/public CLI under1800s/3072MiB,
+then scoped main commit/push and required compiler CI on that exact SHA.
+Missing facts or new canonical refusals reopen the same whole-chain plan;
+do not reduce inputs, increase budgets, weaken safety or add local exemptions.
+The current canonical remaining-refusal count is UNKNOWN; historical9/97
+rows after skipped failures are conditional, not a current count or upper bound.
+Keep skipped jobs, installed-Windows-bin staleness and remaining shared WIP
+explicit. No GUI unblock, SoT CLOSED or whole-language memory-safety claim.
+
+Root additionally checked ten proposed Map inputs with both existing v9
+analyzers (1.866s, all guards PASS, analyze-only). Plain writeback and genuinely
+disjoint backing already pass; early-return and dead-holder paths still fail.
+All six alias/selected-access/retention/shared-backing negatives fail with
+`borrow_boundary_escape`. Preserve these actual baselines: do not broaden
+candidate selection into a type-based permission or regress the two positives.
+Receipt: `.tmp/ci-map-carrier-baseline-root-20261014/results.tsv`.
+
+Current implementation scopes are locked in the P0 directive: A existing
+focus lifetime/target/disjoint-root producers and consumers; B existing
+formal-effect inventory/use/readiness for scalar Map nonretention; C actual
+behavioral input/fact poison tests. No new owner/schema/annotation/copy
+fallback is selected. Candidate selection alone cannot grant mutation.
+The next frozen private index preserves AF executable modes: v9 has31 existing
+644->755 copy artifacts and seven new executable Pgy artifacts. Source bytes
+are unchanged by that correction; v9's original index/receipts stay frozen.
+
+## Historical archive — CI recovery observations before cleanup integration
+
+User priority (2026-10-13): required compiler CI green first, then a detailed
+remaining SoT plan and parallel-execution preparation. No future SoT queue or
+new core concept is active during this recovery. Coordination:
+[`ci_bootstrap_recovery_2026-10-13.md`](agent_work_directives/ci_bootstrap_recovery_2026-10-13.md).
+
+Shared HEAD and origin/main are
+`da227fcf8680f3d4b9d8370cab02e825e0d98f74`. Root integrated Claude's handle
+storage fix without changing its contract or losing local WIP. All four
+overlaps equal the backed-up local text plus incoming call/declaration edits;
+the other555 backed-up paths retain exact bytes/deletion state. Index empty,
+no conflicts or new branch/worktree. The559-path verified backup is
+`C:/Users/user/PergyraLang_Backups/pre-handle-ci-main-20261013-5b193992bdca437bac6d6a0258a08d72/`;
+recovery stash `56d1119942be6a337c6244bc077d65518b5cfa16` is retained.
+
+Exact upstream CI38397764737 is RED: Windows, macOS C-only, TSan and formal
+PASS, codegen bootstrap FAIL, six compiler dependents SKIP. Actual published
+parser artifact127397/digest1196429122 maps CI node107421 to
+`mir_lower/intent_execution_json_rows_owner.pgy:71`,
+`MirIntentExecutionCaptureCompensations`, ArrayPush of call_target_names.
+The candidate artifact129182/digest1279404785 has different node identities;
+do not reuse that published ID in candidate diagnostics. Root parser-only
+receipt `ci-node-map-root-20261013` exits0 with5111 bindings unchanged. Its
+older diagnostic seed is not current handle/whole-body acceptance evidence.
+
+Current bounded candidate is published da227 plus the previously verified
+17-production/24-test focus closure, selective Make/22-field receipt caller
+migration and two subordinate OWNERS registrations. It is NOT the shared
+17 whole-file WIP: nine shared files have later unverified dependencies.
+Private source:
+`C:/Temp/pgy-ci-focus-da227-root-20261013-5495b088a5a946cabc9a1e8da01894e3/source`.
+Linux native seed is exact published base plus reviewed native9:
+`/home/c/pgy-ci-native-seed-A-da227/bin/pgy`, SHA256
+`03F7330CD37669553E30B6E65CD1BFB387BE93D27E8763989537A96D86168770`.
+Parser, metadata98, var MIR and retired-form negative passed. Windows local
+seed build ended rc124 at its unchanged1800-second limit; its gates did not run.
+
+Root full-bootstrap run uses original1800s/3072MiB and actual Linux seed.
+Gen0 and parser build, call-argument graph and failure-status gates passed.
+The MIR receiver root control then failed BEFORE gen1: ast_artifact_invalid,
+node66593, owner expression_graph_type, the compound ShapeReady guard in the
+new focus owner. Source/test/tool/kernel-boot guards passed; service585.330s,
+cgroup peak1934716928 bytes. Receipt `ci-bootstrap-root-linux-20261013`.
+This first failure is not a complete row census; fixed point, breadth,
+installed-driver acceptance and exact-SHA compiler green remain OPEN.
+
+The diagnostic-only observer found MapHas/MapGet/MapSize nominal-field
+receivers losing their type in two existing expression owners. The new private
+generation `/home/c/pgy-ci-hashmap-root-20261013/source` consumes the existing
+typed receiver query in both result issuance and validation; no new owner,
+Bool fallback, source guard split or safety/budget increase. It includes the
+frozen focus17, native9 and exactly two receiver-owner deltas; shared source
+and index remain untouched. The observer's old refusal and all guards are
+retained in `ci-expression-observer-root-20261013`.
+
+Root narrow execution57.117s/300: leaf/member/nested-member/index pass native
+and Pergyra body analysis; wrong key/arity/missing field/non-map all reject
+with owned diagnostics. The initial forward-call fixture is RED at its return
+before the receiver is reached (HashMap<Unknown,Unknown> versus declared type).
+Its receipt is retained; a separate typed-local fixture isolates that receiver.
+Original fixed MIR control is running under300s, not yet accepted. Receipt
+`ci-receiver-narrow-root-20261013`; full input guards pass.
+
+Structural gate on the same frozen source bytes in Linux native filesystem
+gets past the old60s timeout in10.911s, then reports stale let/mut inventory.
+After the current let/var ratchet, it reaches an old raw cleanup consumer
+assertion in10.582s. Full source survey identifies one such focus mismatch;
+the selected ratchet preserves cleanup and admitted recovery and denies the
+old raw-only path. This is inventory work, not semantic/CI closure. All
+original receipts and unchanged60/300/1800 limits remain explicit.
+
+Next: finish fixed-control/typed receiver fault-query tests, apply the selected
+inventory ratchet to a frozen generation, run the original full bootstrap and
+its focused recovery/negative gates, then publish only the verified unit and
+inspect required exact-SHA CI. Detailed successor SoT planning stays held.
+
+## Historical recovery archive — let/var validation, lookup only
+
+Current shared HEAD and origin/main are
+`0994eb9b8867e2cef4feaecc45ba43fc2c42d02d`. The landed syntax slice replaces
+surface `let mut` with `var`; internal `Let: mut` and the mutability flag keep
+their identity. Immutable-let enforcement and never-mutated warnings remain
+planned, not implemented by this slice. Do not add them to this ownership rung.
+
+Root fast-forwarded main without discarding local work. All three overlapping
+files auto-merged and match the backed-up local contents after spelling-only
+normalization. The index is empty; no conflicts, new branch or worktree exist.
+The verified 554-file backup is
+`C:/Users/user/PergyraLang_Backups/pre-let-var-main-20261013-f4cb3e5ab2ef46a8970953e7fbf307bb/`;
+recovery stash `48810d67aa0e6465ef8a1724d2748da7716529d7` is retained.
+
+The same three implementation lanes are bounded by
+[`drv2_let_var_main_integration_2026-10-13.md`](agent_work_directives/drv2_let_var_main_integration_2026-10-13.md).
+A builds a new-syntax validation compiler from published HEAD plus the reviewed
+nine-file native metadata prerequisite. B's self-host/stdlib census requires
+no edits: no executable retired declarations or WordMut reads remain. C changes
+only 100 surface spellings in 16 test files; Rust and retired-form negatives
+remain. Root owns authoring-example consistency, integration and publication.
+
+Last root-run focused gate is candidate3 `collection-focus-recovery.74owSe`,
+exit0/end guards PASS,212.089s by receipt file interval at the original300s/
+3072MiB. Eighteen emitted-C executions, seven source refusals,19 poison modes
+and three zone harnesses pass. Paired let/var output bytes and order match.
+Independent gate-only review also finds no new defect for those fixed pairs;
+it rehashes4,641 receipt inputs but does not rerun the gate. Report:
+`C:/Users/user/AppData/Local/Temp/pgy-var-focus-paired-candidate3-review-20261013/review.md`.
+Do not reuse historical pre-spelling artifact IDs or promote this bounded
+emitter result to full canonical/installed-driver acceptance.
+
+Next diagnostic is the reached canonical statement stage described below.
+Static component inventory still times out at its unchanged60-second budget.
+Two native-C map
+parity controls, native target LLVM/MIR recovery, canonical bootstrap,
+installed-driver acceptance and full compiler CI remain OPEN. No SoT row or
+whole ownership closure is claimed. Root independently reproduces the new
+native parser, metadata98, var MIR/retired negative and C/LLVM var execution.
+Registry gate PASS in6.627s after owner-generated inventory refresh; registry
+and four projection bytes are unchanged. The15 migrated Pergyra fixtures pass
+AST generation (not ownership admission), with root-checked byte guards.
+New bounded focus/field-read source is frozen at
+`C:/Users/user/AppData/Local/Temp/pgy-var-focus-candidate-b3eb895ed69346d9a4927df3f2a9a310/source`.
+Root runs focus `collection-focus-recovery.qxJjLk` PASS/guards PASS (191.509s by
+receipt file interval) and field-read `collection-field-read-summary.qGVMkW`
+PASS/guards PASS with the identified new seed. Independent re-review rehashes
+both receipts,41 overlay paths and native9, reruns metadata98 and analyzes nine
+var falsifiers: no new reached fail-open. This is only the41-path bounded
+slice, not the earlier cold compiler's55 changed source paths;38 are omitted
+outside these two probes' import closure. The13 runtime fixtures still use
+let. The successor plain source
+`C:/Users/user/AppData/Local/Temp/pgy-var-focus-paired-candidate-6d37f08a6e1a4fef9ec4f79b1b1482eb/source`
+changes only the focus gate. Root runs `collection-focus-recovery.OAybey`
+PASS/guards PASS in168.354s by receipt file interval:13 let baselines plus five
+exact-declaration var runtime pairs, seven source refusals,19 poison modes and
+two original zone harnesses. C/LLVM-built emitter parity and restored emitted-C
+execution are verified, not native target LLVM/MIR. Prior source/gates remain
+read-only. Follow-up review verifies all five var emitted-C outputs match the
+let baseline bytes but requests stronger future order/zone ratchets.
+The gate-only successor
+`C:/Users/user/AppData/Local/Temp/pgy-var-focus-paired-candidate3-358c8bf088674428b694cdcf338e2b79/source`
+now passes in root receipt `collection-focus-recovery.74owSe`, with end guards
+PASS and unchanged300s/3072MiB:18 emitted-C executions, seven source refusals,
+19 poisons, three zone harnesses including var TRY. Full paired-output bytes
+and order are checked. Designated gate-only re-review is complete; no native
+target LLVM/MIR or canonical closure is claimed.
+
+Canonical analyze-only with the frozen C probe times out at300s: rc124,
+304.274s including wrapper cleanup; measured working/private peaks1.338/1.437GiB,
+no stdout/stderr or target. Receipt `.tmp/var-focus-canonical-analyze-20261013/`.
+This is incomplete evidence, not semantic refusal or canonical acceptance.
+A fixes actual canonical import/input differences before bounded phase
+instrumentation. Actual input closure657 versus shared690 are distinct
+programs. Shared normalized Pgy differences are currently57 versus published,
+50 versus cold (including intentional HEAD bridges); historical55/38 are not
+a current remaining-work count. An old scratch baseline is not assumed pure
+published authority. A's scratch observer through existing parser/body
+Observed APIs times out at300s (wrapper301.312s); guards unchanged. Artifact
+128966/digest1197774009 is fixed. Parse23.279s, header31.244s/ok;
+initializer41.066s, expression places50.217s, assignment27.919s. Statement
+starts at224.057s and is unfinished at the deadline. These are wall intervals,
+not exclusive CPU costs. No final body verdict or first-node diagnostic exists.
+Receipt `.tmp/A-canonical-cost-observer-20261013/`. C traces the actual cold
+statement chain: binary indexes remain; lexical environments are projected
+again after place analysis. That is not yet a measured bottleneck. Next is
+private256-row environment/start/done telemetry on the same input, unchanged
+deep admission and total300s/3072MiB. That observer now ends rc124/301.959s:
+statement completes89.515s;35,248 environment pairs sum20.945s (unmatched0),
+independently recomputed by root. Four telemetry lines inverse exactly to the
+original owner bytes. Logs/capture are included, so environment projection
+is not established as the dominant bottleneck. Generic starts296.148s and
+is unfinished. Receipt `.tmp/A-statement-cost-observer-20261013/`; final body
+verdict/first diagnostic and failure census are still unavailable. Default or
+empty Ok in a skipped later owner is not PASS. No production permission change,
+new owner/cache or larger budget follows from this censored observation.
+
+Structural gate still times out: rc124/61.154s at the original60s; child checker
+and14 lexical tests PASS. C's manifest-hashing experiment failed escaped-path
+transport and increased warm cost; only that owned delta was removed. Exact
+pre-experiment gate/checker SHA restoration is verified, prior batch/var/WIP
+and RED receipts preserved. Static60 remains OPEN; no larger budget or new
+cache/path-transport track is approved.
+Exact0994 CI38374181905 is terminal RED: bootstrap refuses borrow_boundary_escape
+at reissued node107205, unproved_exclusive_member_mutation, Array<String>.
+Windows, macOS C-only, TSan and formal PASS; six compiler dependents SKIP.
+
+## Historical recovery archive — superseded active card, lookup only
+
+Current shared HEAD is c7902a4b6d57fe0ce94e698a7506953f4a3e8a93, a documentation-only
+let/var binding decision. Compiler source remains the24f6861fd generation.
+Its CI38342304276 is documentation-filtered green: the compiler bootstrap,
+formal, sanitizer and dependent compiler jobs are SKIPPED. It does not resolve
+the last full compiler run's refusal below.
+The three implementers' fact, physical-consumer and falsifier changes are
+joined. B's latest private diagnostic observes thirteen positive and four
+genuine unsafe source verdicts; it is not target execution or whole closure.
+The previously identified emitted-C targets and both zone harnesses passed
+root's independent rerun, but belong to the earlier branch/subset generation.
+The frozen joined full focused gate in `collection-focus-recovery.UzmJQm`
+passes C probe compilation, then refuses LLVM probe compilation at a field
+HashMap key-metadata seam. Input guards PASS; the full gate is RED.
+A owns an isolated six-file native LLVM metadata prerequisite and a new
+identified executable; the original frozen seed and shared source are intact.
+C's C-only diagnostic in `collection-focus-recovery.fuQwqZ` passes the first
+sixteen poison modes, then stops at an invalid nonempty-copy test premise.
+That premise is a test defect to investigate, not a successful safety refusal.
+The shared structural gate also hits its unchanged sixty-second budget inside
+checker-mechanics self-tests, before main inventory; it remains OPEN.
+Native target LLVM/MIR recovery, canonical bootstrap, installed driver and
+full compiler CI remain OPEN. Root owns integration, designated review and
+publication after the same-generation executable gates actually pass.
+See the active directive's latest `Joined integration blockers` section.
+
+Published executable checkpoint: `24f6861fd4a9cae5085f761650bc770e1a049ad8`, pushed and
+exact-remote SHA verified. Only nine forwarding-index/probe/gate/audit paths
+land; earlier shared owner import/signature and Make WIP remain uncommitted.
+Exact-SHA CI38336183971 attempt1 is terminal RED. Windows, macOS C-only and
+TSan pass; bootstrap refuses borrow_boundary_escape at current-generation
+node107189 (unproved_exclusive_member_mutation, Array<String>), and six
+dependent jobs skip. Its formal job115096731028 fails40 before proofs: opam
+repository download curl7 (connection failure). The initial retry API call
+was rejected while the run remained active. After terminal status, one
+bounded formal-only retry completed at the same SHA: attempt2 formal job
+115100135001 PASS, including the fresh kernel corpus and extracted checkers.
+The bootstrap refusal and six dependent skips remain; whole CI is RED.
+Previous28d075016ca8a0e49c5e88f340916b0f158ec3c3 physically copies/retires String;
+its CI38326175143 is terminal RED: self-host C bootstrap refuses node107167,
+six dependent compiler jobs skip. Formal, Windows, macOS C-only and TSan pass.
+Neither supporting unit claims canonical ownership or whole CI closure.
+The preceding source semantic checkpoint is
+`3a2eefa827b7b7bd15132a8d5585b07752ccada4`; its Pergyra parser/body input is
+unchanged by the String runtime unit. The diagnostics below pin that original
+source generation; numeric IDs must be reissued for the newer forwarding
+source checkpoint, never hardcoded into production. Shared candidate remains dirty (524
+paths before this navigation update), and the shared index is empty.
+The recovery-only snapshot of 529 pre-landing WIP paths is
+`C:/Users/user/PergyraLang_Backups/main-wip-preservation-20261013-085612/`,
+commit ed4fc52f68c4430dc868a70d049ff8c1707660a3, tree
+a8db1041fa206d8bb93a08146b195117ec0b2d5c. Strict fsck, recovered-tree match,
+bundle SHA8C9A19D9880748B55AD030AE42F1B5A47835AA2DAF8FAEE02A269CAA1030D70F,
+and unchanged shared index/HEAD/status all PASS. It is not a main landing.
+Scoped nested-array explicit Clone copy prerequisite is committed and pushed;
+origin/main was independently verified at this exact SHA. This is not full
+SoT/ownership-clean closure. Read the current objective and acceptance card:
+[`nested_array_copy_prerequisite_2026-10-13.md`](audits/nested_array_copy_prerequisite_2026-10-13.md).
+Exactly three existing implementers completed runtime, C/LLVM and falsifiers;
+root verified and the designated external review gave scoped PASS. Their
+sources are frozen, not three unfinished parallel tracks. No extra branch or
+worktree exists. The rest of the shared SoT candidate remains uncommitted.
+The preceding exact-SHA CI run is 38319266060, terminal RED: self-host C codegen
+emit_gen1.c fails at borrow_boundary_escape node107167; six dependent compiler
+jobs skip. Formal, Windows, macOS C-only and TSan pass, not whole compiler green
+or installed-driver acceptance. The previous base was
+`e2240cb2abf741f30629d72c811a460894a28f91`.
+Root reproduced the published Pergyra parser artifact in
+`.tmp/bootstrap-node-map.MPcrUC`: count127137, digest1216510375, node107167 is
+ArrayPush(call_target_names,call_target_name.value) in
+MirIntentExecutionCaptureCompensations, intent_execution_json_rows_owner.pgy.
+Source/native/recipe/probe guards pass. The function extracts eight inout
+field descriptors, grows them and can return -1 before writeback; CaptureStep
+adds a nested compensation-field recovery obligation. This matches an existing
+unsafe exit-before-writeback negative, not a proved false positive. Current
+WIP has no decoder fix. Resume the complete fixed-input failure enumeration
+and compiler-owned focus/exit recovery plan:
+[`drv2_field_focus_exit_recovery_2026-10-13.md`](agent_work_directives/drv2_field_focus_exit_recovery_2026-10-13.md).
+The same three implementers prepare diagnostic instrumentation, physical
+recovery and paired falsifiers; no production guard exemption is released.
+First private diagnostic VsB1te is INCOMPLETE: it called header admission but
+omitted the separate body entry. The corrected full body reaches collection
+ownership and times out within the original total300-second budget, receipt
+`.tmp/field-focus-direct-e537e8ffa33e4adc8c4c26b29d23e3d9/`: build0/53.1s,
+analysis124/244.4s, sampled private peaks1508.2/1602.5MiB, source membership/
+bytes and executable guards PASS. This is neither semantic failure nor a
+complete failure census. Last observed stage is collection-ownership:start.
+The measured blocking operation is the edge-by-all-keys forwarding search in
+SemanticAstCollectionExclusiveFieldReads. A round-local exact-prefix index
+replaces only that search, not admission policy or the source input. Root's
+uninstrumented actual-owner parity receipt
+`.tmp/field-read-index-parity/receipt-2bc68927bce04fb98215ac01c7f682f0` builds
+both versions and preserves nonempty ordered outputs on four actual programs
+(counts6/6/4/6). Independent review gives scoped successful-execution
+key/order/fixed-point PASS, not cleanup or whole-compiler approval. Additional
+temporary allocations and arbitrary-input OOM behavior remain explicit limits.
+Indexed full-input diagnostic
+`.tmp/field-focus-direct-8937781bcb5b4cd88630fc7893a1cb70` runs within the original
+total300/cap3072: build53.6s, analysis177.1s; source/membership/executable guards
+PASS. Forwarding finishes10 rounds. The diagnostic is still TAINTED and
+INCOMPLETE: the body refuses node107235, unproved_exclusive_sink_entry,
+nominal aggregate. Later ordered/element continuations complete the reached
+traversal in `.tmp/field-focus-direct-0da8d4e4279d4f3fa464e65a1032f2a5`:
+build54.0s/query193.2s, original300/cap3072 and guards PASS. It is explicitly
+TAINTED, not admission or an independent universal failure census. Count
+actual false guards only: statement1, sink6, String element2; alias/member-root0.
+107167/107235 form the eight-field nested recovery group. Other five sinks
+pass mutable analysis working sets, not read-only arguments. Two elements are
+names[row]/defaults[row] in nominal generic-row assembly. The joined plan
+and actual header-only eight-field identities are in the same directive above.
+The original-generation numeric observations are not production authority.
+
+Exactly three implementers completed the private ordered inventory and typed
+metadata, the physical recovery probes/consumer map, and permanent summary
+gate. Root independently reruns physical ASan/UBSan (666 checks,117 allocations/
+retirements; feasibility only), completes cold Make C/LLVM summary/refusal
+tests and resolves independent timeout/startup review findings. Final gate
+21CB5558... has four source projections/two original refusals per backend,
+seven validator negatives and generation guards PASS in102.6s. Exact FORMAL/
+READ joins and KEY order are checked, not an external AST-ID oracle or READ
+stream-order proof. The final isolated source tree59341fde... plus only
+evidence-prose update tree12595478... passes documentation quality in9.6s;
+that final tree is the committed main tree. No installed driver is changed.
+Root owns cold integration/review/publication; unrelated WIP stays preserved.
+Next: common ownership/focus/transfer and String ABI fact producers, their
+generation/place/continuing-exit carriers, C/LLVM consumers, then canonical
+DRV-2/bootstrap/installed-driver/CI. Existing unsafe aliases/exits remain
+negative. No source annotation workaround or guard exemption is released.
+
+Supporting physical String leaf is committed but NOT used by a production
+permission consumer. Root Make entry passes in siKGjK: actual
+inline, LLVM-linkable and C-extern bodies, independent literal/empty/system/
+region copies, exactly-one allocator retirement and9panic controls; runtime
+bc/cext static contracts also pass. External final-script review wTP0cn
+independently passes all three paths and9panic controls in12.7s, including
+the Make root, python3 default and helper-input guard. The isolated published
+main-plus-only-this-unit tree52e3e13a15d67b3bc68d86ebb6460e3048195000 also passes
+its real Make entry and BC/C-extern contracts in zGDKFe; final evidence prose
+only was then updated and the documentation quality gate passes. General ordinary
+String result/caller cleanup remains OPEN, and this leaf does not fix CI.
+See [`drv2_string_result_lifecycle_bridge_2026-10-13.md`](agent_work_directives/drv2_string_result_lifecycle_bridge_2026-10-13.md).
+Scoped receipt: [`string_copy_retire_runtime_leaf_2026-10-13.md`](audits/string_copy_retire_runtime_leaf_2026-10-13.md).
+On 2026-10-13 the user requested main-only branch consolidation: 70 local
+branches and 3 origin branches were deleted after a full Git bundle and a
+separate bare restore passed exact-ref comparison and strict object checks.
+Only local `main` and origin `main` remain; main's commit was not changed.
+Recovery: `C:/Users/user/PergyraLang_Backups/branch-consolidation-20261013-005745/`;
+see `README.md`, `before.json`, and `cleanup-verified.json`. Bundle SHA-256:
+`4a2cd57a205315c8f24af64d5198e19a7c05cbc5ac133536c3567c01d4c453f8`.
+The former `backup-drv2-wip-20261012` tip `2f6f47ad7bf05ec3b1a64ee2c684fd8cc7fda98c`
+and its implementation history remain recoverable there, not on a live branch.
+The preserved remote-verified implementation is
+`995bda22496e9a782b8fe58a59a07fd7c9c78faa`, prior implementation
+`1e39d7f6f085bcd3c66fee166bdf1627b6de4177`, navigation parent
+`06dcf1ae17118bb80b62d96dff5008d55184b86c` (both remote-verified).
+Main advanced through root-clutter and historical-directive archival commits.
+This branch-maintenance operation changed no compiler/test input and performed
+no merge, reset, stage, or source commit. File hashes, all 422 dirty status
+paths and staged state were preserved through deletion. The user subsequently
+resumed whole-chain review and parallel implementation; branch deletion alone
+did not integrate the candidate. Shared main stays dirty with the candidate
+and unrelated WIP; the shared index was empty at the latest root check.
+The earlier base HEAD removed checkout-drive-specific documentation/build
+scripts; that maintenance was not an ownership landing or compiler CI receipt.
+Exactly three existing implementers use this checkout; root owns build,
+integration and publication. Follow the current recovery plan:
+[`main_integration_and_drv2_recovery_2026-10-13.md`](agent_work_directives/main_integration_and_drv2_recovery_2026-10-13.md).
+The archived-work census covers 71 tips and 89 unmatched patches; their
+semantic dispositions, not branch names, determine whole-main integration.
+The prior return-order native generation is F15paD; latest shared-source L2fJ64
+and narrow main acceptance are below. XI09ss is independently scopedPASS for
+complete CALL tuple currentness. Original child declaration/kind and target
+binding8->9 bypasses now refuse parent/call/value/index and cached mask63;
+restoration returns mask0. DpPare's one SecureSlot view-token regression is
+fixed without changing original typing or inventing a token/value/freshness
+certificate. One owned argument tuple array seals target/argument ptr/ID/
+shape/binding; the retired parallel arrays are gone. Exactly three existing
+implementers completed C capture/AST/MIR, LLVM AST/MIR, and executable order/
+negative tests. F15paD preserves old tuple/borrow expectations and fixes actual
+return evaluation before cleanup; the designated independent AST/MIR,
+callable, missing-ABI and foreign-block review is now scopedPASS. That is
+not String/aggregate copy/drop or canonical approval. The three lanes surveyed the next actual String copy/
+retirement bridge read-only: A allocator/glue/storage, B admission/HIR/MIR/
+ABI/last consumers, C fixed-input failure set/falsifiers. Root then selected
+one copy-before-cleanup prerequisite inside this chain: existing nested-array
+Clone must recursively copy backing, rather than keep its identity-copy
+fallback. Exactly the same three implementers completed runtime, C/LLVM
+consumers and permanent falsifiers, now committed in 3a2eefa827. Follow
+[`drv2_copy_before_cleanup_prerequisite_2026-10-13.md`](agent_work_directives/drv2_copy_before_cleanup_prerequisite_2026-10-13.md).
+No new automatic drop or ordinary String return permission is approved.
+This is supporting storage-safety work, not self-host substitution or a new
+independent rung; the joined general result/retirement contract stays OPEN.
+Checked-call identity/argument tuples and
+optional typed result values must remain distinct: contextual Channel(1) and
+original raw call protocol may issue the former without the latter. Missing
+or stale call seals must refuse; missing result values must grant no freshness.
+Some/UnwrapOption and actual String MapGet
+carry checked original result dependence through publication, selector,
+backing, escape and cached claims; they grant no fresh storage or cleanup.
+Native/Pergyra readonly and same-binding inout admission is repaired
+(Pergyra mode1=inout,2=own,3=ref). Exact primitive/Void refinement no longer
+requires unrelated DEFAULT input types to be scalar; complete backing effects
+and no-inout/own/current-header guards remain mandatory.
+Callable permission now reads the existing sealed flow owner, not a filtered
+Type projection. The same publication-owned routine-input query seals every
+original formal type AST edge/ID and runs before raw cache permission.
+Original NULL/generic/unused Unknown behavior remains; no new kind restriction,
+owner, cache, source annotation, copy workaround or time/work allowance.
+
+Prior return-order native: F15paD / outer9JpQmO, binarySHA
+660FF027BAE007D7C0ABB996ED908510B8A7804691733AED9F0FA475AAAE8846,
+whole-source manifest389A969D57E34861C3681E4C89367FC43CC83FD64F1DC871095D193C15520AF2.
+PASS: phase3679/0,semantic3222/0,HIR58/0,MIR327/0,transpile1008/0,
+transition15/0,LLVMmap98/0,24C/LLVM positives and58 exact borrow-only/no-MIR
+negatives, provenance/projection/registry and source/binary guards. Narrow
+GmwM99/GbKHvP also passes. No String/aggregate materialization is implied.
+SummarymVJ4qI / 5d2c5amb passes original recursion,4097 independent queries,
+actual4096 single-closure refusal and original30s controls with guards.
+Full canonical8bMcLB / n3L2kr remains RED6599 errors/9warnings:
+1830 direct helper,4214 callsite helper,555 RETURN,no other family. Compared
+with6661, helper refusals decrease90 and true RETURN reports increase28;
+net62 fewer is supporting evidence, not permission to erase return loans.
+First real return loan remains Some(facts.module_paths[low]) in
+AstSourceModulePathForNode; actual copy/move/view materialization is missing.
+
+Next falsifying obligation: actual String copy/return/caller retirement needs
+one allocator/glue/origin/generation-bound chain, before any new drop. The
+existing27§5.10.1 OwnershipCleanCallContract is a target join with no production
+producer; declare owner/carrier/reached consumers before implementing it.
+Safe return-order control originally returned2 in C/LLVM(XI09ss), now returns1
+in BOTH(F15paD/RhJSRh); private callable+cleanup3W2Jso also passes exact output.
+Tracked composite proves one RHS evaluation, Option<Int>, result capture,
+post-defer inout output, Void and no-cleanup; retained borrowed String refuses.
+These are not payload copy/drop or universal lifetime proofs. Actual String/
+plainaggregate return copy/drop glue and original result/field origin, direct
+refString's three COPY_ONLY diagnostic bypasses. The Type-query discrepancy
+is repaired; those diagnostic obligations are NOT. Non-NULL body replacement
+is covered; missing-body versus declared-bodyless early-return semantics is
+unchanged and not claimed closed. Scalar LET ordinary edge/binding/RHS faults
+are already covered; no concrete additional bypass was reproduced.
+Retired Type-read ratchet and current header/projection/pending mutations pass.
+Designated external review is scopedPASS for XI09ss complete CALL tuples and
+F15paD return-before-cleanup, not whole DRV-2/copy/drop:
+.tmp/drv2-redteam-avncao-20261013/review.md last two sections.
+Release witnessOQNKl3 / K55Wn2 passes original controls, HIR flips and all four
+MIR validation mutations with source/binary/input/recipe guards. Its reused
+private probe has two unused-variable warnings(g_pass/g_fail), not production
+failures.
+Latest component inventoryItwBWy times out at unchanged60s(rc124), after its
+component checker PASS; trace exists. No
+usable diagnostic, semantic result or structure-wide PASS is inferred.
+Bootstrap/installed-driver/compiler-CI acceptance is NOT established, SoT
+remains ACTIVE, archived semantic dispositions remain open and the RED
+candidate is not landed on main. Full-chain details/older receipts stay in
+the linked directive and three audits, not an independent work queue.
+
+Latest verified source/test WIP468 paths are independently recoverable in
+C:/Users/user/PergyraLang_Backups/main-wip-preservation-20261013-064959/,
+snapshote4dd13e1a4df54310e0966adc9f6ea3c7de2a642
+(tree5b6799ee4a7a0a5961a33d8f3f49118a69f7eea3). Strict fsck/tree/bundle
+verification passes, shared HEAD/index/status unchanged. BundleSHA
+307C3EEC3D34FC4A81546C8D14FDD25A852AD72BA4EB0B4A7850AD2573449576.
+This checkpoint preserves the reviewed source/test repair, not these later
+navigation edits or a main landing. Earlier snapshots remain recoverable.
+Latest live main CI38282726584 at e2240cb2 FAILS self-host codegen emit_gen1.c
+on body bundle borrow_boundary_escape node107167; downstream compiler jobs
+skip. The earlier docs-only success is not current main compiler acceptance.
+Do not resume a historical candidate below this card.
+
+### Latest scoped copy and current full-WIP limits
+
+Post-publication full shared-WIP native pe5eUw/outerSam3wr is terminal PASS:
+phase3679/0,semantic3222/0,HIR58/0,MIR327/0,transpile1008/0,transition15/0,
+originalMap98/0 and separateClone286/0,24C/LLVM positives/58exact negatives,
+runtime-copy/provenance/projection/registry/source+binary guards. BinarySHA
+D2EAF9E1A309B5E086941975D6AB7E5C831B2BA83F0EE967D2BBDE0836B9F322;
+manifest038AA32B12460CF138C1C0D22090A57D287B4C7F17CF25A24808E343D09094FE.
+Original summarypwoYHJ/ot2z2vfc passes recursion,4097 independent queries and
+actual4096 single-closure refusal at original30s, with all guards. CI38319266060
+is now RED at the unchanged published bootstrap block described above.
+
+Actual old F15paD C control mutated its Clone (99/99/changed/changed); repaired
+C/LLVM both retain 99/7/changed/alpha. L2fJ64 full shared-native generation
+passed phase3679, semantic3222, HIR58, MIR327, transpile1008, transition15,
+LLVM384, 24 backend positives/58 exact borrow negatives and source/bin guards.
+Its LLVM tests were subsequently moved without changing assertions to original
+Map98 plus standalone Clone286; historical counts are not extra progress.
+Current focused gate owns those286 transport checks, actual exported-runtime
+pointer independence and retirement,12OOM/6boundary refusals and C/LLVM output.
+
+The independently scoped main landing was cold-built from exactly base main
+plus the13-file source/test unit (tree0e69eaccf3a8f65a6eb85a3d95acd0cd08cea059,
+without unrelated SoT WIP). Focused gate and semantic3191/HIR26/MIR224/
+transpile1006 pass, guards pass; binarySHA
+E1E56AB3F2EA076641C545F8D6C6E461752DE69145C37B535C5670A8A09F1A12.
+The lower counts are the published base suite, not deleted WIP tests.
+There were old-source compile warnings outside this narrow unit; no warning
+free whole-tree claim is made. Source snapshot is verification only, not a
+new Git worktree or live branch. After publication the index is empty; the
+observed522 remaining dirty paths are not included in this narrow commit.
+
+Canonical kO5m40/gnviet is still6599errors/9warnings with the same families;
+this copy unit did not lower the DRV-2 refusal count. Original nested smoke's
+default route is unavailable beside the temporary native binary; explicitly
+native-only replay passes its original inputs, not installation/bootstrap.
+Header gates fail on four untouched base headers642/656/772/880 over600;
+the component's prior60s timeout is still incomplete. No limit was raised.
+General String/aggregate return copy, allocator/origin/glue/caller retirement,
+LLVM nested SliceCopy, original scalar raw aggregate ABI and aliases retain
+their existing OPEN scope. Next implementation requires that one joined
+ownership decision, not another category permission or manual source ceremony.
+
+Latest pre-publication full WIP recovery:
+C:/Users/user/PergyraLang_Backups/main-wip-preservation-20261013-074031/,
+snapshotfabcbd2d27fc1b4bf63b04e0a485f92fa7662de8,
+tree2341ca11d53064826e2d72528c04f962aa3c65f1,481 paths, strictfsck/tree/bundle
+PASS, shared HEAD/index/status preserved. BundleSHA
+22885329F055A82BE6FB9C8D9954459F878626C2051212EDE12F54C0B589BAE8.
+It precedes the test setup fix, scoped audit and this navigation update;
+published Clone files are recoverable from main3a2eefa827.
+
+## Historical recovery archive — pre-integration receipts, lookup only
+
+Last full-canonical executable: `pgy-native-final.xGbOB4`, SHA-256
+`fd82ac1109c0aae648045a1b579afa8ccda9e6c7ea897f1ea3a7254336896d8a`;
+source manifest `15815509cb5811e09a7465375702c880ec850e87b11a2277200043fceab2636d`.
+Outer replay `ATi2jr` completed rc0. Phase 1881/0, semantic 3222/0, HIR 58/0,
+MIR 327/0, transpile 1008/0, transition 15/0 and LLVM receiver 98/0 pass.
+Query `l0Gnl7` passes 18 C/LLVM positives and 47 exact analyze-only negatives;
+original expectations are unchanged. Provenance, projection, registry and all
+source/input/binary guards pass. Summary `9c3bwB` / `9q59jjgx` passes original
+fixed-point, 4097 independent queries and actual
+4096-work single-closure exhaustion with unchanged inputs and 30-second limits.
+
+Latest focused replay before branch maintenance: outer `pQjPjb` / native
+`78fVEh` completed rc0 with the same unit totals and query `RezrA1` passing
+18 C/LLVM positives and 47 negatives. This includes the type-correct CAST
+retention fixture and the all-error borrow-code/cause assertion. It is not a
+new full-canonical, bootstrap, installed-driver, or CI result.
+Its `bin/pgy.exe` SHA-256 is
+`9852d1bd73f1bd5ba9890206fe4b9e29d470240b4d616d796a40f7191891977c`;
+source manifest `898e5c9cdfa6083fe69601b0bb4ec593a48470445ca519243f69f6fd8168cdd5`.
+
+Full canonical `rjVLUu` / `abLmfq` remains RED: 6898 errors / 9 warnings,
+down from 6928/9; no work-budget-exhaustion diagnostic remains. Native/recipe
+guards pass. First remaining refusal is the borrowed `facts` parameter in
+`AstSourceModulePathForNode`; it is not the complete remaining change set.
+Root independently verified the complete error census: 4845 callsite helper
+refusals, 2019 routine-direct CALL refusals and 34 RETURN refusals, no other
+error family and no work-budget diagnostic. These are diagnostic counts, not
+distinct defect counts. The joined trace/source map selected
+one bounded repair: connect the existing successful numeric CAST type check
+to publication, selector and backing consumers while preserving operand
+effects; seal all consumed child edges on cached queries. Follow
+[`drv2_checked_cast_and_edge_admission_2026-10-12.md`](agent_work_directives/drv2_checked_cast_and_edge_admission_2026-10-12.md).
+Current log-only replay `zXdZzt` matches the exact 6898/9 canonical diagnostics
+and passes source/input/binary/recipe guards. Its issuer census is available,
+but the original first-incomplete-root stop censors later roots; do not treat
+issuer occurrence counts as independent defects. CAST does not explain all
+remaining refusals. Next falsifier: a typed Some/Unwrap loan
+must preserve its payload origin without turning incomplete output evidence
+into permission or actual retention. Private log-only replay `Y25UJI` matches
+the preceding exact 6928/9 baseline after CRLF normalization and passes production,
+warm-object, recipe, private/native binary and canonical input guards; no output
+executable exists. Its issuer event names are not diagnoses: child-call events
+include read mask 1, so distinguish retained bits 16/32 and final per-row state.
+Scalar Option counts/indexes are distinct
+from actual String field/index loans; neither is automatically opaque retention.
+Release-witness replay `pHLNeO` / `sMgozz` passes original live/dropped controls,
+HIR flips and four validation-only MIR mutations; all guards pass. Documentation gate
+passed; the original component inventory gate again returned rc1 under its
+60-second wrapper without a usable diagnostic, so it remains OPEN. Installed
+driver/bootstrap and exact-SHA required CI were not run for this candidate.
+
+Whole-chain owner: sealed typed publication -> existing routine/index-owned
+all-formal origins/output matrix -> existing fixed point -> original escape and
+pending-call consumers. Entry initialization, scalar-copy source-empty handling
+and owned-local identifier assignment claims are repaired; member/formal writes
+stay conservative. Numeric CAST admission now comes from the existing successful
+type-check branch; its operand effects remain traversed. Completed query
+mutations of cast identity/target/operand/binding/generation and send/array/tuple
+child pointers/counts fail closed, with restored controls passing. Private row
+schemas moved only within the existing publication owner C/header; root's actual
+comment-excluding counter reports 593/101, summary 595 and index 594, under 599.
+No new owner, cache, annotation, constructor-freshness grant,
+input reduction or work/time allowance was added. Native recovery alone counts
+as no Pergyra C-path substitution and closes no SoT row.
+
+Independent preceding-candidate review found the pre-existing direct `ref String`
+COPY_ONLY caller gap for opaque/Slot retention. That last-consumer obligation is
+OPEN and mapped, not implemented. Literal static lifetime, independent backing,
+RETURN-only loans and transport-owned copies are distinct. C/LLVM String channel
+send duplicates backing; CHANNEL alone is not a UAF witness. Do not blanket
+reject safe sends or use a Concat allocation as lifetime permission.
+
+Finish line remains: DRV-2 refusals zero, unchanged full canonical compilation,
+original positive/negative gates and actual bootstrap/installed-driver/compiler
+CI green on one published SHA. Main has no green evidence for this candidate
+and must not receive this RED
+candidate. The tested batch is preserved. The user's designated external chat
+`Red-team review DRV-2 candidate` (`01a13074-17a4-7c23-aaad-1509e785e664`)
+completed a narrow review of the frozen batch: phase 1792/0 and focused
+output/retention probes showed no new source-level relaxation, not whole closure.
+It identified a P2 cached-child-edge gap for CHANNEL_SEND, ARRAY_LITERAL and
+TUPLE_LITERAL; the current repair owns the missing edge claims and falsifiers.
+The earlier review chat's platform error remains failed evidence, not a pass.
+Root rechecked the preceding manifest/phase before editing and then replayed
+the joined candidate above. The designated external chat accepted the review
+request with exact `995bda22` checkpoint/binary/manifest and receipts; the
+review returned focused PASS for the frozen CAST/edge delta and BLOCK for
+whole landing; see `.tmp/drv2-redteam-xGbOB4-20261013/review.md`. It identified
+the type-mismatch confounder subsequently repaired in the focused test above.
+On an explicit implementation resume, follow
+[`drv2_incomplete_fact_recovery_2026-10-13.md`](agent_work_directives/drv2_incomplete_fact_recovery_2026-10-13.md)
+for the bounded remaining producer/consumer investigation. No successor
+production repair was approved or implemented. Branch consolidation is now
+complete by explicit user request; it does not satisfy the ownership finish line.
+
+## Historical recovery archive — lookup only, not an active work queue
+
+`main @ f0edb866c9e914d9f1bdb5e24982319f9c4081ea`; the returned-backing
+candidate was BLOCKED by an inout-output counterexample; its replacement has
+partial executable verification and remains RED. Resume from
+[`drv2_canonical_recovery_2026-10-12.md`](agent_work_directives/drv2_canonical_recovery_2026-10-12.md),
+not the historical log below. In response to the user's regression concerns,
+scope growth is stopped until the original canonical input compiles with zero
+errors. Exactly three implementers report
+to main; no new production owner, feature, refactor or optimization is active.
+The external corpus/demo and Rust-comparison commits change no compiler source;
+they do not validate this compiler candidate or change the active rung.
+
+Fixed finish line (`AGENTS.md`): DRV-2 ownership refusals zero, unchanged full
+canonical admission, preserved positive/negative gates and actual required
+compiler CI green on the same published commit, including bootstrap and
+installed-driver checks. Then stop baseline expansion; further precision or
+new owners require a reproducible real use-case failure or explicit user scope,
+not hypothetical completeness. This does not close every SoT row or prove the
+whole language memory-safe. The finish line is not yet met.
+
+Final delivery requested by the user: consolidate pending branch work into
+`main`, push and verify required CI on the resulting commit, then leave only
+`main` locally and on origin. Check unique work and superseded changes before
+integration/deletion; retain backups until no still-required work would be lost.
+This cleanup is deferred until the finish line is met, not authorized for now.
+
+Preservation: backup commit `076dae23fea28029ee4132bd0046694f62e90cef`,
+branch `backup-drv2-wip-20261012`, is pushed and remote SHA verified. Main and
+the shared index stayed unchanged; 441 expanded WIP paths are preserved.
+Other users' proof edits are preserved but unverified by this lane;
+`gmon.out` and ignored scratch are excluded. The input-only repair checkpoint
+`a0cbb9cd16b138754922ad295272fda20e00b4d1` is pushed on the same backup
+branch and remote SHA verified; shared main/index remain unchanged by this
+lane. Returned-backing implementation checkpoint
+`7b5a4317e13b4a3f721796d2713339f6850ef734` is also pushed on that branch;
+remote SHA and unchanged shared main/index were verified. It is WIP, not an
+approved main landing. Scoped inout-output checkpoint
+`11d4314ea89781780904a67ac7651532b0f9c3ea` is pushed on that backup; remote
+SHA and unchanged shared main/index were verified. Later RED experiment
+`b97d9a513b2bba69acc1c8badc7c890d87845733` is also pushed and remote-verified;
+main/index stayed unchanged. Its broad expression-producer change is NOT
+approved for landing and its known counter edits are reverted. Rollback and
+measured canonical-budget checkpoint `d7f5738639946d00689a1f87f1300b8b840cde01`
+is pushed and remote-verified; shared main/index are unchanged. Later correction
+work is dirty and is not CI green.
+
+Latest scoped implementation checkpoint `5701b347a7a75ca6ce33f5f86c7a24138f349454`
+is pushed/remote-verified on the same backup; shared main/index stayed unchanged.
+It preserves the bounded no-output repair and the matrix below. The named
+independent review chat received that exact checkpoint. The subsequent all-formal
+batch/P2 guard replay `0SK6in` is RED, not part of that pushed checkpoint:
+phase 1792/0, HIR 58/0, MIR 327/0, transpile 1008/0, transition 15/0, LLVM
+receiver 98/0 and query `3l80Zk` (17 C/LLVM positives / 46 exact negatives)
+pass; semantic is 3219/3. All three regressions are the original scalar-field
+`Packet(packet.hp)` snapshot stores into a collection, constructor or array
+literal. Source/input/binary and projection/provenance/registry guards pass.
+Root also found an uninitialized `returned_backing_pending` entry field; this
+candidate is diagnostic evidence only, not an acceptance baseline. A is fixing
+that initialization and the one shared copied-snapshot cause. The next frozen
+replay `vSGhxm` restores semantic 3222/0 and all other original native matrices,
+but phase 1792/1 remains RED at cached `index_build` for a nonlocal scalar
+store. A traced the claim producer: it marked a scalar member assignment as a
+local assignment although its binding is zero. The local certificate is now
+restricted to an original owned LET plus identifier target; member/formal
+stores remain conservative. A's corrected files are frozen for a new root
+matrix; no acceptance or canonical result exists for that correction yet.
+Original test
+expectations, the 4096 cap and input/time limits remain unchanged. Do not use
+the prior UHa9SV executable as verification of the new batch.
+
+Independent `UHa9SV` review found no new six-file delta relaxation, but flagged
+the existing direct `ref String` COPY_ONLY caller skip: a known raw CALL escape
+can fail to reach the pending/final caller obligation for dynamic local/member
+backing. Opaque retention and publication into a caller Slot remain OPEN.
+The channel example is not demonstrated UAF: C/LLVM share a String-send body
+that duplicates backing before publication. Do not turn CHANNEL alone into a
+raw-backing-retention verdict. Literal static lifetime, independent allocation,
+pure RETURN-only loans and owned channel transport are distinct obligations.
+The P1 consumer repair is mapped but not implemented; first restore the frozen
+batch's original matrix, then join that producer-to-last-consumer repair.
+
+Latest frozen executable: `pgy-native-final.UHa9SV`, binary SHA-256
+`afd7578789ee2637bd4f80812f361e94faa1fd3ccd4b0e802b1d94df2eaf4ad2`;
+source manifest SHA-256 `59581aa0fac4cd7996f09ffc34226aa5f0cf78691c8096c01db5b970478b2e82`.
+Phase 1627/0, semantic 3222/0, HIR 58/0, MIR 327/0, transpile 1008/0,
+transition 15/0 and LLVM receiver 98/0 pass. Query `4GN3dI` passes all 17
+C/LLVM positives and 46 exact analyze-only negatives; provenance, projection,
+registry and source/input/binary guards pass. The rejected producer experiment
+is reverted: its three production files match `11d4314e`. All original
+assertions and the four real setter escape negatives remain intact.
+
+Current blocker: full canonical `canonical-current.Vo3CpX` /
+`collection-copy-field.kbIITd` refuses with 13809 errors / 9 warnings. The first
+owned failure is `recursive summary work budget exceeded`; guards pass.
+Earlier log-only trace `summary-budget-trace.Wtg9Aa` reproduces the pre-correction diagnostics
+after CRLF normalization, with warm-object/recipe/source/binary guards intact.
+The failing demand uses exactly 4096 charges: 55 evaluations and 4041 backing
+nodes, zero graph nodes. Only three no-store graph checks occur in the whole
+trace. The graph-cache proposal is disproved and withdrawn.
+
+Implemented bounded correction: distinguish the existing publication owner's strict
+no-output header from scalar RETURN-refinement eligibility; prove no mutable
+output store through the existing closed selector/call graph without clearing
+ordinary RETURN dependence. Admit only sealed owned-local physical-scalar
+assignments as non-storage; formal/member/heap/unknown writes retain the existing
+walk. Missing/stale/unsupported evidence remains fail closed. Six existing
+production files changed; no owner was added and all 599-line limits hold.
+This repair did not unblock full canonical admission. Release witnesses
+`drv2-follow-on.L758Si` / `n7xTES` pass the original controls and validation-only
+mutations with guards. Summary gate `Qo7MKV` still fails its body-evaluation
+proxy, not an observed escape from the unchanged work cap; its ordinary fixed
+point passes. Summary telemetry migration remains on hold.
+
+Current-generation private reason trace `summary-budget-current-trace.OGnWaz`
+passed diagnostic parity after CRLF normalization and all guards. Exact first
+failed episode: 55 evaluations + 4033 backing node visits + 8 graph visits = 4096.
+The all-formal routine/index producer is approved and has a first RED replay,
+replacing the measured per-formal repeated operation, not its cap.
+No batched solver has passed the complete matrix yet. Pending recursion cannot permanently
+mint CALL, but actual unsupported/incomplete facts must still refuse and their
+conservative effects must propagate before final publication. B adds a real
+68-formal transpose/bitset-boundary test; C migrates only the DEBUG work-cap
+consumer when A fixes its exact episode telemetry contract.
+Keep recursive completion, actual retaining calls, aliases and opaque cases
+fail closed. Some/UnwrapOption shallow result-loan production remains a separate
+open precision obligation, not a new BorrowedForCall permission. No cache, copy
+ritual, larger budget, main landing or closure claim.
+
+Earlier partial candidate: `pgy-native-final.qXgTdy`, SHA-256
+`cc35f4353c03d3c66218b2e52b43854d80c6f52f12c82493f5846c15bcf93a1d`;
+manifest SHA-256
+`3d3f1a8df6fb30785f5b74f355e363d77063ee5e50e51df75dce308d10a2047d`.
+Semantic 3222/0, HIR 58/0, MIR 327/0, transpile 1008/0, transition 15/0,
+LLVM receiver 98/0 and registry/projection/provenance pass. Phase is RED:
+1496 checks / 5 failures. Query `readonly-map-query.Hn8AnE` runs 15 C/LLVM
+positives / 45 exact analyze-only negatives: the four new setter counterexamples
+and literal String/Int control pass, but the original mutual-recursive Map
+positive fails on both backends. Source/input/binary end guards pass; the source
+manifest still matched before preservation. The five phase assertions represent
+an unused unresolved formal admission failure and four scoped-shadow checked-call
+publication failures, not five independent language contracts.
+
+Earlier plan: repair those two existing-owner failures and soundly complete the original
+mutual read-only recursive relation. Do not accept unfinished mutating setter
+recursion as a zero dependency. The anchored-handle query distinguishes handle
+escape from payload backing; it does not prove Slot payload freshness or cleanup.
+Only require its type evidence at a reached backing boundary, not for an unused
+`HashMap<String, Unknown>` parameter. Then re-run the unchanged native/query
+matrix, the updated function summary gate and full canonical input before
+requesting another independent review. Full canonical and CI remain OPEN.
+
+Previous independently reviewed candidate: `pgy-native-final.mxb8js`, SHA-256
+`46c33b1f056df6eb7877a918430e6f0174ba046aafb48acd3b637dfb2f2ff9aa`;
+manifest SHA-256 `459c5897dd62aa51c85b4676e2d56f34d84a424f52771c6a110118eae226731f`.
+Semantic 3222/0, HIR 58/0, MIR 327/0, transpile 1008/0, phase 1204/0,
+transition 15/0 and LLVM receiver 98/0 pass. Query `readonly-map-query.tjlWuU`
+has 14 C/LLVM positives / 41 exact analyze-only negatives; registry/projection/
+provenance and end guards pass. The prior `NTi7ro` scalar-only grant was blocked
+by independent P1 review. The new candidate follows returned backing through
+original local binding identities and reached retaining calls before removing
+RETURN. Root additionally found a ref Slot setter-helper bypass; Write payload
+now contributes CALL to that helper, not a blanket local grant. Receiver zero
+and authentication-token two are input-only registry rows; payload one/ANY and
+fresh-result/cleanup grants are absent. New owner count is zero.
+Generated Pergyra Ready and WRITE ordinal selection were actually executed on
+C/LLVM in `retention-projection-runtime.IMKQJG` with exact expected output and
+guards. This is bounded owner execution, not production self-host substitution
+or generic three-argument Slot signature migration. That prior source was frozen and the
+named independent review chat confirmed the six original counterexamples are
+refused but found an inout setter route still admitted. `SetText(inout dst,
+ref text) { dst = text; }` publishes input summary zero; the caller loses the
+returned String origin after the updated output is recovered. Plain String
+and record-field destinations, nested/local getter results and a default
+String formal reproduce this. See partial source/results in
+`.tmp/returned-backing-redteam.a886a103/`, especially
+`setter_escape_reached.pgy`. Unsafe programs were not executed. Review ended
+with a system error initially; its final report has since been delivered at
+`.tmp/returned-backing-redteam.a886a103/review.md`. Verdict: BLOCK on that
+`mxb8js` candidate. It requires source-to-output retention, preserved literal/
+Int controls and no-MIR refusals, not a Write exception or scalar rollback.
+It does not review the later inout implementation; no new approval exists.
+
+Historical blocker: unchanged full canonical replay `canonical-current.INxoH6` /
+`collection-copy-field.odEh5m` refuses before emission with 2336 errors /
+9 warnings (2302 helper and 34 return reports). Native/recipe guards pass.
+The tested reader repair removes 20 reports from 2356; it is not whole-chain
+closure. The previous 2374 and 4257 counts are historical. JSON table factories really
+retain String backing; indexed String returns and `Some(...)` still lack a
+complete landing/cleanup connection. One local region does not solve a return
+past callee teardown. No blanket permission or silent rollback is approved.
+
+Current release-witness replay `drv2-follow-on.aosHmN` / `AbVJMT` passes normal
+controls and original validation-only mutations with guards. Red intermediate
+receipts remain: `KhCDRc` had a malformed shadow probe and a genuine argument-
+binding permission fault; `ajbXqM` had 36 original SecureSlot assertions fail
+from missing token-ordinal retention. No original expectations were weakened;
+the producer/registry fixes restore the full matrix above. Full component
+contract remains rc124 at 60 seconds; bootstrap, installed driver, main landing
+and compiler CI are OPEN. Remote main `f0edb866` run `38209286073` fails codegen
+gen1 at `borrow_boundary_escape`, with a separate Rocq opam download failure;
+skipped dependent jobs are not green. Next: complete the inout-output chain
+plan from the three read-only implementer reports: classify typed destination
+formal/place roles, publish direct/alias/getter retention into mutable outputs,
+carry source-ordinal to recovered-actual dependencies, and refuse incomplete
+callee input-retention certificates rather than trusting zero masks. Then add
+four complete source negatives and literal/Int controls, implement only in
+existing index/flow/publication/escape owners, and repeat the fixed gates and
+independent review. The replacement in four existing production files is now
+frozen for integration; executable verification is pending. Completed output
+relations are compilation-owned; recursive unfinished relations remain
+conservative refusal, not a zero-mask permission. Its first replay `H5jN1O`
+is RED: phase 1390/7, semantic 3211/3, MIR 326/1, transpile 1002/4; HIR,
+provenance, projection, registry and guards pass. New setter negatives and the
+literal/Int control pass, but nine original query programs regress on both
+backends. Repair the reached typed Map query/metadata-reader and actual
+result-loan consumers without changing original expectations; the directive
+records the exact approved existing-owner dependency extension. The remaining
+canonical result-copy/lifetime/cleanup bridge is separately OPEN. No blanket
+String permission, manual copy/annotation, new owner or optimization is approved.
+
+## Historical archive — previous DRV-2 card; lookup only
+
+The dated observations below are not active instructions or the current
+candidate. Use them only to locate receipts and prior source boundaries.
+
+Latest navigation refresh (GPT): `main @
+23d1e65fd1709104a0a8c4f47e315a964b356632` plus the shared uncommitted
+candidate below. Exactly three implementers in the same checkout; main only
+integrates and publishes. The current executable rung remains DRV-2 ownership
+entry, not a new optimization or proof track. Latest frozen native receipt
+`pgy-native-final.6Uz64y` builds successfully, native SHA
+`550631e36cb1f7ef5713b8c5db6215a374412e74ccf8507e3564ea0db01782ce`,
+source-manifest SHA
+`c2f79383881013faf718cc7f6b3c40ebb89f740fb0d3aa71edf89ca103c25ce7`.
+Source/input/binary end guards pass. Semantic is 3222 passed / 0 failed,
+HIR 58 / 0, MIR 327 / 0, transpile 1008 / 0, phase 786 / 0, transition
+kernel 15 / 0, LLVM receiver 98 / 0. All eleven query positives on
+each C/LLVM backend and twenty-four exact diagnostic/cause negatives pass;
+the query composite, provenance and collection projection pass. These native
+units do not establish production self-host admission or a green candidate.
+
+Main's private twenty-three-source census traces every reached regression to
+imported graph ID collisions, unchecked Channel capacity, missing generic
+member substitution, zero-for execution facts or derived Intent metadata.
+B completed their bounded actual-producer repairs and phase parsing premises;
+strict original identity, missing-fact refusal and source READs stay unchanged.
+The subsequent actual-source census found generic borrowed String local output
+incorrectly refused and a returned-loan gap. The first checked-output/root RETURN
+repair passes all 731 prior phase checks plus 27 added probes, but the actual
+canonical compile below falsifies its publication classification. D1 already
+chooses implicit String copying; type category does not prove that the actual
+payload is independent or copied. The Box<String> category probe cannot invent
+a permanent String-noncopy rule or certify runtime copy/drop refinement.
+C retained Int/Long equal physical layouts and proved both exact semantic
+mutations refuse at full MIR admission; its genuine physical mismatch also
+passes. Arbitrary semantic forgery protection remains OPEN.
+
+The Claim producer now checks the original direct/destructure initializer
+before contextual Slot/Token issuance. Its existing no-argument contract is
+enforced; invalid old test premises are preserved as exact signature negatives.
+The transpile operator positive now reaches actual parsed Vec2 declarations
+and strict lowering, not the legacy synthetic-MIR fallback; the original
+undeclared AST remains a strict-refusal control. All original strong MIR
+mutations and transpile output assertions remain. C also migrated three
+AIR/backend token/field/erasure positives and preserved their full original
+hardware/encrypted requests as analyze-only negatives. Main ran
+`destructure_type_fact_smoke.sh` with sq1Kag: exact refusals and both original
+MIR assertions pass. No physical security policy or refreshed AIR measurement
+has been proved; runtime manager/Claim-policy composition remains OPEN.
+
+Latest static receipt `static-codegen-view-current.KmsH2w` passes codegen
+selfcheck (18 s), component selfcheck (49 s), full MIR inventory (47 s),
+semantic-core (13 s), and whole-input guards at unchanged 60-second budgets.
+The full component parent times out (rc124, 73 s including cleanup), after
+action ownership. Independent checker `component-checker-current.zoCOb3`
+passes the original controls and guards; this is not full parent completion.
+A routes the earlier observed 622 text reads / 55 function extractions through
+the exact captured physical reader and corrects the final checker's input-root
+scope. Fixture/docs reads, predicates, cache keys, child controls and budgets
+remain. Compact profile `A-component-compact.b37SCs` has matching whole-input,
+native and recipe guards and rc124; instrumentation timing is diagnostic-only.
+A must identify the next repeated operation behind that same reader before
+editing. No general cache, global grep override or input reduction is approved.
+These three scopes are the same active rung,
+not new tracks. The directive contains the exact objective and falsifiers.
+The last checked actual sizes are expression 413/member 209/publication 463/
+names 96; the member-only split preserves its public identity and original cap.
+The ordinary-call, Token syntax identity and Int-array release limits remain
+OPEN. Earlier executable falsifier: actual canonical replay
+`canonical-current.rjC1we` / `collection-copy-field.Zaw3cY` rejects the full
+original `nominal_constructor_source_arity_probe.pgy` graph with 4257 errors
+and 9 warnings before emission. Native/recipe guards pass. The first errors
+include transitive ref-summary escapes from AstSourceModulePathForNode and
+JsonObjectFactCount; this is not a current remaining-DRV-2 count. Main's log-only
+native receipt `B-canonical-seed-current.WjMRdD` reproduces 4227 helper / 30
+return reports with exact source/import/input/object/binary end guards. The
+30 include three direct indexed String return origins and 27 transitive rows,
+not thirty copy sites. B's approved stage one separates classifier category
+from actual backing independence, replaces the parallel output permission list
+with the checked per-argument retention registry, and consumes completed
+DEFAULT/ref summaries by sealed callee identity rather than raw-name lookup.
+Stage one is now frozen and passes the full native replay above. It also seals
+formal syntax IDs/modes and body identity, and extracts the complete existing
+program-point index allocation/rollback/destruction responsibility without
+raising its cap: publication 542/599, summary 447/599, index owner 225/599.
+Current canonical replay `canonical-current.mtuUAJ` /
+`collection-copy-field.EVJbVa` uses the unchanged original full input and
+rejects before emission with 2374 errors / 9 warnings: 2340 helper escapes
+and 34 return escapes. Source/native/recipe end guards pass. This removes
+1883 reported errors, not 1883 SoT obligations; four more return reports can
+be exposed by the newly demanded DEFAULT chains. B prepares a private
+log-only seed census; production stays frozen until its complete remaining
+origin/consumer map is fixed. C confirms an actual ToInt String reader with
+no input retention row, but its canonical call identity must be matched before
+any registry edit. Unknown/unissued String origins remain fail-closed; Symbol zero is not a
+lifetime certificate. Actual fresh String landing through HIR/MIR/C/LLVM and
+its allocation/cleanup contract is still OPEN and not approved for production
+editing. Current array reads alias payloads; StringConcat's OOM fallback is not
+an exact-copy contract. Blanket String permission, weakening returned-alias
+negatives, manual caller copies/annotations or compiler-name exemptions are
+forbidden. A's full-parent replay is also pending. Resume from these blockers, then
+canonical/temporal/direct-MIR and actual self-host bootstrap/driver integration
+before one stable review batch. Completed-function profile
+`A-component-functions.5lrLAO` has whole-input/native/probe end guards PASS
+and rc124 at the unchanged 60-second deadline (62.166 s including cleanup).
+Its completed text/function/grep readers cost about 6.14 s of that run, not
+the dominant remaining cost; A prepares predicate/capture phase measurements
+without production optimization or predicate/input/budget changes.
+No review batch, commit, push, installed binary change or compiler CI green has
+been claimed. C's validation-only LLVM receiver unit and LLVM-enabled Makefile
+registration pass the current frozen native replay. No corrupted program is
+emitted or executed.
+The detailed receipts below are chronological lookup, not another
+active work queue. Independent proof edits and `gmon.out` remain unclaimed.
+
+Current continuation (GPT): `main @ 23d1e65fd1709104a0a8c4f47e315a964b356632`
+with an uncommitted collection-structural-mutation and parser-membership
+candidate. At the user's request, three GPT 6.1 Sol implementers now partition
+this one reached chain. At the reopened actual-disposition boundary, A owns
+typed evidence and its private MIR lifetime plus HIR/receipt projection;
+B owns Pergyra direct-MIR consumer migration and additive MIR/temporal
+falsifiers; C owns the shared native transition validator, native MIR adapter
+and shared registration. The directive records their earlier scopes and the
+explicit handover; those earlier partitions are not additional active lanes.
+Main owns coordination, integration, evidence, review handoff and publication,
+not a fourth production implementation lane. The whole-chain map and independent
+edit scopes are in `agent_work_directives/drv2_parallel_implementation_2026-10-12.md`.
+Independent ownership-refusal proof/CI work is also dirty and has not been
+reviewed or claimed by this lane.
+No branch or installed binary was changed. The reached native parameter-summary
+row is `ACTIVE` during its typed-generation publication migration; its previous
+closure receipts do not certify these edits. `gmon.out` remains
+unrelated and untracked. Follow the directive's `Fixed-input census and reached
+repair order` section, not the historical B count as a current candidate count.
+
+Earlier native replay (historical): `pgy-native-final.YXwVpB`, native SHA
+`eea5ec02000be1eadb5abef880676233ad358b56f52c8a086be381b2c241cb40`,
+source-manifest SHA
+`43009797aa010d4c1dd6f011c87d43218b6cbb9305a7bab377c76c1b0b9e141a`.
+Semantic 3222/0, typed Map phase 398/0, private transition kernel 15/0, HIR
+54/0 and MIR 294/0 pass. C's MIR adapter now excludes only a typed DEF's
+declaration metadata lane from executed-expression normalization; actual RHS
+and assignment paths still participate. The original external probe replay
+`pgy-release-witness-replay.w8Cve4` admits both normal controls and refuses
+both final-state flips, removal and duplication of the actual drop. Its
+source/binary guards passed; malformed IR was validation-only.
+
+Canonical C/LLVM Pergyra receipt `collection-copy-field.C2tcy7` also passes
+three source positives, nine negatives and 29 direct controls per backend.
+The subsequent direct-MIR gate stopped before analyzer execution: the real
+Clone positive has a checked result but lacks the canonical stdlib target
+fact because its native builtin path returns before general publication.
+A repaired the successful checked Clone producer, retaining the canonical
+consumer guards; HIR controls are added and B owns MIR carrier controls.
+These new native source edits make the above receipts historical. B also
+removed the zero-iteration confounder from the prior-live-final-drop JSON
+falsifier: its real loop has birth dominating every reachable exit, checked
+by the mutation generator before moving the drop. Other mutations are fixed.
+The subsequent frozen receipt `pgy-native-final.9Qt3mD` (native SHA
+`03ed1d8720b469840258cacde3c655214bdf049d4fa82f5c68db3d6692c08400`, source
+manifest `7b144c5aace04b47f4606bdcfa486360cd3e86efce0dd70596547af4dd697d2d`)
+passes semantic 3222/0, Map phase 398/0, kernel 15/0, HIR 58/0 and MIR 299/0.
+Query/provenance/projection gates pass, and original probe replay ZWXJKs passes
+both normal controls and all four release mutations. The direct-MIR positive
+census kQkSAr nevertheless refuses all six real typed inputs: five Map inputs
+at builtin-call argument prefix, Clone at the owned transition boundary.
+The native JSON LocalRef selector omitted the owned subset despite the completed
+Pergyra selector migration. A connected the existing shared tracked-fact
+predicate and replaced the reached raw return payload read with its existing
+accessor; C added eighteen real lexical-binding serialization checks. Main's
+fresh native receipt `pgy-native-final.sGI7lC` passes semantic 3222/0, Map phase
+398/0, kernel 15/0, HIR 58/0 and MIR 317/0. Native SHA is
+`1e11bfdb91623b44ea60911788e863888d424986745f667efd692039cf0ad434`, source
+manifest `b1bfab550cc305ae4a7506f35a9ade41d280057c094220038295e01732fdc8ce`.
+Nine positive/nineteen negative Map controls, provenance/projection, the original
+release mutations (`pgy-release-witness-replay.RMdOQI`) and semantic-core static
+gate pass; source/input/binary guards pass.
+
+B's immutable diagnostic confirms compact versus spaced HashMap type identity,
+not unsupported partial arity, as the other positive refusal. The approved
+repair projects semantic types at the existing value-type, parameter-identity
+and routine-signature owners while preserving raw ABI seals. A subordinate
+contextual type-projection owner (cap 60 actual LOC) also checks exact admitted
+declaration LocalRef/type consistency against actual ABI type; no name fallback,
+guessed type or new top-level fact family is allowed. C owns shared registration
+and explicit refusal-protocol tests. The old six-input census is historical,
+not current Pergyra green. Their type-projection generation is now frozen:
+projection 49/60, value owner 165/165 under its unchanged cap, seven source
+controls, two spelling controls and twenty-four fault modes. The added
+parameter/return control uses the existing proved MapGet, not unproved MapSize
+ref forwarding. Current receipt `direct-owned-collection.4F0CSq` generates all
+seven native inputs and compiles the C validator (0 errors, 16 known warnings).
+Main's full census `direct-owned-positive-census.j0PFNy` finds all original six
+refused at LocalRef plan and the added control refused at the earlier route
+boundary (`rc2`). The reached direct wire-required consumer remains EMPTY-only
+and rejects the newly published owned declaration fields. A maps migration to
+one existing classification owner; B observes the exact route receipt in an
+immutable diagnostic; C prepares shared registration. No parallel production
+edits are authorized during that diagnosis. Next: agree the complete reached
+consumer set, then freeze and replay normal/paired/fault controls before canonical
+and temporal consumers. Native AST-call source binding remains OPEN.
+No normal refusal is counted as a passing malformed test.
+
+Latest reached-consumer replay: A connects numeric publication and admitted
+wire consumption through `SelfMirCollectionOwnershipIdentityWireRequired` in
+the existing MIR collection-fact owner. B connects the last contextual
+return-type join to the existing canonical type owner after raw admission;
+physical ABI seals remain unchanged. Current C validation-only receipt
+`direct-owned-current-census.fZb7SD` admits all six original full-graph controls
+and both compact/spaced presentation controls. All twenty-five fault
+invocations are refused with observed ownership/identity/type/call reasons;
+native/source/input/probe/typed-JSON guards pass. This independent census is
+not the two-backend registered gate. C now registers the exact source-owned,
+mode-specific fatal refusal protocol; arbitrary failure or timeout is forbidden.
+
+The seventh input's HashMap return **and** readonly HashMap parameter are not
+supported by this bounded callable envelope. It is no longer a full-graph
+execution positive. Its separate admitted signature/parameter projection unit
+(`direct-owned-type-unit-census.1BiFEi`) returns true for the real native JSON
+and false for Unknown return, raw parameter ABI mismatch and named signature
+mismatch, with all guards passing. This unit does not admit the callable route
+or execute supplied MIR. Production source is frozen; main is replaying the
+current canonical C/LLVM source pair, then the fixed compiler-scale classifier
+and registered direct-MIR gate. Native AST-call source binding remains OPEN.
+The fresh canonical C/LLVM receipt `collection-copy-field.vEUC8r` now passes
+three admitted sources, nine refused sources and twenty-nine direct controls
+per backend with all guards. Temporal integration `member-completed-read.rwe4q8`
+passes the C unit, ten source verdicts and thirty-one direct controls, but LLVM
+compile refuses its existing nested MapGet field receiver at unit line 96.
+The full native MIR diagnostic `member-composed-mir-census.qrRxG0` enumerates all
+542 Map-call occurrences in the 2319-routine input: exactly one actual member
+receiver, that same operation. LLVM already owns the field address, but its
+operation/inference metadata consumers still use identifier-only K/V queries.
+The directive records the bounded common receiver projection and all reached
+last consumers: C LLVM implementation, B actual nested source controls, A
+existing query gate/structural registration; main rebuild/integration only.
+The existing sixty-second inventory is also incomplete in Ubuntu-E-WSL; no
+budget increase or green exception is authorized. Regenerate receipt generations
+after any native implementation change. No combined-candidate, installed-driver
+or compiler CI green is claimed.
+The LLVM receiver projection is now source-ready in the six named codegen files;
+syntax/diff checks pass, but it has not been built or executed. Main's
+`nested-map-analysis-baseline.7ouV2f` catches a real additional falsifier:
+MapGet<String> through a ref-record member is admitted. The actual source owner
+chain loses receiver-root call context in the existing slot escape summary;
+the two access and two user-callee propagation consumers share that obligation.
+B is agreeing a single existing-slot-owner root projection for all five sites,
+with typed query identity and conservative failure preserved. The directive
+owns the coordination plan, not semantics. An ordinary-call default member
+bypass is separately observed, not asserted as this stdlib cause or silently
+patched. The Int-key fixture is query/type-inference evidence only: its two
+unsupported ArrayDrop calls were removed to match the existing Int-key control;
+their release authority and automatic cleanup remain OPEN.
+The first static scratch profile's whole-input manifest was invalid and withdrawn;
+its stable probe records measure repeated recursive codegen scans, not a green
+generation. A is measuring exact scan cost before proposing any bounded change.
+Fresh native `pgy-native-final.qhtOTH` builds (SHA
+`08a825982ed0c59557fe56c660f6a8400c535d86283d398b258abdca3bb13a91`,
+source-manifest `53ecf369edea1a0bc78fce89f8f8498a1c6d73fe125522fad02ac0aab038a20f`),
+but phase 429 checks has two failures. Its raw positive fixture lacks the two
+binding IDs now required by the actual root projection; B diagnoses the fixture
+without weakening that guard. Main's complete unchanged native census
+`native-nested-diagnostic-census.PWL47t` additionally observes semantic
+3207 passed/15 failed, HIR 58/0, MIR 315/2 and private kernel 15/0. Those source
+regressions require a complete actual binding/summary producer diagnosis before
+repair; they are not dismissed as raw-fixture setup. Existing nine query
+positives pass C/LLVM and all twenty-four analyze-only negatives refuse for their
+registered causes. Both new nested positives typecheck with zero errors but fail
+constructor MapNew emission in C/LLVM; C investigates that separate reached
+fixture/admitted-construction boundary read-only. Native/source/input/binary
+guards pass for this failing census, not for a green candidate. A's measured
+repeated codegen scans now have a bounded temporary-input-view repair objective
+in the directive; the sixty-second budget and predicates may not change.
+Canonical/temporal/direct-MIR and actual bootstrap replay await these coherent
+repairs. No unsafe source was emitted to executable code or run, and no review
+batch or commit was sent.
+Earlier failing link/adapter receipts remain historical.
+
+User-requested Rocq explanation work (2026-10-12) is complete at the bounded
+model/checker level: [receipt](audits/ownership_refusal_explanation_2026-10-12.md).
+At the same HEAD, the uncommitted proof/test/document changes passed the focused
+zero-assumption gate, 41 extracted controls, three planted regressions and the
+full 75-owner / 86-module kernel gate (plus approval consumer, existing two
+approved abstractions unchanged). Production provenance export, source binding
+and the DRV-2 all-refusals witness census remain OPEN; this is no executable
+replacement progress. Resume the production rung below, not a new proof queue.
+
+The reached chain is the production source-to-MIR entry -> admitted call/place
+identities -> exclusive-value and mutating-formal facts -> ordered collection
+scan -> body verdict -> DRV-2 MIR projection. One operation owner
+(`semantic/ast_collection_storage_mutation_owner.pgy`) supplies both growth
+summary and builtin receiver admission. MapSet/MapRemove invalidate map storage;
+Set/List/Queue mutation has no new model and requires proven exclusivity.
+Unknown identity and unproved ownership cannot become a driver exemption.
+The compiler's parser import-membership Set was migrated as one three-file
+chain to an Int-map membership table. Its parser-source admission and C/LLVM
+parity pass; this is not installed-driver or whole-compiler substitution.
+
+Latest field-copy checkpoint: the admitted constructor-field partition preserves
+shared landings and proves consumption of the exact nonempty complement.
+The old CopyLanding projection is retired. `collection-copy-field.xH6Bi7`
+passed C/LLVM (three admitted sources, nine refusals and twenty direct modes per
+backend, 123.976 s); main independently checked its four canonical receipts.
+That source generation is now historical, not reusable current-source evidence.
+The composed classifier then exposed borrowed String labels in the partition.
+The shared field-label owner materializes each admitted label once directly into
+the final output, without weakening indexed-String ownership admission. The
+premature failure carrier now owns independent empty arrays instead of aliasing
+the growing outputs. The fresh frozen receipt `collection-copy-field.bEYFCj`
+passes C/LLVM: three admitted sources, nine refused sources and twenty-nine direct
+identity/partition/label controls per backend, 137.200 s. Main independently
+checked its native/source/input/probe receipts. Its source manifest is
+`884b4e6b2db4a58634a7bca75502146aa06c6182c15e19c8020048f646741690`.
+The metadata-only observation stays positive; actual backing use stays negative.
+All receipts for that source manifest became historical when the temporal
+member-read producer/consumer implementation below first changed production
+source. They are not current-candidate green evidence.
+
+At that generation, `exclusive-value-current.PNhzUZ` passes both complete-exit
+units and all twenty-three flow controls, but the composed classifier is still
+refused (C 89.94 s / LLVM 54.53 s). A's separate immutable 44932-node diagnostic
+visits all 26645 argument occurrences in 83.88 s, with two refusals and no censor.
+Both are Classify's `partition.remaining` member: syntax 44511 at UngrownSources
+and 44512 at SinkArgumentConsumed. The first has an existing readable-member
+entry for source 44510, but that root is blocked; payload/descriptor effects are
+both read-only (3). All twelve original mutations, three forwarding sites and
+three additional transfers pass only in the continued diagnostic stream. This
+always-refusing diagnostic is not normal body admission or a driver census.
+B's issuer and call-contract traces are complete on that immutable input. The
+only block of root 44510 is the later ordinary local alias at syntax 44516.
+Both earlier calls have ready synchronous, non-retaining payload/descriptor
+effects 3/3. Main approved a bounded temporal completion contract, not a
+field-disjoint storage grant: preserve every existing root-wide block and admit
+only a fully observed readonly call completed before a precisely produced local
+alias hazard. Unknown, capture, forwarding, loop/defer and move hazards remain
+opaque. A now implements the typed hazard producer, B its terminal publication
+and sole occurrence-aware permission owner, and C the ordered issuers/scanner
+plus shared registration. Source edits are in progress; new execution evidence,
+composed classifier body approval and combined candidate review are pending.
+The first combined-generation compile (`collection-copy-field.Q7ihvr`) failed
+before producing an analyzer: eleven native borrowed-boundary errors, seven in
+A's readonly projection/local binding boundary and four in B's Map query
+boundary. The complete error set is assigned back to those owners; C's ordered
+issuers remain fixed. Missing ownership of the MapKeys results is investigated,
+not bypassed by dropping a cleanup check. The failed source manifest is
+`725aff82a6452a54d4e3f64e1d00f684af72f53b60ec57c4345f7c01652b8847`.
+After A/B's named-ref query and owned MapKeys cleanup correction, the unchanged
+focused build (`collection-copy-field.HHzCzM`, 5.929 s) still fails before an
+analyzer is produced: eight native CALL_ESCAPE diagnostics, A four and B four.
+The source-manifest digest is
+`9a8a558c4f57cd07b671703d20575527486d7ffc6b991987b76573fecf4b3a61`.
+Source tracing reaches the native parameter-summary owner: MapGet/MapKeys
+receiver contracts are absent from its local non-escape inventory, and a
+forward call can demand an unchecked callee body before its typed stdlib facts
+exist. That conservative mask is cached COMPLETE and joined monotonically;
+adding a later typed receipt alone cannot repair the earlier publication.
+C now implements the bounded typed Map producer and deferred final-summary
+publication contract; A/B add disjoint native positive/negative fixtures without
+changing temporal permission. Main's analyze-only baseline of those fixtures
+exposes concrete Unknown MapGet result admission; the same typed producer must
+refuse it without conflating TYPE_GENERIC or unrelated MapKeys value types.
+No name
+allowlist, source copy, parameter-mode workaround or green receipt is authorized.
+See the directive's `Approved reached repair` objective card for the fixed
+change set and falsifying cases. No whole-aggregate permission is relaxed.
+
+The first frozen native publication candidate built successfully in
+`C:/Users/user/AppData/Local/Temp/pgy-native-final.DjpqBy`; installed `bin/` stayed
+unchanged. Native SHA-256 is
+`cae4d5261e0a56811c216b21ed68d70e282745a5c00bf68eb05855574e0407cc`;
+the 2055-input native-source manifest SHA-256 is
+`a1890e1e12df222c26565e23dd9a9d7b8ef4d7ff3e2c5365106092c999f5e3ae`.
+The raw phase unit ran 379 checks with two failed assertions, both belonging
+to the absent concrete-Unknown source refusal. The bounded query receipt
+`.tmp/readonly-map-query.6Wf3bI` passes eight positives on C/LLVM and eighteen
+analyze-only negatives, but its Unknown-result negative is incorrectly admitted.
+Native, source and input guards passed; this is a failing receipt, not a green
+gate. The same-generation full native semantic suite reports 3183 passed / 39
+failed. Most failures involve original diagnostic counts; three are positive
+enum/public-method cases. C owns the final-publication/error and concrete-type
+repair, A isolates the positive consumer faults, and B tightens the exact type
+falsifier. The native freeze is released only for this complete reached set.
+Documentation quality passes; full semantic-core shape remains red at four
+baseline array/tuple payload reads in the reached parameter-transfer owner.
+These must migrate to existing AST accessors, not receive an allowlist waiver.
+Current-source analyzer, composed classifier, independent combined review,
+installed-driver and compiler CI evidence remain pending.
+
+The second frozen native prerequisite candidate is
+`C:/Users/user/AppData/Local/Temp/pgy-native-final.VxtXhI` (native SHA-256
+`93c9b7f5aa16b3681109f67ff9e31670fa170290cd82c397c03d8d63fdaf8619`,
+2055-input source-manifest SHA-256
+`2c61603159456343b960a9e9cfca8b05a0214d18eca85f3eacd9ec6ed848d2ad`).
+It passes the full native semantic suite (3222/0), fact-phase unit (398/0),
+function-parameter fixed-point/budget gate, collection-fact projection,
+retention registry, semantic-core shape and documentation quality. Its bounded
+query receipt `.tmp/readonly-map-query.NK46Ro` passes eight C/LLVM positives
+and nineteen analyze-only negatives. Installed `bin/` remains unchanged.
+The added ninth positive exposes a different final consumer, not a summary
+regression: `.tmp/readonly-map-query.pJPr4m` passes generation guards but both
+backends fail HIR attachment after a legitimate moved snapshot is deep-dropped.
+The semantic owner retires the source on transfer and the destination on drop;
+HIR attachment and MIR validation incorrectly require the destination LIVE.
+C repairs these two projection consumers only; A owns HIR carriage/fault tests
+and B owns MIR lineage/fault tests. That failing generation is now historical.
+Multi-hop binding moves remain a separate fail-closed producer limitation.
+String-element cleanup uses `ArrayDropOwnedStrings`; the plain-element
+`ArrayDrop` restriction is unchanged. The former shallow-copy negative had no
+later source use and was actually a valid move on both old and current native
+binaries. Its replacement reads the old source after the correct deep cleanup
+and requires exact `MOVE_FROM_RELEASED`, rc1 and no MIR; other provenance
+negatives retain their original borrow refusals. The combined frozen candidate
+has been sent to `Pergyra 컴파일러 레드팀 검증` for read-only review while main
+replays the reached gates. Neither this review dispatch nor native-only green
+receipts close DRV-2, installed-driver or compiler CI.
+
+The repaired frozen native receipt is
+`C:/Users/user/AppData/Local/Temp/pgy-native-final.7hlW4f`: compiler SHA-256
+`eedecf00044b166b466e36a9e75393e70d24a96fd86db88f1ba71ae820193f5b`,
+native-source manifest SHA-256
+`423317152aef2d0ebd369e991ab576f140e3bdd8e86f825e0012b381d9294b39`.
+Main independently observed semantic 3222/0, phase 398/0, HIR 40/0 and MIR
+264/0, including live/retired moved-destination carriage and malformed-lineage
+refusals. `.tmp/readonly-map-query.nuCGtO` passes all nine C/LLVM positives,
+nineteen analyze-only negatives and its generation guards. Owned-string
+provenance and semantic-to-HIR-to-MIR collection projection also pass.
+The fresh canonical Pergyra C/LLVM pair is
+`.tmp/self_hosted/collection-copy-field.kWZxXL`: all twelve source verdicts and
+twenty-nine direct controls per backend pass with all four reuse manifests.
+Its Pergyra source-manifest digest remains
+`9a8a558c4f57cd07b671703d20575527486d7ffc6b991987b76573fecf4b3a61`.
+Both source-analyzer builds retain nine unreachable-statement warnings.
+The first completed-read unit build `.9HdJT7` then failed at one unnamed ref
+test carrier; B names that same deliberately unadmitted carrier without
+changing the refusal assertion or production permission. Its replay, raw
+producer assertions, composed classifier and real driver chain are pending.
+The subsequent external release-witness review confirms four admitted invalid
+mutations: both destination disposition flips and deletion/duplication of the
+actual deep-drop. These were HIR/MIR validation-only probes, not executed
+unsafe programs. The two projection repairs above remain partial evidence.
+The same three implementers now close actual typed birth/DROP issuance, one
+private native transition owner and both native/Pergyra final consumers under
+the directive's `Reopened actual-disposition witness boundary` card.
+Main's complete temporal census `.tmp/self_hosted/member-full-census.3cqe0Z`
+checks all nine sources on C/LLVM: borrowed-text differs from its expected
+negative verdict on both; the other eight are correct, including async refusal.
+All thirty-one C direct controls pass. B's immutable single-bundle diagnostic
+then proves Text's published payload 5 / descriptor 3 and non-escape-free
+String result are correct. The original fixture is literal-backed with no
+possible text release, matching the existing element-escape positive contract;
+its expected refusal is not a demonstrated compiler defect. B preserves that
+positive and supplies a genuine owned-payload release/escape negative without
+relaxing temporal completion or adding caller ceremony. No green member-gate
+receipt is claimed before this corrected pair is executed.
+Main's normal composed-classifier replay `.tmp/self_hosted/composed-current.U3NyzW`
+now admits the immutable 44932-node / 26645-argument-occurrence input on both
+C and LLVM (`body_ok=true`, `formal_ready=true`, empty stderr). Snapshot
+source/root and analyzer binary guards pass. This is actual normal body
+approval, unlike the earlier always-refusing census, but it is neither a live
+whole-driver census nor evidence that the temporal negative or release witness
+is repaired. The receipt's native generation becomes historical during the
+actual-disposition witness edits.
+Current descriptor replay `.CeHUMQ` passes fourteen source verdicts, eight
+identity and three forwarding controls per backend; Map payload `.3YgCYn`
+passes twenty-six source verdicts per backend using the verified canonical pair.
+Semantic-core shape, documentation quality and source-scan gates pass again.
+
+C's strict source-only reuse at that same generation passes all twenty-six Map
+controls on C/LLVM (`map-payload.nOhiMK`); the direct written-root unit passes six
+normal and twenty-seven fault assertions on each backend (`map-written-root.07D4oQ`).
+Descriptor/common integration, production codegen seed and DRV-2 remain pending.
+The full component attempt `HxHzjQ` failed at a stale scanner-location requirement.
+C migrated all related literals and the actual transitive field-label import
+chain; isolated rows pass, but a full frozen replay is still pending. Driver
+substitution, independent candidate review, publication and compiler CI are OPEN.
+
+| Current continuation boundary | Flag | Observed evidence / next obligation |
+| --- | --- | --- |
+| Completed member reads before a local alias | RELEASE_WITNESS_REOPENED / TEMPORAL_FIXTURE_CORRECTION | Native `.7hlW4f` passes its observed semantic/phase/HIR/MIR and 9/19 query controls, but external four-mutation review falsifies actual release witnessing. The three implementers now migrate typed birth/DROP issuance and native/Pergyra final consumers behind actual operation evidence, preserving fresh snapshots in the two reached loops without inventing cleanup. Canonical pair `.kWZxXL` passes copy-field 12/29. Census `.3cqe0Z` finds one expectation mismatch; B's exact payload5/descriptor3 diagnostic shows the literal-backed return is an existing sound positive contract, so B preserves it and adds a genuine owned-payload negative. Other eight sources and C direct31 pass. No whole ownership, DRV-2, installed-driver or CI closure is claimed. |
+| Collection structural mutations | FOCUSED_GREEN / THREE-LANE_REPLAY_PENDING | Native compiler SHA-256 `103470c2ee4d14c9b52dc2534a926e487462a1db7b35f62eb2f430ee840a9fc3`; unchanged-condition C/LLVM receipt `.tmp/self_hosted/collection-inout-effect.VDAdiZ` completed with 527 source admissions, diagnostics, identity mutations and all seven actual-formal rows on each backend. Native, owner and input hash guards passed; the intrinsic actual-formal timeout stayed 60 s. The prior `.GOhDET` attempt timed out at that unit and is not a green receipt. The reached observation producer now consumes admitted place types rather than repeating scoped binding resolution. The source freeze was explicitly released after the final receipt. Later A/B/C changes require a new integrated replay. Unsafe sources are analyzed only. |
+| Map fact-table aliases | FOCUSED_GREEN / FIELD_COPY_CHAIN_IMPLEMENTING | Shared-source C/LLVM receipt `.tmp/self_hosted/exclusive-value-final.6Z2l2I` passes the admitted complete-exit fact unit and 23 flow controls. The composed classifier still refuses at syntax 44426 on both backends with ready formal facts. The complete private diagnostic visits all 26280 argument occurrences over 44506 AST / 140262 expression nodes: the original twelve mutations are eleven PASS / one FAIL, the original three forwarding obligations all FAIL, and three additional RecordLocal/RecordReturn failures are recorded rather than hidden. `starts` lands in `facts.surface_starts`, but root-only propagation also attaches it to `facts.consumed` and `facts.shared_locals`. Main approved one field-aware copy-edge producer/consumer migration: admitted source/destination field identity, missing-versus-whole distinction, all three liveness directions, cache generation, and deletion of unconditional widening/reconstructed landing fallback. A implements the producer, B the consumers, C shared registration; shared-source replay is pending. This is not the full 247926-node driver census. |
+| Descriptor versus element effects | FOCUSED_GREEN / INTEGRATED_REPLAY_PENDING | Same-generation descriptor and payload facets retain effect 5, mixed-mutation and opaque refusals. Eight exact call-fact consumers migrated, and receipt v5 seals both facets with no v4 fallback. `.tmp/self_hosted/collection-descriptor-effect.kGEP05` passes fourteen source expectations, eight identity/receipt controls and three forwarding facets on each backend with start/end native/source/input/binary guards. Explicit analyzer reuse fails closed on a missing receipt rather than rebuilding through a fallback. This is the preceding frozen source snapshot; the later C backedge repair requires new common integration evidence. |
+| Parser import membership | FOCUSED_GREEN | Three-file Set path retired; parser source admitted. `.tmp/self_hosted/parser-import-membership-20261012`: all 198 manifest ASTs byte-equal on C/LLVM, live-drift guard ran. Additional normalized diamond, cycle-before-seen and missing-import-position legs pass both backends and byte-match the private old-Set parser. The new parity-script leg was run separately with those same binaries. |
+| Structural inventory / source scan | REPLAY_PENDING | Prior full component contract passed (2770 cap requests, 1099 function extractions, 748 reuses) and source-scan passed, before the parser/query refinements. Frozen limits were growth 235/235, flow 395/395, copy 339/340; storage-observation owner 29/40. C integrates responsibility-named owners/caps/imports and fixture rows reported by A/B; final full inventory is still required. |
+| Borrowed-descriptor regression matrix | INCOMPLETE_BUDGET | Five-minute attempt reached the imported runtime-ABI source after the C fixture/match observations; no completed matrix receipt. Needs an integration-budget replay, not a weakened expectation or a raised intrinsic timeout. |
+| Fixed-input DRV-2 refusal census | COMPLETE_DIAGNOSTIC / NEW_RECOUNT_PENDING | Same frozen 247926-node input: release-profile B 97 sites (1486.77 s), pre-parser/query candidate 115 (1427.72 s). All 97 prior source/callee sites remain, exactly 18 newly exposed: parser 3, classifier MapSet 12, classifier forwarding 3. Source hashes rechecked at completion. Dev-profile attempts both ended at the unchanged 1800 s limit. Diagnostic continuation is not body admission, a 3 GiB measurement or installed-driver evidence. Current refinements need a new fixed-input recount. |
+| MapGet String payload | BACKEDGE_FOCUSED_GREEN / FIELD_COPY_REPLAY_PENDING | The earlier assigned-formal backing falsifier is repaired. C's current `RootWrittenBefore` consumes existing `ExclusiveLoopCarries`; direct receipt `.tmp/self_hosted/map-written-root.XPjDQT` passes six normal claims and 27 fault assertions (nine fault kinds on three safe roots) on C/LLVM. Main independently reran both units and rechecked all manifests. `.tmp/self_hosted/map-payload.ab9Yzb` passes all 26 Map/String controls on both backends, including ready-fact assigned-formal refusal at `map_string_use_after_mutation`; native/source/input/probe guards pass. The source manifest is `248a61558a30c47d19a417e07da6c3940cd9daad8abd673e9905aca929747cd7`, C probe `9d51612df02d6b478d1214149367799b5c9c35993af65fbe293f849749984b1c`, LLVM probe `efb4f607ceb1d68ce8fa588c37ddfa2a411597757522776f4d5e883d8ddfd0b9`. Source-program probes masked by A do not independently prove the direct fact. Main released this freeze for the A/B copy-edge migration, so this remains the preceding snapshot, not future integration evidence. Unsafe sources were analyzed only. Returned/reassigned provenance beyond this bounded guard and native AIR coverage remain OPEN. |
+| Canonical Map key contracts / native seed | STATIC_AND_NATIVE_GREEN / COMMON_REPLAY_PENDING | Four canonical key-only rows (ordinal 1) use existing stdlib call identity and HashMap protocol arity. Primary reran registry smoke and checked the full C/H/DEF source manifest with rc=0. Cold build rc=124 remains incomplete evidence; its coherent incremental completion ran rc=0. Scratch native `C:/Users/user/AppData/Local/Temp/pgy-c-map-payload-947593d214f14a8ca57a639ae2c3f975/bin/pgy.exe` has SHA-256 `7c17ea049b189b8ea02103aec9784001ee65d1c665b6d1e5eba0103b2a035166`; installed bin is unchanged. The preceding source pair's source-manifest SHA-256 is `d5598e46624cb4af91cb709fd0c78d8f290e840dcdcc56b85fe5fbf83825e45e`; C executable `5935b786cdb8ed02dc58b37190c7de21974747a6366fde05f47bb9fa666ec2f3`, LLVM executable `86538853a1d37210d00276c385909a2b5af17d24c268fa5a5efc07c93b07a2ec`. C26, B and A focused receipts use that snapshot, not the new backedge edit. Borrowed MapSet value arguments remain refused, and checker-sealed typed String-value facts are OPEN. |
+| Exact-HEAD Actions | COMPILER_RED / DOCS_GREEN_ONLY | Run `38148691868` at `23d1e65f` succeeded in change classification/Markdown; ten compiler-related jobs were skipped. Platform-full run `38167148050` at that same HEAD failed all three toolchain routes; Rocq passed, dependent platform/parity jobs were skipped. The macOS route refused the real codegen seed at `unproved_exclusive_member_mutation` before DRV-2. This is baseline evidence, not a candidate verdict. B run `38148668461` was cancelled. None is candidate compiler-green evidence. |
+| Candidate / installed pair | OPEN | No candidate commit/push/Actions receipt, rebuilt installed pair or C-path substitution receipt. Private current-source native builds live on C:; installed `bin/` is untouched. |
+
+After the three-owner batch passes local integration, main sends one source- and
+receipt-bound request to the existing `Pergyra 컴파일러 레드팀 검증` chat
+(`01a12ba0-fc1d-7650-b1fc-2fe9c3de642b`), assigns its findings back to the
+implementation owners, and reruns the affected gates. Review, candidate commit,
+push, remote-SHA confirmation and actual compiler Actions remain pending.
+Compiler-scale builds are coordinated serially; source edits are parallel in
+their assigned scopes. This avoids counting load-induced timeouts as semantics.
 
 Pushed `2c7f6f6e` (graph proofs), `2b08d86d` (compiler) and `1c1e0308` (P1b)
 to `origin/main`. CI run `38065600591` (at `1c1e0308`) passed codegen bootstrap
@@ -57,9 +1588,9 @@ identity probe, so run the inout gate with `PGY_BIN` set to a compiler built
 from the current C sources (`.tmp/claude-bin/pgy.exe` here); the gate's 60 s
 identity unit takes 66-76 s on this machine under load at HEAD as well, so
 it is evidence only on an idle machine and its budget is not to be raised.
-Only `gmon.out` (profiler output) stays untracked. Private builds only
+At B, only `gmon.out` (profiler output) stayed untracked. Private builds only
 (`.tmp/claude-bin`, C: scratch drivers); `bin/` is untouched. D: has about
-2 GB free; heavy output goes to the C: scratchpad.
+2 GB free at B (current check: about 14 GB); heavy output goes to the C: scratchpad.
 
 | Boundary | Flag | Evidence / next obligation |
 | --- | --- | --- |

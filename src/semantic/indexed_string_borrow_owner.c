@@ -41,10 +41,10 @@ identifier_symbol(ASTNode *node, SemanticContext *ctx)
     return lookup_identifier_symbol(node, ctx);
 }
 
-static bool
-expression_produces_independent_string(ASTNode *expression)
+bool
+semantic_indexed_string_independent_result(const ASTNode *expression)
 {
-    ASTNode *callee;
+    const ASTNode *callee;
     const char *name;
     uint32_t builtin_kind = 0;
 
@@ -54,8 +54,11 @@ expression_produces_independent_string(ASTNode *expression)
         return true;
     if (expression->type != AST_CALL)
         return false;
-    if (ast_call_semantic_callee_builtin_kind(expression, &builtin_kind)
-        && builtin_kind == BUILTIN_TEXT_BUILDER_FINISH)
+    if (ast_call_semantic_callee_decl_id(expression) != 0 ||
+        ast_call_semantic_callee_value_binding_id(expression) != 0 ||
+        !ast_call_semantic_callee_builtin_kind(expression, &builtin_kind))
+        return false;
+    if (builtin_kind == BUILTIN_TEXT_BUILDER_FINISH && ast_call_arg_count(expression) == 1)
         return true;
     if (!ast_call_semantic_callee_is_stdlib(expression))
         return false;
@@ -63,6 +66,15 @@ expression_produces_independent_string(ASTNode *expression)
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
     name = ast_identifier_name(callee);
+    /* Consumed only after successful String typing (publication or binding).
+     * These checked allocating readers do not inherit freshness from their
+     * input-retention classification. Empty/NULL failure results are not an
+     * exact-copy or successful-allocation certificate. */
+    if (name != NULL && builtin_kind == BUILTIN_NOT_BUILTIN &&
+        ast_node_stable_id(expression) != 0 && ast_node_stable_id(callee) != 0 &&
+        ((strcmp(name, "CharAtN") == 0 && ast_call_arg_count(expression) == 3) ||
+         (strcmp(name, "SubstringWithLen") == 0 && ast_call_arg_count(expression) == 4)))
+        return true;
     return name != NULL && (strcmp(name, "Concat") == 0
         || strcmp(name, "StringConcat") == 0
         || strcmp(name, "StringJoin") == 0);
@@ -75,7 +87,7 @@ borrow_source_for_expression(ASTNode *expression, SemanticContext *ctx)
     ASTNode *base;
     if (expression == NULL)
         return INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
-    if (expression_produces_independent_string(expression))
+    if (semantic_indexed_string_independent_result(expression))
         return 0;
     if (expression->type == AST_IDENTIFIER) {
         source = identifier_symbol(expression, ctx);

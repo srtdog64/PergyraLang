@@ -1,0 +1,28 @@
+struct Rows { types: Array<String>; }
+subject RecoveryCounter { let value: Int; }
+zone RecoveryZone { subject slot counter: RecoveryCounter }
+func FailedValue() -> Result<Int>
+{
+    return Err("late-error");
+}
+func CaptureResult(inout rows: Rows) -> Result<Int>
+{
+    let live_zone: RecoveryZone = RecoveryZone(RecoveryCounter(8));
+    Log(live_zone.counter.value);
+    let types: Array<String> = rows.types;
+    let count: Int = 0;
+    while count < 8
+    {
+        ArrayPush(types, "row");
+        count = count + 1;
+    }
+    let observed: Int = FailedValue()?;
+    return Ok(observed);
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    Log(IsErr(CaptureResult(rows)));
+    Log(ArrayLength(rows.types));
+    Log(rows.types[8]);
+}

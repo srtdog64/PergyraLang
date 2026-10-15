@@ -3,5 +3,6 @@ func Main() -> Void {
     MapSet(values, "owned", 1);
     let keys: Array<String> = MapKeys(values);
     let alias: Array<String> = keys;
-    Log(ArrayLength(alias));
+    ArrayDropOwnedStrings(alias);
+    Log(keys[0]);
 }

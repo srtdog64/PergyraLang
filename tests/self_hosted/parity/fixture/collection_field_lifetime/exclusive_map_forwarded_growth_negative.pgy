@@ -1,0 +1,21 @@
+struct MapState { entries: HashMap<String, Int>; }
+
+func Insert(inout entries: HashMap<String, Int>) -> Void {
+    MapSet(entries, "next", 2);
+}
+
+func Grow(state: MapState) -> MapState {
+    let entries: HashMap<String, Int> = state.entries;
+    Insert(entries);
+    return MapState(entries);
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let state: MapState = MapState(table);
+    let copy: MapState = state;
+    state = Grow(state);
+    let kept: HashMap<String, Int> = copy.entries;
+    let current: HashMap<String, Int> = state.entries;
+    return MapSize(kept) + MapSize(current);
+}

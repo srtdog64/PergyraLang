@@ -70,7 +70,7 @@ func ParseDeclsInto(
     diagnostic_projection: ParseDiagnosticProjection,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout import_paths: Set<String>, inout import_chain: Array<String>,
+    inout import_paths: HashMap<String, Int>, inout import_chain: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     inout script_graphs: Array<AstExpressionGraphRows>,
     inout source_locations: Array<ParserSourceLocationObservation>,
@@ -131,7 +131,7 @@ func ParseDeclsInto(
                 let imp_path: String = SelfHostPath.NormalizeImportRelative(source_dir, imp_rel);
                 if ParserImportChainHolds(import_chain, imp_path) { ParseRefuse(location_context, decl_start, "import_cycle", "path", imp_path, "", ""); }
                 if ParserImportGraphSeen(import_paths, imp_path) { continue; }
-                SetAdd(import_paths, imp_path);
+                MapSet(import_paths, imp_path, 1);
                 let imp_content: String = ParserReadImportedSource(location_context, decl_start, imp_path);
                 let imp_dir: String = SelfHostPath.Dirname(imp_path);
                 let imp_cursor: Array<Int> = [0];
@@ -523,7 +523,7 @@ func ParseDecls(
     diagnostic_projection: ParseDiagnosticProjection,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout import_paths: Set<String>, inout import_chain: Array<String>,
+    inout import_paths: HashMap<String, Int>, inout import_chain: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     inout source_locations: Array<ParserSourceLocationObservation>,
     inout declaration_module_paths: Array<String>

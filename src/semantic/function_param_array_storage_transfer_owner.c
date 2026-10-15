@@ -95,12 +95,12 @@ array_storage_use_unproved(ASTNode *node, const SlotSummaryOrigin *origin,
                 && UNPROVED(ast_array_access_array(node)))
             || UNPROVED(ast_array_access_index(node));
     case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < node->data.array_literal.count; i++)
-            if (UNPROVED(node->data.array_literal.elements[i])) return true;
+        for (size_t i = 0; i < ast_array_literal_count(node); i++)
+            if (UNPROVED(ast_array_literal_element(node, i))) return true;
         return false;
     case AST_TUPLE_LITERAL:
-        for (size_t i = 0; i < node->data.tuple_literal.count; i++)
-            if (UNPROVED(node->data.tuple_literal.elements[i])) return true;
+        for (size_t i = 0; i < ast_tuple_literal_count(node); i++)
+            if (UNPROVED(ast_tuple_literal_element(node, i))) return true;
         return false;
     case AST_SET_LITERAL:
         /* `{}` is also an empty statement body, as in `case None: {}`. */

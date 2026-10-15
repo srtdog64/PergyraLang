@@ -2,7 +2,7 @@
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>();\n"
             "    Write(slot, 42, token);\n"
             "    Log(slot);\n"
             "}\n";
@@ -37,7 +37,7 @@
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>();\n"
             "    ss.Write(42);\n"
             "    Log(ss.Read());\n"
             "    ss.Release();\n"
@@ -72,7 +72,7 @@
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>();\n"
             "    slot.Write(42);\n"
             "    Log(slot.Read());\n"
             "    slot.Release();\n"

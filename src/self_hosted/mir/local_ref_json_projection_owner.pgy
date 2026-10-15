@@ -1,4 +1,4 @@
-// Conditional LocalRef wire projection for routines with ambiguous spelling.
+// Exact local owner witnesses also require declaration LocalRefs on the wire.
 import "program_fact_owner.pgy";
 import "../lib/json_emit.pgy";
 
@@ -14,10 +14,10 @@ func SelfMirRoutineLocalRefWireRequired(
         rows.collection_ownership_facts.routine_counts[routine_index];
     while collection_offset < collection_count {
         let collection_row: Int = collection_start + collection_offset;
-        if rows.collection_ownership_facts.origins[collection_row] ==
-            SemanticAstCollectionOriginEmptyLiteral() {
-            // Empty-literal readers join initializer evidence through the
-            // exact declaration identity, never through source spelling.
+        if SelfMirCollectionOwnershipRowRequiresExactLocalRef(
+                rows.collection_ownership_facts, collection_row) {
+            // This is wire preservation, not lifetime permission. The
+            // admitted definition graph owns birth and release witnesses.
             return true;
         }
         collection_offset = collection_offset + 1;

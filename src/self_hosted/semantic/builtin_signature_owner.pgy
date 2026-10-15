@@ -4,6 +4,7 @@ import "../lib/intent_observability_abi_projection_owner.pgy";
 import "wrapper_type_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "ast_expression_graph_collection_call_protocol_owner.pgy";
+import "builtin_collection_protocol_signature_owner.pgy";
 import "collection_key_policy_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -71,7 +72,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "SubEquals^Bool^String|Int|Int|String",
         "SubIndexOf^Int^String|Int|Int|String",
         "SubStartsWith^Bool^String|Int|String",
-        "StringReplace^String^Unknown|Unknown|Unknown",
+        "StringReplace^String^String|String|String",
         "StringContains^Bool^String|String",
         "SubContainsWithLen^Bool^String|Int|Int|Int|String",
         "SubEqualsWithLen^Bool^String|Int|Int|Int|String",
@@ -173,19 +174,9 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
     while map_index < ArrayLength(map_names) {
         let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
             SemanticExpressionGraphCollectionCallProtocolFromName(map_names[map_index]);
-        if !protocol.applies || protocol.family != "HashMap" { return []; }
-        let result: String = protocol.return_kind;
-        if result == "constructor" { result = "HashMap<Unknown, Unknown>"; }
-        if result == "element" { result = "Unknown"; }
-        if result == "keys" { result = "Array<Unknown>"; }
-        let params: String = "none";
-        let parameter: Int = 0;
-        while parameter < protocol.expected_arity {
-            if parameter == 0 { params = "Unknown"; }
-            else { params = params + "|Unknown"; }
-            parameter = parameter + 1;
-        }
-        ArrayPush(rows, protocol.operation + "^" + result + "^" + params);
+        let row: Option<String> = SemanticBuiltinCollectionProtocolSignatureRow(protocol);
+        if !IsSome(row) { return []; }
+        ArrayPush(rows, UnwrapOption(row));
         map_index = map_index + 1;
     }
     if !IntentObservabilityAbiReady() { return []; }
@@ -202,20 +193,36 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
 func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
     return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
         name == "StringLength" || name == "CharCode" || name == "Concat" ||
-        name == "Substring" || name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
+        name == "Substring" || name == "CharAtN" || name == "SubstringWithLen" ||
+        name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
+        name == "StringIndexOf" || name == "StringContains" || name == "StringReplace" || name == "Split" ||
+        name == "Read" || name == "Write" || name == "ArrayLength" ||
         name == "TextBuilderAppend" || name == "ArrayPushOwnedString";
 }
 
-func SemanticBuiltinRetentionSourceSignatureMatches(
-    name: String, return_type: String, param_types: String
-) -> Bool {
+func SemanticBuiltinRetentionSourceSignatureMatches(name: String, return_type: String, param_types: String) -> Bool {
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(name);
+    if protocol.applies && protocol.family == "HashMap" {
+        let expected: Option<String> = SemanticBuiltinCollectionProtocolSignatureRow(protocol);
+        return IsSome(expected) && UnwrapOption(expected) == name + "^" + return_type + "^" + param_types;
+    }
     if name == "Print" { return return_type == "Void" && param_types == "Unknown"; }
     if name == "Log" { return return_type == "Unknown" && param_types == "Unknown"; }
     if name == "CompilerArtifactWrite" { return return_type == "Bool" && param_types == "Int|String"; }
     if name == "StringLength" { return return_type == "Int" && param_types == "String"; }
     if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
     if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
+    if name == "Read" { return return_type == "Unknown" && param_types == "Unknown"; }
+    if name == "Write" { return return_type == "Void" && param_types == "Unknown|Unknown"; }
+    if name == "ArrayLength" { return return_type == "Int" && param_types == "Unknown"; }
+    if name == "StringIndexOf" { return return_type == "Int" && param_types == "String|String"; }
+    if name == "StringContains" { return return_type == "Bool" && param_types == "String|String"; }
+    if name == "StringReplace" { return return_type == "String" && param_types == "String|String|String"; }
+    if name == "Split" { return return_type == "Array<String>" && param_types == "String|String"; }
     if name == "Substring" { return return_type == "String" && param_types == "String|Int|Int"; }
+    if name == "CharAtN" { return return_type == "String" && param_types == "String|Int|Int"; }
+    if name == "SubstringWithLen" { return return_type == "String" && param_types == "String|Int|Int|Int"; }
     if name == "SubEqualsWithLen" { return return_type == "Bool" && param_types == "String|Int|Int|Int|String"; }
     if name == "SubIndexOfWithLen" { return return_type == "Int" && param_types == "String|Int|Int|Int|String"; }
     if name == "TextBuilderAppend" { return return_type == "Void" && param_types == "TextBuilder|String"; }
@@ -226,10 +233,7 @@ func SemanticBuiltinRetentionSourceSignatureMatches(
 // Parser artifacts carry builtin member calls without a declaration syntax
 // identity. Keep the exact source-member to canonical-callable mapping here,
 // beside the signature row that owns the callable.
-func SemanticBuiltinMemberCallableMatches(
-    canonical_name: String,
-    source_member_name: String
-) -> Bool {
+func SemanticBuiltinMemberCallableMatches(canonical_name: String, source_member_name: String) -> Bool {
     return canonical_name == "Array_Slice" &&
         source_member_name == "Slice";
 }

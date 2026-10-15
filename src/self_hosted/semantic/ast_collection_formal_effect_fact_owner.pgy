@@ -6,6 +6,8 @@ struct SemanticAstCollectionFormalEffects {
     ok: Bool;
     inventory: SemanticAstCollectionFormalEffectInventory;
     effects: HashMap<String, Int>;
+    // Physical descriptor uses; payload escape obligations remain in effects.
+    descriptor_effects: HashMap<String, Int>;
     owned_push_leaf_formals: HashMap<String, Int>;
     execution_contexts: SemanticAstCollectionFormalExecutionContexts;
     // Borrow-only String formal syntax id -> 1; absent formals may retain.
@@ -21,6 +23,7 @@ func SemanticAstCollectionFormalEffectsEmpty(
     let body_ready: Array<Bool> = [];
     let row_by_formal: HashMap<String, Int> = MapNew();
     let effects: HashMap<String, Int> = MapNew();
+    let descriptor_effects: HashMap<String, Int> = MapNew();
     let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
     let candidates: HashMap<String, Int> = MapNew();
     let unsafe_functions: HashMap<String, Int> = MapNew();
@@ -30,7 +33,7 @@ func SemanticAstCollectionFormalEffectsEmpty(
         SemanticAstCollectionFormalEffectInventory(
             false, formal_nodes, function_nodes, ordinals, modes,
             body_ready, row_by_formal),
-        effects, owned_push_leaf_formals,
+        effects, descriptor_effects, owned_push_leaf_formals,
         SemanticAstCollectionFormalExecutionContexts(
             false, 0, 0, candidates, unsafe_functions), borrowed_text_formals);
 }

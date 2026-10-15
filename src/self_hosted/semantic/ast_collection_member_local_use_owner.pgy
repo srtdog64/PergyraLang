@@ -1,0 +1,125 @@
+// Local occurrence classification owns alias-store eligibility, not read permission.
+import "ast_collection_member_read_call_target_owner.pgy";
+import "ast_collection_member_read_hazard_site_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+
+struct SemanticAstCollectionMemberLocalRootUse { blocked: Bool; site: Int; }
+
+func SemanticAstCollectionMemberLocalAliasStoreReady(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int
+) -> Bool {
+    let count: Int = ArrayLength(locals.node_ids);
+    if !locals.ok || !assignments.ok || !surfaces.ok || locals.artifact_node_count != artifact.count ||
+        assignments.artifact_node_count != artifact.count || surfaces.artifact_node_count != artifact.count ||
+        ArrayLength(locals.function_node_ids) != count || ArrayLength(locals.binding_kinds) != count ||
+        ArrayLength(locals.binding_indices) != count || ArrayLength(locals.binding_arities) != count { return false; }
+    if SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, syntax_id) == 0 { return false; }
+    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, syntax_id);
+    if IsSome(declared) {
+        let row: Int = UnwrapOption(declared);
+        return locals.function_node_ids[row] == function_id &&
+            locals.binding_kinds[row] == SemanticAstLocalBindingKindNormal() &&
+            locals.binding_indices[row] == 0 && locals.binding_arities[row] == 1;
+    }
+    if !SemanticAstAssignmentContainsNode(assignments, syntax_id) { return false; }
+    let atom: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(atom) { return false; }
+    let target: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, syntax_id, surfaces.expression_graph, UnwrapOption(atom));
+    if !target.ok { return false; }
+    return locals.binding_kinds[target.row] == SemanticAstLocalBindingKindNormal() &&
+        locals.binding_indices[target.row] == 0 && locals.binding_arities[target.row] == 1;
+}
+
+// A blocked occurrence records a precise site only for an ordinary local
+// direct-field alias store; all other hazards remain opaque.
+func SemanticAstCollectionMemberReadLocalRootUse(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref graph: SemanticExpressionGraphFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts, ref contexts: SemanticAstCollectionFormalExecutionContexts,
+    function_id: Int, syntax_id: Int, target_lane: Bool, value_lane: Bool, leaf: Int, root: Int
+) -> SemanticAstCollectionMemberLocalRootUse {
+    let blocked: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberLocalRootUse(true, 0);
+    let readable: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberLocalRootUse(false, 0);
+    let identity: SemanticAstCollectionMemberMoveIdentity = SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0, false);
+    let occurrence: Int = leaf;
+    let other_field: Bool = false;
+    if leaf + 2 <= root {
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, leaf + 2);
+        if member.ok && member.receiver_node == leaf {
+            identity = SemanticAstCollectionMemberMoveIdentityForNode(
+                artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+                function_id, syntax_id, graph, leaf + 2);
+            if !identity.ok { return blocked; }
+            other_field = !identity.string_array_field;
+            occurrence = leaf + 2;
+        }
+    }
+    if !other_field && (target_lane || occurrence == root ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id)) {
+        if !target_lane && value_lane && occurrence == root && identity.ok && identity.string_array_field &&
+            SemanticAstCollectionMemberLocalAliasStoreReady(artifact, locals, inferred_types, surfaces,
+                assignments, function_id, syntax_id) {
+            return SemanticAstCollectionMemberLocalRootUse(true,
+                SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, syntax_id));
+        }
+        return blocked;
+    }
+    let consumer: Int = occurrence + 1;
+    while consumer <= root {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, consumer);
+        if (IsSome(left) && UnwrapOption(left) == occurrence) ||
+            (IsSome(right) && UnwrapOption(right) == occurrence) { break; }
+        consumer = consumer + 1;
+    }
+    if consumer > root && other_field { return readable; }
+    if consumer > root { return blocked; }
+    let kind: Int = graph.arena.topology.node_kinds[consumer];
+    if other_field {
+        // A nested field may share a sequence descriptor; only a user formal
+        // that may write or consume it is a storage effect on this root.
+        if kind != AstExpressionNodeCallArgument() { return readable; }
+        let other_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+        if !other_edge.ok || other_edge.argument_node != occurrence { return readable; }
+        let other_target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, other_edge.call_node, other_edge.ordinal);
+        if !other_target.ok { return readable; }
+        let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, other_target.signature_row, other_target.ordinal);
+        if !IsSome(mode) || UnwrapOption(mode) == 1 || UnwrapOption(mode) == 2 { return blocked; }
+        return readable;
+    }
+    if occurrence != leaf && kind == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(graph, consumer);
+        if IsSome(base) && UnwrapOption(base) == occurrence { return readable; }
+        return blocked;
+    }
+    if kind != AstExpressionNodeCallArgument() { return blocked; }
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, consumer);
+    if !edge.ok || edge.argument_node != occurrence { return blocked; }
+    if occurrence != leaf && edge.ordinal == 0 &&
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayLength") { return readable; }
+    // A returned aggregate may capture the root: no statement of this body
+    // runs after the terminal tail, so no later read can observe that alias.
+    let constructor_name: Option<String> = SemanticExpressionGraphCallTargetName(graph, edge.call_node);
+    if IsSome(constructor_name) &&
+        IsSome(SemanticAstNominalConstructorIndexForName(constructors, UnwrapOption(constructor_name))) &&
+        SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) { return readable; }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionMemberReadCallTarget(
+        artifact, signatures, graph, edge.call_node, edge.ordinal);
+    if !target.ok || target.syntax_id <= 0 { return blocked; }
+    // A readonly or ref formal cannot write, consume or return the lent
+    // root's sequence storage, so lending the whole root opens no writable
+    // alias. A field read still needs the callee's observed execution.
+    if occurrence == leaf { return readable; }
+    if !SemanticAstCollectionFormalExecutionContextCallableReady(
+            artifact, contexts, signatures.function_node_ids[target.signature_row]) { return blocked; }
+    return readable;
+}

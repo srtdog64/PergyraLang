@@ -1,0 +1,10 @@
+struct ReadPair { left: Array<String>; right: Array<String>; }
+func Text(ref names: Array<String>) -> String { return names[0]; }
+func Main() -> Void {
+    let pair: ReadPair = ReadPair(["x"], ["y"]);
+    let alias: Array<String> = [];
+    let borrowed: String = Text(pair.left);
+    alias = pair.right;
+    Log(borrowed);
+    Log(ArrayLength(alias));
+}

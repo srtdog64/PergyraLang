@@ -1,0 +1,75 @@
+// Partition a root's admitted first fields into live shared copy landings and
+// the complementary storage whose consumption must still be proved.
+import "ast_collection_exclusive_value_class_owner.pgy";
+
+struct SemanticAstCollectionExclusiveCopyPartition {
+    ok: Bool;
+    shared_fields: Array<String>;
+    remaining: Array<String>;
+}
+
+func SemanticAstCollectionExclusiveCopyPartitionFor(
+    ref constructors: SemanticAstNominalConstructorFacts, copies: HashMap<String, Int>,
+    root: Int, root_type: String
+) -> SemanticAstCollectionExclusiveCopyPartition {
+    let shared_fields: Array<String> = [];
+    let remaining: Array<String> = [];
+    // Early failure owns empty descriptors, never aliases the growing outputs.
+    let invalid: SemanticAstCollectionExclusiveCopyPartition =
+        SemanticAstCollectionExclusiveCopyPartition(false, [], []);
+    if SemanticAstCollectionExclusiveCopySignature(copies, constructors, root) == "" { return invalid; }
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, root_type);
+    if !IsSome(constructor) { return invalid; }
+    let row: Int = UnwrapOption(constructor);
+    if row < 0 || row >= ArrayLength(constructors.param_starts) ||
+        row >= ArrayLength(constructors.param_counts) { return invalid; }
+    let start: Int = constructors.param_starts[row];
+    let count: Int = constructors.param_counts[row];
+    let fields: Int = ArrayLength(constructors.field_names);
+    if start < 0 || start > fields || count < 0 || count > fields - start { return invalid; }
+    let end: Int = start + count;
+    let shared_rows: Array<Int> = [];
+    let direction: Int = 0;
+    while direction < 2 {
+        let prefix: String = Concat("from:", ToString(root));
+        if direction == 1 { prefix = Concat("into:", ToString(root)); }
+        let index: Int = 0;
+        while index < SemanticAstCollectionExclusiveCopyCount(copies, prefix) {
+            let edge: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(
+                copies, constructors, MapGet(copies, Concat(prefix, Concat(":", ToString(index)))));
+            let field: Int = edge.source_field;
+            if direction == 1 { field = edge.destination_field; }
+            if !edge.ok || field < start || field >= end ||
+                !SemanticAstCollectionExclusiveCopyFieldReady(constructors, field) ||
+                (direction == 0 && edge.root != root) || (direction == 1 && edge.holder != root) {
+                return invalid;
+            }
+            ArrayPush(shared_rows, field);
+            index = index + 1;
+        }
+        direction = direction + 1;
+    }
+    let admitted_field: Int = start;
+    while admitted_field < end {
+        if !SemanticAstCollectionExclusiveCopyFieldReady(constructors, admitted_field) { return invalid; }
+        admitted_field = admitted_field + 1;
+    }
+    // The label owner allocates once, directly into each final result array.
+    let field: Int = start;
+    while field < end {
+        let held: Bool = false;
+        let index: Int = 0;
+        while index < ArrayLength(shared_rows) {
+            if shared_rows[index] == field { held = true; }
+            index = index + 1;
+        }
+        if held {
+            if !SemanticAstCollectionExclusiveAppendFieldLabel(shared_fields, constructors, field) { return invalid; }
+        } else {
+            if !SemanticAstCollectionExclusiveAppendFieldLabel(remaining, constructors, field) { return invalid; }
+        }
+        field = field + 1;
+    }
+    return SemanticAstCollectionExclusiveCopyPartition(
+        ArrayLength(shared_fields) > 0 && ArrayLength(remaining) > 0, shared_fields, remaining);
+}

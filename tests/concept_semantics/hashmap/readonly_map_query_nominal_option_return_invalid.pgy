@@ -1,0 +1,10 @@
+struct TextRecord { text: String; }
+struct TextPayload { text: String; count: Int; }
+func Extract(ref record: TextRecord) -> Option<String> {
+    let payload = TextPayload(record.text, 3);
+    return Some(payload.text);
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(UnwrapOption(Extract(record)));
+}

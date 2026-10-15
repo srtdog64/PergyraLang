@@ -1,0 +1,4 @@
+// Channel is a resource value; it must never inherit an independent scalar grant.
+// An unsupported Map value family must remain a distinct typed rejection.
+func ReadMapValue(ref values: HashMap<String, Channel<Int>>) -> Channel<Int> { return MapGet(values, "key"); }
+func Main() -> Void {}

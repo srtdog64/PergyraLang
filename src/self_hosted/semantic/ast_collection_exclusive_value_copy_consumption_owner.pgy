@@ -1,0 +1,100 @@
+// Copy graph last-consumer admission; edge facts remain in the copy owner.
+import "ast_collection_exclusive_value_copy_owner.pgy";
+import "ast_collection_exclusive_value_copy_liveness_owner.pgy";
+
+func SemanticAstCollectionExclusiveDeclaredFrom(
+    ref locals: SemanticAstLocalBindingFacts, binding: Int, syntax_id: Int
+) -> Bool {
+    return binding >= syntax_id && IsSome(SemanticAstLocalBindingIndexForNode(locals, binding));
+}
+
+// Field names are a projection of admitted rows, not independently stored facts.
+func SemanticAstCollectionExclusiveCopyFieldGrown(
+    ref constructors: SemanticAstNominalConstructorFacts, field: Int, ref grown: Array<String>
+) -> Bool {
+    if !SemanticAstCollectionExclusiveCopyFieldReady(constructors, field) { return true; }
+    if field == -1 || ArrayLength(grown) == 0 { return true; }
+    let index: Int = 0;
+    while index < ArrayLength(grown) {
+        if grown[index] == "*" || grown[index] == constructors.field_names[field] { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionExclusiveCopiesUnread(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, copies: HashMap<String, Int>, field_reads: HashMap<String, Int>,
+    ref place: SemanticAstCollectionAggregateSinkPlace, first_surface: Int, end_surface: Int,
+    function_id: Int, syntax_id: Int, scoped: Bool, scope: Int, ref uses: Array<Int>, early_returns: Bool,
+    ref grown: Array<String>, ref ignored_sources: Array<Int>
+) -> Bool {
+    let root: Int = SemanticAstCollectionExclusivePlaceRoot(locals, place);
+    if SemanticAstCollectionExclusiveCopySignature(copies, constructors, root) == "" { return false; }
+    let projection: Option<Int> = SemanticAstCollectionExclusiveCopyFieldForPlace(constructors,
+        SemanticAstCollectionExclusiveRootType(signatures, locals, inferred_types, function_id, root),
+        surfaces, place.chain);
+    if !IsSome(projection) { return false; }
+    // The statement's own destination receives the moved value.
+    let destination: Int = SemanticAstCollectionExclusiveStatementBinding(artifact, signatures, locals,
+        inferred_types, surfaces, function_id, syntax_id);
+    let from: String = Concat("from:", ToString(root));
+    let index: Int = 0;
+    while index < SemanticAstCollectionExclusiveCopyCount(copies, from) {
+        let edge: Int = MapGet(copies, Concat(from, Concat(":", ToString(index))));
+        let admitted: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, edge);
+        if !admitted.ok || admitted.root != root { return false; }
+        if admitted.holder != destination && !SemanticAstCollectionExclusiveDeclaredFrom(locals, admitted.holder, syntax_id) &&
+            SemanticAstCollectionExclusiveCopyFieldsOverlap(constructors, admitted.source_field, UnwrapOption(projection)) &&
+            SemanticAstCollectionExclusiveCopyFieldGrown(constructors, admitted.source_field, grown) &&
+            !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, constructors, locals, inferred_types,
+                surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope, uses,
+                early_returns, admitted.holder, admitted.destination_field, field_reads) {
+            return false;
+        }
+        index = index + 1;
+    }
+    // A holder shares its storage with the source and every other holder of it.
+    let into: String = Concat("into:", ToString(root));
+    index = 0;
+    while index < SemanticAstCollectionExclusiveCopyCount(copies, into) {
+        let edge: Int = MapGet(copies, Concat(into, Concat(":", ToString(index))));
+        let admitted: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, edge);
+        if !admitted.ok || admitted.holder != root { return false; }
+        let selected: Bool = SemanticAstCollectionExclusiveCopyFieldsOverlap(constructors,
+            admitted.destination_field, UnwrapOption(projection)) &&
+            SemanticAstCollectionExclusiveCopyFieldGrown(constructors, admitted.destination_field, grown);
+        let source: Int = admitted.root;
+        let ignored: Bool = SemanticAstCollectionExclusiveDeclaredFrom(locals, source, syntax_id);
+        let ignored_index: Int = 0;
+        while ignored_index < ArrayLength(ignored_sources) {
+            if ignored_sources[ignored_index] == source { ignored = true; }
+            ignored_index = ignored_index + 1;
+        }
+        if selected && !ignored && !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, constructors, locals, inferred_types,
+                surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope, uses,
+                early_returns, source, admitted.source_field, field_reads) {
+            return false;
+        }
+        let sibling_from: String = Concat("from:", ToString(source));
+        let sibling: Int = 0;
+        while sibling < SemanticAstCollectionExclusiveCopyCount(copies, sibling_from) {
+            let sibling_edge: Int = MapGet(copies, Concat(sibling_from, Concat(":", ToString(sibling))));
+            let other: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, sibling_edge);
+            if !other.ok || other.root != source { return false; }
+            if selected && !ignored && sibling_edge != edge &&
+                SemanticAstCollectionExclusiveCopyFieldsOverlap(constructors, admitted.source_field, other.source_field) &&
+                !SemanticAstCollectionExclusiveDeclaredFrom(locals, other.holder, syntax_id) &&
+                !SemanticAstCollectionExclusiveBindingUnreadAfter(artifact, signatures, constructors, locals,
+                    inferred_types, surfaces, first_surface, end_surface, function_id, syntax_id, scoped, scope,
+                    uses, early_returns, other.holder, other.destination_field, field_reads) {
+                return false;
+            }
+            sibling = sibling + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}

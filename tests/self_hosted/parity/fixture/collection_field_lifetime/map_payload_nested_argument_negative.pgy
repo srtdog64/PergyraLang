@@ -1,0 +1,10 @@
+func Touch(inout table: HashMap<String, String>) -> Int {
+    MapSet(table, "key", "new");
+    return 0;
+}
+func ObservePayload(value: String, count: Int) -> Int { return StringLength(value) + count; }
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    return ObservePayload(MapGet(table, "key"), Touch(table));
+}

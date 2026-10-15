@@ -238,7 +238,7 @@ test_statement_emit(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>();\n"
             "    Write(ss, 7, ss_token);\n"
             "    if true {\n"
             "        let srv: ReadView<Int> = ViewRead(ss);\n"
@@ -311,7 +311,7 @@ test_statement_emit(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>();\n"
             "    Write(slot, 42, token);\n"
             "    let v: Int = Read(slot, token);\n"
             "    Log(ToString(v));\n"
@@ -356,7 +356,7 @@ test_statement_emit(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>();\n"
             "    Write(ss, 42, ss_token);\n"
             "    Log(ss);\n"
             "}\n";

@@ -844,7 +844,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   formal's sole open use.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy` --
   exclusive aggregate values, a greatest fixed point over routines: literals,
-  `Clone` and `MapKeys` are fresh; constructors and carrying calls need
+  `Clone`, `MapNew` and `MapKeys` are fresh; constructors and carrying calls need
   exclusive, consumed, distinct arguments; a local or reassigned formal joins
   every definition. Array<Int> is tracked. A place whose only later readers
   are copies it shares moves, and is shared only at the fields they reach.
@@ -862,9 +862,19 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy`
   -- the formals a body grows through a member alias (a fixed point over
   forwarding) and the first fields each root and formal grows: a rebound
-  alias grows any field, a dependency grows where its path lands. Only a
-  reallocating mutation is growth (ArrayPush, ArrayPop, a callee effect that
-  may reallocate); ArraySet and an indexed assignment write in place.
+  alias grows any field, a dependency grows where its path lands. Admitted
+  structural mutation includes map insertion/removal and opaque Set/List/Queue
+  mutation; it need not always reallocate. ArraySet and indexed assignments
+  write in place. Map aliases use the generic place/dependency facts, not
+  Array<String> origin rows.
+- `src/self_hosted/semantic/ast_collection_storage_mutation_owner.pgy` --
+  one admitted-builtin structural-operation classifier read by growth and
+  receiver admission; a source spelling, user target, or foreign ABI cannot
+  grant mutation semantics. Opaque collections acquire no new value model.
+- `src/self_hosted/semantic/ast_collection_storage_observation_owner.pgy` --
+  admitted receiver queries that neither mutate nor retain the storage family;
+  only canonically typed Int-map lookups copy payloads. String payload loans,
+  unknown types and member-path types gain no observational permission.
 - `src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy`
   -- copy holders: a definition that copies a place inside a call or
   constructor without consuming it holds the source's dependencies, and each
@@ -903,7 +913,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   grown field shares no storage, and the argument boundary: a sink needs
   exclusivity and a last use only of the fields it grows, and a root may be
   handed to a carrying formal at a field it never grows or by a rebuild of
-  itself (`unproved_exclusive_sink_entry`, `exclusive_root_shared`).
+  itself (`unproved_exclusive_sink_entry`, `exclusive_root_shared`). Map and
+  opaque collection mutation also require an exclusive receiver at the call
+  edge (`unproved_exclusive_storage_mutation`).
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.
@@ -3699,7 +3711,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   CFG scope and the existing dominance fact. Same-spelled bindings select only
   the unique innermost dominating scope; incomparable candidates fail closed.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy` --
-  exact conditional LocalRef wire decoding and shape admission.
+  exact conditional LocalRef wire decoding and shape admission. Owned-local
+  identity publication uses the existing MIR fact owner's
+  `SelfMirCollectionOwnershipIdentityWireRequired`, also consumed by the numeric
+  row wrapper and source JSON producer. This classifier owns no release permission.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy`
   -- receipt-keyed direct-use completeness plus CFG-dominance validation of the
   innermost active same-spelling range binder. With no range receipt it owns no
@@ -5373,3 +5388,106 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   references/rename projections for the live session. It is rebuilt only when
   the admitted document revision changes and is consumed without per-request
   root scans. It owns no compiler semantic-artifact proof.
+
+## Bounded collection exit, descriptor and payload-loan consumers
+
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_edge_owner.pgy`
+  -- immutable constructor-field copy edges, generation and adjacency admission.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_binding_owner.pgy`
+  -- exact copy binding identities and assignment redefinitions.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_observation_owner.pgy`
+  -- admitted integer-map observation certificate used by copy consumption.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_consumption_owner.pgy`
+  -- final copy-edge and field-aware liveness consumption at owning boundaries.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_read_projection_owner.pgy`
+  -- read disjointness projected from admitted field identity and read summaries.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_partition_owner.pgy`
+  -- actual root-type field partition from admitted copy edges and the nonempty
+  complementary fields handed to consumption; raw-row units are not root-type proof.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_field_label_owner.pgy`
+  -- admitted field-label materialization directly into final owned outputs;
+  TypeFields and copy partition share the guarded allocation/grow boundary.
+- `src/self_hosted/semantic/ast_collection_member_read_hazard_site_owner.pgy`
+  -- same-generation earliest/opaque hazard projection; publication admits its
+  exact blocked-root identity, not physical field independence.
+- `src/self_hosted/semantic/ast_collection_member_read_hazard_normalization_owner.pgy`
+  -- bounded syntax parent-chain validation and existing retirement-site projection.
+- `src/self_hosted/semantic/ast_collection_member_read_fact_query_owner.pgy`
+  -- named ref-map occurrence/formal/facet queries returning scalar facts only.
+- `src/self_hosted/semantic/ast_collection_member_local_use_owner.pgy`
+  -- typed ordinary local occurrence and exact alias-store eligibility.
+- `src/self_hosted/semantic/ast_collection_member_local_transition_owner.pgy`
+  -- ordered selector/binding identity consumption and typed local hazard issue.
+- `src/self_hosted/semantic/ast_collection_member_read_block_transition_owner.pgy`
+  -- one root-block/site publication transition, including already-blocked roots.
+- `src/self_hosted/semantic/ast_collection_member_read_completion_owner.pgy`
+  -- one occurrence-aware completed-call consumer of published hazard identity;
+  aggregate root blocking remains a separate unchanged boundary.
+
+- `src/self_hosted/semantic/ast_collection_indexed_string_borrow_state_owner.pgy`
+  -- shared indexed/payload String loan schema and ordered scratch lifecycle.
+- `src/self_hosted/semantic/ast_collection_indexed_string_borrow_index_source_owner.pgy`
+  -- exact admitted Array<String> storage-source projection.
+- `src/self_hosted/semantic/ast_collection_map_payload_backing_owner.pgy`
+  -- immutable local Map allocation/alias paths and routine-local formal
+  descriptor tokens; unknown or reassigned backing cannot imply independence.
+- `src/self_hosted/semantic/ast_collection_map_payload_written_root_owner.pgy`
+  -- admitted prior/loop-carried assignment targets joined by exact local/formal root identity;
+  written roots cannot publish immutable backing provenance.
+- `src/self_hosted/semantic/ast_collection_map_payload_loan_state_owner.pgy`
+  -- completed expression-loan encoding, separate from backing identity.
+- `src/self_hosted/semantic/ast_collection_map_payload_event_owner.pgy`
+  -- completed Map String loan production, canonical argument-retention reads,
+  and same-routine replacement/removal/unknown-mutation invalidation.
+- `src/self_hosted/semantic/ast_collection_map_payload_use_owner.pgy`
+  -- operand-completion, escape and loop-backedge String payload consumers.
+- `src/self_hosted/semantic/ast_collection_call_completion_transition_owner.pgy`
+  -- sole completed-call state consumer preserving reservation, builtin and
+  deep-drop order; not an alternate event walk or semantic permission owner.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_exit_facts_owner.pgy`
+  -- admitted statement exit facts carried once with exclusive-value facts.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_exit_reachability_owner.pgy`
+  -- complete family exit reachability from the admitted exit carrier.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_loop_read_owner.pgy`
+  -- loop-carried collection readers and restoration obligations.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_read_owner.pgy`
+  -- source/alias read liveness at the exclusive-value boundary.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_restoration_owner.pgy`
+  -- per-use family restoration certificates.
+- `src/self_hosted/semantic/ast_collection_exclusive_value_copy_liveness_owner.pgy`
+  -- observational-copy last-read and post-growth liveness.
+- `src/self_hosted/semantic/builtin_argument_retention_selection_owner.pgy`
+  -- exact registry/signature selection; Map rows join the canonical collection
+  protocol, never a source-name or guessed-generic-signature exemption.
+- `src/self_hosted/semantic/builtin_collection_protocol_signature_owner.pgy`
+  -- sole generic callable signature projection from collection protocol facts.
+- `src/self_hosted/semantic/ast_collection_descriptor_effect_owner.pgy`
+  -- paired descriptor physical-use closure/publication distinct from unchanged
+  borrowed payload effects, within the existing formal-effect identity.
+- `src/self_hosted/semantic/ast_collection_formal_effect_receipt_owner.pgy`
+  -- versioned formal-effect facet receipt digest, consumed by readiness.
+- `src/self_hosted/semantic/ast_collection_builtin_receipt_issue_owner.pgy`
+  -- canonical call identity and existing operation receipt publication.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_definition_owner.pgy`
+  -- normalized DEF/local-ref and actual canonical producer operand admission.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_block_owner.pgy`
+  -- evaluated birth/move/drop operations within admitted CFG blocks.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_flow_owner.pgy`
+  -- owned-local generation state across admitted CFG edges; no scope-exit retirement.
+- `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy`
+  -- final disposition claims compared to witnessed terminal states, never forced.
+  Validation-only gate: `tests/self_hosted/parity/direct_mir_owned_collection_execution_owner.sh`.
+  Native stage-0 typed MIR input is bounded bootstrap evidence, not installed-driver substitution.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_projection_owner.pgy`
+  -- subordinate admitted raw-envelope/family-to-semantic-type projection for the
+  existing ValueTypePlan. Its exact declaration LocalRef join rejects disagreement
+  with actual ValueId types. Parameter and return semantic type projections use
+  the existing canonical owner; raw parameter facts and physical ABI seals remain
+  unchanged and are not reconstructed from canonical display text.
+- `src/self_hosted/compiler/direct_mir_scalar_program_return_expression_abi_owner.pgy`
+  -- contextual return-expression semantic type projection through the existing
+  canonical type owner; raw physical ABI capture remains unchanged.
+  The native JSON HashMap parameter/return witness is checked by
+  `tests/self_hosted/fixtures/direct_mir_semantic_type_projection_probe.pgy`,
+  separately from the six owned-collection fullgraph controls. This unit does
+  not claim support for the currently unclaimed HashMap routine route.

@@ -1,0 +1,3 @@
+func Forward(ref values: HashMap<String, String>) -> String { return ReadMapValue(values); }
+func ReadMapValue(ref values: HashMap<String, String>) -> String { return MapGet(values, "key"); }
+func Main() -> Void {}

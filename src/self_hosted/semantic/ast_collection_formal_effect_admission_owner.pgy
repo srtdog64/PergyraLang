@@ -12,6 +12,7 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifa
         !SemanticAstOwnedStringResultFactsReady(
             owned_string_results, signatures) {
         let no_effects: HashMap<String, Int> = MapNew();
+        let no_descriptors: HashMap<String, Int> = MapNew();
         let no_owned_push_leaf_formals: HashMap<String, Int> = MapNew();
         let candidates: HashMap<String, Int> = MapNew();
         let unsafe_functions: HashMap<String, Int> = MapNew();
@@ -19,7 +20,7 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifa
             false,
             SemanticAstCollectionFormalEffectInventoryFromSignatures(
                 signatures),
-            no_effects, no_owned_push_leaf_formals,
+            no_effects, no_descriptors, no_owned_push_leaf_formals,
             SemanticAstCollectionFormalExecutionContexts(
                 false, 0, 0, candidates, unsafe_functions), no_effects);
     }

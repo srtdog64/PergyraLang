@@ -13,22 +13,15 @@
 #include "type_checker_visibility.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static Type *
 constructor_call_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
-}
-
-static bool
-constructor_field_is_ordinary_channel(ASTNode *field_type_node,
-                                      Type *field_type)
-{
-    return (field_type_node != NULL
-            && field_type_node->type == AST_CHANNEL_TYPE)
-        || type_is_constructed_named(field_type, "Channel");
 }
 
 static bool
@@ -64,49 +57,22 @@ domain_constructor_slots(ASTNode *decl, size_t *slot_count_out)
     return NULL;
 }
 
-static size_t
-domain_constructor_input_count(ASTNode *decl)
+static ASTNode *
+domain_constructor_input(ASTNode *decl, size_t index, size_t *count)
 {
     size_t slot_count = 0;
     size_t input_count = 0;
-    ASTNode **slots;
-
-    if (!domain_constructor_has_role_filtered_inputs(decl))
-        return 0;
-    slots = domain_constructor_slots(decl, &slot_count);
+    ASTNode *selected = NULL;
+    ASTNode **slots = domain_constructor_slots(decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
-        if (domain_constructor_slot_is_input(slots[i]))
-            input_count++;
-    }
-    return input_count;
-}
-
-static ASTNode *
-domain_constructor_input_type_at(ASTNode *decl,
-                                 size_t input_index,
-                                 const char **field_name_out)
-{
-    size_t slot_count = 0;
-    size_t seen = 0;
-    ASTNode **slots;
-
-    if (field_name_out != NULL)
-        *field_name_out = NULL;
-    if (!domain_constructor_has_role_filtered_inputs(decl))
-        return NULL;
-    slots = domain_constructor_slots(decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (!domain_constructor_slot_is_input(slot))
+        if (!domain_constructor_slot_is_input(slots[i]))
             continue;
-        if (seen == input_index) {
-            if (field_name_out != NULL)
-                *field_name_out = ast_domain_slot_name(slot);
-            return ast_domain_slot_type(slot);
-        }
-        seen++;
+        if (input_count++ == index)
+            selected = slots[i];
     }
-    return NULL;
+    if (count != NULL)
+        *count = input_count;
+    return selected;
 }
 
 static ASTNode *
@@ -124,9 +90,12 @@ constructor_decl_field_type_at(ASTNode *decl,
             *field_name_out = field.name;
         return field.name != NULL ? field.type_ast : NULL;
     }
-    if (domain_constructor_has_role_filtered_inputs(decl))
-        return domain_constructor_input_type_at(
-            decl, index, field_name_out);
+    if (domain_constructor_has_role_filtered_inputs(decl)) {
+        ASTNode *slot = domain_constructor_input(decl, index, NULL);
+        if (field_name_out != NULL)
+            *field_name_out = ast_domain_slot_name(slot);
+        return ast_domain_slot_type(slot);
+    }
     return overlay_field_decl_at(decl, index, field_name_out);
 }
 
@@ -165,12 +134,13 @@ constructor_decl_field_resolved_type_at(ASTNode *decl, size_t index,
 static ASTNode *
 constructor_decl_field_type_by_name(ASTNode *decl, const char *name,
                                     size_t field_count,
-                                    const char **field_name_out)
+                                    const char **field_name_out, size_t *selected)
 {
     for (size_t i = 0; i < field_count; i++) {
         const char *fn = NULL;
         ASTNode *ft = constructor_decl_field_type_at(decl, i, &fn);
         if (fn != NULL && name != NULL && strcmp(fn, name) == 0) {
+            *selected = i;
             if (field_name_out != NULL)
                 *field_name_out = fn;
             return ft;
@@ -204,8 +174,8 @@ constructor_decl_has_channel_field(ASTNode *decl,
         if (field_type_node == NULL)
             continue;
         field_type = semantic_host_resolve_type_ref(field_type_node, ctx);
-        if (!constructor_field_is_ordinary_channel(
-                field_type_node, field_type)) {
+        if (field_type_node->type != AST_CHANNEL_TYPE &&
+            !type_is_constructed_named(field_type, "Channel")) {
             continue;
         }
         if (field_name_out != NULL)
@@ -239,6 +209,62 @@ constructor_reject_channel_field_store(SemanticContext *ctx,
         field_name != NULL ? field_name : "<field>");
 }
 
+static bool constructor_payload_type_ready(const Type *type)
+{
+    if (type == NULL || type == TYPE_UNKNOWN || type == TYPE_VOID ||
+        type->name == NULL || type->kind == TYPE_KIND_GENERIC ||
+        type->kind == TYPE_KIND_FUNCTION || type->nominal_flavor == TYPE_NOMINAL_SUBJECT ||
+        type_is_resource_handle(type) || type_is_move_token(type) ||
+        type_is_capability_bearing(type) || semantic_type_is_future_handle(type)) return false;
+    if (type->kind == TYPE_KIND_CONSTRUCTED)
+        for (size_t i = 0; i < type_constructed_arg_count(type); i++)
+            if (!constructor_payload_type_ready(type_constructed_arg(type, i))) return false;
+    if (type->kind == TYPE_KIND_TUPLE)
+        for (size_t i = 0; i < type->data.tuple.element_count; i++)
+            if (!constructor_payload_type_ready(type->data.tuple.elements[i])) return false;
+    return true;
+}
+
+bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
+    const ASTNode *call, const SemanticNominalResultSnapshot *snapshot)
+{
+    const char *result_name = ast_call_semantic_value_type_name(call);
+    if (snapshot == NULL || snapshot->decl_name == NULL || snapshot->result_type_name == NULL ||
+        result_name == NULL || strcmp(result_name, snapshot->result_type_name) != 0 ||
+        (snapshot->field_count != 0 && snapshot->fields == NULL) || !semantic_param_publication_inputs_ready(ctx) ||
+        semantic_host_index_find_decl_by_name((SemanticContext *)ctx, AST_CLASS_DECL,
+            snapshot->decl_name) != snapshot->decl ||
+        ast_node_stable_id(snapshot->decl) != snapshot->decl_id ||
+        !ast_class_is_struct(snapshot->decl) ||
+        ast_generic_param_count(ast_class_generic_params(snapshot->decl)) != 0 ||
+        ast_class_field_destructure_count(snapshot->decl) != 0 ||
+        ast_class_name(snapshot->decl) == NULL ||
+        strcmp(ast_class_name(snapshot->decl), snapshot->decl_name) != 0 ||
+        ast_call_arg_count(call) != snapshot->field_count) return false;
+    size_t count = 0;
+    ClassField **fields = ast_class_fields(snapshot->decl, &count);
+    if (count != snapshot->field_count || (count != 0 && fields == NULL)) return false;
+    for (size_t i = 0; i < count; i++) {
+        const SemanticNominalResultField *row = &snapshot->fields[i];
+        const char *name = ast_call_argument_name(call, i);
+        if (row->field == NULL || row->field_name == NULL || row->field_type_name == NULL ||
+            row->argument_type_name == NULL || row->type_syntax_name == NULL ||
+            row->field_index >= count || fields[row->field_index] != row->field ||
+            row->field->stable_id != row->field_id || row->field->default_value != NULL ||
+            row->field->type != row->type_node || ast_node_stable_id(row->type_node) != row->type_id ||
+            row->field->name == NULL || strcmp(row->field->name, row->field_name) != 0 ||
+            (name == NULL) != (row->argument_name == NULL) ||
+            (name != NULL && strcmp(name, row->argument_name) != 0)) return false;
+        Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
+        if (!constructor_payload_type_ready(type) || strcmp(type->name, row->field_type_name) != 0) return false;
+        char *syntax = ast_capture_inline(row->type_node);
+        bool same = syntax != NULL && strcmp(syntax, row->type_syntax_name) == 0;
+        free(syntax);
+        if (!same) return false;
+    }
+    return true;
+}
+
 bool
 type_check_constructor_symbol_call(ASTNode *expr,
                                    Symbol *sym,
@@ -258,6 +284,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 sym->kind, display_name);
             size_t field_count = 0;
             bool decl_is_generic = false;
+            SemanticNominalResultSnapshot *snapshot = NULL;
+            bool local_ok = false, metadata_ok = true;
             if (decl != NULL
                 && !explicit_type_reference_allowed(decl, expr, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
@@ -279,9 +307,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                            || decl->type == AST_ROSTER_DECL
                            || decl->type == AST_WORLD_DECL
                            || decl->type == AST_ZONE_DECL)) {
-                field_count = domain_constructor_has_role_filtered_inputs(decl)
-                    ? domain_constructor_input_count(decl)
-                    : overlay_field_count(decl);
+                if (domain_constructor_has_role_filtered_inputs(decl))
+                    (void)domain_constructor_input(decl, SIZE_MAX, &field_count);
+                else
+                    field_count = overlay_field_count(decl);
             }
             if (decl != NULL) {
                 size_t provided = ast_call_arg_count(expr);
@@ -298,6 +327,22 @@ type_check_constructor_symbol_call(ASTNode *expr,
                  * may still omit trailing fields on both front ends. */
                 bool exact_fields = decl->type == AST_CLASS_DECL
                     && ast_class_is_struct(decl);
+                local_ok = exact_fields && !decl_is_generic && provided == field_count &&
+                    ast_class_field_destructure_count(decl) == 0 && channel_field_name == NULL &&
+                    constructor_payload_type_ready(sym->type) && ast_node_stable_id(decl) != 0;
+                if (local_ok && semantic_param_publication_pending(ctx)) {
+                    snapshot = calloc(1, sizeof(*snapshot));
+                    if (snapshot != NULL) {
+                        snapshot->decl = decl;
+                        snapshot->decl_id = ast_node_stable_id(decl);
+                        snapshot->field_count = field_count;
+                        snapshot->decl_name = strdup(ast_class_name(decl));
+                        snapshot->result_type_name = strdup(sym->type->name);
+                        snapshot->fields = calloc(field_count, sizeof(*snapshot->fields));
+                    }
+                    metadata_ok = snapshot != NULL && snapshot->decl_name != NULL &&
+                        snapshot->result_type_name != NULL && (field_count == 0 || snapshot->fields != NULL);
+                }
                 /* Skip field-type validation for generic classes — the
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
@@ -331,6 +376,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                     }
                 } else {
                     for (size_t i = 0; i < provided; i++) {
+                        size_t selected = i;
                         const char *field_name = NULL;
                         ASTNode *field_type_node = NULL;
                         ASTNode *arg = ast_call_argument(expr, i);
@@ -341,8 +387,9 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         if (arg_nm != NULL) {
                             field_type_node =
                                 constructor_decl_field_type_by_name(
-                                    decl, arg_nm, field_count, &field_name);
+                                    decl, arg_nm, field_count, &field_name, &selected);
                             if (field_type_node == NULL) {
+                                local_ok = false;
                                 (void)type_check_expression(arg, ctx);
                                 semantic_error_with_hints(ctx,
                                     PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
@@ -363,7 +410,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                             type_check_expression_at_typed_site(
                                 arg, field_type, ctx));
                         if (field_type == NULL)
+                        {
+                            local_ok = false;
                             continue;
+                        }
                         if (type_equals(arg_type, TYPE_VOID)) {
                             semantic_error_with_hints(ctx,
                                 PGY_CODE_SEM_TYPE_MISMATCH,
@@ -376,8 +426,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 field_name != NULL ? field_name : "<field>");
                             arg_type = TYPE_UNKNOWN;
                         }
-                        if (field_type != NULL
-                            && !type_is_assignable(arg_type, field_type)) {
+                        if (!type_is_assignable(arg_type, field_type)) {
+                            local_ok = false;
                             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, arg,
                                 "Constructor '%s' argument %llu initializes field '%s' of type '%s', got '%s'",
                                 display_name, (unsigned long long) (i + 1),
@@ -396,7 +446,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 field_name != NULL ? field_name : "<field>";
 
                             if (borrowed_name != NULL) {
-                                semantic_validate_borrowed_escape(
+                                if (semantic_validate_borrowed_escape(
                                     arg,
                                     arg,
                                     ctx,
@@ -408,7 +458,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                     constructor_field,
                                     false,
                                     NULL,
-                                    NULL);
+                                    NULL)) local_ok = false;
                             }
                         }
                         if (sym->kind == SYMBOL_WORLD
@@ -486,9 +536,49 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 }
                             }
                         }
+                        if (!constructor_payload_type_ready(arg_type) ||
+                            !constructor_payload_type_ready(field_type)) local_ok = false;
+                        if (local_ok) {
+                            size_t count = 0;
+                            ClassField **fields = ast_class_fields(decl, &count);
+                            if (selected >= count || fields[selected]->default_value != NULL ||
+                                fields[selected]->stable_id == 0 || ast_node_stable_id(fields[selected]->type) == 0)
+                                local_ok = false;
+                            for (size_t j = 0; j < i && local_ok; j++) {
+                                size_t prior = j;
+                                const char *prior_name = ast_call_argument_name(expr, j);
+                                if (prior_name != NULL)
+                                    (void)constructor_decl_field_type_by_name(decl, prior_name, count, NULL, &prior);
+                                if (prior == selected) local_ok = false;
+                            }
+                            if (local_ok && metadata_ok && snapshot != NULL) {
+                                SemanticNominalResultField *row = &snapshot->fields[i];
+                                row->field_index = selected;
+                                row->field = fields[selected];
+                                row->field_id = row->field->stable_id;
+                                row->type_node = row->field->type;
+                                row->type_id = ast_node_stable_id(row->type_node);
+                                row->field_name = strdup(row->field->name);
+                                row->argument_name = arg_nm != NULL ? strdup(arg_nm) : NULL;
+                                row->field_type_name = strdup(field_type->name);
+                                row->argument_type_name = strdup(arg_type->name);
+                                row->type_syntax_name = ast_capture_inline(row->type_node);
+                                metadata_ok = row->field_name != NULL && row->field_type_name != NULL &&
+                                    row->argument_type_name != NULL && row->type_syntax_name != NULL &&
+                                    (arg_nm == NULL || row->argument_name != NULL);
+                            }
+                        }
                     }
                 }
             }
+            if (local_ok && semantic_param_publication_pending(ctx)) {
+                if (!metadata_ok || !ast_call_set_semantic_value_type_name_copy(expr, sym->type->name) ||
+                    !semantic_param_publication_record_nominal_result(ctx, expr, snapshot))
+                    semantic_error(ctx, expr, "Checked nominal result publication failed");
+                else
+                    snapshot = NULL;
+            }
+            semantic_nominal_result_snapshot_destroy(snapshot);
         }
         if (sym->kind == SYMBOL_ZONE && ctx != NULL) {
             ASTNode *zone_decl = semantic_constructor_decl_for_symbol_kind(ctx,

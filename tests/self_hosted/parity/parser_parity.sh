@@ -11,6 +11,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/parser_import_membership_leg.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -233,6 +234,7 @@ for backend in $BACKENDS; do
         compile_parser_backend "$backend" "$tool_bin"
     fi
     run_parser_backend "$backend" "$tool_bin"
+    run_parser_import_membership_leg "$backend" "$tool_bin"
 done
 
 echo "[self-host-parity:parser] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; backends=$BACKENDS; live-drift=$ANY_DRIFT_GUARD_RAN)"

@@ -1,0 +1,9 @@
+struct TextRecord { text: String; }
+func ReadRecord(ref record: TextRecord, field: String) -> Option<String> {
+    return Some(record.text);
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    let result = ReadRecord(record, "field");
+    Log(StringLength(UnwrapOption(result)));
+}

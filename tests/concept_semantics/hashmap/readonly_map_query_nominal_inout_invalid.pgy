@@ -1,0 +1,19 @@
+struct TextRecord { text: String; }
+struct TextPayload { text: String; count: Int; }
+func Extract(ref record: TextRecord, inout output: String) -> Bool {
+    let payload = TextPayload(record.text, 3);
+    output = payload.text;
+    return true;
+}
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    var staged: String = "literal";
+    let accepted = Extract(record, staged);
+    Write(output, staged);
+    return accepted;
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Release(output);
+}

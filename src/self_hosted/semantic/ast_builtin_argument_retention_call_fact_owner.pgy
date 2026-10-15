@@ -8,50 +8,12 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "builtin_argument_retention_projection_owner.pgy";
 import "builtin_shadow_owner.pgy";
 import "builtin_signature_owner.pgy";
-func SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
-    signatures: SemanticAstFunctionSignatureFacts,
-    function_tables: SemanticAstExpressionFunctionTableFacts
-) -> Int {
-    if !signatures.ok ||
-        !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
-        !SemanticBuiltinArgumentRetentionProjectionReady() { return -1; }
-    let selected_mask: Int = 0;
-    let selected_bit: Int = 1;
-    let retention_row: Int = 0;
-    while retention_row < SemanticBuiltinArgumentRetentionCount() {
-        let retention: SemanticBuiltinArgumentRetentionRow =
-            SemanticBuiltinArgumentRetentionRowAt(retention_row);
-        if !retention.valid || retention.source_name == "" ||
-            retention.builtin_identity == "" { return -1; }
-        if SemanticBuiltinSignatureSelectedForProgram(
-                signatures, retention.source_name) &&
-            SemanticBuiltinRetentionSourceSignatureKnown(retention.source_name) {
-            let matches: Int = 0;
-            let table_row: Int = 0;
-            while table_row < ArrayLength(function_tables.names) {
-                if function_tables.names[table_row] == retention.source_name {
-                    if !SemanticBuiltinRetentionSourceSignatureMatches(
-                            retention.source_name,
-                            function_tables.returns[table_row],
-                            function_tables.params[table_row]) { return -1; }
-                    matches = matches + 1;
-                }
-                table_row = table_row + 1;
-            }
-            if matches != 1 { return -1; }
-            selected_mask = selected_mask + selected_bit;
-        }
-        retention_row = retention_row + 1;
-        selected_bit = selected_bit * 2;
-    }
-    return selected_mask;
-}
-
+import "builtin_argument_retention_selection_owner.pgy";
 func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
     selected_mask: Int,
     inout graph: SemanticExpressionGraphFacts,
     owner_node_id: Int, lane: Int, local_call_ordinal: Int,
-    call_node: Int
+    call_node: Int, call_terminal: Int
 ) -> Bool {
     let name: Option<String> =
         SemanticExpressionGraphCallTargetName(graph, call_node);
@@ -75,6 +37,13 @@ func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
     if retention_row < 0 ||
         !SemanticAstCollectionOwnershipBuiltinCall(
             graph, call_node, UnwrapOption(name)) { return true; }
+    if SemanticBuiltinRetentionCollectionContractKnown(UnwrapOption(name)) {
+        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+            SemanticExpressionGraphCollectionCallProtocolFromName(UnwrapOption(name));
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, call_terminal);
+        if !call.ok || call.call_node != call_node ||
+            ArrayLength(call.argument_nodes) != protocol.expected_arity { return false; }
+    }
     if owner_node_id < 0 || lane < AstExpressionLaneAtom() ||
         lane > AstExpressionLaneAuxiliary() || local_call_ordinal < 0 {
         return false;
@@ -138,7 +107,7 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
     let identity: SemanticExpressionCallIdentity =
         SemanticExpressionCallIdentityForNode(surfaces, call_node);
     if !retention.valid ||
-        !SemanticBuiltinRetentionSourceSignatureKnown(retention.source_name) ||
+        !SemanticBuiltinRetentionSourceContractKnown(retention.source_name) ||
         !identity.ok ||
         !SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call_node, retention.source_name) ||
@@ -187,7 +156,7 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
             surfaces.expression_graph.arena.identities
                 .builtin_argument_retention_calls[fact_row].retention_row);
     if !retention.valid ||
-        !SemanticBuiltinRetentionSourceSignatureKnown(
+        !SemanticBuiltinRetentionSourceContractKnown(
             retention.source_name) ||
         !SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call_node,

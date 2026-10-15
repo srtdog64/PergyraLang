@@ -1,0 +1,66 @@
+import "ast_collection_exclusive_value_copy_binding_owner.pgy";
+import "ast_collection_exclusive_value_copy_read_projection_owner.pgy";
+
+// Physical reads of a copy binding after a use, including loop-backedge reads.
+func SemanticAstCollectionExclusiveBindingUnreadAfter(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, first_surface: Int, end_surface: Int,
+    function_id: Int, syntax_id: Int, scoped: Bool, scope: Int, ref uses: Array<Int>, early_returns: Bool,
+    binding: Int, field: Int, field_reads: HashMap<String, Int>
+) -> Bool {
+    if !SemanticAstCollectionExclusiveCopyFieldReady(constructors, field) { return false; }
+    // A whole write of the binding that every path runs gives it a new
+    // value; its target is no read.
+    let rebound: Int = -1;
+    let surface: Int = first_surface;
+    while surface < end_surface {
+        let statement: Int = surfaces.node_ids[surface];
+        let rewrites: Bool = statement >= syntax_id && (rebound < 0 || statement <= rebound) &&
+            SemanticAstCollectionExclusiveRebindsBinding(artifact, signatures, locals, inferred_types, surfaces,
+                function_id, statement, binding);
+        if rewrites && (statement == syntax_id || SemanticAstCollectionExclusiveRunsAfter(artifact, syntax_id, statement)) {
+            rebound = statement;
+        }
+        let early: Bool = early_returns &&
+            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindValueReturnStmtTag()) &&
+            SemanticAstCollectionExclusiveReturnBeforeUses(artifact, syntax_id, statement, uses);
+        // The consuming statement itself counts: a holder in a sibling
+        // argument reaches the same call.
+        let backedge: Bool = statement < syntax_id &&
+            SemanticAstCollectionExclusiveLoopCarries(artifact, binding, syntax_id, statement);
+        if (statement >= syntax_id || backedge) && !early && (rebound < 0 || statement <= rebound) &&
+            (!scoped || SemanticAstCollectionNodeEnclosedBy(artifact, statement, scope)) {
+            let lane: Int = 0;
+            while lane < 3 {
+                let slot: Int = surface * 3 + lane;
+                if (!rewrites || lane != AstExpressionLaneAtom()) &&
+                    slot < ArrayLength(surfaces.expression_graph.has_roots) && surfaces.expression_graph.has_roots[slot] {
+                    let root: Int = surfaces.expression_graph.roots[slot];
+                    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                    let node: Int = root + 1;
+                    if IsSome(start) { node = UnwrapOption(start); }
+                    while node <= root {
+                        if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                            !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
+                            let place: SemanticAstCollectionAggregateSinkPlace =
+                                SemanticAstCollectionAggregateSinkPlaceForNode(artifact, signatures, locals,
+                                    inferred_types, surfaces, function_id, statement, node);
+                            if place.ok && !place.temporary &&
+                                SemanticAstCollectionExclusivePlaceRoot(locals, place) == binding &&
+                                !SemanticAstCollectionExclusiveCopyReadDisjoint(signatures, constructors, locals,
+                                    inferred_types, surfaces, field_reads, function_id, binding, field, place, node, root) {
+                                return false;
+                            }
+                        }
+                        node = node + 1;
+                    }
+                }
+                lane = lane + 1;
+            }
+        }
+        surface = surface + 1;
+    }
+    return true;
+}

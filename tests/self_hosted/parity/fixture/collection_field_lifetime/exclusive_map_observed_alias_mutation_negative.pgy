@@ -1,0 +1,14 @@
+struct Tables { rows: HashMap<String, Int>; }
+func Update(inout tables: Tables) -> Void {
+    let old_rows: HashMap<String, Int> = tables.rows;
+    if MapHas(old_rows, "stop") { return; }
+    MapSet(old_rows, "grow", 1);
+    let rows: HashMap<String, Int> = tables.rows;
+    Log(MapSize(rows));
+}
+func Main() -> Int {
+    let rows: HashMap<String, Int> = MapNew();
+    let tables: Tables = Tables(rows);
+    Update(tables);
+    return 0;
+}

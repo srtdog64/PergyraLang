@@ -68,7 +68,7 @@
         (void)ast_assign_stable_ids(program);
         ctx->program_root = program;
 
-        type_check_class_decl(vault, ctx);
+        type_check_program(program, ctx);
         ctx->current_module_path = "consumer_module.pgy";
         vsym = symbol_create_variable("v",
             scope_lookup(ctx->scope, "Vault")->type, 2, 1);

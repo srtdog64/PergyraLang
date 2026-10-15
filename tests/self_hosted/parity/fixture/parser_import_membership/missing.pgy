@@ -1,0 +1,4 @@
+// Refuse at the importing declaration, not the missing target.
+
+import "absent.pgy";
+func Main() -> Int { return 0; }

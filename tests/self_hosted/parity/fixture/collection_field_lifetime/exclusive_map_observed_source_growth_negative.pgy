@@ -1,0 +1,7 @@
+func Main() -> Int {
+    let source: HashMap<String, Int> = MapNew();
+    let observed: HashMap<String, Int> = source;
+    MapSet(source, "grow", 1);
+    Log(MapHas(observed, "old"));
+    return 0;
+}

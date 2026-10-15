@@ -14,23 +14,10 @@
 #include "slot_analyzer_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "type_checker_internal.h"
+#include "function_param_publication_owner.h"
+#include "typed_map_query_fact_owner.h"
 
-#define FUNCTION_PARAM_FLOW_WORK_BUDGET 4096u
 
-static bool
-function_param_flow_identifier_matches(const char *candidate, void *userdata)
-{
-    const char *name = userdata;
-    return candidate != NULL && name != NULL && strcmp(candidate, name) == 0;
-}
-
-static bool
-function_param_flow_has_identifier_ref(const ASTNode *node, const char *name)
-{
-    return node != NULL && name != NULL
-        && ast_contains_identifier_ref(
-            node, function_param_flow_identifier_matches, (void *)name);
-}
 
 static size_t
 function_param_flow_key_hash(uint32_t function_id, size_t param_index)
@@ -106,184 +93,6 @@ function_param_flow_find(const FunctionParamFlowSummaryStore *store,
     return SIZE_MAX;
 }
 
-static size_t
-function_param_flow_program_point_index_find(
-    const FunctionParamFlowSummaryStore *store,
-    uint32_t function_id)
-{
-    if (store == NULL || function_id == 0)
-        return SIZE_MAX;
-    for (size_t i = 0; i < store->program_point_index_count; i++) {
-        if (store->program_point_indexes[i].function_id == function_id)
-            return i;
-    }
-    return SIZE_MAX;
-}
-
-static bool
-function_param_flow_program_point_index_reserve(
-    FunctionParamFlowSummaryStore *store,
-    size_t minimum)
-{
-    FunctionParamFlowProgramPointIndex *grown;
-    size_t capacity;
-
-    if (store == NULL)
-        return false;
-    if (minimum <= store->program_point_index_capacity)
-        return true;
-    capacity = store->program_point_index_capacity == 0
-        ? 8 : store->program_point_index_capacity;
-    while (capacity < minimum) {
-        if (capacity > SIZE_MAX / 2)
-            return false;
-        capacity *= 2;
-    }
-    if (capacity > SIZE_MAX / sizeof(*grown))
-        return false;
-    grown = realloc(store->program_point_indexes,
-                    capacity * sizeof(*grown));
-    if (grown == NULL)
-        return false;
-    memset(grown + store->program_point_index_capacity, 0,
-           (capacity - store->program_point_index_capacity) * sizeof(*grown));
-    store->program_point_indexes = grown;
-    store->program_point_index_capacity = capacity;
-    return true;
-}
-
-static bool
-function_param_flow_program_point_append(
-    FunctionParamFlowProgramPointIndex *index,
-    size_t param_index,
-    ASTNode *root)
-{
-    ASTNode **grown;
-    size_t capacity;
-
-    if (index == NULL || root == NULL || param_index >= index->param_count)
-        return false;
-    if (index->root_counts[param_index]
-            == index->root_capacities[param_index]) {
-        capacity = index->root_capacities[param_index] == 0
-            ? 8 : index->root_capacities[param_index];
-        if (capacity > SIZE_MAX / 2)
-            return false;
-        capacity *= 2;
-        if (capacity > SIZE_MAX / sizeof(*grown))
-            return false;
-        grown = realloc(index->roots_by_param[param_index],
-                        capacity * sizeof(*grown));
-        if (grown == NULL)
-            return false;
-        index->roots_by_param[param_index] = grown;
-        index->root_capacities[param_index] = capacity;
-    }
-    index->roots_by_param[param_index][index->root_counts[param_index]++] = root;
-    index->relevant_root_count++;
-    return true;
-}
-
-static bool
-function_param_flow_program_point_index_build(
-    FunctionParamFlowSummaryStore *store,
-    ASTNode *function_decl,
-    FunctionParamFlowProgramPointIndex **index_out)
-{
-    FunctionParamFlowProgramPointIndex *index;
-    ASTNode *body;
-    uint32_t function_id;
-    size_t existing;
-    size_t param_count;
-
-    if (store == NULL || function_decl == NULL || index_out == NULL)
-        return false;
-    function_id = ast_node_stable_id(function_decl);
-    if (function_id == 0)
-        return false;
-    existing = function_param_flow_program_point_index_find(
-        store, function_id);
-    if (existing != SIZE_MAX) {
-        *index_out = &store->program_point_indexes[existing];
-        return true;
-    }
-
-    param_count = ast_func_param_count(function_decl);
-    if (!function_param_flow_program_point_index_reserve(
-            store, store->program_point_index_count + 1)
-        || (param_count > SIZE_MAX / sizeof(ASTNode **))
-        || (param_count > SIZE_MAX / sizeof(size_t))) {
-        return false;
-    }
-
-    existing = store->program_point_index_count++;
-    index = &store->program_point_indexes[existing];
-    memset(index, 0, sizeof(*index));
-    index->function_id = function_id;
-    index->function_decl = function_decl;
-    index->param_count = param_count;
-    if (param_count > 0) {
-        index->roots_by_param = calloc(param_count, sizeof(ASTNode **));
-        index->root_counts = calloc(param_count, sizeof(size_t));
-        index->root_capacities = calloc(param_count, sizeof(size_t));
-        if (index->roots_by_param == NULL
-            || index->root_counts == NULL
-            || index->root_capacities == NULL) {
-            function_param_flow_program_point_index_destroy(index);
-            store->program_point_index_count--;
-            return false;
-        }
-    }
-
-    body = ast_func_body(function_decl);
-    if (body == NULL) {
-        *index_out = index;
-        return true;
-    }
-
-    if (body->type == AST_BLOCK) {
-        for (size_t s = 0; s < ast_block_statement_count(body); s++) {
-            ASTNode *statement = ast_block_statement(body, s);
-            index->statement_count++;
-            store->indexed_statement_visits++;
-            for (size_t p = 0; p < param_count; p++) {
-                FuncParam *param = ast_func_param(function_decl, p);
-                if (param == NULL || param->name == NULL
-                    || !function_param_flow_has_identifier_ref(
-                        statement, param->name))
-                    continue;
-                if (!function_param_flow_program_point_append(
-                        index, p, statement)) {
-                    store->indexed_program_points -=
-                        index->relevant_root_count;
-                    function_param_flow_program_point_index_destroy(index);
-                    store->program_point_index_count--;
-                    return false;
-                }
-                store->indexed_program_points++;
-            }
-        }
-    } else {
-        index->statement_count = 1;
-        store->indexed_statement_visits++;
-        for (size_t p = 0; p < param_count; p++) {
-            FuncParam *param = ast_func_param(function_decl, p);
-            if (param == NULL || param->name == NULL
-                || !function_param_flow_has_identifier_ref(body, param->name))
-                continue;
-            if (!function_param_flow_program_point_append(index, p, body)) {
-                store->indexed_program_points -= index->relevant_root_count;
-                function_param_flow_program_point_index_destroy(index);
-                store->program_point_index_count--;
-                return false;
-            }
-            store->indexed_program_points++;
-        }
-    }
-
-    *index_out = index;
-    return true;
-}
 
 static bool
 function_param_flow_reserve_entries(FunctionParamFlowSummaryStore *store,
@@ -334,12 +143,9 @@ function_param_flow_add(FunctionParamFlowSummaryStore *store,
     }
 
     index = store->count++;
-    store->entries[index].function_id = function_id;
-    store->entries[index].param_index = param_index;
-    store->entries[index].function_decl = function_decl;
-    store->entries[index].mask = SLOT_PARAM_SUMMARY_NONE;
-    store->entries[index].array_storage_unproved = false;
-    store->entries[index].state = FUNCTION_PARAM_FLOW_UNSEEN;
+    store->entries[index] = (FunctionParamFlowSummaryEntry){
+        .function_id = function_id, .param_index = param_index,
+        .function_decl = function_decl, .state = FUNCTION_PARAM_FLOW_UNSEEN};
 
     slot = function_param_flow_key_hash(function_id, param_index)
         & (store->hash_capacity - 1);
@@ -349,7 +155,7 @@ function_param_flow_add(FunctionParamFlowSummaryStore *store,
     return index;
 }
 
-static void
+void
 function_param_flow_fail(FunctionParamFlowSummaryStore *store,
                          ASTNode *site,
                          const char *reason)
@@ -360,6 +166,89 @@ function_param_flow_fail(FunctionParamFlowSummaryStore *store,
     semantic_error(store->ctx, site,
         "Function parameter flow summary failed closed: %s",
         reason != NULL ? reason : "unknown owner failure");
+}
+
+static bool function_param_flow_scalar_local(SemanticContext *ctx,
+    FunctionParamFlowProgramPointIndex *index, ASTNode *node)
+{
+    uint32_t binding = semantic_param_publication_binding(ctx, node);
+    if (binding == 0 || !semantic_param_publication_value_is_physical_scalar(ctx, node)) return false;
+    for (size_t i = 0; i < index->scalar_local_count; i++)
+        if (binding == index->scalar_local_ids[i] &&
+            binding == ast_node_stable_id(index->scalar_local_definitions[i])) return true;
+    return false;
+}
+static bool function_param_flow_scalar_local_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node)
+{
+    size_t count = index->scalar_local_count;
+    if (ast_node_stable_id(node) == 0 || count == SIZE_MAX / sizeof(ASTNode *)) return false;
+    ASTNode **definitions = realloc(index->scalar_local_definitions, (count + 1) * sizeof(*definitions));
+    if (definitions == NULL) return false;
+    index->scalar_local_definitions = definitions;
+    uint32_t *ids = realloc(index->scalar_local_ids, (count + 1) * sizeof(*ids));
+    if (ids == NULL) return false;
+    index->scalar_local_ids = ids;
+    definitions[count] = node;
+    ids[count] = ast_node_stable_id(node);
+    index->scalar_local_count++;
+    return true;
+}
+bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *decl, FunctionParamFlowProgramPointIndex *index, ASTNode *node)
+{
+    if (node == NULL) return false;
+    if (!function_param_flow_index_claim_record(ctx, index, node)) return true;
+    switch (node->type) {
+    case AST_LET_DECL:
+        return !function_param_flow_scalar_local_record(index, node) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
+    case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
+    case AST_CALL:
+        if (ast_call_arg_count(node) == 0) return true;
+        for (size_t p = 0; p < ast_call_arg_count(node); p++) {
+            if (!semantic_param_publication_checked_argument(ctx, node, p)) return true;
+            bool depends = false, retains = true;
+            bool relation = semantic_param_publication_checked_result_relation(ctx, node, p, &depends, &retains);
+            if (!(relation && !retains) && !semantic_param_publication_argument_borrowed_for_call(ctx, node, p) &&
+                !semantic_typed_map_query_receiver_read(ctx, node, p) &&
+                !function_param_flow_no_store_call_append(ctx, index, node, p)) return true;
+            if (function_param_flow_mutable_output_required(ctx, decl, index, ast_call_argument(node, p))) return true;
+        }
+        return false;
+    case AST_ASSIGNMENT:
+        return !function_param_flow_scalar_local(ctx, index, ast_assignment_target(node)) ||
+            !semantic_param_publication_value_is_physical_scalar(ctx, ast_assignment_value(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_assignment_value(node));
+    case AST_BLOCK:
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            if (function_param_flow_mutable_output_required(ctx, decl, index, ast_block_statement(node, i))) return true;
+        return false;
+    case AST_IF_STMT:
+        return function_param_flow_mutable_output_required(ctx, decl, index, ast_if_condition(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_if_then_branch(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_if_else_branch(node));
+    case AST_FOR_LOOP:
+        return function_param_flow_mutable_output_required(ctx, decl, index, ast_for_range_start(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_for_range_end(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_for_iterable(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_for_body(node));
+    case AST_WHILE_LOOP:
+        return function_param_flow_mutable_output_required(ctx, decl, index, ast_while_condition(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_while_body(node));
+    case AST_WITH_STMT: return function_param_flow_mutable_output_required(ctx, decl, index, ast_with_body(node));
+    case AST_IDENTIFIER: case AST_STRING: case AST_NUMBER: case AST_BOOLEAN: case AST_BREAK: case AST_CONTINUE: return false;
+    case AST_BINARY:
+        return function_param_flow_mutable_output_required(ctx, decl, index, ast_binary_left(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_binary_right(node));
+    case AST_UNARY: return function_param_flow_mutable_output_required(ctx, decl, index, ast_unary_operand(node));
+    case AST_CAST:
+        return !semantic_param_publication_checked_numeric_cast(ctx, node) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_cast_operand(node));
+    case AST_MEMBER_ACCESS: return function_param_flow_mutable_output_required(ctx, decl, index, ast_member_object(node));
+    case AST_ARRAY_ACCESS:
+        return function_param_flow_mutable_output_required(ctx, decl, index, ast_array_access_array(node)) ||
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_array_access_index(node));
+    default: return true;
+    }
 }
 
 static unsigned function_param_flow_evaluate(
@@ -464,10 +353,69 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     }
     roots = program_points->roots_by_param[store->entries[index].param_index];
     root_count = program_points->root_counts[store->entries[index].param_index];
+    bool actual_store = program_points->mutable_output_required ||
+        (program_points->no_store_call_count != 0 &&
+         !function_param_flow_no_store_graph(store, function_decl));
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
     storage_unproved = function_param_array_storage_unproved_in_program_points(
         roots, root_count, &origin, &lookup);
+    bool scalar_return = (candidate & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
+        semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, function_decl);
+    bool anchored = false;
+    bool source_kind_ready = semantic_param_publication_parameter_is_anchored_handle(
+        store->ctx, function_decl, origin.param_index, &anchored);
+    bool mutable_output = false;
+    size_t output_count = ast_func_param_count(function_decl);
+    for (size_t p = 0; p < output_count; p++) {
+        FuncParam *output = ast_func_param(function_decl, p);
+        if (output == NULL) mutable_output = true;
+        else if (output->mode == PARAM_MODE_MUT_REF) mutable_output = true;
+    }
+    mutable_output |= actual_store;
+    if ((scalar_return || mutable_output) && !source_kind_ready) {
+        function_param_flow_fail(store, function_decl, "typed parameter source kind is missing or stale");
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
+    if (!anchored && (scalar_return || mutable_output)) {
+        unsigned backing_effects = SLOT_PARAM_SUMMARY_NONE;
+        bool pending = false;
+        bool *outputs = calloc(output_count, sizeof(*outputs));
+        if (outputs == NULL) { function_param_flow_fail(store, function_decl, "output relation allocation failed"); return SLOT_PARAM_SUMMARY_ALL; }
+        bool complete = function_param_flow_returned_backing_effects(store, function_decl,
+            origin.param_index, &backing_effects, outputs, output_count, &pending);
+        if (complete && scalar_return) candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
+        else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
+        if (!complete && mutable_output && (!pending || store->settling_pending)) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+        if (store->entries[index].output_dependencies_ready != complete ||
+            store->entries[index].returned_backing_pending != pending) store->changed = true;
+        store->entries[index].returned_backing_pending = pending;
+        store->entries[index].returned_backing_unproved = !complete;
+        if (store->entries[index].output_dependencies == NULL) {
+            store->entries[index].output_dependencies = outputs;
+            store->entries[index].output_count = output_count;
+            outputs = NULL;
+            if (complete) store->changed = true;
+        } else if (outputs != NULL) {
+            for (size_t p = 0; p < output_count; p++) if (outputs[p] &&
+                !store->entries[index].output_dependencies[p]) {
+                store->entries[index].output_dependencies[p] = true;
+                store->changed = true;
+            }
+        }
+        store->entries[index].output_dependencies_ready = complete;
+        free(outputs);
+    } else if (source_kind_ready && !anchored &&
+        semantic_param_publication_routine_no_output_header_ready(store->ctx, function_decl)) {
+        /* The owned exhaustive selector, not a zero mask, proves no output
+           store. Ordinary RETURN dependence remains in candidate unchanged. */
+        if (store->entries[index].output_dependencies == NULL) {
+            store->entries[index].output_dependencies = calloc(output_count, sizeof(bool));
+            if (store->entries[index].output_dependencies == NULL) { function_param_flow_fail(store, function_decl, "empty output relation allocation failed"); return SLOT_PARAM_SUMMARY_ALL; }
+            store->entries[index].output_count = output_count;
+        }
+        store->entries[index].output_dependencies_ready = store->entries[index].output_dependencies != NULL;
+    }
 
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
@@ -483,30 +431,6 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
     store->body_evaluations++;
     return store->entries[index].mask;
-}
-
-static FunctionParamFlowSummaryStore *
-function_param_flow_store_get(const SlotFunctionLookup *lookup)
-{
-    FunctionParamFlowSummaryStore *store;
-    SemanticContext *ctx;
-
-    if (lookup == NULL || lookup->ctx == NULL || lookup->program_root == NULL)
-        return NULL;
-    ctx = lookup->ctx;
-    if (ctx->function_param_flow_summaries != NULL)
-        return ctx->function_param_flow_summaries;
-    store = calloc(1, sizeof(*store));
-    if (store == NULL) {
-        semantic_error(ctx, lookup->program_root,
-            "Function parameter flow summary store allocation failed");
-        return NULL;
-    }
-    store->ctx = ctx;
-    store->program_root = lookup->program_root;
-    store->work_budget = FUNCTION_PARAM_FLOW_WORK_BUDGET;
-    ctx->function_param_flow_summaries = store;
-    return store;
 }
 
 unsigned
@@ -525,6 +449,11 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
         || param_index >= ast_func_param_count(function_decl)) {
         return SLOT_PARAM_SUMMARY_ALL;
     }
+    if (!semantic_param_publication_inputs_ready(lookup->ctx) ||
+        !semantic_param_publication_routine_inputs_current(lookup->ctx, function_decl, true)) {
+        semantic_error(lookup->ctx, function_decl, "Parameter flow demand requires sealed typed inputs");
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
     store = function_param_flow_store_get(lookup);
     if (store == NULL)
         return SLOT_PARAM_SUMMARY_ALL;
@@ -539,6 +468,9 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     function_id = ast_node_stable_id(function_decl);
     existing = function_param_flow_find(store, function_id, param_index);
     if (existing != SIZE_MAX) {
+        FunctionParamFlowProgramPointIndex *cached;
+        if (store->entries[existing].state == FUNCTION_PARAM_FLOW_COMPLETE &&
+            !function_param_flow_program_point_index_build(store, function_decl, &cached)) return SLOT_PARAM_SUMMARY_ALL;
         if (store->solving)
             return function_param_flow_demand_index(
                 store, function_decl, param_index);
@@ -564,6 +496,7 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
 
     store->solving = true;
     store->active_had_recursion = false;
+    store->settling_pending = false;
     /* Bound this demand closure, not the lifetime of the compilation. Completed
      * unrelated summaries remain cached; recursive revisits in this episode
      * still share the same cap. Body-evaluation telemetry stays cumulative. */
@@ -586,6 +519,11 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
                 store->entries[i].mask = SLOT_PARAM_SUMMARY_ALL;
             break;
         }
+        if (!store->changed && store->active_had_recursion && !store->settling_pending)
+            for (size_t i = store->active_start; i < store->count; i++)
+                if (store->entries[i].returned_backing_pending) {
+                    store->settling_pending = true; store->changed = true; break;
+                }
     } while (store->active_had_recursion && store->changed);
 
     if (store->failed) {
@@ -609,6 +547,43 @@ function_param_flow_summary_for_param(SemanticContext *ctx,
 
     return function_param_flow_summary_demand(&lookup, function_decl,
                                               param_index);
+}
+
+unsigned function_param_flow_summary_for_call(const SlotFunctionLookup *lookup,
+    const ASTNode *call, size_t ordinal)
+{
+    if (lookup == NULL) return SLOT_PARAM_SUMMARY_ALL;
+    ASTNode *decl = semantic_param_publication_callee(lookup->ctx, call, ordinal);
+    return decl == NULL ? SLOT_PARAM_SUMMARY_ALL :
+        function_param_flow_summary_demand(lookup, decl, ordinal);
+}
+
+bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lookup,
+    const ASTNode *call, size_t source_ordinal, size_t output_ordinal, bool *dependent)
+{
+    if (lookup == NULL || dependent == NULL ||
+        !semantic_param_publication_checked_argument(lookup->ctx, call, output_ordinal) ||
+        !semantic_param_publication_value(lookup->ctx, ast_call_argument(call, source_ordinal)).ok ||
+        !semantic_param_publication_value(lookup->ctx, ast_call_argument(call, output_ordinal)).ok) return false;
+    ASTNode *decl = semantic_param_publication_callee(lookup->ctx, call, source_ordinal);
+    if (decl == NULL || output_ordinal >= ast_func_param_count(decl)) return false;
+    size_t ordinals[2] = {source_ordinal, output_ordinal};
+    for (size_t i = 0; i < 2; i++) {
+        ASTNode *root = ast_call_argument(call, ordinals[i]);
+        while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
+            root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
+        if (root == NULL || !semantic_param_publication_value(lookup->ctx, root).ok) return false;
+    }
+    (void)function_param_flow_summary_demand(lookup, decl, source_ordinal);
+    FunctionParamFlowSummaryStore *store = lookup->ctx->function_param_flow_summaries;
+    if (store == NULL || store->failed) return false;
+    size_t index = function_param_flow_find(store, ast_node_stable_id(decl), source_ordinal);
+    if (index == SIZE_MAX || store->entries[index].state == FUNCTION_PARAM_FLOW_COMPUTING ||
+        !store->entries[index].output_dependencies_ready ||
+        output_ordinal >= store->entries[index].output_count) return false;
+    if (!function_param_flow_backing_rows_current(store, decl)) return false;
+    *dependent = store->entries[index].output_dependencies[output_ordinal];
+    return true;
 }
 
 bool

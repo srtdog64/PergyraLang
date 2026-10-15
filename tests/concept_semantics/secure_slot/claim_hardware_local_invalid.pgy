@@ -1,0 +1,9 @@
+// Slot axis with hardware authority: token validated against runtime authority.
+// Authority is a RUNTIME fact -> bucket B (by-design fail-closed), not erasable.
+func Main() -> Void {
+    let (hp, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);
+    Write(hp, 100, token);
+    let v: Int = Read(hp, token);
+    Log(v);
+    Release(hp, token);
+}

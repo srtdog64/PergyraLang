@@ -119,7 +119,7 @@ func InspectCollectionBuiltinCompletion(
         bundle.owned_string_result_domains);
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-        analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.effects, definitions, storage);
+        analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.descriptor_effects, definitions, storage);
     let fields: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
     let ownership: Array<Int> = []; let dispositions: Array<Int> = []; let transitions: Array<Int> = []; let origins: Array<Int> = [];
     let row: Int = 0;

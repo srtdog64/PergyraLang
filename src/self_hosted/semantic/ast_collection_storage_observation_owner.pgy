@@ -1,0 +1,31 @@
+// Storage-family queries that neither mutate nor retain their receiver.
+// Int-map payloads are copied scalars; String-map payloads are borrowed.
+import "ast_collection_aggregate_sink_consumption_owner.pgy";
+
+func SemanticAstCollectionStorageObservedType(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, node: Int,
+    ref place: SemanticAstCollectionAggregateSinkPlace
+) -> String {
+    if !place.ok || place.temporary || ArrayLength(place.chain) != 0 { return ""; }
+    if place.key >= 0 {
+        if place.key >= ArrayLength(inferred_types) { return ""; }
+        return inferred_types[place.key];
+    }
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+        signatures, function_id, surfaces.expression_graph, node);
+    if formal.ok && 0 - formal.syntax_id == place.key { return formal.declared_type_name; }
+    return "";
+}
+
+func SemanticAstCollectionStorageQueryObservational(
+    ref graph: SemanticExpressionGraphFacts, call: Int, ordinal: Int,
+    direct_binding: Bool, binding_type_name: String
+) -> Bool {
+    if ordinal != 0 { return false; }
+    if SemanticAstCollectionOwnershipBuiltinCall(graph, call, "MapHas") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call, "MapSize") { return true; }
+    return direct_binding &&
+        (binding_type_name == "HashMap<String, Int>" || binding_type_name == "HashMap<Int, Int>") &&
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call, "MapGet");
+}

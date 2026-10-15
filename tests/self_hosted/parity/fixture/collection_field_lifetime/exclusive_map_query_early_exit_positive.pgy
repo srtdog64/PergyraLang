@@ -1,0 +1,22 @@
+struct MapState { entries: HashMap<String, Int>; }
+
+func Insert(inout state: MapState) -> Void {
+    let entries: HashMap<String, Int> = state.entries;
+    if MapHas(entries, "0") { return; }
+    let index: Int = 0;
+    while index < 100 {
+        MapSet(entries, ToString(index), index);
+        index = index + 1;
+    }
+    state.entries = entries;
+}
+
+func Main() -> Int {
+    let table: HashMap<String, Int> = MapNew();
+    let state: MapState = MapState(table);
+    Insert(state);
+    let result: HashMap<String, Int> = state.entries;
+    Log(ToString(MapSize(result)));
+    Log(ToString(MapGet(result, "99")));
+    return 0;
+}

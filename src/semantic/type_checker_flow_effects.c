@@ -1,4 +1,5 @@
 #include "type_checker_flow_effects.h"
+#include "function_param_publication_owner.h"
 
 #include <stdio.h>
 
@@ -92,6 +93,9 @@ flow_record_unreachable_statement(SemanticContext *ctx, const ASTNode *node)
 {
     if (ctx == NULL || node == NULL)
         return;
+    if (semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_execution(ctx, node, false))
+        semantic_error(ctx, node, "Unreachable statement publication failed");
     semantic_warning_with_hints(ctx,
         PGY_CODE_SEM_UNREACHABLE_CODE,
         PGY_CAUSE_CFG_UNREACHABLE_STATEMENT,

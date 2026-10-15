@@ -41,6 +41,12 @@ typedef struct
 
 unsigned slot_builtin_access_mask(const char *name);
 bool slot_builtin_call_is_local_non_escape(const char *name);
+/* Preserves the checked AST identifier and its binding identity. A valid
+ * non-addressable value has a NULL root; malformed addressable paths fail. */
+bool slot_call_argument_storage_root(const ASTNode *argument,
+                                     const ASTNode **root_out);
+bool slot_checked_call_argument_root(const SlotFunctionLookup *lookup,
+    const ASTNode *call, size_t ordinal, const ASTNode **root_out);
 
 bool slot_access_record(SlotAccessEntry **entries, size_t *count,
                         size_t *capacity, const char *name, unsigned mask);

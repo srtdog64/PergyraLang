@@ -1,0 +1,2 @@
+func StringContains(text: String, needle: String) -> Bool { return true; }
+func Main() -> Void { Log(StringContains("a,b", ",")); }

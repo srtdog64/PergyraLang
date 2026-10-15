@@ -1,0 +1,2 @@
+func Query(ref values: HashMap<String, Int>) -> Int { return MapGet(values); }
+func Main() -> Void {}

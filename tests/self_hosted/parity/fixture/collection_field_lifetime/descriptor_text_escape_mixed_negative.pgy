@@ -1,0 +1,13 @@
+func PickAndReplace(inout values: Array<String>) -> String {
+    ArraySet(values, 0, "replacement");
+    return values[0];
+}
+func ReadText(values: Array<String>) -> Bool {
+    return values[0] == "replacement";
+}
+func Main() -> Void {
+    let values: Array<String> = ["a"];
+    let text: String = PickAndReplace(values);
+    Log(ToString(ReadText(values)));
+    Log(text);
+}

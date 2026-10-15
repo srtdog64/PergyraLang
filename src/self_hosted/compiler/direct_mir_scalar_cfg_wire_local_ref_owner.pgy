@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
+import "../mir/collection_ownership_fact_owner.pgy";
 
 struct DirectMirScalarCfgWireLocalRefs {
     let valid: Bool;
@@ -53,14 +54,13 @@ func DirectMirScalarCfgWireLocalRefsRequired(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex, ref parameter_names: Array<String>
 ) -> Bool {
-    // Mirror the producer contract exactly: empty-origin ownership facts need
-    // declaration identity even when the spelling is unique. Other ordinary
-    // locals do not silently widen the persisted wire shape.
+    // The admitted fact owner classifies identity publication for both routes.
     let ownership_row: Int = 0;
     while ownership_row < ArrayLength(
             index.collection_ownership_facts.origins) {
-        if index.collection_ownership_facts.origins[ownership_row] ==
-                "empty-literal" {
+        let origin: String = index.collection_ownership_facts.origins[ownership_row];
+        let ownership: String = index.collection_ownership_facts.element_ownerships[ownership_row];
+        if SelfMirCollectionOwnershipIdentityWireRequired(origin, ownership) {
             return true;
         }
         ownership_row = ownership_row + 1;

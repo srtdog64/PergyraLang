@@ -1,0 +1,9 @@
+func Grow(inout source: HashMap<String, Int>) -> Void { MapSet(source, "grow", 1); }
+func Main() -> Int {
+    let source: HashMap<String, Int> = MapNew();
+    let observed: HashMap<String, Int> = source;
+    if MapHas(observed, "stop") { return 0; }
+    Grow(source);
+    Log(MapSize(source));
+    return 0;
+}

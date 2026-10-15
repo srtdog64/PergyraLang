@@ -133,7 +133,22 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
             (strcmp(callee_name, "ClaimSlot") == 0);
         bool is_claim_secure =
             (strcmp(callee_name, "ClaimSecureSlot") == 0);
-        if (is_claim_slot || is_claim_secure) {
+        if ((is_claim_slot || is_claim_secure)
+            && scope_lookup(ctx->scope, callee_name) == NULL) {
+            (void)type_check_expression(init, ctx);
+            if (ctx->has_error)
+                return false;
+            uint32_t checked_builtin = 0;
+            BuiltinKind expected_builtin = is_claim_secure
+                ? BUILTIN_CLAIM_SECURE_SLOT : BUILTIN_CLAIM_SLOT;
+            if (!ast_call_semantic_callee_builtin_kind(init, &checked_builtin)
+                || checked_builtin != (uint32_t)expected_builtin
+                || ast_call_semantic_callee_declared_callable(init)
+                || ast_call_semantic_callee_decl_id(init) != 0
+                || ast_call_semantic_callee_value_binding_id(init) != 0) {
+                semantic_error(ctx, init, "Slot claim requires the checked canonical builtin identity");
+                return false;
+            }
             Type *inner_type =
                 ownership_let_resolve_first_call_type_arg(init, ctx);
             if (inner_type == NULL)

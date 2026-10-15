@@ -1,0 +1,31 @@
+import "ast_collection_exclusive_value_field_read_owner.pgy";
+
+// A concrete admitted field is disjoint only from another admitted field,
+// or from the existing whole-argument field-read summary. Unknown reads overlap.
+func SemanticAstCollectionExclusiveCopyReadDisjoint(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, field_reads: HashMap<String, Int>,
+    function_id: Int, binding: Int, field: Int,
+    ref place: SemanticAstCollectionAggregateSinkPlace, node: Int, root: Int
+) -> Bool {
+    if field < 0 || !SemanticAstCollectionExclusiveCopyFieldReady(constructors, field) { return false; }
+    // Liveness visits binding leaves. Their first receiver member is the
+    // actual observed field; the leaf alone is not a whole-value read.
+    let chain: Array<Int> = [];
+    if ArrayLength(place.chain) > 0 { ArrayPush(chain, place.chain[0]); }
+    else {
+        let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+        if member.ok && member.receiver_node == node { ArrayPush(chain, member.member_node); }
+    }
+    let projected: Option<Int> = SemanticAstCollectionExclusiveCopyFieldForPlace(constructors,
+        SemanticAstCollectionExclusiveRootType(signatures, locals, inferred_types, function_id, binding),
+        surfaces, chain);
+    if !IsSome(projected) { return false; }
+    if UnwrapOption(projected) >= 0 {
+        return !SemanticAstCollectionExclusiveCopyFieldsOverlap(constructors, field, UnwrapOption(projected));
+    }
+    let reader: Int = SemanticAstCollectionExclusiveSummarizedTarget(signatures, surfaces, field_reads, node, root);
+    return reader > 0 && !MapHas(field_reads, Concat(ToString(reader), Concat(":", constructors.field_names[field])));
+}

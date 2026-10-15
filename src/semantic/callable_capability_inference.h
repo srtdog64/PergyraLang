@@ -6,6 +6,7 @@
 /* Per-analysis typed call equations. Source bodies are checked once; the seal
  * substitutes callable identities, never rechecks a callee AST. */
 typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
+const ASTNode *callable_capability_current_declaration(const SemanticContext *ctx);
 void callable_capability_program_begin(SemanticContext *ctx, ASTNode *program);
 CallableCapabilityRoutine *callable_capability_enter(
     SemanticContext *ctx, ASTNode *decl, Type **params, size_t count);

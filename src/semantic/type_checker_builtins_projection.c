@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 static Type *
 builtin_projection_normalize_type(Type *type)
@@ -162,6 +163,10 @@ type_check_projection_call(ASTNode *call,
         }
     }
 
+    if (semantic_param_publication_pending(ctx) && !ctx->has_error &&
+        (!semantic_param_publication_begin_value(ctx, target_arg) ||
+         !semantic_param_publication_record_value(ctx, target_arg, target_sym->type, true)))
+        semantic_error(ctx, target_arg, "Checked projection type publication failed");
     return target_sym->type;
 }
 

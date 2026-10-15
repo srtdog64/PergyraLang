@@ -1,0 +1,63 @@
+// Inspect supplied sources only; unsafe inputs are never emitted or executed.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    let mode: Int = ToInt(args[1]);
+    if mode < 0 || mode > 7 || args[1] != ToString(mode) { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.verdict.ok { Log("baseline admission refused"); Exit(2); }
+    let receipt: SemanticAstBodyTypeBundleAdmissionReceipt =
+        SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, bundle);
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle) { Exit(2); }
+    let facts: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
+    let descriptors: HashMap<String, Int> = facts.descriptor_effects;
+    let payloads: HashMap<String, Int> = facts.effects;
+    let selected: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(facts.inventory.formal_nodes) {
+        let key: String = ToString(facts.inventory.formal_nodes[row]);
+        if MapHas(payloads, key) && MapHas(descriptors, key) &&
+            MapGet(payloads, key) == SemanticAstCollectionFormalUnprovedElementUseEffect() &&
+            MapGet(descriptors, key) == 3 { selected = row; }
+        row = row + 1;
+    }
+    if selected < 0 { Log("missing separate payload and descriptor effects"); Exit(2); }
+    let key: String = ToString(facts.inventory.formal_nodes[selected]);
+    if mode == 0 { Log(true); return; }
+    if mode == 7 {
+        let stale: SemanticAstBodyTypeBundleAdmissionReceipt = SemanticAstBodyTypeBundleAdmissionReceipt(
+            "pgy.semantic-body-type-bundle-admission.v4", receipt.admitted, receipt.artifact_identity_digest,
+            receipt.artifact_node_count, receipt.expression_graph_node_count, receipt.initializer_count,
+            receipt.iteration_count, receipt.assignment_count, receipt.statement_count,
+            receipt.collection_formal_count, receipt.collection_formal_proved_count,
+            receipt.collection_formal_effect_digest,
+            receipt.collection_focus_group_count, receipt.collection_focus_part_count,
+            receipt.collection_focus_exit_count, receipt.collection_focus_active_part_count,
+            receipt.collection_focus_selection_count,
+            receipt.collection_focus_recovery_digest, receipt.zone_resource_identity_count,
+            receipt.zone_resource_path_count, receipt.zone_mutable_borrow_count, receipt.generic_count);
+        Log(!SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(stale, artifact, analysis, bundle));
+        return;
+    }
+    if mode == 1 { MapRemove(descriptors, key); }
+    if mode == 2 { MapSet(descriptors, "foreign-formal", 3); }
+    if mode == 3 { MapSet(descriptors, key, 7); }
+    if mode == 4 { MapSet(descriptors, key, 1); }
+    if mode == 5 { MapSet(descriptors, key, 2); }
+    if mode == 6 { facts.inventory.formal_nodes[selected] = 0; }
+    facts.descriptor_effects = descriptors;
+    bundle.collection_formal_effects = facts;
+    let shape_refused: Bool = !SemanticAstCollectionFormalEffectsReadyFor(facts, analysis.signatures);
+    let receipt_refused: Bool = !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle);
+    // A valid descriptor-value mutation remains shape-valid, but cannot reuse
+    // a receipt from the original producer generation.
+    Log(receipt_refused && MapGet(payloads, key) == SemanticAstCollectionFormalUnprovedElementUseEffect() &&
+        ((mode == 4 && !shape_refused) || (mode != 4 && shape_refused)));
+}

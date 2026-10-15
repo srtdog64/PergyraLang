@@ -221,7 +221,7 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         ? type_function_effects(method_func_type)
         : declared_effects;
     semantic_record_callee_effect_provenance(ctx, method_effects);
-    semantic_record_callee_body_summary(ctx, method_func_type);
+    semantic_record_callee_body_summary(ctx, expr, method_func_type);
     semantic_record_callable_decl_summary(ctx, method, method_func_type,
         method_effects);
     if (ctx->in_parallel && type_effect_mask_has(method_effects, EFFECT_SECURE)) {

@@ -1,0 +1,14 @@
+func BuildMapForSnapshot() -> HashMap<String, Int> {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "owned", 1);
+    return values;
+}
+func ReadMapValue(ref values: HashMap<String, Int>) -> Int {
+    return MapGet(values, "owned");
+}
+func Main() -> Void {
+    let values: HashMap<String, Int> = BuildMapForSnapshot();
+    let keys: Array<String> = MapKeys(values);
+    Log(ReadMapValue(values));
+    ArrayDropOwnedStrings(keys);
+}

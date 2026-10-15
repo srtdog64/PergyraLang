@@ -199,9 +199,11 @@ P0 is active. The lanes, in order:
   - 9 on the gen1 input `codegen/main.pgy`;
   - 97 on the installed-driver input `compiler/driver_bootstrap_main.pgy`.
 
-  All 97 come from the collection ownership scan, at 9 sites and with 13
-  boundary kinds. These are upper bounds: later owners in the bundle assembly
-  were not reached.
+  Those 97 observations come from the collection ownership scan, at 9 sites
+  and with 13 boundary kinds. The observer continued after refusals, so later
+  rows are conditional on that continuation. Later bundle owners were not
+  reached. These are neither proved upper bounds nor the remaining refusal
+  count of the current candidate; rerun evidence owns that count.
 
 ## Out of scope for V1
 

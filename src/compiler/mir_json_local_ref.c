@@ -1,6 +1,7 @@
 /* Native projection of the existing lexical LocalRef wire contract. */
 #include "mir_json_local_ref.h"
 #include "mir.h"
+#include "collection_owned_local_transition_owner.h"
 #include "mir_json_dump_internal.h"
 #include "../parser/ast_api.h"
 #include <inttypes.h>
@@ -11,12 +12,14 @@ mir_json_routine_local_refs_required(const MIRRoutine *routine)
 {
     if (routine == NULL)
         return false;
-    /* Empty-literal origin readers must join a carried row to the exact local
-     * definition before trusting initializer graph evidence. */
+    /* Definition witnesses require exact LocalRefs even with unique spelling;
+     * this publishes identity, not birth or release permission. */
     for (size_t row = 0; row < routine->collection_ownership_fact_count;
          row++) {
         if (routine->collection_ownership_facts[row].origin
-            == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL)
+            == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+            || pgy_collection_owned_local_fact_tracked(
+                &routine->collection_ownership_facts[row]))
             return true;
     }
     for (size_t row = 0; row < routine->source_local_type_count; row++) {

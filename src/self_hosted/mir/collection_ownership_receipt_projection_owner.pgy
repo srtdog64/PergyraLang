@@ -5,10 +5,10 @@ import "collection_ownership_receipt_fact_owner.pgy";
 import "../semantic/ast_collection_ownership_verdict_owner.pgy";
 import "../semantic/ast_expression_call_identity_owner.pgy";
 
-func SelfMirCollectionOwnershipReceiptBindingIsEmptyOrigin(
+func SelfMirCollectionOwnershipReceiptBindingReady(
     ref facts: SemanticAstCollectionOwnershipVerdict,
     function_syntax_id: Int,
-    binding_syntax_id: Int
+    binding_syntax_id: Int, effect: Int
 ) -> Bool {
     let matched: Int = 0;
     let row: Int = 0;
@@ -16,8 +16,13 @@ func SelfMirCollectionOwnershipReceiptBindingIsEmptyOrigin(
         if facts.function_syntax_ids[row] == function_syntax_id &&
             facts.binding_syntax_ids[row] == binding_syntax_id {
             matched = matched + 1;
-            if facts.origins[row] !=
-                SemanticAstCollectionOriginEmptyLiteral() {
+            let owned_drop: Bool = effect == SemanticAstCollectionOwnershipEffectDrop() &&
+                (facts.element_ownerships[row] == SemanticAstCollectionOwnershipOwnedElements() ||
+                 facts.element_ownerships[row] == SemanticAstCollectionOwnershipMapKeysSnapshot()) &&
+                (facts.origins[row] == SemanticAstCollectionOriginMapKeys() ||
+                 facts.origins[row] == SemanticAstCollectionOriginClone() ||
+                 facts.origins[row] == SemanticAstCollectionOriginBinding());
+            if facts.origins[row] != SemanticAstCollectionOriginEmptyLiteral() && !owned_drop {
                 return false;
             }
         }
@@ -62,9 +67,10 @@ func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
             if IsSome(node) { target_node = UnwrapOption(node); }
         }
         if (ordinal >= 0 && target_node < 0) ||
-            !SelfMirCollectionOwnershipReceiptBindingIsEmptyOrigin(
+            !SelfMirCollectionOwnershipReceiptBindingReady(
                 facts, function_syntax_id,
-                facts.receipts.receiver_binding_syntax_ids[receipt]) {
+                facts.receipts.receiver_binding_syntax_ids[receipt],
+                facts.receipts.effect_kinds[receipt]) {
             valid = false;
             continue;
         }

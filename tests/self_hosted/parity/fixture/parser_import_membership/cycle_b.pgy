@@ -1,0 +1,2 @@
+import "././cycle_a.pgy";
+func CycleB() -> Int { return 2; }

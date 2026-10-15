@@ -5,6 +5,7 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
 import "collection_lifetime_event_probe.pgy";
 import "collection_storage_producer_probe.pgy";
+import "collection_storage_mutation_identity_unit.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
@@ -92,6 +93,12 @@ func Main() -> Void with caps env, io_read {
                 receipt.initializer_count, receipt.iteration_count,
                 receipt.assignment_count, receipt.statement_count,
                 formal_count, proved_count, effect_digest,
+                receipt.collection_focus_group_count,
+                receipt.collection_focus_part_count,
+                receipt.collection_focus_exit_count,
+                receipt.collection_focus_active_part_count,
+                receipt.collection_focus_selection_count,
+                receipt.collection_focus_recovery_digest,
                 receipt.zone_resource_identity_count,
                 receipt.zone_resource_path_count,
                 receipt.zone_mutable_borrow_count, receipt.generic_count
@@ -165,6 +172,9 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 129 && mutation <= 132 {
+        Log(InspectCollectionStorageMutationIdentity(analysis, mutation)); return;
+    }
     if mutation >= 85 && mutation <= 94 {
         Log(InspectCollectionStorageProducer(artifact, analysis, bundle, mutation)); return;
     }
@@ -454,7 +464,7 @@ func Main() -> Void with caps env, io_read {
         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-            formal_rows, modes, proved, definitions, storage);
+            formal_rows, modes, effects.descriptor_effects, definitions, storage);
         if caller_row < 0 || unknown_call_syntax < 0 || !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)) {
             Log("missing exact caller effect frame"); Exit(2);
         }
@@ -550,7 +560,7 @@ func InspectOwnStorageAdmission(
                         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
                             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-                            formal_rows, modes, proved, definitions, storage);
+                            formal_rows, modes, effects.descriptor_effects, definitions, storage);
                         if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, local_count) { return false; }
                         let ownership: Array<Int> = [];
                         let dispositions: Array<Int> = [];

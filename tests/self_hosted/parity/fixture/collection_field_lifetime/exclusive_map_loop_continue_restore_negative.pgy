@@ -1,0 +1,17 @@
+struct Tables { rows: HashMap<String, Int>; }
+func Update(inout tables: Tables, count: Int) -> Void {
+    let i: Int = 0;
+    while i < count {
+        let rows: HashMap<String, Int> = tables.rows;
+        MapSet(rows, ToString(i), i);
+        if i == 0 { i = i + 1; continue; }
+        tables.rows = rows;
+        i = i + 1;
+    }
+}
+func Main() -> Int {
+    let rows: HashMap<String, Int> = MapNew();
+    let tables: Tables = Tables(rows);
+    Update(tables, 100);
+    return 0;
+}

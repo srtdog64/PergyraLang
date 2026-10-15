@@ -30,7 +30,7 @@ func Main() -> Void with caps env, io_read {
     if !definitions.ok || !storage.ok || !formals.ok { Log("fixture source facts refused"); Exit(2); }
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-        analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.effects, definitions, storage);
+        analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.descriptor_effects, definitions, storage);
     let inputs: SemanticAstCollectionConstructorFieldInputs = effects.constructor_inputs;
     if !SemanticAstCollectionCallEffectFactsReady(effects, ArrayLength(analysis.local_bindings.node_ids)) ||
         !SemanticAstCollectionConstructorFieldInputsPendingReady(artifact, inputs, analysis.constructors, analysis.local_bindings,

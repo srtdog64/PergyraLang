@@ -1,4 +1,4 @@
-// One admitted argument edge owns the negative storage effects for locals and
+// One admitted argument edge consumes physical descriptor effects for locals and
 // formals. Content and liveness grants remain with their existing owners.
 import "ast_collection_constructor_storage_escape_owner.pgy";
 import "ast_collection_formal_effect_owner.pgy";
@@ -20,7 +20,7 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface: Int,
     edge: SemanticCallArgumentEdgeView, formal_rows: HashMap<String, Int>,
-    ref formal_modes: Array<Int>, proved: HashMap<String, Int>
+    ref formal_modes: Array<Int>, descriptor_effects: HashMap<String, Int>
 ) -> SemanticAstCollectionArgumentPermissionEffect {
     let absent: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorFieldIdentity(true, 0, 0, "", -1, -1);
     let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false, absent, false);
@@ -47,12 +47,12 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
             if row < 0 || row >= ArrayLength(formal_modes) { return effect; }
             consuming = formal_modes[row] == 2;
         }
-        let opaque: Bool = MapHas(proved, key) && MapGet(proved, key) ==
+        let opaque: Bool = MapHas(descriptor_effects, key) && MapGet(descriptor_effects, key) ==
             SemanticAstCollectionFormalOpaqueExecutionEffect();
-        let shallow: Bool = MapHas(proved, key) && MapGet(proved, key) ==
+        let shallow: Bool = MapHas(descriptor_effects, key) && MapGet(descriptor_effects, key) ==
             SemanticAstCollectionFormalShallowMutationEffect();
-        let unproved: Bool = !MapHas(proved, key) || opaque ||
-            MapGet(proved, key) ==
+        let unproved: Bool = !MapHas(descriptor_effects, key) || opaque ||
+            MapGet(descriptor_effects, key) ==
                 SemanticAstCollectionFormalUnprovedElementUseEffect();
         effect.storage_escape = effect.storage_escape || opaque;
         effect.unknown = !consuming && unproved;

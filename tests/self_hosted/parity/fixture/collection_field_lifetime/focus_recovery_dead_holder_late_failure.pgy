@@ -1,0 +1,61 @@
+struct EightRows {
+    transition_ids: Array<Int>;
+    expression_syntax_ids: Array<Int>;
+    instruction_block_ids: Array<Int>;
+    instruction_ids: Array<Int>;
+    graph_root_ids: Array<Int>;
+    graph_digests: Array<Int>;
+    call_target_names: Array<String>;
+    call_target_syntax_ids: Array<Int>;
+}
+func CaptureEight(inout rows: EightRows, should_fail: Bool) -> Bool
+{
+    // The whole descriptor holder is read only before focus activation.
+    let dead_holder: EightRows = rows;
+    Log(ArrayLength(dead_holder.transition_ids));
+    let transition_ids: Array<Int> = rows.transition_ids;
+    let expression_syntax_ids: Array<Int> = rows.expression_syntax_ids;
+    let instruction_block_ids: Array<Int> = rows.instruction_block_ids;
+    let instruction_ids: Array<Int> = rows.instruction_ids;
+    let graph_root_ids: Array<Int> = rows.graph_root_ids;
+    let graph_digests: Array<Int> = rows.graph_digests;
+    let call_target_names: Array<String> = rows.call_target_names;
+    let call_target_syntax_ids: Array<Int> = rows.call_target_syntax_ids;
+    let count: Int = 0;
+    while count < 8 {
+        ArrayPush(transition_ids, count);
+        ArrayPush(expression_syntax_ids, count);
+        ArrayPush(instruction_block_ids, count);
+        ArrayPush(instruction_ids, count);
+        ArrayPush(graph_root_ids, count);
+        ArrayPush(graph_digests, count);
+        ArrayPush(call_target_names, "row");
+        ArrayPush(call_target_syntax_ids, count);
+        count = count + 1;
+    }
+    if should_fail { return false; }
+    rows.transition_ids = transition_ids;
+    rows.expression_syntax_ids = expression_syntax_ids;
+    rows.instruction_block_ids = instruction_block_ids;
+    rows.instruction_ids = instruction_ids;
+    rows.graph_root_ids = graph_root_ids;
+    rows.graph_digests = graph_digests;
+    rows.call_target_names = call_target_names;
+    rows.call_target_syntax_ids = call_target_syntax_ids;
+    return true;
+}
+func Main() -> Void
+{
+    let rows: EightRows = EightRows([99], [99], [99], [99], [99], [99], ["seed"], [99]);
+    Log(CaptureEight(rows, true));
+    Log(ArrayLength(rows.transition_ids));
+    Log(ArrayLength(rows.expression_syntax_ids));
+    Log(ArrayLength(rows.instruction_block_ids));
+    Log(ArrayLength(rows.instruction_ids));
+    Log(ArrayLength(rows.graph_root_ids));
+    Log(ArrayLength(rows.graph_digests));
+    Log(ArrayLength(rows.call_target_names));
+    Log(ArrayLength(rows.call_target_syntax_ids));
+    Log(rows.transition_ids[8]);
+    Log(rows.call_target_names[8]);
+}

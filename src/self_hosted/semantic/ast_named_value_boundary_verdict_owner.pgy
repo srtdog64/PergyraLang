@@ -126,6 +126,7 @@ func SemanticAstReadonlySequenceBoundaryVerdict(
 }
 
 func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     signatures: SemanticAstFunctionSignatureFacts,
     ref graph: SemanticExpressionGraphFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
@@ -214,6 +215,7 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             );
         }
         let alias: SemanticAstInoutArgumentRefusal = SemanticAstInoutArgumentRefusalFor(
+            artifact, locals, inferred_types, surfaces,
             signatures, UnwrapOption(signature_index), graph, call, UnwrapOption(target_name));
         if alias.present {
             return SemanticAstNamedValueBoundaryVerdictError(

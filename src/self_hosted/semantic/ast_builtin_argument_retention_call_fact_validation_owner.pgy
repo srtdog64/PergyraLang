@@ -4,6 +4,7 @@ import "ast_collection_ownership_identity_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "builtin_argument_retention_projection_owner.pgy";
 import "builtin_signature_owner.pgy";
+import "builtin_argument_retention_selection_owner.pgy";
 
 func SemanticAstBuiltinArgumentRetentionCallFactsReady(
     ref surfaces: SemanticAstExpressionSurfaceFacts
@@ -45,7 +46,7 @@ func SemanticAstBuiltinArgumentRetentionCallFactsReady(
                     if IsSome(target) {
                         source_name = UnwrapOption(target);
                         required =
-                            SemanticBuiltinRetentionSourceSignatureKnown(source_name) &&
+                            SemanticBuiltinRetentionSourceContractKnown(source_name) &&
                             SemanticAstCollectionOwnershipBuiltinCall(
                                 surfaces.expression_graph, node, source_name);
                     }
@@ -62,7 +63,7 @@ func SemanticAstBuiltinArgumentRetentionCallFactsReady(
                                 .retention_row);
                     if !retention.valid ||
                         retention.source_name != source_name ||
-                        !SemanticBuiltinRetentionSourceSignatureKnown(
+                        !SemanticBuiltinRetentionSourceContractKnown(
                             retention.source_name) ||
                         surfaces.expression_graph.arena.identities
                             .builtin_argument_retention_calls[fact_row].owner_node_id !=

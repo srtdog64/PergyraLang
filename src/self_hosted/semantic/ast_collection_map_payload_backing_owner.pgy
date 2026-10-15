@@ -1,0 +1,80 @@
+// Exact payload backing, bounded to admitted immutable local value graphs.
+// Neither declaration spelling nor a MapNew in a different callable proves
+// runtime allocation identity. Negative formal tokens are routine-local
+// descriptor loans, not fresh allocations; unresolved sources stay unknown.
+import "ast_collection_aggregate_sink_consumption_owner.pgy";
+import "ast_collection_map_payload_written_root_owner.pgy";
+
+func SemanticAstMapPayloadBackingForNode(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int, node: Int, ref path: Array<Int>, depth: Int
+) -> Int {
+    if depth >= 32 { return 0; }
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, node);
+    if member.ok {
+        let extended: Array<Int> = [member.member_node];
+        let index: Int = 0;
+        while index < ArrayLength(path) { ArrayPush(extended, path[index]); index = index + 1; }
+        let source: Int = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
+            locals, inferred_types, surfaces, assignments, function_id, syntax_id,
+            member.receiver_node, extended, depth + 1);
+        ArrayDrop(extended);
+        return source;
+    }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, function_id, syntax_id, surfaces.expression_graph, node);
+    if binding.ok {
+        // No generation/join contract has been admitted for a written root.
+        if SemanticAstMapPayloadRootWrittenBefore(artifact, signatures, locals,
+                inferred_types, surfaces, assignments, function_id, syntax_id,
+                binding.declaration_node_id, false) { return 0; }
+        if locals.binding_kinds[binding.row] != SemanticAstLocalBindingKindNormal() { return 0; }
+        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, locals.node_ids[binding.row], AstExpressionLaneValue());
+        if !IsSome(value) { return 0; }
+        return SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
+            locals, inferred_types, surfaces, assignments, function_id,
+            locals.node_ids[binding.row], UnwrapOption(value), path, depth + 1);
+    }
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+        signatures, function_id, surfaces.expression_graph, node);
+    if formal.ok && formal.syntax_id > 0 && ArrayLength(path) == 0 {
+        if SemanticAstMapPayloadRootWrittenBefore(artifact, signatures, locals,
+                inferred_types, surfaces, assignments, function_id, syntax_id,
+                formal.syntax_id, true) { return 0; }
+        return 0 - formal.syntax_id;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, node);
+    if !call.ok { return 0; }
+    if ArrayLength(path) == 0 && SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "MapNew") {
+        return call.call_node + 1;
+    }
+    if ArrayLength(path) == 0 { return 0; }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+    if !IsSome(target) || UnwrapOption(target) != 0 || !IsSome(name) { return 0; }
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, UnwrapOption(name));
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, path[0]);
+    if !IsSome(constructor) || !IsSome(field) ||
+        constructors.param_counts[UnwrapOption(constructor)] != ArrayLength(call.argument_nodes) { return 0; }
+    let start: Int = constructors.param_starts[UnwrapOption(constructor)];
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(call.argument_nodes) {
+        if constructors.field_names[start + ordinal] == UnwrapOption(field) {
+            let remaining: Array<Int> = [];
+            let index: Int = 1;
+            while index < ArrayLength(path) { ArrayPush(remaining, path[index]); index = index + 1; }
+            let source: Int = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
+                locals, inferred_types, surfaces, assignments, function_id, syntax_id,
+                call.argument_nodes[ordinal], remaining, depth + 1);
+            ArrayDrop(remaining);
+            return source;
+        }
+        ordinal = ordinal + 1;
+    }
+    return 0;
+}

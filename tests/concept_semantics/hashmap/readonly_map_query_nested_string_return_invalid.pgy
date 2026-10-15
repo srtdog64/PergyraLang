@@ -1,0 +1,7 @@
+// MapGet<String> remains a borrowed result, even with a resolved member receiver.
+struct NestedBorrowedMap { entries: HashMap<String, String>; }
+struct NestedBorrowedQueries { inventory: NestedBorrowedMap; }
+func ReadNestedMapText(ref record: NestedBorrowedQueries) -> String {
+    return MapGet(record.inventory.entries, "entry");
+}
+func Main() -> Void {}

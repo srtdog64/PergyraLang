@@ -1,0 +1,31 @@
+// One ordered local occurrence joins admitted binding identity with the local
+// use owner's typed hazard. Selector leaves never become lexical root uses.
+import "ast_collection_member_local_use_owner.pgy";
+import "ast_collection_member_read_block_transition_owner.pgy";
+
+func SemanticAstCollectionMemberLocalTransitionAt(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref contexts: SemanticAstCollectionFormalExecutionContexts, slot: Int, node: Int, root: Int,
+    inout blocked: HashMap<String, Int>, inout hazards: SemanticAstCollectionMemberReadHazardSites
+) -> SemanticAstLocalBindingIdentity {
+    let next_member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, node + 1);
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
+    let surface: Int = slot / 3;
+    let syntax: Int = surfaces.node_ids[surface];
+    if node + 1 > root || !next_member.ok || next_member.member_node != node {
+        binding = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types, surfaces.function_node_ids[surface], syntax, surfaces.expression_graph, node);
+    }
+    if binding.ok {
+        let local_use: SemanticAstCollectionMemberLocalRootUse = SemanticAstCollectionMemberReadLocalRootUse(
+            artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types, surfaces.expression_graph,
+            surfaces, assignments, contexts, surfaces.function_node_ids[surface], syntax,
+            slot % 3 == AstExpressionLaneAtom() && SemanticAstAssignmentContainsNode(assignments, syntax),
+            slot % 3 == AstExpressionLaneValue(), node, root);
+        if local_use.blocked { SemanticAstCollectionMemberReadBlockTransition(artifact, blocked, hazards, binding.declaration_node_id, local_use.site); }
+    }
+    return binding;
+}

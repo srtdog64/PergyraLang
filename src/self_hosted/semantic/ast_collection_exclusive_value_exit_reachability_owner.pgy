@@ -1,0 +1,45 @@
+// A later lexical read cannot follow family uses that all return from this
+// routine first. Inout write-back remains a separate caller-exit obligation.
+import "ast_collection_exclusive_value_flow_owner.pgy";
+
+func SemanticAstCollectionExclusiveFamilyReturnsBeforeStatement(
+    ref artifact: AstTreeArtifact, statement: Int, ref uses: Array<Int>, ref exits: Array<Int>
+) -> Bool {
+    if ArrayLength(uses) == 0 { return false; }
+    let reader: Int = statement;
+    let reader_budget: Int = artifact.count;
+    while reader >= 0 && reader < artifact.count && reader_budget > 0 {
+        if artifact.arena.kinds[reader] == TypedAstKindDeferStmtTag() { return false; }
+        reader = artifact.arena.parents[reader];
+        reader_budget = reader_budget - 1;
+    }
+    if reader >= 0 { return false; }
+    let index: Int = 0;
+    while index < ArrayLength(uses) {
+        let use_site: Int = uses[index];
+        if use_site < 0 || use_site >= statement { return false; }
+        let ancestor: Int = use_site;
+        let remaining: Int = artifact.count;
+        let returns_before: Bool = false;
+        while ancestor >= 0 && ancestor < artifact.count && remaining > 0 && !returns_before {
+            if artifact.arena.kinds[ancestor] == TypedAstKindDeferStmtTag() { return false; }
+            if artifact.arena.kinds[ancestor] == TypedAstKindBlockTag() &&
+                !SemanticAstCollectionNodeEnclosedBy(artifact, statement, ancestor) &&
+                SemanticAstCollectionExclusiveBlockExits(artifact, ancestor, use_site) {
+                let last: Int = artifact.arena.first_children[ancestor] + artifact.arena.child_counts[ancestor] - 1;
+                if last < 0 || last >= ArrayLength(artifact.arena.children) { return false; }
+                let terminal: Int = artifact.arena.children[last];
+                let exit_index: Int = 0;
+                while terminal < statement && exit_index < ArrayLength(exits) && !returns_before {
+                    returns_before = exits[exit_index] == terminal;
+                    exit_index = exit_index + 1;
+                }
+            }
+            ancestor = artifact.arena.parents[ancestor];
+            remaining = remaining - 1;
+        }
+        if !returns_before { return false; }
+        index = index + 1;
+    }
+    return true;
+}

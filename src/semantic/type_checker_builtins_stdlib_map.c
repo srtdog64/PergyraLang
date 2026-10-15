@@ -12,6 +12,8 @@
 #include "type_checker_builtins_internal.h"
 #include "type_checker_collection_policy.h"
 #include "diag_codes.h"
+#include "typed_map_query_fact_owner.h"
+#include "function_param_publication_owner.h"
 
 typedef enum StdlibMapBuiltinKind {
     STDLIB_MAP_BUILTIN_UNKNOWN = 0,
@@ -148,6 +150,14 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
     if (handled_out != NULL)
         *handled_out = true;
 
+    /* The existing AST slot owns result text through lowering. A failed
+     * recheck (including arity/receiver/key failure) cannot retain old V. */
+    if (kind == STDLIB_MAP_BUILTIN_GET
+        && !ast_call_clear_semantic_value_type_name(expr)) {
+        semantic_error(ctx, expr, "Typed MapGet result snapshot reset failed");
+        return TYPE_UNKNOWN;
+    }
+
     if (stdlib_map_reject_parallel_mutation(expr, name, ctx, kind))
         return TYPE_UNKNOWN;
 
@@ -211,13 +221,42 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
             if (kind == STDLIB_MAP_BUILTIN_GET)
-                return stdlib_map_normalize_type(
-                    type_constructed_arg(map_type, 1));
+            {
+                Type *result = stdlib_map_normalize_type(type_constructed_arg(map_type, 1));
+                if (result == TYPE_UNKNOWN || (result->kind == TYPE_KIND_PRIMITIVE &&
+                        result->name != NULL && (strcmp(result->name, "<unknown>") == 0 ||
+                            strcmp(result->name, "Unknown") == 0))) {
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                        PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                        expr, "MapGet requires a concrete value type; Unknown cannot establish result ownership");
+                    return TYPE_UNKNOWN;
+                }
+                if (semantic_param_publication_pending(ctx) && !ctx->has_error && result == TYPE_INT && stdlib_map_key_supported(expected_key) &&
+                    !semantic_typed_map_query_record(ctx, expr, PGY_TYPED_MAP_QUERY_INT, map_type, result))
+                    semantic_error(ctx, expr, "Typed MapGet query fact identity/allocation failed");
+                if (!ctx->has_error) {
+                    if (result->name == NULL || result->name[0] == '\0') {
+                        semantic_error(ctx, expr,
+                            "Typed MapGet result snapshot requires checked value type metadata");
+                    } else if (!ast_call_set_semantic_value_type_name_copy(expr, result->name)) {
+                        semantic_error(ctx, expr, "Typed MapGet result snapshot allocation failed");
+                    }
+                }
+                if (!ctx->has_error && result == TYPE_STRING && semantic_param_publication_pending(ctx) &&
+                    !semantic_param_publication_record_checked_result_relation(ctx, expr, map_type, result, 0, 0))
+                    semantic_error(ctx, expr, "Checked String MapGet result relation publication failed");
+                return result;
+            }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             report_expected_hashmap(expr, name, map_type, ctx);
         }
-        if (kind == STDLIB_MAP_BUILTIN_GET)
-            return TYPE_UNKNOWN; /* resolved from context */
+        if (kind == STDLIB_MAP_BUILTIN_GET) {
+            if (map_type == TYPE_UNKNOWN)
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                    expr, "MapGet requires a checked HashMap receiver and value type; missing type facts cannot establish result ownership");
+            return TYPE_UNKNOWN; /* Failed signature, never a contextual grant. */
+        }
         return kind == STDLIB_MAP_BUILTIN_HAS ? TYPE_BOOL : TYPE_VOID;
     }
     if (kind == STDLIB_MAP_BUILTIN_SIZE) {
@@ -245,7 +284,16 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
             if (!stdlib_map_key_supported(key_type))
                 report_unsupported_map_key(expr, name, map_type, ctx);
             args[0] = key_type != NULL ? key_type : TYPE_UNKNOWN;
-            return type_create_constructed(TYPE_ARRAY, args, 1);
+            Type *result = type_create_constructed(TYPE_ARRAY, args, 1);
+            if (semantic_param_publication_pending(ctx) && !ctx->has_error && stdlib_map_key_supported(key_type) &&
+                !semantic_typed_map_query_record(ctx, expr, PGY_TYPED_MAP_QUERY_KEYS, map_type, result))
+                semantic_error(ctx, expr, "Typed MapKeys query fact identity/allocation failed");
+            /* AST owns this checked result snapshot through HIR/MIR lowering. */
+            if (!ctx->has_error && result != NULL && result != TYPE_UNKNOWN
+                && result->name != NULL && result->name[0] != '\0'
+                && !ast_call_set_semantic_value_type_name_copy(expr, result->name))
+                semantic_error(ctx, expr, "Typed MapKeys result snapshot allocation failed");
+            return result;
         }
         if (map_type != NULL && map_type != TYPE_UNKNOWN)
             report_expected_hashmap(expr, name, map_type, ctx);

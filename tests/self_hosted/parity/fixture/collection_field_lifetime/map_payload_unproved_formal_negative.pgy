@@ -1,0 +1,10 @@
+func ObservePayload(inout table: HashMap<String, String>) -> Int {
+    let view: String = MapGet(table, "key");
+    MapSet(table, "key", "replacement");
+    return StringLength(view);
+}
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    return ObservePayload(table);
+}

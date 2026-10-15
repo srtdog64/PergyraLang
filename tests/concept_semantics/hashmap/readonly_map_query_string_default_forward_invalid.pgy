@@ -1,0 +1,3 @@
+func Keep(value: String) -> String { return value; }
+func ReadMapValue(ref values: HashMap<String, String>) -> String { return Keep(MapGet(values, "key")); }
+func Main() -> Void {}

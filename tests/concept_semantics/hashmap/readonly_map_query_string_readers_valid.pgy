@@ -1,0 +1,18 @@
+struct ReaderInputs {
+    text: String;
+    entries: HashMap<String, Int>;
+}
+func ObserveReaders(ref inputs: ReaderInputs) -> Void {
+    Log(StringIndexOf(inputs.text, ","));
+    Log(StringContains(inputs.text, ","));
+    Log(StringLength(StringReplace(inputs.text, ",", "xx")));
+    let pieces = Split(inputs.text, ",");
+    Log(ArrayLength(pieces));
+    Log(MapHas(inputs.entries, "present"));
+}
+func Main() -> Void {
+    let entries: HashMap<String, Int> = MapNew();
+    MapSet(entries, "present", 1);
+    let inputs: ReaderInputs = ReaderInputs(Concat("a", ",b"), entries);
+    ObserveReaders(inputs);
+}

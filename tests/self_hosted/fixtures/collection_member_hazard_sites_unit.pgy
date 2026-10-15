@@ -1,0 +1,98 @@
+// Direct projection falsifiers; no occurrence permission is minted here.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_member_read_hazard_site_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_member_local_use_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("expected hazard input"); Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("hazard input refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log("hazard facts refused"); Exit(2); }
+    let generation: Int = artifact.identity_digest;
+    artifact.identity_digest = 0;
+    let unknown: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if SemanticAstCollectionMemberReadHazardSitesReady(artifact, unknown) ||
+        SemanticAstCollectionMemberReadHazardSiteMerge(artifact, unknown, 1, 0) {
+        Log("unknown generation admitted"); Exit(3);
+    }
+    artifact.identity_digest = generation;
+    let precise: Array<Int> = [];
+    let opaque: Int = 0;
+    let node: Int = 1;
+    while node < artifact.count {
+        if TypedAstArenaNodeKindIs(artifact.arena, node, TypedAstKindLetStmtTag()) {
+            let site: Int = SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, node);
+            if site > 0 { ArrayPush(precise, site); } else { opaque = opaque + 1; }
+        }
+        node = node + 1;
+    }
+    if ArrayLength(precise) != 2 || opaque != 2 { Log("loop/defer normalization failed"); Exit(3); }
+    let root: Int = precise[0];
+    let declaration: Option<Int> = SemanticAstLocalBindingIndexForNode(analysis.local_bindings, root);
+    if !IsSome(declaration) { Exit(3); }
+    let function_id: Int = analysis.local_bindings.function_node_ids[UnwrapOption(declaration)];
+    let inferred: Array<String> = [];
+    if !SemanticAstCollectionMemberLocalAliasStoreReady(artifact, analysis.local_bindings, inferred,
+        analysis.expression_surfaces, analysis.assignments, function_id, root) { Log("ordinary local store refused"); Exit(3); }
+    analysis.local_bindings.ok = false;
+    if SemanticAstCollectionMemberLocalAliasStoreReady(artifact, analysis.local_bindings, inferred,
+        analysis.expression_surfaces, analysis.assignments, function_id, root) { Log("missing local facts admitted"); Exit(3); }
+    analysis.local_bindings.ok = true;
+    let arities: Array<Int> = [];
+    analysis.local_bindings.binding_arities = arities;
+    if SemanticAstCollectionMemberLocalAliasStoreReady(artifact, analysis.local_bindings, inferred,
+        analysis.expression_surfaces, analysis.assignments, function_id, root) { Log("malformed local columns admitted"); Exit(3); }
+    let sites: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    let missing: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, sites, root);
+    if missing.ok { Log("missing projection admitted"); Exit(3); }
+    if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, precise[1]) ||
+        !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, precise[0]) { Exit(3); }
+    let earliest: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, sites, root);
+    if !earliest.ok || earliest.site != precise[0] { Log("earliest site lost"); Exit(3); }
+    if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, 0) ||
+        !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, precise[1]) { Exit(3); }
+    let sticky: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, sites, root);
+    if !sticky.ok || sticky.site != 0 { Log("opaque hazard replaced"); Exit(3); }
+    let blocked: HashMap<String, Int> = MapNew();
+    MapSet(blocked, ToString(root), 1);
+    if !SemanticAstCollectionMemberReadHazardSitesAdmit(artifact, blocked, sites) { Log("valid carrier refused"); Exit(3); }
+    MapSet(blocked, ToString(precise[1]), 1);
+    if SemanticAstCollectionMemberReadHazardSitesAdmit(artifact, blocked, sites) { Log("missing root admitted"); Exit(3); }
+    let corrupt: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, corrupt, root, 0) { Exit(3); }
+    let entries: HashMap<String, Int> = corrupt.first_sites;
+    MapSet(entries, ToString(root), -1);
+    corrupt.first_sites = entries;
+    let invalid: SemanticAstCollectionMemberReadHazardSite = SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, corrupt, root);
+    if invalid.ok { Log("malformed site admitted"); Exit(3); }
+    sites.artifact_identity_digest = sites.artifact_identity_digest + 1;
+    if SemanticAstCollectionMemberReadHazardSitesReady(artifact, sites) ||
+        SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, 0) { Log("stale digest admitted"); Exit(3); }
+    sites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    sites.artifact_node_count = sites.artifact_node_count + 1;
+    if SemanticAstCollectionMemberReadHazardSitesReady(artifact, sites) { Log("stale count admitted"); Exit(3); }
+    sites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, artifact.count, 0) || sites.ok {
+        Log("invalid root admitted"); Exit(3);
+    }
+    sites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if SemanticAstCollectionMemberReadHazardSiteMerge(artifact, sites, root, artifact.count) || sites.ok {
+        Log("invalid site admitted"); Exit(3);
+    }
+    let parents: Array<Int> = artifact.arena.parents;
+    parents[root] = artifact.count;
+    artifact.arena.parents = parents;
+    if SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, root) != 0 { Log("malformed parent admitted"); Exit(3); }
+    parents[root] = root;
+    artifact.arena.parents = parents;
+    if SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, root) != 0 { Log("parent cycle admitted"); Exit(3); }
+    let absent_parents: Array<Int> = [];
+    artifact.arena.parents = absent_parents;
+    sites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if SemanticAstCollectionMemberReadHazardSitesReady(artifact, sites) ||
+        SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, root) != 0 { Log("missing parent column admitted"); Exit(3); }
+    Log("MEMBER HAZARD SITES PASS");
+}

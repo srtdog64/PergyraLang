@@ -1,0 +1,3 @@
+// Lifetime refusal: MapGet<String> is not an independent String result.
+func ReadMapValue(ref values: HashMap<String, String>) -> String { return MapGet(values, "key"); }
+func Main() -> Void {}

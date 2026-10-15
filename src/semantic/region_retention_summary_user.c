@@ -4,6 +4,7 @@
 
 #include "builtin_kind.h"
 #include "type_checker_internal.h"
+#include "function_param_publication_owner.h"
 #include "../parser/ast.h"
 #include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
@@ -133,7 +134,7 @@ semantic_region_retention_summary_for_user_call(
 
     if (kind_out != NULL)
         *kind_out = PGY_REGION_RETENTION_UNKNOWN;
-    if (call == NULL || call->type != AST_CALL || ctx == NULL)
+    if (call == NULL || call->type != AST_CALL || !semantic_param_publication_ready(ctx))
         return false;
 
     if (ast_call_semantic_callee_builtin_kind(call, &builtin_kind)

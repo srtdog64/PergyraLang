@@ -1,4 +1,5 @@
 #include "function_param_flow_summary_internal.h"
+#include "function_param_publication_owner.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -16,7 +17,7 @@ function_param_flow_summary_snapshot(SemanticContext *ctx)
     PgyFunctionParamFlowFact *facts;
     size_t count = 0;
 
-    if (ctx == NULL)
+    if (ctx == NULL || !semantic_param_publication_ready(ctx))
         return false;
     store = ctx->function_param_flow_summaries;
     if (store == NULL)

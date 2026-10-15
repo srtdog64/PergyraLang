@@ -172,7 +172,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                   inout cur: Array<Int>, pad: String,
                   inout env_state: CodegenTypeEnvState, cur_fn_ret: String,
                   inout routine_defers: Array<String>,
+                  routine_copyout: String,
                   active_defers: String, loop_escape_defers: String,
+                  function_id: Int, scope_id: Int,
                   base_env: CodegenTypeEnv) -> CodegenStatementBlockEmission {
     let result: Array<String> = [];
     let inner_pad: String = Concat(pad, "    ");
@@ -185,7 +187,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
         if ind < stmt_indent {
             return CodegenStatementBlockEmission(
-                CodegenJoinOwnedStringFragments(result, ""), scope_cleanup
+                CodegenJoinOwnedStringFragments(result, ""), EmitFocusScopeCleanup(body_types, function_id, scope_id, scope_cleanup, pad)
             );
         }
         if ind > stmt_indent {
@@ -206,7 +208,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if CodegenSemanticExpressionGraphIsTry(let_graph) {
                 emitted_let = EmitTryLet(
                     local_bindings, arena, idx, let_graph, statement_env, env,
-                    cur_fn_ret, pad, Concat(routine_defers[0], active_defers));
+                    cur_fn_ret, pad, EmitContinuingExitCleanup(body_types, function_id, scope_id, idx,
+                        SemanticAstCollectionFocusExitTryError(), routine_defers[0], scope_cleanup, active_defers, routine_copyout, pad));
             } else {
                 emitted_let = EmitLet(
                     local_bindings, arena, idx, statement_env, env, let_graph);
@@ -310,9 +313,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if !AbiLayoutIsVoidReturnType(cur_fn_ret) {
                 bare = Concat("return ", Concat(AbiLayoutCDefaultReturnValue(cur_fn_ret, env), ";"));
             }
-            ArrayPushOwnedString(result, Concat("", routine_defers[0]));
-            ArrayPushOwnedString(result, Concat("", scope_cleanup));
-            ArrayPushOwnedString(result, Concat("", active_defers));
+            ArrayPushOwnedString(result, EmitContinuingExitCleanup(body_types, function_id, scope_id, idx,
+                SemanticAstCollectionFocusExitBareReturn(), routine_defers[0], scope_cleanup, active_defers, routine_copyout, pad));
             ArrayPushOwnedString(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -322,10 +324,8 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAtom()
                 );
-            let return_cleanup: String =
-                Concat(
-                    routine_defers[0], Concat(scope_cleanup, active_defers)
-                );
+            let return_cleanup: String = EmitContinuingExitCleanup(body_types, function_id, scope_id, idx,
+                SemanticAstCollectionFocusExitValueReturn(), routine_defers[0], scope_cleanup, active_defers, routine_copyout, pad);
             ArrayPushOwnedString(result, EmitReturnWithCleanup(
                 rexpr, cur_fn_ret, env, return_graph,
                 return_cleanup, idx, pad
@@ -334,13 +334,14 @@ func EmitStmtList(count: Int, arena: AstArena,
         }
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindUnsafeBlockTag()) {
             ArraySet(cur, 0, idx + 1);
+            let block_scope_id: Int = cur[0];
             CodegenAstArenaExpectBlock(arena, count, cur);
             let block_env: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(env_state);
             let nested: CodegenStatementBlockEmission = EmitStmtList(
                 count, arena, local_bindings, assignments, statements,
                 body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad,
-                block_env, cur_fn_ret, routine_defers,
-                Concat(scope_cleanup, active_defers), loop_escape_defers, base_env);
+                block_env, cur_fn_ret, routine_defers, routine_copyout,
+                Concat(scope_cleanup, active_defers), loop_escape_defers, function_id, block_scope_id, base_env);
             CodegenTypeEnvStateReleaseLocal(block_env);
             ArrayPushOwnedString(result, Concat(pad, "{\n"));
             ArrayPushOwnedString(result, nested.body);
@@ -350,14 +351,15 @@ func EmitStmtList(count: Int, arena: AstArena,
         }
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindDeferStmtTag()) {
             ArraySet(cur, 0, idx + 1);
+            let defer_scope_id: Int = cur[0];
             CodegenAstArenaExpectBlock(arena, count, cur);
             let defer_env: CodegenTypeEnvState =
                 CodegenTypeEnvStateBorrow(env_state);
             let deferred: CodegenStatementBlockEmission = EmitStmtList(
                 count, arena, local_bindings, assignments, statements,
                 body_types, expression_surfaces, stmt_indent + 4, cur, pad,
-                defer_env, cur_fn_ret, routine_defers,
-                Concat(scope_cleanup, active_defers), "", base_env
+                defer_env, cur_fn_ret, routine_defers, routine_copyout,
+                Concat(scope_cleanup, active_defers), "", function_id, defer_scope_id, base_env
             );
             CodegenTypeEnvStateReleaseLocal(defer_env);
             ArraySet(routine_defers, 0, Concat(
@@ -451,6 +453,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if loop_escape_defers != "" {
                 ArrayPushOwnedString(result, Concat("", loop_escape_defers));
             }
+            ArrayPushOwnedString(result, EmitAdmittedFocusRecovery(body_types, function_id,
+                scope_id, idx, SemanticAstCollectionFocusExitBreak(), pad));
             ArrayPushOwnedString(result, Concat(pad, "break;\n"));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -461,6 +465,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             if loop_escape_defers != "" {
                 ArrayPushOwnedString(result, Concat("", loop_escape_defers));
             }
+            ArrayPushOwnedString(result, EmitAdmittedFocusRecovery(body_types, function_id,
+                scope_id, idx, SemanticAstCollectionFocusExitContinue(), pad));
             ArrayPushOwnedString(result, Concat(pad, "continue;\n"));
             ArraySet(cur, 0, idx + 1); continue;
         }
@@ -557,12 +563,13 @@ func EmitStmtList(count: Int, arena: AstArena,
                 ArrayPushOwnedString(result, Concat(inner_pad, Concat(elem_c, Concat(" ", Concat(c_loop_var, Concat(" = ", Concat(get_call, ";\n")))))));
             }
             ArraySet(cur, 0, idx + 1);
+            let loop_scope_id: Int = cur[0];
             CodegenAstArenaExpectBlock(arena, count, cur);
             let loop_emission: CodegenStatementBlockEmission = EmitStmtList(
                 count, arena, local_bindings, assignments, statements,
                 body_types, expression_surfaces, stmt_indent + 4, cur,
-                inner_pad, loop_env, cur_fn_ret, routine_defers,
-                Concat(scope_cleanup, active_defers), "", base_env
+                inner_pad, loop_env, cur_fn_ret, routine_defers, routine_copyout,
+                Concat(scope_cleanup, active_defers), "", function_id, loop_scope_id, base_env
             );
             CodegenTypeEnvStateReleaseLocal(loop_env);
             ArrayPushOwnedString(result, loop_emission.body);
@@ -585,14 +592,15 @@ func EmitStmtList(count: Int, arena: AstArena,
             );
             ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", cond), pad, "while ", " {\n"));
             ArraySet(cur, 0, idx + 1);
+            let while_scope_id: Int = cur[0];
             CodegenAstArenaExpectBlock(arena, count, cur);
             let while_env: CodegenTypeEnvState =
                 CodegenTypeEnvStateBorrow(env_state);
             let while_emission: CodegenStatementBlockEmission = EmitStmtList(
                 count, arena, local_bindings, assignments, statements,
                 body_types, expression_surfaces, stmt_indent + 4, cur,
-                inner_pad, while_env, cur_fn_ret, routine_defers,
-                Concat(scope_cleanup, active_defers), "", base_env
+                inner_pad, while_env, cur_fn_ret, routine_defers, routine_copyout,
+                Concat(scope_cleanup, active_defers), "", function_id, while_scope_id, base_env
             );
             CodegenTypeEnvStateReleaseLocal(while_env);
             ArrayPushOwnedString(result, while_emission.body);
@@ -616,15 +624,16 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPushOwnedString(result, CodegenPrefixOwnedStatementLine(Concat("", cond2), pad, "if ", " {\n"));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
+            let then_scope_id: Int = cur[0];
             CodegenAstArenaExpectBlock(arena, count, cur);
             let then_env: CodegenTypeEnvState =
                 CodegenTypeEnvStateBorrow(env_state);
             let then_emission: CodegenStatementBlockEmission = EmitStmtList(
                 count, arena, local_bindings, assignments, statements,
                 body_types, expression_surfaces, stmt_indent + 6, cur,
-                inner_pad, then_env, cur_fn_ret, routine_defers,
+                inner_pad, then_env, cur_fn_ret, routine_defers, routine_copyout,
                 Concat(scope_cleanup, active_defers),
-                Concat(scope_cleanup, loop_escape_defers), base_env
+                Concat(scope_cleanup, loop_escape_defers), function_id, then_scope_id, base_env
             );
             CodegenTypeEnvStateReleaseLocal(then_env);
             ArrayPushOwnedString(result, then_emission.body);
@@ -645,9 +654,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                             count, arena, local_bindings, assignments,
                             statements, body_types, expression_surfaces,
                             CodegenAstArenaIndentOrDie(arena, cur[0]), cur,
-                            pad, else_if_env, cur_fn_ret, routine_defers,
+                            pad, else_if_env, cur_fn_ret, routine_defers, routine_copyout,
                             Concat(scope_cleanup, active_defers),
-                            Concat(scope_cleanup, loop_escape_defers), base_env
+                            Concat(scope_cleanup, loop_escape_defers), function_id, -1, base_env
                         );
                     CodegenTypeEnvStateReleaseLocal(else_if_env);
                     ArrayPushOwnedString(result, else_if_emission.body);
@@ -656,6 +665,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                     }
                 } else {
                     ArrayPushOwnedString(result, Concat(pad, "} else {\n"));
+                    let else_scope_id: Int = cur[0];
                     CodegenAstArenaExpectBlock(arena, count, cur);
                     let else_env: CodegenTypeEnvState =
                         CodegenTypeEnvStateBorrow(env_state);
@@ -664,9 +674,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                             count, arena, local_bindings, assignments,
                             statements, body_types, expression_surfaces,
                             stmt_indent + 6, cur, inner_pad, else_env,
-                            cur_fn_ret, routine_defers,
+                            cur_fn_ret, routine_defers, routine_copyout,
                             Concat(scope_cleanup, active_defers),
-                            Concat(scope_cleanup, loop_escape_defers), base_env
+                            Concat(scope_cleanup, loop_escape_defers), function_id, else_scope_id, base_env
                         );
                     CodegenTypeEnvStateReleaseLocal(else_env);
                     ArrayPushOwnedString(result, else_emission.body);
@@ -741,6 +751,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                     }
                     ArrayPushOwnedString(result, Concat(inner_pad, case_line));
                     ArraySet(cur, 0, cur[0] + 1);
+                    let case_scope_id: Int = cur[0];
                     CodegenAstArenaExpectBlock(arena, count, cur);
                     let case_env: CodegenTypeEnvState =
                         CodegenTypeEnvStateBorrow(env_state);
@@ -762,9 +773,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                             count, arena, local_bindings, assignments,
                             statements, body_types, expression_surfaces,
                             stmt_indent + 6, cur, Concat(inner_pad, "    "),
-                            case_env, cur_fn_ret, routine_defers,
+                            case_env, cur_fn_ret, routine_defers, routine_copyout,
                             Concat(scope_cleanup, active_defers),
-                            Concat(scope_cleanup, loop_escape_defers), base_env
+                            Concat(scope_cleanup, loop_escape_defers), function_id, case_scope_id, base_env
                         );
                     CodegenTypeEnvStateReleaseLocal(case_env);
                     ArrayPushOwnedString(result, case_emission.body);
@@ -801,7 +812,7 @@ func EmitStmtList(count: Int, arena: AstArena,
         Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
     }
     return CodegenStatementBlockEmission(
-        CodegenJoinOwnedStringFragments(result, ""), scope_cleanup
+        CodegenJoinOwnedStringFragments(result, ""), EmitFocusScopeCleanup(body_types, function_id, scope_id, scope_cleanup, pad)
     );
 }
 // C parameter type for a Pergyra type. `String` params are read-only.

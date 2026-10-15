@@ -218,6 +218,17 @@ scope. The plan, the measurements and the current state are in
   the active rung.
 - SoT is a hard-substitution rung condition, not an independent cleanup track.
   Close only the semantic seam reached by the one active executable rung.
+- Basic ownership closure has a fixed finish line: zero ownership refusals on
+  the fixed DRV-2 input, admission of the unchanged full canonical program,
+  preserved positive/negative gates, and required compiler CI green on the
+  same published commit, with bootstrap and installed-driver checks actually
+  executed. Skipped jobs, reduced inputs or weakened safety are not green.
+  Once met, finish this baseline; do not extend it for hypothetical precision
+  or additional owner/model/fixture counts. Reopen refinement only for a
+  reproducible failure in a real use case or an explicit user request. Name
+  the missing fact, existing owner, last consumer and falsifier first; prefer
+  repairing that owner over creating another. This scoped finish does not
+  close every SoT row or establish whole-language memory safety.
 - Do not make more than two consecutive SoT-only commits. Before a third, land
   an executable replacement delta or record the exact missing fact, owner,
   last consumer, and falsifying fixture as BLOCKED.

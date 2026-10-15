@@ -66,7 +66,7 @@ publication_expected() {
     if [[ "$mode" == read-partial ]]; then sizes=1:2:1; fi
     if [[ "$mode" == escape-partial || "$mode" == nested-invalid ]]; then sizes=1:2:2; fi
     if [[ "$mode" == success ]]; then ready=true; sizes=2:3:3; fi
-    printf 'result=%s:71:81:%s\ncapture=91:92\nrestored=2:101:102\nsites=2:111:112\nsizes=%s\nreadable:401=501\nblocked:202=7\nescape:302=902\n' "$found" "$ready" "$sizes"
+    printf 'result=%s:71:81:%s\ncapture=91:92\nrestored=2:101:102\nsites=2:111:112\nsizes=%s\nreadable:401=501\nblocked:202=1\nescape:302=902\n' "$found" "$ready" "$sizes"
     if [[ "$mode" == read-partial || "$mode" == escape-partial || "$mode" == nested-invalid || "$mode" == success ]]; then echo blocked:201=1; fi
     if [[ "$mode" == escape-partial || "$mode" == nested-invalid || "$mode" == success ]]; then echo escape:301=901; fi
     if [[ "$mode" == success ]]; then printf 'blocked:203=1\nescape:303=903\nreadable:602=503\n'; fi

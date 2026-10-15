@@ -1,0 +1,9 @@
+struct ReaderType { text: String; }
+func ObserveReaderType(ref inputs: ReaderType) -> Void {
+    let pieces = Split(inputs.text, 7);
+    Log(ArrayLength(pieces));
+}
+func Main() -> Void {
+    let inputs: ReaderType = ReaderType("a,b");
+    ObserveReaderType(inputs);
+}

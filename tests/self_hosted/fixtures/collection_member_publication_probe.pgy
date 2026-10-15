@@ -11,8 +11,12 @@ func Main() -> Void with caps env, io_read {
     if mode != "early" && mode != "capture-unready" && mode != "context-unready" &&
         mode != "digest" && mode != "count" && mode != "read-partial" &&
         mode != "escape-partial" && mode != "nested-invalid" && mode != "success" { Exit(2); }
+    let source: String = "func Main() -> Void {";
+    let generation_row: Int = 0;
+    while generation_row < 800 { source = Concat(source, "Log(1);\n"); generation_row = generation_row + 1; }
+    source = Concat(source, "}");
     let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
-        "publication_generation.pgy", "func Main() -> Void {}", false));
+        "publication_generation.pgy", source, false));
     if !AstTreeArtifactReady(artifact) { Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Exit(2); }
@@ -32,7 +36,9 @@ func Main() -> Void with caps env, io_read {
     let restored: Array<Int> = [101, 102];
     let sites: Array<Int> = [111, 112];
     let readable: HashMap<String, Int> = MapNew(); MapSet(readable, "401", 501);
-    let blocked: HashMap<String, Int> = MapNew(); MapSet(blocked, "202", 7);
+    let blocked: HashMap<String, Int> = MapNew(); MapSet(blocked, "202", 1);
+    let hazards: SemanticAstCollectionMemberReadHazardSites = SemanticAstCollectionMemberReadHazardSitesFrom(artifact);
+    if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, hazards, 202, 0) { Exit(2); }
     let escapes: HashMap<String, Int> = MapNew(); MapSet(escapes, "302", 902);
     let nested_blocked: HashMap<String, Int> = MapNew(); MapSet(nested_blocked, "502", 1);
     let readonly_origins: Array<Int> = [701, 702];
@@ -57,7 +63,7 @@ func Main() -> Void with caps env, io_read {
     if mode == "early" || mode == "nested-invalid" { ArrayPop(nested_roots); }
     let result: SemanticAstCollectionMemberMoveUse = SemanticAstCollectionMemberMoveUsePublish(
         artifact, contexts, found, 71, 81, capture,
-        restored, sites, readable, blocked, escapes, nested_blocked, readonly_origins,
+        restored, sites, readable, blocked, hazards, escapes, nested_blocked, readonly_origins,
         read_sources, read_targets, escape_sources, escape_targets, escape_sites,
         nested_nodes, nested_roots, lend_sources, lend_targets);
     Log("result=" + ToString(result.found) + ":" + ToString(result.syntax_node_id) + ":" +

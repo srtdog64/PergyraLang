@@ -1,0 +1,13 @@
+func Query(ref values: HashMap<String, Int>, depth: Int) -> Int {
+    if depth > 0 { return Query(values, depth - 1); }
+    return Retain(values);
+}
+func Retain(ref values: HashMap<String, Int>) -> Int {
+    let retained: HashMap<String, Int> = values;
+    return MapGet(retained, "key");
+}
+func Main() -> Void {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "key", 1);
+    Log(Query(values, 2));
+}

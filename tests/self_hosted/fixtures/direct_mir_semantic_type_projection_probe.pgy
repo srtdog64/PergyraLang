@@ -1,0 +1,29 @@
+// Projection only: neither the HashMap callable route nor execution is admitted.
+import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy";
+import "../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let declaration: SelfHostMachineLayerDeclaration = SelfHostMachineLayerDeclarationEmpty();
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(args[0], declaration);
+    let returns_ready: Bool = false;
+    let parameters_ready: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(admitted.routines.names) {
+        let count: Int = MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, row, 0);
+        let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(admitted.routines, row, count);
+        if !DirectMirRoutineSignatureFactReady(signature) { Log(false); return; }
+        if signature.name == "BuildMapForSnapshot" {
+            if returns_ready || signature.param_count != 0 || signature.return_type != "HashMap<String, Int>" { Log(false); return; }
+            returns_ready = true;
+        }
+        if signature.name == "ReadMapValue" {
+            let types: Array<String> = [];
+            if parameters_ready || signature.param_count != 1 || signature.return_type != "Int" ||
+                !DirectMirScalarCfgProgramAppendParameterTypes(types, signature) { Log(false); return; }
+            parameters_ready = ArrayLength(types) == 1 && types[0] == "HashMap<String, Int>";
+        }
+        row = row + 1;
+    }
+    Log(returns_ready && parameters_ready);
+}

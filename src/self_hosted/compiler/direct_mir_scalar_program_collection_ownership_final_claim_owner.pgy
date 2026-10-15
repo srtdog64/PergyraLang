@@ -1,0 +1,30 @@
+// Final disposition is checked against issued transition state, never applied.
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_schema_owner.pgy";
+
+func DirectMirCollectionOwnershipFinalRetiredClaimsReady(
+    ref index: MirRoutineFactIndex, ref bindings: Array<Int>,
+    ref states: Array<Int>, first: Int
+) -> Bool {
+    if first < 0 || first > ArrayLength(bindings) ||
+        ArrayLength(bindings) != ArrayLength(states) ||
+        ArrayLength(index.collection_ownership_facts.binding_syntax_ids) !=
+            ArrayLength(index.collection_ownership_facts.dispositions) { return false; }
+    let claim: Int = 0;
+    while claim < ArrayLength(index.collection_ownership_facts.binding_syntax_ids) {
+        if index.collection_ownership_facts.dispositions[claim] == "retired" {
+            let row: Int = first;
+            let matched: Bool = false;
+            while row < ArrayLength(bindings) {
+                if bindings[row] == index.collection_ownership_facts.binding_syntax_ids[claim] {
+                    if matched || states[row] != DirectMirCollectionOwnershipStateRetired() { return false; }
+                    matched = true;
+                }
+                row = row + 1;
+            }
+            if !matched { return false; }
+        }
+        claim = claim + 1;
+    }
+    return true;
+}

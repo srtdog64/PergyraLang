@@ -1,0 +1,39 @@
+// Binding identity and exact whole-binding redefinition for copy consumers.
+import "ast_collection_exclusive_value_flow_owner.pgy";
+
+func SemanticAstCollectionExclusivePlaceRoot(
+    ref locals: SemanticAstLocalBindingFacts, ref place: SemanticAstCollectionAggregateSinkPlace
+) -> Int {
+    if place.key >= 0 { return locals.node_ids[place.key]; }
+    return 0 - place.key;
+}
+
+func SemanticAstCollectionExclusiveStatementBinding(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, statement: Int
+) -> Int {
+    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, statement);
+    if IsSome(declared) { return locals.node_ids[UnwrapOption(declared)]; }
+    if !TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag()) { return 0; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, statement, AstExpressionLaneAtom());
+    if !IsSome(target) { return 0; }
+    let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, statement, UnwrapOption(target));
+    if !written.ok || written.temporary || ArrayLength(written.chain) != 0 { return 0; }
+    return SemanticAstCollectionExclusivePlaceRoot(locals, written);
+}
+
+func SemanticAstCollectionExclusiveRebindsBinding(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, function_id: Int, statement: Int, binding: Int
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindAssignStmtTag()) { return false; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, statement, AstExpressionLaneAtom());
+    if !IsSome(target) { return false; }
+    let written: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, statement, UnwrapOption(target));
+    return written.ok && !written.temporary && ArrayLength(written.chain) == 0 &&
+        SemanticAstCollectionExclusivePlaceRoot(locals, written) == binding;
+}

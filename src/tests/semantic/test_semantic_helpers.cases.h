@@ -24,6 +24,7 @@
 #include "semantic/diag_codes.h"
 #include "semantic/semantic.h"
 #include "semantic/slot_summary.h"
+#include "semantic/function_param_publication_owner.h"
 
 /* -----------------------------------------------------------------
  * Minimal AST node builder helpers (no full parser needed)

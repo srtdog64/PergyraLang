@@ -96,7 +96,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     sym->is_used = true;
     /* Preserve branch explanations; only sealed call equations own bounds. */
     semantic_record_callee_effect_provenance(ctx, type_function_effects(sym->type));
-    semantic_record_callee_body_summary(ctx, sym->type);
+    /* Generated enum constructors have checked argument ownership, not a
+     * source function body or a pending callee-body declaration edge. */
+    if (sym->kind != SYMBOL_ENUM_CONSTRUCTOR)
+        semantic_record_callee_body_summary(ctx, expr, sym->type);
     semantic_record_callable_decl_summary(ctx, callable_decl,
         sym->type,
         type_function_effects(sym->type));
@@ -167,8 +170,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
 
-    const char *mut_ref_arg_names[64];
-    int mut_ref_arg_count = 0;
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
         /* A field or element place passed inout was a lost update on C
@@ -187,30 +188,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
                 arg_expr,
                 "An inout argument must be a variable; copy the field or element into a local, pass the local, and assign it back");
-        }
-        if (callable_decl != NULL
-            && i < ast_func_param_count(callable_decl)
-            && arg_expr != NULL
-            && arg_expr->type == AST_IDENTIFIER) {
-            FuncParam *mp = ast_func_param(callable_decl, i);
-            if (mp != NULL && mp->mode == PARAM_MODE_MUT_REF) {
-                const char *an = ast_identifier_name(arg_expr);
-                for (int mj = 0; an != NULL && mj < mut_ref_arg_count; mj++) {
-                    if (mut_ref_arg_names[mj] != NULL
-                        && strcmp(mut_ref_arg_names[mj], an) == 0) {
-                        semantic_error_with_hints(ctx,
-                            PGY_CODE_SEM_BORROW_ESCAPE,
-                            PGY_CAUSE_BORROW_ESCAPE,
-                            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
-                            arg_expr,
-                            "'%s' is passed to multiple inout parameters in the same call; each inout argument must be a distinct variable to avoid a lost update",
-                            an);
-                        break;
-                    }
-                }
-                if (an != NULL && mut_ref_arg_count < 64)
-                    mut_ref_arg_names[mut_ref_arg_count++] = an;
-            }
         }
         Type *param_type = type_function_param_type(sym->type, i);
         OwnershipTypeClass declared_param_ownership =
@@ -231,6 +208,44 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 arg_expr,
                 "Void expression cannot be passed as a call argument; split the side effect into a statement before the call");
             arg_type = TYPE_UNKNOWN;
+        }
+        /* Resolve identities only after the original argument's type issuer;
+           spelling is diagnostic text, never overlap or source-mode authority. */
+        FuncParam *borrow_param = callable_decl == NULL ? NULL : ast_func_param(callable_decl, i);
+        if (borrow_param != NULL && arg_expr != NULL && arg_expr->type == AST_IDENTIFIER &&
+            (borrow_param->mode == PARAM_MODE_REF || borrow_param->mode == PARAM_MODE_MUT_REF)) {
+            uint32_t binding = ast_identifier_binding_syntax_id(arg_expr);
+            if (binding == 0 || ast_node_stable_id(arg_expr) == 0) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, arg_expr,
+                    "A borrowed or inout argument requires an admitted stable binding identity");
+            } else {
+                ASTNode *caller = ctx->current_function_decl;
+                if (borrow_param->mode == PARAM_MODE_MUT_REF && caller != NULL && caller->type == AST_FUNC_DECL)
+                    for (size_t p = 0; p < ast_func_param_count(caller); p++) {
+                        FuncParam *source = ast_func_param(caller, p);
+                        if (source != NULL && ast_func_param_stable_id(source) == binding && source->mode == PARAM_MODE_REF)
+                            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, arg_expr,
+                                "Read-only ref parameter '%s' cannot be passed to an inout parameter",
+                                ast_identifier_name(arg_expr));
+                    }
+                for (size_t p = 0; p < i; p++) {
+                    ASTNode *prior = ast_call_argument(expr, p);
+                    FuncParam *prior_param = ast_func_param(callable_decl, p);
+                    if (prior == NULL || prior->type != AST_IDENTIFIER || prior_param == NULL ||
+                        (prior_param->mode != PARAM_MODE_REF && prior_param->mode != PARAM_MODE_MUT_REF) ||
+                        (borrow_param->mode != PARAM_MODE_MUT_REF && prior_param->mode != PARAM_MODE_MUT_REF) ||
+                        ast_identifier_binding_syntax_id(prior) != binding) continue;
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, arg_expr,
+                        borrow_param->mode == PARAM_MODE_MUT_REF && prior_param->mode == PARAM_MODE_MUT_REF
+                            ? "'%s' is passed to multiple inout parameters in the same call; each inout argument must be a distinct variable to avoid a lost update"
+                            : "'%s' is passed to overlapping inout/ref parameters in the same call; mutable and borrowed arguments must use distinct variables",
+                        ast_identifier_name(arg_expr));
+                    break;
+                }
+            }
         }
         if (effective_generic_types != NULL
             && callable_decl != NULL
@@ -275,6 +290,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
         semantic_check_function_call_ownership_argument(
             arg_expr,
+            expr,
             ctx,
             display_name,
             i,

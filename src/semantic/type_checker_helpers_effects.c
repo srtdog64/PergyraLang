@@ -1,6 +1,7 @@
 #include "type_checker_internal.h"
 #include "../common/string_compat.h"
 #include "callable_contract_vocabulary.h"
+#include "function_param_publication_owner.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -217,12 +218,12 @@ semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask)
 
 void
 semantic_record_callee_body_summary(SemanticContext *ctx,
+                                    ASTNode *call,
                                     const Type *callee_type)
 {
     uint32_t summary;
     uint32_t transitive_mask =
-        BODY_SUMMARY_MAY_ESCAPE_REF
-        | BODY_SUMMARY_DROPS_RESOURCE
+        BODY_SUMMARY_DROPS_RESOURCE
         | BODY_SUMMARY_EFFECTS
         | BODY_SUMMARY_REQUIRES_ZONE
         | BODY_SUMMARY_CAUSES_EFFECT
@@ -231,6 +232,8 @@ semantic_record_callee_body_summary(SemanticContext *ctx,
 
     if (ctx == NULL || callee_type == NULL)
         return;
+    if (!semantic_param_publication_record_body_call(ctx, call))
+        semantic_error(ctx, call, "Callee body summary requires an exact pending call identity");
     summary = type_function_body_summary(callee_type) & transitive_mask;
     if (summary != BODY_SUMMARY_NONE)
         semantic_record_body_summary(ctx, summary);

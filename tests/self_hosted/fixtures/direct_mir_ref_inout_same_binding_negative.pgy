@@ -1,0 +1,2 @@
+func AddBorrow(ref source: Int, inout target: Int) -> Void { target = target + source; }
+func Main() -> Void { var value: Int = 1; AddBorrow(value, value); }

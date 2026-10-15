@@ -14,6 +14,7 @@ FIXTURE="$ROOT_DIR/tests/cases/function_param_flow_summary/main.pgy"
 
 "$PYTHON_BIN" - "$ROOT_DIR" "$PGY_BIN" "$FIXTURE" <<'PY'
 import os
+import json
 import pathlib
 import re
 import subprocess
@@ -32,9 +33,8 @@ required_owner_terms = (
     "function_param_flow_key_hash",
     "FUNCTION_PARAM_FLOW_COMPUTING",
     "FUNCTION_PARAM_FLOW_COMPLETE",
-    "FUNCTION_PARAM_FLOW_WORK_BUDGET",
+    "store->work_units >= store->work_budget",
     "work_units",
-    "ast_contains_identifier_ref",
     "slot_param_summary_in_program_points",
     "recursive summary work budget exceeded",
     "function_param_flow_summary_demand",
@@ -42,16 +42,40 @@ required_owner_terms = (
 for term in required_owner_terms:
     if term not in owner:
         raise SystemExit(f"summary owner is missing {term!r}")
+store_lifetime = (root / "src/semantic/function_param_flow_store_destroy.c").read_text(
+    encoding="utf-8")
+if "store->work_budget = 4096u;" not in store_lifetime:
+    raise SystemExit("store lifetime owner lost the unchanged 4096 work budget")
+if "FUNCTION_PARAM_FLOW_WORK_BUDGET" in owner:
+    raise SystemExit("summary owner duplicated the store lifetime work budget")
 if "slot_param_summary_in_program(" in owner:
     raise SystemExit("summary owner reopened the full function-body transfer")
+index = (root / "src/semantic/function_param_flow_program_point_index_owner.c").read_text(
+    encoding="utf-8")
+for term in ("ast_contains_identifier_ref", "function_param_flow_program_point_index_build",
+             "function_param_flow_program_point_index_destroy", "roots_by_param"):
+    if term not in index:
+        raise SystemExit(f"program-point index owner is missing {term!r}")
+if "ast_contains_identifier_ref" in owner:
+    raise SystemExit("summary owner duplicated program-point root extraction")
+if "function_param_flow_program_point_index_build(" not in owner:
+    raise SystemExit("summary owner does not consume its program-point index")
+for term in ("function_param_flow_summary_for_call(",
+             "semantic_param_publication_callee("):
+    if term not in owner:
+        raise SystemExit(f"sealed call summary boundary is missing {term!r}")
 
 for rel in (
     "src/semantic/slot_analyzer_access.c",
     "src/semantic/slot_analyzer_escape.c",
 ):
     text = (root / rel).read_text(encoding="utf-8")
-    if "function_param_flow_summary_demand(" not in text:
+    consumer_api = ("function_param_flow_summary_for_call(" if rel.endswith("escape.c")
+                    else "function_param_flow_summary_demand(")
+    if consumer_api not in text:
         raise SystemExit(f"{rel} does not consume the summary owner")
+    if rel.endswith("escape.c") and "function_param_flow_summary_demand(" in text:
+        raise SystemExit("escape propagation reopened raw callee summary demand")
     if "slot_param_summary_in_program(" in text:
         raise SystemExit(f"{rel} reopened a callee body summary")
 
@@ -155,6 +179,39 @@ for path in sorted((root / "src/self_hosted").rglob("*.pgy")):
 env = os.environ.copy()
 env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
 env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"
+# Semantic-only paired controls: no unsafe negative is emitted or executed.
+paired = (
+    ("physical_return_default_string_valid", True),
+    ("physical_return_default_record_valid", True),
+    ("physical_return_opaque_invalid", False),
+    ("physical_return_slot_invalid", False),
+    ("physical_return_inout_invalid", False),
+    ("default_string_string_return_invalid", False),
+    ("default_string_option_return_invalid", False),
+)
+for name, valid in paired:
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        timeout=10.0, check=False)
+    if valid:
+        if checked.returncode != 0 or '"pgy.mir.v1"' not in checked.stdout.decode(errors="replace"):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"physical-return positive {name} failed")
+    else:
+        output = (checked.stdout + checked.stderr).decode(errors="replace")
+        try:
+            diagnostics = json.loads(output)
+        except json.JSONDecodeError:
+            raise SystemExit(f"physical-return negative {name} lost structured diagnostics: {output}")
+        errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+        if checked.returncode != 1 or '"pgy.mir.v1"' in output or not errors or any(
+                row.get("code") != "PGY_SEM_BORROW_ESCAPE" or row.get("cause_ir") != "semantic:borrow_escape"
+                for row in errors):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"physical-return negative {name} lost its exact borrow refusal")
+print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 try:
     run = subprocess.run(
         [pgy, "--native-pipeline", "--hir", fixture],
@@ -241,7 +298,7 @@ print(
 # The work cap belongs to one demanded closure, not the entire compilation.
 # Independent fresh queries may exceed it in aggregate; one oversized closure
 # must still fail. Neither case has a deep stack or recursive call edges.
-if not re.search(r"#define FUNCTION_PARAM_FLOW_WORK_BUDGET 4096u\b", owner):
+if not re.search(r"\bstore->work_budget\s*=\s*4096u\s*;", store_lifetime):
     raise SystemExit("review the demand-budget controls before changing the cap")
 (root / ".tmp").mkdir(exist_ok=True)
 pressure_dir = pathlib.Path(tempfile.mkdtemp(
@@ -273,7 +330,8 @@ for shape, count in (("independent", 4097), ("single-closure", 4096)):
     try:
         pressure = subprocess.run(
             [pgy, "--native-pipeline", "--hir", str(source_path)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE if shape == "single-closure" else subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             env=pressure_env, timeout=30.0, check=False,
         )
     except subprocess.TimeoutExpired:
@@ -285,10 +343,14 @@ for shape, count in (("independent", 4097), ("single-closure", 4096)):
     )
     if telemetry is None or int(telemetry[4]) != 0:
         raise SystemExit(f"{shape} control lost its nonrecursive telemetry")
+    work = re.search(rb"function-param-flow-work work_units=(\d+) work_budget=(\d+)",
+                     pressure.stderr)
+    if work is None or int(work[2]) != 4096 or int(work[1]) > int(work[2]):
+        raise SystemExit(f"{shape} control lost its actual demand-episode work boundary")
     if shape == "independent":
         if pressure.returncode != 0 or tuple(map(int, telemetry.groups()[:2])) != (count, count):
             raise SystemExit("independent demands consumed an unrelated episode's budget")
-    elif pressure.returncode == 0 or int(telemetry[2]) != 4096 or (
+    elif pressure.returncode != 1 or pressure.stdout or int(work[1]) != 4096 or (
         b"recursive summary work budget exceeded" not in pressure.stderr
     ):
         raise SystemExit("one oversized demand closure escaped the unchanged work cap")

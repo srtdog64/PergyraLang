@@ -1,0 +1,9 @@
+struct ReadPair { left: Array<String>; right: Array<String>; }
+func Reads(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+func Main() -> Void {
+    let pair: ReadPair = ReadPair(["x"], ["y"]);
+    let alias: Array<String> = [];
+    alias = pair.right;
+    Log(Reads(pair.left));
+    Log(ArrayLength(alias));
+}

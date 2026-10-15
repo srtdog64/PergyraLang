@@ -1,0 +1,14 @@
+func Grow(inout source: HashMap<String, Int>, count: Int) -> Void {
+    let observed: HashMap<String, Int> = source;
+    let i: Int = 0;
+    while i < count {
+        Log(MapHas(observed, "old"));
+        MapSet(source, ToString(i), i);
+        i = i + 1;
+    }
+}
+func Main() -> Int {
+    let source: HashMap<String, Int> = MapNew();
+    Grow(source, 100);
+    return 0;
+}

@@ -1,0 +1,584 @@
+import "ast_collection_exclusive_value_flow_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_collection_storage_mutation_owner.pgy";
+
+struct SemanticAstCollectionFocusRecoveryExit {
+    ok: Bool;
+    found: Bool;
+    exit_start: Int;
+    exit_count: Int;
+}
+
+struct SemanticAstCollectionFocusPartCandidate {
+    ok: Bool;
+    root_id: Int;
+    root_type: String;
+    field_id: Int;
+    field_name: String;
+    type_name: String;
+}
+
+// The same typed selection is used by issuance and complete-inventory checking.
+func SemanticAstCollectionFocusPartForLocal(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, row: Int
+) -> SemanticAstCollectionFocusPartCandidate {
+    let absent: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartCandidate(false, 0, "", 0, "", "");
+    if row < 0 || row >= ArrayLength(locals.node_ids) || row >= ArrayLength(inferred_types) ||
+        locals.binding_kinds[row] != SemanticAstLocalBindingKindNormal() { return absent; }
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row], AstExpressionLaneValue());
+    if !IsSome(value) { return absent; }
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, UnwrapOption(value));
+    if !member.ok { return absent; }
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, member.receiver_node);
+    if !binding.ok || binding.kind != SemanticExpressionBindingFormalParameter() { return absent; }
+    let function: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, locals.function_node_ids[row]);
+    if !IsSome(function) { return absent; }
+    let parameter: Int = signatures.param_starts[UnwrapOption(function)];
+    let end: Int = parameter + signatures.param_counts[UnwrapOption(function)];
+    while parameter < end && signatures.param_node_ids[parameter] != binding.syntax_id { parameter = parameter + 1; }
+    if parameter >= end || signatures.param_modes[parameter] != 1 { return absent; }
+    let root_type: String = signatures.param_types[parameter];
+    let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, root_type);
+    let name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+    if !IsSome(nominal) || !IsSome(name) || constructors.nominal_kinds[UnwrapOption(nominal)] != "struct" { return absent; }
+    let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(constructors, UnwrapOption(nominal), UnwrapOption(name));
+    if !IsSome(field) || constructors.param_type_names[UnwrapOption(field)] != inferred_types[row] { return absent; }
+    let element: Option<String> = SemanticArrayElementType(inferred_types[row]);
+    let supported: Bool = IsSome(element) && (UnwrapOption(element) == "Int" || UnwrapOption(element) == "Long" ||
+        UnwrapOption(element) == "Float" || UnwrapOption(element) == "Double" || UnwrapOption(element) == "Bool" || UnwrapOption(element) == "String");
+    let child: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, inferred_types[row]);
+    if IsSome(child) { supported = constructors.nominal_kinds[UnwrapOption(child)] == "struct"; }
+    if !supported { return absent; }
+    return SemanticAstCollectionFocusPartCandidate(true, binding.syntax_id, root_type,
+        constructors.field_source_syntax_ids[UnwrapOption(field)], UnwrapOption(name), inferred_types[row]);
+}
+
+func SemanticAstCollectionFocusRecoveryShapeReady(
+    ref facts: SemanticAstCollectionFocusRecoveryFacts
+) -> Bool {
+    let groups: Int = ArrayLength(facts.group_function_ids);
+    let parts: Int = ArrayLength(facts.part_local_binding_ids);
+    let exits: Int = ArrayLength(facts.exit_group_indices);
+    if !facts.ok || facts.artifact_node_count <= 0 || facts.artifact_identity_digest <= 0 || MapHas(facts.mutating_formals, "unconverged") ||
+        facts.exclusive_copy_count != MapSize(facts.exclusive_copies) ||
+        facts.exclusive_field_read_count != MapSize(facts.exclusive_field_reads) ||
+        ArrayLength(facts.group_root_binding_ids) != groups || ArrayLength(facts.group_scope_ids) != groups ||
+        ArrayLength(facts.group_activation_ids) != groups || ArrayLength(facts.group_end_ids) != groups ||
+        ArrayLength(facts.group_part_starts) != groups || ArrayLength(facts.group_part_counts) != groups ||
+        ArrayLength(facts.group_root_type_names) != groups || ArrayLength(facts.group_copy_signatures) != groups ||
+        ArrayLength(facts.part_definition_ids) != parts ||
+        ArrayLength(facts.part_field_ids) != parts || ArrayLength(facts.part_field_names) != parts ||
+        ArrayLength(facts.part_type_names) != parts || ArrayLength(facts.exit_function_ids) != exits ||
+        ArrayLength(facts.exit_scope_ids) != exits || ArrayLength(facts.exit_syntax_ids) != exits ||
+        ArrayLength(facts.exit_kinds) != exits || ArrayLength(facts.exit_part_starts) != exits ||
+        ArrayLength(facts.exit_part_counts) != exits ||
+        ArrayLength(facts.active_part_indices) != ArrayLength(facts.active_definition_ids) { return false; }
+    let group: Int = 0;
+    let consumed_parts: Int = 0;
+    while group < groups {
+        if facts.group_function_ids[group] <= 0 || facts.group_root_binding_ids[group] <= 0 ||
+            facts.group_scope_ids[group] <= 0 || facts.group_activation_ids[group] <= 0 ||
+            facts.group_end_ids[group] < 0 || facts.group_root_type_names[group] == "" || facts.group_copy_signatures[group] == "" ||
+            facts.group_part_starts[group] != consumed_parts || facts.group_part_counts[group] <= 0 ||
+            facts.group_part_counts[group] > parts - consumed_parts { return false; }
+        let part: Int = consumed_parts;
+        while part < consumed_parts + facts.group_part_counts[group] {
+            if facts.part_local_binding_ids[part] <= 0 || facts.part_definition_ids[part] != facts.part_local_binding_ids[part] ||
+                facts.part_field_ids[part] <= 0 || facts.part_field_names[part] == "" || facts.part_type_names[part] == "" { return false; }
+            let prior: Int = consumed_parts;
+            while prior < part {
+                if facts.part_field_ids[prior] == facts.part_field_ids[part] ||
+                    facts.part_local_binding_ids[prior] == facts.part_local_binding_ids[part] { return false; }
+                prior = prior + 1;
+            }
+            part = part + 1;
+        }
+        consumed_parts = consumed_parts + facts.group_part_counts[group];
+        group = group + 1;
+    }
+    if consumed_parts != parts { return false; }
+    let exit: Int = 0;
+    let consumed_active: Int = 0;
+    while exit < exits {
+        let owner: Int = facts.exit_group_indices[exit];
+        if owner < 0 || owner >= groups || facts.exit_function_ids[exit] != facts.group_function_ids[owner] ||
+            facts.exit_scope_ids[exit] <= 0 || facts.exit_syntax_ids[exit] <= 0 ||
+            facts.exit_kinds[exit] < SemanticAstCollectionFocusExitValueReturn() ||
+            facts.exit_kinds[exit] > SemanticAstCollectionFocusExitTryError() ||
+            facts.exit_part_starts[exit] != consumed_active || facts.exit_part_counts[exit] <= 0 ||
+            facts.exit_part_counts[exit] > facts.group_part_counts[owner] ||
+            facts.exit_part_counts[exit] > ArrayLength(facts.active_part_indices) - consumed_active { return false; }
+        let at: Int = 0;
+        while at < facts.exit_part_counts[exit] {
+            let active: Int = consumed_active + at;
+            let part: Int = facts.active_part_indices[active];
+            if part < facts.group_part_starts[owner] || part >= facts.group_part_starts[owner] + facts.group_part_counts[owner] ||
+                (at > 0 && facts.active_part_indices[active - 1] >= part) ||
+                facts.active_definition_ids[active] != facts.part_definition_ids[part] { return false; }
+            at = at + 1;
+        }
+        let prior: Int = 0;
+        while prior < exit {
+            if facts.exit_group_indices[prior] == owner && facts.exit_syntax_ids[prior] == facts.exit_syntax_ids[exit] &&
+                facts.exit_kinds[prior] == facts.exit_kinds[exit] { return false; }
+            prior = prior + 1;
+        }
+        consumed_active = consumed_active + facts.exit_part_counts[exit];
+        exit = exit + 1;
+    }
+    return consumed_active == ArrayLength(facts.active_part_indices);
+}
+
+func SemanticAstCollectionFocusRecoveryExitForNode(
+    ref facts: SemanticAstCollectionFocusRecoveryFacts,
+    function_id: Int, scope_id: Int, syntax_id: Int, kind: Int
+) -> SemanticAstCollectionFocusRecoveryExit {
+    let refused: SemanticAstCollectionFocusRecoveryExit = SemanticAstCollectionFocusRecoveryExit(false, false, -1, 0);
+    if !SemanticAstCollectionFocusRecoveryShapeReady(facts) { return refused; }
+    let start: Int = -1;
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.exit_group_indices) {
+        if facts.exit_function_ids[row] == function_id && facts.exit_scope_ids[row] == scope_id &&
+            facts.exit_syntax_ids[row] == syntax_id && facts.exit_kinds[row] == kind {
+            if start < 0 { start = row; }
+            if start + count != row { return refused; }
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    // Current and body admission own absence/coverage. A renderer may select
+    // exact admitted edges, never guess activation from preorder node numbers.
+    return SemanticAstCollectionFocusRecoveryExit(true, count > 0, start, count);
+}
+
+// The caller has admitted Current once. This selects an exact active local;
+// it never changes the fixed point's sharing bits or creates copy authority.
+func SemanticAstCollectionFocusRecoveryLocalActive(
+    artifact: AstTreeArtifact, ref facts: SemanticAstCollectionFocusRecoveryFacts,
+    function_id: Int, syntax_id: Int, local_id: Int
+) -> Bool {
+    if !facts.ok { return false; }
+    let group: Int = 0;
+    while group < ArrayLength(facts.group_function_ids) {
+        let end: Int = facts.group_part_starts[group] + facts.group_part_counts[group];
+        if facts.group_function_ids[group] == function_id && syntax_id > facts.part_definition_ids[end - 1] &&
+            (facts.group_end_ids[group] == 0 || syntax_id <= facts.group_end_ids[group]) &&
+            SemanticAstCollectionNodeEnclosedBy(artifact, syntax_id, facts.group_scope_ids[group]) {
+            let part: Int = facts.group_part_starts[group];
+            while part < end {
+                if facts.part_local_binding_ids[part] == local_id { return true; }
+                part = part + 1;
+            }
+        }
+        group = group + 1;
+    }
+    return false;
+}
+
+
+// Exact source-written repack is an end of a focus, not a name-based alias.
+func SemanticAstCollectionFocusPartRepack(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, scope_id: Int, definition_id: Int, root_id: Int, field_name: String
+) -> Int {
+    let found: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        let syntax: Int = assignments.node_ids[row];
+        if assignments.function_node_ids[row] == function_id && assignments.scope_node_ids[row] == scope_id &&
+            assignments.target_is_indexed[row] == 0 && syntax > definition_id {
+            let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax, AstExpressionLaneAtom());
+            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax, AstExpressionLaneValue());
+            if IsSome(target) && IsSome(value) {
+                let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, UnwrapOption(target));
+                if member.ok {
+                    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, member.receiver_node);
+                    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+                    let source: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, locals, inferred_types, function_id, syntax, surfaces.expression_graph, UnwrapOption(value));
+                    if binding.ok && binding.kind == SemanticExpressionBindingFormalParameter() && binding.syntax_id == root_id &&
+                        IsSome(field) && UnwrapOption(field) == field_name && source.ok && source.declaration_node_id == definition_id {
+                        if found == 0 || syntax < found { found = syntax; }
+                    }
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func SemanticAstCollectionFocusRecoveryRepackAt(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstCollectionFocusRecoveryFacts, group: Int, part: Int, syntax: Int
+) -> Bool {
+    let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax);
+    if !IsSome(assigned) || assignments.target_is_indexed[UnwrapOption(assigned)] != 0 ||
+        assignments.function_node_ids[UnwrapOption(assigned)] != facts.group_function_ids[group] ||
+        syntax <= facts.part_definition_ids[part] { return false; }
+    let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax, AstExpressionLaneAtom());
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax, AstExpressionLaneValue());
+    if !IsSome(target) || !IsSome(value) { return false; }
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, UnwrapOption(target));
+    if !member.ok { return false; }
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, member.receiver_node);
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+    let source: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types, facts.group_function_ids[group], syntax, surfaces.expression_graph, UnwrapOption(value));
+    return binding.ok && binding.kind == SemanticExpressionBindingFormalParameter() &&
+        binding.syntax_id == facts.group_root_binding_ids[group] && IsSome(field) && UnwrapOption(field) == facts.part_field_names[part] &&
+        source.ok && source.declaration_node_id == facts.part_local_binding_ids[part];
+}
+
+func SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstCollectionFocusRecoveryFacts, group: Int, part: Int, syntax: Int, kind: Int
+) -> Bool {
+    let row: Int = 0;
+    let restored: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        let write: Int = assignments.node_ids[row];
+        let scope: Int = assignments.scope_node_ids[row];
+        let covers: Bool = kind == SemanticAstCollectionFocusExitFallthrough() && scope == facts.group_scope_ids[group];
+        if kind != SemanticAstCollectionFocusExitFallthrough() {
+            covers = write < syntax && SemanticAstCollectionNodeEnclosedBy(artifact, syntax, scope) &&
+                SemanticAstCollectionExclusiveBlockJumpFree(artifact, scope);
+        }
+        if covers && write > restored && SemanticAstCollectionFocusRecoveryRepackAt(
+                artifact, signatures, locals, inferred_types, surfaces, assignments, facts, group, part, write) { restored = write; }
+        row = row + 1;
+    }
+    if restored == 0 { return false; }
+    let surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        let use_site: Int = surfaces.node_ids[surface];
+        if surfaces.function_node_ids[surface] == facts.group_function_ids[group] && use_site > restored &&
+            (kind == SemanticAstCollectionFocusExitFallthrough() || use_site < syntax) &&
+            SemanticAstCollectionNodeEnclosedBy(artifact, use_site, facts.group_scope_ids[group]) {
+            let target: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForStatementTarget(
+                artifact, locals, inferred_types, surfaces, facts.group_function_ids[group], use_site);
+            if target.ok && target.declaration_node_id == facts.part_local_binding_ids[part] &&
+                (TypedAstArenaNodeKindIs(artifact.arena, use_site, TypedAstKindArrayPushStmtTag()) ||
+                 TypedAstArenaNodeKindIs(artifact.arena, use_site, TypedAstKindArrayPopStmtTag())) { return false; }
+            let lane: Int = 0;
+            while lane < 3 {
+                let slot: Int = surface * 3 + lane;
+                if surfaces.expression_graph.has_roots[slot] {
+                    let root: Int = surfaces.expression_graph.roots[slot];
+                    let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+                    if !IsSome(start) { return false; }
+                    let node: Int = UnwrapOption(start);
+                    while node <= root {
+                        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                        if edge.ok {
+                            let local_use: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                artifact, locals, inferred_types, facts.group_function_ids[group], use_site, surfaces.expression_graph, edge.argument_node);
+                            let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+                                signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+                            if local_use.ok && local_use.declaration_node_id == facts.part_local_binding_ids[part] &&
+                                ((edge.ordinal == 0 && SemanticAstCollectionStorageMutationKind(surfaces.expression_graph, edge.call_node) > 1) ||
+                                 (formal.ok && MapHas(facts.mutating_formals, ToString(formal.syntax_id)))) { return false; }
+                        }
+                        node = node + 1;
+                    }
+                }
+                lane = lane + 1;
+            }
+        }
+        surface = surface + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionFocusRecoveryPendingPartCount(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstCollectionFocusRecoveryFacts, group: Int, syntax: Int, kind: Int
+) -> Int {
+    let count: Int = 0;
+    let part: Int = facts.group_part_starts[group];
+    let end: Int = part + facts.group_part_counts[group];
+    while part < end {
+        if !SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(artifact, signatures, locals, inferred_types,
+                surfaces, assignments, facts, group, part, syntax, kind) { count = count + 1; }
+        part = part + 1;
+    }
+    return count;
+}
+
+func SemanticAstCollectionFocusRecoveryGroupActiveForExit(
+    artifact: AstTreeArtifact, ref facts: SemanticAstCollectionFocusRecoveryFacts, group: Int,
+    function_id: Int, scope_id: Int, syntax_id: Int, kind: Int
+) -> Bool {
+    if facts.group_function_ids[group] != function_id { return false; }
+    if kind == SemanticAstCollectionFocusExitFallthrough() {
+        return facts.group_scope_ids[group] == scope_id && facts.group_end_ids[group] == 0;
+    }
+    if syntax_id <= facts.group_activation_ids[group] ||
+        (facts.group_end_ids[group] > 0 && syntax_id > facts.group_end_ids[group]) ||
+        !SemanticAstCollectionNodeEnclosedBy(artifact, syntax_id, facts.group_scope_ids[group]) { return false; }
+    if kind == SemanticAstCollectionFocusExitBreak() || kind == SemanticAstCollectionFocusExitContinue() {
+        let ancestor: Int = syntax_id;
+        let remaining: Int = artifact.count;
+        while ancestor >= 0 && remaining > 0 {
+            if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+                TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag()) {
+                return SemanticAstCollectionNodeEnclosedBy(artifact, facts.group_scope_ids[group], ancestor);
+            }
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+            if !IsSome(parent) { return false; }
+            ancestor = UnwrapOption(parent);
+            remaining = remaining - 1;
+        }
+        return false;
+    }
+    return true;
+}
+
+func SemanticAstCollectionFocusRecoveryAppendExit(
+    artifact: AstTreeArtifact, inout facts: SemanticAstCollectionFocusRecoveryFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, scope_id: Int, syntax_id: Int, kind: Int
+) -> Bool {
+    let group: Int = ArrayLength(facts.group_function_ids) - 1;
+    while group >= 0 {
+        let active: Bool = SemanticAstCollectionFocusRecoveryGroupActiveForExit(
+            artifact, facts, group, function_id, scope_id, syntax_id, kind);
+        if active {
+            let last: Int = facts.group_part_starts[group] + facts.group_part_counts[group] - 1;
+            if kind != SemanticAstCollectionFocusExitFallthrough() && syntax_id <= facts.part_definition_ids[last] { return false; }
+            let active_start: Int = ArrayLength(facts.active_part_indices);
+            let at: Int = 0;
+            while at < facts.group_part_counts[group] {
+                let part: Int = facts.group_part_starts[group] + at;
+                if !SemanticAstCollectionFocusRecoveryPartRestoredBeforeExit(artifact, signatures, locals, inferred_types,
+                        surfaces, assignments, facts, group, part, syntax_id, kind) {
+                    ArrayPush(facts.active_part_indices, part);
+                    ArrayPush(facts.active_definition_ids, facts.part_definition_ids[part]);
+                }
+                at = at + 1;
+            }
+            let active_count: Int = ArrayLength(facts.active_part_indices) - active_start;
+            if active_count == 0 { group = group - 1; continue; }
+            ArrayPush(facts.exit_group_indices, group);
+            ArrayPush(facts.exit_function_ids, function_id);
+            ArrayPush(facts.exit_scope_ids, scope_id);
+            ArrayPush(facts.exit_syntax_ids, syntax_id);
+            ArrayPush(facts.exit_kinds, kind);
+            ArrayPush(facts.exit_part_starts, active_start);
+            ArrayPush(facts.exit_part_counts, active_count);
+        }
+        group = group - 1;
+    }
+    return true;
+}
+
+// Inspect the admitted occurrences, not a shared bit: only the group's own
+// extraction/repack may name its root while the joint unpack is active.
+func SemanticAstCollectionFocusRecoveryCallTargetReady(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts,
+    ref facts: SemanticAstCollectionFocusRecoveryFacts, edge: SemanticCallArgumentEdgeView, type_name: String
+) -> Bool {
+    if !edge.ok || graph.arena.topology.node_kinds[edge.argument_node] != AstExpressionNodeLeaf() { return false; }
+    if edge.ordinal == 0 && (SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPush") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayPop") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, edge.call_node, "ArrayLength")) { return true; }
+    let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, graph, edge.call_node, edge.ordinal);
+    if !formal.ok || signatures.param_modes[signatures.param_starts[formal.signature_row] + formal.ordinal] != 1 { return false; }
+    let result: String = signatures.return_types[formal.signature_row];
+    if result != "Int" && result != "Bool" && result != "Void" { return false; }
+    let callee: Int = 0;
+    while callee < ArrayLength(facts.group_function_ids) {
+        if facts.group_function_ids[callee] == signatures.function_node_ids[formal.signature_row] &&
+            facts.group_root_binding_ids[callee] == formal.syntax_id && facts.group_root_type_names[callee] == type_name { return true; }
+        callee = callee + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionFocusRecoveryTryCount(ref surfaces: SemanticAstExpressionSurfaceFacts, row: Int) -> Int {
+    let tries: Int = 0;
+    let lane: Int = 0;
+    while lane < 3 {
+        let slot: Int = row * 3 + lane;
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph, root);
+            if !IsSome(start) { return -1; }
+            let node: Int = UnwrapOption(start);
+            while node <= root {
+                if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeTry() { tries = tries + 1; }
+                node = node + 1;
+            }
+        }
+        lane = lane + 1;
+    }
+    return tries;
+}
+
+func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts, inout values: SemanticAstCollectionExclusiveValueFacts,
+    mutating_formals: HashMap<String, Int>
+) -> SemanticAstCollectionFocusRecoveryFacts {
+    let facts: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFactsEmpty();
+    facts.artifact_node_count = artifact.count;
+    facts.artifact_identity_digest = artifact.identity_digest;
+    facts.mutating_formals = mutating_formals;
+    facts.exclusive_copies = values.copies;
+    facts.exclusive_field_reads = values.field_reads;
+    facts.exclusive_copy_count = MapSize(values.copies);
+    facts.exclusive_field_read_count = MapSize(values.field_reads);
+    if !AstTreeArtifactReady(artifact) || !signatures.ok || !constructors.ok || !locals.ok ||
+        !statements.ok || !assignments.ok || ArrayLength(inferred_types) != ArrayLength(locals.node_ids) ||
+        ArrayLength(resolved_leaf_types) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
+        !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) { return facts; }
+    let row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        let candidate: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
+            signatures, constructors, locals, inferred_types, surfaces, row);
+        if candidate.ok && !MapHas(mutating_formals, ToString(candidate.root_id)) &&
+            !MapHas(mutating_formals, Concat("root:", ToString(locals.node_ids[row]))) {
+            row = row + 1; continue;
+        }
+        if candidate.ok {
+            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row], AstExpressionLaneValue());
+            if !IsSome(value) { return facts; }
+            // Group rows are provisional here. Current owns the complete
+            // use/exit and original copy-cut admission before any guard grant.
+            let repack: Int = SemanticAstCollectionFocusPartRepack(artifact, signatures, locals, inferred_types,
+                surfaces, assignments, locals.function_node_ids[row], locals.scope_node_ids[row], locals.node_ids[row], candidate.root_id, candidate.field_name);
+            let group: Int = ArrayLength(facts.group_function_ids) - 1;
+            if group < 0 || facts.group_function_ids[group] != locals.function_node_ids[row] ||
+                facts.group_root_binding_ids[group] != candidate.root_id || facts.group_scope_ids[group] != locals.scope_node_ids[row] ||
+                (facts.group_end_ids[group] > 0 && facts.group_end_ids[group] < locals.node_ids[row]) {
+                ArrayPush(facts.group_function_ids, locals.function_node_ids[row]);
+                ArrayPush(facts.group_root_binding_ids, candidate.root_id);
+                ArrayPush(facts.group_scope_ids, locals.scope_node_ids[row]);
+                ArrayPush(facts.group_activation_ids, locals.node_ids[row]);
+                ArrayPush(facts.group_end_ids, repack);
+                ArrayPush(facts.group_part_starts, ArrayLength(facts.part_local_binding_ids));
+                ArrayPush(facts.group_part_counts, 0);
+                ArrayPush(facts.group_root_type_names, candidate.root_type);
+                let copy_signature: String = SemanticAstCollectionExclusiveCopySignature(values.copies, constructors, candidate.root_id);
+                if copy_signature == "" { return facts; }
+                ArrayPush(facts.group_copy_signatures, copy_signature);
+                group = group + 1;
+            } else if repack == 0 || facts.group_end_ids[group] == 0 { facts.group_end_ids[group] = 0; }
+            else if repack > facts.group_end_ids[group] { facts.group_end_ids[group] = repack; }
+            ArrayPush(facts.part_local_binding_ids, locals.node_ids[row]);
+            ArrayPush(facts.part_definition_ids, locals.node_ids[row]);
+            ArrayPush(facts.part_field_ids, candidate.field_id);
+            ArrayPush(facts.part_field_names, candidate.field_name);
+            ArrayPush(facts.part_type_names, candidate.type_name);
+            facts.group_part_counts[group] = facts.group_part_counts[group] + 1;
+        }
+        row = row + 1;
+    }
+    if ArrayLength(facts.group_function_ids) == 0 {
+        facts.ok = true;
+        return facts;
+    }
+    let functions: HashMap<String, Int> = MapNew();
+    row = 0;
+    while row < ArrayLength(facts.group_function_ids) {
+        MapSet(functions, ToString(facts.group_function_ids[row]), 1);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(statements.node_ids) {
+        let kind: Int = 0;
+        if statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() { kind = SemanticAstCollectionFocusExitValueReturn(); }
+        if statements.kind_tags[row] == TypedAstKindBareReturnStmtTag() { kind = SemanticAstCollectionFocusExitBareReturn(); }
+        if statements.kind_tags[row] == TypedAstKindBreakStmtTag() { kind = SemanticAstCollectionFocusExitBreak(); }
+        if statements.kind_tags[row] == TypedAstKindContinueStmtTag() { kind = SemanticAstCollectionFocusExitContinue(); }
+        if kind > 0 && MapHas(functions, ToString(statements.function_node_ids[row])) &&
+            !SemanticAstCollectionFocusRecoveryAppendExit(artifact, facts, signatures, locals, inferred_types, surfaces, assignments, statements.function_node_ids[row],
+                statements.scope_node_ids[row], statements.node_ids[row], kind) { return facts; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(surfaces.node_ids) {
+        if !MapHas(functions, ToString(surfaces.function_node_ids[row])) { row = row + 1; continue; }
+        let tries: Int = SemanticAstCollectionFocusRecoveryTryCount(surfaces, row);
+        if tries < 0 || tries > 1 { return facts; }
+        if tries == 1 {
+            let scope: Option<Int> = SemanticAstEnclosingBlockNode(artifact.arena, surfaces.node_ids[row]);
+            if !IsSome(scope) || !SemanticAstCollectionFocusRecoveryAppendExit(artifact, facts, signatures, locals, inferred_types, surfaces, assignments, surfaces.function_node_ids[row],
+                    UnwrapOption(scope), surfaces.node_ids[row], SemanticAstCollectionFocusExitTryError()) { return facts; }
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(facts.group_scope_ids) {
+        let seen: Bool = false;
+        let prior: Int = 0;
+        while prior < row {
+            if facts.group_scope_ids[prior] == facts.group_scope_ids[row] { seen = true; }
+            prior = prior + 1;
+        }
+        if !seen && !SemanticAstCollectionFocusRecoveryAppendExit(artifact, facts, signatures, locals, inferred_types, surfaces, assignments, facts.group_function_ids[row],
+                facts.group_scope_ids[row], facts.group_scope_ids[row], SemanticAstCollectionFocusExitFallthrough()) { return facts; }
+        row = row + 1;
+    }
+    facts.ok = true;
+    if !SemanticAstCollectionFocusRecoveryShapeReady(facts) { facts.ok = false; }
+    return facts;
+}
+
+// A conditional mutation is harmless to the caller on the branch not taken.
+// Each branch actually used must restore before any reachable exit/backedge.
+func SemanticAstCollectionExclusiveFamilyRestored(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref place: SemanticAstCollectionAggregateSinkPlace, ref uses: Array<Int>, ref exits: Array<Int>,
+    first_surface: Int, end_surface: Int, function_id: Int, definition: Int
+) -> Bool {
+    if ArrayLength(uses) == 0 { return false; }
+    let index: Int = 0;
+    while index < ArrayLength(uses) {
+        let use_site: Int = uses[index];
+        let restored: Bool = false;
+        let surface: Int = first_surface;
+        while surface < end_surface && !restored {
+            let write: Int = surfaces.node_ids[surface];
+            if write > use_site && SemanticAstCollectionExclusiveRedefinesPlace(artifact, signatures,
+                    locals, inferred_types, surfaces, assignments, function_id, write, place) &&
+                SemanticAstCollectionExclusiveRunsAfter(artifact, use_site, write) &&
+                SemanticAstCollectionExclusiveRebindsEachIteration(artifact, definition, write, place.origin_syntax_id) {
+                let block: Int = artifact.arena.parents[write];
+                restored = true;
+                let exit_index: Int = 0;
+                while exit_index < ArrayLength(exits) && restored {
+                    let exit_site: Int = exits[exit_index];
+                    if exit_site < write && SemanticAstCollectionNodeEnclosedBy(artifact, exit_site, block) &&
+                        SemanticAstCollectionExclusiveExitAfterUse(artifact, block, use_site, exit_site) {
+                        restored = false;
+                    }
+                    exit_index = exit_index + 1;
+                }
+            }
+            surface = surface + 1;
+        }
+        if !restored { return false; }
+        index = index + 1;
+    }
+    return true;
+}

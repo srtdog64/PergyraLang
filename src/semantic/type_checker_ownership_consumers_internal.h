@@ -21,7 +21,7 @@ bool
 type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx);
 
 bool
-semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
+semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                                   SemanticContext *ctx,
                                                   ASTNode *callee_decl,
                                                   const char *display_name,
@@ -32,7 +32,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
                                                   bool track_borrow_provenance);
 
 bool
-semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
+semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                                 SemanticContext *ctx,
                                                 const char *display_name,
                                                 size_t arg_index,

@@ -47,6 +47,8 @@ import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_collection_ownership_scan_owner.pgy";
 import "ast_collection_exclusive_value_mutation_owner.pgy";
+import "ast_collection_exclusive_value_restoration_owner.pgy";
+import "ast_collection_ownership_member_restoration_owner.pgy";
 
 func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -247,6 +249,27 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         }
         local_row = local_row + 1;
     }
+    // Exclusive values and mutating formals are whole-program facts; a scan
+    // of any routine may enter a routine scanned later.
+    let exclusive_values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
+        artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
+        assignments, statements);
+    let mutating_formals: HashMap<String, Int> = SemanticAstCollectionMutatingFormals(
+        artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
+        formal_effects.effects,
+        statements, assignments, origins, source_binding_syntax_ids,
+        exclusive_values.dep_locals, exclusive_values.dep_formals, exclusive_values.dep_paths,
+        exclusive_values.paths);
+    if !exclusive_values.ok || MapHas(mutating_formals, "unconverged") {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "exclusive_value_facts"), -1, -1);
+    }
+    let focus: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFromResolvedFacts(
+        artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
+        resolved_leaf_types, surfaces, statements, assignments, exclusive_values, mutating_formals);
+    focus.ok = focus.ok && SemanticAstCollectionFocusRecoveryCurrent(artifact, signatures, constructors, locals,
+        initializer_types.inferred_type_names, surfaces, statements, assignments, focus);
     let binding_move_use: SemanticAstCollectionBindingMoveUse =
         SemanticAstCollectionFirstInvalidBindingMoveUse(
             artifact, locals, initializer_types.inferred_type_names,
@@ -263,7 +286,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         SemanticAstCollectionFirstInvalidMemberMoveUse(
             artifact, signatures, constructors, locals, initializer_types.inferred_type_names, resolved_leaf_types,
             surfaces, assignments, statements, formal_effects.execution_contexts, formal_effects.borrowed_text_formals,
-            move_destinations);
+            move_destinations, focus);
     if !moved_use.read_permission_ready {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_member_read_permission"), -1, -1);
@@ -306,7 +329,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     let call_effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
         surfaces, formal_effects.inventory.row_by_formal,
-        formal_effects.inventory.modes, formal_effects.effects,
+        formal_effects.inventory.modes, formal_effects.descriptor_effects,
         definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(call_effects, local_count) {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
@@ -346,23 +369,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             SemanticError1("ast_artifact_invalid", "owner",
                 "indexed_string_borrow_state"), -1, -1);
     }
-    // Exclusive values and mutating formals are whole-program facts; a scan
-    // of any routine may enter a routine scanned later.
-    let exclusive_values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
-        artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
-        assignments, statements);
-    let mutating_formals: HashMap<String, Int> = SemanticAstCollectionMutatingFormals(
-        artifact, signatures, constructors, locals, initializer_types.inferred_type_names, surfaces,
-        formal_effects.effects,
-        statements, assignments, origins, source_binding_syntax_ids,
-        exclusive_values.dep_locals, exclusive_values.dep_formals, exclusive_values.dep_paths,
-        exclusive_values.paths);
-    if !exclusive_values.ok || MapHas(mutating_formals, "unconverged") {
-        SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
-        return SemanticAstCollectionOwnershipVerdictError(
-            "ast_artifact_invalid",
-            SemanticError1("ast_artifact_invalid", "owner", "exclusive_value_facts"), -1, -1);
-    }
     // A continuing retention is an observed call transition of one definition,
     // never inferred from Unknown provenance or a future conservative bound.
     let retained_definitions: Array<Bool> = [];
@@ -384,13 +390,28 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         ownership, dispositions, origins, transition_states, origin_syntax_ids,
         source_binding_syntax_ids, current_definitions, receipts, literal_transfers,
         call_effects, aggregate_release_plan, indexed_string_borrows,
-        retained_definitions, exclusive_values, mutating_formals, verdict);
+        retained_definitions, exclusive_values, mutating_formals, focus, verdict);
     SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
     ArrayDrop(retained_definitions);
     if verdict.ok && moved_use.capture_syntax_node_id > 0 {
         return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary", "readonly_aggregate_capture", "type", "nominal aggregate"),
             moved_use.capture_syntax_node_id, moved_use.capture_expression_node_id);
+    }
+    if verdict.ok {
+        // The ordered scan owns mutable copy-classification memo updates.
+        // Rejoin its current descriptors before any post-scan map read.
+        focus.exclusive_copies = exclusive_values.copies;
+        focus.exclusive_field_reads = exclusive_values.field_reads;
+        focus.exclusive_copy_count = MapSize(exclusive_values.copies);
+        focus.exclusive_field_read_count = MapSize(exclusive_values.field_reads);
+        if !focus.ok || !SemanticAstCollectionFocusRecoveryCurrent(artifact, signatures, constructors, locals,
+                initializer_types.inferred_type_names, surfaces, statements, assignments, focus) {
+            return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+                SemanticError2("borrow_boundary_escape", "boundary", "unproved_exclusive_focus_recovery",
+                    "type", "nominal aggregate"), -1, -1);
+        }
+        verdict.focus_recovery = focus;
     }
     return verdict;
 }

@@ -1,0 +1,57 @@
+// Temporal completion before a later alias, never storage independence.
+import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_collection_formal_effect_fact_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_member_read_fact_query_owner.pgy";
+
+func SemanticAstCollectionMemberIndexedReadReady(
+    ref artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    surface_row: Int, edge: SemanticCallArgumentEdgeView
+) -> Bool {
+    if !edge.ok || edge.argument_node < 0 ||
+        edge.argument_node >= ArrayLength(surfaces.expression_graph.arena.topology.node_kinds) ||
+        !moved_use.read_permission_ready { return false; }
+    let root: Int = SemanticAstCollectionMemberReadRootForOccurrence(moved_use.readable_members, edge.argument_node);
+    if root <= 0 || root >= artifact.count { return false; }
+    if !SemanticAstCollectionMemberReadRootBlocked(moved_use.unproved_read_roots, root) { return true; }
+    if moved_use.found || moved_use.capture_syntax_node_id > 0 ||
+        surface_row < 0 || surface_row >= ArrayLength(surfaces.node_ids) ||
+        surface_row >= ArrayLength(surfaces.function_node_ids) ||
+        !SemanticAstCollectionMemberReadHazardSitesReady(artifact, moved_use.read_hazards) ||
+        !formal_effects.ok || !formal_effects.inventory.ok ||
+        !SemanticAstCollectionCallEffectFactsReady(call_effects, ArrayLength(call_effects.first_unknown_sites)) ||
+        !call_effects.formal_descriptor_retention.ok { return false; }
+    let hazard: SemanticAstCollectionMemberReadHazardSite =
+        SemanticAstCollectionMemberReadHazardSiteForRoot(artifact, moved_use.read_hazards, root);
+    let read_site: Int = SemanticAstCollectionMemberReadHazardSiteNormalize(artifact, surfaces.node_ids[surface_row]);
+    if !hazard.ok || hazard.site <= 0 || read_site <= 0 || read_site >= hazard.site ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, read_site) ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, hazard.site) ||
+        !SemanticAstCollectionNodeEnclosedBy(artifact, root, surfaces.function_node_ids[surface_row]) ||
+        !SemanticAstCollectionNodeEnclosedBy(artifact, hazard.site, surfaces.function_node_ids[surface_row]) ||
+        !SemanticAstCollectionFormalExecutionContextCallableReady(artifact, formal_effects.execution_contexts,
+            surfaces.function_node_ids[surface_row]) { return false; }
+    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    if !target.ok || target.syntax_id <= 0 || target.signature_row < 0 ||
+        target.signature_row >= ArrayLength(signatures.function_node_ids) { return false; }
+    let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, target.signature_row, target.ordinal);
+    let row: Int = SemanticAstCollectionMemberReadFormalRowForIdentity(formal_effects.inventory.row_by_formal, target.syntax_id);
+    if row < 0 || row >= ArrayLength(formal_effects.inventory.formal_nodes) ||
+        row >= ArrayLength(formal_effects.inventory.function_nodes) || row >= ArrayLength(formal_effects.inventory.ordinals) ||
+        row >= ArrayLength(formal_effects.inventory.modes) || row >= ArrayLength(formal_effects.inventory.body_ready) ||
+        formal_effects.inventory.formal_nodes[row] != target.syntax_id ||
+        formal_effects.inventory.function_nodes[row] != signatures.function_node_ids[target.signature_row] ||
+        formal_effects.inventory.ordinals[row] != target.ordinal || !formal_effects.inventory.body_ready[row] { return false; }
+    if !IsSome(mode) || (UnwrapOption(mode) != 0 && UnwrapOption(mode) != 3) ||
+        formal_effects.inventory.modes[row] != UnwrapOption(mode) ||
+        !SemanticAstCollectionMemberReadPairedFacetsReady(formal_effects.effects, formal_effects.descriptor_effects, target.syntax_id) ||
+        !SemanticAstCollectionFormalExecutionContextCallableReady(artifact, formal_effects.execution_contexts,
+            signatures.function_node_ids[target.signature_row]) ||
+        SemanticAstCollectionFormalRetainsDescriptor(call_effects.formal_descriptor_retention, target.syntax_id) { return false; }
+    return true;
+}

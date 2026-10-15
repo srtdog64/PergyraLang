@@ -1,0 +1,8 @@
+func Main() -> Int {
+    let table: HashMap<String, String> = MapNew();
+    let other: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    let view: String = MapGet(table, "key");
+    MapSet(other, "key", "new");
+    return StringLength(view);
+}

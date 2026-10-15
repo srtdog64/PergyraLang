@@ -1,0 +1,18 @@
+struct TextRecord { text: String; }
+func Observe(ref text: String) -> String { return text; }
+func StoreText(ref output: Slot<String>, ref text: String) -> Void { Write(output, text); }
+func ReadRecord(ref record: TextRecord, ref output: Slot<String>) -> Bool {
+    let observed = Observe(record.text);
+    StoreText(output, observed);
+    return true;
+}
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return ReadRecord(record, output);
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Log(Read(output));
+    Release(output);
+}

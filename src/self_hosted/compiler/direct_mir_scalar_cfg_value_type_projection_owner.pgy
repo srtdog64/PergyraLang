@@ -1,0 +1,50 @@
+// Semantic type identity projected from admitted raw envelopes. ABI seals stay raw.
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
+import "../mir_lower/routine_fact_index_schema_owner.pgy";
+
+func DirectMirScalarCfgValueTypeFamilyReady(type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact) -> Bool {
+    if type_name == "" || type_name == "Unknown" || type_name == "<unknown>" { return false; }
+    return DirectMirScalarCfgSourceLocalTypeSupported(type_name) ||
+        CompilerRuntimeValueTypeReady(type_name) ||
+        DirectMirIdentityCellRow(logical_record.identity_cells, type_name) >= 0 ||
+        DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(logical_record, type_name) ||
+        DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name) ||
+        DirectMirScalarProgramReferencedEnumRow(referenced_enum, type_name) >= 0;
+}
+
+func DirectMirScalarCfgValueTypeProject(type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact) -> String {
+    if !DirectMirScalarCfgValueTypeFamilyReady(type_name, logical_record, referenced_enum) { return ""; }
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    if !DirectMirScalarCfgValueTypeFamilyReady(canonical, logical_record, referenced_enum) { return ""; }
+    return canonical;
+}
+
+func DirectMirScalarCfgDeclaredValueTypeProject(ref index: MirRoutineFactIndex,
+    local_ref: String, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact) -> String {
+    if !index.valid || index.declared_source_local_count < 0 ||
+        index.declared_source_local_count > ArrayLength(index.source_local_binding_syntax_ids) ||
+        index.declared_source_local_count > ArrayLength(index.source_local_types) { return ""; }
+    let found: String = "";
+    let row: Int = 0;
+    while row < index.declared_source_local_count {
+        let binding: Int = index.source_local_binding_syntax_ids[row];
+        if binding > 0 && local_ref == Concat("declaration:", Concat(ToString(binding), ":0")) {
+            if found != "" { return ""; }
+            found = DirectMirScalarCfgValueTypeProject(index.source_local_types[row], logical_record, referenced_enum);
+            if found == "" { return ""; }
+        }
+        row = row + 1;
+    }
+    return found;
+}

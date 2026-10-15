@@ -339,6 +339,11 @@ typedef struct
     char *type_name;
     uint32_t binding_syntax_id;
     bool  is_callable;
+    /* Private lowering-owned actual initializer call receipt. Not MIR JSON
+     * wire fields and never inferred from the destination annotation. */
+    uint32_t initializer_call_syntax_id;
+    uint32_t initializer_collection_producer; /* 0 absent, 1 MapKeys, 2 Clone */
+    char *initializer_call_value_type_name;
     bool  is_closure_local; /* captured-lambda local: declared structurally,
                              * skipped by the SSA-locals pre-declaration */
     char *callable_return_type_name;

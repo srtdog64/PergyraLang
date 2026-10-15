@@ -1,0 +1,15 @@
+func Seed() -> HashMap<String, Int> {
+    let rows: HashMap<String, Int> = MapNew();
+    MapSet(rows, "old", 1);
+    return rows;
+}
+func Update(inout map: HashMap<String, Int>) -> Int {
+    let source_map: HashMap<String, Int> = Seed();
+    map = source_map;
+    MapSet(map, "new", 2);
+    return MapGet(source_map, "old");
+}
+func Main() -> Int {
+    let map: HashMap<String, Int> = MapNew();
+    return Update(map);
+}

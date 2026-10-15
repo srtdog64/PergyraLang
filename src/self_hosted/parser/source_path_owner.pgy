@@ -25,8 +25,8 @@ func ParserReadImportedSource(
     return Concat(ReadFile(import_path), "\n// __imported__\n");
 }
 
-func ParserImportGraphSeen(paths: Set<String>, path: String) -> Bool {
-    return SetHas(paths, path);
+func ParserImportGraphSeen(paths: HashMap<String, Int>, path: String) -> Bool {
+    return MapHas(paths, path);
 }
 
 // `chain` is the import path from the entry file to the file being parsed.

@@ -1,0 +1,16 @@
+func PickText(values: Array<String>) -> String {
+    return values[0];
+}
+func ReadText(values: Array<String>) -> Bool {
+    return values[0] == "a";
+}
+func Main() -> Void {
+    let values: Array<String> = ["a"];
+    let iteration: Int = 0;
+    while iteration < 2 {
+        let text: String = PickText(values);
+        Log(ToString(ReadText(values)));
+        Log(text);
+        iteration = iteration + 1;
+    }
+}

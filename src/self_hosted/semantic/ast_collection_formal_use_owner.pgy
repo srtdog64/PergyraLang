@@ -10,6 +10,7 @@ import "ast_collection_formal_statement_effect_owner.pgy";
 import "ast_collection_builtin_release_identity_owner.pgy";
 import "ast_string_formal_borrow_owner.pgy";
 import "ast_string_formal_text_containment_owner.pgy";
+import "ast_collection_descriptor_effect_owner.pgy";
 
 func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     artifact: AstTreeArtifact,
@@ -49,13 +50,14 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     // Invalid global coverage is not an admitted opaque callable effect.
     if !contexts.ok { return SemanticAstCollectionFormalEffectsEmpty(); }
     let effects: HashMap<String, Int> = MapNew();
+    let descriptor_effects: HashMap<String, Int> = MapNew();
     // An empty, validated String-sequence formal inventory has no element-use
     // obligations. Unrelated plain-array uses belong to their storage owner.
     let borrowed_text: HashMap<String, Int> = SemanticAstStringFormalBorrowOnlyFacts(artifact, signatures, surfaces);
     if inventory.ok && ArrayLength(inventory.formal_nodes) == 0 {
         let no_owned_push: HashMap<String, Int> = MapNew();
         return SemanticAstCollectionFormalEffects(
-            contexts.ok, inventory, effects, no_owned_push, contexts, borrowed_text);
+            contexts.ok, inventory, effects, descriptor_effects, no_owned_push, contexts, borrowed_text);
     }
     let non_straightline_functions: HashMap<String, Int> =
         SemanticAstCollectionNonStraightLineFunctions(statements);
@@ -113,6 +115,8 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
             MapHas(statement_owned_formals, formal_key) ||
             MapHas(statement_shallow_formals, formal_key));
         if opaque {
+            MapSet(descriptor_effects, formal_key,
+                SemanticAstCollectionFormalOpaqueExecutionEffect());
             MapSet(effects, ToString(inventory.formal_nodes[row]),
                 SemanticAstCollectionFormalOpaqueExecutionEffect());
         }
@@ -440,20 +444,12 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         ArrayLength(direct_owned_push_call_nodes) == count &&
         ArrayLength(owned_push_leaf_disqualified) == count &&
         ArrayLength(sources) == ArrayLength(targets);
-    row = 0;
-    while ok && row < count {
-        if text_escapes[row] && !blocked[row] &&
-            !SemanticAstFormalTextContained(artifact, signatures, locals, initializer_types.inferred_type_names,
-                surfaces, borrowed_text, inventory.function_nodes[row], inventory.formal_nodes[row]) {
-            blocked[row] = true;
-        }
-        row = row + 1;
-    }
     let fixed_point_status: SemanticAstCollectionFormalEffectResolutionStatus =
         SemanticAstCollectionFormalEffectResolutionStatus(ok);
-    SemanticAstCollectionFormalEffectFixedPoint(
-        inventory, blocked, mutations, shallow_mutations, element_reads,
-        sources, targets, effects, fixed_point_status);
+    SemanticAstCollectionFormalEffectFacetsResolve(
+        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, borrowed_text,
+        inventory, blocked, mutations, shallow_mutations, element_reads, text_escapes,
+        sources, targets, effects, descriptor_effects, fixed_point_status);
     ok = fixed_point_status.ok;
     let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
     row = 0;
@@ -482,5 +478,5 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts); ArrayDrop(direct_owned_push_call_nodes);
     ArrayDrop(owned_push_leaf_disqualified); ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(
-        ok, inventory, effects, owned_push_leaf_formals, contexts, borrowed_text);
+        ok, inventory, effects, descriptor_effects, owned_push_leaf_formals, contexts, borrowed_text);
 }

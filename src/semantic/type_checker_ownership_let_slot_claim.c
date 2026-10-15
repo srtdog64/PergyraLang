@@ -39,9 +39,24 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
     bk = builtin_resolve(callee_name);
     if (bk != BUILTIN_CLAIM_SLOT && bk != BUILTIN_CLAIM_SECURE_SLOT)
         return true;
+    /* A lexical callable is not the canonical resource constructor. */
+    if (scope_lookup(ctx->scope, callee_name) != NULL)
+        return true;
 
     if (handled != NULL)
         *handled = true;
+    (void)type_check_expression(init, ctx);
+    if (ctx->has_error)
+        return false;
+    uint32_t checked_builtin = 0;
+    if (!ast_call_semantic_callee_builtin_kind(init, &checked_builtin)
+        || checked_builtin != (uint32_t)bk
+        || ast_call_semantic_callee_declared_callable(init)
+        || ast_call_semantic_callee_decl_id(init) != 0
+        || ast_call_semantic_callee_value_binding_id(init) != 0) {
+        semantic_error(ctx, init, "Slot claim requires the checked canonical builtin identity");
+        return false;
+    }
     is_secure = (bk == BUILTIN_CLAIM_SECURE_SLOT);
     if (is_secure)
         semantic_record_effect(ctx, EFFECT_SECURE);

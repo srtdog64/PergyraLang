@@ -1,0 +1,6 @@
+// Concrete source Unknown cannot establish the receiver's result ownership.
+struct NestedUnknownQueries { entries: HashMap<String, Unknown>; }
+func ReadNestedUnknown(ref record: NestedUnknownQueries) -> Int {
+    return MapGet(record.entries, "entry");
+}
+func Main() -> Void {}

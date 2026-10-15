@@ -21,7 +21,10 @@ test_effect_inference(void)
         ret->data.return_stmt.value = make_call("Measure", measure_args, 1, 3);
         ast_add_statement(func->data.func_decl.body, ret);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "Observe");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -31,7 +34,7 @@ test_effect_inference(void)
             && type_effect_mask_has(effects, EFFECT_COLLAPSE));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("effectful calls propagate function effects to callers");
@@ -52,7 +55,6 @@ test_effect_inference(void)
         measure_ret->data.return_stmt.value =
             make_call("Measure", measure_args, 1, 3);
         ast_add_statement(observe->data.func_decl.body, measure_ret);
-        type_check_func_decl(observe, ctx);
 
         ASTNode *wrapper = ast_create_function("WrapObserve");
         wrapper->data.func_decl.return_type = ast_create_type("Int");
@@ -61,7 +63,11 @@ test_effect_inference(void)
         ASTNode *ret = ast_create_return_statement();
         ret->data.return_stmt.value = make_call("Observe", NULL, 0, 6);
         ast_add_statement(wrapper->data.func_decl.body, ret);
-        type_check_func_decl(wrapper, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, observe);
+        ast_add_statement(program, wrapper);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "WrapObserve");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -71,8 +77,7 @@ test_effect_inference(void)
             && type_effect_mask_has(effects, EFFECT_COLLAPSE));
 
         semantic_context_destroy(ctx);
-        ast_destroy(observe);
-        ast_destroy(wrapper);
+        ast_destroy(program);
     }
 
     TEST("effect-partial-order: collapse is a superset of nondeterministic by closure");
@@ -125,7 +130,10 @@ test_effect_inference(void)
         ret->data.return_stmt.value = make_number(1, 3);
         ast_add_statement(func->data.func_decl.body, ret);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "TouchSecure");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -134,7 +142,7 @@ test_effect_inference(void)
             && type_effect_mask_has(effects, EFFECT_SECURE));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("SecureSlot parameters infer secure effect on function signature");
@@ -151,8 +159,11 @@ test_effect_inference(void)
             "secret", make_generic_type("SecureSlot", "Bot"));
         func->data.func_decl.params[0]->mode = PARAM_MODE_OWN;
 
-        type_check_class_decl(bot, ctx);
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, bot);
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "TouchSecureParam");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -161,8 +172,7 @@ test_effect_inference(void)
             && type_effect_mask_has(effects, EFFECT_SECURE));
 
         semantic_context_destroy(ctx);
-        ast_destroy(bot);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("Token<T> parameter type resolves as capability type");
@@ -177,7 +187,10 @@ test_effect_inference(void)
         func->data.func_decl.params[0] = make_func_param(
             "tok", make_generic_type("Token", "Int"));
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "TouchToken");
         Type *param_type = (sym != NULL && sym->type != NULL
@@ -194,7 +207,7 @@ test_effect_inference(void)
             && type_equals(param_type->data.constructed.args[0], TYPE_INT));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("Token<T> parameters infer secure effect on function signature");
@@ -209,7 +222,10 @@ test_effect_inference(void)
         func->data.func_decl.params[0] = make_func_param(
             "tok", make_generic_type("Token", "Int"));
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "TouchTokenSecure");
         uint32_t effects = sym != NULL && sym->type != NULL
@@ -218,7 +234,7 @@ test_effect_inference(void)
             && type_effect_mask_has(effects, EFFECT_SECURE));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("intent step effect in authority-bearing zone keeps explicit authorization");
@@ -338,12 +354,15 @@ test_effect_inference(void)
         func->data.func_decl.params[0] =
             make_func_param("dev", make_generic_type("DeviceSlot", "Int"));
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(ctx->has_error
             && ctx_has_diagnostic_substring(ctx, "Slot handle (anchored) parameters require explicit 'own' or 'ref'"));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("DeviceSlot copy into new binding is rejected");

@@ -8,6 +8,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+const ASTNode *callable_capability_current_declaration(const SemanticContext *ctx)
+{
+    return ctx != NULL && ctx->current_callable_capability != NULL
+        ? ctx->current_callable_capability->decl : NULL;
+}
 static int
 capability_routine_compare(const void *a, const void *b)
 {

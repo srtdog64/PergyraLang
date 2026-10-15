@@ -28,7 +28,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if empty < 0 || copied < 0 || moved < 0 || owned < 0 || view < 0 || unknown < 0 { return false; }
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, locals, bundle.initializer_types.inferred_type_names,
-        surfaces, formal.inventory.row_by_formal, formal.inventory.modes, formal.effects, definitions, storage);
+        surfaces, formal.inventory.row_by_formal, formal.inventory.modes, formal.descriptor_effects, definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(effects, definitions.local_count) { return false; }
     if mode == 85 {
         return SemanticAstCollectionDefinitionStorageSource(storage, definitions, empty, empty) == locals.node_ids[empty] &&
@@ -45,7 +45,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
         ArrayPop(storage.producer_source_ids);
         let invalid: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.constructors, locals, bundle.initializer_types.inferred_type_names,
-            surfaces, formal.inventory.row_by_formal, formal.inventory.modes, formal.effects, definitions, storage);
+            surfaces, formal.inventory.row_by_formal, formal.inventory.modes, formal.descriptor_effects, definitions, storage);
         return !invalid.ok;
     }
     if mode == 91 { return SemanticAstCollectionDefinitionStorageSource(storage, definitions, owned, copied) == 0; }

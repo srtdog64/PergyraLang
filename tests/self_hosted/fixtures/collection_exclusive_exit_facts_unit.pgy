@@ -1,0 +1,58 @@
+// The exit producer must include bare returns with no expression surface.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_exit_facts_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_exit_reachability_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("expected exit fixture path"); Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("exit fixture parse refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
+    let facts: SemanticAstCollectionExclusiveExitFacts = SemanticAstCollectionExclusiveExitFactsFromStatements(
+        artifact, analysis.signatures, analysis.statements);
+    if !facts.ok || ArrayLength(facts.nodes) != 3 { Log("complete exit identities missing"); Exit(3); }
+    let bare: Int = 0;
+    let valued: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.nodes) {
+        if TypedAstArenaNodeKindIs(artifact.arena, facts.nodes[row], TypedAstKindBareReturnStmtTag()) {
+            bare = bare + 1;
+        } else if TypedAstArenaNodeKindIs(artifact.arena, facts.nodes[row], TypedAstKindValueReturnStmtTag()) {
+            valued = valued + 1;
+        }
+        row = row + 1;
+    }
+    if bare != 2 || valued != 1 { Log("bare/value return omitted"); Exit(3); }
+    let exit_row: Option<Int> = SemanticAstStatementIndexForNode(analysis.statements, facts.nodes[1]);
+    if !IsSome(exit_row) || UnwrapOption(exit_row) < 1 ||
+        UnwrapOption(exit_row) + 1 >= ArrayLength(analysis.statements.node_ids) {
+        Log("branch exit identity missing"); Exit(3);
+    }
+    let branch_row: Int = UnwrapOption(exit_row);
+    let function_id: Int = analysis.statements.function_node_ids[branch_row];
+    let routine_exits: Array<Int> = SemanticAstCollectionExclusiveRoutineExits(analysis.signatures, facts, function_id);
+    if ArrayLength(routine_exits) != 2 { Log("routine exit slice incomplete"); Exit(3); }
+    let uses: Array<Int> = [analysis.statements.node_ids[branch_row - 1]];
+    let reader: Int = analysis.statements.node_ids[branch_row + 1];
+    if !SemanticAstCollectionExclusiveFamilyReturnsBeforeStatement(artifact, reader, uses, routine_exits) {
+        Log("admitted branch return not consumed"); Exit(3);
+    }
+    analysis.statements.artifact_node_count = analysis.statements.artifact_node_count + 1;
+    let stale: SemanticAstCollectionExclusiveExitFacts = SemanticAstCollectionExclusiveExitFactsFromStatements(
+        artifact, analysis.signatures, analysis.statements);
+    if stale.ok { Log("stale statement carrier admitted"); Exit(3); }
+    analysis.statements.artifact_node_count = artifact.count;
+    analysis.statements.ok = false;
+    let missing: SemanticAstCollectionExclusiveExitFacts = SemanticAstCollectionExclusiveExitFactsFromStatements(
+        artifact, analysis.signatures, analysis.statements);
+    if missing.ok { Log("missing statement admission accepted"); Exit(3); }
+    let missing_exits: Array<Int> = SemanticAstCollectionExclusiveRoutineExits(analysis.signatures, missing, function_id);
+    if ArrayLength(missing_exits) != 0 ||
+        SemanticAstCollectionExclusiveFamilyReturnsBeforeStatement(artifact, reader, uses, missing_exits) {
+        Log("branch return reconstructed without admitted exits"); Exit(3);
+    }
+    Log("EXCLUSIVE EXIT FACTS PASS");
+}

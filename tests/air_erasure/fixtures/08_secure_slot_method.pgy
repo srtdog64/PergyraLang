@@ -2,8 +2,9 @@
 // read inside Get()/Init(), so the optimizer cannot fold the token check the way
 // it does for a straight-line local token (03). Tests whether bucket B (the
 // secure authority check) physically survives when its provenance is not inline.
+// This is a token/field-storage erasure test, not a hardware policy witness.
 class SecureCounter {
-    private let (_slot, _token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE)
+    private let (_slot, _token) = ClaimSecureSlot<Int>()
     public func Init() -> Void {
         Write(_slot, 100, _token);
     }

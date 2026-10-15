@@ -2,13 +2,19 @@
 
 import "direct_mir_scalar_program_option_absence_expression_owner.pgy";
 import "direct_mir_scalar_program_result_int_return_abi_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
 
 func DirectMirScalarProgramReturnExpressionAbiReady(
     text: String, persisted_type: String, expected_type: String,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Bool {
+    // The capture's raw ABI receipt stays unchanged; this join consumes its
+    // semantic type, just as the admitted signature consumes canonical return.
+    if persisted_type == "" { return false; }
+    let semantic_type: String = SemanticCanonicalTypeName(persisted_type);
+    if semantic_type == "" { return false; }
     return DirectMirScalarProgramOptionAbsenceReturnAbiReady(
-            text, persisted_type, expected_type, logical_record) ||
+            text, semantic_type, expected_type, logical_record) ||
         DirectMirScalarProgramResultIntReturnAbiReady(
-            text, persisted_type, expected_type);
+            text, semantic_type, expected_type);
 }

@@ -1,0 +1,1 @@
+func Main() -> Void { Log(StringReplace("abc", 7, "b")); }

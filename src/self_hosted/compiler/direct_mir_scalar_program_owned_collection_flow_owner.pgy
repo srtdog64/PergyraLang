@@ -1,0 +1,100 @@
+// CFG fixed point for actual owned-local execution witnesses.
+import "direct_mir_scalar_program_owned_collection_block_owner.pgy";
+
+struct DirectMirOwnedCollectionFlow { ok: Bool; terminal: Int; }
+
+func DirectMirOwnedCollectionFlowFrom(
+    ref index: MirRoutineFactIndex, ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int, target: Int, row: Int
+) -> DirectMirOwnedCollectionFlow {
+    let invalid: DirectMirOwnedCollectionFlow = DirectMirOwnedCollectionFlow(false, 0);
+    let count: Int = ArrayLength(index.block_starts);
+    let start: Int = DirectMirScalarProgramRoutinePartitionStart(storage.routines.block_counts, routine);
+    if !index.valid || !DirectMirOwnedCollectionRowTracked(index, row) || count <= 0 || start < 0 ||
+        count != ArrayLength(index.block_reachable) || count != ArrayLength(index.block_succ_true) ||
+        count != ArrayLength(index.block_succ_false) ||
+        start + count > ArrayLength(storage.blocks.operation_starts) ||
+        start + count > ArrayLength(storage.blocks.operation_counts) ||
+        routine >= ArrayLength(storage.routines.block_counts) ||
+        storage.routines.block_counts[routine] != count ||
+        !index.block_reachable[0] { return invalid; }
+    let inputs: Array<Int> = [];
+    let outputs: Array<Int> = [];
+    let definitions: Int = 0;
+    let block: Int = 0;
+    while block < count {
+        ArrayPush(inputs, 0); ArrayPush(outputs, 0);
+        let operation: Int = storage.blocks.operation_starts[start + block];
+        let end: Int = operation + storage.blocks.operation_counts[start + block];
+        if operation < 0 || end < operation || end > ArrayLength(storage.operations.kinds) ||
+            end > ArrayLength(storage.operations.result_values) ||
+            end > ArrayLength(storage.operations.expression_rows) { return invalid; }
+        while operation < end {
+            let result: Int = storage.operations.result_values[operation];
+            if result >= 0 && result < ArrayLength(storage.values.value_local_rows) &&
+                storage.values.value_local_rows[result] == target {
+                let definition: DirectMirOwnedCollectionDefinition =
+                    DirectMirOwnedCollectionDefinitionFrom(storage, expressions, operation);
+                if !DirectMirOwnedCollectionDefinitionReady(index, storage, definition, row) { return invalid; }
+                definitions = definitions + 1;
+            }
+            operation = operation + 1;
+        }
+        block = block + 1;
+    }
+    if definitions != 1 { return invalid; }
+    let changed: Bool = true;
+    let iteration: Int = 0;
+    let limit: Int = count * 8 + 1;
+    while changed && iteration < limit {
+        changed = false;
+        block = 0;
+        while block < count {
+            if index.block_reachable[block] {
+                let joined: Int = 0;
+                if block == 0 { joined = 1; }
+                let predecessor: Int = 0;
+                while predecessor < count {
+                    if index.block_reachable[predecessor] &&
+                        (index.block_succ_true[predecessor] == block || index.block_succ_false[predecessor] == block) {
+                        joined = DirectMirOwnedCollectionStateJoin(joined, outputs[predecessor]);
+                    }
+                    predecessor = predecessor + 1;
+                }
+                if joined != 0 {
+                    let output: Int = DirectMirOwnedCollectionBlockOutput(index, storage, expressions, start + block, target, row, joined);
+                    if output == 0 { return invalid; }
+                    if inputs[block] != joined || outputs[block] != output {
+                        ArraySet(inputs, block, joined); ArraySet(outputs, block, output); changed = true;
+                    }
+                }
+            }
+            block = block + 1;
+        }
+        iteration = iteration + 1;
+    }
+    if changed { return invalid; }
+    let retired: Bool = index.collection_ownership_facts.dispositions[row] == "retired";
+    let terminals: Int = 0;
+    block = 0;
+    while block < count {
+        let left: Int = index.block_succ_true[block];
+        let right: Int = index.block_succ_false[block];
+        if left < -1 || right < -1 || left >= count || right >= count { return invalid; }
+        if index.block_reachable[block] {
+            let state: Int = outputs[block];
+            if state == 0 { return invalid; }
+            if left < 0 && right < 0 {
+                terminals = terminals + 1;
+                if retired && state != 1 && state != 4 && state != 5 { return invalid; }
+                if !retired && state % 8 != 1 && state % 8 != 2 && state % 8 != 3 { return invalid; }
+            }
+        }
+        block = block + 1;
+    }
+    if terminals == 0 { return invalid; }
+    let terminal: Int = DirectMirCollectionOwnershipStateOwned();
+    if retired { terminal = DirectMirCollectionOwnershipStateRetired(); }
+    return DirectMirOwnedCollectionFlow(true, terminal);
+}

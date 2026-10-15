@@ -1,0 +1,121 @@
+// Direct consumer falsifiers on admitted constructor identities, never unsafe execution.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_copy_partition_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_field_label_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    let mode: Int = ToInt(args[1]);
+    if mode < 0 || mode > 28 || args[1] != ToString(mode) { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let constructors: SemanticAstNominalConstructorFacts = analysis.constructors;
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, "CopyPair");
+    if !IsSome(constructor) || ArrayLength(analysis.local_bindings.node_ids) < 3 { Exit(2); }
+    let left: Int = constructors.param_starts[UnwrapOption(constructor)];
+    let right: Int = left + 1;
+    // Synthetic raw roots test metadata-column admission only. Actual binding
+    // type ownership stays with Classify, which supplies its admitted root type.
+    let root: Int = analysis.local_bindings.node_ids[0];
+    let holder: Int = analysis.local_bindings.node_ids[1];
+    let copies: HashMap<String, Int> = MapNew();
+    let admission: SemanticAstCollectionExclusiveCopyAdmission =
+        SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, left, holder, right);
+    if !admission.ok || !admission.changed { Exit(2); }
+    let edge: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, 0);
+    if !edge.ok || edge.source_field != left || edge.destination_field != right { Exit(2); }
+    let grown: Array<String> = ["left"];
+    let ignored: Array<Int> = SemanticAstCollectionExclusiveUngrownSources(constructors, copies, holder, grown);
+    if ArrayLength(ignored) != 1 || ignored[0] != root { Exit(2); }
+    if mode == 0 { Log(!SemanticAstCollectionExclusiveCopyFieldsOverlap(constructors, left, right)); return; }
+    if mode >= 20 {
+        let output: Array<String> = ["sentinel"];
+        let label_row: Int = left;
+        if mode == 21 {
+            let foreign: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, "CopyForeign");
+            if !IsSome(foreign) { Exit(2); }
+            label_row = constructors.param_starts[UnwrapOption(foreign)];
+        }
+        if mode == 22 { label_row = -1; }
+        if mode == 23 { label_row = -2; }
+        if mode == 24 { label_row = ArrayLength(constructors.field_names); }
+        if mode == 25 { constructors.field_names[left] = ""; }
+        if mode == 26 { constructors.field_source_syntax_ids[left] = 0; }
+        if mode == 27 { constructors.ok = false; }
+        if mode == 28 { let missing_ids: Array<Int> = []; constructors.field_source_syntax_ids = missing_ids; }
+        let published: Bool = SemanticAstCollectionExclusiveAppendFieldLabel(output, constructors, label_row);
+        if mode == 20 { Log(published && ArrayLength(output) == 2 && output[0] == "sentinel" && output[1] == "left"); return; }
+        // The materializer owns generic labels, not this root's field scope.
+        if mode == 21 { Log(published && ArrayLength(output) == 2 && output[0] == "sentinel" && output[1] == "data"); return; }
+        Log(!published && ArrayLength(output) == 1 && output[0] == "sentinel"); return;
+    }
+    if mode >= 12 {
+        let partition: SemanticAstCollectionExclusiveCopyPartition = SemanticAstCollectionExclusiveCopyPartitionFor(constructors, copies, root, "CopyPair");
+        if mode == 12 {
+            Log(partition.ok && ArrayLength(partition.shared_fields) == 1 && partition.shared_fields[0] == "left" &&
+                ArrayLength(partition.remaining) == 1 && partition.remaining[0] == "right");
+            return;
+        }
+        if mode == 13 { admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, right, holder, left); }
+        if mode == 14 { admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, -1, holder, -1); }
+        if mode == 15 {
+            partition = SemanticAstCollectionExclusiveCopyPartitionFor(constructors, copies, root, "UnknownCopyRoot");
+            Log(!partition.ok && ArrayLength(partition.shared_fields) == 0 && ArrayLength(partition.remaining) == 0); return;
+        }
+        if mode == 16 {
+            let foreign: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, "CopyForeign");
+            if !IsSome(foreign) { Exit(2); }
+            admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors,
+                root, constructors.param_starts[UnwrapOption(foreign)], holder, right);
+        }
+        if mode == 17 { let missing_starts: Array<Int> = []; constructors.param_starts = missing_starts; }
+        if mode == 18 { constructors.param_counts[UnwrapOption(constructor)] = ArrayLength(constructors.field_names) + 1; }
+        if mode == 19 { constructors.param_starts[UnwrapOption(constructor)] = 2147483647; }
+        partition = SemanticAstCollectionExclusiveCopyPartitionFor(constructors, copies, root, "CopyPair");
+        if mode == 13 { Log(admission.ok && !partition.ok); return; }
+        Log(admission.ok && !partition.ok && ArrayLength(partition.shared_fields) == 0 && ArrayLength(partition.remaining) == 0); return;
+    }
+    if mode == 1 { MapRemove(copies, "edge_destination_field:0"); }
+    if mode == 2 { MapSet(copies, "edge_source_syntax:0", 0); }
+    if mode == 3 { MapSet(copies, "edge_source_field:0", -2); }
+    if mode == 4 { MapSet(copies, "constructor_artifact_nodes", constructors.artifact_node_count + 1); }
+    if mode == 9 { MapRemove(copies, "edge_from_ordinal:0"); }
+    if mode == 10 { MapRemove(copies, Concat("into:", Concat(ToString(holder), ":0"))); }
+    if mode == 11 {
+        let pair: String = Concat("pair:", Concat(ToString(root), Concat(":", Concat(ToString(constructors.field_source_syntax_ids[left]),
+            Concat(":", Concat(ToString(holder), Concat(":", ToString(constructors.field_source_syntax_ids[right]))))))));
+        MapRemove(copies, pair);
+    }
+    if (mode >= 1 && mode <= 4) || (mode >= 9 && mode <= 11) {
+        edge = SemanticAstCollectionExclusiveCopyEdgeAt(copies, constructors, 0);
+        let partition: SemanticAstCollectionExclusiveCopyPartition = SemanticAstCollectionExclusiveCopyPartitionFor(constructors, copies, holder, "CopyPair");
+        Log(!edge.ok && !partition.ok && ArrayLength(partition.shared_fields) == 0 && ArrayLength(partition.remaining) == 0 &&
+            SemanticAstCollectionExclusiveCopySignature(copies, constructors, holder) == "");
+        return;
+    }
+    if mode == 5 {
+        admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, left, holder, left);
+        ignored = SemanticAstCollectionExclusiveUngrownSources(constructors, copies, holder, grown);
+        Log(admission.ok && admission.changed && ArrayLength(ignored) == 0 && SemanticAstCollectionExclusiveCopyCount(copies, "edges") == 2);
+        return;
+    }
+    if mode == 6 {
+        admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, left, root, right);
+        Log(admission.ok && admission.changed);
+        return;
+    }
+    if mode == 7 {
+        admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, -1, holder, -1);
+        let partition: SemanticAstCollectionExclusiveCopyPartition = SemanticAstCollectionExclusiveCopyPartitionFor(constructors, copies, holder, "CopyPair");
+        ignored = SemanticAstCollectionExclusiveUngrownSources(constructors, copies, holder, grown);
+        Log(admission.ok && !partition.ok && ArrayLength(partition.shared_fields) == 0 &&
+            ArrayLength(partition.remaining) == 0 && ArrayLength(ignored) == 0);
+        return;
+    }
+    admission = SemanticAstCollectionExclusiveRecordCopyEdge(copies, constructors, root, -2, holder, right);
+    Log(!admission.ok && !admission.changed && SemanticAstCollectionExclusiveCopyCount(copies, "edges") == 1);
+}

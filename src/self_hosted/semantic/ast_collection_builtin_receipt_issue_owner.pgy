@@ -1,0 +1,24 @@
+// Publish one canonical completed builtin's receipt; no inferred release event.
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+import "diagnostic_owner.pgy";
+
+func SemanticAstCollectionBuiltinReceiptIssue(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, node: Int, binding_row: Int, effect: Int,
+    inout receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionOwnershipVerdict {
+    let identity: SemanticExpressionCallIdentity =
+        SemanticExpressionCallIdentityForNode(surfaces, node);
+    if !identity.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_ownership_call_identity"),
+            surfaces.node_ids[surface_row], node);
+    }
+    receipts = SemanticAstCollectionOwnershipReceiptRowsAppend(receipts,
+        surfaces.function_node_ids[surface_row], identity.owner_node_id,
+        identity.lane, identity.local_call_ordinal, effect,
+        locals.node_ids[binding_row], 0);
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

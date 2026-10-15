@@ -1,0 +1,72 @@
+// One formal-use graph produces both descriptor and borrowed-payload facts.
+// Only a text-only escape may leave the descriptor observable and live.
+import "ast_collection_formal_effect_fact_owner.pgy";
+import "ast_collection_formal_effect_fixed_point_owner.pgy";
+import "ast_string_formal_text_containment_owner.pgy";
+
+func SemanticAstCollectionFormalEffectFacetsResolve(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, borrowed_text: HashMap<String, Int>,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    inout blocked: Array<Bool>, ref mutations: Array<Bool>, ref shallow: Array<Bool>,
+    ref reads: Array<Bool>, ref text_escapes: Array<Bool>, ref sources: Array<Int>, ref targets: Array<Int>,
+    inout payloads: HashMap<String, Int>, inout descriptors: HashMap<String, Int>,
+    inout status: SemanticAstCollectionFormalEffectResolutionStatus
+) -> Void {
+    if !status.ok || !inventory.ok ||
+        ArrayLength(text_escapes) != ArrayLength(inventory.formal_nodes) ||
+        ArrayLength(inventory.function_nodes) != ArrayLength(inventory.formal_nodes) {
+        status.ok = false; return;
+    }
+    // Both facets use one admitted physical graph. Only the payload facet adds
+    // the existing containment refusal; descriptor facts never erase it.
+    SemanticAstCollectionFormalEffectFixedPoint(
+        inventory, blocked, mutations, shallow, reads, sources, targets, descriptors, status);
+    let row: Int = 0;
+    while status.ok && row < ArrayLength(inventory.formal_nodes) {
+        if text_escapes[row] && !blocked[row] &&
+            !SemanticAstFormalTextContained(artifact, signatures, locals, inferred_types,
+                surfaces, borrowed_text, inventory.function_nodes[row], inventory.formal_nodes[row]) {
+            blocked[row] = true;
+        }
+        row = row + 1;
+    }
+    SemanticAstCollectionFormalEffectFixedPoint(
+        inventory, blocked, mutations, shallow, reads, sources, targets, payloads, status);
+    status.ok = status.ok && SemanticAstCollectionDescriptorEffectsPublish(inventory, payloads, descriptors);
+}
+
+func SemanticAstCollectionDescriptorEffectPairReady(payload: Int, descriptor: Int) -> Bool {
+    if payload < 0 || payload > 6 || descriptor < 0 || descriptor > 6 { return false; }
+    return payload == descriptor ||
+        (payload == SemanticAstCollectionFormalUnprovedElementUseEffect() &&
+         (descriptor == 1 || descriptor == 3));
+}
+
+func SemanticAstCollectionDescriptorEffectsPublish(
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    payloads: HashMap<String, Int>, inout descriptors: HashMap<String, Int>
+) -> Bool {
+    let known: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(inventory.formal_nodes) {
+        let key: String = ToString(inventory.formal_nodes[row]);
+        let payload: Int = 0;
+        let descriptor: Int = 0;
+        if MapHas(payloads, key) { payload = MapGet(payloads, key); }
+        if MapHas(descriptors, key) { descriptor = MapGet(descriptors, key); }
+        // A physical mutator plus an escaping element remains unproved,
+        // including when those obligations arrive along different call edges.
+        // Both facets must already exist; payload facts cannot fill a hole.
+        if payload == SemanticAstCollectionFormalUnprovedElementUseEffect() &&
+            (descriptor == 2 || descriptor == SemanticAstCollectionFormalShallowMutationEffect()) {
+            descriptor = payload;
+            MapSet(descriptors, key, descriptor);
+        }
+        if !SemanticAstCollectionDescriptorEffectPairReady(payload, descriptor) { return false; }
+        if payload != 0 { known = known + 1; }
+        row = row + 1;
+    }
+    return inventory.ok && known == MapSize(payloads) && known == MapSize(descriptors);
+}

@@ -1,0 +1,13 @@
+struct TextRecord { text: String; }
+struct TextPayload { text: String; }
+func MakeText(ref record: TextRecord) -> String {
+    return Concat("stable", " value");
+}
+func Probe(ref record: TextRecord) -> Bool {
+    let payload = TextPayload(MakeText(record));
+    return StringLength(payload.text) > 0;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(Probe(record));
+}

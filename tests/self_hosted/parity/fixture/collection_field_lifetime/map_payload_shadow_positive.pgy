@@ -1,0 +1,11 @@
+class Reader {
+    func MapGet(self) -> String { return "independent"; }
+}
+func Main() -> Int {
+    let reader: Reader = Reader();
+    let table: HashMap<String, String> = MapNew();
+    MapSet(table, "key", "old");
+    let view: String = reader.MapGet();
+    MapSet(table, "key", "new");
+    return StringLength(view);
+}

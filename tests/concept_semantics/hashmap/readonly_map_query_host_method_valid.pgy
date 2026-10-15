@@ -1,0 +1,16 @@
+// Resolve the host method and its later leaf declaration before final publication.
+func Forward() -> Int {
+    let reader: QueryReader = QueryReader();
+    return reader.Read();
+}
+func Main() -> Void {
+    Log(Forward());
+}
+class QueryReader {
+    func Read(self) -> Int {
+        let values: HashMap<String, Int> = MapNew();
+        MapSet(values, "entry", 43);
+        return Leaf(values);
+    }
+}
+func Leaf(ref values: HashMap<String, Int>) -> Int { return MapGet(values, "entry"); }

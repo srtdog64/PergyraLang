@@ -400,8 +400,8 @@ return_value_ready:
             }
             return;
         }
-        return_expr = transpiler_emit_mut_ref_return_capture(
-            ctx, val, return_temp, sizeof(return_temp));
+        return_expr = transpiler_emit_return_capture(
+            ctx, val, return_temp, sizeof(return_temp), NULL);
         if (return_expr == NULL) {
             free(val);
             return;

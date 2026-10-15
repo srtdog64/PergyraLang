@@ -1,0 +1,33 @@
+// Materialize admitted field labels directly into their final owned output.
+// No intermediate array's indexed String view crosses an owning boundary.
+import "ast_collection_exclusive_value_copy_edge_owner.pgy";
+
+func SemanticAstCollectionExclusiveAppendFieldLabel(
+    inout output: Array<String>, ref constructors: SemanticAstNominalConstructorFacts, field: Int
+) -> Bool {
+    if field < 0 || !SemanticAstCollectionExclusiveCopyFieldReady(constructors, field) { return false; }
+    ArrayPush(output, Concat("", constructors.field_names[field]));
+    return true;
+}
+
+// The owned labels of one admitted constructor, or no labels on missing facts.
+func SemanticAstCollectionExclusiveTypeFields(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
+) -> Array<String> {
+    let fields: Array<String> = [];
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if !IsSome(constructor) { return fields; }
+    let row: Int = UnwrapOption(constructor);
+    if row < 0 || row >= ArrayLength(constructors.param_starts) ||
+        row >= ArrayLength(constructors.param_counts) { return fields; }
+    let start: Int = constructors.param_starts[row];
+    let count: Int = constructors.param_counts[row];
+    let length: Int = ArrayLength(constructors.field_names);
+    if start < 0 || start > length || count < 0 || count > length - start { return fields; }
+    let index: Int = 0;
+    while index < count {
+        if !SemanticAstCollectionExclusiveAppendFieldLabel(fields, constructors, start + index) { return []; }
+        index = index + 1;
+    }
+    return fields;
+}

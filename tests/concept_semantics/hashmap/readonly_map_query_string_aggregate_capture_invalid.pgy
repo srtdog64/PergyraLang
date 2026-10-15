@@ -1,0 +1,3 @@
+struct CapturedText { value: String; }
+func Capture(ref values: HashMap<String, String>) -> CapturedText { return CapturedText(MapGet(values, "key")); }
+func Main() -> Void {}

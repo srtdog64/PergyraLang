@@ -2,6 +2,7 @@
 #include "type_checker_flow_loops.h"
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loop_summary.h"
+#include "function_param_publication_owner.h"
 
 static size_t
 for_loop_known_iteration_cap(const ASTNode *node, bool *known)
@@ -114,6 +115,10 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     bool known_iterations = false;
     size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
+    if (known_iterations && known_cap == 0 && body != NULL &&
+        semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_execution(ctx, body, false))
+        semantic_error(ctx, node, "Unreachable for-loop body publication failed");
     bool merged_initialized = !known_iterations || known_cap == 0;
     ResourceConsumeSnapshot merged = merged_initialized
         ? copy_resource_snapshot(&base)
@@ -300,6 +305,9 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     ctx->loop_depth++;
 
     if (condition_static_false) {
+        if (ast_while_body(node) != NULL && semantic_param_publication_pending(ctx) &&
+            !semantic_param_publication_record_execution(ctx, ast_while_body(node), false))
+            semantic_error(ctx, node, "Unreachable loop body publication failed");
         Type *cond = flow_normalize_type(
             type_check_expression(ast_while_condition(node), ctx));
         if (!type_equals(cond, TYPE_BOOL)) {

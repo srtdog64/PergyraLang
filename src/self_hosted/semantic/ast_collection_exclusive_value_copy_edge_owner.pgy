@@ -1,0 +1,166 @@
+// Immutable backing-copy edges. A field is an admitted constructor flat row;
+// -1 is a whole value and -2 is missing evidence, never a permission.
+import "ast_collection_exclusive_value_copy_binding_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstCollectionExclusiveCopyEdge {
+    ok: Bool;
+    root: Int;
+    holder: Int;
+    source_field: Int;
+    destination_field: Int;
+}
+
+struct SemanticAstCollectionExclusiveCopyAdmission {
+    ok: Bool;
+    changed: Bool;
+}
+
+func SemanticAstCollectionExclusiveCopyCount(copies: HashMap<String, Int>, key: String) -> Int {
+    if !MapHas(copies, key) { return 0; }
+    return MapGet(copies, key);
+}
+
+func SemanticAstCollectionExclusiveCopyFieldReady(
+    ref constructors: SemanticAstNominalConstructorFacts, field: Int
+) -> Bool {
+    if !constructors.ok || constructors.artifact_node_count < 0 ||
+        ArrayLength(constructors.field_names) != ArrayLength(constructors.field_source_syntax_ids) { return false; }
+    if field == -1 { return true; }
+    return field >= 0 && field < ArrayLength(constructors.field_names) &&
+        constructors.field_names[field] != "" && constructors.field_source_syntax_ids[field] > 0 &&
+        constructors.field_source_syntax_ids[field] < constructors.artifact_node_count;
+}
+
+func SemanticAstCollectionExclusiveCopyFieldsOverlap(
+    ref constructors: SemanticAstNominalConstructorFacts, left: Int, right: Int
+) -> Bool {
+    if !SemanticAstCollectionExclusiveCopyFieldReady(constructors, left) ||
+        !SemanticAstCollectionExclusiveCopyFieldReady(constructors, right) { return false; }
+    return left == -1 || right == -1 ||
+        constructors.field_source_syntax_ids[left] == constructors.field_source_syntax_ids[right];
+}
+
+func SemanticAstCollectionExclusiveCopyEdgeAt(
+    copies: HashMap<String, Int>, ref constructors: SemanticAstNominalConstructorFacts, edge: Int
+) -> SemanticAstCollectionExclusiveCopyEdge {
+    let bad: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdge(false, 0, 0, -2, -2);
+    if !constructors.ok || !MapHas(copies, "constructor_artifact_nodes") ||
+        !MapHas(copies, "constructor_field_count") ||
+        MapGet(copies, "constructor_artifact_nodes") != constructors.artifact_node_count ||
+        MapGet(copies, "constructor_field_count") != ArrayLength(constructors.field_names) ||
+        edge < 0 || edge >= SemanticAstCollectionExclusiveCopyCount(copies, "edges") { return bad; }
+    let key: String = ToString(edge);
+    let root_key: String = Concat("edge_root:", key);
+    let holder_key: String = Concat("edge_holder:", key);
+    let source_key: String = Concat("edge_source_field:", key);
+    let destination_key: String = Concat("edge_destination_field:", key);
+    let source_syntax_key: String = Concat("edge_source_syntax:", key);
+    let destination_syntax_key: String = Concat("edge_destination_syntax:", key);
+    if !MapHas(copies, root_key) || !MapHas(copies, holder_key) || !MapHas(copies, source_key) ||
+        !MapHas(copies, destination_key) || !MapHas(copies, source_syntax_key) ||
+        !MapHas(copies, destination_syntax_key) { return bad; }
+    let root: Int = MapGet(copies, root_key);
+    let holder: Int = MapGet(copies, holder_key);
+    let source: Int = MapGet(copies, source_key);
+    let destination: Int = MapGet(copies, destination_key);
+    if root <= 0 || holder <= 0 || root >= constructors.artifact_node_count ||
+        holder >= constructors.artifact_node_count ||
+        !SemanticAstCollectionExclusiveCopyFieldReady(constructors, source) ||
+        !SemanticAstCollectionExclusiveCopyFieldReady(constructors, destination) { return bad; }
+    let source_syntax: Int = -1;
+    let destination_syntax: Int = -1;
+    if source >= 0 { source_syntax = constructors.field_source_syntax_ids[source]; }
+    if destination >= 0 { destination_syntax = constructors.field_source_syntax_ids[destination]; }
+    if MapGet(copies, source_syntax_key) != source_syntax ||
+        MapGet(copies, destination_syntax_key) != destination_syntax { return bad; }
+    let pair: String = Concat("pair:", Concat(ToString(root), Concat(":", Concat(ToString(source_syntax),
+        Concat(":", Concat(ToString(holder), Concat(":", ToString(destination_syntax))))))));
+    let from: String = Concat("from:", ToString(root));
+    let into: String = Concat("into:", ToString(holder));
+    let outward_key: String = Concat("edge_from_ordinal:", key);
+    let inward_key: String = Concat("edge_into_ordinal:", key);
+    if !MapHas(copies, pair) || MapGet(copies, pair) != edge + 1 ||
+        !MapHas(copies, outward_key) || !MapHas(copies, inward_key) { return bad; }
+    let outward: Int = MapGet(copies, outward_key);
+    let inward: Int = MapGet(copies, inward_key);
+    if outward < 0 || inward < 0 || outward >= SemanticAstCollectionExclusiveCopyCount(copies, from) ||
+        inward >= SemanticAstCollectionExclusiveCopyCount(copies, into) { return bad; }
+    let out_key: String = Concat(from, Concat(":", ToString(outward)));
+    let in_key: String = Concat(into, Concat(":", ToString(inward)));
+    if !MapHas(copies, out_key) || !MapHas(copies, in_key) ||
+        MapGet(copies, out_key) != edge || MapGet(copies, in_key) != edge { return bad; }
+    return SemanticAstCollectionExclusiveCopyEdge(true, root, holder, source, destination);
+}
+
+func SemanticAstCollectionExclusiveRecordCopyEdge(
+    inout copies: HashMap<String, Int>, ref constructors: SemanticAstNominalConstructorFacts,
+    root: Int, source_field: Int, holder: Int, destination_field: Int
+) -> SemanticAstCollectionExclusiveCopyAdmission {
+    if !SemanticAstCollectionExclusiveCopyFieldReady(constructors, source_field) ||
+        !SemanticAstCollectionExclusiveCopyFieldReady(constructors, destination_field) ||
+        root <= 0 || holder <= 0 || root >= constructors.artifact_node_count ||
+        holder >= constructors.artifact_node_count { return SemanticAstCollectionExclusiveCopyAdmission(false, false); }
+    let count: Int = SemanticAstCollectionExclusiveCopyCount(copies, "edges");
+    if count < 0 { return SemanticAstCollectionExclusiveCopyAdmission(false, false); }
+    if count > 0 && (!MapHas(copies, "constructor_artifact_nodes") ||
+        !MapHas(copies, "constructor_field_count") ||
+        MapGet(copies, "constructor_artifact_nodes") != constructors.artifact_node_count ||
+        MapGet(copies, "constructor_field_count") != ArrayLength(constructors.field_names)) {
+        return SemanticAstCollectionExclusiveCopyAdmission(false, false);
+    }
+    let source_syntax: Int = -1;
+    let destination_syntax: Int = -1;
+    if source_field >= 0 { source_syntax = constructors.field_source_syntax_ids[source_field]; }
+    if destination_field >= 0 { destination_syntax = constructors.field_source_syntax_ids[destination_field]; }
+    let from: String = Concat("from:", ToString(root));
+    let into: String = Concat("into:", ToString(holder));
+    let out: Int = SemanticAstCollectionExclusiveCopyCount(copies, from);
+    let inward: Int = SemanticAstCollectionExclusiveCopyCount(copies, into);
+    if out < 0 || inward < 0 || (out == 0 && MapHas(copies, Concat(from, ":0"))) ||
+        (inward == 0 && MapHas(copies, Concat(into, ":0"))) { return SemanticAstCollectionExclusiveCopyAdmission(false, false); }
+    let pair: String = Concat("pair:", Concat(ToString(root), Concat(":", Concat(ToString(source_syntax),
+        Concat(":", Concat(ToString(holder), Concat(":", ToString(destination_syntax))))))));
+    if MapHas(copies, pair) {
+        let old: SemanticAstCollectionExclusiveCopyEdge = SemanticAstCollectionExclusiveCopyEdgeAt(
+            copies, constructors, MapGet(copies, pair) - 1);
+        return SemanticAstCollectionExclusiveCopyAdmission(old.ok && old.root == root && old.holder == holder &&
+            old.source_field == source_field && old.destination_field == destination_field, false);
+    }
+    if root == holder && source_field == destination_field { return SemanticAstCollectionExclusiveCopyAdmission(true, false); }
+    let key: String = ToString(count);
+    MapSet(copies, "constructor_artifact_nodes", constructors.artifact_node_count);
+    MapSet(copies, "constructor_field_count", ArrayLength(constructors.field_names));
+    MapSet(copies, "edges", count + 1);
+    MapSet(copies, pair, count + 1);
+    MapSet(copies, Concat("edge_root:", key), root);
+    MapSet(copies, Concat("edge_holder:", key), holder);
+    MapSet(copies, Concat("edge_source_field:", key), source_field);
+    MapSet(copies, Concat("edge_destination_field:", key), destination_field);
+    MapSet(copies, Concat("edge_source_syntax:", key), source_syntax);
+    MapSet(copies, Concat("edge_destination_syntax:", key), destination_syntax);
+    MapSet(copies, Concat("edge_from_ordinal:", key), out);
+    MapSet(copies, Concat(from, Concat(":", ToString(out))), count);
+    MapSet(copies, from, out + 1);
+    MapSet(copies, Concat("edge_into_ordinal:", key), inward);
+    MapSet(copies, Concat(into, Concat(":", ToString(inward))), count);
+    MapSet(copies, into, inward + 1);
+    return SemanticAstCollectionExclusiveCopyAdmission(true, true);
+}
+
+func SemanticAstCollectionExclusiveCopyFieldForPlace(
+    ref constructors: SemanticAstNominalConstructorFacts, root_type: String,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref chain: Array<Int>
+) -> Option<Int> {
+    if !constructors.ok { return None; }
+    if ArrayLength(chain) == 0 { return Some(-1); }
+    let fact: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(root_type);
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, fact.nominal_base_name);
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, chain[0]);
+    if !IsSome(constructor) || !IsSome(field) || fact.canonical_name != fact.nominal_base_name { return None; }
+    let row: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(constructor), UnwrapOption(field));
+    if !IsSome(row) || !SemanticAstCollectionExclusiveCopyFieldReady(constructors, UnwrapOption(row)) { return None; }
+    return row;
+}

@@ -1,0 +1,168 @@
+// Completion-order payload loan creation, mutation invalidation and last use.
+import "ast_collection_map_payload_backing_owner.pgy";
+import "ast_collection_map_payload_loan_state_owner.pgy";
+import "ast_collection_indexed_string_borrow_state_owner.pgy";
+import "ast_collection_indexed_string_borrow_source_policy_owner.pgy";
+import "ast_collection_exclusive_value_flow_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstMapStringPayloadBoundary(ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface: Int, node: Int, boundary: String) -> SemanticAstCollectionOwnershipVerdict {
+    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+        SemanticError2("borrow_boundary_escape", "boundary", boundary, "type", "String"),
+        surfaces.node_ids[surface], node);
+}
+
+func SemanticAstMapStringPayloadInvalidated(
+    ref artifact: AstTreeArtifact, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    inout loans: SemanticAstIndexedStringBorrowState,
+    source: Int, syntax_id: Int
+) -> Bool {
+    if source >= -1 { return false; }
+    let invalidations: HashMap<String, Int> = loans.map_payload_invalidations;
+    let functions: HashMap<String, Int> = loans.map_payload_functions;
+    let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, syntax_id);
+    if !IsSome(surface) { return true; }
+    let function_id: Int = surfaces.function_node_ids[UnwrapOption(surface)];
+    if source < -2 {
+        let key: String = ToString(SemanticAstMapStringPayloadLoanNode(source));
+        return MapHas(functions, key) && MapGet(functions, key) == function_id &&
+            MapHas(invalidations, key) && (MapGet(invalidations, key) == 0 ||
+            !SemanticAstCollectionExclusiveBranchUnreached(artifact, MapGet(invalidations, key), syntax_id));
+    }
+    // A joined map-containing loan keeps its map obligation. It is never the
+    // unrelated String/Array unknown-source sentinel (-1).
+    let keys: Array<String> = MapKeys(invalidations);
+    let index: Int = 0;
+    let invalid: Bool = false;
+    while index < ArrayLength(keys) {
+        if MapHas(functions, keys[index]) && MapGet(functions, keys[index]) == function_id &&
+            (MapGet(invalidations, keys[index]) == 0 || !SemanticAstCollectionExclusiveBranchUnreached(artifact,
+                MapGet(invalidations, keys[index]), syntax_id)) { invalid = true; }
+        index = index + 1;
+    }
+    ArrayDropOwnedStrings(keys);
+    return invalid;
+}
+
+func SemanticAstMapStringPayloadAtCallCompletion(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts, ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>, ref borrow_sources: Array<Int>,
+    borrowed_text_formals: HashMap<String, Int>, mutating_formals: HashMap<String, Int>,
+    inout loans: SemanticAstIndexedStringBorrowState, root_slot: Int, call_node: Int, terminal: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    let surface: Int = root_slot / 3;
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, terminal);
+    if !call.ok || call.call_node != call_node { return SemanticAstMapStringPayloadBoundary(
+        surfaces, surface, terminal, "map_string_completion_unproved"); }
+    let ordinal: Int = 0;
+    let sources: HashMap<String, Int> = loans.map_payload_sources;
+    let syntax_ids: HashMap<String, Int> = loans.map_payload_syntax_ids;
+    let invalidations: HashMap<String, Int> = loans.map_payload_invalidations;
+    let functions: HashMap<String, Int> = loans.map_payload_functions;
+    let none: Array<Int> = [];
+    let sources_to_invalidate: Array<Int> = [];
+    let result_type: Option<String> = None;
+    if ArrayLength(call.argument_nodes) > 0 &&
+        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") {
+        let receiver: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+            artifact, signatures, locals, inferred_types, surfaces, surfaces.function_node_ids[surface],
+            surfaces.node_ids[surface], call.argument_nodes[0]);
+        let receiver_type: Option<String> = SemanticAstCollectionExclusivePlaceType(
+            signatures, constructors, inferred_types, surfaces, surfaces.function_node_ids[surface], receiver);
+        if IsSome(receiver_type) {
+            let signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+                "MapGet", ArrayLength(call.argument_nodes), UnwrapOption(receiver_type));
+            if signature.applies && signature.ok { result_type = Some(signature.return_type); }
+        }
+        if !IsSome(result_type) {
+            ArrayDrop(none); ArrayDrop(sources_to_invalidate);
+            return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_receiver_type_unproved");
+        }
+    }
+    while ordinal < ArrayLength(call.argument_nodes) {
+        let argument: Int = call.argument_nodes[ordinal];
+        let source: Int = SemanticAstIndexedStringBorrowSourceForRoot(artifact, locals, inferred_types,
+            surfaces, definitions, storage, current_definitions, borrow_sources, loans.map_payload_sources, surface, argument);
+        if SemanticAstMapStringPayloadInvalidated(artifact, surfaces, loans, source, surfaces.node_ids[surface]) {
+            ArrayDrop(none); ArrayDrop(sources_to_invalidate);
+            return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_use_after_mutation");
+        }
+        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, call_node, ordinal);
+        if source < -1 {
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
+                surfaces.expression_graph, surfaces.expression_graph.roots[root_slot]);
+            let identity: Option<String> = None;
+            if IsSome(start) {
+                identity = SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+                    surfaces, call_node, UnwrapOption(start), surfaces.node_ids[surface], root_slot % 3);
+            }
+            if !(IsSome(identity) && SemanticBuiltinArgumentBorrowedForIdentity(UnwrapOption(identity), ordinal)) &&
+                !SemanticAstIndexedStringBorrowResultCarriesArgument(surfaces.expression_graph, call_node, ordinal) &&
+                !(formal.ok && MapHas(borrowed_text_formals, ToString(formal.syntax_id))) {
+                ArrayDrop(none); ArrayDrop(sources_to_invalidate);
+                return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_borrow_escape");
+            }
+        }
+        if formal.ok && MapHas(mutating_formals, ToString(formal.syntax_id)) {
+            ArrayPush(sources_to_invalidate, SemanticAstMapPayloadBackingForNode(artifact, signatures,
+                constructors, locals, inferred_types, surfaces, assignments, surfaces.function_node_ids[surface],
+                surfaces.node_ids[surface], argument, none, 0));
+        }
+        ordinal = ordinal + 1;
+    }
+    if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapGet") &&
+        IsSome(result_type) && UnwrapOption(result_type) == "String" {
+        let backing: Int = 0;
+        if ArrayLength(call.argument_nodes) == 2 {
+            backing = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors,
+                locals, inferred_types, surfaces, assignments, surfaces.function_node_ids[surface],
+                surfaces.node_ids[surface], call.argument_nodes[0], none, 0);
+        }
+        if backing == 0 {
+            ArrayDrop(none); ArrayDrop(sources_to_invalidate);
+            return SemanticAstMapStringPayloadBoundary(surfaces, surface, terminal, "map_string_borrow_source_unproved");
+        }
+        MapSet(sources, ToString(terminal), backing);
+        MapSet(syntax_ids, ToString(terminal), surfaces.node_ids[surface]);
+        MapSet(functions, ToString(terminal), surfaces.function_node_ids[surface]);
+    }
+    if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapSet") ||
+        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call_node, "MapRemove") {
+        let backing: Int = 0;
+        if ArrayLength(call.argument_nodes) > 0 {
+            backing = SemanticAstMapPayloadBackingForNode(artifact, signatures, constructors, locals,
+                inferred_types, surfaces, assignments, surfaces.function_node_ids[surface],
+                surfaces.node_ids[surface], call.argument_nodes[0], none, 0);
+        }
+        ArrayPush(sources_to_invalidate, backing);
+    }
+    let keys: Array<String> = MapKeys(sources);
+    let index: Int = 0;
+    while index < ArrayLength(keys) {
+        let mutation: Int = 0;
+        while mutation < ArrayLength(sources_to_invalidate) {
+            if MapHas(functions, keys[index]) &&
+                MapGet(functions, keys[index]) == surfaces.function_node_ids[surface] &&
+                (sources_to_invalidate[mutation] == 0 ||
+                 (sources_to_invalidate[mutation] < 0 && MapGet(sources, keys[index]) < 0) ||
+                 sources_to_invalidate[mutation] == MapGet(sources, keys[index])) {
+                let site: Int = surfaces.node_ids[surface];
+                if MapHas(invalidations, keys[index]) && MapGet(invalidations, keys[index]) != site { site = 0; }
+                MapSet(invalidations, keys[index], site);
+            }
+            mutation = mutation + 1;
+        }
+        index = index + 1;
+    }
+    ArrayDropOwnedStrings(keys); ArrayDrop(none); ArrayDrop(sources_to_invalidate);
+    loans.map_payload_sources = sources; loans.map_payload_syntax_ids = syntax_ids; loans.map_payload_invalidations = invalidations;
+    loans.map_payload_functions = functions;
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+

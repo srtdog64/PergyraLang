@@ -1,0 +1,5 @@
+struct NestedArrayMap { entries: HashMap<String, String>; }
+func ReadNestedArrayMapText(ref records: Array<NestedArrayMap>) -> String {
+    return MapGet(records[0].entries, "entry");
+}
+func Main() -> Void {}

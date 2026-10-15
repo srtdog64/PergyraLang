@@ -1,0 +1,235 @@
+// Real produced bundle poisoning: never emit a target on a mutation path.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy";
+import "../../../src/self_hosted/codegen/emission/program_entry_owner.pgy";
+
+func Main() -> Void with caps env, io_read, io_write
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 3 { Log("PROBE|input-invalid"); Exit(2); return; }
+    let mode: String = args[1];
+    let admitted_path: Bool = StartsWith(mode, "admitted-");
+    if admitted_path { mode = Substring(mode, 9, StringLength(mode) - 9); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("PROBE|parse-invalid"); Exit(2); return; }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(Concat("PROBE|header-invalid|", analysis.verdict.diagnostic_code)); Exit(2); return; }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.verdict.ok { Log(Concat("PROBE|body-invalid|", bundle.verdict.diagnostic_code)); Exit(2); return; }
+    let receipt: SemanticAstBodyTypeBundleAdmissionReceipt = SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, bundle);
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle)
+    {
+        Log("PROBE|baseline-receipt-invalid"); Exit(3); return;
+    }
+    if mode == "analyze" { Log("PROBE|body-valid"); return; }
+    if mode == "copy-facts"
+    {
+        // Diagnostic projection of the real admitted bundle, never target emission.
+        let diagnostic_generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+            analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
+        let diagnostic_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, bundle, diagnostic_generic, receipt);
+        let group: Int = 0;
+        while group < ArrayLength(diagnostic_view.focus_recovery.group_root_binding_ids)
+        {
+            Log(Concat("COPYGROUP|", Concat(ToString(diagnostic_view.focus_recovery.group_root_binding_ids[group]),
+                Concat("|", diagnostic_view.focus_recovery.group_copy_signatures[group]))));
+            group = group + 1;
+        }
+        Log(Concat("COPYSIZE|", ToString(MapSize(diagnostic_view.focus_recovery.exclusive_copies))));
+        let keys: Array<String> = MapKeys(diagnostic_view.focus_recovery.exclusive_copies);
+        let index: Int = 0;
+        while index < ArrayLength(keys)
+        {
+            Log(Concat("COPYKEY|", Concat(keys[index], Concat("|",
+                ToString(MapGet(diagnostic_view.focus_recovery.exclusive_copies, keys[index]))))));
+            index = index + 1;
+        }
+        return;
+    }
+    let groups: Int = ArrayLength(bundle.collection_ownership.focus_recovery.group_function_ids);
+    let parts: Int = ArrayLength(bundle.collection_ownership.focus_recovery.part_local_binding_ids);
+    let exits: Int = ArrayLength(bundle.collection_ownership.focus_recovery.exit_group_indices);
+    if mode != "manual-control" && (groups == 0 || parts == 0 || exits == 0)
+    {
+        Log("PROBE|recovery-missing"); Exit(3); return;
+    }
+    if mode == "emit" || mode == "manual-control"
+    {
+        // Reuse the produced body and its receipt at the real admitted seam.
+        // The convenience source entry would run body analysis a second time.
+        let receiver_facts: CodegenCallableReceiverFacts = CodegenCallableReceiverFactsFromAdmittedAnalysis(analysis);
+        let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(artifact, analysis, analysis.enums);
+        let topology: SelfDirDomainTopologyRows = SelfDirDomainTopologyRowsFromArtifact(artifact, declarations);
+        let projection_maps: SelfDirDomainProjectionMapRows = SelfDirDomainProjectionMapRowsFromArtifact(artifact);
+        let domain_runtime: CodegenDomainRuntimeFacts = CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
+            declarations, topology, projection_maps);
+        let emitted_generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+            analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
+        let body_types: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, bundle, emitted_generic, receipt);
+        let source_intents: SelfDirIntentFacts = CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
+            artifact, analysis, declarations);
+        let intent_policy: CodegenIntentPolicyView = CodegenIntentPolicyViewFromDirFactsOrDie(analysis, source_intents);
+        let intent_execution: CodegenIntentExecutionView = CodegenIntentExecutionViewFromSemanticOrDie(
+            artifact.identity_digest, analysis.intent_signatures, source_intents, declarations);
+        let output: String = GenerateCUnitFromReadySemanticFacts(
+            artifact, analysis, body_types, receiver_facts, domain_runtime, intent_execution,
+            intent_policy, true, SelfHostMachineLayerDeclarationEmpty(), false);
+        WriteFile(args[2], output);
+        Log("PROBE|emitted-c"); return;
+    }
+    if mode == "missing" { bundle.collection_ownership.focus_recovery.ok = false; }
+    else if mode == "copy-epoch"
+    {
+        bundle.collection_ownership.focus_recovery.group_copy_signatures[0] =
+            Concat(bundle.collection_ownership.focus_recovery.group_copy_signatures[0], ":stale");
+    }
+    else if mode == "copy-count"
+    {
+        bundle.collection_ownership.focus_recovery.exclusive_copy_count =
+            bundle.collection_ownership.focus_recovery.exclusive_copy_count + 1;
+    }
+    else if mode == "read-count"
+    {
+        bundle.collection_ownership.focus_recovery.exclusive_field_read_count =
+            bundle.collection_ownership.focus_recovery.exclusive_field_read_count + 1;
+    }
+    else if mode == "copy-view-empty"
+    {
+        // The observed memo/shared view is sealed by the original receipt.
+        // It is not a material root adjacency or a deep Current copy-cut proof.
+        if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
+        let copy_keys: Array<String> = MapKeys(bundle.collection_ownership.focus_recovery.exclusive_copies);
+        let shared_key: String = Concat("s:", Concat(ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]), ".*"));
+        let contained: Bool = false;
+        let part: Int = 0;
+        while part < parts
+        {
+            let key: String = Concat("contained:", ToString(bundle.collection_ownership.focus_recovery.part_local_binding_ids[part]));
+            if MapHas(bundle.collection_ownership.focus_recovery.exclusive_copies, key) &&
+                MapGet(bundle.collection_ownership.focus_recovery.exclusive_copies, key) == 2 { contained = true; }
+            part = part + 1;
+        }
+        if bundle.collection_ownership.focus_recovery.exclusive_copy_count <= 0 ||
+            bundle.collection_ownership.focus_recovery.exclusive_copy_count != MapSize(bundle.collection_ownership.focus_recovery.exclusive_copies) ||
+            ArrayLength(copy_keys) != bundle.collection_ownership.focus_recovery.exclusive_copy_count || !contained ||
+            !MapHas(bundle.collection_ownership.focus_recovery.exclusive_copies, shared_key) ||
+            MapGet(bundle.collection_ownership.focus_recovery.exclusive_copies, shared_key) != 1
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        let missing_copies: HashMap<String, Int> = MapNew();
+        bundle.collection_ownership.focus_recovery.exclusive_copies = missing_copies;
+        bundle.collection_ownership.focus_recovery.exclusive_copy_count = 0;
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        {
+            Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
+        }
+    }
+    else if mode == "read-map-value"
+    {
+        // The cold HEAD current checker does not consume per-key field reads.
+        // This tests the ORIGINAL full-map admission receipt, not deep read permission.
+        if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
+        let read_key: String = Concat(ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]),
+            Concat(":", bundle.collection_ownership.focus_recovery.part_field_names[0]));
+        if !MapHas(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key)
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        let old_read: Int = MapGet(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key);
+        MapSet(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key, old_read + 1);
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        {
+            Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
+        }
+    }
+    else if mode == "omit-active-part"
+    {
+        if groups != 1 || exits != 1 || parts != 8 ||
+            bundle.collection_ownership.focus_recovery.exit_part_starts[0] != 0 ||
+            bundle.collection_ownership.focus_recovery.exit_part_counts[0] != 8 ||
+            ArrayLength(bundle.collection_ownership.focus_recovery.active_part_indices) != 8 ||
+            ArrayLength(bundle.collection_ownership.focus_recovery.active_definition_ids) != 8
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        ArrayPop(bundle.collection_ownership.focus_recovery.active_part_indices);
+        ArrayPop(bundle.collection_ownership.focus_recovery.active_definition_ids);
+        bundle.collection_ownership.focus_recovery.exit_part_counts[0] = 7;
+        // The arrays/spans are consistent; only complete active coverage is false.
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        {
+            Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
+        }
+    }
+    else if mode == "selection-missing" || mode == "selection-value"
+    {
+        let selected: String = ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]);
+        if !MapHas(bundle.collection_ownership.focus_recovery.mutating_formals, selected)
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        if mode == "selection-missing" { MapRemove(bundle.collection_ownership.focus_recovery.mutating_formals, selected); }
+        else { MapSet(bundle.collection_ownership.focus_recovery.mutating_formals, selected, 0); }
+    }
+    else if mode == "selection-foreign"
+    {
+        MapSet(bundle.collection_ownership.focus_recovery.mutating_formals, "foreign-formal", 1);
+    }
+    else if mode == "stamp" { bundle.collection_ownership.focus_recovery.artifact_identity_digest = artifact.identity_digest + 1; }
+    else if mode == "root" { bundle.collection_ownership.focus_recovery.group_root_binding_ids[0] = -1; }
+    else if mode == "field" { bundle.collection_ownership.focus_recovery.part_field_ids[0] = -1; }
+    else if mode == "local" { bundle.collection_ownership.focus_recovery.part_local_binding_ids[0] = -1; }
+    else if mode == "definition" { bundle.collection_ownership.focus_recovery.active_definition_ids[0] = -1; }
+    else if mode == "exit" { bundle.collection_ownership.focus_recovery.exit_syntax_ids[0] = -1; }
+    else if mode == "scope" { bundle.collection_ownership.focus_recovery.exit_scope_ids[0] = -1; }
+    else if mode == "duplicate"
+    {
+        if parts < 2 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
+        bundle.collection_ownership.focus_recovery.part_field_ids[1] = bundle.collection_ownership.focus_recovery.part_field_ids[0];
+    }
+    else if mode == "nested-inner-only"
+    {
+        if groups < 2 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
+        let parent_group: Int = -1;
+        let group: Int = 0;
+        while group < groups
+        {
+            let function_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                analysis.signatures, bundle.collection_ownership.focus_recovery.group_function_ids[group]);
+            if IsSome(function_row) && analysis.signatures.names[UnwrapOption(function_row)] == "CaptureStep"
+            {
+                parent_group = group;
+            }
+            group = group + 1;
+        }
+        if parent_group < 0 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
+        let index: Int = 0;
+        while index < exits
+        {
+            if bundle.collection_ownership.focus_recovery.exit_group_indices[index] == parent_group
+            {
+                bundle.collection_ownership.focus_recovery.exit_part_counts[index] = 0;
+            }
+            index = index + 1;
+        }
+    }
+    else if mode != "view" { Log("PROBE|unknown-mode"); Exit(2); return; }
+    let generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+        analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
+    if admitted_path
+    {
+        let admitted_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, bundle, generic, receipt);
+        if mode != "view" { Log("PROBE|POISON-ACCEPTED"); Exit(4); return; }
+        Log(Concat("PROBE|view-valid|", Concat(ToString(groups), Concat("|", Concat(ToString(parts), Concat("|", ToString(exits)))))));
+        return;
+    }
+    let view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromBundleOrDie(
+        artifact, analysis, bundle, generic);
+    if mode != "view" { Log("PROBE|POISON-ACCEPTED"); Exit(4); return; }
+    Log(Concat("PROBE|view-valid|", Concat(ToString(groups), Concat("|", Concat(ToString(parts), Concat("|", ToString(exits)))))));
+}

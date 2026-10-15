@@ -8,6 +8,7 @@ import "../mir_lower/program_routine_index_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
 import "symbol_table_owner.pgy";
 import "../mir_lower/intent_routine_carrier_projection_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
 
 struct DirectMirRoutineSignatureFact {
     let valid: Bool;
@@ -146,11 +147,14 @@ func DirectMirRoutineSignatureWithGenericEnvelopeAt(
     if param_count > 0 { param = parameters.first; }
     let symbol: String = routines.names[row];
     if receiver_type != "" { symbol = CompilerSymbolCQualifiedName(receiver_type, symbol); }
+    if header.return_type == "Unknown" || header.return_type == "<unknown>" { return InvalidDirectMirRoutineSignatureFact(); }
+    let return_type: String = SemanticCanonicalTypeName(header.return_type);
+    if return_type == "" || return_type == "Unknown" || return_type == "<unknown>" { return InvalidDirectMirRoutineSignatureFact(); }
     let fact: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
         true, 0, row, symbol, routines.kinds[row],
         ToInt(routines.source_syntax_ids[row]), routines.receiver_carriages[row],
         receiver_owner, receiver_type,
-        header.return_type, param_count, parameters, param
+        return_type, param_count, parameters, param
     );
     let verified: DirectMirRoutineSignatureFact =
         DirectMirRoutineSignatureFactWithDigest(

@@ -16,8 +16,56 @@ IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe
 CONSTRUCTOR_PROBE=tests/self_hosted/fixtures/collection_constructor_escape_identity_probe.pgy
 EVENT_PROBE=tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy
 STORAGE_PROBE=tests/self_hosted/fixtures/collection_storage_producer_probe.pgy
+WRITTEN_ROOT_PROBE=tests/self_hosted/fixtures/collection_map_payload_written_root_unit.pgy
+COPY_FIELD_PROBE=tests/self_hosted/fixtures/collection_copy_field_identity_unit.pgy
+MEMBER_HAZARD_PROBE=tests/self_hosted/fixtures/collection_member_hazard_sites_unit.pgy
+MEMBER_HAZARD_INPUT=tests/self_hosted/fixtures/collection_member_hazard_sites_input.pgy
+MEMBER_COMPLETED_PROBE=tests/self_hosted/fixtures/collection_member_completed_read_identity_unit.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    direct_owned_collection_live_positive.pgy direct_owned_collection_retired_positive.pgy
+    direct_owned_collection_clone_positive.pgy direct_owned_collection_balanced_loop_positive.pgy
+    direct_owned_collection_fresh_loop_live_positive.pgy direct_owned_collection_branch_unborn_positive.pgy
+    member_completed_read_before_alias_positive.pgy member_completed_read_shared_backing_positive.pgy
+    member_completed_read_literal_text_positive.pgy
+    member_completed_read_after_alias_negative.pgy member_completed_read_same_statement_negative.pgy
+    member_completed_read_loop_negative.pgy member_completed_read_defer_negative.pgy
+    member_completed_read_retaining_negative.pgy member_completed_read_borrowed_text_negative.pgy
+    member_completed_read_async_negative.pgy
+    copy_field_disjoint_holder_positive.pgy copy_field_disjoint_sibling_positive.pgy
+    copy_field_overlapping_holder_negative.pgy copy_field_overlapping_sibling_negative.pgy
+    copy_field_same_source_two_landings_negative.pgy copy_field_loop_holder_negative.pgy
+    copy_field_deferred_holder_negative.pgy copy_field_self_root_negative.pgy copy_field_whole_holder_negative.pgy
+    copy_field_all_shared_negative.pgy copy_field_unshared_source_later_read_negative.pgy
+    copy_field_unshared_source_metadata_positive.pgy
+    exclusive_map_exit_branch_positive.pgy exclusive_map_loop_branch_restore_positive.pgy
+    exclusive_map_exit_branch_missing_restore_negative.pgy exclusive_map_exit_branch_deferred_read_negative.pgy
+    exclusive_map_loop_old_read_negative.pgy exclusive_map_loop_old_read_after_negative.pgy
+    exclusive_map_loop_missing_restore_negative.pgy exclusive_map_loop_break_restore_negative.pgy
+    exclusive_map_loop_continue_restore_negative.pgy exclusive_map_observed_alias_mutation_negative.pgy
+    exclusive_map_observed_source_growth_positive.pgy exclusive_map_observed_source_growth_negative.pgy
+    exclusive_map_observed_forward_growth_positive.pgy exclusive_map_observed_forward_growth_negative.pgy
+    exclusive_map_observed_source_backedge_negative.pgy
+    exclusive_map_assigned_formal_direct_has_positive.pgy exclusive_map_assigned_formal_direct_has_negative.pgy
+    exclusive_map_assigned_formal_direct_get_positive.pgy exclusive_map_assigned_formal_direct_get_negative.pgy
+    exclusive_map_assigned_formal_forward_has_positive.pgy exclusive_map_assigned_formal_forward_has_negative.pgy
+    exclusive_map_assigned_formal_forward_get_positive.pgy exclusive_map_assigned_formal_forward_get_negative.pgy
+    descriptor_text_escape_read_positive.pgy descriptor_text_escape_loop_positive.pgy
+    descriptor_text_escape_forward_positive.pgy descriptor_text_escape_recursive_positive.pgy
+    descriptor_text_escape_mixed_negative.pgy descriptor_text_escape_forward_mixed_negative.pgy
+    descriptor_text_escape_owned_drop_negative.pgy descriptor_text_escape_opaque_negative.pgy
+    map_payload_replace_negative.pgy map_payload_remove_negative.pgy
+    map_payload_read_before_positive.pgy map_payload_disjoint_positive.pgy
+    map_payload_clone_positive.pgy map_payload_int_positive.pgy
+    map_payload_string_alias_negative.pgy map_payload_map_alias_negative.pgy
+    map_payload_field_alias_negative.pgy map_payload_shadow_positive.pgy
+    map_payload_loop_backedge_negative.pgy map_payload_forwarded_negative.pgy
+    map_payload_nested_argument_negative.pgy map_payload_unproved_formal_negative.pgy
+    map_payload_unrelated_unknown_positive.pgy map_payload_clone_string_negative.pgy
+    map_payload_array_escape_negative.pgy map_payload_formal_read_positive.pgy
+    map_payload_key_copy_positive.pgy map_payload_remove_key_positive.pgy
+    map_payload_value_copy_unsupported_negative.pgy
+    map_payload_assigned_formal_before_negative.pgy map_payload_assigned_formal_after_negative.pgy
     allocator_domain_result_positive.pgy allocator_domain_pool_read_positive.pgy
     allocator_domain_pool_negative.pgy allocator_domain_formal_write_negative.pgy
     allocator_domain_inout_negative.pgy allocator_domain_mixed_negative.pgy
@@ -271,6 +319,14 @@ INPUTS=(
     exclusive_other_branch_loop_negative.pgy exclusive_later_holder_negative.pgy
     exclusive_alias_element_write_negative.pgy exclusive_dead_alias_positive.pgy
     exclusive_dead_alias_partial_negative.pgy
+    exclusive_map_copy_growth_negative.pgy exclusive_map_field_growth_negative.pgy
+    exclusive_map_forwarded_growth_negative.pgy exclusive_map_remove_shared_negative.pgy
+    exclusive_map_fresh_positive.pgy exclusive_map_restore_positive.pgy exclusive_map_thread_positive.pgy
+    exclusive_map_query_early_exit_positive.pgy exclusive_map_scalar_query_positive.pgy
+    exclusive_map_old_query_negative.pgy
+    exclusive_map_disjoint_field_positive.pgy exclusive_map_shared_field_negative.pgy
+    exclusive_set_shared_mutation_negative.pgy exclusive_list_shared_mutation_negative.pgy
+    exclusive_queue_shared_mutation_negative.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
@@ -329,10 +385,33 @@ INPUTS+=(
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" "$STORAGE_PROBE" \
+    tests/self_hosted/fixtures/direct_mir_owned_collection_execution_probe.pgy \
+    tests/self_hosted/fixtures/direct_mir_semantic_type_projection_probe.pgy \
+    tests/self_hosted/parity/fixture/collection_field_lifetime/direct_owned_collection_parameter_return_positive.pgy \
+    tests/self_hosted/parity/direct_mir_semantic_type_projection_mutations.py \
+    tests/self_hosted/parity/direct_mir_owned_collection_execution_owner.sh \
+    tests/self_hosted/parity/direct_mir_owned_collection_execution_mutations.py \
+    tests/self_hosted/parity/direct_mir_owned_collection_refusal_protocol.sh \
+    src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_definition_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_block_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_owned_collection_flow_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_final_claim_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_projection_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy \
+    src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_return_expression_abi_owner.pgy \
+    src/self_hosted/semantic/ast_collection_builtin_receipt_issue_owner.pgy \
+    src/self_hosted/mir/local_ref_json_projection_owner.pgy \
+    src/self_hosted/mir/collection_ownership_fact_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy \
     tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy \
     tests/self_hosted/fixtures/numeric_string_allocation_unit.pgy \
     tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy \
     tests/self_hosted/fixtures/generic_default_selection_unit.pgy \
+    tests/self_hosted/fixtures/collection_storage_mutation_identity_unit.pgy \
+    src/self_hosted/semantic/ast_collection_storage_mutation_owner.pgy \
+    src/self_hosted/semantic/ast_collection_storage_observation_owner.pgy \
     src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy \
     src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy \
     src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy \
@@ -404,6 +483,13 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_read_hazard_site_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_read_hazard_normalization_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_read_fact_query_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_read_completion_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_local_use_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_local_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_read_block_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_result_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_restoration_owner.pgy \
     src/self_hosted/semantic/ast_collection_member_capture_obligation_owner.pgy \
@@ -424,14 +510,52 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     scripts/render_builtin_argument_retention_registry.py \
     "${BASH_SOURCE[0]}" \
     tests/builtin_argument_retention_registry_smoke.sh >"$WORK/owners.sha256"
+sha256sum tests/self_hosted/parity/collection_map_payload_written_root_owner.sh >>"$WORK/owners.sha256"
+sha256sum tests/self_hosted/parity/collection_copy_field_owner.sh >>"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_storage_foreign_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
     "$FIXTURES/borrow_formal_identity_input.pgy" "$FIXTURES/storage_producer_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
+sha256sum "$WRITTEN_ROOT_PROBE" "$FIXTURES/map_payload_written_root_backedge_facts.pgy" >>"$WORK/inputs.sha256"
+sha256sum "$COPY_FIELD_PROBE" >>"$WORK/inputs.sha256"
+sha256sum "$MEMBER_HAZARD_PROBE" "$MEMBER_HAZARD_INPUT" >>"$WORK/inputs.sha256"
+sha256sum "$MEMBER_COMPLETED_PROBE" >>"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 # Root-coordinated reuse within a frozen source stage, not a compiler install
 # or a cache lookup. Refuse a different source/input/native or mutated binary.
 PROBE_DIR="${PGY_COLLECTION_EFFECT_PROBE_DIR:-}"
+SOURCE_PAIR_DIR="${SOURCE_PROBE_DIR:-}"
+if [[ -n "$PROBE_DIR" && -n "$SOURCE_PAIR_DIR" ]]; then
+    echo 'complete-probe and source-only reuse inputs are mutually exclusive' >&2
+    exit 1
+fi
+# The source-only owner proves just this semantic target. Other probe targets
+# still build once per backend; missing or drifting evidence never rebuilds.
+validate_source_pair_receipt() {
+    local manifest backend
+    for manifest in native source inputs probes; do
+        [[ -s "$SOURCE_PAIR_DIR/$manifest.sha256" ]] || {
+            echo "source-only reuse is missing $manifest receipt" >&2; return 1;
+        }
+        sha256sum --quiet -c "$SOURCE_PAIR_DIR/$manifest.sha256"
+    done
+    cmp "$SOURCE_PAIR_DIR/source.sha256" "$WORK/imports.sha256"
+    [[ "$(cut -d ' ' -f 1 "$SOURCE_PAIR_DIR/native.sha256")" == "$(cut -d ' ' -f 1 "$WORK/native.sha256")" ]]
+    grep -Fxq "$(sha256sum "$SOURCE_PROBE")" "$SOURCE_PAIR_DIR/inputs.sha256"
+    for backend in c llvm; do
+        [[ -s "$SOURCE_PAIR_DIR/$backend-source.exe" ]] || {
+            echo "source-only reuse is missing $backend source binary" >&2; return 1;
+        }
+        grep -Fxq "$(sha256sum "$SOURCE_PAIR_DIR/$backend-source.exe")" "$SOURCE_PAIR_DIR/probes.sha256"
+    done
+}
+if [[ -n "$SOURCE_PAIR_DIR" ]]; then
+    SOURCE_PAIR_DIR="$(cd "$SOURCE_PAIR_DIR" && pwd -P)"
+    validate_source_pair_receipt
+    sha256sum "$SOURCE_PAIR_DIR/native.sha256" "$SOURCE_PAIR_DIR/source.sha256" \
+        "$SOURCE_PAIR_DIR/inputs.sha256" "$SOURCE_PAIR_DIR/probes.sha256" >"$WORK/source-reuse-receipts.sha256"
+    echo "[collection-inout-effect] source-only exact-target reuse: $SOURCE_PAIR_DIR"
+fi
 if [[ -n "$PROBE_DIR" ]]; then
     PROBE_DIR="$(cd "$PROBE_DIR" && pwd -P)"
     case "$PROBE_DIR/" in "$ROOT_DIR/.tmp/self_hosted/"*) ;; *) echo 'probe reuse must stay in this checkout artifact directory' >&2; exit 1 ;; esac
@@ -439,10 +563,10 @@ if [[ -n "$PROBE_DIR" ]]; then
         cmp "$WORK/$manifest.sha256" "$PROBE_DIR/$manifest.sha256"
         sha256sum --quiet -c "$PROBE_DIR/$manifest.sha256"
     done
-    # A valid subset is not a complete proof. Pin exactly the six binaries
+    # A valid subset is not a complete proof. Pin exactly the eight binaries
     # about to be copied, accepting old relative or new absolute receipt paths.
-    sha256sum --binary "$PROBE_DIR/c-source.exe" "$PROBE_DIR/c-identity.exe" "$PROBE_DIR/c-constructor.exe" \
-        "$PROBE_DIR/llvm-source.exe" "$PROBE_DIR/llvm-identity.exe" "$PROBE_DIR/llvm-constructor.exe" \
+    sha256sum --binary "$PROBE_DIR/c-source.exe" "$PROBE_DIR/c-identity.exe" "$PROBE_DIR/c-constructor.exe" "$PROBE_DIR/c-copy-field.exe" \
+        "$PROBE_DIR/llvm-source.exe" "$PROBE_DIR/llvm-identity.exe" "$PROBE_DIR/llvm-constructor.exe" "$PROBE_DIR/llvm-copy-field.exe" \
         | LC_ALL=C sort >"$WORK/reuse-expected-binaries.sha256"
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ "${line:0:64}" =~ ^[0-9a-f]{64}$ &&
@@ -457,10 +581,17 @@ if [[ -n "$PROBE_DIR" ]]; then
     sha256sum --quiet -c "$WORK/reuse-declared-binaries.sha256"
     echo "[collection-inout-effect] exact-source probe reuse: ${PROBE_DIR#"$ROOT_DIR/"}"
 fi
+# This is a distinct direct fact-consumer target, executed once per backend.
+# Existing source-verdict probes cannot establish it through an earlier refusal.
+PGY_BIN="$PGY" BACKENDS="c llvm" timeout 300 bash \
+    tests/self_hosted/parity/collection_map_payload_written_root_owner.sh >"$WORK/written-root-unit.log" 2>&1
 for backend in c llvm; do
     if [[ -n "$PROBE_DIR" ]]; then
         cp "$PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
         cmp "$PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
+    elif [[ -n "$SOURCE_PAIR_DIR" ]]; then
+        cp "$SOURCE_PAIR_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
+        cmp "$SOURCE_PAIR_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
     else
         timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
             -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
@@ -510,6 +641,8 @@ for backend in c llvm; do
         tr -d '\r' <"$WORK/$backend-$name.raw" >"$WORK/$backend-$name.run"
         [[ ! -s "$WORK/$backend-$name.err" ]]
         case "$name" in
+            member_completed_read_*_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             builtin_retention_text_builder_append_shadow_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=single_owner_handle_boundary\n' >"$WORK/expected" ;;
             member_indexed_read_mutator_negative.pgy)
@@ -647,6 +780,15 @@ exclusive_other_branch_loop_negative.pgy|unproved_exclusive_sink_entry|grown|Pic
 exclusive_later_holder_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_alias_element_write_negative.pgy|unproved_exclusive_sink_entry|grown|Build
 exclusive_dead_alias_partial_negative.pgy|unproved_exclusive_sink_entry|grown|Build
+exclusive_map_copy_growth_negative.pgy|unproved_exclusive_storage_mutation|MapSet(copy, "next", 2)|Main
+exclusive_map_remove_shared_negative.pgy|unproved_exclusive_storage_mutation|MapRemove(copy, "seed")|Main
+exclusive_map_field_growth_negative.pgy|unproved_exclusive_sink_entry|state|Main
+exclusive_map_forwarded_growth_negative.pgy|unproved_exclusive_sink_entry|state|Main
+exclusive_map_shared_field_negative.pgy|unproved_exclusive_sink_entry|state|Build
+exclusive_set_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|SetAdd(copy, 1)|Main
+exclusive_map_old_query_negative.pgy|unproved_exclusive_storage_mutation|MapSet(copy, "seed", 1)|Main
+exclusive_list_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|ListPush(copy, 1)|Main
+exclusive_queue_shared_mutation_negative.pgy|unproved_exclusive_storage_mutation|QueuePush(copy, 1)|Main
 BUILTIN_RETENTION_DIAGNOSTICS
     # This resource formal fails before the String retention consumer. Keep
     # that refusal, and use the separate String-only shadow retainer above.
@@ -916,6 +1058,41 @@ BORROW_FORMAL_DIAGNOSTICS
             -o "$REL/$backend-constructor.exe" >"$WORK/$backend-constructor.compile" 2>&1
     fi
     sha256sum "$WORK/$backend-constructor.exe" >>"$WORK/probe-binaries.sha256"
+    if [[ -n "$PROBE_DIR" ]]; then
+        cp "$PROBE_DIR/$backend-copy-field.exe" "$WORK/$backend-copy-field.exe"
+        cmp "$PROBE_DIR/$backend-copy-field.exe" "$WORK/$backend-copy-field.exe"
+    else
+        timeout 120 "$PGY" --native-pipeline "$COPY_FIELD_PROBE" "--backend=$backend" --opt=dev \
+            -o "$REL/$backend-copy-field.exe" >"$WORK/$backend-copy-field.compile" 2>&1
+    fi
+    sha256sum "$WORK/$backend-copy-field.exe" >>"$WORK/probe-binaries.sha256"
+    for copy_field_mode in {0..28}; do
+        timeout 30 "$WORK/$backend-copy-field.exe" "$FIXTURES/copy_field_disjoint_holder_positive.pgy" "$copy_field_mode" \
+            >"$WORK/$backend-copy-field-$copy_field_mode.raw" 2>"$WORK/$backend-copy-field-$copy_field_mode.err"
+        tr -d '\r' <"$WORK/$backend-copy-field-$copy_field_mode.raw" >"$WORK/$backend-copy-field-$copy_field_mode.run"
+        [[ ! -s "$WORK/$backend-copy-field-$copy_field_mode.err" ]]
+        grep -Fxq true "$WORK/$backend-copy-field-$copy_field_mode.run"
+    done
+    # A distinct producer target, never rebuilt per inventory/source row.
+    # Keep the existing full eight-binary reuse contract separate.
+    timeout 120 "$PGY" --native-pipeline "$MEMBER_HAZARD_PROBE" "--backend=$backend" --opt=dev \
+        -o "$REL/$backend-member-hazard.exe" >"$WORK/$backend-member-hazard.compile" 2>&1
+    sha256sum "$WORK/$backend-member-hazard.exe" >>"$WORK/member-hazard-probes.sha256"
+    timeout 30 "$WORK/$backend-member-hazard.exe" "$MEMBER_HAZARD_INPUT" \
+        >"$WORK/$backend-member-hazard.raw" 2>"$WORK/$backend-member-hazard.err"
+    tr -d '\r' <"$WORK/$backend-member-hazard.raw" >"$WORK/$backend-member-hazard.run"
+    [[ ! -s "$WORK/$backend-member-hazard.err" ]]
+    grep -Fxq 'MEMBER HAZARD SITES PASS' "$WORK/$backend-member-hazard.run"
+    timeout 120 "$PGY" --native-pipeline "$MEMBER_COMPLETED_PROBE" "--backend=$backend" --opt=dev \
+        -o "$REL/$backend-member-completed.exe" >"$WORK/$backend-member-completed.compile" 2>&1
+    sha256sum "$WORK/$backend-member-completed.exe" >>"$WORK/member-completed-probes.sha256"
+    for member_completed_mode in {0..30}; do
+        timeout 30 "$WORK/$backend-member-completed.exe" "$FIXTURES/member_completed_read_before_alias_positive.pgy" "$member_completed_mode" \
+            >"$WORK/$backend-member-completed-$member_completed_mode.raw" 2>"$WORK/$backend-member-completed-$member_completed_mode.err"
+        tr -d '\r' <"$WORK/$backend-member-completed-$member_completed_mode.raw" >"$WORK/$backend-member-completed-$member_completed_mode.run"
+        [[ ! -s "$WORK/$backend-member-completed-$member_completed_mode.err" ]]
+        grep -Fxq true "$WORK/$backend-member-completed-$member_completed_mode.run"
+    done
     for ((mutation=0; mutation<=28; mutation++)); do
         timeout 30 "$WORK/$backend-constructor.exe" "$FIXTURES/field_ctor_identity_input.pgy" "$mutation" \
             >"$WORK/$backend-constructor-$mutation.raw" 2>"$WORK/$backend-constructor-$mutation.err"
@@ -944,6 +1121,14 @@ BORROW_FORMAL_DIAGNOSTICS
     done
     for mutation in 13 14 15 102; do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/inout_index_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
+    for mutation in 129 130 131 132; do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/exclusive_map_fresh_positive.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
         tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
         [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
@@ -1062,12 +1247,18 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, one hundred twenty-two diagnostic locations, three observer mode, seventy-eight identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions; allocation/result witnesses, diagnostic locations, observer refusals, identity/boundary, occurrence/root/element-step, completion/receipt, storage-producer, constructor and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"
 sha256sum -c "$WORK/inputs.sha256"
 sha256sum --quiet -c "$WORK/imports.sha256"
 sha256sum --quiet -c "$WORK/probe-binaries.sha256"
+sha256sum --quiet -c "$WORK/member-hazard-probes.sha256"
+sha256sum --quiet -c "$WORK/member-completed-probes.sha256"
 if [[ -n "$PROBE_DIR" ]]; then sha256sum --quiet -c "$PROBE_DIR/probe-binaries.sha256"; fi
+if [[ -n "$SOURCE_PAIR_DIR" ]]; then
+    sha256sum --quiet -c "$WORK/source-reuse-receipts.sha256"
+    validate_source_pair_receipt
+fi
 echo "[collection-inout-effect] evidence: $REL (analyze-only inputs)"

@@ -397,11 +397,14 @@ test_qubit_slot_semantics_part_a(void)
         unreachable->data.let_decl.initializer = make_identifier("q", 3);
         ast_add_statement(func->data.func_decl.body, unreachable);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("if-return skips unreachable QubitSlot move in branch");
@@ -435,11 +438,14 @@ test_qubit_slot_semantics_part_a(void)
         if_stmt->data.if_stmt.else_branch = else_block;
         ast_add_statement(func->data.func_decl.body, if_stmt);
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("QubitSlot function argument moves from named variable");
@@ -455,7 +461,10 @@ test_qubit_slot_semantics_part_a(void)
         param->name = pergyra_strdup("q");
         param->type = ast_create_type("QubitSlot");
         func->data.func_decl.params[0] = param;
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         ASTNode *decl = ast_create_let_declaration("q");
         decl->data.let_decl.type = ast_create_type("QubitSlot");
@@ -473,7 +482,7 @@ test_qubit_slot_semantics_part_a(void)
         EXPECT(ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
         ast_destroy(decl);
         ast_destroy(call);
         ast_destroy(state_call);
@@ -492,7 +501,10 @@ test_qubit_slot_semantics_part_a(void)
         param->name = pergyra_strdup("q");
         param->type = ast_create_type("QubitSlot");
         func->data.func_decl.params[0] = param;
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
 
         ASTNode *temp_args[1] = { make_call("ClaimQubit", NULL, 0, 2) };
         ASTNode *call = make_call("UseQubit", temp_args, 1, 2);
@@ -501,7 +513,7 @@ test_qubit_slot_semantics_part_a(void)
             && ctx_has_diagnostic_substring(ctx, "bind the value first"));
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
         ast_destroy(call);
     }
 
@@ -519,7 +531,10 @@ test_qubit_slot_semantics_part_a(void)
         param->type = ast_create_type("QubitSlot");
         param->mode = PARAM_MODE_OWN;
         func->data.func_decl.params[0] = param;
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(!ctx->has_error);
 
         ASTNode *decl = ast_create_let_declaration("q");
@@ -538,7 +553,7 @@ test_qubit_slot_semantics_part_a(void)
         EXPECT(ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
         ast_destroy(decl);
         ast_destroy(call);
         ast_destroy(state_call);
@@ -557,11 +572,14 @@ test_qubit_slot_semantics_part_a(void)
         param->type = make_generic_type("Slot", "Int");
         func->data.func_decl.params[0] = param;
 
-        type_check_func_decl(func, ctx);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, func);
+        EXPECT(ast_assign_stable_ids(program));
+        type_check_program(program, ctx);
         EXPECT(ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
     }
 
     TEST("Slot<subject> parameter types are accepted with ref qualifier");

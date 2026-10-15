@@ -11,6 +11,8 @@
 #include "llvm_mir_slice_fact.h"
 #include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
+#include "llvm_expr_call_collections_extended.h"
+#include "llvm_expr_call_collections_map_exports.h"
 #include "codegen_match_variant_policy.h"
 #include "../parser/ast_api.h"
 
@@ -521,6 +523,17 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         if (llvm_intent_decl_exists(ctx, callee))
             return ctx->type_i1;
+        if ((strcmp(callee, "MapGet") == 0 || strcmp(callee, "MapKeys") == 0)
+            && ast_call_semantic_callee_is_stdlib(expr)
+            && ast_call_semantic_callee_decl_id(expr) == 0
+            && ast_call_semantic_callee_value_binding_id(expr) == 0
+            && ast_call_arg_count(expr) == (strcmp(callee, "MapGet") == 0 ? 2 : 1)) {
+            LLVMMapReceiverMetadata metadata;
+            if (!llvm_map_receiver_metadata_ready(ctx, ast_call_argument(expr, 0), &metadata))
+                return NULL;
+            return strcmp(callee, "MapGet") == 0 ? metadata.value_llvm_type
+                : llvm_hashmap_key_array_type(ctx, metadata.key_type);
+        }
         if (llvm_stmt_call_returns_collection_value(callee)
             && ast_call_arg_count(expr) >= 1
             && ast_call_argument(expr, 0) != NULL

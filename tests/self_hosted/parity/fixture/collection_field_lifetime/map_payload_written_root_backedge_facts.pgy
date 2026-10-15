@@ -1,0 +1,41 @@
+func UnsafeFormal(inout map: HashMap<String, String>) -> Void {
+    let table: HashMap<String, String> = MapNew();
+    let count: Int = 0;
+    while count < 2 { Log(MapSize(map)); map = table; count = count + 1; }
+}
+func UnsafeLocal() -> Void {
+    let rows: HashMap<String, String> = MapNew();
+    let table: HashMap<String, String> = MapNew();
+    let count: Int = 0;
+    while count < 2 { Log(MapSize(rows)); rows = table; count = count + 1; }
+}
+func UnsafeNested(inout map: HashMap<String, String>) -> Void {
+    let table: HashMap<String, String> = MapNew();
+    let outer: Int = 0;
+    while outer < 2 {
+        let count: Int = 0;
+        while count < 2 { Log(MapSize(map)); map = table; count = count + 1; }
+        outer = outer + 1;
+    }
+}
+func SafeFresh() -> Void {
+    let count: Int = 0;
+    while count < 2 {
+        let fresh: HashMap<String, String> = MapNew();
+        let table: HashMap<String, String> = MapNew();
+        Log(MapSize(fresh)); fresh = table; count = count + 1;
+    }
+}
+func SafeUnrelated(inout map: HashMap<String, String>) -> Void {
+    let other: HashMap<String, String> = MapNew();
+    let table: HashMap<String, String> = MapNew();
+    let count: Int = 0;
+    while count < 2 { Log(MapSize(map)); other = table; count = count + 1; }
+}
+func SafeOutside(inout map: HashMap<String, String>) -> Void {
+    let table: HashMap<String, String> = MapNew();
+    let count: Int = 0;
+    while count < 2 { Log(MapSize(map)); count = count + 1; }
+    map = table;
+}
+func Main() -> Void { }

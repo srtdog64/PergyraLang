@@ -10,6 +10,7 @@ import "ast_assignment_fact_owner.pgy";
 import "ast_string_formal_borrow_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_collection_storage_observation_owner.pgy";
 
 // Surfaces are emitted per function in source order; a function whose rows
 // are not contiguous has no range and every check on it refuses. A deferred
@@ -207,7 +208,8 @@ func SemanticAstCollectionExclusiveExitScope(ref artifact: AstTreeArtifact, synt
 // operand, a condition, or (unless `observing`) the value of a further alias.
 func SemanticAstCollectionExclusiveFamilyRead(
     ref artifact: AstTreeArtifact, ref surfaces: SemanticAstExpressionSurfaceFacts,
-    statement: Int, lane: Int, root: Int, node: Int, observing: Bool
+    statement: Int, lane: Int, root: Int, node: Int, observing: Bool,
+    binding_type_name: String
 ) -> Bool {
     let top: Int = node;
     let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, top, root);
@@ -230,9 +232,14 @@ func SemanticAstCollectionExclusiveFamilyRead(
     if kind >= AstExpressionNodeLogicalOr() && kind <= AstExpressionNodeNegate() { return true; }
     if kind != AstExpressionNodeCallArgument() { return false; }
     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
+    // These receiver queries neither mutate nor retain the family. MapHas
+    // still reads backing in the later-source-read owner; it is not a value
+    // read that may be ignored after the source descriptor becomes stale.
     return edge.ok && edge.argument_node == top &&
         (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayLength") ||
-         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "StringLength"));
+         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "StringLength") ||
+         SemanticAstCollectionStorageQueryObservational(surfaces.expression_graph, edge.call_node,
+             edge.ordinal, top == node, binding_type_name));
 }
 
 // The statements after `syntax_id` that use a member of `family` otherwise
@@ -268,10 +275,12 @@ func SemanticAstCollectionExclusiveFamilyUses(
                             !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
                             let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
                                 artifact, signatures, locals, inferred_types, surfaces, function_id, statement, node);
+                            let read_type: String = SemanticAstCollectionStorageObservedType(
+                                signatures, inferred_types, surfaces, function_id, node, place);
                             if place.ok && !place.temporary &&
                                 SemanticAstCollectionAggregateSinkAliasRow(family, place.key) >= 0 &&
                                 !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, statement, lane, root, node,
-                                    false) &&
+                                    false, read_type) &&
                                 (ArrayLength(uses) == 0 || uses[ArrayLength(uses) - 1] != statement) {
                                 ArrayPush(uses, statement);
                             }

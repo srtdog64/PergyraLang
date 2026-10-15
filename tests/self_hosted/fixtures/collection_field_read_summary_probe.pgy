@@ -3,17 +3,54 @@ import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy";
 
 func Main() -> Void with caps env, io_read
 {
     let args: Array<String> = Args();
-    if ArrayLength(args) != 1 { Log("PROBE|input-invalid"); Exit(2); return; }
+    if ArrayLength(args) != 1 && ArrayLength(args) != 2 { Log("PROBE|input-invalid"); Exit(2); return; }
+    let mode: String = "";
+    if ArrayLength(args) == 2 { mode = args[1]; }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("PROBE|parse-invalid"); Exit(2); return; }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(Concat("PROBE|header-invalid|", analysis.verdict.diagnostic_code)); Exit(2); return; }
     let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !body.verdict.ok { Log(Concat("PROBE|body-invalid|", body.verdict.diagnostic_code)); Exit(2); return; }
+    if mode != "" {
+        if mode != "recovery-deep" && mode != "recovery-admitted" &&
+            mode != "missing-deep" && mode != "missing-admitted" {
+            Log("PROBE|mode-invalid"); Exit(2); return;
+        }
+        let receipt: SemanticAstBodyTypeBundleAdmissionReceipt =
+            SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, body);
+        if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, body) {
+            Log("PROBE|receipt-invalid"); Exit(3); return;
+        }
+        let groups: Int = ArrayLength(body.collection_ownership.focus_recovery.group_function_ids);
+        let parts: Int = ArrayLength(body.collection_ownership.focus_recovery.part_local_binding_ids);
+        let exits: Int = ArrayLength(body.collection_ownership.focus_recovery.exit_group_indices);
+        if groups == 0 || parts == 0 || exits == 0 {
+            Log("PROBE|recovery-premise-invalid"); Exit(3); return;
+        }
+        if StartsWith(mode, "missing-") { body.collection_ownership.focus_recovery.ok = false; }
+        let generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+            analysis.signatures, body.generic_specializations, analysis.function_scopes);
+        if mode == "recovery-admitted" || mode == "missing-admitted" {
+            let admitted_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+                artifact, analysis, body, generic, receipt);
+            if mode == "missing-admitted" { Log("PROBE|POISON-ACCEPTED"); Exit(4); return; }
+            Log(Concat("PROBE|recovery-valid|", Concat(ToString(groups), Concat("|",
+                Concat(ToString(parts), Concat("|", ToString(exits)))))));
+            return;
+        }
+        let deep_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromBundleOrDie(
+            artifact, analysis, body, generic);
+        if mode == "missing-deep" { Log("PROBE|POISON-ACCEPTED"); Exit(4); return; }
+        Log(Concat("PROBE|recovery-valid|", Concat(ToString(groups), Concat("|",
+            Concat(ToString(parts), Concat("|", ToString(exits)))))));
+        return;
+    }
     Log(Concat("BODY|", body.verdict.diagnostic_code));
     let reads: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(
         artifact, analysis.signatures, analysis.expression_surfaces);

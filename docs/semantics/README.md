@@ -29,6 +29,7 @@ Required shape for each proof document:
 
 ## Documents
 
+- [ownership_refusal_explanation.md](ownership_refusal_explanation.md): finite sharing closure, checked refusal causes, summary locality, and the explicit production-export boundary.
 - [00_proof_contract.md](00_proof_contract.md): global proof vocabulary, semantic domains, judgment notation, and beta acceptance rule.
 - [01_intent_world_zone.md](01_intent_world_zone.md): `intent`, `world`, `zone`, `subject`, `authority`, `handoff`, and observability proof obligations.
 - [02_relation_effect_projection.md](02_relation_effect_projection.md): `relation`, `effect`, `projection`, `refresh`, `publish`, `bind`, and freshness/provenance proof obligations.

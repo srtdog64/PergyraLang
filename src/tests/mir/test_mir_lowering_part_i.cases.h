@@ -145,7 +145,7 @@ test_mir_lowering_part_i(void)
     {
         const char *src =
             "func Main() -> Void {\n"
-            "    let (slot, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>();\n"
             "    let value: Int = Read(slot, token);\n"
             "    Log(value);\n"
             "}\n";

@@ -1,0 +1,6 @@
+func Main() -> Int {
+    let values: Queue<Int> = QueueNew();
+    let copy: Queue<Int> = values;
+    QueuePush(copy, 1);
+    return QueueSize(values);
+}

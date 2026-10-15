@@ -142,8 +142,8 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
             }
             return false;
         }
-        return_expr = transpiler_emit_mut_ref_return_capture(
-            ctx, ret_expr, return_temp, sizeof(return_temp));
+        return_expr = transpiler_emit_return_capture(
+            ctx, ret_expr, return_temp, sizeof(return_temp), block);
         if (return_expr == NULL) {
             free(ret_expr);
             return false;

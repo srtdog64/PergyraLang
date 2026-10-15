@@ -1,0 +1,11 @@
+// Block identity and temporal hazard publication are one transition.
+// Every issuer calls this even when the root bit was already present.
+import "ast_collection_member_read_hazard_site_owner.pgy";
+
+func SemanticAstCollectionMemberReadBlockTransition(
+    ref artifact: AstTreeArtifact, inout blocked: HashMap<String, Int>,
+    inout hazards: SemanticAstCollectionMemberReadHazardSites, root: Int, site: Int
+) -> Void {
+    MapSet(blocked, ToString(root), 1);
+    if !SemanticAstCollectionMemberReadHazardSiteMerge(artifact, hazards, root, site) { hazards.ok = false; }
+}

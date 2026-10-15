@@ -1,0 +1,25 @@
+// Borrow named map rows and publish only scalar identity/facet answers.
+// No descriptor binding or read permission crosses this fact-query boundary.
+import "ast_collection_formal_effect_identity_owner.pgy";
+
+func SemanticAstCollectionMemberReadRootForOccurrence(
+    ref reads: HashMap<String, Int>, node: Int
+) -> Int {
+    let key: String = ToString(node);
+    if node < 0 || !MapHas(reads, key) { return 0; }
+    return MapGet(reads, key);
+}
+func SemanticAstCollectionMemberReadFormalRowForIdentity(
+    ref rows: HashMap<String, Int>, formal: Int
+) -> Int {
+    let key: String = ToString(formal);
+    if formal <= 0 || !MapHas(rows, key) { return -1; }
+    return MapGet(rows, key);
+}
+func SemanticAstCollectionMemberReadPairedFacetsReady(
+    ref payloads: HashMap<String, Int>, ref descriptors: HashMap<String, Int>, formal: Int
+) -> Bool {
+    let key: String = ToString(formal);
+    return formal > 0 && MapHas(payloads, key) && MapHas(descriptors, key) &&
+        MapGet(payloads, key) == 3 && MapGet(descriptors, key) == 3;
+}
