@@ -15,7 +15,7 @@ func FormalKeyMapEntryObservation(artifact: AstTreeArtifact, ref analysis: Seman
         bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, analysis.assignments,
         values.shared_results, values.carrying, values.shared_locals, values.dep_locals, values.dep_formals,
         values.dep_paths, values.paths, values.surface_starts, values.surface_ends,
-        bundle.collection_ownership.focus_recovery.mutating_formals, consumed, values.empty_locals,
+        bundle.collection_focus_recovery.mutating_formals, consumed, values.empty_locals,
         values.field_reads, copies, analysis.expression_surfaces.function_node_ids[surface],
         analysis.expression_surfaces.node_ids[surface], edge);
     values.consumed = consumed;

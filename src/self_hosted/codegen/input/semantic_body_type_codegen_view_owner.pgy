@@ -194,9 +194,9 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
         bundle.zone_carriage.resource_path_counts,
         bundle.zone_carriage.resource_field_paths,
         bundle.zone_carriage.mutable_borrow_parameter_node_ids,
-        generic_specializations, bundle.collection_ownership.focus_recovery,
-        CodegenSemanticFocusRootNamesOrDie(analysis, bundle.collection_ownership.focus_recovery),
-        CodegenSemanticFocusLocalNamesOrDie(analysis, bundle.collection_ownership.focus_recovery)
+        generic_specializations, bundle.collection_focus_recovery,
+        CodegenSemanticFocusRootNamesOrDie(analysis, bundle.collection_focus_recovery),
+        CodegenSemanticFocusLocalNamesOrDie(analysis, bundle.collection_focus_recovery)
     );
 }
 
@@ -225,8 +225,8 @@ func CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
         bundle.zone_carriage.resource_path_counts,
         bundle.zone_carriage.resource_field_paths,
         bundle.zone_carriage.mutable_borrow_parameter_node_ids,
-        generic_specializations, bundle.collection_ownership.focus_recovery,
-        CodegenSemanticFocusRootNamesOrDie(analysis, bundle.collection_ownership.focus_recovery),
-        CodegenSemanticFocusLocalNamesOrDie(analysis, bundle.collection_ownership.focus_recovery)
+        generic_specializations, bundle.collection_focus_recovery,
+        CodegenSemanticFocusRootNamesOrDie(analysis, bundle.collection_focus_recovery),
+        CodegenSemanticFocusLocalNamesOrDie(analysis, bundle.collection_focus_recovery)
     );
 }

@@ -140,10 +140,10 @@ func Main() -> Void with caps env, io_read, io_write
     }
     if mode == "classifier"
     {
-        if ArrayLength(bundle.collection_ownership.focus_recovery.part_local_binding_ids) == 0
+        if ArrayLength(bundle.collection_focus_recovery.part_local_binding_ids) == 0
         { Log("PROBE|classifier-premise-invalid"); Exit(3); return; }
         let row: Int = 0;
-        let selected_id: Int = bundle.collection_ownership.focus_recovery.part_local_binding_ids[0];
+        let selected_id: Int = bundle.collection_focus_recovery.part_local_binding_ids[0];
         while row < ArrayLength(analysis.local_bindings.node_ids) &&
             analysis.local_bindings.node_ids[row] != selected_id { row = row + 1; }
         let selected: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
@@ -192,7 +192,7 @@ func Main() -> Void with caps env, io_read, io_write
             let current: Bool = SemanticAstCollectionFocusRecoveryCurrent(
                 artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
                 bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-                analysis.statements, analysis.assignments, bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery);
+                analysis.statements, analysis.assignments, bundle.collection_formal_effects, bundle.collection_focus_recovery);
             // A candidate is a classification, not identity or admission authority.
             if (fault != 4 && changed.ok) || current
             { Log("PROBE|classifier-fault-accepted|" + ToString(fault)); Exit(4); return; }
@@ -209,7 +209,7 @@ func Main() -> Void with caps env, io_read, io_write
                 restored.type_row != row || !SemanticAstCollectionFocusRecoveryCurrent(
                     artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
                     bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-                    analysis.statements, analysis.assignments, bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery)
+                    analysis.statements, analysis.assignments, bundle.collection_formal_effects, bundle.collection_focus_recovery)
             { Log("PROBE|classifier-restoration-invalid|" + ToString(fault)); Exit(4); return; }
             fault = fault + 1;
         }
@@ -260,7 +260,7 @@ func Main() -> Void with caps env, io_read, io_write
             analysis.expression_surfaces.expression_graph.roots[selected_slot]) ||
             !SemanticAstCollectionFocusRecoveryCallTargetReady(
                 artifact, analysis.signatures, analysis.expression_surfaces.expression_graph,
-                bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery,
+                bundle.collection_formal_effects, bundle.collection_focus_recovery,
                 edge, binding.type_name, analysis.expression_surfaces.expression_graph.roots[selected_slot])
         { Log("PROBE|map-current-baseline-invalid"); Exit(3); return; }
         let key: String = ToString(formal.syntax_id);
@@ -315,7 +315,7 @@ func Main() -> Void with caps env, io_read, io_write
                 analysis.expression_surfaces.expression_graph.roots[selected_slot]);
             let consumer_current: Bool = SemanticAstCollectionFocusRecoveryCallTargetReady(
                 artifact, analysis.signatures, analysis.expression_surfaces.expression_graph,
-                bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery,
+                bundle.collection_formal_effects, bundle.collection_focus_recovery,
                 edge, binding.type_name, analysis.expression_surfaces.expression_graph.roots[selected_slot]);
             if formal_current || consumer_current
             { Log("PROBE|map-current-fault-accepted|" + ToString(fault)); Exit(4); return; }
@@ -344,7 +344,7 @@ func Main() -> Void with caps env, io_read, io_write
                 analysis.expression_surfaces.expression_graph.roots[selected_slot]) ||
                 !SemanticAstCollectionFocusRecoveryCallTargetReady(
                     artifact, analysis.signatures, analysis.expression_surfaces.expression_graph,
-                    bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery,
+                    bundle.collection_formal_effects, bundle.collection_focus_recovery,
                     edge, binding.type_name, analysis.expression_surfaces.expression_graph.roots[selected_slot])
             { Log("PROBE|map-current-restoration-invalid|" + ToString(fault)); Exit(4); return; }
             fault = fault + 1;
@@ -379,9 +379,9 @@ func Main() -> Void with caps env, io_read, io_write
         }
         return;
     }
-    let groups: Int = ArrayLength(bundle.collection_ownership.focus_recovery.group_function_ids);
-    let parts: Int = ArrayLength(bundle.collection_ownership.focus_recovery.part_local_binding_ids);
-    let exits: Int = ArrayLength(bundle.collection_ownership.focus_recovery.exit_group_indices);
+    let groups: Int = ArrayLength(bundle.collection_focus_recovery.group_function_ids);
+    let parts: Int = ArrayLength(bundle.collection_focus_recovery.part_local_binding_ids);
+    let exits: Int = ArrayLength(bundle.collection_focus_recovery.exit_group_indices);
     if mode != "manual-control" && (groups == 0 || parts == 0 || exits == 0)
     {
         Log("PROBE|recovery-missing"); Exit(3); return;
@@ -411,50 +411,50 @@ func Main() -> Void with caps env, io_read, io_write
         WriteFile(args[2], output);
         Log("PROBE|emitted-c"); return;
     }
-    if mode == "missing" { bundle.collection_ownership.focus_recovery.ok = false; }
+    if mode == "missing" { bundle.collection_focus_recovery.ok = false; }
     else if mode == "copy-epoch"
     {
-        bundle.collection_ownership.focus_recovery.group_copy_signatures[0] =
-            Concat(bundle.collection_ownership.focus_recovery.group_copy_signatures[0], ":stale");
+        bundle.collection_focus_recovery.group_copy_signatures[0] =
+            Concat(bundle.collection_focus_recovery.group_copy_signatures[0], ":stale");
     }
     else if mode == "copy-count"
     {
-        bundle.collection_ownership.focus_recovery.exclusive_copy_count =
-            bundle.collection_ownership.focus_recovery.exclusive_copy_count + 1;
+        bundle.collection_focus_recovery.exclusive_copy_count =
+            bundle.collection_focus_recovery.exclusive_copy_count + 1;
     }
     else if mode == "read-count"
     {
-        bundle.collection_ownership.focus_recovery.exclusive_field_read_count =
-            bundle.collection_ownership.focus_recovery.exclusive_field_read_count + 1;
+        bundle.collection_focus_recovery.exclusive_field_read_count =
+            bundle.collection_focus_recovery.exclusive_field_read_count + 1;
     }
     else if mode == "copy-view-empty"
     {
         // The observed memo/shared view is sealed by the original receipt.
         // It is not a material root adjacency or a deep Current copy-cut proof.
         if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
-        let copy_keys: Array<String> = MapKeys(bundle.collection_ownership.focus_recovery.exclusive_copies);
-        let shared_key: String = Concat("s:", Concat(ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]), ".*"));
+        let copy_keys: Array<String> = MapKeys(bundle.collection_focus_recovery.exclusive_copies);
+        let shared_key: String = Concat("s:", Concat(ToString(bundle.collection_focus_recovery.group_root_binding_ids[0]), ".*"));
         let contained: Bool = false;
         let part: Int = 0;
         while part < parts
         {
-            let key: String = Concat("contained:", ToString(bundle.collection_ownership.focus_recovery.part_local_binding_ids[part]));
-            if MapHas(bundle.collection_ownership.focus_recovery.exclusive_copies, key) &&
-                MapGet(bundle.collection_ownership.focus_recovery.exclusive_copies, key) == 2 { contained = true; }
+            let key: String = Concat("contained:", ToString(bundle.collection_focus_recovery.part_local_binding_ids[part]));
+            if MapHas(bundle.collection_focus_recovery.exclusive_copies, key) &&
+                MapGet(bundle.collection_focus_recovery.exclusive_copies, key) == 2 { contained = true; }
             part = part + 1;
         }
-        if bundle.collection_ownership.focus_recovery.exclusive_copy_count <= 0 ||
-            bundle.collection_ownership.focus_recovery.exclusive_copy_count != MapSize(bundle.collection_ownership.focus_recovery.exclusive_copies) ||
-            ArrayLength(copy_keys) != bundle.collection_ownership.focus_recovery.exclusive_copy_count || !contained ||
-            !MapHas(bundle.collection_ownership.focus_recovery.exclusive_copies, shared_key) ||
-            MapGet(bundle.collection_ownership.focus_recovery.exclusive_copies, shared_key) != 1
+        if bundle.collection_focus_recovery.exclusive_copy_count <= 0 ||
+            bundle.collection_focus_recovery.exclusive_copy_count != MapSize(bundle.collection_focus_recovery.exclusive_copies) ||
+            ArrayLength(copy_keys) != bundle.collection_focus_recovery.exclusive_copy_count || !contained ||
+            !MapHas(bundle.collection_focus_recovery.exclusive_copies, shared_key) ||
+            MapGet(bundle.collection_focus_recovery.exclusive_copies, shared_key) != 1
         {
             Log("PROBE|mutation-premise-invalid"); Exit(3); return;
         }
         let missing_copies: HashMap<String, Int> = MapNew();
-        bundle.collection_ownership.focus_recovery.exclusive_copies = missing_copies;
-        bundle.collection_ownership.focus_recovery.exclusive_copy_count = 0;
-        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        bundle.collection_focus_recovery.exclusive_copies = missing_copies;
+        bundle.collection_focus_recovery.exclusive_copy_count = 0;
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_focus_recovery)
         {
             Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
         }
@@ -464,15 +464,15 @@ func Main() -> Void with caps env, io_read, io_write
         // The cold HEAD current checker does not consume per-key field reads.
         // This tests the ORIGINAL full-map admission receipt, not deep read permission.
         if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
-        let read_key: String = Concat(ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]),
-            Concat(":", bundle.collection_ownership.focus_recovery.part_field_names[0]));
-        if !MapHas(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key)
+        let read_key: String = Concat(ToString(bundle.collection_focus_recovery.group_root_binding_ids[0]),
+            Concat(":", bundle.collection_focus_recovery.part_field_names[0]));
+        if !MapHas(bundle.collection_focus_recovery.exclusive_field_reads, read_key)
         {
             Log("PROBE|mutation-premise-invalid"); Exit(3); return;
         }
-        let old_read: Int = MapGet(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key);
-        MapSet(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key, old_read + 1);
-        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        let old_read: Int = MapGet(bundle.collection_focus_recovery.exclusive_field_reads, read_key);
+        MapSet(bundle.collection_focus_recovery.exclusive_field_reads, read_key, old_read + 1);
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_focus_recovery)
         {
             Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
         }
@@ -480,47 +480,47 @@ func Main() -> Void with caps env, io_read, io_write
     else if mode == "omit-active-part"
     {
         if groups != 1 || exits != 1 || parts != 8 ||
-            bundle.collection_ownership.focus_recovery.exit_part_starts[0] != 0 ||
-            bundle.collection_ownership.focus_recovery.exit_part_counts[0] != 8 ||
-            ArrayLength(bundle.collection_ownership.focus_recovery.active_part_indices) != 8 ||
-            ArrayLength(bundle.collection_ownership.focus_recovery.active_definition_ids) != 8
+            bundle.collection_focus_recovery.exit_part_starts[0] != 0 ||
+            bundle.collection_focus_recovery.exit_part_counts[0] != 8 ||
+            ArrayLength(bundle.collection_focus_recovery.active_part_indices) != 8 ||
+            ArrayLength(bundle.collection_focus_recovery.active_definition_ids) != 8
         {
             Log("PROBE|mutation-premise-invalid"); Exit(3); return;
         }
-        ArrayPop(bundle.collection_ownership.focus_recovery.active_part_indices);
-        ArrayPop(bundle.collection_ownership.focus_recovery.active_definition_ids);
-        bundle.collection_ownership.focus_recovery.exit_part_counts[0] = 7;
+        ArrayPop(bundle.collection_focus_recovery.active_part_indices);
+        ArrayPop(bundle.collection_focus_recovery.active_definition_ids);
+        bundle.collection_focus_recovery.exit_part_counts[0] = 7;
         // The arrays/spans are consistent; only complete active coverage is false.
-        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_focus_recovery)
         {
             Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
         }
     }
     else if mode == "selection-missing" || mode == "selection-value"
     {
-        let selected: String = ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]);
-        if !MapHas(bundle.collection_ownership.focus_recovery.mutating_formals, selected)
+        let selected: String = ToString(bundle.collection_focus_recovery.group_root_binding_ids[0]);
+        if !MapHas(bundle.collection_focus_recovery.mutating_formals, selected)
         {
             Log("PROBE|mutation-premise-invalid"); Exit(3); return;
         }
-        if mode == "selection-missing" { MapRemove(bundle.collection_ownership.focus_recovery.mutating_formals, selected); }
-        else { MapSet(bundle.collection_ownership.focus_recovery.mutating_formals, selected, 0); }
+        if mode == "selection-missing" { MapRemove(bundle.collection_focus_recovery.mutating_formals, selected); }
+        else { MapSet(bundle.collection_focus_recovery.mutating_formals, selected, 0); }
     }
     else if mode == "selection-foreign"
     {
-        MapSet(bundle.collection_ownership.focus_recovery.mutating_formals, "foreign-formal", 1);
+        MapSet(bundle.collection_focus_recovery.mutating_formals, "foreign-formal", 1);
     }
-    else if mode == "stamp" { bundle.collection_ownership.focus_recovery.artifact_identity_digest = artifact.identity_digest + 1; }
-    else if mode == "root" { bundle.collection_ownership.focus_recovery.group_root_binding_ids[0] = -1; }
-    else if mode == "field" { bundle.collection_ownership.focus_recovery.part_field_ids[0] = -1; }
-    else if mode == "local" { bundle.collection_ownership.focus_recovery.part_local_binding_ids[0] = -1; }
-    else if mode == "definition" { bundle.collection_ownership.focus_recovery.active_definition_ids[0] = -1; }
-    else if mode == "exit" { bundle.collection_ownership.focus_recovery.exit_syntax_ids[0] = -1; }
-    else if mode == "scope" { bundle.collection_ownership.focus_recovery.exit_scope_ids[0] = -1; }
+    else if mode == "stamp" { bundle.collection_focus_recovery.artifact_identity_digest = artifact.identity_digest + 1; }
+    else if mode == "root" { bundle.collection_focus_recovery.group_root_binding_ids[0] = -1; }
+    else if mode == "field" { bundle.collection_focus_recovery.part_field_ids[0] = -1; }
+    else if mode == "local" { bundle.collection_focus_recovery.part_local_binding_ids[0] = -1; }
+    else if mode == "definition" { bundle.collection_focus_recovery.active_definition_ids[0] = -1; }
+    else if mode == "exit" { bundle.collection_focus_recovery.exit_syntax_ids[0] = -1; }
+    else if mode == "scope" { bundle.collection_focus_recovery.exit_scope_ids[0] = -1; }
     else if mode == "duplicate"
     {
         if parts < 2 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
-        bundle.collection_ownership.focus_recovery.part_field_ids[1] = bundle.collection_ownership.focus_recovery.part_field_ids[0];
+        bundle.collection_focus_recovery.part_field_ids[1] = bundle.collection_focus_recovery.part_field_ids[0];
     }
     else if mode == "nested-inner-only"
     {
@@ -530,7 +530,7 @@ func Main() -> Void with caps env, io_read, io_write
         while group < groups
         {
             let function_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
-                analysis.signatures, bundle.collection_ownership.focus_recovery.group_function_ids[group]);
+                analysis.signatures, bundle.collection_focus_recovery.group_function_ids[group]);
             if IsSome(function_row) && analysis.signatures.names[UnwrapOption(function_row)] == "CaptureStep"
             {
                 parent_group = group;
@@ -541,9 +541,9 @@ func Main() -> Void with caps env, io_read, io_write
         let index: Int = 0;
         while index < exits
         {
-            if bundle.collection_ownership.focus_recovery.exit_group_indices[index] == parent_group
+            if bundle.collection_focus_recovery.exit_group_indices[index] == parent_group
             {
-                bundle.collection_ownership.focus_recovery.exit_part_counts[index] = 0;
+                bundle.collection_focus_recovery.exit_part_counts[index] = 0;
             }
             index = index + 1;
         }

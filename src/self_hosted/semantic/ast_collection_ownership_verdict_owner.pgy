@@ -62,7 +62,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts,
-    ref formal_effects: SemanticAstCollectionFormalEffects
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    inout focus_recovery: SemanticAstCollectionFocusRecoveryFacts
 ) -> SemanticAstCollectionOwnershipVerdict {
     let local_count: Int = ArrayLength(locals.node_ids);
     if !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) ||
@@ -442,7 +443,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                 SemanticError2("borrow_boundary_escape", "boundary", "unproved_exclusive_focus_recovery",
                     "type", "nominal aggregate"), -1, -1);
         }
-        verdict.focus_recovery = focus;
+        focus_recovery = focus;
     }
     return verdict;
 }
@@ -467,9 +468,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             artifact, signatures, function_scopes, locals,
             initializer_types, surfaces, statements,
             owned_string_results);
+    let focus_recovery: SemanticAstCollectionFocusRecoveryFacts =
+        SemanticAstCollectionFocusRecoveryFactsEmpty();
     return SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         artifact, signatures, constructors, locals, initializer_types,
         surfaces, function_scopes, resolved_leaf_types,
         numeric_string_allocations, call_roots, owned_string_results,
-        statements, assignments, assignment_types, formal_effects);
+        statements, assignments, assignment_types, formal_effects,
+        focus_recovery);
 }

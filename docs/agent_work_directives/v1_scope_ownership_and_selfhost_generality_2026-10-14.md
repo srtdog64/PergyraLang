@@ -362,6 +362,29 @@ The native-built runtime's `ReadFile` stops at 64 MiB. The self-host-built
 seed, which the bootstrap uses to read this file, does not. The cap and the
 encoding are unchanged here.
 
+**Memory of the round trip's semantic pass.** With the fixes above, the
+consumer route emits C for the full DRV-2 MIR. A native-built driver peaked
+at 16.3 GB doing it, above a standard Linux CI runner's 16 GB, and the
+fixed point runs that route twice.
+- The repeated operation: the ownership scan returns a verdict from every
+  event check, and each successful check built an empty verdict whose focus
+  recovery facts hold four HashMaps. The runtime frees little, so they
+  stay. On the round trip of one 269-file module (peak 3.2 GB, 2.4 GB
+  requested), 54.7% of the requested bytes were
+  `SemanticAstCollectionFocusRecoveryFactsEmpty`, all through
+  `SemanticAstCollectionOwnershipVerdictOk`. 74% of those calls came from
+  the three per-node event checks.
+- Only the final verdict has focus recovery facts. They now leave the
+  verdict owner through an `inout` parameter and travel in the body type
+  bundle as `collection_focus_recovery`. No semantic decision changes.
+
+**Open, not in CI:** `self-host-collection-focus-recovery-test-smoke`
+(added with the v16 candidate) fails at
+`c-nominal_bodyful_forward-emit` with `PROBE|recovery-missing`: the
+nominal bodyful-forward fixture produces no focus groups in `emit` mode,
+while its `nominal-forward-producer` mode passes. The base of this lane
+fails the same way. No CI job runs this target.
+
 ## Measurements to track
 
 - `direct_mir_*` file and line count inside the driver import closure. It
