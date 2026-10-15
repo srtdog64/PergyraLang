@@ -19,6 +19,7 @@ import "ast_collection_aggregate_release_element_borrow_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_ownership_receipt_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_member_read_completion_owner.pgy";
 
 func SemanticAstCollectionOwnershipScanIntoVerdict(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
