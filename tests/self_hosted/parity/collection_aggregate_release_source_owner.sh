@@ -15,43 +15,12 @@ WORK="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/aggregate-release-source.XXXXXX")"
 REL="${WORK#"$ROOT_DIR/"}"
 cd "$ROOT_DIR"
 PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.pgy
+QUERY=tests/self_hosted/fixtures/collection_constructor_field_input_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
-CASES=(
-    "callable_table_owned_release_positive.pgy|pass|none|none"
-    "callable_table_empty_release_positive.pgy|pass|none|none"
-    "field_ctor_duplicate_readonly_positive.pgy|pass|none|none"
-    "aggregate_release_source_reassign_positive.pgy|pass|none|none"
-    "aggregate_release_outer_restore_positive.pgy|pass|none|none"
-    "aggregate_readonly_call_chain_positive.pgy|pass|none|none"
-    "aggregate_release_sink_default_formal_positive.pgy|pass|none|none"
-    "aggregate_release_sink_nested_positive.pgy|pass|none|none"
-    "aggregate_release_sink_disjoint_field_positive.pgy|pass|none|none"
-    "aggregate_release_sink_distinct_invocation_positive.pgy|pass|none|none"
-    "aggregate_release_error_path_positive.pgy|pass|none|none"
-    "aggregate_release_alternative_returns_positive.pgy|pass|none|none"
-    "callable_table_borrowed_negative.pgy|fail|borrow_boundary_escape|aggregate_release_source_unproved"
-    "aggregate_release_source_reuse_negative.pgy|fail|move_from_released|aggregate_release_source_use"
-    "aggregate_release_formal_root_reuse_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_preextract_field_write_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
-    "aggregate_release_aggregate_alias_observe_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_duplicate_storage_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved|Main"
-    "aggregate_release_repeated_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved|Main"
-    "aggregate_release_outer_restore_missing_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_outer_wrong_field_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_branch_drop_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_field_writeback_missing_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_wrong_field_writeback_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_readonly_call_alias_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_readonly_call_deferred_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_readonly_call_return_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_readonly_call_site_deferred_negative.pgy|fail|borrow_boundary_escape|aggregate_release_incomplete"
-    "aggregate_release_sink_reuse_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
-    "aggregate_release_sink_alias_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
-    "aggregate_release_sink_loop_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
-    "aggregate_release_error_path_continue_negative.pgy|fail|borrow_boundary_escape|aggregate_release_plan_unproved"
-)
+CASE_DATA=tests/self_hosted/parity/fixture/collection_field_lifetime/aggregate_release_source_cases.tsv
+mapfile -t CASES <"$CASE_DATA"
 sha256sum "$PGY" >"$WORK/native.sha256"
-sha256sum "$PROBE" >"$WORK/inputs.sha256"
+sha256sum "$PROBE" "$QUERY" "$CASE_DATA" "${BASH_SOURCE[0]}" >"$WORK/inputs.sha256"
 sha256sum tests/self_hosted/fixtures/collection_execution_context_generation_probe.pgy >>"$WORK/inputs.sha256"
 for case_row in "${CASES[@]}"; do
     IFS='|' read -r fixture _ _ _ <<<"$case_row"
@@ -59,12 +28,39 @@ for case_row in "${CASES[@]}"; do
 done
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | \
     xargs -0 sha256sum >"$WORK/imports.sha256"
+: >"$WORK/binaries.sha256"
+guard_exit() {
+    local status=$?
+    trap - EXIT
+    for manifest in native inputs imports binaries; do
+        sha256sum --quiet -c "$WORK/$manifest.sha256" || status=1
+    done
+    find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | \
+        xargs -0 sha256sum >"$WORK/imports.after.sha256" || status=1
+    cmp "$WORK/imports.sha256" "$WORK/imports.after.sha256" || status=1
+    exit "$status"
+}
+trap guard_exit EXIT
 echo "[$LABEL] evidence=$REL; source fixtures are analyzed, never emitted/run"
 for backend in c llvm; do
     timeout 240 "$PGY" --native-pipeline "$PROBE" "--backend=$backend" \
         --opt=dev -o "$REL/$backend-source.exe" \
         >"$WORK/$backend-source.compile" 2>&1 || \
         fail "$backend source analyzer did not build"
+    [[ -s "$WORK/$backend-source.exe" ]] && sha256sum "$WORK/$backend-source.exe" >>"$WORK/binaries.sha256" || \
+        fail "$backend source analyzer binary guard could not be recorded"
+    timeout 120 "$PGY" --native-pipeline "$QUERY" "--backend=$backend" --opt=dev \
+        -o "$REL/$backend-query.exe" >"$WORK/$backend-query.compile" 2>&1 || \
+        fail "$backend constructor query did not build"
+    [[ -s "$WORK/$backend-query.exe" ]] && sha256sum "$WORK/$backend-query.exe" >>"$WORK/binaries.sha256" || \
+        fail "$backend constructor query binary guard could not be recorded"
+    timeout 30 "$WORK/$backend-query.exe" "$FIXTURES/empty_capture_two_fields_positive.pgy" 32 \
+        >"$WORK/$backend-query.raw" 2>"$WORK/$backend-query.err" || \
+        fail "$backend actual named-vacant query failed"
+    [[ ! -s "$WORK/$backend-query.err" ]] || fail "$backend query wrote stderr"
+    tr -d '\r' <"$WORK/$backend-query.raw" >"$WORK/$backend-query.run"
+    grep -Fxq 'NAMED VACANT 13 FAULTS AND RESTORATIONS PASS' "$WORK/$backend-query.run" || \
+        fail "$backend named-vacant query oracle drift"
     case_index=0
     for case_row in "${CASES[@]}"; do
         IFS='|' read -r fixture verdict expected_diagnostic expected_boundary expected_function \
@@ -115,15 +111,11 @@ for backend in c llvm; do
     [[ "$(cat "$WORK/$backend-generation.run")" == 'EXECUTION CONTEXT GENERATION GUARDS PASS' ]] || \
         fail "$backend execution context generation oracle drift"
 done
-cmp "$WORK/c-generation.run" "$WORK/llvm-generation.run" || \
-    fail "C/LLVM execution context generation guard parity drift"
-for case_index in "${!CASES[@]}"; do
+for case_index in "${!CASES[@]}" generation; do
     cmp "$WORK/c-$case_index.run" "$WORK/llvm-$case_index.run" || \
         fail "C/LLVM analyzer parity drift at case=$case_index"
 done
 for manifest in native inputs imports; do
     sha256sum --quiet -c "$WORK/$manifest.sha256"
 done
-sha256sum "$WORK/c-source.exe" "$WORK/llvm-source.exe" \
-    >"$WORK/binaries.sha256"
-echo "[$LABEL] 12 positive + 20 falsifying cases and generation/coverage guards per C/LLVM PASS; MIR receipt remains a separate boundary"
+echo "[$LABEL] ${#CASES[@]} source cases per C/LLVM PASS; source targets never emitted/run"

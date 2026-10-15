@@ -269,6 +269,7 @@ bool ast_call_set_semantic_callee_declared_callable(ASTNode *node,
 /* The checker's type for the value of this call; sealed for Some(x) and
  * UnwrapOption(o). */
 const char *ast_call_semantic_value_type_name(const ASTNode *node);
+bool ast_call_clear_semantic_value_type_name(ASTNode *node);
 bool ast_call_set_semantic_value_type_name_copy(ASTNode *node,
                                                 const char *type_name);
 /* The checker's type argument for each generic parameter of the callee, in

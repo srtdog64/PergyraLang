@@ -47,6 +47,31 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     if !valid_rows {
         return false;
     }
+    // Index corruption must fail admission, and exact restoration must work.
+    let index_first: HashMap<String, Int> = facts.canonical_name_first_rows;
+    MapSet(index_first, "Box_Get", 1);
+    facts.canonical_name_first_rows = index_first;
+    if SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) { return false; }
+    MapSet(index_first, "Box_Get", 0);
+    facts.canonical_name_first_rows = index_first;
+    let index_counts: HashMap<String, Int> = facts.canonical_name_row_counts;
+    MapSet(index_counts, "Box_Get", 2);
+    facts.canonical_name_row_counts = index_counts;
+    if SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) { return false; }
+    MapSet(index_counts, "Box_Get", 1);
+    facts.canonical_name_row_counts = index_counts;
+    MapRemove(index_counts, "Box_Get");
+    facts.canonical_name_row_counts = index_counts;
+    if SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) { return false; }
+    MapSet(index_counts, "Box_Get", 1);
+    facts.canonical_name_row_counts = index_counts;
+    MapRemove(index_first, "Box_Get");
+    facts.canonical_name_first_rows = index_first;
+    if SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) { return false; }
+    MapSet(index_first, "Box_Get", 0);
+    facts.canonical_name_first_rows = index_first;
+    facts.canonical_name_row_counts = index_counts;
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) { return false; }
     let crossed_selection: SemanticAstFunctionSignatureFacts = facts;
     crossed_selection.entrypoint_selection.signature_index = 0;
     if SemanticAstFunctionSignatureFactsMatchArtifact(

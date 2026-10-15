@@ -29,8 +29,9 @@ cases = {
  'whole_transfer': (4, {'WholeRead': ('rows',['*','!']), 'ForwardWhole': ('rows',['*','!'])}),
  'field_mutation': (6, {'RetainField': ('rows',['types','@types','!']), 'ForwardRetain': ('rows',['types','@types','!'])})}
 inputs = [directory / ('field_read_summary_' + name + '.pgy') for name in cases]
-negatives = ['exclusive_inout_exit_before_writeback_negative.pgy', 'exclusive_inout_repeat_shared_alias_negative.pgy']
-inputs += [directory/name for name in negatives]
+recovery = directory/'exclusive_inout_exit_before_writeback_negative.pgy'
+negatives = ['exclusive_inout_repeat_shared_alias_negative.pgy']
+inputs += [recovery] + [directory/name for name in negatives]
 def membership():
     return sorted(p for p in (root/'src').rglob('*') if p.is_file() and p.suffix in ('.pgy','.c','.h','.def'))
 def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -195,10 +196,24 @@ try:
         for name in negatives:
             text=run(backend+'-'+name,[executable,(directory/name).relative_to(root)],30,expected_rc=2)
             if text!='PROBE|body-invalid|borrow_boundary_escape\n': raise RuntimeError(name+': original refusal changed')
+        controls=[]
+        for route in ('deep','admitted'):
+            control=run(backend+'-recovery-'+route,[executable,recovery.relative_to(root),'recovery-'+route],30)
+            columns=control.strip().split('|')
+            if control!='|'.join(columns)+'\n' or len(columns)!=5 or columns[:2]!=['PROBE','recovery-valid'] or any(not x.isdigit() or int(x)<=0 for x in columns[2:]):
+                raise RuntimeError('genuine recovery control did not carry actual group/part/exit facts')
+            controls.append(control)
+            refused=run(backend+'-missing-'+route,[executable,recovery.relative_to(root),'missing-'+route],30,expected_rc=1)
+            expected=('CODEGEN ERROR: codegen semantic body type admission receipt is missing or stale\n' if route=='admitted'
+                      else 'CODEGEN ERROR: codegen semantic body type bundle is missing or invalid: collection_focus_recovery_rows\n')
+            if refused!=expected: raise RuntimeError('missing recovery was not refused at the exact '+route+' consumer')
+        if controls[0]!=controls[1]: raise RuntimeError('deep/admitted recovery fact projection mismatch')
+        outputs[(backend,'recovery')]=controls[0]
     for name in cases:
         if outputs[('c',name)]!=outputs[('llvm',name)]: raise RuntimeError(name+': backend projection mismatch')
+    if outputs[('c','recovery')]!=outputs[('llvm','recovery')]: raise RuntimeError('recovery backend projection mismatch')
     selftest(outputs[('c','direct_transitive')],'direct_transitive')
-    (work/'results.log').write_text('PASS: 4 source projections + 2 original source refusals per backend, 7 validator negatives; KEY order and FORMAL/READ joins, not an external syntax-ID oracle or READ order proof\n',encoding='utf-8')
+    (work/'results.log').write_text('PASS: 4 source projections + genuine recovery deep/admitted controls + 2 missing-carrier refusals + original shared-alias refusal per backend, 7 validator negatives; KEY order and FORMAL/READ joins, not target execution or an external syntax-ID oracle or READ order proof\n',encoding='utf-8')
 finally:
     drift=[str(p) for p,h in guards.items() if not p.exists() or digest(p)!=h]
     if membership()!=sources: drift.append('source membership drift')

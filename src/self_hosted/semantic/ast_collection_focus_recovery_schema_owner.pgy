@@ -1,0 +1,166 @@
+// Subordinate focus rows, shape and owned metadata retirement; no generation admission.
+
+struct SemanticAstCollectionFocusPartCandidate {
+    ok: Bool;
+    root_id: Int;
+    root_type: String;
+    field_id: Int;
+    field_name: String;
+    type_row: Int;
+}
+
+struct SemanticAstCollectionFocusRecoveryFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    artifact_identity_digest: Int;
+    mutating_formals: HashMap<String, Int>;
+    exclusive_copies: HashMap<String, Int>;
+    exclusive_field_reads: HashMap<String, Int>;
+    exclusive_copy_count: Int;
+    exclusive_field_read_count: Int;
+    group_function_ids: Array<Int>;
+    group_root_binding_ids: Array<Int>;
+    group_scope_ids: Array<Int>;
+    group_activation_ids: Array<Int>;
+    group_end_ids: Array<Int>;
+    group_part_starts: Array<Int>;
+    group_part_counts: Array<Int>;
+    group_root_type_names: Array<String>;
+    group_copy_signatures: Array<String>;
+    part_local_binding_ids: Array<Int>;
+    part_definition_ids: Array<Int>;
+    part_field_ids: Array<Int>;
+    part_field_names: Array<String>;
+    part_type_names: Array<String>;
+    exit_group_indices: Array<Int>;
+    exit_function_ids: Array<Int>;
+    exit_scope_ids: Array<Int>;
+    exit_syntax_ids: Array<Int>;
+    exit_kinds: Array<Int>;
+    exit_part_starts: Array<Int>;
+    exit_part_counts: Array<Int>;
+    active_part_indices: Array<Int>;
+    active_definition_ids: Array<Int>;
+}
+
+struct SemanticAstCollectionFocusRecoveryExit {
+    ok: Bool;
+    found: Bool;
+    exit_start: Int;
+    exit_count: Int;
+}
+
+func SemanticAstCollectionFocusRecoveryFactsEmpty() -> SemanticAstCollectionFocusRecoveryFacts {
+    let ints: Array<Int> = [];
+    let names: Array<String> = [];
+    let mutating: HashMap<String, Int> = MapNew();
+    let copies: HashMap<String, Int> = MapNew();
+    let field_reads: HashMap<String, Int> = MapNew();
+    return SemanticAstCollectionFocusRecoveryFacts(false, 0, 0,
+        mutating, copies, field_reads, 0, 0,
+        ints, ints, ints, ints, ints, ints, ints, names, names,
+        ints, ints, ints, names, names,
+        ints, ints, ints, ints, ints, ints, ints, ints, ints);
+}
+
+func SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(
+    own facts: SemanticAstCollectionFocusRecoveryFacts
+) -> Void {
+    // Only the four independently published metadata columns are owned here.
+    let root_types: Array<String> = facts.group_root_type_names;
+    let copy_signatures: Array<String> = facts.group_copy_signatures;
+    let field_names: Array<String> = facts.part_field_names;
+    let type_names: Array<String> = facts.part_type_names;
+    ArrayDropOwnedStrings(root_types);
+    ArrayDropOwnedStrings(copy_signatures);
+    ArrayDropOwnedStrings(field_names);
+    ArrayDropOwnedStrings(type_names);
+}
+
+func SemanticAstCollectionFocusExitValueReturn() -> Int { return 1; }
+
+func SemanticAstCollectionFocusExitBareReturn() -> Int { return 2; }
+
+func SemanticAstCollectionFocusExitFallthrough() -> Int { return 3; }
+
+func SemanticAstCollectionFocusExitBreak() -> Int { return 4; }
+
+func SemanticAstCollectionFocusExitContinue() -> Int { return 5; }
+
+func SemanticAstCollectionFocusExitTryError() -> Int { return 6; }
+
+func SemanticAstCollectionFocusRecoveryShapeReady(
+    ref facts: SemanticAstCollectionFocusRecoveryFacts
+) -> Bool {
+    let groups: Int = ArrayLength(facts.group_function_ids);
+    let parts: Int = ArrayLength(facts.part_local_binding_ids);
+    let exits: Int = ArrayLength(facts.exit_group_indices);
+    if !facts.ok || facts.artifact_node_count <= 0 || facts.artifact_identity_digest <= 0 || MapHas(facts.mutating_formals, "unconverged") ||
+        facts.exclusive_copy_count != MapSize(facts.exclusive_copies) ||
+        facts.exclusive_field_read_count != MapSize(facts.exclusive_field_reads) ||
+        ArrayLength(facts.group_root_binding_ids) != groups || ArrayLength(facts.group_scope_ids) != groups ||
+        ArrayLength(facts.group_activation_ids) != groups || ArrayLength(facts.group_end_ids) != groups ||
+        ArrayLength(facts.group_part_starts) != groups || ArrayLength(facts.group_part_counts) != groups ||
+        ArrayLength(facts.group_root_type_names) != groups || ArrayLength(facts.group_copy_signatures) != groups ||
+        ArrayLength(facts.part_definition_ids) != parts ||
+        ArrayLength(facts.part_field_ids) != parts || ArrayLength(facts.part_field_names) != parts ||
+        ArrayLength(facts.part_type_names) != parts || ArrayLength(facts.exit_function_ids) != exits ||
+        ArrayLength(facts.exit_scope_ids) != exits || ArrayLength(facts.exit_syntax_ids) != exits ||
+        ArrayLength(facts.exit_kinds) != exits || ArrayLength(facts.exit_part_starts) != exits ||
+        ArrayLength(facts.exit_part_counts) != exits ||
+        ArrayLength(facts.active_part_indices) != ArrayLength(facts.active_definition_ids) { return false; }
+    let group: Int = 0;
+    let consumed_parts: Int = 0;
+    while group < groups {
+        if facts.group_function_ids[group] <= 0 || facts.group_root_binding_ids[group] <= 0 ||
+            facts.group_scope_ids[group] <= 0 || facts.group_activation_ids[group] <= 0 ||
+            facts.group_end_ids[group] < 0 || facts.group_root_type_names[group] == "" || facts.group_copy_signatures[group] == "" ||
+            facts.group_part_starts[group] != consumed_parts || facts.group_part_counts[group] <= 0 ||
+            facts.group_part_counts[group] > parts - consumed_parts { return false; }
+        let part: Int = consumed_parts;
+        while part < consumed_parts + facts.group_part_counts[group] {
+            if facts.part_local_binding_ids[part] <= 0 || facts.part_definition_ids[part] != facts.part_local_binding_ids[part] ||
+                facts.part_field_ids[part] <= 0 || facts.part_field_names[part] == "" || facts.part_type_names[part] == "" { return false; }
+            let prior: Int = consumed_parts;
+            while prior < part {
+                if facts.part_field_ids[prior] == facts.part_field_ids[part] ||
+                    facts.part_local_binding_ids[prior] == facts.part_local_binding_ids[part] { return false; }
+                prior = prior + 1;
+            }
+            part = part + 1;
+        }
+        consumed_parts = consumed_parts + facts.group_part_counts[group];
+        group = group + 1;
+    }
+    if consumed_parts != parts { return false; }
+    let exit: Int = 0;
+    let consumed_active: Int = 0;
+    while exit < exits {
+        let owner: Int = facts.exit_group_indices[exit];
+        if owner < 0 || owner >= groups || facts.exit_function_ids[exit] != facts.group_function_ids[owner] ||
+            facts.exit_scope_ids[exit] <= 0 || facts.exit_syntax_ids[exit] <= 0 ||
+            facts.exit_kinds[exit] < SemanticAstCollectionFocusExitValueReturn() ||
+            facts.exit_kinds[exit] > SemanticAstCollectionFocusExitTryError() ||
+            facts.exit_part_starts[exit] != consumed_active || facts.exit_part_counts[exit] <= 0 ||
+            facts.exit_part_counts[exit] > facts.group_part_counts[owner] ||
+            facts.exit_part_counts[exit] > ArrayLength(facts.active_part_indices) - consumed_active { return false; }
+        let at: Int = 0;
+        while at < facts.exit_part_counts[exit] {
+            let active: Int = consumed_active + at;
+            let part: Int = facts.active_part_indices[active];
+            if part < facts.group_part_starts[owner] || part >= facts.group_part_starts[owner] + facts.group_part_counts[owner] ||
+                (at > 0 && facts.active_part_indices[active - 1] >= part) ||
+                facts.active_definition_ids[active] != facts.part_definition_ids[part] { return false; }
+            at = at + 1;
+        }
+        let prior: Int = 0;
+        while prior < exit {
+            if facts.exit_group_indices[prior] == owner && facts.exit_syntax_ids[prior] == facts.exit_syntax_ids[exit] &&
+                facts.exit_kinds[prior] == facts.exit_kinds[exit] { return false; }
+            prior = prior + 1;
+        }
+        consumed_active = consumed_active + facts.exit_part_counts[exit];
+        exit = exit + 1;
+    }
+    return consumed_active == ArrayLength(facts.active_part_indices);
+}

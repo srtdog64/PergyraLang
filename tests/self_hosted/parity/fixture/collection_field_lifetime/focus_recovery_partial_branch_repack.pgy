@@ -1,0 +1,34 @@
+struct PairRows { left: Array<String>; right: Array<String>; }
+func CapturePair(inout rows: PairRows, partial: Bool) -> Bool
+{
+    let left: Array<String> = rows.left;
+    let right: Array<String> = rows.right;
+    let count: Int = 0;
+    while count < 8
+    {
+        ArrayPush(left, "left-row");
+        ArrayPush(right, "right-row");
+        count = count + 1;
+    }
+    if partial
+    {
+        rows.left = left;
+        return false;
+    }
+    return false;
+}
+func Main() -> Void
+{
+    let partial_rows: PairRows = PairRows(["left-seed"], ["right-seed"]);
+    Log(CapturePair(partial_rows, true));
+    Log(ArrayLength(partial_rows.left));
+    Log(ArrayLength(partial_rows.right));
+    Log(partial_rows.left[8]);
+    Log(partial_rows.right[8]);
+    let sibling_rows: PairRows = PairRows(["left-seed"], ["right-seed"]);
+    Log(CapturePair(sibling_rows, false));
+    Log(ArrayLength(sibling_rows.left));
+    Log(ArrayLength(sibling_rows.right));
+    Log(sibling_rows.left[8]);
+    Log(sibling_rows.right[8]);
+}

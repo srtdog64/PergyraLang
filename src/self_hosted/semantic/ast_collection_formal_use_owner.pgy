@@ -69,6 +69,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     let mutations: Array<Bool> = [];
     let shallow_mutations: Array<Bool> = [];
     let element_reads: Array<Bool> = [];
+    let scalar_maps: Array<Bool> = [];
     let direct_use_counts: Array<Int> = [];
     let direct_owned_push_counts: Array<Int> = [];
     let direct_owned_push_call_nodes: Array<Int> = [];
@@ -98,6 +99,8 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         ArrayPush(blocked, !inventory.body_ready[row] || opaque);
         let signature_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
             signatures, inventory.function_nodes[row]);
+        ArrayPush(scalar_maps, IsSome(signature_row) && SemanticAstCollectionFormalScalarMapType(
+            signatures.param_types[signatures.param_starts[UnwrapOption(signature_row)] + inventory.ordinals[row]]));
         ArrayPush(escape_free, IsSome(signature_row) &&
             SemanticAstFunctionTextEscapeFree(artifact, signatures, UnwrapOption(signature_row)));
         ArrayPush(text_escapes, false);
@@ -308,7 +311,53 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                             direct_use_counts[used_row] =
                                 direct_use_counts[used_row] + 1;
                             let exact_owned_push_receiver: Bool = false;
-                            if edge == 0 && primitive &&
+                            if scalar_maps[used_row] {
+                                let call: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+                                    surfaces.expression_graph, node);
+                                let spine: SemanticCallSpineView = SemanticCallSpineViewForCallNodeWithin(
+                                    surfaces.expression_graph, call.call_node, root);
+                                let operation: Option<String> = SemanticExpressionGraphCallTargetName(
+                                    surfaces.expression_graph, call.call_node);
+                                let callee_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, spine.callee_node);
+                                let read: Bool = false;
+                                if edge == 1 && kind == AstExpressionNodeCallArgument() && call.ok &&
+                                    call.argument_node == child_node && call.ordinal == 0 && spine.ok && IsSome(operation) {
+                                    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+                                        SemanticExpressionGraphCollectionCallProtocolFromName(UnwrapOption(operation));
+                                    read = protocol.applies && protocol.family == "HashMap" &&
+                                        protocol.receiver_argument_index == call.ordinal &&
+                                        ArrayLength(spine.argument_nodes) == protocol.expected_arity && IsSome(callee_text) &&
+                                        UnwrapOption(callee_text) == protocol.operation && spine.argument_nodes[0] == child_node &&
+                                        (protocol.operation == "MapHas" || protocol.operation == "MapGet" || protocol.operation == "MapSize") &&
+                                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, protocol.operation);
+                                }
+                                if read { element_reads[used_row] = true; }
+                                else if edge == 1 && kind == AstExpressionNodeCallArgument() && call.ok && call.argument_node == child_node {
+                                    let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+                                        signatures, surfaces.expression_graph, call.call_node, call.ordinal);
+                                    let key: String = ToString(target.syntax_id);
+                                    let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+                                        surfaces.expression_graph, spine.callee_node);
+                                    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(surfaces.expression_graph, call.call_node);
+                                    let target_syntax: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+                                    let target_abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(surfaces.expression_graph, call.call_node);
+                                    if !target.ok || !spine.ok || !MapHas(formal_rows, key) ||
+                                        MapGet(formal_rows, key) < 0 || MapGet(formal_rows, key) >= ArrayLength(scalar_maps) ||
+                                        !scalar_maps[MapGet(formal_rows, key)] || !identity.ok ||
+                                        !IsSome(target_kind) || UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+                                        !IsSome(target_syntax) || UnwrapOption(target_syntax) != identity.syntax_id ||
+                                        !IsSome(target_abi) || UnwrapOption(target_abi) != 0 || !IsSome(operation) || !IsSome(callee_text) ||
+                                        UnwrapOption(operation) != signatures.names[target.signature_row] || UnwrapOption(callee_text) != UnwrapOption(operation) ||
+                                        identity.kind != SemanticExpressionBindingDeclaredCallable() ||
+                                        identity.syntax_id != signatures.function_node_ids[target.signature_row] ||
+                                        ArrayLength(spine.argument_nodes) != signatures.param_counts[target.signature_row] ||
+                                        target.ordinal != call.ordinal { blocked[used_row] = true; }
+                                    else {
+                                        ArrayPush(sources, used_row);
+                                        ArrayPush(targets, MapGet(formal_rows, key));
+                                    }
+                                } else { blocked[used_row] = true; }
+                            } else if edge == 0 && primitive &&
                                 kind == AstExpressionNodeIndex() {
                                 element_reads[used_row] = true;
                                 element_rows[node] = used_row;
@@ -431,7 +480,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     ok = ok && ArrayLength(element_rows) == ArrayLength(node_rows) &&
         ArrayLength(slice_member_rows) == ArrayLength(node_rows) &&
         ArrayLength(slice_value_rows) == ArrayLength(node_rows);
-    ok = ok && ArrayLength(blocked) == count &&
+    ok = ok && ArrayLength(scalar_maps) == count && ArrayLength(blocked) == count &&
         ArrayLength(mutations) == count &&
         ArrayLength(shallow_mutations) == count &&
         ArrayLength(element_reads) == count &&
@@ -479,6 +528,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     ArrayDrop(slice_member_rows); ArrayDrop(slice_value_rows);
     ArrayDrop(blocked); ArrayDrop(escape_free); ArrayDrop(text_escapes); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
     ArrayDrop(element_reads);
+    ArrayDrop(scalar_maps);
     ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts); ArrayDrop(direct_owned_push_call_nodes);
     ArrayDrop(owned_push_leaf_disqualified); ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(

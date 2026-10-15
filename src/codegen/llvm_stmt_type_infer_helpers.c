@@ -244,7 +244,6 @@ llvm_stmt_call_returns_collection_value(const char *callee)
 {
     static const char *const calls[] = {
         "ListGet",
-        "MapGet",
         "QueuePop",
         "SetHas",
         "SetSize",
@@ -260,7 +259,6 @@ llvm_stmt_lookup_collection_get_inner(LLVMGenCtx *ctx, const char *callee,
         return NULL;
     static const LLVMCollectionGetSpec kLLVMCollectionGetSpecs[] = {
         { "ListGet", NULL, llvm_lookup_list_inner },
-        { "MapGet", NULL, llvm_lookup_map_value },
         { "QueuePop", NULL, llvm_lookup_queue_inner },
         { "SetHas", "Bool", NULL },
         { "SetSize", "Int", NULL },

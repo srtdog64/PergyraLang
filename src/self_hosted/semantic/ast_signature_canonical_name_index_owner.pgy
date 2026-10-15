@@ -35,3 +35,45 @@ func SemanticAstSignatureCanonicalNameValue(
     if !MapHas(index, canonical_name) { return -1; }
     return MapGet(index, canonical_name);
 }
+
+// Reverse validation at whole-signature admission, never once per call.
+// The Int vector counts actual rows without rebuilding an owned name map.
+func SemanticAstSignatureCanonicalNameIndexReady(
+    ref owner_names: Array<String>, ref names: Array<String>,
+    first_rows: HashMap<String, Int>, row_counts: HashMap<String, Int>
+) -> Bool {
+    let size: Int = ArrayLength(names);
+    if ArrayLength(owner_names) != size || MapSize(first_rows) != MapSize(row_counts) { return false; }
+    let seen: Array<Int> = [];
+    let row: Int = 0;
+    while row < size { ArrayPush(seen, 0); row = row + 1; }
+    let valid: Bool = true;
+    let unique: Int = 0;
+    row = 0;
+    while row < size && valid {
+        let key: String = SemanticCallableCanonicalDeclaredName(owner_names[row], names[row]);
+        if !MapHas(first_rows, key) || !MapHas(row_counts, key) { valid = false; }
+        else {
+            let first: Int = MapGet(first_rows, key);
+            let count: Int = MapGet(row_counts, key);
+            if first < 0 || first > row || count <= 0 || count > size { valid = false; }
+            else if SemanticCallableCanonicalDeclaredName(owner_names[first], names[first]) != key { valid = false; }
+            else {
+                if seen[first] == 0 { unique = unique + 1; }
+                seen[first] = seen[first] + 1;
+            }
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < size && valid {
+        if seen[row] > 0 {
+            let key: String = SemanticCallableCanonicalDeclaredName(owner_names[row], names[row]);
+            if MapGet(row_counts, key) != seen[row] { valid = false; }
+        }
+        row = row + 1;
+    }
+    valid = valid && unique == MapSize(first_rows);
+    ArrayDrop(seen);
+    return valid;
+}

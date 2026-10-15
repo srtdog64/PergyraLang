@@ -91,6 +91,7 @@ func SemanticAstCollectionExclusiveTreeUnread(
     return true;
 }
 
+
 // The binding key a definition statement writes when `node` is its whole
 // value, a local or a formal: the value moves there, so that binding and its
 // aliases are not later readers.
@@ -193,8 +194,10 @@ func SemanticAstCollectionExclusivePlaceConsumed(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     surface_starts: HashMap<String, Int>, surface_ends: HashMap<String, Int>,
     field_reads: HashMap<String, Int>, copies: HashMap<String, Int>,
-    function_id: Int, syntax_id: Int, node: Int, ref grown: Array<String>, ref ignored_sources: Array<Int>
+    function_id: Int, syntax_id: Int, node: Int, ref grown: Array<String>, ref ignored_sources: Array<Int>,
+    inout recovery_only: Bool
 ) -> Bool {
+    recovery_only = false;
     let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
         artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
     if !place.ok { return false; }
@@ -259,8 +262,9 @@ func SemanticAstCollectionExclusivePlaceConsumed(
         root_keys, root_starts, root_counts, root_nodes);
     let later_aliases: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionExclusiveAliasesWithout(
         aliases, root_only, inferred_types);
-    // Old aliases read in a later iteration are not scanned below.
-    if repeated && ArrayLength(later_aliases.keys) > 0 { return false; }
+    // Old aliases read in a later iteration are not scanned below; loop-local
+    // aliases are declared again before any later iteration can read them.
+    if repeated && ArrayLength(later_aliases.keys) > 0 && !SemanticAstCollectionExclusiveAliasesLoopLocal(artifact, locals, later_aliases, syntax_id) { return false; }
     // The binding the statement wholly writes names its new value afterwards.
     let after_aliases: SemanticAstCollectionAggregateSinkAliases = aliases;
     let after_later: SemanticAstCollectionAggregateSinkAliases = later_aliases;
@@ -423,7 +427,7 @@ func SemanticAstCollectionExclusivePlaceConsumed(
                     if !SemanticAstCollectionExclusiveScopedWriteBack(artifact, signatures, locals, inferred_types,
                             surfaces, assignments, place, exits, first_surface, end, function_id,
                             UnwrapOption(use_scope), use_site) {
-                        return false;
+                        recovery_only = true; return false;
                     }
                 } else { ArrayPush(kept, use_site); }
                 use_index = use_index + 1;
@@ -433,14 +437,14 @@ func SemanticAstCollectionExclusivePlaceConsumed(
         let grows_at: Int = SemanticAstCollectionExclusiveFirstOf(unscoped);
         if grows_at >= 0 {
             // Falling off the end needs the write-back every path runs.
-            if !scoped && written_back < 0 { return false; }
+            if !scoped && written_back < 0 { recovery_only = true; return false; }
             let exit_index: Int = 0;
             while exit_index < ArrayLength(exits) {
                 let exit_site: Int = exits[exit_index];
                 if !(written_back >= 0 && exit_site > written_back) &&
                     !SemanticAstCollectionExclusiveWriteCoversExit(artifact, place_writes, exit_site) &&
                     !SemanticAstCollectionExclusiveReturnBeforeUses(artifact, syntax_id, exit_site, unscoped) {
-                    return false;
+                    recovery_only = true; return false;
                 }
                 exit_index = exit_index + 1;
             }
@@ -474,9 +478,11 @@ func SemanticAstCollectionExclusiveConsumedAt(
     if MapHas(consumed, key) { return MapGet(consumed, key) == 1; }
     let no_fields: Array<String> = [];
     let no_sources: Array<Int> = [];
+    let recovery_only: Bool = false;
     let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, signatures, constructors, locals,
         inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, function_id,
-        syntax_id, node, no_fields, no_sources);
+        syntax_id, node, no_fields, no_sources, recovery_only);
+    if !result && recovery_only { MapSet(consumed, Concat("recovery:", key), 1); }
     if result { MapSet(consumed, key, 1); } else { MapSet(consumed, key, 2); }
     return result;
 }

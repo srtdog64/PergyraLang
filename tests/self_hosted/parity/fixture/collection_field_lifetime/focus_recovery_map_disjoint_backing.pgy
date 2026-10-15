@@ -1,0 +1,36 @@
+struct FocusMapPair
+{
+    values: HashMap<String, Int>;
+    other: HashMap<String, Int>;
+}
+func TouchOther(inout rows: FocusMapPair) -> Void
+{
+    var other: HashMap<String, Int> = rows.other;
+    var index: Int = 0;
+    while index < 40
+    {
+        MapSet(other, ToString(index), index);
+        index = index + 1;
+    }
+    rows.other = other;
+}
+func Populate(inout rows: FocusMapPair) -> Int
+{
+    var values: HashMap<String, Int> = rows.values;
+    TouchOther(rows);
+    MapSet(values, "kept", 2);
+    let completedCount: Int = MapGet(values, "seed") + MapSize(values);
+    rows.values = values;
+    return completedCount;
+}
+
+func Main() -> Void
+{
+    var values: HashMap<String, Int> = MapNew();
+    var other: HashMap<String, Int> = MapNew();
+    MapSet(values, "seed", 7);
+    MapSet(other, "seed", 7);
+    var rows: FocusMapPair = FocusMapPair(values, other);
+    Log(Populate(rows));
+    Log(MapSize(rows.other));
+}

@@ -85,6 +85,12 @@ func SemanticAstCollectionExclusiveSinkArgumentConsumed(
     inout consumed: HashMap<String, Int>, function_id: Int, syntax_id: Int, node: Int,
     ref grown: Array<String>, ref ignored_sources: Array<Int>
 ) -> Bool {
+    let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
+        artifact, signatures, locals, inferred_types, surfaces, function_id, syntax_id, node);
+    if !place.ok { return false; }
+    let root: Int = 0;
+    if !place.temporary { root = SemanticAstCollectionExclusivePlaceRoot(locals, place); }
+    let signature: String = SemanticAstCollectionExclusiveCopySignature(copies, root);
     let key: String = Concat("sink:", Concat(ToString(syntax_id), Concat(":", ToString(node))));
     let index: Int = 0;
     while index < ArrayLength(grown) { key = Concat(key, Concat(",", grown[index])); index = index + 1; }
@@ -93,11 +99,13 @@ func SemanticAstCollectionExclusiveSinkArgumentConsumed(
         key = Concat(key, Concat(";", ToString(ignored_sources[index])));
         index = index + 1;
     }
-    key = Concat(key, Concat("@", ToString(SemanticAstCollectionExclusiveCopyCount(copies, "edges"))));
+    key = Concat(key, Concat("@", signature));
     if MapHas(consumed, key) { return MapGet(consumed, key) == 1; }
+    let recovery_only: Bool = false;
     let result: Bool = SemanticAstCollectionExclusivePlaceConsumed(artifact, signatures, constructors, locals,
         inferred_types, surfaces, assignments, surface_starts, surface_ends, field_reads, copies, function_id,
-        syntax_id, node, grown, ignored_sources);
+        syntax_id, node, grown, ignored_sources, recovery_only);
+    if !result && recovery_only { MapSet(consumed, Concat("recovery:", key), 1); }
     if result { MapSet(consumed, key, 1); } else { MapSet(consumed, key, 2); }
     return result;
 }

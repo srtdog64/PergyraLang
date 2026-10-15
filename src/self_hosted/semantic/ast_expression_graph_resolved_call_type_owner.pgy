@@ -253,14 +253,20 @@ func SemanticExpressionGraphResolvedCallReturnTypeNameFromResolvedTarget(
         let map_call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, root_id);
         if !map_call.ok { return None; }
         if graph.arena.identities.call_target_syntax_ids[map_call.call_node] <= 0 {
-            let receiver: String = "";
-            if map_protocol.receiver_argument_index >= 0 &&
-                map_protocol.receiver_argument_index < ArrayLength(map_call.argument_nodes) {
-                receiver = SemanticExpressionGraphCallArgumentScalarTypeName(graph,
-                    map_call.argument_nodes[map_protocol.receiver_argument_index], names, types, enum_values);
+            if map_protocol.return_kind == "constructor" {
+                let constructed: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+                    target.name, ArrayLength(map_call.argument_nodes), "");
+                if !constructed.ok { return None; }
+                return Some(constructed.return_type);
             }
+            if map_protocol.receiver_argument_index < 0 ||
+                map_protocol.receiver_argument_index >= ArrayLength(map_call.argument_nodes) { return None; }
+            let receiver: Option<String> = SemanticExpressionGraphValueReceiverTypeName(graph,
+                map_call.argument_nodes[map_protocol.receiver_argument_index], constructors,
+                names, types, function_names, function_returns, enum_values);
+            if !IsSome(receiver) { return None; }
             let map_signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
-                target.name, ArrayLength(map_call.argument_nodes), receiver);
+                target.name, ArrayLength(map_call.argument_nodes), UnwrapOption(receiver));
             if !map_signature.ok { return None; }
             return Some(map_signature.return_type);
         }

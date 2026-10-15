@@ -1,0 +1,43 @@
+struct Rows { types: Array<String>; }
+func Capture(inout rows: Rows, json: String) -> Int
+{
+    let extent: Int = StringLength(json);
+    if extent < 2 || CharCode(json, extent, 0) != 91 { return -1; }
+    let types: Array<String> = rows.types;
+    let cursor: Int = 1;
+    while cursor < extent {
+        if CharCode(json, extent, cursor) == 93 {
+            if cursor + 1 != extent { return -1; }
+            let completed_count: Int = ArrayLength(types);
+            rows.types = types;
+            return completed_count;
+        }
+        if cursor + 2 >= extent || CharCode(json, extent, cursor) != 91 ||
+            CharCode(json, extent, cursor + 1) != 48 || CharCode(json, extent, cursor + 2) != 93 { return -1; }
+        ArrayPush(types, "row");
+        cursor = cursor + 3;
+        if cursor >= extent { return -1; }
+        if CharCode(json, extent, cursor) == 44 {
+            cursor = cursor + 1;
+            if cursor >= extent || CharCode(json, extent, cursor) != 91 { return -1; }
+        }
+        else if CharCode(json, extent, cursor) != 93 { return -1; }
+    }
+    return -1;
+}
+struct Outer { rows: Rows; }
+func CaptureStep(inout outer: Outer, json: String) -> Bool
+{
+    let rows: Rows = outer.rows;
+    if Capture(rows, json) < 0 { return false; }
+    outer.rows = rows;
+    return true;
+}
+func Main() -> Void
+{
+    let outer: Outer = Outer(Rows(["seed"]));
+    Log(CaptureStep(outer, "[[0],[0],[0],[0],[0],[0],[0],[0],bad]"));
+    Log(ArrayLength(outer.rows.types));
+    Log(outer.rows.types[0]);
+    Log(outer.rows.types[8]);
+}

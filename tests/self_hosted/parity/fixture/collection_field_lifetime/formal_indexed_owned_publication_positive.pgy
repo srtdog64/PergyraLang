@@ -1,0 +1,16 @@
+func Publish(ref values: Array<String>) -> Array<String>
+{
+    var output: Array<String> = [];
+    ArrayPushOwnedString(output, values[0]);
+    return output;
+}
+
+func Main() -> Void
+{
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "source");
+    let output: Array<String> = Publish(values);
+    ArrayDropOwnedStrings(values);
+    Log(StringLength(output[0]));
+    ArrayDropOwnedStrings(output);
+}

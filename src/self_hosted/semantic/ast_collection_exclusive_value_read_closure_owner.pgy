@@ -6,15 +6,16 @@
 
 // Copy `field`, which the formal `target` reads, to every formal passed on
 // as an argument to `target`, recording each key that is new in `added`.
+// `forwarding` holds the edges as (source formal, target formal) pairs.
 func SemanticAstCollectionExclusiveFollowRead(
     target: String, field: String,
-    first_edges: HashMap<String, Int>, ref next_edges: Array<Int>, ref sources: Array<Int>,
+    first_edges: HashMap<String, Int>, ref next_edges: Array<Int>, ref forwarding: Array<Int>,
     inout reads: HashMap<String, Int>, inout added: HashMap<String, Int>
 ) -> Void {
     if !MapHas(first_edges, target) { return; }
     let index: Int = MapGet(first_edges, target);
     while index >= 0 {
-        let copied: String = Concat(ToString(sources[index]), Concat(":", field));
+        let copied: String = Concat(ToString(forwarding[index * 2]), Concat(":", field));
         if !MapHas(reads, copied) {
             MapSet(reads, Concat("", copied), 1);
             MapSet(added, copied, 1);
@@ -27,7 +28,7 @@ func SemanticAstCollectionExclusiveFollowRead(
 // key is followed in the round after it appears, so each is followed once.
 func SemanticAstCollectionExclusiveCloseReads(
     frontier_keys: HashMap<String, Int>, first_edges: HashMap<String, Int>,
-    ref next_edges: Array<Int>, ref sources: Array<Int>, inout reads: HashMap<String, Int>
+    ref next_edges: Array<Int>, ref forwarding: Array<Int>, inout reads: HashMap<String, Int>
 ) -> Void {
     let frontier: Array<String> = MapKeys(frontier_keys);
     if ArrayLength(frontier) == 0 { return; }
@@ -39,9 +40,9 @@ func SemanticAstCollectionExclusiveCloseReads(
         if separator >= 0 {
             SemanticAstCollectionExclusiveFollowRead(Substring(frontier[at], 0, separator),
                 Substring(frontier[at], separator + 1, StringLength(frontier[at]) - separator - 1),
-                first_edges, next_edges, sources, reads, added);
+                first_edges, next_edges, forwarding, reads, added);
         }
         at = at + 1;
     }
-    SemanticAstCollectionExclusiveCloseReads(added, first_edges, next_edges, sources, reads);
+    SemanticAstCollectionExclusiveCloseReads(added, first_edges, next_edges, forwarding, reads);
 }

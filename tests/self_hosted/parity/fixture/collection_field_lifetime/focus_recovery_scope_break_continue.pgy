@@ -1,0 +1,27 @@
+struct Rows { types: Array<String>; }
+func ScopedCapture(inout rows: Rows) -> Bool
+{
+    let round: Int = 0;
+    while round < 3
+    {
+        let types: Array<String> = rows.types;
+        let count: Int = 0;
+        while count < 8
+        {
+            ArrayPush(types, "row");
+            count = count + 1;
+        }
+        if round == 0 { round = round + 1; continue; }
+        if round == 1 { break; }
+        rows.types = types;
+        round = round + 1;
+    }
+    return false;
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    Log(ScopedCapture(rows));
+    Log(ArrayLength(rows.types));
+    Log(rows.types[16]);
+}

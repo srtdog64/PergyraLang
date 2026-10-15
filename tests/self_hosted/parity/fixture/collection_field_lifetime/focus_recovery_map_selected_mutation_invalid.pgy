@@ -1,0 +1,58 @@
+struct FocusMapRows
+{
+    values: HashMap<String, Int>;
+    paths: Array<Int>;
+}
+func Count(rows: FocusMapRows) -> Int
+{
+    return ArrayLength(rows.paths);
+}
+func Path(inout rows: FocusMapRows) -> Void
+{
+    var paths: Array<Int> = rows.paths;
+    ArrayPush(paths, 9);
+    rows.paths = paths;
+}
+func SelectedPath(inout rows: FocusMapRows) -> Void
+{
+    var selected: HashMap<String, Int> = rows.values;
+    var index: Int = 0;
+    while index < 40
+    {
+        MapSet(selected, Concat("foreign", ToString(index)), index);
+        index = index + 1;
+    }
+    rows.values = selected;
+}
+func Populate(inout rows: FocusMapRows, shouldReturn: Bool) -> Int
+{
+    var oldHolder: HashMap<String, Int> = rows.values;
+    if shouldReturn
+    {
+        MapSet(oldHolder, "early", 99);
+        let completedCount: Int = MapSize(oldHolder);
+        rows.values = oldHolder;
+        return completedCount;
+    }
+    var values: HashMap<String, Int> = rows.values;
+    let priorPaths: Int = Count(rows);
+    SelectedPath(rows);
+    var index: Int = 0;
+    while index < 40
+    {
+        MapSet(values, ToString(index), index);
+        index = index + 1;
+    }
+    MapRemove(values, "0");
+    let completedCount: Int = MapSize(values);
+    rows.values = values;
+    return completedCount + priorPaths;
+}
+
+func Main() -> Void
+{
+    var values: HashMap<String, Int> = MapNew();
+    MapSet(values, "seed", 7);
+    var rows: FocusMapRows = FocusMapRows(values, [1]);
+    Log(Populate(rows, false));
+}

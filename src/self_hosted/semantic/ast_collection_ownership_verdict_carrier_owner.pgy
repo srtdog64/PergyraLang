@@ -4,6 +4,13 @@
 // not rebuild success/error carriers with a parallel field order.
 
 import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_focus_recovery_schema_owner.pgy";
+
+// One joint unpack/repack plan. Rows are subordinate to collection admission;
+// neither a field name nor an exit kind is an ownership permission by itself.
+
+
+
 
 struct SemanticAstCollectionOwnershipVerdict {
     ok: Bool;
@@ -20,6 +27,7 @@ struct SemanticAstCollectionOwnershipVerdict {
     origins: Array<Int>;
     fresh_owned_result_function_syntax_ids: Array<Int>;
     receipts: SemanticAstCollectionOwnershipReceiptRows;
+    focus_recovery: SemanticAstCollectionFocusRecoveryFacts;
 }
 
 func SemanticAstCollectionOwnershipVerdictOk(
@@ -37,7 +45,8 @@ func SemanticAstCollectionOwnershipVerdictOk(
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+        SemanticAstCollectionOwnershipReceiptRowsEmpty(),
+        SemanticAstCollectionFocusRecoveryFactsEmpty()
     );
 }
 
@@ -57,7 +66,7 @@ func SemanticAstCollectionOwnershipVerdictOkWithFacts(
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
-        receipts
+        receipts, SemanticAstCollectionFocusRecoveryFactsEmpty()
     );
 }
 
@@ -79,6 +88,7 @@ func SemanticAstCollectionOwnershipVerdictError(
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
         fresh_owned_result_function_syntax_ids,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+        SemanticAstCollectionOwnershipReceiptRowsEmpty(),
+        SemanticAstCollectionFocusRecoveryFactsEmpty()
     );
 }

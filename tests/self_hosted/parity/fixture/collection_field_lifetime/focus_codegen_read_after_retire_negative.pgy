@@ -1,0 +1,11 @@
+import "../../../../../src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy";
+
+func ConsumeSnapshot(own body_types: CodegenSemanticBodyTypeFacts) -> Void
+{
+    CodegenSemanticFocusSnapshotRetireAfterEmission(body_types);
+    Log(ArrayLength(body_types.focus_root_names));
+}
+
+func Main() -> Void
+{
+}

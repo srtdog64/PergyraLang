@@ -223,6 +223,8 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         ArrayLength(facts.param_names) != pn ||
         ArrayLength(facts.param_types) != pn ||
         ArrayLength(facts.param_modes) != pn ||
+        !SemanticAstSignatureCanonicalNameIndexReady(facts.owner_names, facts.names,
+            facts.canonical_name_first_rows, facts.canonical_name_row_counts) ||
         !SemanticAstActionContractFactsMatchArtifact(
             artifact, facts.action_contracts
         ) {

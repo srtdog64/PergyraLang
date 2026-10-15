@@ -275,6 +275,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         signatures, signature_index, arena, count, cur
     );
     CodegenAstArenaExpectBody(arena, count, cur);
+    let function_scope_id: Int = cur[0];
     CodegenAstArenaExpectBlock(arena, count, cur);
     let stmt_indent: Int = f_indent + 6;
     let is_main: Bool = CodegenSemanticFunctionUsesDirectHostEntrypoint(
@@ -291,7 +292,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let body_emission: CodegenStatementBlockEmission = EmitStmtList(
         count, arena, local_bindings, assignments, statements, body_types,
         expression_surfaces, stmt_indent, cur, "    ",
-        env_state, body_ret, routine_defers, copyout, "", base_env
+        env_state, body_ret, routine_defers, copyout, "", "", function_node_id, function_scope_id, base_env
     );
     let body: String = body_emission.body;
 

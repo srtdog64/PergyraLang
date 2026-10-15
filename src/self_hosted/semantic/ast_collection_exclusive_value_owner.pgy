@@ -15,6 +15,7 @@
 //   classification records it as a dependency. An own formal is exclusive.
 // - An indexed read, a ref formal and anything else may be shared.
 import "ast_collection_exclusive_value_class_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_collection_exclusive_value_dead_definition_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
@@ -60,6 +61,16 @@ func SemanticAstCollectionExclusiveClassify(
     if literal.ok { return SemanticAstCollectionExclusiveFresh(); }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, node);
     if call.ok {
+        let operation: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+        if IsSome(operation) {
+            let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+                SemanticExpressionGraphCollectionCallProtocolFromName(UnwrapOption(operation));
+            if protocol.applies && protocol.family == "HashMap" && protocol.return_kind == "constructor" &&
+                protocol.expected_arity == 0 && ArrayLength(call.argument_nodes) == 0 &&
+                SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, protocol.operation) {
+                return SemanticAstCollectionExclusiveFresh();
+            }
+        }
         if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "Clone") ||
             SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "MapKeys") {
             return SemanticAstCollectionExclusiveFresh();

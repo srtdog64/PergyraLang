@@ -57,7 +57,7 @@ func SemanticAstCollectionFormalEffectsReadyFor(
             let parameter: Int = flat + ordinal;
             let mode: Int = signatures.param_modes[parameter];
             if mode < 0 || mode > 3 { return false; }
-            if SemanticAstCollectionOwnershipIsStringSequence(
+            if SemanticAstCollectionFormalEffectTrackedType(
                     signatures.param_types[parameter]) {
                 if expected >= count { return false; }
                 let node: Int = signatures.param_node_ids[parameter];
@@ -103,6 +103,55 @@ func SemanticAstCollectionFormalEffectsReadyFor(
     }
     return flat == flat_count && expected == count &&
         owned_push_leaf_count == MapSize(owned_push_leaf_formals);
+}
+
+// The body admission validates the complete carrier once; this lookup checks
+// the exact selected argument/formal and its current execution-frame proof.
+func SemanticAstCollectionFormalScalarMapReadArgumentReady(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, ref facts: SemanticAstCollectionFormalEffects,
+    edge: SemanticCallArgumentEdgeView, end_node: Int
+) -> Bool {
+    if !edge.ok || !graph.ok || !facts.ok || !facts.inventory.ok || !signatures.ok ||
+        signatures.artifact_node_count != artifact.count { return false; }
+    let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+        signatures, graph, edge.call_node, edge.ordinal);
+    if !formal.ok || formal.signature_row >= ArrayLength(signatures.param_starts) ||
+        formal.signature_row >= ArrayLength(signatures.param_counts) ||
+        formal.signature_row >= ArrayLength(signatures.names) ||
+        formal.signature_row >= ArrayLength(signatures.action_contracts.body_node_ids) { return false; }
+    let parameter: Int = signatures.param_starts[formal.signature_row] + formal.ordinal;
+    if parameter < 0 || parameter >= ArrayLength(signatures.param_types) || parameter >= ArrayLength(signatures.param_modes) ||
+        !SemanticAstCollectionFormalScalarMapType(signatures.param_types[parameter]) ||
+        (signatures.param_modes[parameter] != 0 && signatures.param_modes[parameter] != 3) ||
+        signatures.action_contracts.body_node_ids[formal.signature_row] <= 0 { return false; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewForCallNodeWithin(graph, edge.call_node, end_node);
+    let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, call.callee_node);
+    let name: Option<String> = SemanticExpressionGraphNodeText(graph, call.callee_node);
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, edge.call_node);
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(graph, edge.call_node);
+    let target_syntax: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, edge.call_node);
+    let target_abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(graph, edge.call_node);
+    if !call.ok || edge.ordinal < 0 || edge.ordinal >= ArrayLength(call.argument_nodes) ||
+        call.argument_nodes[edge.ordinal] != edge.argument_node || formal.ordinal != edge.ordinal ||
+        ArrayLength(call.argument_nodes) != signatures.param_counts[formal.signature_row] || !identity.ok ||
+        identity.kind != SemanticExpressionBindingDeclaredCallable() || identity.syntax_id != signatures.function_node_ids[formal.signature_row] ||
+        !IsSome(name) || UnwrapOption(name) != signatures.names[formal.signature_row] ||
+        !IsSome(target_kind) || UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        !IsSome(target_name) || UnwrapOption(target_name) != UnwrapOption(name) ||
+        !IsSome(target_syntax) || UnwrapOption(target_syntax) != identity.syntax_id ||
+        !IsSome(target_abi) || UnwrapOption(target_abi) != 0 { return false; }
+    let key: String = ToString(formal.syntax_id);
+    if !MapHas(facts.inventory.row_by_formal, key) { return false; }
+    let row: Int = MapGet(facts.inventory.row_by_formal, key);
+    if row < 0 || row >= ArrayLength(facts.inventory.formal_nodes) || row >= ArrayLength(facts.inventory.function_nodes) ||
+        row >= ArrayLength(facts.inventory.ordinals) || row >= ArrayLength(facts.inventory.modes) || row >= ArrayLength(facts.inventory.body_ready) ||
+        facts.inventory.formal_nodes[row] != formal.syntax_id || facts.inventory.function_nodes[row] != identity.syntax_id ||
+        facts.inventory.ordinals[row] != formal.ordinal || facts.inventory.modes[row] != signatures.param_modes[parameter] ||
+        !facts.inventory.body_ready[row] ||
+        !SemanticAstCollectionFormalExecutionContextCallableReady(artifact, facts.execution_contexts, identity.syntax_id) { return false; }
+    let effect: Int = SemanticAstCollectionFormalEffectForNode(facts.effects, formal.syntax_id);
+    return effect == 1 || effect == 3;
 }
 
 func SemanticAstCollectionFormalEffectProvedCount(

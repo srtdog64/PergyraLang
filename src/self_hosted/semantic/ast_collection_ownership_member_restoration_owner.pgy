@@ -3,6 +3,8 @@ import "ast_local_binding_fact_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_ownership_member_result_owner.pgy";
 
+
+
 func SemanticAstCollectionApplyMemberMoveRestorations(
     ref locals: SemanticAstLocalBindingFacts, ref moved_use: SemanticAstCollectionMemberMoveUse,
     inout dispositions: Array<Int>

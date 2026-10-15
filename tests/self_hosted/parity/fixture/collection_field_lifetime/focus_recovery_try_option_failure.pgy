@@ -1,0 +1,28 @@
+struct Rows { types: Array<String>; }
+subject RecoveryCounter { let value: Int; }
+zone RecoveryZone { subject slot counter: RecoveryCounter }
+func MissingValue() -> Option<Int>
+{
+    return None;
+}
+func CaptureOption(inout rows: Rows) -> Option<Int>
+{
+    let live_zone: RecoveryZone = RecoveryZone(RecoveryCounter(7));
+    Log(live_zone.counter.value);
+    let types: Array<String> = rows.types;
+    let count: Int = 0;
+    while count < 8
+    {
+        ArrayPush(types, "row");
+        count = count + 1;
+    }
+    let observed: Int = MissingValue()?;
+    return Some(observed);
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    Log(IsSome(CaptureOption(rows)));
+    Log(ArrayLength(rows.types));
+    Log(rows.types[8]);
+}

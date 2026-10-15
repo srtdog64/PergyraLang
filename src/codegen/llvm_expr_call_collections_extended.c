@@ -84,6 +84,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
 
     op = llvm_map_extended_lookup(callee_name, (unsigned)argc);
+    LLVMMapReceiverMetadata metadata;
+    if (op != LLVM_MAP_EXT_NONE && !llvm_map_receiver_metadata_ready(
+            ctx, ast_call_argument(node, 0), &metadata))
+        return true;
     if (op == LLVM_MAP_EXT_SET) {
         ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry map_var;
@@ -97,10 +101,9 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
                 callee_name, "HashMap", &map_var, out))
             return true;
-        key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
-        value_name = llvm_lookup_map_value(ctx, ast_identifier_name(map_arg));
-        value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
-            ast_identifier_name(map_arg), value_name, out);
+        key_name = metadata.key_type;
+        value_name = metadata.value_type;
+        value_ty = metadata.value_llvm_type;
         if (value_ty == NULL)
             return true;
         key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -160,10 +163,9 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
                 callee_name, "HashMap", &map_var, out))
             return true;
-        key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
-        value_name = llvm_lookup_map_value(ctx, ast_identifier_name(map_arg));
-        value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
-            ast_identifier_name(map_arg), value_name, out);
+        key_name = metadata.key_type;
+        value_name = metadata.value_type;
+        value_ty = metadata.value_llvm_type;
         if (value_ty == NULL)
             return true;
         key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -211,7 +213,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
                 callee_name, "HashMap", &map_var, out))
             return true;
-        key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
+        key_name = metadata.key_type;
         key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "has", key_name);
         if (key == NULL)
@@ -239,10 +241,9 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
                 callee_name, "HashMap", &map_var, out))
             return true;
-        key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
-        value_name = llvm_lookup_map_value(ctx, ast_identifier_name(map_arg));
-        value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
-            ast_identifier_name(map_arg), value_name, out);
+        key_name = metadata.key_type;
+        value_name = metadata.value_type;
+        value_ty = metadata.value_llvm_type;
         if (value_ty == NULL)
             return true;
         key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -307,7 +308,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
                 callee_name, "HashMap", &map_var, out))
             return true;
-        key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
+        key_name = metadata.key_type;
         array_ty = llvm_hashmap_key_array_type(ctx, key_name);
         if (array_ty == NULL) {
             char message[128];

@@ -2,9 +2,121 @@
 // Each invocation owns fresh facts; mutations happen after baseline admission.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
+
+func FormalKeyMapEntryObservation(artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, inout values: SemanticAstCollectionExclusiveValueFacts,
+    surface: Int, edge: SemanticCallArgumentEdgeView) -> Bool
+{
+    let consumed: HashMap<String, Int> = values.consumed;
+    let copies: HashMap<String, Int> = values.copies;
+    let ready: Bool = SemanticAstCollectionExclusiveSinkEntryReady(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, analysis.assignments,
+        values.shared_results, values.carrying, values.shared_locals, values.dep_locals, values.dep_formals,
+        values.dep_paths, values.paths, values.surface_starts, values.surface_ends,
+        bundle.collection_ownership.focus_recovery.mutating_formals, consumed, values.empty_locals,
+        values.field_reads, copies, analysis.expression_surfaces.function_node_ids[surface],
+        analysis.expression_surfaces.node_ids[surface], edge);
+    values.consumed = consumed;
+    values.copies = copies;
+    return ready;
+}
+
+func FormalKeyMapCurrentness(artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, mode: String) -> Void
+{
+    if !bundle.verdict.ok { Log("map baseline body refused"); Exit(3); }
+    let receipt: SemanticAstBodyTypeBundleAdmissionReceipt =
+        SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, bundle);
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle)
+    { Log("map baseline receipt refused"); Exit(3); }
+    let values: SemanticAstCollectionExclusiveValueFacts = SemanticAstCollectionExclusiveValueFactsFrom(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+        analysis.assignments, analysis.statements);
+    if !values.ok { Log("map baseline value facts refused"); Exit(3); }
+    var tested: Int = 0;
+    var slot: Int = 0;
+    while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
+    {
+        if analysis.expression_surfaces.expression_graph.has_roots[slot]
+        {
+            let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph, root);
+            var node: Int = root + 1;
+            if IsSome(start) { node = UnwrapOption(start); }
+            while node <= root
+            {
+                let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+                    analysis.expression_surfaces.expression_graph, node);
+                if edge.ok && edge.ordinal == 0 &&
+                    SemanticAstCollectionStorageMutationKind(analysis.expression_surfaces.expression_graph, edge.call_node) == 2
+                {
+                    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, edge.call_node);
+                    if !IsSome(callee) { Exit(3); }
+                    let original_kind: Int = analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node];
+                    let original_name: String = analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node];
+                    let original_abi: Int = analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node];
+                    let original_target: Int = analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node];
+                    let original_binding: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[UnwrapOption(callee)];
+                    if !FormalKeyMapEntryObservation(artifact, analysis, bundle, values, slot / 3, edge)
+                    { Log("map baseline entry refused"); Exit(3); }
+                    if mode == "map-current-abi"
+                    { analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = 1; }
+                    else if mode == "map-current-kind"
+                    { analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = SemanticCallTargetNamespace(); }
+                    else if mode == "map-current-name"
+                    { analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node] = "MapHas"; }
+                    else if mode == "map-current-binding"
+                    {
+                        if ArrayLength(analysis.local_bindings.node_ids) == 0 { Exit(3); }
+                        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[UnwrapOption(callee)] = analysis.local_bindings.node_ids[0];
+                    }
+                    else if mode == "map-current-target"
+                    {
+                        if ArrayLength(analysis.signatures.function_node_ids) == 0 { Exit(3); }
+                        analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = analysis.signatures.function_node_ids[0];
+                    }
+                    else { Exit(2); }
+                    if SemanticAstCollectionStorageMutationKind(analysis.expression_surfaces.expression_graph, edge.call_node) != 0
+                    { Log("map mutation identity was not invalidated"); Exit(3); }
+                    if FormalKeyMapEntryObservation(artifact, analysis, bundle, values, slot / 3, edge)
+                    { Log("map stale entry admitted"); Exit(3); }
+                    analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = original_kind;
+                    analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node] = original_name;
+                    analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = original_abi;
+                    analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = original_target;
+                    analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[UnwrapOption(callee)] = original_binding;
+                    if !FormalKeyMapEntryObservation(artifact, analysis, bundle, values, slot / 3, edge)
+                    { Log("map restored entry refused"); Exit(3); }
+                    tested = tested + 1;
+                }
+                node = node + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    if tested != 2 { Log("map Set/Remove currentness coverage missing"); Exit(3); }
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle)
+    { Log("map restored receipt refused"); Exit(3); }
+    Log("MAP MUTATION CURRENTNESS REFUSED AND RESTORED");
+}
 
 func FormalKeyProbeArtifact(source_path: String) -> AstTreeArtifact
 {
+    if source_path == "embedded-map-mutation"
+    {
+        let source: String = "func Main() -> Void { var values: HashMap<String, Int> = MapNew(); MapSet(values, \"seed\", 1); MapRemove(values, \"seed\"); Log(MapHas(values, \"seed\")); }";
+        return ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
+            "formal_key_map_mutation.pgy", source, false));
+    }
+    if source_path == "embedded-map-override"
+    {
+        let source: String = "func ReadNumber(value: Int) -> Int { return value; } func Apply(MapSet: func(Int) -> Int, MapRemove: func(Int) -> Int) -> Int { return MapSet(7) + MapRemove(8); } func Main() -> Void { Log(Apply(ReadNumber, ReadNumber)); }";
+        return ParserProgramArtifactFromBuild(ParseProgramBuildContentWithImportPolicy(
+            "formal_key_map_override.pgy", source, false));
+    }
     if source_path == "embedded-element-escape"
     {
         let source: String = "func Escape(ref values: Array<String>) -> String { return values[0]; } func Main() -> Void {}";
@@ -19,14 +131,27 @@ func Main() -> Void with caps env, io_read
     let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Log("expected source and formal-key mode"); Exit(2); }
     let mode: String = args[1];
-    if mode != "facts" && mode != "formal-binding" && mode != "ordinary-binding" &&
-        mode != "order-unready" && mode != "order-truncated"
+    if mode != "verdict" && mode != "facts" && mode != "formal-binding" && mode != "ordinary-binding" &&
+        mode != "order-unready" && mode != "order-truncated" && mode != "map-current-abi" &&
+        mode != "map-current-kind" && mode != "map-current-name" && mode != "map-current-binding" &&
+        mode != "map-current-target"
     { Log("unknown formal-key mode"); Exit(2); }
     let artifact: AstTreeArtifact = FormalKeyProbeArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mode == "verdict"
+    {
+        if bundle.verdict.ok { Log("body=ok"); }
+        else { Log("body=" + bundle.verdict.diagnostic_code); }
+        return;
+    }
+    if StartsWith(mode, "map-current-")
+    {
+        FormalKeyMapCurrentness(artifact, analysis, bundle, mode);
+        return;
+    }
     if !bundle.collection_formal_effects.ok { Log("formal owner not reached"); Exit(2); }
     let no_synthetic_roots: Array<Int> = [];
     let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(

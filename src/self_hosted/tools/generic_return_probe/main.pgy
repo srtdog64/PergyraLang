@@ -3,6 +3,7 @@
 import "../../semantic/ast_body_type_bundle_owner.pgy";
 import "../../semantic/ast_expression_graph_generic_call_owner.pgy";
 import "../../semantic/ast_signature_canonical_name_index_owner.pgy";
+import "../../semantic/ast_signature_contract_owner.pgy";
 import "../../semantic/ast_expression_identity_resolution_owner.pgy";
 import "../../parser/program_parse_owner.pgy";
 
@@ -342,7 +343,8 @@ func Main() -> Void with caps io_read, env {
         Log("nested generic mismatch was not rejected");
         Exit(2);
     }
-    if !SemanticAstSignatureTypeExpressionFactContractReady() ||
+    if !SemanticAstFunctionSignatureFactsContractReady() ||
+        !SemanticAstSignatureTypeExpressionFactContractReady() ||
         !SemanticAstSignatureTypeBindingContractReady() ||
         !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) ||
         SemanticAstInitializerTypeCount(body_types.initializer_types) != 4 ||

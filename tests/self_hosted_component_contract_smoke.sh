@@ -2824,11 +2824,13 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
     src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection_focus_recovery_schema_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_focus_recovery_admission_owner.pgy:600 \
     src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:242 \
-    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:165 \
+    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:188 \
     src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy:150 \
-    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:465 \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:512 \
     src/self_hosted/semantic/ast_string_formal_text_containment_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy:180 \
@@ -2836,7 +2838,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_formal_effect_fixed_point_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_formal_effect_graph_owner.pgy:142 \
     src/self_hosted/semantic/ast_collection_formal_effect_closure_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy:143 \
+    src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy:190 \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy:170 \
@@ -2844,6 +2846,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection_constructor_empty_capture_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:104 \
@@ -2892,17 +2895,18 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy:335 \
     src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy:565 \
     src/self_hosted/semantic/ast_collection_exclusive_value_class_owner.pgy:280 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:235 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:247 \
     src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy:145 \
     src/self_hosted/semantic/ast_collection_exclusive_value_dead_definition_owner.pgy:135 \
     src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:440 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:370 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:384 \
     src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:340 \
     src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:395 \
     src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy:225 \
+    src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_owner.pgy:280 \
     src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:710 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \

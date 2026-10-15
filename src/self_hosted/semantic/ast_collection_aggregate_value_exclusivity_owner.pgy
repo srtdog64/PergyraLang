@@ -8,6 +8,8 @@ import "ast_collection_ownership_member_root_identity_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
 import "ast_collection_ownership_member_result_owner.pgy";
 
 func SemanticAstCollectionAggregateValueBindingForNode(
@@ -118,6 +120,7 @@ func SemanticAstCollectionAggregateLineageEdge(
 
 func SemanticAstCollectionAggregateRestorationForValue(
     ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref moved_use: SemanticAstCollectionMemberMoveUse,
     binding_id: Int, syntax_id: Int
 ) -> Bool {
     let matched: Int = 0;
@@ -129,137 +132,78 @@ func SemanticAstCollectionAggregateRestorationForValue(
         }
         row = row + 1;
     }
+    row = 0;
+    while row < ArrayLength(moved_use.restored_binding_syntax_ids) {
+        if moved_use.restored_binding_syntax_ids[row] == binding_id &&
+            moved_use.restoration_syntax_ids[row] == syntax_id {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
     return matched == 1;
 }
 
-func SemanticAstCollectionAggregateReleaseAliasesReady(
-    artifact: AstTreeArtifact,
-    ref signatures: SemanticAstFunctionSignatureFacts,
-    ref locals: SemanticAstLocalBindingFacts,
-    ref inferred_types: Array<String>,
-    ref resolved_leaf_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref assignments: SemanticAstAssignmentFacts,
-    ref statements: SemanticAstStatementFacts,
-    inout plan: SemanticAstCollectionAggregateReleasePlan,
-    ref contexts: SemanticAstCollectionFormalExecutionContexts,
-    ref moved_use: SemanticAstCollectionMemberMoveUse
+func SemanticAstCollectionAggregateMemberStorageBindingForNode(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>, function_id: Int, syntax_id: Int,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int
+) -> Int {
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(surfaces.expression_graph, node);
+    if !member.ok {
+        return SemanticAstCollectionAggregateValueBindingForNode(
+            artifact, signatures, locals, inferred_types, resolved_leaf_types,
+            function_id, syntax_id, surfaces, node);
+    }
+    let spine: SemanticExpressionGraphValueReceiverSpine =
+        SemanticExpressionGraphValueReceiverSpineFromGraph(surfaces.expression_graph, node);
+    if !spine.ok || spine.leaf_node < 0 { return -1; }
+    let root: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types, resolved_leaf_types,
+            function_id, syntax_id, surfaces.expression_graph, spine.leaf_node);
+    if !root.ok { return -1; }
+    let projected: Option<String> = SemanticExpressionGraphValueReceiverProjectedTypeName(
+        surfaces.expression_graph, node, constructors, spine.depth, root.type_name);
+    if !IsSome(projected) { return -1; }
+    if !SemanticAstCollectionOwnershipIsStringArray(UnwrapOption(projected)) { return 0; }
+    return root.source_binding_syntax_id;
+}
+
+
+func SemanticAstCollectionAggregateArgumentAliasReady(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref formal_effects: SemanticAstCollectionFormalEffects,
+    ref moved_use: SemanticAstCollectionMemberMoveUse, slot: Int,
+    edge: SemanticCallArgumentEdgeView, source: Int
 ) -> Bool {
-    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) { return false; }
-    let local_row: Int = 0;
-    while local_row < ArrayLength(locals.node_ids) {
-        let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
-            surfaces, locals.node_ids[local_row], AstExpressionLaneValue());
-        if IsSome(initializer) {
-            let source: Int = SemanticAstCollectionAggregateValueBindingForNode(
-                artifact, signatures, locals, inferred_types,
-                resolved_leaf_types, locals.function_node_ids[local_row],
-                locals.node_ids[local_row], surfaces, UnwrapOption(initializer));
-            if source > 0 && source != locals.node_ids[local_row] &&
-                SemanticAstCollectionAggregateProtectedBinding(plan, source) {
-                plan.diagnostic_syntax_id = locals.node_ids[local_row];
-                return false;
-            }
-        }
-        local_row = local_row + 1;
+    if source < 0 || !formal_effects.ok ||
+        !SemanticAstCollectionFormalExecutionContextCallableReady(
+            artifact, formal_effects.execution_contexts, surfaces.function_node_ids[slot / 3]) {
+        return false;
     }
-    let assignment: Int = 0;
-    while assignment < ArrayLength(assignments.node_ids) {
-        let syntax_id: Int = assignments.node_ids[assignment];
-        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
-            surfaces, syntax_id, AstExpressionLaneValue());
-        if IsSome(value) {
-            let source: Int = SemanticAstCollectionAggregateValueBindingForNode(
-                artifact, signatures, locals, inferred_types,
-                resolved_leaf_types,
-                assignments.function_node_ids[assignment], syntax_id,
-                surfaces, UnwrapOption(value));
-            if SemanticAstCollectionAggregateProtectedBinding(plan, source) &&
-                !SemanticAstCollectionAggregateRestorationForValue(
-                    plan, source, syntax_id) {
-                plan.diagnostic_syntax_id = syntax_id;
-                return false;
-            }
-        }
-        assignment = assignment + 1;
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(surfaces.expression_graph, edge.argument_node);
+    if member.ok {
+        let effect: SemanticAstCollectionArgumentPermissionEffect =
+            SemanticAstCollectionArgumentPermissionEffectFromEdge(
+                artifact, signatures, constructors, locals, inferred_types,
+                surfaces, slot / 3, edge, formal_effects.inventory.row_by_formal,
+                formal_effects.inventory.modes, formal_effects.effects);
+        return effect.ok && !effect.unknown && !effect.retiring &&
+            !effect.storage_escape && !effect.descriptor_retiring;
     }
-    let statement: Int = 0;
-    while statement < ArrayLength(statements.node_ids) {
-        if statements.kind_tags[statement] ==
-                TypedAstKindValueReturnStmtTag() {
-            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
-                surfaces, statements.node_ids[statement],
-                AstExpressionLaneAtom());
-            if !IsSome(root) {
-                plan.diagnostic_syntax_id = statements.node_ids[statement];
-                return false;
-            }
-            let source: Int =
-                SemanticAstCollectionAggregateValueBindingForNode(
-                    artifact, signatures, locals, inferred_types,
-                    resolved_leaf_types,
-                    statements.function_node_ids[statement],
-                    statements.node_ids[statement], surfaces,
-                    UnwrapOption(root));
-            if SemanticAstCollectionAggregateProtectedBinding(
-                    plan, source) {
-                plan.diagnostic_syntax_id = statements.node_ids[statement];
-                return false;
-            }
-        }
-        statement = statement + 1;
-    }
-    let last: Int = -1;
-    let slot: Int = 0;
-    while slot < ArrayLength(surfaces.expression_graph.roots) {
-        if surfaces.expression_graph.has_roots[slot] {
-            let root: Int = surfaces.expression_graph.roots[slot];
-            let node: Int = last + 1;
-            while node <= root {
-                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-                    surfaces.expression_graph, node);
-                if IsSome(kind) && UnwrapOption(kind) ==
-                        AstExpressionNodeCallArgument() {
-                    let edge: SemanticCallArgumentEdgeView =
-                        SemanticCallArgumentEdgeFromGraph(
-                            surfaces.expression_graph, node);
-                    if !edge.ok {
-                        plan.diagnostic_syntax_id = surfaces.node_ids[slot / 3];
-                        return false;
-                    }
-                    let source: Int =
-                        SemanticAstCollectionAggregateValueBindingForNode(
-                            artifact, signatures, locals, inferred_types,
-                            resolved_leaf_types,
-                            surfaces.function_node_ids[slot / 3],
-                            surfaces.node_ids[slot / 3], surfaces,
-                            edge.argument_node);
-                    if SemanticAstCollectionAggregateProtectedBinding(
-                            plan, source) &&
-                        !SemanticAstCollectionAggregateLineageEdge(
-                            plan, node) {
-                        let target: SemanticAstCollectionArgumentFormalTarget =
-                            SemanticAstCollectionMemberReadCallTarget(
-                                artifact, signatures, surfaces.expression_graph,
-                                edge.call_node, edge.ordinal);
-                        let borrowed: Bool = moved_use.read_permission_ready && target.ok &&
-                            SemanticAstCollectionFormalExecutionContextCallableReady(
-                                artifact, contexts, surfaces.function_node_ids[slot / 3]) &&
-                            SemanticAstCollectionFormalExecutionContextCallableReady(
-                                artifact, contexts, signatures.function_node_ids[target.signature_row]) &&
-                            !SemanticAstCollectionMemberReadRootBlocked(
-                                moved_use.unproved_read_roots, target.syntax_id);
-                        if !borrowed {
-                            plan.diagnostic_syntax_id = surfaces.node_ids[slot / 3];
-                            return false;
-                        }
-                    }
-                }
-                node = node + 1;
-            }
-            last = root;
-        }
-        slot = slot + 1;
-    }
-    return true;
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionMemberReadCallTarget(
+            artifact, signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    return moved_use.read_permission_ready && target.ok &&
+        SemanticAstCollectionFormalExecutionContextCallableReady(
+            artifact, formal_effects.execution_contexts,
+            signatures.function_node_ids[target.signature_row]) &&
+        !SemanticAstCollectionMemberReadRootBlocked(
+            moved_use.unproved_read_roots, target.syntax_id);
 }

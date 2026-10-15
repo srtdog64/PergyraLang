@@ -1,6 +1,7 @@
 // Exact formal inventory and source-argument joins; no lifetime permission.
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_callable_receiver_source_parameter_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
 
 struct SemanticAstCollectionFormalEffectInventory {
     ok: Bool;
@@ -25,6 +26,19 @@ func SemanticAstCollectionFormalUnprovedElementUseEffect() -> Int {
 
 func SemanticAstCollectionFormalShallowMutationEffect() -> Int {
     return 6;
+}
+
+// A typed inventory domain, not storage, retention or freshness permission.
+func SemanticAstCollectionFormalScalarMapType(type_name: String) -> Bool {
+    let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(type_name);
+    return shape.ok && shape.nominal_base_name == "HashMap" &&
+        ArrayLength(shape.actual_type_names) == 2 &&
+        shape.actual_type_names[0] == "String" && shape.actual_type_names[1] == "Int";
+}
+
+func SemanticAstCollectionFormalEffectTrackedType(type_name: String) -> Bool {
+    return SemanticAstCollectionOwnershipIsStringSequence(type_name) ||
+        SemanticAstCollectionFormalScalarMapType(type_name);
 }
 
 
@@ -61,7 +75,7 @@ func SemanticAstCollectionFormalEffectInventoryFromSignatures(
             let node: Int = signatures.param_node_ids[flat + ordinal];
             let mode: Int = signatures.param_modes[flat + ordinal];
             if node <= 0 || mode < 0 || mode > 3 { ok = false; break; }
-            if SemanticAstCollectionOwnershipIsStringSequence(
+            if SemanticAstCollectionFormalEffectTrackedType(
                     signatures.param_types[flat + ordinal]) {
                 let key: String = ToString(node);
                 if MapHas(rows, key) { ok = false; break; }
@@ -100,6 +114,16 @@ func SemanticAstCollectionArgumentFormalTargetForArgument(
         signatures, UnwrapOption(target));
     if !IsSome(signature) { return missing; }
     let row: Int = UnwrapOption(signature);
+    if !signatures.ok || !graph.ok || row < 0 ||
+        row >= ArrayLength(signatures.function_node_ids) || row >= ArrayLength(signatures.names) ||
+        row >= ArrayLength(signatures.param_starts) || row >= ArrayLength(signatures.param_counts) ||
+        row >= ArrayLength(signatures.action_contracts.body_node_ids) { return missing; }
+    let start: Int = signatures.param_starts[row];
+    let count: Int = signatures.param_counts[row];
+    if start < 0 || count < 0 || start > ArrayLength(signatures.param_node_ids) ||
+        count > ArrayLength(signatures.param_node_ids) - start ||
+        start > ArrayLength(signatures.param_types) || count > ArrayLength(signatures.param_types) - start ||
+        start > ArrayLength(signatures.param_modes) || count > ArrayLength(signatures.param_modes) - start { return missing; }
     let offset: Int = 0;
     if UnwrapOption(kind) == SemanticCallTargetMember() {
         // Borrow the source-signature offset row; a projected name is not self.

@@ -3,6 +3,15 @@
 
 #include "llvm_internal.h"
 
+/* Scoped copies: emitting operands may grow scope/registry storage. */
+typedef struct LLVMMapReceiverMetadata {
+    const char *key_type;
+    const char *value_type;
+    LLVMTypeRef value_llvm_type;
+} LLVMMapReceiverMetadata;
+bool llvm_map_receiver_metadata_ready(LLVMGenCtx *ctx, ASTNode *receiver,
+                                      LLVMMapReceiverMetadata *metadata);
+
 LLVMTypeRef llvm_collection_required_value_type(LLVMGenCtx *ctx,
                                                 ASTNode *node,
                                                 const char *collection_kind,

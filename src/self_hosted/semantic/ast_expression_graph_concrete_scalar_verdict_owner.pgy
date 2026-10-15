@@ -248,15 +248,24 @@ func SemanticExpressionGraphHashMapCallErrorFromResolvedTarget(ref graph: Semant
     let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
         SemanticExpressionGraphCollectionCallProtocolFromName(target.name);
     if !protocol.applies || protocol.family != "HashMap" { return ""; }
-    let receiver: String = "";
-    if protocol.receiver_argument_index >= 0 &&
-        protocol.receiver_argument_index < ArrayLength(call.argument_nodes) {
-        receiver = SemanticExpressionGraphScalarTypeName(graph,
-            call.argument_nodes[protocol.receiver_argument_index], constructors,
-            names, types, function_names, function_returns, enum_values);
+    // Arity and constructor admission do not require a receiver value.
+    if ArrayLength(call.argument_nodes) != protocol.expected_arity || protocol.return_kind == "constructor" {
+        let constructed: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+            target.name, ArrayLength(call.argument_nodes), "");
+        return constructed.error;
+    }
+    if protocol.receiver_argument_index < 0 ||
+        protocol.receiver_argument_index >= ArrayLength(call.argument_nodes) {
+        return SemanticError1("ast_artifact_invalid", "owner", "hashmap_argument_type");
+    }
+    let receiver: Option<String> = SemanticExpressionGraphValueReceiverTypeName(graph,
+        call.argument_nodes[protocol.receiver_argument_index], constructors,
+        names, types, function_names, function_returns, enum_values);
+    if !IsSome(receiver) {
+        return SemanticError1("ast_artifact_invalid", "owner", "hashmap_argument_type");
     }
     let signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
-        target.name, ArrayLength(call.argument_nodes), receiver);
+        target.name, ArrayLength(call.argument_nodes), UnwrapOption(receiver));
     if !signature.ok { return signature.error; }
     let index: Int = 0;
     while index < ArrayLength(signature.parameter_types) {

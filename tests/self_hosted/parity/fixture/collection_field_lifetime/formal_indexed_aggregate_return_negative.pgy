@@ -1,0 +1,18 @@
+struct TextEntry
+{
+    name: String;
+}
+
+func Capture(ref values: Array<String>) -> TextEntry
+{
+    return TextEntry(values[0]);
+}
+
+func Main() -> Void
+{
+    var values: Array<String> = [];
+    ArrayPushOwnedString(values, "source");
+    let captured: TextEntry = Capture(values);
+    ArrayDropOwnedStrings(values);
+    Log(StringLength(captured.name));
+}

@@ -8,6 +8,7 @@ import "ast_collection_member_read_local_root_owner.pgy";
 import "ast_collection_member_place_use_owner.pgy";
 import "ast_collection_member_capture_obligation_owner.pgy";
 import "ast_collection_ownership_member_result_owner.pgy";
+import "ast_collection_focus_recovery_admission_owner.pgy";
 func SemanticAstCollectionFirstInvalidMemberMoveUse(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
@@ -15,7 +16,7 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
     ref statements: SemanticAstStatementFacts,
     ref contexts: SemanticAstCollectionFormalExecutionContexts, borrowed_text: HashMap<String, Int>,
-    own move_destinations: HashMap<String, Int>
+    own move_destinations: HashMap<String, Int>, ref focus: SemanticAstCollectionFocusRecoveryFacts
 ) -> SemanticAstCollectionMemberMoveUse {
     let active_members: HashMap<String, Int> = MapNew();
     let retired_locals: HashMap<String, Int> = MapNew();
@@ -164,10 +165,9 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             node, root_id);
                         if local_use < 0 { MapSet(unproved_read_roots, ToString(binding_use.declaration_node_id), 1); }
                     }
-                    if binding_use.ok && MapHas(retired_locals,
-                            ToString(binding_use.declaration_node_id)) &&
-                        syntax_id > MapGet(retired_locals,
-                            ToString(binding_use.declaration_node_id)) {
+                    if binding_use.ok && SemanticAstCollectionFocusRecoveryRetiredLocalUseInvalid(
+                            artifact, focus, retired_locals, surfaces.function_node_ids[surface],
+                            syntax_id, binding_use.declaration_node_id) {
                         return SemanticAstCollectionMemberMoveUsePublish(artifact, contexts, true, syntax_id, node, capture,
                             restored, restoration_sites, readable_members, unproved_read_roots, element_escape_roots, nested_blocked,
                             readonly_origins,

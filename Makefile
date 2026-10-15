@@ -4983,7 +4983,11 @@ self-host-collection-member-permission-test-smoke: $(PGY)
 self-host-collection-field-read-summary-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_field_read_summary_owner.sh
 
-self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke $(PGY)
+.PHONY: self-host-collection-focus-recovery-test-smoke
+self-host-collection-focus-recovery-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_focus_recovery_owner.sh
+
+self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke self-host-collection-formal-key-consumption-test-smoke self-host-collection-binding-move-prefix-test-smoke self-host-collection-member-permission-test-smoke self-host-collection-focus-recovery-test-smoke $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
 
 .PHONY: self-host-collection-owned-result-test-smoke

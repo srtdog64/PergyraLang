@@ -1,0 +1,21 @@
+struct Rows { types: Array<String>; }
+func CaptureVoid(inout rows: Rows, early: Bool) -> Void
+{
+    let types: Array<String> = rows.types;
+    let count: Int = 0;
+    while count < 8
+    {
+        ArrayPush(types, "row");
+        count = count + 1;
+    }
+    if early { return; }
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    CaptureVoid(rows, false);
+    Log(ArrayLength(rows.types));
+    CaptureVoid(rows, true);
+    Log(ArrayLength(rows.types));
+    Log(rows.types[16]);
+}

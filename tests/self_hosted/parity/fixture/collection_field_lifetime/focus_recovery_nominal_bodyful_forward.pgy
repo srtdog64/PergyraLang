@@ -1,0 +1,19 @@
+struct FocusMapRows
+{
+    values: HashMap<String, Int>;
+    paths: Array<Int>;
+}
+func ReadPaths(rows: FocusMapRows) -> Int
+{
+    return ArrayLength(rows.paths);
+}
+func Count(rows: FocusMapRows) -> Int
+{
+    return ReadPaths(rows);
+}
+func Main() -> Void
+{
+    var values: HashMap<String, Int> = MapNew();
+    var rows: FocusMapRows = FocusMapRows(values, [7]);
+    Log(Count(rows));
+}

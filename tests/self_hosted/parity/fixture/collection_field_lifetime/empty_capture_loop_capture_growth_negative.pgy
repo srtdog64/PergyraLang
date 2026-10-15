@@ -1,0 +1,32 @@
+struct CapturedNames
+{
+    left: Array<String>;
+    right: Array<String>;
+}
+func Retire(inout names: CapturedNames) -> Void
+{
+    let left: Array<String> = names.left;
+    let right: Array<String> = names.right;
+    ArrayDropOwnedStrings(left);
+    ArrayDropOwnedStrings(right);
+    names.left = left;
+    names.right = right;
+}
+func Mutate(inout values: Array<String>) -> Array<String>
+{
+    ArrayPushOwnedString(values, "nested");
+    return values;
+}
+
+func Main() -> Void
+{
+    let seed: Array<String> = [];
+    var iteration: Int = 0;
+    while iteration < 2
+    {
+        let names: CapturedNames = CapturedNames(seed, seed);
+        ArrayPushOwnedString(names.left, "growth");
+        Retire(names);
+        iteration = iteration + 1;
+    }
+}

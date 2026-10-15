@@ -1,0 +1,24 @@
+struct Rows { types: Array<String>; }
+func DeferredCapture(inout rows: Rows) -> Int
+{
+    let types: Array<String> = rows.types;
+    let count: Int = 0;
+    while count < 8
+    {
+        ArrayPush(types, "row");
+        count = count + 1;
+    }
+    defer
+    {
+        ArrayPush(types, "deferred");
+        Log(ArrayLength(types));
+    }
+    return ArrayLength(types);
+}
+func Main() -> Void
+{
+    let rows: Rows = Rows(["seed"]);
+    Log(DeferredCapture(rows));
+    Log(ArrayLength(rows.types));
+    Log(rows.types[9]);
+}

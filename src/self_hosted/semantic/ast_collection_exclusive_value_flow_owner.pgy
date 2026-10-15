@@ -80,8 +80,9 @@ func SemanticAstCollectionExclusiveRedefinesPlace(
     return true;
 }
 
-// No break or continue inside `block` leaves it.
-func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, block: Int) -> Bool {
+// No break or continue inside `block`, in its statements before `before`,
+// leaves it. A jump after them cannot keep those statements from running.
+func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, block: Int, before: Int) -> Bool {
     let pending: Array<Int> = [block];
     while ArrayLength(pending) > 0 {
         let node: Int = pending[ArrayLength(pending) - 1];
@@ -103,7 +104,7 @@ func SemanticAstCollectionExclusiveBlockJumpFree(ref artifact: AstTreeArtifact, 
         while index < artifact.arena.child_counts[node] {
             let slot: Int = artifact.arena.first_children[node] + index;
             if slot < 0 || slot >= ArrayLength(artifact.arena.children) { return false; }
-            ArrayPush(pending, artifact.arena.children[slot]);
+            if node != block || artifact.arena.children[slot] < before { ArrayPush(pending, artifact.arena.children[slot]); }
             index = index + 1;
         }
     }
@@ -119,17 +120,43 @@ func SemanticAstCollectionExclusiveBlockExits(ref artifact: AstTreeArtifact, blo
     let terminal: Int = artifact.arena.children[edge];
     if terminal < child || terminal >= artifact.count ||
         !SemanticAstCollectionEffectSiteTerminatesFlow(artifact, terminal) { return false; }
-    return SemanticAstCollectionExclusiveBlockJumpFree(artifact, block);
+    return SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, artifact.count);
+}
+
+// Every alias in `aliases` is a local declared in the innermost loop around
+// `use_site`. Each iteration declares it again, so no later iteration reads
+// the value it held at the use.
+func SemanticAstCollectionExclusiveAliasesLoopLocal(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref aliases: SemanticAstCollectionAggregateSinkAliases, use_site: Int
+) -> Bool {
+    if use_site < 0 || use_site >= artifact.count { return false; }
+    let loop_node: Int = -1;
+    let ancestor: Int = artifact.arena.parents[use_site];
+    while ancestor >= 0 && ancestor < artifact.count && loop_node < 0 {
+        if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag()) { loop_node = ancestor; }
+        ancestor = artifact.arena.parents[ancestor];
+    }
+    if loop_node < 0 { return false; }
+    let index: Int = 0;
+    while index < ArrayLength(aliases.keys) {
+        let key: Int = aliases.keys[index];
+        if key < 0 || key >= ArrayLength(locals.node_ids) ||
+            !SemanticAstCollectionNodeEnclosedBy(artifact, locals.node_ids[key], loop_node) { return false; }
+        index = index + 1;
+    }
+    return true;
 }
 
 // Every path from `definition` that goes on runs `statement`: it sits directly
-// in a jump-free block around the definition.
+// in a block around the definition that no jump leaves before it.
 func SemanticAstCollectionExclusiveRunsAfter(ref artifact: AstTreeArtifact, definition: Int, statement: Int) -> Bool {
     if statement <= definition || statement >= artifact.count { return false; }
     let block: Int = artifact.arena.parents[statement];
     return block >= 0 && block < artifact.count && artifact.arena.kinds[block] == TypedAstKindBlockTag() &&
         SemanticAstCollectionNodeEnclosedBy(artifact, definition, block) &&
-        SemanticAstCollectionExclusiveBlockJumpFree(artifact, block);
+        SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, statement);
 }
 
 // Every loop that repeats `use_site` but keeps the binding declared at
@@ -167,7 +194,7 @@ func SemanticAstCollectionExclusiveWriteCoversExit(
         if write < exit_site && block >= 0 && block < artifact.count &&
             artifact.arena.kinds[block] == TypedAstKindBlockTag() &&
             SemanticAstCollectionNodeEnclosedBy(artifact, exit_site, block) &&
-            SemanticAstCollectionExclusiveBlockJumpFree(artifact, block) { return true; }
+            SemanticAstCollectionExclusiveBlockJumpFree(artifact, block, artifact.count) { return true; }
         index = index + 1;
     }
     return false;

@@ -148,6 +148,13 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
     if (handled_out != NULL)
         *handled_out = true;
 
+    /* Rechecking GET must not leave a stale result type on the AST owner. */
+    if (kind == STDLIB_MAP_BUILTIN_GET
+        && !ast_call_clear_semantic_value_type_name(expr)) {
+        semantic_error(ctx, expr, "Typed MapGet result snapshot reset failed");
+        return TYPE_UNKNOWN;
+    }
+
     if (stdlib_map_reject_parallel_mutation(expr, name, ctx, kind))
         return TYPE_UNKNOWN;
 
@@ -210,9 +217,24 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
                 stdlib_map_arg(expr, 1), ctx);
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
-            if (kind == STDLIB_MAP_BUILTIN_GET)
-                return stdlib_map_normalize_type(
-                    type_constructed_arg(map_type, 1));
+            if (kind == STDLIB_MAP_BUILTIN_GET) {
+                Type *result = stdlib_map_normalize_type(type_constructed_arg(map_type, 1));
+                if (result == NULL || result == TYPE_UNKNOWN ||
+                    (result->name != NULL &&
+                     (strcmp(result->name, "<unknown>") == 0 || strcmp(result->name, "Unknown") == 0))) {
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                        PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                        expr, "MapGet requires a concrete value type; Unknown cannot establish result ownership");
+                    return TYPE_UNKNOWN;
+                }
+                if (!ctx->has_error) {
+                    if (result->name == NULL || result->name[0] == '\0')
+                        semantic_error(ctx, expr, "Typed MapGet result snapshot requires checked value type metadata");
+                    else if (!ast_call_set_semantic_value_type_name_copy(expr, result->name))
+                        semantic_error(ctx, expr, "Typed MapGet result snapshot allocation failed");
+                }
+                return result;
+            }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             report_expected_hashmap(expr, name, map_type, ctx);
         }

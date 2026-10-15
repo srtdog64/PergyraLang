@@ -2,10 +2,12 @@
 // Keep the admitted physical edge and exact selected definition together;
 // only the later ordered lifetime owner may reserve/seal this input.
 import "ast_collection_constructor_storage_escape_owner.pgy";
-import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_constructor_empty_capture_owner.pgy";
 
 struct SemanticAstCollectionConstructorFieldInputs {
     ok: Bool;
+    artifact_node_count: Int;
+    artifact_identity_digest: Int;
     surface_slots: Array<Int>;
     function_ids: Array<Int>;
     intent_ids: Array<Int>;
@@ -22,14 +24,6 @@ struct SemanticAstCollectionConstructorFieldInputs {
     definition_rows: Array<Int>;
     definition_ids: Array<Int>;
     binding_ids: Array<Int>;
-}
-
-struct SemanticAstCollectionConstructorFieldInputProducer {
-    ok: Bool;
-    kind: Int;
-    definition_row: Int;
-    definition_id: Int;
-    binding_id: Int;
 }
 
 // Exclude only known non-ArrayString inputs. Unknown leaves and value-producing calls
@@ -51,14 +45,15 @@ func SemanticAstCollectionConstructorFieldInputCandidate(
 
 func SemanticAstCollectionConstructorFieldInputsEmpty() -> SemanticAstCollectionConstructorFieldInputs {
     let ints: Array<Int> = [];
-    return SemanticAstCollectionConstructorFieldInputs(true, ints, ints, ints, ints, ints,
+    return SemanticAstCollectionConstructorFieldInputs(true, 0, 0, ints, ints, ints, ints, ints,
         ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints);
 }
 
-// 0 is explicitly unproved; 1 selects a named definition; 2 is an inline
-// empty occurrence. None of these tags means Live, exclusive or releasable.
+// 0 unproved; 1 named storage; 2 inline empty; 3 named vacant joint capture.
+// Named vacant retains the definition tuple. No tag grants Live/drop authority.
 func SemanticAstCollectionConstructorFieldInputsShapeReady(ref facts: SemanticAstCollectionConstructorFieldInputs) -> Bool {
     let n: Int = ArrayLength(facts.edge_nodes);
+    if n > 0 && (facts.artifact_node_count <= 0 || facts.artifact_identity_digest == 0) { return false; }
     if !facts.ok || ArrayLength(facts.surface_slots) != n || ArrayLength(facts.function_ids) != n || ArrayLength(facts.intent_ids) != n ||
         ArrayLength(facts.syntax_ids) != n || ArrayLength(facts.call_nodes) != n || ArrayLength(facts.argument_nodes) != n ||
         ArrayLength(facts.ordinals) != n || ArrayLength(facts.constructor_ids) != n || ArrayLength(facts.field_ids) != n ||
@@ -72,45 +67,30 @@ func SemanticAstCollectionConstructorFieldInputsShapeReady(ref facts: SemanticAs
         if facts.surface_slots[row] < 0 || !((function > 0 && purpose == -1) || (function == -1 && purpose > 0)) || facts.syntax_ids[row] <= 0 ||
             facts.edge_nodes[row] < 0 || facts.call_nodes[row] < 0 || facts.argument_nodes[row] < 0 || facts.ordinals[row] < 0 ||
             facts.constructor_ids[row] <= 0 || facts.field_ids[row] <= 0 || facts.constructor_rows[row] < 0 || facts.field_rows[row] < 0 ||
-            kind < 0 || kind > 2 ||
-            (kind == 1 && (facts.definition_rows[row] < 0 || facts.definition_ids[row] <= 0 || facts.binding_ids[row] <= 0)) ||
-            (kind != 1 && (facts.definition_rows[row] != -1 || facts.definition_ids[row] != 0 || facts.binding_ids[row] != 0)) { return false; }
+            kind < 0 || kind > 3 ||
+            ((kind == 1 || kind == 3) && (facts.definition_rows[row] < 0 || facts.definition_ids[row] <= 0 || facts.binding_ids[row] <= 0)) ||
+            ((kind == 0 || kind == 2) && (facts.definition_rows[row] != -1 || facts.definition_ids[row] != 0 || facts.binding_ids[row] != 0)) { return false; }
         row = row + 1;
     }
     return true;
 }
 
-func SemanticAstCollectionConstructorFieldInputProducerAt(
-    ref locals: SemanticAstLocalBindingFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, argument: Int,
-    binding_row: Int, ref current: Array<Int>
-) -> SemanticAstCollectionConstructorFieldInputProducer {
-    let producer: SemanticAstCollectionConstructorFieldInputProducer = SemanticAstCollectionConstructorFieldInputProducer(false, 0, -1, 0, 0);
-    if slot < 0 || slot >= ArrayLength(surfaces.expression_graph.roots) || slot / 3 >= ArrayLength(surfaces.function_node_ids) ||
-        !surfaces.expression_graph.has_roots[slot] { return producer; }
-    if binding_row >= 0 {
-        if binding_row >= ArrayLength(current) { return producer; }
-        let definition: Int = current[binding_row];
-        if !definitions.ok || binding_row >= ArrayLength(locals.node_ids) || definition < 0 ||
-            definition >= ArrayLength(definitions.syntax_ids) || definitions.binding_rows[definition] != binding_row ||
-            locals.function_node_ids[binding_row] != surfaces.function_node_ids[slot / 3] { return producer; }
-        producer.kind = 1; producer.definition_row = definition;
-        producer.definition_id = definitions.syntax_ids[definition]; producer.binding_id = locals.node_ids[binding_row];
-    } else if SemanticAstCollectionOwnershipLiteralIsEmpty(surfaces.expression_graph, argument) { producer.kind = 2; }
-    producer.ok = true;
-    return producer;
-}
-
 func SemanticAstCollectionConstructorFieldInputRecord(
-    ref locals: SemanticAstLocalBindingFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>, ref definitions: SemanticAstCollectionDefinitionFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int, edge_node: Int,
     edge: SemanticCallArgumentEdgeView, field: SemanticAstCollectionConstructorFieldIdentity,
     binding_row: Int, ref current: Array<Int>, inout facts: SemanticAstCollectionConstructorFieldInputs
 ) -> Bool {
     if !field.ok || !edge.ok || field.constructor_syntax_id <= 0 || field.field_syntax_id <= 0 ||
         !SemanticAstCollectionOwnershipIsStringArray(field.field_type_name) { return false; }
+    if artifact.count <= 0 || artifact.identity_digest == 0 { return false; }
+    if ArrayLength(facts.edge_nodes) == 0 {
+        facts.artifact_node_count = artifact.count;
+        facts.artifact_identity_digest = artifact.identity_digest;
+    }
+    if facts.artifact_node_count != artifact.count || facts.artifact_identity_digest != artifact.identity_digest { return false; }
     let producer: SemanticAstCollectionConstructorFieldInputProducer = SemanticAstCollectionConstructorFieldInputProducerAt(
-        locals, definitions, surfaces, slot, edge.argument_node, binding_row, current);
+        artifact, locals, inferred_types, definitions, surfaces, slot, edge.argument_node, binding_row, current);
     if !producer.ok { return false; }
     ArrayPush(facts.surface_slots, slot); ArrayPush(facts.function_ids, surfaces.function_node_ids[slot / 3]);
     ArrayPush(facts.intent_ids, surfaces.intent_node_ids[slot / 3]);
@@ -142,6 +122,8 @@ func SemanticAstCollectionConstructorFieldInputsPendingReady(
         ArrayLength(inferred_types) != definitions.local_count || ArrayLength(locals.node_ids) != definitions.local_count ||
         ArrayLength(definitions.binding_rows) != ArrayLength(definitions.syntax_ids) ||
         ArrayLength(definitions.surface_rows) != ArrayLength(surfaces.node_ids) { return false; }
+    if ArrayLength(facts.edge_nodes) > 0 && (facts.artifact_node_count != artifact.count ||
+        facts.artifact_identity_digest != artifact.identity_digest) { return false; }
     let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
     let row: Int = 0;
     let last: Int = -1;
@@ -171,7 +153,7 @@ func SemanticAstCollectionConstructorFieldInputsPendingReady(
                             let binding_row: Int = -1;
                             if binding.ok && SemanticAstCollectionOwnershipIsStringArray(binding.type_name) { binding_row = binding.row; }
                             let producer: SemanticAstCollectionConstructorFieldInputProducer = SemanticAstCollectionConstructorFieldInputProducerAt(
-                                locals, definitions, surfaces, slot, edge.argument_node, binding_row, current);
+                                artifact, locals, inferred_types, definitions, surfaces, slot, edge.argument_node, binding_row, current);
                             if !producer.ok || facts.producer_kinds[row] != producer.kind || facts.definition_rows[row] != producer.definition_row ||
                                 facts.definition_ids[row] != producer.definition_id || facts.binding_ids[row] != producer.binding_id { return false; }
                             row = row + 1;

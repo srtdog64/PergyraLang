@@ -647,6 +647,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- the canonical collection verdict schema and success/error constructors.
   State and transition policy remain outside this carrier owner; consumers may
   not rebuild a parallel field order.
+- `src/self_hosted/semantic/ast_collection_focus_recovery_schema_owner.pgy`
+  -- subordinate collection-ownership focus rows, canonical empty carrier,
+  exit identities, shape checks and four owned metadata-column retirement.
+  Shape is not current-generation admission or independent backing permission.
+- `src/self_hosted/semantic/ast_collection_focus_recovery_admission_owner.pgy`
+  -- current-generation focus uses, typed selection, copy cut and exact exit
+  coverage, plus the existing admission receipt digest. Consumes the original
+  issuer rows; ordered transitions use its current active-local query without
+  reconstructing focus policy. It adds no parent fact family or freshness.
 - `src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy` --
   stable semantic event rows for owned push, shallow mutation, and explicit
   drop. Call identity is consumed at MIR attachment; the persisted receipt is
@@ -730,6 +739,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   definition release/own-entry/descriptor-mutation permission without consuming
   its storage or granting lifetime to the field. Scoped callable shadows remain nonconstructors;
   duplicate constructor names and missing field identity fail closed.
+- `src/self_hosted/semantic/ast_collection_constructor_empty_capture_owner.pgy`
+  -- subordinate initial-empty local and joint-constructor prefix evidence.
+  Retains exact definition identity; readonly prior uses lose this narrow
+  proof. It is not a general graph admission or drop-authority validator.
 - `src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy`
   -- pending physical constructor field inputs retain exact declaration/field
   IDs, exact function-or-intent surface owner, argument occurrence and the selected named definition or inline-empty
@@ -1002,6 +1015,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_uniqueness_owner.pgy`
   -- unique storage reservation and ordered sharing for one aggregate field
   generation; refused plans retain the conflicting demand's diagnostic syntax.
+- `src/self_hosted/semantic/ast_collection_aggregate_named_input_reservation_owner.pgy`
+  -- subordinate named-input source exclusivity and ordered capture reservation.
+  Validates the current tuple before allocation-free capture; ordinary source
+  and loan identities remain unchanged. Missing evidence never becomes empty.
 - `src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy`
   -- event-time reservation, source retirement/use rejection, exact deep-drop,
   same-field writeback, and outer-carrier restoration. This source proof still

@@ -1,0 +1,566 @@
+// Real produced bundle poisoning: never emit a target on a mutation path.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy";
+import "../../../src/self_hosted/codegen/emission/program_entry_owner.pgy";
+
+func Main() -> Void with caps env, io_read, io_write
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 3 { Log("PROBE|input-invalid"); Exit(2); return; }
+    let mode: String = args[1];
+    let admitted_path: Bool = StartsWith(mode, "admitted-");
+    if admitted_path { mode = Substring(mode, 9, StringLength(mode) - 9); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("PROBE|parse-invalid"); Exit(2); return; }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(Concat("PROBE|header-invalid|", analysis.verdict.diagnostic_code)); Exit(2); return; }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mode == "nominal-forward-producer"
+    {
+        if !bundle.verdict.ok
+        { Log("PROBE|nominal-forward-body-invalid|" + bundle.verdict.diagnostic_code + "|" + ToString(bundle.verdict.first_node_id)); Exit(3); return; }
+        let signature: Int = -1;
+        var index: Int = 0;
+        while index < ArrayLength(analysis.signatures.names)
+        {
+            if analysis.signatures.names[index] == "Count" { signature = index; }
+            index = index + 1;
+        }
+        if signature < 0 || analysis.signatures.param_counts[signature] != 1 { Exit(3); return; }
+        let function_id: Int = analysis.signatures.function_node_ids[signature];
+        let formal_id: Int = analysis.signatures.param_node_ids[analysis.signatures.param_starts[signature]];
+        let prefix: String = ToString(formal_id);
+        let baseline: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(artifact, analysis.signatures, analysis.expression_surfaces);
+        if !MapHas(baseline, prefix + ":paths") || MapHas(baseline, prefix + ":*") || MapHas(baseline, prefix + ":!")
+        { Log("PROBE|nominal-forward-summary-invalid"); Exit(3); return; }
+        let selected: Int = -1;
+        let selected_root: Int = -1;
+        var slot: Int = 0;
+        while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
+        {
+            if analysis.expression_surfaces.function_node_ids[slot / 3] == function_id && analysis.expression_surfaces.expression_graph.has_roots[slot]
+            {
+                let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(analysis.expression_surfaces.expression_graph, root);
+                if !IsSome(start) { Exit(3); return; }
+                var node: Int = UnwrapOption(start);
+                while node <= root
+                {
+                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
+                    if edge.ok && edge.ordinal == 0
+                    {
+                        let target: Option<String> = SemanticExpressionGraphCallTargetName(analysis.expression_surfaces.expression_graph, edge.call_node);
+                        if IsSome(target) && UnwrapOption(target) == "ReadPaths"
+                        {
+                            if selected >= 0 { Exit(3); return; }
+                            selected = node; selected_root = root;
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            slot = slot + 1;
+        }
+        if selected < 0 { Exit(3); return; }
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, selected);
+        let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, edge.call_node);
+        if !IsSome(callee) { Exit(3); return; }
+        let callee_node: Int = UnwrapOption(callee);
+        let target: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(analysis.signatures, analysis.expression_surfaces.expression_graph, edge.call_node, 0);
+        if !target.ok || SemanticAstCollectionExclusiveSummarizedTarget(analysis.signatures, analysis.expression_surfaces, baseline, edge.argument_node, selected_root) != target.syntax_id
+        { Log("PROBE|nominal-forward-target-invalid"); Exit(3); return; }
+        let kind: Int = analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node];
+        let name: String = analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node];
+        let syntax: Int = analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node];
+        let binding: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node];
+        let abi: Int = analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node];
+        let original: String = analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node];
+        var fault: Int = 0;
+        while fault < 6
+        {
+            if fault == 0 { analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = SemanticCallTargetNamespace(); }
+            else if fault == 1 { analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node] = "Count"; }
+            else if fault == 2 { analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = syntax + 1; }
+            else if fault == 3 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node] = 0; }
+            else if fault == 4 { analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = 1; }
+            else { analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node] = "Count"; }
+            let changed: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(artifact, analysis.signatures, analysis.expression_surfaces);
+            if !MapHas(changed, prefix + ":*") && !MapHas(changed, prefix + ":!")
+            { Log("PROBE|nominal-forward-barrier-missing|" + ToString(fault)); Exit(4); return; }
+            analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = kind;
+            analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node] = name;
+            analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = syntax;
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node] = binding;
+            analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = abi;
+            analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node] = original;
+            let restored: HashMap<String, Int> = SemanticAstCollectionExclusiveFieldReads(artifact, analysis.signatures, analysis.expression_surfaces);
+            if SemanticAstCollectionExclusiveSummarizedTarget(analysis.signatures, analysis.expression_surfaces, restored, edge.argument_node, selected_root) != target.syntax_id
+            { Log("PROBE|nominal-forward-restore-target|" + ToString(fault)); Exit(4); return; }
+            if MapSize(restored) != MapSize(baseline) { Log("PROBE|nominal-forward-restore-size|" + ToString(fault)); Exit(4); return; }
+            let keys: Array<String> = MapKeys(baseline);
+            var row: Int = 0;
+            while row < ArrayLength(keys)
+            {
+                if !MapHas(restored, keys[row]) { Log("PROBE|nominal-forward-restore-key|" + ToString(fault)); Exit(4); return; }
+                if MapGet(restored, keys[row]) != MapGet(baseline, keys[row]) { Log("PROBE|nominal-forward-restore-value|" + ToString(fault)); Exit(4); return; }
+                row = row + 1;
+            }
+            fault = fault + 1;
+        }
+        Log("PROBE|nominal-forward-producer-valid|6"); return;
+    }
+    if mode == "map-analyze"
+    {
+        Log("body_ok=" + ToString(bundle.verdict.ok));
+        Log("body_diagnostic=" + bundle.verdict.diagnostic_code);
+        Log("body_syntax=" + ToString(bundle.verdict.first_node_id));
+        Log("body_message=" + bundle.verdict.diagnostic_message);
+        if bundle.verdict.ok { return; }
+        let failed: Int = bundle.verdict.first_node_id;
+        let atom: Option<String> = TypedAstArenaAtomText(artifact.arena, failed);
+        let value: Option<String> = TypedAstArenaValueText(artifact.arena, failed);
+        if IsSome(atom) { Log("body_atom=" + UnwrapOption(atom)); }
+        if IsSome(value) { Log("body_value=" + UnwrapOption(value)); }
+        if failed < 0 || failed >= ArrayLength(analysis.function_scopes.function_node_ids)
+        { Log("PROBE|map-diagnostic-location-missing"); Exit(3); return; }
+        let function: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+            analysis.signatures, analysis.function_scopes.function_node_ids[failed]);
+        if !IsSome(function) { Log("PROBE|map-diagnostic-function-missing"); Exit(3); return; }
+        let name: Option<String> = SemanticAstFunctionNameAt(analysis.signatures, UnwrapOption(function));
+        if !IsSome(name) { Log("PROBE|map-diagnostic-name-missing"); Exit(3); return; }
+        Log("body_function=" + UnwrapOption(name));
+        Exit(2); return;
+    }
+    if !bundle.verdict.ok { Log(Concat("PROBE|body-invalid|", bundle.verdict.diagnostic_code)); Exit(2); return; }
+    let receipt: SemanticAstBodyTypeBundleAdmissionReceipt = SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(artifact, analysis, bundle);
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(receipt, artifact, analysis, bundle)
+    {
+        Log("PROBE|baseline-receipt-invalid"); Exit(3); return;
+    }
+    if mode == "classifier"
+    {
+        if ArrayLength(bundle.collection_ownership.focus_recovery.part_local_binding_ids) == 0
+        { Log("PROBE|classifier-premise-invalid"); Exit(3); return; }
+        let row: Int = 0;
+        let selected_id: Int = bundle.collection_ownership.focus_recovery.part_local_binding_ids[0];
+        while row < ArrayLength(analysis.local_bindings.node_ids) &&
+            analysis.local_bindings.node_ids[row] != selected_id { row = row + 1; }
+        let selected: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
+            analysis.signatures, analysis.constructors, analysis.local_bindings,
+            bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, row);
+        if !selected.ok || selected.type_row != row || selected.field_id <= 0
+        { Log("PROBE|classifier-baseline-invalid"); Exit(3); return; }
+        let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, selected.root_type);
+        if !IsSome(nominal) { Exit(3); return; }
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+            analysis.constructors, UnwrapOption(nominal), selected.field_name);
+        if !IsSome(field) { Exit(3); return; }
+        let field_row: Int = UnwrapOption(field);
+        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, selected_id, AstExpressionLaneValue());
+        if !IsSome(value) { Exit(3); return; }
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(
+            analysis.expression_surfaces.expression_graph, UnwrapOption(value));
+        if !member.ok { Exit(3); return; }
+        let absent_low: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
+            analysis.signatures, analysis.constructors, analysis.local_bindings,
+            bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, -1);
+        let absent_high: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
+            analysis.signatures, analysis.constructors, analysis.local_bindings,
+            bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+            ArrayLength(bundle.initializer_types.inferred_type_names));
+        if absent_low.ok || absent_high.ok { Log("PROBE|classifier-bounds-accepted"); Exit(4); return; }
+        let inferred: Array<String> = bundle.initializer_types.inferred_type_names;
+        let inferred_name: String = inferred[row];
+        let field_type: String = analysis.constructors.param_type_names[field_row];
+        let field_name: String = analysis.constructors.field_names[field_row];
+        let field_id: Int = analysis.constructors.field_source_syntax_ids[field_row];
+        let binding_id: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[member.receiver_node];
+        let fault: Int = 0;
+        while fault < 6
+        {
+            if fault == 0 { bundle.initializer_types.inferred_type_names[row] = "Unknown"; }
+            else if fault == 1 { analysis.constructors.param_type_names[field_row] = "Unknown"; }
+            else if fault == 2 { analysis.constructors.field_names[field_row] = ""; }
+            else if fault == 3 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[member.receiver_node] = 0; }
+            else if fault == 4 { analysis.constructors.field_source_syntax_ids[field_row] = 0; }
+            else { bundle.initializer_types.inferred_type_names = []; }
+            let changed: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
+                analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, row);
+            let current: Bool = SemanticAstCollectionFocusRecoveryCurrent(
+                artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+                analysis.statements, analysis.assignments, bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery);
+            // A candidate is a classification, not identity or admission authority.
+            if (fault != 4 && changed.ok) || current
+            { Log("PROBE|classifier-fault-accepted|" + ToString(fault)); Exit(4); return; }
+            bundle.initializer_types.inferred_type_names = inferred;
+            bundle.initializer_types.inferred_type_names[row] = inferred_name;
+            analysis.constructors.param_type_names[field_row] = field_type;
+            analysis.constructors.field_names[field_row] = field_name;
+            analysis.constructors.field_source_syntax_ids[field_row] = field_id;
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[member.receiver_node] = binding_id;
+            let restored: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
+                analysis.signatures, analysis.constructors, analysis.local_bindings,
+                bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, row);
+            if !restored.ok || restored.root_id != selected.root_id || restored.field_id != selected.field_id ||
+                restored.type_row != row || !SemanticAstCollectionFocusRecoveryCurrent(
+                    artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+                    bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+                    analysis.statements, analysis.assignments, bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery)
+            { Log("PROBE|classifier-restoration-invalid|" + ToString(fault)); Exit(4); return; }
+            fault = fault + 1;
+        }
+        Log("PROBE|classifier-valid|6|bounds2"); return;
+    }
+    if mode == "map-current" || mode == "forward-current"
+    {
+        let selected_name: String = "ReadMap";
+        let fault_count: Int = 17;
+        if mode == "forward-current" { selected_name = "ForwardMap"; fault_count = 19; }
+        let selected: Int = -1;
+        let selected_slot: Int = -1;
+        let slot: Int = 0;
+        while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots)
+        {
+            if analysis.expression_surfaces.expression_graph.has_roots[slot]
+            {
+                let start: Option<Int> = SemanticExpressionGraphRootStartAt(analysis.expression_surfaces.expression_graph, slot);
+                if !IsSome(start) { Exit(3); return; }
+                let node: Int = UnwrapOption(start);
+                while node <= analysis.expression_surfaces.expression_graph.roots[slot]
+                {
+                    let observed: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(analysis.expression_surfaces.expression_graph, node);
+                    if observed.ok && observed.ordinal == 0
+                    {
+                        let target: Option<String> = SemanticExpressionGraphCallTargetName(analysis.expression_surfaces.expression_graph, observed.call_node);
+                        if IsSome(target) && UnwrapOption(target) == selected_name
+                        {
+                            if selected >= 0 { Log("PROBE|map-current-ambiguous"); Exit(3); return; }
+                            selected = node; selected_slot = slot;
+                        }
+                    }
+                    node = node + 1;
+                }
+            }
+            slot = slot + 1;
+        }
+        if selected < 0 { Log("PROBE|map-current-missing"); Exit(3); return; }
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+            analysis.expression_surfaces.expression_graph, selected);
+        let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+            artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+            analysis.expression_surfaces, selected_slot / 3, edge.argument_node);
+        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            analysis.signatures, analysis.expression_surfaces.expression_graph, edge.call_node, edge.ordinal);
+        if !binding.ok || !formal.ok || !SemanticAstCollectionFormalScalarMapReadArgumentReady(
+            artifact, analysis.signatures, analysis.expression_surfaces.expression_graph, bundle.collection_formal_effects, edge,
+            analysis.expression_surfaces.expression_graph.roots[selected_slot]) ||
+            !SemanticAstCollectionFocusRecoveryCallTargetReady(
+                artifact, analysis.signatures, analysis.expression_surfaces.expression_graph,
+                bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery,
+                edge, binding.type_name, analysis.expression_surfaces.expression_graph.roots[selected_slot])
+        { Log("PROBE|map-current-baseline-invalid"); Exit(3); return; }
+        let key: String = ToString(formal.syntax_id);
+        let function_key: String = ToString(analysis.signatures.function_node_ids[formal.signature_row]);
+        let row: Int = MapGet(bundle.collection_formal_effects.inventory.row_by_formal, key);
+        let effect: Int = MapGet(bundle.collection_formal_effects.effects, key);
+        let facts_ok: Bool = bundle.collection_formal_effects.ok;
+        let inventory_ok: Bool = bundle.collection_formal_effects.inventory.ok;
+        let context_ok: Bool = bundle.collection_formal_effects.execution_contexts.ok;
+        let body: Bool = bundle.collection_formal_effects.inventory.body_ready[row];
+        let formal_id: Int = bundle.collection_formal_effects.inventory.formal_nodes[row];
+        let count: Int = bundle.collection_formal_effects.execution_contexts.artifact_node_count;
+        let digest: Int = bundle.collection_formal_effects.execution_contexts.artifact_identity_digest;
+        let candidate: Int = MapGet(bundle.collection_formal_effects.execution_contexts.candidate_functions, function_key);
+        let unsafe_present: Bool = MapHas(bundle.collection_formal_effects.execution_contexts.unsafe_functions, function_key);
+        var unsafe_value: Int = 0;
+        if unsafe_present { unsafe_value = MapGet(bundle.collection_formal_effects.execution_contexts.unsafe_functions, function_key); }
+        let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, edge.call_node);
+        if !IsSome(callee) { Exit(3); return; }
+        let callee_node: Int = UnwrapOption(callee);
+        let target_abi: Int = analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node];
+        let target_kind: Int = analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node];
+        let target_name: String = analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node];
+        let target_id: Int = analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node];
+        let target_binding: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node];
+        let original_name: String = analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node];
+        let original_kind: Int = analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee_node];
+        let fault: Int = 0;
+        while fault < fault_count
+        {
+            if fault == 0 { bundle.collection_formal_effects.ok = false; }
+            else if fault == 1 { MapRemove(bundle.collection_formal_effects.effects, key); }
+            else if fault == 2 { MapSet(bundle.collection_formal_effects.effects, key, 5); }
+            else if fault == 3 { bundle.collection_formal_effects.inventory.body_ready[row] = false; }
+            else if fault == 4 { bundle.collection_formal_effects.inventory.formal_nodes[row] = 0; }
+            else if fault == 5 { MapRemove(bundle.collection_formal_effects.inventory.row_by_formal, key); }
+            else if fault == 6 { bundle.collection_formal_effects.execution_contexts.ok = false; }
+            else if fault == 7 { bundle.collection_formal_effects.execution_contexts.artifact_identity_digest = digest + 1; }
+            else if fault == 8 { MapRemove(bundle.collection_formal_effects.execution_contexts.candidate_functions, function_key); }
+            else if fault == 9 { MapSet(bundle.collection_formal_effects.execution_contexts.unsafe_functions, function_key, 1); }
+            else if fault == 10 { analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = 1; }
+            else if fault == 11 { analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = SemanticCallTargetNamespace(); }
+            else if fault == 12 { analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node] = "MapHas"; }
+            else if fault == 13 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node] = 0; }
+            else if fault == 14 { analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = target_id + 1; }
+            else if fault == 15 { bundle.collection_formal_effects.execution_contexts.artifact_node_count = 0; }
+            else if fault == 16 { bundle.collection_formal_effects.inventory.ok = false; }
+            else if fault == 17 { analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node] = "ReadMap"; }
+            else { analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee_node] = 0; }
+            let formal_current: Bool = SemanticAstCollectionFormalScalarMapReadArgumentReady(
+                artifact, analysis.signatures, analysis.expression_surfaces.expression_graph, bundle.collection_formal_effects, edge,
+                analysis.expression_surfaces.expression_graph.roots[selected_slot]);
+            let consumer_current: Bool = SemanticAstCollectionFocusRecoveryCallTargetReady(
+                artifact, analysis.signatures, analysis.expression_surfaces.expression_graph,
+                bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery,
+                edge, binding.type_name, analysis.expression_surfaces.expression_graph.roots[selected_slot]);
+            if formal_current || consumer_current
+            { Log("PROBE|map-current-fault-accepted|" + ToString(fault)); Exit(4); return; }
+            bundle.collection_formal_effects.ok = facts_ok;
+            MapSet(bundle.collection_formal_effects.effects, key, effect);
+            bundle.collection_formal_effects.inventory.ok = inventory_ok;
+            bundle.collection_formal_effects.inventory.body_ready[row] = body;
+            bundle.collection_formal_effects.inventory.formal_nodes[row] = formal_id;
+            MapSet(bundle.collection_formal_effects.inventory.row_by_formal, key, row);
+            bundle.collection_formal_effects.execution_contexts.ok = context_ok;
+            bundle.collection_formal_effects.execution_contexts.artifact_identity_digest = digest;
+            bundle.collection_formal_effects.execution_contexts.artifact_node_count = count;
+            MapSet(bundle.collection_formal_effects.execution_contexts.candidate_functions, function_key, candidate);
+            if unsafe_present { MapSet(bundle.collection_formal_effects.execution_contexts.unsafe_functions, function_key, unsafe_value); }
+            else if MapHas(bundle.collection_formal_effects.execution_contexts.unsafe_functions, function_key)
+            { MapRemove(bundle.collection_formal_effects.execution_contexts.unsafe_functions, function_key); }
+            analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = target_abi;
+            analysis.expression_surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = target_kind;
+            analysis.expression_surfaces.expression_graph.arena.call_target_names[edge.call_node] = target_name;
+            analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = target_id;
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee_node] = target_binding;
+            analysis.expression_surfaces.expression_graph.arena.node_texts[callee_node] = original_name;
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee_node] = original_kind;
+            if !SemanticAstCollectionFormalScalarMapReadArgumentReady(
+                artifact, analysis.signatures, analysis.expression_surfaces.expression_graph, bundle.collection_formal_effects, edge,
+                analysis.expression_surfaces.expression_graph.roots[selected_slot]) ||
+                !SemanticAstCollectionFocusRecoveryCallTargetReady(
+                    artifact, analysis.signatures, analysis.expression_surfaces.expression_graph,
+                    bundle.collection_formal_effects, bundle.collection_ownership.focus_recovery,
+                    edge, binding.type_name, analysis.expression_surfaces.expression_graph.roots[selected_slot])
+            { Log("PROBE|map-current-restoration-invalid|" + ToString(fault)); Exit(4); return; }
+            fault = fault + 1;
+        }
+        if mode == "forward-current" { Log("PROBE|forward-current-valid|19"); }
+        else { Log("PROBE|map-current-valid|17"); }
+        return;
+    }
+    if mode == "analyze" { Log("PROBE|body-valid"); return; }
+    if mode == "copy-facts"
+    {
+        // Diagnostic projection of the real admitted bundle, never target emission.
+        let diagnostic_generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+            analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
+        let diagnostic_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, bundle, diagnostic_generic, receipt);
+        let group: Int = 0;
+        while group < ArrayLength(diagnostic_view.focus_recovery.group_root_binding_ids)
+        {
+            Log(Concat("COPYGROUP|", Concat(ToString(diagnostic_view.focus_recovery.group_root_binding_ids[group]),
+                Concat("|", diagnostic_view.focus_recovery.group_copy_signatures[group]))));
+            group = group + 1;
+        }
+        Log(Concat("COPYSIZE|", ToString(MapSize(diagnostic_view.focus_recovery.exclusive_copies))));
+        let keys: Array<String> = MapKeys(diagnostic_view.focus_recovery.exclusive_copies);
+        let index: Int = 0;
+        while index < ArrayLength(keys)
+        {
+            Log(Concat("COPYKEY|", Concat(keys[index], Concat("|",
+                ToString(MapGet(diagnostic_view.focus_recovery.exclusive_copies, keys[index]))))));
+            index = index + 1;
+        }
+        return;
+    }
+    let groups: Int = ArrayLength(bundle.collection_ownership.focus_recovery.group_function_ids);
+    let parts: Int = ArrayLength(bundle.collection_ownership.focus_recovery.part_local_binding_ids);
+    let exits: Int = ArrayLength(bundle.collection_ownership.focus_recovery.exit_group_indices);
+    if mode != "manual-control" && (groups == 0 || parts == 0 || exits == 0)
+    {
+        Log("PROBE|recovery-missing"); Exit(3); return;
+    }
+    if mode == "emit" || mode == "manual-control"
+    {
+        // Reuse the produced body and its receipt at the real admitted seam.
+        // The convenience source entry would run body analysis a second time.
+        let receiver_facts: CodegenCallableReceiverFacts = CodegenCallableReceiverFactsFromAdmittedAnalysis(analysis);
+        let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(artifact, analysis, analysis.enums);
+        let topology: SelfDirDomainTopologyRows = SelfDirDomainTopologyRowsFromArtifact(artifact, declarations);
+        let projection_maps: SelfDirDomainProjectionMapRows = SelfDirDomainProjectionMapRowsFromArtifact(artifact);
+        let domain_runtime: CodegenDomainRuntimeFacts = CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
+            declarations, topology, projection_maps);
+        let emitted_generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+            analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
+        let body_types: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, bundle, emitted_generic, receipt);
+        let source_intents: SelfDirIntentFacts = CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
+            artifact, analysis, declarations);
+        let intent_policy: CodegenIntentPolicyView = CodegenIntentPolicyViewFromDirFactsOrDie(analysis, source_intents);
+        let intent_execution: CodegenIntentExecutionView = CodegenIntentExecutionViewFromSemanticOrDie(
+            artifact.identity_digest, analysis.intent_signatures, source_intents, declarations);
+        let output: String = GenerateCUnitFromReadySemanticFacts(
+            artifact, analysis, body_types, receiver_facts, domain_runtime, intent_execution,
+            intent_policy, true, SelfHostMachineLayerDeclarationEmpty(), false);
+        WriteFile(args[2], output);
+        Log("PROBE|emitted-c"); return;
+    }
+    if mode == "missing" { bundle.collection_ownership.focus_recovery.ok = false; }
+    else if mode == "copy-epoch"
+    {
+        bundle.collection_ownership.focus_recovery.group_copy_signatures[0] =
+            Concat(bundle.collection_ownership.focus_recovery.group_copy_signatures[0], ":stale");
+    }
+    else if mode == "copy-count"
+    {
+        bundle.collection_ownership.focus_recovery.exclusive_copy_count =
+            bundle.collection_ownership.focus_recovery.exclusive_copy_count + 1;
+    }
+    else if mode == "read-count"
+    {
+        bundle.collection_ownership.focus_recovery.exclusive_field_read_count =
+            bundle.collection_ownership.focus_recovery.exclusive_field_read_count + 1;
+    }
+    else if mode == "copy-view-empty"
+    {
+        // The observed memo/shared view is sealed by the original receipt.
+        // It is not a material root adjacency or a deep Current copy-cut proof.
+        if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
+        let copy_keys: Array<String> = MapKeys(bundle.collection_ownership.focus_recovery.exclusive_copies);
+        let shared_key: String = Concat("s:", Concat(ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]), ".*"));
+        let contained: Bool = false;
+        let part: Int = 0;
+        while part < parts
+        {
+            let key: String = Concat("contained:", ToString(bundle.collection_ownership.focus_recovery.part_local_binding_ids[part]));
+            if MapHas(bundle.collection_ownership.focus_recovery.exclusive_copies, key) &&
+                MapGet(bundle.collection_ownership.focus_recovery.exclusive_copies, key) == 2 { contained = true; }
+            part = part + 1;
+        }
+        if bundle.collection_ownership.focus_recovery.exclusive_copy_count <= 0 ||
+            bundle.collection_ownership.focus_recovery.exclusive_copy_count != MapSize(bundle.collection_ownership.focus_recovery.exclusive_copies) ||
+            ArrayLength(copy_keys) != bundle.collection_ownership.focus_recovery.exclusive_copy_count || !contained ||
+            !MapHas(bundle.collection_ownership.focus_recovery.exclusive_copies, shared_key) ||
+            MapGet(bundle.collection_ownership.focus_recovery.exclusive_copies, shared_key) != 1
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        let missing_copies: HashMap<String, Int> = MapNew();
+        bundle.collection_ownership.focus_recovery.exclusive_copies = missing_copies;
+        bundle.collection_ownership.focus_recovery.exclusive_copy_count = 0;
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        {
+            Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
+        }
+    }
+    else if mode == "read-map-value"
+    {
+        // The cold HEAD current checker does not consume per-key field reads.
+        // This tests the ORIGINAL full-map admission receipt, not deep read permission.
+        if !admitted_path { Log("PROBE|mutation-route-invalid"); Exit(3); return; }
+        let read_key: String = Concat(ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]),
+            Concat(":", bundle.collection_ownership.focus_recovery.part_field_names[0]));
+        if !MapHas(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key)
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        let old_read: Int = MapGet(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key);
+        MapSet(bundle.collection_ownership.focus_recovery.exclusive_field_reads, read_key, old_read + 1);
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        {
+            Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
+        }
+    }
+    else if mode == "omit-active-part"
+    {
+        if groups != 1 || exits != 1 || parts != 8 ||
+            bundle.collection_ownership.focus_recovery.exit_part_starts[0] != 0 ||
+            bundle.collection_ownership.focus_recovery.exit_part_counts[0] != 8 ||
+            ArrayLength(bundle.collection_ownership.focus_recovery.active_part_indices) != 8 ||
+            ArrayLength(bundle.collection_ownership.focus_recovery.active_definition_ids) != 8
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        ArrayPop(bundle.collection_ownership.focus_recovery.active_part_indices);
+        ArrayPop(bundle.collection_ownership.focus_recovery.active_definition_ids);
+        bundle.collection_ownership.focus_recovery.exit_part_counts[0] = 7;
+        // The arrays/spans are consistent; only complete active coverage is false.
+        if !SemanticAstCollectionFocusRecoveryShapeReady(bundle.collection_ownership.focus_recovery)
+        {
+            Log("PROBE|mutation-not-shape-valid"); Exit(3); return;
+        }
+    }
+    else if mode == "selection-missing" || mode == "selection-value"
+    {
+        let selected: String = ToString(bundle.collection_ownership.focus_recovery.group_root_binding_ids[0]);
+        if !MapHas(bundle.collection_ownership.focus_recovery.mutating_formals, selected)
+        {
+            Log("PROBE|mutation-premise-invalid"); Exit(3); return;
+        }
+        if mode == "selection-missing" { MapRemove(bundle.collection_ownership.focus_recovery.mutating_formals, selected); }
+        else { MapSet(bundle.collection_ownership.focus_recovery.mutating_formals, selected, 0); }
+    }
+    else if mode == "selection-foreign"
+    {
+        MapSet(bundle.collection_ownership.focus_recovery.mutating_formals, "foreign-formal", 1);
+    }
+    else if mode == "stamp" { bundle.collection_ownership.focus_recovery.artifact_identity_digest = artifact.identity_digest + 1; }
+    else if mode == "root" { bundle.collection_ownership.focus_recovery.group_root_binding_ids[0] = -1; }
+    else if mode == "field" { bundle.collection_ownership.focus_recovery.part_field_ids[0] = -1; }
+    else if mode == "local" { bundle.collection_ownership.focus_recovery.part_local_binding_ids[0] = -1; }
+    else if mode == "definition" { bundle.collection_ownership.focus_recovery.active_definition_ids[0] = -1; }
+    else if mode == "exit" { bundle.collection_ownership.focus_recovery.exit_syntax_ids[0] = -1; }
+    else if mode == "scope" { bundle.collection_ownership.focus_recovery.exit_scope_ids[0] = -1; }
+    else if mode == "duplicate"
+    {
+        if parts < 2 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
+        bundle.collection_ownership.focus_recovery.part_field_ids[1] = bundle.collection_ownership.focus_recovery.part_field_ids[0];
+    }
+    else if mode == "nested-inner-only"
+    {
+        if groups < 2 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
+        let parent_group: Int = -1;
+        let group: Int = 0;
+        while group < groups
+        {
+            let function_row: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                analysis.signatures, bundle.collection_ownership.focus_recovery.group_function_ids[group]);
+            if IsSome(function_row) && analysis.signatures.names[UnwrapOption(function_row)] == "CaptureStep"
+            {
+                parent_group = group;
+            }
+            group = group + 1;
+        }
+        if parent_group < 0 { Log("PROBE|mutation-premise-invalid"); Exit(3); return; }
+        let index: Int = 0;
+        while index < exits
+        {
+            if bundle.collection_ownership.focus_recovery.exit_group_indices[index] == parent_group
+            {
+                bundle.collection_ownership.focus_recovery.exit_part_counts[index] = 0;
+            }
+            index = index + 1;
+        }
+    }
+    else if mode != "view" { Log("PROBE|unknown-mode"); Exit(2); return; }
+    let generic: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsFromSemantic(
+        analysis.signatures, bundle.generic_specializations, analysis.function_scopes);
+    if admitted_path
+    {
+        let admitted_view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
+            artifact, analysis, bundle, generic, receipt);
+        if mode != "view" { Log("PROBE|POISON-ACCEPTED"); Exit(4); return; }
+        Log(Concat("PROBE|view-valid|", Concat(ToString(groups), Concat("|", Concat(ToString(parts), Concat("|", ToString(exits)))))));
+        return;
+    }
+    let view: CodegenSemanticBodyTypeFacts = CodegenSemanticBodyTypeFactsFromBundleOrDie(
+        artifact, analysis, bundle, generic);
+    if mode != "view" { Log("PROBE|POISON-ACCEPTED"); Exit(4); return; }
+    Log(Concat("PROBE|view-valid|", Concat(ToString(groups), Concat("|", Concat(ToString(parts), Concat("|", ToString(exits)))))));
+}

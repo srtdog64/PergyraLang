@@ -10,6 +10,9 @@ import "../text/text_owner.pgy";
 import "semantic_assignment_codegen_view_owner.pgy";
 import "semantic_statement_codegen_view_owner.pgy";
 import "generic_specialization_codegen_view_owner.pgy";
+import "semantic_signature_codegen_view_owner.pgy";
+import "semantic_local_binding_codegen_view_owner.pgy";
+import "../../semantic/ast_collection_focus_recovery_schema_owner.pgy";
 
 struct CodegenSemanticBodyTypeFacts {
     assignment_types: SemanticAstAssignmentTypeFacts;
@@ -20,6 +23,56 @@ struct CodegenSemanticBodyTypeFacts {
     resource_field_paths: Array<String>;
     mutable_resource_parameter_node_ids: Array<Int>;
     generic_specializations: CodegenGenericSpecializationFacts;
+    focus_recovery: SemanticAstCollectionFocusRecoveryFacts;
+    focus_root_names: Array<String>;
+    focus_local_names: Array<String>;
+}
+
+func CodegenSemanticFocusRootNamesOrDie(
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref facts: SemanticAstCollectionFocusRecoveryFacts
+) -> Array<String> {
+    if !SemanticAstCollectionFocusRecoveryShapeReady(facts) {
+        Die("codegen focus recovery carrier is missing or invalid");
+    }
+    let names: Array<String> = [];
+    let group: Int = 0;
+    while group < ArrayLength(facts.group_function_ids) {
+        let signature: Int = CodegenSemanticSignatureIndexOrDie(
+            analysis.signatures, facts.group_function_ids[group]);
+        let count: Int = CodegenSemanticFunctionParamCountOrDie(analysis.signatures, signature);
+        let parameter: Int = 0;
+        let name: String = "";
+        while parameter < count {
+            if CodegenSemanticFunctionParamNodeOrDie(analysis.signatures, signature, parameter) ==
+                    facts.group_root_binding_ids[group] {
+                if name != "" { Die("focus root has duplicate typed parameter identities"); }
+                name = CodegenSemanticFunctionParamNameOrDie(analysis.signatures, signature, parameter);
+            }
+            parameter = parameter + 1;
+        }
+        if name == "" { Die("focus root typed parameter identity is missing"); }
+        ArrayPushOwnedString(names, name);
+        group = group + 1;
+    }
+    return names;
+}
+
+func CodegenSemanticFocusLocalNamesOrDie(
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref facts: SemanticAstCollectionFocusRecoveryFacts
+) -> Array<String> {
+    if !SemanticAstCollectionFocusRecoveryShapeReady(facts) {
+        Die("codegen focus recovery carrier is missing or invalid");
+    }
+    let names: Array<String> = [];
+    let part: Int = 0;
+    while part < ArrayLength(facts.part_local_binding_ids) {
+        ArrayPushOwnedString(names, CodegenSemanticLocalBindingNameOrDie(
+            analysis.local_bindings, facts.part_local_binding_ids[part]));
+        part = part + 1;
+    }
+    return names;
 }
 
 func CodegenSemanticResourceLocalIndex(
@@ -141,7 +194,9 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
         bundle.zone_carriage.resource_path_counts,
         bundle.zone_carriage.resource_field_paths,
         bundle.zone_carriage.mutable_borrow_parameter_node_ids,
-        generic_specializations
+        generic_specializations, bundle.collection_ownership.focus_recovery,
+        CodegenSemanticFocusRootNamesOrDie(analysis, bundle.collection_ownership.focus_recovery),
+        CodegenSemanticFocusLocalNamesOrDie(analysis, bundle.collection_ownership.focus_recovery)
     );
 }
 
@@ -170,6 +225,8 @@ func CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
         bundle.zone_carriage.resource_path_counts,
         bundle.zone_carriage.resource_field_paths,
         bundle.zone_carriage.mutable_borrow_parameter_node_ids,
-        generic_specializations
+        generic_specializations, bundle.collection_ownership.focus_recovery,
+        CodegenSemanticFocusRootNamesOrDie(analysis, bundle.collection_ownership.focus_recovery),
+        CodegenSemanticFocusLocalNamesOrDie(analysis, bundle.collection_ownership.focus_recovery)
     );
 }

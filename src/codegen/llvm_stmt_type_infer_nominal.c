@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_stmt_type_infer_helpers.h"
+#include "llvm_expr_call_collections_extended.h"
 #include "parser/ast_api.h"
 
 #include <string.h>
@@ -57,6 +58,18 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             const char *resolved = llvm_expr_custom_type_name(init, ctx);
             if (resolved != NULL)
                 return resolved;
+        }
+        if (strcmp(name, "MapGet") == 0 && ast_call_arg_count(init) == 2
+            && ast_call_semantic_callee_is_stdlib(init)
+            && ast_call_semantic_callee_decl_id(init) == 0
+            && ast_call_semantic_callee_value_binding_id(init) == 0
+            && !ast_call_semantic_callee_declared_callable(init)) {
+            LLVMMapReceiverMetadata metadata;
+            if (!llvm_map_receiver_metadata_ready(ctx, ast_call_argument(init, 0), &metadata))
+                return NULL;
+            if (llvm_lookup_class(ctx, metadata.value_type) != NULL)
+                return metadata.value_type;
+            return NULL;
         }
         if (llvm_stmt_call_returns_collection_value(name)
             && ast_call_arg_count(init) >= 1

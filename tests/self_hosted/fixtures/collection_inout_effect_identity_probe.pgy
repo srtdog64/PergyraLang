@@ -92,6 +92,12 @@ func Main() -> Void with caps env, io_read {
                 receipt.initializer_count, receipt.iteration_count,
                 receipt.assignment_count, receipt.statement_count,
                 formal_count, proved_count, effect_digest,
+                receipt.collection_focus_group_count,
+                receipt.collection_focus_part_count,
+                receipt.collection_focus_exit_count,
+                receipt.collection_focus_active_part_count,
+                receipt.collection_focus_selection_count,
+                receipt.collection_focus_recovery_digest,
                 receipt.zone_resource_identity_count,
                 receipt.zone_resource_path_count,
                 receipt.zone_mutable_borrow_count, receipt.generic_count

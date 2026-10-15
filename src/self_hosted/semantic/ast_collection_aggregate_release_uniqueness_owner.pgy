@@ -5,6 +5,7 @@ import "ast_collection_call_effect_fact_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_aggregate_named_input_reservation_owner.pgy";
 
 func SemanticAstCollectionAggregateReleaseEdgeCallRow(
     ref plan: SemanticAstCollectionAggregateReleasePlan, edge: Int
@@ -117,8 +118,10 @@ func SemanticAstCollectionAggregateReleaseSharedDemandReady(
     // origin's loop scope; edges deeper in a callee keep the loop-free rule.
     let origin: Int = plan.aggregate_origin_ids[prior];
     if divergence == 0 {
-        if SemanticAstCollectionCallRetirementSiteForOrigin(artifact, plan.call_syntax_ids[prior_call], origin) <= 0 ||
-            SemanticAstCollectionCallRetirementSiteForOrigin(artifact, plan.call_syntax_ids[current_call], origin) <= 0 { return false; }
+        if SemanticAstCollectionAggregateDemandRetirementSiteForOrigin(artifact, plan.call_syntax_ids[prior_call], origin,
+                plan.call_function_ids[prior_call], plan.call_ends_routine[prior_call]) <= 0 ||
+            SemanticAstCollectionAggregateDemandRetirementSiteForOrigin(artifact, plan.call_syntax_ids[current_call], origin,
+                plan.call_function_ids[current_call], plan.call_ends_routine[current_call]) <= 0 { return false; }
     } else if SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[prior_call]) <= 0 ||
         SemanticAstCollectionCallRetirementSite(artifact, plan.call_syntax_ids[current_call]) <= 0 { return false; }
     if !SemanticAstCollectionAggregateReleaseDeepChainLoopFree(artifact, plan, prior, divergence) ||
@@ -201,8 +204,7 @@ func SemanticAstCollectionAggregateReleasePlanUnique(
                 }
                 return false;
             }
-            if inputs.producer_kinds[prior_input] == 1 &&
-                inputs.producer_kinds[input] == 1 {
+            if SemanticAstCollectionAggregateNamedInputKind(inputs.producer_kinds[prior_input]) && SemanticAstCollectionAggregateNamedInputKind(inputs.producer_kinds[input]) {
                 let prior_source: Int =
                     SemanticAstCollectionDefinitionStorageSource(
                         storage, definitions,
@@ -216,7 +218,7 @@ func SemanticAstCollectionAggregateReleasePlanUnique(
                             inputs.definition_rows[input]],
                         inputs.definition_rows[input]);
                 if prior_source <= 0 || source <= 0 ||
-                    (prior_source == source &&
+                    (prior_source == source && !SemanticAstCollectionAggregateNamedVacantPairReady(artifact, inputs, prior_input, input) &&
                      ((prior_input != input &&
                        inputs.function_ids[prior_input] ==
                             inputs.function_ids[input]) ||
