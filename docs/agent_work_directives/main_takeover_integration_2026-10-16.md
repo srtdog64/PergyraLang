@@ -326,6 +326,32 @@ These are coherent repairs, not bootstrap acceptance. Next is the same3188-key
 cold inventory delta plus one warm measurement to classify the remaining set;
 do not extrapolate completion from the first diagnostic's movement.
 
+Updated isolated census on4f19 uses exactly the same3188
+(routine name,declaration ID,ordinal) keys:692->515 failures,151->121 routines,
+177 resolved, no new failures, incomplete0. All remaining failures are work4096.
+Body45.531s/process54.62s, diagnostic exit86. Warm root remains EmitStmtList
+param5 at RewriteSemanticHashMapCall:219 evaluations+3427 backing+450 graph;
+category-unique3736, but unvisited dependencies remain unknown. RuntimeCallCName
+now uses679 nodes in one epoch. Source/object/binary/dirty snapshot restored.
+This is failure-set inventory, not admission or hard substitution progress.
+
+Independent frozen4f19 review found no new bypass in its narrow scope. Preserve
+its two-level alias mutation/source/assignment falsifiers as permanent
+analyze-only negatives, not runtime tests. Root repeated the enlarged summary,
+recursive and original demand controls: PASS12.23s, phase4285/0.
+Receipt `alias-review-controls`; reviewer raw evidence remains in
+`.tmp/redteam-4f19d8760-20261016/`. Neither result approves the full canonical.
+
+The next unknown is the scope of the reached backing operation: its API asks
+for one ordinal's effects/output row, but initializes all formal origins and
+demands callees for any origin. The last consumer copies only the requested
+row into the existing summary entry. Measure actual work initiated by other
+origin bits before selecting a representation change. Do not simply delete
+seeds or publish an uncomputed row as ready. Deferred activation would need
+explicit per-row currency, recursive activation/pending and output-axis
+preservation. A diagnostic observation may classify this cost; it must not
+change the algorithm, work cap or admission. No implementation is selected.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

@@ -70,8 +70,18 @@ set on every reuse; epoch alone is not permission. The subsequent EmitStmtList
 param5 had183 evaluations+3475 backing+438 graph, unique3024 total; the backing
 merge repair now distinguishes true binding inputs from expression caches and
 final outputs without discarding any OR facts or changing pending rules.
-A now repeats the same3188-key inventory delta and one warm measurement,
-then restores all source/objects/binary. No smaller input or larger budget.
+A repeated exactly3188 keys (name/declaration ID/ordinal set difference0):
+cold failures692->515, unique routines151->121, resolved177, new failures0,
+incomplete0;45.531s body/54.62s process, diagnostic exit86 before MIR.
+Warm root remains EmitStmtList param5, now at RewriteSemanticHashMapCall:
+219 evaluations+3427 backing+450 graph=4096, category-unique3736 total.
+RuntimeCallCName is now679 visits in one epoch, not679 twice. Remaining
+observed backing repeats195 explain only the visited prefix; unvisited
+dependencies remain unknown. Logs `a-growth-inventory`, `a-growth-warm`.
+Original source/objects/binary and dirty7 snapshot were restored exactly.
+The manifest has4273 typed signatures; old runtime signature logs do not
+exist, so only identical canonical/header-producer source is established for
+that historical comparison. No smaller input or larger budget.
 The earlier308.81-second timeout
 is historical; the local DAG repair removed that cost blocker, not this refusal.
 
@@ -79,16 +89,20 @@ The private candidate -> entire closed graph -> query-local escape permission
 -> backing RETURN/output chain is integrated; ordinary ArrayPush has no
 blanket no-retain grant. B uses the existing PendingRefCall and a single
 returned-call seed in a sparse backing query, not a dense local matrix.
-Production is frozen at4f19. A has the sole WSL diagnostic lease; root may not
-build or sync that clone until the lease is returned. B and C are frozen.
+Production is frozen at4f19. A returned the WSL diagnostic lease; root owns it.
+A now investigates the demand-vs-all-formal backing scope and binding read
+dependencies read-only, before the next contract is selected. B/C are frozen.
 One WSL compile lease, no shared process kills.
 Root owns acceptance/publication. Production C-size
 parity is blocked by the unavailable installed driver; stable local Rocq prefix
 is unavailable. Neither limitation is a pass or permission for fallback.
 Independent read-only reviews in `Red-team review DRV-2 candidate` found the
 RETURN-only String storage and subsequent opaque-inout mutation gaps. Both
-have permanent falsifiers; the next immutable4f19 review has been requested
-and is pending. This review cannot approve canonical/bootstrap/CI acceptance.
+have permanent falsifiers. The immutable4f19 review found no new admission
+bypass in this narrow scope: opaque/two-level alias/storage/recursive negatives
+refuse; copy/static-read positives and loop CALL relation remain. Report:
+`.tmp/redteam-4f19d8760-20261016/review.md`. This is not canonical/bootstrap/CI
+acceptance, and the complete language is not proved safe by this review.
 Root owns integration, acceptance and publication. The focus gate still stops at native probe compilation;
 bootstrap, full driver memory, installed driver and exact-SHA CI remain OPEN.
 
