@@ -231,36 +231,91 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
         if (!function_param_flow_program_point_index_build(store, current, &index) ||
             !function_param_flow_index_roots_current(index) ||
             !semantic_param_publication_routine_relation_header_ready(store->ctx, current)) { valid = false; break; }
-        FunctionParamFlowBackingFact *fact = index->backing;
-        if (fact == NULL) continue;
-        if (index->param_count != fact->count) { valid = false; break; }
-        for (size_t p = 0; p < fact->count; p++) {
-            uint32_t id = ast_func_param_stable_id(ast_func_param(current, p));
-            size_t b = 0;
-            while (b < fact->binding_count && fact->bindings[b].binding != id) b++;
-            if (b == fact->binding_count) valid = false;
+        FunctionParamFlowBackingFact **frames = index->backing_frames;
+        size_t frame_count = index->backing_frame_count;
+        size_t parameter_count = index->param_count;
+        FunctionParamFlowIndexClaims *claims = index->claims;
+        if (frames == NULL) {
+            if (frame_count != 0) valid = false;
+            continue;
         }
-        for (size_t n = 0; n < fact->node_count && valid; n++) {
-            FunctionParamFlowBackingNode *row = &fact->nodes[n];
-            valid = row->id == ast_node_stable_id(row->node) && row->shape == row->node->type;
-            if (row->node->type == AST_IDENTIFIER && semantic_param_publication_binding(store->ctx, row->node) == 0) valid = false;
-            if (row->node->type != AST_CALL) continue;
-            for (size_t p = 0; p < ast_call_arg_count(row->node) && valid; p++) {
-                valid = semantic_param_publication_checked_argument(store->ctx, row->node, p) &&
-                    semantic_param_publication_value(store->ctx, ast_call_argument(row->node, p)).ok;
-                ASTNode *callee = semantic_param_publication_callee(store->ctx, row->node, p);
-                if (!valid || callee == NULL) continue;
-                size_t reached = 0;
-                while (reached < count && queue[reached] != callee) reached++;
-                if (reached != count) continue;
-                if (count == capacity) {
-                    if (capacity > SIZE_MAX / 2 / sizeof(*queue)) { function_param_flow_fail(store, current, "backing validation queue size overflow"); valid = false; break; }
-                    capacity *= 2;
-                    ASTNode **grown = realloc(queue, capacity * sizeof(*queue));
-                    if (grown == NULL) { function_param_flow_fail(store, current, "backing validation queue allocation failed"); valid = false; break; }
-                    queue = grown;
+        if (frame_count != parameter_count || parameter_count == 0 ||
+            parameter_count > SIZE_MAX - 63 || claims == NULL) { valid = false; break; }
+        size_t destination_words = (parameter_count + 63) / 64;
+        uint64_t final_mask = parameter_count % 64 == 0 ? UINT64_MAX :
+            (UINT64_C(1) << (parameter_count % 64)) - 1;
+        for (size_t input = 0; input < frame_count && valid; input++) {
+            FunctionParamFlowBackingFact *fact = frames[input];
+            if (fact == NULL) continue;
+            uint32_t input_id = ast_func_param_stable_id(ast_func_param(current, input));
+            if (input_id == 0 || fact->input_ordinal != input || fact->input_id != input_id ||
+                fact->origin_count != 1 || fact->origin_words != 1 ||
+                fact->destination_count != parameter_count || fact->destination_words != destination_words ||
+                fact->claims != claims || fact->effects == NULL || fact->outputs == NULL ||
+                (fact->node_count != 0 && fact->nodes == NULL) ||
+                (fact->binding_count != 0 && fact->bindings == NULL) ||
+                (fact->outputs[destination_words - 1] & ~final_mask) != 0) { valid = false; break; }
+            for (size_t p = 0; p < parameter_count && valid; p++) {
+                FuncParam *param = ast_func_param(current, p);
+                uint32_t id = ast_func_param_stable_id(param);
+                size_t found = SIZE_MAX;
+                for (size_t b = 0; b < fact->binding_count; b++) if (fact->bindings[b].binding == id) {
+                    if (found != SIZE_MAX) { valid = false; break; }
+                    found = b;
                 }
-                queue[count++] = callee;
+                if (!valid || id == 0 || found == SIZE_MAX) { valid = false; break; }
+                FunctionParamFlowBackingBinding *binding = &fact->bindings[found];
+                if (binding->local || binding->origins == NULL || binding->destinations == NULL ||
+                    binding->origins[0] != (p == input ? UINT64_C(1) : UINT64_C(0)) ||
+                    ((param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_MUT_REF) &&
+                     (binding->destinations[p / 64] & (UINT64_C(1) << (p % 64))) == 0)) valid = false;
+            }
+            for (size_t b = 0; b < fact->binding_count && valid; b++) {
+                FunctionParamFlowBackingBinding *binding = &fact->bindings[b];
+                if (binding->binding == 0 || binding->origins == NULL || binding->destinations == NULL ||
+                    (binding->origins[0] & ~UINT64_C(1)) != 0 ||
+                    (binding->destinations[destination_words - 1] & ~final_mask) != 0) { valid = false; break; }
+                if (!binding->local) {
+                    bool formal = false;
+                    for (size_t p = 0; p < parameter_count; p++)
+                        if (binding->binding == ast_func_param_stable_id(ast_func_param(current, p))) formal = true;
+                    if (!formal) valid = false;
+                    continue;
+                }
+                bool declaration = false;
+                for (size_t c = 0; c < claims->count; c++) {
+                    FunctionParamFlowIndexClaim *claim = &claims->rows[c];
+                    if (claim->id == binding->binding && claim->shape == AST_LET_DECL &&
+                        claim->node != NULL && claim->node->type == AST_LET_DECL &&
+                        ast_node_stable_id(claim->node) == binding->binding) declaration = true;
+                }
+                if (!declaration) valid = false;
+            }
+            for (size_t n = 0; n < fact->node_count && valid; n++) {
+                FunctionParamFlowBackingNode *row = &fact->nodes[n];
+                if (row->node == NULL || row->origins == NULL ||
+                    (row->origins[0] & ~UINT64_C(1)) != 0 ||
+                    row->id == 0 || row->id != ast_node_stable_id(row->node) ||
+                    row->shape != row->node->type) { valid = false; break; }
+                if (row->node->type == AST_IDENTIFIER && semantic_param_publication_binding(store->ctx, row->node) == 0) valid = false;
+                if (row->node->type != AST_CALL) continue;
+                for (size_t p = 0; p < ast_call_arg_count(row->node) && valid; p++) {
+                    valid = semantic_param_publication_checked_argument(store->ctx, row->node, p) &&
+                        semantic_param_publication_value(store->ctx, ast_call_argument(row->node, p)).ok;
+                    ASTNode *callee = semantic_param_publication_callee(store->ctx, row->node, p);
+                    if (!valid || callee == NULL) continue;
+                    size_t reached = 0;
+                    while (reached < count && queue[reached] != callee) reached++;
+                    if (reached != count) continue;
+                    if (count == capacity) {
+                        if (capacity > SIZE_MAX / 2 / sizeof(*queue)) { function_param_flow_fail(store, current, "backing validation queue size overflow"); valid = false; break; }
+                        capacity *= 2;
+                        ASTNode **grown = realloc(queue, capacity * sizeof(*queue));
+                        if (grown == NULL) { function_param_flow_fail(store, current, "backing validation queue allocation failed"); valid = false; break; }
+                        queue = grown;
+                    }
+                    queue[count++] = callee;
+                }
             }
         }
     }
@@ -355,6 +410,16 @@ function_param_flow_program_point_index_destroy(
     free(index->no_store_calls);
     free(index->local_definitions);
     free(index->local_ids);
+    for (size_t f = 0; index->backing_frames != NULL && f < index->backing_frame_count; f++) {
+        FunctionParamFlowBackingFact *fact = index->backing_frames[f];
+        if (fact == NULL) continue;
+        for (size_t n = 0; fact->nodes != NULL && n < fact->node_count; n++) free(fact->nodes[n].origins);
+        for (size_t b = 0; fact->bindings != NULL && b < fact->binding_count; b++) {
+            free(fact->bindings[b].origins); free(fact->bindings[b].destinations);
+        }
+        free(fact->nodes); free(fact->bindings); free(fact->outputs); free(fact->effects); free(fact);
+    }
+    free(index->backing_frames);
     if (index->claims != NULL) {
         for (size_t c = 0; c < index->claims->count; c++) {
             free(index->claims->rows[c].children); free(index->claims->rows[c].child_ids);
@@ -362,14 +427,6 @@ function_param_flow_program_point_index_destroy(
             free(index->claims->rows[c].result_type_name);
         }
         free(index->claims->rows); free(index->claims);
-    }
-    if (index->backing != NULL) {
-        FunctionParamFlowBackingFact *fact = index->backing;
-        for (size_t n = 0; n < fact->node_count; n++) free(fact->nodes[n].origins);
-        for (size_t b = 0; b < fact->binding_count; b++) {
-            free(fact->bindings[b].origins); free(fact->bindings[b].destinations);
-        }
-        free(fact->nodes); free(fact->bindings); free(fact->outputs); free(fact->effects); free(fact);
     }
     memset(index, 0, sizeof(*index));
 }

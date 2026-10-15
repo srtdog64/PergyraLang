@@ -352,6 +352,104 @@ explicit per-row currency, recursive activation/pending and output-axis
 preservation. A diagnostic observation may classify this cost; it must not
 change the algorithm, work cap or admission. No implementation is selected.
 
+The observation falsifies a narrower assumption: the first EmitStmtList
+episode hits4096 inside callees before its own backing CALL traversal, so
+there are0 direct root-fact requests to attribute. Within reached nested
+facts, requests without their own requested-origin bit consume650 work
+(305 calls), versus62 with it (330 calls). The observed712 is only the
+instrumented callee-request span sum, not the whole4096 or a saving forecast;
+inclusive/exclusive totals agree and nested duplicate contribution is0.
+One absent-bit request, RewriteSemanticMemberCall input1 ->
+RewriteSemanticArraySliceMemberCall argument4, consumes583. Observation only,
+11.78s/exit89 before MIR; source/objects/native/dirty10 restored exactly.
+Receipt `a-formal-attribution`; the root and nested scopes must not be conflated.
+
+Candidate closure objective: align the existing returned-backing producer's
+query identity with its existing summary entry `(function ID,input ordinal)`.
+Priority: current typed identity, computed-row readiness, all output destinations,
+recursive pending and lifetime, unchanged negative/work gates, then cost.
+Current chain: evaluate one entry -> eager all-input backing matrix -> select
+one effects/output row -> entry.output_dependencies -> call output query and
+sealed summaries. The existing summary entry is the last row consumer.
+Investigate an ordinal-owned backing frame inside the existing index, with
+one input origin and the complete ref/inout destination axis, not a general
+query engine or new semantic owner. Map every creation/current/read/destroy
+site and direct unit consumer before implementation. Unknown: exact frame
+lifetime and recursive cross-input currency. An uncreated/uncomputed frame
+is not a ready empty result; no old matrix fallback or cap increase is allowed.
+Preserve >64 output columns, zero-formal loan queries, cross-input recursion,
+private-store mode, loop propagation, alias/Slot/channel/return escapes and
+the original4096/4097 controls. A must return the complete map/plan first;
+root has not authorized production edits or another diagnostic run.
+
+The whole-chain review is now complete and root authorized this bounded
+implementation. Current -> intended ownership: one eager function matrix ->
+ordinal-owned lazy frames in the same program-point index; published identity
+stays `(function ID,input ordinal)` at the existing SummaryEntry. Each frame
+has origin_count/words1 and the full destination_count/wordsN/ceil(N/64), exact
+input ordinal/ID, and independent building/complete/pending/pass/mode/epoch.
+All formal bindings exist; only the requested one has an origin bit. Keep
+every ref/inout destination, including columns64+; do not compute other input
+rows or interpret their absence as zero. Matrix extraction is removed, not
+retained as a compatibility read.
+
+Independent edit scopes of this one chain: A owns internal.h, index producer,
+single-input evaluation/B loan1x1 and summary producer/cache/output consumers;
+B owns structural current-validation and frame/vector destruction in existing
+store_destroy; C owns high-output65 literal/dynamic behavioral fixtures; root
+owns direct phase-unit migration/faults and the single integration gate.
+An internal output_producer receipt distinguishes BACKING_FRAME from the
+existing CLOSED_SELECTOR proof. UNPROVED is not a ready empty row. Frame-ready
+consumption requires its exact current input identity and completed nonpending
+frame; selector-ready consumption independently replays its admitted no-output
+evidence. Structural currency alone must not require completed states during
+SCC reentry. No missing-frame/old-matrix fallback. The existing entry owns the
+projected result; all frame allocations remain context-owned until destruction,
+then shared claims are freed once by the index. No new fact owner or syntax.
+
+All three implementers froze their assigned files without building. Root is
+integrating the existing68-parameter cross-word unit, input-order isolation,
+uncreated/wrong-input frame and producer faults, loop/alias/recursive/private
+controls, and new output65 literal/dynamic analyze-only pair.
+First gate is native build+phase; then summary/unchanged4096/4097, full unchanged
+canonical and measured cost, IR/Map/component/registry, independent frozen
+review, and the original bootstrap/install/fixed-point/memory/CI chain. The
+actual effect on execution cost, total refusals and memory is still unknown.
+
+Root integrated this candidate on clone3f428ce86 with nine source/test/directive
+overlays. Native build PASS3.48s; phase4342/0 and summary (including unchanged
+independent4097/oversized4096 controls) PASS12.73s; Map24 runtime positives/58
+analyze-only negatives and HIR/RIR/MIR/AIR PASS20.80s; component/registry
+PASS10.54s. Full unchanged canonical is still RED8.01s, peak719980KiB, exit1,
+18410 cascading errors/16 warnings, first work4096 at line110. These results
+do not establish canonical admission, bootstrap, driver, memory or CI green.
+Receipts: `input-frame-build`, `input-frame-summary-scoped-final`,
+`input-frame-chain`, `input-frame-component`, `input-frame-canonical`.
+
+The first integration run caught completed-output validation accumulating
+unrelated finished demands' graph work. The existing graph owner now charges
+a fresh synchronous outside-solver validation to a local counter with the
+same4096 bound; inside the solver the original demand counter is unchanged.
+Two-member/one-unit outside-validation refusal and restored-budget controls
+pass, alongside the original4097 independent and4096 single-closure tests.
+No budget increase, uncharged graph walk or ready-result fallback was added.
+The output65 external pair is MIR-only: the native C emitter's pre-existing
+64-argument ceiling prevents runtime execution. Existing68-parameter API
+coverage and all previously registered C/LLVM runtime controls are preserved.
+
+Next diagnostic scope, not a selected production change: the named escape
+consumer in `slot_analyzer_summary.c` asks for one slot_name, while
+`slot_escape_mask_in_program` builds the all-name escape map and selects that
+row afterwards. Its AST_CALL path demands every eligible argument-root callee.
+The all-name consumer in `slot_analyzer.c` must retain full collection; named
+access in `slot_analyzer_access.c` already filters roots. Measure this base
+escape request work on the same input before choosing a repair. Classify
+exact binding, different binding, same-name shadow, alias candidate and missing
+identity, preserve typed argument checks/nested traversal, and retain the
+existing formal/backing/return/channel chain. Source repetition alone is not
+proof of savings. Repeat the3188-key census and warm attribution; require a
+coherent map and falsifiers before another production edit.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

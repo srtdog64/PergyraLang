@@ -45,6 +45,8 @@ paired = (
     ("physical_return_opaque_invalid", False),
     ("physical_return_slot_invalid", False),
     ("physical_return_inout_invalid", False),
+    ("high_output65_dynamic_invalid", False),
+    ("high_output65_literal_valid", True),
     ("default_string_string_return_invalid", False),
     ("default_string_option_return_invalid", False),
     ("direct_ref_string_loan_valid", True),

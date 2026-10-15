@@ -2799,7 +2799,7 @@ static void checked_failed_no_store_selection_epoch(void)
     CHECK(store->work_units == charged);
     store->solving = false;
     CHECK(function_param_flow_no_store_graph(store, decl));
-    CHECK(store->work_units > charged);
+    CHECK(store->work_units == charged); /* Fresh validation owns its budget. */
     store->solving = true; store->demand_epoch++; store->admitted_no_store_count = 0;
     CHECK(function_param_flow_no_store_graph(store, decl));
     charged = store->work_units;
@@ -2878,8 +2878,14 @@ static void checked_admitted_no_store_proof(void)
     store->solving = false; charged = store->work_units;
     leaf_index->mutable_output_required = true;
     CHECK(!function_param_flow_no_store_graph(store, root));
-    CHECK(store->work_units > charged);
+    CHECK(store->work_units == charged);
     leaf_index->mutable_output_required = original;
+    CHECK(function_param_flow_no_store_graph(store, root));
+    size_t budget = store->work_budget;
+    store->work_budget = 1; /* Two reached members exceed this fresh boundary. */
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    CHECK(store->work_units == charged);
+    store->work_budget = budget;
     CHECK(function_param_flow_no_store_graph(store, root));
 cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
@@ -2953,7 +2959,8 @@ static void checked_backing_binding_growth_case(const char *source)
     CHECK(!pending && outputs[0]);
     CHECK((effects & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
     CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
-    CHECK(index->backing != NULL && index->backing->epoch != 0);
+    CHECK(index->backing_frames != NULL && index->backing_frame_count == count &&
+        index->backing_frames[1] != NULL && index->backing_frames[1]->epoch != 0);
     free(outputs);
 cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
@@ -2968,6 +2975,72 @@ static void checked_backing_binding_growth(void)
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";var second:String=\"\";while flag{first=second;second=text;}output=first;return true;}");
     checked_backing_binding_growth_case(
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{using output as first;while flag{using first as second;second=text;}return true;}");
+}
+
+static void checked_backing_input_frames(void)
+{
+    for (unsigned reverse = 0; reverse < 2; reverse++) {
+        Lexer *lexer = lexer_create("func Choose(inout output:String,left:String,right:String)->Void{output=left;}func Main()->Void{var output=\"\";Choose(output,\"left\",\"right\");}");
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        /* Demand order must not make another input's empty row ready. */
+        function_param_flow_summary_store_destroy(ctx);
+        ASTNode *decl = ast_program_statement(program, 0);
+        ASTNode *call = ast_block_statement(ast_func_body(ast_program_statement(program, 1)), 1);
+        SlotFunctionLookup lookup = {ctx, program};
+        size_t first = reverse ? 2 : 1, second = reverse ? 1 : 2;
+        unsigned first_mask = function_param_flow_summary_for_param(ctx, decl, first);
+        CHECK(((first_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) == (first == 1));
+        FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+        if (index == NULL || index->backing_frames == NULL) goto cleanup;
+        CHECK(index->backing_frame_count == 3 && index->backing_frames[first] != NULL);
+        CHECK(index->backing_frames[second] == NULL && index->backing_frames[0] == NULL);
+        unsigned second_mask = function_param_flow_summary_for_param(ctx, decl, second);
+        CHECK(((second_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) == (second == 1));
+        CHECK(index->backing_frames[1] != index->backing_frames[2]);
+        bool dependent = false;
+        CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+        dependent = true;
+        CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 2, 0, &dependent) && !dependent);
+        FunctionParamFlowBackingFact *frame = index->backing_frames[1];
+        CHECK(frame != NULL && frame->origin_count == 1 && frame->destination_count == 3);
+        if (frame == NULL) goto cleanup;
+        for (unsigned fault = 0; fault < 7; fault++) {
+            if (fault == 0) index->backing_frames[1] = NULL;
+            if (fault == 1) frame->input_ordinal = 2;
+            if (fault == 2) frame->input_id++;
+            if (fault == 3) frame->destination_words++;
+            if (fault == 4) frame->complete = false;
+            if (fault == 5) frame->pending = true;
+            if (fault == 6) frame->building = true;
+            CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+            index->backing_frames[1] = frame;
+            frame->input_ordinal = 1;
+            frame->input_id = ast_func_param_stable_id(ast_func_param(decl, 1));
+            frame->destination_words = 1;
+            frame->complete = true; frame->pending = false; frame->building = false;
+            CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+        }
+        for (size_t e = 0; e < store->count; e++) {
+            FunctionParamFlowSummaryEntry *entry = &store->entries[e];
+            if (entry->function_decl != decl || entry->param_index != 1) continue;
+            FunctionParamFlowOutputProducer producer = entry->output_producer;
+            entry->output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+            CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+            entry->output_producer = producer;
+            CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
 }
 
 static void checked_return_loan_alias_currency(void)
@@ -3188,6 +3261,7 @@ int main(void)
     checked_return_loan_currency();
     checked_return_loan_alias_currency();
     checked_backing_binding_growth();
+    checked_backing_input_frames();
     checked_private_array_push_opaque_boundaries();
     checked_private_local_array_push();
     checked_empty_array_no_output();

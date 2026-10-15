@@ -12,6 +12,12 @@ typedef enum
     FUNCTION_PARAM_FLOW_COMPLETE
 } FunctionParamFlowSummaryState;
 
+typedef enum {
+    FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED = 0,
+    FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR,
+    FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME
+} FunctionParamFlowOutputProducer;
+
 typedef struct
 {
     uint32_t function_id;
@@ -25,6 +31,7 @@ typedef struct
     bool *output_dependencies;
     size_t output_count;
     bool output_dependencies_ready;
+    FunctionParamFlowOutputProducer output_producer;
     FunctionParamFlowSummaryState state;
 } FunctionParamFlowSummaryEntry;
 
@@ -42,7 +49,11 @@ typedef struct {
 } FunctionParamFlowBackingBinding;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct {
-    size_t count, words, epoch, evaluation_pass;
+    size_t origin_count, origin_words;
+    size_t destination_count, destination_words;
+    size_t input_ordinal;
+    uint32_t input_id;
+    size_t epoch, evaluation_pass;
     unsigned *effects;
     uint64_t *outputs;
     FunctionParamFlowBackingNode *nodes;
@@ -100,7 +111,8 @@ typedef struct
     ASTNode **local_definitions;
     uint32_t *local_ids;
     size_t local_count;
-    FunctionParamFlowBackingFact *backing;
+    FunctionParamFlowBackingFact **backing_frames;
+    size_t backing_frame_count;
     FunctionParamFlowIndexClaims *claims;
 } FunctionParamFlowProgramPointIndex;
 

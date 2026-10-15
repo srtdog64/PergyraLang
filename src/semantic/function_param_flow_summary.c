@@ -280,6 +280,42 @@ static unsigned function_param_flow_evaluate(
     FunctionParamFlowSummaryStore *store,
     size_t index);
 
+static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index)
+{
+    if (entry_index >= store->count) return false;
+    ASTNode *decl = store->entries[entry_index].function_decl;
+    size_t ordinal = store->entries[entry_index].param_index;
+    if (!store->entries[entry_index].output_dependencies_ready)
+        return true; /* No computed output permission is being reused. */
+    FunctionParamFlowOutputProducer producer = store->entries[entry_index].output_producer;
+    FunctionParamFlowProgramPointIndex *points;
+    if (!function_param_flow_program_point_index_build(store, decl, &points) ||
+        !function_param_flow_index_roots_current(points)) return false;
+    if (producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) {
+        if (points->backing_frames == NULL || ordinal >= points->backing_frame_count) return false;
+        FunctionParamFlowBackingFact *frame = points->backing_frames[ordinal];
+        if (frame == NULL || frame->input_ordinal != ordinal || frame->input_id == 0 ||
+            frame->input_id != ast_func_param_stable_id(ast_func_param(decl, ordinal)) ||
+            frame->origin_count != 1 || frame->origin_words != 1 ||
+            frame->destination_count != ast_func_param_count(decl) ||
+            frame->destination_count > SIZE_MAX - 63 ||
+            frame->destination_words != (frame->destination_count + 63) / 64 ||
+            frame->epoch == 0 || frame->building || !frame->complete || frame->pending) return false;
+        if (frame->private_stores_closed && !function_param_flow_no_store_graph(store, decl)) return false;
+    } else if (producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR) {
+        bool anchored = false;
+        if (!semantic_param_publication_parameter_is_anchored_handle(store->ctx, decl, ordinal, &anchored) ||
+            anchored || points->mutable_output_required || points->private_local_stores ||
+            !semantic_param_publication_routine_no_output_header_ready(store->ctx, decl)) return false;
+        for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+            FuncParam *param = ast_func_param(decl, p);
+            if (param == NULL || param->mode == PARAM_MODE_MUT_REF) return false;
+        }
+        if (!function_param_flow_no_store_graph(store, decl)) return false;
+    } else return false;
+    return function_param_flow_backing_rows_current(store, decl);
+}
+
 static unsigned
 function_param_flow_demand_index(FunctionParamFlowSummaryStore *store,
                                  ASTNode *function_decl,
@@ -298,6 +334,7 @@ function_param_flow_demand_index(FunctionParamFlowSummaryStore *store,
 
     state = store->entries[index].state;
     if (state == FUNCTION_PARAM_FLOW_COMPLETE) {
+        if (!function_param_flow_output_current(store, index)) return SLOT_PARAM_SUMMARY_ALL;
         store->cache_hits++;
         return store->entries[index].mask;
     }
@@ -337,6 +374,8 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     }
     if (store->entries[index].state == FUNCTION_PARAM_FLOW_EVALUATED
         || store->entries[index].state == FUNCTION_PARAM_FLOW_COMPLETE) {
+        if (store->entries[index].state == FUNCTION_PARAM_FLOW_COMPLETE &&
+            !function_param_flow_output_current(store, index)) return SLOT_PARAM_SUMMARY_ALL;
         return store->entries[index].mask;
     }
 
@@ -436,6 +475,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
             }
         }
         store->entries[index].output_dependencies_ready = complete;
+        store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME;
         free(outputs);
     } else if (source_kind_ready && !anchored &&
         semantic_param_publication_routine_no_output_header_ready(store->ctx, function_decl)) {
@@ -447,6 +487,11 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
             store->entries[index].output_count = output_count;
         }
         store->entries[index].output_dependencies_ready = store->entries[index].output_dependencies != NULL;
+        store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR;
+    } else {
+        if (store->entries[index].output_dependencies_ready) store->changed = true;
+        store->entries[index].output_dependencies_ready = false;
+        store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
     }
 
     /* Recursive demands may grow the entries array, so reacquire by index. */
@@ -507,6 +552,7 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
             return function_param_flow_demand_index(
                 store, function_decl, param_index);
         if (store->entries[existing].state == FUNCTION_PARAM_FLOW_COMPLETE) {
+            if (!function_param_flow_output_current(store, existing)) return SLOT_PARAM_SUMMARY_ALL;
             store->cache_hits++;
             return store->entries[existing].mask;
         }
@@ -619,7 +665,7 @@ bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lo
     if (index == SIZE_MAX || store->entries[index].state == FUNCTION_PARAM_FLOW_COMPUTING ||
         !store->entries[index].output_dependencies_ready ||
         output_ordinal >= store->entries[index].output_count) return false;
-    if (!function_param_flow_backing_rows_current(store, decl)) return false;
+    if (!function_param_flow_output_current(store, index)) return false;
     *dependent = store->entries[index].output_dependencies[output_ordinal];
     return true;
 }
