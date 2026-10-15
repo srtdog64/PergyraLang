@@ -283,6 +283,10 @@ INPUTS=(
     exclusive_plain_alias_read_only_positive.pgy exclusive_plain_alias_grown_alias_negative.pgy
     exclusive_plain_alias_grown_source_negative.pgy
     exclusive_scalar_set_holder_positive.pgy exclusive_scalar_set_holder_growth_negative.pgy
+    exclusive_push_before_copy_positive.pgy exclusive_push_after_copy_negative.pgy
+    formal_ref_borrow_after_element_return_positive.pgy
+    exclusive_nested_copy_sibling_read_positive.pgy exclusive_nested_copy_grown_read_negative.pgy
+    exclusive_nested_copy_prefix_read_negative.pgy
     aggregate_release_scalar_member_temporary_positive.pgy aggregate_release_array_member_temporary_negative.pgy
     aggregate_release_enum_variant_local_positive.pgy
     inout_index_string_marker_literal_positive.pgy

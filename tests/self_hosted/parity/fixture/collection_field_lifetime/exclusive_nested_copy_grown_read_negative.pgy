@@ -1,0 +1,29 @@
+// The rows nested two fields down are copied and grown; the callee the
+// outer value goes to afterwards reads those rows, the retired buffer.
+struct Inner {
+    rows: Array<Int>;
+    names: Array<String>;
+}
+
+struct Outer {
+    ok: Bool;
+    inner: Inner;
+}
+
+func FirstRow(outer: Outer) -> Int {
+    return outer.inner.rows[1];
+}
+
+func Grow(outer: Outer) -> Int {
+    let rows: Array<Int> = outer.inner.rows;
+    ArrayPush(rows, 2);
+    ArrayPush(rows, 3);
+    ArrayPush(rows, 4);
+    return FirstRow(outer) + rows[3];
+}
+
+func Main() -> Int {
+    let outer: Outer = Outer(true, Inner([1], ["a"]));
+    Log(ToString(Grow(outer)));
+    return 0;
+}

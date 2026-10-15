@@ -43,26 +43,29 @@ func SemanticAstCollectionExclusiveTreeUnread(
                             surfaces.expression_graph, argument_chain[effective]);
                         disjoint = reader > 0 && IsSome(step) &&
                             !MapHas(field_reads, Concat(ToString(reader), Concat(":", UnwrapOption(step))));
-                        // The consumed subtree is touched only at the paths
-                        // its destination family uses.
-                        if reader > 0 && !disjoint && destination_known && ArrayLength(destination_paths) > 0 {
+                        if reader > 0 && !disjoint {
                             let base: String = "";
                             let at: Int = effective;
                             while at < consumed {
                                 let name: Option<String> = SemanticExpressionGraphNodeText(
                                     surfaces.expression_graph, argument_chain[at]);
-                                if IsSome(name) {
-                                    if base == "" { base = UnwrapOption(name); }
-                                    else { base = Concat(base, Concat(".", UnwrapOption(name))); }
-                                }
+                                if !IsSome(name) { base = ""; at = consumed; }
+                                else if base == "" { base = UnwrapOption(name); }
+                                else { base = Concat(base, Concat(".", UnwrapOption(name))); }
                                 at = at + 1;
                             }
-                            disjoint = base != "";
-                            let path: Int = 0;
-                            while path < ArrayLength(destination_paths) && disjoint {
-                                disjoint = destination_paths[path] != "" && !SemanticAstCollectionExclusivePathRead(
-                                    field_reads, reader, Concat(base, Concat(".", destination_paths[path])));
-                                path = path + 1;
+                            // The reader's path summary reads nothing at, around or
+                            // below the consumed subtree, or touches it only at
+                            // paths its destination family does not use.
+                            disjoint = base != "" && !SemanticAstCollectionExclusivePathRead(field_reads, reader, base);
+                            if !disjoint && base != "" && destination_known && ArrayLength(destination_paths) > 0 {
+                                disjoint = true;
+                                let path: Int = 0;
+                                while path < ArrayLength(destination_paths) && disjoint {
+                                    disjoint = destination_paths[path] != "" && !SemanticAstCollectionExclusivePathRead(
+                                        field_reads, reader, Concat(base, Concat(".", destination_paths[path])));
+                                    path = path + 1;
+                                }
                             }
                         }
                     } else if effective > consumed {
