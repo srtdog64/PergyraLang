@@ -1,0 +1,2 @@
+func ToInt(text: String) -> Int { return 0; }
+func Main() -> Void { Log(ToInt("12")); }

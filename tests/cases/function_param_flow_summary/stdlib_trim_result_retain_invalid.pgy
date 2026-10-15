@@ -1,0 +1,7 @@
+struct TextRecord { text: String; }
+extern "C" { func Keep(text: String) -> Void; }
+func Extract(ref record: TextRecord) -> Void { Keep(StringTrim(record.text)); }
+func Main() -> Void {
+    let record = TextRecord(Concat(" heap", " text "));
+    Extract(record);
+}

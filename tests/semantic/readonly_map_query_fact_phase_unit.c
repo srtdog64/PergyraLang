@@ -602,6 +602,7 @@ static void checked_input_reader(const char *source, bool result_not_fresh)
     call->data.call.arg_count = arity == 1 ? 0 : 1;
     CHECK(!semantic_param_publication_local_call(ctx, call, 0));
     call->data.call.arg_count = arity;
+    CHECK(!semantic_param_publication_local_call(ctx, call, arity));
     ASTNode *argument = ast_call_argument(call, 0);
     uint32_t id = argument->stable_id;
     argument->stable_id = 0;
@@ -2758,8 +2759,78 @@ static void checked_static_string_backing(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_empty_array_no_output(void)
+{
+    Lexer *lexer = lexer_create("func Inspect(ref text:String)->Bool{let rows:Array<Int> = [];return true;}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    CHECK(type_check_program(program, ctx));
+    ASTNode *decl = ast_program_statement(program, 0);
+    ASTNode *literal = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
+    FunctionParamFlowProgramPointIndex *index = NULL, *rechecked = NULL;
+    (void)function_param_flow_summary_for_param(ctx, decl, 0);
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+    PublishedNode *published = NULL;
+    FunctionParamPublicationStore *store = ctx->function_param_publications;
+    for (size_t i = 0; store != NULL && i < store->node_capacity; i++)
+        if (store->nodes[i].node == literal) published = &store->nodes[i];
+    CHECK(index != NULL && published != NULL);
+    if (index != NULL && published != NULL) {
+        CHECK(!index->mutable_output_required);
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        CHECK(!function_param_flow_mutable_output_required(ctx, decl, index, literal));
+        PublishedNode saved = *published;
+        uint32_t program_id = program->stable_id, literal_id = literal->stable_id;
+        ASTNodeType shape = literal->type;
+        for (unsigned fault = 0; fault < 9; fault++) {
+            if (fault == 0) published->value_present = false;
+            else if (fault == 1) published->value_shape = AST_NUMBER;
+            else if (fault == 2) published->id = 0;
+            else if (fault == 3) published->node = decl;
+            else if (fault == 4) published->meta = true;
+            else if (fault == 5) program->stable_id++;
+            else if (fault == 6) literal->type = AST_TUPLE_LITERAL;
+            else if (fault == 7) literal->stable_id++;
+            else literal->data.array_literal.count = 1;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            CHECK(!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &rechecked));
+            if (fault != 6)
+                CHECK(function_param_flow_mutable_output_required(ctx, decl, index, literal));
+            *published = saved;
+            program->stable_id = program_id;
+            literal->stable_id = literal_id;
+            literal->type = shape;
+            literal->data.array_literal.count = 0;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &rechecked) && rechecked == index);
+            CHECK(!function_param_flow_mutable_output_required(ctx, decl, index, literal));
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+
+    /* A nonempty literal still takes the conservative output path even when
+     * its nested retaining call has a physical scalar result. */
+    lexer = lexer_create("extern \"C\"{func Retain(value:Int)->Int;} func Inspect(value:Int)->Bool{let rows:Array<Int> = [Retain(value)];return true;}");
+    parser = parser_create(lexer); program = parser_parse_program(parser);
+    ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    CHECK(type_check_program(program, ctx));
+    decl = ast_program_statement(program, 1);
+    index = NULL;
+    (void)function_param_flow_summary_for_param(ctx, decl, 0);
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+    CHECK(index != NULL && index->mutable_output_required);
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    checked_scalar_return_boundary("func Probe(ref text:String)->String{let rows:Array<Int> = [];return text;}", 0, false);
+}
+
 int main(void)
 {
+    checked_empty_array_no_output();
     checked_static_string_backing();
     checked_nested_call_currentness();
     checked_secure_view_call_tuple();
@@ -2872,6 +2943,8 @@ int main(void)
     checked_input_reader("struct TextRecord{ text:String } func Inspect(ref record:TextRecord)->Void{let result=Split(record.text,\"x\");}", true);
     checked_input_reader("struct TextRecord{ text:String, rows:HashMap<String,Int> } func Inspect(ref record:TextRecord)->Void{let result=MapHas(record.rows,record.text);}", false);
     checked_input_reader("struct Wrapped{value:Option<String>} func Inspect(ref record:Wrapped)->Void{let result=IsSome(record.value);}", false);
+    checked_input_reader("struct TextRecord{text:String} func Inspect(ref record:TextRecord)->Void{let result=ToInt(record.text);}", false);
+    checked_input_reader("struct TextRecord{text:String} func Inspect(ref record:TextRecord)->Void{let result=StringTrim(record.text);}", true);
     reached_producer_source("func Main()->Void{let text=CharAtN(\"abc\",1);}", false);
     reached_producer_source("func Main()->Void{let text=SubstringWithLen(\"abc\",0,1);}", false);
     checked_loop_execution_source("func Main()->Void { for i in 0..0 { Log(i); } }", false);

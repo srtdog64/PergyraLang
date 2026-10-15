@@ -91,7 +91,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Split^Array<String>^String|String",
         "StringSplit^Array<String>^String|String",
         "DirWalk^Array<String>^String",
-        "StringTrim^String^Unknown",
+        "StringTrim^String^String",
         "CharCode^Int^String|Int|Int",
         "CharAtN^String^String|Int|Int",
         "CharFromCode^Option<String>^Int",
@@ -190,45 +190,6 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
     return rows;
 }
 
-func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
-    return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
-        name == "StringLength" || name == "CharCode" || name == "Concat" ||
-        name == "Substring" || name == "CharAtN" || name == "SubstringWithLen" ||
-        name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
-        name == "StringIndexOf" || name == "StringContains" || name == "StringReplace" || name == "Split" ||
-        name == "Read" || name == "Write" || name == "ArrayLength" ||
-        name == "TextBuilderAppend" || name == "ArrayPushOwnedString";
-}
-
-func SemanticBuiltinRetentionSourceSignatureMatches(name: String, return_type: String, param_types: String) -> Bool {
-    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
-        SemanticExpressionGraphCollectionCallProtocolFromName(name);
-    if protocol.applies && protocol.family == "HashMap" {
-        let expected: Option<String> = SemanticBuiltinCollectionProtocolSignatureRow(protocol);
-        return IsSome(expected) && UnwrapOption(expected) == name + "^" + return_type + "^" + param_types;
-    }
-    if name == "Print" { return return_type == "Void" && param_types == "Unknown"; }
-    if name == "Log" { return return_type == "Unknown" && param_types == "Unknown"; }
-    if name == "CompilerArtifactWrite" { return return_type == "Bool" && param_types == "Int|String"; }
-    if name == "StringLength" { return return_type == "Int" && param_types == "String"; }
-    if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
-    if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
-    if name == "Read" { return return_type == "Unknown" && param_types == "Unknown"; }
-    if name == "Write" { return return_type == "Void" && param_types == "Unknown|Unknown"; }
-    if name == "ArrayLength" { return return_type == "Int" && param_types == "Unknown"; }
-    if name == "StringIndexOf" { return return_type == "Int" && param_types == "String|String"; }
-    if name == "StringContains" { return return_type == "Bool" && param_types == "String|String"; }
-    if name == "StringReplace" { return return_type == "String" && param_types == "String|String|String"; }
-    if name == "Split" { return return_type == "Array<String>" && param_types == "String|String"; }
-    if name == "Substring" { return return_type == "String" && param_types == "String|Int|Int"; }
-    if name == "CharAtN" { return return_type == "String" && param_types == "String|Int|Int"; }
-    if name == "SubstringWithLen" { return return_type == "String" && param_types == "String|Int|Int|Int"; }
-    if name == "SubEqualsWithLen" { return return_type == "Bool" && param_types == "String|Int|Int|Int|String"; }
-    if name == "SubIndexOfWithLen" { return return_type == "Int" && param_types == "String|Int|Int|Int|String"; }
-    if name == "TextBuilderAppend" { return return_type == "Void" && param_types == "TextBuilder|String"; }
-    if name == "ArrayPushOwnedString" { return return_type == "Void" && param_types == "Array<String>|String"; }
-    return false;
-}
 
 // Parser artifacts carry builtin member calls without a declaration syntax
 // identity. Keep the exact source-member to canonical-callable mapping here,

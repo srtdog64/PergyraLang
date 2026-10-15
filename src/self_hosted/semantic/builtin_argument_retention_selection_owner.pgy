@@ -3,6 +3,49 @@
 import "builtin_argument_retention_projection_owner.pgy";
 import "builtin_signature_owner.pgy";
 
+func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
+    return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
+        name == "StringLength" || name == "CharCode" || name == "Concat" ||
+        name == "ToInt" || name == "StringTrim" ||
+        name == "Substring" || name == "CharAtN" || name == "SubstringWithLen" ||
+        name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
+        name == "StringIndexOf" || name == "StringContains" || name == "StringReplace" || name == "Split" ||
+        name == "Read" || name == "Write" || name == "ArrayLength" ||
+        name == "TextBuilderAppend" || name == "ArrayPushOwnedString";
+}
+
+func SemanticBuiltinRetentionSourceSignatureMatches(name: String, return_type: String, param_types: String) -> Bool {
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(name);
+    if protocol.applies && protocol.family == "HashMap" {
+        let expected: Option<String> = SemanticBuiltinCollectionProtocolSignatureRow(protocol);
+        return IsSome(expected) && UnwrapOption(expected) == name + "^" + return_type + "^" + param_types;
+    }
+    if name == "Print" { return return_type == "Void" && param_types == "Unknown"; }
+    if name == "Log" { return return_type == "Unknown" && param_types == "Unknown"; }
+    if name == "CompilerArtifactWrite" { return return_type == "Bool" && param_types == "Int|String"; }
+    if name == "StringLength" { return return_type == "Int" && param_types == "String"; }
+    if name == "ToInt" { return return_type == "Int" && param_types == "String"; }
+    if name == "StringTrim" { return return_type == "String" && param_types == "String"; }
+    if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
+    if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
+    if name == "Read" { return return_type == "Unknown" && param_types == "Unknown"; }
+    if name == "Write" { return return_type == "Void" && param_types == "Unknown|Unknown"; }
+    if name == "ArrayLength" { return return_type == "Int" && param_types == "Unknown"; }
+    if name == "StringIndexOf" { return return_type == "Int" && param_types == "String|String"; }
+    if name == "StringContains" { return return_type == "Bool" && param_types == "String|String"; }
+    if name == "StringReplace" { return return_type == "String" && param_types == "String|String|String"; }
+    if name == "Split" { return return_type == "Array<String>" && param_types == "String|String"; }
+    if name == "Substring" { return return_type == "String" && param_types == "String|Int|Int"; }
+    if name == "CharAtN" { return return_type == "String" && param_types == "String|Int|Int"; }
+    if name == "SubstringWithLen" { return return_type == "String" && param_types == "String|Int|Int|Int"; }
+    if name == "SubEqualsWithLen" { return return_type == "Bool" && param_types == "String|Int|Int|Int|String"; }
+    if name == "SubIndexOfWithLen" { return return_type == "Int" && param_types == "String|Int|Int|Int|String"; }
+    if name == "TextBuilderAppend" { return return_type == "Void" && param_types == "TextBuilder|String"; }
+    if name == "ArrayPushOwnedString" { return return_type == "Void" && param_types == "Array<String>|String"; }
+    return false;
+}
+
 func SemanticBuiltinRetentionCollectionContractKnown(name: String) -> Bool {
     let identity: Option<String> = SemanticBuiltinArgumentRetentionIdentityForSourceName(name);
     let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
@@ -24,10 +67,12 @@ func SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
     if !signatures.ok ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
         !SemanticBuiltinArgumentRetentionProjectionReady() { return -1; }
+    let retention_count: Int = SemanticBuiltinArgumentRetentionCount();
+    if retention_count < 1 || retention_count > 31 { return -1; }
     let selected_mask: Int = 0;
     let selected_bit: Int = 1;
     let retention_row: Int = 0;
-    while retention_row < SemanticBuiltinArgumentRetentionCount() {
+    while retention_row < retention_count {
         let retention: SemanticBuiltinArgumentRetentionRow =
             SemanticBuiltinArgumentRetentionRowAt(retention_row);
         if !retention.valid || retention.source_name == "" ||
@@ -51,7 +96,7 @@ func SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
             selected_mask = selected_mask + selected_bit;
         }
         retention_row = retention_row + 1;
-        selected_bit = selected_bit * 2;
+        if retention_row < retention_count { selected_bit = selected_bit * 2; }
     }
     return selected_mask;
 }

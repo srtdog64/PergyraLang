@@ -1,0 +1,2 @@
+func StringTrim(text: String) -> String { return text; }
+func Main() -> Void { Log(StringTrim("text")); }

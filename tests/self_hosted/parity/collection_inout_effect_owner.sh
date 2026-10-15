@@ -1175,6 +1175,24 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=125; mutation<=130; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" \
+            "$FIXTURES/builtin_retention_string_length_positive.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
+    for reader in trim toint; do
+        timeout 30 "$WORK/$backend-identity.exe" \
+            "$ROOT_DIR/tests/cases/function_param_flow_summary/stdlib_${reader}_shadow_invalid.pgy" 131 \
+            >"$WORK/$backend-$reader-shadow.raw" 2>"$WORK/$backend-$reader-shadow.err"
+        tr -d '\r' <"$WORK/$backend-$reader-shadow.raw" >"$WORK/$backend-$reader-shadow.run"
+        [[ ! -s "$WORK/$backend-$reader-shadow.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-$reader-shadow.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" \
         "$FIXTURES/inout_index_string_observer_positive.pgy" 119 \
         >"$WORK/$backend-mutation-119.raw" 2>"$WORK/$backend-mutation-119.err"

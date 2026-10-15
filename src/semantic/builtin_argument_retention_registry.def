@@ -47,3 +47,5 @@ PGY_STDLIB_ARGUMENT_RETENTION(ARRAY_LENGTH, "ArrayLength", 0, PGY_REGION_RETENTI
 /* Option predicates inspect only the tag; they neither publish the payload nor
  * retain its backing. Constructor and unwrap relations remain separate. */
 PGY_STDLIB_ARGUMENT_RETENTION(IS_SOME, "IsSome", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 1)
+PGY_STDLIB_ARGUMENT_RETENTION(TO_INT, "ToInt", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 1)
+PGY_STDLIB_ARGUMENT_RETENTION(STRING_TRIM, "StringTrim", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL, 1)

@@ -51,8 +51,16 @@ static void test_retention_summary_owner(void)
               (uint32_t)BUILTIN_PRINT, 1, &kind)
           && kind == PGY_REGION_RETENTION_UNKNOWN,
           "non-borrowed Print argument fails closed");
-    CHECK(!semantic_region_retention_summary_for_builtin(
+    CHECK(semantic_region_retention_summary_for_builtin(
               (uint32_t)BUILTIN_WRITE, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "Write borrows its receiver, not its stored payload");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_WRITE, 1, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "Write payload retention is not a receiver permission");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_NOT_BUILTIN, 0, &kind)
           && kind == PGY_REGION_RETENTION_UNKNOWN,
           "unknown builtin retention fails closed");
     CHECK(semantic_region_retention_summary_for_builtin(

@@ -9,7 +9,7 @@ struct SemanticBuiltinArgumentRetentionRow {
     any_argument: Bool;
 }
 
-func SemanticBuiltinArgumentRetentionCount() -> Int { return 29; }
+func SemanticBuiltinArgumentRetentionCount() -> Int { return 31; }
 
 func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumentRetentionRow {
     if index == 0 { return SemanticBuiltinArgumentRetentionRow(true, "PRINT", "Print", 0, false); }
@@ -41,6 +41,8 @@ func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumen
     if index == 26 { return SemanticBuiltinArgumentRetentionRow(true, "MAP_REMOVE", "MapRemove", 1, false); }
     if index == 27 { return SemanticBuiltinArgumentRetentionRow(true, "ARRAY_LENGTH", "ArrayLength", 0, false); }
     if index == 28 { return SemanticBuiltinArgumentRetentionRow(true, "IS_SOME", "IsSome", 0, false); }
+    if index == 29 { return SemanticBuiltinArgumentRetentionRow(true, "TO_INT", "ToInt", 0, false); }
+    if index == 30 { return SemanticBuiltinArgumentRetentionRow(true, "STRING_TRIM", "StringTrim", 0, false); }
     return SemanticBuiltinArgumentRetentionRow(false, "", "", -1, false);
 }
 

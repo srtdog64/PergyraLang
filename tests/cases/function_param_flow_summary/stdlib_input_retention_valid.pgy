@@ -1,0 +1,14 @@
+struct TextRecord { text: String; }
+func Parse(ref record: TextRecord) -> Int { return ToInt(record.text); }
+func Inspect(ref record: TextRecord) -> Int {
+    let trimmed = StringTrim(record.text);
+    return StringLength(trimmed);
+}
+func Main() -> Void {
+    let record = TextRecord(Concat(" 12", " "));
+    Log(Parse(record));
+    Log(Inspect(record));
+    Log(ToInt("not a number"));
+    Log(ToInt("2147483648"));
+    Log(StringTrim("\t \r\n"));
+}

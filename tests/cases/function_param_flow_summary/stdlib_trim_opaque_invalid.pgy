@@ -1,0 +1,7 @@
+struct TextRecord { text: String; }
+extern "C" { func OpaqueTrim(text: String) -> String; }
+func Inspect(ref record: TextRecord) -> Int { return StringLength(OpaqueTrim(record.text)); }
+func Main() -> Void {
+    let record = TextRecord(Concat(" heap", " text "));
+    Log(Inspect(record));
+}

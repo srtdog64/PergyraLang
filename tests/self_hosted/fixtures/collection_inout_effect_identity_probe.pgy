@@ -14,6 +14,42 @@ func Main() -> Void with caps env, io_read {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if mutation == 131 { Log(!analysis.signatures.ok); return; }
+    if mutation >= 125 && mutation <= 130 {
+        let tables: SemanticAstExpressionFunctionTableFacts =
+            SemanticAstExpressionFunctionTableFactsFromArtifact(
+                artifact, analysis.signatures, analysis.constructors, analysis.enums);
+        let row: Int = 0;
+        while row < ArrayLength(tables.names) {
+            if tables.names[row] == "ToInt" {
+                if mutation == 126 { tables.returns[row] = "String"; }
+                if mutation == 128 { tables.params[row] = "String|String"; }
+            }
+            if tables.names[row] == "StringTrim" {
+                if mutation == 127 { tables.params[row] = "Unknown"; }
+                if mutation == 129 { tables.names[row] = "UserStringTrim"; }
+                if mutation == 130 { tables.returns[row] = "Int"; }
+            }
+            row = row + 1;
+        }
+        let selection: Int = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
+            analysis.signatures, tables);
+        if mutation != 125 { Log(selection < 0); return; }
+        let parsed: Bool = false;
+        let trimmed: Bool = false;
+        let remaining: Int = selection;
+        row = 0;
+        while row < SemanticBuiltinArgumentRetentionCount() {
+            let retention: SemanticBuiltinArgumentRetentionRow =
+                SemanticBuiltinArgumentRetentionRowAt(row);
+            if retention.source_name == "ToInt" { parsed = remaining % 2 == 1; }
+            if retention.source_name == "StringTrim" { trimmed = remaining % 2 == 1; }
+            remaining = remaining / 2;
+            row = row + 1;
+        }
+        Log(SemanticBuiltinArgumentRetentionProjectionReady() && selection >= 0 && parsed && trimmed);
+        return;
+    }
     if mutation == 119 {
         let admitted: SemanticAstBodyTypeBundle =
             SemanticAstBodyTypeBundleFromAdmittedAnalysis(artifact, analysis);

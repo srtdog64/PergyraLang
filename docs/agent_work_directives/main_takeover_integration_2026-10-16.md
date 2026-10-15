@@ -141,6 +141,72 @@ targets remain conservative. Add direct owner-level negatives; CLI admission
 alone is not evidence of an escape. Both repairs feed the same unchanged
 canonical and original positive/negative/work-budget integration gate.
 
+### Complete SCC census after `b9beae91e`
+
+Scratch-only exhaustive traversal observes 55 exact reached routines and 2090
+nodes, with 15 false premises and no incomplete row: ToInt input5, StringTrim
+input1, three ArrayPush calls' receiver/value6, and empty literal3. Every
+call-target/header and local-assignment premise passes. The original full
+verdict remains work4096/exit1. Receipt: `a-scc-census.log`; source and binary
+were restored byte-for-byte. Do not infer further causes from the error cascade.
+
+Selected first slice, behind the existing owners, not separate implementation
+tracks: exact ToInt/StringTrim input retention rows (not result freshness) and
+current typed empty-literal purity. Measure the unchanged canonical with just
+these facts before deciding whether private local array precision is necessary.
+Empty literals alone contain no evaluated element or retained backing; keep
+nonempty construction conservative, with changed-count/identity negatives.
+ArrayPush retains its value and MUST NOT get a blanket no-retain row. Before
+any private-array repair, resolve whether the current storage/exclusivity owner proves
+the receiver has not escaped or acquired an alias. An EMPTY_LITERAL origin or
+an effect receipt emitted after a diagnostic does not by itself prove this.
+Preserve element-to-return/output origins and all CALL/CHANNEL/drop negatives.
+Scopes: B existing retention registry/projection and conversion fixtures; C
+selector/claim empty-literal branch and existing phase unit; A read-only local
+storage/effect producer-to-last-consumer proof survey until its unknown is
+resolved. Root integrates and runs the shared original canonical/work guards,
+query C/LLVM and bootstrap/install gates. No larger work/time/memory budgets.
+Private ArrayPush precision is explicitly DEFERRED until that measurement:
+CALL suppression without carrying the inserted value's RETURN/output origins
+is unsound, and current exclusivity flags alone do not prove nonretention.
+
+The B/C-only measurement is now observed, not hypothetical: phase4105/0,
+canonical exit1 in10.93s/621612KiB. A's exhaustive repeat has55 routines,
+2090 nodes, exactly6 false premises (three ordinary ArrayPush calls, receiver
+and value), incomplete0. Work4096 is58 evaluations+2404 backing+1634 graph;
+ToInt/StringTrim/empty literals now pass. Receipts: `bc-canonical`,
+`a-bc-demand`, `a-bc-census` in `/root/pgy-main-20261016.*.log`.
+Select the private-local mutation slice only across the complete existing
+publication -> selector/closed-call graph -> slot escape -> backing origins ->
+returned/output relation -> evaluator chain. It must distinguish a checked
+fresh local receiver from an alias/formal/escaped receiver, with exact current
+call/binding/storage facts and the entire no-external-output graph. Do not
+suppress CALL in isolation: inserted values returned through an array or a
+nominal wrapper, stored in an output, or sent on a channel keep those effects.
+Missing/stale evidence stays conservative. A owns this existing native chain;
+no new fact family, broader builtin grant or source workaround is selected.
+
+Independent b9 review also falsifies a separate last-consumer claim on this
+same ownership path: RETURN-only ref String loans can reach caller-owned Slot
+Write or inout String storage from a retiring local record. Ordinary read/log
+loans and static literals must remain valid. Root and B first map an existing
+owner repair: carry the exact returned loan's actual backing through locals
+and wrappers, then discharge the final storage obligation after publication
+and summaries are sealed. An empty formal-origin bitset is not proof of an
+independent local lifetime. Avoid an all-local dense origin matrix on every
+routine; settle the demand and lifetime representation before editing. A and
+B may not concurrently edit shared publication/backing owners. Four frozen
+analyze-only falsifiers and the valid controls are in
+`.tmp/redteam-b9beae91e-20261016/`; no unsafe runtime execution is allowed.
+
+B/C narrow acceptance: phase4105/0; summary behavior including both C/LLVM
+reader/Trim-return runtime cases and original4096/4097 controls PASS10.18s;
+retention registry/region behavior and component/generator checks PASS11.86s.
+Trim-return is a valid independent-result path, not a fabricated negative.
+The old region probe now distinguishes borrowed Write receiver from retained
+payload and an unknown builtin. Self-host identity parity and the full
+canonical/bootstrap/installed chain remain OPEN; these receipts do not close P0.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

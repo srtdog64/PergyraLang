@@ -1,0 +1,6 @@
+struct TextRecord { text: String; }
+func Extract(ref record: TextRecord) -> String { return StringTrim(record.text); }
+func Main() -> Void {
+    let record = TextRecord(Concat(" heap", " text "));
+    Log(Extract(record));
+}

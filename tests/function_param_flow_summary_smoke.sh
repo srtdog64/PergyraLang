@@ -33,6 +33,10 @@ env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
 env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
+    ("stdlib_input_retention_valid", True),
+    ("stdlib_trim_result_return_valid", True),
+    ("stdlib_trim_result_retain_invalid", False),
+    ("stdlib_trim_opaque_invalid", False),
     ("physical_return_default_string_valid", True),
     ("physical_return_default_record_valid", True),
     ("physical_return_opaque_invalid", False),
@@ -93,6 +97,41 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
+for name, code, cause in (
+    ("stdlib_trim_arity_invalid", "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch"),
+    ("stdlib_toint_arity_invalid", "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch"),
+    ("stdlib_trim_shadow_invalid", "PGY_SEM_REDECLARATION", "semantic:function:builtin_name_reserved"),
+    ("stdlib_toint_shadow_invalid", "PGY_SEM_REDECLARATION", "semantic:function:builtin_name_reserved"),
+):
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+    output = (checked.stdout + checked.stderr).decode(errors="replace")
+    diagnostics = json.loads(output)
+    errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"]
+    if checked.returncode != 1 or '"pgy.mir.v1"' in output or not any(
+            row.get("code") == code and row.get("cause_ir") == cause for row in errors):
+        raise SystemExit(f"stdlib identity/arity negative {name} lost {code}/{cause}")
+runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
+for name, expected in (
+    ("stdlib_input_retention_valid", "12\n2\n0\n-2147483648\n\n"),
+    ("stdlib_trim_result_return_valid", "heap text\n"),
+):
+    for backend in ("c", "llvm"):
+        executable = runtime_dir / (name + "-" + backend + ".exe")
+        source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+        compiled = subprocess.run(
+            [pgy, "--native-pipeline", "--backend=" + backend, "--opt=dev", str(source), "-o", str(executable)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60.0, check=False)
+        if compiled.returncode != 0:
+            sys.stderr.buffer.write(compiled.stderr)
+            raise SystemExit(f"stdlib input reader {name} failed to compile for {backend}")
+        observed = subprocess.run([str(executable)], stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, timeout=10.0, check=False)
+        if observed.returncode != 0 or observed.stderr or observed.stdout.decode().replace("\r\n", "\n") != expected:
+            raise SystemExit(f"stdlib input reader {name} runtime mismatch for {backend}: {observed.stdout!r}")
+print("[function-param-flow-summary] stdlib input retention C/LLVM and identity/arity controls: PASS")
 try:
     run = subprocess.run(
         [pgy, "--native-pipeline", "--hir", fixture],

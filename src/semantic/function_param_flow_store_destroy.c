@@ -183,6 +183,12 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
             (execution_present && row->reachable != reachable)) return false;
         if (execution_present && !reachable) continue;
         if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
+        if (row->shape == AST_ARRAY_LITERAL && row->child_count == 0) {
+            /* Replay the same current typed premise as the no-output selector.
+             * Child count/identity above seal the absence of evaluations. */
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
+            if (!value.ok || value.meta) return false;
+        }
         if (row->shape == AST_CALL) {
             if (!semantic_param_publication_checked_call(ctx, row->node)) return false;
             bool depends = false, retains = false;
