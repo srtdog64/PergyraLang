@@ -1,9 +1,24 @@
 # Current Work Handoff
 
-Updated: 2026-10-14 KST (Asia/Seoul). Navigation only. Current source, the
+Updated: 2026-10-16 KST (Asia/Seoul). Navigation only. Current source, the
 SoT registry, admitted contracts, and executable gates override this note.
 
-## Active self-host context — cleanup integrated; bootstrap ownership remains RED
+## Active self-host context — P0 v16 lane handed to GPT; driver fixed point green on the branch
+
+Branch `claude/p0-v16` (worktree `C:\Users\user\pgy-wt\perf`, head
+`3cc0ecc47`, base `origin/main` `571ae8c3a`, not pushed). At `b8e66a387`, a
+fresh Linux clone passed the codegen bootstrap, the installed-driver build,
+the carrier and round-trip gates and the driver fixed point
+(`gen2 == gen3`, 219995 lines). The next CI target failed on two stale
+probes, fixed in `dcf4cac76`. `3cc0ecc47` is an unverified memory change:
+the DRV-2 consumer peaked at 16.3 GB, against a 16 GB CI runner.
+
+Resume from
+[`p0_v16_handoff_claude_to_gpt_2026-10-16.md`](agent_work_directives/p0_v16_handoff_claude_to_gpt_2026-10-16.md),
+which has the evidence, the ordered next steps and the methods. The
+commit-by-commit record is in the V1 directive's "P0 takeover" section.
+
+## Previous active card — cleanup integrated; bootstrap ownership remained RED (2026-10-14)
 
 Implementation base `c08dfc6e9f6bcfd88163a2de35e232126a32621c` is on main
 and remote. Cleanup commits13d93fe59/95262d972/c08dfc6e9 were already pushed;
