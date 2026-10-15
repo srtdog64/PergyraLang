@@ -56,6 +56,8 @@ paired = (
     ("return_loan_mutated_literal_opaque_inout_invalid", False),
     ("return_loan_mutated_literal_assignment_invalid", False),
     ("return_loan_mutated_literal_bodyful_inout_invalid", False),
+    ("return_loan_using_alias_opaque_inout_invalid", False),
+    ("return_loan_ordinary_copy_opaque_inout_valid", True),
     ("return_loan_literal_slot_valid", True),
     ("return_loan_read_static_local_valid", True),
     ("direct_ref_string_retaining_literal_valid", True),

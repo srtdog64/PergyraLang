@@ -285,6 +285,47 @@ A has the sole WSL lease for one scratch warm-demand measurement, then must
 restore all source/objects/native bytes. Root holds publication/bootstrap;
 the next action is the reached failure's owner/cost, not another permission.
 
+The next warm primary is `EmitStmtList` param5 at
+`CodegenSemanticTaggedEnumVariantTagFromGraph`:4096=183 evaluations+3475 backing
++438 graph, with respective unique counts183/2566/275 (3024 total).
+`RuntimeCallCName` repeats679 backing nodes in epochs1/2. Closed-set proof
+reuse is observed22 times, current replay85, refusal0, union147; this is the
+old cold key2669, not evidence for another builtin exemption. The next bounded
+repair separates final output/expression-cache bit growth from changes to
+the actual iterative inputs, local binding origins/destinations. Keep OR
+merges, binding-triggered convergence, recursive pending/building and pass
+currency unchanged. Final effects/outputs are not inputs to expression
+evaluation. Falsifiers must include late binding growth/loops, output-only
+growth, recursive pending, all escapes and the original demand controls.
+
+Adjacent alias investigation also reaches the same String mutation owner:
+the `dd3d42418` native admits `using held as alias; Fill(alias)` followed by
+storing `Echo(held)`. C's alias emitter substitutes the original place; a new
+alias declaration ID is not a new mutation authority. Repair by resolving
+only admitted/current LET `local_alias` claims to their original storage root,
+on both source and mutation comparisons. Ordinary value-copy declarations
+stop the walk and stay separate. Missing/stale/cyclic alias facts fail closed;
+do not infer pin/view-call authority or introduce a name lookup/new owner.
+Root analyze-only receipt `/root/pgy-alias-dd3d42418-20261016.glo2BE`: using
+alias rc0/MIR30239 (falsifier), ordinary copy rc0/MIR30237 (positive), field
+alias rc1/MIR0 (existing conservative boundary). B edits this facet first;
+A's convergence edit waits for B's source freeze. C owns paired fixtures;
+root owns stale-fact/whole-chain execution. Unsafe extern inputs are never run.
+
+Root repeated the combined alias/convergence implementation: phase4285/0,
+including alias identity/flag/initializer corruption and restored-query checks;
+output-only, loop-backward origins and a legal nested using-output loop preserve
+output/CALL relations. The proposed Array loop was rejected by the existing
+tracked-shallow-assignment guard and was replaced with the legal alias case,
+not made admissible. Summary/recursive/4096/4097 controls PASS8.60s;
+readonly-map24/58 plus HIR/RIR/MIR/AIR PASS21.76s; component/registry PASS9.74s.
+Receipts: `binding-unit-final`, `binding-summary-final`, `binding-chain`,
+`binding-component`. Full canonical still RED11.11s/719860KiB/18410 errors/16
+warnings, primary now line9 rather than71. Receipt `binding-canonical`.
+These are coherent repairs, not bootstrap acceptance. Next is the same3188-key
+cold inventory delta plus one warm measurement to classify the remaining set;
+do not extrapolate completion from the first diagnostic's movement.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

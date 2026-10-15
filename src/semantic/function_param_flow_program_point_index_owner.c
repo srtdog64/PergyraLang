@@ -230,12 +230,17 @@ typedef struct {
     size_t loan_work;
     bool loan_seed_seen;
 } ReturnedBacking;
-static void backing_merge(ReturnedBacking *state, uint64_t *into, const uint64_t *from)
+/* Only binding origins/destinations feed a later traversal. Expression caches
+ * flow child-to-parent in this traversal; final outputs are not origin inputs.
+ * Their growth must not independently schedule another whole-body traversal. */
+static bool backing_merge(ReturnedBacking *state, uint64_t *into, const uint64_t *from)
 {
+    bool grew = false;
     for (size_t w = 0; w < state->fact->words; w++) {
         uint64_t next = into[w] | from[w];
-        state->fact->changed |= next != into[w]; into[w] = next;
+        grew |= next != into[w]; into[w] = next;
     }
+    return grew;
 }
 static void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect)
 {
@@ -308,7 +313,7 @@ static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_
     for (size_t p = 0; p < state->fact->count; p++) if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0)
         backing_merge(state, &state->fact->outputs[p * state->fact->words], row->destinations);
     if (output) backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
-    else if (row->local) backing_merge(state, row->origins, origins);
+    else if (row->local) state->fact->changed |= backing_merge(state, row->origins, origins);
     else { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; }
 }
 static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id)
@@ -318,7 +323,7 @@ static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, ui
     if (source == NULL) return;
     uint64_t *destinations = source->destinations;
     FunctionParamFlowBackingBinding *destination = backing_binding(state, id, true);
-    if (destination != NULL) backing_merge(state, destination->destinations, destinations);
+    if (destination != NULL) state->fact->changed |= backing_merge(state, destination->destinations, destinations);
 }
 static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
@@ -407,7 +412,7 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
         backing_destination_alias(state, ast_let_initializer(node), ast_node_stable_id(node));
         const uint64_t *bits = backing_origin(state, ast_let_initializer(node));
         local = backing_binding(state, ast_node_stable_id(node), false);
-        if (local != NULL && bits != NULL) backing_merge(state, local->origins, bits);
+        if (local != NULL && bits != NULL) fact->changed |= backing_merge(state, local->origins, bits);
         backing_consumers(state, ast_let_initializer(node)); break;
     }
     case AST_ASSIGNMENT: {
@@ -573,6 +578,34 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
     return fact->complete && !fact->pending;
 }
 
+static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowIndexClaims *claims, ASTNode *caller, const ASTNode *place, const ASTNode **root)
+{
+    if (claims == NULL || !slot_call_argument_storage_root(place, root)) return false;
+    for (size_t step = 0; *root != NULL && step <= claims->count; step++) {
+        uint32_t binding = semantic_param_publication_binding(store->ctx, *root);
+        if (binding == 0) return false;
+        FunctionParamFlowIndexClaim *declaration = NULL;
+        for (size_t c = 0; c < claims->count; c++)
+            if (claims->rows[c].id == binding) { declaration = &claims->rows[c]; break; }
+        if (declaration == NULL) {
+            for (size_t p = 0; p < ast_func_param_count(caller); p++)
+                if (binding == ast_func_param_stable_id(ast_func_param(caller, p))) return true;
+            return false;
+        }
+        if (declaration->shape != AST_LET_DECL || declaration->node == NULL ||
+            declaration->node->type != AST_LET_DECL || ast_node_stable_id(declaration->node) != binding ||
+            declaration->local_alias != ast_let_is_alias(declaration->node)) return false;
+        if (!declaration->local_alias) return true;
+        ASTNode *initializer = ast_let_initializer(declaration->node);
+        if (initializer == NULL || declaration->child_count != 2 || declaration->children[0] != initializer ||
+            declaration->child_ids[0] == 0 || declaration->child_ids[0] != ast_node_stable_id(initializer) ||
+            !semantic_param_publication_value(store->ctx, initializer).ok ||
+            !slot_call_argument_storage_root(initializer, root) || *root == NULL) return false;
+    }
+    return *root == NULL;
+}
+
 static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
     const PendingRefCall *loan, unsigned effects)
@@ -589,6 +622,11 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
     for (size_t at = 0; at < count && admitted; at++) {
         ASTNode *value = queue[at];
         if (!semantic_param_publication_value(store->ctx, value).ok) { admitted = false; break; }
+        if (value->type == AST_IDENTIFIER) {
+            const ASTNode *root = NULL;
+            if (!returned_loan_storage_root(store, claims, loan->caller, value, &root) || root == NULL) { admitted = false; break; }
+            value = (ASTNode *)root;
+        }
         if (semantic_param_publication_value_has_static_string_backing(store->ctx, value)) continue;
         ASTNode *dependency = NULL;
         if (value->type == AST_MEMBER_ACCESS) dependency = ast_member_object(value);
@@ -611,22 +649,23 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 ASTNode *node = claims->rows[c].node;
                 if (node->type == AST_ASSIGNMENT) {
                     const ASTNode *target = NULL;
-                    if (!slot_call_argument_storage_root(ast_assignment_target(node), &target) ||
+                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_assignment_target(node), &target) ||
                         (target != NULL && semantic_param_publication_binding(store->ctx, target) == binding)) {
                         admitted = false; break;
                     }
                 }
                 if (node->type == AST_CALL) for (size_t p = 0; p < ast_call_arg_count(node); p++) {
-                    const ASTNode *root = NULL;
-                    if (!slot_call_argument_storage_root(ast_call_argument(node, p), &root)) { admitted = false; break; }
-                    if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
                     if (!semantic_param_publication_checked_argument(store->ctx, node, p)) { admitted = false; break; }
+                    if (semantic_param_publication_string_argument_read_only(store->ctx, node, p) ||
+                        semantic_typed_map_query_receiver_read(store->ctx, node, p)) continue;
+                    const ASTNode *root = NULL;
+                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_call_argument(node, p), &root)) { admitted = false; break; }
+                    if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
                     ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
                     if (callee != NULL) {
                         if (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF ||
                             (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0) admitted = false;
-                    } else if (!semantic_param_publication_string_argument_read_only(store->ctx, node, p) &&
-                        !semantic_typed_map_query_receiver_read(store->ctx, node, p)) admitted = false;
+                    } else admitted = false;
                 }
             }
             if (dependency == NULL) admitted = false;

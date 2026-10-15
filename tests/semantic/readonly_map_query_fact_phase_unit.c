@@ -2926,6 +2926,93 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_backing_binding_growth_case(const char *source)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    unsigned mask = function_param_flow_summary_for_param(ctx, decl, 1);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+    if (store == NULL || index == NULL) goto cleanup;
+    size_t count = ast_func_param_count(decl);
+    bool *outputs = calloc(count, sizeof(*outputs));
+    CHECK(outputs != NULL);
+    if (outputs == NULL) goto cleanup;
+    unsigned effects = 0;
+    bool pending = true;
+    CHECK(function_param_flow_returned_backing_effects(store, decl, 1, &effects, outputs, count, &pending, false));
+    CHECK(!pending && outputs[0]);
+    CHECK((effects & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    CHECK(index->backing != NULL && index->backing->epoch != 0);
+    free(outputs);
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_backing_binding_growth(void)
+{
+    checked_backing_binding_growth_case(
+        "func Probe(inout output:String,text:String)->Bool{output=text;return true;}");
+    /* A later assignment grows a binding already read earlier in the loop. */
+    checked_backing_binding_growth_case(
+        "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";var second:String=\"\";while flag{first=second;second=text;}output=first;return true;}");
+    checked_backing_binding_growth_case(
+        "func Probe(inout output:String,text:String,flag:Bool)->Bool{using output as first;while flag{using first as second;second=text;}return true;}");
+}
+
+static void checked_return_loan_alias_currency(void)
+{
+    Lexer *lexer = lexer_create("func Echo(ref text:String)->String{return text;}func Save(ref output:Slot<String>)->Void{let held=\"static\";using held as first;using first as second;Write(output,Echo(second));}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (!admitted) goto cleanup;
+    SemanticParamPublicationView view;
+    CHECK(semantic_param_publication_admitted_view(ctx, &view));
+    CHECK(view.call_count == 1);
+    if (view.call_count != 1) goto cleanup;
+    PendingRefCall *row = &ctx->function_param_publications->calls[0];
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, row->caller, &index));
+    if (index == NULL) goto cleanup;
+    ASTNode *alias = ast_block_statement(ast_func_body(row->caller), 1);
+    FunctionParamFlowIndexClaim *claim = NULL;
+    for (size_t c = 0; c < index->claims->count; c++)
+        if (index->claims->rows[c].node == alias) claim = &index->claims->rows[c];
+    CHECK(claim != NULL && claim->local_alias);
+    if (claim == NULL) goto cleanup;
+    ASTNode *escape = NULL;
+    CHECK(function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+    alias->data.let_decl.is_alias = false;
+    CHECK(!function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+    alias->data.let_decl.is_alias = true;
+    CHECK(function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+    claim->local_alias = false;
+    CHECK(!function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+    claim->local_alias = true;
+    CHECK(function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+    claim->child_ids[0]++;
+    CHECK(!function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+    claim->child_ids[0]--;
+    CHECK(function_param_flow_return_loan_admitted(ctx, &view, row, &escape));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_private_local_array_push(void)
 {
     Lexer *lexer = lexer_create("func Build(input:Array<String>)->Array<String>{let owned_rows:Array<String> = [];ArrayPush(owned_rows,input[0]);return owned_rows;}");
@@ -3099,6 +3186,8 @@ int main(void)
     checked_failed_no_store_selection_epoch();
     checked_admitted_no_store_proof();
     checked_return_loan_currency();
+    checked_return_loan_alias_currency();
+    checked_backing_binding_growth();
     checked_private_array_push_opaque_boundaries();
     checked_private_local_array_push();
     checked_empty_array_no_output();
