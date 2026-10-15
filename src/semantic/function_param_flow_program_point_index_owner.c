@@ -522,11 +522,11 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
     }
     /* Heap-owned fact/root rows survive recursive index and entry growth. */
     FunctionParamFlowBackingFact *fact = index->backing;
+    ASTNode **roots = index->dependency_roots;
+    size_t count = index->dependency_root_count;
     ReturnedBacking state = {.store = store, .lookup = {store->ctx, store->program_root}, .decl = decl, .fact = fact};
     if (!function_param_flow_backing_rows_current(store, decl)) return false;
     if (fact->building) { *pending = true; return false; }
-    ASTNode **roots = index->dependency_roots;
-    size_t count = index->dependency_root_count;
     if (fact->epoch == 0 || (fact->pending && fact->evaluation_pass != store->fixed_point_passes + 1)) {
         fact->building = true; fact->complete = true; fact->pending = false;
         fact->evaluation_pass = store->fixed_point_passes + 1;
@@ -545,21 +545,20 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
 }
 
 bool function_param_flow_no_store_call_append(SemanticContext *ctx,
-    FunctionParamFlowProgramPointIndex *index, ASTNode *call, size_t ordinal)
+    FunctionParamFlowProgramPointIndex *index, ASTNode *call)
 {
-    ASTNode *callee = semantic_param_publication_callee(ctx, call, ordinal);
-    if (callee == NULL || !semantic_param_publication_value(ctx, ast_call_argument(call, ordinal)).ok ||
+    ASTNode *callee = semantic_param_publication_direct_callee(ctx, call);
+    if (callee == NULL || ast_call_arg_count(call) != ast_func_param_count(callee) ||
         !semantic_param_publication_routine_no_output_header_ready(ctx, callee)) return false;
+    for (size_t p = 0; p < ast_call_arg_count(call); p++)
+        if (!semantic_param_publication_value(ctx, ast_call_argument(call, p)).ok) return false;
     size_t count = index->no_store_call_count;
+    for (size_t e = 0; e < count; e++) if (index->no_store_calls[e] == call) return true;
     if (count == SIZE_MAX / sizeof(ASTNode *)) return false;
     ASTNode **calls = realloc(index->no_store_calls, (count + 1) * sizeof(*calls));
     if (calls == NULL) return false;
     index->no_store_calls = calls;
-    size_t *ordinals = realloc(index->no_store_ordinals, (count + 1) * sizeof(*ordinals));
-    if (ordinals == NULL) return false;
-    index->no_store_ordinals = ordinals;
     calls[count] = call;
-    ordinals[count] = ordinal;
     index->no_store_call_count++;
     return true;
 }
@@ -583,10 +582,12 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
             !index->dependency_roots_ready || index->mutable_output_required) { closed = false; break; }
         if (!function_param_flow_index_roots_current(index)) { closed = false; break; }
         for (size_t e = 0; e < index->no_store_call_count; e++) {
-            ASTNode *callee = semantic_param_publication_callee(store->ctx,
-                index->no_store_calls[e], index->no_store_ordinals[e]);
-            if (callee == NULL || !semantic_param_publication_value(store->ctx,
-                ast_call_argument(index->no_store_calls[e], index->no_store_ordinals[e])).ok) { closed = false; break; }
+            ASTNode *call = index->no_store_calls[e];
+            ASTNode *callee = semantic_param_publication_direct_callee(store->ctx, call);
+            if (callee == NULL || ast_call_arg_count(call) != ast_func_param_count(callee)) { closed = false; break; }
+            for (size_t p = 0; p < ast_call_arg_count(call); p++)
+                if (!semantic_param_publication_value(store->ctx, ast_call_argument(call, p)).ok) closed = false;
+            if (!closed) break;
             size_t found = 0;
             while (found < count && queue[found] != callee) found++;
             if (found != count) continue;

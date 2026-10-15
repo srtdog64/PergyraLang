@@ -168,6 +168,7 @@ bool semantic_param_publication_local_call(const SemanticContext *ctx,
 bool semantic_param_publication_checked_argument(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_checked_call(const SemanticContext *ctx, const ASTNode *call);
+ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_callee(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_finalize(SemanticContext *ctx);

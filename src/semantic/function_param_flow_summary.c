@@ -197,20 +197,26 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
 {
     if (node == NULL) return false;
     if (!function_param_flow_index_claim_record(ctx, index, node)) return true;
+    bool reachable;
+    if (semantic_param_publication_execution(ctx, node, &reachable) && !reachable) return false;
     switch (node->type) {
     case AST_LET_DECL:
         return !function_param_flow_scalar_local_record(index, node) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
     case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
     case AST_CALL:
-        if (ast_call_arg_count(node) == 0) return true;
+        if (ast_call_arg_count(node) == 0)
+            return !function_param_flow_no_store_call_append(ctx, index, node);
         for (size_t p = 0; p < ast_call_arg_count(node); p++) {
             if (!semantic_param_publication_checked_argument(ctx, node, p)) return true;
             bool depends = false, retains = true;
             bool relation = semantic_param_publication_checked_result_relation(ctx, node, p, &depends, &retains);
-            if (!(relation && !retains) && !semantic_param_publication_argument_borrowed_for_call(ctx, node, p) &&
+            /* Physical scalars carry no backing into an output. Their argument
+             * evaluation is still traversed below, including nested stores. */
+            if (!semantic_param_publication_value_is_physical_scalar(ctx, ast_call_argument(node, p)) &&
+                !(relation && !retains) && !semantic_param_publication_argument_borrowed_for_call(ctx, node, p) &&
                 !semantic_typed_map_query_receiver_read(ctx, node, p) &&
-                !function_param_flow_no_store_call_append(ctx, index, node, p)) return true;
+                !function_param_flow_no_store_call_append(ctx, index, node)) return true;
             if (function_param_flow_mutable_output_required(ctx, decl, index, ast_call_argument(node, p))) return true;
         }
         return false;
@@ -346,7 +352,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         || program_points == NULL
         || store->entries[index].param_index >= program_points->param_count) {
         function_param_flow_fail(store, function_decl,
-            "parameter program-point index allocation failed");
+            "parameter program-point index is unavailable or stale");
         store->entries[index].mask = SLOT_PARAM_SUMMARY_ALL;
         store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
         return SLOT_PARAM_SUMMARY_ALL;

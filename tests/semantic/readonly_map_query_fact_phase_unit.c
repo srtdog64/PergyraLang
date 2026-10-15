@@ -1272,6 +1272,122 @@ static void checked_scalar_local_store(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_zero_argument_output_graph(void)
+{
+    Lexer *lexer = lexer_create("func Zero()->Int{return 0;} func Probe(ref text:String)->Bool{return StringLength(text)>Zero();}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    ASTNode *zero = ast_program_statement(program, 0);
+    ASTNode *decl = ast_program_statement(program, 1);
+    ASTNode *call = ast_binary_right(ast_return_value(ast_block_statement(ast_func_body(decl), 0)));
+    CHECK(semantic_param_publication_direct_callee(ctx, call) == zero);
+    CHECK(semantic_param_publication_callee(ctx, call, 0) == NULL);
+    SlotFunctionLookup lookup = {ctx, program};
+    CHECK((function_param_flow_summary_demand(&lookup, decl, 0) &
+        (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+    CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    uint32_t declaration = ast_call_semantic_callee_decl_id(call);
+    ASTNode *body = ast_func_body(zero), *return_type = ast_func_return_type(zero);
+    ASTNode *target = ast_call_callee(call);
+    for (unsigned fault = 0; fault < 7; fault++) {
+        if (fault == 0) ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(decl));
+        if (fault == 1) ast_call_set_semantic_callee_value_binding_id(call, 1);
+        if (fault == 2) call->data.call.arg_count = 1;
+        if (fault == 3) target->stable_id++;
+        if (fault == 4) zero->data.func_decl.body = ast_func_body(decl);
+        if (fault == 5) zero->data.func_decl.return_type = NULL;
+        if (fault == 6) ast_call_set_semantic_callee_builtin_kind(call, BUILTIN_STRING_LENGTH);
+        CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        ast_call_set_semantic_callee_decl_id(call, declaration);
+        ast_call_set_semantic_callee_value_binding_id(call, 0);
+        call->data.call.arg_count = 0;
+        if (fault == 3) target->stable_id--;
+        zero->data.func_decl.body = body;
+        zero->data.func_decl.return_type = return_type;
+        ast_call_set_semantic_callee_builtin_kind(call, BUILTIN_NOT_BUILTIN);
+        CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    }
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *value = NULL;
+    for (size_t i = 0; i < publication->node_capacity; i++)
+        if (publication->nodes[i].node == call) value = &publication->nodes[i];
+    CHECK(value != NULL && value->physical_scalar);
+    if (value != NULL) {
+        value->physical_scalar = false;
+        CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        value->physical_scalar = true;
+        CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        value->value_present = false;
+        CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        value->value_present = true;
+        CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_unclosed_output_graph(const char *source, size_t declaration)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    ASTNode *decl = ast_program_statement(program, declaration);
+    SlotFunctionLookup lookup = {ctx, program};
+    (void)function_param_flow_summary_demand(&lookup, decl, 0);
+    CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_dead_output_subtree(void)
+{
+    Lexer *lexer = lexer_create("struct Wrapped{text:String} func Inspect(text:String)->Void{return;let held=Wrapped(text);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    ASTNode *decl = ast_program_statement(program, 1);
+    ASTNode *dead = ast_block_statement(ast_func_body(decl), 1);
+    bool reachable = true;
+    CHECK(semantic_param_publication_execution(ctx, dead, &reachable) && !reachable);
+    CHECK(!semantic_param_publication_checked_call(ctx, ast_let_initializer(dead)));
+    SlotFunctionLookup lookup = {ctx, program};
+    CHECK((function_param_flow_summary_demand(&lookup, decl, 0) &
+        (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+    CHECK(index != NULL && !index->mutable_output_required);
+    CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    PublishedNode *execution = NULL;
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    for (size_t i = 0; i < publication->node_capacity; i++)
+        if (publication->nodes[i].node == dead) execution = &publication->nodes[i];
+    CHECK(execution != NULL);
+    if (execution != NULL) {
+        execution->reachable = true;
+        CHECK(!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+        CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        execution->reachable = false;
+        execution->execution_present = false;
+        CHECK(!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+        CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        execution->execution_present = true;
+        CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
+        CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_nonlocal_scalar_store(const char *source, size_t declaration)
 {
     Lexer *lexer = lexer_create(source);
@@ -2493,6 +2609,12 @@ int main(void)
     checked_no_output_header("func EchoText(text:String)->String{return text;}", 0);
     checked_no_output_header("struct Held{text:String} func EchoRecord(value:Held)->Held{return value;}", 1);
     checked_scalar_local_store();
+    checked_dead_output_subtree();
+    checked_zero_argument_output_graph();
+    checked_unclosed_output_graph("func Probe(text:String)->Bool{let line=ReadLine();return StringLength(text)>0;}", 0);
+    checked_unclosed_output_graph("extern \"C\"{func Opaque()->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque();}", 1);
+    checked_unclosed_output_graph("func Probe(text:String)->Bool{let indirect:func()->Int=()=>1;return StringLength(text)>indirect();}", 0);
+    checked_unclosed_output_graph("struct Cell{text:String} func Retain(inout output:Cell,text:String)->Int{output.text=text;return 1;} func Probe(inout output:Cell,text:String)->Bool{return StringLength(text)>Retain(output,text);}", 2);
     checked_nonlocal_scalar_store("struct Cell{text:String} func Store(cell:Cell,text:String)->Void{var alias=cell;alias.text=text;}", 1);
     checked_nonlocal_scalar_store("func SetNumber(inout destination:Int,value:Int)->Void{destination=value;}", 0);
     checked_nonlocal_scalar_store("struct Counter{count:Int} func Touch(ref text:String)->Bool{var cell=Counter(0);cell.count=StringLength(text);return cell.count>0;}", 1);

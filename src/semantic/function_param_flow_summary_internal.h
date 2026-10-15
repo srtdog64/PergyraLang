@@ -60,6 +60,7 @@ typedef struct {
     uint32_t *child_ids;
     size_t child_count;
     bool physical_assignment;
+    bool execution_present, reachable, physical_value;
     bool numeric_cast;
     char *cast_target;
     bool result_relation, result_depends, external_retains;
@@ -88,8 +89,8 @@ typedef struct
     uint32_t dependency_body_id;
     bool dependency_roots_ready;
     bool mutable_output_required;
+    /* Original call identities; zero-argument edges need no invented ordinal. */
     ASTNode **no_store_calls;
-    size_t *no_store_ordinals;
     size_t no_store_call_count;
     ASTNode **scalar_local_definitions;
     uint32_t *scalar_local_ids;
@@ -145,7 +146,7 @@ bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lo
 bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *decl,
     FunctionParamFlowProgramPointIndex *index, ASTNode *node);
 bool function_param_flow_no_store_call_append(SemanticContext *ctx,
-    FunctionParamFlowProgramPointIndex *index, ASTNode *call, size_t ordinal);
+    FunctionParamFlowProgramPointIndex *index, ASTNode *call);
 bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, ASTNode *decl);
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
 bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index);

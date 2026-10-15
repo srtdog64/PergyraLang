@@ -123,6 +123,8 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
     claims->rows = rows;
     FunctionParamFlowIndexClaim *row = &rows[claims->count++];
     *row = (FunctionParamFlowIndexClaim){.node = node, .id = ast_node_stable_id(node), .shape = node->type, .child_count = children};
+    row->execution_present = semantic_param_publication_execution(ctx, node, &row->reachable);
+    row->physical_value = semantic_param_publication_value_is_physical_scalar(ctx, node);
     row->children = children == 0 ? NULL : calloc(children, sizeof(*row->children));
     row->child_ids = children == 0 ? NULL : calloc(children, sizeof(*row->child_ids));
     if (children != 0 && (row->children == NULL || row->child_ids == NULL)) {
@@ -178,6 +180,12 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
             if (row->children[c] != function_param_flow_claim_child(row->node, c) ||
                 row->child_ids[c] != ast_node_stable_id(row->children[c])) return false;
         if (row->shape == AST_IDENTIFIER && row->binding != ast_identifier_binding_syntax_id(row->node)) return false;
+        bool reachable = false;
+        bool execution_present = semantic_param_publication_execution(ctx, row->node, &reachable);
+        if (row->execution_present != execution_present ||
+            (execution_present && row->reachable != reachable)) return false;
+        if (execution_present && !reachable) continue;
+        if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
         if (row->shape == AST_CALL) {
             if (!semantic_param_publication_checked_call(ctx, row->node)) return false;
             bool depends = false, retains = false;
@@ -325,7 +333,6 @@ function_param_flow_program_point_index_destroy(
     free(index->dependency_roots);
     free(index->dependency_root_ids);
     free(index->no_store_calls);
-    free(index->no_store_ordinals);
     free(index->scalar_local_definitions);
     free(index->scalar_local_ids);
     if (index->claims != NULL) {

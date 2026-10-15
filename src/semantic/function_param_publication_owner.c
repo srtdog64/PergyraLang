@@ -528,16 +528,22 @@ static PendingRoutine *publication_routine(FunctionParamPublicationStore *store,
     PendingRoutine *row = &store->routines[node->routine_index - 1];
     return row->id == id && row->decl == node->node && ast_node_stable_id(row->decl) == id ? row : NULL;
 }
-ASTNode *semantic_param_publication_callee(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
+ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call)
 {
-    if (!semantic_param_publication_checked_argument(ctx, call, ordinal)) return NULL;
+    if (!semantic_param_publication_checked_call(ctx, call)) return NULL;
     PublishedNode *node = publication_node(ctx->function_param_publications, call, false);
     /* Member receivers need an admitted self/argument ordinal mapping. */
     if (node == NULL || node->declaration == 0 || node->value_binding != 0 ||
         node->target == NULL || node->target->type != AST_IDENTIFIER) return NULL;
     PendingRoutine *row = publication_routine(ctx->function_param_publications, node->declaration);
-    if (row == NULL || ordinal >= row->count || !semantic_param_publication_routine_inputs_current(ctx, row->decl, true)) return NULL;
+    if (row == NULL || !semantic_param_publication_routine_inputs_current(ctx, row->decl, true)) return NULL;
     return row->decl;
+}
+ASTNode *semantic_param_publication_callee(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
+{
+    if (!semantic_param_publication_checked_argument(ctx, call, ordinal)) return NULL;
+    ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
+    return decl != NULL && ordinal < ast_func_param_count(decl) ? decl : NULL;
 }
 bool semantic_param_publication_admitted_view(const SemanticContext *ctx, SemanticParamPublicationView *view)
 {
