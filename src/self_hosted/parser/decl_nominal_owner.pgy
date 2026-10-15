@@ -17,7 +17,7 @@ func ParseNominalDecl(
     exported: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
     let i: Int = start;

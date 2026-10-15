@@ -75,8 +75,8 @@ func ParseDeclsInto(
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>, inout import_chain: Array<String>,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
-    inout script_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
+    inout script_graphs: AstExpressionGraphRows,
     inout source_locations: Array<ParserSourceLocationObservation>,
     inout script_source_locations: Array<ParserSourceLocationObservation>,
     inout out_blocks: Array<String>,
@@ -483,10 +483,7 @@ func ParseDeclsInto(
         if collect_script {
             stmt_indent = 8;
         }
-        let statement_graphs: Array<AstExpressionGraphRows> = [];
-        ParserExpressionGraphRowsBoxStart(
-            statement_graphs, AstExpressionGraphRowsEmpty()
-        );
+        let statement_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
         let stmt_block: String = "";
         if collect_script {
             stmt_block = ParseOneStmtObservedProjected(
@@ -503,11 +500,11 @@ func ParseDeclsInto(
         i = cursor_out[0];
         if collect_script {
             ArrayPush(script_blocks, stmt_block);
-            ParserExpressionGraphsAppendRowsInto(script_graphs, statement_graphs[0]);
+            ParserExpressionGraphsAppendRowsInto(script_graphs, statement_graphs);
         } else {
             ArrayPush(out_blocks, stmt_block);
             ArrayPush(out_module_paths, source_path);
-            ParserExpressionGraphsAppendRowsInto(expression_graphs, statement_graphs[0]);
+            ParserExpressionGraphsAppendRowsInto(expression_graphs, statement_graphs);
         }
     }
     return;
@@ -528,17 +525,14 @@ func ParseDecls(
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>, inout import_chain: Array<String>,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     inout source_locations: Array<ParserSourceLocationObservation>,
     inout declaration_module_paths: Array<String>
 ) -> String {
     let out_blocks: Array<String> = [];
     let script_blocks: Array<String> = [];
-    let script_graphs: Array<AstExpressionGraphRows> = [];
+    let script_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
     let script_source_locations: Array<ParserSourceLocationObservation> = [];
-    ParserExpressionGraphRowsBoxStart(
-        script_graphs, AstExpressionGraphRowsEmpty()
-    );
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
         source_path, display_root, force_export, follow_imports,
@@ -547,7 +541,7 @@ func ParseDecls(
         source_locations, script_source_locations,
         out_blocks, declaration_module_paths, script_blocks
     );
-    ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs[0]);
+    ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs);
     if ArrayLength(script_blocks) > 0 &&
         ArrayLength(script_source_locations) == 0 { Exit(1); }
     if ArrayLength(script_blocks) > 0 && ParserBlocksDeclareExplicitMain(out_blocks) {

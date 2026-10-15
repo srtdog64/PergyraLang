@@ -25,7 +25,7 @@ import "diagnostic_owner.pgy";
 // empty string only if a parse error path was reached (which Exits anyway).
 // Mutually recursive with ParseBlock for `if` and `while` bodies.
 func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
     inout owner_kind_out: Array<Int>, diagnostic_projection: ParseDiagnosticProjection) -> String {
     let i: Int = SkipWhitespaceAndCommentsWithin(content, content_extent, content_extent, start);
@@ -446,10 +446,8 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
         } else if owner_kind == TypedAstKindArrayPopStmtTag() ||
             owner_kind == TypedAstKindArrayPushStmtTag() ||
             owner_kind == TypedAstKindArraySetStmtTag() {
-            ArraySet(
-                expression_graphs, 0,
-                ParserCollectionStatementGraphsAppend(
-                    expression_graphs[0], owner_kind, expr_fact
+            expression_graphs = (ParserCollectionStatementGraphsAppend(
+                    expression_graphs, owner_kind, expr_fact
                 )
             );
         } else if owner_kind == TypedAstKindBareCallStmtTag() {
@@ -472,7 +470,7 @@ func ParseOneStmtCore(content: String, content_extent: Int, start: Int, inout cu
 // starts; nested blocks (if/while) compute their own deeper indents.
 func ParseOneStmtObservedProjected(
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
     diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
@@ -498,7 +496,7 @@ func ParseOneStmtObservedProjected(
 }
 func ParseOneStmtObserved(
     content: String, content_extent: Int, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>, location_context: ParserSourceLocationContext,
+    inout expression_graphs: AstExpressionGraphRows, location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     return ParseOneStmtObservedProjected(
@@ -511,7 +509,7 @@ func ParseOneStmt(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: AstExpressionGraphRows
 ) -> String {
     let context: ParserSourceLocationContext = ParserSourceLocationContextUnknown();
     let locations: Array<ParserSourceLocationObservation> = [];
@@ -524,7 +522,7 @@ func ParseBlockObserved(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
@@ -549,7 +547,7 @@ func ParseBlockStatementsObserved(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
@@ -588,7 +586,7 @@ func ParseBlock(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: AstExpressionGraphRows
 ) -> String {
     let context: ParserSourceLocationContext =
         ParserSourceLocationContextUnknown();

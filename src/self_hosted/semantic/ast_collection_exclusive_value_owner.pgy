@@ -243,11 +243,12 @@ func SemanticAstCollectionExclusiveClassify(
                 field_reads, copied, consumed, function_id, syntax_id, node, whole_copies, landing.sources);
             if only_copies { copy_shared = landing.fields; }
         }
-        // A copy inside a call or constructor makes the destination a second
-        // holder that keeps the place's dependencies. A plain alias, or a
-        // holder the fixed point cannot follow, shares the place instead.
-        if !only_copies && (depth == 0 || !followed) {
-            SemanticAstCollectionExclusiveRecordCopy(surfaces, locals, place, copied);
+        // A copy into a holder the fixed point follows, a plain alias or one
+        // inside a call or constructor, makes the destination a second holder
+        // that keeps the place's dependencies. A holder it cannot follow
+        // shares the place instead.
+        if !only_copies && !followed {
+            SemanticAstCollectionExclusiveRecordCopy(surfaces, locals, place, copied, syntax_id);
             return SemanticAstCollectionExclusiveShared();
         }
         let field: String = "";
@@ -256,14 +257,20 @@ func SemanticAstCollectionExclusiveClassify(
             if !IsSome(first) { return SemanticAstCollectionExclusiveShared(); }
             field = UnwrapOption(first);
         }
-        if depth > 0 {
+        if depth > 0 || !only_copies {
             SemanticAstCollectionExclusiveRecordCopyEdge(copied, root_id, field, holder,
                 SemanticAstCollectionExclusiveCopyLandingField(constructors, surfaces, syntax_id, node));
         }
     }
     // The destination of a holder holds what it holds.
     if holder > 0 && holder != root_id && followed {
-        SemanticAstCollectionExclusivePropagateCopies(copied, root_id, holder);
+        let moved_field: String = "";
+        if ArrayLength(place.chain) > 0 {
+            let moved_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);
+            if !IsSome(moved_text) { return SemanticAstCollectionExclusiveShared(); }
+            moved_field = UnwrapOption(moved_text);
+        }
+        SemanticAstCollectionExclusivePropagateCopies(copied, root_id, holder, moved_field);
     }
     // A whole root whose fields were shared one by one keeps the rest.
     let partly_shared: Array<String> = [];
@@ -536,6 +543,7 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
                         facts.dep_formals, facts.dep_paths, facts.paths, starts, ends, consumed, copied, facts.empty_locals, facts.field_reads,
                         locals.function_node_ids[local_row],
                         locals.node_ids[local_row], UnwrapOption(value), true, 0, locals.node_ids[local_row]);
+                    if !part.exclusive { MapSet(copied, Concat("d:", ToString(locals.node_ids[local_row])), 1); }
                     if SemanticAstCollectionExclusiveRecordLocal(facts, locals.node_ids[local_row], part) {
                         changed = true;
                     }
@@ -562,6 +570,7 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
                         assignments.function_node_ids[row],
                         assignments.node_ids[row], UnwrapOption(value), true, 0, target_id);
                 }
+                if !part.exclusive { MapSet(copied, Concat("d:", ToString(target_id)), 1); }
                 if SemanticAstCollectionExclusiveRecordLocal(facts, target_id, part) {
                     changed = true;
                 }

@@ -1,9 +1,0 @@
-import "../../../../../src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy";
-
-func Main() -> Void
-{
-    let facts: SemanticAstCollectionFocusRecoveryFacts =
-        SemanticAstCollectionFocusRecoveryFactsEmpty();
-    SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(facts);
-    Log(ArrayLength(facts.part_type_names));
-}

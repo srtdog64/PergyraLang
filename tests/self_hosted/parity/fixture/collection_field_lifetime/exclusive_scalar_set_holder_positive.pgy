@@ -1,0 +1,38 @@
+// `names` copies a text column of the formal, writes one element in place and
+// reads another. Neither retires a buffer, so the copy stays a followed holder
+// and the result carries the formal: the caller may grow what it gets back.
+struct Columns {
+    names: Array<String>;
+    kinds: Array<Int>;
+}
+
+struct Table {
+    columns: Columns;
+    size: Int;
+}
+
+func Relabel(table: Table, label: String) -> Table {
+    let names: Array<String> = table.columns.names;
+    ArraySet(names, 0, label);
+    let seen: Array<String> = [];
+    ArrayPush(seen, names[0]);
+    Log(table.columns.names[0]);
+    return Table(Columns(names, table.columns.kinds), table.size + ArrayLength(seen));
+}
+
+func GrowNames(table: Table) -> Table {
+    let columns: Columns = table.columns;
+    let names: Array<String> = columns.names;
+    ArrayPush(names, "x");
+    ArrayPush(names, "y");
+    return Table(Columns(names, columns.kinds), table.size);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let kinds: Array<Int> = [1];
+    let table: Table = Relabel(Table(Columns(names, kinds), 1), "b");
+    let grown: Table = GrowNames(table);
+    Log(ToString(ArrayLength(grown.columns.names)));
+    return 0;
+}

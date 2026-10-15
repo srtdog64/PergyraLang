@@ -72,20 +72,6 @@ func SemanticAstCollectionFocusRecoveryRootKey(function_id: Int, root_id: Int) -
     return Concat(ToString(function_id), Concat(":", ToString(root_id)));
 }
 
-func SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(
-    own facts: SemanticAstCollectionFocusRecoveryFacts
-) -> Void {
-    // Only the four independently published metadata columns are owned here.
-    let root_types: Array<String> = facts.group_root_type_names;
-    let copy_signatures: Array<String> = facts.group_copy_signatures;
-    let field_names: Array<String> = facts.part_field_names;
-    let type_names: Array<String> = facts.part_type_names;
-    ArrayDropOwnedStrings(root_types);
-    ArrayDropOwnedStrings(copy_signatures);
-    ArrayDropOwnedStrings(field_names);
-    ArrayDropOwnedStrings(type_names);
-}
-
 func SemanticAstCollectionFocusExitValueReturn() -> Int { return 1; }
 
 func SemanticAstCollectionFocusExitBareReturn() -> Int { return 2; }

@@ -291,7 +291,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             }
             probe_group = probe_group + 1;
         }
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(probe);
         focus_round = focus_round + 1;
     }
     let focus_excluded: HashMap<String, Int> = MapNew();
@@ -307,7 +306,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             artifact, locals, initializer_types.inferred_type_names,
             surfaces, definitions, storage);
     if binding_move_use.found {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError(
             "move_from_released",
             SemanticError2("move_from_released", "boundary",
@@ -321,12 +319,10 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             surfaces, assignments, statements, formal_effects.execution_contexts, formal_effects.borrowed_text_formals,
             move_destinations, focus);
     if !moved_use.read_permission_ready {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_member_read_permission"), -1, -1);
     }
     if moved_use.found {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError(
             "move_from_released",
             SemanticError2("move_from_released", "boundary",
@@ -340,7 +336,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                 artifact, locals, initializer_types, surfaces,
                 assignments, assignment_types, assignment_row);
         if !alias.ok {
-            SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
             return SemanticAstCollectionOwnershipVerdictError(
                 "ast_artifact_invalid",
                 SemanticError1("ast_artifact_invalid", "owner",
@@ -348,7 +343,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                 assignments.node_ids[assignment_row], -1);
         }
         if alias.candidate {
-            SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
             return SemanticAstCollectionOwnershipVerdictError(
                 "borrow_boundary_escape",
                 SemanticError2("borrow_boundary_escape",
@@ -360,7 +354,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     }
 
     if !formal_effects.ok {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_formal_effect"), -1, -1);
     }
@@ -370,7 +363,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         formal_effects.inventory.modes, formal_effects.effects,
         definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(call_effects, local_count) {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_call_effect_facts"), -1, -1);
     }
@@ -381,7 +373,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         signatures, surfaces, call_roots,
         formal_effects.owned_push_leaf_formals, field_requirements);
     if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(field_requirements) {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "aggregate_field_entry_requirements"), -1, -1);
     }
@@ -393,7 +384,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             call_effects, storage, definitions);
     if !SemanticAstCollectionAggregateReleasePlanShapeReady(
             aggregate_release_plan) {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError(
             "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary",
@@ -405,7 +395,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         SemanticAstIndexedStringBorrowStateForLocals(locals);
     if !indexed_string_borrows.ok {
         SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError(
             "ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner",
@@ -436,7 +425,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);
     ArrayDrop(retained_definitions);
     if verdict.ok && moved_use.capture_syntax_node_id > 0 {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
         return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary", "readonly_aggregate_capture", "type", "nominal aggregate"),
             moved_use.capture_syntax_node_id, moved_use.capture_expression_node_id);
@@ -450,15 +438,11 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         focus.exclusive_field_read_count = MapSize(exclusive_values.field_reads);
         if !focus.ok || !SemanticAstCollectionFocusRecoveryCurrent(artifact, signatures, constructors, locals,
                 initializer_types.inferred_type_names, surfaces, statements, assignments, formal_effects, focus) {
-            SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
             return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
                 SemanticError2("borrow_boundary_escape", "boundary", "unproved_exclusive_focus_recovery",
                     "type", "nominal aggregate"), -1, -1);
         }
         verdict.focus_recovery = focus;
-    }
-    if !verdict.ok {
-        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(focus);
     }
     return verdict;
 }

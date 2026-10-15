@@ -136,22 +136,22 @@ func SemanticAstCollectionFocusRecoveryUsesReady(
                                     (TypedAstArenaNodeKindIs(artifact.arena, syntax, TypedAstKindArrayPushStmtTag()) ||
                                      TypedAstArenaNodeKindIs(artifact.arena, syntax, TypedAstKindArrayPopStmtTag())) { restores = true; }
                                 let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+                                // A length read of one array field of the part observes no buffer.
+                                let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, consumer);
+                                let measured: Int = consumer;
+                                if !restores && consumer >= 0 && member.ok && member.receiver_node == node { consumer = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, measured, root); }
                                 if !restores {
                                     if consumer < 0 || surfaces.expression_graph.arena.topology.node_kinds[consumer] != AstExpressionNodeCallArgument() { return false; }
                                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, consumer);
                                     if !edge.ok { return false; }
-                                    let permitted: Bool = SemanticAstCollectionFocusRecoveryCallTargetReady(artifact, signatures, surfaces.expression_graph,
-                                        formal_effects, facts, edge, facts.part_type_names[selected], root);
-                                    if edge.ordinal == 0 && SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayLength") {
-                                        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(surfaces.expression_graph, edge.argument_node);
-                                        let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, facts.part_type_names[selected]);
-                                        if member.ok && member.receiver_node == node && IsSome(nominal) {
-                                            let name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
-                                            if IsSome(name) {
-                                                let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(constructors, UnwrapOption(nominal), UnwrapOption(name));
-                                                permitted = IsSome(field) && IsSome(SemanticArrayElementType(constructors.param_type_names[UnwrapOption(field)]));
-                                            }
-                                        }
+                                    let permitted: Bool = measured == consumer && SemanticAstCollectionFocusRecoveryCallTargetReady(artifact, signatures,
+                                        surfaces.expression_graph, formal_effects, facts, edge, facts.part_type_names[selected], root);
+                                    let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, facts.part_type_names[selected]);
+                                    let name: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, member.member_node);
+                                    if measured != consumer && edge.ordinal == 0 && edge.argument_node == measured && IsSome(nominal) && IsSome(name) &&
+                                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayLength") {
+                                        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(constructors, UnwrapOption(nominal), UnwrapOption(name));
+                                        permitted = IsSome(field) && IsSome(SemanticArrayElementType(constructors.param_type_names[UnwrapOption(field)]));
                                     }
                                     if !permitted { return false; }
                                 }

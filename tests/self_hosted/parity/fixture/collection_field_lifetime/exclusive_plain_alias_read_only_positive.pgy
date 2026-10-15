@@ -1,0 +1,34 @@
+// `picked` starts as a plain alias of the formal and both are only read. The
+// result carries the formal, and the caller's argument is a temporary, so the
+// caller may grow what it gets back.
+struct Facts {
+    rows: Array<String>;
+    marks: Array<String>;
+}
+
+func Pick(input: Facts, rebuild: Bool) -> Facts {
+    let picked: Facts = input;
+    if rebuild {
+        let rows: Array<String> = ["a"];
+        let marks: Array<String> = ["b"];
+        picked = Facts(rows, marks);
+    }
+    Log(input.rows[0]);
+    return picked;
+}
+
+func Grow(facts: Facts) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, "x");
+    ArrayPush(rows, "y");
+    return Facts(rows, facts.marks);
+}
+
+func Main() -> Int {
+    let rows: Array<String> = ["r"];
+    let marks: Array<String> = ["m"];
+    let facts: Facts = Pick(Facts(rows, marks), false);
+    let grown: Facts = Grow(facts);
+    Log(ToString(ArrayLength(grown.rows)));
+    return 0;
+}

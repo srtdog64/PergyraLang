@@ -1,0 +1,28 @@
+// An enum variant read through its type name starts at no local or formal:
+// the release plan of the view has nothing of it to follow.
+enum Shade {
+    Light,
+    Dark
+}
+
+struct View {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func ViewFrom(count: Int) -> View {
+    let names: Array<String> = [];
+    let index: Int = 0;
+    while index < count {
+        ArrayPushOwnedString(names, Concat("n", ToString(index)));
+        index = index + 1;
+    }
+    return View(count > 0, names);
+}
+
+func Main() -> Int {
+    let shade: Shade = Shade.Dark;
+    let ready: Bool = ViewFrom(3).ok;
+    if ready && shade == Shade.Dark { Log("ready"); }
+    return 0;
+}

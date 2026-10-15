@@ -278,18 +278,6 @@ func ParserExpressionGraphRowsAppendShapeReady(
     return node_count > 0 && rows.roots[root_count - 1] == node_count - 1;
 }
 
-func ParserExpressionGraphRowsBoxStart(
-    inout rows_box: Array<AstExpressionGraphRows>,
-    initial: AstExpressionGraphRows
-) -> Void {
-    if ArrayLength(rows_box) != 0 ||
-        !ParserExpressionGraphRowsAppendShapeReady(initial) ||
-        ArrayLength(initial.roots) != 0 {
-        Exit(1);
-    }
-    ArrayPush(rows_box, initial);
-}
-
 func ParserExpressionGraphsAppend(
     rows: AstExpressionGraphRows,
     owner_kind: Int,
@@ -342,19 +330,12 @@ func ParserExpressionGraphsAppend(
 }
 
 func ParserExpressionGraphsAppendInto(
-    inout rows_box: Array<AstExpressionGraphRows>,
+    inout rows: AstExpressionGraphRows,
     owner_kind: Int,
     lane: Int,
     fact: ParserExpressionFact
 ) -> Void {
-    if ArrayLength(rows_box) != 1 {
-        Exit(1);
-    }
-    let rows: AstExpressionGraphRows = rows_box[0];
-    ArraySet(rows_box, 0, AstExpressionGraphRowsEmpty());
-    ArraySet(
-        rows_box, 0, ParserExpressionGraphsAppend(rows, owner_kind, lane, fact)
-    );
+    rows = ParserExpressionGraphsAppend(rows, owner_kind, lane, fact);
 }
 
 func ParserExpressionGraphsAppendRows(
@@ -406,17 +387,10 @@ func ParserExpressionGraphsAppendRows(
 }
 
 func ParserExpressionGraphsAppendRowsInto(
-    inout target_box: Array<AstExpressionGraphRows>,
+    inout target: AstExpressionGraphRows,
     source: AstExpressionGraphRows
 ) -> Void {
-    if ArrayLength(target_box) != 1 {
-        Exit(1);
-    }
-    let target: AstExpressionGraphRows = target_box[0];
-    ArraySet(target_box, 0, AstExpressionGraphRowsEmpty());
-    ArraySet(
-        target_box, 0, ParserExpressionGraphsAppendRows(target, source)
-    );
+    target = ParserExpressionGraphsAppendRows(target, source);
 }
 func ParserExpressionSubtree(
     fact: ParserExpressionFact,

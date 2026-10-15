@@ -9,7 +9,7 @@ func ParseWhileStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
@@ -43,7 +43,7 @@ func ParseLoopStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
@@ -72,7 +72,7 @@ func ParseForStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {

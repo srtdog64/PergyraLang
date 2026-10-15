@@ -58,38 +58,6 @@ NEGATIVES=(
 POSITIVES=(field_ctor_readonly_positive field_ctor_duplicate_readonly_positive
     field_ctor_indexed_readonly_positive field_ctor_fresh_assign_positive
     own_named_clone_positive native_unescaped_string_storage_positive)
-OWN_CLEANUP_INPUTS=(focus_metadata_retire_once_positive focus_codegen_retire_once_positive
-    focus_metadata_retire_twice_negative focus_codegen_retire_twice_negative
-    focus_metadata_read_after_retire_negative focus_codegen_read_after_retire_negative)
-for input in "${OWN_CLEANUP_INPUTS[@]}"; do
-    sha256sum "$ROOT/$FIXTURES/$input.pgy" >>"$WORK/inputs.sha256"
-    result=0
-    (cd "$ROOT"; run_admission_bounded "$PGY" --native-pipeline --mir-json --error-format=json "$FIXTURES/$input.pgy") \
-        >"$WORK/$input.mir.json" 2>"$WORK/$input.err" || result=$?
-    python3 - "$input" "$result" "$WORK/$input.mir.json" "$WORK/$input.err" <<'PY'
-import json, pathlib, sys
-name, status, artifact, diagnostics = sys.argv[1:]
-status=int(status)
-raw=pathlib.Path(diagnostics).read_text(encoding='utf-8')
-rows=json.loads(raw) if raw.strip() else []
-errors=[r for r in rows if r.get('severity')=='error']
-positive=name.endswith('_positive')
-if positive:
-    if status!=0 or errors: raise SystemExit(name+': single consume rejected')
-    mir=json.loads(pathlib.Path(artifact).read_text(encoding='utf-8'))
-    if mir.get('schema')!='pgy.mir.v1' or not mir.get('routines'): raise SystemExit(name+': missing actual typed MIR')
-else:
-    if status!=1 or pathlib.Path(artifact).stat().st_size or not errors: raise SystemExit(name+': wrong refusal protocol')
-    if errors[0].get('code')!='PGY_SEM_MOVE_FROM_RELEASED' or errors[0].get('cause_ir')!='semantic:move:from_released':
-        raise SystemExit(name+': primary moved-value refusal missing')
-    for error in errors:
-        if error.get('code')=='PGY_SEM_MOVE_FROM_RELEASED' and error.get('cause_ir')=='semantic:move:from_released': continue
-        if 'read_after' in name and error.get('code')=='PGY_SEM_BUILTIN_ARGS_INVALID' and error.get('cause_ir')=='semantic:builtin:signature_mismatch' and error.get('message')=="ArrayLength requires Array<T> or Slice<T>, got '<unknown>'": continue
-        raise SystemExit(name+': unrelated error '+str(error.get('code')))
-warnings=[r.get('code') for r in rows if r.get('severity')=='warning']
-print(name+': native ownership protocol PASS; imported warnings='+json.dumps(warnings))
-PY
-done
 # These six are native type/transfer checks only, never target execution or
 # runtime allocation/free evidence. Pergyra whole-import body remains separate.
 for entry in "${NEGATIVES[@]}"; do

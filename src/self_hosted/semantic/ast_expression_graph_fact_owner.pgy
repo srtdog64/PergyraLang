@@ -259,9 +259,15 @@ func SemanticExpressionGraphFactsFromAstRows(
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
         i = i + 1;
     }
+    // The graph owns its topology: attaches grow it later, while the artifact
+    // keeps naming the parser rows it was read from.
+    let topology: AstExpressionArena = AstExpressionArena(
+        Clone(rows.arena.node_kinds), Clone(rows.arena.node_texts),
+        Clone(rows.arena.left_children), Clone(rows.arena.right_children)
+    );
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopology(
-            rows.arena, texts, call_target_kinds, call_target_names,
+            topology, texts, call_target_kinds, call_target_names,
             call_return_type_names, place_kinds
     );
     arena.shape_ready = SemanticExpressionGraphArenaShapeReady(arena, 0);

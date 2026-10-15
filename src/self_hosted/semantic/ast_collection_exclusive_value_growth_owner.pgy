@@ -44,6 +44,10 @@ func SemanticAstCollectionExclusiveMarkRoot(
                 } else if dest == field {
                     if source != "" { grown = source; }
                 } else { reaches = false; }
+            } else if dep_paths[row] >= 0 && paths[2 * dep_paths[row] + 1] != "" {
+                // The root holds the formal only inside the field it copied:
+                // any growth of the root grows that field.
+                grown = paths[2 * dep_paths[row] + 1];
             }
             if reaches && !MapHas(mutating, ToString(dep_formals[row])) {
                 MapSet(mutating, ToString(dep_formals[row]), 1);

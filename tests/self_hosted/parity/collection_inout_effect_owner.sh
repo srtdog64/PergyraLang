@@ -278,6 +278,13 @@ INPUTS=(
     exclusive_alias_after_use_positive.pgy exclusive_alias_after_use_loop_negative.pgy
     exclusive_copy_landing_other_field_positive.pgy exclusive_copy_landing_same_field_negative.pgy
     exclusive_copy_landing_unknown_negative.pgy
+    exclusive_growth_copied_field_positive.pgy exclusive_growth_copied_field_shared_negative.pgy
+    exclusive_growth_copy_holder_negative.pgy
+    exclusive_plain_alias_read_only_positive.pgy exclusive_plain_alias_grown_alias_negative.pgy
+    exclusive_plain_alias_grown_source_negative.pgy
+    exclusive_scalar_set_holder_positive.pgy exclusive_scalar_set_holder_growth_negative.pgy
+    aggregate_release_scalar_member_temporary_positive.pgy aggregate_release_array_member_temporary_negative.pgy
+    aggregate_release_enum_variant_local_positive.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy

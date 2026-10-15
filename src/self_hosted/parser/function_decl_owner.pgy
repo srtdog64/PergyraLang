@@ -164,7 +164,7 @@ func ParseFunctionObserved(
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext,
     inout source_locations: Array<ParserSourceLocationObservation>,
     diagnostic_projection: ParseDiagnosticProjection
@@ -543,7 +543,7 @@ func ParseFunction(
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
     // Member bodies keep refusal positions but record no observation rows,

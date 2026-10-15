@@ -1,0 +1,22 @@
+// A scalar read from a call result holds none of the result's storage: the
+// release plan has nothing of it to follow.
+struct View {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func ViewFrom(count: Int) -> View {
+    let names: Array<String> = [];
+    let index: Int = 0;
+    while index < count {
+        ArrayPushOwnedString(names, Concat("n", ToString(index)));
+        index = index + 1;
+    }
+    return View(count > 0, names);
+}
+
+func Main() -> Int {
+    let ready: Bool = ViewFrom(3).ok;
+    if ready { Log("ready"); }
+    return 0;
+}

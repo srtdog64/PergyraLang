@@ -69,7 +69,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     artifact, signatures, locals, initializer_types.inferred_type_names, surfaces,
                     statements, assignments, exclusive_values.shared_locals, mutating_formals, origins,
                     source_binding_syntax_ids, surfaces.function_node_ids[root_slot / 3],
-                    surfaces.node_ids[root_slot / 3], focus_recovery) {
+                    surfaces.node_ids[root_slot / 3], focus_recovery, exclusive_values.copies,
+                    exclusive_values.surface_starts, exclusive_values.surface_ends) {
                 verdict = SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
                     SemanticError2("borrow_boundary_escape", "boundary", "unproved_exclusive_member_mutation",
                         "type", "Array<String>"),

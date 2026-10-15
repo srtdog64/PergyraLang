@@ -101,7 +101,7 @@ func ParserIntentPolicyClauseFromSource(
 
 func ParserIntentPolicyTreeAppend(
     out: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     policy: ParserIntentPolicyClause
 ) -> String {
     let result: String = AppendLine(

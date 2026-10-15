@@ -1,0 +1,27 @@
+// The copy of the formal's text column grows, and the formal reads that
+// column afterwards: a growth is no in-place write.
+struct Columns {
+    names: Array<String>;
+    kinds: Array<Int>;
+}
+
+struct Table {
+    columns: Columns;
+    size: Int;
+}
+
+func Relabel(table: Table, label: String) -> Table {
+    let names: Array<String> = table.columns.names;
+    ArrayPush(names, label);
+    ArrayPush(names, label);
+    Log(table.columns.names[0]);
+    return Table(Columns(names, table.columns.kinds), table.size);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let kinds: Array<Int> = [1];
+    let table: Table = Relabel(Table(Columns(names, kinds), 1), "b");
+    Log(ToString(ArrayLength(table.columns.names)));
+    return 0;
+}

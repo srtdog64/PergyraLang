@@ -14,8 +14,12 @@
 // - "from:<root>" and "from:<root>:i" -> edges out of a source binding;
 // - "into:<holder>" and "into:<holder>:i" -> edges into a holder binding;
 // - "pair:<root>:<field>:<holder>" -> edge + 1 (one row per edge);
-// - "contained:<holder>" -> 1 contained, 2 escaping (memoized).
+// - "contained:<holder>" -> 1 contained, 2 escaping (memoized);
+// - "s_n:<root>" and "s_i:<root>:i" -> statements of copies of a root the
+//   fixed point could not follow; "d:<binding>" -> 1 when a definition of the
+//   binding itself names shared storage.
 import "ast_collection_exclusive_value_flow_owner.pgy";
+import "array_type_shape_owner.pgy";
 
 // The binding a place is rooted at: a local declaration or a formal.
 func SemanticAstCollectionExclusivePlaceRoot(
@@ -114,17 +118,26 @@ func SemanticAstCollectionExclusiveCopyEdgeField(
     return !IsSome(field) || MapHas(copies, Concat("edge_field:", Concat(key, Concat(":", UnwrapOption(field)))));
 }
 
-// The edge's copy lands where the place `chain` of its holder names: the
-// place is the whole holder, or one landing is unknown or the chain's first
-// field.
+// The edge's copy lands where the place `chain` of its holder names, within
+// the first fields `grown` (any field when empty): one landing is unknown, or
+// it is the chain's first field, or for the whole holder one of `grown`.
 func SemanticAstCollectionExclusiveCopyEdgeLands(
     copies: HashMap<String, Int>, ref surfaces: SemanticAstExpressionSurfaceFacts,
-    edge: Int, ref chain: Array<Int>
+    edge: Int, ref chain: Array<Int>, ref grown: Array<String>
 ) -> Bool {
     let key: String = ToString(edge);
-    if ArrayLength(chain) == 0 || MapHas(copies, Concat("edge_landing_any:", key)) { return true; }
-    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, chain[0]);
-    return !IsSome(field) || MapHas(copies, Concat("edge_landing:", Concat(key, Concat(":", UnwrapOption(field)))));
+    if MapHas(copies, Concat("edge_landing_any:", key)) { return true; }
+    if ArrayLength(chain) > 0 {
+        let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, chain[0]);
+        return !IsSome(field) || MapHas(copies, Concat("edge_landing:", Concat(key, Concat(":", UnwrapOption(field)))));
+    }
+    if ArrayLength(grown) == 0 { return true; }
+    let index: Int = 0;
+    while index < ArrayLength(grown) {
+        if MapHas(copies, Concat("edge_landing:", Concat(key, Concat(":", grown[index])))) { return true; }
+        index = index + 1;
+    }
+    return false;
 }
 
 // The fixed point follows a copy of `root` (at the first step of `chain`)
@@ -142,9 +155,10 @@ func SemanticAstCollectionExclusiveCopyHeld(
 }
 
 // A holder moving into `holder` carries every edge it holds, widened to a
-// whole-value copy of each source.
+// whole-value copy of each source. A move of its first field `field` ("" for
+// the whole holder) carries only the edges landing there.
 func SemanticAstCollectionExclusivePropagateCopies(
-    inout copies: HashMap<String, Int>, from_holder: Int, holder: Int
+    inout copies: HashMap<String, Int>, from_holder: Int, holder: Int, field: String
 ) -> Bool {
     let changed: Bool = false;
     let into: String = Concat("into:", ToString(from_holder));
@@ -153,7 +167,9 @@ func SemanticAstCollectionExclusivePropagateCopies(
     while index < count {
         let edge: String = ToString(MapGet(copies, Concat(into, Concat(":", ToString(index)))));
         let root: Int = MapGet(copies, Concat("edge_root:", edge));
-        if SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder, "") { changed = true; }
+        let carried: Bool = field == "" || MapHas(copies, Concat("edge_landing_any:", edge)) ||
+            MapHas(copies, Concat("edge_landing:", Concat(edge, Concat(":", field))));
+        if carried && SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder, "") { changed = true; }
         index = index + 1;
     }
     return changed;
@@ -167,6 +183,16 @@ func SemanticAstCollectionExclusiveHolderContained(
     ref surfaces: SemanticAstExpressionSurfaceFacts, first_surface: Int, end_surface: Int,
     function_id: Int, holder: Int
 ) -> Bool {
+    // An in-place write of a scalar or text element neither retires nor
+    // shares the holder's buffer.
+    let scalar_elements: Bool = false;
+    let holder_row: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, holder);
+    if IsSome(holder_row) && UnwrapOption(holder_row) < ArrayLength(inferred_types) {
+        let element: Option<String> = SemanticArrayElementType(inferred_types[UnwrapOption(holder_row)]);
+        scalar_elements = IsSome(element) && (UnwrapOption(element) == "String" || UnwrapOption(element) == "Int" ||
+            UnwrapOption(element) == "Bool" || UnwrapOption(element) == "Long" || UnwrapOption(element) == "Float" ||
+            UnwrapOption(element) == "Double" || UnwrapOption(element) == "Char");
+    }
     let surface: Int = first_surface;
     while surface < end_surface {
         let statement: Int = surfaces.node_ids[surface];
@@ -189,10 +215,27 @@ func SemanticAstCollectionExclusiveHolderContained(
                         !SemanticAstCollectionExclusiveMemberName(surfaces, node, root) {
                         let place: SemanticAstCollectionAggregateSinkPlace = SemanticAstCollectionAggregateSinkPlaceForNode(
                             artifact, signatures, locals, inferred_types, surfaces, function_id, statement, node);
+                        let consumer: Int = SemanticAstBorrowedTextConsumer(surfaces.expression_graph, node, root);
+                        let set_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+                            surfaces.expression_graph, consumer);
+                        let written: Bool = scalar_elements && consumer >= 0 && set_edge.ok && set_edge.ordinal == 0 &&
+                            set_edge.argument_node == node &&
+                            SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, set_edge.call_node, "ArraySet");
+                        // An ArraySet statement names its target as the atom lane root.
+                        if scalar_elements && consumer < 0 && lane == AstExpressionLaneAtom() && node == root &&
+                            TypedAstArenaNodeKindIs(artifact.arena, statement, TypedAstKindArraySetStmtTag()) {
+                            written = true;
+                        }
+                        // So does a read of one scalar or text element.
+                        let indexed_base: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, consumer);
+                        if scalar_elements && consumer >= 0 && IsSome(indexed_base) && UnwrapOption(indexed_base) == node &&
+                            surfaces.expression_graph.arena.topology.node_kinds[consumer] == AstExpressionNodeIndex() {
+                            written = true;
+                        }
                         if place.ok && !place.temporary &&
                             SemanticAstCollectionExclusivePlaceRoot(locals, place) == holder && !defines && !observes &&
-                            !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, statement, lane, root, node,
-                                false) {
+                            !written && !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, statement, lane, root,
+                                node, false) {
                             return false;
                         }
                     }
@@ -221,10 +264,15 @@ func SemanticAstCollectionExclusiveBindingUnreadAfter(
     let surface: Int = first_surface;
     while surface < end_surface {
         let statement: Int = surfaces.node_ids[surface];
-        let rewrites: Bool = statement >= syntax_id && (rebound < 0 || statement <= rebound) &&
+        // A statement before the use that a loop around both runs again, while
+        // the binding stays declared outside it, also runs after the use.
+        let carried: Bool = statement < syntax_id &&
+            SemanticAstCollectionExclusiveLoopCarries(artifact, binding, syntax_id, statement);
+        let rewrites: Bool = (carried || (statement >= syntax_id && (rebound < 0 || statement <= rebound))) &&
             SemanticAstCollectionExclusiveRebindsBinding(artifact, signatures, locals, inferred_types, surfaces,
                 function_id, statement, binding);
-        if rewrites && (statement == syntax_id || SemanticAstCollectionExclusiveRunsAfter(artifact, syntax_id, statement)) {
+        if rewrites && !carried &&
+            (statement == syntax_id || SemanticAstCollectionExclusiveRunsAfter(artifact, syntax_id, statement)) {
             rebound = statement;
         }
         let early: Bool = early_returns &&
@@ -232,7 +280,7 @@ func SemanticAstCollectionExclusiveBindingUnreadAfter(
             SemanticAstCollectionExclusiveReturnBeforeUses(artifact, syntax_id, statement, uses);
         // The consuming statement itself counts: a holder in a sibling
         // argument reaches the same call.
-        if statement >= syntax_id && !early && (rebound < 0 || statement <= rebound) &&
+        if (carried || (statement >= syntax_id && (rebound < 0 || statement <= rebound))) && !early &&
             (!scoped || SemanticAstCollectionNodeEnclosedBy(artifact, statement, scope)) {
             let lane: Int = 0;
             while lane < 3 {
@@ -340,7 +388,7 @@ func SemanticAstCollectionExclusiveCopiesUnread(
         let edge: Int = MapGet(copies, Concat(into, Concat(":", ToString(index))));
         let source: Int = MapGet(copies, Concat("edge_root:", ToString(edge)));
         let ignored: Bool = SemanticAstCollectionExclusiveDeclaredFrom(locals, source, syntax_id) ||
-            !SemanticAstCollectionExclusiveCopyEdgeLands(copies, surfaces, edge, place.chain);
+            !SemanticAstCollectionExclusiveCopyEdgeLands(copies, surfaces, edge, place.chain, grown);
         let ignored_index: Int = 0;
         while ignored_index < ArrayLength(ignored_sources) {
             if ignored_sources[ignored_index] == source { ignored = true; }
@@ -369,13 +417,26 @@ func SemanticAstCollectionExclusiveCopiesUnread(
     return true;
 }
 
-// A copy of `place` the fixed point cannot follow shares the root, or its
-// first field, from then on: "s:root", or "s:root.field" with "s:root.*".
+// A copy of `place` at `syntax_id` the fixed point cannot follow shares the
+// root, or its first field, from then on: "s:root", or "s:root.field" with
+// "s:root.*". The copy's statement is kept for growth ordering.
 func SemanticAstCollectionExclusiveRecordCopy(
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref locals: SemanticAstLocalBindingFacts,
-    ref place: SemanticAstCollectionAggregateSinkPlace, inout copied: HashMap<String, Int>
+    ref place: SemanticAstCollectionAggregateSinkPlace, inout copied: HashMap<String, Int>, syntax_id: Int
 ) -> Void {
     let root: String = ToString(SemanticAstCollectionExclusivePlaceRoot(locals, place));
+    let count_key: String = Concat("s_n:", root);
+    let count: Int = SemanticAstCollectionExclusiveCopyCount(copied, count_key);
+    let seen: Bool = false;
+    let index: Int = 0;
+    while index < count && !seen {
+        seen = MapGet(copied, Concat("s_i:", Concat(root, Concat(":", ToString(index))))) == syntax_id;
+        index = index + 1;
+    }
+    if !seen {
+        MapSet(copied, Concat("s_i:", Concat(root, Concat(":", ToString(count)))), syntax_id);
+        MapSet(copied, count_key, count + 1);
+    }
     let field: Option<String> = None;
     if ArrayLength(place.chain) > 0 {
         field = SemanticExpressionGraphNodeText(surfaces.expression_graph, place.chain[0]);

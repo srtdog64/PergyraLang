@@ -9,7 +9,7 @@ func ParseDestructureLetStmt(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: AstExpressionGraphRows
 ) -> String {
     let names: Array<String> = [];
     let i: Int = start + 1;

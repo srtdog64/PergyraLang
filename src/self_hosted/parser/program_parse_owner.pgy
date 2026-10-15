@@ -74,10 +74,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     // A fresh descriptor keeps its exclusive identity across both composition calls.
     let import_chain: Array<String> = [];
     ArrayPush(import_chain, source_path);
-    let expression_graphs: Array<AstExpressionGraphRows> = [];
-    ParserExpressionGraphRowsBoxStart(
-        expression_graphs, AstExpressionGraphRowsEmpty()
-    );
+    let expression_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
     let declaration_module_paths: Array<String> = [];
     let source_locations: Array<ParserSourceLocationObservation> = [];
     if observe_phases { Log("Phase: declaration-composition:start"); }
@@ -88,7 +85,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         import_paths, import_chain, expression_graphs,
         source_locations, declaration_module_paths
     );
-    if ParserComposedGraphCallsTryFileBuiltin(expression_graphs[0]) {
+    if ParserComposedGraphCallsTryFileBuiltin(expression_graphs) {
         ParserRefuseProgramIoErrorDeclaration(
             source_locations, src_dir, diagnostic_projection
         );
@@ -116,7 +113,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     }
     decls = resolved_intents.tree_text;
     if observe_phases { Log("Phase: intent-resolution:done"); }
-    let composed_rows: AstExpressionGraphRows = expression_graphs[0];
+    let composed_rows: AstExpressionGraphRows = expression_graphs;
     if !ParserSourceLocationObservationsReady(source_locations) {
         ParserProgramGraphFail(
             "source-location observation rows are incomplete"

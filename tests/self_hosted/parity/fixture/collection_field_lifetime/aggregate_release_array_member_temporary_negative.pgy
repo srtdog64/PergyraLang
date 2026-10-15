@@ -1,0 +1,22 @@
+// An array read from a call result names storage of a temporary the release
+// plan cannot follow: unknown member storage stays refused.
+struct View {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func ViewFrom(count: Int) -> View {
+    let names: Array<String> = [];
+    let index: Int = 0;
+    while index < count {
+        ArrayPushOwnedString(names, Concat("n", ToString(index)));
+        index = index + 1;
+    }
+    return View(count > 0, names);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ViewFrom(3).names;
+    Log(names[0]);
+    return 0;
+}

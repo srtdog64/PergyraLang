@@ -19,7 +19,7 @@ func ParseWorldDecl(
     inout cursor_out: Array<Int>,
     decl_prefix: String,
     exported: Bool,
-    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout expression_graphs: AstExpressionGraphRows,
     location_context: ParserSourceLocationContext
 ) -> String {
     let n: Int = StringLength(content);

@@ -1,0 +1,11 @@
+// `alias` names the buffer of `base`. Growing it retires that buffer, and
+// `base` is read afterwards.
+func Main() -> Int {
+    let base: Array<String> = ["a"];
+    let alias: Array<String> = base;
+    ArrayPush(alias, "b");
+    ArrayPush(alias, "c");
+    Log(base[0]);
+    Log(ToString(ArrayLength(alias)));
+    return 0;
+}

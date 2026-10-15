@@ -1,0 +1,33 @@
+// The attach grows the storage `analysis.surfaces` copied, and the caller
+// still reads `texts`, which names that storage.
+struct Graph {
+    texts: Array<String>;
+}
+
+struct Surfaces {
+    graph: Graph;
+}
+
+struct Analysis {
+    surfaces: Surfaces;
+    names: Array<String>;
+}
+
+func Attach(inout analysis: Analysis) -> Int {
+    let surfaces: Surfaces = analysis.surfaces;
+    let texts: Array<String> = surfaces.graph.texts;
+    ArrayPush(texts, "x");
+    ArrayPush(texts, "y");
+    let count: Int = ArrayLength(texts);
+    analysis.surfaces = Surfaces(Graph(texts));
+    return count;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["n"];
+    let texts: Array<String> = ["t"];
+    let analysis: Analysis = Analysis(Surfaces(Graph(texts)), names);
+    let grown: Int = Attach(analysis);
+    Log(ToString(grown + StringLength(texts[0]) + ArrayLength(analysis.names)));
+    return 0;
+}
