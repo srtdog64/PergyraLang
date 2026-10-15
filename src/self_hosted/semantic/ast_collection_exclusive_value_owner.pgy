@@ -40,6 +40,38 @@ func SemanticAstCollectionExclusivePlacesOverlap(
     return true;
 }
 
+// The first field of the holder a copy at `node` lands in: the field of the
+// constructor that is the whole value of the definition at `syntax_id` whose
+// argument holds the node, or "" when unknown.
+func SemanticAstCollectionExclusiveCopyLandingField(
+    ref constructors: SemanticAstNominalConstructorFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    syntax_id: Int, node: Int
+) -> String {
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneValue());
+    if !IsSome(value) { return ""; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, UnwrapOption(value));
+    if !call.ok { return ""; }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+    if !IsSome(target) || !IsSome(name) || UnwrapOption(target) != 0 { return ""; }
+    let type_name: String = UnwrapOption(name);
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, call.callee_node);
+    if type_name == "" && IsSome(callee_text) { type_name = UnwrapOption(callee_text); }
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if !IsSome(constructor) ||
+        constructors.param_counts[UnwrapOption(constructor)] != ArrayLength(call.argument_nodes) { return ""; }
+    let index: Int = 0;
+    while index < ArrayLength(call.argument_nodes) {
+        let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph,
+            call.argument_nodes[index]);
+        if IsSome(start) && node >= UnwrapOption(start) && node <= call.argument_nodes[index] {
+            return Concat("", constructors.field_names[constructors.param_starts[UnwrapOption(constructor)] + index]);
+        }
+        index = index + 1;
+    }
+    return "";
+}
+
 // The classification of the value at `node` in statement `syntax_id`. With
 // `consume`, a binding or member path must also be the last use of its place.
 // `holder` is the binding the definition writes, or 0.
@@ -224,7 +256,10 @@ func SemanticAstCollectionExclusiveClassify(
             if !IsSome(first) { return SemanticAstCollectionExclusiveShared(); }
             field = UnwrapOption(first);
         }
-        if depth > 0 { SemanticAstCollectionExclusiveRecordCopyEdge(copied, root_id, field, holder); }
+        if depth > 0 {
+            SemanticAstCollectionExclusiveRecordCopyEdge(copied, root_id, field, holder,
+                SemanticAstCollectionExclusiveCopyLandingField(constructors, surfaces, syntax_id, node));
+        }
     }
     // The destination of a holder holds what it holds.
     if holder > 0 && holder != root_id && followed {
@@ -568,8 +603,9 @@ func SemanticAstCollectionExclusiveValueFactsFrom(
             copy = copy + 1;
         }
         facts.shared_locals = shared_rows;
-        // New copy edges add readers: proofs that read them are redone.
-        let edge_count: Int = SemanticAstCollectionExclusiveCopyCount(copied, "edges");
+        // New copy edges or landings add readers: proofs that read them are redone.
+        let edge_count: Int = SemanticAstCollectionExclusiveCopyCount(copied, "edges") +
+            SemanticAstCollectionExclusiveCopyCount(copied, "landings");
         if edge_count != edges_seen {
             edges_seen = edge_count;
             changed = true;

@@ -8,9 +8,12 @@
 // Edge rows live in one map, keyed explicitly:
 // - "edges" -> count; "edge_root:k", "edge_holder:k" -> binding ids;
 //   "edge_whole:k" or "edge_field:k:<field>" -> 1;
+// - "edge_landing:k:<field>" -> 1 for each holder first field the copy
+//   lands in, or "edge_landing_any:k" -> 1 when one landing is unknown;
+//   "landings" and "landings:<holder>" count the landings recorded;
 // - "from:<root>" and "from:<root>:i" -> edges out of a source binding;
 // - "into:<holder>" and "into:<holder>:i" -> edges into a holder binding;
-// - "pair:<root>:<field>:<holder>" -> 1 (one row per edge);
+// - "pair:<root>:<field>:<holder>" -> edge + 1 (one row per edge);
 // - "contained:<holder>" -> 1 contained, 2 escaping (memoized).
 import "ast_collection_exclusive_value_flow_owner.pgy";
 
@@ -27,17 +30,29 @@ func SemanticAstCollectionExclusiveCopyCount(copies: HashMap<String, Int>, key: 
     return MapGet(copies, key);
 }
 
-// One edge from `root` (or its first field `field`) into `holder`. Returns
-// whether it is new.
+// One edge from `root` (or its first field `field`) into `holder`, landing
+// in the holder's first field `landing` ("" when unknown). Returns whether
+// the edge is new; a known edge still records the landing.
 func SemanticAstCollectionExclusiveRecordCopyEdge(
-    inout copies: HashMap<String, Int>, root: Int, field: String, holder: Int
+    inout copies: HashMap<String, Int>, root: Int, field: String, holder: Int, landing: String
 ) -> Bool {
     let pair: String = Concat("pair:", Concat(ToString(root), Concat(":", Concat(field,
         Concat(":", ToString(holder))))));
-    if root == holder || MapHas(copies, pair) { return false; }
-    MapSet(copies, pair, 1);
+    if root == holder { return false; }
+    let fresh: Bool = !MapHas(copies, pair);
     let edge: Int = SemanticAstCollectionExclusiveCopyCount(copies, "edges");
+    if !fresh { edge = MapGet(copies, pair) - 1; }
     let key: String = ToString(edge);
+    let landing_key: String = Concat("edge_landing_any:", key);
+    if landing != "" { landing_key = Concat("edge_landing:", Concat(key, Concat(":", landing))); }
+    if !MapHas(copies, landing_key) {
+        MapSet(copies, landing_key, 1);
+        MapSet(copies, "landings", SemanticAstCollectionExclusiveCopyCount(copies, "landings") + 1);
+        let holder_landings: String = Concat("landings:", ToString(holder));
+        MapSet(copies, holder_landings, SemanticAstCollectionExclusiveCopyCount(copies, holder_landings) + 1);
+    }
+    if !fresh { return false; }
+    MapSet(copies, pair, edge + 1);
     MapSet(copies, "edges", edge + 1);
     MapSet(copies, Concat("edge_root:", key), root);
     MapSet(copies, Concat("edge_holder:", key), holder);
@@ -69,7 +84,8 @@ func SemanticAstCollectionExclusiveCopySignature(copies: HashMap<String, Int>, r
         index = index + 1;
     }
     return Concat(ToString(SemanticAstCollectionExclusiveCopyCount(copies, Concat("from:", ToString(root)))),
-        Concat(",", Concat(ToString(count), Concat(",", ToString(siblings)))));
+        Concat(",", Concat(ToString(count), Concat(",", Concat(ToString(siblings), Concat(",",
+            ToString(SemanticAstCollectionExclusiveCopyCount(copies, Concat("landings:", ToString(root))))))))));
 }
 
 // The edge copies the whole source or one of the `grown` first fields (any
@@ -98,6 +114,19 @@ func SemanticAstCollectionExclusiveCopyEdgeField(
     return !IsSome(field) || MapHas(copies, Concat("edge_field:", Concat(key, Concat(":", UnwrapOption(field)))));
 }
 
+// The edge's copy lands where the place `chain` of its holder names: the
+// place is the whole holder, or one landing is unknown or the chain's first
+// field.
+func SemanticAstCollectionExclusiveCopyEdgeLands(
+    copies: HashMap<String, Int>, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    edge: Int, ref chain: Array<Int>
+) -> Bool {
+    let key: String = ToString(edge);
+    if ArrayLength(chain) == 0 || MapHas(copies, Concat("edge_landing_any:", key)) { return true; }
+    let field: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, chain[0]);
+    return !IsSome(field) || MapHas(copies, Concat("edge_landing:", Concat(key, Concat(":", UnwrapOption(field)))));
+}
+
 // The fixed point follows a copy of `root` (at the first step of `chain`)
 // into `holder`.
 func SemanticAstCollectionExclusiveCopyHeld(
@@ -124,7 +153,7 @@ func SemanticAstCollectionExclusivePropagateCopies(
     while index < count {
         let edge: String = ToString(MapGet(copies, Concat(into, Concat(":", ToString(index)))));
         let root: Int = MapGet(copies, Concat("edge_root:", edge));
-        if SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder) { changed = true; }
+        if SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder, "") { changed = true; }
         index = index + 1;
     }
     return changed;
@@ -303,13 +332,15 @@ func SemanticAstCollectionExclusiveCopiesUnread(
         }
         index = index + 1;
     }
-    // A holder shares its storage with the source and every other holder of it.
+    // A holder shares its storage with the source and every other holder of
+    // it, in the first fields the copy lands in.
     let into: String = Concat("into:", ToString(root));
     index = 0;
     while index < SemanticAstCollectionExclusiveCopyCount(copies, into) {
         let edge: Int = MapGet(copies, Concat(into, Concat(":", ToString(index))));
         let source: Int = MapGet(copies, Concat("edge_root:", ToString(edge)));
-        let ignored: Bool = SemanticAstCollectionExclusiveDeclaredFrom(locals, source, syntax_id);
+        let ignored: Bool = SemanticAstCollectionExclusiveDeclaredFrom(locals, source, syntax_id) ||
+            !SemanticAstCollectionExclusiveCopyEdgeLands(copies, surfaces, edge, place.chain);
         let ignored_index: Int = 0;
         while ignored_index < ArrayLength(ignored_sources) {
             if ignored_sources[ignored_index] == source { ignored = true; }

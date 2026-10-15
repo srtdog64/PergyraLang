@@ -276,6 +276,8 @@ INPUTS=(
     exclusive_branch_rebind_continue_negative.pgy exclusive_branch_rebind_reads_old_negative.pgy
     exclusive_loop_old_alias_unread_positive.pgy exclusive_loop_old_alias_reread_negative.pgy
     exclusive_alias_after_use_positive.pgy exclusive_alias_after_use_loop_negative.pgy
+    exclusive_copy_landing_other_field_positive.pgy exclusive_copy_landing_same_field_negative.pgy
+    exclusive_copy_landing_unknown_negative.pgy
     inout_index_string_marker_literal_positive.pgy
     indexed_string_copied_return_positive.pgy
     indexed_string_copied_call_positive.pgy
