@@ -2819,7 +2819,7 @@ require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_
 # responsibility instead of raising its cap.
 for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:600 \
-    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy:410 \
+    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy:415 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy:240 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_source_policy_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
@@ -2901,7 +2901,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_exclusive_value_dead_definition_owner.pgy:135 \
     src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:596 \
     src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:384 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:416 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:420 \
     src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:450 \
     src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
