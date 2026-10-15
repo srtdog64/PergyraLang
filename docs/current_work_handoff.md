@@ -9,10 +9,13 @@ The owner resumed work on 2026-10-16 and requested one main branch. The
 inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
 `3721a901c` was merged at `5684085b2`. The only local branch is `main`;
 the former performance worktree is detached with its files preserved. Latest
-committed implementation: `b9beae91e24d91264e3dc17761b0770de51320ad`, after
-`3dc597701` (query-local backing validation) and `4de5784b7` (checked local
-replacement and exact call targets). Main was clean at that commit; this
-handoff refresh is the only later dirty document. Published main remains
+committed implementation: `28005129b` (private local stores, returned String
+loan consumption, demand-local failed-selection reuse), after `47d7c33e6`,
+`b9beae91e` (String ref retaining calls), `3dc597701` (query-local backing
+validation), and `4de5784b7` (checked local replacement/exact call targets).
+It adds exact ToInt/StringTrim input contracts and checked empty literals.
+The implementation and all new fixtures are committed. Only this handoff
+refresh is dirty. Published main remains
 `571ae8c3a`; publication and CI acceptance are pending.
 This combined source is not yet accepted. Do not reuse either parent's gate
 receipts as integrated acceptance.
@@ -34,32 +37,44 @@ static literal positives remain valid; dynamic/Concat/record-field retention
 and unknown/bodyless/indirect calls have explicit negative gates. RETURN-only
 String loans remain distinct from CALL/CHANNEL retention.
 
-Root independently observed on the frozen source/binary: phase unit 3977/0;
+Root independently observed on the integrated source/binary: phase unit4218/0;
 recursive and original independent-4097/oversized-4096 demand controls PASS;
-12 new String fixtures in the summary gate PASS (2.68 s); existing readonly-map
-24 C/LLVM runtime positives and 58 exact analyze-only negatives PASS (18.55 s),
-with source/input/binary guards. Receipts in `/root/pgy-main-20261016.*.log`:
-`static-string-final-unit`, `static-string-final-summary`,
-`static-string-final-readonly`. Native SHA256:
-`dfcfba0d341e6dc4709809d39b6890c2fe8bdaa1e09bd5127d3f8c06c3cbbe3e`.
+summary gate including C/LLVM conversion, Trim-return, private-local read and
+literal-loan storage runtime PASS (8.24s); component drift/caps PASS (9.71s).
+The four returned-String Slot/inout negatives now refuse before MIR.
+At clean47d, readonly-map24 C/LLVM runtime positives and58 exact analyze-only
+negatives plus HIR/RIR/MIR/AIR summary propagation PASS (27.53 s), with input
+and binary guards. Receipts in `/root/pgy-main-20261016.*.log`:
+`ab-final-summary`, `ab-broad-controls`, `ab-component` and historical
+`bc-chain-controls`. Native SHA256:
+`321a9db1a0d73d0aaf33519a40b1ad762a534f26ad4e40d8ec4c534345386a58`.
 
 Same full `src/self_hosted/codegen/main.pgy --native-pipeline --hir` at clean
-`b9beae91e` still FAILS: 10.83 s, peak621572 KiB, exit1, 18410 errors/16
-warnings (mostly cascading after the first failure). The primary is line274,
-recursive work4096 in `SemanticAstBodyFlowOfBlock` parameter1, reached at Match.
-The previous complete demand census was 91 evaluations +2592 backing nodes
-+1413 graph nodes. It is not 18410 independent ownership defects. Receipt:
-`/root/pgy-main-20261016.b9-canonical.log`. The earlier 308.81-second timeout
+the integrated candidate still FAILS:11.43s, peak719788KiB, exit1,18410 errors/16
+warnings (mostly cascading after the first failure). The primary is line218,
+recursive work4096; the old BodyFlow55-routine closure now has false0 with
+all3 private calls issued/current. Before demand-local false-selection reuse,
+the next MemberCapture Binding demand spent120 evaluations+1696 backing+2280
+graph, rechecking three failed closures40 times. The new first failure needs
+an isolated all-demand inventory, not another guessed permission. It is not
+18410 independent defects. Receipts: `ab-canonical` and A's private census.
+The earlier308.81-second timeout
 is historical; the local DAG repair removed that cost blocker, not this refusal.
 
-A now owns only the exhaustive scratch census of the Block/Statement/If/Match/
-Loop closure (including failures hidden by the selector's first-true return).
-ToInt nonretention and Match array storage/RETURN relations are candidates,
-not selected repairs. Ordinary ArrayPush retains elements; no blanket no-retain
-grant is allowed. One heavy WSL compile lease, no shared process kills.
-Root owns integration, acceptance and publication. Independent read-only review
-was requested in `Red-team review DRV-2 candidate` against this frozen binary;
-results are pending. The focus gate still stops at native probe compilation;
+The private candidate -> entire closed graph -> query-local escape permission
+-> backing RETURN/output chain is integrated; ordinary ArrayPush has no
+blanket no-retain grant. B uses the existing PendingRefCall and a single
+returned-call seed in a sparse backing query, not a dense local matrix.
+All three lanes are production-frozen. A's next diagnostic-only inventory is
+all body/ref formal keys plus pending keys at the sealed publication boundary,
+with a fresh isolated summary/diagnostic context per key. Cold-store results
+are inventory, not acceptance; it must abort before MIR. One WSL compile lease,
+no shared process kills. Root owns acceptance/publication. Production C-size
+parity is blocked by the unavailable installed driver; stable local Rocq prefix
+is unavailable. Neither limitation is a pass or permission for fallback.
+Independent read-only b9 review in `Red-team review DRV-2 candidate` found this
+existing RETURN-only String storage gap. It did not approve the candidate.
+Root owns integration, acceptance and publication. The focus gate still stops at native probe compilation;
 bootstrap, full driver memory, installed driver and exact-SHA CI remain OPEN.
 
 The WSL remaining-target process is no longer running after WSL restart;
