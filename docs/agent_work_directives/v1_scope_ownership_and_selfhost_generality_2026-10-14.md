@@ -308,6 +308,27 @@ this lane; both were hidden behind the gen1 refusal.
   to call-result but kept the binding's own id, so the seed's reader refused
   eight canonical rows at `gen2_emit`. The activation now records the callee
   it already holds.
+- **The MIR to AST round trip copied the code after a closed arm.** The
+  consumer's tree emitter stops each arm of an `if` at the branch's
+  structural merge. When one arm always returns (a guard chain in the true
+  arm, or the last `else { return }` of an else-if chain), the arms never
+  meet and the merge was empty, so the emitter copied the continuation into
+  the other arm and again after the `if`. The semantic re-check then saw the
+  same field moved out twice and refused `gen2_emit` with
+  `member_use_after_move`. Now an arm that only the branch enters is closed,
+  and the other arm's start is the merge. Gate:
+  `self-host-mir-round-trip-semantic-test-smoke`.
+- **The round trip ended every Void body with `return`.** MIR writes the
+  same void return row for an explicit trailing `return;` and for the end of
+  the body, and the emitter rendered it as a `Return` statement. An aggregate
+  field release (move a field out, drop it, restore it) is admitted only in
+  a straight-line body, and a `return` statement breaks that. So every such
+  routine passed at the source and was refused in the round trip with
+  `aggregate_release_incomplete`, for example
+  `CodegenTypeEnvStateReleaseLocal`. A bare return that ends the top-level
+  body is now emitted as the end of the body. The self-host source checker
+  still refuses an explicit trailing `return;` there, which native admits.
+  That is precision the canonical program does not need.
 - **Still refused: an owned call result held live to the end of its scope.**
   The canonical program never holds one. Its owned results are retired by a
   drop or a return. Admitting the state needs the callee's owned-result
