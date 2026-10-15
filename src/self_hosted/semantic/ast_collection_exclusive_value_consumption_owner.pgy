@@ -240,7 +240,15 @@ func SemanticAstCollectionExclusivePlaceConsumed(
             artifact, signatures, locals, inferred_types, surfaces, assignments, function_id, destination, place);
     }
     if moves && destination != place.key {
-        excluded = family;
+        // The place itself stays a reader: a flow-blind alias edge can put
+        // it in the destination's family, and its later reads must be seen.
+        let place_keys: Array<Int> = [place.key];
+        let place_starts: Array<Int> = [0];
+        let place_counts: Array<Int> = [0];
+        let place_nodes: Array<Int> = [];
+        let place_only: SemanticAstCollectionAggregateSinkAliases = SemanticAstCollectionAggregateSinkAliases(
+            place_keys, place_starts, place_counts, place_nodes);
+        excluded = SemanticAstCollectionExclusiveAliasesWithout(family, place_only, inferred_types);
         if ArrayLength(family.keys) == 0 {
             let only_keys: Array<Int> = [destination];
             let only_starts: Array<Int> = [0];

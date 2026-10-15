@@ -452,9 +452,10 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
     ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
     ref assignments: SemanticAstAssignmentFacts, inout values: SemanticAstCollectionExclusiveValueFacts,
-    mutating_formals: HashMap<String, Int>
+    mutating_formals: HashMap<String, Int>, excluded_roots: HashMap<String, Int>
 ) -> SemanticAstCollectionFocusRecoveryFacts {
     let facts: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFactsEmpty();
+    facts.excluded_roots = excluded_roots;
     facts.artifact_node_count = artifact.count;
     facts.artifact_identity_digest = artifact.identity_digest;
     facts.mutating_formals = mutating_formals;
@@ -470,8 +471,9 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
     while row < ArrayLength(locals.node_ids) {
         let candidate: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
             signatures, constructors, locals, inferred_types, surfaces, row);
-        if candidate.ok && !MapHas(mutating_formals, ToString(candidate.root_id)) &&
-            !MapHas(mutating_formals, Concat("root:", ToString(locals.node_ids[row]))) {
+        if candidate.ok && (!MapHas(mutating_formals, ToString(candidate.root_id)) &&
+            !MapHas(mutating_formals, Concat("root:", ToString(locals.node_ids[row]))) || MapHas(excluded_roots,
+            SemanticAstCollectionFocusRecoveryRootKey(locals.function_node_ids[row], candidate.root_id))) {
             row = row + 1; continue;
         }
         if candidate.ok {

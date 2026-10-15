@@ -297,8 +297,8 @@ func SemanticAstCollectionFocusRecoveryCurrent(
     while local_row < ArrayLength(locals.node_ids) {
         let candidate: SemanticAstCollectionFocusPartCandidate = SemanticAstCollectionFocusPartForLocal(
             signatures, constructors, locals, inferred_types, surfaces, local_row);
-        if candidate.ok && (MapHas(facts.mutating_formals, ToString(candidate.root_id)) ||
-            MapHas(facts.mutating_formals, Concat("root:", ToString(locals.node_ids[local_row])))) {
+        if candidate.ok && (MapHas(facts.mutating_formals, ToString(candidate.root_id)) || MapHas(facts.mutating_formals, Concat("root:", ToString(locals.node_ids[local_row])))) &&
+            !MapHas(facts.excluded_roots, SemanticAstCollectionFocusRecoveryRootKey(locals.function_node_ids[local_row], candidate.root_id)) {
             if candidate.type_row != local_row || candidate.type_row < 0 ||
                     candidate.type_row >= ArrayLength(inferred_types) { return false; }
             let matches: Int = 0;

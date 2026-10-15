@@ -266,9 +266,40 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             "ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "exclusive_value_facts"), -1, -1);
     }
+    // A group whose uses admission cannot prove is left out of issuance, and
+    // the groups issued without it are checked again: a caller's group may
+    // rely on its callee's. Its locals stay ordinary checked bindings.
+    let excluded_roots: Array<String> = [];
+    let focus_changed: Bool = true;
+    let focus_round: Int = 0;
+    while focus_changed && focus_round <= ArrayLength(locals.node_ids) {
+        focus_changed = false;
+        // A fresh map each round: issuance keeps it, and the list still grows.
+        let probe_excluded: HashMap<String, Int> = MapNew();
+        let probe_key: Int = 0;
+        while probe_key < ArrayLength(excluded_roots) { MapSet(probe_excluded, Concat("", excluded_roots[probe_key]), 1); probe_key = probe_key + 1; }
+        let probe: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFromResolvedFacts(
+            artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
+            resolved_leaf_types, surfaces, statements, assignments, exclusive_values, mutating_formals, probe_excluded);
+        let probe_group: Int = 0;
+        while probe.ok && probe_group < ArrayLength(probe.group_function_ids) {
+            if !SemanticAstCollectionFocusRecoveryUsesReady(artifact, signatures, constructors, locals,
+                    initializer_types.inferred_type_names, surfaces, assignments, statements, formal_effects, probe, probe_group) {
+                ArrayPushOwnedString(excluded_roots, SemanticAstCollectionFocusRecoveryRootKey(
+                    probe.group_function_ids[probe_group], probe.group_root_binding_ids[probe_group]));
+                focus_changed = true;
+            }
+            probe_group = probe_group + 1;
+        }
+        SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(probe);
+        focus_round = focus_round + 1;
+    }
+    let focus_excluded: HashMap<String, Int> = MapNew();
+    let focus_key: Int = 0;
+    while focus_key < ArrayLength(excluded_roots) { MapSet(focus_excluded, Concat("", excluded_roots[focus_key]), 1); focus_key = focus_key + 1; }
     let focus: SemanticAstCollectionFocusRecoveryFacts = SemanticAstCollectionFocusRecoveryFromResolvedFacts(
         artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
-        resolved_leaf_types, surfaces, statements, assignments, exclusive_values, mutating_formals);
+        resolved_leaf_types, surfaces, statements, assignments, exclusive_values, mutating_formals, focus_excluded);
     focus.ok = focus.ok && SemanticAstCollectionFocusRecoveryCurrent(artifact, signatures, constructors, locals,
         initializer_types.inferred_type_names, surfaces, statements, assignments, formal_effects, focus);
     let binding_move_use: SemanticAstCollectionBindingMoveUse =

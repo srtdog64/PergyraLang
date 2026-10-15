@@ -41,6 +41,9 @@ struct SemanticAstCollectionFocusRecoveryFacts {
     exit_part_counts: Array<Int>;
     active_part_indices: Array<Int>;
     active_definition_ids: Array<Int>;
+    // "function:root" keys issuance leaves out: admission could not prove
+    // their uses, so their locals stay ordinary checked bindings.
+    excluded_roots: HashMap<String, Int>;
 }
 
 struct SemanticAstCollectionFocusRecoveryExit {
@@ -56,11 +59,17 @@ func SemanticAstCollectionFocusRecoveryFactsEmpty() -> SemanticAstCollectionFocu
     let mutating: HashMap<String, Int> = MapNew();
     let copies: HashMap<String, Int> = MapNew();
     let field_reads: HashMap<String, Int> = MapNew();
+    let excluded: HashMap<String, Int> = MapNew();
     return SemanticAstCollectionFocusRecoveryFacts(false, 0, 0,
         mutating, copies, field_reads, 0, 0,
         ints, ints, ints, ints, ints, ints, ints, names, names,
         ints, ints, ints, names, names,
-        ints, ints, ints, ints, ints, ints, ints, ints, ints);
+        ints, ints, ints, ints, ints, ints, ints, ints, ints, excluded);
+}
+
+// The key a group's function and root binding leave out of issuance.
+func SemanticAstCollectionFocusRecoveryRootKey(function_id: Int, root_id: Int) -> String {
+    return Concat(ToString(function_id), Concat(":", ToString(root_id)));
 }
 
 func SemanticAstCollectionFocusRecoveryRetireOwnedMetadata(
