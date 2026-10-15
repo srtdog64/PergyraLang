@@ -59,7 +59,7 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
             MapGet(descriptor_effects, key) ==
                 SemanticAstCollectionFormalUnprovedElementUseEffect();
         // Only a formal the effect analysis read in a body keeps that contract.
-        borrowed = borrowed && MapHas(proved, key) && !opaque;
+        borrowed = borrowed && MapHas(descriptor_effects, key) && !opaque;
         effect.storage_escape = effect.storage_escape || opaque;
         effect.unknown = !consuming && unproved && !borrowed;
         effect.retiring = consuming || ((unproved || shallow) && !borrowed);
