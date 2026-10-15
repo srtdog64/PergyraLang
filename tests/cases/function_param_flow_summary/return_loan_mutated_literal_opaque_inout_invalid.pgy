@@ -1,0 +1,12 @@
+extern "C" { func Fill(inout text: String) -> Void; }
+func Echo(ref text: String) -> String { return text; }
+func Publish(inout output: String) -> Void {
+    var held: String = "literal";
+    Fill(held);
+    output = Echo(held);
+}
+func Main() -> Void {
+    let output = "";
+    Publish(output);
+    Log(output);
+}

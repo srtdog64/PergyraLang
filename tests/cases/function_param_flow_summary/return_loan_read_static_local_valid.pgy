@@ -1,0 +1,14 @@
+func Echo(ref text: String) -> String { return text; }
+func Length(ref text: String) -> Int { return StringLength(text); }
+func Publish(ref output: Slot<String>) -> Void {
+    let held = "static literal";
+    Log(StringLength(held));
+    Log(Length(held));
+    Write(output, Echo(held));
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Publish(output);
+    Log(Read(output));
+    Release(output);
+}

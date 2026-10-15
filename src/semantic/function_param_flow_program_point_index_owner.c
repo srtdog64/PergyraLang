@@ -620,9 +620,13 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                     const ASTNode *root = NULL;
                     if (!slot_call_argument_storage_root(ast_call_argument(node, p), &root)) { admitted = false; break; }
                     if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
+                    if (!semantic_param_publication_checked_argument(store->ctx, node, p)) { admitted = false; break; }
                     ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
-                    if (callee != NULL && (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF ||
-                        (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0)) admitted = false;
+                    if (callee != NULL) {
+                        if (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF ||
+                            (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0) admitted = false;
+                    } else if (!semantic_param_publication_string_argument_read_only(store->ctx, node, p) &&
+                        !semantic_typed_map_query_receiver_read(store->ctx, node, p)) admitted = false;
                 }
             }
             if (dependency == NULL) admitted = false;
@@ -728,6 +732,46 @@ bool function_param_flow_no_store_call_append(SemanticContext *ctx,
     return true;
 }
 
+static bool function_param_flow_no_store_member_admitted(
+    const FunctionParamFlowSummaryStore *store, size_t ordinal)
+{
+    if (ordinal >= store->program_point_index_count) return false;
+    const FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[ordinal];
+    size_t position = index->admitted_no_store_position;
+    return store->solving && store->demand_epoch != 0 &&
+        index->admitted_no_store_epoch == store->demand_epoch &&
+        position != 0 && position <= store->admitted_no_store_count &&
+        store->admitted_no_store_indexes[position - 1] == ordinal;
+}
+/* The union is one admitted set in this demand, not copied per root. Replaying
+ * it checks every premise, including edges into the set. An epoch alone is
+ * never permission; current typed facts and exact membership must still join. */
+static bool function_param_flow_no_store_admitted_current(FunctionParamFlowSummaryStore *store)
+{
+    for (size_t m = 0; m < store->admitted_no_store_count; m++) {
+        size_t ordinal = store->admitted_no_store_indexes[m];
+        if (!function_param_flow_no_store_member_admitted(store, ordinal)) return false;
+        FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[ordinal];
+        ASTNode *decl = index->function_decl;
+        if (index->function_id != ast_node_stable_id(decl) ||
+            index->failed_no_store_epoch == store->demand_epoch ||
+            !semantic_param_publication_routine_no_output_header_ready(store->ctx, decl) ||
+            !function_param_flow_program_point_index_build(store, decl, &index) ||
+            !index->dependency_roots_ready || index->mutable_output_required) return false;
+        for (size_t e = 0; e < index->no_store_call_count; e++) {
+            ASTNode *call = index->no_store_calls[e];
+            ASTNode *callee = semantic_param_publication_direct_callee(store->ctx, call);
+            if (callee == NULL || ast_call_arg_count(call) != ast_func_param_count(callee)) return false;
+            for (size_t p = 0; p < ast_call_arg_count(call); p++)
+                if (!semantic_param_publication_checked_argument(store->ctx, call, p) ||
+                    !semantic_param_publication_value(store->ctx, ast_call_argument(call, p)).ok) return false;
+            size_t target = function_param_flow_program_point_index_find(store, ast_node_stable_id(callee));
+            if (!function_param_flow_no_store_member_admitted(store, target) ||
+                store->program_point_indexes[target].function_decl != callee) return false;
+        }
+    }
+    return true;
+}
 /* The queue is owned by this closure, not an early parameter mask or an index
  * pointer retained across growable table allocation. Cycles close only after
  * every reached header and local store predicate has been checked. */
@@ -736,15 +780,23 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
     if (store == NULL || decl == NULL || store->failed) return false;
     uint32_t declaration_id = ast_node_stable_id(decl);
     /* Repeating a refusal cannot grant permission. Its only consumer is the
-     * unchanged conservative backing path. Positive proofs are never reused;
-     * out-of-solver loan queries and the next demand always inspect current
-     * facts again. No borrowed index pointer survives closure construction. */
+     * unchanged conservative backing path. Positive set reuse replays every
+     * current premise; out-of-solver queries reconstruct the graph. No borrowed
+     * index pointer survives closure construction. */
     if (store->solving && store->demand_epoch != 0)
         for (size_t i = 0; i < store->program_point_index_count; i++) {
             FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[i];
             if (index->function_decl == decl && index->function_id == declaration_id &&
                 index->failed_no_store_epoch == store->demand_epoch) return false;
         }
+    bool admitted_current = store->solving && store->demand_epoch != 0 &&
+        store->admitted_no_store_count != 0;
+    if (admitted_current) {
+        if (!function_param_flow_no_store_admitted_current(store)) return false;
+        size_t ordinal = function_param_flow_program_point_index_find(store, declaration_id);
+        if (function_param_flow_no_store_member_admitted(store, ordinal) &&
+            store->program_point_indexes[ordinal].function_decl == decl) return true;
+    }
     ASTNode **queue = malloc(sizeof(*queue));
     if (queue == NULL) return false;
     queue[0] = decl;
@@ -765,6 +817,11 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
             for (size_t p = 0; p < ast_call_arg_count(call); p++)
                 if (!semantic_param_publication_value(store->ctx, ast_call_argument(call, p)).ok) closed = false;
             if (!closed) break;
+            if (admitted_current) {
+                size_t ordinal = function_param_flow_program_point_index_find(store, ast_node_stable_id(callee));
+                if (function_param_flow_no_store_member_admitted(store, ordinal) &&
+                    store->program_point_indexes[ordinal].function_decl == callee) continue;
+            }
             size_t found = 0;
             while (found < count && queue[found] != callee) found++;
             if (found != count) continue;
@@ -773,6 +830,30 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
             if (grown == NULL) { closed = false; break; }
             queue = grown;
             queue[count++] = callee;
+        }
+    }
+    if (closed && store->solving && store->demand_epoch != 0) {
+        size_t prior = store->admitted_no_store_count;
+        if (count > SIZE_MAX - prior || prior + count > SIZE_MAX / sizeof(size_t)) closed = false;
+        else {
+            size_t *members = realloc(store->admitted_no_store_indexes, (prior + count) * sizeof(*members));
+            if (members == NULL) closed = false;
+            else {
+                store->admitted_no_store_indexes = members;
+                for (size_t m = 0; m < count; m++) {
+                    size_t ordinal = function_param_flow_program_point_index_find(store, ast_node_stable_id(queue[m]));
+                    if (ordinal == SIZE_MAX || store->program_point_indexes[ordinal].function_decl != queue[m]) { closed = false; break; }
+                    members[prior + m] = ordinal;
+                }
+                if (closed) {
+                    store->admitted_no_store_count = prior + count;
+                    for (size_t m = prior; m < prior + count; m++) {
+                        FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[members[m]];
+                        index->admitted_no_store_epoch = store->demand_epoch;
+                        index->admitted_no_store_position = m + 1;
+                    }
+                }
+            }
         }
     }
     free(queue);

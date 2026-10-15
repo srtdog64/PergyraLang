@@ -531,6 +531,7 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
         return SLOT_PARAM_SUMMARY_ALL;
     }
     store->demand_epoch++;
+    store->admitted_no_store_count = 0;
     store->solving = true;
     store->active_had_recursion = false;
     store->settling_pending = false;

@@ -402,6 +402,7 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < store->count; i++) free(store->entries[i].output_dependencies);
     free(store->entries);
     free(store->hash);
+    free(store->admitted_no_store_indexes);
     free(store);
     ctx->function_param_flow_summaries = NULL;
 }

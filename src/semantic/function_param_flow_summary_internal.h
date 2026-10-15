@@ -93,6 +93,7 @@ typedef struct
     bool mutable_output_required;
     bool private_local_stores;
     size_t failed_no_store_epoch;
+    size_t admitted_no_store_epoch, admitted_no_store_position;
     /* Original call identities; zero-argument edges need no invented ordinal. */
     ASTNode **no_store_calls;
     size_t no_store_call_count;
@@ -128,6 +129,8 @@ struct FunctionParamFlowSummaryStore
     size_t work_units;
     size_t work_budget;
     size_t demand_epoch;
+    size_t *admitted_no_store_indexes;
+    size_t admitted_no_store_count;
     size_t indexed_statement_visits;
     size_t indexed_program_points;
 };

@@ -1,0 +1,12 @@
+func Echo(ref text: String) -> String { return text; }
+func Publish(ref output: Slot<String>) -> Void {
+    var held: String = "literal";
+    held = Concat("heap", " text");
+    Write(output, Echo(held));
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Publish(output);
+    Log(Read(output));
+    Release(output);
+}

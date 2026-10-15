@@ -388,6 +388,16 @@ bool semantic_param_publication_local_call(const SemanticContext *ctx, const AST
     return publication_node(ctx->function_param_publications, call, false)->local ||
         semantic_param_publication_argument_borrowed_for_call(ctx, call, ordinal);
 }
+bool semantic_param_publication_string_argument_read_only(
+    const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
+{
+    if (!semantic_param_publication_argument_borrowed_for_call(ctx, call, ordinal) ||
+        ast_call_callee(call) == NULL || ast_call_callee(call)->type != AST_IDENTIFIER) return false;
+    PublishedNode *value = publication_current_value(ctx, ast_call_argument(call, ordinal));
+    /* Registered String operands are const-input reads or copied inputs.
+     * Mutation-capable receivers such as Write's Slot are not String values. */
+    return value != NULL && value->string_value;
+}
 uint32_t semantic_param_publication_binding(const SemanticContext *ctx, const ASTNode *value)
 {
     return value != NULL && value->type == AST_IDENTIFIER && semantic_param_publication_value(ctx, value).ok ?

@@ -52,7 +52,12 @@ paired = (
     ("return_loan_staged_slot_invalid", False),
     ("return_loan_wrap_slot_invalid", False),
     ("return_loan_inout_invalid", False),
+    ("return_loan_mutated_literal_opaque_slot_invalid", False),
+    ("return_loan_mutated_literal_opaque_inout_invalid", False),
+    ("return_loan_mutated_literal_assignment_invalid", False),
+    ("return_loan_mutated_literal_bodyful_inout_invalid", False),
     ("return_loan_literal_slot_valid", True),
+    ("return_loan_read_static_local_valid", True),
     ("direct_ref_string_retaining_literal_valid", True),
     ("direct_ref_string_retaining_concat_invalid", False),
     ("direct_ref_string_local_retain_invalid", False),
@@ -127,6 +132,7 @@ for name, expected in (
     ("stdlib_trim_result_return_valid", "heap text\n"),
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
+    ("return_loan_read_static_local_valid", "14\n14\nstatic literal\n"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

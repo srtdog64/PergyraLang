@@ -146,6 +146,8 @@ bool semantic_param_publication_ready(const SemanticContext *ctx);
 uint32_t semantic_param_publication_binding(const SemanticContext *ctx, const ASTNode *value);
 bool semantic_param_publication_argument_borrowed_for_call(
     const SemanticContext *ctx, const ASTNode *call, size_t ordinal);
+bool semantic_param_publication_string_argument_read_only(
+    const SemanticContext *ctx, const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_routine_return_dependency_is_scalar(
     const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_routine_no_output_header_ready(

@@ -243,6 +243,48 @@ the unavailable installed self-host driver; it is OPEN, not passed or replaced
 with a native fallback. Local stable Rocq prefix is unavailable too; the actual
 published proof job must execute before any full-CI claim.
 
+Sealed-input isolated inventory is complete:3188 unique routine/ordinal keys
+from4273 routines/8851 pending rows;692 cold failures across151 routines,
+all work4096, incomplete0, elapsed27.865s. Scratch exits86 before MIR.
+Receipt `a-inventory.log`; this is not the warm production verdict. Further
+telemetry disproves a40-round oscillation: MemberCapture is8 parameters times
+5 normal convergence rounds. False-selection reuse admits that demand.
+
+The current warm BodyFlow failure is now measured:85 evaluations+280 backing
++3731 graph=4096. Same55-member closed set is reconstructed65 times
+(3575 visits), distinct membership sets1; `a-positive.log`. Selected next
+repair is an admitted closed-set proof within one top-level summary demand,
+behind the existing index/graph owner. Reuse must recheck every proof member's
+current header, roots/claims, false mutable-output selector and exact typed
+outgoing call facts; missing/stale members refuse. Do not merely stop charging
+the existing repeated traversal. Construct/expand the graph once, then consume
+its validated proof without rebuilding its queue. No positive reuse outside
+the solver or across demands, no weaker work/time budget, no new cache owner,
+and no ArraySet/Pop or indirect-call permission. Preserve same-query leaf
+corruption/refusal, next-query restoration, original unique-work limits and all
+behavioral escape gates before retrying the unchanged canonical.
+
+Root integrated that proof and the independent2800 review's opaque-inout
+falsifier. A local's original literal is not static permission after an unknown
+call can replace its binding. The existing publication owner now joins exact
+current String value evidence to a registered synchronous const/copy input;
+nonretention alone is not a no-mutation fact. Missing/bodyless/indirect/member
+mutation facts refuse, while known user callees still consume current formal
+mode and WRITE summaries. Four permanent analyze-only controls cover opaque
+Slot/inout sinks and direct/bodyful mutation; a new read-only static-local
+positive executes identically on C and LLVM. No dangerous negative is run.
+
+Root observations on clone27d plus14 frozen candidate paths: native build
+warning-free; phase4245/0; summary including original4096/4097 and recursive
+controls PASS8.68s; readonly-map24/58 and HIR/RIR/MIR/AIR propagation PASS19.38s;
+component/generator and retention/region controls PASS10.50s. Receipts:
+`proof-build`, `proof-unit`, `proof-summary`, `proof-chain`, `proof-component`.
+Same full canonical is still RED11.02s/720000KiB/18410 errors/16 warnings;
+its primary moved from line218 to line71, work4096. This is not V1 closure.
+A has the sole WSL lease for one scratch warm-demand measurement, then must
+restore all source/objects/native bytes. Root holds publication/bootstrap;
+the next action is the reached failure's owner/cost, not another permission.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

@@ -729,6 +729,7 @@ static void checked_slot_input_contract(void)
     ASTNode *call = ast_block_statement(body, 0);
     ASTNode *receiver = ast_call_argument(call, 0);
     CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, call, 0));
+    CHECK(!semantic_param_publication_string_argument_read_only(ctx, call, 0));
     CHECK(!semantic_param_publication_argument_borrowed_for_call(ctx, call, 1));
     CHECK(semantic_param_publication_binding(ctx, receiver) == ast_func_param_stable_id(ast_func_param(decl, 0)));
     uint32_t binding = ast_identifier_binding_syntax_id(receiver);
@@ -2732,6 +2733,15 @@ static void checked_static_string_backing(void)
     CHECK(semantic_param_publication_value(ctx, dynamic).copy_escape);
     CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, dynamic));
     CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, alias));
+    ASTNode *read = ast_block_statement(body, 3);
+    CHECK(semantic_param_publication_string_argument_read_only(ctx, read, 0));
+    CHECK(!semantic_param_publication_string_argument_read_only(ctx, read, 1));
+    ASTNode *read_argument = ast_call_argument(read, 0);
+    uint32_t read_binding = ast_identifier_binding_syntax_id(read_argument);
+    ast_identifier_set_binding_syntax_id(read_argument, read_binding + 1);
+    CHECK(!semantic_param_publication_string_argument_read_only(ctx, read, 0));
+    ast_identifier_set_binding_syntax_id(read_argument, read_binding);
+    CHECK(semantic_param_publication_string_argument_read_only(ctx, read, 0));
     PublishedNode *row = NULL;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     for (size_t i = 0; store != NULL && i < store->node_capacity; i++)
@@ -2752,6 +2762,7 @@ static void checked_static_string_backing(void)
         literal->type = AST_STRING;
         program->stable_id++;
         CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, literal));
+        CHECK(!semantic_param_publication_string_argument_read_only(ctx, read, 0));
         program->stable_id--;
         CHECK(semantic_param_publication_value_has_static_string_backing(ctx, literal));
     }
@@ -2777,7 +2788,7 @@ static void checked_failed_no_store_selection_epoch(void)
     bool original = index->mutable_output_required;
     /* Inject a conservative owner verdict, never a storage permission. */
     index->mutable_output_required = true;
-    store->solving = true; store->demand_epoch++; store->work_units = 0;
+    store->solving = true; store->demand_epoch++; store->admitted_no_store_count = 0; store->work_units = 0;
     CHECK(!function_param_flow_no_store_graph(store, decl));
     size_t charged = store->work_units;
     CHECK(charged != 0);
@@ -2789,14 +2800,13 @@ static void checked_failed_no_store_selection_epoch(void)
     store->solving = false;
     CHECK(function_param_flow_no_store_graph(store, decl));
     CHECK(store->work_units > charged);
-    store->solving = true; store->demand_epoch++;
+    store->solving = true; store->demand_epoch++; store->admitted_no_store_count = 0;
     CHECK(function_param_flow_no_store_graph(store, decl));
     charged = store->work_units;
     index->mutable_output_required = true;
     CHECK(!function_param_flow_no_store_graph(store, decl));
-    CHECK(store->work_units > charged);
     index->mutable_output_required = original;
-    store->demand_epoch++;
+    store->demand_epoch++; store->admitted_no_store_count = 0;
     CHECK(function_param_flow_no_store_graph(store, decl));
     store->solving = false;
     /* Overflow must start an uncached demand, not reuse a completed row. */
@@ -2807,6 +2817,70 @@ static void checked_failed_no_store_selection_epoch(void)
     store->demand_epoch = SIZE_MAX;
     CHECK(function_param_flow_summary_for_param(ctx, ast_program_statement(program, 1), 0) == SLOT_PARAM_SUMMARY_ALL);
     CHECK(store->failed);
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_admitted_no_store_proof(void)
+{
+    Lexer *lexer = lexer_create("func Leaf(ref value:Int)->Int{return value;}func Root(ref value:Int)->Int{return Leaf(value);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    if (program == NULL || parser_has_error(parser)) goto cleanup;
+    CHECK(type_check_program(program, ctx));
+    ASTNode *leaf = ast_program_statement(program, 0), *root = ast_program_statement(program, 1);
+    (void)function_param_flow_summary_for_param(ctx, root, 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *leaf_index = NULL, *root_index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, leaf, &leaf_index));
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, root, &root_index));
+    if (store == NULL || leaf_index == NULL || root_index == NULL) goto cleanup;
+    store->solving = true; store->demand_epoch++; store->admitted_no_store_count = 0; store->work_units = 0;
+    CHECK(function_param_flow_no_store_graph(store, root));
+    size_t charged = store->work_units;
+    CHECK(charged == 2 && store->admitted_no_store_count == 2);
+    CHECK(function_param_flow_no_store_graph(store, leaf));
+    CHECK(function_param_flow_no_store_graph(store, root));
+    CHECK(store->work_units == charged && store->admitted_no_store_count == 2);
+    bool original = leaf_index->mutable_output_required;
+    leaf_index->mutable_output_required = true;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    leaf_index->mutable_output_required = original;
+    ASTNode *value = ast_return_value(ast_block_statement(ast_func_body(leaf), 0));
+    value->stable_id++;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    value->stable_id--;
+    ASTNode *call = ast_return_value(ast_block_statement(ast_func_body(root), 0));
+    ASTNode *argument = ast_call_argument(call, 0);
+    uint32_t binding = ast_identifier_binding_syntax_id(argument);
+    ast_identifier_set_binding_syntax_id(argument, binding + 1);
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    ast_identifier_set_binding_syntax_id(argument, binding);
+    size_t position = leaf_index->admitted_no_store_position;
+    leaf_index->admitted_no_store_position = 0;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    leaf_index->admitted_no_store_position = position;
+    root_index->mutable_output_required = true;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    root_index->mutable_output_required = false;
+    CHECK(function_param_flow_no_store_graph(store, root));
+    store->demand_epoch++; store->admitted_no_store_count = 0;
+    leaf_index->mutable_output_required = true;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    leaf_index->mutable_output_required = original;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    store->demand_epoch++; store->admitted_no_store_count = 0;
+    CHECK(function_param_flow_no_store_graph(store, root));
+    CHECK(store->work_units > charged && store->admitted_no_store_count == 2);
+    /* A loan query outside the solver must reconstruct current selection. */
+    store->solving = false; charged = store->work_units;
+    leaf_index->mutable_output_required = true;
+    CHECK(!function_param_flow_no_store_graph(store, root));
+    CHECK(store->work_units > charged);
+    leaf_index->mutable_output_required = original;
+    CHECK(function_param_flow_no_store_graph(store, root));
 cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -3023,6 +3097,7 @@ static void checked_empty_array_no_output(void)
 int main(void)
 {
     checked_failed_no_store_selection_epoch();
+    checked_admitted_no_store_proof();
     checked_return_loan_currency();
     checked_private_array_push_opaque_boundaries();
     checked_private_local_array_push();
