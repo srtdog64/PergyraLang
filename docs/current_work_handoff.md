@@ -37,9 +37,12 @@ contract passed in 11.45 s against 60 s. The focus gate stopped at native
 probe compilation, before its recovery behavior; it is not PASS. Root repeated
 the final `59af37fb6` publication unit: 3761 checks, zero failures (0.02 s).
 The full-input instrumented run was terminated as INCOMPLETE_BUDGET after
-306 s; no success is inferred from its lack of a diagnostic. An uninstrumented
-same-input run is now bounded by `timeout 300`. Canonical acceptance remains
-OPEN; bootstrap, driver, memory and GitHub CI have not been accepted.
+306 s. The uninstrumented same-input run also ended INCOMPLETE_BUDGET:
+`timeout 300` child exit124, wall308.81 s, peak596896 KiB, no compiler verdict.
+Do not infer success from missing diagnostics. This measured cost now blocks
+the active admission rung; identify the repeated validation operation behind
+its existing owner before a bounded repair. Canonical acceptance remains OPEN;
+bootstrap, driver, DRV-2 consumer memory and GitHub CI have not been accepted.
 
 The three implementers own native flow, structural gates, and the existing
 focus-recovery behavioral gate respectively; root owns commits, integration,

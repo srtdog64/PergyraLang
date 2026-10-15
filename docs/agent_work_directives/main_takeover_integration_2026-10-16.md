@@ -139,6 +139,20 @@ to root and this map before edits.
   is INCOMPLETE_BUDGET, not successful admission. Remove instrumentation and
   measure the identical input with `timeout 300` before deciding whether any
   reached repeated operation is actually closure-blocking.
+- Closure-blocking cost record: the uninstrumented `59af37fb6` implementation
+  also ended INCOMPLETE_BUDGET (`timeout 300` child exit 124; wall 308.81 s,
+  user 308.60 s, maximum RSS 596896 KiB, no compiler verdict). All seven native
+  implementation/test blobs in the Linux build match the frozen commit; native
+  binary SHA-256 is `27a98b788157828ef32186b9cf7089028263a8e8438864bf1c2bd448a9746225`.
+  Input remains the full import-composed `src/self_hosted/codegen/main.pgy` at
+  this tree, not a subset. Receipt: `/root/pgy-main-20261016.a-final-empty-canonical.log`.
+  The blocked gate is full native admission within 300 s. The reached candidate
+  operation is transitive backing/claim/publication current-validation; its hot
+  attribution is not yet measured. Instrument only those existing owners in a
+  scratch source, then change only the proven repeated operation. No global
+  cache, relaxed safety, reduced input, new owner or increased budget. Recheck
+  stale facts, shared diamonds/cycles, all escape controls, original demand
+  limits and this same full-input gate before returning to bootstrap/install.
 - Structural reconciliation: routine generic-constraint JSON projection moves
   unchanged from the aggregate serializer to the existing routine-parameter
   JSON owner (already imported by both consumers). Function identity and
