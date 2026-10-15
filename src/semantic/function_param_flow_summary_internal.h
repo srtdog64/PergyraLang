@@ -49,7 +49,7 @@ typedef struct {
     size_t node_count;
     FunctionParamFlowBackingBinding *bindings;
     size_t binding_count;
-    bool building, complete, pending, changed, validating;
+    bool building, complete, pending, changed;
     FunctionParamFlowIndexClaims *claims;
 } FunctionParamFlowBackingFact;
 typedef struct {

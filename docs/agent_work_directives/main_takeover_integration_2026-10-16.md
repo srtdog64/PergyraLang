@@ -153,6 +153,26 @@ to root and this map before edits.
   cache, relaxed safety, reduced input, new owner or increased budget. Recheck
   stale facts, shared diamonds/cycles, all escape controls, original demand
   limits and this same full-input gate before returning to bootstrap/install.
+- Scratch attribution now confirms repeated current-validation of a shared DAG,
+  not repeated visits required by a cycle: one root validates 722 routine calls
+  for 20 unique routines (36.1x, cycle count zero, depth five). The early sample
+  has 49152 backing validations over 258 boundaries, 50232 claim validations
+  and 1836842 publication value reads; a common leaf is replayed 20560 times.
+  Keep the repair local to one synchronous current-validation boundary: enqueue
+  each exact routine once and still validate every reached fact/call/header.
+  Discard the visited set on return, so a later query must detect changed facts.
+  This is not a cross-query cache or an unchecked generation assumption.
+- The later scratch sample reaches 9808 calls for 19 unique routines in one
+  boundary (no semantic result was claimed; the verified own profile PID was
+  stopped after 78.57 s). A implemented the local queue in the existing
+  validation owner, removed the old recursion flag, and preserved all fact,
+  header, call and argument checks. Root independently repeated its 3797-check
+  unit, including shared-diamond/cycle leaf corruption and restored next-query
+  controls: zero failures. A reports the uninstrumented full-input gate now
+  returns a real refusal in 10.10 s (peak597032 KiB, exit1), rather than timing
+  out; the next primary is the unchanged 4096-work guard at source line343.
+  This removes the measured cost blocker, not the semantic refusal. Return to
+  the original demand's complete dependency set; bootstrap/driver/CI stay OPEN.
 - Structural reconciliation: routine generic-constraint JSON projection moves
   unchanged from the aggregate serializer to the existing routine-parameter
   JSON owner (already imported by both consumers). Function identity and

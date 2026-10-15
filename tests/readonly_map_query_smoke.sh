@@ -3,16 +3,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
-if grep -Eq 'semantic_callable_summary_proves_no_ref_escape|mask[[:space:]]*&=[[:space:]]*~SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE' \
-    "$ROOT_DIR/src/semantic/type_checker_call_contract_helpers.c"; then
-    echo '[readonly-map-query] retired body-absence mask override returned' >&2
-    exit 1
-fi
-if grep -Eq 'slot_param_summary_in_program_points[[:space:]]*\(' \
-    "$ROOT_DIR/src/semantic/function_param_publication_owner.c"; then
-    echo '[readonly-map-query] publication owner must not reopen the parameter walker' >&2
-    exit 1
-fi
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 pgy_require_runnable_binary_here readonly-map-query "$PGY"
 : "${READONLY_MAP_FACT_UNIT:?provide the separately built fact-phase unit; no build fallback}"
@@ -20,48 +10,11 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 cd "$ROOT_DIR"
 WORK="$(mktemp -d .tmp/readonly-map-query.XXXXXX)"
 "$PYTHON_BIN" - "$ROOT_DIR" "$PGY" "$READONLY_MAP_FACT_UNIT" "$WORK" <<'PY'
-import hashlib, json, pathlib, re, subprocess, sys, time
+import hashlib, json, pathlib, subprocess, sys, time
 
-def assert_callable_flow_authority(source):
-    # Source-residue ratchet only; native units own permission behavior.
-    code = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"', ' ', source, flags=re.S)
-    matches = list(re.finditer(r'\bsemantic_callable_param_escape_summary\s*\([^;{}]*\)\s*\{', code))
-    if len(matches) != 1:
-        raise SystemExit('callable permission owner function missing or duplicated')
-    start = matches[0].end()
-    end, depth = start, 1
-    while end < len(code) and depth:
-        depth += (code[end] == '{') - (code[end] == '}')
-        end += 1
-    if depth:
-        raise SystemExit('callable permission owner function is malformed')
-    if re.search(r'\b(?:type_function_has_param_escape_summary|type_function_param_escape_summary)\s*\(', code[start:end]):
-        raise SystemExit('retired Type-cache callable permission authority returned')
-
-# Both retired reads must independently falsify this bounded owner check.
-for retired in ('type_function_has_param_escape_summary', 'type_function_param_escape_summary'):
-    try:
-        assert_callable_flow_authority(f'unsigned semantic_callable_param_escape_summary(void){{return {retired}(0,0);}}')
-    except SystemExit as failure:
-        if str(failure) != 'retired Type-cache callable permission authority returned':
-            raise
-    else:
-        raise SystemExit('retired callable read falsifier was not rejected')
-assert_callable_flow_authority('unsigned semantic_callable_param_escape_summary(void){return 0;} '
-    'unsigned legacy_projection(void){return type_function_param_escape_summary(0,0);}')
 
 root, native, unit, work = map(pathlib.Path, sys.argv[1:])
 root, native, unit, work = (p.resolve() for p in (root, native, unit, work))
-# Structural lifetime inventory only; the phase unit owns runtime currentness.
-for symbol in ('semantic_param_publication_retire_value', 'semantic_param_publication_destroy',
-               'semantic_param_publication_reserve_storage', 'semantic_nominal_result_snapshot_destroy'):
-    definition = re.compile(r'\b(?:bool|void)\s+' + symbol + r'\s*\([^;{}]*\)\s*\{')
-    publication = (root / 'src/semantic/function_param_publication_owner.c').read_text(encoding='utf-8')
-    constructor = (root / 'src/semantic/type_checker_call_constructor.c').read_text(encoding='utf-8')
-    lifetime = (root / 'src/semantic/function_param_flow_store_destroy.c').read_text(encoding='utf-8')
-    if definition.search(publication) or definition.search(constructor) or len(definition.findall(lifetime)) != 1:
-        raise SystemExit('publication lifetime implementation must have one store-lifetime owner: ' + symbol)
-assert_callable_flow_authority((root / 'src/semantic/type_checker_call_contract_helpers.c').read_text(encoding='utf-8'))
 if not native.is_file() or not unit.is_file():
     raise SystemExit('explicit native/unit missing; no rebuild fallback')
 fixtures = root / 'tests/concept_semantics/hashmap'

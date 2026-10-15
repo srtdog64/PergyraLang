@@ -1272,6 +1272,57 @@ static void checked_scalar_local_store(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_shared_backing_validation(void)
+{
+    const char *source =
+        "func Leaf(ref text:String)->Bool{return StringLength(text)>0;}"
+        "func Left(ref text:String)->Bool{return Leaf(text);}"
+        "func Right(ref text:String)->Bool{return Leaf(text);}"
+        "func Diamond(ref text:String)->Bool{return Left(text)&&Right(text);}"
+        "func CycleA(ref text:String,depth:Int)->Bool{if depth==0{return Leaf(text);}return CycleB(text,depth-1);}"
+        "func CycleB(ref text:String,depth:Int)->Bool{if depth==0{return Leaf(text);}return CycleA(text,depth-1);}"
+        "func WideA(ref text:String)->Bool{return Diamond(text)&&CycleA(text,1);}"
+        "func WideB(ref text:String)->Bool{return WideA(text)&&Diamond(text);}"
+        "func WideC(ref text:String)->Bool{return WideB(text)&&CycleB(text,1);}"
+        "func Root(ref text:String)->Bool{return WideC(text)&&WideB(text);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    SlotFunctionLookup lookup = {ctx, program};
+    for (size_t r = 0; r < 10; r++) {
+        ASTNode *decl = ast_program_statement(program, r);
+        (void)function_param_flow_summary_demand(&lookup, decl, 0);
+        unsigned effects = 0;
+        bool outputs[2] = {false, false}, pending = true;
+        CHECK(function_param_flow_returned_backing_effects(ctx->function_param_flow_summaries,
+            decl, 0, &effects, outputs, ast_func_param_count(decl), &pending));
+        CHECK(!pending);
+    }
+    ASTNode *leaf = ast_program_statement(program, 0);
+    ASTNode *diamond = ast_program_statement(program, 3);
+    ASTNode *cycle = ast_program_statement(program, 4);
+    ASTNode *root = ast_program_statement(program, 9);
+    ASTNode *leaf_argument = ast_call_argument(ast_binary_left(ast_return_value(
+        ast_block_statement(ast_func_body(leaf), 0))), 0);
+    uint32_t binding = ast_identifier_binding_syntax_id(leaf_argument);
+    for (unsigned query = 0; query < 2; query++) {
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, root));
+        ast_identifier_set_binding_syntax_id(leaf_argument, binding + 1);
+        CHECK(!function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, diamond));
+        CHECK(!function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, cycle));
+        CHECK(!function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, root));
+        ast_identifier_set_binding_syntax_id(leaf_argument, binding);
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, diamond));
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, cycle));
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, root));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_zero_argument_output_graph(void)
 {
     Lexer *lexer = lexer_create("func Zero()->Int{return 0;} func Probe(ref text:String)->Bool{return StringLength(text)>Zero();}");
@@ -2610,6 +2661,7 @@ int main(void)
     checked_no_output_header("struct Held{text:String} func EchoRecord(value:Held)->Held{return value;}", 1);
     checked_scalar_local_store();
     checked_dead_output_subtree();
+    checked_shared_backing_validation();
     checked_zero_argument_output_graph();
     checked_unclosed_output_graph("func Probe(text:String)->Bool{let line=ReadLine();return StringLength(text)>0;}", 0);
     checked_unclosed_output_graph("extern \"C\"{func Opaque()->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque();}", 1);

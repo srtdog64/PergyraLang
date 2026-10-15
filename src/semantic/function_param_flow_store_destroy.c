@@ -212,39 +212,56 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
     return true;
 }
 
-/* Structural replay of an already produced row is not a recursive permission.
- * Every reached caller checks its own nodes even when a cycle is visited. */
+/* Each synchronous validation owns its reached declaration set. Shared DAG
+ * descendants and cycles replay once here, never across separate queries. */
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl)
 {
-    FunctionParamFlowProgramPointIndex *index;
-    if (!function_param_flow_program_point_index_build(store, decl, &index)) return false;
-    if (index->backing == NULL) return function_param_flow_index_roots_current(index) &&
-        semantic_param_publication_routine_relation_header_ready(store->ctx, decl);
-    FunctionParamFlowBackingFact *fact = index->backing;
-    if (!function_param_flow_index_roots_current(index) || index->param_count != fact->count ||
-        !semantic_param_publication_routine_relation_header_ready(store->ctx, decl)) return false;
-    for (size_t p = 0; p < fact->count; p++) {
-        uint32_t id = ast_func_param_stable_id(ast_func_param(decl, p));
-        size_t b = 0;
-        while (b < fact->binding_count && fact->bindings[b].binding != id) b++;
-        if (b == fact->binding_count) return false;
-    }
-    if (fact->validating) return true;
-    fact->validating = true;
+    if (store == NULL || decl == NULL) return false;
+    size_t count = 1, capacity = 8;
+    ASTNode **queue = malloc(capacity * sizeof(*queue));
+    if (queue == NULL) { function_param_flow_fail(store, decl, "backing validation queue allocation failed"); return false; }
+    queue[0] = decl;
     bool valid = true;
-    for (size_t n = 0; n < fact->node_count && valid; n++) {
-        FunctionParamFlowBackingNode *row = &fact->nodes[n];
-        valid = row->id == ast_node_stable_id(row->node) && row->shape == row->node->type;
-        if (row->node->type == AST_IDENTIFIER && semantic_param_publication_binding(store->ctx, row->node) == 0) valid = false;
-        if (row->node->type == AST_CALL)
+    for (size_t at = 0; at < count && valid; at++) {
+        ASTNode *current = queue[at];
+        FunctionParamFlowProgramPointIndex *index;
+        if (!function_param_flow_program_point_index_build(store, current, &index) ||
+            !function_param_flow_index_roots_current(index) ||
+            !semantic_param_publication_routine_relation_header_ready(store->ctx, current)) { valid = false; break; }
+        FunctionParamFlowBackingFact *fact = index->backing;
+        if (fact == NULL) continue;
+        if (index->param_count != fact->count) { valid = false; break; }
+        for (size_t p = 0; p < fact->count; p++) {
+            uint32_t id = ast_func_param_stable_id(ast_func_param(current, p));
+            size_t b = 0;
+            while (b < fact->binding_count && fact->bindings[b].binding != id) b++;
+            if (b == fact->binding_count) valid = false;
+        }
+        for (size_t n = 0; n < fact->node_count && valid; n++) {
+            FunctionParamFlowBackingNode *row = &fact->nodes[n];
+            valid = row->id == ast_node_stable_id(row->node) && row->shape == row->node->type;
+            if (row->node->type == AST_IDENTIFIER && semantic_param_publication_binding(store->ctx, row->node) == 0) valid = false;
+            if (row->node->type != AST_CALL) continue;
             for (size_t p = 0; p < ast_call_arg_count(row->node) && valid; p++) {
                 valid = semantic_param_publication_checked_argument(store->ctx, row->node, p) &&
                     semantic_param_publication_value(store->ctx, ast_call_argument(row->node, p)).ok;
                 ASTNode *callee = semantic_param_publication_callee(store->ctx, row->node, p);
-                if (valid && callee != NULL) valid = function_param_flow_backing_rows_current(store, callee);
+                if (!valid || callee == NULL) continue;
+                size_t reached = 0;
+                while (reached < count && queue[reached] != callee) reached++;
+                if (reached != count) continue;
+                if (count == capacity) {
+                    if (capacity > SIZE_MAX / 2 / sizeof(*queue)) { function_param_flow_fail(store, current, "backing validation queue size overflow"); valid = false; break; }
+                    capacity *= 2;
+                    ASTNode **grown = realloc(queue, capacity * sizeof(*queue));
+                    if (grown == NULL) { function_param_flow_fail(store, current, "backing validation queue allocation failed"); valid = false; break; }
+                    queue = grown;
+                }
+                queue[count++] = callee;
             }
+        }
     }
-    fact->validating = false;
+    free(queue);
     return valid;
 }
 
