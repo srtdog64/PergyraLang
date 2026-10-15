@@ -337,6 +337,8 @@ semantic_check_anchored_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
 bool
 semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                                 SemanticContext *ctx,
+                                                ASTNode *typed_callee_decl,
+                                                ParamMode typed_param_mode,
                                                 const char *display_name,
                                                 size_t arg_index,
                                                 Type *param_type,
@@ -347,6 +349,26 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
 {
     if (handled_out != NULL)
         *handled_out = false;
+
+    if (type_equals(param_type, TYPE_STRING) && type_equals(arg_type, TYPE_STRING)) {
+        if (typed_param_mode == PARAM_MODE_REF) {
+            if (handled_out != NULL)
+                *handled_out = true;
+            if (typed_callee_decl == NULL) {
+                const char *label = semantic_addressable_boundary_root_name(arg_expr);
+                ASTNode *site = arg_expr != NULL && arg_expr->line != 0 ? arg_expr : call_expr;
+                semantic_validate_borrowed_escape(
+                    site, arg_expr, ctx, arg_type,
+                    label != NULL ? label : "<temporary String>",
+                    OWNERSHIP_CONSUMER_HELPER_CALL, NULL, display_name,
+                    NULL, true, NULL, "value");
+                return false;
+            }
+            return semantic_validate_borrowed_boundary_call_argument(
+                arg_expr, call_expr, ctx, typed_callee_decl, display_name, arg_index,
+                typed_param_mode, arg_type, "value", true);
+        }
+    }
 
     if (param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
         || arg_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
@@ -495,10 +517,11 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
         break;
     }
 
-    if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
+    bool string_ref = pmode == PARAM_MODE_REF && type_equals(arg_type, TYPE_STRING);
+    if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref)
         return true;
 
-    if (arg_expr->type != AST_IDENTIFIER) {
+    if (arg_expr->type != AST_IDENTIFIER && !string_ref) {
         const char *borrowed_root_name =
             semantic_borrowed_boundary_root_name(arg_expr, ctx);
         const char *addressable_root_name =
@@ -522,6 +545,8 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
     borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
     if (borrowed_name == NULL && pmode == PARAM_MODE_REF)
         borrowed_name = semantic_addressable_boundary_root_name(arg_expr);
+    if (borrowed_name == NULL && string_ref)
+        borrowed_name = "<temporary String>";
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
         if (!semantic_call_is_direct_sync_self_ref_reborrow(
                 ctx, callee_decl, arg_expr, arg_index, pmode)) {
@@ -535,10 +560,16 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
             unsigned callee_mask =
                 semantic_callable_param_escape_summary(
                     callee_decl, arg_index, ctx);
-            if (semantic_param_summary_has_any_escape(callee_mask)
+            if ((string_ref
+                    ? callee_decl == NULL || ast_func_body(callee_decl) == NULL
+                        || ((semantic_param_summary_has_call_escape(callee_mask)
+                                || semantic_param_summary_has_channel_escape(callee_mask))
+                            && !semantic_param_publication_value_has_static_string_backing(ctx, arg_expr))
+                    : semantic_param_summary_has_any_escape(callee_mask))
                 && borrowed_name != NULL) {
                 semantic_validate_borrowed_escape(
-                    arg_expr, arg_expr, ctx, arg_type, borrowed_name,
+                    string_ref && arg_expr->line == 0 ? call_expr : arg_expr,
+                    arg_expr, ctx, arg_type, borrowed_name,
                     OWNERSHIP_CONSUMER_HELPER_CALL, NULL,
                     display_name != NULL ? display_name : "<callee>",
                     NULL, true, NULL, local_fix_label);

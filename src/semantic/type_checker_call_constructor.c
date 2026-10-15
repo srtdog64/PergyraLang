@@ -571,7 +571,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                     }
                 }
             }
-            if (local_ok && semantic_param_publication_pending(ctx)) {
+            if (local_ok && semantic_param_publication_pending(ctx) && !ctx->has_error) {
                 if (!metadata_ok || !ast_call_set_semantic_value_type_name_copy(expr, sym->type->name) ||
                     !semantic_param_publication_record_nominal_result(ctx, expr, snapshot))
                     semantic_error(ctx, expr, "Checked nominal result publication failed");

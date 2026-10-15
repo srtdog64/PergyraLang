@@ -414,6 +414,8 @@ static void reached_producer_source(const char *source, bool expected)
     CHECK(program != NULL && !parser_has_error(parser));
     SemanticResult *result = semantic_analyze(program);
     CHECK(result != NULL);
+    if (result != NULL && result->success != expected)
+        fprintf(stderr, "producer admission mismatch expected=%d source=%s\n", expected, source);
     CHECK(result != NULL && result->success == expected);
     if (!expected && strstr(source, "func Leak(") != NULL) {
         bool borrowed_return = false;
@@ -2713,8 +2715,52 @@ static void checked_nested_option_result_relations(void)
     }
 }
 
+static void checked_static_string_backing(void)
+{
+    Lexer *lexer = lexer_create("func Main()->Void{let literal=\"static\";let dynamic=Concat(\"heap\",\" text\");let alias=literal;Log(alias);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    CHECK(type_check_program(program, ctx));
+    ASTNode *body = ast_func_body(ast_program_statement(program, 0));
+    ASTNode *literal = ast_let_initializer(ast_block_statement(body, 0));
+    ASTNode *dynamic = ast_let_initializer(ast_block_statement(body, 1));
+    ASTNode *alias = ast_let_initializer(ast_block_statement(body, 2));
+    CHECK(semantic_param_publication_value_has_static_string_backing(ctx, literal));
+    CHECK(semantic_param_publication_value(ctx, dynamic).copy_escape);
+    CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, dynamic));
+    CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, alias));
+    PublishedNode *row = NULL;
+    FunctionParamPublicationStore *store = ctx->function_param_publications;
+    for (size_t i = 0; store != NULL && i < store->node_capacity; i++)
+        if (store->nodes[i].node == literal) row = &store->nodes[i];
+    CHECK(row != NULL);
+    if (row != NULL) {
+        row->value_present = false;
+        CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, literal));
+        row->value_present = true;
+        row->string_value = false;
+        CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, literal));
+        row->string_value = true;
+        row->copy_escape = false;
+        CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, literal));
+        row->copy_escape = true;
+        literal->type = AST_NUMBER;
+        CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, literal));
+        literal->type = AST_STRING;
+        program->stable_id++;
+        CHECK(!semantic_param_publication_value_has_static_string_backing(ctx, literal));
+        program->stable_id--;
+        CHECK(semantic_param_publication_value_has_static_string_backing(ctx, literal));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 int main(void)
 {
+    checked_static_string_backing();
     checked_nested_call_currentness();
     checked_secure_view_call_tuple();
     checked_nominal_result_relations();

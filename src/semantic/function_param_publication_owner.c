@@ -453,6 +453,13 @@ bool semantic_param_publication_value_is_physical_scalar(const SemanticContext *
     PublishedNode *row = publication_current_value(ctx, value);
     return row != NULL && row->physical_scalar;
 }
+bool semantic_param_publication_value_has_static_string_backing(const SemanticContext *ctx, const ASTNode *value)
+{
+    PublishedNode *row = publication_current_value(ctx, value);
+    /* A fresh allocation can be copy-safe too; that does not make a ref
+     * transfer its cleanup responsibility. Only literals have static storage. */
+    return row != NULL && row->string_value && row->value_shape == AST_STRING && row->copy_escape;
+}
 static bool publication_ref_call_tuple(const ASTNode *call, const ASTNode *site,
     const ASTNode *callee, size_t ordinal)
 {

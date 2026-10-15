@@ -143,6 +143,8 @@ bool semantic_param_publication_routine_relation_header_ready(
     const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_value_is_physical_scalar(
     const SemanticContext *ctx, const ASTNode *value);
+bool semantic_param_publication_value_has_static_string_backing(
+    const SemanticContext *ctx, const ASTNode *value);
 bool semantic_param_publication_parameter_is_anchored_handle(
     const SemanticContext *ctx, const ASTNode *decl, size_t ordinal, bool *anchored);
 bool semantic_param_publication_routine_inputs_current(

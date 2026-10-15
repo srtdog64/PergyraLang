@@ -64,8 +64,14 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
         unsigned mask = semantic_callable_param_escape_summary(row->callee, row->ordinal, ctx);
         ctx->current_function_decl = row->caller;
         ctx->current_module_path = row->module;
-        if (semantic_param_summary_has_any_escape(mask))
-            semantic_validate_borrowed_escape(row->site, row->site, ctx, row->type, row->borrowed,
+        bool retaining = type_equals(row->type, TYPE_STRING)
+            ? ast_func_body(row->callee) == NULL
+                || ((semantic_param_summary_has_call_escape(mask) || semantic_param_summary_has_channel_escape(mask))
+                    && !semantic_param_publication_value_has_static_string_backing(ctx, row->site))
+            : semantic_param_summary_has_any_escape(mask);
+        if (retaining)
+            semantic_validate_borrowed_escape(row->site->line != 0 ? row->site : row->call,
+                row->site, ctx, row->type, row->borrowed,
                 OWNERSHIP_CONSUMER_HELPER_CALL, NULL, row->destination, NULL, true, NULL, row->fix);
     }
     ctx->current_function_decl = previous_decl;
@@ -107,7 +113,8 @@ semantic_check_param_summary_escapes(ASTNode *node,
             continue;
 
         ownership_class = semantic_classify_ownership_type(param_types[i], ctx);
-        if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
+        bool string_ref = type_equals(param_types[i], TYPE_STRING);
+        if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref)
             continue;
 
         summary_mask = semantic_callable_param_escape_summary(
@@ -115,22 +122,25 @@ semantic_check_param_summary_escapes(ASTNode *node,
         type_function_set_param_escape_summary(function_type, i,
             summary_mask);
 
-        if (semantic_param_summary_has_any_escape(summary_mask)) {
+        if (string_ref
+                ? semantic_param_summary_has_call_escape(summary_mask)
+                    || semantic_param_summary_has_channel_escape(summary_mask)
+                : semantic_param_summary_has_any_escape(summary_mask)) {
             semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF);
         }
-        if (semantic_param_summary_has_return_escape(summary_mask)) {
+        if (!string_ref && semantic_param_summary_has_return_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
                 false, NULL, NULL);
         }
-        if (semantic_param_summary_has_channel_escape(summary_mask)) {
+        if (!string_ref && semantic_param_summary_has_channel_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_CHANNEL_SEND, NULL, NULL, NULL,
                 false, NULL, NULL);
         }
-        if (semantic_param_summary_has_call_escape(summary_mask)) {
+        if (!string_ref && semantic_param_summary_has_call_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_HELPER_CALL, NULL,

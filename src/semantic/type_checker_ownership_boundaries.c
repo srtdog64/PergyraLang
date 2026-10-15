@@ -41,7 +41,10 @@ semantic_validate_borrowed_escape(ASTNode *site,
         return false;
 
     klass = semantic_classify_ownership_type(value_type, ctx);
-    if (klass == OWNERSHIP_TYPE_COPY_ONLY)
+    bool retaining_string_ref = type_equals(value_type, TYPE_STRING)
+        && (consumer_kind == OWNERSHIP_CONSUMER_CHANNEL_SEND
+            || (consumer_kind == OWNERSHIP_CONSUMER_HELPER_CALL && transitive_call));
+    if (klass == OWNERSHIP_TYPE_COPY_ONLY && !retaining_string_ref)
         return false;
 
     value_label = semantic_ownership_value_label(klass);

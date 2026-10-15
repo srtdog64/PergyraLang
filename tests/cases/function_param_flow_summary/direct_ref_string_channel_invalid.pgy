@@ -1,0 +1,10 @@
+struct TextRecord { text: String; }
+func SendText(ref text: String) -> Bool {
+    let output: Channel<String> = Channel(1);
+    output <- text;
+    return true;
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(SendText(record.text));
+}

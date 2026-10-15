@@ -1,0 +1,11 @@
+func Observe(ref text: String) -> String { return text; }
+func ReadOnly(ref text: String) -> Int { return StringLength(text); }
+func Scalar(ref value: Int) -> Int { return value; }
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(Observe(text));
+    Log(ReadOnly(text));
+    Log(ReadOnly("literal"));
+    Log(ReadOnly(Concat("fresh", " backing")));
+    Log(Scalar(7));
+}

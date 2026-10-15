@@ -1,0 +1,9 @@
+extern "C" { func Keep(text: String) -> Void; }
+func RetainText(ref text: String) -> Bool {
+    Keep(text);
+    return true;
+}
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(RetainText(text));
+}

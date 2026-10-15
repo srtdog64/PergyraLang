@@ -34,6 +34,8 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
 bool
 semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                                 SemanticContext *ctx,
+                                                ASTNode *typed_callee_decl,
+                                                ParamMode typed_param_mode,
                                                 const char *display_name,
                                                 size_t arg_index,
                                                 Type *param_type,

@@ -1,0 +1,5 @@
+extern "C" { func Keep(text: String) -> Void; }
+func RetainText(ref text: String) -> Void { Keep(text); }
+func Main() -> Void {
+    RetainText("literal");
+}

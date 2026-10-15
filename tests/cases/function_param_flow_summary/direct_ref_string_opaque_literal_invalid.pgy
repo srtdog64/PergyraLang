@@ -1,0 +1,4 @@
+extern "C" { func KeepText(ref text: String) -> Void; }
+func Main() -> Void {
+    KeepText("literal");
+}

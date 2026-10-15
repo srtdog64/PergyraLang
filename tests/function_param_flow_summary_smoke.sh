@@ -40,6 +40,18 @@ paired = (
     ("physical_return_inout_invalid", False),
     ("default_string_string_return_invalid", False),
     ("default_string_option_return_invalid", False),
+    ("direct_ref_string_loan_valid", True),
+    ("direct_ref_string_retaining_literal_valid", True),
+    ("direct_ref_string_retaining_concat_invalid", False),
+    ("direct_ref_string_local_retain_invalid", False),
+    ("direct_ref_string_slot_invalid", False),
+    ("direct_ref_string_channel_invalid", False),
+    ("direct_ref_string_opaque_literal_invalid", False),
+    ("direct_ref_string_opaque_concat_invalid", False),
+    ("direct_ref_string_alias_literal_invalid", False),
+    ("direct_ref_string_alias_concat_invalid", False),
+    ("direct_ref_string_alias_named_invalid", False),
+    ("recursive_record_wrapper_control_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
@@ -63,6 +75,23 @@ for name, valid in paired:
                 for row in errors):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"physical-return negative {name} lost its exact borrow refusal")
+        retained_sites = {
+            "direct_ref_string_local_retain_invalid": (8, 20),
+            "direct_ref_string_slot_invalid": (7, 30),
+            "direct_ref_string_channel_invalid": (9, 25),
+            "direct_ref_string_retaining_concat_invalid": (4, 16),
+            "direct_ref_string_opaque_literal_invalid": (3, 5),
+            "direct_ref_string_opaque_concat_invalid": (3, 14),
+            "direct_ref_string_alias_literal_invalid": (4, 5),
+            "direct_ref_string_alias_concat_invalid": (4, 14),
+            "direct_ref_string_alias_named_invalid": (5, 14),
+            "recursive_record_wrapper_control_invalid": (11, 6),
+        }
+        if name in retained_sites and not any(
+                (row.get("location", {}).get("line"), row.get("location", {}).get("column"))
+                == retained_sites[name] for row in errors):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 try:
     run = subprocess.run(

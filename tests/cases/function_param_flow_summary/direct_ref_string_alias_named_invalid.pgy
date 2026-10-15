@@ -1,0 +1,6 @@
+extern "C" { func KeepText(ref text: String) -> Void; }
+func Main() -> Void {
+    let callback = KeepText;
+    let text = Concat("fresh", " backing");
+    callback(text);
+}

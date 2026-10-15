@@ -1,0 +1,19 @@
+struct TextRecord { text: String; }
+func First(ref text: String, depth: Int) -> String {
+    if depth <= 0 { return text; }
+    return Second(text, depth - 1);
+}
+func Second(ref text: String, depth: Int) -> String {
+    if depth <= 0 { return text; }
+    return First(text, depth - 1);
+}
+extern "C" { func Keep(text: String) -> Void; }
+func ReadRecord(ref record: TextRecord) -> Bool {
+    Keep(First(record.text, 2));
+    return true;
+}
+func Publish() -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    return ReadRecord(record);
+}
+func Main() -> Void { Log(Publish()); }

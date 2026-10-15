@@ -89,6 +89,58 @@ The common acceptance remains the complete integrated compiler chain, not
 three independent green reports. Unexpected cross-scope dependencies return
 to root and this map before edits.
 
+## Current bounded native closure decision
+
+The query-local DAG repair at `3dc597701` restores a real full-input verdict
+within budget (10.10 s, exit1, peak597032 KiB); it does not admit the program.
+The next complete failed demand is `SemanticAstBodyFlowOfBlock` parameter1:
+132 summary evaluations +3496 backing nodes +468 graph nodes =4096. The
+Block/Statement/If/Match/Loop SCC repeatedly analyzes local `flow` and `child`
+whole-value replacements as if they could write an external output.
+
+The existing typed-assignment/publication owner distinguishes an original
+ordinary local binding replacement from a storage write. Produce the fact only
+at successful `type_check_assignment` completion, after Slot/view sugar and
+subject/borrow/assignability guards, with an exact local identifier binding.
+Snapshot assignment/target/RHS identity, shape, binding and the existing typed
+binding name; do not retain scope Symbols. The selector joins this fact to the
+same original LET with `is_alias=false`. A bare identifier alone is insufficient:
+`using` aliases and pin views can write through; Slot assignment has write sugar.
+Keep formal/member/index writes conservative and traverse the full RHS. Seal
+and replay the LET shape/alias flag and typed replacement evidence; missing or
+stale facts cannot grant permission. Reuse the existing selector and index
+claims, including their former scalar-local path, not a second owner.
+The old heap-rebinding experiment was removed; this narrower decision requires
+the measured demand above and behavioral alias/Slot/stale/RHS falsifiers.
+
+The independent frozen review also identifies a reached caller-consumer gap:
+`ref String` can bypass already-produced CALL/CHANNEL facts via broad COPY_ONLY
+branches. B repairs the existing caller/summary/diagnostic consumer chain;
+A owns typed publication/selector/claims. Preserve String value classification,
+result loans and pending-to-finalized publication. Fix consumption, not source
+annotations or blanket freshness. Pass the existing typed callable declaration
+and parameter mode from the sole call-check consumer into the String boundary;
+name lookup must not downgrade an indirect ref mode to default. Temporary
+String arguments still register their exact call/site identity (a diagnostic
+label is not ownership evidence); unknown/bodyless ref callees fail closed.
+Existing literal-to-Slot/inout C/LLVM positives distinguish static String
+storage from a dynamic borrow. Keep String CALL/CHANNEL summary/MAY facts and
+apply them at the actual call boundary, not as an unconditional String formal
+rejection. Only the current typed literal row (String, AST_STRING, copy-safe)
+has the static-backing permission for a known body. Allocating String calls can
+also have `copy_escape/origin_ready`; those bits alone do not transfer a ref's
+cleanup responsibility. Preserve all previous literal runtime positives and
+dynamic/record-field/Concat-temporary retaining negatives. Do not expand this
+into general String provenance inference. A prior semantic error also prevents
+constructor publication; retain its typed diagnostic rather than adding a
+misleading missing-fact cascade to an already-refused program.
+Scalar backing exclusion does not prove a
+callee has no receiver/capture: exact local calls still enter the closed-body
+graph, sealed builtin/stdlib identity is distinct, and opaque/indirect/member
+targets remain conservative. Add direct owner-level negatives; CLI admission
+alone is not evidence of an escape. Both repairs feed the same unchanged
+canonical and original positive/negative/work-budget integration gate.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and
