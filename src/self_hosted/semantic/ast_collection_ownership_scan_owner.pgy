@@ -223,7 +223,8 @@ func SemanticAstCollectionOwnershipScanIntoVerdict(
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
                         edge, literal_read_ready, SemanticAstCollectionMemberIndexedReadReady(
-                            moved_use.readable_members, moved_use.unproved_read_roots, edge.argument_node),
+                            artifact, signatures, surfaces, moved_use, formal_effects, call_effects,
+                            root_slot / 3, edge),
                         element_escape_ready, member_root_ready, formal_effects.effects,
                         formal_effects.owned_push_leaf_formals,
                         element_requirements, field_requirements,
