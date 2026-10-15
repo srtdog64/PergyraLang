@@ -47,6 +47,8 @@ paired = (
     ("physical_return_inout_invalid", False),
     ("high_output65_dynamic_invalid", False),
     ("high_output65_literal_valid", True),
+    ("backward_loop_output_dynamic_invalid", False),
+    ("backward_loop_output_literal_valid", True),
     ("default_string_string_return_invalid", False),
     ("default_string_option_return_invalid", False),
     ("direct_ref_string_loan_valid", True),
@@ -140,6 +142,7 @@ runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
 for name, expected in (
     ("stdlib_input_retention_valid", "12\n2\n0\n-2147483648\n\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
+    ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),

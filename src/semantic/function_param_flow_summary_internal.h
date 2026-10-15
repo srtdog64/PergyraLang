@@ -45,6 +45,7 @@ typedef struct {
 typedef struct {
     uint32_t binding;
     uint64_t *origins, *destinations;
+    size_t origin_read_epoch, destination_read_epoch;
     bool local;
 } FunctionParamFlowBackingBinding;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;

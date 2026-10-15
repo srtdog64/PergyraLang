@@ -230,9 +230,9 @@ typedef struct {
     size_t loan_work;
     bool loan_seed_seen;
 } ReturnedBacking;
-/* Only binding origins/destinations feed a later traversal. Expression caches
- * flow child-to-parent in this traversal; final outputs are not origin inputs.
- * Their growth must not independently schedule another whole-body traversal. */
+/* Only growth after a binding input was read needs another traversal. Forward
+ * readers see the merged bits directly; earlier readers and expression caches
+ * are replayed on the next epoch, including dependencies on an empty input. */
 static bool backing_merge(size_t words, uint64_t *into, const uint64_t *from)
 {
     bool grew = false;
@@ -308,12 +308,16 @@ static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_
 {
     FunctionParamFlowBackingBinding *row = backing_binding(state, backing_place(state, target), false);
     if (row == NULL) { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; return; }
+    row->destination_read_epoch = state->fact->epoch;
     bool output = false;
     for (size_t w = 0; w < state->fact->destination_words; w++) output |= row->destinations[w] != 0;
     for (size_t p = 0; p < state->fact->origin_count; p++) if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0)
         backing_merge(state->fact->destination_words, &state->fact->outputs[p * state->fact->destination_words], row->destinations);
     if (output) backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
-    else if (row->local) state->fact->changed |= backing_merge(state->fact->origin_words, row->origins, origins);
+    else if (row->local) {
+        bool grew = backing_merge(state->fact->origin_words, row->origins, origins);
+        state->fact->changed |= grew && row->origin_read_epoch == state->fact->epoch;
+    }
     else { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; }
 }
 static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id)
@@ -321,9 +325,13 @@ static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, ui
     if (value == NULL || (value->type != AST_IDENTIFIER && value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
     FunctionParamFlowBackingBinding *source = backing_binding(state, backing_place(state, value), false);
     if (source == NULL) return;
+    source->destination_read_epoch = state->fact->epoch;
     uint64_t *destinations = source->destinations;
     FunctionParamFlowBackingBinding *destination = backing_binding(state, id, true);
-    if (destination != NULL) state->fact->changed |= backing_merge(state->fact->destination_words, destination->destinations, destinations);
+    if (destination != NULL) {
+        bool grew = backing_merge(state->fact->destination_words, destination->destinations, destinations);
+        state->fact->changed |= grew && destination->destination_read_epoch == state->fact->epoch;
+    }
 }
 static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
@@ -346,7 +354,10 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     switch (node->type) {
     case AST_IDENTIFIER: {
         FunctionParamFlowBackingBinding *row = backing_binding(state, semantic_param_publication_binding(state->store->ctx, node), false);
-        if (row != NULL) backing_merge(state->fact->origin_words, origins, row->origins);
+        if (row != NULL) {
+            row->origin_read_epoch = fact->epoch;
+            backing_merge(state->fact->origin_words, origins, row->origins);
+        }
         else fact->complete = false;
         break;
     }
@@ -412,7 +423,10 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
         backing_destination_alias(state, ast_let_initializer(node), ast_node_stable_id(node));
         const uint64_t *bits = backing_origin(state, ast_let_initializer(node));
         local = backing_binding(state, ast_node_stable_id(node), false);
-        if (local != NULL && bits != NULL) fact->changed |= backing_merge(fact->origin_words, local->origins, bits);
+        if (local != NULL && bits != NULL) {
+            bool grew = backing_merge(fact->origin_words, local->origins, bits);
+            fact->changed |= grew && local->origin_read_epoch == fact->epoch;
+        }
         backing_consumers(state, ast_let_initializer(node)); break;
     }
     case AST_ASSIGNMENT: {

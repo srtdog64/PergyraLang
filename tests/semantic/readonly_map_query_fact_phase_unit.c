@@ -2970,11 +2970,19 @@ static void checked_backing_binding_growth(void)
 {
     checked_backing_binding_growth_case(
         "func Probe(inout output:String,text:String)->Bool{output=text;return true;}");
+    checked_backing_binding_growth_case(
+        "func Probe(inout output:String,text:String)->Bool{let first=text;let second=first;output=second;return true;}");
     /* A later assignment grows a binding already read earlier in the loop. */
     checked_backing_binding_growth_case(
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";var second:String=\"\";while flag{first=second;second=text;}output=first;return true;}");
     checked_backing_binding_growth_case(
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{using output as first;while flag{using first as second;second=text;}return true;}");
+    /* Copying an empty destination is still a read dependency. */
+    checked_backing_binding_growth_case(
+        "func Probe(inout output:String,text:String)->Bool{var first:String=\"\";var second:String=\"\";first=second;second=output;first=text;return true;}");
+    /* A memoized read in the first branch precedes growth in the second. */
+    checked_backing_binding_growth_case(
+        "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";if flag{output=first;}else{first=text;}return true;}");
 }
 
 static void checked_backing_input_frames(void)
@@ -3013,6 +3021,21 @@ static void checked_backing_input_frames(void)
         FunctionParamFlowBackingFact *frame = index->backing_frames[1];
         CHECK(frame != NULL && frame->origin_count == 1 && frame->destination_count == 3);
         if (frame == NULL) goto cleanup;
+        CHECK(frame->binding_count != 0 && frame->epoch < SIZE_MAX);
+        if (frame->binding_count == 0 || frame->epoch == SIZE_MAX) goto cleanup;
+        for (unsigned kind = 0; kind < 2; kind++) {
+            size_t *stamp = kind == 0 ? &frame->bindings[0].origin_read_epoch :
+                &frame->bindings[0].destination_read_epoch;
+            size_t saved = *stamp;
+            *stamp = 0;
+            CHECK(function_param_flow_backing_rows_current(store, decl));
+            *stamp = frame->epoch + 1;
+            CHECK(!function_param_flow_backing_rows_current(store, decl));
+            CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+            *stamp = saved;
+            CHECK(function_param_flow_backing_rows_current(store, decl));
+            CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+        }
         for (unsigned fault = 0; fault < 7; fault++) {
             if (fault == 0) index->backing_frames[1] = NULL;
             if (fault == 1) frame->input_ordinal = 2;

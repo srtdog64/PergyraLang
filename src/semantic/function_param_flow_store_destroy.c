@@ -273,6 +273,7 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
             for (size_t b = 0; b < fact->binding_count && valid; b++) {
                 FunctionParamFlowBackingBinding *binding = &fact->bindings[b];
                 if (binding->binding == 0 || binding->origins == NULL || binding->destinations == NULL ||
+                    binding->origin_read_epoch > fact->epoch || binding->destination_read_epoch > fact->epoch ||
                     (binding->origins[0] & ~UINT64_C(1)) != 0 ||
                     (binding->destinations[destination_words - 1] & ~final_mask) != 0) { valid = false; break; }
                 if (!binding->local) {

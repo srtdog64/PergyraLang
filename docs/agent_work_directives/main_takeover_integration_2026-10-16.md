@@ -514,6 +514,85 @@ with cross-input AST, same-input epoch, dependency and receipt work separated.
 Do not select another representation, relax caps or ignore the32 regressions
 from aggregate improvement. Bootstrap/install/memory/CI remain OPEN.
 
+The next observations separate two causes rather than selecting a blanket
+pass removal. At3b44/e9e0a20b, actual warm root is
+SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects input14:
+E8+B4068+G20=4096, receipt0. CallEffectFacts inputs6/8 each visit904 AST nodes
+twice in one solver pass (pending0; changed1 then0), costing3616. Their demand
+arguments both really originate from formal_effects; named filtering is not
+dropping a legitimate dependency. A representative remaining regression,
+ArithmeticResultType input3, costs E36+B4024+G36, receipt0: its single-input
+frames revisit during3-4 solver passes with pending1/changed0, a separate
+readiness/settlement problem. Logs `a-named-warm` (14.47s/exit89) and
+`a-named-single-arithmetic` (7.29s/exit89), signatures4273 equal; both diagnostic.
+
+The unchanged warm sequence was then instrumented at all three binding read
+sites without changing its scheduling. All4096 FRAME_WORK events and4273
+signatures match byte-for-byte. Of373 merge records,12 grow, all destination
+first fills (7 LET sites,5 assignment sites), none read earlier in that epoch.
+No origin grows, and epoch2 has no growth. Root independently inspected all12.
+Receipt `a-binding-read`,14.18s/exit89/peak719972KiB, exact source/build/bin/
+status restore. This establishes the reached redundant traversal, not a claim
+that every loop or SCC is redundant.
+
+Selected closure-blocking repair: schedule binding-growth replay only when a
+changed binding kind was already read in the current frame epoch. Existing
+owner and result identity do not move. Priority: identical monotone origins,
+destinations/effects/outputs; every zero-bit read; loop/backward and expression
+memo dependencies; current typed facts; then avoided whole-body replay.
+Chain: backing_origin identifier reads origins; backing_store reads target
+destinations; backing_destination_alias reads source destinations. These three
+reads stamp separate frame-local origin/destination read epochs before value
+inspection. LET origin, local-store origin and alias-destination OR merges
+still retain every bit, but set fact.changed only if their corresponding
+read stamp equals the current epoch. An unread forward value is consumed by
+its later first read; a growth after an earlier read replays that reader and
+any cached expression on the next epoch. Seed initialization precedes reads.
+The last consumer is the existing do/while(fact.changed && fact.complete).
+No pending/readiness/private-store behavior changes. No read may be inferred
+from nonzero bits: reading an empty value is a dependency too. Missing current
+typed facts still fail closed. No unconditional replay compatibility path,
+cap change, effect erasure, annotation or shared cross-frame stamp is allowed.
+
+A owns only index producer/read/merge sites; B owns binding fields in existing
+internal.h, structural read-epoch<=frame-epoch validation and direct unit
+falsifiers; C owns backward-loop dynamic/static fixtures in the existing
+summary gate. No allocation owner is added: fields are zero-initialized and
+freed with their existing binding. Root integrates and reruns the same build,
+summary/4096/4097, full canonical,3188-key census, Map/IR/component and frozen
+review. Direct semantics, not an exact iteration count, are the test oracle.
+Preserve backward origin, alias-of-empty-destination, nested/memo and branch
+growth cases as well as forward positives. The SCC pending repeats and all32
+remaining regressions stay explicit whole-chain obligations; investigate
+their exact callee/version dependencies after this actual warm blocker, not
+by treating pending as completed or extending precision beyond the canonical.
+
+Read-growth candidate root verification: normal build PASS3.50s; phase4409/0
+and summary/runtime/unchanged4096/4097 PASS10.55s; Map24/58 and HIR/RIR/MIR/AIR
+PASS20.34s; component/registry PASS11.12s. Full canonical remains RED13.25s,
+peak720096KiB, first15:6 work4096,18410 cascading errors/16 warnings. Binary
+cc91699c8f898307f4564dfc96aa454a0559191f81e49329b97c0cb7fcf27ec0;
+receipts `read-growth-build`, `read-growth-summary`, `read-growth-chain`,
+`read-growth-component`, `read-growth-canonical`. The current full cold failure
+set and actual new warm dependency are not yet measured. Do not carry287
+forward as a result for this candidate.
+
+Representation decision checkpoint, observation only: multiple genuinely
+related inputs may lose body-sharing in per-input frames. Before adding more
+producer state, compare the current frame candidate with a scratch all-input
+matrix using the same existing index/summary owners and fixed input. A raw
+4f19 matrix is not a controlled safety comparison: it predates read-growth,
+output-producer/current receipts and outside-solver local graph accounting.
+Any diagnostic matrix must retain those contracts, all computed-row readiness,
+typed/seed/width/overflow/current validation, full destruction and the original
+work cap; otherwise its result is only confounded historical cost evidence,
+never admission. The matrix must have no optional fallback in production.
+No representation change is selected. First enumerate its complete creation/
+current/row-consumer/loan/destruction map and review the controlled scratch
+delta, then permit at most two fixed-input diagnostic processes (current and
+matrix), with complete source/build/bin restoration. No model result can
+substitute for the original positive/negative or full compiler acceptance.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

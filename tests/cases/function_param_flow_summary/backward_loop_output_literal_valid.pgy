@@ -1,0 +1,16 @@
+func Store(ref text: String, inout output: String) -> Void {
+    var first: String = "";
+    var second: String = "";
+    var i: Int = 0;
+    while i < 3 {
+        output = first;
+        first = second;
+        second = text;
+        i = i + 1;
+    }
+}
+func Main() -> Void {
+    var output: String = "";
+    Store("literal output", output);
+    Log(output);
+}
