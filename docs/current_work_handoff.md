@@ -9,10 +9,11 @@ The owner resumed work on 2026-10-16 and requested one main branch. The
 inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
 `3721a901c` was merged at `5684085b2`. The only local branch is `main`;
 the former performance worktree is detached with its files preserved. Latest
-committed native implementation: `59af37fb6`, following integration/gate
-checkpoints `29b2a8a96` and `b791c0b7a`. The native source has no temporary
-instrumentation; only these two navigation documents were dirty immediately
-after that commit. Published main remains `571ae8c3a`.
+committed implementation: `b9beae91e24d91264e3dc17761b0770de51320ad`, after
+`3dc597701` (query-local backing validation) and `4de5784b7` (checked local
+replacement and exact call targets). Main was clean at that commit; this
+handoff refresh is the only later dirty document. Published main remains
+`571ae8c3a`; publication and CI acceptance are pending.
 This combined source is not yet accepted. Do not reuse either parent's gate
 receipts as integrated acceptance.
 
@@ -23,33 +24,43 @@ single final focus carrier, then run narrow gates, full memory measurement,
 bootstrap, installed-driver checks and required exact-SHA CI. Preserve all
 negative fixtures; the known non-CI focus failure is not an exemption.
 
-Current executable rung: verify full native admission, then actual codegen
-bootstrap, DRV-2 consumer memory, installed driver and required CI. The index
-failure was an unreachable constructor after `Die`, not allocation exhaustion.
-`59af37fb6` seals original execution/scalar facts, joins exact zero-argument
-local calls to the existing closed-body graph, and preserves inout/heap/opaque
-and CALL/RETURN/CHANNEL boundaries. No source ceremony or work-limit increase.
+Current executable rung: full native admission as the prerequisite to actual
+codegen bootstrap, full DRV-2 consumer memory, installed driver and required
+CI. This native prerequisite is not counted as C-path substitution. The
+existing publication/flow/index owners remain authoritative; there is no new
+owner, source annotation/copy workaround, global cache or work-limit increase.
+String ref retaining summaries now reach the typed call boundary. Known-body
+static literal positives remain valid; dynamic/Concat/record-field retention
+and unknown/bodyless/indirect calls have explicit negative gates. RETURN-only
+String loans remain distinct from CALL/CHANNEL retention.
 
-At `b791c0b7a`, root independently passed the native phase unit
-(3708 checks), physical-return and recursive-summary controls, independent
-4097-query admission and oversized 4096-work refusal (10.01 s total). Component
-contract passed in 11.45 s against 60 s. The focus gate stopped at native
-probe compilation, before its recovery behavior; it is not PASS. Root repeated
-the final `59af37fb6` publication unit: 3761 checks, zero failures (0.02 s).
-The full-input instrumented run was terminated as INCOMPLETE_BUDGET after
-306 s. The uninstrumented same-input run also ended INCOMPLETE_BUDGET:
-`timeout 300` child exit124, wall308.81 s, peak596896 KiB, no compiler verdict.
-Do not infer success from missing diagnostics. This measured cost now blocks
-the active admission rung; identify the repeated validation operation behind
-its existing owner before a bounded repair. Canonical acceptance remains OPEN;
-bootstrap, driver, DRV-2 consumer memory and GitHub CI have not been accepted.
+Root independently observed on the frozen source/binary: phase unit 3977/0;
+recursive and original independent-4097/oversized-4096 demand controls PASS;
+12 new String fixtures in the summary gate PASS (2.68 s); existing readonly-map
+24 C/LLVM runtime positives and 58 exact analyze-only negatives PASS (18.55 s),
+with source/input/binary guards. Receipts in `/root/pgy-main-20261016.*.log`:
+`static-string-final-unit`, `static-string-final-summary`,
+`static-string-final-readonly`. Native SHA256:
+`dfcfba0d341e6dc4709809d39b6890c2fe8bdaa1e09bd5127d3f8c06c3cbbe3e`.
 
-The three implementers own native flow, structural gates, and the existing
-focus-recovery behavioral gate respectively; root owns commits, integration,
-full bootstrap/install/memory evidence and publication. One heavy WSL build
-at a time. Next falsifiers are same-input admission within budget, changed
-execution/type/zero-argument callee evidence, ordinary zero-row nominal
-forwarding versus real restoration, and unchanged 4096/4097 demand controls.
+Same full `src/self_hosted/codegen/main.pgy --native-pipeline --hir` at clean
+`b9beae91e` still FAILS: 10.83 s, peak621572 KiB, exit1, 18410 errors/16
+warnings (mostly cascading after the first failure). The primary is line274,
+recursive work4096 in `SemanticAstBodyFlowOfBlock` parameter1, reached at Match.
+The previous complete demand census was 91 evaluations +2592 backing nodes
++1413 graph nodes. It is not 18410 independent ownership defects. Receipt:
+`/root/pgy-main-20261016.b9-canonical.log`. The earlier 308.81-second timeout
+is historical; the local DAG repair removed that cost blocker, not this refusal.
+
+A now owns only the exhaustive scratch census of the Block/Statement/If/Match/
+Loop closure (including failures hidden by the selector's first-true return).
+ToInt nonretention and Match array storage/RETURN relations are candidates,
+not selected repairs. Ordinary ArrayPush retains elements; no blanket no-retain
+grant is allowed. One heavy WSL compile lease, no shared process kills.
+Root owns integration, acceptance and publication. Independent read-only review
+was requested in `Red-team review DRV-2 candidate` against this frozen binary;
+results are pending. The focus gate still stops at native probe compilation;
+bootstrap, full driver memory, installed driver and exact-SHA CI remain OPEN.
 
 The WSL remaining-target process is no longer running after WSL restart;
 its legacy-intent log ends in `Hangup`, not a pass. No published CI-green or
