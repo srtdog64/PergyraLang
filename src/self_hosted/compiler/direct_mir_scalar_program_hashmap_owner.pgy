@@ -54,7 +54,8 @@ func DirectMirScalarProgramHashMapSignatureForCall(
         // A call marker precedes its actuals; the terminal argument owns the
         // specialization. Keep the unspecialized marker incomplete, not valid.
         if ArrayLength(actual_types) == 0 { return fact; }
-        receiver_type = actual_types[0];
+        // The signature keeps its own copy of the borrowed type name.
+        receiver_type = Concat("", actual_types[0]);
     }
     let runtime: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(receiver_type);
     if !runtime.ok { return invalid; }

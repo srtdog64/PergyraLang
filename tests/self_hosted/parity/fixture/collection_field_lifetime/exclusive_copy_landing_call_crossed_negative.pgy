@@ -1,19 +1,19 @@
-// A call builds the holder, so where `rows` lands in it is unknown. The
-// proof keeps `rows` a reader of every field: a precision boundary control
-// for unknown landings, not a runtime unsafety claim.
+// The callee's return carries `rows` into `facts.marks`. Growing the marks
+// taken out of `facts` retires the buffer `rows` still names, and the return
+// reads it.
 struct Facts {
     rows: Array<String>;
     marks: Array<String>;
 }
 
-func FactsMake(rows: Array<String>, marks: Array<String>) -> Facts {
-    return Facts(rows, marks);
+func FactsSwap(rows: Array<String>, marks: Array<String>) -> Facts {
+    return Facts(marks, rows);
 }
 
 func Build() -> Int {
     let rows: Array<String> = ["r"];
     let marks: Array<String> = [];
-    let facts: Facts = FactsMake(rows, marks);
+    let facts: Facts = FactsSwap(rows, marks);
     let grown: Array<String> = facts.marks;
     ArrayPush(grown, "m");
     ArrayPush(grown, "n");

@@ -8,8 +8,7 @@ import "../mir_lower/mir_json_input_owner.pgy";
 
 func DriverRung2NestedIntentCSubstitutionIfClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    target_projection: CompilerTargetProjectionFact,
-    retire_owned_source_json: Bool
+    target_projection: CompilerTargetProjectionFact
 ) -> Option<CompilerEmissionArtifact> {
     if MirProgramRoutineIndexCount(admitted.routines) != 4 ||
         MirProgramDeclarationIndexCount(
@@ -25,8 +24,6 @@ func DriverRung2NestedIntentCSubstitutionIfClaimed(
     let payload: String = MirDomainTopologyGraphPlanAttachToC(
         topology_receipt, admitted.domain_topology_plan,
         UnwrapOption(projected));
-    let source_json: String = admitted.routines.source_json;
-    if retire_owned_source_json { MirJsonOwnedInputRelease(source_json); }
     let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact(
         "emitted-c", payload, target_projection.schema,
         target_projection.projection,

@@ -88,7 +88,7 @@ func DirectMirScalarCfgForEachElementFactsAppend(
     ArrayPush(counts, ArrayLength(string_elements));
     let row: Int = 0;
     while row < ArrayLength(string_elements) {
-        ArrayPush(strings, string_elements[row]);
+        ArrayPush(strings, Concat("", string_elements[row]));
         row = row + 1;
     }
     let appended: DirectMirScalarCfgForEachElementFacts =

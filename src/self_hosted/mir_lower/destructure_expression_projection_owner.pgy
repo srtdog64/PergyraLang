@@ -49,8 +49,9 @@ func MirExpressionGraphSequenceAppendIndexProjection(
     ArrayPush(roots, offset + 2);
     let extended: MirExpressionGraphSequence =
         MirExpressionGraphSequenceFromExtendedRows(
-            sequence, roots, kinds, texts, lefts, rights,
-            target_kinds, target_names, place_kinds
+            sequence.ok, sequence.ready_node_count, roots, kinds, texts, lefts, rights,
+            target_kinds, target_names, place_kinds,
+            sequence.arena.call_return_type_names, sequence.arena.identities
         );
     if !extended.ok || !MirExpressionGraphRangeReachable(
             extended.arena, offset, 3, offset + 2) {

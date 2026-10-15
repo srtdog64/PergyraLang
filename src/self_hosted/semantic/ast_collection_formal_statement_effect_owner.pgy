@@ -2,6 +2,7 @@
 import "ast_collection_formal_effect_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_statement_fact_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
 import "ast_owned_string_call_result_admission_owner.pgy";
 
 struct SemanticAstCollectionFormalStatementEffects {
@@ -11,10 +12,92 @@ struct SemanticAstCollectionFormalStatementEffects {
     target_rows: HashMap<String, Int>;
 }
 
+// Records the effect of the mutating statement `syntax_id` on the String
+// array formal its Atom target names, if any. `push` marks ArrayPush; a
+// statement that `writes_value` must carry a Value root. Returns false on a
+// malformed row.
+func SemanticAstCollectionFormalStatementTargetRecord(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    formal_rows: HashMap<String, Int>, syntax_id: Int, function_id: Int,
+    push: Bool, writes_value: Bool,
+    inout owned_formals: HashMap<String, Int>, inout shallow_formals: HashMap<String, Int>,
+    inout target_rows: HashMap<String, Int>
+) -> Bool {
+    let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, syntax_id, AstExpressionLaneAtom());
+    if function_id <= 0 || !IsSome(target_root) { return false; }
+    let target: Int = UnwrapOption(target_root);
+    let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        surfaces.expression_graph, target);
+    if !IsSome(target_kind) { return false; }
+    if UnwrapOption(target_kind) == AstExpressionNodeIndex() {
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(
+            surfaces.expression_graph, target);
+        if !IsSome(base) { return false; }
+        target = UnwrapOption(base);
+    }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(
+            surfaces.expression_graph, target);
+    if !binding.ok { return false; }
+    if binding.kind != SemanticExpressionBindingFormalParameter() { return true; }
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionSourceFormalIdentity(
+            signatures, function_id,
+            surfaces.expression_graph, target);
+    if !formal.ok { return false; }
+    if !SemanticAstCollectionOwnershipIsStringArray(formal.declared_type_name) { return true; }
+    let formal_key: String = ToString(formal.syntax_id);
+    if !MapHas(formal_rows, formal_key) { return false; }
+    let formal_row: Int = MapGet(formal_rows, formal_key);
+    if formal_row < 0 ||
+        formal_row >= ArrayLength(inventory.formal_nodes) ||
+        inventory.function_nodes[formal_row] != function_id ||
+        inventory.ordinals[formal_row] != formal.ordinal {
+        return false;
+    }
+    let value_root: Option<Int> = None;
+    if writes_value {
+        value_root = SemanticAstExpressionGraphRootForNode(
+            surfaces, syntax_id, AstExpressionLaneValue());
+        if !IsSome(value_root) { return false; }
+    }
+    let owned_push: Bool = false;
+    if push {
+        let surface_row: Option<Int> =
+            SemanticAstExpressionSurfaceIndexForNode(
+                surfaces, syntax_id);
+        if !IsSome(surface_row) { return false; }
+        owned_push = SemanticAstOwnedStringCallTarget(
+            artifact, signatures, locals,
+            initializer_types, surfaces,
+            owned_string_results,
+            UnwrapOption(surface_row),
+            UnwrapOption(value_root)) > 0;
+    }
+    if owned_push {
+        MapSet(owned_formals, formal_key, 1);
+    } else {
+        MapSet(shallow_formals, formal_key, 1);
+    }
+    let root_key: String = ToString(UnwrapOption(target_root));
+    if MapHas(target_rows, root_key) { return false; }
+    MapSet(target_rows, root_key, formal_row);
+    return true;
+}
+
 // Parser mutators are statement facts, not call-expression nodes. Attach their
 // exact formal effect from the admitted statement row and its carried Atom
 // target. A directly proved owned String result remains an owned mutation;
-// every other parser mutation is only a shallow descriptor mutation.
+// every other parser mutation is only a shallow descriptor mutation. An
+// indexed assignment `values[i] = v` writes the element in place exactly as
+// ArraySet does.
 func SemanticAstCollectionFormalStatementEffectsFromFacts(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
@@ -22,6 +105,7 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref inventory: SemanticAstCollectionFormalEffectInventory,
     formal_rows: HashMap<String, Int>
@@ -30,9 +114,12 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
     let shallow_formals: HashMap<String, Int> = MapNew();
     let target_rows: HashMap<String, Int> = MapNew();
     let count: Int = ArrayLength(statements.node_ids);
+    let assignment_count: Int = ArrayLength(assignments.node_ids);
     if !statements.ok || statements.artifact_node_count != artifact.count ||
         ArrayLength(statements.kind_tags) != count ||
-        ArrayLength(statements.function_node_ids) != count {
+        ArrayLength(statements.function_node_ids) != count ||
+        !assignments.ok || ArrayLength(assignments.function_node_ids) != assignment_count ||
+        ArrayLength(assignments.target_is_indexed) != assignment_count {
         return SemanticAstCollectionFormalStatementEffects(
             false, owned_formals, shallow_formals, target_rows);
     }
@@ -48,109 +135,39 @@ func SemanticAstCollectionFormalStatementEffectsFromFacts(
                 false, owned_formals, shallow_formals, target_rows);
         }
         previous_node = syntax_id;
-        if kind == TypedAstKindArrayPushStmtTag() ||
-            kind == TypedAstKindArraySetStmtTag() ||
-            kind == TypedAstKindArrayPopStmtTag() {
-            let function_id: Int = statements.function_node_ids[statement_row];
-            let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
-                surfaces, syntax_id, AstExpressionLaneAtom());
-            if function_id <= 0 || !IsSome(target_root) {
-                return SemanticAstCollectionFormalStatementEffects(
-                    false, owned_formals, shallow_formals, target_rows);
-            }
-            let target: Int = UnwrapOption(target_root);
-            let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-                surfaces.expression_graph, target);
-            if !IsSome(target_kind) {
-                return SemanticAstCollectionFormalStatementEffects(
-                    false, owned_formals, shallow_formals, target_rows);
-            }
-            if UnwrapOption(target_kind) == AstExpressionNodeIndex() {
-                let base: Option<Int> = SemanticExpressionGraphLeftChild(
-                    surfaces.expression_graph, target);
-                if !IsSome(base) {
-                    return SemanticAstCollectionFormalStatementEffects(
-                        false, owned_formals, shallow_formals, target_rows);
-                }
-                target = UnwrapOption(base);
-            }
-            let binding: SemanticExpressionBindingIdentityFact =
-                SemanticExpressionGraphBindingIdentity(
-                    surfaces.expression_graph, target);
-            if !binding.ok {
-                return SemanticAstCollectionFormalStatementEffects(
-                    false, owned_formals, shallow_formals, target_rows);
-            }
-            if binding.kind == SemanticExpressionBindingFormalParameter() {
-                let formal: SemanticAstCollectionFormalStorageIdentity =
-                    SemanticAstCollectionSourceFormalIdentity(
-                        signatures, function_id,
-                        surfaces.expression_graph, target);
-                if !formal.ok {
-                    return SemanticAstCollectionFormalStatementEffects(
-                        false, owned_formals, shallow_formals, target_rows);
-                }
-                if SemanticAstCollectionOwnershipIsStringArray(
-                        formal.declared_type_name) {
-                    let formal_key: String = ToString(formal.syntax_id);
-                    if !MapHas(formal_rows, formal_key) {
-                        return SemanticAstCollectionFormalStatementEffects(
-                            false, owned_formals, shallow_formals, target_rows);
-                    }
-                    let formal_row: Int = MapGet(formal_rows, formal_key);
-                    if formal_row < 0 ||
-                        formal_row >= ArrayLength(inventory.formal_nodes) ||
-                        inventory.function_nodes[formal_row] != function_id ||
-                        inventory.ordinals[formal_row] != formal.ordinal {
-                        return SemanticAstCollectionFormalStatementEffects(
-                            false, owned_formals, shallow_formals,
-                            target_rows);
-                    }
-                    let value_root: Option<Int> = None;
-                    if kind == TypedAstKindArrayPushStmtTag() ||
-                        kind == TypedAstKindArraySetStmtTag() {
-                        value_root = SemanticAstExpressionGraphRootForNode(
-                            surfaces, syntax_id, AstExpressionLaneValue());
-                        if !IsSome(value_root) {
-                            return SemanticAstCollectionFormalStatementEffects(
-                                false, owned_formals, shallow_formals,
-                                target_rows);
-                        }
-                    }
-                    let owned_push: Bool = false;
-                    if kind == TypedAstKindArrayPushStmtTag() {
-                        let surface_row: Option<Int> =
-                            SemanticAstExpressionSurfaceIndexForNode(
-                                surfaces, syntax_id);
-                        if !IsSome(surface_row) {
-                            return SemanticAstCollectionFormalStatementEffects(
-                                false, owned_formals, shallow_formals,
-                                target_rows);
-                        }
-                        owned_push = SemanticAstOwnedStringCallTarget(
-                            artifact, signatures, locals,
-                            initializer_types, surfaces,
-                            owned_string_results,
-                            UnwrapOption(surface_row),
-                            UnwrapOption(value_root)) > 0;
-                    }
-                    if owned_push {
-                        MapSet(owned_formals, formal_key, 1);
-                    } else {
-                        MapSet(shallow_formals, formal_key, 1);
-                    }
-                    let root_key: String = ToString(
-                        UnwrapOption(target_root));
-                    if MapHas(target_rows, root_key) {
-                        return SemanticAstCollectionFormalStatementEffects(
-                            false, owned_formals, shallow_formals,
-                            target_rows);
-                    }
-                    MapSet(target_rows, root_key, formal_row);
-                }
-            }
+        if (kind == TypedAstKindArrayPushStmtTag() ||
+                kind == TypedAstKindArraySetStmtTag() ||
+                kind == TypedAstKindArrayPopStmtTag()) &&
+            !SemanticAstCollectionFormalStatementTargetRecord(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results, inventory, formal_rows, syntax_id,
+                statements.function_node_ids[statement_row],
+                kind == TypedAstKindArrayPushStmtTag(),
+                kind != TypedAstKindArrayPopStmtTag(),
+                owned_formals, shallow_formals, target_rows) {
+            return SemanticAstCollectionFormalStatementEffects(
+                false, owned_formals, shallow_formals, target_rows);
         }
         statement_row = statement_row + 1;
+    }
+    let assignment_row: Int = 0;
+    while assignment_row < assignment_count {
+        let syntax_id: Int = assignments.node_ids[assignment_row];
+        if syntax_id < 0 || syntax_id >= artifact.count ||
+            !TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindAssignStmtTag()) {
+            return SemanticAstCollectionFormalStatementEffects(
+                false, owned_formals, shallow_formals, target_rows);
+        }
+        if assignments.target_is_indexed[assignment_row] != 0 &&
+            !SemanticAstCollectionFormalStatementTargetRecord(
+                artifact, signatures, locals, initializer_types, surfaces,
+                owned_string_results, inventory, formal_rows, syntax_id,
+                assignments.function_node_ids[assignment_row], false, true,
+                owned_formals, shallow_formals, target_rows) {
+            return SemanticAstCollectionFormalStatementEffects(
+                false, owned_formals, shallow_formals, target_rows);
+        }
+        assignment_row = assignment_row + 1;
     }
     return SemanticAstCollectionFormalStatementEffects(
         true, owned_formals, shallow_formals, target_rows);

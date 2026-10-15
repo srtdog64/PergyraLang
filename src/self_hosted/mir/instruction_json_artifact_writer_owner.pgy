@@ -309,9 +309,7 @@ func SelfMirJsonInstructionWriteFile(
     ) { return false; }
     CompilerArtifactWrite(output, ",\"abi_layout_id\":");
     if abi_layout_required {
-        JsonOwnedFragmentWriteFile(
-            output, SelfMirJsonAbiLayoutId(abi_layout)
-        );
+        CompilerArtifactWrite(output, SelfMirJsonAbiLayoutId(abi_layout));
     } else {
         CompilerArtifactWrite(output, "0");
     }
@@ -323,7 +321,7 @@ func SelfMirJsonInstructionWriteFile(
     }
     CompilerArtifactWrite(output, ",\"abi_layout\":");
     if abi_layout_required {
-        JsonOwnedFragmentWriteFile(output, abi_layout);
+        CompilerArtifactWrite(output, abi_layout);
     } else {
         CompilerArtifactWrite(output, "null");
     }
@@ -346,12 +344,9 @@ func SelfMirJsonInstructionWriteFile(
     CompilerArtifactWrite(output, ",\"collection_ownership_receipt\":");
     if facts.collection_ownership_receipts.effect_kinds[
             instruction_index] == 0 {
-        // `null` is a borrowed JSON token. JsonOwnedFragmentWriteFile owns
-        // and retires its input, so only the allocated object projection may
-        // cross that boundary.
         CompilerArtifactWrite(output, "null");
     } else {
-        JsonOwnedFragmentWriteFile(output, collection_ownership_receipt);
+        CompilerArtifactWrite(output, collection_ownership_receipt);
     }
     CompilerArtifactWrite(output, ",\"source_type\":");
     if !SelfMirJsonOptionalStringWriteFile(
@@ -365,9 +360,7 @@ func SelfMirJsonInstructionWriteFile(
     if machine.contact_kind == "" {
         CompilerArtifactWrite(output, "null");
     } else {
-        JsonOwnedFragmentWriteFile(
-            output, SelfMirJsonMachineLayer(machine)
-        );
+        CompilerArtifactWrite(output, SelfMirJsonMachineLayer(machine));
     }
     if !SelfMirJsonMatchFieldsWriteFile(
         rows, instruction_index, output

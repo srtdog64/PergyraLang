@@ -13,9 +13,10 @@ func DirectMirScalarProgramCollectionCloneSignature(
             (expected_type != "" && expected_type != actual_types[0]) {
         return DirectMirScalarProgramBuiltinSignatureFactInvalid();
     }
-    let parameter_types: Array<String> = [actual_types[0]];
+    // The fact keeps its own copies of the borrowed type names.
+    let parameter_types: Array<String> = [Concat("", actual_types[0])];
     return DirectMirScalarProgramBuiltinSignatureFact(
-        true, fact.registry_row, fact.name, actual_types[0],
+        true, fact.registry_row, fact.name, Concat("", actual_types[0]),
         parameter_types, DirectMirScalarProgramExprArrayClone(),
         fact.runtime_call_abi_id
     );

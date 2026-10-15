@@ -1,0 +1,19 @@
+// An inout formal drains its elements by indexed assignment, which writes in
+// place exactly as ArraySet; the caller's array stays current and is read.
+func Drain(inout chunks: Array<String>) -> String {
+    let joined: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(chunks) {
+        joined = Concat(joined, chunks[row]);
+        chunks[row] = "";
+        row = row + 1;
+    }
+    return joined;
+}
+
+func Main() -> Int {
+    let chunks: Array<String> = ["a", "b"];
+    let joined: String = Drain(chunks);
+    Log(Concat(joined, chunks[0]));
+    return 0;
+}

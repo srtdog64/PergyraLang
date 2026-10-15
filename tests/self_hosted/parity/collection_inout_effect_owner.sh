@@ -277,7 +277,8 @@ INPUTS=(
     exclusive_loop_old_alias_unread_positive.pgy exclusive_loop_old_alias_reread_negative.pgy
     exclusive_alias_after_use_positive.pgy exclusive_alias_after_use_loop_negative.pgy
     exclusive_copy_landing_other_field_positive.pgy exclusive_copy_landing_same_field_negative.pgy
-    exclusive_copy_landing_unknown_negative.pgy
+    exclusive_copy_landing_call_positive.pgy exclusive_copy_landing_call_crossed_negative.pgy
+    exclusive_copy_landing_whole_result_negative.pgy
     exclusive_growth_copied_field_positive.pgy exclusive_growth_copied_field_shared_negative.pgy
     exclusive_growth_copy_holder_negative.pgy
     exclusive_plain_alias_read_only_positive.pgy exclusive_plain_alias_grown_alias_negative.pgy
@@ -287,6 +288,7 @@ INPUTS=(
     formal_ref_borrow_after_element_return_positive.pgy
     exclusive_nested_copy_sibling_read_positive.pgy exclusive_nested_copy_grown_read_negative.pgy
     exclusive_nested_copy_prefix_read_negative.pgy
+    formal_index_assign_inout_positive.pgy formal_index_assign_sibling_negative.pgy
     aggregate_release_scalar_member_temporary_positive.pgy aggregate_release_array_member_temporary_negative.pgy
     aggregate_release_enum_variant_local_positive.pgy
     inout_index_string_marker_literal_positive.pgy

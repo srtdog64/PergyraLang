@@ -106,7 +106,7 @@ func DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
             return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
         }
         let receiver_row: Int = source_rows[receiver_source];
-        let receiver_type: String = normalized_types[receiver_row];
+        let receiver_type: String = Concat("", normalized_types[receiver_row]);
         let return_type: String = CompilerAbiLayoutSliceIntTypeName();
         if receiver_type == CompilerAbiLayoutArrayStringTypeName() {
             return_type = CompilerAbiLayoutSliceStringTypeName();
@@ -141,7 +141,7 @@ func DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
             chain.call_node
         );
     }
-    let slice_type: String = normalized_types[chain.argument_rows[0]];
+    let slice_type: String = Concat("", normalized_types[chain.argument_rows[0]]);
     let return_type: String = CompilerAbiLayoutArrayIntTypeName();
     if slice_type == CompilerAbiLayoutSliceStringTypeName() {
         return_type = CompilerAbiLayoutArrayStringTypeName();

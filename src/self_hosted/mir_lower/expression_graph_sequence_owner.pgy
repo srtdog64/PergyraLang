@@ -27,33 +27,33 @@ func MirExpressionGraphSequenceError(sequence: MirExpressionGraphSequence
     failed.ok = false;
     return failed;
 }
-func MirExpressionGraphSequenceFromExtendedRows(sequence: MirExpressionGraphSequence,
+// The sequence that extends a ready sequence of `prefix` nodes to the given
+// topology rows. The prefix's return types and identities are taken as the
+// rows to extend, so a caller hands over those columns, not the sequence the
+// topology columns were copied from.
+func MirExpressionGraphSequenceFromExtendedRows(ready: Bool, prefix: Int,
     roots: Array<Int>, kinds: Array<Int>, texts: Array<String>,
     lefts: Array<Int>, rights: Array<Int>, target_kinds: Array<Int>, target_names: Array<String>,
-    places: Array<Int>
+    places: Array<Int>, prefix_return_types: Array<String>, identities: SemanticExpressionIdentityRows
 ) -> MirExpressionGraphSequence {
-    let prefix: Int = sequence.ready_node_count;
     let count: Int = ArrayLength(kinds);
-    if !sequence.ok || prefix < 0 || prefix > count ||
+    if !ready || prefix < 0 || prefix > count ||
         ArrayLength(texts) != count || ArrayLength(lefts) != count ||
         ArrayLength(rights) != count || ArrayLength(target_kinds) != count ||
         ArrayLength(target_names) != count || ArrayLength(places) != count ||
-        ArrayLength(sequence.arena.call_return_type_names) != prefix ||
-        ArrayLength(sequence.arena.identities.call_target_syntax_ids) != prefix ||
-        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) != prefix || ArrayLength(sequence.arena.identities.binding_syntax_ids) != prefix ||
-        ArrayLength(sequence.arena.identities.binding_kinds) != prefix ||
-        ArrayLength(sequence.arena.identities.binding_ordinals) != prefix {
-        return MirExpressionGraphSequenceError(sequence);
+        ArrayLength(prefix_return_types) != prefix ||
+        ArrayLength(identities.call_target_syntax_ids) != prefix ||
+        ArrayLength(identities.runtime_call_abi_ids) != prefix || ArrayLength(identities.binding_syntax_ids) != prefix ||
+        ArrayLength(identities.binding_kinds) != prefix ||
+        ArrayLength(identities.binding_ordinals) != prefix {
+        return MirExpressionGraphSequenceError(MirExpressionGraphSequenceEmpty());
     }
-    let return_types: Array<String> = sequence.arena.call_return_type_names;
-    let syntax_ids: Array<Int> =
-        sequence.arena.identities.call_target_syntax_ids;
-    let runtime_ids: Array<Int> =
-        sequence.arena.identities.runtime_call_abi_ids;
-    let binding_ids: Array<Int> = sequence.arena.identities.binding_syntax_ids;
-    let binding_kinds: Array<Int> = sequence.arena.identities.binding_kinds;
-    let binding_ordinals: Array<Int> =
-        sequence.arena.identities.binding_ordinals;
+    let return_types: Array<String> = prefix_return_types;
+    let syntax_ids: Array<Int> = identities.call_target_syntax_ids;
+    let runtime_ids: Array<Int> = identities.runtime_call_abi_ids;
+    let binding_ids: Array<Int> = identities.binding_syntax_ids;
+    let binding_kinds: Array<Int> = identities.binding_kinds;
+    let binding_ordinals: Array<Int> = identities.binding_ordinals;
     let i: Int = prefix;
     while i < count {
         ArrayPush(return_types, ""); ArrayPush(syntax_ids, 0);

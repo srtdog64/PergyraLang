@@ -53,7 +53,8 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     }
     let actual_types: Array<String> = []; let i: Int = 0;
     while i < ArrayLength(chain.argument_rows) {
-        ArrayPush(actual_types, normalized_types[chain.argument_rows[i]]);
+        // The signature facts keep their own copies of the borrowed types.
+        ArrayPush(actual_types, Concat("", normalized_types[chain.argument_rows[i]]));
         i = i + 1;
     }
     let signature: DirectMirScalarProgramBuiltinSignatureFact =

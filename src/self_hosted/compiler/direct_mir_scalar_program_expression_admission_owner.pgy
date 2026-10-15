@@ -362,7 +362,7 @@ func DirectMirScalarProgramAppendExpression(facts: DirectMirScalarProgramExpress
                     operand_local = bound_local; consumed_uses = 0;
                     selects_local = true;
                 } else if identity.parameter_ordinal >= 0 && (!operand.valid || reused_prior_lane) {
-                    param = identity.parameter_ordinal; type_name = parameter_types[param];
+                    param = identity.parameter_ordinal; type_name = Concat("", parameter_types[param]);
                     // The native SSA wire may retain the formal entry use even
                     // when there is no local definition. Its graph declaration
                     // identity above must already agree with this signature.

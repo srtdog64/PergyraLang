@@ -126,7 +126,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
         while parameter < ArrayLength(arguments) {
             let llvm_type: String =
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-                    argument_types[parameter], logical_record,
+                    Concat("", argument_types[parameter]), logical_record,
                     payload_free_enum, referenced_enum);
             if llvm_type == "" {
                 return DirectMirScalarProgramLlvmPayloadEnumExpression(

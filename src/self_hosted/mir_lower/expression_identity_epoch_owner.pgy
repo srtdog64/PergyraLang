@@ -337,7 +337,7 @@ func MirExpressionIdentityEpochRebindGraph(
                          target_names[node] != member_canonical_names[canonical_id]) {
                         valid = false;
                     } else {
-                        ArraySet(target_names, node, member_canonical_names[canonical_id]);
+                        ArraySet(target_names, node, Concat("", member_canonical_names[canonical_id]));
                     }
                 }
                 ArraySet(targets, node, canonical_id);

@@ -36,7 +36,9 @@ func DirectMirScalarProgramCLogicalRecordExpression(
         }
         ordinal = 0;
         while ordinal < ArrayLength(arguments) {
-            if StringIndexOf(arguments[ordinal], temporary) >= 0 {
+            // StringIndexOf is not a registered borrowing builtin; search a copy.
+            let argument: String = Concat("", arguments[ordinal]);
+            if StringIndexOf(argument, temporary) >= 0 {
                 temporary = Concat(temporary, "_");
                 ordinal = 0;
             } else { ordinal = ordinal + 1; }

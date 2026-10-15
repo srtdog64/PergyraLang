@@ -57,9 +57,12 @@ func DirectMirScalarCfgStringArrayPlanFromOwners(
         DirectMirScalarCfgStringArrayLengthSetEmpty(true);
     let accesses: DirectMirScalarCfgStringArrayAccessSet =
         DirectMirScalarCfgStringArrayAccessSetEmpty(true);
+    // The lookup plan names only the collections: the rows this loop grows
+    // would go stale in it.
     let source: DirectMirScalarCfgStringArrayPlan =
         DirectMirScalarCfgStringArrayPlan(
-            true, 0, collections, lengths, accesses
+            true, 0, collections, DirectMirScalarCfgStringArrayLengthSetEmpty(true),
+            DirectMirScalarCfgStringArrayAccessSetEmpty(true)
         );
     let collection_use_count: Int = 0;
     let claimed_collection_use_count: Int = 0;

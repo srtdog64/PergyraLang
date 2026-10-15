@@ -1,0 +1,27 @@
+// The callee returns its whole formal, so where `rows` lands in the result
+// is unknown. The proof keeps `rows` a reader of every field: a precision
+// boundary control for unknown landings, not a runtime unsafety claim.
+struct Facts {
+    rows: Array<String>;
+    marks: Array<String>;
+}
+
+func FactsSame(facts: Facts) -> Facts {
+    return facts;
+}
+
+func Build() -> Int {
+    let rows: Array<String> = ["r"];
+    let marks: Array<String> = [];
+    let facts: Facts = FactsSame(Facts(rows, marks));
+    let grown: Array<String> = facts.marks;
+    ArrayPush(grown, "m");
+    ArrayPush(grown, "n");
+    facts.marks = grown;
+    return StringLength(rows[0]) + ArrayLength(facts.marks);
+}
+
+func Main() -> Int {
+    Log(ToString(Build()));
+    return 0;
+}

@@ -51,6 +51,8 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
                     !DirectMirArrayBoolCapturedAbiReady(param.abi) {
                     return empty;
                 }
+                // A candidate carries only its layout; the value-result rows grow
+                // below and go into the fact once they are complete.
                 let candidate: DirectMirScalarProgramArrayBoolAbiFact =
                     DirectMirScalarProgramArrayBoolAbiFact(
                         true, 0, true, false, false,
@@ -61,8 +63,7 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
                         ToInt(param.abi.field_offsets[1]),
                         ToInt(param.abi.field_offsets[2]),
                         ToInt(param.abi.field_offsets[3]),
-                        value_result_routines, value_result_parameters,
-                        value_result_digests);
+                        [], [], []);
                 if found > 0 &&
                     !DirectMirScalarProgramArrayBoolAbiCaptureMatches(
                         source, param.abi) { return empty; }
@@ -109,14 +110,15 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
                 if !IsSome(abi_opt) { return empty; }
                 let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
                 if !DirectMirArrayBoolCapturedAbiReady(abi) { return empty; }
+                // A candidate carries only its layout; the value-result rows grow
+                // below and go into the fact once they are complete.
                 let candidate: DirectMirScalarProgramArrayBoolAbiFact =
                     DirectMirScalarProgramArrayBoolAbiFact(
                         true, 0, true, false, false,
                         MirAbiLayoutIdFromCapture(abi), ToInt(abi.size_text),
                         ToInt(abi.align_text), ToInt(abi.field_offsets[0]),
                         ToInt(abi.field_offsets[1]), ToInt(abi.field_offsets[2]),
-                        ToInt(abi.field_offsets[3]), value_result_routines,
-                        value_result_parameters, value_result_digests);
+                        ToInt(abi.field_offsets[3]), [], [], []);
                 if found > 0 &&
                     !DirectMirScalarProgramArrayBoolAbiCaptureMatches(
                         source, abi) { return empty; }

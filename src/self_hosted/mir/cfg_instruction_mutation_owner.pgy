@@ -21,7 +21,7 @@ func SelfMirCfgSetInstructionUses(
             ArrayPush(use_counts, ArrayLength(replacement));
             let replacement_i: Int = 0;
             while replacement_i < ArrayLength(replacement) {
-                ArrayPush(uses, replacement[replacement_i]);
+                ArrayPush(uses, Concat("", replacement[replacement_i]));
                 replacement_i = replacement_i + 1;
             }
         } else {

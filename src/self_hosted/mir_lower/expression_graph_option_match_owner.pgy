@@ -39,8 +39,9 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     ArrayPush(places, SemanticExpressionPlaceUnknown());
     let prefix: MirExpressionGraphSequence =
         MirExpressionGraphSequenceFromExtendedRows(
-            sequence, roots, kinds, texts, left, right,
-            target_kinds, target_names, places
+            sequence.ok, sequence.ready_node_count, roots, kinds, texts, left, right,
+            target_kinds, target_names, places,
+            arena.call_return_type_names, arena.identities
         );
     let with_subject: MirExpressionGraphSequence =
         MirExpressionGraphSequenceAppend(
@@ -49,8 +50,18 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     if !with_subject.ok || ArrayLength(with_subject.roots) == 0 {
         return MirExpressionGraphSequenceError(with_subject);
     }
-    let result_roots: Array<Int> = with_subject.roots;
-    let result_arena: SemanticExpressionGraphArena = with_subject.arena;
+    return MirExpressionGraphSequenceCloseUnaryCall(with_subject, callee_name, subject_text, call_node, negate);
+}
+
+// Closes a unary call whose callee node `call_node` and subject (the last
+// root) are already in `sequence`: the argument edge, an optional negation,
+// and the root that replaces the subject's.
+func MirExpressionGraphSequenceCloseUnaryCall(
+    sequence: MirExpressionGraphSequence, callee_name: String, subject_text: String,
+    call_node: Int, negate: Bool
+) -> MirExpressionGraphSequence {
+    let result_roots: Array<Int> = sequence.roots;
+    let result_arena: SemanticExpressionGraphArena = sequence.arena;
     let result_kinds: Array<Int> = result_arena.topology.node_kinds;
     let result_texts: Array<String> = result_arena.node_texts;
     let result_left: Array<Int> = result_arena.topology.left_children;
@@ -83,9 +94,10 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     }
     ArraySet(result_roots, ArrayLength(result_roots) - 1, final_root);
     return MirExpressionGraphSequenceFromExtendedRows(
-        with_subject, result_roots, result_kinds, result_texts,
+        sequence.ok, sequence.ready_node_count, result_roots, result_kinds, result_texts,
         result_left, result_right, result_target_kinds,
-        result_target_names, result_places
+        result_target_names, result_places,
+        result_arena.call_return_type_names, result_arena.identities
     );
 }
 

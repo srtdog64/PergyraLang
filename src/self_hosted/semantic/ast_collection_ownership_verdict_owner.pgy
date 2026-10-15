@@ -465,7 +465,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let formal_effects: SemanticAstCollectionFormalEffects =
         SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
             artifact, signatures, function_scopes, locals,
-            initializer_types, surfaces, statements,
+            initializer_types, surfaces, statements, assignments,
             owned_string_results);
     return SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
         artifact, signatures, constructors, locals, initializer_types,

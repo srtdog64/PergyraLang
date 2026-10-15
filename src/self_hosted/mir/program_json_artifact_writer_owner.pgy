@@ -359,14 +359,12 @@ func SelfMirProgramJsonWriteArtifactVerified(
     CompilerArtifactWrite(output, "]");
     // Absent prefixes are borrowed empty literals, not allocation results.
     if facts.domain_topology.present {
-        JsonOwnedFragmentWriteFile(
-            output, SelfMirDomainTopologyJsonPrefix(facts.domain_topology)
-        );
+        CompilerArtifactWrite(output, SelfMirDomainTopologyJsonPrefix(facts.domain_topology));
     }
     if facts.domain_runtime_assignments.present &&
         (ArrayLength(facts.domain_runtime_assignments.participant_roles.roles) > 0 ||
          ArrayLength(facts.domain_runtime_assignments.projection_members.owner_names) > 0) {
-        JsonOwnedFragmentWriteFile(output, SelfMirDomainRuntimeAssignmentsJsonPrefix(
+        CompilerArtifactWrite(output, SelfMirDomainRuntimeAssignmentsJsonPrefix(
             facts.domain_runtime_assignments
         ));
     }

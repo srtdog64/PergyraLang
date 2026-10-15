@@ -184,6 +184,65 @@ P0 is active. The lanes, in order:
      deleted, and in what order. This is a plan for after P0; no C-path edit
      starts while P0 is open.
 
+## P0 takeover: copies added and manual drops removed (2026-10-15)
+
+The GPT lane paused, and the owner asked the Claude lane to finish P0
+itself (branch `claude/p0-v16`, worktree `pgy-wt/perf`). These are the
+source changes outside the checker. AGENTS.md asks each copy or annotation
+to name its reason, missing fact, last consumer and removal condition.
+
+**Copies of borrowed text (`Concat("", x)`).** In each case, the String
+element of a borrowed array leaves the call: it is stored in another array,
+or it goes into a returned fact.
+
+- Missing fact: a lifetime relation between the result and the array it
+  borrows from. The formal-use owner keeps such escapes fail-closed "until
+  the language has an owned transfer".
+- Last consumer: the returned fact, or the destination rows.
+- Removal condition: the checker can state "result borrows from argument"
+  for a String element.
+- Sites:
+  - the direct-MIR builtin signature owners (collection clone, ToString,
+    ArrayValue, HashMap receiver, record Option);
+  - the slice builtin owner and the builtin call fact;
+  - the expression admission parameter type;
+  - the C and LLVM case-math operands;
+  - the C record temporary search (`StringIndexOf` is not yet a registered
+    borrowing builtin; the GPT lane's uncommitted registry adds it);
+  - the payload-enum and direct-call LLVM type projections;
+  - the for-each string elements;
+  - the generic specialization actuals;
+  - the CFG use replacement;
+  - the identity-epoch member names;
+  - the or-pattern alternatives.
+
+**Manual drops removed.** V1 says no manual drops. The checker refused each
+of these, because it cannot prove the dropped value owned.
+
+- `DriverRung2MirProjectionRelease` and its six call sites.
+- `MirJsonOwnedInputRelease` and the `retire_owned_source_json` flag. It
+  released `admitted.routines.source_json` through a `ref`.
+- The function-table release before C emission.
+- Six `JsonOwnedFragmentWriteFile` calls whose actual may be borrowed or a
+  literal. They now use `CompilerArtifactWrite`.
+- Four one-element `ArrayDropOwnedStrings` boxes in the LLVM scalar emitter
+  and the intent-execution JSON writer.
+
+Cost to measure before landing: the MIR JSON input now lives until C
+emission returns. Measure it on the installed-driver `--mir-json` route
+with `--observe-mir-consumer-stages`; the baseline peak was 1.78 GB.
+
+**Real aliasing fixed in source.**
+
+- The string-array plan lookup no longer names the rows it grows.
+- The ArrayString and ArrayBool ABI candidates no longer hold the
+  value-result rows.
+- The C direct-call expression no longer pushes into a copy of its borrowed
+  `arguments`.
+- `MirExpressionGraphSequenceFromExtendedRows` takes the prefix columns it
+  extends, not the whole sequence whose topology columns the caller has
+  already copied and grown.
+
 ## Measurements to track
 
 - `direct_mir_*` file and line count inside the driver import closure. It

@@ -19,6 +19,7 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
     ref owned_string_results: SemanticAstOwnedStringResultFacts
 ) -> SemanticAstCollectionFormalEffects {
     let no_synthetic_roots: Array<Int> = [];
@@ -26,7 +27,7 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         surfaces, no_synthetic_roots, no_synthetic_roots);
     return SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         artifact, signatures, scopes, locals, initializer_types, surfaces,
-        statements, owned_string_results, order);
+        statements, assignments, owned_string_results, order);
 }
 func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     artifact: AstTreeArtifact,
@@ -36,6 +37,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref order: SemanticExpressionGraphSurfaceOrder
 ) -> SemanticAstCollectionFormalEffects {
@@ -84,7 +86,7 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
     let statement_effects: SemanticAstCollectionFormalStatementEffects =
         SemanticAstCollectionFormalStatementEffectsFromFacts(
             artifact, signatures, locals, initializer_types, surfaces,
-            statements, owned_string_results, inventory, formal_rows);
+            statements, assignments, owned_string_results, inventory, formal_rows);
     let statement_owned_formals: HashMap<String, Int> =
         statement_effects.owned_formals;
     let statement_shallow_formals: HashMap<String, Int> =
