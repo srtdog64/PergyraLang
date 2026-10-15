@@ -3,7 +3,6 @@
 // the value it reaches and the first field of the formal it comes from. The
 // fixed point's facts record these per local and per result.
 import "ast_collection_exclusive_value_copy_landing_owner.pgy";
-import "ast_collection_exclusive_value_exit_facts_owner.pgy";
 
 struct SemanticAstCollectionExclusiveClass {
     exclusive: Bool;
@@ -44,7 +43,6 @@ struct SemanticAstCollectionExclusiveValueFacts {
     field_reads: HashMap<String, Int>;
     // Copy edges between holders and sources (copy owner keys).
     copies: HashMap<String, Int>;
-    exits: SemanticAstCollectionExclusiveExitFacts;
 }
 
 func SemanticAstCollectionExclusiveShared() -> SemanticAstCollectionExclusiveClass {

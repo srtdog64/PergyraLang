@@ -239,10 +239,12 @@ func SemanticAstCollectionExclusiveHolderContained(
                             surfaces.expression_graph.arena.topology.node_kinds[consumer] == AstExpressionNodeIndex() {
                             written = true;
                         }
+                        let read_type: String = SemanticAstCollectionStorageObservedType(
+                            signatures, inferred_types, surfaces, function_id, node, place);
                         if place.ok && !place.temporary &&
                             SemanticAstCollectionExclusivePlaceRoot(locals, place) == holder && !defines && !observes &&
                             !written && !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, statement, lane, root,
-                                node, false) {
+                                node, false, read_type) {
                             return false;
                         }
                     }

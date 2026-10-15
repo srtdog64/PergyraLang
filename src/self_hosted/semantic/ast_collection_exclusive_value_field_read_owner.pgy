@@ -277,7 +277,7 @@ func SemanticAstCollectionExclusiveFieldReads(
                             }
                             // "!": the body keeps or changes what it reads.
                             if !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces, surfaces.node_ids[slot / 3],
-                                    slot % 3, root, node, true) {
+                                    slot % 3, root, node, true, formal.declared_type_name) {
                                 MapSet(reads, Concat(key, ":!"), 1);
                             }
                         } else if surfaces.expression_graph.arena.topology.node_kinds[consumer] ==
@@ -302,7 +302,7 @@ func SemanticAstCollectionExclusiveFieldReads(
                     if !handled {
                         MapSet(reads, Concat(key, ":*"), 1);
                         if formal.mode == 2 || opaque_target || !SemanticAstCollectionExclusiveFamilyRead(artifact, surfaces,
-                                surfaces.node_ids[slot / 3], slot % 3, root, node, true) {
+                                surfaces.node_ids[slot / 3], slot % 3, root, node, true, formal.declared_type_name) {
                             MapSet(reads, Concat(key, ":!"), 1);
                         }
                     }
