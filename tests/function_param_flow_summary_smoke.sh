@@ -37,6 +37,9 @@ paired = (
     ("stdlib_trim_result_return_valid", True),
     ("stdlib_trim_result_retain_invalid", False),
     ("stdlib_trim_opaque_invalid", False),
+    ("private_array_push_local_read_valid", True),
+    ("private_array_push_return_escape_invalid", False),
+    ("private_array_push_wrapper_escape_invalid", False),
     ("physical_return_default_string_valid", True),
     ("physical_return_default_record_valid", True),
     ("physical_return_opaque_invalid", False),
@@ -45,6 +48,11 @@ paired = (
     ("default_string_string_return_invalid", False),
     ("default_string_option_return_invalid", False),
     ("direct_ref_string_loan_valid", True),
+    ("return_loan_direct_slot_invalid", False),
+    ("return_loan_staged_slot_invalid", False),
+    ("return_loan_wrap_slot_invalid", False),
+    ("return_loan_inout_invalid", False),
+    ("return_loan_literal_slot_valid", True),
     ("direct_ref_string_retaining_literal_valid", True),
     ("direct_ref_string_retaining_concat_invalid", False),
     ("direct_ref_string_local_retain_invalid", False),
@@ -117,6 +125,8 @@ runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
 for name, expected in (
     ("stdlib_input_retention_valid", "12\n2\n0\n-2147483648\n\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
+    ("private_array_push_local_read_valid", "1\n"),
+    ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

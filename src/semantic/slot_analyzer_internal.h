@@ -31,6 +31,8 @@ typedef struct
     ASTNode    *function_decl;
     size_t      param_index;
     const char *param_name;
+    const ASTNode *private_stores_owner;
+    uint32_t private_stores_owner_id;
 } SlotSummaryOrigin;
 
 typedef struct

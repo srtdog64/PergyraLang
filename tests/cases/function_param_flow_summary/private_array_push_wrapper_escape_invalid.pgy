@@ -1,0 +1,12 @@
+struct Wrapper { rows: Array<String>; }
+extern "C" { func Keep(value: Wrapper) -> Void; }
+func Build(ref input: Array<String>) -> Wrapper {
+    let owned_rows: Array<String> = [];
+    ArrayPush(owned_rows, input[0]);
+    return Wrapper(owned_rows);
+}
+func Publish(ref input: Array<String>) -> Bool { Keep(Build(input)); return true; }
+func Main() -> Void {
+    let input: Array<String> = [Concat("heap", " text")];
+    Log(Publish(input));
+}

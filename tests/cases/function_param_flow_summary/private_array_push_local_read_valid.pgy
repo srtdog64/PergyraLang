@@ -1,0 +1,9 @@
+func Inspect(ref input: Array<String>) -> Int {
+    let owned_rows: Array<String> = [];
+    ArrayPush(owned_rows, input[0]);
+    return ArrayLength(owned_rows);
+}
+func Main() -> Void {
+    let input: Array<String> = [Concat("heap", " text")];
+    Log(Inspect(input));
+}

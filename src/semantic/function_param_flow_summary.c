@@ -209,6 +209,13 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
             function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
     case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
     case AST_CALL:
+        if (semantic_param_publication_private_array_push(ctx, node, decl)) {
+            index->private_local_stores = true;
+            for (size_t p = 0; p < ast_call_arg_count(node); p++)
+                if (!semantic_param_publication_checked_argument(ctx, node, p) ||
+                    function_param_flow_mutable_output_required(ctx, decl, index, ast_call_argument(node, p))) return true;
+            return false;
+        }
         if (!semantic_param_publication_value_call_target(ctx, node) &&
             !function_param_flow_no_store_call_append(ctx, index, node)) return true;
         if (ast_call_arg_count(node) == 0)
@@ -313,7 +320,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowProgramPointIndex *program_points;
     ASTNode *const *roots;
     size_t root_count;
-    SlotSummaryOrigin origin;
+    SlotSummaryOrigin origin = {0};
     SlotFunctionLookup lookup;
     unsigned candidate;
     unsigned previous;
@@ -371,9 +378,15 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     }
     roots = program_points->roots_by_param[store->entries[index].param_index];
     root_count = program_points->root_counts[store->entries[index].param_index];
-    bool actual_store = program_points->mutable_output_required ||
-        (program_points->no_store_call_count != 0 &&
-         !function_param_flow_no_store_graph(store, function_decl));
+    bool private_stores = program_points->private_local_stores;
+    bool graph_required = private_stores || program_points->no_store_call_count != 0;
+    bool graph_closed = !program_points->mutable_output_required &&
+        (!graph_required || function_param_flow_no_store_graph(store, function_decl));
+    bool actual_store = !graph_closed;
+    if (private_stores && graph_closed) {
+        origin.private_stores_owner = function_decl;
+        origin.private_stores_owner_id = ast_node_stable_id(function_decl);
+    }
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
     storage_unproved = function_param_array_storage_unproved_in_program_points(
@@ -391,19 +404,20 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         else if (output->mode == PARAM_MODE_MUT_REF) mutable_output = true;
     }
     mutable_output |= actual_store;
-    if ((scalar_return || mutable_output) && !source_kind_ready) {
+    if ((scalar_return || mutable_output || (private_stores && graph_closed)) && !source_kind_ready) {
         function_param_flow_fail(store, function_decl, "typed parameter source kind is missing or stale");
         return SLOT_PARAM_SUMMARY_ALL;
     }
-    if (!anchored && (scalar_return || mutable_output)) {
+    if (!anchored && (scalar_return || mutable_output || (private_stores && graph_closed))) {
         unsigned backing_effects = SLOT_PARAM_SUMMARY_NONE;
         bool pending = false;
         bool *outputs = calloc(output_count, sizeof(*outputs));
         if (outputs == NULL) { function_param_flow_fail(store, function_decl, "output relation allocation failed"); return SLOT_PARAM_SUMMARY_ALL; }
         bool complete = function_param_flow_returned_backing_effects(store, function_decl,
-            origin.param_index, &backing_effects, outputs, output_count, &pending);
+            origin.param_index, &backing_effects, outputs, output_count, &pending, private_stores && graph_closed);
         if (complete && scalar_return) candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
         else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
+        if (!complete && private_stores && graph_closed) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
         if (!complete && mutable_output && (!pending || store->settling_pending)) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
         if (store->entries[index].output_dependencies_ready != complete ||
             store->entries[index].returned_backing_pending != pending) store->changed = true;
@@ -512,6 +526,11 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
         return SLOT_PARAM_SUMMARY_ALL;
     }
 
+    if (store->demand_epoch == SIZE_MAX) {
+        function_param_flow_fail(store, function_decl, "summary demand identity overflow");
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
+    store->demand_epoch++;
     store->solving = true;
     store->active_had_recursion = false;
     store->settling_pending = false;

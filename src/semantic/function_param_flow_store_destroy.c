@@ -137,6 +137,7 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
     if (node->type == AST_IDENTIFIER) row->binding = ast_identifier_binding_syntax_id(node);
     if (node->type == AST_LET_DECL) row->local_alias = ast_let_is_alias(node);
     if (node->type == AST_CALL) {
+        row->private_array_push = semantic_param_publication_private_array_push(ctx, node, NULL);
         row->result_relation = semantic_param_publication_checked_result_relation(ctx, node, 0,
             &row->result_depends, &row->external_retains);
         if (row->result_relation) {
@@ -191,6 +192,7 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
         }
         if (row->shape == AST_CALL) {
             if (!semantic_param_publication_checked_call(ctx, row->node)) return false;
+            if (row->private_array_push != semantic_param_publication_private_array_push(ctx, row->node, NULL)) return false;
             bool depends = false, retains = false;
             bool relation = semantic_param_publication_checked_result_relation(ctx, row->node, 0, &depends, &retains);
             if (row->result_relation != relation || (relation &&

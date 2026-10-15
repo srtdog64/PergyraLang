@@ -1,0 +1,11 @@
+struct TextRecord { text: String; }
+func EchoText(ref text: String) -> String { return text; }
+func Publish(inout output: String) -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    output = EchoText(record.text);
+}
+func Main() -> Void {
+    let output = "";
+    Publish(output);
+    Log(output);
+}

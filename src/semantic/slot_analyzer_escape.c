@@ -165,6 +165,13 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             ASTNode *callee_decl = semantic_param_publication_callee(ctx, node, i);
             SemanticPublishedValue value = semantic_param_publication_value(ctx, arg);
             bool local = semantic_param_publication_local_call(ctx, node, i);
+            /* This is only a query-local CALL classification. The same
+             * summary must compute inserted backing through the receiver. */
+            bool private_store = origin != NULL && origin->private_stores_owner != NULL &&
+                origin->private_stores_owner == origin->function_decl &&
+                origin->private_stores_owner_id == ast_node_stable_id(origin->function_decl) &&
+                semantic_param_publication_private_array_push(ctx, node, origin->function_decl);
+            local |= private_store;
             bool read = semantic_typed_map_query_receiver_read(ctx, node, i);
             bool result_depends = false, external_retains = true;
             bool relation = semantic_param_publication_checked_result_relation(ctx, node, i, &result_depends, &external_retains);

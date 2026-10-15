@@ -50,6 +50,7 @@ typedef struct {
     FunctionParamFlowBackingBinding *bindings;
     size_t binding_count;
     bool building, complete, pending, changed;
+    bool private_stores_closed;
     FunctionParamFlowIndexClaims *claims;
 } FunctionParamFlowBackingFact;
 typedef struct {
@@ -60,6 +61,7 @@ typedef struct {
     uint32_t *child_ids;
     size_t child_count;
     bool assignment_replacement, local_alias;
+    bool private_array_push;
     bool execution_present, reachable, physical_value;
     bool numeric_cast;
     char *cast_target;
@@ -89,6 +91,8 @@ typedef struct
     uint32_t dependency_body_id;
     bool dependency_roots_ready;
     bool mutable_output_required;
+    bool private_local_stores;
+    size_t failed_no_store_epoch;
     /* Original call identities; zero-argument edges need no invented ordinal. */
     ASTNode **no_store_calls;
     size_t no_store_call_count;
@@ -123,6 +127,7 @@ struct FunctionParamFlowSummaryStore
     size_t fixed_point_passes;
     size_t work_units;
     size_t work_budget;
+    size_t demand_epoch;
     size_t indexed_statement_visits;
     size_t indexed_program_points;
 };
@@ -134,7 +139,8 @@ bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);
 void function_param_flow_program_point_indexes_destroy(FunctionParamFlowSummaryStore *store);
 bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore *store,
-    ASTNode *decl, size_t ordinal, unsigned *effects, bool *outputs, size_t output_count, bool *pending);
+    ASTNode *decl, size_t ordinal, unsigned *effects, bool *outputs, size_t output_count, bool *pending,
+    bool private_stores_closed);
 bool function_param_flow_callee_relation_ready(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal);
 bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *lookup,

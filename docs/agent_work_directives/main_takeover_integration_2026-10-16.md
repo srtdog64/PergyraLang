@@ -207,6 +207,42 @@ The old region probe now distinguishes borrowed Write receiver from retained
 payload and an unknown builtin. Self-host identity parity and the full
 canonical/bootstrap/installed chain remain OPEN; these receipts do not close P0.
 
+### Measured next blocking operation, not a new precision track
+
+The private-local candidate's first full run (clone47d+12 dirty paths,
+native SHA256 `df956fdaa406efd25ab9df6b8e003a29d73c0e7337b620b8bcf8b3e0756681e4`)
+fails10.44s/719984KiB. Its corrected phase unit passes4161/0; the original
+BodyFlow closure now has55 routines/2090 nodes/false0, all3 private calls
+issued/current. The new first failed demand is
+`SemanticAstCollectionMemberCaptureBinding` param1 of type
+`SemanticAstFunctionSignatureFacts`, not the previous BodyFlow demand.
+Work4096 =120 evaluations+1696 backing+2280 graph. One top-level demand
+rechecks the same three failed no-store closures40 times each:
+Binding2 nodes, Provenance34, Subject21; unique graph routines35.
+Receipts: `private-canonical`, `private-unit-second`, A's private census logs.
+
+Selected cost repair: behind the existing no-store selector, remember only a
+failed selection for the exact routine within the same immutable top-level
+summary demand. This is not a new permission or a cross-query cache. A failed
+selection still requires the existing conservative backing analysis; do not
+skip current evidence or suppress any effect. A new demand must retry, and
+stale/missing/escape/work-budget negatives remain unchanged. Do not broaden
+ArraySet/Pop, nonempty-literal or indirect-call permissions to avoid measuring
+this repetition. B's queued single-seed String-loan consumer is sequentially
+integrated into the same existing backing owner; source windows do not overlap.
+
+The integrated A/B candidate builds without warnings after root's const-owner
+and diagnostic-site repair. Root observed phase4218/0, summary runtime/negative
+and unchanged demand controls PASS8.24s, and readonly-map24/58 PASS.
+Four returned-String Slot/inout falsifiers now refuse before MIR; literal/read
+controls and C/LLVM private-local read remain valid. First full input remains
+RED (11.43s/719788KiB, first diagnostic line218/work4096). Its independent
+failed-demand inventory is the next investigation, not more local exemptions.
+`production-c-size-test-smoke` ran its host counter/cap controls but stops at
+the unavailable installed self-host driver; it is OPEN, not passed or replaced
+with a native fallback. Local stable Rocq prefix is unavailable too; the actual
+published proof job must execute before any full-CI claim.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

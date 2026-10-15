@@ -39,6 +39,8 @@ typedef struct {
     uint32_t call_target_id;
     size_t argument_count;
 } PendingRefCall;
+bool semantic_param_publication_ref_call_current(
+    const SemanticContext *ctx, const PendingRefCall *row);
 typedef struct {
     ASTNode *call, *caller;
     uint32_t call_id, caller_id, callee_id;
@@ -76,6 +78,13 @@ typedef struct {
     bool value_present, copy_escape, meta, execution_present, reachable;
     bool call_present, kind_present, stdlib, local, cast_present;
     bool assignment_replacement;
+    /* A call-time storage premise, never a standalone non-retention grant. */
+    bool private_array_push, private_exclusive, private_escaped, private_pending;
+    const ASTNode *private_binding, *private_initializer;
+    const ASTNode *private_binding_type_node;
+    uint32_t private_binding_id, private_initializer_id, private_effect, private_effect_source;
+    uint32_t private_binding_type_id;
+    const Type *string_array_type;
     const ASTNode *assignment_rhs;
     uint32_t assignment_rhs_id, assignment_rhs_binding;
     ASTNodeType assignment_rhs_shape;
@@ -115,6 +124,8 @@ typedef struct {
     const PendingBodyCall *body_calls;
     size_t body_call_count;
 } SemanticParamPublicationView;
+bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
+    const SemanticParamPublicationView *view, const PendingRefCall *row, ASTNode **escape_site);
 bool semantic_param_publication_view_current(const SemanticContext *ctx, const SemanticParamPublicationView *view);
 bool semantic_param_publication_admitted_view(const SemanticContext *ctx, SemanticParamPublicationView *view);
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view);
@@ -179,6 +190,10 @@ bool semantic_param_publication_record_assignment_replacement(SemanticContext *c
     ASTNode *assignment, uint32_t binding, const Type *target_type);
 bool semantic_param_publication_assignment_replacement(const SemanticContext *ctx, const ASTNode *assignment);
 bool semantic_param_publication_value_call_target(const SemanticContext *ctx, const ASTNode *call);
+/* Candidate only. A NULL owner supports claim replay, never CALL admission;
+ * consumers additionally need the current routine's closed graph witness. */
+bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *owner);
 ASTNode *semantic_param_publication_callee(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_finalize(SemanticContext *ctx);

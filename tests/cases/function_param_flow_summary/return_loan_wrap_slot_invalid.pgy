@@ -1,0 +1,14 @@
+struct TextRecord { text: String; }
+func EchoText(ref text: String) -> String { return text; }
+func Wrap(ref text: String) -> String { return EchoText(text); }
+func Publish(ref output: Slot<String>) -> Bool {
+    let record = TextRecord(Concat("heap", " text"));
+    Write(output, Wrap(record.text));
+    return true;
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Log(Read(output));
+    Release(output);
+}

@@ -1,0 +1,11 @@
+func EchoText(ref text: String) -> String { return text; }
+func Publish(ref output: Slot<String>) -> Bool {
+    Write(output, EchoText("static literal"));
+    return true;
+}
+func Main() -> Void {
+    let output: Slot<String> = ClaimSlot();
+    Log(Publish(output));
+    Log(Read(output));
+    Release(output);
+}

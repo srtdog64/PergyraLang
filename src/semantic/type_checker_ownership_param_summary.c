@@ -69,6 +69,14 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
                 || ((semantic_param_summary_has_call_escape(mask) || semantic_param_summary_has_channel_escape(mask))
                     && !semantic_param_publication_value_has_static_string_backing(ctx, row->site))
             : semantic_param_summary_has_any_escape(mask);
+        ASTNode *loan_escape = NULL;
+        bool escaped_loan = type_equals(row->type, TYPE_STRING) && !retaining &&
+            semantic_param_summary_has_return_escape(mask) &&
+            !function_param_flow_return_loan_admitted(ctx, view, row, &loan_escape);
+        if (escaped_loan)
+            semantic_validate_borrowed_escape(loan_escape != NULL ? loan_escape : row->call,
+                row->site, ctx, row->type, row->borrowed,
+                OWNERSHIP_CONSUMER_HELPER_CALL, NULL, row->destination, NULL, true, NULL, row->fix);
         if (retaining)
             semantic_validate_borrowed_escape(row->site->line != 0 ? row->site : row->call,
                 row->site, ctx, row->type, row->borrowed,
