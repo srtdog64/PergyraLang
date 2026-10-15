@@ -505,18 +505,18 @@ func SemanticAstCollectionFocusRecoveryFromResolvedFacts(
                 ArrayPush(facts.group_end_ids, repack);
                 ArrayPush(facts.group_part_starts, ArrayLength(facts.part_local_binding_ids));
                 ArrayPush(facts.group_part_counts, 0);
-                ArrayPushOwnedString(facts.group_root_type_names, candidate.root_type);
+                ArrayPush(facts.group_root_type_names, Concat("", candidate.root_type));
                 let copy_signature: String = SemanticAstCollectionExclusiveCopySignature(values.copies, candidate.root_id);
                 if copy_signature == "" { return facts; }
-                ArrayPushOwnedString(facts.group_copy_signatures, copy_signature);
+                ArrayPush(facts.group_copy_signatures, Concat("", copy_signature));
                 group = group + 1;
             } else if repack == 0 || facts.group_end_ids[group] == 0 { facts.group_end_ids[group] = 0; }
             else if repack > facts.group_end_ids[group] { facts.group_end_ids[group] = repack; }
             ArrayPush(facts.part_local_binding_ids, locals.node_ids[row]);
             ArrayPush(facts.part_definition_ids, locals.node_ids[row]);
             ArrayPush(facts.part_field_ids, candidate.field_id);
-            ArrayPushOwnedString(facts.part_field_names, candidate.field_name);
-            ArrayPushOwnedString(facts.part_type_names, inferred_types[candidate.type_row]);
+            ArrayPush(facts.part_field_names, Concat("", candidate.field_name));
+            ArrayPush(facts.part_type_names, Concat("", inferred_types[candidate.type_row]));
             facts.group_part_counts[group] = facts.group_part_counts[group] + 1;
         }
         row = row + 1;

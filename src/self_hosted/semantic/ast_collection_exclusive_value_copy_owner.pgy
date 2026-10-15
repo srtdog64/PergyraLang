@@ -158,7 +158,7 @@ func SemanticAstCollectionExclusiveCopyHeld(
 // whole-value copy of each source. A move of its first field `field` ("" for
 // the whole holder) carries only the edges landing there.
 func SemanticAstCollectionExclusivePropagateCopies(
-    inout copies: HashMap<String, Int>, from_holder: Int, holder: Int, field: String
+    inout copies: HashMap<String, Int>, from_holder: Int, holder: Int, field: String, ref landings: Array<String>
 ) -> Bool {
     let changed: Bool = false;
     let into: String = Concat("into:", ToString(from_holder));
@@ -169,7 +169,14 @@ func SemanticAstCollectionExclusivePropagateCopies(
         let root: Int = MapGet(copies, Concat("edge_root:", edge));
         let carried: Bool = field == "" || MapHas(copies, Concat("edge_landing_any:", edge)) ||
             MapHas(copies, Concat("edge_landing:", Concat(edge, Concat(":", field))));
-        if carried && SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder, "") { changed = true; }
+        // The holder keeps what it holds inside the fields the value lands in.
+        if carried && ArrayLength(landings) == 0 &&
+            SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder, "") { changed = true; }
+        let landing: Int = 0;
+        while carried && landing < ArrayLength(landings) {
+            if SemanticAstCollectionExclusiveRecordCopyEdge(copies, root, "", holder, landings[landing]) { changed = true; }
+            landing = landing + 1;
+        }
         index = index + 1;
     }
     return changed;

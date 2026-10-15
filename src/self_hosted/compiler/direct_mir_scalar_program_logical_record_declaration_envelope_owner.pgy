@@ -13,6 +13,17 @@ struct DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
     let physical: DirectMirNominalDeclarationAbiFact;
 }
 
+// The wire keys of a struct declaration row, or of a logical-only one.
+func DirectMirScalarProgramLogicalRecordDeclarationKeys(logical_only: Bool) -> Array<String> {
+    if logical_only {
+        return ["kind", "nominal_kind", "name", "source_syntax_id",
+            "source_module_path", "fields", "methods"];
+    }
+    return ["kind", "nominal_kind", "name", "source_syntax_id",
+        "source_module_path", "fields", "abi_layout_id",
+        "abi_layout_required", "abi_layout"];
+}
+
 func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     json: String, json_extent: Int, ref declarations: MirProgramDeclarationIndex,
     declaration_row: Int
@@ -34,18 +45,12 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     let declaration_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, json_extent, start, end);
     let logical_only: Bool = declarations.kinds[declaration_row] != "struct";
-    let keys: Array<String> = [
-        "kind", "nominal_kind", "name", "source_syntax_id",
-        "source_module_path", "fields", "abi_layout_id",
-        "abi_layout_required", "abi_layout"
-    ];
-    let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
-    let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
-    if logical_only {
-        keys = ["kind", "nominal_kind", "name", "source_syntax_id",
-            "source_module_path", "fields", "methods"];
-        starts = [-1, -1, -1, -1, -1, -1, -1];
-        ends = [-1, -1, -1, -1, -1, -1, -1];
+    let keys: Array<String> = DirectMirScalarProgramLogicalRecordDeclarationKeys(logical_only);
+    let starts: Array<Int> = [];
+    let ends: Array<Int> = [];
+    while ArrayLength(starts) < ArrayLength(keys) {
+        ArrayPush(starts, -1);
+        ArrayPush(ends, -1);
     }
     if !JsonObjectFactTableReady(declaration_table) ||
         JsonObjectFactCount(declaration_table) != ArrayLength(keys) ||

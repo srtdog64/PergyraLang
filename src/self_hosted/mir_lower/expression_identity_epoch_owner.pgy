@@ -310,14 +310,15 @@ func MirExpressionIdentityEpochRebindGraph(
     ref epoch: MirExpressionIdentityEpoch,
     member_source_names: Array<String>, member_canonical_names: Array<String>
 ) -> SemanticExpressionGraphFacts {
+    let source: SemanticExpressionGraphArena = graph.arena;
     let targets: Array<Int> =
-        graph.arena.identities.call_target_syntax_ids;
-    let bindings: Array<Int> = graph.arena.identities.binding_syntax_ids;
-    let target_names: Array<String> = graph.arena.call_target_names;
-    let node_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+        source.identities.call_target_syntax_ids;
+    let bindings: Array<Int> = source.identities.binding_syntax_ids;
+    let target_names: Array<String> = source.call_target_names;
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(source);
     let valid: Bool = graph.ok && epoch.ok &&
         SemanticExpressionIdentityRowsReady(
-            graph.arena.identities, node_count
+            source.identities, node_count
         );
     let node: Int = 0;
     while node < node_count && valid {
@@ -328,7 +329,7 @@ func MirExpressionIdentityEpochRebindGraph(
                 valid = false;
             } else {
                 let canonical_id: Int = UnwrapOption(target);
-                if graph.arena.call_target_kinds[node] == SemanticCallTargetMember() {
+                if source.call_target_kinds[node] == SemanticCallTargetMember() {
                     if canonical_id >= ArrayLength(member_source_names) ||
                         canonical_id >= ArrayLength(member_canonical_names) ||
                         member_source_names[canonical_id] == "" ||
@@ -356,18 +357,18 @@ func MirExpressionIdentityEpochRebindGraph(
     }
     let rebound: SemanticExpressionIdentityRows =
         SemanticExpressionIdentityRows(
-            targets, graph.arena.identities.runtime_call_abi_ids,
-            bindings, graph.arena.identities.binding_kinds,
-            graph.arena.identities.binding_ordinals,
-            graph.arena.identities.builtin_argument_retention_calls,
+            targets, source.identities.runtime_call_abi_ids,
+            bindings, source.identities.binding_kinds,
+            source.identities.binding_ordinals,
+            source.identities.builtin_argument_retention_calls,
             false, 0
         );
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
-            graph.arena.topology, graph.arena.node_texts,
-            graph.arena.call_target_kinds, target_names,
-            graph.arena.call_return_type_names, rebound,
-            graph.arena.place_kinds
+            source.topology, source.node_texts,
+            source.call_target_kinds, target_names,
+            source.call_return_type_names, rebound,
+            source.place_kinds
         );
     return SemanticExpressionGraphFacts(
         valid && SemanticExpressionGraphArenaReady(arena),

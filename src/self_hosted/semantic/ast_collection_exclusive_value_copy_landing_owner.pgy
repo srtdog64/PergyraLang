@@ -152,3 +152,54 @@ func SemanticAstCollectionExclusiveUngrownSources(
     }
     return ignored;
 }
+
+// The first fields of the holder a copy at `node` lands in, none when
+// unknown: the field of the constructor that is the whole value of the
+// definition at `syntax_id` whose argument holds the node, or the result
+// fields the callee's returns carry that argument's formal into.
+func SemanticAstCollectionExclusiveCopyLandingFields(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, carrying: HashMap<String, Int>, ref paths: Array<String>,
+    syntax_id: Int, node: Int
+) -> Array<String> {
+    let fields: Array<String> = [];
+    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneValue());
+    if !IsSome(value) { return fields; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, UnwrapOption(value));
+    if !call.ok { return fields; }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
+    if !IsSome(target) || !IsSome(name) { return fields; }
+    let argument: Int = -1;
+    let index: Int = 0;
+    while index < ArrayLength(call.argument_nodes) {
+        let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph,
+            call.argument_nodes[index]);
+        if IsSome(start) && node >= UnwrapOption(start) && node <= call.argument_nodes[index] { argument = index; }
+        index = index + 1;
+    }
+    if argument < 0 { return fields; }
+    if UnwrapOption(target) != 0 {
+        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, surfaces.expression_graph, call.call_node, argument);
+        if !formal.ok { return fields; }
+        let formal_key: String = ToString(formal.syntax_id);
+        let carried: Int = 0;
+        while carried < SemanticAstCollectionExclusiveCopyCount(carrying, Concat("cn:", formal_key)) {
+            let path: Int = MapGet(carrying, Concat("ci:", Concat(formal_key, Concat(":", ToString(carried)))));
+            // A path to the whole result lands anywhere.
+            if paths[2 * path] == "" { let anywhere: Array<String> = []; return anywhere; }
+            ArrayPush(fields, Concat("", paths[2 * path]));
+            carried = carried + 1;
+        }
+        return fields;
+    }
+    let type_name: String = UnwrapOption(name);
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, call.callee_node);
+    if type_name == "" && IsSome(callee_text) { type_name = UnwrapOption(callee_text); }
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if !IsSome(constructor) ||
+        constructors.param_counts[UnwrapOption(constructor)] != ArrayLength(call.argument_nodes) { return fields; }
+    ArrayPush(fields, Concat("", constructors.field_names[constructors.param_starts[UnwrapOption(constructor)] + argument]));
+    return fields;
+}

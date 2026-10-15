@@ -1,0 +1,33 @@
+// `facts` holds `graph` only inside its `graph` field (the callee's return
+// carries it there). Rebinding `facts` to an append of itself keeps that
+// copy relation; the appends grow `rows`, so `graph`, read afterwards,
+// shares nothing they grow.
+struct Graph {
+    nodes: Array<String>;
+}
+
+struct Facts {
+    graph: Graph;
+    rows: Array<String>;
+}
+
+func FactsMake(graph: Graph) -> Facts {
+    let rows: Array<String> = [];
+    return Facts(graph, rows);
+}
+
+func FactsAppend(facts: Facts, row: String) -> Facts {
+    let rows: Array<String> = facts.rows;
+    ArrayPush(rows, row);
+    return Facts(facts.graph, rows);
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph(["a"]);
+    let facts: Facts = FactsMake(graph);
+    facts = FactsAppend(facts, "x");
+    facts = FactsAppend(facts, "y");
+    Log(graph.nodes[0]);
+    Log(facts.rows[1]);
+    return 0;
+}

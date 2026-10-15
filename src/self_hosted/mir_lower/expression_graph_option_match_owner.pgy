@@ -40,7 +40,7 @@ func MirExpressionGraphSequenceAppendUnaryCall(
     let prefix: MirExpressionGraphSequence =
         MirExpressionGraphSequenceFromExtendedRows(
             sequence.ok, sequence.ready_node_count, roots, kinds, texts, left, right,
-            target_kinds, target_names, places,
+            target_kinds, target_names, places, arena.topology.node_texts,
             arena.call_return_type_names, arena.identities
         );
     let with_subject: MirExpressionGraphSequence =
@@ -96,7 +96,7 @@ func MirExpressionGraphSequenceCloseUnaryCall(
     return MirExpressionGraphSequenceFromExtendedRows(
         sequence.ok, sequence.ready_node_count, result_roots, result_kinds, result_texts,
         result_left, result_right, result_target_kinds,
-        result_target_names, result_places,
+        result_target_names, result_places, result_arena.topology.node_texts,
         result_arena.call_return_type_names, result_arena.identities
     );
 }

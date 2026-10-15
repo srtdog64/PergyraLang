@@ -99,7 +99,7 @@ func DirectMirScalarProgramLlvmShortCircuitAt(
     while row <= right_node {
         right_instructions = Concat(
             right_instructions, chunks[row - graph_start]);
-        chunks[row - graph_start] = "";
+        ArraySet(chunks, row - graph_start, "");
         row = row + 1;
     }
     let entry_label: String = DirectMirScalarProgramLlvmShortLabel(

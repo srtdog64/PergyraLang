@@ -386,7 +386,7 @@ func Main() -> Void with caps env, io_read {
     let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
         artifact, analysis.signatures, analysis.function_scopes,
         analysis.local_bindings, bundle.initializer_types,
-        analysis.expression_surfaces, analysis.statements, analysis.assignments,
+        analysis.expression_surfaces, analysis.statements,
         bundle.owned_string_result_domains);
     let proved: HashMap<String, Int> = effects.effects;
     let key: String = ToString(formal);
@@ -543,7 +543,7 @@ func InspectOwnStorageAdmission(
                         let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.function_scopes,
                             analysis.local_bindings, bundle.initializer_types,
-                            analysis.expression_surfaces, analysis.statements, analysis.assignments,
+                            analysis.expression_surfaces, analysis.statements,
                             bundle.owned_string_result_domains);
                         let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
                         let modes: Array<Int> = effects.inventory.modes;

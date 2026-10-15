@@ -5,7 +5,6 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifa
     ref scopes: SemanticAstFunctionScopeFacts, ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
-    ref assignments: SemanticAstAssignmentFacts,
     ref owned_string_results: SemanticAstOwnedStringResultFacts) -> SemanticAstCollectionFormalEffects {
     if !SemanticAstBuiltinArgumentRetentionCallFactsReady(surfaces) ||
         !SemanticAstInitializerTypeFactsReadyProjection(
@@ -26,5 +25,5 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifa
     }
     return SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         artifact, signatures, scopes, locals, initializer_types, surfaces,
-        statements, assignments, owned_string_results);
+        statements, owned_string_results);
 }

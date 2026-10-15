@@ -334,7 +334,6 @@ func SemanticAstCollectionExclusiveFieldReads(
         at = at + 1;
     }
     SemanticAstCollectionExclusiveCloseReads(frontier_keys, first_edges, next_edges, forwarding, reads);
-    ArrayDrop(forwarding);
     return reads;
 }
 

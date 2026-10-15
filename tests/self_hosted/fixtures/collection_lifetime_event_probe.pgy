@@ -115,7 +115,7 @@ func InspectCollectionBuiltinCompletion(
     let formals: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
         artifact, analysis.signatures, analysis.function_scopes,
         analysis.local_bindings, bundle.initializer_types,
-        analysis.expression_surfaces, analysis.statements, analysis.assignments,
+        analysis.expression_surfaces, analysis.statements,
         bundle.owned_string_result_domains);
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,

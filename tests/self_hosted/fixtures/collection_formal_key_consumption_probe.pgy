@@ -187,7 +187,7 @@ func Main() -> Void with caps env, io_read
     if !changed { Log("mutation did not reach its fact"); Exit(2); }
     let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsWithSurfaceOrder(
         artifact, analysis.signatures, analysis.function_scopes, analysis.local_bindings,
-        bundle.initializer_types, analysis.expression_surfaces, analysis.statements, analysis.assignments,
+        bundle.initializer_types, analysis.expression_surfaces, analysis.statements,
         bundle.owned_string_result_domains, order);
     let retained: SemanticAstCollectionFormalEffects = bundle.collection_formal_effects;
     // Observe every returned field, including refused partial carriers. Keep
@@ -345,7 +345,7 @@ func Main() -> Void with caps env, io_read
     // Observed fixture coverage, not a second production effect authority.
     let statements: SemanticAstCollectionFormalStatementEffects = SemanticAstCollectionFormalStatementEffectsFromFacts(
         artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
-        analysis.expression_surfaces, analysis.statements, analysis.assignments, bundle.owned_string_result_domains,
+        analysis.expression_surfaces, analysis.statements, bundle.owned_string_result_domains,
         actual.inventory, actual.inventory.row_by_formal);
     if !statements.ok { Exit(3); }
     let targets: HashMap<String, Int> = statements.target_rows;

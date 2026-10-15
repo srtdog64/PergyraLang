@@ -294,7 +294,9 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> SelfMirProgramFacts {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty( artifact.count, analysis.expression_surfaces.expression_graph);
+    // The routine appends only carry the semantic graph; it joins the facts
+    // once they stop growing, so no append shares the analysis' storage.
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count, SemanticExpressionGraphFactsEmpty());
     SelfMirArtifactPressureStage(observe_pressure, "iteration-validation:start");
     let iteration_i: Int = 0;
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
@@ -445,7 +447,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
             observe_pressure, "intent", intent_i, "start"
         );
         let intent_build: SelfMirRoutineBuild = SelfMirIntentRoutineBuild(
-            input, declarations, domain_graph.intents, intent_i
+            input, facts.declarations, domain_graph.intents, intent_i
         );
         if !intent_build.ok {
             let error: SelfMirProgramFacts = SelfMirProgramFactsError(
@@ -476,6 +478,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
     SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
         traversal_artifact
     );
+    facts.expression_graph = analysis.expression_surfaces.expression_graph;
     return facts;
 }
 

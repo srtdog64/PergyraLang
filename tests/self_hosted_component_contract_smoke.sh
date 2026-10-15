@@ -133,6 +133,7 @@ require_stage_owner_line_cap() {
               "$rel" == "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_statement_fact_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_expression_environment_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" ||
               "$rel" == "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" ||
@@ -2891,17 +2892,17 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:316 \
     src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:262 \
     src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:590 \
-    src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:385 \
+    src/self_hosted/semantic/ast_collection_aggregate_sink_consumption_owner.pgy:403 \
     src/self_hosted/semantic/ast_collection_element_escape_entry_owner.pgy:335 \
     src/self_hosted/semantic/ast_collection_exclusive_value_owner.pgy:565 \
     src/self_hosted/semantic/ast_collection_exclusive_value_class_owner.pgy:280 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:247 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy:145 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_growth_owner.pgy:249 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_landing_owner.pgy:188 \
     src/self_hosted/semantic/ast_collection_exclusive_value_dead_definition_owner.pgy:135 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:440 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_consumption_owner.pgy:596 \
     src/self_hosted/semantic/ast_collection_exclusive_value_field_read_owner.pgy:384 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:340 \
-    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:395 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_copy_owner.pgy:416 \
+    src/self_hosted/semantic/ast_collection_exclusive_value_flow_owner.pgy:442 \
     src/self_hosted/semantic/ast_collection_exclusive_value_mutation_owner.pgy:300 \
     src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy:155 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \

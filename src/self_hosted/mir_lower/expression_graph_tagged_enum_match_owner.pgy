@@ -133,7 +133,7 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
     }
     return MirExpressionGraphSequenceFromExtendedRows(
         appended.ok, appended.ready_node_count, roots, kinds, texts, left, right,
-        target_kinds, target_names, places,
+        target_kinds, target_names, places, arena.topology.node_texts,
         arena.call_return_type_names, arena.identities
     );
 }
@@ -200,7 +200,7 @@ func MirExpressionGraphSequenceAppendOrPatternMatchOccurrence(
     ArrayPush(kept, folded);
     return MirExpressionGraphSequenceFromExtendedRows(
         current.ok, current.ready_node_count, kept, kinds, texts, left, right,
-        target_kinds, target_names, places,
+        target_kinds, target_names, places, arena.topology.node_texts,
         arena.call_return_type_names, arena.identities
     );
 }

@@ -40,57 +40,6 @@ func SemanticAstCollectionExclusivePlacesOverlap(
     return true;
 }
 
-// The first fields of the holder a copy at `node` lands in, none when
-// unknown: the field of the constructor that is the whole value of the
-// definition at `syntax_id` whose argument holds the node, or the result
-// fields the callee's returns carry that argument's formal into.
-func SemanticAstCollectionExclusiveCopyLandingFields(
-    ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, carrying: HashMap<String, Int>, ref paths: Array<String>,
-    syntax_id: Int, node: Int
-) -> Array<String> {
-    let fields: Array<String> = [];
-    let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneValue());
-    if !IsSome(value) { return fields; }
-    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, UnwrapOption(value));
-    if !call.ok { return fields; }
-    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
-    let name: Option<String> = SemanticExpressionGraphCallTargetName(surfaces.expression_graph, call.call_node);
-    if !IsSome(target) || !IsSome(name) { return fields; }
-    let argument: Int = -1;
-    let index: Int = 0;
-    while index < ArrayLength(call.argument_nodes) {
-        let start: Option<Int> = SemanticExpressionGraphSubtreeStart(surfaces.expression_graph,
-            call.argument_nodes[index]);
-        if IsSome(start) && node >= UnwrapOption(start) && node <= call.argument_nodes[index] { argument = index; }
-        index = index + 1;
-    }
-    if argument < 0 { return fields; }
-    if UnwrapOption(target) != 0 {
-        let formal: SemanticAstCollectionArgumentFormalTarget = SemanticAstCollectionArgumentFormalTargetForArgument(
-            signatures, surfaces.expression_graph, call.call_node, argument);
-        if !formal.ok { return fields; }
-        let formal_key: String = ToString(formal.syntax_id);
-        let carried: Int = 0;
-        while carried < SemanticAstCollectionExclusiveCopyCount(carrying, Concat("cn:", formal_key)) {
-            let path: Int = MapGet(carrying, Concat("ci:", Concat(formal_key, Concat(":", ToString(carried)))));
-            // A path to the whole result lands anywhere.
-            if paths[2 * path] == "" { let anywhere: Array<String> = []; return anywhere; }
-            ArrayPush(fields, Concat("", paths[2 * path]));
-            carried = carried + 1;
-        }
-        return fields;
-    }
-    let type_name: String = UnwrapOption(name);
-    let callee_text: Option<String> = SemanticExpressionGraphNodeText(surfaces.expression_graph, call.callee_node);
-    if type_name == "" && IsSome(callee_text) { type_name = UnwrapOption(callee_text); }
-    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
-    if !IsSome(constructor) ||
-        constructors.param_counts[UnwrapOption(constructor)] != ArrayLength(call.argument_nodes) { return fields; }
-    ArrayPush(fields, Concat("", constructors.field_names[constructors.param_starts[UnwrapOption(constructor)] + argument]));
-    return fields;
-}
-
 // The classification of the value at `node` in statement `syntax_id`. With
 // `consume`, a binding or member path must also be the last use of its place.
 // `holder` is the binding the definition writes, or 0.
@@ -265,8 +214,9 @@ func SemanticAstCollectionExclusiveClassify(
         // A copy into a holder the fixed point follows, a plain alias or one
         // inside a call or constructor, makes the destination a second holder
         // that keeps the place's dependencies. A holder it cannot follow
-        // shares the place instead.
-        if !only_copies && !followed {
+        // shares the place instead. A definition that rebinds the place's own
+        // root keeps the copy edges already recorded into it.
+        if !only_copies && !followed && holder != root_id {
             SemanticAstCollectionExclusiveRecordCopy(surfaces, locals, place, copied, syntax_id);
             return SemanticAstCollectionExclusiveShared();
         }
@@ -295,7 +245,9 @@ func SemanticAstCollectionExclusiveClassify(
             if !IsSome(moved_text) { return SemanticAstCollectionExclusiveShared(); }
             moved_field = UnwrapOption(moved_text);
         }
-        SemanticAstCollectionExclusivePropagateCopies(copied, root_id, holder, moved_field);
+        let holder_landings: Array<String> = SemanticAstCollectionExclusiveCopyLandingFields(
+            signatures, constructors, surfaces, carrying, paths, syntax_id, node);
+        SemanticAstCollectionExclusivePropagateCopies(copied, root_id, holder, moved_field, holder_landings);
     }
     // A whole root whose fields were shared one by one keeps the rest.
     let partly_shared: Array<String> = [];

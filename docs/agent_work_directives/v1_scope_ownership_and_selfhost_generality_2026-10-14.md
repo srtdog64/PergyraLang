@@ -209,6 +209,8 @@ or it goes into a returned fact.
   - the C and LLVM case-math operands;
   - the C record temporary search (`StringIndexOf` is not yet a registered
     borrowing builtin; the GPT lane's uncommitted registry adds it);
+  - the canonical routine ids that zone authority transitions parse
+    (`ToInt` is not a registered borrowing builtin either);
   - the payload-enum and direct-call LLVM type projections;
   - the for-each string elements;
   - the generic specialization actuals;
@@ -227,6 +229,10 @@ of these, because it cannot prove the dropped value owned.
   literal. They now use `CompilerArtifactWrite`.
 - Four one-element `ArrayDropOwnedStrings` boxes in the LLVM scalar emitter
   and the intent-execution JSON writer.
+- `ArrayDrop(forwarding)` in the collection field-read owner, which the v16
+  candidate added. The release verdict counts the `let` that reads an
+  element (`ToString(forwarding[i])`) as a second descriptor store. The scan
+  census hid this verdict until it reached zero.
 
 Cost to measure before landing: the MIR JSON input now lives until C
 emission returns. Measure it on the installed-driver `--mir-json` route
@@ -242,6 +248,32 @@ with `--observe-mir-consumer-stages`; the baseline peak was 1.78 GB.
 - `MirExpressionGraphSequenceFromExtendedRows` takes the prefix columns it
   extends, not the whole sequence whose topology columns the caller has
   already copied and grown.
+- The MIR expression graph builders gave the topology and the node texts one
+  buffer. The iteration and match attaches push to each of them, so one
+  buffer grew through two descriptors. The topology now keeps its own text
+  rows.
+- Three refusal and rebinding paths in the direct-MIR program admission
+  returned or reread a descriptor that an inout or by-value growth had
+  replaced: the statement admission, the definition route and the
+  declaration rows.
+- The MIR facts builder now attaches the semantic expression graph after
+  the routine appends stop growing the facts. Before, every append carried
+  a facts value that shared the analysis' graph.
+
+**Second names removed.** `SelfMirIntentExecutionPlanAppend` bound
+`let graphs = facts.cfg.instructions.expr0_graphs` and read it inside
+pushes. The name was dead before the return, but the checker cannot follow
+a holder into a push argument, so the returned `cfg` counted as shared and
+every routine append of the facts refused. The function now reads the path
+directly. No copy was added.
+
+**Owned-string pushes into fields.** The v16 focus-recovery facts used
+`ArrayPushOwnedString(facts.F, x)` four times. The native transpiler
+accepts a field path there, but the self-host C emitter passes the array
+`inout` and requires a variable, so gen0 died while emitting the canonical
+program. They are now `ArrayPush(facts.F, Concat("", x))`, which makes the
+same one copy the builtin made. Removal condition: the self-host emitter
+takes an addressable field place for the owned-string builtins.
 
 ## Measurements to track
 

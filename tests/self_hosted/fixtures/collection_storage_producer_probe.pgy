@@ -11,7 +11,7 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
         analysis.signatures, locals, surfaces, definitions);
     let formal: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
         artifact, analysis.signatures, analysis.function_scopes, locals,
-        bundle.initializer_types, surfaces, analysis.statements, analysis.assignments,
+        bundle.initializer_types, surfaces, analysis.statements,
         bundle.owned_string_result_domains);
     if !definitions.ok || !storage.ok || !formal.ok { return false; }
     let empty: Int = -1; let copied: Int = -1; let moved: Int = -1; let owned: Int = -1; let view: Int = -1; let unknown: Int = -1;
