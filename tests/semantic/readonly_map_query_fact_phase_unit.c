@@ -3254,8 +3254,88 @@ static void checked_empty_array_no_output(void)
     checked_scalar_return_boundary("func Probe(ref text:String)->String{let rows:Array<Int> = [];return text;}", 0, false);
 }
 
+static void checked_named_escape_projection(void)
+{
+    Lexer *lexer = lexer_create(
+        "extern \"C\" { func Hold(text:String)->Void; }"
+        "func SelectedEcho(ref text:String)->String{return text;}"
+        "func SelectedLeak(ref text:String)->Void{Hold(text);}"
+        "func SelectedChannel(ref text:String)->Void{let channel:Channel<String> =Channel(1);channel<-text;}"
+        "func Both(text:String,other:String)->Void{Log(SelectedEcho(text));SelectedLeak(other);SelectedChannel(text);}"
+        "func Other(text:String)->Void{Log(SelectedEcho(text));}"
+        "func SelectedProduce(ref text:String)->String{Hold(text);return \"literal\";}"
+        "func Nested(text:String)->Void{Log(SelectedProduce(text));}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    if (program == NULL || parser_has_error(parser)) {
+        ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer); return;
+    }
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(!type_check_program(program, ctx));
+    CHECK(semantic_param_publication_inputs_ready(ctx));
+    ASTNode *both = semantic_find_function_decl_by_name(ctx, "Both");
+    ASTNode *other = semantic_find_function_decl_by_name(ctx, "Other");
+    ASTNode *nested = semantic_find_function_decl_by_name(ctx, "Nested");
+    CHECK(both != NULL && other != NULL && nested != NULL);
+    if (both != NULL && other != NULL && nested != NULL) {
+        SlotFunctionLookup lookup = {ctx, program};
+        SlotSummaryOrigin origin = {.function_decl = both, .param_index = 0, .param_name = "text"};
+        ASTNode *body = ast_func_body(both);
+        SlotEscapeEntry *entries = NULL;
+        size_t count = 0, capacity = 0;
+        bool failed = false;
+        CHECK(collect_slot_escapes(body, &entries, &count, &capacity, &lookup, &origin, NULL, &failed));
+        CHECK(!failed);
+        const char *names[] = {"text", "other", "absent"};
+        const unsigned expected[] = {SLOT_ESCAPE_RETURN | SLOT_ESCAPE_CHANNEL, SLOT_ESCAPE_CALL, SLOT_ESCAPE_NONE};
+        for (size_t i = 0; i < 3; i++) {
+            unsigned full = SLOT_ESCAPE_NONE;
+            for (size_t row = 0; row < count; row++)
+                if (strcmp(entries[row].name, names[i]) == 0) full |= entries[row].mask;
+            failed = false;
+            unsigned named = slot_escape_mask_in_program(body, names[i], &lookup, &origin, &failed);
+            CHECK(!failed && named == full && named == expected[i]);
+        }
+        free(entries);
+        SlotSummaryOrigin other_origin = {.function_decl = other, .param_index = 0, .param_name = "text"};
+        failed = false;
+        CHECK(slot_escape_mask_in_program(ast_func_body(other), "text", &lookup, &other_origin, &failed) == SLOT_ESCAPE_RETURN && !failed);
+        SlotSummaryOrigin nested_origin = {.function_decl = nested, .param_index = 0, .param_name = "text"};
+        ASTNode *outer = ast_block_statement(ast_func_body(nested), 0);
+        const ASTNode *root = NULL;
+        CHECK(outer != NULL && outer->type == AST_CALL);
+        CHECK(slot_call_argument_storage_root(ast_call_argument(outer, 0), &root) && root == NULL);
+        failed = false;
+        CHECK(slot_escape_mask_in_program(ast_func_body(nested), "text", &lookup, &nested_origin, &failed) == SLOT_ESCAPE_CALL && !failed);
+        ASTNode *unselected = ast_block_statement(body, 1);
+        ASTNode *argument = ast_call_argument(unselected, 0);
+        uint32_t binding = ast_identifier_binding_syntax_id(argument);
+        CHECK(binding != 0);
+        ast_identifier_set_binding_syntax_id(argument, 0);
+        failed = false;
+        CHECK(slot_escape_mask_in_program(body, "text", &lookup, &origin, &failed) ==
+            (SLOT_ESCAPE_RETURN | SLOT_ESCAPE_CALL | SLOT_ESCAPE_CHANNEL) && failed);
+        ast_identifier_set_binding_syntax_id(argument, binding);
+        failed = false;
+        CHECK(slot_escape_mask_in_program(body, "text", &lookup, &origin, &failed) == expected[0] && !failed);
+        ASTNode *target = ast_call_callee(unselected);
+        uint32_t identity = target->stable_id;
+        target->stable_id = 0;
+        failed = false;
+        CHECK(slot_escape_mask_in_program(body, "text", &lookup, &origin, &failed) ==
+            (SLOT_ESCAPE_RETURN | SLOT_ESCAPE_CALL | SLOT_ESCAPE_CHANNEL) && failed);
+        target->stable_id = identity;
+        failed = false;
+        CHECK(slot_escape_mask_in_program(body, "text", &lookup, &origin, &failed) == expected[0] && !failed);
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 int main(void)
 {
+    checked_named_escape_projection();
     checked_failed_no_store_selection_epoch();
     checked_admitted_no_store_proof();
     checked_return_loan_currency();

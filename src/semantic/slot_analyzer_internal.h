@@ -80,6 +80,7 @@ bool collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                           size_t *count, size_t *capacity,
                           const SlotFunctionLookup *lookup,
                           const SlotSummaryOrigin *origin,
+                          const char *selected_name,
                           bool *failed_out);
 bool collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                            size_t *count, size_t *capacity,

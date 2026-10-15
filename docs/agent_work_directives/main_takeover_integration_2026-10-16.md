@@ -450,6 +450,70 @@ existing formal/backing/return/channel chain. Source repetition alone is not
 proof of savings. Repeat the3188-key census and warm attribution; require a
 coherent map and falsifiers before another production edit.
 
+Checkpoint55fe918a4 falsifies a performance assumption: the same3188-key cold
+set has839 failures (18 resolved,342 new,497 retained; key difference0), all
+at the unchanged work cap. Root independently ran the comparison. The new
+warm first failure is SemanticExpressionGraphCallArgumentScalarTypeName input0:
+38 evaluation+4006 backing+52 graph charges=4096. Its backing walk revisits
+237 AST nodes across four input frames (3978 charges); this is not evidence
+that input frames alone reduce cost. Of973 recorded request spans, base named
+escape requests with different bindings account for3011 exclusive charges;
+147 exact-binding requests account for0. The total span sum3017 is only the
+instrumented demand span, not all4096 or a forecast of savings. Signatures
+4273/4273 are byte-equal. Logs: `a-input-frame-census-warm` (46.41s/exit89),
+`a-input-frame-warm-signature` (7.28s/exit89); both stop before MIR. Source,
+the four preserved objects/dependencies and native binary were restored to
+55fe/958df32b; three additionally rebuilt unchanged-source objects have no
+prior byte baseline, so the next normal build must relink and rerun controls.
+The independent55fe soundness review found no new bypass in its stated narrow
+scope but explicitly withholds whole-candidate approval. This regression is
+OPEN, not erased by the focused green gates or the recoverable checkpoint.
+
+Selected bounded repair objective: push the existing named escape result
+projection to the expensive callee-demand boundary. Identity remains the
+existing FunctionIdParamIndex summary, and the projection continues using its
+existing name key; this does not introduce name identity or change alias
+selection meaning. Current -> intended chain: named summary -> full escape
+map/all-root demands -> select one name becomes named summary -> same typed
+argument/root validation -> demand only a root whose recorded name is selected
+-> same name row. Every argument expression is still traversed, including
+outer calls with no root. Full-function Slot analysis explicitly selects all
+names and retains all demands. Both modes use the same existing collector.
+Owner: slot_analyzer_escape.c; last consumers: parameter summary and function
+exit Slot warnings. Unrelated summary closure failure is no longer a named
+query dependency; malformed/stale typed call/argument/root facts still fail
+closed. Direct self-reborrow, private-store, own, RETURN and CHANNEL behavior
+remain unchanged. No formal/alias reclassification, new graph/cache/owner,
+skipped subtree, body reopen, budget increase or input reduction is allowed.
+
+Complete edit scopes: A changes only the collector, its internal signature
+and two existing caller modes; B adds direct named/full behavior, cross-name
+isolation and nonselected typed-fact corruption/restoration units; C adds a
+nested-call retaining/literal pair to the existing summary gate. Root owns
+integration and the common gate: normal native build+phase, unchanged summary
+and4096/4097 controls, full canonical, same3188-key census, Map/IR/component,
+then independent frozen review and the existing bootstrap/install/memory/CI
+chain. Keep existing using-alias, ordinary copy, RETURN/CALL/CHANNEL and stale
+publication negatives. Acceptance requires removing the newly introduced342
+failures rather than accepting a favorable aggregate or first diagnostic.
+
+Named candidate integration is coherent but still RED. Normal native rebuild
+PASS2.99s; phase4360/0, summary (including nested positive C/LLVM output and
+exact negative call site), component/registry PASS22.19s combined; Map24/58
+and HIR/RIR/MIR/AIR PASS18.42s. Full canonical RED14.56s/peak720024KiB,
+18410 cascading errors/16 warnings, first12:6 work4096. The same3188-key
+census yields287 failures,552 resolved/0 new vs839; against original515 it
+resolves260 but adds32 (18 routines). It therefore fixes310 of342 regressions,
+not all of them. Type signatures4273/4273 and key sets are identical; root
+independently repeated comparisons. `a-named-census`:24.47s/peak720184KiB,
+exit86 before MIR; inventory17.423s. All remaining failures are work4096.
+Source, complete build tree, native binary and dirty state restored exactly.
+Production binary is e9e0a20e953e878bb01adefa373da94dbf60133e3e8b9ef6c0b55ff15c4d0756.
+Next observation only: actual warm first demand and one remaining regression,
+with cross-input AST, same-input epoch, dependency and receipt work separated.
+Do not select another representation, relax caps or ignore the32 regressions
+from aggregate improvement. Bootstrap/install/memory/CI remain OPEN.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

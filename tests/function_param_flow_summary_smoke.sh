@@ -76,6 +76,8 @@ paired = (
     ("direct_ref_string_alias_concat_invalid", False),
     ("direct_ref_string_alias_named_invalid", False),
     ("recursive_record_wrapper_control_invalid", False),
+    ("nested_call_retaining_input_invalid", False),
+    ("nested_call_independent_result_valid", True),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
@@ -110,6 +112,7 @@ for name, valid in paired:
             "direct_ref_string_alias_concat_invalid": (4, 14),
             "direct_ref_string_alias_named_invalid": (5, 14),
             "recursive_record_wrapper_control_invalid": (11, 6),
+            "nested_call_retaining_input_invalid": (8, 24),
         }
         if name in retained_sites and not any(
                 (row.get("location", {}).get("line"), row.get("location", {}).get("column"))
@@ -137,6 +140,7 @@ runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
 for name, expected in (
     ("stdlib_input_retention_valid", "12\n2\n0\n-2147483648\n\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
+    ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
     ("return_loan_read_static_local_valid", "14\n14\nstatic literal\n"),

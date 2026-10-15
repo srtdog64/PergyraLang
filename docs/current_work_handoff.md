@@ -10,7 +10,10 @@ inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
 `3721a901c` was merged at `5684085b2`. The only local branch is `main`;
 the former performance worktree is detached with its files preserved. The
 current implementation checkpoint is the commit containing this card, parent
-`3f428ce86`: input-ordinal-owned backing frames and checked output-producer
+`55fe918a4`: named escape projection moves before unrelated callee demands,
+after all existing typed checks; argument subtrees are still traversed. Full
+Slot analysis explicitly retains all-name collection. The prior input-ordinal
+backing frames and checked output-producer
 receipts replace the eager all-input matrix. The complete ref/inout output
 axis remains, including columns64+. Missing, stale, building or pending frames
 are not a ready empty result. Existing selector evidence has its own current
@@ -36,11 +39,15 @@ static literal positives remain valid; dynamic/Concat/record-field retention
 and unknown/bodyless/indirect calls have explicit negative gates. RETURN-only
 String loans remain distinct from CALL/CHANNEL retention.
 
-Root independently observed on the integrated candidate: phase unit4342/0;
+Root independently observed on the integrated candidate: phase unit4360/0;
 recursive and original independent-4097/oversized-4096 demand controls PASS;
 summary gate including C/LLVM conversion, Trim-return, private-local read and
-literal-loan/static-local read runtime PASS (12.73s); component/registry PASS
-(10.54s). The new input0 -> output65 literal/dynamic pair is analyze-only;
+literal-loan/static-local read runtime, component and registry PASS (combined
+22.19s). The nested retained/independent result pair checks an outer CALL
+argument with no direct root; positive C/LLVM output is equal. A direct unit
+asserts the nested CALL bit, all-name/named projection agreement and failure/
+restoration of a nonselected argument's binding/call identity. The new
+input0 -> output65 literal/dynamic pair is analyze-only;
 the native C emitter has a pre-existing64-argument ceiling. The existing
 68-parameter API unit verifies cross-word relations in both directions.
 Returned-String Slot/inout negatives refuse before MIR, including
@@ -50,19 +57,17 @@ positive is analyze-only. Alias identity/flag/initializer corruption and
 restoration, output-only, loop-backward origins and nested using-output loop
 controls preserve required facts. No iteration count is an acceptance oracle.
 Readonly-map24 C/LLVM runtime positives and58 exact analyze-only negatives
-plus HIR/RIR/MIR/AIR summary propagation PASS (20.80s), with input and binary
+plus HIR/RIR/MIR/AIR summary propagation PASS (18.42s), with input and binary
 guards. Receipts in `/root/pgy-main-20261016.*.log`:
-`input-frame-build`, `input-frame-summary-scoped-final`, `input-frame-chain`,
-`input-frame-component`. Clone is3f428ce86 plus the nine implementation/test/
-directive overlays; root is freezing this same candidate for independent review.
-The preceding immutable review binary is
-`/root/pgy-review-4f19d8760-20261016.xkXhAD/pgy`, SHA256
-`49f34467358d3204089204c073ef6c8b038acb0e8512fd0729f8c391ddb2140e`.
+`named-escape-build` (2.99s), `named-escape-controls`, `named-escape-chain`.
+Clone is55fe918a4 plus the eight production/test/directive overlays; binary
+SHA256 `e9e0a20e953e878bb01adefa373da94dbf60133e3e8b9ef6c0b55ff15c4d0756`.
+Root is freezing this same candidate for independent review.
 
 Same full `src/self_hosted/codegen/main.pgy --native-pipeline --hir` on
-the integrated candidate still FAILS:8.01s, peak719980KiB, exit1,18410 errors/16
-warnings (mostly cascading after the first failure), first work4096 at line110.
-It is not18410 independent defects. Receipt: `input-frame-canonical`.
+the integrated candidate still FAILS:14.56s, peak720024KiB, exit1,18410 errors/16
+warnings (mostly cascading after the first failure), first work4096 at line12.
+It is not18410 independent defects. Receipt: `named-escape-canonical`.
 The prior cold isolated census was3188 unique
 routine/ordinal keys,692 failures across151 routines, all work4096, no incomplete
 keys; it is inventory, not production acceptance. Before positive proof reuse,
@@ -91,15 +96,23 @@ The private candidate -> entire closed graph -> query-local escape permission
 -> backing RETURN/output chain is integrated; ordinary ArrayPush has no
 blanket no-retain grant. B uses the existing PendingRefCall and a single
 returned-call seed in a sparse backing query, not a dense local matrix.
-Production is frozen at this per-input candidate. Root owns the WSL lease;
-A/B/C are frozen. Next diagnostic: repeat the same3188-key cold census and warm
-root demand, attributing base escape collection as well as backing work.
-`slot_escape_mask_in_program` selects one named row after the full collector
-has demanded callees for other roots. The full-function collector consumer
-still needs all rows; named access already has a root filter. This is a source
-observation, not a measured saving or permission to skip typed facts, aliases,
-shadowing, nested arguments or missing-fact failure. Revisit the chain map
-before choosing a repair. No new production change is selected yet.
+Per-input frame census at55fe regressed515->839 failures:342 new/18 resolved.
+Warm observation measured3011 exclusive charges initiated by nonselected
+base escape demands. The named projection repair now yields287 failures:
+552 resolved vs839,0 new; vs original515 it resolves260 but adds32, across18
+routines. All remaining failures are work4096. Root independently repeated
+the key comparison:3188 keys and4273 typed signatures identical, incomplete0.
+Receipt `a-named-census` is diagnostic only (24.47s, peak720184KiB, exit86
+before MIR); inventory body17.423s. A restored the complete source/build/bin/
+dirty snapshot exactly and returned the WSL lease. The newly introduced32
+failures remain OPEN; improved aggregate counts are not acceptance.
+Production is frozen at this named candidate. Root owns the WSL lease;
+A/B/C are frozen. Next diagnostic is the actual warm first demand and a
+representative of those32 failures: separate cross-input body replay, same-
+frame epochs, dependency work and current-receipt replay before choosing any
+further change. No alternative representation or additional production repair
+is selected. Preserve the same input, original4096/4097 controls and all typed,
+alias, RETURN/CALL/CHANNEL, nested and missing-fact gates.
 One WSL compile lease, no shared process kills.
 Root owns acceptance/publication. Production C-size
 parity is blocked by the unavailable installed driver; stable local Rocq prefix

@@ -270,7 +270,7 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
 
     bool escape_collection_failed = false;
     if (!collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity,
-            &lookup, NULL, &escape_collection_failed)) {
+            &lookup, NULL, NULL, &escape_collection_failed)) {
         free(live_before);
         free(live_after);
         free(escapes);
