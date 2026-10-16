@@ -8,72 +8,70 @@ registries and executable gates override this card.
 One rung: unchanged full canonical/DRV-2 admission -> real codegen bootstrap
 and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
 Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe, verified CI RED
-(run38860052641). Local parent checkpoint is86767e3fe0db467eadff02ac95e3907d4fe4c753;
-the current allocator/String-lifetime repair follows it. Check HEAD/status:
-the new candidate is locally verified below; independent review is pending.
-The superseded ec49 candidate remains SOUNDNESS_BLOCKED and must not ship.
+(run38860052641). Local source checkpoint is9b3eb9f1e, parent78e19dd80;
+the enum prerequisite is committed locally, not pushed. Check HEAD/status for
+the navigation-only handoff edit. The superseded ec49 candidate must not ship.
 
-Root alone owns WSL builds/tests/processes/Git. Three implementation agents
-share D; no worktrees/new branches. Only main remains; the perf worktree is
-preserved detached and stashes/immutable reviews remain untouched.
-WSL /root/pgy-main-20261016 stays HEAD39a plus the identified candidate overlay,
-not the D commit. Current binary SHA256:
-604bc1702f723fea3f1078edb932af771581f400f295ed7fb65b91d84bb1362e.
+Root alone owns WSL builds/tests/processes/Git. Three enum implementation
+scopes have finished; no agent is editing the shared source. Only main remains;
+the detached perf worktree, stashes and immutable reviews are preserved.
+WSL /root/pgy-main-20261016 stays Git HEAD39a plus the byte-checked candidate
+overlay, not the D commit. Current binary SHA256 is
+7f04442a32e66ffc8292bad578975902040afa6b7c33c365f34be38f9ea7ba5c.
+Frozen review source is /root/pgy-review-destination-39a8fc1db.7FAhzE,
+source.diff SHA256 982da2c60183a5cb8bb1285bbad6088b876d74b60a18c5a643277dcf1ffee8d3.
 
-Root-observed current gates: phase7450/0, LLVM140/0, strict summary and unchanged
-4096/4097 controls; native MIR327/semantic3228/transpile1009; Map24 C+LLVM
-positives/58 negatives; reached IR/caps/component/generator; Slot goldens.
-Declared EmptyScope/ForwardScope/static array/Result builder execute9/8/11/9
-on BOTH backends. Receipts in WSL: .tmp/p0-destination-candidate.WmQycK/,
-.tmp/p0-result-runtime.J2gUpo/ and adjacent p0-finish-sealed logs.
-These are scoped native prerequisite results, not self-host substitution.
+Root-observed candidate gates: phase7606/0, LLVM140/0, strict summary and
+unchanged4096/4097 controls, semantic/header caps; native MIR327/semantic3228/
+transpile1009; Map24 C+LLVM positives/58 negatives; reached IR/component and
+Slot goldens. The new enum fixture executes with output9 on both C and LLVM;
+four earlier runtime controls also pass. The previous independent review's
+119 source probes have identical exit/MIR outcomes on the new binary. Receipts:
+WSL .tmp/p0-destination-candidate.gpNb5U/,
+.tmp/p0-result-runtime.pinLqV/, .tmp/p0-enum-review-replay.8dTSlU/ and
+adjacent p0-enum-native/chain/slot logs. D and tested WSL source are byte equal.
 
-Actual unchanged bootstrap remains RED BEFORE gen0:27.24s/1245668KiB, exit2.
-First failure is required backing at32:6, not prior summary work cap.
-18410 subsequent diagnostics are cascades, not independent refusal counts.
-Fresh exact4273-signature/3188-key isolated census:708 failed (698 work,
-10 required backing), incomplete0; againstbd,40 resolved/0 newly failed/0 mask
-changes; against blockedec,0 changes. This is NOT40 newly admitted programs.
-Nonfailed2480 includes811 TOP/814 unproved, NOT permission.
-.tmp/p0-finish-census.OxbwCQ/,105.20s/1245328KiB; diagnostic
-exit86/no MIR, production source/build/bin/dependencies restored identically.
+Actual unchanged bootstrap remains RED BEFORE gen0:30.13s/1256780KiB, exit2.
+The enum backing failure at32:6 is gone; the first error is now the unchanged
+4096 recursive summary work guard at11:6. The remaining18410 diagnostics
+are cascades, not independent refusals. New isolated full-input census with
+identical4273 signatures/3188 keys:707 failures=698 work+9 required backing,
+incomplete0/no MIR. Against the previous bin604 census, one enum key resolved,
+zero newly failed and one expected mask change. Nonfailed2481 includes811 TOP/
+814 unproved and is not permission. WSL .tmp/p0-enum-census.Il3kYS/ restored
+production source/build/bin/dependencies byte-identically.
 
-Completed local repair: checked local AllocatorResult/Builder birth no longer
-inherits an unconditional Finish permission. Typed publication records the
-exact Result local birth and monotonically invalidates any replacement or
-unmodelled allocator argument exposure. Finish, indexed String, owned-String
-result summaries and private ArrayPush consume current evidence. The body bit
-alone is not authority: source calls, body syntax and sealed source count are
-recorded once and replayed, including transitive zero-argument producers.
-Before-falsifier7331/2 reproduced stale owned-result/push grants; after7450/0
-rejects them and restores only the original evidence. No new production
-owner/file or manual annotation/copy workaround. Result-only allocator helpers
-and Result->Result reassignments are conservatively unproved, not Pool-safe.
+Enum source fact: the registered enum declares only a bare variant Symbol,
+so the typed flat-first/bare-next resolution must match qualifier and selected
+unit variant by exact enum declaration, Type, spelling, ordinal and payload0.
+The parent publication seals that relation, and sparse/claim consumers skip
+only its nonexecuting qualifier edge. No qualifier value or alias is fabricated.
+Mutation units revoke direct and cached permission for stale receipts; the
+ordinary runtime receiver and mismatched cross-enum fallback keep their paths.
 
-Next BLOCKED fact: SemanticAstNativePipelineOnlyStatementRefusal input0,
-work30. The earlier exact first-transition receipt v87u6T identifies
-`purpose == SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly`.
-Static enum member typing publishes the parent meta value but no qualifier
-value. Eager backing traversal mistakes that nonexecuting qualifier for a
-runtime use. A/B/C surveyed the next bounded owner relation read-only; no enum
-implementation has started. Do not skip all meta, classify all enums physical,
-use uppercase/bare fallback or publish fake runtime qualifier facts.
+Next active fact is the summary work guard. Survey the complete dependency
+and cost chain of its698 fixed-input failures before editing: production
+entrypoint -> typed publication/claim and program-point facts -> summary
+evaluation/backing work charges -> last return/escape consumer. Identify the
+repeated owned operation and falsifier on the unchanged input. Do not raise
+the4096 budget, shrink the input or turn TOP/unproved into permission.
 
 Whole-chain plan, owner/last-consumer map, forbidden fallbacks and receipts:
 [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md),
-section Reached canonical prerequisite — declared-call result provenance.
+section Next canonical prerequisite — exact unit-enum qualifier edge.
 No manual annotation/copy workaround, new owner, new query/cache architecture,
 weaker safety, smaller canonical input or larger work/memory budget is allowed.
 
-Current independent review requested: frozen RXLKQ8/binary604, source.diff
-61223eadb1171fe849faa60b626818b98c6e5e36034c63f361ff0ab48326f6f5.
-Root replayed all98 ec probes:5 unsafe allocator compositions and2 safe but
-unproved Result-only helpers now refuse; no prior rejection becomes admission.
-Receipt .tmp/p0-finish-review-replay.zrxYkM/. Independent conclusion pending;
-in-memory fault units ran in root's phase, not in the no-build review.
-Earlier bd/lNEApm68,71/GKFUTd46 and91/DO97fm101 are separate scopes.
+RXLKQ8/binary604 independent review found no new false admission in its
+bounded Finish repair. Its separate Pool/Destroy read counterexample remains
+OPEN and is admitted by both prior sound binbd and bin604 (same29532-byte
+MIR; no unsafe execution). That is neither resolved by enum work nor whole
+language memory-safety evidence. The independent enum review of 7FAhzE is
+requested and pending; root's119-case replay is separate evidence.
 Current gen2==gen3/install/memory and required published CI are NOT passed.
-No push of the new local checkpoints or V1/SoT CLOSED claim yet.
+No push of local checkpoints or V1/SoT CLOSED claim yet.
+
+### Historical diagnostic archive — lookup only, not an active work queue
 
 Superseded blocked candidate binary is
 ec49bf0c3dbfa942e91d3639653ca67358ccc1b0d2c088f5ca0d8540000b0878,
@@ -88,8 +86,6 @@ No existing current Result-allocator provenance fact was found. Original LET
 syntax and an owned-String summary bit are not reaching-definition proof.
 Those source-level counterexamples were reproduced without executing unsafe
 programs. They motivated the current604 repair, not a waiver of its gates.
-
-### Historical diagnostic archive — lookup only, not an active work queue
 
 #### Prior local Read integration snapshot — superseded
 
