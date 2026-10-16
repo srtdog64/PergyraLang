@@ -10,6 +10,7 @@
 #include "diag_codes.h"
 #include "type_checker_channel_transport_internal.h"
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "array_storage_release_owner.h"
 #include "type_checker_ownership_internal.h"
 
@@ -62,6 +63,7 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                          const char *container_name,
                                          SemanticContext *ctx)
 {
+    callable_capability_record_retained_value(ctx, value_expr, value_expr, stored_value_type);
     const char *borrowed_root_name =
         builtin_borrowed_boundary_root_name(value_expr, ctx);
     semantic_array_storage_escape(value_expr, stored_value_type, ctx);

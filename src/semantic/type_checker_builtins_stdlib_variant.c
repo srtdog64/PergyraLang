@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_builtins_internal.h"
 #include "array_storage_release_owner.h"
 #include "diag_codes.h"
@@ -131,6 +132,7 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             ASTNode *value = ast_call_argument(expr, 0);
             Type *payload = stdlib_variant_normalize_type(
                 type_check_expression(value, ctx));
+            callable_capability_record_retained_value(ctx, expr, value, payload);
             Type *option_type;
             if (semantic_reject_affine_aggregate_storage(
                     value, payload, ctx, "Option Some payload"))

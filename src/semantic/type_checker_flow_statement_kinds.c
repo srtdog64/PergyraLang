@@ -118,8 +118,7 @@ type_check_async_stmt_flow(ASTNode *node, SemanticContext *ctx)
 FlowFlags
 type_check_select_stmt_flow_kind(ASTNode *node, SemanticContext *ctx)
 {
-    (void)type_check_select_stmt(node, ctx);
-    return FLOW_FALLTHROUGH;
+    return type_check_select_stmt_flow(node, ctx, NULL);
 }
 
 FlowFlags

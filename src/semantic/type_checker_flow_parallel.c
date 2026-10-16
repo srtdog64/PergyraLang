@@ -346,8 +346,14 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
             return false;
         }
         bool prior_defer = ctx->in_defer_cleanup;
+        TransactionFlowContext *saved_transaction = ctx->transaction_flow;
+        int saved_transaction_depth = ctx->transaction_depth;
         ctx->in_defer_cleanup = true;
+        ctx->transaction_flow = NULL;
+        ctx->transaction_depth = 0;
         (void)type_check_block_flow(body, ctx, NULL);
+        ctx->transaction_flow = saved_transaction;
+        ctx->transaction_depth = saved_transaction_depth;
         ctx->in_defer_cleanup = prior_defer;
         restore_resource_states(&before_defer);
         destroy_resource_snapshot(&before_defer);
@@ -440,6 +446,12 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         return false;
     }
 
+    /* Join inputs are evaluated above in the caller; task bodies execute in
+     * independent frontiers and cannot branch to its transaction epilogue. */
+    TransactionFlowContext *saved_transaction = ctx->transaction_flow;
+    int saved_transaction_depth = ctx->transaction_depth;
+    ctx->transaction_flow = NULL;
+    ctx->transaction_depth = 0;
     for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
         ASTNode *task = ast_parallel_task(node, i);
         ResourceConsumeSnapshot task_snap = {0};
@@ -539,6 +551,8 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     else
         restore_resource_states(&base);
 
+    ctx->transaction_flow = saved_transaction;
+    ctx->transaction_depth = saved_transaction_depth;
     ctx->in_parallel = prev_parallel;
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&joined);

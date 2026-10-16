@@ -2,6 +2,7 @@
 
 #include "diag_codes.h"
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_channel_transport_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "function_param_publication_owner.h"
@@ -364,6 +365,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         type_check_expression(channel, ctx));
     Type *value_type = async_channel_normalize_type(
         type_check_expression(value, ctx));
+    callable_capability_record_retained_value(ctx, expr, value, value_type);
     if (!type_constructed_is(channel_type, TYPE_CHANNEL, 1)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,

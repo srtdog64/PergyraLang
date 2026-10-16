@@ -257,6 +257,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         && type_slot_inner_type(target_type) != NULL
         && !type_is_resource_handle(value_type)
         && type_is_assignable(value_type, type_slot_inner_type(target_type))) {
+        callable_capability_record_retained_value(ctx, expr, value, value_type);
         return target_type;
     }
 
@@ -286,6 +287,13 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     }
 
     require_assignable(value_type, target_type, expr, ctx);
+    bool callable_carrier_store = target != NULL && (target->type == AST_MEMBER_ACCESS || target->type == AST_ARRAY_ACCESS);
+    if (target != NULL && target->type == AST_IDENTIFIER) {
+        Symbol *target_sym = lookup_identifier_symbol(target, ctx);
+        callable_carrier_store |= target_sym != NULL && (target_sym->is_host_field ||
+            (target_sym->is_parameter && target_sym->param_mode == PARAM_MODE_MUT_REF));
+    }
+    if (callable_carrier_store) callable_capability_record_retained_value(ctx, expr, value, value_type);
     if (!ctx->has_error && target != NULL && target->type == AST_IDENTIFIER) {
         Symbol *target_sym = lookup_identifier_symbol(target, ctx);
         /* The target is a write place, not a read of its old generation.

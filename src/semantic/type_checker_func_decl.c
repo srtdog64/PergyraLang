@@ -358,7 +358,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         callable_capability_enter(ctx, node, param_types, param_count);
     callable_capability_set_effect_contract(ctx, declared_effects, has_effect_contract);
     if (ast_func_body(node) != NULL) {
+        TransactionFlowContext *saved_transaction = ctx->transaction_flow;
+        int saved_transaction_depth = ctx->transaction_depth;
+        ctx->transaction_flow = NULL;
+        ctx->transaction_depth = 0;
         semantic_check_body_flow_summary(ast_func_body(node), ctx, &body_flow);
+        ctx->transaction_flow = saved_transaction;
+        ctx->transaction_depth = saved_transaction_depth;
         has_body_flow = true;
         if (!type_equals(return_type, TYPE_VOID)
             && return_type != TYPE_UNKNOWN

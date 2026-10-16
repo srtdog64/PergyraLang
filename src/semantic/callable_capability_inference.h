@@ -23,6 +23,8 @@ void callable_capability_record_binding(SemanticContext *ctx,
     Symbol *binding, ASTNode *value);
 void callable_capability_invalidate_binding(SemanticContext *ctx, Symbol *binding);
 void callable_capability_record_return(SemanticContext *ctx, ASTNode *value);
+void callable_capability_record_retained_value(SemanticContext *ctx,
+    ASTNode *site, ASTNode *value, const Type *type);
 void callable_capability_record_subscription(SemanticContext *ctx,
     ASTNode *event, ASTNode *handler);
 void callable_capability_record_method_call(SemanticContext *ctx,

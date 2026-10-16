@@ -630,6 +630,8 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
         break;
     case AST_TRANSACTION_BLOCK:
         ast_assign_node(node->data.transaction_block.body, next_id);
+        ast_assign_array(node->data.transaction_block.compensations,
+                         node->data.transaction_block.compensation_count, next_id);
         break;
     case AST_FAIL_STMT:
         ast_assign_node(node->data.fail_stmt.reason, next_id);

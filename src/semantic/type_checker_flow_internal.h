@@ -13,8 +13,17 @@ typedef enum
     FLOW_BREAK       = 1 << 1,
     FLOW_CONTINUE    = 1 << 2,
     FLOW_RETURN      = 1 << 3,
-    FLOW_HAS_DEFER   = 1 << 4
+    FLOW_HAS_DEFER   = 1 << 4,
+    FLOW_TXN_FAIL    = 1 << 5
 } FlowFlags;
+
+struct TransactionFlowContext
+{
+    TransactionFlowContext *parent;
+    Scope *outer_scope;
+    ResourceConsumeSnapshot failures;
+    bool has_failures;
+};
 
 typedef struct
 {
@@ -84,6 +93,8 @@ FlowFlags type_check_parallel_stmt_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_async_stmt_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_select_stmt_flow_kind(ASTNode *node,
                                            SemanticContext *ctx);
+FlowFlags type_check_select_stmt_flow(ASTNode *node, SemanticContext *ctx,
+                                      LoopFlowState *loop_flow);
 FlowFlags type_check_let_stmt_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_destructure_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx);

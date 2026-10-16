@@ -34,6 +34,12 @@ typedef struct CapabilityBinding {
     CapabilityTarget value;
     struct CapabilityBinding *next;
 } CapabilityBinding;
+typedef struct CapabilityRetainedValue {
+    ASTNode *site, *value;
+    uint32_t site_id, value_id;
+    CapabilityTarget target;
+    struct CapabilityRetainedValue *next;
+} CapabilityRetainedValue;
 typedef struct CapabilityDispatch {
     uint32_t signature_id, implementation_id;
     ASTNode *site;
@@ -59,6 +65,7 @@ struct CallableCapabilityRoutine {
     bool has_result;
     ASTNode *unknown_result_site;
     CapabilityCall *calls;
+    CapabilityRetainedValue *retained_values;
     CapabilityInstance *instances;
     struct CallableCapabilityRoutine *next;
 };

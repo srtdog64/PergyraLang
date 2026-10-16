@@ -270,6 +270,9 @@ loop_flow_summary_try_apply(SemanticContext *ctx,
                             uint32_t effect_base,
                             FlowFlags *flags_out)
 {
+    /* This summary carries normal transfer only, not an enclosing
+     * transaction's fail exits. Re-enter the real flow owner in that context. */
+    if (ctx != NULL && ctx->transaction_flow != NULL) return false;
     LoopFlowSummaryStore *store =
         ctx != NULL ? ctx->loop_flow_summaries : NULL;
     if (store == NULL || entry == NULL || !entry->valid)
@@ -303,6 +306,7 @@ loop_flow_summary_record(SemanticContext *ctx,
                          uint32_t effect_delta,
                          FlowFlags flags)
 {
+    if (ctx != NULL && ctx->transaction_flow != NULL) return;
     LoopFlowSummaryStore *store =
         ctx != NULL ? ctx->loop_flow_summaries : NULL;
     LoopFlowSummary *summary;

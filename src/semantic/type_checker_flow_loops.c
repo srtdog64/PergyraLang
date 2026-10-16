@@ -125,7 +125,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         : (ResourceConsumeSnapshot){0};
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool has_break_exit = false;
-    bool body_must_return = false;
+    bool body_terminates = false;
+    FlowFlags terminating = FLOW_NONE;
     bool dynamic_defer_rejected = false;
     size_t max_iterations = known_iterations && known_cap == 0
         ? 0
@@ -175,6 +176,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         loop_flow_summary_note_body_check(ctx, node, "for");
         body_flags = type_check_block_flow(body, ctx, &loop_flow);
+        terminating |= body_flags & (FLOW_RETURN | FLOW_TXN_FAIL);
         semantic_future_require_scope_retired(
             ctx->scope, body != NULL ? body : node,
             ctx, "for body exit");
@@ -219,8 +221,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
                                         &loop_flow.break_states);
         if (loop_flow.has_break_states)
             has_break_exit = true;
-        if (!has_backedge && (body_flags & FLOW_RETURN) != 0)
-            body_must_return = true;
+        if (!has_backedge && !loop_flow.has_break_states)
+            body_terminates = true;
 
         destroy_loop_flow_state(&loop_flow);
 
@@ -248,8 +250,9 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     }
 
     FlowFlags result_flags = FLOW_FALLTHROUGH;
-    if (known_iterations && known_cap > 0 && !has_break_exit && body_must_return)
-        result_flags = FLOW_RETURN;
+    if (known_iterations && known_cap > 0 && !has_break_exit && body_terminates)
+        result_flags = FLOW_NONE;
+    result_flags |= terminating;
     if (!merged_initialized) {
         destroy_resource_snapshot(&merged);
         merged = copy_resource_snapshot(&base);
@@ -298,7 +301,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     bool condition_static_false =
         condition_is_static_bool && !condition_static_value;
     bool has_break_exit = false;
-    bool body_must_return = false;
+    FlowFlags terminating = FLOW_NONE;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
         ctx->loop_labels[ctx->loop_depth] = ast_while_label(node);
@@ -392,6 +395,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         loop_flow_summary_note_body_check(ctx, node, "while");
         body_flags = type_check_block_flow(ast_while_body(node), ctx, &loop_flow);
+        terminating |= body_flags & (FLOW_RETURN | FLOW_TXN_FAIL);
         semantic_future_require_scope_retired(
             ctx->scope,
             ast_while_body(node) != NULL ? ast_while_body(node) : node,
@@ -436,8 +440,6 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
                                         &loop_flow.break_states);
         if (loop_flow.has_break_states)
             has_break_exit = true;
-        if (!has_backedge && (body_flags & FLOW_RETURN) != 0)
-            body_must_return = true;
 
         destroy_loop_flow_state(&loop_flow);
 
@@ -466,7 +468,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
 
     FlowFlags result_flags = FLOW_FALLTHROUGH;
     if (condition_static_true && !has_break_exit)
-        result_flags = body_must_return ? FLOW_RETURN : FLOW_NONE;
+        result_flags = FLOW_NONE;
+    result_flags |= terminating;
     if (!merged_initialized) {
         destroy_resource_snapshot(&merged);
         merged = copy_resource_snapshot(&base);

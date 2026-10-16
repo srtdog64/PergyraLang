@@ -5,48 +5,56 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context — GPT main integration and P0 validation
 
-Active priority: finish the executed-child / deferred-capture safety repair
-before resuming the unchanged canonical admission prerequisite. This is an
-UNVERIFIED LOCAL WIP checkpoint, parent `de1335b2e`; do not publish it as a
-green candidate. The only local branch is `main`, and published main remains
-`571ae8c3a`. No push or integrated bootstrap/installed-driver/CI acceptance.
+Active rung: unchanged full canonical native admission, then actual codegen
+bootstrap/fixed point, driver memory, installed C/LLVM driver and required CI.
+The P0 prerequisite has focused green evidence, not whole-language closure.
+This implementation checkpoint has parent `71d9e2ad6`; the earlier unverified
+repair is preserved in that parent. Local and remote each have only `main`;
+published main remains `571ae8c3a`. No push or integrated CI-green claim.
 
-The existing publication, parameter-flow/index and callable-capability owners
-remain authoritative. The repair seals complete input topology, distinguishes
-eager evaluation from checked deferred captures, preserves original argument
-ordinals, and checks the direct callable environment's retaining consumers.
-No new semantic owner, source ceremony, relaxed safety or larger work budget.
-Three existing implementers are frozen; root owns integration and the single
-WSL build lease. The objective/remaining chain is in
+Existing publication, parameter-flow/index, callable-capability and statement-
+flow owners remain authoritative. Complete topology currency, checked deferred
+captures, original callable argument ordinals and typed retaining leaf stores
+now connect through their actual producers/consumers. Transaction compensation
+children now receive stable IDs and real typed facts. Failure-state resource
+MAY joins, reverse handlers and callable/worker/defer frontiers preserve the
+scoped ownership checks. Physical components share the same logical stores;
+no new semantic owner, annotation/copy workaround, relaxed safety or larger
+work cap was introduced. Root owns integration and the single WSL build lease.
+The objective/remaining chain is in
 [`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md),
 section `Active safety blocker`.
 
-Latest root-observed phase unit: **4901 checks / 1 failure** on this source,
-receipt `/root/pgy-main-20261016.p0-checkpoint-phase.log`. The remaining failure
-is the compensation REF control: transaction flow never typed its handlers.
-The earlier checked-deferred build restored all12 original worker positives and
-refused all7 independent capture probes before MIR. The first wrapper repair
-preserved20 REF admissions and refused20 OWN cases; these are scoped historical
-receipts, not acceptance of changes made afterwards. Unsafe cases were never
-executed. Existing strict diagnostic oracles remain unchanged.
+Root-observed candidate binary SHA256:
+`238a938d7d230bebf14d5b1d3dda6a9e0e636794318b1a7a6e5a42d7e4de4257`.
+Logs are `/root/pgy-main-20261016.<phase>.log`:
+- `p0-candidate-phase`:5069 checks/0 failures; `p0-candidate-summary`:PASS10.06s,
+  including original worker positives, wrapper/capture/Holder pairs and unchanged
+  independent4097/oversized4096 controls. Unsafe cases are analyze-only.
+- `p0-size-final-chain`:Map24 C/LLVM positives/58 exact negatives plus
+  HIR/RIR/MIR/AIR summaries PASS17.73s; `p0-size-final-component`:PASS11.66s.
+- Semantic599/header600 caps pass. `p0-portability-inventory`:PASS17.12s after
+  repairing two inherited Bash3.2 hazards. Windows execution self-test was
+  explicitly NOT RUN on Linux; actual Bash3.2 execution is not claimed.
+- `p0-runtime-key-storage`:four key families, inline/raw negative and success
+  behavior PASS15.24s; `p0-runtime-linkage`:inline/extern, region and ABI generator
+  checks PASS7.23s. Expected panic probes abort; these are checked negatives.
+- `p0-candidate-canonical`:RED19.82s, peak769804KiB, first15:6 work4096,
+  18410 cascading errors/16 warnings. These are not18410 independent failures.
 
-Next falsifiers / required obligations:
-- Transaction compensation typing must use actual fail-path resource states,
-  reverse handler order and backend-equivalent scope, not entry/end equality or
-  an unconditional normal-path check. Access still needs handler children.
-- A returned `Holder` containing a String-capturing closure crosses aggregate
-  boundaries in the frozen old binary. Connect the existing capability owner
-  to typed leaf-store producers; direct local/copy-only controls must survive.
-- Re-run summary negatives after the function-type topology correction; Set
-  cases whose primary failure is unsupported typing are not safety evidence.
-- The unchanged599-line source gate has12 violations in the combined source.
-  Split cohesive physical components without changing logical ownership or
-  raising/compressing the cap.
-- Full native canonical, unchanged4096/4097 controls, bootstrap/fixed point,
-  driver memory, installed C/LLVM driver and exact-SHA CI all remain OPEN.
+Next: commit/freeze this prerequisite for the independent reviewer, then
+remeasure the complete fixed-input failure set and actual shared-body demand
+cost. Do not carry the pre-P0202-key count forward as current acceptance.
+The old matrix scratch would revert P0 currency and must never replace current
+files. Its geometry-only controlled plan is `.tmp/a-current-matrix-model/`
+`current-split-experiment-plan.md`; NOT IMPLEMENTED/NOT RUN. Keep all current
+readiness, typed/seed/current/output65+ checks and the4096 work cap.
 
-Do not resume the deferred matrix cost experiment until these reached safety
-obligations are resolved. Native repair is a prerequisite, not C substitution.
+Limits: transaction snapshots do not prove all metadata rollback or backend
+fail-edge cleanup. General runtime match-pattern MIR emission and Set closure
+typing remain unsupported evidence boundaries. Two inherited native warnings
+remain. Bootstrap/driver memory/installed driver/exact-SHA CI remain OPEN.
+Native prerequisite repairs and moved LOC are not C-path substitution progress.
 
 ### Historical diagnostic archive — lookup only, not an active work queue
 

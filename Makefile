@@ -522,6 +522,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_step_sequence.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_step_outcome.c \
                    $(SEMANTIC_DIR)/type_checker_intent_compensation_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_intent_typed_outcome.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
@@ -561,8 +562,12 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_assign.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact.c \
+                   $(SEMANTIC_DIR)/collection_ownership_fact_result.c \
+                   $(SEMANTIC_DIR)/collection_ownership_fact_member_transfer.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
                    $(SEMANTIC_DIR)/string_window_extent.c \
+                   $(SEMANTIC_DIR)/string_window_extent_relations.c \
+                   $(SEMANTIC_DIR)/string_window_extent_finalize.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_preservation_owner.c \
@@ -602,6 +607,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_nominal.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_ownership_nominal.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_text_builder.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query_channel.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_channel_state.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_state_tools.c \
@@ -633,12 +639,15 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_decls_domain_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_domain_contracts.c \
                    $(SEMANTIC_DIR)/type_checker_call_constructor.c \
+                   $(SEMANTIC_DIR)/type_checker_call_constructor_fields.c \
                    $(SEMANTIC_DIR)/type_checker_call_contract_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_call_generic_where.c \
+                   $(SEMANTIC_DIR)/type_checker_call_generic_type_arguments.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_effects.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_resources.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_late.c \
                    $(SEMANTIC_DIR)/type_checker_future_lifecycle.c \
+                   $(SEMANTIC_DIR)/type_checker_affine_storage_admission.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_active.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_effects.c \
@@ -664,15 +673,20 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_builtin.c \
                    $(SEMANTIC_DIR)/slot_analyzer_lookup.c \
                    $(SEMANTIC_DIR)/slot_analyzer_access.c \
+                   $(SEMANTIC_DIR)/slot_analyzer_named_access.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_program_point_index_owner.c \
+                   $(SEMANTIC_DIR)/function_param_flow_backing_dependencies.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_publication_owner.c \
+                   $(SEMANTIC_DIR)/function_param_publication_routines.c \
+                   $(SEMANTIC_DIR)/function_param_publication_deferred.c \
                    $(SEMANTIC_DIR)/typed_map_query_fact_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \
+                   $(SEMANTIC_DIR)/function_param_flow_input_claims.c \
                    $(SEMANTIC_DIR)/iteration_type_fact.c \
                    $(SEMANTIC_DIR)/destructure_type_fact.c \
                    $(SEMANTIC_DIR)/lifecycle_state.c \
@@ -1489,7 +1503,9 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_array_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_collection_common_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_string_value_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_key_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_key_string_value_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_intent_active_index_exports.c \

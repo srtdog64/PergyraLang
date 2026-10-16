@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 
@@ -209,6 +210,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 
     ASTNode *value_arg = ast_call_argument(call, 1);
     Type *value_type = slotops_normalize_type(type_check_expression(value_arg, ctx));
+    callable_capability_record_retained_value(ctx, call, value_arg, value_type);
     Type *inner_type = slotops_normalize_type(type_slot_inner_type(slot_type));
 
     if (!type_is_assignable(value_type, inner_type)) {

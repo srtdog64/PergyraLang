@@ -158,6 +158,27 @@ callable_capability_record_binding(SemanticContext *ctx,
 }
 
 void
+callable_capability_record_retained_value(SemanticContext *ctx,
+    ASTNode *site, ASTNode *value, const Type *type)
+{
+    if (ctx == NULL || ctx->has_error || type == NULL || type->kind != TYPE_KIND_FUNCTION) return;
+    CallableCapabilityRoutine *routine = ctx->current_callable_capability;
+    /* Fragment queries publish no executable and have no equation seal. */
+    if (routine == NULL && ctx->program_root == NULL) return;
+    if (routine == NULL || site == NULL || value == NULL || ast_node_stable_id(site) == 0 || ast_node_stable_id(value) == 0) {
+        semantic_error(ctx, site, "Callable retaining boundary identity is missing");
+        return;
+    }
+    CapabilityRetainedValue *entry = callable_capability_allocate_equation(ctx, sizeof(*entry));
+    if (entry == NULL) return;
+    *entry = (CapabilityRetainedValue){.site = site, .value = value,
+        .site_id = ast_node_stable_id(site), .value_id = ast_node_stable_id(value),
+        .target = capability_expression_target(ctx, value), .next = routine->retained_values};
+    routine->retained_values = entry;
+    ctx->callable_capabilities->equation_count++;
+}
+
+void
 callable_capability_record_return(SemanticContext *ctx, ASTNode *value)
 {
     CallableCapabilityRoutine *routine = ctx->current_callable_capability;
@@ -222,8 +243,11 @@ callable_capability_record_call(SemanticContext *ctx, ASTNode *site,
         return;
     for (size_t i = 0; i < count; i++) {
         Type *param = type_function_param_type(callee != NULL ? callee->type : NULL, i);
-        if (param == NULL || param->kind != TYPE_KIND_FUNCTION)
+        if (param == NULL || param->kind != TYPE_KIND_FUNCTION) {
+            if (actual_types != NULL) callable_capability_record_retained_value(ctx, site,
+                event_invoke ? ast_event_invoke_argument(site, i) : ast_call_argument(site, i), actual_types[i]);
             continue;
+        }
         call->actual_ordinals[call->count] = i;
         call->actuals[call->count++] = actual_types == NULL
             || (actual_types[i] != NULL && actual_types[i]->kind == TYPE_KIND_FUNCTION)
@@ -251,13 +275,16 @@ callable_capability_record_method_call(SemanticContext *ctx, ASTNode *site,
     call->actuals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(CapabilityTarget));
     call->actual_ordinals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(*call->actual_ordinals));
     if (call->actuals == NULL || call->actual_ordinals == NULL) return;
-    for (size_t p = 0; p < count; p++)
+    for (size_t p = 0; p < count; p++) {
         if (params[p] != NULL && params[p]->kind == TYPE_KIND_FUNCTION) {
             call->actual_ordinals[call->count] = p;
             call->actuals[call->count++] = actual_types[p] != NULL
                 ? capability_expression_target(ctx, ast_call_argument(site, p))
                 : (CapabilityTarget){0};
         }
+        else if (actual_types != NULL)
+            callable_capability_record_retained_value(ctx, site, ast_call_argument(site, p), actual_types[p]);
+    }
     call->next = routine->calls;
     routine->calls = call;
     ctx->callable_capabilities->equation_count++;

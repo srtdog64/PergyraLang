@@ -211,7 +211,10 @@ check_others() {
 }
 
 rows=0
-declare -A by_expect=()
+reject_compile_count=0
+trap_runtime_count=0
+runtime_safe_count=0
+accepted_gap_count=0
 while IFS=$'\t' read -r id category bug scenario level expect oracle env_spec ts_obs cs_obs py_obs rs_obs gap; do
     [[ -z "$id" || "$id" == \#* || "$id" == id ]] && continue
     rows=$((rows + 1))
@@ -225,7 +228,12 @@ while IFS=$'\t' read -r id category bug scenario level expect oracle env_spec ts
     check_fixed "$id" "$dir"
     ts_status=off; cs_status=off; py_status=off; rs_status=off
     if [[ "$OTHERS" == 1 ]]; then check_others "$id" "$dir" "$cs_obs" "$rs_obs"; fi
-    by_expect[$expect]=$(( ${by_expect[$expect]:-0} + 1 ))
+    case "$expect" in
+        REJECT_COMPILE) reject_compile_count=$((reject_compile_count + 1)) ;;
+        TRAP_RUNTIME) trap_runtime_count=$((trap_runtime_count + 1)) ;;
+        RUNTIME_SAFE) runtime_safe_count=$((runtime_safe_count + 1)) ;;
+        ACCEPTED_GAP) accepted_gap_count=$((accepted_gap_count + 1)) ;;
+    esac
     note "$id $level/$expect ts=$ts_status cs=$cs_status py=$py_status rs=$rs_status"
 done <"$MANIFEST"
 
@@ -235,10 +243,7 @@ if [[ "${PGY_CORPUS_DEMO-1}" == 1 ]]; then
         bad "AgentHub demo failed ($WORK/demo.log)"
     note "$(tail -1 "$WORK/demo.log")"
 fi
-summary=""
-for key in REJECT_COMPILE TRAP_RUNTIME RUNTIME_SAFE ACCEPTED_GAP; do
-    summary="$summary $key=${by_expect[$key]:-0}"
-done
+summary=" REJECT_COMPILE=$reject_compile_count TRAP_RUNTIME=$trap_runtime_count RUNTIME_SAFE=$runtime_safe_count ACCEPTED_GAP=$accepted_gap_count"
 note "rows=$rows$summary evidence=$WORK"
 if [[ "$fail_count" -ne 0 ]]; then
     note "$fail_count failure(s)"

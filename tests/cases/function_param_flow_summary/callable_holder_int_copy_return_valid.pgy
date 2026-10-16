@@ -1,0 +1,10 @@
+struct Holder { f: func(Int) -> Int; }
+func Identity(n: Int) -> Int { return n; }
+func Make() -> Holder {
+    let base: Int = 3;
+    let f: func(Int) -> Int = (n: Int) => n + base;
+    return Holder(f);
+}
+func Main() -> Void {
+    let a: Holder = Make();
+}

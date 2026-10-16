@@ -56,6 +56,11 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
     if (param_types == NULL)
         return TYPE_UNKNOWN;
 
+    /* A closure's execution cannot fail a transaction in its defining frame. */
+    TransactionFlowContext *saved_transaction = ctx->transaction_flow;
+    int saved_transaction_depth = ctx->transaction_depth;
+    ctx->transaction_flow = NULL;
+    ctx->transaction_depth = 0;
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
     ctx->scope->is_lambda = true;
     for (size_t i = 0; i < param_count; i++) {
@@ -176,6 +181,8 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
         lambda_capabilities, ctx->current_function_direct_effects);
     lambda_restore_context(ctx, saved_effects, saved_direct_effects, saved_capabilities,
                            saved_body_summary, saved_tracking);
+    ctx->transaction_flow = saved_transaction;
+    ctx->transaction_depth = saved_transaction_depth;
     free(param_types);
     if (!ctx->has_error && result != NULL && result != TYPE_UNKNOWN &&
         !semantic_param_publication_record_checked_deferred(ctx, expr)) {

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "string_window_extent.h"
 #include "type_checker_visibility.h"
 #include "indexed_string_borrow_owner.h"
@@ -293,6 +294,7 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         for (size_t i = 0; i < n; i++) {
             elems[i] = expr_normalize_type(type_check_expression(
                 ast_tuple_literal_element(expr, i), ctx));
+            callable_capability_record_retained_value(ctx, expr, ast_tuple_literal_element(expr, i), elems[i]);
             if (type_equals(elems[i], TYPE_VOID)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,

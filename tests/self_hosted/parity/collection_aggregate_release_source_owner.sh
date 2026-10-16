@@ -18,11 +18,19 @@ PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.pgy
 QUERY=tests/self_hosted/fixtures/collection_constructor_field_input_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 CASE_DATA=tests/self_hosted/parity/fixture/collection_field_lifetime/aggregate_release_source_cases.tsv
-mapfile -t CASES <"$CASE_DATA"
+CASES=()
+case_count=0
+case_row=""
+while IFS= read -r case_row || [[ -n "$case_row" ]]; do
+    CASES[$case_count]="$case_row"
+    case_count=$((case_count + 1))
+done <"$CASE_DATA"
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$PROBE" "$QUERY" "$CASE_DATA" "${BASH_SOURCE[0]}" >"$WORK/inputs.sha256"
 sha256sum tests/self_hosted/fixtures/collection_execution_context_generation_probe.pgy >>"$WORK/inputs.sha256"
-for case_row in "${CASES[@]}"; do
+# Bash 3.2 nounset treats an empty indexed array as unset. The guarded
+# expansion keeps an empty input empty, rather than manufacturing one row.
+for case_row in ${CASES[@]+"${CASES[@]}"}; do
     IFS='|' read -r fixture _ _ _ <<<"$case_row"
     sha256sum "$FIXTURES/$fixture" >>"$WORK/inputs.sha256"
 done
@@ -62,7 +70,7 @@ for backend in c llvm; do
     grep -Fxq 'NAMED VACANT 13 FAULTS AND RESTORATIONS PASS' "$WORK/$backend-query.run" || \
         fail "$backend named-vacant query oracle drift"
     case_index=0
-    for case_row in "${CASES[@]}"; do
+    for case_row in ${CASES[@]+"${CASES[@]}"}; do
         IFS='|' read -r fixture verdict expected_diagnostic expected_boundary expected_function \
             <<<"$case_row"
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$fixture" diagnostic \
@@ -111,11 +119,11 @@ for backend in c llvm; do
     [[ "$(cat "$WORK/$backend-generation.run")" == 'EXECUTION CONTEXT GENERATION GUARDS PASS' ]] || \
         fail "$backend execution context generation oracle drift"
 done
-for case_index in "${!CASES[@]}" generation; do
+for case_index in ${CASES[@]+"${!CASES[@]}"} generation; do
     cmp "$WORK/c-$case_index.run" "$WORK/llvm-$case_index.run" || \
         fail "C/LLVM analyzer parity drift at case=$case_index"
 done
 for manifest in native inputs imports; do
     sha256sum --quiet -c "$WORK/$manifest.sha256"
 done
-echo "[$LABEL] ${#CASES[@]} source cases per C/LLVM PASS; source targets never emitted/run"
+echo "[$LABEL] $case_count source cases per C/LLVM PASS; source targets never emitted/run"

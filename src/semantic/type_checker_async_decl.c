@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "type_checker_flow_internal.h"
+#include "type_checker_flow_effects.h"
 #include "diag_codes.h"
 #include "../parser/ast_analysis.h"
 #include "function_param_publication_owner.h"
@@ -74,6 +75,10 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->in_async_func = true;
+    TransactionFlowContext *saved_transaction = ctx->transaction_flow;
+    int saved_transaction_depth = ctx->transaction_depth;
+    ctx->transaction_flow = NULL;
+    ctx->transaction_depth = 0;
 
     for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
         (void)type_check_statement_flow_boundary(
@@ -81,6 +86,8 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->in_async_func = saved_async;
+    ctx->transaction_flow = saved_transaction;
+    ctx->transaction_depth = saved_transaction_depth;
     if (!ctx->has_error && !semantic_param_publication_record_checked_deferred(ctx, node)) {
         semantic_error(ctx, node, "Checked async boundary publication failed");
         return false;
@@ -88,12 +95,26 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
     return !ctx->has_error;
 }
 
-bool
-type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
+FlowFlags
+type_check_select_stmt_flow(ASTNode *node, SemanticContext *ctx,
+                            LoopFlowState *loop_flow)
 {
+    ResourceConsumeSnapshot base = snapshot_resource_states(ctx), joined = {0};
+    bool has_joined = false, have_effect = false;
+    uint32_t effects = ctx->current_function_effects;
+    uint32_t merged_effects = EFFECT_NONE, previous_effect = EFFECT_NONE;
+    FlowFlags flags = FLOW_NONE;
+    if (!base.valid) {
+        semantic_error(ctx, node, "Resource snapshot allocation failed before select");
+        destroy_resource_snapshot(&base);
+        return FLOW_NONE;
+    }
     for (size_t i = 0; i < ast_select_case_count(node); i++) {
         ASTNode *c = ast_select_case(node, i);
         if (c != NULL) {
+            FlowFlags case_flags = FLOW_FALLTHROUGH;
+            restore_resource_states_for_context(&base, ctx);
+            ctx->current_function_effects = effects;
             bool valid_case = false;
             if (c->type == AST_BLOCK && ast_block_statement_count(c) > 0) {
                 ASTNode *first = ast_block_statement(c, 0);
@@ -116,7 +137,7 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                 if (!valid_case) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
                         "select case must begin with a channel receive pattern");
-                    (void)type_check_statement_flow_boundary(c, ctx);
+                    (void)type_check_statement_flow(c, ctx, loop_flow);
                     continue;
                 }
 
@@ -139,23 +160,62 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                         scope_declare(ctx->scope, binding);
                     }
                 }
-                for (size_t j = 1; j < ast_block_statement_count(c); j++)
-                    (void)type_check_statement_flow_boundary(
-                        ast_block_statement(c, j), ctx);
+                for (size_t j = 1; j < ast_block_statement_count(c); j++) {
+                    ASTNode *statement = ast_block_statement(c, j);
+                    if (!flow_has_fallthrough(case_flags)) {
+                        flow_record_unreachable_statement(ctx, statement);
+                        continue;
+                    }
+                    case_flags = flow_record_statement_result(case_flags,
+                        type_check_statement_flow(statement, ctx, loop_flow));
+                }
                 semantic_future_require_scope_retired(
                     ctx->scope, c, ctx, "select case exit");
                 scope_exit(&ctx->scope);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
                     "select case must begin with a channel receive pattern");
-                (void)type_check_statement_flow_boundary(c, ctx);
+                case_flags = type_check_statement_flow(c, ctx, loop_flow);
             }
+            flags |= flow_terminating_flags(case_flags) | (case_flags & FLOW_HAS_DEFER);
+            if (flow_has_fallthrough(case_flags)) {
+                ResourceConsumeSnapshot post = snapshot_resource_states(ctx);
+                merge_resource_snapshots_or(&joined, &has_joined, &post);
+                destroy_resource_snapshot(&post);
+                flags |= FLOW_FALLTHROUGH;
+            }
+            flow_merge_effect_delta(ctx, c, &merged_effects, &previous_effect,
+                &have_effect, effect_delta_from_baseline(effects, ctx->current_function_effects));
         }
     }
 
-    if (ast_select_default_case(node))
-        (void)type_check_statement_flow_boundary(
-            ast_select_default_case(node), ctx);
+    if (ast_select_default_case(node)) {
+        restore_resource_states_for_context(&base, ctx);
+        ctx->current_function_effects = effects;
+        FlowFlags default_flags = type_check_statement_flow(
+            ast_select_default_case(node), ctx, loop_flow);
+        flags |= flow_terminating_flags(default_flags) | (default_flags & FLOW_HAS_DEFER);
+        if (flow_has_fallthrough(default_flags)) {
+            ResourceConsumeSnapshot post = snapshot_resource_states(ctx);
+            merge_resource_snapshots_or(&joined, &has_joined, &post);
+            destroy_resource_snapshot(&post);
+            flags |= FLOW_FALLTHROUGH;
+        }
+        flow_merge_effect_delta(ctx, node, &merged_effects, &previous_effect,
+            &have_effect, effect_delta_from_baseline(effects, ctx->current_function_effects));
+    }
+    if (has_joined && !joined.valid)
+        semantic_error(ctx, node, "Resource snapshot merge failed after select");
+    restore_resource_states_for_context(has_joined ? &joined : &base, ctx);
+    ctx->current_function_effects = type_effect_mask_join(effects, merged_effects);
+    destroy_resource_snapshot(&base);
+    destroy_resource_snapshot(&joined);
+    return flags;
+}
 
+bool
+type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
+{
+    (void)type_check_select_stmt_flow(node, ctx, NULL);
     return !ctx->has_error;
 }

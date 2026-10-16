@@ -138,10 +138,13 @@ paired = (
     ("slot_wrapper_capture_string_cast_invalid", False),
     ("slot_wrapper_capture_slot_type_test_invalid", False),
     ("slot_wrapper_capture_string_type_test_invalid", False),
-    ("slot_wrapper_capture_slot_closure_return_invalid", False),
     ("slot_wrapper_capture_string_closure_return_invalid", False),
     ("slot_wrapper_capture_slot_direct_invalid", False),
     ("slot_wrapper_capture_string_direct_return_invalid", False),
+    # Aggregate-carrier controls certify MIR admission/refusal only, not field invocation.
+    ("callable_holder_string_relay_invalid", False),
+    ("callable_holder_named_relay_valid", True),
+    ("callable_holder_int_copy_return_valid", True),
     ("slot_wrapper_assignment_own_invalid", False),
     ("slot_wrapper_assignment_ref_valid", True),
     ("slot_wrapper_cast_own_invalid", False),
@@ -202,6 +205,35 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
+
+# This original full-program falsifier intentionally keeps ClaimSlot, Release
+# and invocation after the rejected Make definition. Native error recovery can
+# leave those later locals unbound. Only this independently observed case uses
+# its FIRST diagnostic as the safety oracle; later diagnostics are recorded,
+# not mistaken for either the original cause or additional borrow coverage.
+def check_full_capture_refusal(name, expected_site):
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+    output = (checked.stdout + checked.stderr).decode(errors="replace")
+    try:
+        diagnostics = json.loads(output)
+    except json.JSONDecodeError:
+        raise SystemExit(f"full capture negative {name} lost structured diagnostics: {output}")
+    first = diagnostics[0] if isinstance(diagnostics, list) and diagnostics else None
+    if (checked.returncode != 1 or '"pgy.mir.v1"' in output or not isinstance(first, dict)
+            or first.get("severity") != "error" or first.get("code") != "PGY_SEM_BORROW_ESCAPE"
+            or first.get("cause_ir") != "semantic:borrow_escape"
+            or (first.get("location", {}).get("line"), first.get("location", {}).get("column")) != expected_site):
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"full capture negative {name} lost its primary owned borrow refusal")
+    secondary = [{key: row.get(key) for key in ("severity", "code", "cause_ir", "location")}
+                 for row in diagnostics[1:] if isinstance(row, dict)]
+    print(f"[function-param-flow-summary] {name} secondary diagnostics: " + json.dumps(secondary, sort_keys=True))
+
+check_full_capture_refusal("slot_wrapper_capture_slot_closure_return_invalid", (2, 49))
+
 for name, code, cause in (
     ("stdlib_trim_arity_invalid", "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch"),
     ("stdlib_toint_arity_invalid", "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch"),

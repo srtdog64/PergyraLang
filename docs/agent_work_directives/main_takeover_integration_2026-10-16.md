@@ -718,6 +718,26 @@ snapshot equality or typecheck handlers as unconditional normal execution.
 The body/handler scope and typed fail-state producer remain an implementation
 decision before transaction permission; no green/closed claim covers them.
 
+The implementation decision is now bounded: the existing flow owner collects
+the actual reachable fail states projected to the transaction's outer scope,
+joins them with its existing conservative resource MAY join, and checks the
+reverse handler chain exactly once. This deliberately loses path correlation;
+it does not grant permission missing from any failure alternative. A distinct
+fail exit is propagated through branches/loops/select and consumed only by its
+transaction, not mistaken for a function return. Incomplete loop summaries are
+not reused while that outer failure frontier is active. Normal and compensated
+poststates join at the real continuation. Callable/worker/defer bodies cannot
+target their defining caller's transaction. The duplicate statement entrypoint
+must delegate to the same flow owner.
+
+With no reachable failure, handlers still need typed identities for existing
+backends. Check them once in the outer entry state as unreachable code and
+restore the actual normal resource continuation. Existing conservative MAY
+effect/capability/call obligations remain; this is not a new type-only rollback
+API or a claim of dead-code precision. Snapshot fields do not prove universal
+transactional rollback of all compiler metadata. Local cleanup on a fail edge
+must match runtime lowering; no semantic scope pop may invent a release.
+
 Current independent scopes remain one safety chain: A publication/capture
 producers and escape/root selection; B access/claims plus existing callable
 equations' last retaining consumers; C behavioral tests and transaction flow
@@ -737,6 +757,29 @@ peak52468KiB. The single remaining failure is untyped compensation; receipt
 `/root/pgy-main-20261016.p0-checkpoint-phase.log`. It is intentionally recorded
 RED and is not pushed as accepted work. The fixed canonical/bootstrap/driver/
 memory/CI chain still needs current evidence; older counts do not authorize it.
+
+P0 integration after that preservation checkpoint: typed aggregate FUNCTION
+leaf stores feed the existing callable seal; original nonretaining function
+formals stay separate. Actual failure resources join conservatively before one
+reverse handler check. The missing compensation ID producer was repaired in
+`ast_identity.c`, not bypassed at publication. Root observed5069/0 phase checks,
+full summary/worker/Holder/4096/4097 gate PASS10.06s, Map24/58+IR PASS17.73s,
+component PASS11.66s, semantic599/header600 caps and build inventory PASS. Runtime
+header composition changes pass four-key inline/raw15.24s and linkage/region/
+ABI drift7.23s. Physical components preserve logical ownership; no registry row
+is promoted CLOSED by these receipts. The one full-program Slot capture probe
+requires the exact first BORROW code/cause/site and MIR absence; its later native
+recovery diagnostics are recorded. All pre-existing strict negative oracles
+remain unchanged. Unsupported Set typing is not borrow-safety evidence.
+
+Candidate binary238a938d7d230bebf14d5b1d3dda6a9e0e636794318b1a7a6e5a42d7e4de4257:
+unchanged canonical remains RED19.82s/peak769804KiB, first15:6 work4096,
+18410 cascading errors/16 warnings (`p0-candidate-canonical` receipt). Next
+decision is the already-planned complete current census / controlled shared-
+body geometry measurement, not another language feature or owner family.
+The old matrix files would revert current P0 claims/output currency; only the
+reviewed geometry delta may be prepared in scratch. No matrix implementation
+or run has occurred. Full bootstrap/driver/memory/published CI remain OPEN.
 
 ## Observations
 

@@ -362,6 +362,13 @@ callable_capability_seal(SemanticContext *ctx)
             return false;
     }
     for (CapabilityInstance *i = store->instances; i; i = i->next) {
+        for (CapabilityRetainedValue *r = i->routine->retained_values; r != NULL; r = r->next) {
+            bool requires_local = false;
+            if (r->site_id != ast_node_stable_id(r->site) || r->value_id != ast_node_stable_id(r->value) ||
+                !semantic_param_publication_value(ctx, r->value).ok ||
+                !capability_value_environment(ctx, i, r->target, &requires_local) || requires_local)
+                return capability_environment_refusal(ctx, r->site);
+        }
         if (i->routine->result_unknown)
             return capability_environment_refusal(ctx, i->routine->unknown_result_site);
         for (CapabilityResultTarget *r = i->routine->results; r != NULL; r = r->next) {

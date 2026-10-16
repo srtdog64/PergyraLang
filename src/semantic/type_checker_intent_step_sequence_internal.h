@@ -3,6 +3,11 @@
 
 #include "type_checker.h"
 
+/* Success opens the outcome scope; the sequence caller still closes it. */
+bool type_check_intent_step_bind_outcome(ASTNode *intent_decl, ASTNode *step,
+    Type *outcome_type, ASTNode *child_intent, SemanticContext *ctx,
+    bool *scope_entered_out);
+
 void type_check_intent_step_sequence(
     ASTNode *node,
     SemanticContext *ctx,

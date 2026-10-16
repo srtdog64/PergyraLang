@@ -1,4 +1,4 @@
-#include "collection_ownership_fact.h"
+#include "collection_ownership_fact_internal.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -20,213 +20,11 @@ is_array_string(const Type *type)
     return inner != NULL && type_equals(inner, TYPE_STRING);
 }
 
-static uint32_t
+uint32_t
 current_function_syntax_id(const SemanticContext *ctx)
 {
     return ctx != NULL && ctx->current_function_decl != NULL
         ? ast_node_stable_id(ctx->current_function_decl) : 0;
-}
-
-static bool
-collection_call_is_unshadowed_builtin(const ASTNode *expr,
-                                      const char *expected_name)
-{
-    ASTNode *callee;
-    const char *name;
-
-    if (expr == NULL || expr->type != AST_CALL || expected_name == NULL)
-        return false;
-    callee = ast_call_callee(expr);
-    if (callee == NULL || callee->type != AST_IDENTIFIER)
-        return false;
-    name = ast_identifier_name(callee);
-    return name != NULL && strcmp(name, expected_name) == 0
-        && ast_identifier_binding_syntax_id(callee) == 0;
-}
-
-static ASTNode *
-collection_direct_let_for_binding(ASTNode *body, uint32_t binding_syntax_id)
-{
-    if (body == NULL || body->type != AST_BLOCK || binding_syntax_id == 0)
-        return NULL;
-    for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-        ASTNode *stmt = ast_block_statement(body, i);
-        if (stmt != NULL && stmt->type == AST_LET_DECL
-            && ast_node_stable_id(stmt) == binding_syntax_id)
-            return stmt;
-    }
-    return NULL;
-}
-
-static bool
-collection_direct_result_allocator_binding(ASTNode *body,
-                                           uint32_t binding_syntax_id)
-{
-    ASTNode *decl = collection_direct_let_for_binding(
-        body, binding_syntax_id);
-    return decl != NULL && !ast_let_is_mutable(decl)
-        && collection_call_is_unshadowed_builtin(
-            ast_let_initializer(decl), "AllocatorResult");
-}
-
-static bool
-collection_callable_type_returns_owned_string(const ASTNode *call,
-                                              SemanticContext *ctx,
-                                              uint32_t *producer_id_out)
-{
-    ASTNode *callee;
-    ASTNode *decl;
-    Symbol *symbol;
-    const char *name;
-    uint32_t producer_id;
-
-    if (producer_id_out != NULL)
-        *producer_id_out = 0;
-    if (call == NULL || call->type != AST_CALL || ctx == NULL)
-        return false;
-    producer_id = ast_call_semantic_callee_decl_id(call);
-    callee = ast_call_callee(call);
-    name = callee != NULL && callee->type == AST_IDENTIFIER
-        ? ast_identifier_name(callee) : NULL;
-    if (producer_id == 0 || name == NULL)
-        return false;
-    decl = semantic_find_callable_decl_by_name(ctx, name);
-    symbol = scope_lookup(ctx->scope, name);
-    if (decl == NULL || decl->type != AST_FUNC_DECL
-        || ast_node_stable_id(decl) != producer_id
-        || symbol == NULL || symbol->kind != SYMBOL_FUNCTION
-        || symbol->decl_syntax_id != producer_id
-        || symbol->type == NULL || symbol->type->kind != TYPE_KIND_FUNCTION
-        || !type_function_has_body_summary(symbol->type)
-        || !type_equals(type_function_return_type(symbol->type), TYPE_STRING)
-        || (type_function_body_summary(symbol->type)
-            & BODY_SUMMARY_RETURNS_OWNED_STRING) == 0) {
-        return false;
-    }
-    if (producer_id_out != NULL)
-        *producer_id_out = producer_id;
-    return true;
-}
-
-static bool
-collection_owned_string_expression_ready(ASTNode *body,
-                                         const ASTNode *expression,
-                                         SemanticContext *ctx,
-                                         unsigned depth)
-{
-    ASTNode *decl;
-    ASTNode *allocator;
-    uint32_t binding_id;
-
-    if (body == NULL || expression == NULL || depth > 8)
-        return false;
-    if (expression->type == AST_IDENTIFIER) {
-        binding_id = ast_identifier_binding_syntax_id(expression);
-        decl = collection_direct_let_for_binding(body, binding_id);
-        /* A named initializer is only a straight-line provenance proof.
-         * Control-dependent rebinding needs a value fact, not the old let. */
-        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-            ASTNode *stmt = ast_block_statement(body, i);
-            if (stmt == NULL)
-                return false;
-            if (stmt->type == AST_ASSIGNMENT) {
-                ASTNode *target = ast_assignment_target(stmt);
-                if (target != NULL && target->type == AST_IDENTIFIER
-                    && ast_identifier_binding_syntax_id(target) == binding_id)
-                    return false;
-            } else if (stmt->type != AST_RETURN && stmt->type != AST_LET_DECL
-                       && stmt->type != AST_CALL
-                       && stmt->type != AST_DEFER_STMT) {
-                return false;
-            }
-        }
-        return decl != NULL && !ast_let_is_mutable(decl)
-            && collection_owned_string_expression_ready(
-                body, ast_let_initializer(decl), ctx, depth + 1);
-    }
-    if (expression->type != AST_CALL)
-        return false;
-    if (collection_call_is_unshadowed_builtin(expression, "Concat"))
-        return ast_call_arg_count(expression) == 2;
-    if (collection_call_is_unshadowed_builtin(
-            expression, "TextBuilderFinish")) {
-        if (ast_call_arg_count(expression) != 2)
-            return false;
-        allocator = ast_call_argument(expression, 1);
-        return allocator != NULL && allocator->type == AST_IDENTIFIER
-            && collection_direct_result_allocator_binding(
-                body, ast_identifier_binding_syntax_id(allocator));
-    }
-    return collection_callable_type_returns_owned_string(
-        expression, ctx, NULL);
-}
-
-bool
-semantic_collection_owned_string_call_result(
-    const ASTNode *expression,
-    SemanticContext *ctx,
-    uint32_t *producer_syntax_id_out)
-{
-    return collection_callable_type_returns_owned_string(
-        expression, ctx, producer_syntax_id_out);
-}
-
-static bool
-collection_owned_string_returns_ready(ASTNode *node, ASTNode *function_body,
-                                      SemanticContext *ctx,
-                                      bool *saw_return, unsigned depth)
-{
-    if (node == NULL)
-        return true;
-    if (depth > 8)
-        return false;
-    if (node->type == AST_RETURN) {
-        *saw_return = true;
-        return collection_owned_string_expression_ready(
-            function_body, ast_return_value(node), ctx, 0);
-    }
-    if (node->type == AST_BLOCK) {
-        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-            ASTNode *stmt = ast_block_statement(node, i);
-            if (stmt == NULL || !collection_owned_string_returns_ready(
-                    stmt, function_body, ctx, saw_return, depth + 1)) {
-                return false;
-            }
-        }
-        return true;
-    }
-    if (node->type == AST_IF_STMT) {
-        return collection_owned_string_returns_ready(
-                   ast_if_then_branch(node), function_body, ctx,
-                   saw_return, depth + 1)
-            && collection_owned_string_returns_ready(
-                   ast_if_else_branch(node), function_body, ctx,
-                   saw_return, depth + 1);
-    }
-    /* Lambda bodies are not enclosing-function returns. Other control owners
-     * remain unadmitted until their return facts are explicitly supported. */
-    return node->type == AST_LET_DECL || node->type == AST_CALL
-        || node->type == AST_ASSIGNMENT || node->type == AST_DEFER_STMT;
-}
-
-void
-semantic_collection_record_owned_string_result_summary(
-    ASTNode *function_decl,
-    SemanticContext *ctx)
-{
-    bool saw_return = false;
-    if (function_decl == NULL || function_decl->type != AST_FUNC_DECL
-        || ctx == NULL || !ctx->tracking_function_effects
-        || !type_equals(ctx->current_return, TYPE_STRING)) {
-        return;
-    }
-    ASTNode *body = ast_func_body(function_decl);
-    if (body != NULL && body->type == AST_BLOCK
-        && collection_owned_string_returns_ready(
-            body, body, ctx, &saw_return, 0) && saw_return) {
-        semantic_record_body_summary(
-            ctx, BODY_SUMMARY_RETURNS_OWNED_STRING);
-    }
 }
 
 static bool
@@ -335,7 +133,7 @@ receiver_symbol(ASTNode *receiver, SemanticContext *ctx)
     return scope_lookup(ctx->scope, ast_identifier_name(receiver));
 }
 
-static uint32_t
+uint32_t
 receiver_binding_syntax_id(ASTNode *receiver, const Symbol *binding)
 {
     uint32_t annotated_id = ast_identifier_binding_syntax_id(receiver);
@@ -343,7 +141,7 @@ receiver_binding_syntax_id(ASTNode *receiver, const Symbol *binding)
                              : (binding != NULL ? binding->decl_syntax_id : 0);
 }
 
-static PgyCollectionOwnershipFact *
+PgyCollectionOwnershipFact *
 receiver_collection_fact(ASTNode *receiver, SemanticContext *ctx,
                          Symbol **binding_out)
 {
@@ -353,188 +151,6 @@ receiver_collection_fact(ASTNode *receiver, SemanticContext *ctx,
         *binding_out = binding;
     return collection_ownership_fact_find_mutable(
         ctx, current_function_syntax_id(ctx), binding_id);
-}
-
-static bool
-collection_member_move_identity(const ASTNode *member_access,
-                                SemanticContext *ctx,
-                                uint32_t *root_binding_id_out,
-                                uint32_t *field_syntax_id_out)
-{
-    ASTNode *root;
-    Symbol *binding;
-    ASTNode *decl;
-    const char *field_name;
-    uint32_t root_binding_id;
-
-    if (root_binding_id_out != NULL)
-        *root_binding_id_out = 0;
-    if (field_syntax_id_out != NULL)
-        *field_syntax_id_out = 0;
-    if (member_access == NULL || member_access->type != AST_MEMBER_ACCESS
-        || ctx == NULL)
-        return false;
-    root = ast_member_object(member_access);
-    if (root == NULL || root->type != AST_IDENTIFIER)
-        return false;
-    binding = scope_lookup(ctx->scope, ast_identifier_name(root));
-    root_binding_id = receiver_binding_syntax_id(root, binding);
-    field_name = ast_member_name(member_access);
-    decl = binding != NULL
-        ? semantic_host_decl_for_type(ctx, binding->type) : NULL;
-    if (root_binding_id == 0 || field_name == NULL || decl == NULL
-        || decl->type != AST_CLASS_DECL)
-        return false;
-    for (size_t i = 0; i < projection_source_field_count(decl); i++) {
-        PgyDeclField field = projection_source_field_at(decl, i);
-        if (field.name != NULL && strcmp(field.name, field_name) == 0
-            && field.declaration_syntax_id != 0) {
-            if (root_binding_id_out != NULL)
-                *root_binding_id_out = root_binding_id;
-            if (field_syntax_id_out != NULL)
-                *field_syntax_id_out = field.declaration_syntax_id;
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool
-collection_binding_is_current_parameter(const SemanticContext *ctx,
-                                        uint32_t binding_syntax_id)
-{
-    ASTNode *function_decl;
-
-    if (ctx == NULL || binding_syntax_id == 0)
-        return false;
-    function_decl = ctx->current_function_decl;
-    if (function_decl == NULL || function_decl->type != AST_FUNC_DECL)
-        return false;
-    for (size_t i = 0; i < ast_func_param_count(function_decl); i++) {
-        FuncParam *param = ast_func_param(function_decl, i);
-        if (param != NULL
-            && ast_func_param_stable_id(param) == binding_syntax_id)
-            return true;
-    }
-    return false;
-}
-
-bool
-semantic_collection_reject_moved_member_use(ASTNode *member_access,
-                                             SemanticContext *ctx)
-{
-    uint32_t root_binding_id;
-    uint32_t field_syntax_id;
-    const char *field_name;
-
-    if (!collection_member_move_identity(member_access, ctx,
-            &root_binding_id, &field_syntax_id))
-        return false;
-    for (size_t i = 0; i < ctx->collection_ownership_fact_count; i++) {
-        const PgyCollectionOwnershipFact *fact =
-            &ctx->collection_ownership_facts[i];
-        if (fact->function_syntax_id != current_function_syntax_id(ctx)
-            || fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
-            || fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
-            || fact->source_binding_syntax_id != root_binding_id
-            || fact->origin_syntax_id != field_syntax_id)
-            continue;
-        field_name = ast_member_name(member_access);
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_MOVE_FROM_RELEASED,
-            PGY_CAUSE_MOVE_FROM_RELEASED,
-            PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE,
-            member_access,
-            "Field '%s' was moved into collection binding syntax %u and cannot be used again.\n"
-            "Reason:\n"
-            "- field extraction transfers the collection descriptor and its storage lifetime\n"
-            "- using the source field again would recreate a shallow alias\n"
-            "Fix:\n"
-            "- use Clone(source.%s) when both values must remain live\n"
-            "- or keep using only the moved local binding",
-            field_name != NULL ? field_name : "<field>",
-            fact->binding_syntax_id,
-            field_name != NULL ? field_name : "<field>");
-        return true;
-    }
-    return false;
-}
-
-bool
-semantic_collection_admit_owned_string_push(ASTNode *receiver,
-                                             SemanticContext *ctx)
-{
-    Symbol *binding = NULL;
-    PgyCollectionOwnershipFact *fact =
-        receiver_collection_fact(receiver, ctx, &binding);
-    const char *name = binding != NULL && binding->name != NULL
-        ? binding->name : "<array>";
-
-    if (binding != NULL && binding->has_escaped_array_storage) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-            receiver, "ArrayPushOwnedString cannot mutate escaped array storage in '%s'",
-            name);
-        return false;
-    }
-    if (fact == NULL)
-        return true;
-    if (fact->element_ownership != PGY_STRING_ARRAY_BORROWED_ELEMENTS
-        && !(fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
-             && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE))
-        return true;
-    semantic_error_with_hints(ctx,
-        PGY_CODE_SEM_BORROW_ESCAPE,
-        PGY_CAUSE_BORROW_ESCAPE,
-        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-        receiver,
-        "ArrayPushOwnedString cannot mix an owned String into '%s' without uniform element ownership.\n"
-        "Reason:\n"
-        "- the existing elements are borrowed or have no deep-release proof\n"
-        "- the resulting array would have no sound whole-array cleanup policy\n"
-        "Fix:\n"
-        "- Clone the collection into an owned snapshot before the owned push\n"
-        "- or use ArrayPush for a borrowed String element",
-        name);
-    return false;
-}
-
-bool
-semantic_collection_restore_moved_member(ASTNode *target,
-                                         ASTNode *value,
-                                         SemanticContext *ctx)
-{
-    uint32_t root_binding_id;
-    uint32_t field_syntax_id;
-    uint32_t value_binding_id;
-    Symbol *value_binding;
-
-    if (value == NULL || value->type != AST_IDENTIFIER || ctx == NULL
-        || !collection_member_move_identity(target, ctx,
-            &root_binding_id, &field_syntax_id))
-        return false;
-    value_binding = scope_lookup(ctx->scope, ast_identifier_name(value));
-    value_binding_id = receiver_binding_syntax_id(value, value_binding);
-    if (value_binding == NULL || value_binding_id == 0)
-        return false;
-
-    for (size_t i = 0; i < ctx->collection_ownership_fact_count; i++) {
-        PgyCollectionOwnershipFact *fact =
-            &ctx->collection_ownership_facts[i];
-        if (fact->function_syntax_id != current_function_syntax_id(ctx)
-            || fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
-            || fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
-            || fact->binding_syntax_id != value_binding_id
-            || fact->source_binding_syntax_id != root_binding_id
-            || fact->origin_syntax_id != field_syntax_id)
-            continue;
-        /* Exact move-back restores the field and consumes the temporary.
-         * No descriptor is copied and no second owner remains live. */
-        fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
-        value_binding->is_consumed = true;
-        return true;
-    }
-    return false;
 }
 
 bool
@@ -755,6 +371,26 @@ semantic_collection_reject_unsafe_owned_string_mutation(
         binding != NULL && binding->name != NULL
             ? binding->name : "<array>");
     return true;
+}
+
+static bool
+collection_binding_is_current_parameter(const SemanticContext *ctx,
+                                        uint32_t binding_syntax_id)
+{
+    ASTNode *function_decl;
+
+    if (ctx == NULL || binding_syntax_id == 0)
+        return false;
+    function_decl = ctx->current_function_decl;
+    if (function_decl == NULL || function_decl->type != AST_FUNC_DECL)
+        return false;
+    for (size_t i = 0; i < ast_func_param_count(function_decl); i++) {
+        FuncParam *param = ast_func_param(function_decl, i);
+        if (param != NULL
+            && ast_func_param_stable_id(param) == binding_syntax_id)
+            return true;
+    }
+    return false;
 }
 
 bool

@@ -79,7 +79,7 @@ type_check_stmt_debug_visit_report(void)
 FlowFlags
 flow_terminating_flags(FlowFlags flags)
 {
-    return flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN);
+    return flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN | FLOW_TXN_FAIL);
 }
 
 FlowFlags
@@ -90,6 +90,7 @@ flow_record_statement_result(FlowFlags current, FlowFlags statement)
                           | FLOW_BREAK
                           | FLOW_CONTINUE
                           | FLOW_RETURN
+                          | FLOW_TXN_FAIL
                           | FLOW_HAS_DEFER);
     return current;
 }
@@ -332,34 +333,109 @@ type_check_statement_flow_dispatch(ASTNode *node, SemanticContext *ctx,
         return type_check_unsafe_block_flow(node, ctx, loop_flow);
     case AST_TRANSACTION_BLOCK: {
         ASTNode *txn_body = ast_transaction_block_body(node);
-        FlowFlags txn_flags;
+        TransactionFlowContext frame = {.parent = ctx->transaction_flow,
+                                        .outer_scope = ctx->scope};
+        ResourceConsumeSnapshot entry = snapshot_resource_states(ctx);
+        ResourceConsumeSnapshot normal = {0}, joined = {0};
+        bool has_joined = false;
+        FlowFlags txn_flags = FLOW_NONE;
 
-        if (txn_body == NULL)
-            return FLOW_FALLTHROUGH;
+        if (!entry.valid) {
+            semantic_error(ctx, node, "Resource snapshot allocation failed before transaction");
+            destroy_resource_snapshot(&entry);
+            return FLOW_NONE;
+        }
+        ctx->transaction_flow = &frame;
         ctx->transaction_depth++;
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
         txn_flags = type_check_block_flow(txn_body, ctx, loop_flow);
+        semantic_future_require_scope_retired(ctx->scope, node, ctx, "transaction body exit");
+        scope_exit(&ctx->scope);
         ctx->transaction_depth--;
+        ctx->transaction_flow = frame.parent;
+        normal = snapshot_resource_states(ctx);
+        if (!normal.valid || (frame.has_failures && !frame.failures.valid)) {
+            semantic_error(ctx, node, "Resource snapshot capture failed at transaction exit");
+        } else {
+            uint32_t effects = ctx->current_function_effects;
+            uint32_t direct_effects = ctx->current_function_direct_effects;
+            /* A dead handler is not a failure-state permission. Its type and
+             * identity are still checked; conservative capability obligations
+             * may remain, just as for an existing static-dead branch. */
+            restore_resource_states_for_context(frame.has_failures ? &frame.failures : &entry, ctx);
+            if (!frame.has_failures) ctx->future_lifecycle_unreachable_depth++;
+            for (size_t i = node->data.transaction_block.compensation_count; i > 0; i--) {
+                ASTNode *handler = node->data.transaction_block.compensations == NULL
+                    ? NULL : node->data.transaction_block.compensations[i - 1];
+                if (handler == NULL) {
+                    semantic_error(ctx, node, "Transaction compensation expression is missing");
+                    continue;
+                }
+                if (semantic_param_publication_pending(ctx) &&
+                    !semantic_param_publication_record_execution(ctx, handler,
+                        ctx->future_lifecycle_unreachable_depth == 0))
+                    semantic_error(ctx, handler, "Transaction compensation execution publication failed");
+                (void)type_check_expression(handler, ctx);
+            }
+            if (!frame.has_failures) {
+                ctx->future_lifecycle_unreachable_depth--;
+                ctx->current_function_effects = effects;
+                ctx->current_function_direct_effects = direct_effects;
+            } else {
+                ResourceConsumeSnapshot compensated = snapshot_resource_states(ctx);
+                merge_resource_snapshots_or(&joined, &has_joined, &compensated);
+                destroy_resource_snapshot(&compensated);
+            }
+            restore_resource_states_for_context(&normal, ctx);
+            if (flow_has_fallthrough(txn_flags))
+                merge_resource_snapshots_or(&joined, &has_joined, &normal);
+            if (has_joined) {
+                if (!joined.valid)
+                    semantic_error(ctx, node, "Resource snapshot merge failed after transaction compensation");
+                else
+                    restore_resource_states_for_context(&joined, ctx);
+            }
+        }
+        txn_flags &= ~FLOW_TXN_FAIL;
+        if (frame.has_failures) txn_flags |= FLOW_FALLTHROUGH;
+        destroy_resource_snapshot(&entry);
+        destroy_resource_snapshot(&normal);
+        destroy_resource_snapshot(&joined);
+        destroy_resource_snapshot(&frame.failures);
         return txn_flags;
     }
     case AST_FAIL_STMT: {
         ASTNode *fail_reason = ast_fail_stmt_reason(node);
 
-        if (ctx != NULL && ctx->transaction_depth <= 0 && !ctx->has_error)
+        if (ctx != NULL && (ctx->transaction_depth <= 0 || ctx->transaction_flow == NULL)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID,
                 PGY_CAUSE_TRANSACTION_CONTROL,
                 PGY_FIX_MOVE_INTO_TRANSACTION, node,
                 "'fail' used outside of transaction");
+            return FLOW_NONE;
+        }
         if (fail_reason != NULL)
             type_check_expression(fail_reason, ctx);
-        return FLOW_FALLTHROUGH;
+        semantic_future_require_until(ctx->scope, ctx->transaction_flow->outer_scope,
+            node, ctx, "transaction failure");
+        if (ctx->future_lifecycle_unreachable_depth == 0) {
+            ResourceConsumeSnapshot failure = snapshot_resource_states_from_scope(
+                ctx->transaction_flow->outer_scope, ctx);
+            merge_resource_snapshots_or(&ctx->transaction_flow->failures,
+                &ctx->transaction_flow->has_failures, &failure);
+            destroy_resource_snapshot(&failure);
+            if (!ctx->transaction_flow->failures.valid)
+                semantic_error(ctx, node, "Resource snapshot capture failed at transaction failure");
+        }
+        return FLOW_TXN_FAIL;
     }
     case AST_DEFER_STMT:
         return type_check_defer_stmt_flow(node, ctx);
     case AST_ASYNC_BLOCK:
         return type_check_async_stmt_flow(node, ctx);
     case AST_SELECT_STMT:
-        return type_check_select_stmt_flow_kind(node, ctx);
+        return type_check_select_stmt_flow(node, ctx, loop_flow);
     case AST_LET_DECL:
         return type_check_let_stmt_flow(node, ctx);
     case AST_LET_DESTRUCTURE:

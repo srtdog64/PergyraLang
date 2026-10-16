@@ -6,6 +6,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_diag_internal.h"
@@ -183,6 +184,7 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
     }
 
     Type *elem_type = type_check_expression(ast_array_literal_element(expr, 0), ctx);
+    callable_capability_record_retained_value(ctx, expr, ast_array_literal_element(expr, 0), elem_type);
     reject_borrowed_array_literal_store(
         ast_array_literal_element(expr, 0), elem_type, ctx);
     if (elem_type == NULL)
@@ -198,6 +200,7 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 
     for (size_t i = 1; i < ast_array_literal_count(expr); i++) {
         Type *next = type_check_expression(ast_array_literal_element(expr, i), ctx);
+        callable_capability_record_retained_value(ctx, expr, ast_array_literal_element(expr, i), next);
         reject_borrowed_array_literal_store(
             ast_array_literal_element(expr, i), next, ctx);
         if (next == NULL)
@@ -243,6 +246,7 @@ type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
     }
 
     Type *elem_type = type_check_expression(ast_set_literal_element(expr, 0), ctx);
+    callable_capability_record_retained_value(ctx, expr, ast_set_literal_element(expr, 0), elem_type);
     semantic_reject_affine_aggregate_storage(
         ast_set_literal_element(expr, 0), elem_type, ctx, "set literal");
     if (elem_type == NULL)
@@ -258,6 +262,7 @@ type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
 
     for (size_t i = 1; i < ast_set_literal_count(expr); i++) {
         Type *next = type_check_expression(ast_set_literal_element(expr, i), ctx);
+        callable_capability_record_retained_value(ctx, expr, ast_set_literal_element(expr, i), next);
         semantic_reject_affine_aggregate_storage(
             ast_set_literal_element(expr, i), next, ctx, "set literal");
         if (next == NULL)
@@ -331,6 +336,8 @@ type_check_map_literal(ASTNode *expr, SemanticContext *ctx)
             type_check_expression(ast_map_literal_key(expr, i), ctx));
         Type *v = expr_collection_normalize_type(
             type_check_expression(ast_map_literal_value(expr, i), ctx));
+        callable_capability_record_retained_value(ctx, expr, ast_map_literal_key(expr, i), k);
+        callable_capability_record_retained_value(ctx, expr, ast_map_literal_value(expr, i), v);
         semantic_reject_affine_aggregate_storage(
             ast_map_literal_key(expr, i), k, ctx, "map key storage");
         semantic_reject_affine_aggregate_storage(

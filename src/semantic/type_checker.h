@@ -42,6 +42,7 @@ typedef struct TypeResolutionEdge TypeResolutionEdge;
 typedef struct TypeResolutionGraph TypeResolutionGraph;
 typedef struct ResourceFlowUniverse ResourceFlowUniverse;
 typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
+typedef struct TransactionFlowContext TransactionFlowContext;
 typedef struct CallableCapabilityStore CallableCapabilityStore;
 typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
 typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
@@ -161,6 +162,7 @@ struct SemanticContext
                                     * legal. */
     int          loop_depth;     /* Inside loop nesting            */
     int          transaction_depth; /* Inside transaction nesting (fail scope) */
+    TransactionFlowContext *transaction_flow; /* Synchronous failure destination. */
     const char  *loop_labels[SEMANTIC_MAX_LOOP_DEPTH];
     int32_t      next_entangle_pool; /* Compile-time entangle pool counter */
 

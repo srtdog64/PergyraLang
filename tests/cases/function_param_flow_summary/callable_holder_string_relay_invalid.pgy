@@ -1,0 +1,11 @@
+struct Holder { f: func(Int) -> Int; }
+func Identity(n: Int) -> Int { return n; }
+func Make() -> Holder {
+    let text: String = Concat("heap", " text");
+    let f: func(Int) -> Int = (n: Int) => StringLength(text) + n;
+    return Holder(f);
+}
+func Relay(h: Holder) -> Holder { return h; }
+func Main() -> Void {
+    let a: Holder = Relay(Make());
+}

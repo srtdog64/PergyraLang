@@ -9,6 +9,7 @@
 #include "semantic/semantic.h"
 #include "semantic/type_checker.h"
 #include "semantic/type_checker_internal.h"
+#include "semantic/type_checker_flow_internal.h"
 #include "semantic/type_system.h"
 #include "semantic/diag_codes.h"
 #include "semantic/function_param_publication_owner.h"
@@ -3743,8 +3744,138 @@ cleanup:
     }
 }
 
+static void checked_transaction_compensation_identity(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Main()->Void{transaction{compensate Log(Concat(\"roll\",\"back\"));fail \"x\";}}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    if (program != NULL && !parser_has_error(parser)) {
+        CHECK(ast_assign_stable_ids(program));
+        ASTNode *transaction = ast_block_statement(ast_func_body(ast_program_statement(program, 0)), 0);
+        ASTNode *handler = transaction->data.transaction_block.compensations[0];
+        ASTNode *nested = ast_call_argument(handler, 0);
+        ASTNode *nodes[] = {transaction, ast_transaction_block_body(transaction),
+            handler, ast_call_callee(handler), nested, ast_call_callee(nested),
+            ast_call_argument(nested, 0), ast_call_argument(nested, 1)};
+        uint32_t original[sizeof(nodes) / sizeof(nodes[0])];
+        for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++) {
+            original[i] = ast_node_stable_id(nodes[i]);
+            CHECK(original[i] != 0);
+            for (size_t j = 0; j < i; j++) CHECK(original[i] != original[j]);
+        }
+        CHECK(ast_complete_stable_ids(program));
+        for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++)
+            CHECK(ast_node_stable_id(nodes[i]) == original[i]);
+        CHECK(ast_assign_stable_ids(program));
+        for (size_t i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++)
+            CHECK(ast_node_stable_id(nodes[i]) == original[i]);
+    }
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_transaction_failure_states(void)
+{
+    const struct {
+        const char *name, *source, *error;
+    } cases[] = {
+        {"literal failure", "func Main()->Void{transaction{compensate Log(\"rollback\");fail \"x\";}Log(\"after\");}", NULL},
+        {"dead owned handler restores normal", "func Take(own slot:Slot<Int>)->Void{}func Main()->Void{let slot:Slot<Int> =ClaimSlot();transaction{compensate Take(slot);}Log(Read(slot));}", NULL},
+        {"unreachable failure is not an input", "func Take(own slot:Slot<Int>)->Void{}func Main()->Void{let slot:Slot<Int> =ClaimSlot();transaction{compensate Take(slot);if false{fail \"x\";}}Log(Read(slot));}", NULL},
+        {"body-local not visible", "func Main()->Void{transaction{let hidden:Int=7;compensate Log(hidden);fail \"x\";}}", PGY_CODE_SEM_UNDEFINED_SYMBOL},
+        {"outer identity survives body scope", "func Main()->Void{let text:String=\"outer\";transaction{let inner:Int=7;compensate Log(text);fail \"x\";}}", NULL},
+        {"consumed failure input", "func Take(own slot:Slot<Int>)->Void{}func Main()->Void{let slot:Slot<Int> =ClaimSlot();transaction{compensate Log(Read(slot));Take(slot);fail \"x\";}}", PGY_CODE_SEM_SLOT_RELEASED},
+        {"failure alternatives joined", "func Take(own slot:Slot<Int>)->Void{}func Probe(condition:Bool)->Void{let slot:Slot<Int> =ClaimSlot();transaction{compensate Log(Read(slot));if condition{Take(slot);fail \"a\";}else{fail \"b\";}}}func Main()->Void{}", PGY_CODE_SEM_SLOT_RELEASED},
+        {"failure is not routine return", "func Probe()->Int{transaction{compensate Log(\"rollback\");fail \"x\";}}func Main()->Void{}", PGY_CODE_SEM_MISSING_RETURN},
+        {"return bypasses failure", "func Probe()->Void{transaction{compensate Log(\"rollback\");return;}}func Main()->Void{}", NULL},
+        {"while failure reaches transaction", "func Main()->Void{transaction{compensate Log(\"rollback\");while true{fail \"x\";}}Log(\"after\");}", NULL},
+        {"for failure reaches transaction", "func Main()->Void{transaction{compensate Log(\"rollback\");for i in 0..1{fail \"x\";}}Log(\"after\");}", NULL},
+        {"nested failure is local", "func Main()->Void{transaction{compensate Log(\"outer\");transaction{compensate Log(\"inner\");fail \"inner\";}Log(\"continued\");fail \"outer\";}}", NULL},
+        {"reverse handler state", "func Take(own slot:Slot<Int>)->Void{}func Main()->Void{let slot:Slot<Int> =ClaimSlot();transaction{compensate Log(Read(slot));compensate Take(slot);fail \"x\";}}", PGY_CODE_SEM_SLOT_RELEASED},
+        {"failure poststate joins normal", "func Take(own slot:Slot<Int>)->Void{}func Probe(condition:Bool)->Void{let slot:Slot<Int> =ClaimSlot();transaction{compensate Take(slot);if condition{fail \"x\";}}Log(Read(slot));}func Main()->Void{}", PGY_CODE_SEM_SLOT_RELEASED},
+        {"lambda cannot fail caller transaction", "func Main()->Void{transaction{let delayed:func()->Void=()=>{fail \"not caller\";};fail \"outer\";}}", PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID},
+        {"lambda internal transaction", "func Main()->Void{transaction{let delayed:func()->Void=()=>{transaction{compensate Log(\"inner\");fail \"inner\";}};fail \"outer\";}}", NULL},
+        {"defer cannot fail caller transaction", "func Main()->Void{transaction{defer{fail \"not caller\";};fail \"outer\";}}", PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID},
+        {"defer internal transaction", "func Main()->Void{transaction{defer{transaction{compensate Log(\"inner\");fail \"inner\";}};fail \"outer\";}}", NULL},
+        {"async cannot fail caller transaction", "func Main()->Void{transaction{async{fail \"not caller\";}fail \"outer\";}}", PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID},
+        {"async internal transaction", "func Main()->Void{transaction{async{transaction{compensate Log(\"inner\");fail \"inner\";}}fail \"outer\";}}", NULL},
+        {"task cannot fail caller transaction", "func Main()->Void{transaction{parallel{{fail \"not caller\";}{Log(1);}}fail \"outer\";}}", PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID},
+        {"task internal transaction", "func Main()->Void{transaction{parallel{{transaction{compensate Log(\"inner\");fail \"inner\";}}{Log(1);}}fail \"outer\";}}", NULL},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        Lexer *lexer = lexer_create(cases[i].source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        if (!parsed) fprintf(stderr, "transaction fixture parse failed: %s\n", cases[i].name);
+        CHECK(parsed);
+        if (parsed) {
+            bool typed = type_check_program(program, ctx);
+            const Diagnostic *first = NULL;
+            for (size_t d = 0; d < ctx->diagnostic_count; d++)
+                if (ctx->diagnostics[d]->level == DIAG_ERROR && first == NULL)
+                    first = ctx->diagnostics[d];
+            bool expected = cases[i].error == NULL ? typed :
+                !typed && first != NULL && first->code != NULL && strcmp(first->code, cases[i].error) == 0;
+            if (!expected) {
+                fprintf(stderr, "transaction fixture %s typed=%d first=%s message=%s\n",
+                    cases[i].name, typed, first == NULL || first->code == NULL ? "<none>" : first->code,
+                    first == NULL || first->message == NULL ? "<none>" : first->message);
+            }
+            CHECK(expected);
+            CHECK(ctx->transaction_flow == NULL && ctx->transaction_depth == 0);
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_transaction_function_boundary(void)
+{
+    /* Exercise the existing named-function owner with an active caller frame.
+     * Routine-local function declarations are not a supported flow-dispatch
+     * route, so their source admission is deliberately not claimed here. */
+    const char *sources[] = {
+        "func Worker()->Void{fail \"not caller\";}func Main()->Void{}",
+        "func Worker()->Void{transaction{compensate Log(\"inner\");fail \"inner\";}}func Main()->Void{}"
+    };
+    for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
+        Lexer *lexer = lexer_create(sources[kind]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        TransactionFlowContext caller = {.outer_scope = ctx->scope};
+        ctx->transaction_flow = &caller;
+        ctx->transaction_depth = 1;
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        if (parsed) {
+            bool typed = type_check_program(program, ctx);
+            const Diagnostic *first = NULL;
+            for (size_t d = 0; d < ctx->diagnostic_count; d++)
+                if (ctx->diagnostics[d]->level == DIAG_ERROR && first == NULL)
+                    first = ctx->diagnostics[d];
+            bool expected = kind == 1 ? typed : !typed && first != NULL && first->code != NULL &&
+                strcmp(first->code, PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID) == 0;
+            if (!expected) fprintf(stderr, "named transaction boundary kind=%zu typed=%d first=%s\n",
+                kind, typed, first == NULL || first->code == NULL ? "<none>" : first->code);
+            CHECK(expected);
+            CHECK(ctx->transaction_flow == &caller && ctx->transaction_depth == 1);
+            CHECK(!caller.has_failures);
+        }
+        ctx->transaction_flow = NULL;
+        ctx->transaction_depth = 0;
+        destroy_resource_snapshot(&caller.failures);
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 int main(void)
 {
+    checked_transaction_function_boundary();
+    checked_transaction_compensation_identity();
+    checked_transaction_failure_states();
     checked_deferred_publication_currency();
     checked_deferred_capture_not_eager();
     checked_nested_slot_effect_facets();
