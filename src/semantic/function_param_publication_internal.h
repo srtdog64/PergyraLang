@@ -9,6 +9,8 @@ bool publication_physical_scalar(const Type *type);
 PublishedNode *publication_node(FunctionParamPublicationStore *store,
     const ASTNode *node, bool insert);
 bool publication_call_ready(const PublishedNode *row);
+bool publication_record_read_payload_loan(SemanticContext *ctx, ASTNode *call);
+bool publication_routine_header_current(const SemanticContext *ctx, const ASTNode *decl);
 PublishedNode *publication_result_current(const SemanticContext *ctx,
     const ASTNode *call);
 PublishedNode *publication_current_value(const SemanticContext *ctx,

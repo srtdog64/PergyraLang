@@ -164,6 +164,14 @@ bool semantic_validate_borrowed_escape(ASTNode *site, ASTNode *source_expr,
         consumer_kind, target_expr, dest_name, secondary_name, transitive_call, mode_label, local_fix_label, klass);
 }
 
+void semantic_report_read_payload_escape(ASTNode *site, ASTNode *read,
+    SemanticContext *ctx, const Type *type)
+{
+    (void)semantic_report_borrowed_escape(site, read, ctx, type, "Read payload",
+        OWNERSHIP_CONSUMER_HELPER_CALL, NULL, "retaining boundary", NULL, true,
+        NULL, NULL, OWNERSHIP_TYPE_BORROW_TRACKED);
+}
+
 bool semantic_validate_ref_view_payload_escape(ASTNode *site, ASTNode *source_expr,
     SemanticContext *ctx, ASTNode *decl, size_t ordinal, const char *borrowed_name,
     OwnershipConsumerKind consumer_kind, const char *dest_name, const char *local_fix_label)

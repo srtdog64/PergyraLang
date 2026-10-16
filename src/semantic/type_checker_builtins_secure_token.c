@@ -3,6 +3,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 static const char *
 secure_token_slot_name_or_unknown(const Symbol *slot_sym)
@@ -16,7 +17,7 @@ bool
 builtin_validate_secure_token_arg(ASTNode *token_arg,
                                   Symbol *slot_sym,
                                   Type *slot_type,
-                                  SemanticContext *ctx)
+                                  SemanticContext *ctx, ASTNode *call, size_t ordinal)
 {
     Symbol *token_sym;
     Type *expected_token_type;
@@ -73,5 +74,9 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
         return false;
     }
 
+    if (semantic_param_publication_pending(ctx) && ast_node_stable_id(call) != 0 &&
+        !semantic_param_publication_record_slot_token_operand(ctx, call, ordinal, slot_sym, token_sym, slot_type)) {
+        semantic_error(ctx, token_arg, "Checked secure token operand publication failed"); return false;
+    }
     return true;
 }

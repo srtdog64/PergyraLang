@@ -119,6 +119,8 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
         return origins;
     }
     SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, node);
+    if (node->type == AST_IDENTIFIER &&
+        semantic_param_publication_slot_token_operand(state->store->ctx, node)) return origins;
     if (value.ok && (value.meta || value.origin_ready)) return origins;
     if (node->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, node)) return origins;
     switch (node->type) {
@@ -180,7 +182,8 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
             state->fact->complete = false;
         else if (node->type == AST_IDENTIFIER) {
             SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, node);
-            if (!value.ok || (!value.meta && semantic_param_publication_binding(state->store->ctx, node) == 0))
+            if (!value.ok || (!value.meta && semantic_param_publication_binding(state->store->ctx, node) == 0 &&
+                !semantic_param_publication_slot_token_operand(state->store->ctx, node)))
                 state->fact->complete = false;
         }
         return;
@@ -206,7 +209,20 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
     case AST_WHILE_LOOP: backing_consumers(state, ast_while_condition(node)); backing_consumers(state, ast_while_body(node)); break;
     case AST_WITH_STMT: backing_consumers(state, ast_with_body(node)); break;
     case AST_BREAK: case AST_CONTINUE: break;
-    case AST_LET_DECL: {
+    case AST_LET_DESTRUCTURE: case AST_LET_DECL: {
+        SemanticPublishedSlotBirth birth;
+        if (semantic_param_publication_owned_slot_binding(state->store->ctx, node, &birth)) {
+            FunctionParamFlowBackingBinding *slot = backing_binding(state, birth.slot_binding_id, true);
+            if (slot != NULL) slot->local = true;
+            if (birth.token_type != NULL && birth.token_binding_id != 0) {
+                FunctionParamFlowBackingBinding *token = backing_binding(state, birth.token_binding_id, true);
+                if (token != NULL) token->local = true;
+            }
+            ASTNode *initializer = node->type == AST_LET_DECL ? ast_let_initializer(node) : ast_let_destructure_initializer(node);
+            backing_consumers(state, initializer);
+            break;
+        }
+        if (node->type != AST_LET_DECL) { fact->complete = false; break; }
         FunctionParamFlowBackingBinding *local = backing_binding(state, ast_node_stable_id(node), true);
         if (local != NULL) local->local = true;
         if (!semantic_param_publication_channel_binding(state->store->ctx, node) &&
@@ -255,10 +271,11 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
             bool local = semantic_param_publication_argument_borrowed_for_call(state->store->ctx, node, i) ||
                 semantic_typed_map_query_receiver_read(state->store->ctx, node, i);
             ASTNode *receiver = ast_call_argument(node, 0);
-            bool owner_store = i == 1 && state->fact->input_id != 0 &&
+            uint32_t owner_id = state->loan_seed != NULL ? state->loan_owner_slot_id : state->fact->input_id;
+            bool owner_store = i == 1 && owner_id != 0 &&
                 semantic_param_publication_checked_slot_write(state->store->ctx, node) &&
                 receiver != NULL && receiver->type == AST_IDENTIFIER &&
-                semantic_param_publication_binding(state->store->ctx, receiver) == state->fact->input_id;
+                semantic_param_publication_binding(state->store->ctx, receiver) == owner_id;
             bool depends = false, retains = true;
             local |= semantic_param_publication_checked_backing_relation(state->store->ctx, node, i, &depends, &retains) && !retains;
             ASTNode *callee = semantic_param_publication_callee(state->store->ctx, node, i);
@@ -402,128 +419,51 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
     return fact->complete && !fact->pending;
 }
 
-static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
-    FunctionParamFlowIndexClaims *claims, ASTNode *caller, const ASTNode *place, const ASTNode **root)
-{
-    if (claims == NULL || !slot_call_argument_storage_root(place, root)) return false;
-    for (size_t step = 0; *root != NULL && step <= claims->count; step++) {
-        uint32_t binding = semantic_param_publication_binding(store->ctx, *root);
-        if (binding == 0) return false;
-        FunctionParamFlowIndexClaim *declaration = NULL;
-        for (size_t c = 0; c < claims->count; c++)
-            if (claims->rows[c].id == binding) { declaration = &claims->rows[c]; break; }
-        if (declaration == NULL) {
-            for (size_t p = 0; p < ast_func_param_count(caller); p++)
-                if (binding == ast_func_param_stable_id(ast_func_param(caller, p))) return true;
-            return false;
-        }
-        if (declaration->shape != AST_LET_DECL || declaration->node == NULL ||
-            declaration->node->type != AST_LET_DECL || ast_node_stable_id(declaration->node) != binding ||
-            declaration->local_alias != ast_let_is_alias(declaration->node)) return false;
-        if (!declaration->local_alias) return true;
-        ASTNode *initializer = ast_let_initializer(declaration->node);
-        if (initializer == NULL || declaration->child_count != 2 || declaration->children[0] != initializer ||
-            declaration->child_ids[0] == 0 || declaration->child_ids[0] != ast_node_stable_id(initializer) ||
-            !semantic_param_publication_value(store->ctx, initializer).ok ||
-            !slot_call_argument_storage_root(initializer, root) || *root == NULL) return false;
-    }
-    return *root == NULL;
-}
 
-static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
-    FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
-    const PendingRefCall *loan, unsigned effects)
+static bool sparse_loan_admitted(SemanticContext *ctx,
+    const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
+    uint32_t owner_slot_id, const PendingRefCall *return_loan, ASTNode **escape_site)
 {
-    ASTNode **queue = malloc(sizeof(*queue));
-    if (queue == NULL) return false;
-    queue[0] = loan->site;
-    size_t count = 1;
-    ASTNode **locals = index->local_definitions;
-    uint32_t *local_ids = index->local_ids;
-    size_t local_count = index->local_count;
-    FunctionParamFlowIndexClaims *claims = index->claims;
-    bool admitted = true;
-    for (size_t at = 0; at < count && admitted; at++) {
-        ASTNode *value = queue[at];
-        if (!semantic_param_publication_value(store->ctx, value).ok) { admitted = false; break; }
-        if (value->type == AST_IDENTIFIER) {
-            const ASTNode *root = NULL;
-            if (!returned_loan_storage_root(store, claims, loan->caller, value, &root) || root == NULL) { admitted = false; break; }
-            value = (ASTNode *)root;
-        }
-        if (semantic_param_publication_value_has_static_string_backing(store->ctx, value)) continue;
-        ASTNode *dependency = NULL;
-        if (value->type == AST_MEMBER_ACCESS) dependency = ast_member_object(value);
-        else if (value->type == AST_ARRAY_ACCESS) dependency = ast_array_access_array(value);
-        else if (value->type == AST_IDENTIFIER) {
-            uint32_t binding = semantic_param_publication_binding(store->ctx, value);
-            bool formal = false;
-            for (size_t p = 0; p < ast_func_param_count(loan->caller); p++) {
-                FuncParam *param = ast_func_param(loan->caller, p);
-                if (param == NULL || binding == 0 || binding != ast_func_param_stable_id(param)) continue;
-                unsigned mask = function_param_flow_summary_for_param(store->ctx, loan->caller, p);
-                formal = true;
-                if (param->mode != PARAM_MODE_REF || (mask & effects) != effects || store->failed) admitted = false;
-            }
-            if (formal) continue;
-            for (size_t i = 0; i < local_count; i++) {
-                if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
-            }
-            for (size_t c = 0; dependency != NULL && c < claims->count; c++) {
-                ASTNode *node = claims->rows[c].node;
-                if (node->type == AST_ASSIGNMENT) {
-                    const ASTNode *target = NULL;
-                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_assignment_target(node), &target) ||
-                        (target != NULL && semantic_param_publication_binding(store->ctx, target) == binding)) {
-                        admitted = false; break;
-                    }
-                }
-                if (node->type == AST_CALL) for (size_t p = 0; p < ast_call_arg_count(node); p++) {
-                    if (!semantic_param_publication_checked_argument(store->ctx, node, p)) { admitted = false; break; }
-                    if (semantic_param_publication_string_argument_read_only(store->ctx, node, p) ||
-                        semantic_typed_map_query_receiver_read(store->ctx, node, p)) continue;
-                    const ASTNode *root = NULL;
-                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_call_argument(node, p), &root)) { admitted = false; break; }
-                    if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
-                    ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
-                    if (callee != NULL) {
-                        if (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF ||
-                            (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0) admitted = false;
-                    } else admitted = false;
-                }
-            }
-            if (dependency == NULL) admitted = false;
-        } else if (value->type == AST_CALL) {
-            bool found = false;
-            for (size_t c = 0; c < view->call_count; c++) {
-                const PendingRefCall *nested = &view->calls[c];
-                if (nested->call != value) continue;
-                if (!semantic_param_publication_ref_call_current(store->ctx, nested) || nested->caller != loan->caller) { admitted = false; break; }
-                unsigned mask = function_param_flow_summary_for_param(store->ctx, nested->callee, nested->ordinal);
-                if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0) continue;
-                found = true;
-                bool seen = false;
-                for (size_t q = 0; q < count; q++) if (queue[q] == nested->site) seen = true;
-                if (seen) { admitted = false; break; }
-                if (count >= store->work_budget || count == SIZE_MAX / sizeof(*queue)) { admitted = false; break; }
-                ASTNode **grown = realloc(queue, (count + 1) * sizeof(*queue));
-                if (grown == NULL) { admitted = false; break; }
-                queue = grown; queue[count++] = nested->site;
-            }
-            if (!found) admitted = false;
-            continue;
-        } else { admitted = false; break; }
-        if (dependency != NULL && admitted) {
-            bool seen = false;
-            for (size_t q = 0; q < count; q++) if (queue[q] == dependency) seen = true;
-            if (seen || count >= store->work_budget || count == SIZE_MAX / sizeof(*queue)) { admitted = false; break; }
-            ASTNode **grown = realloc(queue, (count + 1) * sizeof(*queue));
-            if (grown == NULL) { admitted = false; break; }
-            queue = grown; queue[count++] = dependency;
-        }
+    SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index;
+    if (store == NULL || store->failed || store->solving ||
+        caller == NULL || caller->type != AST_FUNC_DECL ||
+        !function_param_flow_program_point_index_build(store, caller, &index) ||
+        !function_param_flow_backing_rows_current(store, caller)) return false;
+    if (!function_param_flow_program_point_index_build(store, caller, &index)) return false;
+    bool private_stores_closed = index->private_local_stores && function_param_flow_no_store_graph(store, caller);
+    if (!function_param_flow_program_point_index_build(store, caller, &index)) return false;
+    /* One origin and one external-destination flag: neither is a formal ordinal. */
+    unsigned effects = 0;
+    uint64_t outputs = 0;
+    FunctionParamFlowBackingFact fact = {.origin_count = 1, .origin_words = 1,
+        .destination_count = 1, .destination_words = 1, .effects = &effects,
+        .outputs = &outputs, .complete = true, .claims = index->claims};
+    ReturnedBacking state = {.store = store, .lookup = lookup, .decl = caller,
+        .fact = &fact, .private_stores_closed = private_stores_closed, .loan_seed = seed,
+        .loan_owner_slot_id = owner_slot_id};
+    for (size_t p = 0; p < ast_func_param_count(caller); p++) {
+        FuncParam *param = ast_func_param(caller, p);
+        FunctionParamFlowBackingBinding *binding = backing_binding(&state, ast_func_param_stable_id(param), true);
+        if (binding == NULL) break;
+        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_MUT_REF) binding->destinations[0] = 1;
     }
-    free(queue);
-    return admitted && !store->failed;
+    ASTNode **roots = index->dependency_roots;
+    size_t root_count = index->dependency_root_count;
+    do {
+        if (fact.epoch == SIZE_MAX) { function_param_flow_fail(store, caller, "backing iteration identity overflow"); fact.complete = false; break; }
+        fact.epoch++; fact.changed = false;
+        for (size_t r = 0; r < root_count && fact.complete; r++) backing_consumers(&state, roots[r]);
+    } while (fact.changed && fact.complete);
+    if (state.escape_site != NULL) *escape_site = state.escape_site;
+    bool admitted = fact.complete && !fact.pending && state.loan_seed_seen && !store->failed &&
+        function_param_flow_program_point_index_build(store, caller, &index) &&
+        (effects == 0 || (return_loan != NULL && returned_loan_sources_admitted(store, index, view, return_loan, effects)));
+    for (size_t n = 0; n < fact.node_count; n++) free(fact.nodes[n].origins);
+    for (size_t b = 0; b < fact.binding_count; b++) { free(fact.bindings[b].origins); free(fact.bindings[b].destinations); }
+    free(fact.nodes); free(fact.bindings); free(fact.pending_relations);
+    return admitted;
 }
 
 bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
@@ -535,44 +475,22 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
         !semantic_param_publication_ref_call_current(ctx, row)) return false;
     bool registered = false;
     for (size_t c = 0; c < view->call_count; c++) if (&view->calls[c] == row) registered = true;
-    if (!registered) return false;
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
-    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
-    FunctionParamFlowProgramPointIndex *index;
-    if (store == NULL || store->failed || store->solving ||
-        (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
-        !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal) ||
-        !function_param_flow_program_point_index_build(store, row->caller, &index) ||
-        !function_param_flow_backing_rows_current(store, row->caller)) return false;
-    if (!function_param_flow_program_point_index_build(store, row->caller, &index)) return false;
-    bool private_stores_closed = index->private_local_stores && function_param_flow_no_store_graph(store, row->caller);
-    if (!function_param_flow_program_point_index_build(store, row->caller, &index)) return false;
-    /* One origin and one external-destination flag: neither is a formal ordinal. */
-    unsigned effects = 0;
-    uint64_t outputs = 0;
-    FunctionParamFlowBackingFact fact = {.origin_count = 1, .origin_words = 1,
-        .destination_count = 1, .destination_words = 1, .effects = &effects,
-        .outputs = &outputs, .complete = true, .claims = index->claims};
-    ReturnedBacking state = {.store = store, .lookup = lookup, .decl = row->caller,
-        .fact = &fact, .private_stores_closed = private_stores_closed, .loan_seed = row->call};
-    for (size_t p = 0; p < ast_func_param_count(row->caller); p++) {
-        FuncParam *param = ast_func_param(row->caller, p);
-        FunctionParamFlowBackingBinding *binding = backing_binding(&state, ast_func_param_stable_id(param), true);
-        if (binding == NULL) break;
-        if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_MUT_REF) binding->destinations[0] = 1;
-    }
-    ASTNode **roots = index->dependency_roots;
-    size_t root_count = index->dependency_root_count;
-    do {
-        fact.epoch++; fact.changed = false;
-        for (size_t r = 0; r < root_count && fact.complete; r++) backing_consumers(&state, roots[r]);
-    } while (fact.changed && fact.complete);
-    if (state.escape_site != NULL) *escape_site = state.escape_site;
-    bool admitted = fact.complete && !fact.pending && state.loan_seed_seen && !store->failed &&
-        function_param_flow_program_point_index_build(store, row->caller, &index) &&
-        (effects == 0 || returned_loan_sources_admitted(store, index, view, row, effects));
-    for (size_t n = 0; n < fact.node_count; n++) free(fact.nodes[n].origins);
-    for (size_t b = 0; b < fact.binding_count; b++) { free(fact.bindings[b].origins); free(fact.bindings[b].destinations); }
-    free(fact.nodes); free(fact.bindings); free(fact.pending_relations);
-    return admitted;
+    if (!registered || (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
+        !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal)) return false;
+    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, escape_site);
+}
+
+bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
+    const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row, ASTNode **escape_site)
+{
+    if (escape_site == NULL) return false;
+    *escape_site = row == NULL ? NULL : (ASTNode *)row->call;
+    uint32_t owner = 0;
+    if (!semantic_param_publication_view_current(ctx, view) ||
+        !semantic_param_publication_read_payload_loan_current(ctx, row, &owner)) return false;
+    bool registered = false;
+    for (size_t c = 0; c < view->read_loan_count; c++) if (&view->read_loans[c] == row) registered = true;
+    return registered && sparse_loan_admitted(ctx, view, (ASTNode *)row->caller,
+        (ASTNode *)row->call, owner, NULL, escape_site);
 }

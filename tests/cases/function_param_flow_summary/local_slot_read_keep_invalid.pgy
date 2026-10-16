@@ -1,0 +1,9 @@
+extern "C" { func Keep(text: String) -> Void; }
+func Main() -> Void {
+    let slot: Slot<String> = ClaimSlot();
+    Write(slot, Concat("heap", " text"));
+    let first = Read(slot);
+    let second = first;
+    Keep(second);
+    Release(slot);
+}

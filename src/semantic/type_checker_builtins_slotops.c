@@ -186,7 +186,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                 }
 
                 ASTNode *token_arg = ast_call_argument(call, 2);
-                if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx))
+                if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx, call, 2))
                     return false;
                 token_validated = true;
             } else if (arg_count > 2) {
@@ -326,7 +326,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                     return TYPE_UNKNOWN;
                 }
                 ASTNode *token_arg = ast_call_argument(call, 1);
-                if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx))
+                if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx, call, 1))
                     return TYPE_UNKNOWN;
             }
             sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_READ;
@@ -461,7 +461,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
     if (sym->slot_info.is_secure
-        && !builtin_validate_secure_token_arg(ast_call_argument(call, 1), sym, sym->type, ctx)) {
+        && !builtin_validate_secure_token_arg(ast_call_argument(call, 1), sym, sym->type, ctx, call, 1)) {
         return false;
     }
 

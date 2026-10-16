@@ -3,6 +3,7 @@
 
 #include "type_checker.h"
 #include "slot_analyzer_internal.h"
+#include "function_param_publication_owner.h"
 
 typedef enum
 {
@@ -84,6 +85,7 @@ typedef struct {
     FunctionParamFlowBackingFact *fact;
     bool private_stores_closed;
     ASTNode *loan_seed, *consumer, *escape_site;
+    uint32_t loan_owner_slot_id;
     size_t loan_work;
     bool loan_seed_seen;
 } ReturnedBacking;
@@ -93,6 +95,9 @@ bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins);
 FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert);
 size_t backing_node(ReturnedBacking *state, ASTNode *node);
 bool backing_work(ReturnedBacking *state, size_t at);
+bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
+    const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row,
+    ASTNode **escape_site);
 typedef struct {
     ASTNode *node;
     uint32_t id, binding;
@@ -113,6 +118,8 @@ typedef struct {
     bool assignment_replacement, local_alias;
     bool channel_binding;
     bool empty_map_binding, slot_write;
+    bool owned_slot_binding;
+    bool slot_token_operand;
     bool private_array_push;
     bool execution_present, reachable, physical_value;
     bool value_ready;
@@ -193,6 +200,9 @@ struct FunctionParamFlowSummaryStore
 
 void function_param_flow_program_point_index_destroy(
     FunctionParamFlowProgramPointIndex *index);
+bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
+    const PendingRefCall *loan, unsigned effects);
 void function_param_flow_fail(FunctionParamFlowSummaryStore *store, ASTNode *site, const char *reason);
 bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);

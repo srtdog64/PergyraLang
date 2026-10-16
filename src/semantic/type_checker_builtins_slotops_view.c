@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 #include "type_checker_internal.h"
 
 static Type *
@@ -148,7 +149,13 @@ type_check_view_read(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     if (!require_secure_pin_paired_token(call, slot_type, "ViewRead", ctx))
         return TYPE_UNKNOWN;
-    return type_create_read_view(type_slot_inner_type(slot_type));
+    Type *result = type_create_read_view(type_slot_inner_type(slot_type));
+    if (result == NULL) { semantic_error(ctx, call, "Read view type allocation failed"); return TYPE_UNKNOWN; }
+    if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
+        (!ast_call_set_semantic_value_type_name_copy(call, result->name) ||
+         !semantic_param_publication_record_checked_result_relation(ctx, call, slot_type, result, 0, 0)))
+        semantic_error(ctx, call, "Checked read view result publication failed");
+    return result;
 }
 
 Type *

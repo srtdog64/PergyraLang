@@ -39,6 +39,28 @@ typedef struct {
     uint32_t call_target_id;
     size_t argument_count;
 } PendingRefCall;
+typedef struct {
+    const ASTNode *call, *caller;
+    uint32_t call_id, caller_id;
+    ASTNodeType caller_shape;
+    const Type *result_type;
+    TypeKind result_kind;
+    char *module;
+} PendingReadPayloadLoan;
+typedef struct {
+    uint32_t slot_binding_id, token_binding_id;
+    const Type *slot_type, *token_type;
+} SemanticPublishedSlotBirth;
+bool semantic_param_publication_read_payload_loan_current(const SemanticContext *ctx,
+    const PendingReadPayloadLoan *loan, uint32_t *owned_receiver_binding);
+bool semantic_param_publication_record_owned_slot_binding(SemanticContext *ctx,
+    ASTNode *declaration, const Type *slot_type, uint32_t slot_binding_id,
+    const Type *token_type, uint32_t token_binding_id, const char *token_name);
+bool semantic_param_publication_owned_slot_binding(const SemanticContext *ctx,
+    const ASTNode *declaration, SemanticPublishedSlotBirth *birth);
+bool semantic_param_publication_slot_token_operand(const SemanticContext *ctx, const ASTNode *operand);
+bool semantic_param_publication_record_slot_token_operand(SemanticContext *ctx, ASTNode *call,
+    size_t ordinal, const Symbol *slot, const Symbol *token, const Type *slot_type);
 bool semantic_param_publication_ref_call_current(
     const SemanticContext *ctx, const PendingRefCall *row);
 typedef struct {
@@ -95,6 +117,16 @@ typedef struct {
     bool call_present, kind_present, stdlib, local, cast_present;
     bool assignment_replacement;
     bool channel_binding;
+    bool owned_slot_binding;
+    bool slot_token_operand;
+    size_t slot_token_ordinal;
+    SemanticPublishedSlotBirth slot_birth;
+    const Type *slot_birth_inner_type;
+    bool slot_birth_secure;
+    const ASTNode *slot_birth_annotation, *owned_slot_declaration;
+    uint32_t slot_birth_annotation_id, owned_slot_declaration_id;
+    const Type *slot_birth_annotation_type;
+    size_t read_payload_loan_index;
     bool empty_map_binding, slot_write;
     const ASTNode *map_type_node;
     uint32_t map_type_id;
@@ -154,6 +186,7 @@ struct FunctionParamPublicationStore {
     PendingRoutine *routines; size_t routine_count, routine_capacity;
     PendingRefCall *calls; size_t call_count, call_capacity;
     PendingBodyCall *body_calls; size_t body_call_count, body_call_capacity;
+    PendingReadPayloadLoan *read_loans; size_t read_loan_count, read_loan_capacity;
     PublishedNode *nodes; size_t node_count, node_capacity;
 };
 typedef struct {
@@ -165,9 +198,13 @@ typedef struct {
     size_t call_count;
     const PendingBodyCall *body_calls;
     size_t body_call_count;
+    const PendingReadPayloadLoan *read_loans;
+    size_t read_loan_count;
 } SemanticParamPublicationView;
 bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, const PendingRefCall *row, ASTNode **escape_site);
+bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
+    const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row, ASTNode **escape_site);
 bool semantic_param_publication_view_current(const SemanticContext *ctx, const SemanticParamPublicationView *view);
 bool semantic_param_publication_admitted_view(const SemanticContext *ctx, SemanticParamPublicationView *view);
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view);

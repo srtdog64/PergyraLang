@@ -1,0 +1,13 @@
+func Save(inout output: String, text: String) -> Void { output = text; }
+func Main() -> Void {
+    var output: String = "";
+    let slot: Slot<String> = ClaimSlot();
+    Write(slot, Concat("heap", " text"));
+    if true {
+        let view: ReadView<String> = ViewRead(slot);
+        let text = Read(view);
+        Save(output, text);
+    }
+    Release(slot);
+    Log(output);
+}

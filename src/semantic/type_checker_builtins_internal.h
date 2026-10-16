@@ -65,7 +65,7 @@ Type *type_check_nominal_ownership_builtin(ASTNode *call, BuiltinKind kind,
 bool builtin_validate_secure_token_arg(ASTNode *token_arg,
                                        Symbol *slot_sym,
                                        Type *slot_type,
-                                       SemanticContext *ctx);
+                                         SemanticContext *ctx, ASTNode *call, size_t ordinal);
 
 void reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                               const Type *stored_value_type,

@@ -13,7 +13,16 @@ static size_t function_param_flow_claim_child_count(const ASTNode *node, bool *s
     *supported = true;
     switch (node->type) {
     case AST_BLOCK: return ast_block_statement_count(node);
-    case AST_CALL: return ast_call_arg_count(node) == SIZE_MAX ? SIZE_MAX : ast_call_arg_count(node) + 1;
+    case AST_CALL: {
+        GenericParams *args = ast_call_generic_args(node);
+        size_t count = args == NULL ? 0 : args->count;
+        size_t actuals = ast_call_arg_count(node);
+        if (actuals == SIZE_MAX || count > (SIZE_MAX - actuals - 1) / 2 ||
+            (count != 0 && args->params == NULL)) return SIZE_MAX;
+        for (size_t p = 0; p < count; p++)
+            if (args->params[p] == NULL || args->params[p]->name == NULL) return SIZE_MAX;
+        return actuals + 1 + count * 2;
+    }
     case AST_ARRAY_LITERAL: return ast_array_literal_count(node) != 0 && node->data.array_literal.elements == NULL ? SIZE_MAX : ast_array_literal_count(node);
     case AST_TUPLE_LITERAL: return ast_tuple_literal_count(node) != 0 && node->data.tuple_literal.elements == NULL ? SIZE_MAX : ast_tuple_literal_count(node);
     case AST_SET_LITERAL: return ast_set_literal_count(node) != 0 && node->data.set_literal.elements == NULL ? SIZE_MAX : ast_set_literal_count(node);
@@ -68,7 +77,13 @@ static ASTNode *function_param_flow_claim_child(const ASTNode *node, size_t ordi
 {
     switch (node->type) {
     case AST_BLOCK: return ast_block_statement(node, ordinal);
-    case AST_CALL: return ordinal == 0 ? ast_call_callee(node) : ast_call_argument(node, ordinal - 1);
+    case AST_CALL: {
+        size_t actuals = ast_call_arg_count(node);
+        if (ordinal == 0) return ast_call_callee(node);
+        if (ordinal <= actuals) return ast_call_argument(node, ordinal - 1);
+        GenericParam *param = ast_generic_param_at(ast_call_generic_args(node), (ordinal - actuals - 1) / 2);
+        return param == NULL ? NULL : (ordinal - actuals - 1) % 2 == 0 ? param->constraint : param->default_type;
+    }
     case AST_ARRAY_LITERAL: return ast_array_literal_element(node, ordinal);
     case AST_TUPLE_LITERAL: return ast_tuple_literal_element(node, ordinal);
     case AST_SET_LITERAL: return ast_set_literal_element(node, ordinal);
@@ -190,8 +205,8 @@ static bool function_param_flow_claim_capture(SemanticContext *ctx,
         node->type == AST_TYPE ? ast_type_name(node) : node->type == AST_STRING ? ast_string_value(node) : NULL;
     row->syntax_name = syntax_name == NULL ? NULL : pergyra_strdup(syntax_name);
     if (syntax_name != NULL && row->syntax_name == NULL) { claims->failed = true; return false; }
-    if (node->type == AST_TYPE) {
-        GenericParams *args = ast_type_generic_args(node);
+    if (node->type == AST_TYPE || node->type == AST_CALL) {
+        GenericParams *args = node->type == AST_TYPE ? ast_type_generic_args(node) : ast_call_generic_args(node);
         row->generic_name_count = args == NULL ? 0 : args->count;
         if (row->generic_name_count > SIZE_MAX / sizeof(*row->generic_names)) { claims->failed = true; return false; }
         row->generic_names = row->generic_name_count == 0 ? NULL : calloc(row->generic_name_count, sizeof(*row->generic_names));
@@ -215,8 +230,13 @@ promote:
     row->value_ready = value.ok;
     row->value_meta = value.ok && value.meta;
     row->value_origin_ready = value.ok && value.origin_ready;
+    row->slot_token_operand = semantic_param_publication_slot_token_operand(ctx, node);
     if (node->type == AST_LET_DECL) row->channel_binding = semantic_param_publication_channel_binding(ctx, node);
     if (node->type == AST_LET_DECL) row->empty_map_binding = semantic_param_publication_empty_map_binding(ctx, node);
+    if (node->type == AST_LET_DECL || node->type == AST_LET_DESTRUCTURE) {
+        SemanticPublishedSlotBirth birth;
+        row->owned_slot_binding = semantic_param_publication_owned_slot_binding(ctx, node, &birth);
+    }
     if (node->type == AST_CALL) {
         row->slot_write = semantic_param_publication_checked_slot_write(ctx, node);
         row->private_array_push = semantic_param_publication_private_array_push(ctx, node, NULL);
@@ -276,6 +296,7 @@ static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
             claims->failed = true; return false;
         }
         bool child_eager = descendants_eager;
+        if (node->type == AST_CALL && c > ast_call_arg_count(node)) child_eager = false;
         if ((node->type == AST_LET_DECL && c == 1) || (node->type == AST_WITH_STMT && c == 0) ||
             node->type == AST_CONTEXT_ACCESS) child_eager = false;
         if (node->type == AST_MATCH_CASE && (c == 0 || c >= 3) &&
@@ -331,8 +352,8 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
             row->shape == AST_TYPE ? ast_type_name(row->node) : row->shape == AST_STRING ? ast_string_value(row->node) : NULL;
         if ((syntax_name == NULL) != (row->syntax_name == NULL) ||
             (syntax_name != NULL && strcmp(syntax_name, row->syntax_name) != 0)) return false;
-        if (row->shape == AST_TYPE) {
-            GenericParams *args = ast_type_generic_args(row->node);
+        if (row->shape == AST_TYPE || row->shape == AST_CALL) {
+            GenericParams *args = row->shape == AST_TYPE ? ast_type_generic_args(row->node) : ast_call_generic_args(row->node);
             size_t count = args == NULL ? 0 : args->count;
             if (count != row->generic_name_count || (count != 0 && row->generic_names == NULL)) return false;
             for (size_t p = 0; p < count; p++)
@@ -351,10 +372,15 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
         if (execution_present && !reachable) continue;
         if (row->shape == AST_LET_DECL && row->channel_binding != semantic_param_publication_channel_binding(ctx, row->node)) return false;
         if (row->shape == AST_LET_DECL && row->empty_map_binding != semantic_param_publication_empty_map_binding(ctx, row->node)) return false;
+        if (row->shape == AST_LET_DECL || row->shape == AST_LET_DESTRUCTURE) {
+            SemanticPublishedSlotBirth birth;
+            if (row->owned_slot_binding != semantic_param_publication_owned_slot_binding(ctx, row->node, &birth)) return false;
+        }
         SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
         if (row->value_ready != value.ok || row->value_meta != (value.ok && value.meta) ||
             row->value_origin_ready != (value.ok && value.origin_ready)) return false;
         if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
+        if (row->slot_token_operand != semantic_param_publication_slot_token_operand(ctx, row->node)) return false;
         if (row->shape == AST_ARRAY_LITERAL && row->child_count == 0) {
             /* Replay the same current typed premise as the no-output selector.
              * Child count/identity above seal the absence of evaluations. */

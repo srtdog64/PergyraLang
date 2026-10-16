@@ -57,5 +57,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
 bool semantic_validate_ref_view_payload_escape(ASTNode *site, ASTNode *source_expr,
     SemanticContext *ctx, ASTNode *decl, size_t ordinal, const char *borrowed_name,
     OwnershipConsumerKind consumer_kind, const char *dest_name, const char *local_fix_label);
+void semantic_report_read_payload_escape(ASTNode *site, ASTNode *read,
+    SemanticContext *ctx, const Type *type);
 
 #endif

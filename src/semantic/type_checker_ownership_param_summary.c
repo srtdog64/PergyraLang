@@ -87,6 +87,15 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
                 row->site, ctx, row->type, row->borrowed,
                 OWNERSHIP_CONSUMER_HELPER_CALL, NULL, row->destination, NULL, true, NULL, row->fix);
     }
+    for (size_t c = 0; c < view->read_loan_count; c++) {
+        const PendingReadPayloadLoan *row = &view->read_loans[c];
+        ctx->current_function_decl = (ASTNode *)row->caller;
+        ctx->current_module_path = row->module;
+        ASTNode *escape = NULL;
+        if (!function_param_flow_read_payload_no_escape(ctx, view, row, &escape))
+            semantic_report_read_payload_escape(escape != NULL ? escape : (ASTNode *)row->call,
+                (ASTNode *)row->call, ctx, row->result_type);
+    }
     ctx->current_function_decl = previous_decl;
     ctx->current_function_body_summary = previous_body;
     ctx->tracking_function_effects = previous_tracking;

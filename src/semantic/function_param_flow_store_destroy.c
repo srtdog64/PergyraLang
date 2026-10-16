@@ -4,64 +4,133 @@
 #include <stdlib.h>
 #include <string.h>
 #include "function_param_publication_owner.h"
+#include "../parser/ast_analysis.h"
 #include "../common/string_compat.h"
 #include "typed_map_query_fact_owner.h"
 #include "../common/match_variant_policy.h"
 
-void semantic_nominal_result_snapshot_destroy(SemanticNominalResultSnapshot *snapshot)
+static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowIndexClaims *claims, ASTNode *caller, const ASTNode *place, const ASTNode **root)
 {
-    if (snapshot == NULL) return;
-    for (size_t i = 0; i < snapshot->field_count && snapshot->fields != NULL; i++) {
-        SemanticNominalResultField *field = &snapshot->fields[i];
-        free(field->field_name);
-        free(field->argument_name);
-        free(field->field_type_name);
-        free(field->argument_type_name);
-        free(field->type_syntax_name);
+    if (claims == NULL || !slot_call_argument_storage_root(place, root)) return false;
+    for (size_t step = 0; *root != NULL && step <= claims->count; step++) {
+        uint32_t binding = semantic_param_publication_binding(store->ctx, *root);
+        if (binding == 0) return false;
+        FunctionParamFlowIndexClaim *declaration = NULL;
+        for (size_t c = 0; c < claims->count; c++)
+            if (claims->rows[c].id == binding) { declaration = &claims->rows[c]; break; }
+        if (declaration == NULL) {
+            for (size_t p = 0; p < ast_func_param_count(caller); p++)
+                if (binding == ast_func_param_stable_id(ast_func_param(caller, p))) return true;
+            return false;
+        }
+        if (declaration->shape != AST_LET_DECL || declaration->node == NULL ||
+            declaration->node->type != AST_LET_DECL || ast_node_stable_id(declaration->node) != binding ||
+            declaration->local_alias != ast_let_is_alias(declaration->node)) return false;
+        if (!declaration->local_alias) return true;
+        ASTNode *initializer = ast_let_initializer(declaration->node);
+        if (initializer == NULL || declaration->child_count != 2 || declaration->children[0] != initializer ||
+            declaration->child_ids[0] == 0 || declaration->child_ids[0] != ast_node_stable_id(initializer) ||
+            !semantic_param_publication_value(store->ctx, initializer).ok ||
+            !slot_call_argument_storage_root(initializer, root) || *root == NULL) return false;
     }
-    free(snapshot->fields);
-    free(snapshot->decl_name);
-    free(snapshot->result_type_name);
-    free(snapshot);
+    return *root == NULL;
 }
 
-bool semantic_param_publication_reserve_storage(void **rows, size_t *capacity, size_t count, size_t size)
+bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
+    const PendingRefCall *loan, unsigned effects)
 {
-    if (count < *capacity) return true;
-    size_t next = *capacity == 0 ? 32 : *capacity * 2;
-    if (next < *capacity || next > SIZE_MAX / size) return false;
-    void *grown = realloc(*rows, next * size);
-    if (grown == NULL) return false;
-    *rows = grown; *capacity = next; return true;
-}
-
-void semantic_param_publication_retire_value(PublishedNode *row)
-{
-    semantic_param_publication_retire_deferred(row);
-    void *metadata[] = {row->arguments, row->target_name,
-        row->value_type_name, row->relation_argument_type, row->relation_result_type};
-    for (size_t i = 0; i < sizeof(metadata) / sizeof(metadata[0]); i++) free(metadata[i]);
-    semantic_nominal_result_snapshot_destroy(row->nominal_result);
-    PublishedNode identity = {.node = row->node, .id = row->id, .routine_index = row->routine_index,
-        .execution_present = row->execution_present, .reachable = row->reachable};
-    *row = identity;
-}
-
-void semantic_param_publication_destroy(SemanticContext *ctx)
-{
-    if (ctx == NULL || ctx->function_param_publications == NULL) return;
-    FunctionParamPublicationStore *store = ctx->function_param_publications;
-    for (size_t i = 0; i < store->routine_count; i++) {
-        free(store->routines[i].types); free(store->routines[i].module);
-        free(store->routines[i].formals);
+    ASTNode **queue = malloc(sizeof(*queue));
+    if (queue == NULL) return false;
+    queue[0] = loan->site;
+    size_t count = 1;
+    ASTNode **locals = index->local_definitions;
+    uint32_t *local_ids = index->local_ids;
+    size_t local_count = index->local_count;
+    FunctionParamFlowIndexClaims *claims = index->claims;
+    bool admitted = true;
+    for (size_t at = 0; at < count && admitted; at++) {
+        ASTNode *value = queue[at];
+        if (!semantic_param_publication_value(store->ctx, value).ok) { admitted = false; break; }
+        if (value->type == AST_IDENTIFIER) {
+            const ASTNode *root = NULL;
+            if (!returned_loan_storage_root(store, claims, loan->caller, value, &root) || root == NULL) { admitted = false; break; }
+            value = (ASTNode *)root;
+        }
+        if (semantic_param_publication_value_has_static_string_backing(store->ctx, value)) continue;
+        ASTNode *dependency = NULL;
+        if (value->type == AST_MEMBER_ACCESS) dependency = ast_member_object(value);
+        else if (value->type == AST_ARRAY_ACCESS) dependency = ast_array_access_array(value);
+        else if (value->type == AST_IDENTIFIER) {
+            uint32_t binding = semantic_param_publication_binding(store->ctx, value);
+            bool formal = false;
+            for (size_t p = 0; p < ast_func_param_count(loan->caller); p++) {
+                FuncParam *param = ast_func_param(loan->caller, p);
+                if (param == NULL || binding == 0 || binding != ast_func_param_stable_id(param)) continue;
+                unsigned mask = function_param_flow_summary_for_param(store->ctx, loan->caller, p);
+                formal = true;
+                if (param->mode != PARAM_MODE_REF || (mask & effects) != effects || store->failed) admitted = false;
+            }
+            if (formal) continue;
+            for (size_t i = 0; i < local_count; i++) {
+                if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
+            }
+            for (size_t c = 0; dependency != NULL && c < claims->count; c++) {
+                ASTNode *node = claims->rows[c].node;
+                if (node->type == AST_ASSIGNMENT) {
+                    const ASTNode *target = NULL;
+                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_assignment_target(node), &target) ||
+                        (target != NULL && semantic_param_publication_binding(store->ctx, target) == binding)) {
+                        admitted = false; break;
+                    }
+                }
+                if (node->type == AST_CALL) for (size_t p = 0; p < ast_call_arg_count(node); p++) {
+                    if (!semantic_param_publication_checked_argument(store->ctx, node, p)) { admitted = false; break; }
+                    if (semantic_param_publication_string_argument_read_only(store->ctx, node, p) ||
+                        semantic_typed_map_query_receiver_read(store->ctx, node, p)) continue;
+                    const ASTNode *root = NULL;
+                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_call_argument(node, p), &root)) { admitted = false; break; }
+                    if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
+                    ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
+                    if (callee != NULL) {
+                        if (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF ||
+                            (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0) admitted = false;
+                    } else admitted = false;
+                }
+            }
+            if (dependency == NULL) admitted = false;
+        } else if (value->type == AST_CALL) {
+            bool found = false;
+            for (size_t c = 0; c < view->call_count; c++) {
+                const PendingRefCall *nested = &view->calls[c];
+                if (nested->call != value) continue;
+                if (!semantic_param_publication_ref_call_current(store->ctx, nested) || nested->caller != loan->caller) { admitted = false; break; }
+                unsigned mask = function_param_flow_summary_for_param(store->ctx, nested->callee, nested->ordinal);
+                if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0) continue;
+                found = true;
+                bool seen = false;
+                for (size_t q = 0; q < count; q++) if (queue[q] == nested->site) seen = true;
+                if (seen) { admitted = false; break; }
+                if (count >= store->work_budget || count == SIZE_MAX / sizeof(*queue)) { admitted = false; break; }
+                ASTNode **grown = realloc(queue, (count + 1) * sizeof(*queue));
+                if (grown == NULL) { admitted = false; break; }
+                queue = grown; queue[count++] = nested->site;
+            }
+            if (!found) admitted = false;
+            continue;
+        } else { admitted = false; break; }
+        if (dependency != NULL && admitted) {
+            bool seen = false;
+            for (size_t q = 0; q < count; q++) if (queue[q] == dependency) seen = true;
+            if (seen || count >= store->work_budget || count == SIZE_MAX / sizeof(*queue)) { admitted = false; break; }
+            ASTNode **grown = realloc(queue, (count + 1) * sizeof(*queue));
+            if (grown == NULL) { admitted = false; break; }
+            queue = grown; queue[count++] = dependency;
+        }
     }
-    for (size_t i = 0; i < store->call_count; i++) {
-        free(store->calls[i].borrowed); free(store->calls[i].destination); free(store->calls[i].fix); free(store->calls[i].module);
-    }
-    for (size_t n = 0; n < store->node_capacity; n++) semantic_param_publication_retire_value(&store->nodes[n]);
-    free(store->nodes); free(store->routines); free(store->calls); free(store->body_calls);
-    free(store); ctx->function_param_publications = NULL;
-    semantic_typed_map_query_destroy(ctx);
+    free(queue);
+    return admitted && !store->failed;
 }
 
 /* One shallow-edge vocabulary serves the initial syntax snapshot and its
@@ -476,129 +545,4 @@ void function_param_flow_complete_return_relations(FunctionParamFlowSummaryStore
             function_param_flow_fail(store, store->entries[i].function_decl,
                 "required return backing relation is incomplete or stale");
     }
-}
-
-void function_param_flow_program_point_indexes_destroy(FunctionParamFlowSummaryStore *store)
-{
-    if (store == NULL) return;
-    for (size_t i = 0; i < store->program_point_index_count; i++)
-        function_param_flow_program_point_index_destroy(&store->program_point_indexes[i]);
-    free(store->program_point_indexes);
-    store->program_point_indexes = NULL;
-    store->program_point_index_count = store->program_point_index_capacity = 0;
-}
-
-bool
-function_param_flow_reserve_entries(FunctionParamFlowSummaryStore *store,
-                                    size_t minimum)
-{
-    FunctionParamFlowSummaryEntry *entries;
-    size_t capacity;
-
-    if (store == NULL)
-        return false;
-    if (minimum <= store->capacity)
-        return true;
-    capacity = store->capacity == 0 ? 16 : store->capacity;
-    while (capacity < minimum) {
-        if (capacity > SIZE_MAX / 2)
-            return false;
-        capacity *= 2;
-    }
-    if (capacity > SIZE_MAX / sizeof(*entries))
-        return false;
-    entries = realloc(store->entries, capacity * sizeof(*entries));
-    if (entries == NULL)
-        return false;
-    store->entries = entries;
-    store->capacity = capacity;
-    return true;
-}
-
-FunctionParamFlowSummaryStore *
-function_param_flow_store_get(const SlotFunctionLookup *lookup)
-{
-    FunctionParamFlowSummaryStore *store;
-    SemanticContext *ctx;
-
-    if (lookup == NULL || lookup->ctx == NULL || lookup->program_root == NULL)
-        return NULL;
-    ctx = lookup->ctx;
-    if (ctx->function_param_flow_summaries != NULL)
-        return ctx->function_param_flow_summaries;
-    store = calloc(1, sizeof(*store));
-    if (store == NULL) {
-        semantic_error(ctx, lookup->program_root,
-            "Function parameter flow summary store allocation failed");
-        return NULL;
-    }
-    store->ctx = ctx;
-    store->program_root = lookup->program_root;
-    store->work_budget = 4096u;
-    ctx->function_param_flow_summaries = store;
-    return store;
-}
-
-void
-function_param_flow_program_point_index_destroy(
-    FunctionParamFlowProgramPointIndex *index)
-{
-    if (index == NULL)
-        return;
-    if (index->roots_by_param != NULL) {
-        for (size_t i = 0; i < index->param_count; i++)
-            free(index->roots_by_param[i]);
-    }
-    free(index->roots_by_param);
-    free(index->root_counts);
-    free(index->root_capacities);
-    free(index->dependency_roots);
-    free(index->dependency_root_ids);
-    free(index->no_store_calls);
-    free(index->local_definitions);
-    free(index->local_ids);
-    for (size_t f = 0; index->backing_frames != NULL && f < index->backing_frame_count; f++) {
-        FunctionParamFlowBackingFact *fact = index->backing_frames[f];
-        if (fact == NULL) continue;
-        for (size_t n = 0; fact->nodes != NULL && n < fact->node_count; n++) free(fact->nodes[n].origins);
-        for (size_t b = 0; fact->bindings != NULL && b < fact->binding_count; b++) {
-            free(fact->bindings[b].origins); free(fact->bindings[b].destinations);
-        }
-        free(fact->nodes); free(fact->bindings); free(fact->outputs); free(fact->effects); free(fact->pending_relations); free(fact);
-    }
-    free(index->backing_frames);
-    function_param_flow_claims_destroy(index->claims);
-    memset(index, 0, sizeof(*index));
-}
-
-void
-function_param_flow_summary_store_destroy(SemanticContext *ctx)
-{
-    FunctionParamFlowSummaryStore *store;
-
-    if (ctx == NULL || ctx->function_param_flow_summaries == NULL)
-        return;
-    store = ctx->function_param_flow_summaries;
-    if (getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
-        fprintf(stderr,
-            "pgy: function-param-flow entries=%zu body_evaluations=%zu"
-            " cache_hits=%zu recursion_hits=%zu fixed_point_passes=%zu\n",
-            store->count, store->body_evaluations, store->cache_hits,
-            store->recursion_hits, store->fixed_point_passes);
-        fprintf(stderr, "pgy: function-param-flow-work work_units=%zu work_budget=%zu\n",
-            store->work_units, store->work_budget);
-        fprintf(stderr,
-            "pgy: function-param-flow-sparse functions=%zu"
-            " statement_visits=%zu program_points=%zu\n",
-            store->program_point_index_count,
-            store->indexed_statement_visits,
-            store->indexed_program_points);
-    }
-    function_param_flow_program_point_indexes_destroy(store);
-    for (size_t i = 0; i < store->count; i++) free(store->entries[i].output_dependencies);
-    free(store->entries);
-    free(store->hash);
-    free(store->admitted_no_store_indexes);
-    free(store);
-    ctx->function_param_flow_summaries = NULL;
 }

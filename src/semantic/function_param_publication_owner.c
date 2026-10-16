@@ -258,6 +258,8 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
             ast_identifier_binding_syntax_id(arg), value != NULL && value->value_present ? value->value_type : NULL};
     }
     row->argument_count = count; row->call_present = true;
+    if (row->kind_present && row->builtin == BUILTIN_READ && row->value_present && !row->physical_scalar &&
+        !publication_record_read_payload_loan(ctx, call)) return false;
     if (row->value_present && row->string_value && semantic_indexed_string_independent_result(call))
         row->origin_ready = row->copy_escape = true;
     row->private_array_push = false;
@@ -348,6 +350,11 @@ static PublishedNode *publication_current_value_at(const SemanticContext *ctx,
     if (row->empty_map_declaration != NULL && (row->empty_map_declaration_id == 0 ||
         row->empty_map_declaration_id != ast_node_stable_id(row->empty_map_declaration) ||
         !semantic_param_publication_empty_map_binding(ctx, row->empty_map_declaration))) return NULL;
+    if (row->owned_slot_declaration != NULL) {
+        SemanticPublishedSlotBirth birth;
+        if (row->owned_slot_declaration_id == 0 || row->owned_slot_declaration_id != ast_node_stable_id(row->owned_slot_declaration) ||
+            !semantic_param_publication_owned_slot_binding(ctx, row->owned_slot_declaration, &birth)) return NULL;
+    }
     if (value->type == AST_BINARY && row->string_value && row->origin_ready &&
         !row->builtin_string_concat) return NULL;
     if (row->builtin_string_concat) {

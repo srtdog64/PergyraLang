@@ -1,0 +1,4 @@
+func Snapshot(view: ReadView<String>) -> String {
+    let text = Read(view);
+    return text;
+}

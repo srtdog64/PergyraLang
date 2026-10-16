@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let slot: Slot<String> = ClaimSlot();
+    Write(slot, Concat("heap", " text"));
+    let plain_text = Read(slot);
+    Log(plain_text);
+    Log(StringLength(plain_text));
+    if true {
+        let view: ReadView<String> = ViewRead(slot);
+        let first = view;
+        let second = first;
+        let view_text = Read(second);
+        Log(view_text);
+        Log(StringLength(view_text));
+    }
+    Release(slot);
+}

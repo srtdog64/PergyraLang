@@ -13,6 +13,7 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_let_internal.h"
 #include "destructure_type_fact.h"
+#include "function_param_publication_owner.h"
 
 static Type *
 ownership_destructure_normalize_type(Type *type)
@@ -191,6 +192,12 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                 if (!scope_declare(ctx->scope, tok_sym))
                     symbol_destroy(tok_sym);
                 scope_register_slot(ctx->scope, slot_sym);
+                if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
+                    !semantic_param_publication_record_owned_slot_binding(ctx, node, slot_type,
+                        ownership_destructure_binding_syntax_id(node, 0), token_type,
+                        ownership_destructure_binding_syntax_id(node, 1), token_name)) {
+                    semantic_error(ctx, node, "Checked secure Slot birth publication failed"); return false;
+                }
                 return true;
             }
             if (is_claim_slot && ast_let_destructure_name_count(node) == 1) {
@@ -210,6 +217,11 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                         node, 0), false);
                 scope_declare(ctx->scope, slot_sym);
                 scope_register_slot(ctx->scope, slot_sym);
+                if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
+                    !semantic_param_publication_record_owned_slot_binding(ctx, node, slot_type,
+                        ownership_destructure_binding_syntax_id(node, 0), NULL, 0, NULL)) {
+                    semantic_error(ctx, node, "Checked Slot birth publication failed"); return false;
+                }
                 return true;
             }
         }

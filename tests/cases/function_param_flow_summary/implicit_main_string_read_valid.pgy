@@ -1,0 +1,4 @@
+let slot: Slot<String> = ClaimSlot();
+Write(slot, Concat("heap", " text"));
+Log(Read(slot));
+Release(slot);

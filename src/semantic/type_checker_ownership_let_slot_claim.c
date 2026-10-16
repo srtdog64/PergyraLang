@@ -10,6 +10,7 @@
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_let_internal.h"
+#include "function_param_publication_owner.h"
 
 bool
 ownership_let_try_claim_slot_decl(ASTNode *node,
@@ -26,6 +27,7 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
     char token_name_buf[256];
     const char *paired_token = NULL;
     Symbol *sym;
+    Type *token_type = NULL;
 
     if (handled != NULL)
         *handled = false;
@@ -116,10 +118,16 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
             && slot_type->kind == TYPE_KIND_SLOT) {
             Type *token_args[1] = { type_slot_inner_type(slot_type) };
             tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+            token_type = tok->type;
         }
         if (!scope_declare(ctx->scope, tok))
             symbol_destroy(tok);
     }
     scope_register_slot(ctx->scope, sym);
+    if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_owned_slot_binding(ctx, node, slot_type, ast_node_stable_id(node), token_type, 0, paired_token)) {
+        semantic_error(ctx, node, "Checked Slot birth publication failed");
+        return false;
+    }
     return true;
 }

@@ -1,0 +1,4 @@
+let slot: Slot<Int> = ClaimSlot();
+Write(slot, 42);
+Log(Read(slot));
+Release(slot);
