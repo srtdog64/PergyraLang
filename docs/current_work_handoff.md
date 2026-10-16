@@ -8,51 +8,47 @@ registries and executable gates override this card.
 One rung: unchanged full canonical/DRV-2 admission -> real codegen bootstrap
 and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
 Published main is `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA CI
-run `38860052641` is RED with bootstrap/install skipped. At this snapshot the
-local main source checkpoint is `7acf6afd529bd77b10cc9eef72c11705fbb6f4d0`,
-12 commits ahead, with this handoff edit pending its own navigation commit.
-Check current Git status before resuming; nothing from this slice has been
-pushed. Only main is being edited. Root owns WSL builds/tests/processes
-and Git. WSL `/root/pgy-main-20261016` is Git HEAD39a with a byte-checked
-source overlay, not the D commit. Current Linux compiler SHA256 is
-`746dfa4d750770d23f7d892d3da9e65684c04d28ae1f56b0c30d4117ff971815`.
+run `38860052641` is RED with bootstrap/install skipped. Local main source
+checkpoint is `5be590a4463901e61b9373b51018207bf6bdfd02`, 14 commits ahead;
+this navigation edit is pending its own commit. Nothing from this slice was
+pushed. Only main is edited. Root owns WSL builds/tests/processes and Git.
+WSL `/root/pgy-main-20261016` is Git HEAD39a with a byte-checked source
+overlay, not the D commit. Current Linux compiler SHA256 is
+`d539d7eca05beb938cae038e08ed13783928b67362fe4670b2e34446d2460b86`.
 
-The identifier-origin leaf uses the current shared claim and typed binding,
-snapshots one input bit and stamps its read epoch; checked implicit Slot token
-is handled before ordinary binding. It removes a redundant per-frame
-expression row without dropping binding-growth or stale-fact checks. Focused
-phase7616/0, LLVM140/0, strict summary and unchanged4096/4097 controls,
-native MIR327/semantic3228/transpile1009, Map24/58, component/IR/Slot and
-five C+LLVM runtime pairs passed. The added SecureSlot positive/negative pair
-is in the summary smoke. Frozen independent review of this exact candidate
-found no new false admission/rejection; its report is
-`/root/pgy-review-destination-39a8fc1db.DO3E6O/.tmp/redteam/review.md`
-(SHA256 `d562aced23425ec34f451c46dce929d17902d6b1554ec55cfbc12746cc893742`).
-The previous 119-case replay also passed. Focused rebuild/summary receipt:
-WSL `.tmp/p0-destination-candidate.R2qCfA/`. A later six-kind wrapper
-experiment was rejected and fully reverted because shared AST DAGs could
-traverse exponentially without work charges; do not restore it.
+The committed identifier-origin and destination leaves read current shared
+claims, typed publication and binding facts without duplicate per-frame
+expression rows. Checked implicit Slot token, binding-growth/stale-fact and
+loan-seed paths remain distinct. Latest narrow gate: phase7638/0 with
+destination ID/binding/publication negative mutations, LLVM140/0, strict
+summary and unchanged4096/4097 controls; frozen 119-case replay PASS. Broad
+native MIR327/semantic3228/transpile1009, component/IR/Slot and five C+LLVM
+runtime pairs PASS on this exact binary. Latest build receipt WSL
+`.tmp/p0-destination-candidate.hl3S35/`, runtime
+`.tmp/p0-result-runtime.7gATXT/`. Independent frozen source review covered
+the preceding origin-leaf candidate only, not this destination addition.
 
-Actual unchanged bootstrap is still RED before gen0 at line48:6, original
-work4096 refusal; see `/root/pgy-main-20261016.p0-identifier-bootstrap-v3.log`.
-Full fixed-input scratch census has 4273 signatures/3188 keys and 567
-failures (554 work, 13 required backing), incomplete0/no MIR; receipt WSL
-`.tmp/p0-identifier-origin-census.tnnhLR/` restored source/build/bin byte
-identically. A smaller failure count is not canonical admission. No gen2==gen3,
-installed-driver, memory, or required CI green evidence exists on this source.
+Exact 4273-signature/3188-key fixed-input census now has 545 failures (532
+work, 13 required backing), incomplete0/no MIR; 22 prior work failures were
+resolved, none introduced, two resolved masks became concrete. Receipt WSL
+`.tmp/p0-identifier-origin-census.WneTsQ/` restored source/build/bin byte
+identically. Actual unchanged bootstrap on the new binary is still RED before
+gen0 (18410 errors), build directory WSL
+`.tmp/p0-return-bootstrap.tEZZAx/`. No gen2==gen3, installed-driver, memory,
+or required CI green evidence exists on this source; do not push known red.
 
-Next falsifier: safely eliminate repeated *owned* per-input backing work,
-starting from the first warm demand608 with E135/G324/B3635 charges (388
-destination, 559 origin, 2688 eager consumer), while retaining bounded work
-on shared DAGs and per-input effects/output dependencies. The fact owner is
-the current backing frame/claims; last consumers are summary outputs,
-returned-loan and ownership admission. A joint-origin bitset within the
-existing owner is under read-only whole-chain investigation, not approved
-implementation. The 13 required-backing failures are separate; trace the
-actual failing callee entry at the final return-relation consumer before
-assuming a common cause. Do not raise budget, shrink input, grant TOP/unproved,
-or substitute native-only success for installed evidence. Full chain map and
-receipts: [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
+Next falsifier: the remaining measured repeated *owned* per-input backing
+traversal. First warm demand608 before this leaf had E135/G324/B3635 charges;
+re-measure its new per-owner split before choosing a larger contract. The
+fact owner is the backing frame/claims; last consumers are summary outputs,
+returned-loan and ownership admission. Joint-origin facts require full
+consumer migration and separate per-origin pending/unproved evidence, not a
+budget waiver or charge skip. The 13 required-backing failures are self-frames
+of two factories; their declared-result frames refuse at the no-store graph
+prerequisite, whose exact predicate and fresh-ownership proof remain OPEN.
+Do not raise budget, shrink input, grant TOP/unproved, or substitute
+native-only success for installed evidence. Chain map and receipts:
+[main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
 
 The earlier Pool/Destroy read counterexample remains OPEN; it was not fixed
 or executed unsafely. No V1/SoT CLOSED claim or push of known-red work.
