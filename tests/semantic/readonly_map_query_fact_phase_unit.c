@@ -4287,6 +4287,41 @@ static void checked_return_loan_currency(void)
     bool admitted = parsed && type_check_program(program, ctx);
     CHECK(admitted);
     if (!admitted) goto cleanup;
+    ASTNode *echo = ast_program_statement(program, 0);
+    ASTNode *returned = ast_return_value(ast_block_statement(ast_func_body(echo), 0));
+    CHECK(returned != NULL && returned->type == AST_IDENTIFIER);
+    (void)function_param_flow_summary_for_param(ctx, echo, 0);
+    FunctionParamFlowSummaryStore *echo_summaries = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *echo_index = NULL;
+    CHECK(echo_summaries != NULL &&
+        function_param_flow_program_point_index_build(echo_summaries, echo, &echo_index));
+    FunctionParamFlowBackingFact *echo_frame = echo_index != NULL &&
+        echo_index->backing_frames != NULL ? echo_index->backing_frames[0] : NULL;
+    CHECK(echo_frame != NULL && (echo_frame->effects[0] & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0);
+    if (echo_frame != NULL && returned != NULL) {
+        bool redundant_leaf = false;
+        for (size_t n = 0; n < echo_frame->node_count; n++)
+            redundant_leaf |= echo_frame->nodes[n].node == returned;
+        CHECK(!redundant_leaf);
+        CHECK(function_param_flow_backing_rows_current(echo_summaries, echo));
+        uint32_t id = ast_node_stable_id(returned);
+        returned->stable_id = id + 1;
+        CHECK(!function_param_flow_backing_rows_current(echo_summaries, echo));
+        returned->stable_id = id;
+        uint32_t binding = ast_identifier_binding_syntax_id(returned);
+        ast_identifier_set_binding_syntax_id(returned, 0);
+        CHECK(!function_param_flow_backing_rows_current(echo_summaries, echo));
+        ast_identifier_set_binding_syntax_id(returned, binding);
+        PublishedNode *published = published_node_for(ctx, returned);
+        CHECK(published != NULL);
+        if (published != NULL) {
+            bool origin_ready = published->origin_ready;
+            published->origin_ready = !origin_ready;
+            CHECK(!function_param_flow_backing_rows_current(echo_summaries, echo));
+            published->origin_ready = origin_ready;
+        }
+        CHECK(function_param_flow_backing_rows_current(echo_summaries, echo));
+    }
     SemanticParamPublicationView view;
     CHECK(semantic_param_publication_admitted_view(ctx, &view));
     CHECK(view.call_count == 1);

@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let slot: SecureSlot<String> = ClaimSecureSlot();
+    Write(slot, Concat("heap", " text"), slot_token);
+    let text = Read(slot, slot_token);
+    Log(text);
+    Release(slot, slot_token);
+}

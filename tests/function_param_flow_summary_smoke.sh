@@ -60,6 +60,8 @@ for relative in (
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
     ("unit_enum_qualified_result_valid", True),
+    ("secure_implicit_token_safe", True),
+    ("secure_implicit_token_keep_invalid", False),
     ("result_builder_birth_valid", True),
     ("retaining_capacity_builder_birth_invalid", False),
     ("wrapper_pool_builder_birth_invalid", False),

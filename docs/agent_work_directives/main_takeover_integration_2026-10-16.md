@@ -23,6 +23,115 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   oracle, reduced canonical inputs, increased memory/time budgets, or claiming
   old receipts validate the integrated source.
 
+## Current active rung — fixed-input summary work (2026-10-17)
+
+- Objective and order: admit the unchanged full canonical compiler program
+  without weakening ownership, then run the actual bootstrap, installed C/LLVM
+  driver and same-published-SHA CI. Stable typed/publication identity and
+  fail-closed outputs precede work reduction; speed is not a separate goal.
+- Fixed evidence: local source `9b3eb9f1e` plus handoff commit `d6ef32898`,
+  tested binary SHA256 `7f04442a32e66ffc8292bad578975902040afa6b7c33c365f34be38f9ea7ba5c`;
+  unchanged `src/self_hosted/codegen/main.pgy`. The actual bootstrap stops
+  before gen0 at work4096. The isolated 4273-signature/3188-key census has
+  698 work failures and 9 required-backing failures, incomplete 0. The first
+  failing key reaches 77 summary evaluations and work4096. This does not
+  establish which charge is redundant.
+- Chain and authority: the native self-host entrypoint seals typed inputs in
+  semantic publication; program-point indexes/claims carry current routine,
+  call and node facts. `function_param_flow_summary_demand` owns the
+  per-demand 4096 budget and fixed-point entries. The no-store graph and
+  returned-backing frame charge reached graph members and node/epoch work;
+  recursive calls reuse the same demand. Output/currentness and returned-loan
+  consumers are the last legitimate users before ownership admission and MIR.
+- Forbidden fallback: no larger cap or timeout, smaller input, uncharged
+  real work, `TOP`/unproved as permission, missing/stale claim acceptance,
+  aggregate copy/annotation workaround, cross-demand cached permission, or
+  native-only admission substituting for installed self-host evidence.
+- Investigation and edit order: decompose the first failing demand into body,
+  graph and backing charges on a scratch observer while preserving production
+  source/build/bin byte-identically. Classify duplicate versus distinct work
+  and its fact owner; inspect all reached callers and final consumers. Only
+  then choose one bounded owner operation, its exact currentness/identity
+  premise, signatures/consumers to migrate and old work path to remove.
+  Unknown now: the removable operation and whether one fix covers all 698.
+- Falsifiers and integration: retain original 4096/4097, stale/missing claims,
+  late SCC growth and output/loan refusal negatives. Demand a same-input
+  before/after charge trace, phase/strict gates, native/Map/Slot/C+LLVM
+  positives and negatives, then actual unchanged bootstrap/gen2==gen3,
+  installed drivers and required CI. A lower failure count alone is not done.
+
+Scratch measurement on the actual first warm bootstrap failure, binary7f,
+is now observed at `WSL .tmp/p0-current-work-trace.BXglu6/`: the 4096 units
+are 117 entry evaluations, 309 no-store graph members and 3670 backing
+node/epoch visits (3660 complete, 10 already incomplete). All 3670 charged
+backing rows have distinct `(routine, input ordinal, node ID)` in this demand;
+the fixed-point-wide repeat hypothesis does not explain this frontier.
+First-charge backing phases are origin 1309, eager consumer 2089 and
+destination 272. The origin phase includes 846 identifier leaves; 686 have
+current typed `origin_ready=false`, 139 `origin_ready=true`, 21 meta. Three
+observer builds stopped at the same demand608/work4096 and restored production
+source/build/bin/dependencies byte-identically. This is an ownership-cost
+measurement, not an admission receipt.
+
+Next bounded candidate for proof, not yet an implementation permission:
+an identifier is a leaf. Its origin may be read directly from the current
+binding row rather than allocating a separate expression node, provided the
+same stable ID, shared claim, current typed value/binding, slot-token/meta
+rule and `origin_read_epoch` are retained. Consumer-only identifiers already
+use such a leaf path; destination and all non-identifier origin/eager work
+remain unchanged. Binding-origin growth after an earlier read must still
+trigger another epoch, and cached output/loan validation must reject a
+mutated ID/binding/publication claim. The binding bitset pointer lifetime and
+cached expression semantics are under read-only audit before source editing.
+
+Identifier-origin result, 2026-10-17: the direct leaf read now snapshots its
+one-bit origin instead of borrowing a growable binding row. The checked Slot
+token (binding zero) is handled before the ordinary binding requirement; the
+first version reversed this order and falsely rejected the existing
+`secure_implicit_token_safe` program. The corrected binary is
+`746dfa4d750770d23f7d892d3da9e65684c04d28ae1f56b0c30d4117ff971815`.
+Focused phase7616/0, original 4096/4097 guards, 119 frozen analyze-only
+outcomes, native MIR327/semantic3228/transpile1009, Map24/58, Slot C+LLVM,
+and five C+LLVM runtime pairs pass. A direct SecureSlot positive/negative pair
+is now in the summary smoke gate. The unchanged real bootstrap remains RED
+before gen0, first work4096 at line48:6. The complete fixed-input census is
+still 4273 signatures/3188 keys and 567 failures (554 work, 13 required
+backing), incomplete0, with no changed mask or new failure versus the first
+identifier candidate. This is measured progress, not DRV-2 or CI closure.
+
+Next exact cost seam: after identifier-origin leaves are removed, the first
+warm demand608 charges E135/G324/B3635; B has 388 destination, 559 origin,
+2688 eager-consumer rows. All 3635 B rows are unique per routine/input/node,
+but only 2377 unique routine/node pairs across input frames. Trace receipt is
+WSL `.tmp/p0-current-work-trace.rQQMQv/`, source/build/bin restored
+byte-identically. The existing body claims own syntax topology, publication
+and currentness; backing frame nodes own per-frame effects, visit stamps and
+work charges. Last consumers remain summary outputs, output dependencies and
+returned-loan admission.
+
+The six-kind passive-wrapper trial is **rejected and reverted**, not the next
+implementation. It skipped backing rows and work charges for BLOCK/IF/BINARY/
+UNARY/BREAK/CONTINUE. Although the same-input census fell to 387 failures
+(364 work, 23 required backing) and focused/broad gates passed on binary
+`f0334f2315ce9fafa65a14c2586a7c8345a762e225483af6f0365dc2e930b6f3`,
+claim currency allows completed shared DAG nodes. A diamond of AST_BINARY
+wrappers can revisit an O(depth) graph exponentially with no charged wrapper
+work. The unchanged bootstrap also remained red before gen0. Independent
+source review found this unbounded-work counterexample; the accepted source
+and executable are restored to binary `746dfa4d750770d23f7d892d3da9e65684c04d28ae1f56b0c30d4117ff971815`.
+Do not use the trial's 180 resolved keys as progress or raise the 4096 budget.
+
+The next ownership decision must account for repeated per-input backing work
+without turning a bounded DAG into uncharged traversal. Investigate whether
+the existing backing fact's origin bitset can jointly represent multiple
+formals under one current frame, preserving per-input effects, output
+dependencies, pending relations, and loan validation. A bounded alternative
+must name its owner, all consumers, and a shared-DAG falsifier before editing.
+The 13 required-backing failures on the accepted binary are separate; the
+root census key is not necessarily the failing callee entry. Instrument the
+actual final return-relation consumer on representative keys before treating
+them as one cause.
+
 ## Active return-provenance completion policy
 
 The local-alias RETURN repair is a safety prerequisite, not a new precision

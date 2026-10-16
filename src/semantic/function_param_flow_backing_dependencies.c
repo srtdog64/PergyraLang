@@ -129,6 +129,29 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
         }
         return &zero;
     }
+    if (node != state->loan_seed && node->type == AST_IDENTIFIER) {
+        /* A leaf needs the current claim and binding, but not a second
+         * per-frame expression row. Return the read's one-bit snapshot:
+         * later binding growth must not mutate an earlier expression value. */
+        static const uint64_t zero = 0, one = 1;
+        FunctionParamFlowBackingFact *fact = state->fact;
+        SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, node);
+        uint32_t binding = semantic_param_publication_binding(state->store->ctx, node);
+        if (fact->origin_count != 1 || fact->origin_words != 1 ||
+            ast_node_stable_id(node) == 0 ||
+            !function_param_flow_claim_record(state->store->ctx, fact->claims, node)) {
+            fact->complete = false; return NULL;
+        }
+        if (semantic_param_publication_slot_token_operand(state->store->ctx, node) ||
+            (value.ok && (value.meta || value.origin_ready))) return &zero;
+        if (!value.ok || binding == 0) { fact->complete = false; return NULL; }
+        FunctionParamFlowBackingBinding *source = backing_binding(state, binding, false);
+        if (source == NULL) { fact->complete = false; return NULL; }
+        source->origin_read_epoch = fact->epoch;
+        uint64_t bits = source->origins[0];
+        if ((bits & ~UINT64_C(1)) != 0) { fact->complete = false; return NULL; }
+        return bits == 0 ? &zero : &one;
+    }
     size_t at = backing_node(state, node);
     if (at == SIZE_MAX || !backing_work(state, at)) return NULL;
     FunctionParamFlowBackingFact *fact = state->fact;
@@ -142,22 +165,11 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
         return origins;
     }
     SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, node);
-    if (node->type == AST_IDENTIFIER &&
-        semantic_param_publication_slot_token_operand(state->store->ctx, node)) return origins;
     if (value.ok && (value.meta || value.origin_ready)) return origins;
     if (node->type == AST_CALL &&
         semantic_param_publication_checked_local_owner_constructor(state->store->ctx, node)) return origins;
     if (node->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, node)) return origins;
     switch (node->type) {
-    case AST_IDENTIFIER: {
-        FunctionParamFlowBackingBinding *row = backing_binding(state, semantic_param_publication_binding(state->store->ctx, node), false);
-        if (row != NULL) {
-            row->origin_read_epoch = fact->epoch;
-            backing_merge(state->fact->origin_words, origins, row->origins);
-        }
-        else fact->complete = false;
-        break;
-    }
     case AST_MEMBER_ACCESS:
         if (!semantic_param_publication_checked_unit_enum_selection(state->store->ctx, node)) {
             const uint64_t *bits = backing_origin(state, ast_member_object(node));
