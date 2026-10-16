@@ -33,6 +33,24 @@ static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_
 static void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations)
 {
     if (value == NULL || state->fact->analysis_unsupported) return;
+    if (value != state->loan_seed && value->type == AST_IDENTIFIER) {
+        /* The current binding owns this leaf's destination bits. There is no
+         * separate per-frame expression state to allocate or revisit. */
+        if (ast_node_stable_id(value) == 0 ||
+            !function_param_flow_claim_record(state->store->ctx, state->fact->claims, value)) {
+            state->fact->complete = false; return;
+        }
+        SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);
+        if (!published.ok) { state->fact->complete = false; return; }
+        if ((state->checking_declared_result &&
+            semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) || published.meta) return;
+        FunctionParamFlowBackingBinding *source = backing_binding(state,
+            semantic_param_publication_binding(state->store->ctx, value), false);
+        if (source == NULL) { state->fact->complete = false; return; }
+        source->destination_read_epoch = state->fact->epoch;
+        backing_merge(state->fact->destination_words, destinations, source->destinations);
+        return;
+    }
     size_t at = backing_node(state, value);
     if (at == SIZE_MAX || !backing_work(state, at)) return;
     SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);

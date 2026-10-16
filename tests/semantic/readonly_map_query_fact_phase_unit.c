@@ -5384,6 +5384,32 @@ static void checked_backing_input_frames(void)
         FunctionParamFlowBackingFact *frame = index->backing_frames[1];
         CHECK(frame != NULL && frame->origin_count == 1 && frame->destination_count == 3);
         if (frame == NULL) goto cleanup;
+        ASTNode *source = ast_assignment_value(ast_block_statement(ast_func_body(decl), 0));
+        CHECK(source != NULL && source->type == AST_IDENTIFIER);
+        if (source == NULL || source->type != AST_IDENTIFIER) goto cleanup;
+        uint32_t source_id = source->stable_id;
+        uint32_t source_binding = ast_identifier_binding_syntax_id(source);
+        CHECK(source_id != 0 && source_binding == ast_func_param_stable_id(ast_func_param(decl, 1)));
+        source->stable_id = 0;
+        CHECK(!function_param_flow_backing_rows_current(store, decl));
+        CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+        source->stable_id = source_id;
+        ast_identifier_set_binding_syntax_id(source, 0);
+        CHECK(!function_param_flow_backing_rows_current(store, decl));
+        CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+        ast_identifier_set_binding_syntax_id(source, source_binding);
+        PublishedNode *source_value = NULL;
+        for (size_t p = 0; p < ctx->function_param_publications->node_capacity; p++)
+            if (ctx->function_param_publications->nodes[p].node == source)
+                source_value = &ctx->function_param_publications->nodes[p];
+        CHECK(source_value != NULL && source_value->value_present);
+        if (source_value == NULL) goto cleanup;
+        source_value->value_present = false;
+        CHECK(!function_param_flow_backing_rows_current(store, decl));
+        CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+        source_value->value_present = true;
+        CHECK(function_param_flow_backing_rows_current(store, decl));
+        CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
         CHECK(frame->binding_count != 0 && frame->epoch < SIZE_MAX);
         if (frame->binding_count == 0 || frame->epoch == SIZE_MAX) goto cleanup;
         for (unsigned kind = 0; kind < 2; kind++) {

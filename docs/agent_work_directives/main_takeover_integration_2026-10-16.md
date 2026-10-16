@@ -132,6 +132,54 @@ root census key is not necessarily the failing callee entry. Instrument the
 actual final return-relation consumer on representative keys before treating
 them as one cause.
 
+The bounded dead-node charge trial is also **rejected and reverted**. It
+checked the existing execution publication and current claim, then returned
+before creating/charging a per-frame row for a non-loan-seed unreachable
+node. Binary `ba57e9754c43e9a2f97bdea2971d1b9d66d1c05edb4c6520b4167f8932645521`
+passed the narrow phase/summary checks. On the exact 4273-signature/3188-key
+canonical census, however, failures remained 567 (554 work, 13 required
+backing), with zero resolved/new failures and zero mask changes. Receipt:
+WSL `.tmp/p0-identifier-origin-census.ZXVvb2/`, with source/build/bin
+restored byte-identically after the diagnostic run. It did not unblock this
+rung, so no dead-node exception or test was retained.
+
+The identifier destination leaf now reads the current claim, typed publication
+and binding's destination bits/read epoch without a duplicate per-frame
+expression row. It does not apply to a loan seed or to a call/member/array
+expression. Last consumers remain frame outputs and output-current/loan
+admission. Candidate binary
+`d539d7eca05beb938cae038e08ed13783928b67362fe4670b2e34446d2460b86`
+passed phase 7638/0 (including stale identifier ID, binding and publication
+faults), LLVM 140/0, strict summary/4096 controls and 119-case frozen replay.
+The exact 4273-signature/3188-key census has 545 failures (532 work, 13
+required backing): 22 prior work failures resolved, no new failures, and two
+resolved keys changed from TOP to concrete masks. Receipt WSL
+`.tmp/p0-identifier-origin-census.WneTsQ/`, diagnostic source/build/bin restored
+byte-identically. Broad native MIR/semantic/transpile, chain/Slot and five
+C+LLVM runtime pairs also passed on this binary. The unchanged real bootstrap
+was run and remains RED before gen0, with 18410 diagnostic errors; it reached
+neither gen2==gen3 nor installed-driver/required CI. This is measured progress,
+not canonical admission. The next operation must remove the measured repeated
+per-input backing traversal behind this same owner, preserving per-origin
+effects/output facts and the 4096/shared-DAG negative controls.
+
+The accepted binary's 13 required-backing failures are exactly the current
+input frames of two routines: `SemanticAstCollectionFocusRecoveryFromResolvedFacts`
+(8 inputs) and `SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts`
+(5 inputs). Each frame is unproved, not pending or unsupported. Scratch
+consumer-to-producer trace pins the first incomplete call to the respective
+zero-argument factories `SemanticAstCollectionFocusRecoveryFactsEmpty()` and
+`SemanticBuiltinSignatureRows()`. Both have a declared-result receipt; its
+frame is created but has zero traversed nodes when it refuses, placing the
+failure at the no-store graph prerequisite before body proof. The two source
+factories have different local mutation shapes (MapNew/struct assembly versus
+ArrayPush on a nonempty literal), so do not waive that prerequisite merely
+because both have zero formals. Receipts: WSL
+`.tmp/p0-identifier-origin-census.apdYQb/` and
+`.tmp/p0-identifier-origin-census.Ave3rG/`; production diagnostic edits
+were removed and binary746 restored. Exact failed no-store predicate and
+fresh-ownership proof remain OPEN.
+
 ## Active return-provenance completion policy
 
 The local-alias RETURN repair is a safety prerequisite, not a new precision
