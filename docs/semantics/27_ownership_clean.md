@@ -765,6 +765,17 @@ MIR is a CFG in SSA form. Its operands are expression payloads (`expr0`,
 move instruction. The contract therefore keys every fact by routine, block,
 instruction index, and the operand's syntax node identity.
 
+Within one admitted final MIR generation, the existing ordered expression
+graph can represent that operand occurrence as `(instruction, lane, local
+node index)`, scoped by routine, block and the final snapshot. Adding a global
+source syntax ID to every graph node is not a prerequisite for this position
+identity. Joining a provisional semantic fact still requires its exact typed
+source/binding identity and currentness. The current graph digest alone is
+not that evidence: it omits some binding/callee identity columns and the
+self-host reader does not revalidate all internal semantics from the digest.
+The ownership owner must check the full typed graph in its final generation;
+any graph/def-use rewrite invalidates the dependent receipt.
+
 **Model variables.**
 
 - Each SSA value of a heap-typed local is one variable of the model.

@@ -25,6 +25,222 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Integration checkpoint and remaining result relation
+
+Source checkpoint `e6010d946` consumes the exact SubStartsWithLen String input
+contract, widens its existing self-host selection/recording chain to Long,
+repairs MapNew's non-materializing type check, and seals the exact Concat
+constructor premise in the existing input claims. No physical cleanup right is
+issued. Linux binary `dbd2e4c5...` passed phase7970/0, strict4096/4097 summary,
+three C/LLVM factory controls, native MIR327/semantic3228/transpile1009,
+Map24/58 and HIR/RIR/MIR/AIR propagation. Full fixed input receipt
+`.tmp/p0-identifier-origin-census.w2O0jC/` is538=533work+5required, versus541
+before this slice:3 resolved,0 new failures,4273 signatures/3188 keys unchanged,
+incomplete0/no MIR; observer restored source/build/bin byte-identically.
+Map key-copy positive and value-retention refusals were separately observed at
+their exact sites in `.tmp/p0-prefix-probes.nbYP8g/`.
+
+Actual current full bootstrap remains RED before gen0 (18410 errors/16 warnings,
+`.tmp/p0-return-bootstrap.Tpohpg/`). Actual collection parity gate stops in its
+prerequisite map-written-root program (15321 errors, `.tmp/self_hosted/
+map-written-root.i8qo5X/`); new high-bit mutations133-141 are UNEXECUTED.
+No gen2/gen3, installed-driver or required green CI evidence exists. Do not
+publish known red or count these native prerequisites as self-host substitution.
+
+The next implementation unit is one result contract across the complete
+reached factory chain, not a series of per-function exceptions:
+
+- Objective/order: resolve the5 required-backing rows without weakening caller
+  dependency or lifetime checks; preserve current generation and failure
+  behavior before work cost and bootstrap. Physical transfer/drop stays OPEN.
+- Chain: domain exposure -> builtin signature factory -> protocol names and
+  nominal protocol -> Option signature helper -> UnwrapOption -> private rows;
+  plus intent-observability RowAt and String concatenation. Current result
+  frames admit only zero-parameter functions, omit typed wrapper/String+
+  composition, and cannot coexist with per-formal frames at their final check.
+- Existing owners: CFG body flow produces normal-exit closure; routine
+  publication carries that receipt with current body identity. Existing
+  declared-result frame proves closure modulo its typed formals, represented
+  by zero-origin/zero-destination formal placeholders. The existing per-formal
+  returned-backing summaries, not those zero placeholders, own actual
+  formal-to-result dependency. Missing, recursive or pending summaries grant
+  nothing. Some/Unwrap use their exact typed backing relation; String+ uses
+  its existing checked two-String-operand receipt, never generic origin_ready.
+- Full change set: pass existing CFG result through param-summary/routine
+  publication; require it in result currentness; generalize result frame and
+  seed exact formal identities; compose every actual's admitted dependency;
+  seal call-edge arity/dependency bits; replay those bits and current callee
+  facts at backing_rows_current; validate each frame with its own width and
+  allow result-only formal vectors; release new edge storage in the existing
+  snapshot destructor. Keep eager evaluation of all nested actuals, stores,
+  retaining effects, private ArrayPush payload and no-store graph unchanged.
+- Last consumer: backing_rows_current -> complete_return_relations -> final
+  summary/loan admission. No new HIR/MIR schema or cleanup permission.
+- Forbidden: arity-only relaxation, treating unready mask0 or placeholder0 as
+  independence, input-to-inout outputs as result dependency, name/type-wide
+  freshness, Pool/Finish grants, skipped argument evaluation, increased4096,
+  new owner files or a parallel algorithm.
+- Scopes: A owns backing visitor, result frame/edge, internal types, final
+  validator and snapshot destructor; B owns routine/CFG publication and the
+  existing checked constructor predicate; C owns focused source/runtime and
+  currentness/failure tests. Root owns integration/builds/Git and one shared
+  strict-summary/phase gate, then fixed full census and actual bootstrap.
+- Falsifiers: forwarded formal/String/Option/nominal/ArrayPush dependencies
+  remain; fresh String+ can cut result dependency but never nested retaining
+  effects; missing returns and unsealed recursion fail closed; changed body,
+  flow receipt, call target/type/actual/summary bit revoke the edge. Observe
+  focused positives fail on dbd before integrating. Preserve allocator/Pool
+  negatives. Unknown until phase evidence: the frame and per-formal summaries
+  must refer to the same current typed body/generation, including pending SCCs.
+
+### Executable sub-slice — typed factory dependency independence
+
+- Objective/priority: repair the reached zero-input factory backing-dependency
+  refusal using its already-published typed constructor premise. Preserve
+  current identity and missing-fact refusal before canonical admission and cost.
+  This is an execution unit of the full ownership/bootstrap rung above.
+- Fact owner: `semantic_param_publication_checked_local_owner_constructor`
+  consumes the current `empty_map_declaration`/binding receipt. The receipt
+  joins the checked call, exact LET/initializer/HashMap Type, stdlib target,
+  zero actuals and current syntax. It proves no input/output backing relation,
+  never unique storage, implicit copy, source retirement or a drop right.
+- Last consumers: `function_param_flow_mutable_output_required`,
+  `backing_origin` and `backing_destination_value`, then exact backing-row
+  currentness, final summary admission and returned-loan checking. No new
+  HIR/MIR physical cleanup permission is projected from this predicate.
+- Forbidden: call-name/zero-arity grant, setting `origin_ready`/`copy_escape`,
+  using nominal type mapping as freshness, treating an issued stale receipt
+  as unsupported, relaxing 4096, or claiming physical aggregate cleanup closed.
+- Independent edit scopes: A changes the existing typed publication predicate;
+  B supplies a safe C/LLVM runtime factory control; C updates the existing
+  phase currentness/fault controls and summary fixture oracle. Root owns the
+  shared plan, build, unchanged census, integration and Git. No parallel
+  ownership algorithm or new fact family is opened.
+- Acceptance/falsifiers: current typed empty-map factory positive; wrong
+  LET/call/Type/stdlib/arity/generation receipt refusals; retaining ref input
+  and resource-birth negatives; unchanged strict 4096/4097 controls. Then the
+  fixed 4273-signature/3188-key census must introduce zero success-to-failure
+  regressions before actual full canonical/bootstrap/installed-driver checks.
+  Internal duplicated collection storage remains a separate physical safety
+  falsifier, not a counterexample to caller-input dependency independence.
+
+The next reached dependency premise is a private local `Array<String>` literal
+store. Its current publication incorrectly reads the String-element ownership
+transition as evidence for the outer Array storage. Replace that dependency
+read in the existing `private_array_push` publication with a call-time receipt:
+exact checked stdlib `ArrayPush`/two actuals/Void, same local non-alias typed
+literal birth, current caller/binding/initializer identities, exclusive outer
+storage with no prior escape or pending handoff, and a syntax snapshot of the
+literal declaration plus call. Literal length and String-element provenance
+do not decide this outer-storage premise. Initial and inserted element backing
+still pass through `backing_origin` and `backing_store`; borrowed or retained
+inputs must continue to escape in the summary. The three last consumers are
+the no-store selector, returned-backing transfer and `slot_analyzer_escape`.
+Remove the old element-effect read and unused private effect columns together;
+do not leave old/new authority or change element cleanup carriers. A owns this
+existing publication/header change, B the safe runtime control, C the phase
+mutation and retaining-input controls. Root builds each fixed source snapshot.
+Falsifiers include alias/field/branch escape before push, reassignment, ref
+inputs in initial or pushed elements, nested retaining calls, shadowed targets,
+and missing/stale literal children/Type/caller/call receipts. The same unchanged
+census and canonical/bootstrap chain remain the acceptance boundary.
+
+The `faf77f78e` candidate (binary `50d0a2f0...`) passed phase7757, strict
+summary, native MIR327/semantic3228/transpile1009, Map24/58 and both factory
+C/LLVM runtime controls. Fixed4273/3188 census receipt WSL
+`.tmp/p0-identifier-origin-census.m9cb5s/` is541=536work+5required, with zero
+new failures; the Array literal premise itself removes no additional key.
+The observer restored source/build/bin byte-identically. Actual full bootstrap
+still refuses gen0 (18410 cascades); installed-driver/CI are not validated.
+
+Next dependency within this same factory chain: the no-store closure reaches
+`SemanticExpressionGraphCollectionCallProtocolFromName` through
+`SemanticBuiltinSignatureRows`. Diagnostic-only receipt WSL
+`.tmp/p0-factory-dependency.hYxWqn/` demands the reached domain-exposure
+ordinal5 on the unchanged full canonical source: the signature factory now has
+`mutable=0 private=1`, but the protocol callee has `mutable=1`. Its first
+unmodelled String read is checked stdlib `SubStartsWithLen` (arity4); current
+retention registry has no row for String actuals0/3. Runtime and type-check
+owners establish synchronous read-only inputs and a scalar Bool result.
+Objective/order: publish that existing runtime input contract, preserve exact
+call identity and currentness, then remeasure the complete fixed census.
+Fact owner is `builtin_argument_retention_registry.def` via
+`region_retention_summary.c` and its generated Pergyra projection; last consumers are typed argument publication,
+the no-store graph, backing-origin/call escape, then final summary/loan
+admission and HIR/MIR projection. It grants no output backing/drop permission.
+A edits the two exact stdlib/arity/ordinal rows and regenerates their projection;
+B migrates the existing self-host selection/call-recording consumers and adds
+a safe C/LLVM factory control; C supplies direct currentness/identity/arity/
+ordinal faults and retaining-user/opaque-call negatives. Root alone builds/runs/Git. Missing,
+shadowed, changed-arity or stale calls must not inherit the row. No ANY
+ordinal/name-only fallback, result grant, budget increase or unrelated builtin
+registry expansion. Shared gate: existing strict summary and phase controls,
+C/LLVM output equality, unchanged4273/3188 census without new failures, actual
+bootstrap and required installed/CI evidence. This is a measured prerequisite
+of the existing rung, not a new precision or performance track.
+
+Consumer survey found a required representation repair before those rows can
+land: selection currently uses a signed31-bit `Int` and rejects registry rows
+above31; adding String actuals0/3 produces33 rows. Its call recorder also
+mistakes two selected argument rows of one builtin identity for competing
+call identities (already latent for `Write`). Migrate the selection, bit and
+mask return/argument through the existing producer, expression-identity caller,
+call recorder and probe consumers to `Long`. Bound the count by its actual
+63 positive value bits, never merely change31 to33 on Int arithmetic. Record
+one canonical first registry row per selected builtin identity, accepting
+multiple exact argument rows of that same identity and still refusing an
+identity/name conflict. Keep one call fact and the existing borrowed-ordinal
+lookup; no new owner or wire schema. This is a representation/identity join,
+not a raised analysis budget or memory allowance. Test high bits31/32,
+both newly borrowed ordinals, both existing Write ordinals, malformed selection,
+shadowing/arity, missing call facts and sealed-fact currentness on both backends.
+Before any Pergyra source edit, root froze the complete unchanged self-host
+input at WSL `.tmp/p0-fixed-canonical.nbPIex/` with per-file and tar hashes.
+Run the original4273/3188 diagnostic census on that full frozen input and also
+the full current canonical/bootstrap source; changed self-host source is not
+permitted to masquerade as a smaller or identical fixed benchmark input.
+
+Independent faf77 review found a fail-closed currentness hole at the same
+empty-map premise: `semantic_param_publication_empty_map_binding` still uses
+the re-materializing metadata lookup. Repair that existing consumer with the
+non-materializing resolved-type lookup; a missing annotation receipt must not
+be reconstructed during validation. A owns this one deferred-owner read;
+C adds NULL/TYPE_INT metadata and mismatched map key/value Type faults, requiring
+constructor/no-store/backing rejection and recovery after restoring the facts.
+Add analyze-only caller-derived MapSet key/value return controls. Respect the
+existing copied-String-key contract instead of labelling that safe copy an
+escape; use an actually shallow retaining aggregate value for the negative.
+Do not
+turn this into a reassignment kill-precision track: monotone conservative
+overwrite refusal is known, not the current safety/CI blocker. Existing
+typed-map positives and the fixed full census remain mandatory.
+
+Candidate10cb now proves SubStartsWithLen String actuals0/3 are borrowed reads,
+and both Probe/factory no-store graphs close, but the declared-result frame
+still fails at the factory's local Concat calls (diagnostic WSL
+`.tmp/p0-factory-dependency.2PyCkQ/`, mutable0/result.complete0, current typed
+Concat rows with independent String results). The destination consumer ignores
+the generic origin_ready flag while checking a declared result; keeping that
+distinction prevents allocator-lifetime grants. Repair the same existing
+checked-local-constructor predicate with only exact checked stdlib
+BUILTIN_CONCAT(String,String)->String. Its runtime allocates/copies or returns
+an independent empty result, with no requested allocator domain or retained
+input. Reuse current call/target/actual Type facts, preserve argument evaluation
+through the no-store and eager backing consumers, and issue no drop/copy
+authority. Do not grant every String result or reuse name/zero-arity evidence.
+A owns this predicate delta, C owns its currentness and nested-retaining-actual
+negative, root reruns the original prefix positive and unchanged full census.
+Its first fault run exposed a missing last-consumer premise: Concat's issued
+constructor predicate becomes false after corrupting captured argument0 Type,
+but cached no-store/backing claims remain true (phase7970/2, fault9). Seal that
+predicate's true/false result in the existing `FunctionParamFlowIndexClaim`
+AST_CALL capture and replay; no additional owner or external IR payload. The
+same index owner must reject either direction of change rather than replay a
+weaker input-read fact after its constructor premise is withdrawn. A owns the
+existing internal claim struct and input-claims producer/currentness; C's
+unchanged fault9 is the executable falsifier. Then replay all existing pending,
+unsupported, allocator, Map and strict4096/4097 controls before integration.
+
 ### Whole-chain implementation map for the active aggregate edge
 
 - Objective and priority: keep D1 independent values and one final cleanup
@@ -84,9 +300,12 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 Read-only interface audit after this map: document 27 §5.1–5.5 already fixes
 the final ownership-clean owner **after** MIR DCE/normalization; semantic
 publication can provide current typed constructor premises but cannot decide
-final move/copy/drop. Existing MIR expression-graph JSON lacks per-node stable
-source identity for the required `(routine, block, instruction, operand)`
-decision. Collection/String operation ABI, deep glue and final exit-edge
+final move/copy/drop. The existing final-generation expression graph preserves
+ordered argument/field node positions, so `(routine, block, instruction, lane,
+local node index)` can identify an operand without a new global source-ID
+column. This position is not yet a sealed typed reaching-definition/storage
+receipt, and the current digest does not establish it. Collection/String
+operation ABI, deep glue and final exit-edge
 settlement are also not implemented. Adding a semantic-only consumed bit, an
 unused HIR/MIR field or a subset-only mandatory drop would not close this
 chain. The generic/tuple/enum pack coverage and direct-constructor path are
