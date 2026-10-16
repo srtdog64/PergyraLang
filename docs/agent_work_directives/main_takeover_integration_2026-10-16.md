@@ -307,6 +307,57 @@ real typed-call selection bug, not just a new result-predicate condition.
   Map24/58, phase8522/0 and HIR/RIR/MIR/AIR. Save this coherent local source
   checkpoint and obtain exact-SHA independent review before resuming the
   fixed-input admission blocker. These are native prerequisite receipts.
+  Source checkpoint f3015c448a99af4dcb6962f4771312f3c4eb00a5 is local;
+  exact-source independent review is pending. Actual92 bootstrap tie9sL is
+  still18421 errors/16 warnings. The new fixed cold census pYZH2w regresses
+  762->1777 failed keys (1194 newly failed/179 no longer failed):1652 required
+  return-relation failures and125 stale indexes;4273 signatures/3188 keys and
+  BYTE_IDENTICAL restoration verified. The179 are not claimed progress:
+  earlier unsupported paths prevent meaningful traversal.
+  The first real pre-summary failures are10 qualified namespace call identity
+  errors plus1 dependent numeric-cast publication error. Minimal ucTgLQ probe
+  Tools.Render is accepted by0699/HIR1388 bytes and rejected by92 at12:15,
+  PGY_SEM_TYPE_MISMATCH/semantic:call:not_callable, no HIR. Old/new nominal
+  and enum-index reduction probes do not isolate this regression. Diagnostic
+  o4mZqa confirms missing current CALL publications in the reached real routine,
+  not a demonstrated new backing algorithm bug. Do not run ordering trials or
+  weaken currentness before repairing the original identity producer.
+  Follow-up objective: preserve the selected canonical Symbol name+ID from
+  module normalization through static namespace calls, publication, MIR and
+  both backend consumers. The normalizer owns Tools_Render; Tools.Render is
+  diagnostic spelling only. Reuse the same host index, not a second scan or
+  name fallback. A maps canonical symbol/flag publication; B maps static-member
+  MIR/backend consumers; C owns reduced namespace positive/negative inputs.
+  Root verifies old/new behavior and one shared namespace C/LLVM+strict-summary
+  gate, then unchanged full census and actual bootstrap. Freeze production
+  while the f301 independent review runs; the necessary flag/flattening
+  consumer changes must be known before editing, not discovered as exemptions.
+  Whole-chain survey shows native MEMBER remains MEMBER through the reached
+  graph and is dispatched before identifier/constructor routes. Do not add a
+  flag or projection change on speculation. Isolated one-line lookup fix
+  8qVmgr/native5532f2f2 passes Tools.Render C/LLVM7/7, existing namespace direct
+  return8/8, flattened-name collision refusal, and strict summary4096/4097.
+  Full fixed census lbpznn returns762 work4096, new failures0/resolved0 vs0699,
+  4273 signatures/3188 keys unchanged,124.415s internal. Both nested and outer
+  source/build/bin restores are BYTE_IDENTICAL to92. No production D source
+  was edited. Save this evidence for the bounded canonical-name follow-up;
+  the remaining cost blocker is still open, and static-member last-consumer
+  identity drift requires a concrete negative rather than an assumed flag fix.
+  Independent f301 review completed with that namespace regression as its one
+  confirmed change request; enum ABI and empty-table repair had no additional
+  finding. The one-line canonical-name fix/comment is now in D WIP. Actual
+  namespace fixture is registered in the existing strict summary, with exact
+  host-index canonical/ID and wrong-name/zero/crossed-ID phase controls.
+  Integrated5532 narrow atjS78 passes phase8532/0, strict summary including
+  namespace C/LLVM7/7, imported namespace8/8 and flattened collision refusal.
+  Original test_transpile yDu6O9 passes native1012/0 and ASAN/UBSan1012/0,
+  leak detection off, no diagnostic interposers. Broad Njn5fa is PASS:
+  MIR334/semantic3228/transpile1012, Map24/58, phase8532 and HIR/RIR/MIR/AIR.
+  Actual5532 bootstrap eUeXQO is back to18410 errors/16 warnings before gen0;
+  the11 namespace/cast regressions are gone. Save the bounded namespace fix,
+  then run the previously planned scratch-only request-order experiment with
+  exact request-multiset and independent/oversized work-boundary controls.
+  No cost/source algorithm change has been approved or implemented.
 - Falsifiers: the4 String-binding collisions now refuse semantically/no MIR;
   valid nonreserved ToString Intent/Event retain Bool/Void semantics and C/LLVM
   agreement, including statement-position effects. Ordinary function/host/value

@@ -3,12 +3,13 @@
 Updated: 2026-10-17 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — selected-call repair, then canonical admission
+## Active self-host context — fixed canonical admission, then bootstrap/CI
 
 - One rung: unchanged canonical/DRV-2 admission -> real bootstrap/gen2==gen3 ->
   memory and installed C/LLVM driver -> required green CI on that published SHA.
-- D main HEAD: `6927563d3d132fda87769aadd186ab5466112c1e`, local, plus
-  P1 source/test/document WIP. Published main:
+- D source checkpoint: `f3015c448a99af4dcb6962f4771312f3c4eb00a5` on main
+  (parent6927563d3), local, plus canonical namespace lookup/test/doc follow-up
+  WIP. No unrelated changes. Published main:
   `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; run38860052641 is RED,
   bootstrap/install skipped. Do not push known red or substitute native tests.
 - Root alone owns builds, WSL processes and Git. Three implementation agents
@@ -31,8 +32,10 @@ lane. No new wire, owner family, annotation, reservation or work allowance.
 The reached StringWindowExtent optional-table sort/search UB is repaired in
 its existing owner; no sanitizer is disabled.
 
-Verified integrated Linux native SHA256:
-`92d2bf6701396d24f7cc84999539552294fed0fd78512585aca9b311e76d1694`.
+Current integrated Linux native SHA256:
+`5532f2f2beaea6e65b2211082a6e5e987a88ff078cb44119b6ce3d70205cf1f4`.
+Namespace follow-up atjS78 passes phase8532/0, strict summary and namespace
+C/LLVM outputs. Native/SAN test_transpile yDu6O9 both pass1012/0; leak scan off.
 WSL `/root/pgy-main-20261016` is Git HEAD39a plus byte-checked source overlay,
 NOT the D commit. Narrow receipt `.tmp/p1-selected-call.uFZjyp/`: phase8522/0,
 strict summary,4 exact-site String-spoof refusals/no MIR, normal domain calls,
@@ -52,20 +55,40 @@ These are backend component checks, not source-admission claims.
 
 ### Next executable gate and remaining canonical blocker
 
-1. Broad receipt `.tmp/p0-typed-retention-broad.rCeOTO/` PASS: native
+1. Current5532 broad `.tmp/p0-typed-retention-broad.Njn5fa/` PASS: native
    MIR334/semantic3228/transpile1012, Map24 C/LLVM positives/58 analyze-only
-   negatives, phase8522/0 and HIR/RIR/MIR/AIR. Source/test agents are frozen.
-   No actual canonical closure yet.
-2. Save a coherent local P1 source/test checkpoint; request exact-SHA review in
-   `Pergyra 컴파일러 레드팀 검증`. Keep refusal and identity faults current.
+   negatives, phase8532/0 and HIR/RIR/MIR/AIR. Source/test agents are frozen.
+   Save the coherent namespace follow-up. No actual canonical closure yet.
+2. Exact-source review of f3015c448 is complete in
+   `Pergyra 컴파일러 레드팀 검증` (thread01a12ba0-fc1d-7650-b1fc-2fe9c3de642b).
+   cursor26: change requested for the namespace identity regression; no flag
+   addition is justified and no extra enum-ABI/empty-table defect was found.
+   The approved fix is sym->name in the existing exact query, not a new lookup.
+   D contains this one-line fix/comment and an actual namespace runtime fixture
+   plus canonical/crossed-ID phase controls. Source/test agents are frozen.
 3. Resume only the existing fixed-input canonical admission blocker. Cold census
    on0699:3188/3188 keys,762 work4096 failures (533 before;229 new), incomplete0,
    no MIR; `.tmp/p0-identifier-origin-census.onWYW4/`. Improved dependency facts
    exposed more work; this is regression, not closure. Frozen full4273-signature
    input is `.tmp/p0-fixed-canonical.nbPIex/`.
-4. Actual827 bootstrap `.tmp/p0-return-bootstrap.VRmRof/` refuses before gen0:
-   18421 errors/16 warnings. No current gen2/gen3, installed-driver or required
-   green CI evidence. Repeat on the final P1 source, then repair measured
+   New92 census pYZH2w regresses to1777 failures (1652 required return backing,
+   125 index stale;1194 new/179 no longer failed), all3188 checked. Do not count
+   early unsupported exits as improvement. Actual bootstrap begins with10
+   namespace selected-call errors plus1 dependent cast publication error:
+   Helpers exact lookup wrongly uses diagnostic Tools.Render instead of the
+   selected Symbol's canonical Tools_Render. ucTgLQ proves old0699 admission
+   vs92 rejection. Map static-member flag/MIR/backend consumers before fixing;
+   no name-only fallback or ordering experiment while this producer is broken.
+   Isolated one-line canonical-name candidate5532f2f2 is verified in8qVmgr:
+   namespace exact C/LLVM7/7, existing namespace_direct_return8/8, collision
+   refusal, strict summary PASS. Its lbpznn full cold census is762 work4096,
+   new failures0/resolved0 vs0699;4273/3188 unchanged. Outer source/build/bin
+   restore is BYTE_IDENTICAL to92. No flag/schema change is required on the
+   native MEMBER path. This patch is now in D WIP and integrated in5532;
+   keep actual installed-driver/roundtrip/ID-mutation evidence OPEN.
+4. Actual5532 bootstrap `.tmp/p0-return-bootstrap.eUeXQO/` refuses before gen0:
+   18410 errors/16 warnings; the11 namespace/cast regressions are gone.
+   No current gen2/gen3, installed-driver or required green CI evidence. Repair measured
    admission work behind its existing owner. No smaller input, higher4096,
    unchecked origin skip or unrelated prewarm.
 

@@ -131,8 +131,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     if (ctx != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
+        /* The selected symbol has the normalized declaration spelling; display_name is diagnostic text. */
         callable_decl = semantic_host_index_find_selected_callable(
-            ctx, sym->kind, sym->decl_syntax_id, display_name);
+            ctx, sym->kind, sym->decl_syntax_id, sym->name);
         if (callable_decl == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,

@@ -1,0 +1,13 @@
+namespace Tools {
+    export func Base(value: Int) -> Int {
+        return value + 1;
+    }
+
+    export func Render(value: Int) -> Int {
+        return Base(value) + 2;
+    }
+}
+
+func Main() -> Void {
+    Log(Tools.Render(4));
+}

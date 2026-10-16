@@ -2397,6 +2397,49 @@ static void checked_selected_domain_callable_identity(void)
     }
 }
 
+static void checked_selected_namespace_callable_identity(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Tools_Render(value:Int)->Int{return value+1;}"
+        "func Main()->Void{Log(Tools.Render(4));}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *decl = ast_program_statement(program, 0);
+        ASTNode *main = ast_program_statement(program, 1);
+        ASTNode *statement = main == NULL ? NULL
+            : ast_block_statement(ast_func_body(main), 0);
+        ASTNode *call = statement == NULL ? NULL
+            : ast_call_argument(statement, 0);
+        Symbol *selected = scope_lookup(ctx->scope, "Tools_Render");
+        uint32_t id = decl == NULL ? 0 : ast_node_stable_id(decl);
+        CHECK(decl != NULL && decl->type == AST_FUNC_DECL &&
+            strcmp(ast_declaration_name(decl), "Tools_Render") == 0);
+        CHECK(call != NULL && call->type == AST_CALL);
+        CHECK(selected != NULL && selected->kind == SYMBOL_FUNCTION &&
+            selected->decl_syntax_id == id && id != 0);
+        if (decl != NULL && call != NULL && call->type == AST_CALL &&
+            selected != NULL && id != 0) {
+            CHECK(ast_call_semantic_callee_decl_id(call) == id);
+            CHECK(semantic_host_index_find_selected_callable(ctx,
+                SYMBOL_FUNCTION, id, "Tools_Render") == decl);
+            CHECK(semantic_host_index_find_selected_callable(ctx,
+                SYMBOL_FUNCTION, id, "Tools.Render") == NULL);
+            CHECK(semantic_host_index_find_selected_callable(ctx,
+                SYMBOL_FUNCTION, id + 1, "Tools_Render") == NULL);
+            CHECK(semantic_host_index_find_selected_callable(ctx,
+                SYMBOL_FUNCTION, 0, "Tools_Render") == NULL);
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_owned_string_result_receipt_currency(void)
 {
     for (unsigned route = 0; route < 2; route++) {
@@ -6937,6 +6980,7 @@ int main(void)
     checked_local_owner_constructor_currency();
     checked_typed_string_result_constructor_currency();
     checked_selected_domain_callable_identity();
+    checked_selected_namespace_callable_identity();
     checked_finish_independence_currency();
     checked_local_owner_constructor_nested_effect();
     checked_local_owner_map_constructor_currency();
