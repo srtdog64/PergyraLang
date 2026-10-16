@@ -406,6 +406,34 @@ ASTNode *semantic_param_publication_callee(const SemanticContext *ctx, const AST
     ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
     return decl != NULL && ordinal < ast_func_param_count(decl) ? decl : NULL;
 }
+bool semantic_param_publication_routine_result_current(const SemanticContext *ctx,
+    const ASTNode *decl, const Type *result_type)
+{
+    if (result_type == NULL || result_type == TYPE_UNKNOWN ||
+        !semantic_param_publication_routine_relation_header_ready(ctx, decl)) return false;
+    const PendingRoutine *row = publication_routine(ctx->function_param_publications, ast_node_stable_id(decl));
+    return row != NULL && row->return_type == result_type && !row->async &&
+        (row->return_node == NULL || row->return_node_id != 0);
+}
+ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
+    const ASTNode *call, const Type **result_type)
+{
+    if (result_type == NULL) return NULL;
+    *result_type = NULL;
+    ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
+    PublishedNode *value = publication_result_current(ctx, call);
+    if (decl == NULL || value == NULL || value->nominal_result != NULL ||
+        value->stdlib || !value->kind_present || value->builtin != BUILTIN_NOT_BUILTIN ||
+        value->argument_count != ast_func_param_count(decl) ||
+        !semantic_param_publication_routine_result_current(ctx, decl, value->value_type)) return NULL;
+    const char *name = ast_call_semantic_value_type_name(call);
+    if (name != NULL && (value->value_type->name == NULL || strcmp(name, value->value_type->name) != 0))
+        return NULL;
+    for (size_t p = 0; p < value->argument_count; p++)
+        if (!semantic_param_publication_checked_argument(ctx, call, p)) return NULL;
+    *result_type = value->value_type;
+    return decl;
+}
 bool semantic_param_publication_call_analysis_unmodelled(
     const SemanticContext *ctx, const ASTNode *call)
 {

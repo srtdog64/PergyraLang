@@ -435,7 +435,7 @@ SemanticPublishedValue semantic_param_publication_value(const SemanticContext *c
 {
     PublishedNode *row = publication_current_value(ctx, value);
     if (row == NULL) return (SemanticPublishedValue){0};
-    return (SemanticPublishedValue){true, row->copy_escape, row->meta, row->category, row->origin_ready};
+    return (SemanticPublishedValue){true, row->copy_escape, row->meta, row->category, row->origin_ready, row->value_type};
 }
 bool semantic_param_publication_execution(const SemanticContext *ctx,
     const ASTNode *statement, bool *reachable)

@@ -44,6 +44,9 @@ typedef struct {
     ASTNodeType shape;
     uint64_t *origins;
     size_t origin_epoch, visit_epoch, work_epoch;
+    /* An ordinal-free declared-result dependency, never an invented input. */
+    uint32_t result_callee_id;
+    const Type *result_type;
 } FunctionParamFlowBackingNode;
 typedef struct {
     uint32_t binding;
@@ -77,6 +80,7 @@ typedef struct {
     bool building, complete, pending, changed;
     bool private_stores_closed;
     FunctionParamFlowIndexClaims *claims;
+    const Type *declared_result_type;
 } FunctionParamFlowBackingFact;
 typedef struct {
     FunctionParamFlowSummaryStore *store;
@@ -88,6 +92,7 @@ typedef struct {
     uint32_t loan_owner_slot_id;
     size_t loan_work;
     bool loan_seed_seen;
+    bool checking_declared_result, result_return_seen;
 } ReturnedBacking;
 bool backing_merge(size_t words, uint64_t *into, const uint64_t *from);
 void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect);
@@ -95,6 +100,7 @@ bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins);
 FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert);
 size_t backing_node(ReturnedBacking *state, ASTNode *node);
 bool backing_work(ReturnedBacking *state, size_t at);
+void backing_consumers(ReturnedBacking *state, ASTNode *node);
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row,
     ASTNode **escape_site);
@@ -125,6 +131,7 @@ typedef struct {
     bool value_ready;
     bool value_meta;
     bool value_origin_ready;
+    const Type *value_type;
     bool numeric_cast;
     char *cast_target;
     bool result_relation, result_depends, external_retains;
@@ -165,6 +172,7 @@ typedef struct
     size_t local_count;
     FunctionParamFlowBackingFact **backing_frames;
     size_t backing_frame_count;
+    FunctionParamFlowBackingFact *declared_result;
     FunctionParamFlowIndexClaims *claims;
 } FunctionParamFlowProgramPointIndex;
 
@@ -200,9 +208,6 @@ struct FunctionParamFlowSummaryStore
 
 void function_param_flow_program_point_index_destroy(
     FunctionParamFlowProgramPointIndex *index);
-bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
-    FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
-    const PendingRefCall *loan, unsigned effects);
 void function_param_flow_fail(FunctionParamFlowSummaryStore *store, ASTNode *site, const char *reason);
 bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);
@@ -235,6 +240,8 @@ bool function_param_flow_no_store_call_append(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *call);
 bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, ASTNode *decl);
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
+bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
+    ASTNode *call, FunctionParamFlowBackingFact *consumer);
 bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index);
 bool function_param_flow_index_claim_record(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *node);

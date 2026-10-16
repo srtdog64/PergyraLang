@@ -240,6 +240,88 @@ validates these and existing view/pin gates before claiming even this scoped
 connection fixed. General View authority or whole-language safety is not
 closed by this payload repair. The no-input result track remains unstarted.
 
+### Reached canonical prerequisite — declared-call result provenance
+
+The one executable rung remains unchanged full canonical admission before
+bootstrap/install/CI. Read payload repair and its scoped independent review
+passed; do not extend that slice for hypothetical precision or ABI cases.
+
+- Objective/priority: prove the reached declared call's actual return backing,
+  preserving semantic identity, current typed evidence and fail-closed behavior
+  before cost or patch size. Zero formals are not a freshness proof.
+- Reached chain: codegen_bootstrap.sh native gen0 admission -> typed publication
+  -> demanded parameter/backing index -> destination value of
+  SemanticAstEnumValueScopeEmpty() -> final required backing permission. The
+  existing summary/publication/index owners retain their identities/lifetimes;
+  no result fact is owned by a work directive or by a fake parameter ordinal.
+- Root completed the binary91 census:4273 signatures/3188 keys,912 failures
+  (795 work,103 required backing,14 recursive backing), incomplete0. Signatures,
+  manifest, masks and failure set match1283 exactly. Exit86 is observation only;
+  production source/build/bin/modes/status/diff were restored byte-identically.
+  Receipt: clone `.tmp/p0-91-census.lbfZCS/`,94.87s/1163912KiB.
+- Chosen contract: an explicit routine-result facet in the existing program-
+  point index, not a formal summary row. Initially it proves zero-formal direct
+  synchronous bodies. Require the original current call/header/body/result Type,
+  a current closed no-external-store graph AND all reachable return values closed
+  by the existing sparse binding/alias/aggregate evaluator. Untracked origins0,
+  no-store alone, and COPY_ONLY alone are not proofs. Missing/global/unmodelled
+  sources, borrowed producers, unsupported nonzero-formal result calls and
+  unfinished result cycles remain unready. This grants destination independence
+  only; it grants no cleanup, copy-escape, origin_ready or lifetime authority.
+- Dependency/currency: a consuming sparse node records the exact original
+  result callee ID and Type. Existing current-validation queues visit the
+  result facet, its claims, closed-store graph and transitive result nodes.
+  A changed call, body, header, result Type, claim or missing facet revokes the
+  caller's cached permission. Heap-owned frames survive recursive index growth;
+  retire them and their rows with that compilation's existing index storage.
+  Integration's literal-Type fault7 exposed that shared claims sealed only
+  value readiness/origin flags, not the actual typed value identity. Extend the
+  existing SemanticPublishedValue projection and claim snapshot/replay with its
+  compilation-owned Type pointer; no separate Type/name authority or new query.
+- Edit order/scopes: root first moves the complete final loan-admission cohort
+  (source checks plus shared sparse loan query/wrappers) into its existing last
+  consumer, type_checker_ownership_param_summary.c, and declares shared schema.
+  A owns publication identity APIs, result-frame currentness and retirement;
+  B owns result production and destination consumption in the existing sparse
+  evaluator; C owns paired behavior/currentness fixtures in existing gates.
+  No new production file/owner. Root alone builds/runs/Git; all lanes share
+  phase -> strict summary/work controls -> unchanged canonical integration.
+- Forbidden: argc0/empty actual loops as permission, guessed callee/result IDs,
+  absent or stale facts treated as no dependency, new borrow engine/owner file,
+  user annotations/copies, increased budgets, or another parallel code track.
+- Falsifiers: closed empty-scope and forwarding positives; retaining local
+  storage, opaque/cached/indirect/cyclic result sources and changed callee/body/
+  return Type/header/currentness negatives. Required gates retain all existing
+  Read, mutable-output,4096/4097 and strict diagnostic controls. Then run the
+  unchanged canonical/bootstrap, not a smaller input. This prerequisite alone
+  is neither self-host substitution nor V1 closure;795 work failures are still
+  separately observed, not repaired by this contract.
+
+Root integration receipt: binary71b88fdbccfa41771ea87632e992b82148062b5741f1e5225689d09d98ca89c2,
+clone `.tmp/p0-destination-candidate.T89zem/`. Phase7057/0, LLVM140/0,
+strict summary and4096/4097, full native MIR327/semantic3228/transpile1009,
+Map24 C+LLVM positives/58 negatives, IR/caps/component/generator and Slot
+goldens pass. Both new closed-result programs run as9 on C and LLVM; old91
+refused both before MIR (`.tmp/p0-result-before.M4nndZ/`). Runtime receipt:
+`.tmp/p0-result-runtime.dFAuMO/`; integration logs `p0-declared-result-*`.
+Actual unchanged bootstrap remains BLOCKED before gen0: first refusal moved
+from418:6 required backing to66:6 recursive backing,22.83s/1164432KiB.
+The18410 later diagnostics remain cascades, not independent obligations.
+Fresh same4273-signature/3188-key census:893 failed (803 work,76 required,
+14 recursive),19 resolved/0 newly failed/16 changed masks versus91. Eight
+former backing failures now reach the unchanged work guard; this is not a
+performance win or full admission. Nonfailed2295 include641 TOP/644 unproved,
+not permissions. Exit86,94.59s/1163860KiB, incomplete0; source/build/bin/modes/
+status/diff restored byte-identically. Receipt `.tmp/p0-result-census.lxKq0V/`.
+Next exact BLOCKED obligation: the existing summary/backing owners must connect
+stationary recursive relations to the last output_current/return-loan consumer
+without an unproved/TOP relation becoming an empty permission. All14 independent
+recursive failures remain. First census falsifiers are
+CodegenGenericSpecializationFactsFromSemantic input2 and
+CodegenGenericSpecializationInstantiateCalls input0. Survey their complete
+reached SCC before choosing an implementation; do not revive a new owner,
+annotation, copy or budget increase. Published main/CI remain39a8fc1db/RED.
+
 ### Reached local Read payload consumer — scoped checks/review pass, canonical open
 
 Independent fd17/kGgLNi review confirms the REF repair but reaches a stronger

@@ -230,6 +230,7 @@ promote:
     row->value_ready = value.ok;
     row->value_meta = value.ok && value.meta;
     row->value_origin_ready = value.ok && value.origin_ready;
+    row->value_type = value.type;
     row->slot_token_operand = semantic_param_publication_slot_token_operand(ctx, node);
     if (node->type == AST_LET_DECL) row->channel_binding = semantic_param_publication_channel_binding(ctx, node);
     if (node->type == AST_LET_DECL) row->empty_map_binding = semantic_param_publication_empty_map_binding(ctx, node);
@@ -378,7 +379,7 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
         }
         SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
         if (row->value_ready != value.ok || row->value_meta != (value.ok && value.meta) ||
-            row->value_origin_ready != (value.ok && value.origin_ready)) return false;
+            row->value_origin_ready != (value.ok && value.origin_ready) || row->value_type != value.type) return false;
         if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
         if (row->slot_token_operand != semantic_param_publication_slot_token_operand(ctx, row->node)) return false;
         if (row->shape == AST_ARRAY_LITERAL && row->child_count == 0) {

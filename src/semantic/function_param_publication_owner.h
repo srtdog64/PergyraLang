@@ -267,7 +267,12 @@ bool semantic_param_publication_record_call(SemanticContext *ctx, ASTNode *call,
     const char *destination, const char *fix);
 bool semantic_param_publication_record_body_call(SemanticContext *ctx, ASTNode *call);
 /* Native ownership category is not a fresh-payload/copy/cleanup certificate. */
-typedef struct { bool ok, copy_escape, meta; uint32_t category; bool origin_ready; } SemanticPublishedValue;
+typedef struct {
+    bool ok, copy_escape, meta;
+    uint32_t category;
+    bool origin_ready;
+    const Type *type;
+} SemanticPublishedValue;
 bool semantic_param_publication_begin_value(SemanticContext *ctx, const ASTNode *value);
 bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *value,
     const Type *type, bool meta);
@@ -293,6 +298,10 @@ bool semantic_param_publication_checked_argument(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_checked_call(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
+ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
+    const ASTNode *call, const Type **result_type);
+bool semantic_param_publication_routine_result_current(const SemanticContext *ctx,
+    const ASTNode *decl, const Type *result_type);
 bool semantic_param_publication_record_assignment_replacement(SemanticContext *ctx,
     ASTNode *assignment, uint32_t binding, const Type *target_type);
 bool semantic_param_publication_assignment_replacement(const SemanticContext *ctx, const ASTNode *assignment);

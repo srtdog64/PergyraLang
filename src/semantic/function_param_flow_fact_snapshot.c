@@ -194,8 +194,9 @@ function_param_flow_program_point_index_destroy(
     free(index->no_store_calls);
     free(index->local_definitions);
     free(index->local_ids);
-    for (size_t f = 0; index->backing_frames != NULL && f < index->backing_frame_count; f++) {
-        FunctionParamFlowBackingFact *fact = index->backing_frames[f];
+    for (size_t f = 0; f <= index->backing_frame_count; f++) {
+        FunctionParamFlowBackingFact *fact = f == index->backing_frame_count ? index->declared_result :
+            index->backing_frames == NULL ? NULL : index->backing_frames[f];
         if (fact == NULL) continue;
         for (size_t n = 0; fact->nodes != NULL && n < fact->node_count; n++) free(fact->nodes[n].origins);
         for (size_t b = 0; fact->bindings != NULL && b < fact->binding_count; b++) {

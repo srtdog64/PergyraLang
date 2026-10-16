@@ -1754,6 +1754,139 @@ static void checked_zero_argument_output_graph(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_declared_result_currency(void)
+{
+    const char *source =
+        "func Empty()->Array<Int>{let rows:Array<Int> = [];return rows;}"
+        "func Forward()->Array<Int>{return Empty();}"
+        "func Probe(ref text:String)->Option<Int>{let rows=Forward();return Some(ArrayLength(rows)+StringLength(text));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(type_check_program(program, ctx));
+    ASTNode *empty = ast_program_statement(program, 0);
+    ASTNode *forward = ast_program_statement(program, 1);
+    ASTNode *probe = ast_program_statement(program, 2);
+    ASTNode *inner = ast_return_value(ast_block_statement(ast_func_body(forward), 0));
+    ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(probe), 0));
+    ASTNode *literal = ast_let_initializer(ast_block_statement(ast_func_body(empty), 0));
+    ASTNode *returned = ast_block_statement(ast_func_body(empty), 1);
+    ASTNode *body = ast_func_body(empty), *header = ast_func_return_type(empty);
+    uint32_t callee = ast_call_semantic_callee_decl_id(inner);
+    ASTNode *target = ast_call_callee(inner);
+    const Type *result_type = NULL;
+    CHECK(semantic_param_publication_declared_result(ctx, inner, &result_type) == empty);
+    CHECK(result_type != NULL);
+    CHECK(semantic_param_publication_routine_result_current(ctx, empty, result_type));
+    (void)function_param_flow_summary_for_param(ctx, probe, 0);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, probe, &index));
+    CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+    CHECK(index != NULL && index->backing_frames != NULL && index->backing_frames[0] != NULL);
+    if (index != NULL && index->backing_frames != NULL && index->backing_frames[0] != NULL)
+        CHECK(function_param_flow_declared_result_closed(ctx->function_param_flow_summaries,
+            call, index->backing_frames[0]));
+    FunctionParamFlowProgramPointIndex *empty_index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, empty, &empty_index));
+    CHECK(empty_index != NULL && empty_index->declared_result != NULL);
+    if (empty_index != NULL && empty_index->declared_result != NULL) {
+        FunctionParamFlowBackingFact *saved_frame = empty_index->declared_result;
+        empty_index->declared_result = NULL;
+        CHECK(!function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+        empty_index->declared_result = saved_frame;
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+    }
+    PublishedNode *claim = NULL, *result = NULL;
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PendingRoutine *routine = NULL;
+    for (size_t i = 0; i < publication->routine_count; i++)
+        if (publication->routines[i].decl == empty) routine = &publication->routines[i];
+    for (size_t i = 0; i < publication->node_capacity; i++)
+    {
+        if (publication->nodes[i].node == literal) claim = &publication->nodes[i];
+        if (publication->nodes[i].node == inner) result = &publication->nodes[i];
+    }
+    CHECK(claim != NULL && result != NULL && routine != NULL);
+    if (claim != NULL && result != NULL && routine != NULL) {
+        PublishedNode saved = *claim;
+        PublishedNode saved_result = *result;
+        Type *saved_return_type = routine->return_type;
+        for (unsigned fault = 0; fault < 11; fault++) {
+            if (fault == 0) target->stable_id++;
+            if (fault == 1) ast_call_set_semantic_callee_decl_id(inner, ast_node_stable_id(forward));
+            if (fault == 2) empty->data.func_decl.body = ast_func_body(probe);
+            if (fault == 3) returned->stable_id++;
+            if (fault == 4) empty->data.func_decl.return_type = NULL;
+            if (fault == 5) inner->data.call.arg_count = 1;
+            if (fault == 6) claim->value_present = false;
+            if (fault == 7) claim->value_type = TYPE_STRING;
+            if (fault == 8) empty->is_async_decl = true;
+            if (fault == 9) result->value_type = TYPE_STRING;
+            if (fault == 10) routine->return_type = TYPE_STRING;
+            bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
+            if (current) fprintf(stderr, "declared result currency fault=%u unexpectedly current\n", fault);
+            CHECK(!current);
+            if (fault == 0) target->stable_id--;
+            ast_call_set_semantic_callee_decl_id(inner, callee);
+            empty->data.func_decl.body = body;
+            if (fault == 3) returned->stable_id--;
+            empty->data.func_decl.return_type = header;
+            inner->data.call.arg_count = 0;
+            *claim = saved;
+            *result = saved_result;
+            routine->return_type = saved_return_type;
+            empty->is_async_decl = false;
+            CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_declared_result_unclosed(void)
+{
+    const char *sources[] = {
+        "extern \"C\"{func Keep(rows:Array<Int>)->Void;}"
+        "func Produce()->Array<Int>{let rows:Array<Int> = [];Keep(rows);return rows;}"
+        "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}",
+        "extern \"C\"{func Foreign()->Array<Int>;}"
+        "func Produce()->Array<Int>{return Foreign();}"
+        "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}",
+        "func Produce()->Array<Int>{return Again();}"
+        "func Again()->Array<Int>{return Produce();}"
+        "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}",
+        "func Empty()->Array<Int>{let rows:Array<Int> = [];return rows;}"
+        "func Produce()->Array<Int>{let selected=Empty;return selected();}"
+        "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}"
+    };
+    for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
+        Lexer *lexer = lexer_create(sources[kind]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        SemanticContext *ctx = semantic_context_create();
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (typed) {
+            ASTNode *main = ast_program_statement(program, 2);
+            ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(main), 0));
+            SlotFunctionLookup lookup = {ctx, program};
+            FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+            FunctionParamFlowBackingFact consumer = {0};
+            consumer.origin_count = consumer.origin_words = 1;
+            consumer.destination_count = consumer.destination_words = 1;
+            CHECK(!function_param_flow_declared_result_closed(store, call, &consumer));
+            for (size_t n = 0; n < consumer.node_count; n++) free(consumer.nodes[n].origins);
+            free(consumer.nodes);
+        }
+        semantic_context_destroy(ctx);
+        ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 static void checked_unclosed_output_graph(const char *source, size_t declaration)
 {
     Lexer *lexer = lexer_create(source);
@@ -5412,6 +5545,8 @@ static void checked_transaction_function_boundary(void)
 
 int main(void)
 {
+    checked_declared_result_currency();
+    checked_declared_result_unclosed();
     checked_transaction_function_boundary();
     checked_transaction_compensation_identity();
     checked_transaction_failure_states();

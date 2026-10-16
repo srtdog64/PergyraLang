@@ -59,6 +59,9 @@ for relative in (
         raise SystemExit(f"existing worker/capture positive lost MIR admission: {relative}")
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
+    ("declared_empty_scope_valid", True),
+    ("declared_empty_forward_valid", True),
+    ("declared_empty_scope_keep_invalid", False),
     ("stdlib_input_retention_valid", True),
     ("stdlib_trim_result_return_valid", True),
     ("stdlib_trim_result_retain_invalid", False),

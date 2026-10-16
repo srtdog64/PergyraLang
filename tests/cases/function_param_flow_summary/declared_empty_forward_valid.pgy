@@ -1,0 +1,25 @@
+struct TextRecord { text: String; }
+struct Scope { names: Array<String>; values: Array<Int>; tags: Array<Int>; }
+
+func EmptyScope() -> Scope {
+    let names: Array<String> = [];
+    let values: Array<Int> = [];
+    let tags: Array<Int> = [];
+    return Scope(names, values, tags);
+}
+
+func ForwardScope() -> Scope {
+    let scope = EmptyScope();
+    let alias = scope;
+    return alias;
+}
+
+func Probe(ref record: TextRecord) -> Option<Int> {
+    let scope = ForwardScope();
+    return Some(ArrayLength(scope.names) + StringLength(record.text));
+}
+
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(UnwrapOption(Probe(record)));
+}
