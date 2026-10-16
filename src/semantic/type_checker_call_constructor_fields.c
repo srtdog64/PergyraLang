@@ -191,19 +191,28 @@ constructor_reject_channel_field_store(SemanticContext *ctx,
         field_name != NULL ? field_name : "<field>");
 }
 
-bool constructor_payload_type_ready(const Type *type)
+bool constructor_nominal_mapping_decl(const ASTNode *decl)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL) return false;
+    TypeNominalFlavor flavor = nominal_flavor_from_decl(decl);
+    return flavor == TYPE_NOMINAL_CLASS || flavor == TYPE_NOMINAL_SUBJECT ||
+        (ast_class_is_struct(decl) && (flavor == TYPE_NOMINAL_STRUCT ||
+         flavor == TYPE_NOMINAL_OBJECT || flavor == TYPE_NOMINAL_TOBJECT));
+}
+bool constructor_payload_type_ready(const Type *type, bool outer_result)
 {
     if (type == NULL || type == TYPE_UNKNOWN || type == TYPE_VOID ||
         type->name == NULL || type->kind == TYPE_KIND_GENERIC ||
-        type->kind == TYPE_KIND_FUNCTION || type->nominal_flavor == TYPE_NOMINAL_SUBJECT ||
+        type->kind == TYPE_KIND_FUNCTION || (type->nominal_flavor == TYPE_NOMINAL_SUBJECT &&
+            (!outer_result || type->kind != TYPE_KIND_CLASS)) ||
         type_is_resource_handle(type) || type_is_move_token(type) ||
         type_is_capability_bearing(type) || semantic_type_is_future_handle(type)) return false;
     if (type->kind == TYPE_KIND_CONSTRUCTED)
         for (size_t i = 0; i < type_constructed_arg_count(type); i++)
-            if (!constructor_payload_type_ready(type_constructed_arg(type, i))) return false;
+            if (!constructor_payload_type_ready(type_constructed_arg(type, i), false)) return false;
     if (type->kind == TYPE_KIND_TUPLE)
         for (size_t i = 0; i < type->data.tuple.element_count; i++)
-            if (!constructor_payload_type_ready(type->data.tuple.elements[i])) return false;
+            if (!constructor_payload_type_ready(type->data.tuple.elements[i], false)) return false;
     return true;
 }
 
@@ -217,7 +226,9 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
         semantic_host_index_find_decl_by_name((SemanticContext *)ctx, AST_CLASS_DECL,
             snapshot->decl_name) != snapshot->decl ||
         ast_node_stable_id(snapshot->decl) != snapshot->decl_id ||
-        !ast_class_is_struct(snapshot->decl) ||
+        !constructor_nominal_mapping_decl(snapshot->decl) ||
+        snapshot->flavor != nominal_flavor_from_decl(snapshot->decl) ||
+        snapshot->is_struct != ast_class_is_struct(snapshot->decl) ||
         ast_generic_param_count(ast_class_generic_params(snapshot->decl)) != 0 ||
         ast_class_field_destructure_count(snapshot->decl) != 0 ||
         ast_class_name(snapshot->decl) == NULL ||
@@ -237,8 +248,11 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
             row->field->name == NULL || strcmp(row->field->name, row->field_name) != 0 ||
             (name == NULL) != (row->argument_name == NULL) ||
             (name != NULL && strcmp(name, row->argument_name) != 0)) return false;
+        if (name == NULL ? row->field_index != i : strcmp(name, row->field_name) != 0) return false;
+        for (size_t j = 0; j < i; j++)
+            if (snapshot->fields[j].field_index == row->field_index) return false;
         Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
-        if (!constructor_payload_type_ready(type) || strcmp(type->name, row->field_type_name) != 0) return false;
+        if (!constructor_payload_type_ready(type, false) || strcmp(type->name, row->field_type_name) != 0) return false;
         char *syntax = ast_capture_inline(row->type_node);
         bool same = syntax != NULL && strcmp(syntax, row->type_syntax_name) == 0;
         free(syntax);

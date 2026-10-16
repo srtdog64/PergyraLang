@@ -1,0 +1,12 @@
+subject TextLedger { let text: String; let count: Int; }
+extern "C" { func Keep(text: String) -> Void; }
+func ReadText(ref source: Slot<String>) -> Void {
+    Keep(Read(source));
+}
+func ReadField(ref source: Slot<TextLedger>) -> Int {
+    let current = Read(source);
+    let first = current.text;
+    let second = first;
+    Keep(second);
+    return 0;
+}

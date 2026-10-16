@@ -1,0 +1,14 @@
+subject TextLedger { let text: String; let count: Int; }
+func Update(ref source: Slot<TextLedger>) -> Int {
+    let current = Read(source);
+    let next = TextLedger(current.text, current.count + 1);
+    Write(source, next);
+    return next.count;
+}
+func Main() -> Void {
+    let slot: Slot<TextLedger> = ClaimSlot();
+    Write(slot, TextLedger("kept", 1));
+    Log(Update(slot));
+    Log(Read(slot).text);
+    Release(slot);
+}

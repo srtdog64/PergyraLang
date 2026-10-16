@@ -14,6 +14,7 @@ bool constructor_decl_has_channel_field(ASTNode *decl, SemanticContext *ctx,
     const char **field_name_out);
 void constructor_reject_channel_field_store(SemanticContext *ctx, ASTNode *site,
     const char *constructor_name, const char *field_name);
-bool constructor_payload_type_ready(const Type *type);
+bool constructor_payload_type_ready(const Type *type, bool outer_result);
+bool constructor_nominal_mapping_decl(const ASTNode *decl);
 
 #endif

@@ -3,6 +3,7 @@
 #include "function_param_publication_internal.h"
 #include "typed_map_query_fact_owner.h"
 #include "type_checker_internal.h"
+#include "type_checker_call_constructor_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "slot_analyzer_internal.h"
@@ -186,6 +187,7 @@ bool semantic_param_publication_record_checked_result_relation(SemanticContext *
     row->relation_argument_type = a; row->relation_result_type = r; arg->value_type_name = av; row->value_type_name = rv;
     row->relation_argument = argument; row->relation_argument_id = ast_node_stable_id(argument);
     row->relation_argument_count = ast_call_arg_count(call);
+    row->relation_input_type = argument_type; row->relation_output_type = result_type;
     row->result_relation = row->relation_argument_id != 0;
     return row->result_relation;
 }
@@ -343,6 +345,9 @@ static PublishedNode *publication_current_value_at(const SemanticContext *ctx,
     if (row == NULL || !row->value_present || row->value_shape != value->type ||
         (value->type == AST_CALL && !semantic_param_publication_checked_call(ctx, value)) || (value->type == AST_IDENTIFIER &&
         row->binding_id != ast_identifier_binding_syntax_id(value))) return NULL;
+    if (row->empty_map_declaration != NULL && (row->empty_map_declaration_id == 0 ||
+        row->empty_map_declaration_id != ast_node_stable_id(row->empty_map_declaration) ||
+        !semantic_param_publication_empty_map_binding(ctx, row->empty_map_declaration))) return NULL;
     if (value->type == AST_BINARY && row->string_value && row->origin_ready &&
         !row->builtin_string_concat) return NULL;
     if (row->builtin_string_concat) {
@@ -390,38 +395,34 @@ bool semantic_param_publication_record_nominal_result(SemanticContext *ctx,
     row->nominal_result = snapshot;
     return true;
 }
-bool semantic_param_publication_checked_result_relation(const SemanticContext *ctx, const ASTNode *call,
-    size_t ordinal, bool *result_depends, bool *external_retains)
+PublishedNode *publication_result_current(const SemanticContext *ctx, const ASTNode *call)
 {
-    if (result_depends == NULL || external_retains == NULL) return false;
+    if (call == NULL || call->type != AST_CALL) return NULL;
     PublishedNode *row = publication_current_value(ctx, call);
-    if (row == NULL || ordinal >= row->argument_count || (row->nominal_result != NULL &&
-        (row->value_type_name == NULL ||
+    if (row == NULL || row->value_type == NULL || row->value_type == TYPE_UNKNOWN ||
+        (row->nominal_result != NULL && (row->value_type_name == NULL ||
+         row->value_type->kind != TYPE_KIND_CLASS || row->value_type->nominal_flavor != row->nominal_result->flavor ||
+         !constructor_payload_type_ready(row->value_type, true) ||
+         (row->nominal_result->flavor == TYPE_NOMINAL_SUBJECT &&
+          semantic_host_decl_for_type((SemanticContext *)ctx, row->value_type) != row->nominal_result->decl) ||
          !semantic_nominal_result_snapshot_current(ctx, call, row->nominal_result) ||
-         strcmp(row->value_type_name, row->nominal_result->result_type_name) != 0))) return false;
+         row->value_type->name == NULL || strcmp(row->value_type->name, row->value_type_name) != 0 ||
+         strcmp(row->value_type_name, row->nominal_result->result_type_name) != 0))) return NULL;
     for (size_t i = 0; i < row->argument_count; i++) {
         PublishedNode *value = publication_current_value(ctx, row->arguments[i].node);
-        if (value == NULL ||
+        if (value == NULL || row->arguments[i].type == NULL || row->arguments[i].type == TYPE_UNKNOWN ||
+            row->arguments[i].type != value->value_type ||
             (row->nominal_result != NULL && (value->value_type_name == NULL ||
              strcmp(value->value_type_name, row->nominal_result->fields[i].argument_type_name) != 0 ||
              (value->node->type == AST_CALL && ast_call_semantic_value_type_name(value->node) != NULL &&
-              strcmp(value->value_type_name, ast_call_semantic_value_type_name(value->node)) != 0)))) return false;
+              strcmp(value->value_type_name, ast_call_semantic_value_type_name(value->node)) != 0)))) return NULL;
     }
-    if (row->nominal_result != NULL) {
-        *result_depends = true; *external_retains = false; return true;
-    }
-    PublishedNode *arg = publication_current_value(ctx, ast_call_argument(call, 0));
-    const char *result = ast_call_semantic_value_type_name(call);
-    if (row == NULL || arg == NULL || !row->result_relation || !row->kind_present ||
-        row->builtin != BUILTIN_NOT_BUILTIN || !row->stdlib || row->declaration != 0 || row->value_binding != 0 ||
-        row->argument_count != row->relation_argument_count || row->relation_argument != arg->node || row->relation_argument_id != arg->id ||
-        row->relation_argument_type == NULL || row->relation_result_type == NULL || arg->value_type_name == NULL ||
-        row->value_type_name == NULL || result == NULL || strcmp(row->relation_argument_type, arg->value_type_name) != 0 ||
-        strcmp(row->relation_result_type, row->value_type_name) != 0 || strcmp(result, row->relation_result_type) != 0 ||
-        (arg->node->type == AST_CALL && (ast_call_semantic_value_type_name(arg->node) == NULL ||
-         strcmp(arg->value_type_name, ast_call_semantic_value_type_name(arg->node)) != 0))) return false;
-    *result_depends = ordinal == 0; *external_retains = false;
-    return true;
+    return row;
+}
+bool semantic_param_publication_nominal_result_complete(const SemanticContext *ctx, const ASTNode *call)
+{
+    PublishedNode *row = publication_result_current(ctx, call);
+    return row != NULL && row->nominal_result != NULL;
 }
 SemanticPublishedValue semantic_param_publication_value(const SemanticContext *ctx, const ASTNode *value)
 {

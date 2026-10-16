@@ -1,0 +1,11 @@
+subject TextLedger { let text: String; let count: Int; }
+func ReadText(ref source: Slot<String>) -> Int {
+    let first = Read(source);
+    let second = first;
+    Log(second);
+    return StringLength(second);
+}
+func ReadField(ref source: Slot<TextLedger>) -> Void {
+    let current = Read(source);
+    Log(current.text);
+}

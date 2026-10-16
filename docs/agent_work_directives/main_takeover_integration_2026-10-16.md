@@ -26,9 +26,9 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 ## Active return-provenance completion policy
 
 The local-alias RETURN repair is a safety prerequisite, not a new precision
-track. Native semantic tests now expose four regressions (storage, datetime,
-layered imports and an enum callback). Before adding representation owners,
-separate unsupported analysis from missing or corrupt authoritative inputs.
+track. Its initial native regressions (storage, datetime, layered imports and
+an enum callback) have passed unchanged on d61; canonical admission remains
+blocked. Separate unsupported analysis from missing or corrupt authoritative inputs.
 An existing typed operation whose backing relation is not modelled may produce
 the existing conservative ALL effect lattice, never a ready empty relation.
 The producer must distinguish that case explicitly; do not reinterpret every
@@ -100,6 +100,387 @@ sealed signature/key input. Scratch only, terminal before consumer/MIR/codegen,
 original budgets and current typed/unsupported/SCC receipts preserved. The old
 meta census files are diagnostic references, never a replacement source tree.
 Root's first-owner trace restored source/build/bin and original hashes exactly.
+
+The current-owner census is now complete on the identical4273 typed signatures
+and3188-key manifest:452 independent failures (work218, recursive relation120,
+required relation114), incomplete0. Against ce3,76 requests resolve and238 newly
+fail. Its diagnostic exit86 precedes shared Type-writing consumers/MIR and is
+not admission. The2736 nonfailed queries include260 reaching explicit TOP and
+276 reaching unproved relations; those are not permission receipts. Root's
+actual raw snapshot restored source/build/bin/dependencies/modes/status/diff
+byte-identically to d61. Receipt: `.tmp/p0-return-current-census.XYzHog/run.log`
+in the Linux clone; the D copy is `.tmp/p0-return-current-census-run-20261016.log`.
+The prepared manifest's `production-raw/` entries were source-hash labels, not
+stored backup files; they do not replace root's actual restoration snapshot.
+The first coarse hooks identify identifier-origin failures and a binary-consumer
+failure, not their exact producer cause. Before implementation, A prepares
+scratch-only setter-level observations; B maps existing typed origin receipts;
+C designs bounded success/retaining/fault controls in the existing test owner.
+Do not exempt Option<Int> as a physical scalar, treat stale/missing evidence as
+unsupported, weaken String backing tracking, or optimize work218 before the
+next actual blocker is identified.
+
+### Current destination transfer repair — selected after the full census
+
+Current integration slice (2026-10-16, after binarye8a): the unchanged input
+still refuses before gen0. A fresh observation on the exact4273 signatures /
+3188 keys has975 failed requests:769 work,185 required backing,21 recursive
+backing;60 old failures resolved and583 newly reached. This is an isolated
+diagnostic census, not an admission count. Source/build/bin/metadata were
+restored byte-identically. Receipt: `.tmp/p0-e8a-census.Zo8keT/run.log` in WSL;
+the D copy is `.tmp/p0-e8a-current-census-run-20261016.log`.
+
+The next dependency set is bounded to the reached typed constructor/read
+chain, not all anchored inputs or a new foreign ABI policy:
+
+- Objective/priority: restore missing typed MapNew output and Read payload
+  provenance while preserving current identity, exact storage responsibility,
+  eager retention and all original positive/negative gates before cost.
+- Owners: successful typed LET owns MapNew's contextual HashMap type and exact
+  empty-input construction; successful typed Write owns its checked receiver
+  and payload. Existing publication/claims seal and replay those premises.
+  Existing program-point/backing owners select and consume Read payload facts.
+- Last consumers: cached output/loan permissions and final REF diagnostics,
+  followed by unchanged full canonical/bootstrap/installed-driver/CI gates.
+- A edits existing flow/index/backing components only: select an anchored
+  backing frame from an actual current payload-dependent Read claim, including
+  Void/scalar-return consumers. Consume typed MapNew and Write receipts. A
+  same-owner Write-back requires the exact current original Slot binding;
+  other Slot/output/Channel/opaque retention must still escape. No Slot
+  identity RETURN from Read and no generic nonretaining Write exemption.
+- B edits existing typed LET/Slot/publication components only: seal exact
+  unshadowed zero-actual MapNew plus annotated HashMap type/LET/initializer
+  syntax and identities; seal successful Write's actual receiver/payload
+  types/identities/arity. Reuse existing owned syntax/currentness/retirement
+  contracts; absence or mutation grants no permission. Coordinate API before
+  edits. Do not infer fresh output from a call name, COPY_ONLY or argc0.
+- C edits existing behavior/phase tests only: retain the currently failing
+  Read payload-to-opaque Keep negative, add paired direct/field/alias and
+  scalar/Void cases, same-binding Write-back versus another Slot, and exact
+  receipt mutation controls. Preserve scheduler/Read-to-Log and all existing
+  oracles. Root alone builds/runs/commits.
+- Verification: phase and strict summary first; old full native, C/LLVM/Map/IR
+  and caps next; frozen independent review and unchanged canonical after that.
+  Work4096/4097 and all validation budgets are unchanged. No safety weakening,
+  annotation/copy workaround, new owner file or performance track.
+
+The first actual canonical failure is MapNew in
+SemanticCallableNameTableFromNames (call node68652, source line230): its LET
+annotation succeeds but the initializer value publication is absent. General
+zero-argument declared functions (for example
+SemanticAstEnumPayloadVariantUnproven) are a separate reached remaining
+obligation: current direct-callee headers alone do not prove no-input result
+provenance. Do not substitute an empty actual loop or a fake parameter ordinal;
+fix their result owner only after this integration slice and falsifiers run.
+The769 work refusals are not permission to increase caps or optimize before
+the next actual semantic blocker is established.
+
+Integration falsifier on binary7ad5: phase6690/1; the new opaque Read retention
+negative now refuses, but exact same-Slot Write-back does not typecheck. Root's
+scratch owner inspection confirms MapNew current=true and Write current=true;
+TextLedger constructor current=true but checked backing relation=false and no
+nominal snapshot. The frame stops incomplete before Write-back. Receipt:
+`.tmp/p0_slot_write_inspect_20261016.{c,mk,sh}` (D), executed against7ad5.
+The actual scheduler also reconstructs a subject, so changing tests to struct
+would conceal the missing consumer. Extend only the existing exact full-field
+nominal-result mapping to an outer constructed subject. Keep field payload
+restrictions (including nested identity/resource/authority), no generic/default/
+partial/destructure/channel fields, exact current flavor/raw flag/Types/IDs,
+and all argument dependencies. This receipt describes result backing; it must
+not make a subject COPY_ONLY, fresh, or safe to return/retain. B owns the shared
+producer/currentness predicate, C exact same-owner success versus returned or
+other-owner retention/fault controls; A's current backing consumer is unchanged.
+
+The1283 slice passes phase6760/0, the prior strict summary, all native327/3228/
+1009 tests, Map24 C/LLVM positives/58 negatives, IR/caps/component/generator.
+Actual canonical is still RED before gen0 at source418:6. The completed1283
+exact-input census has912 failed requests (795 work,103 required,14 recursive),
+65 resolved/2 new work failures against e8a; its exit86 is not admission.
+Source/build/bin/status/diff were restored byte-identically. Do not call this
+baseline closed. Added safe Main/runtime output on the same-write fixture
+exposed missing LLVM metadata at `Log(Read(slot).text)`. After the bounded
+consumer repair below, root observed e011 phase6760/0, LLVM metadata140/0,
+strict summary PASS and actual C+LLVM output `2\nkept\n`. Receipt:
+`.tmp/p0-destination-candidate.0aFOKk/` in the clone. The immutable ownership
+review1283/dRW4Zn precedes that runtime extension and LLVM repair.
+
+Revised reached LLVM boundary: successful Read publishes actual payload type;
+the admitted MIR expression-type owner consumes that fact. LLVM's
+llvm_expr_custom_type_name CALL arm instead repeats callee/class/function
+inference and misses Read before member lookup. Objective: make the active
+MIR CALL consumer use that existing result type and registered LLVM nominal
+identity, not the callee spelling. B edits that existing consumer only, after
+tracing its callers. Within an active MIR routine, missing/unregistered type
+fails explicitly without retrying the old CALL inference; preserve the
+separate non-MIR API boundary, not a fact-dependent fallback. Scalar/String
+results grant no nominal type, and borrowed scratch names do not escape.
+C owns the exact unchanged runtime falsifier and missing/wrong typed-fact
+controls. Root verifies C/LLVM output, existing nominal/Option/member/LLVM
+gates, phase/summary and caps before broader integration. No AST root scan,
+Read-name case, temporary-let workaround or new emitter/owner is permitted.
+
+Independent1283 review also reached ref ReadView<String> -> Read -> opaque
+Keep, including a concrete ViewRead(slot) callsite. It emits MIR with summary
+READ|CALL_ESCAPE=17, so the effect producer already knows the retention.
+The missing last consumers are final parameter validation and the generic
+boundary validator: both skip COPY_ONLY non-String values. The view descriptor's
+copyability is not permission to retain its payload. Do not reclassify every
+View globally or introduce another borrow model. A may connect only the
+exact current REF ReadView contract and existing sealed escape mask to those
+final consumers, including deferred ref-view calls whose bodies are not typed
+yet at initial admission. No new Read-presence/alias analysis or marker is
+needed: ordinary view copies and direct view escape already use the existing
+effect owner. Missing evidence fails closed. A
+responsibility-named payload validator may project to the same diagnostic
+owner, but no mode-label string or guessed Boolean may stand in for evidence.
+View copy/binding, pin/await/spawn/parallel policy and no-Read/physical-read
+positive behavior stay unchanged. C adds bounded Keep/return/output versus
+Log/scalar view controls; all dangerous negatives are analyze-only. Root
+validates these and existing view/pin gates before claiming even this scoped
+connection fixed. General View authority or whole-language safety is not
+closed by this payload repair. The no-input result track remains unstarted.
+
+### Reached local Read payload consumer — plan, not implementation
+
+Independent fd17/kGgLNi review confirms the REF repair but reaches a stronger
+local falsifier: Main owns Slot<String>, creates ViewRead, reads its payload,
+stores it via a bodyful inout Save, releases the Slot and reads the output.
+MIR/C/LLVM emit all succeed. Local return and Keep/wrapper/pin variants also
+emit. No unsafe program was executed; physical UAF is not established. The
+whole active boundary must include local and default-formal Read results,
+not just another formal REF exception. No-input result implementation is held.
+
+- Objective: connect issued checked Read payloads to final eager escape
+  validation using existing loan and publication owners. Priority: exact
+  current source identity, preserved storage responsibility and nonretaining
+  positives, fail-closed missing facts, then measured cost.
+- Producer: existing successful typed Read publication, with explicit issued
+  local payload-loan registration/lifetime in that same owner. Read container
+  identity and payload-backing facets remain distinct. No new fact owner.
+- Consumer: existing 1x1 sparse loan evaluation, with the actual Read CALL as
+  seed rather than a fake callee/formal ordinal. Reuse indexed dependency
+  roots/claims and origin/eager/SCC/work behavior. Final publication consumes
+  every issued loan, including Main with zero formals, before MIR/codegen.
+- Contract: the proposed Read entry certifies only absence of eager
+  RETURN/CALL/CHANNEL/output retention. It cannot use the ordinary REF-return
+  loan's static-source exception, or grant complete lifetime, last-use or
+  source cleanup permission. Current physical results are excluded through
+  their owner, not a name/shape guess. Same-owner Write-back requires the
+  exact current owned-Slot receiver identity; a View does not grant that
+  exemption and existing live-view Write guards stay intact.
+- Forbidden: local initializer/alias/Read-presence rescans, global View
+  reclassification, Read in PendingRefCall using a fake ordinal/callee,
+  skipping a missing/stale issued row, generic zero-argument freshness,
+  annotation/copy workarounds, another owner/file, weaker negatives/caps or
+  an assertion that occupancy-only Release proves physical cleanup safety.
+- Required independent edit scopes: A existing backing/loan evaluator and
+  final diagnostic consumer; B existing typed publication registration,
+  current queries/view and retirement; C existing phase/strict harness and
+  bounded paired cases. Shared header API and any complete responsibility
+  relocation must be fixed before parallel edits. Root alone integrates and
+  runs every gate; do not start a parallel semantic implementation track.
+- Falsifiers: local plain Slot and scoped/copy View Read -> inout Save,
+  RETURN, opaque Keep and nested wrapper; current row/caller/receiver/type
+  corruption; preserve Log/Length/physical reads, local copies, ref helpers,
+  secure/pin behavior and exact same-owner subject Write-back. Unsafe cases
+  are analyze-only with exact BORROW and no MIR, never a syntax/ABI failure
+  counted as safety. Existing phase/summary/4096-4097/native/Map/IR/Slot/pin
+  gates precede unchanged canonical/bootstrap/install/memory/published CI.
+- Root resolved one unknown before edits: callerNULL is a legitimate public
+  path. Top-level Slot<String> and Slot<Int> Claim/Write/Log(Read)/Release
+  programs both emit MIR/C/LLVM onfd17 (`.tmp/p0-top-level-read.C3zEQw/`);
+  semantic checking has no synthetic Main and the backend creates it later.
+  Preserve that positive. The exact program/action/nested execution owner is
+  still to be mapped; neither skipping validation, rejecting all top-level
+  reads, inventing a FUNC owner nor re-scanning a program root per loan is a
+  permitted assumption. Existing source lifetime after Release/lease end and
+  nested callable ownership remain separate unproved obligations. Native
+  REF/default View ABI emission gaps are explicit, not a new emitter track.
+
+Base: local source checkpoint `c64719068995a7ccf59504d56da87ed05facf80d`,
+matching native binaryd61 and the unchanged canonical input. Root's detailed
+observation `.tmp/p0-return-detail-census.FDnGDU/run.log` in WSL completed all
+3188 keys,45.44s/831316KiB, exit86/incomplete0; every key's mask, failure and
+work match the prior census. Original raw source/build/bin/status/diff were
+restored exactly. This is diagnosis, not canonical admission.
+
+- Objective: preserve checked RHS destination aliases through returned values
+  and recognise whole-value replacement of default value parameters, without
+  confusing either fact with absence of backing provenance or retention.
+- Priority: current identity/typed evidence, correct origin and destination
+  transfer, preserved eager effects/ref/inout/resource boundaries, then cost.
+- Owners: the existing typed assignment/publication owner produces replacement
+  eligibility; the existing program-point index replays it against the actual
+  routine/formal identity; the backing frame owns input-origin and destination
+  transfer. The checked result/nominal and sealed callee RETURN owners retain
+  their existing identities. No new semantic owner or source annotation.
+- Last consumers: backing_store and output matrices, stationary SCC completion,
+  returned-loan admission and final borrowed-escape diagnostics; then the same
+  canonical/bootstrap/installed-driver/CI chain.
+- Forbidden: treating a CALL base as a writable place, interpreting relation
+  query failure as no dependency, guessing a field ordinal, dropping eager
+  effects, clearing input origins because destinations are empty, or making
+  ref/inout/host/using/resource places into local replacements. No lookup/type
+  publication rewrite: the earlier receipt-erasure hypothesis is unconfirmed.
+
+Detailed first false setters on failed keys:267 store_destination (including
+default `start`, `value_type`, `local_bindings` parameters),34 place_binding
+(call-result member/index aliases),151 work_budget. These are observations
+of the first reached setter, not promises that301 independent queries will
+resolve after the repair. In JsonObjectFactIndex the actual first setter is
+UnwrapOption(key_read).value at line169; the older identifier-origin marker
+was downstream contamination. The separate minimal Find/Some/None positive
+already emits MIR on d61 and its eager retaining counterpart refuses with
+exact BORROW_ESCAPE; Option itself is not the missing language feature.
+
+Independent edit scopes on this same chain:
+
+- A: existing backing_dependencies and backing/SCC/internal components only.
+  Transfer destination sets through current checked dependent call arguments
+  and projections, conservatively union multiple dependent inputs; ordinary
+  calls also need their sealed RETURN relation/pending evidence. Unknown or
+  stale relations grant no empty destination permission. Preserve all origin,
+  eager consumer, read/growth and actual write-place checks. For an admitted
+  replacement, merge local binding origins without claiming a storage write;
+  never mark the entire formal or its member/index writes local. If physical
+  caps block this, move one complete existing responsibility within existing
+  components after reporting its exact boundary; no new owner/file or cap raise.
+- B: type_checker_assignment and the existing program-point replacement fact
+  only (publication components/header only if the existing API is insufficient).
+  Admit whole-binding replacement of current PARAM_MODE_DEFAULT formals,
+  excluding ref/inout/host/resource/using aliases; verify stable formal IDs and
+  current typed routine/mode. Do not edit A's backing components or name lookup.
+- C: existing phase unit, summary gate and a bounded pair of behavioral
+  fixtures only. Establish the old failure on an actual checked call-result
+  projection, preserve a retaining/output-alias counterexample, and cover
+  default parameter rebind versus ref/inout/member/resource writes. Reuse
+  existing currentness hooks, adding only new premises; no generic-error or
+  unchanged negative-oracle relaxation.
+
+Root alone builds/runs and integrates. Run narrow falsifiers/phase/strict summary
+first, then unchanged native/Map/IR/caps, frozen independent review and the full
+canonical. Re-enumerate only if a newly reached owner changes the decision.
+Work limits remain4096/4097. If cost is the next actual canonical blocker,
+measure the repeated owned operation before selecting a bounded optimisation.
+Bootstrap/gen2==gen3/install/memory and exact published-SHA CI remain required;
+this repair is not SoT substitution or V1 completion by itself.
+
+Reached dependency during integration: direct-call destination transfer also
+consumes class construction. The existing unmodelled-class receipt does not
+prove complete sources: C/LLVM admit omitted/default fields and destructure
+initialisation. Do not infer an empty alias set merely because actual inputs
+have no queried origin. B therefore extends the existing nominal result mapping
+only to nongeneric plain classes with the complete unique actual-field mapping,
+no defaults/destructure/channel, current argument/result Types and declaration
+identity. Snapshot flavor seals struct/class identity; old struct-flip faults
+must remain failures. Struct arity semantics are unchanged; partial/default/
+generic class cases stay unmodelled. The existing ordinal and new complete
+query share one result-current predicate. Complete zero-field nominal input
+mapping permits an empty destination set, not freshness or purity; ordinary
+zero-argument descriptor calls without proof remain unavailable. C preserves
+these distinctions, rather than widening a generic-error oracle or changing
+native positive inputs. Root's work-accounting review also requires new
+destination visits to use the existing epoch/work owner and MapKeys to consume
+the existing typed independent-result fact, never an absence fallback.
+
+Reached dependencies in the first integration build: binarye9 phase6551/24
+failures became binary7328 phase6557/10 after restoring raw/semantic nominal
+flavor agreement and correcting two new class fixture declarations. Existing
+oracles are unchanged; no broad gate or canonical acceptance is claimed.
+
+- The exact typed Channel LET succeeds at the existing channel-binding owner;
+  it is not an ordinary typed CALL. Destination analysis must consume a
+  current receipt from that immutable LET/Channel<T>/one Int capacity boundary,
+  not invent generic call freshness. B owns producer and receipt/currentness;
+  A consumes it. The receipt must seal declaration, initializer, argument and
+  type identities and become unavailable if any premise is stale. Existing
+  channel send effects and missing-fact refusal are the integration falsifiers.
+- Required return-backing frames own the RETURN facet, including SCC pending
+  iterations. Do not publish coarse named RETURN first and then permanently
+  OR it into later precise results. A repairs that existing summary join:
+  actual frame origins remain monotone; CALL/CHANNEL/eager effects remain
+  accumulated; pending or incomplete frames grant no output/loan permission.
+  ReadRecord's Option<Int> projection is the nonretaining falsifier and
+  StoreRecord/inout plus original retaining alias/SCC negatives preserve the
+  opposite boundary. This is not descriptor-as-scalar classification.
+- C owns only tests for these newly reached premises, reusing current phase
+  and strict summary gates. Root retains the single build/integration lease.
+  No new owner family, work-limit increase or annotation/copy workaround.
+
+Receipt reuse is part of this same obligation: A extends the existing input
+claim's LET snapshot/replay to seal the channel-binding query result in both
+directions. A cached frame must reject a changed receipt even when syntax is
+unchanged. B reuses the existing owned syntax-claim snapshot for the Channel
+LET, because type-resolution metadata alone accepts same-ID syntax drift.
+Its existing retirement path destroys that snapshot. C mutates and restores
+these exact premises; this does not open an independent claims/cache track.
+
+Observed remaining falsifier on binary6affa: phase6604/2, receipt fault7
+(`GenericParam.name` String -> Int at unchanged pointer/ID) leaves current=true
+and CHANNEL32. Receipt `.tmp/p0-destination-labels.3RDNqB/phase.log` confirms
+the exact case. Existing syntax claims seal generic count and constraint/default
+children but omit the argument names themselves. A therefore completes that
+same AST_TYPE syntax snapshot/current/destroy responsibility: owned ordinal
+names, explicit malformed/allocation failure, replay and retirement. The
+Channel LET query and cached summary remain the last consumers; no name-based
+typing substitute or new owner. Other source scopes stay frozen until the
+unchanged phase/summary gates are rerun by root.
+
+Next integration boundary, binarydbceb: phase6604/0 and the strict summary
+gate pass, MIR327/0; semantic3227/1 finds the unchanged copied-object snapshot
+positive at test_semantic_qubit_part_c_2.cases.h321. Holder(Packet(packet.hp))
+reaches an issued OBJECT mapping, but the new replay incorrectly equated raw
+is_struct with semantic STRUCT flavor. Root verified ast_create_object and
+ast_create_tobject both inherit raw is_struct=true from ast_create_struct,
+then replace nominal_kind; the prior issuer already admitted them through its
+rawstruct route. Root's e09 probe confirms current inner Type/argument/snapshot
+identity but snapshot_current=false. B therefore seals the actual raw bool
+separately from semantic flavor, replays both, and preserves the original
+rawstruct-or-plainclass issuer/current set (STRUCT/OBJECT/TOBJECT/CLASS).
+The explicit OBJECT issuer addition was not the cause and is redundant. C
+verifies scalar-field reconstruction versus retaining the borrowed object and
+flavor/raw-flag corruption. No COPY_ONLY=fresh, unknown-call origin-zero
+permission or input edit; A's transfer remains unchanged.
+
+Next actual integration falsifier, binaryf835: phase6632/0, strict summary,
+MIR327/0 and semantic3228/0 pass. test-transpile reports four failed assertions
+from one unchanged scheduler example whose lowering first fails in
+BudgetSnapshot's returned-backing frame. The minimal Read(Slot<BudgetLedger>)
+probe reproduces it; `.tmp/p0-destination-existing.izGtjw/` also records current
+TOBJECT reconstruction admission. Typed Read's Slot/view/lifecycle/security
+owner validates the operation, but only publishes an input nonretention fact.
+Its C/LLVM/runtime ABI shallow-copies the payload; it does not prove freshness.
+
+- B joins the successful typed Read boundary to the existing checked-result
+  publication: result depends on receiver0, external retention=false, exact
+  current source/result Type and call identities. Preserve secure/view/arity
+  validation and fail closed on missing/stale receipts. Other actuals cannot
+  acquire a result dependency merely by position or syntax spelling.
+- A consumes the same relation through existing origin/destination/eager and
+  cached summary checks; never translate BORROWED_FOR_CALL into independent
+  output. Return/frame and Slot loan obligations remain distinct and required.
+- C reuses existing Slot read phase and retention/currency scaffolds; the
+  original scheduler input and four source-order assertions are unchanged.
+- Root reruns narrow/strict/native/chain and the whole example before the
+  unchanged canonical/bootstrap. Frozen review QUBf9g is f835 only, not approval
+  of this later repair. No new owner, annotation/copy or larger work budget.
+
+The first Read candidate cb27 exposes a facet collision, not a reason to drop
+payload provenance: phase6383/12, including unchanged Read(Slot<Int>) return
+and Read(Slot<String>)->Log positives. Root reproduces both. The existing
+coarse slot-escape consumer interprets result_depends as carrying the input
+Slot identity and emits RETURN even for a read used only by Log. Read returns
+the payload value, not its container identity; shallow descriptor backing can
+still depend on that container. B therefore publishes two projections of the
+same current typed result receipt behind one shared validator: the existing
+identity/result-value query reports no carried container identity for Read;
+the backing relation reports its receiver dependency. A migrates the three
+backing consumers and seals both facets in existing shared claims. Other
+consumers needing only nonretention retain their behavior. No query failure
+becomes independence and no old/new fallback exists. C keeps all old identity
+oracles and tests the new backing facet explicitly, with receipt corruption
+rejecting both projections. This completes the reached consumer map rather
+than exempting Read by syntax spelling in the escape collector.
 
 ## Complete execution order
 

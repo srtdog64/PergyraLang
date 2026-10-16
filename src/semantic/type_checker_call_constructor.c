@@ -88,14 +88,20 @@ type_check_constructor_symbol_call(ASTNode *expr,
                  * may still omit trailing fields on both front ends. */
                 bool exact_fields = decl->type == AST_CLASS_DECL
                     && ast_class_is_struct(decl);
-                local_ok = exact_fields && !decl_is_generic && provided == field_count &&
+                bool mapped_record = constructor_nominal_mapping_decl(decl);
+                local_ok = mapped_record && !decl_is_generic && provided == field_count &&
                     ast_class_field_destructure_count(decl) == 0 && channel_field_name == NULL &&
-                    constructor_payload_type_ready(sym->type) && ast_node_stable_id(decl) != 0;
+                    constructor_payload_type_ready(sym->type, true) && sym->type->kind == TYPE_KIND_CLASS &&
+                    sym->type->nominal_flavor == nominal_flavor_from_decl(decl) &&
+                    (sym->type->nominal_flavor != TYPE_NOMINAL_SUBJECT || semantic_host_decl_for_type(ctx, sym->type) == decl) &&
+                    ast_node_stable_id(decl) != 0;
                 if (local_ok && semantic_param_publication_pending(ctx)) {
                     snapshot = calloc(1, sizeof(*snapshot));
                     if (snapshot != NULL) {
                         snapshot->decl = decl;
                         snapshot->decl_id = ast_node_stable_id(decl);
+                        snapshot->flavor = nominal_flavor_from_decl(decl);
+                        snapshot->is_struct = ast_class_is_struct(decl);
                         snapshot->field_count = field_count;
                         snapshot->decl_name = strdup(ast_class_name(decl));
                         snapshot->result_type_name = strdup(sym->type->name);
@@ -299,8 +305,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 }
                             }
                         }
-                        if (!constructor_payload_type_ready(arg_type) ||
-                            !constructor_payload_type_ready(field_type)) local_ok = false;
+                        if (!constructor_payload_type_ready(arg_type, false) ||
+                            !constructor_payload_type_ready(field_type, false)) local_ok = false;
                         if (local_ok) {
                             size_t count = 0;
                             ClassField **fields = ast_class_fields(decl, &count);

@@ -18,6 +18,7 @@
 #include "diag_codes.h"
 #include "type_checker_ownership_let_internal.h"
 #include "type_checker_ownership_support_internal.h"
+#include "function_param_publication_owner.h"
 
 static bool
 single_owner_handle_value_is_place(const ASTNode *value)
@@ -230,6 +231,9 @@ ownership_let_validate_channel_binding(ASTNode *node,
         ASTNode *capacity = ast_call_argument(init, 0);
         Type *capacity_type = type_check_expression(capacity, ctx);
         require_assignable(capacity_type, TYPE_INT, capacity, ctx);
+        if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
+            !semantic_param_publication_record_channel_binding(ctx, node, decl_type))
+            semantic_error(ctx, node, "Checked Channel binding publication failed");
         return !ctx->has_error;
     }
 

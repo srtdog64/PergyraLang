@@ -59,6 +59,8 @@ typedef struct {
 typedef struct {
     ASTNode *decl;
     uint32_t decl_id;
+    TypeNominalFlavor flavor;
+    bool is_struct;
     char *decl_name, *result_type_name;
     size_t field_count;
     SemanticNominalResultField *fields;
@@ -92,10 +94,25 @@ typedef struct {
     bool value_present, copy_escape, meta, execution_present, reachable;
     bool call_present, kind_present, stdlib, local, cast_present;
     bool assignment_replacement;
+    bool channel_binding;
+    bool empty_map_binding, slot_write;
+    const ASTNode *map_type_node;
+    uint32_t map_type_id;
+    const Type *map_key_type, *map_value_type;
+    const Type *write_receiver_type, *write_payload_type;
+    const Type *write_inner_type;
+    SlotAccessMode write_access_mode;
+    bool write_secure;
+    const ASTNode *empty_map_declaration;
+    uint32_t empty_map_declaration_id;
+    const ASTNode *channel_type_node;
+    uint32_t channel_type_id;
+    const Type *channel_element_type;
     bool deferred_scan, deferred_checked;
     ASTNodeType deferred_shape;
     PublishedDeferredCapture *deferred_captures;
     size_t deferred_capture_count;
+    /* Owned syntax receipt for deferred nodes or checked typed storage. */
     FunctionParamFlowIndexClaims *deferred_syntax;
     /* A call-time storage premise, never a standalone non-retention grant. */
     bool private_array_push, private_exclusive, private_escaped, private_pending;
@@ -123,6 +140,7 @@ typedef struct {
     char *target_name;
     char *value_type_name, *relation_argument_type, *relation_result_type;
     const ASTNode *relation_argument;
+    const Type *relation_input_type, *relation_output_type;
     uint32_t relation_argument_id;
     size_t relation_argument_count;
     bool result_relation;
@@ -162,6 +180,14 @@ void semantic_param_publication_retire_value(PublishedNode *row);
 bool semantic_param_publication_reserve_storage(void **rows, size_t *capacity, size_t count, size_t size);
 bool semantic_param_publication_checked_result_relation(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal, bool *result_depends, bool *external_retains);
+bool semantic_param_publication_checked_backing_relation(const SemanticContext *ctx, const ASTNode *call,
+    size_t ordinal, bool *result_depends, bool *external_retains);
+bool semantic_param_publication_record_empty_map_binding(SemanticContext *ctx,
+    ASTNode *declaration, const Type *map_type);
+bool semantic_param_publication_empty_map_binding(const SemanticContext *ctx, const ASTNode *declaration);
+bool semantic_param_publication_record_slot_write(SemanticContext *ctx, ASTNode *call,
+    const Type *receiver_type, const Type *payload_type);
+bool semantic_param_publication_checked_slot_write(const SemanticContext *ctx, const ASTNode *call);
 /* Compilation-owned obligations: pending is never a published summary. */
 bool semantic_param_publication_begin(SemanticContext *ctx);
 bool semantic_param_publication_pending(const SemanticContext *ctx);
@@ -175,6 +201,12 @@ bool semantic_param_publication_string_argument_read_only(
 bool semantic_param_publication_record_string_concat(SemanticContext *ctx, ASTNode *value);
 bool semantic_param_publication_call_analysis_unmodelled(
     const SemanticContext *ctx, const ASTNode *call);
+/* Complete current field/input mapping, including the empty field set.
+ * This does not certify fresh allocation or absence of evaluation effects. */
+bool semantic_param_publication_nominal_result_complete(const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_record_channel_binding(SemanticContext *ctx,
+    ASTNode *declaration, const Type *channel_type);
+bool semantic_param_publication_channel_binding(const SemanticContext *ctx, const ASTNode *declaration);
 bool semantic_param_publication_return_backing_required(
     const SemanticContext *ctx, const ASTNode *decl, size_t ordinal, bool *required);
 bool semantic_param_publication_routine_return_dependency_is_scalar(

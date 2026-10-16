@@ -14,6 +14,50 @@
 #include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
+
+static bool publication_result_relation(const SemanticContext *ctx, const ASTNode *call,
+    size_t ordinal, bool backing, bool *result_depends, bool *external_retains)
+{
+    if (result_depends == NULL || external_retains == NULL) return false;
+    PublishedNode *row = publication_result_current(ctx, call);
+    if (row == NULL || ordinal >= row->argument_count) return false;
+    if (row->nominal_result != NULL) {
+        *result_depends = true; *external_retains = false; return true;
+    }
+    PublishedNode *arg = publication_current_value(ctx, ast_call_argument(call, 0));
+    const char *result = ast_call_semantic_value_type_name(call);
+    if (arg == NULL || !row->result_relation || !row->kind_present ||
+        row->declaration != 0 || row->value_binding != 0 ||
+        row->argument_count != row->relation_argument_count || row->relation_argument != arg->node || row->relation_argument_id != arg->id ||
+        row->relation_argument_type == NULL || row->relation_result_type == NULL || arg->value_type_name == NULL ||
+        row->value_type_name == NULL || result == NULL || strcmp(row->relation_argument_type, arg->value_type_name) != 0 ||
+        strcmp(row->relation_result_type, row->value_type_name) != 0 || strcmp(result, row->relation_result_type) != 0 ||
+        (arg->node->type == AST_CALL && (ast_call_semantic_value_type_name(arg->node) == NULL ||
+         strcmp(arg->value_type_name, ast_call_semantic_value_type_name(arg->node)) != 0))) return false;
+    if (row->builtin == BUILTIN_READ) {
+        const Type *receiver = row->relation_input_type;
+        if (row->stdlib || row->target == NULL || row->target->type != AST_IDENTIFIER ||
+            ast_identifier_name(row->target) == NULL || strcmp(ast_identifier_name(row->target), "Read") != 0 ||
+            receiver == NULL || arg->value_type != receiver || receiver->kind != TYPE_KIND_SLOT ||
+            type_is_write_view(receiver) || type_is_move_token(receiver) ||
+            row->relation_output_type != row->value_type ||
+            type_slot_inner_type(receiver) != row->relation_output_type ||
+            row->argument_count != (type_slot_is_secure(receiver) ? 2u : 1u)) return false;
+    } else if (row->builtin != BUILTIN_NOT_BUILTIN || !row->stdlib) return false;
+    *result_depends = ordinal == 0 && (row->builtin != BUILTIN_READ || backing);
+    *external_retains = false;
+    return true;
+}
+bool semantic_param_publication_checked_result_relation(const SemanticContext *ctx, const ASTNode *call,
+    size_t ordinal, bool *result_depends, bool *external_retains)
+{
+    return publication_result_relation(ctx, call, ordinal, false, result_depends, external_retains);
+}
+bool semantic_param_publication_checked_backing_relation(const SemanticContext *ctx, const ASTNode *call,
+    size_t ordinal, bool *result_depends, bool *external_retains)
+{
+    return publication_result_relation(ctx, call, ordinal, true, result_depends, external_retains);
+}
 static PendingRoutine *publication_routine(FunctionParamPublicationStore *store, uint32_t id);
 bool semantic_param_publication_record_routine(SemanticContext *ctx, ASTNode *decl,
     size_t count, Type **types, Type *function_type)

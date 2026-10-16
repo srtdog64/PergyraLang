@@ -69,6 +69,11 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
                 || ((semantic_param_summary_has_call_escape(mask) || semantic_param_summary_has_channel_escape(mask))
                     && !semantic_param_publication_value_has_static_string_backing(ctx, row->site))
             : semantic_param_summary_has_any_escape(mask);
+        if (type_is_read_view(row->type)) {
+            semantic_validate_ref_view_payload_escape(row->call, row->site, ctx,
+                row->callee, row->ordinal, row->borrowed, OWNERSHIP_CONSUMER_HELPER_CALL, row->destination, row->fix);
+            continue;
+        }
         ASTNode *loan_escape = NULL;
         bool escaped_loan = type_equals(row->type, TYPE_STRING) && !retaining &&
             semantic_param_summary_has_return_escape(mask) &&
@@ -122,7 +127,8 @@ semantic_check_param_summary_escapes(ASTNode *node,
 
         ownership_class = semantic_classify_ownership_type(param_types[i], ctx);
         bool string_ref = type_equals(param_types[i], TYPE_STRING);
-        if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref)
+        bool view_ref = type_is_read_view(param_types[i]);
+        if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref && !view_ref)
             continue;
 
         summary_mask = semantic_callable_param_escape_summary(
@@ -135,6 +141,18 @@ semantic_check_param_summary_escapes(ASTNode *node,
                     || semantic_param_summary_has_channel_escape(summary_mask)
                 : semantic_param_summary_has_any_escape(summary_mask)) {
             semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF);
+        }
+        if (view_ref) {
+            if (semantic_param_summary_has_return_escape(summary_mask))
+                semantic_validate_ref_view_payload_escape(node, node, ctx, node, i, param->name,
+                    OWNERSHIP_CONSUMER_RETURN, NULL, NULL);
+            if (semantic_param_summary_has_channel_escape(summary_mask))
+                semantic_validate_ref_view_payload_escape(node, node, ctx, node, i, param->name,
+                    OWNERSHIP_CONSUMER_CHANNEL_SEND, NULL, NULL);
+            if (semantic_param_summary_has_call_escape(summary_mask))
+                semantic_validate_ref_view_payload_escape(node, node, ctx, node, i, param->name,
+                    OWNERSHIP_CONSUMER_HELPER_CALL, ast_declaration_name(node), NULL);
+            continue;
         }
         if (!string_ref && semantic_param_summary_has_return_escape(summary_mask)) {
             semantic_validate_borrowed_escape(

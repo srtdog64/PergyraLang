@@ -19,6 +19,7 @@
 #include "indexed_string_borrow_owner.h"
 #include "type_checker_ownership_support_internal.h"
 #include "type_checker_flow_universe.h"
+#include "function_param_publication_owner.h"
 
 static Type *
 ownership_let_normalize_type(Type *type)
@@ -586,5 +587,10 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             "ResourceFlowUniverse declaration identity allocation failed");
     }
 
+    if (!ctx->has_error && ann != NULL && init != NULL && init->type == AST_CALL &&
+        type_is_constructed_named(decl_type, "HashMap") && ast_call_semantic_callee_is_stdlib(init) &&
+        ownership_let_call_callee_name(init) != NULL && strcmp(ownership_let_call_callee_name(init), "MapNew") == 0 &&
+        semantic_param_publication_pending(ctx) && !semantic_param_publication_record_empty_map_binding(ctx, node, decl_type))
+        semantic_error(ctx, node, "Checked empty map binding publication failed");
     return !ctx->has_error;
 }

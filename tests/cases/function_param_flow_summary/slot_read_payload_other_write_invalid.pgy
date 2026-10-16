@@ -1,0 +1,7 @@
+subject TextLedger { let text: String; let count: Int; }
+func Update(ref source: Slot<TextLedger>, ref destination: Slot<TextLedger>) -> Int {
+    let current = Read(source);
+    let next = TextLedger(current.text, current.count + 1);
+    Write(destination, next);
+    return next.count;
+}

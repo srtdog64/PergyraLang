@@ -4,6 +4,7 @@
 #include "callable_capability_inference.h"
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 static Type *
 slotops_normalize_type(Type *type)
@@ -125,6 +126,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         }
     }
     Type *slot_type = slotops_normalize_type(type_check_expression(slot_arg, ctx));
+    bool token_validated = false;
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_REMOTE_FUTURE_MISUSE, PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS, PGY_FIX_AWAIT_FUTURE, slot_arg,
@@ -186,6 +188,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                 ASTNode *token_arg = ast_call_argument(call, 2);
                 if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx))
                     return false;
+                token_validated = true;
             } else if (arg_count > 2) {
                 semantic_warning(ctx, call,
                     "Write to plain Slot '%s' ignores extra token argument",
@@ -225,7 +228,11 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    return true;
+    if (!ctx->has_error && ast_node_stable_id(call) != 0 && semantic_param_publication_pending(ctx) &&
+        (!type_slot_is_secure(slot_type) || token_validated) && arg_count == (type_slot_is_secure(slot_type) ? 3u : 2u) &&
+        !semantic_param_publication_record_slot_write(ctx, call, slot_type, value_type))
+        semantic_error(ctx, call, "Checked Slot write publication failed");
+    return !ctx->has_error;
 }
 
 Type *
@@ -339,7 +346,14 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         }
     }
 
-    return slotops_normalize_type(type_slot_inner_type(slot_type));
+    Type *result = slotops_normalize_type(type_slot_inner_type(slot_type));
+    /* Borrowed synthetic method-call views carry no owned call identity. */
+    if (!ctx->has_error && ast_node_stable_id(call) != 0 && semantic_param_publication_pending(ctx) &&
+        arg_count == (type_slot_is_secure(slot_type) ? 2u : 1u) && result != TYPE_UNKNOWN &&
+        (!ast_call_set_semantic_value_type_name_copy(call, result->name) ||
+         !semantic_param_publication_record_checked_result_relation(ctx, call, slot_type, result, 0, 0)))
+        semantic_error(ctx, call, "Checked Slot read result publication failed");
+    return result;
 }
 
 bool

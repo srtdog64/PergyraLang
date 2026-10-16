@@ -1,0 +1,16 @@
+func Observe(ref view: ReadView<String>) -> Int {
+    let first = view;
+    let second = first;
+    let text = Read(second);
+    Log(text);
+    return StringLength(text);
+}
+func Main() -> Void {
+    let slot: Slot<String> = ClaimSlot();
+    Write(slot, Concat("heap", " text"));
+    if true {
+        let view: ReadView<String> = ViewRead(slot);
+        Log(Observe(view));
+    }
+    Release(slot);
+}

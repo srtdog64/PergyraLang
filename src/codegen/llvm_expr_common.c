@@ -10,6 +10,9 @@
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_expr_member_lvalue.h"
+#include "llvm_inventory_internal.h"
+#include "llvm_type_kind.h"
+#include "../compiler/mir_source_local_expr_types.h"
 
 bool
 llvm_is_upper_ident(ASTNode *node)
@@ -314,6 +317,18 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_array_access_element_class_name(ctx, node);
     }
     case AST_CALL:
+        if (ctx->current_mir_routine != NULL || llvm_active_has_mir(ctx)) {
+            const MIRProgram *program = llvm_active_mir_identity(ctx);
+            const MIRRoutine *routine = ctx->current_mir_routine;
+            MIRSourceLocalTypeScratch scratch = {0};
+            if (program == NULL || routine == NULL) return NULL;
+            const char *type_name = mir_source_local_expr_type_name(program, routine, &scratch, node);
+            if (type_name == NULL) return NULL;
+            PgyTypeKind kind = pgy_classify_type(type_name);
+            if (kind != PGY_TK_UNKNOWN && kind != PGY_TK_CLASS) return NULL;
+            LLVMClassTypeEntry *result = llvm_lookup_class(ctx, type_name);
+            return result != NULL ? result->class_name : NULL;
+        }
         {
             const char *payload_class =
                 llvm_expr_unwrap_option_payload_class_name(node, ctx);

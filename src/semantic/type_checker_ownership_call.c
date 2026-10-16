@@ -518,10 +518,11 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
     }
 
     bool string_ref = pmode == PARAM_MODE_REF && type_equals(arg_type, TYPE_STRING);
-    if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref)
+    bool view_ref = pmode == PARAM_MODE_REF && type_is_read_view(arg_type);
+    if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY && !string_ref && !view_ref)
         return true;
 
-    if (arg_expr->type != AST_IDENTIFIER && !string_ref) {
+    if (arg_expr->type != AST_IDENTIFIER && !string_ref && !view_ref) {
         const char *borrowed_root_name =
             semantic_borrowed_boundary_root_name(arg_expr, ctx);
         const char *addressable_root_name =
@@ -547,6 +548,8 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
         borrowed_name = semantic_addressable_boundary_root_name(arg_expr);
     if (borrowed_name == NULL && string_ref)
         borrowed_name = "<temporary String>";
+    if (borrowed_name == NULL && view_ref)
+        borrowed_name = "<temporary read view>";
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
         if (!semantic_call_is_direct_sync_self_ref_reborrow(
                 ctx, callee_decl, arg_expr, arg_index, pmode)) {
@@ -560,6 +563,9 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
             unsigned callee_mask =
                 semantic_callable_param_escape_summary(
                     callee_decl, arg_index, ctx);
+            if (view_ref)
+                return !semantic_validate_ref_view_payload_escape(call_expr, arg_expr, ctx, callee_decl,
+                    arg_index, borrowed_name, OWNERSHIP_CONSUMER_HELPER_CALL, display_name, local_fix_label);
             if ((string_ref
                     ? callee_decl == NULL || ast_func_body(callee_decl) == NULL
                         || ((semantic_param_summary_has_call_escape(callee_mask)

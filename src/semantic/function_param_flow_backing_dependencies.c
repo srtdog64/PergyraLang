@@ -6,82 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-    FunctionParamFlowSummaryStore *store;
-    SlotFunctionLookup lookup;
-    ASTNode *decl;
-    FunctionParamFlowBackingFact *fact;
-    bool private_stores_closed;
-    ASTNode *loan_seed, *consumer, *escape_site;
-    size_t loan_work;
-    bool loan_seed_seen;
-} ReturnedBacking;
-/* Only growth after a binding input was read needs another traversal. Forward
- * readers see the merged bits directly; earlier readers and expression caches
- * are replayed on the next epoch, including dependencies on an empty input. */
-static bool backing_merge(size_t words, uint64_t *into, const uint64_t *from)
-{
-    bool grew = false;
-    for (size_t w = 0; w < words; w++) {
-        uint64_t next = into[w] | from[w];
-        grew |= next != into[w]; into[w] = next;
-    }
-    return grew;
-}
-static void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect)
-{
-    if (state->loan_seed != NULL && origins[0] != 0 && effect != 0 && state->escape_site == NULL)
-        state->escape_site = state->consumer;
-    for (size_t p = 0; p < state->fact->origin_count; p++)
-        if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0) state->fact->effects[p] |= effect;
-}
-static bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins)
-{
-    for (size_t w = 0; w < state->fact->origin_words; w++) if (origins[w] != 0) return true;
-    return false;
-}
-static FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert)
-{
-    FunctionParamFlowBackingFact *fact = state->fact;
-    if (id == 0) { fact->complete = false; return NULL; }
-    for (size_t i = 0; i < fact->binding_count; i++) if (fact->bindings[i].binding == id) return &fact->bindings[i];
-    if (!insert) return NULL;
-    if (fact->binding_count == SIZE_MAX / sizeof(*fact->bindings)) { function_param_flow_fail(state->store, state->decl, "backing binding size overflow"); fact->complete = false; return NULL; }
-    FunctionParamFlowBackingBinding *rows = realloc(fact->bindings, (fact->binding_count + 1) * sizeof(*rows));
-    if (rows == NULL) { function_param_flow_fail(state->store, state->decl, "backing binding allocation failed"); fact->complete = false; return NULL; }
-    fact->bindings = rows;
-    FunctionParamFlowBackingBinding *row = &rows[fact->binding_count];
-    *row = (FunctionParamFlowBackingBinding){.binding = id};
-    row->origins = calloc(fact->origin_words, sizeof(uint64_t));
-    row->destinations = calloc(fact->destination_words, sizeof(uint64_t));
-    fact->binding_count++;
-    if (row->origins == NULL || row->destinations == NULL) { function_param_flow_fail(state->store, state->decl, "backing binding bitset allocation failed"); fact->complete = false; return NULL; }
-    return row;
-}
-static size_t backing_node(ReturnedBacking *state, ASTNode *node)
-{
-    FunctionParamFlowBackingFact *fact = state->fact;
-    if (node == NULL || ast_node_stable_id(node) == 0) { fact->complete = false; return SIZE_MAX; }
-    if (!function_param_flow_claim_record(state->store->ctx, fact->claims, node)) { fact->complete = false; return SIZE_MAX; }
-    for (size_t i = 0; i < fact->node_count; i++) if (fact->nodes[i].node == node) return i;
-    if (fact->node_count == SIZE_MAX / sizeof(*fact->nodes)) { function_param_flow_fail(state->store, state->decl, "backing node size overflow"); fact->complete = false; return SIZE_MAX; }
-    FunctionParamFlowBackingNode *rows = realloc(fact->nodes, (fact->node_count + 1) * sizeof(*rows));
-    if (rows == NULL) { function_param_flow_fail(state->store, state->decl, "backing node allocation failed"); fact->complete = false; return SIZE_MAX; }
-    fact->nodes = rows;
-    size_t at = fact->node_count++;
-    rows[at] = (FunctionParamFlowBackingNode){.node = node, .id = ast_node_stable_id(node), .shape = node->type};
-    rows[at].origins = calloc(fact->origin_words, sizeof(uint64_t));
-    if (rows[at].origins == NULL) { function_param_flow_fail(state->store, state->decl, "backing origin allocation failed"); fact->complete = false; return SIZE_MAX; }
-    return at;
-}
-static bool backing_work(ReturnedBacking *state, size_t at)
-{
-    FunctionParamFlowBackingNode *row = &state->fact->nodes[at];
-    if (row->work_epoch == state->fact->epoch) return true;
-    size_t *work = state->loan_seed != NULL ? &state->loan_work : &state->store->work_units;
-    if (*work >= state->store->work_budget) { function_param_flow_fail(state->store, state->decl, "recursive summary work budget exceeded"); state->fact->complete = false; return false; }
-    (*work)++; row->work_epoch = state->fact->epoch; return true;
-}
 static uint32_t backing_place(ReturnedBacking *state, ASTNode *node)
 {
     while (node != NULL && (node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS))
@@ -100,26 +24,73 @@ static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_
     for (size_t p = 0; !replacement && p < state->fact->origin_count; p++) if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0)
         backing_merge(state->fact->destination_words, &state->fact->outputs[p * state->fact->destination_words], row->destinations);
     if (output) backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
-    if (row->local) {
+    if (row->local || replacement) {
         bool grew = backing_merge(state->fact->origin_words, row->origins, origins);
         state->fact->changed |= grew && row->origin_read_epoch == state->fact->epoch;
     }
     else if (!output) { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; }
 }
+static void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations)
+{
+    if (value == NULL) return;
+    size_t at = backing_node(state, value);
+    if (at == SIZE_MAX || !backing_work(state, at)) return;
+    SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);
+    if (!published.ok) { state->fact->complete = false; return; }
+    if (published.meta || (published.origin_ready && value->type != AST_IDENTIFIER &&
+        value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
+    if (value->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, value)) return;
+    switch (value->type) {
+    case AST_IDENTIFIER: {
+        FunctionParamFlowBackingBinding *source = backing_binding(state, semantic_param_publication_binding(state->store->ctx, value), false);
+        if (source == NULL) { state->fact->complete = false; return; }
+        source->destination_read_epoch = state->fact->epoch;
+        backing_merge(state->fact->destination_words, destinations, source->destinations); break;
+    }
+    case AST_MEMBER_ACCESS: backing_destination_value(state, ast_member_object(value), destinations); break;
+    case AST_ARRAY_ACCESS: backing_destination_value(state, ast_array_access_array(value), destinations); break;
+    case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
+        for (size_t p = 0; p < (value->type == AST_ARRAY_LITERAL ? ast_array_literal_count(value) : ast_tuple_literal_count(value)); p++)
+            backing_destination_value(state, value->type == AST_ARRAY_LITERAL ? ast_array_literal_element(value, p) : ast_tuple_literal_element(value, p), destinations);
+        break;
+    case AST_CALL:
+        if (!semantic_param_publication_checked_call(state->store->ctx, value)) { state->fact->complete = false; break; }
+        if (function_param_flow_backing_unsupported_call(state->store, state->fact, value)) break;
+        if (ast_call_arg_count(value) == 0) {
+            if (!semantic_param_publication_nominal_result_complete(state->store->ctx, value)) state->fact->complete = false;
+            break;
+        }
+        for (size_t p = 0; p < ast_call_arg_count(value); p++) {
+            if (!semantic_param_publication_checked_argument(state->store->ctx, value, p)) { state->fact->complete = false; break; }
+            bool depends = false, retains = true;
+            ASTNode *callee = semantic_param_publication_callee(state->store->ctx, value, p);
+            if (callee != NULL) {
+                unsigned mask = function_param_flow_summary_for_call(&state->lookup, value, p);
+                if (!function_param_flow_callee_relation_ready(&state->lookup, value, p))
+                    function_param_flow_callee_unfinished(&state->lookup, value, p, state->fact);
+                depends = (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
+            } else if (!semantic_param_publication_checked_backing_relation(state->store->ctx, value, p, &depends, &retains)) {
+                state->fact->complete = false; break;
+            }
+            if (depends) backing_destination_value(state, ast_call_argument(value, p), destinations);
+        }
+        break;
+    default: state->fact->complete = false; break;
+    }
+}
 static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id)
 {
-    if (value == NULL || (value->type != AST_IDENTIFIER && value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
-    SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);
-    if (published.ok && published.meta) return;
-    FunctionParamFlowBackingBinding *source = backing_binding(state, backing_place(state, value), false);
-    if (source == NULL) return;
-    source->destination_read_epoch = state->fact->epoch;
-    uint64_t *destinations = source->destinations;
+    if (value == NULL || (value->type != AST_IDENTIFIER && value->type != AST_MEMBER_ACCESS &&
+        value->type != AST_ARRAY_ACCESS && value->type != AST_CALL)) return;
+    uint64_t *destinations = calloc(state->fact->destination_words, sizeof(*destinations));
+    if (destinations == NULL) { function_param_flow_fail(state->store, state->decl, "backing destination allocation failed"); state->fact->complete = false; return; }
+    backing_destination_value(state, value, destinations);
     FunctionParamFlowBackingBinding *destination = backing_binding(state, id, true);
     if (destination != NULL) {
         bool grew = backing_merge(state->fact->destination_words, destination->destinations, destinations);
         state->fact->changed |= grew && destination->destination_read_epoch == state->fact->epoch;
     }
+    free(destinations);
 }
 static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
@@ -175,7 +146,7 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
             if (callee == NULL) {
                 if (function_param_flow_backing_unsupported_call(state->store, fact, node)) break;
                 bool depends = true, retains = true;
-                bool relation = semantic_param_publication_checked_result_relation(state->store->ctx, node, i, &depends, &retains);
+                bool relation = semantic_param_publication_checked_backing_relation(state->store->ctx, node, i, &depends, &retains);
                 if (!relation || depends) backing_merge(state->fact->origin_words, origins, bits);
                 if ((!relation || retains) && !semantic_param_publication_argument_borrowed_for_call(state->store->ctx, node, i) &&
                     !semantic_typed_map_query_receiver_read(state->store->ctx, node, i)) fact->complete = false;
@@ -238,7 +209,9 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
     case AST_LET_DECL: {
         FunctionParamFlowBackingBinding *local = backing_binding(state, ast_node_stable_id(node), true);
         if (local != NULL) local->local = true;
-        backing_destination_alias(state, ast_let_initializer(node), ast_node_stable_id(node));
+        if (!semantic_param_publication_channel_binding(state->store->ctx, node) &&
+            !semantic_param_publication_empty_map_binding(state->store->ctx, node))
+            backing_destination_alias(state, ast_let_initializer(node), ast_node_stable_id(node));
         const uint64_t *bits = backing_origin(state, ast_let_initializer(node));
         local = backing_binding(state, ast_node_stable_id(node), false);
         if (local != NULL && bits != NULL) {
@@ -281,14 +254,19 @@ static void backing_consumers(ReturnedBacking *state, ASTNode *node)
             const uint64_t *bits = backing_origin(state, arg);
             bool local = semantic_param_publication_argument_borrowed_for_call(state->store->ctx, node, i) ||
                 semantic_typed_map_query_receiver_read(state->store->ctx, node, i);
+            ASTNode *receiver = ast_call_argument(node, 0);
+            bool owner_store = i == 1 && state->fact->input_id != 0 &&
+                semantic_param_publication_checked_slot_write(state->store->ctx, node) &&
+                receiver != NULL && receiver->type == AST_IDENTIFIER &&
+                semantic_param_publication_binding(state->store->ctx, receiver) == state->fact->input_id;
             bool depends = false, retains = true;
-            local |= semantic_param_publication_checked_result_relation(state->store->ctx, node, i, &depends, &retains) && !retains;
+            local |= semantic_param_publication_checked_backing_relation(state->store->ctx, node, i, &depends, &retains) && !retains;
             ASTNode *callee = semantic_param_publication_callee(state->store->ctx, node, i);
             bool self = callee == state->decl && !state->decl->is_async_decl && arg->type == AST_IDENTIFIER &&
                 ast_func_param(callee, i)->mode == PARAM_MODE_REF &&
                 semantic_param_publication_binding(state->store->ctx, arg) == ast_func_param_stable_id(ast_func_param(callee, i));
             for (size_t p = 0; self && p < ast_func_param_count(callee); p++) if (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF) self = false;
-            if (bits != NULL && backing_any_origin(state, bits) && !local && !self) {
+            if (bits != NULL && backing_any_origin(state, bits) && !local && !self && !owner_store) {
                 if (callee == NULL) {
                     if (!function_param_flow_backing_unsupported_call(state->store, fact, node))
                         backing_effect(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE);

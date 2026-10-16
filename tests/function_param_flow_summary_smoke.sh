@@ -87,6 +87,14 @@ paired = (
     ("callee_alias_scalar_read_valid", True),
     ("builtin_string_add_record_return_valid", True),
     ("builtin_string_add_retaining_operand_invalid", False),
+    ("call_result_field_read_valid", True),
+    ("call_result_field_inout_invalid", False),
+    ("slot_read_payload_log_valid", True),
+    ("slot_read_payload_keep_invalid", False),
+    ("slot_read_payload_same_write_valid", True),
+    ("slot_read_payload_other_write_invalid", False),
+    ("read_view_payload_log_valid", True),
+    ("read_view_payload_keep_invalid", False),
     ("return_loan_direct_slot_invalid", False),
     ("return_loan_staged_slot_invalid", False),
     ("return_loan_wrap_slot_invalid", False),
@@ -268,6 +276,7 @@ for name, expected in (
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
     ("return_loan_read_static_local_valid", "14\n14\nstatic literal\n"),
+    ("slot_read_payload_same_write_valid", "2\nkept\n"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

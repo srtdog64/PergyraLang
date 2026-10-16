@@ -12,8 +12,10 @@
 #include "compiler/rir.h"
 #include "compiler/mir.h"
 #include "compiler/mir_decl_headers.h"
+#include "compiler/mir_source_local_expr_types.h"
 #include "codegen/llvm_internal.h"
 #include "codegen/llvm_internal_api.h"
+#include "codegen/llvm_internal_emit_api.h"
 #include "codegen/llvm_inventory_decl_lookup.h"
 #include "codegen/llvm_expr_call_collections_extended.h"
 
@@ -247,6 +249,57 @@ static void snapshot_growth(Fixture *f, const char *key)
     llvm_ctx_destroy(ctx);
 }
 
+static void call_result_nominal_join(Fixture *f)
+{
+    LLVMGenCtx *ctx = context_for_fixture(f);
+    CHECK(ctx != NULL);
+    if (ctx == NULL) return;
+    ctx->current_mir_routine = f->routine;
+    ASTNode *call = ast_let_initializer(f->record_decl);
+    MIRSourceLocalTypeScratch scratch = {0};
+    const char *owned = mir_source_local_expr_type_name(f->mir, f->routine, &scratch, call);
+    CHECK(owned != NULL && strcmp(owned, "MapMetadataOuter") == 0);
+    const char *name = llvm_expr_custom_type_name(call, ctx);
+    CHECK(name != NULL && strcmp(name, "MapMetadataOuter") == 0 && !ctx->has_error);
+    ctx->mir = NULL;
+    CHECK(llvm_expr_custom_type_name(call, ctx) == NULL && !ctx->has_error);
+    ctx->mir = f->mir;
+    ctx->current_mir_routine = NULL;
+    CHECK(llvm_expr_custom_type_name(call, ctx) == NULL && !ctx->has_error);
+    ctx->current_mir_routine = f->routine;
+    name = llvm_expr_custom_type_name(call, ctx);
+    CHECK(name != NULL && strcmp(name, "MapMetadataOuter") == 0);
+    const char *original = ast_call_semantic_value_type_name(call);
+    char *saved = original == NULL ? NULL : strdup(original);
+    CHECK(saved != NULL);
+    if (saved != NULL) {
+        const char *wrong[] = {"Int", "MissingResultRegistration"};
+        for (size_t i = 0; i < sizeof(wrong) / sizeof(wrong[0]); i++) {
+            CHECK(ast_call_set_semantic_value_type_name_copy(call, wrong[i]));
+            owned = mir_source_local_expr_type_name(f->mir, f->routine, &scratch, call);
+            CHECK(owned != NULL && strcmp(owned, wrong[i]) == 0);
+            CHECK(llvm_expr_custom_type_name(call, ctx) == NULL && !ctx->has_error);
+            CHECK(ast_call_set_semantic_value_type_name_copy(call, saved));
+            name = llvm_expr_custom_type_name(call, ctx);
+            CHECK(name != NULL && strcmp(name, "MapMetadataOuter") == 0);
+        }
+        free(saved);
+    }
+    LLVMClassTypeEntry *registered = llvm_lookup_class(ctx, "MapMetadataOuter");
+    CHECK(registered != NULL);
+    if (registered != NULL) {
+        const char *saved_name = registered->class_name;
+        registered->class_name = "RetiredResultRegistration";
+        CHECK(llvm_expr_custom_type_name(call, ctx) == NULL && !ctx->has_error);
+        registered->class_name = saved_name;
+        name = llvm_expr_custom_type_name(call, ctx);
+        CHECK(name != NULL && strcmp(name, "MapMetadataOuter") == 0);
+    }
+    CHECK(mir_validate(f->mir, NULL));
+    ctx->current_mir_routine = NULL;
+    llvm_ctx_destroy(ctx);
+}
+
 int main(void)
 {
     type_system_init();
@@ -255,7 +308,7 @@ int main(void)
         Fixture f = {0};
         bool ready = lower_fixture(&f, keys[family]);
         CHECK(ready);
-        if (ready) { field_faults(&f, keys[family]); physical_field_fault(&f); snapshot_growth(&f, keys[family]); }
+        if (ready) { field_faults(&f, keys[family]); physical_field_fault(&f); snapshot_growth(&f, keys[family]); call_result_nominal_join(&f); }
         dispose_fixture(&f);
     }
     type_system_cleanup();

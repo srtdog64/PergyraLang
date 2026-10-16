@@ -1,0 +1,15 @@
+extern "C" { func Keep(text: String) -> Void; }
+func Retain(ref view: ReadView<String>) -> Void {
+    let first = view;
+    let second = first;
+    Keep(Read(second));
+}
+func Main() -> Void {
+    let slot: Slot<String> = ClaimSlot();
+    Write(slot, Concat("heap", " text"));
+    if true {
+        let view: ReadView<String> = ViewRead(slot);
+        Retain(view);
+    }
+    Release(slot);
+}

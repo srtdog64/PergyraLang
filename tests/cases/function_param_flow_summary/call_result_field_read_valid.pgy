@@ -1,0 +1,13 @@
+struct TextRecord { text: String; }
+struct Held { value: String; }
+
+func ReadRecord(ref record: TextRecord) -> Option<Int> {
+    let key: String = UnwrapOption(Some(Held(record.text))).value;
+    return Some(StringLength(key));
+}
+
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    let result = ReadRecord(record);
+    if IsSome(result) { Log(UnwrapOption(result)); }
+}

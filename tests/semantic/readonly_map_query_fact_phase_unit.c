@@ -802,6 +802,173 @@ static void checked_slot_input_contract(void)
     CHECK(!semantic_param_publication_argument_borrowed_for_call(ctx, call, 1));
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    const char *payload_sources[] = {
+        "subject BudgetLedger{let remaining:Int;let reserved:Int;}func Snapshot(ref budget:Slot<BudgetLedger>)->String{let cur:BudgetLedger=Read(budget);return \"remaining=\"+ToString(cur.remaining)+\" reserved=\"+ToString(cur.reserved);}",
+        "subject TextLedger{let text:String;}extern \"C\"{func Keep(text:String)->Void;}func Snapshot(ref ledger:Slot<TextLedger>)->Void{let cur:TextLedger=Read(ledger);Keep(cur.text);}",
+        "func Snapshot(ref source:Slot<String>)->String{let first=Read(source);let second=first;return second;}",
+        "func Snapshot(ref source:Slot<String>,inout output:String)->Void{let first=Read(source);output=first;}",
+        "subject TextLedger{let text:String;let count:Int;}func Snapshot(ref source:Slot<TextLedger>)->String{let cur=Read(source);let next=TextLedger(cur.text,cur.count+1);return next.text;}",
+        "extern \"C\"{func Keep(text:String)->Void;}func Direct(ref source:ReadView<String>)->Void{Keep(Read(source));}func Alias(ref source:ReadView<String>)->Void{let first=source;let second=first;Keep(Read(second));}",
+        "func Snapshot(ref source:ReadView<String>)->String{let first=source;let second=first;return Read(second);}",
+        "func Snapshot(ref source:ReadView<String>,inout output:String)->Void{let text=Read(source);output=text;}"
+    };
+    for (unsigned retaining = 0; retaining < sizeof(payload_sources) / sizeof(payload_sources[0]); retaining++) {
+        lexer = lexer_create(payload_sources[retaining]); parser = parser_create(lexer);
+        program = parser_parse_program(parser); ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        if (retaining != 0) {
+            CHECK(!typed && ctx->has_error);
+            bool refused = false;
+            for (size_t i = 0; i < ctx->diagnostic_count; i++) {
+                const Diagnostic *diagnostic = ctx->diagnostics[i];
+                if (diagnostic->level != DIAG_ERROR) continue;
+                bool exact = diagnostic->code != NULL && diagnostic->cause_ir != NULL &&
+                    strcmp(diagnostic->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0 &&
+                    strcmp(diagnostic->cause_ir, PGY_CAUSE_BORROW_ESCAPE) == 0;
+                CHECK(exact); refused |= exact;
+            }
+            CHECK(refused);
+        } else {
+            CHECK(typed && !ctx->has_error);
+            if (typed) {
+                ASTNode *snapshot = ast_program_statement(program, 1);
+                ASTNode *read_call = ast_let_initializer(ast_block_statement(ast_func_body(snapshot), 0));
+                SemanticPublishedValue value = semantic_param_publication_value(ctx, read_call);
+                CHECK(value.ok && !value.origin_ready && !value.copy_escape);
+                bool depends = false, retains = true;
+                CHECK(semantic_param_publication_checked_result_relation(ctx, read_call, 0, &depends, &retains) && !depends && !retains);
+                CHECK(semantic_param_publication_checked_backing_relation(ctx, read_call, 0, &depends, &retains) && depends && !retains);
+                CHECK(!semantic_param_publication_checked_backing_relation(ctx, read_call, 1, &depends, &retains));
+                unsigned mask = function_param_flow_summary_for_param(ctx, snapshot, 0);
+                CHECK((mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+                PublishedNode *receipt = NULL, *receiver_row = NULL;
+                ASTNode *read_receiver = ast_call_argument(read_call, 0);
+                FunctionParamPublicationStore *publications = ctx->function_param_publications;
+                for (size_t i = 0; i < publications->node_capacity; i++) {
+                    if (publications->nodes[i].node == read_call) receipt = &publications->nodes[i];
+                    if (publications->nodes[i].node == read_receiver) receiver_row = &publications->nodes[i];
+                }
+                CHECK(receipt != NULL && receiver_row != NULL);
+                if (receipt != NULL && receiver_row != NULL) {
+                    PublishedNode saved = *receipt, saved_receiver = *receiver_row;
+                    ASTNode saved_call = *read_call;
+                    for (unsigned fault = 0; fault < 6; fault++) {
+                        if (fault == 0) receipt->result_relation = false;
+                        if (fault == 1) receiver_row->value_type = TYPE_INT;
+                        if (fault == 2) receipt->value_type = TYPE_STRING;
+                        if (fault == 3) ast_call_set_semantic_callee_builtin_kind(read_call, BUILTIN_NOT_BUILTIN);
+                        if (fault == 4) read_call->data.call.arg_count = 0;
+                        if (fault == 5) receipt->value_present = false;
+                        CHECK(!semantic_param_publication_checked_result_relation(ctx, read_call, 0, &depends, &retains));
+                        CHECK(!semantic_param_publication_checked_backing_relation(ctx, read_call, 0, &depends, &retains));
+                        CHECK(function_param_flow_summary_for_param(ctx, snapshot, 0) == SLOT_PARAM_SUMMARY_ALL);
+                        *receipt = saved; *receiver_row = saved_receiver; *read_call = saved_call;
+                        CHECK(semantic_param_publication_checked_result_relation(ctx, read_call, 0, &depends, &retains) && !depends && !retains);
+                        CHECK(semantic_param_publication_checked_backing_relation(ctx, read_call, 0, &depends, &retains) && depends && !retains);
+                        CHECK(function_param_flow_summary_for_param(ctx, snapshot, 0) == mask);
+                    }
+                }
+            }
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    lexer = lexer_create("func Observe(ref source:ReadView<String>)->Void{Log(Read(source));}func Length(ref source:ReadView<String>)->Int{let first=source;let second=first;return StringLength(Read(second));}func Scalar(ref source:ReadView<Int>)->Int{return Read(source);}func NoRead(ref source:ReadView<String>)->Void{let first=source;let second=first;}");
+    parser = parser_create(lexer); program = parser_parse_program(parser); ctx = semantic_context_create();
+    bool views_parsed = program != NULL && !parser_has_error(parser);
+    CHECK(views_parsed);
+    bool views_typed = views_parsed && type_check_program(program, ctx);
+    CHECK(views_typed && !ctx->has_error);
+    if (views_typed) for (size_t i = 0; i < 4; i++) {
+        ASTNode *view_decl = ast_program_statement(program, i);
+        unsigned mask = function_param_flow_summary_for_param(ctx, view_decl, 0);
+        CHECK((mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+    }
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    lexer = lexer_create("subject TextLedger{let text:String;let count:Int;}func Update(ref source:Slot<TextLedger>)->Int{let rows:HashMap<String,Int> = MapNew();let cur=Read(source);let next=TextLedger(cur.text,cur.count+1);Write(source,next);return next.count;}");
+    parser = parser_create(lexer); program = parser_parse_program(parser); ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (typed) {
+        ASTNode *decl = ast_program_statement(program, 1), *body = ast_func_body(decl);
+        ASTNode *map = ast_block_statement(body, 0), *map_call = ast_let_initializer(map);
+        ASTNode *write = ast_block_statement(body, 3);
+        CHECK(semantic_param_publication_empty_map_binding(ctx, map));
+        CHECK(semantic_param_publication_checked_slot_write(ctx, write));
+        unsigned baseline = function_param_flow_summary_for_param(ctx, decl, 0);
+        CHECK((baseline & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        PublishedNode *map_row = NULL, *write_row = NULL;
+        FunctionParamPublicationStore *publications = ctx->function_param_publications;
+        for (size_t i = 0; i < publications->node_capacity; i++) {
+            if (publications->nodes[i].node == map) map_row = &publications->nodes[i];
+            if (publications->nodes[i].node == write) write_row = &publications->nodes[i];
+        }
+        CHECK(map_row != NULL && write_row != NULL && write_row->arguments != NULL && write_row->argument_count >= 2);
+        if (map_row != NULL && write_row != NULL && write_row->arguments != NULL && write_row->argument_count >= 2) {
+            PublishedNode saved_map = *map_row, saved_write = *write_row;
+            ASTNode saved_call = *write;
+            ASTNode *map_target = ast_call_callee(map_call);
+            char *map_name = map_target->data.identifier.name;
+            uint32_t map_binding = ast_call_semantic_callee_value_binding_id(map_call);
+            ASTNode *write_receiver = ast_call_argument(write, 0);
+            uint32_t write_binding = ast_identifier_binding_syntax_id(write_receiver);
+            PublishedCallArgument payload = write_row->arguments[1];
+            for (unsigned fault = 0; fault < 8; fault++) {
+                if (fault == 0) map_row->empty_map_binding = false;
+                if (fault == 1) map_target->data.identifier.name = "NotMapNew";
+                if (fault == 2) map_row->value_type = TYPE_INT;
+                if (fault == 3) write_row->slot_write = false;
+                if (fault == 4) write_row->arguments[1].type = TYPE_INT;
+                if (fault == 5) write->data.call.arg_count = 1;
+                if (fault == 6) ast_call_set_semantic_callee_value_binding_id(map_call, map_binding + 1);
+                if (fault == 7) ast_identifier_set_binding_syntax_id(write_receiver, write_binding + 1);
+                if (fault < 3 || fault == 6) CHECK(!semantic_param_publication_empty_map_binding(ctx, map));
+                else CHECK(!semantic_param_publication_checked_slot_write(ctx, write));
+                CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
+                *map_row = saved_map; *write_row = saved_write; *write = saved_call;
+                map_target->data.identifier.name = map_name;
+                ast_call_set_semantic_callee_value_binding_id(map_call, map_binding);
+                ast_identifier_set_binding_syntax_id(write_receiver, write_binding);
+                write_row->arguments[1] = payload;
+                CHECK(semantic_param_publication_empty_map_binding(ctx, map));
+                CHECK(semantic_param_publication_checked_slot_write(ctx, write));
+                CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == baseline);
+            }
+        }
+        ASTNode *construction = ast_let_initializer(ast_block_statement(body, 2));
+        PublishedNode *construction_row = NULL;
+        for (size_t i = 0; i < publications->node_capacity; i++)
+            if (publications->nodes[i].node == construction) construction_row = &publications->nodes[i];
+        CHECK(construction_row != NULL && construction_row->nominal_result != NULL);
+        if (construction_row != NULL && construction_row->nominal_result != NULL) {
+            SemanticNominalResultSnapshot *mapping = construction_row->nominal_result;
+            ASTNode *subject = ast_program_statement(program, 0);
+            TypeNominalFlavor flavor = mapping->flavor;
+            bool raw_struct = subject->data.class_decl.is_struct;
+            size_t field_count = 0, arity = ast_call_arg_count(construction);
+            ClassField **fields = ast_class_fields(subject, &field_count);
+            CHECK(fields != NULL && field_count != 0);
+            ASTNode *default_value = fields == NULL || field_count == 0 ? NULL : fields[0]->default_value;
+            for (unsigned fault = 0; fault < 4; fault++) {
+                if (fault == 0) mapping->flavor = TYPE_NOMINAL_CLASS;
+                if (fault == 1) subject->data.class_decl.is_struct = !raw_struct;
+                if (fault == 2) construction->data.call.arg_count = arity - 1;
+                if (fault == 3 && fields != NULL && field_count != 0) fields[0]->default_value = ast_call_argument(construction, 0);
+                CHECK(!semantic_param_publication_nominal_result_complete(ctx, construction));
+                CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, construction));
+                CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
+                mapping->flavor = flavor; subject->data.class_decl.is_struct = raw_struct;
+                construction->data.call.arg_count = arity;
+                if (fields != NULL && field_count != 0) fields[0]->default_value = default_value;
+                CHECK(semantic_param_publication_nominal_result_complete(ctx, construction));
+                CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == baseline);
+            }
+        }
+    }
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
 static void retained_slot_helper_source(void)
@@ -2174,11 +2341,17 @@ static void checked_nominal_result_relations(void)
             if (fault == 36) nominal->data.class_decl.name = "ForeignPayload";
             if (fault == 37) snapshot->decl = ast_program_statement(program, 2);
             if ((fault == 27 && call->data.call.arg_names == NULL) || (fault == 28 && arg->type != AST_IDENTIFIER)) continue;
-            CHECK(!semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains));
-            CHECK(!semantic_param_publication_checked_result_relation(ctx, call, 1, &depends, &retains));
+            bool current0 = semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains);
+            bool current1 = semantic_param_publication_checked_result_relation(ctx, call, 1, &depends, &retains);
+            if (current0 || current1) fprintf(stderr, "nominal struct fault=%u current0=%d current1=%d\n", fault, current0, current1);
+            CHECK(!current0);
+            CHECK(!current1);
             CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, call));
-            CHECK(!function_param_flow_index_claims_current(ctx, index));
-            CHECK(!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, routine, &rechecked));
+            bool claims_current = function_param_flow_index_claims_current(ctx, index);
+            bool rebuilt = function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, routine, &rechecked);
+            if (claims_current || rebuilt) fprintf(stderr, "nominal struct fault=%u claims=%d rebuilt=%d\n", fault, claims_current, rebuilt);
+            CHECK(!claims_current);
+            CHECK(!rebuilt);
             snapshot->result_type_name = snapshot_result;
             snapshot->decl_name = snapshot_decl;
             /* Restore borrowed test substitutions before any owned destruction. */
@@ -2280,27 +2453,187 @@ static void checked_nominal_unsupported_producers(void)
             FunctionParamPublicationStore *store = ctx->function_param_publications;
             for (size_t i = 0; i < store->node_capacity; i++)
                 if (store->nodes[i].node == call) row = &store->nodes[i];
-            CHECK(row != NULL && semantic_param_publication_call_analysis_unmodelled(ctx, call));
-            if (row != NULL) {
-                CHECK(row->unmodelled_constructor == declaration &&
-                    row->unmodelled_constructor_id == ast_node_stable_id(declaration));
+            CHECK(row != NULL && row->nominal_result != NULL);
+            CHECK(semantic_param_publication_nominal_result_complete(ctx, call));
+            CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, call));
+            if (row != NULL && row->nominal_result != NULL) {
+                bool depends = false, retains = true;
+                CHECK(semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains) && depends && !retains);
+                CHECK(row->nominal_result->flavor == TYPE_NOMINAL_CLASS);
+                SemanticNominalResultSnapshot *snapshot = row->nominal_result;
+                SemanticNominalResultSnapshot saved_snapshot = *snapshot;
                 PublishedNode saved = *row;
                 ASTNode saved_declaration = *declaration, saved_call = *call;
                 for (unsigned fault = 0; fault < 9; fault++) {
                     if (fault == 0) declaration->stable_id++;
                     if (fault == 1) declaration->type = AST_FUNC_DECL;
-                    if (fault == 2) row->unmodelled_constructor_id++;
-                    if (fault == 3) row->unmodelled_constructor_type = TYPE_INT;
-                    if (fault == 4) row->value_type = TYPE_INT;
+                    if (fault == 2) snapshot->decl_id++;
+                    if (fault == 3) snapshot->flavor = TYPE_NOMINAL_STRUCT;
+                    if (fault == 4) row->value_type_name = "Int";
                     if (fault == 5) ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(ast_program_statement(program, 1)));
                     if (fault == 6) declaration->data.class_decl.is_struct = true;
-                    if (fault == 7) row->unmodelled_constructor = ast_program_statement(program, 1);
+                    if (fault == 7) snapshot->decl = ast_program_statement(program, 1);
                     if (fault == 8) row->value_present = false;
+                    bool complete = semantic_param_publication_nominal_result_complete(ctx, call);
+                    bool current = semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains);
+                    if (complete || current) fprintf(stderr, "nominal class fault=%u complete=%d current=%d\n", fault, complete, current);
+                    CHECK(!complete);
+                    CHECK(!current);
                     CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, call));
-                    *row = saved; *declaration = saved_declaration; *call = saved_call;
-                    CHECK(semantic_param_publication_call_analysis_unmodelled(ctx, call));
+                    *row = saved; *snapshot = saved_snapshot; *declaration = saved_declaration; *call = saved_call;
+                    CHECK(semantic_param_publication_nominal_result_complete(ctx, call));
+                    CHECK(semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains) && depends && !retains);
+                    CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, call));
                 }
             }
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    for (unsigned retaining = 0; retaining < 2; retaining++) {
+        Lexer *lexer = lexer_create(retaining == 0
+            ? "object Packet{let hp:Int;}class Holder{let packet:Packet;}func Store(ref packet:Packet)->Void{let holder=Holder(Packet(packet.hp));}"
+            : "object Packet{let hp:Int;}class Holder{let packet:Packet;}func Store(ref packet:Packet)->Void{let holder=Holder(packet);}");
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        if (retaining != 0) {
+            CHECK(!typed && ctx->has_error);
+            bool refused = false;
+            for (size_t i = 0; i < ctx->diagnostic_count; i++) {
+                const Diagnostic *diagnostic = ctx->diagnostics[i];
+                if (diagnostic->level != DIAG_ERROR) continue;
+                bool exact = diagnostic->code != NULL && diagnostic->cause_ir != NULL &&
+                    strcmp(diagnostic->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0 &&
+                    strcmp(diagnostic->cause_ir, PGY_CAUSE_BORROW_ESCAPE) == 0;
+                CHECK(exact); refused |= exact;
+            }
+            CHECK(refused);
+        } else {
+            CHECK(typed && !ctx->has_error);
+            if (parsed && (!typed || ctx->has_error)) {
+                ASTNode *decl = ast_program_statement(program, 2);
+                ASTNode *outer = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
+                ASTNode *inner = ast_call_argument(outer, 0);
+                bool inner_depends = false, inner_retains = false, outer_depends = false, outer_retains = false;
+                bool inner_relation = semantic_param_publication_checked_result_relation(ctx, inner, 0, &inner_depends, &inner_retains);
+                bool outer_relation = semantic_param_publication_checked_result_relation(ctx, outer, 0, &outer_depends, &outer_retains);
+                unsigned raw = function_param_flow_summary_for_param(ctx, decl, 0);
+                fprintf(stderr, "object reconstruction inner complete=%d relation=%d depends=%d retains=%d outer complete=%d relation=%d depends=%d retains=%d mask=%u\n",
+                    semantic_param_publication_nominal_result_complete(ctx, inner), inner_relation, inner_depends, inner_retains,
+                    semantic_param_publication_nominal_result_complete(ctx, outer), outer_relation, outer_depends, outer_retains, raw);
+                PublishedNode *inner_row = NULL, *argument_row = NULL;
+                ASTNode *argument_node = ast_call_argument(inner, 0);
+                FunctionParamPublicationStore *publications = ctx->function_param_publications;
+                for (size_t i = 0; publications != NULL && i < publications->node_capacity; i++) {
+                    if (publications->nodes[i].node == inner) inner_row = &publications->nodes[i];
+                    if (publications->nodes[i].node == argument_node) argument_row = &publications->nodes[i];
+                }
+                const Type *value_type = inner_row == NULL ? NULL : inner_row->value_type;
+                SemanticNominalResultSnapshot *snapshot = inner_row == NULL ? NULL : inner_row->nominal_result;
+                const char *semantic_name = ast_call_semantic_value_type_name(inner);
+                fprintf(stderr, "object inner row=%d present=%d type=%p kind=%d flavor=%d name=%s stored=%s semantic=%s checked=%d current=%d\n",
+                    inner_row != NULL, inner_row != NULL && inner_row->value_present, (const void *)value_type,
+                    value_type == NULL ? -1 : (int)value_type->kind, value_type == NULL ? -1 : (int)value_type->nominal_flavor,
+                    value_type == NULL || value_type->name == NULL ? "<null>" : value_type->name,
+                    inner_row == NULL || inner_row->value_type_name == NULL ? "<null>" : inner_row->value_type_name,
+                    semantic_name == NULL ? "<null>" : semantic_name,
+                    semantic_param_publication_checked_call(ctx, inner), semantic_param_publication_value(ctx, inner).ok);
+                fprintf(stderr, "object inner snapshot=%d flavor=%d decl=%s declID=%u result=%s fields=%zu current=%d\n",
+                    snapshot != NULL, snapshot == NULL ? -1 : (int)snapshot->flavor,
+                    snapshot == NULL || snapshot->decl_name == NULL ? "<null>" : snapshot->decl_name,
+                    snapshot == NULL ? 0 : snapshot->decl_id,
+                    snapshot == NULL || snapshot->result_type_name == NULL ? "<null>" : snapshot->result_type_name,
+                    snapshot == NULL ? 0 : snapshot->field_count,
+                    snapshot != NULL && semantic_nominal_result_snapshot_current(ctx, inner, snapshot));
+                SemanticPublishedValue argument_value = semantic_param_publication_value(ctx, argument_node);
+                fprintf(stderr, "object argument snapshotType=%p publishedType=%p name=%s snapshotName=%s current=%d origin=%d binding=%u\n",
+                    inner_row == NULL || inner_row->arguments == NULL || inner_row->argument_count == 0 ? NULL : (const void *)inner_row->arguments[0].type,
+                    argument_row == NULL ? NULL : (const void *)argument_row->value_type,
+                    argument_row == NULL || argument_row->value_type_name == NULL ? "<null>" : argument_row->value_type_name,
+                    snapshot == NULL || snapshot->fields == NULL || snapshot->field_count == 0 || snapshot->fields[0].argument_type_name == NULL ? "<null>" : snapshot->fields[0].argument_type_name,
+                    argument_value.ok, argument_value.origin_ready, semantic_param_publication_binding(ctx, argument_node));
+                FunctionParamFlowSummaryStore *summaries = ctx->function_param_flow_summaries;
+                for (size_t i = 0; summaries != NULL && i < summaries->count; i++) {
+                    const FunctionParamFlowSummaryEntry *entry = &summaries->entries[i];
+                    if (entry->function_decl == decl && entry->param_index == 0)
+                        fprintf(stderr, "object reconstruction producer=%d unsupported=%d unproved=%d pending=%d ready=%d\n",
+                            (int)entry->output_producer, entry->analysis_unsupported, entry->returned_backing_unproved,
+                            entry->returned_backing_pending, entry->output_dependencies_ready);
+                }
+            }
+            if (typed) {
+                ASTNode *decl = ast_program_statement(program, 2);
+                ASTNode *outer = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
+                ASTNode *call = ast_call_argument(outer, 0);
+                PublishedNode *row = NULL;
+                FunctionParamPublicationStore *store = ctx->function_param_publications;
+                for (size_t i = 0; i < store->node_capacity; i++)
+                    if (store->nodes[i].node == call) row = &store->nodes[i];
+                CHECK(row != NULL && row->nominal_result != NULL);
+                CHECK(semantic_param_publication_nominal_result_complete(ctx, call));
+                unsigned mask = function_param_flow_summary_for_param(ctx, decl, 0);
+                CHECK((mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+                if (row != NULL && row->nominal_result != NULL) {
+                    SemanticNominalResultSnapshot *snapshot = row->nominal_result;
+                    CHECK(snapshot->flavor == TYPE_NOMINAL_OBJECT);
+                    ASTNode *object_decl = ast_program_statement(program, 0);
+                    bool raw_struct = object_decl->data.class_decl.is_struct;
+                    for (unsigned fault = 0; fault < 3; fault++) {
+                        if (fault < 2) snapshot->flavor = fault == 0 ? TYPE_NOMINAL_CLASS : TYPE_NOMINAL_STRUCT;
+                        if (fault == 2) object_decl->data.class_decl.is_struct = !raw_struct;
+                        CHECK(!semantic_param_publication_nominal_result_complete(ctx, call));
+                        CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, call));
+                        CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
+                        snapshot->flavor = TYPE_NOMINAL_OBJECT;
+                        object_decl->data.class_decl.is_struct = raw_struct;
+                        CHECK(semantic_param_publication_nominal_result_complete(ctx, call));
+                        CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
+                    }
+                }
+            }
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    for (unsigned incomplete = 0; incomplete < 2; incomplete++) {
+        Lexer *lexer = lexer_create(incomplete == 0
+            ? "class Packet{let value:Int;let tail:Int;}func Main()->Void{let packet=Packet(1);}"
+            : "class Packet{let value:Int=1;}func Main()->Void{let packet=Packet(2);}");
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        CHECK(program != NULL && !parser_has_error(parser));
+        bool typed = type_check_program(program, ctx);
+        CHECK(typed);
+        if (typed) {
+            ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(ast_program_statement(program, 1)), 0));
+            bool depends = false, retains = true;
+            CHECK(!semantic_param_publication_nominal_result_complete(ctx, call));
+            CHECK(!semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains));
+            CHECK(semantic_param_publication_call_analysis_unmodelled(ctx, call));
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
+        Lexer *lexer = lexer_create("class Empty{}func Make()->Empty{return Empty();}func Main()->Void{let exact=Empty();let ordinary=Make();}");
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        CHECK(program != NULL && !parser_has_error(parser));
+        bool typed = type_check_program(program, ctx);
+        CHECK(typed);
+        if (typed) {
+            ASTNode *body = ast_func_body(ast_program_statement(program, 2));
+            ASTNode *exact = ast_let_initializer(ast_block_statement(body, 0));
+            ASTNode *ordinary = ast_let_initializer(ast_block_statement(body, 1));
+            bool depends = false, retains = true;
+            CHECK(semantic_param_publication_nominal_result_complete(ctx, exact));
+            CHECK(!semantic_param_publication_checked_result_relation(ctx, exact, 0, &depends, &retains));
+            CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, exact));
+            CHECK(!semantic_param_publication_nominal_result_complete(ctx, ordinary));
+            CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, ordinary));
         }
         semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
     }
@@ -2534,8 +2867,52 @@ static void checked_callable_flow_projection_authority(void)
         if (symbol == NULL || symbol->type == NULL) goto cleanup;
         Type *projection = symbol->type;
         unsigned raw = function_param_flow_summary_for_param(ctx, decl, 0);
+        if (raw != expected[c]) fprintf(stderr, "callable raw case=%u mask=%u expected=%u\n", c, raw, expected[c]);
         CHECK(raw == expected[c]);
         CHECK(semantic_callable_param_escape_summary(decl, 0, ctx) == raw);
+        if (c == 1) {
+            ASTNode *channel = ast_block_statement(ast_func_body(decl), 0);
+            ASTNode *capacity = ast_call_argument(ast_let_initializer(channel), 0);
+            PublishedNode *receipt = NULL, *capacity_row = NULL;
+            FunctionParamPublicationStore *publications = ctx->function_param_publications;
+            for (size_t i = 0; i < publications->node_capacity; i++) {
+                if (publications->nodes[i].node == channel) receipt = &publications->nodes[i];
+                if (publications->nodes[i].node == capacity) capacity_row = &publications->nodes[i];
+            }
+            CHECK(semantic_param_publication_channel_binding(ctx, channel));
+            CHECK(receipt != NULL && capacity_row != NULL && receipt->arguments != NULL);
+            if (receipt != NULL && capacity_row != NULL && receipt->arguments != NULL) {
+                PublishedNode saved = *receipt, saved_capacity = *capacity_row;
+                PublishedCallArgument argument = receipt->arguments[0];
+                ASTNode *annotation = ast_let_type(channel);
+                GenericParam *element = ast_generic_param_at(ast_type_generic_args(annotation), 0);
+                CHECK(annotation != NULL && element != NULL);
+                char *constructor_name = annotation->data.type.name;
+                char *element_name = element == NULL ? NULL : element->name;
+                for (unsigned fault = 0; fault < 8; fault++) {
+                    if (fault == 0) receipt->channel_binding = false;
+                    if (fault == 1) receipt->channel_type_id++;
+                    if (fault == 2) receipt->channel_element_type = TYPE_INT;
+                    if (fault == 3) capacity_row->value_present = false;
+                    if (fault == 4) receipt->target_id++;
+                    if (fault == 5) receipt->arguments[0].type = TYPE_STRING;
+                    if (fault == 6) annotation->data.type.name = "Array";
+                    if (fault == 7 && element != NULL) element->name = "Int";
+                    bool current = semantic_param_publication_channel_binding(ctx, channel);
+                    unsigned stale_mask = function_param_flow_summary_for_param(ctx, decl, 0);
+                    if (current || stale_mask != SLOT_PARAM_SUMMARY_ALL)
+                        fprintf(stderr, "channel receipt fault=%u current=%d mask=%u\n", fault, current, stale_mask);
+                    CHECK(!current);
+                    CHECK(stale_mask == SLOT_PARAM_SUMMARY_ALL);
+                    *receipt = saved; *capacity_row = saved_capacity;
+                    receipt->arguments[0] = argument;
+                    annotation->data.type.name = constructor_name;
+                    if (element != NULL) element->name = element_name;
+                    CHECK(semantic_param_publication_channel_binding(ctx, channel));
+                    CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == raw);
+                }
+            }
+        }
         unsigned previous_mask = type_function_param_escape_summary(projection, 0);
         bool previous_finished = projection->data.function.has_param_escape_summary_facts;
         for (unsigned forced = 0; forced < 2; forced++) {
@@ -3445,6 +3822,117 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
     reached_producer_source(
         "extern \"C\"{func Opaque(text:String)->String;}func First(ref text:String,depth:Int)->String{if depth<=0{return text;}return Second(text,depth-1);}func Second(ref text:String,depth:Int)->String{if depth<=0{return Opaque(text);}return First(text,depth-1);}", false);
+}
+
+static void checked_call_result_field_destination(void)
+{
+    const char *sources[] = {
+        "struct TextRecord{text:String;}struct Held{value:String;}func ReadRecord(ref record:TextRecord)->Option<Int>{let key:String=UnwrapOption(Some(Held(record.text))).value;return Some(StringLength(key));}",
+        "struct TextRecord{text:String;}struct Held{value:String;}func StoreRecord(record:TextRecord,inout output:String)->Option<Int>{let key:String=UnwrapOption(Some(Held(record.text))).value;output=key;return Some(0);}func Forward(record:TextRecord,inout output:String)->Option<Int>{return StoreRecord(record,output);}"
+    };
+    for (size_t kind = 0; kind < 2; kind++) {
+        Lexer *lexer = lexer_create(sources[kind]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        ASTNode *decl = ast_program_statement(program, 2);
+        bool required = false;
+        CHECK(semantic_param_publication_return_backing_required(ctx, decl, 0, &required) && required);
+        unsigned mask = function_param_flow_summary_for_param(ctx, decl, 0);
+        CHECK((mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        CHECK(((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) == (kind == 1));
+        ASTNode *projection = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
+        ASTNode *unwrap = ast_member_object(projection);
+        ASTNode *some = ast_call_argument(unwrap, 0);
+        ASTNode *argument = ast_call_argument(some, 0);
+        CHECK(projection->type == AST_MEMBER_ACCESS && unwrap->type == AST_CALL);
+        CHECK(semantic_param_publication_binding(ctx, unwrap) == 0);
+        bool depends = false, retains = true;
+        CHECK(semantic_param_publication_checked_result_relation(ctx, unwrap, 0, &depends, &retains) && depends && !retains);
+        ASTNode *call = kind == 1 ? ast_return_value(ast_block_statement(ast_func_body(ast_program_statement(program, 3)), 0)) : NULL;
+        SlotFunctionLookup lookup = {ctx, program};
+        bool output = false;
+        if (kind == 1) CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &output) && output);
+        uint32_t id = unwrap->stable_id;
+        for (unsigned fault = 0; fault < 3; fault++) {
+            if (fault == 0) unwrap->stable_id++;
+            if (fault == 1) projection->data.member.object = some;
+            if (fault == 2) some->data.call.arguments[0] = NULL;
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
+            if (kind == 1) CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &output));
+            unwrap->stable_id = id; projection->data.member.object = unwrap;
+            some->data.call.arguments[0] = argument;
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
+            if (kind == 1) CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &output) && output);
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_default_formal_replacement(void)
+{
+    const char *sources[] = {
+        "func Probe(text:String,inout output:String,flag:Bool)->Void{if flag{text=\"literal\";}output=text;}func Forward(text:String,inout output:String,flag:Bool)->Void{Probe(text,output,flag);}",
+        "func Probe(value:Int)->Option<Int>{value=value+1;return Some(value);}",
+        "func Probe(rows:Array<Int>)->Option<Int>{rows=[];return Some(ArrayLength(rows));}",
+        "func Probe(ref value:Int)->Void{value=1;}",
+        "func Probe(inout value:Int)->Void{value=1;}",
+        "struct Counter{count:Int;}func Probe(cell:Counter)->Void{cell.count=1;}",
+        "func Probe(inout output:Int)->Void{using output as alias_value;alias_value=1;}",
+        "func Probe()->Void{let slot:Slot<Int> = ClaimSlot();slot=1;Release(slot);}"
+    };
+    for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
+        Lexer *lexer = lexer_create(sources[kind]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        ASTNode *decl = ast_program_statement(program, kind == 5 ? 1 : 0);
+        ASTNode *assignment = ast_block_statement(ast_func_body(decl), kind == 6 || kind == 7 ? 1 : 0);
+        if (kind == 0) assignment = ast_block_statement(ast_if_then_branch(assignment), 0);
+        if (ast_func_param_count(decl) != 0) (void)function_param_flow_summary_for_param(ctx, decl, 0);
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&(SlotFunctionLookup){ctx, program});
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+        if (index == NULL) goto cleanup;
+        CHECK(function_param_flow_local_replacement(ctx, index, assignment) == (kind < 3));
+        if (kind < 3) CHECK(semantic_param_publication_assignment_replacement(ctx, assignment));
+        if (kind == 0) {
+            unsigned mask = function_param_flow_summary_for_param(ctx, decl, 0);
+            CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+            ASTNode *call = ast_block_statement(ast_func_body(ast_program_statement(program, 1)), 0);
+            SlotFunctionLookup lookup = {ctx, program};
+            bool dependent = false;
+            CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &dependent) && dependent);
+            FuncParam *formal = ast_func_param(decl, 0);
+            uint32_t id = formal->stable_id, owner_id = index->function_id;
+            ParamMode mode = formal->mode;
+            for (unsigned fault = 0; fault < 3; fault++) {
+                if (fault == 0) formal->stable_id++;
+                if (fault == 1) formal->mode = PARAM_MODE_REF;
+                if (fault == 2) index->function_id++;
+                CHECK(!function_param_flow_local_replacement(ctx, index, assignment));
+                CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
+                CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &dependent));
+                formal->stable_id = id; formal->mode = mode; index->function_id = owner_id;
+                CHECK(function_param_flow_local_replacement(ctx, index, assignment));
+                CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
+                CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &dependent) && dependent);
+            }
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
 }
 
 static void checked_local_alias_return_backing(void)
@@ -4780,6 +5268,8 @@ int main(void)
     checked_pure_literal_backing_currency();
     checked_identifier_consumer_currency();
     checked_local_alias_return_backing();
+    checked_call_result_field_destination();
+    checked_default_formal_replacement();
     checked_recursive_alias_return_backing();
     checked_conservative_callback_backing();
     checked_builtin_string_concat_receipt();

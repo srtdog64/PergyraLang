@@ -41,7 +41,11 @@ static size_t function_param_flow_claim_child_count(const ASTNode *node, bool *s
     case AST_TYPE: {
         GenericParams *args = ast_type_generic_args(node);
         size_t count = args == NULL ? 0 : args->count;
-        return count > (SIZE_MAX - ast_type_tuple_element_count(node)) / 2 ? SIZE_MAX : count * 2 + ast_type_tuple_element_count(node);
+        if (count > (SIZE_MAX - ast_type_tuple_element_count(node)) / 2) return SIZE_MAX;
+        if (count != 0 && args->params == NULL) return SIZE_MAX;
+        for (size_t p = 0; p < count; p++)
+            if (args->params[p] == NULL || args->params[p]->name == NULL) return SIZE_MAX;
+        return count * 2 + ast_type_tuple_element_count(node);
     }
     case AST_CHANNEL_TYPE: return 2;
     case AST_FUTURE_TYPE: case AST_TYPE_ALIAS: case AST_LET_DESTRUCTURE:
@@ -186,6 +190,17 @@ static bool function_param_flow_claim_capture(SemanticContext *ctx,
         node->type == AST_TYPE ? ast_type_name(node) : node->type == AST_STRING ? ast_string_value(node) : NULL;
     row->syntax_name = syntax_name == NULL ? NULL : pergyra_strdup(syntax_name);
     if (syntax_name != NULL && row->syntax_name == NULL) { claims->failed = true; return false; }
+    if (node->type == AST_TYPE) {
+        GenericParams *args = ast_type_generic_args(node);
+        row->generic_name_count = args == NULL ? 0 : args->count;
+        if (row->generic_name_count > SIZE_MAX / sizeof(*row->generic_names)) { claims->failed = true; return false; }
+        row->generic_names = row->generic_name_count == 0 ? NULL : calloc(row->generic_name_count, sizeof(*row->generic_names));
+        if (row->generic_name_count != 0 && row->generic_names == NULL) { claims->failed = true; return false; }
+        for (size_t p = 0; p < row->generic_name_count; p++) {
+            row->generic_names[p] = pergyra_strdup(args->params[p]->name);
+            if (row->generic_names[p] == NULL) { claims->failed = true; return false; }
+        }
+    }
     if (node->type == AST_CAST || node->type == AST_TYPE_TEST) {
         const char *target = node->type == AST_CAST ? ast_cast_target_type(node) : ast_type_test_target_type(node);
         row->cast_target = target == NULL ? NULL : pergyra_strdup(target);
@@ -200,11 +215,16 @@ promote:
     row->value_ready = value.ok;
     row->value_meta = value.ok && value.meta;
     row->value_origin_ready = value.ok && value.origin_ready;
+    if (node->type == AST_LET_DECL) row->channel_binding = semantic_param_publication_channel_binding(ctx, node);
+    if (node->type == AST_LET_DECL) row->empty_map_binding = semantic_param_publication_empty_map_binding(ctx, node);
     if (node->type == AST_CALL) {
+        row->slot_write = semantic_param_publication_checked_slot_write(ctx, node);
         row->private_array_push = semantic_param_publication_private_array_push(ctx, node, NULL);
         row->result_relation = semantic_param_publication_checked_result_relation(ctx, node, 0,
             &row->result_depends, &row->external_retains);
-        if (row->result_relation) {
+        row->backing_relation = semantic_param_publication_checked_backing_relation(ctx, node, 0,
+            &row->backing_depends, &row->backing_external_retains);
+        if (row->result_relation || row->backing_relation) {
             row->result_type_name = pergyra_strdup(ast_call_semantic_value_type_name(node));
             if (row->result_type_name == NULL) {
                 claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "result claim allocation failed"); return false;
@@ -311,6 +331,13 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
             row->shape == AST_TYPE ? ast_type_name(row->node) : row->shape == AST_STRING ? ast_string_value(row->node) : NULL;
         if ((syntax_name == NULL) != (row->syntax_name == NULL) ||
             (syntax_name != NULL && strcmp(syntax_name, row->syntax_name) != 0)) return false;
+        if (row->shape == AST_TYPE) {
+            GenericParams *args = ast_type_generic_args(row->node);
+            size_t count = args == NULL ? 0 : args->count;
+            if (count != row->generic_name_count || (count != 0 && row->generic_names == NULL)) return false;
+            for (size_t p = 0; p < count; p++)
+                if (row->generic_names[p] == NULL || strcmp(row->generic_names[p], args->params[p]->name) != 0) return false;
+        }
         if (row->shape == AST_CAST || row->shape == AST_TYPE_TEST) {
             const char *target = row->shape == AST_CAST ? ast_cast_target_type(row->node) : ast_type_test_target_type(row->node);
             if ((target == NULL) != (row->cast_target == NULL) ||
@@ -322,6 +349,8 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
         if (row->execution_present != execution_present ||
             (execution_present && row->reachable != reachable)) return false;
         if (execution_present && !reachable) continue;
+        if (row->shape == AST_LET_DECL && row->channel_binding != semantic_param_publication_channel_binding(ctx, row->node)) return false;
+        if (row->shape == AST_LET_DECL && row->empty_map_binding != semantic_param_publication_empty_map_binding(ctx, row->node)) return false;
         SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
         if (row->value_ready != value.ok || row->value_meta != (value.ok && value.meta) ||
             row->value_origin_ready != (value.ok && value.origin_ready)) return false;
@@ -332,14 +361,19 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
             if (!value.ok || value.meta) return false;
         }
         if (row->shape == AST_CALL) {
+            if (row->slot_write != semantic_param_publication_checked_slot_write(ctx, row->node)) return false;
             if (!semantic_param_publication_checked_call(ctx, row->node)) return false;
             if (row->private_array_push != semantic_param_publication_private_array_push(ctx, row->node, NULL)) return false;
             bool depends = false, retains = false;
             bool relation = semantic_param_publication_checked_result_relation(ctx, row->node, 0, &depends, &retains);
             if (row->result_relation != relation || (relation &&
-                (row->result_depends != depends || row->external_retains != retains ||
-                 row->result_type_name == NULL || ast_call_semantic_value_type_name(row->node) == NULL ||
-                 strcmp(row->result_type_name, ast_call_semantic_value_type_name(row->node)) != 0))) return false;
+                (row->result_depends != depends || row->external_retains != retains))) return false;
+            bool backing = semantic_param_publication_checked_backing_relation(ctx, row->node, 0, &depends, &retains);
+            if (row->backing_relation != backing || (backing &&
+                (row->backing_depends != depends || row->backing_external_retains != retains))) return false;
+            if ((relation || backing) && (row->result_type_name == NULL ||
+                ast_call_semantic_value_type_name(row->node) == NULL ||
+                strcmp(row->result_type_name, ast_call_semantic_value_type_name(row->node)) != 0)) return false;
         }
         if (row->shape == AST_CAST) {
             const char *target = ast_cast_target_type(row->node);
@@ -381,6 +415,9 @@ void function_param_flow_claims_destroy(FunctionParamFlowIndexClaims *claims)
     for (size_t c = 0; c < claims->count; c++) {
         free(claims->rows[c].children); free(claims->rows[c].child_ids);
         free(claims->rows[c].cast_target); free(claims->rows[c].syntax_name);
+        for (size_t p = 0; claims->rows[c].generic_names != NULL && p < claims->rows[c].generic_name_count; p++)
+            free(claims->rows[c].generic_names[p]);
+        free(claims->rows[c].generic_names);
         free(claims->rows[c].result_type_name);
     }
     free(claims->rows); free(claims);

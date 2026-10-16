@@ -5,11 +5,126 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context — GPT main integration and P0 validation
 
+Active rung: unchanged full canonical admission, then actual bootstrap and
+gen2==gen3, memory/installed C+LLVM, and required same-published-SHA CI.
+Published `main`:39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Local unpushed
+checkpoint:c64719068995a7ccf59504d56da87ed05facf80d. Only main remains; the
+preserved perf worktree is detached. D has the bounded destination/default
+replacement/Read candidate, tests and coordination docs after that checkpoint.
+WSL `/root/pgy-main-20261016` remains HEAD39a plus root's candidate overlay.
+The latest integration binary SHA256 is
+fd17c96ab954311f85a924f314b866f088dc1331584cd985829909f9282bf8c2.
+It contains the LLVM admitted-MIR receiver-type repair, same-write runtime
+test, four-file REF ReadView last-consumer repair and scoped ViewRead pair.
+Root alone owns the WSL build/process lease and Git; agents do not build, run
+or change Git state. The fd17 implementation is frozen; subsequent local
+Read-loan work is still planning, not verified source.
+
+Root-observed1283 evidence: phase6760/0, old whole native MIR327/0,
+semantic3228/0, transpile1009/0 and caps PASS(35.85s/266176KiB); prior strict
+summary PASS(15.72s/170908KiB). Map24 C/LLVM positives/58 negatives, all IR
+summary gates/caps/component/generator PASS(54.03s/98084KiB). Receipts are
+`/root/pgy-main-20261016.p0-read-map-subject-{native,summary,chain}.log` and
+`.tmp/p0-destination-labels.R3xtOs/phase.log`. Exact same-owner subject
+Write-back now passes while Read payload-to-opaque-Keep and other-owner
+retention refuse; new Map/Write8 and subject4 premise faults actually ran.
+Independent review confirmed the original gap on d61/f835/e8a, not a new
+candidate regression or an observed runtime UAF. Scope/evidence:
+[`read_slot_payload_ffi_boundary_2026-10-16.md`](audits/read_slot_payload_ffi_boundary_2026-10-16.md).
+
+Actual unchanged bootstrap onfd17 remains RED before gen0(22.87s/1025260KiB,
+exit2). The first required-backing refusal is source418:6, routine
+SemanticExpressionGraphResolvedCallConcreteScalarTypeName. Its first warm
+failed destination is no-argument SemanticAstEnumValueScopeEmpty() at427.
+The18410 later diagnostics are cascades, not independent refusals. Log:
+`/root/pgy-main-20261016.p0-read-view-bootstrap.log`.
+Latest exact-input census on1283:4273 signatures/3188 keys,912 independent
+failures (795 work,103 required backing,14 recursive backing), incomplete0.
+Against e8a,65 resolved and2 newly reached work failures; this is not an
+admission count. Nonfailed requests include636 reaching explicit TOP and640
+unproved, not permissions. Diagnostic exit86,119.88s/1024596KiB. Receipt:
+`/root/pgy-main-20261016/.tmp/p0-1283-census.36HEyj/`; D log copy
+`.tmp/p0-1283-current-census-run-20261016.log`. Original source/build/bin,
+dependencies, modes, status and diff were restored byte-identically before
+the later e011 build. No diagnostic executable remains installed.
+
+The added Main in same_write_valid exposed missing LLVM receiver metadata at
+`Log(Read(slot).text)`. e011 consumes the existing admitted MIR expression-type
+owner in that CALL consumer; missing/unregistered facts have no callee-name
+fallback. Root observed phase6760/0, LLVM receiver-metadata140/0, strict summary
+PASS and actual C+LLVM output `2\nkept\n`. Receipt:
+`/root/pgy-main-20261016/.tmp/p0-destination-candidate.0aFOKk/`.
+The follow-up fd17 ReadView integration passes phase6779/0, LLVM140/0,
+strict summary, full native MIR327/semantic3228/transpile1009 (29.47s/
+266592KiB), Map/IR/caps/component (44.92s/98388KiB), Slot/SecureSlot/DeviceSlot
+goldens on C+LLVM and three exact pin/view backend pairs. Receipts:
+`.tmp/p0-destination-candidate.3yBcBq/` and
+`/root/pgy-main-20261016.p0-read-view-{native,chain,slot,pin-parity}.log`.
+This scoped success does not change the canonical failure above.
+
+Selected next slice/whole-chain map: the top bounded card under `Current
+destination transfer repair` in
+[`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md).
+A connects existing exact current REF ReadView contracts and their sealed
+escape masks to final declaration/pending-call boundary validation. C adds
+direct/ordinary-copy/return/output negative controls and scoped actual ViewRead
+caller versus nonretaining/physical-read positives. Descriptor COPY_ONLY must
+not discard an already-known payload escape. No global View reclassification,
+new alias/Read scan, new owner, annotation/copy workaround or weakened oracle.
+General zero-argument declared-result facts remain an open obligation, not an
+approved parallel implementation track. Its read-only change map is recorded
+but implementation is deferred behind the reached local Read safety boundary.
+Do not infer result freshness or empty destinations from zero formal inputs:
+global/opaque/cached or retained-local storage can still alias a caller value.
+Root must fix the whole-chain contract before authorising this next edit set.
+A now maps reuse of sparse loan evaluation for local checked Read results,
+B the exact current Read publication/registration lifetime, C its falsifiers.
+Root observed callerNULL is legitimate: top-level String/Int Slot Read programs
+both emit MIR/C/LLVM; the backend synthesises Main later. Receipt:
+`.tmp/p0-top-level-read.C3zEQw/` in WSL. Neither rejecting all such callers nor
+skipping their validation is allowed. No new edit is authorised until the
+actual program/action/nested execution-owner mapping is resolved.
+
+Current independent review is immutable1283 snapshot
+`/root/pgy-review-destination-39a8fc1db.dRW4Zn`, source.diff SHA256
+a17dd6021858a4cbf0127e7b54d30b89a169932baa9073e9ac781d1886f5c7ea.
+Its completed `.tmp/redteam/review.md` reports no found regression in the
+bounded MapNew/Read/Write/subject delta and a pre-existing REF ReadView payload
+escape: actual scoped ViewRead(slot)->Snapshot->opaque Keep emits MIR, summary
+READ|CALL_ESCAPE=17. All probes were analyze-only; no runtime UAF is claimed.
+It does not contain the later runtime test, LLVM consumer or current View fix.
+New immutable fd17 review completed on
+`/root/pgy-review-destination-39a8fc1db.kGgLNi`, source.diff SHA256
+71551f7fbbb85f5ea20601075832eb100abd1edb9b0a912c1dee36bd673eacbd.
+Its `.tmp/redteam/review.md` SHA256 is
+8f12e3e803e76999e4ed7da0f2d5a3341b3b74157ecc8c96f1555d1f7211d574.
+REF View negatives refuse, but local Main ViewRead->Read->bodyful inout Save
+->Release->Log(output), local return and Keep/wrapper/pin paths emit MIR/C/LLVM.
+These are analyze/emit-only admission counterexamples, not executed UAFs.
+Local values never enter the formal-only borrowed-root/ref-call consumers.
+Default View helpers also expose backend ABI gaps: semantic approval is not
+C/LLVM runtime evidence. Do not claim all View or local Read safety closed.
+Earlier f835 QUBf9g review completed17
+negative/4 positive probes; neither is canonical/bootstrap/CI approval.
+All immutable snapshots and preserved stashes remain untouched. Published
+CI38860052641 is still RED; dependent bootstrap/install jobs were skipped,
+not green. No current gen2==gen3/install/memory or V1/SoT closure claim.
+
+### Historical diagnostic archive — lookup only, not an active work queue
+
+#### Pre-e8a integration snapshot
+
 Active rung: unchanged full canonical native admission, then actual codegen
 bootstrap/gen2==gen3, driver memory, installed C/LLVM and required same-SHA CI.
 Published checkpoint: `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` on `main`.
+Local source recovery checkpoint: `c64719068995a7ccf59504d56da87ed05facf80d`,
+not pushed. D has a bounded uncommitted destination-transfer/default-formal
+candidate after that checkpoint (existing owners/tests plus two new fixtures),
+and handoff/directive refreshes. WSL stays HEAD39a plus root's current candidate
+overlay; its current binary isf835b13e1bf9ccc80c4872d2eba7147c73db1e05a0672343099409c4fc9e3120,
+not the earlier d61 baseline. Do not run a d61-pinned scratch script against it.
 Local and remote each have only `main`; preserved perf worktree is detached.
-Current tree has UNCOMMITTED typed-meta/returned-origin repair and its tests;
+The local checkpoint contains the typed-meta/returned-origin repair and tests;
 do not overwrite it with an older diagnostic overlay or call it accepted.
 
 Exact-SHA CI38860052641 is completed RED: macOS, Windows and codegen-bootstrap
@@ -41,8 +156,8 @@ with the existing program-point-index owner, preserving its signature/callers.
 Plan and bounded edit scopes are in
 [`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md),
 section `Active return-provenance completion policy` and the safety blocker.
-A owns summary/replacement/header timing, B typed publication/issued fact
-boundaries, C behavioral tests. All three edit scopes are frozen. Root integrates and
+A owns summary/backing transfer, B typed publication/issued fact
+boundaries, C behavioral tests. The reached typed Read relation is active. Root integrates and
 alone owns the WSL build lease; agents do not build or change Git state.
 
 Observed repair evidence (not acceptance), binary SHA256
@@ -70,22 +185,73 @@ work-budget failure. The18410 following errors are cascades, not an independent
 failure census. Read `/root/pgy-main-20261016.p0-return-actual-bootstrap.log`.
 Root's temporary owner-name probe restored source/build/bin to d61 and verified
 the original hashes; receipt `.tmp/p0-primary-return-trace.zbc575` in the clone.
-Next is the complete current-owner fixed-input failure census before choosing
-another contract. Do not reapply the obsolete meta/matrix overlay or patch
-only JsonObjectFactIndex. A prepares scratch instrumentation; B/C read the
-reached producer/behavior boundaries; root alone executes. No production
-optimization or new precision/owner track is selected from this first failure.
-The final frozen review is `/root/pgy-review-return-39a8fc1db.TUl3PL` with
-source.diff SHA25691fe49fbdf31c2c8106f3945a74c797efd53c685955de48ab7fa8e5b7a3ecb36.
-The separate review confirmed the old alias falsifier refuses on its earlier
-snapshot, then stopped with model-capacity error; a bounded resume on TUl3PL
-was requested. There is no final approval yet.
+The complete current-owner census ran on the identical4273 typed signatures
+and3188-key manifest:452 failed independent requests (work218, recursive
+relation120, required relation114), incomplete0. Its55.12s/831320KiB diagnostic
+exit86 is not admission: it stops before shared Type-writing consumers/MIR.
+Against the ce3 census,76 requests resolved and238 newly failed;276 nonfailed
+requests still reach unproved relations (260 reach explicit TOP), not precise
+permission. Receipt: `.tmp/p0-return-current-census.XYzHog/run.log` in WSL;
+D copy: `.tmp/p0-return-current-census-run-20261016.log`. Source/build/bin,
+dependency bytes, modes, status and diff were restored exactly to d61.
+The preparer's `production-raw/` manifest entries are labels for observed source
+hashes, not existing backup files; root's actual raw snapshot owns restoration.
+The exact-setter follow-up `.tmp/p0-return-detail-census.FDnGDU/run.log`
+completed3188 keys,45.44s/831316KiB, with identical masks/failures/work and raw
+byte restoration. Failed keys first reach267 default-formal store_destination,
+34 call-result projection place_binding and151 work_budget setters. The actual
+first JsonObjectFactIndex failure is UnwrapOption(key_read).value at line169;
+the older identifier-origin marker was downstream contamination. A normal
+Find/Option<Int>/Some/None probe already passes on d61, with its eager retaining
+counterpart refusing exact BORROW_ESCAPE. No Option-as-scalar/lookup rewrite.
+The selected whole-chain plan is the directive's `Current destination transfer
+repair`: A owns destination unions/current backing consumers, B current default
+formal replacement and exact full-field nominal mappings, C paired behavior and
+new-premise corruption tests. Plain classes get the existing nominal evidence
+only for exact nongeneric/full-field/no-default/no-destructure layouts; partial
+and default classes stay unmodelled. Zero-field nominal completeness is not
+generic zero-argument call independence. The first candidate e9 built but
+phase6551/24 failed. Restoring raw/semantic nominal flavor agreement and
+correcting two new class declarations reduced this to phase6557/10 on
+binary7328, with all old nominal corruption oracles preserved. Receipt:
+`.tmp/p0-destination-candidate.YLmKKH/phase.log` in WSL, copied to
+`.tmp/p0-destination-phase-7328e72-20261016.log` in D. Root stopped before the
+strict summary/broad gates. The reached dependencies are exact typed Channel
+LET publication (B, not generic CALL freshness) and required RETURN's precise
+backing/SCC join (A, preserving actual origins and eager effects); C covers new
+receipt premises. The directive records the full boundary. Re-run phase/strict
+summary, unchanged broad gates and full canonical after these scopes freeze.
+Later f835 evidence: phase6632/0 and strict summary/caps PASS
+(`.tmp/p0-destination-candidate.ebF1Cn/`); whole native MIR327/0 and
+semantic3228/0. The copied OBJECT regression came from incorrectly equating
+raw is_struct with semantic flavor; both are now independently sealed.
+OBJECT/TOBJECT already used the old rawstruct route, not new language support.
+Original TOBJECT reconstruction emits MIR on both frozen d61 and current f835.
+Current test-transpile is RED1003/4: all four assertions are the unchanged
+scheduler example's lowering, whose first primary is BudgetSnapshot's
+Read(Slot<BudgetLedger>) result relation. Minimal probe and full example both
+reproduce it in `.tmp/p0-destination-existing.izGtjw/`. Other anchored borrow
+errors are cascades, not independent failures. Root native log is
+`/root/pgy-main-20261016.p0-destination-final-native.log`.
+Typed Read shallow-copies payload (including descriptor backing), so B joins
+its existing successful Slot/view/lifecycle/security boundary to the existing
+checked result relation: receiver dependency, not fresh independent output.
+A verifies origin/destination/eager/cache consumption; C reuses Slot read and
+retention/currency tests. The directive owns the compact coordination plan.
+No current full canonical/bootstrap/install/memory/CI acceptance exists.
+Do not reapply obsolete scratch source, weaken safety, add owners/annotations,
+or select performance work before the actual next canonical blocker.
+Latest frozen review is `/root/pgy-review-destination-39a8fc1db.QUBf9g` on f835,
+source.diff SHA25667edbd98fcb71957f510ba9e0d0f5a49526bdf8b3494838e32e78720fa32acaf.
+The independent review is running there; it does not cover the later Read
+repair. No final approval yet. Older immutable TUl3PL and other snapshots
+remain preserved; do not overwrite or use them as current source.
 Only admitted canonical permits bootstrap/install/
 memory acceptance. Native repairs are prerequisites, not C-path substitution
 or closed SoT rows. CI remains the published checkpoint's RED until a new
 reviewed source checkpoint is committed and run; no current closure claim.
 
-### Historical diagnostic archive — lookup only, not an active work queue
+#### Earlier historical diagnostic archive
 
 #### Earlier integration snapshots
 

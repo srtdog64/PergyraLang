@@ -8,44 +8,29 @@
 #include "type_checker_ownership_diag_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_support_internal.h"
+#include "function_param_publication_owner.h"
+#include "slot_analyzer_internal.h"
 
-bool
-semantic_validate_borrowed_escape(ASTNode *site,
+static bool
+semantic_report_borrowed_escape(ASTNode *site,
                                   ASTNode *source_expr,
                                   SemanticContext *ctx,
                                   const Type *value_type,
-                                  const char *borrowed_name_override,
+                                  const char *borrowed_name,
                                   OwnershipConsumerKind consumer_kind,
                                   ASTNode *target_expr,
                                   const char *dest_name,
                                   const char *secondary_name,
                                   bool transitive_call,
                                   const char *mode_label,
-                                  const char *local_fix_label)
+                                  const char *local_fix_label,
+                                  OwnershipTypeClass klass)
 {
-    OwnershipTypeClass klass;
-    const char *borrowed_name;
     const char *value_label;
     const char *provenance_label;
     const char *replacement_label;
     const char *effective_local_fix_label;
     bool is_slice_view;
-
-    if (ctx == NULL || value_type == NULL)
-        return false;
-
-    borrowed_name = borrowed_name_override != NULL
-        ? borrowed_name_override
-        : semantic_borrowed_boundary_root_name(source_expr, ctx);
-    if (borrowed_name == NULL)
-        return false;
-
-    klass = semantic_classify_ownership_type(value_type, ctx);
-    bool retaining_string_ref = type_equals(value_type, TYPE_STRING)
-        && (consumer_kind == OWNERSHIP_CONSUMER_CHANNEL_SEND
-            || (consumer_kind == OWNERSHIP_CONSUMER_HELPER_CALL && transitive_call));
-    if (klass == OWNERSHIP_TYPE_COPY_ONLY && !retaining_string_ref)
-        return false;
 
     value_label = semantic_ownership_value_label(klass);
     provenance_label = semantic_ownership_provenance_label(klass);
@@ -158,4 +143,57 @@ semantic_validate_borrowed_escape(ASTNode *site,
     default:
         return false;
     }
+}
+
+bool semantic_validate_borrowed_escape(ASTNode *site, ASTNode *source_expr,
+    SemanticContext *ctx, const Type *value_type, const char *borrowed_name_override,
+    OwnershipConsumerKind consumer_kind, ASTNode *target_expr, const char *dest_name,
+    const char *secondary_name, bool transitive_call, const char *mode_label,
+    const char *local_fix_label)
+{
+    if (ctx == NULL || value_type == NULL) return false;
+    const char *borrowed_name = borrowed_name_override != NULL ? borrowed_name_override :
+        semantic_borrowed_boundary_root_name(source_expr, ctx);
+    if (borrowed_name == NULL) return false;
+    OwnershipTypeClass klass = semantic_classify_ownership_type(value_type, ctx);
+    bool retaining_string_ref = type_equals(value_type, TYPE_STRING) &&
+        (consumer_kind == OWNERSHIP_CONSUMER_CHANNEL_SEND ||
+         (consumer_kind == OWNERSHIP_CONSUMER_HELPER_CALL && transitive_call));
+    if (klass == OWNERSHIP_TYPE_COPY_ONLY && !retaining_string_ref) return false;
+    return semantic_report_borrowed_escape(site, source_expr, ctx, value_type, borrowed_name,
+        consumer_kind, target_expr, dest_name, secondary_name, transitive_call, mode_label, local_fix_label, klass);
+}
+
+bool semantic_validate_ref_view_payload_escape(ASTNode *site, ASTNode *source_expr,
+    SemanticContext *ctx, ASTNode *decl, size_t ordinal, const char *borrowed_name,
+    OwnershipConsumerKind consumer_kind, const char *dest_name, const char *local_fix_label)
+{
+    SemanticParamPublicationView view;
+    const Type *type = NULL;
+    if (ctx == NULL || decl == NULL || ordinal >= ast_func_param_count(decl) ||
+        !semantic_param_publication_admitted_view(ctx, &view) ||
+        !semantic_param_publication_routine_inputs_current(ctx, decl, true)) goto missing;
+    FuncParam *param = ast_func_param(decl, ordinal);
+    if (param == NULL || param->mode != PARAM_MODE_REF || ast_func_param_stable_id(param) == 0) goto missing;
+    for (size_t r = 0; r < view.routine_count; r++)
+        if (view.routines[r].decl == decl && ordinal < view.routines[r].count)
+            type = view.routines[r].types[ordinal];
+    if (!type_is_read_view(type) || borrowed_name == NULL) goto missing;
+    if (site == decl && source_expr != decl) goto missing;
+    if (site != decl && (site == NULL || site->type != AST_CALL ||
+        ast_call_argument(site, ordinal) != source_expr ||
+        !semantic_param_publication_checked_argument(ctx, site, ordinal) ||
+        semantic_param_publication_callee(ctx, site, ordinal) != decl)) goto missing;
+    unsigned mask = semantic_callable_param_escape_summary(decl, ordinal, ctx);
+    unsigned effect = consumer_kind == OWNERSHIP_CONSUMER_RETURN ? SLOT_PARAM_SUMMARY_RETURN_ESCAPE :
+        consumer_kind == OWNERSHIP_CONSUMER_CHANNEL_SEND ? SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE :
+        consumer_kind == OWNERSHIP_CONSUMER_HELPER_CALL ?
+            (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) : 0;
+    if (effect == 0) goto missing;
+    if ((mask & effect) == 0) return false;
+    return semantic_report_borrowed_escape(site, source_expr, ctx, type, borrowed_name,
+        consumer_kind, NULL, dest_name, NULL, true, NULL, local_fix_label, OWNERSHIP_TYPE_BORROW_TRACKED);
+missing:
+    if (ctx != NULL) semantic_error(ctx, site, "Ref view payload boundary requires current typed parameter facts");
+    return true;
 }

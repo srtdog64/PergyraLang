@@ -78,6 +78,22 @@ typedef struct {
     FunctionParamFlowIndexClaims *claims;
 } FunctionParamFlowBackingFact;
 typedef struct {
+    FunctionParamFlowSummaryStore *store;
+    SlotFunctionLookup lookup;
+    ASTNode *decl;
+    FunctionParamFlowBackingFact *fact;
+    bool private_stores_closed;
+    ASTNode *loan_seed, *consumer, *escape_site;
+    size_t loan_work;
+    bool loan_seed_seen;
+} ReturnedBacking;
+bool backing_merge(size_t words, uint64_t *into, const uint64_t *from);
+void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect);
+bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins);
+FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert);
+size_t backing_node(ReturnedBacking *state, ASTNode *node);
+bool backing_work(ReturnedBacking *state, size_t at);
+typedef struct {
     ASTNode *node;
     uint32_t id, binding;
     ASTNodeType shape;
@@ -86,6 +102,8 @@ typedef struct {
     int syntax_operator;
     bool parallel_join;
     char *syntax_name;
+    char **generic_names;
+    size_t generic_name_count;
     double syntax_number;
     int64_t syntax_long;
     unsigned syntax_literal_flags;
@@ -93,6 +111,8 @@ typedef struct {
     uint32_t *child_ids;
     size_t child_count;
     bool assignment_replacement, local_alias;
+    bool channel_binding;
+    bool empty_map_binding, slot_write;
     bool private_array_push;
     bool execution_present, reachable, physical_value;
     bool value_ready;
@@ -101,6 +121,7 @@ typedef struct {
     bool numeric_cast;
     char *cast_target;
     bool result_relation, result_depends, external_retains;
+    bool backing_relation, backing_depends, backing_external_retains;
     char *result_type_name;
 } FunctionParamFlowIndexClaim;
 struct FunctionParamFlowIndexClaims {
@@ -188,6 +209,8 @@ bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *looku
 void function_param_flow_callee_unfinished(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal, FunctionParamFlowBackingFact *fact);
 bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index, bool pending_proof);
+bool function_param_flow_backing_required(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, size_t ordinal, bool *required);
 bool function_param_flow_complete_pending_relations(FunctionParamFlowSummaryStore *store);
 bool function_param_flow_backing_unsupported_call(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowBackingFact *fact, ASTNode *call);

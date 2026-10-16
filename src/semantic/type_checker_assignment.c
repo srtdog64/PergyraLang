@@ -304,7 +304,8 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         semantic_indexed_string_borrow_record_assignment(
             target_sym, value, expr, ctx);
         if (!ctx->has_error && semantic_param_publication_pending(ctx) &&
-            target_sym != NULL && !target_sym->is_parameter && !target_sym->is_host_field &&
+            target_sym != NULL && (!target_sym->is_parameter || target_sym->param_mode == PARAM_MODE_DEFAULT) &&
+            !target_sym->is_host_field &&
             !type_is_slot_handle(target_type) && !type_is_resource_handle(target_type) &&
             !semantic_param_publication_record_assignment_replacement(ctx, expr,
                 target_sym->decl_syntax_id, target_type))

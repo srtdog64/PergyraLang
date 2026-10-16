@@ -2,6 +2,8 @@
 #include "../parser/ast_analysis.h"
 #include "function_param_publication_owner.h"
 #include "typed_map_query_fact_owner.h"
+#include "type_checker_resolution_internal.h"
+#include "type_checker_internal.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -393,6 +395,43 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
     return closed;
 }
 
+bool function_param_flow_backing_required(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, size_t ordinal, bool *required)
+{
+    if (!semantic_param_publication_return_backing_required(store->ctx, decl, ordinal, required)) return false;
+    if (*required) return true;
+    bool anchored;
+    if (!semantic_param_publication_parameter_is_anchored_handle(store->ctx, decl, ordinal, &anchored)) return false;
+    if (!anchored) return true;
+    FunctionParamFlowProgramPointIndex *index;
+    if (!function_param_flow_program_point_index_build(store, decl, &index)) return false;
+    FunctionParamFlowIndexClaims *claims = index->claims;
+    if (claims == NULL) return false;
+    uint32_t formal = ast_func_param_stable_id(ast_func_param(decl, ordinal));
+    for (size_t c = 0; c < claims->count; c++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[c];
+        if (!row->semantic_promoted || row->shape != AST_CALL || row->physical_value ||
+            (row->execution_present && !row->reachable) || !row->backing_relation || !row->backing_depends ||
+            !row->result_relation || row->result_depends) continue;
+        ASTNode *source = ast_call_argument(row->node, 0);
+        for (size_t step = 0; source != NULL && step <= claims->count; step++) {
+            if (source->type != AST_IDENTIFIER) break;
+            uint32_t binding = semantic_param_publication_binding(store->ctx, source);
+            if (binding == 0) return false;
+            if (binding == formal) { *required = true; return true; }
+            ASTNode *alias = NULL;
+            for (size_t a = 0; a < claims->count; a++) {
+                const FunctionParamFlowIndexClaim *candidate = &claims->rows[a];
+                if (candidate->id == binding && candidate->shape == AST_LET_DECL && candidate->local_alias)
+                    alias = ast_let_initializer(candidate->node);
+            }
+            source = alias;
+            if (source != NULL && step == claims->count) return false;
+        }
+    }
+    return true;
+}
+
 bool function_param_flow_local_replacement(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *assignment)
 {
@@ -404,6 +443,22 @@ bool function_param_flow_local_replacement(SemanticContext *ctx,
     for (size_t i = 0; i < index->local_count; i++)
         if (binding == index->local_ids[i] && !ast_let_is_alias(index->local_definitions[i]) &&
             binding == ast_node_stable_id(index->local_definitions[i])) return true;
+    ASTNode *decl = index->function_decl;
+    if (decl == NULL || decl->type != AST_FUNC_DECL || index->function_id == 0 ||
+        index->function_id != ast_node_stable_id(decl) ||
+        !semantic_param_publication_routine_inputs_current(ctx, decl, true)) return false;
+    for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+        FuncParam *param = ast_func_param(decl, p);
+        if (param == NULL || ast_func_param_stable_id(param) != binding) continue;
+        bool anchored;
+        if (param->mode != PARAM_MODE_DEFAULT || param->type == NULL ||
+            !semantic_param_publication_parameter_is_anchored_handle(ctx, decl, p, &anchored) || anchored)
+            return false;
+        const Type *type = semantic_type_resolution_lookup_metadata_type_ref(ctx, param->type);
+        const char *name = ast_assignment_semantic_binding_type_name(assignment);
+        return type != NULL && type != TYPE_UNKNOWN && type->name != NULL && name != NULL &&
+            !type_is_slot_handle(type) && !type_is_resource_handle(type) && strcmp(type->name, name) == 0;
+    }
     return false;
 }
 static bool function_param_flow_local_record(FunctionParamFlowProgramPointIndex *index, ASTNode *node)

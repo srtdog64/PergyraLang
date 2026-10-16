@@ -154,7 +154,7 @@ bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, si
     size_t ordinal = store->entries[entry_index].param_index;
     FunctionParamFlowOutputProducer producer = store->entries[entry_index].output_producer;
     bool return_backing_required;
-    if (!semantic_param_publication_return_backing_required(store->ctx, decl, ordinal, &return_backing_required)) return false;
+    if (!function_param_flow_backing_required(store, decl, ordinal, &return_backing_required)) return false;
     bool waiting = pending_proof && store->entries[entry_index].returned_backing_pending;
     if (return_backing_required && (producer != FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME ||
         (!waiting && !store->entries[entry_index].output_dependencies_ready) ||
@@ -324,7 +324,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     bool source_kind_ready = semantic_param_publication_parameter_is_anchored_handle(
         store->ctx, function_decl, origin.param_index, &anchored);
     bool return_backing_required;
-    if (!semantic_param_publication_return_backing_required(store->ctx, function_decl, origin.param_index, &return_backing_required)) {
+    if (!function_param_flow_backing_required(store, function_decl, origin.param_index, &return_backing_required)) {
         function_param_flow_fail(store, function_decl, "typed return backing classification is missing or stale");
         return SLOT_PARAM_SUMMARY_ALL;
     }
@@ -362,7 +362,8 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         bool unsupported = !complete && !pending && function_param_flow_backing_unsupported(store, function_decl, origin.param_index);
         store->entries[index].analysis_unsupported = unsupported;
         if (unsupported) { candidate |= SLOT_PARAM_SUMMARY_ALL; storage_unproved = true; }
-        if (complete && scalar_return) candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
+        if (!unsupported && (return_backing_required || (complete && scalar_return)))
+            candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
         else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
         if (!complete && private_stores && graph_closed) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
         if (!complete && mutable_output && !pending) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
