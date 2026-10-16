@@ -9,9 +9,10 @@ One rung: unchanged full canonical/DRV-2 admission -> real codegen bootstrap
 and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
 Published main is `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA CI
 run `38860052641` is RED with bootstrap/install skipped. Local main source
-checkpoint is `aa076ffa3853b6088a142322952ff31244a269dc`, 16 commits ahead;
-this navigation edit is pending its own commit. Nothing from this slice was
-pushed. Only main is edited. Root owns WSL builds/tests/processes and Git.
+checkpoint is `c34ee0f6ed1817c65db4475b3c17ad130cc004f7`, 17 source
+commits ahead of published main. This card and its directive form a
+documentation-only successor on local main; no compiler code changed in that
+successor. Nothing from this slice was pushed. Root owns WSL builds/tests/processes and Git.
 WSL `/root/pgy-main-20261016` is Git HEAD39a with a byte-checked source
 overlay, not the D commit. Current Linux compiler SHA256 is
 `d539d7eca05beb938cae038e08ed13783928b67362fe4670b2e34446d2460b86`.
@@ -45,16 +46,36 @@ zero keys and changed zero masks. That source trial was reverted and the
 compiler restored to d539. `declared_empty_map_scope_unready.pgy` now guards
 the exact no-MIR required-backing refusal in the focused summary gate.
 
+A joint-origin backing-frame candidate was also rejected and fully reverted:
+phase 7640 and strict summary passed, but the unchanged 4273-signature/3188-key
+cold census worsened from 545 to 695 failures (620 work, 50 required backing,
+25 recursive backing; incomplete 0). Eagerly activating unrelated formal
+origins required extra callee summaries. Receipt WSL
+`.tmp/p0-joint-census.VW3Vpo/run.log`. Production source/bin remain c34/d539;
+the d539 strict summary gate was rerun on 2026-10-17 and passed.
+
+The factory proof has a new falsifier: the same native binary admits a
+nonempty `Array<Int>` local placed into two fields of one nominal result. C
+and LLVM both print `2, 2` after changing only the first field; independent
+value semantics would print `2, 1`. The emitted C duplicates one descriptor.
+A paired empty-array probe prints `1, 0` after growing only the first field.
+These are isolated `.tmp/p0_*duplicate_aggregate_probe.pgy` observations, not
+installed-driver evidence. No blanket nominal/MapNew result grant is sound;
+the existing nominal snapshot proves types/field identity, not copy or unique
+backing. Exact proof/negative-gate obligations are in the active directive.
+
 Next falsifier: the remaining measured repeated *owned* per-input backing
 traversal. On the latest d539 binary, first demand608 has 139 summary, 324
 graph and 3633 backing charges; 4052 distinct `(routine, ordinal, node)` but
 only 2617 `(routine, node)` identities across 116 frames. Receipt WSL
 `.tmp/p0-current-work-trace.3rGPw2/`, observer restore byte-identical. The
 fact owner is the backing frame/claims; last consumers are summary outputs,
-returned-loan and ownership admission. Joint-origin facts require full
-consumer migration and separate per-origin pending/unproved evidence, not a
+returned-loan and ownership admission. A replacement joint design must only
+activate already-demanded origins, preserve separate per-origin pending and
+unproved evidence, and beat the 545-failure fixed-input baseline without a
 budget waiver or charge skip. The remaining 13 required-backing failures
-also need a complete fresh-result proof, not a MapNew name grant.
+need a complete fresh-result proof plus the nonempty-duplicate falsifier,
+not a MapNew or nominal name grant.
 Do not raise budget, shrink input, grant TOP/unproved, or substitute
 native-only success for installed evidence. Chain map and receipts:
 [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).

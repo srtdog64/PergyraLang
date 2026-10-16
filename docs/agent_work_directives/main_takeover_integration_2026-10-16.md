@@ -25,6 +25,85 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Joint-origin backing falsifier (checkpoint `c34ee0f6`)
+
+- Objective/priority: remove the measured repeated per-formal backing traversal
+  on the unchanged canonical input, preserving typed identity, per-origin
+  refusal and currentness before reducing work. This is the existing backing
+  owner, not a new summary or cache authority.
+- Current owner/last consumer: `backing_frames[ordinal]` is built by
+  `function_param_flow_returned_backing_effects`; summary projection,
+  recursion sealing, returned-loan/currentness and final ownership admission
+  consume it. Intended owner is one index-owned joint formal frame with an
+  origin bit per formal; the declared-result and local loan frames stay
+  separate. Remove every old per-ordinal frame read and destructor path.
+- Proposed migration order: seed diagonal formal bits; calculate expression
+  snapshots and effects/output rows together; preserve origin-specific
+  unproved/unsupported/pending verdicts and edge-origin witnesses; restrict
+  `owner_store` and recursive-self exemptions to the matching origin bit;
+  register a same-frame cross-ordinal re-entry as a solver revisit; migrate
+  currentness, pending seal, output/unsupported projection, and destruction
+  atomically. A result is ready only for the ordinal whose entire evidence
+  is current; joint completion does not complete its separate SummaryEntry.
+- Forbidden fallback: no skipped charge for work still performed, global
+  exemption of an unrelated origin, global clearing of another origin's
+  pending edge, stale binding pointer as an expression snapshot, old/new
+  dual frame read, reduced canonical input or increased 4096 budget.
+- Falsifiers/gates: two inputs with only one retained/unsupported/pending,
+  owner-store/self mixed-origin payloads, same-frame cross-ordinal demand,
+  late binding growth, 65/129-bit origin and output boundaries, stale claims,
+  shared DAG/cycle and original 4096/4097. Run phase and strict summary first,
+  then exact fixed-input census; only an admitted unchanged canonical input
+  permits bootstrap, installed drivers and exact-SHA CI claims.
+- Separate blocker: the 13 required-backing factory refusals need fresh
+  aggregate birth/update/return proof. A typed `MapNew` name grant alone
+  resolved zero fixed-input keys and may miss duplicate-field ownership.
+
+The eager joint-frame candidate was implemented temporarily, tested in an
+isolated build, and removed from production source/test files. Its focused phase unit
+passed 7640 checks and the strict summary gate passed, but the unchanged
+4273-signature/3188-key cold census regressed from 545 to **695** failures:
+620 work, 50 required backing, 25 recursive backing (receipt WSL
+`.tmp/p0-joint-census.VW3Vpo/`, full 3188/3188, incomplete 0). The real
+canonical route happened to stop at required backing instead of work4096;
+that one route did not represent the cold key set. Eagerly seeding every
+formal forced unrelated callee summaries into a demand closure. Do not land
+that candidate or treat its faster first route as a closure. The next
+algorithmic unknown is whether only already-demanded origins can share a
+frame without replaying real semantic work or granting uncomputed rows. The
+measured counterexample must be included before another joint design edit.
+
+### Fresh-result proof boundary after the rejected candidate
+
+- The 13 baseline required-backing refusals pass through zero-argument factory
+  results, including `SemanticAstCollectionFocusRecoveryFactsEmpty` and
+  `SemanticBuiltinSignatureRows`. The former builds four distinct `MapNew()`
+  results and repeats empty `Array<Int>`/`Array<String>` descriptors across
+  nominal fields; the latter returns a nonempty `Array<String>` built from a
+  literal and `ArrayPush`. `MapNew` allocates buckets immediately, whereas
+  `pgy_array_new_Int(0)` has null data. A paired empty-array probe that pushes
+  only `pair.first` prints lengths `1`, `0` on both native backends. This
+  establishes a bounded empty-descriptor distinction, not a general result
+  ownership proof. These are distinct birth/transfer premises, not a single
+  constructor-name permission.
+- A falsifier compiled with the unchanged native binary d539 on C and LLVM:
+  `let rows: Array<Int> = [1]; return Pair(rows, rows);` followed by
+  `ArraySet(pair.first, 0, 2)` and reads of both fields. Both backends admit
+  and print `2`, `2`. The C emitter puts the same array descriptor in both
+  fields, with no clone. This is an observable ordinary-value alias (an
+  independent-value result would print `2`, `1`), not evidence that a general
+  nominal constructor owns a fresh independent result. The isolated source
+  is `.tmp/p0_nonempty_duplicate_aggregate_probe.pgy`; the C receipt is WSL
+  `.tmp/p0_nonempty_duplicate_aggregate_probe.c`.
+- Do not use `semantic_param_publication_nominal_result_complete` as a
+  uniqueness proof: its snapshot validates field/type identity, not duplicate
+  backing, copy synthesis, or cleanup rights. A sound factory-result proof
+  must account separately for empty descriptor copies, unique `MapNew` births,
+  nonempty array copy/move, intervening growth, and every return path. Its
+  negative gate must reject or independently copy the nonempty duplicate on
+  both backends while preserving the canonical empty factory; no blanket
+  nominal/MapNew grant is admissible.
+
 - Objective and order: admit the unchanged full canonical compiler program
   without weakening ownership, then run the actual bootstrap, installed C/LLVM
   driver and same-published-SHA CI. Stable typed/publication identity and
