@@ -914,13 +914,16 @@ Rules:
     do not claim that no backend can emit a release at all.
   - The exported `pgy_array_drop_owned_String` calls `free(arr->data)` and
     ignores the allocator, while the inline path uses `pgy_free` with the
-    allocator. Glue must use the value's allocator.
-  - Two shallow paths must become deep copy glue:
-    - the LLVM nested array literal shares the inner `data` pointer
-      (`src/codegen/llvm_expr_aggregate.c`; old line citations refer to
-      different snapshots; P0 rebinds the exact span);
-    - nested-array clone copies each inner descriptor by value
-      (`src/runtime/pgy_runtime_lib_array_nested_exports.h:16-21`).
+    allocator. Current exported Array constructors set `allocator = NULL`
+    and use `malloc`/`realloc`; an admitted allocator-attached export-to-drop
+    path has not been demonstrated. General glue must still preserve the
+    backing allocator, and this gap is not evidence of a current crash.
+  - The LLVM nested array literal's inner backing independence remains to
+    be checked against its current emitter (`src/codegen/llvm_expr_aggregate.c`).
+    The older nested-array Clone warning is superseded: the current exported
+    clone uses `PGY_ARRAY_EXPORT_COPY_VALUE_Array_*` to clone each inner
+    backing (`src/runtime/pgy_runtime_lib_array_nested_exports.h`); do not
+    count that already-implemented path as remaining G3 work.
   - `Array<String>` clone already duplicates each string
     (`src/runtime/pgy_runtime_memory_array_slot_inline.h:197`).
 - Runtime inserts disagree on copying. `ArrayPush` stores the `String`

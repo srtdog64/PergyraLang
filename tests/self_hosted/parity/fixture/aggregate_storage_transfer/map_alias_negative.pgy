@@ -1,0 +1,18 @@
+struct MapPair
+{
+    first: HashMap<String, Int>;
+    second: HashMap<String, Int>;
+}
+
+func Make() -> MapPair
+{
+    let rows: HashMap<String, Int> = MapNew();
+    let alias: HashMap<String, Int> = rows;
+    return MapPair(rows, alias);
+}
+
+func Main() -> Void
+{
+    let pair: MapPair = Make();
+    Log(MapSize(pair.first));
+}

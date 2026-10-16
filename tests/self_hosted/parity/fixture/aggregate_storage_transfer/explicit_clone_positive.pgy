@@ -1,0 +1,20 @@
+struct Pair
+{
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Make() -> Pair
+{
+    let rows: Array<Int> = [1];
+    let copied: Array<Int> = Clone(rows);
+    return Pair(rows, copied);
+}
+
+func Main() -> Void
+{
+    var pair: Pair = Make();
+    ArraySet(pair.first, 0, 2);
+    Log(pair.first[0]);
+    Log(pair.second[0]);
+}

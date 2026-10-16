@@ -1,0 +1,20 @@
+struct Pair
+{
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Make() -> Pair
+{
+    let first: Array<Int> = [1];
+    let second: Array<Int> = [2];
+    let pair: Pair = Pair(first, second);
+    ArrayPush(first, 3);
+    return pair;
+}
+
+func Main() -> Void
+{
+    let pair: Pair = Make();
+    Log(ArrayLength(pair.first));
+}

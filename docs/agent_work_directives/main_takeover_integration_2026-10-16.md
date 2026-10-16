@@ -25,6 +25,77 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Whole-chain implementation map for the active aggregate edge
+
+- Objective and priority: keep D1 independent values and one final cleanup
+  owner while admitting proved fresh results; semantic identity and sound
+  transfer precede the 13 factory refusals, 532 work-budget refusals, and
+  installed-driver/CI evidence. No gate may substitute for another.
+- Source owner: typed publication records call/binding identity and current
+  generation. The existing program-point/returned-backing owner must prove
+  storage birth, alias/effect history, the ordered constructor field transfer,
+  post-transfer non-use, and all return exits. The nominal result snapshot
+  owns field/type mapping only. `array_storage_release_owner.c` currently
+  revokes `ArrayDrop` exclusivity on escape; that is not a move or a cleanup
+  receipt. The `Array<String>` collection-ownership row tracks element
+  provenance and cannot be reused as physical-storage proof by name alone.
+- Coverage constraint: the nominal snapshot exists only for complete mapped
+  non-generic constructors. Generic records, tuple/enum packs and nested
+  expression temporaries need the same final MIR operand/pack analysis, not
+  a nominal-snapshot fallback. Publication resets a value row on expression
+  recheck and may record the checked call twice, so provisional premises must
+  be sealed in the last publication generation.
+- Reached consumers: constructor admission and identifier/return checks;
+  semantic -> HIR -> MIR fact projection; MIR validation and JSON output;
+  installed self-host MIR input and C/LLVM artifact routes; native C and LLVM
+  aggregate emission and cleanup. `mir_cleanup.c` currently creates
+  resource/pin/rollback edges, not ordinary Array/HashMap/aggregate retirement.
+  The exact ownership-clean payload and codegen exit placement remain to be
+  established before production edits; absent proof must fail closed.
+- Disjoint implementation lanes after interface agreement: (A) native semantic
+  birth/field-transfer/currentness and post-move admission in `src/semantic`;
+  (B) typed HIR/MIR carrier, validation, exact cleanup and native C/LLVM
+  consumers in `src/compiler`, `src/codegen`, `src/runtime`; (C) installed
+  self-host MIR projection/consumption in `src/self_hosted` and behavioral
+  C/LLVM fixtures. Root alone owns shared interfaces, builds, fixed-input
+  census, bootstrap, Git and integration. Agents first report any contract
+  conflict; no lane may silently add a parallel authority or shape route.
+- Shared integration gate: same semantic source input and compiler hash;
+  duplicate/nonempty, alias, push/pop and post-field-push/return refusals;
+  distinct births, repeated proved-empty and explicit-Clone positives on C
+  and LLVM; forged/missing/stale MIR receipt refusal; unchanged 3188-key
+  census (including 4096/4097); full canonical admission; gen2 == gen3;
+  installed C/LLVM parity; required same-published-SHA CI. Narrow phase or
+  source-only greens cannot close this rung. An unsafe admitted probe is never
+  executed merely to see corruption.
+- Dependency order: resolve the physical cleanup producer and receipt shape;
+  seal semantic transfer and last use; carry/validate one fact through MIR;
+  emit exact cleanup in both backends; migrate installed self-host consumers;
+  then measure the two factory paths and the work budget on the fixed input.
+  If a reached consumer changes this map, revise it before extending code.
+
+Read-only interface audit after this map: document 27 §5.1–5.5 already fixes
+the final ownership-clean owner **after** MIR DCE/normalization; semantic
+publication can provide current typed constructor premises but cannot decide
+final move/copy/drop. Existing MIR expression-graph JSON lacks per-node stable
+source identity for the required `(routine, block, instruction, operand)`
+decision. Collection/String operation ABI, deep glue and final exit-edge
+settlement are also not implemented. Adding a semantic-only consumed bit, an
+unused HIR/MIR field or a subset-only mandatory drop would not close this
+chain. The generic/tuple/enum pack coverage and direct-constructor path are
+part of the same owner decision.
+
+The new behavioral gate `tests/aggregate_storage_transfer_smoke.sh` was run
+with unchanged Linux compiler SHA256 `d539d7eca05beb938cae038e08ed13783928b67362fe4670b2e34446d2460b86`.
+Four positive fixtures passed on both native C and LLVM (8/8); six unsafe
+negative fixtures were all compiled on both (12/12 RED). The unsafe programs
+were **not executed**. The gate is not wired into required CI while RED.
+Receipt after strengthening the post-field-return use: D
+`.tmp/aggregate-storage-transfer.55ozcW/`. Its negative path
+requires an actual ownership diagnostic, not a parser error or a missing-fact
+internal refusal. Existing ordered C constructor temporaries were separately
+replayed on both backends, so no duplicate positional-order patch was made.
+
 ### Aggregate storage-result closure card (PLAN; no source edit)
 
 - Objective/order: preserve D1 independent values and fail closed on duplicated
@@ -168,6 +239,16 @@ different-origin unsupported/retained outcomes, late binding growth,
 shared-DAG diamond expansion, changed publication claims, and 4096/4097.
 If the producer cannot prove subtree closure without walking or reproducing
 the same work per ordinal, reject this hypothesis rather than hiding charges.
+
+Read-only follow-up on that trace found at most 130 certifiable visits for
+typed empty `[]` literals (74 first visits and 56 cross-ordinal repeats), only
+3.17% of the 4096-work prefix. Five other array literals contain a child
+identifier and are not closed. The 561 BINARY and 218 UNARY charges cannot be
+treated as skippable without child/effect/currentness proof. `loan_seed` and
+semantic promotion were not captured by the trace, so 130 is an upper bound,
+not a measured saving. This does not establish relief of the 532 work-limit
+failures. No producer patch was made: a syntax-shape fast path without a
+current, effect-closed subtree fact would evade the owner rather than close it.
 
 
 ### Joint-origin backing falsifier (checkpoint `c34ee0f6`)

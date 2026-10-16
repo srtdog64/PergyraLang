@@ -1,0 +1,20 @@
+struct MapPair
+{
+    first: HashMap<String, Int>;
+    second: HashMap<String, Int>;
+}
+
+func Make() -> MapPair
+{
+    let first: HashMap<String, Int> = MapNew();
+    let second: HashMap<String, Int> = MapNew();
+    return MapPair(first, second);
+}
+
+func Main() -> Void
+{
+    var pair: MapPair = Make();
+    MapSet(pair.first, "first", 1);
+    Log(MapSize(pair.first));
+    Log(MapSize(pair.second));
+}
