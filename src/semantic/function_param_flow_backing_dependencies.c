@@ -61,8 +61,7 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) return;
     if (published.meta || (!state->checking_declared_result && published.origin_ready && value->type != AST_IDENTIFIER &&
         value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
-    if (value->type == AST_CALL &&
-        semantic_param_publication_checked_local_owner_constructor(state->store->ctx, value)) return;
+    if (semantic_param_publication_checked_local_owner_constructor(state->store->ctx, value)) return;
     if (value->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, value)) return;
     switch (value->type) {
     case AST_STRING: case AST_NUMBER: case AST_BOOLEAN:
@@ -87,8 +86,39 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         if (!semantic_param_publication_checked_call(state->store->ctx, value)) { state->fact->complete = false; break; }
         if (function_param_flow_backing_unsupported_call(state->store, state->fact, value)) break;
         if (state->checking_declared_result &&
+            semantic_param_publication_direct_callee(state->store->ctx, value) != NULL &&
             !semantic_param_publication_nominal_result_complete(state->store->ctx, value)) {
-            if (!function_param_flow_declared_result_closed(state->store, value, state->fact)) state->fact->complete = false;
+            size_t count = ast_call_arg_count(value);
+            unsigned char *kinds = count == 0 ? NULL : calloc(count, sizeof(*kinds));
+            if (count != 0 && kinds == NULL) { state->fact->complete = false; break; }
+            for (size_t p = 0; p < count && state->fact->complete; p++) {
+                ASTNode *arg = ast_call_argument(value, p);
+                if (!semantic_param_publication_checked_argument(state->store->ctx, value, p) ||
+                    !semantic_param_publication_value(state->store->ctx, arg).ok) { state->fact->complete = false; break; }
+                if (semantic_param_publication_value_is_physical_scalar(state->store->ctx, arg)) {
+                    kinds[p] = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_PHYSICAL;
+                    continue;
+                }
+                unsigned mask = function_param_flow_summary_for_call(&state->lookup, value, p);
+                if (!function_param_flow_callee_relation_ready(&state->lookup, value, p)) {
+                    state->fact->complete = false; break;
+                }
+                kinds[p] = (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ?
+                    FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT : FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT;
+            }
+            if (state->fact->complete && !function_param_flow_declared_result_closed(state->store, value, state->fact))
+                state->fact->complete = false;
+            if (state->fact->complete) {
+                FunctionParamFlowBackingNode *edge = &state->fact->nodes[at];
+                if (edge->result_argument_kinds == NULL && edge->result_argument_count == 0) {
+                    edge->result_argument_kinds = kinds; edge->result_argument_count = count; kinds = NULL;
+                } else if (edge->result_argument_count != count || (count != 0 &&
+                    memcmp(edge->result_argument_kinds, kinds, count) != 0)) state->fact->complete = false;
+                for (size_t p = 0; p < count && state->fact->complete; p++) if (
+                    state->fact->nodes[at].result_argument_kinds[p] == FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT)
+                    backing_destination_value(state, ast_call_argument(value, p), destinations);
+            }
+            free(kinds);
             break;
         }
         if (ast_call_arg_count(value) == 0) {
@@ -108,7 +138,7 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
             } else if (!semantic_param_publication_checked_backing_relation(state->store->ctx, value, p, &depends, &retains)) {
                 state->fact->complete = false; break;
             }
-            if (depends || state->checking_declared_result) backing_destination_value(state, ast_call_argument(value, p), destinations);
+            if (depends) backing_destination_value(state, ast_call_argument(value, p), destinations);
         }
         break;
     default: state->fact->complete = false; break;
@@ -184,8 +214,7 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     }
     SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, node);
     if (value.ok && (value.meta || value.origin_ready)) return origins;
-    if (node->type == AST_CALL &&
-        semantic_param_publication_checked_local_owner_constructor(state->store->ctx, node)) return origins;
+    if (semantic_param_publication_checked_local_owner_constructor(state->store->ctx, node)) return origins;
     if (node->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, node)) return origins;
     switch (node->type) {
     case AST_MEMBER_ACCESS:
@@ -407,65 +436,6 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
     default: fact->complete = false; break;
     }
     state->consumer = previous_consumer;
-}
-bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
-    ASTNode *call, FunctionParamFlowBackingFact *consumer)
-{
-    const Type *result_type = NULL;
-    ASTNode *decl = store == NULL ? NULL : semantic_param_publication_declared_result(store->ctx, call, &result_type);
-    if (store == NULL || store->failed || consumer == NULL || decl == NULL || result_type == NULL ||
-        ast_func_param_count(decl) != 0 || ast_call_arg_count(call) != 0) return false;
-    FunctionParamFlowProgramPointIndex *index;
-    if (!function_param_flow_program_point_index_build(store, decl, &index) ||
-        !function_param_flow_index_roots_current(index)) return false;
-    if (index->declared_result == NULL) {
-        FunctionParamFlowBackingFact *created = calloc(1, sizeof(*created));
-        if (created == NULL) { function_param_flow_fail(store, call, "declared result frame allocation failed"); return false; }
-        index->declared_result = created;
-        created->origin_count = created->origin_words = 1;
-        created->destination_count = created->destination_words = 1;
-        created->input_ordinal = SIZE_MAX;
-        created->declared_result_type = result_type;
-        created->claims = index->claims;
-        created->effects = calloc(1, sizeof(*created->effects));
-        created->outputs = calloc(1, sizeof(*created->outputs));
-        if (created->effects == NULL || created->outputs == NULL) {
-            function_param_flow_fail(store, call, "declared result matrix allocation failed"); return false;
-        }
-    }
-    /* Only heap-owned roots, claims and frames survive recursive index growth. */
-    FunctionParamFlowBackingFact *fact = index->declared_result;
-    ASTNode **roots = index->dependency_roots;
-    size_t count = index->dependency_root_count;
-    if (fact->declared_result_type != result_type || fact->input_id != 0 || fact->input_ordinal != SIZE_MAX ||
-        fact->origin_count != 1 || fact->origin_words != 1 || fact->destination_count != 1 || fact->destination_words != 1)
-        return false;
-    if (fact->building) { consumer->pending = true; return false; }
-    if (!function_param_flow_no_store_graph(store, decl)) return false;
-    fact->private_stores_closed = true;
-    if (fact->epoch != 0 && !function_param_flow_backing_rows_current(store, decl)) return false;
-    if (fact->epoch == 0 || (fact->pending && fact->evaluation_pass != store->fixed_point_passes + 1)) {
-        fact->building = true; fact->complete = true; fact->pending = false;
-        fact->evaluation_pass = store->fixed_point_passes + 1;
-        ReturnedBacking state = {.store = store, .lookup = {store->ctx, store->program_root},
-            .decl = decl, .fact = fact, .private_stores_closed = true, .checking_declared_result = true};
-        do {
-            if (fact->epoch == SIZE_MAX) { function_param_flow_fail(store, decl, "declared result iteration identity overflow"); fact->complete = false; break; }
-            fact->epoch++; fact->changed = false; state.result_return_seen = false;
-            for (size_t r = 0; r < count && fact->complete; r++) backing_consumers(&state, roots[r]);
-            if (!state.result_return_seen) fact->complete = false;
-        } while (fact->changed && fact->complete);
-        fact->building = false;
-    }
-    if (!fact->complete || fact->pending || fact->analysis_unsupported ||
-        !semantic_param_publication_routine_result_current(store->ctx, decl, result_type) ||
-        !function_param_flow_backing_rows_current(store, decl)) return false;
-    ReturnedBacking destination = {.store = store, .decl = decl, .fact = consumer};
-    size_t at = backing_node(&destination, call);
-    if (at == SIZE_MAX) return false;
-    consumer->nodes[at].result_callee_id = ast_node_stable_id(decl);
-    consumer->nodes[at].result_type = result_type;
-    return true;
 }
 bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore *store,
     ASTNode *decl, size_t ordinal, unsigned *effects, bool *outputs, size_t output_count, bool *pending,

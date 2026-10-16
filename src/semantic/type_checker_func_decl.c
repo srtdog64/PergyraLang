@@ -435,7 +435,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         type_function_set_return_type(func_type, final_ret);
     }
     semantic_check_param_summary_escapes(node, param_count, param_types,
-        func_type, ctx);
+        func_type, ctx, has_body_flow && !body_flow.has_fallthrough && body_flow.has_return);
     /* HIR's implicit exit consumes the checked return type for both declared
      * and inferred signatures; it must not guess Void from an open CFG tail. */
     Type *checked_return = type_function_return_type(func_type);

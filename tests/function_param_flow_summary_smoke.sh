@@ -85,6 +85,11 @@ paired = (
     ("declared_empty_scope_keep_invalid", False),
     ("stdlib_input_retention_valid", True),
     ("stdlib_prefix_factory_valid", True),
+    ("result_frame_option_multi_exit_valid", True),
+    ("result_frame_formal_return_invalid", False),
+    ("result_frame_formal_some_invalid", False),
+    ("result_frame_formal_nominal_invalid", False),
+    ("result_frame_formal_array_push_invalid", False),
     ("stdlib_prefix_retaining_user_invalid", False),
     ("stdlib_prefix_opaque_invalid", False),
     ("stdlib_prefix_shadow_invalid", False),
@@ -261,6 +266,12 @@ for name, valid in paired:
             "direct_ref_string_alias_named_invalid": (5, 14),
             "recursive_record_wrapper_control_invalid": (11, 6),
             "nested_call_retaining_input_invalid": (8, 24),
+            # The returned formal is refused in the callee before any unsafe
+            # caller artifact is emitted or executed.
+            "result_frame_formal_return_invalid": (7, 6),
+            "result_frame_formal_some_invalid": (7, 6),
+            "result_frame_formal_nominal_invalid": (8, 6),
+            "result_frame_formal_array_push_invalid": (9, 6),
         }
         if name in retained_sites and not any(
                 (row.get("location", {}).get("line"), row.get("location", {}).get("column"))
@@ -286,6 +297,26 @@ if checked.returncode != 1 or checked.stdout or not errors or (
     sys.stderr.buffer.write(checked.stderr)
     raise SystemExit("prefix arity negative lost its exact signature refusal")
 print("[function-param-flow-summary] prefix signature arity refusal: PASS")
+
+# Reuse the CFG owner's source cases here without requiring the not-yet-ready
+# installed driver. A non-Void routine that can fall through has no completed
+# normal-exit receipt for a result frame.
+for shape in ("if", "else_arm", "empty_body", "empty_body_called"):
+    source = root / "tests/self_hosted/fixtures" / f"missing_return_{shape}_negative.pgy"
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+    try:
+        diagnostics = json.loads((checked.stdout + checked.stderr).decode(errors="replace"))
+    except json.JSONDecodeError:
+        raise SystemExit(f"missing-return {shape} lost structured diagnostics")
+    errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+    if checked.returncode != 1 or checked.stdout or not errors or (
+            errors[0].get("code") != "PGY_SEM_MISSING_RETURN" or
+            errors[0].get("cause_ir") != "semantic:cfg:missing_return_path"):
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"missing-return {shape} lost its exact CFG refusal")
+print("[function-param-flow-summary] native missing-return CFG refusals: PASS")
 
 # These constructors were already unready before the Result-birth premise.
 # Preserve the existing required-backing refusal rather than recategorising
@@ -370,6 +401,7 @@ runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
 for name, expected in (
     ("stdlib_input_retention_valid", "12\n2\n0\n-2147483648\n\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
+    ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),

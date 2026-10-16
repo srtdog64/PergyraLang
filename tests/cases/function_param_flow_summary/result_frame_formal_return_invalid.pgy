@@ -1,0 +1,14 @@
+struct InputRecord { text: String; }
+
+func Forward(ref input: String) -> String {
+    return input;
+}
+
+func Leak(ref record: InputRecord) -> String {
+    return Forward(record.text);
+}
+
+func Main() -> Void {
+    let record = InputRecord(Concat("heap", " text"));
+    Log(StringLength(Leak(record)));
+}

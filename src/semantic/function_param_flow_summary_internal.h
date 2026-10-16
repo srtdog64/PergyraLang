@@ -20,6 +20,13 @@ typedef enum {
     FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN
 } FunctionParamFlowOutputProducer;
 
+typedef enum {
+    FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_UNPROVED = 0,
+    FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_PHYSICAL,
+    FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT,
+    FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT
+} FunctionParamFlowResultArgumentKind;
+
 typedef struct
 {
     uint32_t function_id;
@@ -47,6 +54,8 @@ typedef struct {
     /* An ordinal-free declared-result dependency, never an invented input. */
     uint32_t result_callee_id;
     const Type *result_type;
+    size_t result_argument_count;
+    unsigned char *result_argument_kinds;
 } FunctionParamFlowBackingNode;
 typedef struct {
     uint32_t binding;

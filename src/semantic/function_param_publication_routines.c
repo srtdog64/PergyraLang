@@ -65,9 +65,34 @@ bool semantic_param_publication_checked_backing_relation(const SemanticContext *
 {
     return publication_result_relation(ctx, call, ordinal, true, result_depends, external_retains);
 }
+bool semantic_param_publication_record_checked_result_relation(SemanticContext *ctx, ASTNode *call,
+    const Type *argument_type, const Type *result_type, uint32_t selected_decl, size_t payload_ordinal)
+{
+    if (!semantic_param_publication_pending(ctx) || call == NULL || call->type != AST_CALL ||
+        selected_decl != 0 || payload_ordinal != 0 || ast_call_arg_count(call) == 0 ||
+        argument_type == NULL || result_type == NULL || argument_type == TYPE_UNKNOWN || result_type == TYPE_UNKNOWN ||
+        argument_type->name == NULL || result_type->name == NULL) return false;
+    const char *result_name = ast_call_semantic_value_type_name(call);
+    if (result_name == NULL || strcmp(result_name, result_type->name) != 0) return false;
+    ASTNode *argument = ast_call_argument(call, 0);
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, true);
+    if (row == NULL) return false;
+    PublishedNode *arg = publication_node(ctx->function_param_publications, argument, false);
+    if (arg == NULL || !arg->value_present || arg->value_shape != argument->type) return false;
+    char *a = pergyra_strdup(argument_type->name), *r = pergyra_strdup(result_type->name);
+    char *av = pergyra_strdup(argument_type->name), *rv = pergyra_strdup(result_type->name);
+    if (a == NULL || r == NULL || av == NULL || rv == NULL) { free(a); free(r); free(av); free(rv); return false; }
+    free(row->relation_argument_type); free(row->relation_result_type); free(arg->value_type_name); free(row->value_type_name);
+    row->relation_argument_type = a; row->relation_result_type = r; arg->value_type_name = av; row->value_type_name = rv;
+    row->relation_argument = argument; row->relation_argument_id = ast_node_stable_id(argument);
+    row->relation_argument_count = ast_call_arg_count(call);
+    row->relation_input_type = argument_type; row->relation_output_type = result_type;
+    row->result_relation = row->relation_argument_id != 0;
+    return row->result_relation;
+}
 static PendingRoutine *publication_routine(FunctionParamPublicationStore *store, uint32_t id);
 bool semantic_param_publication_record_routine(SemanticContext *ctx, ASTNode *decl,
-    size_t count, Type **types, Type *function_type)
+    size_t count, Type **types, Type *function_type, bool normal_exit_closed)
 {
     if (!semantic_param_publication_pending(ctx) || decl == NULL || ast_node_stable_id(decl) == 0 ||
         decl->type != AST_FUNC_DECL || function_type == NULL || count != ast_func_param_count(decl) ||
@@ -82,7 +107,8 @@ bool semantic_param_publication_record_routine(SemanticContext *ctx, ASTNode *de
     if (node->routine_index != 0) {
         if (node->routine_index > store->routine_count) return false;
         PendingRoutine *prior = &store->routines[node->routine_index - 1];
-        if (prior->decl != decl || prior->function_type != function_type || prior->count != count) return false;
+        if (prior->decl != decl || prior->function_type != function_type ||
+            prior->count != count || prior->normal_exit_closed != normal_exit_closed) return false;
         if (prior->body != ast_func_body(decl) || prior->body_id != ast_node_stable_id(prior->body)) return false;
         for (size_t p = 0; p < count; p++) if (prior->types[p] != types[p] ||
             prior->formals[p].id != ast_func_param_stable_id(ast_func_param(decl, p)) ||
@@ -104,6 +130,7 @@ bool semantic_param_publication_record_routine(SemanticContext *ctx, ASTNode *de
     if (ctx->current_module_path != NULL && module == NULL) { free(copy); free(formals); return false; }
     store->routines[store->routine_count++] = (PendingRoutine){decl, function_type, copy, count,
         ast_node_stable_id(decl), module, formals, ast_func_body(decl), ast_node_stable_id(ast_func_body(decl)),
+        normal_exit_closed,
         type_function_return_type(function_type), ast_func_return_type(decl),
         ast_node_stable_id(ast_func_return_type(decl)), decl->is_async_decl};
     node->routine_index = store->routine_count;
@@ -351,7 +378,7 @@ bool semantic_param_publication_routine_result_current(const SemanticContext *ct
     if (result_type == NULL || result_type == TYPE_UNKNOWN ||
         !semantic_param_publication_routine_relation_header_ready(ctx, decl)) return false;
     const PendingRoutine *row = publication_routine(ctx->function_param_publications, ast_node_stable_id(decl));
-    return row != NULL && row->return_type == result_type && !row->async &&
+    return row != NULL && row->normal_exit_closed && row->return_type == result_type && !row->async &&
         (row->return_node == NULL || row->return_node_id != 0);
 }
 ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
@@ -372,42 +399,6 @@ ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
         if (!semantic_param_publication_checked_argument(ctx, call, p)) return NULL;
     *result_type = value->value_type;
     return decl;
-}
-bool semantic_param_publication_checked_local_owner_constructor(
-    const SemanticContext *ctx, const ASTNode *call)
-{
-    PublishedNode *row = publication_result_current(ctx, call);
-    if (row == NULL || row->meta || row->declaration != 0 || row->value_binding != 0 ||
-        !row->kind_present || row->nominal_result != NULL || row->result_relation ||
-        row->target == NULL || row->target->type != AST_IDENTIFIER || row->target_binding != 0 ||
-        row->target_id == 0 || row->target_name == NULL || row->id == 0) return false;
-    /* These constructor contracts prove no input retention and independent
-     * result backing. They confer no copy, cleanup or Finish lifetime right. */
-    if (row->empty_map_declaration != NULL) {
-        const ASTNode *declaration = row->empty_map_declaration;
-        return row->stdlib && row->builtin == BUILTIN_NOT_BUILTIN &&
-            declaration->type == AST_LET_DECL &&
-            row->empty_map_declaration_id != 0 &&
-            row->empty_map_declaration_id == ast_node_stable_id(declaration) &&
-            ast_let_initializer(declaration) == call &&
-            semantic_param_publication_empty_map_binding(ctx, declaration);
-    }
-    if (row->builtin == BUILTIN_CONCAT)
-        return row->stdlib && row->value_type == TYPE_STRING && row->argument_count == 2 &&
-            strcmp(row->target_name, "Concat") == 0 && row->arguments[0].type == TYPE_STRING &&
-            row->arguments[1].type == TYPE_STRING &&
-            semantic_param_publication_argument_borrowed_for_call(ctx, call, 0) &&
-            semantic_param_publication_argument_borrowed_for_call(ctx, call, 1);
-    if (row->stdlib) return false;
-    if (row->builtin == BUILTIN_ALLOCATOR_RESULT)
-        return row->value_type == TYPE_ALLOCATOR && row->argument_count == 0;
-    if (row->builtin != BUILTIN_TEXT_BUILDER_NEW || row->value_type != TYPE_TEXT_BUILDER ||
-        row->argument_count != 1 || row->arguments[0].id == 0 ||
-        !semantic_param_publication_checked_argument(ctx, call, 0)) return false;
-    PublishedNode *capacity = publication_current_value(ctx, row->arguments[0].node);
-    return capacity != NULL && !capacity->meta &&
-        (capacity->value_type == TYPE_INT || capacity->value_type == TYPE_LONG) &&
-        row->arguments[0].type == capacity->value_type;
 }
 PublishedNode *publication_checked_intrinsic(const SemanticContext *ctx,
     const ASTNode *call, uint32_t kind, const Type *type, size_t count)

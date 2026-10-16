@@ -1,0 +1,17 @@
+struct InputRecord { text: String; }
+
+func Wrap(ref input: String) -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPush(rows, input);
+    return rows;
+}
+
+func Leak(ref record: InputRecord) -> Array<String> {
+    return Wrap(record.text);
+}
+
+func Main() -> Void {
+    let record = InputRecord(Concat("heap", " text"));
+    let leaked = Leak(record);
+    Log(ArrayLength(leaked));
+}

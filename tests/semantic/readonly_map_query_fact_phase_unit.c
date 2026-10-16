@@ -88,12 +88,12 @@ static Fixture fixture(void)
 static bool register_reader(Fixture *f)
 {
     Type *parameters[] = {f->map_type};
-    return semantic_param_publication_record_routine(f->ctx, f->reader, 1, parameters, f->reader_type);
+    return semantic_param_publication_record_routine(f->ctx, f->reader, 1, parameters, f->reader_type, true);
 }
 static bool register_caller(Fixture *f)
 {
     Type *parameters[] = {f->map_type};
-    return semantic_param_publication_record_routine(f->ctx, f->caller, 1, parameters, f->caller_type);
+    return semantic_param_publication_record_routine(f->ctx, f->caller, 1, parameters, f->caller_type, true);
 }
 static bool register_map(Fixture *f)
 {
@@ -2581,6 +2581,181 @@ static void checked_declared_result_currency(void)
             CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
         }
     }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+/* A declared-result edge seals each actual's return dependency independently. */
+static void checked_result_argument_currency(void)
+{
+    const char *source =
+        "func ReturnInput(ref text:String,index:Int)->String{return text;}"
+        "func RelayInput(ref text:String,index:Int)->String{return ReturnInput(text,index);}"
+        "func FreshText(ref text:String,index:Int)->String{return text+\"!\";}"
+        "func RelayFresh(ref text:String,index:Int)->String{return FreshText(text,index);}"
+        "func MakeInput()->String{return RelayInput(\"known\",1);}"
+        "func MakeFresh()->String{let source=\"heap\"+\" text\";return RelayFresh(source,2);}"
+        "func Inspect(ref label:String)->Option<Int>{let input=MakeInput();"
+        "let fresh=MakeFresh();return Some(StringLength(input)+StringLength(fresh)+StringLength(label));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *callees[] = {ast_program_statement(program, 0), ast_program_statement(program, 2)};
+    ASTNode *relays[] = {ast_program_statement(program, 1), ast_program_statement(program, 3)};
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    ASTNode *inspect = ast_program_statement(program, 6);
+    (void)function_param_flow_summary_for_param(ctx, inspect, 0);
+    for (size_t k = 0; k < 2; k++) {
+        ASTNode *callee = callees[k], *relay = relays[k];
+        ASTNode *call = ast_return_value(ast_block_statement(ast_func_body(relay), 0));
+        CHECK(call != NULL && call->type == AST_CALL);
+        (void)function_param_flow_summary_for_param(ctx, relay, 0);
+        FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        CHECK(store != NULL && function_param_flow_program_point_index_build(store, relay, &index));
+        FunctionParamFlowBackingFact *frame = index != NULL ? index->declared_result : NULL;
+        CHECK(frame != NULL && function_param_flow_backing_rows_current(store, relay));
+        if (frame == NULL || call == NULL || store == NULL) continue;
+        FunctionParamFlowBackingNode *edge = NULL;
+        for (size_t n = 0; n < frame->node_count; n++)
+            if (frame->nodes[n].node == call && frame->nodes[n].result_callee_id != 0)
+                edge = &frame->nodes[n];
+        CHECK(edge != NULL && edge->result_argument_count == 2 && edge->result_argument_kinds != NULL);
+        if (edge == NULL || edge->result_argument_kinds == NULL) continue;
+        unsigned char first_kind = k == 0 ? FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT :
+            FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT;
+        CHECK(edge->result_argument_kinds[0] == first_kind);
+        CHECK(edge->result_argument_kinds[1] == FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_PHYSICAL);
+        size_t saved_count = edge->result_argument_count;
+        edge->result_argument_count = 1;
+        CHECK(!function_param_flow_backing_rows_current(store, relay));
+        edge->result_argument_count = saved_count;
+        CHECK(function_param_flow_backing_rows_current(store, relay));
+        unsigned char *saved_kinds = edge->result_argument_kinds;
+        edge->result_argument_kinds = NULL;
+        CHECK(!function_param_flow_backing_rows_current(store, relay));
+        edge->result_argument_kinds = saved_kinds;
+        CHECK(function_param_flow_backing_rows_current(store, relay));
+        for (size_t p = 0; p < 2; p++) {
+            unsigned char saved_kind = saved_kinds[p];
+            saved_kinds[p] = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_UNPROVED;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            saved_kinds[p] = saved_kind;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+        }
+        saved_kinds[0] = first_kind == FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT ?
+            FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT : FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT;
+        CHECK(!function_param_flow_backing_rows_current(store, relay));
+        saved_kinds[0] = first_kind;
+        CHECK(function_param_flow_backing_rows_current(store, relay));
+        saved_kinds[1] = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT;
+        CHECK(!function_param_flow_backing_rows_current(store, relay));
+        saved_kinds[1] = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_PHYSICAL;
+        CHECK(function_param_flow_backing_rows_current(store, relay));
+        size_t arity = call->data.call.arg_count;
+        call->data.call.arg_count = 1;
+        CHECK(!function_param_flow_backing_rows_current(store, relay));
+        call->data.call.arg_count = arity;
+        CHECK(function_param_flow_backing_rows_current(store, relay));
+        uint32_t target = ast_call_semantic_callee_decl_id(call);
+        CHECK(ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(relay)));
+        CHECK(!function_param_flow_backing_rows_current(store, relay));
+        CHECK(ast_call_set_semantic_callee_decl_id(call, target));
+        CHECK(function_param_flow_backing_rows_current(store, relay));
+        PublishedNode *physical_claim = published_node_for(ctx, ast_call_argument(call, 1));
+        CHECK(physical_claim != NULL && physical_claim->physical_scalar);
+        if (physical_claim != NULL) {
+            bool saved = physical_claim->physical_scalar;
+            physical_claim->physical_scalar = false;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            physical_claim->physical_scalar = saved;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+        }
+        FunctionParamFlowSummaryEntry *summary = NULL;
+        for (size_t i = 0; i < store->count; i++)
+            if (store->entries[i].function_decl == callee && store->entries[i].param_index == 0)
+                summary = &store->entries[i];
+        CHECK(summary != NULL);
+        if (summary != NULL) {
+            unsigned saved_mask = summary->mask;
+            summary->mask ^= SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            summary->mask = saved_mask;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+            CHECK(summary->output_dependencies_ready && !summary->returned_backing_unproved);
+            bool saved_ready = summary->output_dependencies_ready;
+            summary->output_dependencies_ready = false;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            summary->output_dependencies_ready = saved_ready;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+            bool saved_unproved = summary->returned_backing_unproved;
+            summary->returned_backing_unproved = true;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            summary->returned_backing_unproved = saved_unproved;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+            FunctionParamFlowSummaryState saved_state = summary->state;
+            summary->state = FUNCTION_PARAM_FLOW_COMPUTING;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            summary->state = saved_state;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+            FunctionParamFlowProgramPointIndex *callee_index = NULL;
+            CHECK(function_param_flow_program_point_index_build(store, callee, &callee_index));
+            FunctionParamFlowBackingFact *source_frame = callee_index != NULL &&
+                callee_index->backing_frames != NULL && callee_index->backing_frame_count != 0 ?
+                callee_index->backing_frames[0] : NULL;
+            CHECK(source_frame != NULL && source_frame->complete && source_frame->epoch != 0);
+            if (source_frame != NULL) {
+                bool saved_complete = source_frame->complete;
+                source_frame->complete = false;
+                CHECK(!function_param_flow_backing_rows_current(store, relay));
+                source_frame->complete = saved_complete;
+                CHECK(function_param_flow_backing_rows_current(store, relay));
+                size_t saved_epoch = source_frame->epoch;
+                source_frame->epoch = 0;
+                CHECK(!function_param_flow_backing_rows_current(store, relay));
+                source_frame->epoch = saved_epoch;
+                CHECK(function_param_flow_backing_rows_current(store, relay));
+                if (k == 1) {
+                    CHECK((summary->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0);
+                    CHECK(source_frame->effects != NULL &&
+                        (source_frame->effects[0] & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0);
+                    if (source_frame->effects != NULL) {
+                        unsigned saved_effects = source_frame->effects[0];
+                        source_frame->effects[0] |= SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+                        CHECK(!function_param_flow_backing_rows_current(store, relay));
+                        source_frame->effects[0] = saved_effects;
+                        CHECK(function_param_flow_backing_rows_current(store, relay));
+                    }
+                }
+            }
+        }
+        for (size_t owner = 0; owner < 2; owner++) {
+            ASTNode *decl = owner == 0 ? callee : relay;
+            PendingRoutine *routine = NULL;
+            for (size_t i = 0; i < publication->routine_count; i++)
+                if (publication->routines[i].decl == decl) routine = &publication->routines[i];
+            CHECK(routine != NULL && routine->normal_exit_closed);
+            if (routine == NULL) continue;
+            routine->normal_exit_closed = false;
+            CHECK(!semantic_param_publication_routine_result_current(ctx, decl, TYPE_STRING));
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            routine->normal_exit_closed = true;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+            ASTNode *body = ast_func_body(decl);
+            uint32_t body_id = body->stable_id;
+            body->stable_id++;
+            CHECK(!function_param_flow_backing_rows_current(store, relay));
+            body->stable_id = body_id;
+            CHECK(function_param_flow_backing_rows_current(store, relay));
+        }
+    }
+cleanup:
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -6559,6 +6734,7 @@ int main(void)
     checked_local_owner_constructor_nested_effect();
     checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();
+    checked_result_argument_currency();
     checked_declared_physical_result_currency();
     checked_declared_array_result_currency();
     checked_declared_result_unclosed();

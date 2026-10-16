@@ -214,7 +214,10 @@ function_param_flow_program_point_index_destroy(
         FunctionParamFlowBackingFact *fact = f == index->backing_frame_count ? index->declared_result :
             index->backing_frames == NULL ? NULL : index->backing_frames[f];
         if (fact == NULL) continue;
-        for (size_t n = 0; fact->nodes != NULL && n < fact->node_count; n++) free(fact->nodes[n].origins);
+        for (size_t n = 0; fact->nodes != NULL && n < fact->node_count; n++) {
+            free(fact->nodes[n].origins);
+            free(fact->nodes[n].result_argument_kinds);
+        }
         for (size_t b = 0; fact->bindings != NULL && b < fact->binding_count; b++) {
             free(fact->bindings[b].origins); free(fact->bindings[b].destinations);
         }

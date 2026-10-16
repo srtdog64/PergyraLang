@@ -21,6 +21,7 @@ typedef struct {
     PublishedFormal *formals;
     const ASTNode *body;
     uint32_t body_id;
+    bool normal_exit_closed;
     /* Optional eligibility snapshot: inferred/synthetic headers may change
      * legitimately before finalization; only the scalar query rejects drift. */
     Type *return_type;
@@ -286,7 +287,7 @@ bool semantic_param_publication_parameter_is_anchored_handle(
 bool semantic_param_publication_routine_inputs_current(
     const SemanticContext *ctx, const ASTNode *decl, bool require_body);
 bool semantic_param_publication_record_routine(SemanticContext *ctx, ASTNode *decl,
-    size_t count, Type **types, Type *function_type);
+    size_t count, Type **types, Type *function_type, bool normal_exit_closed);
 bool semantic_param_publication_record_call(SemanticContext *ctx, ASTNode *call, ASTNode *site,
     ASTNode *callee, size_t ordinal, const Type *type, const char *borrowed,
     const char *destination, const char *fix);

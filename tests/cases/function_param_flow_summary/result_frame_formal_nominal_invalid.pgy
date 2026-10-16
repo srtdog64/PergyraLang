@@ -1,0 +1,16 @@
+struct InputRecord { text: String; }
+struct HeldText { text: String; }
+
+func Wrap(ref input: String) -> HeldText {
+    return HeldText(input);
+}
+
+func Leak(ref record: InputRecord) -> HeldText {
+    return Wrap(record.text);
+}
+
+func Main() -> Void {
+    let record = InputRecord(Concat("heap", " text"));
+    let leaked = Leak(record);
+    Log(StringLength(leaked.text));
+}

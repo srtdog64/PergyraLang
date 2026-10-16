@@ -1,0 +1,51 @@
+struct ResultRow {
+    valid: Bool;
+    text: String;
+}
+
+func RowAt(index: Int) -> ResultRow {
+    if index == 0 { return ResultRow(true, "zero"); }
+    if index == 1 { return ResultRow(true, "one"); }
+    return ResultRow(false, "");
+}
+
+func Decorate(ref input: String) -> String {
+    return input + "!";
+}
+
+func Select(ref input: String, index: Int) -> Option<String> {
+    let row = RowAt(index);
+    if !row.valid { return None; }
+    if index == 0 {
+        let fresh = Decorate(input);
+        return Some(UnwrapOption(Some(fresh)));
+    }
+    return Some(row.text + "!");
+}
+
+func MakeSelection() -> Option<String> {
+    let source = "heap" + " text";
+    return Select(source, 0);
+}
+
+func MakeEmptySelection() -> Option<String> {
+    let source = "unused" + " value";
+    return Select(source, -1);
+}
+
+func Inspect(ref label: String) -> Option<Int> {
+    let selected = MakeSelection();
+    let empty = MakeEmptySelection();
+    if !IsSome(selected) { return None; }
+    if IsSome(empty) { return None; }
+    let text = UnwrapOption(selected);
+    return Some(StringLength(text) + StringLength(label));
+}
+
+func Main() -> Void {
+    let input = Concat("heap", " text");
+    Log(UnwrapOption(Select(input, 0)));
+    Log(UnwrapOption(Select(input, 1)));
+    Log(IsSome(Select(input, -1)));
+    Log(UnwrapOption(Inspect("tag")));
+}

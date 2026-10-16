@@ -44,7 +44,8 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
         ctx->current_function_decl = row->decl;
         ctx->current_module_path = row->module;
         ctx->current_function_body_summary = type_function_body_summary(row->function_type);
-        semantic_check_param_summary_escapes(row->decl, row->count, row->types, row->function_type, ctx);
+        semantic_check_param_summary_escapes(row->decl, row->count, row->types,
+            row->function_type, ctx, row->normal_exit_closed);
         type_function_set_body_summary(row->function_type, ctx->current_function_body_summary);
     }
     /* MAY is the sole delayed derived bit. Final parameter facts seed it;
@@ -116,13 +117,15 @@ semantic_check_param_summary_escapes(ASTNode *node,
                                      size_t param_count,
                                      Type **param_types,
                                      Type *function_type,
-                                     SemanticContext *ctx)
+                                     SemanticContext *ctx,
+                                     bool normal_exit_closed)
 {
     if (node == NULL || ctx == NULL || (param_count != 0 && param_types == NULL)) {
         return;
     }
     if (semantic_param_publication_pending(ctx)) {
-        if (!semantic_param_publication_record_routine(ctx, node, param_count, param_types, function_type))
+        if (!semantic_param_publication_record_routine(ctx, node, param_count,
+                param_types, function_type, normal_exit_closed))
             semantic_error(ctx, node, "Pending parameter summary identity/allocation failed");
         return;
     }
