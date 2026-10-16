@@ -1,0 +1,17 @@
+// A fresh empty MapNew binding alone does not close the aggregate result.
+struct MapScope { values: HashMap<String, Int>; }
+
+func EmptyMapScope() -> MapScope {
+    let values: HashMap<String, Int> = MapNew();
+    return MapScope(values);
+}
+
+func Probe(ref text: String) -> Option<Int> {
+    let scope = EmptyMapScope();
+    return Some(MapSize(scope.values) + StringLength(text));
+}
+
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(UnwrapOption(Probe(text)));
+}

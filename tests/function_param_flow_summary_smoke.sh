@@ -259,6 +259,7 @@ for name in (
     "pool_builder_birth_invalid",
     "opaque_builder_birth_invalid",
     "rebound_pool_builder_birth_invalid",
+    "declared_empty_map_scope_unready",
 ):
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
     checked = subprocess.run(

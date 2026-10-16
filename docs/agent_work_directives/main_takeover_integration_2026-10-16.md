@@ -180,6 +180,33 @@ because both have zero formals. Receipts: WSL
 were removed and binary746 restored. Exact failed no-store predicate and
 fresh-ownership proof remain OPEN.
 
+Scratch no-store probes on the current destination binary refine this split.
+Both factories have `mutable_output_required=true`; the first failing call in
+`SemanticAstCollectionFocusRecoveryFactsEmpty` is its typed, zero-argument
+`MapNew()`. `SemanticBuiltinSignatureRows` has no equivalent MapNew proof and
+still needs a separate retained-array transition analysis. Receipts WSL
+`.tmp/p0-no-store-trace.vCQTQn/` and `.tmp/p0-no-store-trace.ZeR7of/`;
+source/build/bin were restored byte-identically and diagnostic code removed.
+Scoped objective for the map case: consume the *existing current* empty-map
+binding publication as a fresh local result fact at the no-store graph owner,
+while still recording the declaration claim. The last consumer is declared-
+result closure and its caller's return relation. A name-only `MapNew` test,
+arbitrary zero-arg call grant, or stale/forged publication is forbidden.
+Falsifiers: an exact map-factory result through a borrowed caller; changed
+typed binding/initializer receipt; shadowed or otherwise unmodelled `MapNew`;
+the 4096/4097 limits and same fixed canonical census. If this proof still
+does not unblock a key, revert rather than adding another constructor route.
+That local connection was tested and **reverted**: binary
+`c7fe7205f26754632099ac3fea63ac134d13ca75023ff88c10162cea551d92ff`
+kept the exact fixed-input 545 failures, with zero resolved/new keys or mask
+changes (WSL `.tmp/p0-identifier-origin-census.8YgceK/`). The small fresh-map
+aggregate probe also remained required-backing unready. A current empty-map
+binding proves fresh `MapNew` construction but is not by itself a complete
+proof for the returned aggregate's carried map; the next failed predicate
+after `MapNew` was not measured. The compiler source and binary were restored
+to destination candidate d539. The probe is now an explicit no-MIR negative
+under `declared_empty_map_scope_unready.pgy`, not an unsound positive grant.
+
 ## Active return-provenance completion policy
 
 The local-alias RETURN repair is a safety prerequisite, not a new precision
