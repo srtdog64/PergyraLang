@@ -1,3 +1,147 @@
+
+    TEST("MIR builds cleanup block for intent compensation");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *purchase = NULL;
+        bool cleanup_has_compensate = false;
+        bool cleanup_has_policy = false;
+        bool cleanup_has_invalidation = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL && purchase->has_rollback_block) {
+            const MIRBasicBlock *rollback = &purchase->blocks[purchase->rollback_block];
+            cleanup_has_compensate = block_has_inst_kind(rollback, MIR_INST_CLEANUP_EDGE)
+                                     && block_has_inst_named_with_slot(rollback, "CompensateIntentStep", "pay");
+            cleanup_has_policy = block_has_inst_named(rollback, "RollbackPolicy");
+        }
+        if (purchase != NULL && purchase->has_invalidation_block) {
+            const MIRBasicBlock *invalidation = &purchase->blocks[purchase->invalidation_block];
+            cleanup_has_invalidation = block_has_inst_named_with_slot(invalidation, "DetachInvalidation", "payment");
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && purchase != NULL
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentStep", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentParticipant", "payment", "PaymentZone")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentParticipant", "buyer", "Buyer")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentZoneWhere", "PaymentZone", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentZoneAlias", "payment", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentInvalidationTarget", "payment", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentWho", "buyer", "pay")
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentAuthorizedBy", "pay")
+               && purchase->has_cleanup_block
+               && purchase->has_rollback_block
+               && purchase->has_invalidation_block
+               && purchase->cleanup_instruction_count >= 2
+               && purchase->cleanup_edge_count >= 1
+               && purchase->blocks[purchase->entry_block].has_cleanup_succ
+               && purchase->blocks[purchase->entry_block].cleanup_succ == purchase->cleanup_block
+               && purchase->blocks[purchase->cleanup_block].has_rollback_succ
+               && purchase->blocks[purchase->cleanup_block].rollback_succ == purchase->rollback_block
+               && purchase->blocks[purchase->cleanup_block].has_invalidation_succ
+               && purchase->blocks[purchase->cleanup_block].invalidation_succ == purchase->invalidation_block
+               && purchase->blocks[purchase->rollback_block].has_cleanup_succ
+               && purchase->blocks[purchase->rollback_block].cleanup_succ == purchase->invalidation_block
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block], "cleanup-edge", "cleanup")
+               && cleanup_has_compensate
+               && cleanup_has_policy
+               && cleanup_has_invalidation
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->rollback_block], "AbortIntent", "Purchase"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects cleanup block with normal CFG successor");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL && purchase->has_cleanup_block) {
+            MIRBasicBlock *cleanup = &purchase->blocks[purchase->cleanup_block];
+            cleanup->has_succ_true = true;
+            cleanup->succ_true = purchase->entry_block;
+        }
+        rejected = ok
+                   && purchase != NULL
+                   && purchase->has_cleanup_block
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "cleanup block") != NULL
+                   && strstr(mir_error, "normal CFG successors") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
     TEST("MIR validator rejects predecessor without forward edge");
     {
         const char *src =

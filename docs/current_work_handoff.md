@@ -8,9 +8,13 @@ SoT registry, admitted contracts, and executable gates override this note.
 Active rung: unchanged full canonical native admission, then actual codegen
 bootstrap/fixed point, driver memory, installed C/LLVM driver and required CI.
 The P0 prerequisite has focused green evidence, not whole-language closure.
-This implementation checkpoint has parent `71d9e2ad6`; the earlier unverified
-repair is preserved in that parent. Local and remote each have only `main`;
-published main remains `571ae8c3a`. No push or integrated CI-green claim.
+Published implementation checkpoint: `795f71423`, parent `71d9e2ad6`.
+Local and remote each have only `main`; the prerequisite repair is pushed.
+Exact-SHA CI run `38855687075` completed RED: Linux bootstrap reaches the same
+work4096 refusal; macOS/Windows semantic fixtures report3206 passes/16 failures.
+The Rocq job passed; dependent bootstrap/installed-driver jobs were skipped,
+not green. The follow-up checkpoint containing this card has parent795f71423;
+its local gates below do not replace a new exact-SHA CI result.
 
 Existing publication, parameter-flow/index, callable-capability and statement-
 flow owners remain authoritative. Complete topology currency, checked deferred
@@ -42,13 +46,51 @@ Logs are `/root/pgy-main-20261016.<phase>.log`:
 - `p0-candidate-canonical`:RED19.82s, peak769804KiB, first15:6 work4096,
   18410 cascading errors/16 warnings. These are not18410 independent failures.
 
-Next: commit/freeze this prerequisite for the independent reviewer, then
-remeasure the complete fixed-input failure set and actual shared-body demand
-cost. Do not carry the pre-P0202-key count forward as current acceptance.
-The old matrix scratch would revert P0 currency and must never replace current
-files. Its geometry-only controlled plan is `.tmp/a-current-matrix-model/`
-`current-split-experiment-plan.md`; NOT IMPLEMENTED/NOT RUN. Keep all current
-readiness, typed/seed/current/output65+ checks and the4096 work cap.
+Independent frozen review found no new unsafe MIR admission or regression in
+the bounded P0/12-worker slice; report is
+`.tmp/redteam-p0-795f71423-20261016/review.md`. This is not full acceptance.
+Root remeasured the sealed3188-key union/signatures4273 on this checkpoint:
+202 cold failures, no new/resolved versus the prior census, incomplete0.
+Warm first-ref stage: E86+B3728+G282=4096, dropped0; later consumers not run.
+Receipt: `.tmp/p0-matrix-current.wLIZRq/run.log` in the Linux clone. Source,
+build/bin and dependency bytes restored exactly. The second geometry-only
+diagnostic is rejected:406 failures (28 resolved/232 new),144.37s, same exact
+keys/signatures. No matrix source/test change is adopted. See
+[`geometry comparison`](audits/param_flow_geometry_comparison_2026-10-16.md).
+Keep readiness, typed/seed/current/output65+ checks and the4096 work cap.
+The old matrix scratch would revert P0 currency and must never replace files.
+The macOS/Windows fixture correction is scoped to old scalar-spawn inputs; both
+actual emitters require a named call. Preserve original effect assertions and
+negative gates; do not restore unsupported scalar-spawn permission. Root's
+two-fixture candidate passes complete semantic3228/0 and concurrent isolation.
+The subsequent test-transpile gate exposed an unsealed bare-name spawn unit;
+it now uses the supported call node and strict MIR, preserving all five output
+assertions:1009/0 (`p0-caps-transpile-fixed`). No production permission was added.
+
+Current repair binary SHA256:
+`21a4b6e14750aea167fa99cdd51299019060789b101fb600a75d7a9eaaff93b6`.
+`p0-final-caps`:all test/production/shared/type/helper size categories,
+semantic599/header600, phase5248/0, MIR327/0 and semantic3228/0 PASS15.82s.
+AIR147/0 and parser also passed after exact contiguous fixture placement.
+The production moves preserve complete original responsibility bodies and
+residuals; the one-off review scripts are not permanent text-scan gates.
+`p0-caps-map-ir-fixed`:24 C/LLVM positives/58 negatives+IR PASS19.73s;
+`p0-caps-projection`:actual owned/borrowed/empty MIR rows PASS0.63s;
+`p0-caps-slot`:all four positives/seven negatives on C/LLVM PASS9.86s;
+`p0-caps-inventory`:PASS16.41s. Original summary/P0/worker/4096/4097 controls
+passed10.69s after the exact pure-literal backing-row elimination.
+That elimination retains shared claim/currentness and is not a scalar-subtree
+shortcut. Full canonical is still RED17.90s/peak769560KiB with the same primary
+work4096 and18410 cascading errors (`p0-leaf-canonical`); later physical moves
+do not claim a new canonical verdict or a lower cold-failure count.
+
+Next single candidate is the scratch closed-graph + current scalar-header
+RETURN receipt join described in the directive. It is not yet production code
+or acceptance. Keep CALL/CHANNEL/access/storage, ordinary backing, opaque/
+owned/mutable/capture negatives and the original work cap. Prior scalar receipt
+must retain its current premises through SCC convergence, not downgrade to a
+weaker producer. Root reviews/applies the joint producer+falsifier delta, then
+runs focused controls and unchanged canonical before bootstrap/install/memory.
 
 Limits: transaction snapshots do not prove all metadata rollback or backend
 fail-edge cleanup. General runtime match-pattern MIR emission and Set closure

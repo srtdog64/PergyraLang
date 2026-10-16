@@ -1,3 +1,26 @@
+    TEST("scalar spawn lacks a checked named-call boundary");
+    {
+        const char *source =
+            "async func Main() -> Void {\n"
+            "    let pending = spawn 42;\n"
+            "    let completed = await pending;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Checked spawn boundary publication failed"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("lambda call propagates lambda body summary");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -15,7 +38,8 @@
         lambda->data.lambda_expr.is_async = true;
         pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
-            ast_create_spawn_expression(make_number(9, 2));
+            ast_create_spawn_expression(make_call("EffectWorker",
+                (ASTNode *[]){ make_number(9, 2) }, 1, 2));
         ast_add_statement(lambda->data.lambda_expr.body, pending);
         ast_add_statement(lambda->data.lambda_expr.body,
             ast_create_await_expression(make_identifier("pending", 3)));
@@ -29,7 +53,18 @@
 
         /* Direct checker entry must receive the same stable identities as
          * semantic_analyze supplies for a parsed program. */
+        ASTNode *effect_worker = ast_create_function("EffectWorker");
+        effect_worker->data.func_decl.return_type = ast_create_type("Int");
+        effect_worker->data.func_decl.body = ast_create_block();
+        effect_worker->data.func_decl.param_count = 1;
+        effect_worker->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        effect_worker->data.func_decl.params[0] =
+            make_func_param("value", ast_create_type("Int"));
+        ASTNode *effect_return = ast_create_return_statement();
+        effect_return->data.return_stmt.value = make_identifier("value", 1);
+        ast_add_statement(effect_worker->data.func_decl.body, effect_return);
         ASTNode *program = ast_create_program();
+        ast_add_statement(program, effect_worker);
         ast_add_statement(program, func);
         bool assigned_ids = ast_assign_stable_ids(program);
         type_check_program(program, ctx);
@@ -137,9 +172,10 @@
     TEST("declared effects must cover derived body effects");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "/// @effects local\n"
             "async func Dispatch() -> Int {\n"
-            "    let pending = spawn 42;\n"
+            "    let pending = spawn EffectWorker(42);\n"
             "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
@@ -162,8 +198,9 @@
     TEST("signature effects must cover derived body effects");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "async func Dispatch() -> Int with effects local {\n"
-            "    let pending = spawn 42;\n"
+            "    let pending = spawn EffectWorker(42);\n"
             "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
@@ -186,8 +223,9 @@
     TEST("signature effects may exactly match derived body effects");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "async func Dispatch() -> Int with effects remote {\n"
-            "    let pending = spawn 42;\n"
+            "    let pending = spawn EffectWorker(42);\n"
             "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
@@ -208,9 +246,10 @@
     TEST("declared effects may exactly match derived body effects");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "/// @effects remote\n"
             "async func Dispatch() -> Int {\n"
-            "    let pending = spawn 42;\n"
+            "    let pending = spawn EffectWorker(42);\n"
             "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
@@ -252,9 +291,10 @@
     TEST("effect-flow: if branch effect joins into function contract");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "async func Dispatch(flag: Bool) -> Int with effects remote {\n"
             "    if flag {\n"
-            "        let pending = spawn 42;\n"
+            "        let pending = spawn EffectWorker(42);\n"
             "        let completed = await pending;\n"
             "    }\n"
             "    return 1;\n"
@@ -276,10 +316,11 @@
     TEST("effect-flow: match case effect joins into function contract");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "async func Dispatch(flag: Bool) -> Int with effects remote {\n"
             "    match flag {\n"
             "        case true:\n"
-            "            let pending = spawn 42;\n"
+            "            let pending = spawn EffectWorker(42);\n"
             "            let completed = await pending;\n"
             "            return 1;\n"
             "        default:\n"
@@ -303,9 +344,10 @@
     TEST("effect-flow: while body effect joins into function contract");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "async func Dispatch(flag: Bool) -> Int with effects remote {\n"
             "    while flag {\n"
-            "        let pending = spawn 42;\n"
+            "        let pending = spawn EffectWorker(42);\n"
             "        let completed = await pending;\n"
             "        return 1;\n"
             "    }\n"
@@ -328,9 +370,10 @@
     TEST("effect-flow: for body effect joins into function contract");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "async func Dispatch() -> Int with effects remote {\n"
             "    for i in 0..3 {\n"
-            "        let pending = spawn i;\n"
+            "        let pending = spawn EffectWorker(i);\n"
             "        let completed = await pending;\n"
             "    }\n"
             "    return 0;\n"
@@ -428,6 +471,7 @@
     TEST("effect-partial-order: disjoint branch effects join into combined contract");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
@@ -435,7 +479,7 @@
             "    if flag {\n"
             "        let s: SecureSlot<Bot> = Bot(1);\n"
             "    } else {\n"
-            "        let pending = spawn 42;\n"
+            "        let pending = spawn EffectWorker(42);\n"
             "        let completed = await pending;\n"
             "    }\n"
             "    return 1;\n"
@@ -503,6 +547,7 @@
     TEST("effect-conflict: non-adjacent branch combination still emits warning");
     {
         const char *source =
+            "func EffectWorker(value: Int) -> Int { return value; }\n"
             "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
@@ -514,7 +559,7 @@
             "        case 1:\n"
             "            return;\n"
             "        default:\n"
-            "            let pending = spawn 42;\n"
+            "            let pending = spawn EffectWorker(42);\n"
             "            let completed = await pending;\n"
             "            return;\n"
             "    }\n"

@@ -1,4 +1,5 @@
 #include "mir_source_local_expr_binding_facts.h"
+#include "mir_source_local_types.h"
 
 #include <string.h>
 
@@ -229,4 +230,70 @@ mir_source_local_owner_method_return_type_name(const MIRProgram *program,
     owner = mir_source_local_decl_header(program, owner_name);
     method = mir_source_local_header_method(owner, name);
     return method != NULL ? method->return_type_name : NULL;
+}
+
+static const char *
+mir_source_local_type_find_in_ast_node(ASTNode *node, const char *local_name)
+{
+    if (node == NULL || local_name == NULL)
+        return NULL;
+    switch (node->type) {
+    case AST_LET_DECL: {
+        const char *name = ast_let_name(node);
+        if (name != NULL && strcmp(name, local_name) == 0) {
+            ASTNode *type_node = ast_let_type(node);
+            if (type_node != NULL && type_node->type == AST_TYPE)
+                return ast_type_name(type_node);
+        }
+        return NULL;
+    }
+    case AST_BLOCK: {
+        size_t n = ast_block_statement_count(node);
+        for (size_t i = 0; i < n; i++) {
+            const char *type_name = mir_source_local_type_find_in_ast_node(
+                ast_block_statement(node, i), local_name);
+            if (type_name != NULL)
+                return type_name;
+        }
+        return NULL;
+    }
+    case AST_IF_STMT: {
+        const char *type_name = mir_source_local_type_find_in_ast_node(
+            ast_if_then_branch(node), local_name);
+        if (type_name != NULL)
+            return type_name;
+        return mir_source_local_type_find_in_ast_node(
+            ast_if_else_branch(node), local_name);
+    }
+    case AST_WHILE_LOOP:
+        return mir_source_local_type_find_in_ast_node(
+            ast_while_body(node), local_name);
+    case AST_FOR_LOOP:
+        return mir_source_local_type_find_in_ast_node(
+            ast_for_body(node), local_name);
+    case AST_WITH_STMT:
+        return mir_source_local_type_find_in_ast_node(
+            ast_with_body(node), local_name);
+    case AST_MATCH_STMT: {
+        size_t n = ast_match_case_count(node);
+        for (size_t i = 0; i < n; i++) {
+            ASTNode *match_case = ast_match_case_at(node, i);
+            if (match_case == NULL || match_case->type != AST_MATCH_CASE)
+                continue;
+            const char *type_name = mir_source_local_type_find_in_ast_node(
+                ast_match_case_body(match_case), local_name);
+            if (type_name != NULL)
+                return type_name;
+        }
+        return NULL;
+    }
+    default:
+        return NULL;
+    }
+}
+
+const char *
+mir_source_local_type_name_in_ast(ASTNode *body, const char *local_name)
+{
+    return mir_source_local_type_find_in_ast_node(body, local_name);
 }

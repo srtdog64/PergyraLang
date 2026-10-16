@@ -2933,6 +2933,108 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_pure_literal_backing_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Choose(inout output:String,text:String)->Void{let s=\"literal\";let n=9007199254740993L;let b=true;output=text;}"
+        "func Echo(ref text:String)->String{return text;}"
+        "func Save(ref output:Slot<String>)->Void{let s=\"literal\";let n=9007199254740993L;let b=true;Write(output,Echo(\"literal\"));}"
+        "func Main()->Void{var output=\"\";Choose(output,\"static\");}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *choose = ast_program_statement(program, 0);
+    ASTNode *save = ast_program_statement(program, 2);
+    ASTNode *call = ast_block_statement(ast_func_body(ast_program_statement(program, 3)), 1);
+    ASTNode *retaining = ast_block_statement(ast_func_body(save), 3);
+    SlotFunctionLookup lookup = {ctx, program};
+    SemanticParamPublicationView view;
+    CHECK(semantic_param_publication_admitted_view(ctx, &view));
+    PendingRefCall *loan = NULL;
+    for (size_t i = 0; i < ctx->function_param_publications->call_count; i++)
+        if (ctx->function_param_publications->calls[i].caller == save)
+            loan = &ctx->function_param_publications->calls[i];
+    CHECK(loan != NULL);
+    if (loan == NULL) goto cleanup;
+    unsigned mask = function_param_flow_summary_for_param(ctx, choose, 1);
+    CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    bool dependent = false;
+    CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+    ASTNode *escape = NULL;
+    CHECK(function_param_flow_return_loan_admitted(ctx, &view, loan, &escape));
+    for (unsigned consumer = 0; consumer < 2; consumer++) {
+        ASTNode *decl = consumer == 0 ? choose : save;
+        for (unsigned kind = 0; kind < 3; kind++) {
+            ASTNode *binding = ast_block_statement(ast_func_body(decl), kind);
+            ASTNode *literal = ast_let_initializer(binding);
+            PublishedNode *published = NULL;
+            FunctionParamPublicationStore *publications = ctx->function_param_publications;
+            for (size_t i = 0; i < publications->node_capacity; i++)
+                if (publications->nodes[i].node == literal) published = &publications->nodes[i];
+            CHECK(published != NULL && published->value_present);
+            if (published == NULL) continue;
+            ASTNode original = *literal;
+            PublishedNode saved = *published;
+            /* Payload, exact integer identity/flags, ID, shape and typed proof
+             * remain currentness obligations even without a backing node row. */
+            for (unsigned fault = 0; fault < (kind == 1 ? 9u : 5u); fault++) {
+                if (fault == 0) {
+                    if (kind == 0) literal->data.string.value = "different";
+                    if (kind == 1) literal->data.number.value += 8;
+                    if (kind == 2) literal->data.boolean.value = false;
+                }
+                if (fault == 1) literal->stable_id++;
+                if (fault == 2) literal->type = AST_IDENTIFIER;
+                if (fault == 3) published->value_present = false;
+                if (fault == 4) CHECK(ast_let_attach_initializer(binding, retaining));
+                if (fault == 5) literal->data.number.exact_long_value++;
+                if (fault == 6) literal->data.number.is_long = !literal->data.number.is_long;
+                if (fault == 7) literal->data.number.is_float = !literal->data.number.is_float;
+                if (fault == 8) literal->data.number.is_duration = !literal->data.number.is_duration;
+                if (consumer == 0) {
+                    CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+                    CHECK(function_param_flow_summary_for_param(ctx, choose, 1) == SLOT_PARAM_SUMMARY_ALL);
+                } else CHECK(!function_param_flow_return_loan_admitted(ctx, &view, loan, &escape));
+                CHECK(ast_let_attach_initializer(binding, literal));
+                *literal = original;
+                *published = saved;
+                if (consumer == 0) {
+                    CHECK(function_param_flow_summary_for_param(ctx, choose, 1) == mask);
+                    CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+                } else CHECK(function_param_flow_return_loan_admitted(ctx, &view, loan, &escape));
+            }
+        }
+    }
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, choose, &index));
+    if (index != NULL && index->backing_frames != NULL && index->backing_frames[1] != NULL) {
+        FunctionParamFlowBackingFact *frame = index->backing_frames[1];
+        for (unsigned axis = 0; axis < 2; axis++) {
+            size_t *width = axis == 0 ? &frame->origin_count : &frame->origin_words;
+            size_t saved = *width;
+            *width = 2;
+            CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent));
+            *width = saved;
+            CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 1, 0, &dependent) && dependent);
+        }
+    } else CHECK(false);
+    /* A literal cannot impersonate the registered CALL loan seed. */
+    PendingRefCall saved_loan = *loan;
+    loan->call = ast_let_initializer(ast_block_statement(ast_func_body(save), 0));
+    loan->call_id = ast_node_stable_id(loan->call);
+    CHECK(!semantic_param_publication_ref_call_current(ctx, loan));
+    CHECK(!function_param_flow_return_loan_admitted(ctx, &view, loan, &escape));
+    *loan = saved_loan;
+    CHECK(function_param_flow_return_loan_admitted(ctx, &view, loan, &escape));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_backing_binding_growth_case(const char *source)
 {
     Lexer *lexer = lexer_create(source);
@@ -3884,6 +3986,7 @@ int main(void)
     checked_failed_no_store_selection_epoch();
     checked_admitted_no_store_proof();
     checked_return_loan_currency();
+    checked_pure_literal_backing_currency();
     checked_return_loan_alias_currency();
     checked_backing_binding_growth();
     checked_backing_input_frames();

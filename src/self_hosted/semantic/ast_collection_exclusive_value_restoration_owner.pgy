@@ -4,7 +4,6 @@ import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_collection_storage_mutation_owner.pgy";
 import "ast_collection_formal_effect_readiness_owner.pgy";
 
-
 // The same typed selection is used by issuance and complete-inventory checking.
 func SemanticAstCollectionFocusPartForLocal(
     ref signatures: SemanticAstFunctionSignatureFacts, ref constructors: SemanticAstNominalConstructorFacts,

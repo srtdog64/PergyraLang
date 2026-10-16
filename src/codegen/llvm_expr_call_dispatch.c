@@ -455,47 +455,9 @@ emit_declared_callable:;
         }
     }
     if (args == NULL) {
-        args = pgy_arena_calloc(&ctx->scratch,
-            (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
-        if (args == NULL) {
-            result = llvm_call_error_recovery(ctx, node,
-                "LLVM call argument allocation failed");
+        if (!llvm_materialize_declared_call_args(node, ctx, callee_name,
+                argc, predeclared_value, &args, &result))
             goto cleanup;
-        }
-        for (size_t i = 0; i < argc; i++) {
-            LLVMTypeRef saved_ret = ctx->current_ret_type;
-            LLVMTypeRef expected_ty = NULL;
-            ASTNode *arg_node = ast_call_argument(node, i);
-            LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_node);
-            if (ctx->has_error)
-                goto cleanup;
-            if (arg_type == ctx->type_void) {
-                llvm_set_error_at_with_hints(ctx, arg_node,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_ALIGN_ARG_TYPE,
-                    "LLVM call '%s' cannot consume a Void expression as argument %zu",
-                    callee_name != NULL ? callee_name : "<call>",
-                    i + 1);
-                goto cleanup;
-            }
-            if (predeclared_value != NULL
-                && i < LLVMCountParams(predeclared_value)) {
-                expected_ty = LLVMTypeOf(
-                    LLVMGetParam(predeclared_value, (unsigned)i));
-            }
-            if (expected_ty != NULL
-                && LLVMGetTypeKind(expected_ty) == LLVMStructTypeKind) {
-                ctx->current_ret_type = expected_ty;
-            }
-            args[i] = llvm_emit_expression(arg_node, ctx);
-            ctx->current_ret_type = saved_ret;
-            if (args[i] == NULL) {
-                result = llvm_call_arg_error_recovery(ctx, node,
-                    callee_name, i);
-                goto cleanup;
-            }
-        }
         emitted_argc = (unsigned)argc;
     }
 

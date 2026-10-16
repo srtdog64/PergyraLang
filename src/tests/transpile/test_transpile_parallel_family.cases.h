@@ -13,7 +13,7 @@ test_parallel_family_emit(void)
 
         ASTNode *spawn_node = calloc(1, sizeof(ASTNode));
         spawn_node->type = AST_SPAWN_EXPR;
-        spawn_node->data.spawn_expr.function = make_identifier("DoWork", 1);
+        spawn_node->data.spawn_expr.function = make_call("DoWork", NULL, 0, 1);
 
         ASTNode *main_body = ast_create_block();
         ast_add_statement(main_body, ast_create_await_expression(spawn_node));
@@ -28,27 +28,30 @@ test_parallel_family_emit(void)
         ASTNode *prog = make_program(stmts, 2);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(prog, &hir, &rir);
+        EXPECT(mir != NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
-        /* The emitter consumes the AIR-carried lane fact per spawn site;
-           the unit test supplies the fact for its hand-built node. */
-        static PgySpawnLaneFactRow lane_rows[1];
-        static PgySpawnLanePlan lane_plan;
-        lane_rows[0].source_stable_id = ast_node_stable_id(spawn_node);
-        lane_rows[0].lane = PGY_LANE_WORKER_POOL;
-        lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
-        lane_plan.rows = lane_rows;
-        lane_plan.row_count = 1;
-        lane_plan.verified = true;
-        ctx->spawn_lane_plan = &lane_plan;
-        emit_program(ctx);
+        if (mir != NULL) {
+            /* The emitter consumes the AIR-carried lane fact per spawn site;
+               the unit test supplies the fact for its hand-built node. */
+            static PgySpawnLaneFactRow lane_rows[1];
+            static PgySpawnLanePlan lane_plan;
+            lane_rows[0].source_stable_id = ast_node_stable_id(spawn_node);
+            lane_rows[0].lane = PGY_LANE_WORKER_POOL;
+            lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
+            lane_plan.rows = lane_rows;
+            lane_plan.row_count = 1;
+            lane_plan.verified = true;
+            ctx->spawn_lane_plan = &lane_plan;
+            emit_program(ctx);
 
-        EXPECT(ctx->out->data != NULL);
-        EXPECT(strstr(ctx->out->data, "spawn") != NULL);
-        EXPECT(strstr(ctx->out->data, "pgy_spawn_wrapper") != NULL);
-        EXPECT(strstr(ctx->wrappers->data, "DoWork") != NULL);
-        EXPECT(strstr(ctx->out->data, "PGY_LANE_WORKER_POOL") != NULL);
+            EXPECT(ctx->out->data != NULL);
+            EXPECT(strstr(ctx->out->data, "spawn") != NULL);
+            EXPECT(strstr(ctx->out->data, "pgy_spawn_wrapper") != NULL);
+            EXPECT(strstr(ctx->wrappers->data, "DoWork") != NULL);
+            EXPECT(strstr(ctx->out->data, "PGY_LANE_WORKER_POOL") != NULL);
+        }
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

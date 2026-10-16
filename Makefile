@@ -765,6 +765,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_builtin_dispatch.c \
                    $(CODEGEN_DIR)/transpiler_expr_core_builtins_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_member_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_call_member_slot.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_spawn_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_core_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_type_infer.c \
@@ -1028,6 +1029,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_generic_method_specialization_validate.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
+                   $(COMPILER_DIR)/mir_branch_collection_transitions.c \
                    $(COMPILER_DIR)/collection_owned_local_transition_owner.c \
                    $(COMPILER_DIR)/hir_collection_owned_local_transition_adapter.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
@@ -1651,6 +1653,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_generic_method_specialization.o \
                    $(BUILD_DIR)/compiler/mir_generic_method_specialization_validate.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
+                   $(BUILD_DIR)/compiler/mir_branch_collection_transitions.o \
                    $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_provenance.o \

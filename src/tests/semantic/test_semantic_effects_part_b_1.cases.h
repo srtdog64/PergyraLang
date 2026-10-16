@@ -67,7 +67,8 @@
 
         ASTNode *pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
-            ast_create_spawn_expression(make_number(42, 2));
+            ast_create_spawn_expression(make_call("EffectWorker",
+                (ASTNode *[]){ make_number(42, 2) }, 1, 2));
         ast_add_statement(func->data.async_func_decl.body, pending);
 
         ASTNode *send = ast_create_channel_send(make_identifier("ch", 3),
@@ -81,7 +82,18 @@
         ret->data.return_stmt.value = make_number(1, 4);
         ast_add_statement(func->data.async_func_decl.body, ret);
 
+        ASTNode *effect_worker = ast_create_function("EffectWorker");
+        effect_worker->data.func_decl.return_type = ast_create_type("Int");
+        effect_worker->data.func_decl.body = ast_create_block();
+        effect_worker->data.func_decl.param_count = 1;
+        effect_worker->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        effect_worker->data.func_decl.params[0] =
+            make_func_param("value", ast_create_type("Int"));
+        ASTNode *effect_return = ast_create_return_statement();
+        effect_return->data.return_stmt.value = make_identifier("value", 1);
+        ast_add_statement(effect_worker->data.func_decl.body, effect_return);
         ASTNode *program = ast_create_program();
+        ast_add_statement(program, effect_worker);
         ast_add_statement(program, func);
         EXPECT(ast_assign_stable_ids(program));
         type_check_program(program, ctx);
@@ -286,7 +298,18 @@
     TEST("method call records callable declaration body summary");
     {
         SemanticContext *ctx = semantic_context_create();
+        ASTNode *effect_worker = ast_create_function("EffectWorker");
+        effect_worker->data.func_decl.return_type = ast_create_type("Int");
+        effect_worker->data.func_decl.body = ast_create_block();
+        effect_worker->data.func_decl.param_count = 1;
+        effect_worker->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        effect_worker->data.func_decl.params[0] =
+            make_func_param("value", ast_create_type("Int"));
+        ASTNode *effect_return = ast_create_return_statement();
+        effect_return->data.return_stmt.value = make_identifier("value", 1);
+        ast_add_statement(effect_worker->data.func_decl.body, effect_return);
         ASTNode *program = ast_create_program();
+        ast_add_statement(program, effect_worker);
         ASTNode *vault = ast_create_subject("Vault");
         ASTNode *method = ast_create_function("Sync");
         ASTNode *call;
@@ -306,7 +329,8 @@
         method->data.func_decl.params[0]->mode = PARAM_MODE_REF;
         ASTNode *pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
-            ast_create_spawn_expression(make_number(42, 4));
+            ast_create_spawn_expression(make_call("EffectWorker",
+                (ASTNode *[]){ make_number(42, 4) }, 1, 4));
         ast_add_statement(method->data.func_decl.body, pending);
         ast_add_statement(method->data.func_decl.body,
             ast_create_await_expression(make_identifier("pending", 5)));
@@ -328,6 +352,7 @@
         ctx->program_root = program;
         EXPECT(semantic_build_host_decl_index(ctx, program));
         EXPECT(semantic_param_publication_begin(ctx));
+        type_check_func_decl(effect_worker, ctx);
         /* This focused summary test constructs the method AST directly. Keep
          * the surrounding checker in an async-capable context so the joined
          * spawn remains valid without changing the method/action union shape. */
@@ -372,12 +397,32 @@
         lambda->data.lambda_expr.is_async = true;
         pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
-            ast_create_spawn_expression(make_number(42, 2));
+            ast_create_spawn_expression(make_call("EffectWorker",
+                (ASTNode *[]){ make_number(42, 2) }, 1, 2));
         ast_add_statement(lambda->data.lambda_expr.body, pending);
         ast_add_statement(lambda->data.lambda_expr.body,
             ast_create_await_expression(make_identifier("pending", 3)));
         ret = ast_create_return_statement();
         ast_add_statement(lambda->data.lambda_expr.body, ret);
+
+        ASTNode *effect_worker = ast_create_function("EffectWorker");
+        effect_worker->data.func_decl.return_type = ast_create_type("Int");
+        effect_worker->data.func_decl.body = ast_create_block();
+        effect_worker->data.func_decl.param_count = 1;
+        effect_worker->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        effect_worker->data.func_decl.params[0] =
+            make_func_param("value", ast_create_type("Int"));
+        ASTNode *effect_return = ast_create_return_statement();
+        effect_return->data.return_stmt.value = make_identifier("value", 1);
+        ast_add_statement(effect_worker->data.func_decl.body, effect_return);
+        ASTNode *program = ast_create_program();
+        ast_add_statement(program, effect_worker);
+        ast_add_statement(program, lambda);
+        EXPECT(ast_assign_stable_ids(program));
+        ctx->program_root = program;
+        EXPECT(semantic_build_host_decl_index(ctx, program));
+        EXPECT(semantic_param_publication_begin(ctx));
+        type_check_func_decl(effect_worker, ctx);
 
         lambda_type = type_check_expression(lambda, ctx);
 
@@ -397,7 +442,7 @@
         EXPECT(ctx->current_function_body_summary == BODY_SUMMARY_SENDS_CHANNEL);
 
         semantic_context_destroy(ctx);
-        ast_destroy(lambda);
+        ast_destroy(program);
     }
 
     TEST("lambda body summary does not leak to enclosing function");
@@ -417,7 +462,8 @@
         lambda->data.lambda_expr.is_async = true;
         pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
-            ast_create_spawn_expression(make_number(7, 2));
+            ast_create_spawn_expression(make_call("EffectWorker",
+                (ASTNode *[]){ make_number(7, 2) }, 1, 2));
         ast_add_statement(lambda->data.lambda_expr.body, pending);
         ast_add_statement(lambda->data.lambda_expr.body,
             ast_create_await_expression(make_identifier("pending", 3)));
@@ -427,7 +473,18 @@
         decl->data.let_decl.initializer = lambda;
         ast_add_statement(func->data.func_decl.body, decl);
 
+        ASTNode *effect_worker = ast_create_function("EffectWorker");
+        effect_worker->data.func_decl.return_type = ast_create_type("Int");
+        effect_worker->data.func_decl.body = ast_create_block();
+        effect_worker->data.func_decl.param_count = 1;
+        effect_worker->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        effect_worker->data.func_decl.params[0] =
+            make_func_param("value", ast_create_type("Int"));
+        ASTNode *effect_return = ast_create_return_statement();
+        effect_return->data.return_stmt.value = make_identifier("value", 1);
+        ast_add_statement(effect_worker->data.func_decl.body, effect_return);
         ASTNode *program = ast_create_program();
+        ast_add_statement(program, effect_worker);
         ast_add_statement(program, func);
         EXPECT(ast_assign_stable_ids(program));
         type_check_program(program, ctx);

@@ -438,3 +438,181 @@ cleanup:
     lexer_destroy(lexer);
     return failed;
 }
+static int
+run_option_coalesce_ast_print_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    Log(value ?? 0);\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+
+    printf("\n=== Test: Option Coalesce AST Print ===\n");
+
+    if (lexer == NULL || parser == NULL || parser_has_error(parser)) {
+        printf("[FAIL] option coalesce parse failed: %s\n",
+            parser != NULL ? parser_get_error(parser) : "<parser unavailable>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_print_contains(ast, "Log((value ?? 0))")) {
+        printf("[FAIL] option coalesce operator was not preserved in AST print\n");
+        failed = 1;
+    }
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_ast_program_splice_take_test(void)
+{
+    ASTNode *program = ast_create_program();
+    ASTNode *replacement = ast_create_program();
+    ASTNode *empty = ast_create_program();
+    ASTNode *import_node = ast_create_import_declaration("part.pgy");
+    ASTNode *tail = ast_create_identifier("tail");
+    ASTNode *first = ast_create_identifier("first");
+    ASTNode *second = ast_create_identifier("second");
+    int failed = 0;
+
+    printf("\n=== Test: AST Program Splice Ownership ===\n");
+
+    if (program == NULL || replacement == NULL || empty == NULL
+        || import_node == NULL || tail == NULL || first == NULL
+        || second == NULL
+        || !ast_program_append_statement(program, import_node)
+        || !ast_program_append_statement(program, tail)
+        || !ast_program_append_statement(replacement, first)
+        || !ast_program_append_statement(replacement, second)) {
+        printf("[FAIL] failed to build splice fixture\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast_program_splice_take(program, 9, replacement)
+        || ast_program_statement_count(program) != 2
+        || ast_program_statement_count(replacement) != 2) {
+        printf("[FAIL] rejected splice mutated either owner\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_program_splice_take(program, 0, replacement)
+        || ast_program_statement_count(program) != 3
+        || ast_program_statement_count(replacement) != 0
+        || ast_program_statement(program, 0) != first
+        || ast_program_statement(program, 1) != second
+        || ast_program_statement(program, 2) != tail) {
+        printf("[FAIL] replacement statements were not transferred in order\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_program_splice_take(program, 1, empty)
+        || ast_program_statement_count(program) != 2
+        || ast_program_statement(program, 0) != first
+        || ast_program_statement(program, 1) != tail) {
+        printf("[FAIL] empty replacement did not remove one statement\n");
+        failed = 1;
+    }
+
+cleanup:
+    ast_destroy(program);
+    ast_destroy(replacement);
+    ast_destroy(empty);
+    return failed;
+}
+
+static int
+run_reserved_slice_expression_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let part = xs[1..3];\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Slice Range Expression Parses ===\n");
+
+    if (parser == NULL || parser_has_error(parser)) {
+        printf("[FAIL] expected slice range expression to parse, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_reserved_cast_type_test_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let narrowed = value as Player;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Cast Expression Parses ===\n");
+
+    /* `expr as Type` is now implemented and builds an AST_CAST node; the
+     * parser must accept it (semantic analysis validates the target). */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected cast expression to parse, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_type_test_expression_parses_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let i: Int = 5;\n"
+        "    let b = i is Int;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Type-Test Expression Parses ===\n");
+
+    /* `expr is Type` is now implemented and builds an AST_TYPE_TEST node; the
+     * parser must accept it (semantic analysis validates the target). */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected type-test expression to parse, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}

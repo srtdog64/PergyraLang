@@ -38,6 +38,9 @@ LLVMValueRef llvm_void_expression_placeholder(LLVMGenCtx *ctx,
                                               const char *owner);
 LLVMValueRef llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
                                           ASTNode **arg_nodes, size_t argc);
+bool llvm_materialize_declared_call_args(ASTNode *node, LLVMGenCtx *ctx,
+    const char *callee_name, size_t argc, LLVMValueRef predeclared_value,
+    LLVMValueRef **args_out, LLVMValueRef *failure);
 LLVMValueRef llvm_array_data_ptr(LLVMGenCtx *ctx, LLVMValueRef array_value);
 LLVMValueRef llvm_array_length_i64(LLVMGenCtx *ctx, LLVMValueRef array_value);
 LLVMValueRef llvm_build_option_value(LLVMGenCtx *ctx, LLVMTypeRef inner_ty,

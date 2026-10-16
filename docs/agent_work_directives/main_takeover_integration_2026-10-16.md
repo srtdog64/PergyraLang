@@ -778,8 +778,123 @@ unchanged canonical remains RED19.82s/peak769804KiB, first15:6 work4096,
 decision is the already-planned complete current census / controlled shared-
 body geometry measurement, not another language feature or owner family.
 The old matrix files would revert current P0 claims/output currency; only the
-reviewed geometry delta may be prepared in scratch. No matrix implementation
-or run has occurred. Full bootstrap/driver/memory/published CI remain OPEN.
+reviewed geometry delta may be prepared in scratch. Full bootstrap/driver/
+memory/published CI remain OPEN.
+
+Published prerequisite checkpoint:795f71423, independently frozen-reviewed
+without a newly found unsafe MIR admission in that bounded P0 slice. Exact-SHA
+CI38855687075 is RED at the same Linux bootstrap work4096 primary; dependent
+seed/install jobs are not passes. Root's current diagnostic reconfirms identical
+3188 keys/4273 typed signatures and202 cold failures, incomplete0. Its original
+warm first-ref stage charges E86+B3728+G282, dropped0; later Type-writing
+consumers do not execute. Source/build/bin/.d restoration is byte-identical.
+The second diagnostic completed and is rejected:406 failures,28 resolved/232
+introduced/174 retained, identical4273 signatures/3188 keys,144.37s. Both runs
+restored all source/build/bin/.d bytes. Retain the per-input geometry; no matrix
+source or scratch test adaptation is integrated. Detailed bounded observations:
+[`geometry comparison`](../audits/param_flow_geometry_comparison_2026-10-16.md).
+
+Reached independent CI fixture repair objective: preserve original effect/
+body-summary/contract/branch-warning assertions on supported named spawn calls.
+The16 failing macOS assertions (3206 pass) share scalar-spawn test inputs,
+which both real emitters already reject. Chain: named routine/call typing ->
+checked deferred publication -> final effect/capability seal -> existing effect
+assertions. C owns only the two existing effect fixture parts; root integrates
+and verifies. Include a real typed top-level pure worker in each directly built
+program/host-index/pending-routine boundary, and use that call rather than a
+scalar as the spawn target. Keep all original assertions, await/join behavior,
+effect negatives and lambda/method isolation expectations. Forbidden: allowing
+an unchecked scalar/value target, bypassing publication, relaxing expectations,
+or accepting arbitrary recovery diagnostics as success. First gate is the
+complete native semantic suite and fixture-isolation target; then unchanged
+P0 phase/summary/worker controls. If a corrected input exposes a separate
+missing fact, map that producer/consumer before changing production code.
+
+Root repeated the original795 native semantic failure3206/16, then only the
+two-fixture correction:3228/0 and concurrent fixture-isolation PASS. The next
+actual gate, test-include699, finds five inherited overcaps in AIR/MIR/parser
+fixtures, not the changed effect parts. B owns only coherent contiguous test
+placement/include wiring; original order/tokens/assertions/caps stay fixed.
+Root verifies that gate and affected semantic execution before publication.
+
+Follow-up actual gates:all size categories now pass, including the final
+MIR local-type641->575 move into the existing AST binding-fact component298.
+The moved functions and full residuals are exact; borrowed AST type-name
+lifetime and the existing legacy consumer are unchanged. No new owner is
+introduced. Test-transpile separately exposed a bare-name spawn fixture:
+only that unit now supplies a real checked call and strict MIR, retaining its
+original five output assertions. Root observed1009/0, not synthetic success.
+
+Next bounded cost repair objective: remove redundant backing-node allocation/
+linear lookup/stamps for the exact pure leaves STRING/NUMBER/BOOLEAN only.
+Measured blocker remains the current795 canonical work4096 demand, whose
+3728 B charges are distinct row/node work, not origin/consumer double charges.
+Literal contribution and savings are Unknown until the actual gate reruns.
+Existing complete shared claims already own their identity, shape and payload;
+ordinary frames and the independent loan both have exactly one origin word.
+Exact registered loan seeds are CALL nodes, never literals. A owns only
+backing_dependencies.c: preserve claim recording and all outer current checks,
+require one origin/count and node != loan seed, and return immutable zero bits
+without a per-literal row. Consumers make the same checked leaf a no-op. All
+nonliteral child traversal, output columns65+, read-growth, incomplete/pending,
+callable/capture and transaction checks remain unchanged. No general scalar/
+zero-origin subtree skipping, missing-proof permission, new owner/cache, query
+warming/reordering or charge-only deletion is allowed. C owns focused direct
+semantic falsifiers in the existing phase unit; root alone builds/executes.
+Falsifiers: literal ID/shape/payload/flags and typed/current evidence corrupt/
+restore through cached summary/output and the independent loan, false literal
+loan seed, wrong origin width, and an eager retaining call replacing a leaf.
+Acceptance: phase unit, original4096/4097 and P0 summary/worker controls, Map/
+IR/component, unchanged full canonical. A smaller first failure is not closure.
+
+Root's exact leaf repair result:phase5248/0, summary/P0/worker and unchanged
+4096/4097 controls PASS10.69s. Full canonical remains RED17.90s,
+peak769560KiB, same15:6 work4096/18410 cascading errors. This removed a real
+per-literal operation but did not unblock admission; no cold-census reduction
+or driver-memory result is claimed. Final physical-component build SHA256
+21a4b6e14750aea167fa99cdd51299019060789b101fb600a75d7a9eaaff93b6:
+all size gates,phase5248/MIR327/semantic3228 PASS; Map24/58+IR19.73s,
+MIR ownership projection0.63s, C/LLVM Slot4-positive/7-negative9.86s,
+build inventory16.41s PASS. Bootstrap/install/full DRV-2 memory remain OPEN.
+
+The next original size gate also reaches four inherited production699 overcaps.
+B's bounded placement plan keeps all logical owners and their facts/stores:
+MIR ABI-layout output moves to its existing runtime-ABI component; the complete
+collection transition state/validator becomes a physical component of the same
+branch-fact owner, with its two shared queries defined once in the original
+core and declared privately; Slot member Read/Write/Release emission moves as
+one responsibility with exact handled/error/fallthrough and receiver/value
+ordering; LLVM argument materialization moves to the existing call-args owner
+with explicit success/output and saved return-context restoration. Only two
+new production translation units and required private declarations/build wiring
+are allowed. No new semantic family/registry/cache, public contract, fallback,
+budget or line-limit change. Root verifies real native/LLVM build, size gates,
+MIR facts/transitions and C/LLVM Slot behavior after reviewing the full delta.
+
+Candidate next join (scratch preparation first, not admission): consume the
+existing current closed no-output graph together with the current Void/physical
+primitive return header, excluding private stores, anchored sources, own/inout
+formals and mutable outputs. The two premises together can remove only RETURN
+backing; graph alone or scalar result alone cannot. Keep named eager access/
+escape collection, CALL/CHANNEL and array-storage facts unchanged. Use an
+explicit internal output-producer reason for this join, not a naked empty row:
+cached summary/output queries must require its ready row, current scalar header,
+complete topology and the same closed graph. Missing/changed producer or ready
+fact fails closed, including the early no-output-ready path. The ordinary
+BACKING_FRAME and String/aggregate/unknown/capture/mutation paths remain.
+A prepares only summary/internal-header scratch delta; C prepares phase-unit
+falsifiers in scratch, while root verifies/checkpoints the current repair.
+No production application before root reviews both complete deltas. Required
+counterexample: retained `Hold(Echo(input))` followed by a physical return;
+plus current return Type/AST/producer/readiness corruption and restoration,
+SCC late effects, private stores, missing/opaque facts, and original4096/4097.
+Once issued, the new scalar reason must survive later SCC passes only while
+the full live conjunction still holds; missing premises explicitly refuse,
+not silently downgrade to the weaker ordinary selector. The typed scalar
+classification remains owned by the current publication header. Scratch
+summary measures604/599, so its existing entry-reservation lifecycle function
+moves verbatim to the existing store allocation/retirement component before
+application. No new semantic owner/file or cap/format compression is allowed.
 
 ## Observations
 

@@ -440,3 +440,128 @@ test_air_check_drift_is_verify_compatibility_wrapper(void)
     free(error);
     return ok;
 }
+static bool
+test_air_collects_hir_and_rir_evidence(void)
+{
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "ShipOrder", .ast = NULL },
+    };
+    const char *authorized_by[] = { "shipper" };
+    DIRIntentStep steps[] = {
+        {
+            .index = 0,
+            .name = "reserve",
+            .where_type_name = "WarehouseZone",
+            .authorized_by = authorized_by,
+            .authorized_by_count = 1,
+        },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    HIRBasicBlock reserve_blocks[] = {
+        { .id = 0, .terminator_kind = HIR_BLOCK_RETURN, .is_reachable = true },
+    };
+    HIRRoutine routines[] = {
+        {
+            .kind = HIR_TOPLEVEL_FUNCTION,
+            .owner_name = "ShipOrder",
+            .name = "reserve",
+            .has_cfg = true,
+            .cfg = {
+                .blocks = reserve_blocks,
+                .block_count = 1,
+                .entry_block = 0,
+            },
+        },
+    };
+    HIRProgram hir = {
+        .routines = routines,
+        .routine_count = 1,
+    };
+    RIRFact facts[] = {
+        {
+            .kind = RIR_FACT_AUTHORITY,
+            .name = "shipper",
+            .resource_kind = RIR_RESOURCE_AUTHORITY_HANDLE,
+            .state = RIR_STATE_AUTHORIZED,
+        },
+    };
+    RIROp ops[] = {
+        { .kind = RIR_OP_AUTHORIZE, .subject = "shipper" },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_ZONE,
+            .owner_name = "ShipOrder",
+            .name = "WarehouseZone",
+            .facts = facts,
+            .fact_count = 1,
+            .ops = ops,
+            .op_count = 1,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    const char *dir_owner_before = dir.nodes[0].name;
+    const char *dir_step_before = dir.intents[0].steps[0].name;
+    const char *dir_where_before = dir.intents[0].steps[0].where_type_name;
+    const char *dir_authority_before = dir.intents[0].steps[0].authorized_by[0];
+    const char *hir_owner_before = hir.routines[0].owner_name;
+    const char *hir_name_before = hir.routines[0].name;
+    RIRScopeKind rir_kind_before = rir.scopes[0].kind;
+    const char *rir_owner_before = rir.scopes[0].owner_name;
+    const char *rir_name_before = rir.scopes[0].name;
+    RIROpKind rir_op_before = rir.scopes[0].ops[0].kind;
+    const char *rir_op_subject_before = rir.scopes[0].ops[0].subject;
+    RIRFactKind rir_fact_before = rir.scopes[0].facts[0].kind;
+    const char *rir_fact_name_before = rir.scopes[0].facts[0].name;
+    char *error = NULL;
+    AIRProgram *air = air_synthesize(&hir, &dir, &rir, &error);
+    bool ok = air != NULL
+        && air->hir_routine_evidence_count == 1
+        && air->hir_cfg_evidence_count == 1
+        && air->rir_boundary_evidence_count == 1
+        && air->rir_authority_evidence_count == 1
+        && air->boundaries[0].has_hir_routine_evidence
+        && air->boundaries[0].has_hir_cfg_evidence
+        && air->boundaries[0].has_rir_boundary_evidence
+        && air->boundaries[0].has_rir_authority_evidence
+        && air->boundaries[0].hir_routine_evidence_name != NULL
+        && strcmp(air->boundaries[0].hir_routine_evidence_name, "reserve") == 0
+        && air->boundaries[0].rir_boundary_evidence_scope != NULL
+        && strcmp(air->boundaries[0].rir_boundary_evidence_scope, "WarehouseZone") == 0
+        && air->boundaries[0].rir_authority_evidence_name != NULL
+        && strcmp(air->boundaries[0].rir_authority_evidence_name, "shipper") == 0
+        && dir.node_count == 1
+        && dir.intent_count == 1
+        && dir.intents[0].step_count == 1
+        && dir.nodes[0].name == dir_owner_before
+        && dir.intents[0].steps[0].name == dir_step_before
+        && dir.intents[0].steps[0].where_type_name == dir_where_before
+        && dir.intents[0].steps[0].authorized_by[0] == dir_authority_before
+        && hir.routine_count == 1
+        && hir.routines[0].owner_name == hir_owner_before
+        && hir.routines[0].name == hir_name_before
+        && rir.scope_count == 1
+        && rir.scopes[0].kind == rir_kind_before
+        && rir.scopes[0].owner_name == rir_owner_before
+        && rir.scopes[0].name == rir_name_before
+        && rir.scopes[0].op_count == 1
+        && rir.scopes[0].ops[0].kind == rir_op_before
+        && rir.scopes[0].ops[0].subject == rir_op_subject_before
+        && rir.scopes[0].fact_count == 1
+        && rir.scopes[0].facts[0].kind == rir_fact_before
+        && rir.scopes[0].facts[0].name == rir_fact_name_before;
+    air_destroy(air);
+    free(error);
+    return ok;
+}

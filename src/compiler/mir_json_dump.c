@@ -232,46 +232,6 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
     mir_json_emit_str_or_null(out, mir_routine_return_type_name(routine));
 }
 
-/* ABI layout is a MIR-owned fact.  Carry the complete static row across the
- * JSON boundary instead of asking a self-hosted consumer to rediscover it
- * from the source type or a process-local ABI table.  The numeric
- * representation is intentional: it is the enum value hashed by
- * mir_abi_layout_id, so the wire row remains lossless and target-neutral. */
-void
-mir_json_emit_abi_layout_value(FILE *out, const MIRTypeLayout *layout)
-{
-    if (layout == NULL) {
-        fputs("null", out);
-        return;
-    }
-
-    fputs("{\"type\":", out);
-    mir_json_emit_str_or_null(out, layout->abi_type_name);
-    fprintf(out, ",\"size\":%u,\"align\":%u,\"fields\":[",
-            layout->size_bytes, layout->align_bytes);
-    for (uint16_t i = 0; i < layout->field_count; i++) {
-        const MIRFieldLayout *field = &layout->fields[i];
-        if (i > 0)
-            fputc(',', out);
-        fputs("{\"name\":", out);
-        mir_json_emit_str_or_null(out, field->field_name);
-        fprintf(out, ",\"offset\":%u,\"size\":%u,\"align\":%u}",
-                field->offset, field->field_size, field->field_align);
-    }
-    fputs("],\"runtime_fn\":", out);
-    mir_json_emit_str_or_null(out, layout->runtime_fn);
-    fputs(",\"inner_c_type\":", out);
-    mir_json_emit_str_or_null(out, layout->inner_c_type);
-    fprintf(out, ",\"representation\":%u,\"discriminant\":",
-            (unsigned)layout->representation);
-    mir_json_emit_str_or_null(out, layout->discriminant_field_name);
-    fprintf(out, ",\"primary_tag\":%" PRId32
-                ",\"secondary_tag\":%" PRId32 ",\"niche_none_pattern\":",
-            layout->primary_tag_value, layout->secondary_tag_value);
-    mir_json_emit_str_or_null(out, layout->niche_none_pattern);
-    fputc('}', out);
-}
-
 static void
 mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
 {

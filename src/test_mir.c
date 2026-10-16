@@ -885,6 +885,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_b_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_b_3.cases.h"
 #include "tests/mir/test_mir_lowering_part_c.cases.h"
+#include "tests/mir/test_mir_lowering_source_local_facts.cases.h"
 #include "tests/mir/test_mir_lowering_part_c_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_d.cases.h"
 #include "tests/mir/test_mir_lowering_part_d_2.cases.h"
@@ -895,6 +896,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_i.cases.h"
 #include "tests/mir/test_mir_runtime_call_abi.cases.h"
 #include "tests/mir/test_mir_lexical_binding_identity.cases.h"
+#include "tests/mir/test_mir_lexical_binding_identity_part_2.cases.h"
 #include "tests/mir/test_mir_collection_ownership_validation.cases.h"
 
 static void

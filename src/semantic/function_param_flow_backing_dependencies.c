@@ -122,6 +122,17 @@ static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, ui
 static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL) return NULL;
+    if (node != state->loan_seed &&
+        (node->type == AST_STRING || node->type == AST_NUMBER || node->type == AST_BOOLEAN)) {
+        /* Pure leaves have no input backing; shared claims own their currency. */
+        static const uint64_t zero = 0;
+        if (state->fact->origin_count != 1 || state->fact->origin_words != 1 ||
+            ast_node_stable_id(node) == 0 ||
+            !function_param_flow_claim_record(state->store->ctx, state->fact->claims, node)) {
+            state->fact->complete = false; return NULL;
+        }
+        return &zero;
+    }
     size_t at = backing_node(state, node);
     if (at == SIZE_MAX || !backing_work(state, at)) return NULL;
     FunctionParamFlowBackingFact *fact = state->fact;
@@ -183,6 +194,14 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 static void backing_consumers(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL) return;
+    if (node != state->loan_seed &&
+        (node->type == AST_STRING || node->type == AST_NUMBER || node->type == AST_BOOLEAN)) {
+        if (state->fact->origin_count != 1 || state->fact->origin_words != 1 ||
+            ast_node_stable_id(node) == 0 ||
+            !function_param_flow_claim_record(state->store->ctx, state->fact->claims, node))
+            state->fact->complete = false;
+        return;
+    }
     size_t at = backing_node(state, node);
     if (at == SIZE_MAX || !backing_work(state, at)) return;
     FunctionParamFlowBackingFact *fact = state->fact;
