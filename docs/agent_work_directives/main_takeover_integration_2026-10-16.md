@@ -407,6 +407,76 @@ cache/query/parallel optimisation work. Root alone builds the scratch observer
 and restores production byte-identically. This remains the same blocked
 canonical rung, not substitution progress.
 
+Measured blocking operation (source50f93a7dc/binaryf25, unchanged canonical):
+first warm failure demand490, active1002..1075, routine
+SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes. Of4096 charges,
+74 are body evaluations,162 no-store membership visits,3860 backing node
+work; backing has1530 distinct routine/node pairs but3860 frame/node pairs.
+Second observation distinguishes1054 charges AFTER the frame already has an
+explicit current unsupported witness (ALL/unproved, no output permission),
+2806 ordinary backing charges,0 merely incomplete-frame charges. Receipts
+`.tmp/p0-work-trace.mAULnC/` and `.tmp/p0-work-tail.dXGSIA/`,20.60/21.05s,
+1163912/1163988KiB, diagnostic exit86/no MIR; production restoration is exact.
+
+Bounded repair objective: stop only that already-negative traversal in the
+existing sparse backing owner. Priority is unchanged fail-closed semantics,
+current unsupported-call witness/identity, final output/loan refusal, then
+saved work. Owner: backing_dependencies; legitimate last consumers remain
+unproved_current/output_current and returned-loan admission. A current
+analysis_unsupported frame is a refusal, NEVER freshness or empty outputs.
+Do not short-circuit merely pending/incomplete/building frames, omit full
+index claim currency, alter work charging or budget, share formal identities,
+cache permission, or subtract an effect. Add entry guards to destination,
+origin and eager-consumer traversal only for analysis_unsupported. The summary
+must remain ALL/unproved with outputs unready and the sealed refusal witness
+current; changed witness/argument/child facts must still invalidate it.
+Use one implementation lane sequentially, not parallel optimisation tracks.
+Acceptance: strict existing4096/4097, currentness and runtime/negative gates;
+new tail-work falsifier shows exact same refusal without post-refusal backing
+nodes. Root reruns unchanged canonical and complete fixed-input census before
+claiming any improvement; resolved budget failures do not imply admission.
+
+Root before-falsifier on unchangedf25: phase7139/1, only tail-node absence
+fails, receipt `.tmp/p0-negative-tail-before.vJ18ZQ/`. After the three explicit
+negative guards, binarybd673e807aa0f755bfe90439a97dd19c9e433aa6f0fd6caf343d2c224a364b09
+passes phase7145/0, LLVM140/0, strict summary/4096/4097/caps. Fault controls
+cover first witness identity/argument AND skipped-tail ID/value/Type; incomplete,
+pending and building nonunsupported controls still traverse and charge work.
+Whole native327/3228/1009 PASS (28.25s/266624KiB), Map24 backend pairs/58
+negatives/reached IR/caps/component/generator PASS (41.16s/98292KiB), Slot
+goldens and three C+LLVM output pairs PASS. Receipts
+`.tmp/p0-destination-candidate.j2MWIz/`, `.tmp/p0-result-runtime.XP1JWS/`,
+adjacent `p0-negative-tail-{native,chain,slot}.log`. Actual unchanged bootstrap
+still fails before gen0 (29.22s/1164380KiB), first failure now REQUIRED backing
+at39:6 rather than WORK at45:6;18410 cascade diagnostics remain. No V1/CI
+closure. Complete4273-signature/3188-key same-input census is748 failed:
+702 work,36 required backing,10 recursive;110 resolved/0 newly failed/0 mask
+changes againstf25, incomplete0. All110 become current conservative TOP/
+unproved, NOT new admitted programs. Nonfailed2440 includes771 TOP and774
+unproved. Receipt `.tmp/p0-negative-tail-census.9fzH4u/`,108.80s/1164068KiB,
+exact production restoration. The810/858-style counts are query failures,
+not the number of compiler ownership errors or whole canonical admissions.
+
+Next BLOCKED fact/owner/last-consumer/falsifier: actual warm demand531 fails
+required backing for CodegenGenericSpecializationFactsFromSemantic, with470
+work (not4096). Root first-transition trace identifies CIdentifier input0,
+local129 AllocatorResult(): current typed Allocator, no origin premise, no
+argument. The destination consumer only knows declared zero-formal result
+proof and cannot prove this builtin resource birth. Trace
+`.tmp/p0-backing-first.qTNXtA/`,19.64s/1164040KiB, exit86/no MIR, exact
+restore; first-owner trace `.tmp/p0-negative-tail-first.JeMMoE/` is16.95s.
+Survey the ENTIRE existing allocator/builder birth -> mutation -> Finish String
+result -> AllocatorDestroy -> generic-name aggregate publication chain before
+choosing a repair. Do not infer builtin freshness from argc0 or make resource
+handles physical/copy-escapable. Existing typed owner/let birth and publication
+seams must own the premise, exact operation/Type/argument/consumption currency
+must remain fail-closed. Missing contract is Unknown, not permission.
+
+The current scoped red-team request is frozen at lNEApm/binarybd673/source
+diff694f1e5320aac5899918cb981eccf527af2d67ed44a1676f1a3bbabdbfb6225a,
+not the live overlay. Review is read-only/analyze-only and pending; root did
+not change the review chat's model/settings or grant build/process authority.
+
 Frozen declared-result independent review only covers committed binary71,
 snapshotGKFUTd/report2e99dfc5. Root rechecked its full manifest and replayed
 all46 analyze-only cases with matching exit/MIR results, receipt

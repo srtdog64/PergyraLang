@@ -32,7 +32,7 @@ static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_
 }
 static void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations)
 {
-    if (value == NULL) return;
+    if (value == NULL || state->fact->analysis_unsupported) return;
     size_t at = backing_node(state, value);
     if (at == SIZE_MAX || !backing_work(state, at)) return;
     SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);
@@ -107,7 +107,7 @@ static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, ui
 }
 static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
-    if (node == NULL) return NULL;
+    if (node == NULL || state->fact->analysis_unsupported) return NULL;
     if (state->checking_declared_result) {
         uint64_t destinations = 0;
         backing_destination_value(state, node, &destinations);
@@ -190,7 +190,7 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 }
 void backing_consumers(ReturnedBacking *state, ASTNode *node)
 {
-    if (node == NULL) return;
+    if (node == NULL || state->fact->analysis_unsupported) return;
     if (node != state->loan_seed &&
         (node->type == AST_STRING || node->type == AST_NUMBER || node->type == AST_BOOLEAN ||
          node->type == AST_IDENTIFIER)) {

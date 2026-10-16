@@ -4069,7 +4069,7 @@ static void checked_conservative_callback_backing(void)
     for (unsigned borrowed = 0; borrowed < 2; borrowed++) {
         const char *source = borrowed
             ? "struct TextRecord{text:String;}func Apply(text:String,callback:func(String)->String)->String{return callback(text);}func Inspect(ref record:TextRecord,callback:func(String)->String)->String{return Apply(record.text,callback);}"
-            : "func Apply(text:String,callback:func(String)->String)->String{return callback(text);}func Store(inout output:String,text:String,callback:func(String)->String)->Void{output=Apply(text,callback);}func Invoke(inout output:String,text:String,callback:func(String)->String)->Void{Store(output,text,callback);}";
+            : "func Apply(text:String,callback:func(String)->String)->String{return Concat(callback(text),Concat(text,\"tail\"));}func Store(inout output:String,text:String,callback:func(String)->String)->Void{output=Apply(text,callback);}func Invoke(inout output:String,text:String,callback:func(String)->String)->Void{Store(output,text,callback);}";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
@@ -4115,6 +4115,68 @@ static void checked_conservative_callback_backing(void)
                     CHECK(frame->analysis_unsupported && !frame->complete && !frame->pending);
                     CHECK(frame->unsupported_relation.call != NULL &&
                         frame->unsupported_relation.call_id == ast_node_stable_id(frame->unsupported_relation.call));
+                    ASTNode *returned = ast_return_value(ast_block_statement(ast_func_body(apply), 0));
+                    ASTNode *tail = ast_call_argument(returned, 1);
+                    bool tail_seen = false;
+                    for (size_t n = 0; n < frame->node_count; n++) tail_seen |= frame->nodes[n].node == tail;
+                    CHECK(tail != NULL && !tail_seen);
+                    size_t nodes = frame->node_count, work = store->work_units;
+                    ReturnedBacking stopped = {.store = store, .lookup = {ctx, program}, .decl = apply, .fact = frame};
+                    backing_consumers(&stopped, tail);
+                    CHECK(frame->node_count == nodes && store->work_units == work);
+                    CHECK(function_param_flow_backing_rows_current(store, apply));
+                    FunctionParamFlowPendingRelation witness = frame->unsupported_relation;
+                    ASTNode *argument = ast_call_argument(witness.call, 0);
+                    ASTNode *child = ast_call_argument(tail, 1);
+                    PublishedNode *child_value = NULL;
+                    for (size_t n = 0; n < ctx->function_param_publications->node_capacity; n++)
+                        if (ctx->function_param_publications->nodes[n].node == child)
+                            child_value = &ctx->function_param_publications->nodes[n];
+                    CHECK(child_value != NULL);
+                    if (child_value == NULL) goto callback_cleanup;
+                    PublishedNode saved_child = *child_value;
+                    size_t entry_index = 0;
+                    while (entry_index < store->count && (store->entries[entry_index].function_decl != apply ||
+                        store->entries[entry_index].param_index != 0)) entry_index++;
+                    CHECK(entry_index < store->count);
+                    if (entry_index == store->count) goto callback_cleanup;
+                    CHECK(function_param_flow_unproved_current(store, entry_index));
+                    uint32_t argument_id = ast_node_stable_id(argument), child_id = ast_node_stable_id(child);
+                    for (unsigned fault = 0; fault < 7; fault++) {
+                        if (fault == 0) frame->unsupported_relation.call_id++;
+                        if (fault == 1) frame->unsupported_relation.callee_id++;
+                        if (fault == 2) frame->unsupported_relation.ordinal = 0;
+                        if (fault == 3) argument->stable_id++;
+                        if (fault == 4) child->stable_id++;
+                        if (fault == 5) child_value->value_present = false;
+                        if (fault == 6) child_value->value_type = TYPE_INT;
+                        CHECK(!function_param_flow_backing_rows_current(store, apply));
+                        CHECK(!function_param_flow_unproved_current(store, entry_index));
+                        frame->unsupported_relation = witness;
+                        argument->stable_id = argument_id; child->stable_id = child_id;
+                        *child_value = saved_child;
+                        CHECK(function_param_flow_backing_rows_current(store, apply));
+                        CHECK(function_param_flow_unproved_current(store, entry_index));
+                    }
+                    for (unsigned mode = 0; mode < 3; mode++) {
+                        unsigned effects = 0;
+                        uint64_t outputs = 0;
+                        FunctionParamFlowBackingFact partial = {.origin_count = 1, .origin_words = 1,
+                            .destination_count = 1, .destination_words = 1, .effects = &effects,
+                            .outputs = &outputs, .claims = frame->claims, .epoch = 1,
+                            .complete = mode != 0, .pending = mode == 1, .building = mode == 2};
+                        ReturnedBacking continuing = {.store = store, .lookup = {ctx, program},
+                            .decl = apply, .fact = &partial};
+                        size_t prior_work = store->work_units;
+                        backing_consumers(&continuing, tail);
+                        CHECK(partial.node_count != 0 && store->work_units > prior_work);
+                        CHECK(!partial.analysis_unsupported);
+                        for (size_t n = 0; n < partial.node_count; n++) free(partial.nodes[n].origins);
+                        for (size_t b = 0; b < partial.binding_count; b++) {
+                            free(partial.bindings[b].origins); free(partial.bindings[b].destinations);
+                        }
+                        free(partial.nodes); free(partial.bindings); free(partial.pending_relations);
+                    }
                 }
                 ASTNode *call = ast_block_statement(ast_func_body(ast_program_statement(program, 2)), 0);
                 SlotFunctionLookup lookup = {ctx, program};
@@ -4125,6 +4187,7 @@ static void checked_conservative_callback_backing(void)
                 CHECK(store != NULL && !store->failed && !ctx->has_error);
             }
         }
+callback_cleanup:
         semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
     }
 }
