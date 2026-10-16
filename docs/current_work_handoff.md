@@ -7,12 +7,13 @@ registries and executable gates override this card.
 
 One rung: unchanged full canonical/DRV-2 admission -> actual codegen bootstrap
 and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
-Latest local source checkpoint is `e6010d946` on main (parent `faf77f78e`),
+Latest local source checkpoint is `72b21cad6adfdf1326bed2b57492472483fcea85`
+on main (parent `87d9b20cb`, preceding source `e6010d946`),
 not pushed. Published main remains
 `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA run38860052641 is RED
-with bootstrap/install skipped. The active dirty implementation now extends
-the existing result relation across the full reached factory chain; the
-directive/contract/card are also dirty. Root alone owns builds, WSL processes and
+with bootstrap/install skipped. The result-relation source is committed;
+the next bounded step is diagnostic cost measurement, not a new algorithm.
+Root alone owns builds, WSL processes and
 Git; three implementation agents have non-overlapping source/test scopes.
 
 faf77 consumes the existing typed empty-MapNew binding as a caller-input
@@ -25,23 +26,25 @@ global source-ID wire field is not prerequisite. Physical storage birth,
 reaching definition, runtime ABI and final exit-drop evidence remain OPEN.
 
 Verified Linux binary SHA256:
-`dbd2e4c5849daaadafa22c35b431c3cbbb10f3f226c188dea47963744b6bc86a`.
+`32cd6c2612fb6152920e17fdb59d2081694d8f6115e08627de51a785b3dfd0f2`.
 WSL `/root/pgy-main-20261016` is Git HEAD39a plus a source overlay, not the D
-commit. Narrow receipt `.tmp/p0-prefix-contract.gubbYb/`: phase7970/0,
-strict summary with unchanged4096/4097 controls, three factory controls C+LLVM
-(6 executions). Broad receipt `.tmp/p0-typed-retention-broad.WfUXIU/`:
+commit. Narrow receipt `.tmp/p0-result-relation.xszPX6/`: phase8060/0,
+strict summary with unchanged4096/4097 controls and new multi-exit Option
+factory C+LLVM equality. Independent-review faults also passed phase8086/0
+in `.tmp/p0-result-review-faults.0TtftO/`, with native hash unchanged.
+Broad receipt `.tmp/p0-typed-retention-broad.eCC7j0/`:
 strict summary with exact Map retained sites, native MIR327/semantic3228/
 transpile1009, Map24 positives/58
 analyze-only negatives, HIR/RIR/MIR/AIR propagation and TU/header caps PASS.
 These are scoped native prerequisite evidence, not self-host substitution.
 
-Fixed full4273-signature/3188-key census improved545 ->541 ->538, with no newly
-failing key:533 work4096 and5 required-backing refusals, incomplete0/no MIR.
-Latest slice resolves3 more keys. Final receipt
-`.tmp/p0-identifier-origin-census.w2O0jC/` restored
+Fixed full4273-signature/3188-key census improved545 ->541 ->538 ->533,
+with no newly failing key. The5 required-backing failures are resolved;
+remaining533 are work4096, incomplete0/no MIR. Final receipt
+`.tmp/p0-identifier-origin-census.BGdqW8/` restored
 source/build/bin byte-identically. Actual full bootstrap with that binary
 still refuses before gen0 (18410 cascades), build receipt directory
-`.tmp/p0-return-bootstrap.Tpohpg/`; no gen2/gen3 or installed evidence exists.
+`.tmp/p0-return-bootstrap.6gDheu/`; no gen2/gen3 or installed evidence exists.
 The actual collection parity gate stops in its prerequisite map-written-root
 program (15321 errors, `.tmp/self_hosted/map-written-root.i8qo5X/`), before
 new high-bit mutations133-141; those remain UNEXECUTED.
@@ -49,35 +52,38 @@ The separate aggregate storage-transfer gate remains RED (10 safe native
 C/LLVM outputs,12 unsafe admissions on d539; unsafe artifacts never run).
 Pool/Destroy lifetime and actual exactly-once retirement remain OPEN.
 
-Current measured next dependency: the5 required rows are domain-exposure
-params1..5. e601 closes the reached SubStartsWithLen retention and exact Concat
-constructor premises, MapNew's strict metadata replay and Long selection /
-one-call-fact multi-ordinal recording. The remaining full factory chain reaches
-Option signature helpers, nonzero-parameter declared results and String+.
-Existing result frames are zero-parameter-only; final currentness also cannot
-combine result and per-formal frames of different widths. The directive's top
-result-relation plan fixes the whole change set before implementation.
-A owns backing/result-edge/final validation/destruction; B owns current CFG
-normal-exit receipt through existing routine publication and the checked
-String+ predicate; C owns source/runtime/currentness falsifiers. Result frames
-close modulo exact typed formal placeholders; actual formal-to-result
-dependency must still come from admitted current per-formal summaries and be
-sealed/replayed at every call edge. Placeholder0 is not independence.
-Do not merely raise31 on Int arithmetic or add a name-only/ANY/result grant.
+72b21 connects the full reached factory result chain: existing CFG normal-exit
+closure is published once; nonzero declared-result frames close modulo exact
+typed formal placeholders; actual formal-to-result dependency remains owned
+by admitted current per-formal summaries and is sealed/replayed at each edge.
+Typed Some/Unwrap/String+ composition, per-frame widths and edge destruction
+are connected. Placeholder0 is not independence or cleanup authority.
+
+Next measured blocker: cold summary key
+`SemanticExpressionGraphResolvedCallConcreteScalarTypeName`, id132263,param0,
+fails at4096 with103 entries/evaluations on the same frozen input. Three charge
+owners are entry evaluation, no-store graph members, and backing visits.
+Instrument one diagnostic-only isolated demand to measure actual D/O/C lane,
+ordinal/epoch/node repetitions before choosing a local repair. Do not exempt
+charges, raise4096, prewarm unrelated summaries or revive the rejected joint
+matrix trials. The533 diagnostic failures are not the full source-refusal
+count:913 nonfailed keys still return ALL,916 reach unsupported summaries.
+Actual bootstrap18410 errors is the acceptance observation, not533.
 
 Before those Pergyra edits, root froze the full old canonical source with
 per-file/tar hashes at WSL `.tmp/p0-fixed-canonical.nbPIex/`. Run the fixed
 4273/3188 diagnostic against that complete frozen input, separately from the
 full current canonical/bootstrap source. Root must first observe new result-
-composition positives fail on identified dbd, then integrate all result-relation
-producers and last consumers; run
+composition positive was observed fail on identified dbd before integration;
+retain its current positive/negative consumers while running
 narrow identity/retention negatives, both backends, broad regression, fixed
 census and actual bootstrap. Do not push known red, waive work4096, shrink the
 full input or call dependency evidence physical cleanup proof.
-Independent read-only review found the MapNew metadata hole, now repaired and
-fault-tested in e601. The new result-relation contract was sent to
-`Pergyra 컴파일러 레드팀 검증` for a separate read-only attack; no approval or
-execution of later dirty code is implied. Whole-chain card and receipt locations:
+Independent read-only review found the MapNew metadata hole, repaired in e601,
+and attacked the latest result-edge contract. No fail-open was found in its
+latest static replay; four requested direct faults now pass phase8086/0.
+This is not independent execution or whole-language memory safety. Review chat:
+`Pergyra 컴파일러 레드팀 검증`. Whole-chain card and receipt locations:
 [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
 
 ### Historical diagnostic archive — lookup only, not an active work queue

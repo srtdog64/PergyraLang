@@ -25,6 +25,42 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Result-relation checkpoint and next measured blocker
+
+Source `72b21cad6adfdf1326bed2b57492472483fcea85` implements the complete
+result-relation sub-slice below. Binary32cd6c26 passed narrow phase8060/0,
+strict summary, the new multi-exit Option factory on C+LLVM and existing
+Pool/opaque/4096/4097 controls. Independent-review direct edge faults brought
+phase to8086/0 (`.tmp/p0-result-review-faults.0TtftO/`) without changing native
+binary. Broad `.tmp/p0-typed-retention-broad.eCC7j0/` passes native
+MIR327/semantic3228/transpile1009, Map24/58 and HIR/RIR/MIR/AIR propagation.
+Full frozen4273/3188 census `.tmp/p0-identifier-origin-census.BGdqW8/` resolves
+all5 required-backing keys:538 ->533,0 new failures, no MIR, BYTE_IDENTICAL
+restore. Actual bootstrap `.tmp/p0-return-bootstrap.6gDheu/` still has18410
+errors/16 warnings before gen0. No installed-driver or required green CI.
+
+The failed cold keys are now all4096 work-limit failures, but this diagnostic
+does not enumerate all semantic refusals:913 nonfailed keys have mask ALL and
+916 reach unsupported summaries. Do not relabel533 as the full DRV-2 error set
+or the only remaining safety obligation.
+
+Bounded measurement objective: identify the actual repeated owned operation
+blocking the next full canonical admission, keeping existing identity,
+generation, negative gates and4096 limit. Baseline is exact72b21 source /
+32cd6c26 executable and complete frozen `.tmp/p0-fixed-canonical.nbPIex/` input.
+The first isolated failing key is
+`SemanticExpressionGraphResolvedCallConcreteScalarTypeName`, id132263,param0,
+103 entries/evaluations, work4096,0.094 seconds in BGdqW8. Instrument only the
+entry-evaluation, no-store-member and backing D/O/C charge sites for one cold
+demand; record routine/formal/epoch/node identity and actual counter. Root owns
+scratch overlay/build/byte-identical restoration. Before/after charge counts
+must balance; no amount is waived. The last consumers remain final summary /
+loan admission and actual full bootstrap. No implementation choice is made
+until this measurement identifies a repeated operation. In particular,
+PendingBodyCall alone has no ordinal/backing dependency and cannot authorize
+ownership admission; unrelated prewarm, generic cache architecture, a bigger
+budget and the previously rejected shared-matrix trials are forbidden.
+
 ### Integration checkpoint and remaining result relation
 
 Source checkpoint `e6010d946` consumes the exact SubStartsWithLen String input
