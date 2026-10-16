@@ -64,18 +64,59 @@ installed-driver evidence. No blanket nominal/MapNew result grant is sound;
 the existing nominal snapshot proves types/field identity, not copy or unique
 backing. Exact proof/negative-gate obligations are in the active directive.
 
-Next falsifier: the remaining measured repeated *owned* per-input backing
+Remaining work-budget falsifier: the measured repeated *owned* per-input backing
 traversal. On the latest d539 binary, first demand608 has 139 summary, 324
-graph and 3633 backing charges; 4052 distinct `(routine, ordinal, node)` but
-only 2617 `(routine, node)` identities across 116 frames. Receipt WSL
+graph and 3633 backing charges. All 3625 formal backing charges have distinct
+`(routine, ordinal, node)` identities; 1320 overlap across different ordinals
+at `(routine, node)`, but none repeat within one ordinal. Receipt WSL
 `.tmp/p0-current-work-trace.3rGPw2/`, observer restore byte-identical. The
-fact owner is the backing frame/claims; last consumers are summary outputs,
-returned-loan and ownership admission. A replacement joint design must only
-activate already-demanded origins, preserve separate per-origin pending and
-unproved evidence, and beat the 545-failure fixed-input baseline without a
-budget waiver or charge skip. The remaining 13 required-backing failures
-need a complete fresh-result proof plus the nonempty-duplicate falsifier,
-not a MapNew or nominal name grant.
+demand-only joint-frame trial was **rejected and removed**: on the identical
+4273-signature/3188-key input it changed 545 failures to 581 and internal
+time 128.771s to 164.151s. An unmodelled call contaminated another origin's
+sealed verdict. Narrow phase and summary gates had passed; they were not
+acceptance evidence. The current tree has no compiler changes from that trial.
+Preserve per-origin verdict/currentness while proving any future shared work;
+do not waive or skip the 4096 charge. The remaining 13 required-backing
+failures need complete fresh-result proof plus the nonempty-duplicate
+aggregate falsifier, not a MapNew or nominal name grant. Details are in the
+active directive.
+The active next slice is the aggregate storage-result edge, including the
+source-to-field transfer and the original binding's retirement. The first
+source-only pairwise guard rejected same/different-name nonempty descriptor
+aliases, push/pop, call/member wrappers on C and LLVM, while preserving
+focused empty-array, distinct-MapNew and explicit-Clone positives. It was
+**rejected and fully reverted**: identical 4273 signatures/3188 keys changed
+545 failures to 1785 (1660 required backing, 125 stale/unavailable program
+points; incomplete 0). First new canonical error rejected legitimate
+`SemanticAstSignatureTypeExpressionFacts` Array fields. More decisively,
+distinct `Pair(first, second)` still permitted `ArrayPush(first, ...)` and
+`return first` after descriptor placement; C and LLVM both admitted it, and
+emitted C copies the descriptor. Sibling-only refusal is not a field-transfer
+or cleanup proof. Candidate receipt: WSL
+`/root/pgy-main-20261016/.tmp/p0-factory-result-map-census.Ma7abv/`;
+analyze-only fixtures are under D `.tmp/p0_*aggregate_probe.pgy` and
+`.tmp/p0_factory_field_transfer_*_negative.pgy`. No source candidate remains.
+The directive now records the complete field-edge/return/MIR consumer
+obligation; do not publish this known-red checkout.
+The active executable edge is BLOCKED on the missing current per-field
+storage-transfer/last-cleanup receipt; the directive names its intended
+owner, last consumers and falsifying fixtures. This is an implementation
+obligation, not a claim that an external approval is required.
+Independent root replay with the unchanged d539 compiler admitted the
+field-transfer push counterexample (0 errors) and emitted byte-identical C:
+`pair.first = first` precedes `ArrayPush(first, 3)`. That generated routine
+also contains no ordinary Array/Pair retirement on return. Document 27 is
+explicitly `formal-model; implementation OPEN`; its proof cannot substitute
+for a production transfer/cleanup fact. Do not execute this unsafe probe as
+a positive runtime test. The next edit requires a mapped producer through
+post-transfer use rejection, nested result ownership, exact cleanup and
+both MIR consumers, not another direct constructor-name check.
+After the rejected source candidate was reverted, `git diff --exit-code` on
+its five source files and `git diff --check` both passed; only this handoff
+and the active directive are dirty. Root reran the unchanged d539 strict
+function-param summary gate on 2026-10-17: PASS, including the required-
+backing refusals and 4096/4097 controls. This is baseline restoration, not
+canonical admission or new CI evidence.
 Do not raise budget, shrink input, grant TOP/unproved, or substitute
 native-only success for installed evidence. Chain map and receipts:
 [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).

@@ -25,6 +25,151 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Aggregate storage-result closure card (PLAN; no source edit)
+
+- Objective/order: preserve D1 independent values and fail closed on duplicated
+  live storage before admitting the two canonical fresh-result factories.
+  Proven birth, per-binding generation/effects, field-edge transfer, all-path
+  return, then installed C/LLVM consume the same authority. Work4096 remains a
+  separate blocker on this same unchanged canonical input.
+- Fact owner: typed publication records `[]` zero-storage birth, distinct
+  `MapNew` allocated births and array literal births by stable identity. The
+  existing program-point/return-flow owner derives storage at each constructor
+  field edge from ordered, current growth/assignment/alias/call effects; the
+  nominal field snapshot supplies field/type identity only. Unknown control
+  flow or effect is not `ZeroStorageDescriptor`.
+- Last consumers: nominal field admission and returned-backing/cleanup proof,
+  then the direct-MIR validation boundary and both C/LLVM emitters. Migrate
+  these consumers together; do not retain a source-only admission bypass.
+  The direct zero-parameter `Make()->Pair` negative must be rejected at
+  constructor admission even when the REF-triggered flow-summary path is not
+  demanded; a declared-result-only guard cannot cover it.
+  C positional compound initialization does not establish sibling side-effect
+  order, so the first positive scope is pure identifier arguments; impure
+  siblings require ordered lowering or fail closed.
+- Forbidden fallback: `MapNew` name grant, nominal snapshot as uniqueness,
+  `length == 0` after push/pop as no storage, an implicit nonempty Clone, or
+  source edits replacing compiler inference with manual copies. A zero-capacity
+  empty descriptor may be repeated only with current no-growth/no-escape
+  evidence. Each allocated birth has exactly one consuming field edge.
+- Falsifiers/gates: reject nonempty `Pair(rows, rows)`, push/pop-to-length-zero
+  duplication, `let alias=rows; Pair(rows,alias)` for Array and Map,
+  branch-only growth, alias/inout/unknown-call growth, reassigned old
+  generation, same `MapNew` local twice, forged/stale receipts, and impure
+  sibling argument order. Admit canonical repeated empty `ints`/`names`, four
+  distinct `MapNew` fields, explicit Clone, and separate post-copy growth;
+  verify C and LLVM plus installed MIR-input path. Only then remeasure the 13
+  required-backing refusals, unchanged 3188-key census and full bootstrap.
+
+The first source-only pairwise guard was **rejected**, not an admitted
+implementation. On identical 4273 signatures/3188 keys it changed 545
+failures to 1785 (1660 required-return backing, 125 unavailable/stale
+program-point indexes; incomplete 0). Its first new canonical error was a
+valid constructor whose Array fields came from separately proved results,
+not direct literal births. More importantly, a distinct-birth `Pair(a, b)`
+still allowed `ArrayPush(a, ...)` or `return a` after placing `a` in a field;
+the C emitter copied the descriptor into the result before the original was
+used again. This is a source-versus-result double-owner counterexample, so
+sibling-duplication refusal alone cannot establish D1 or cleanup authority.
+The candidate's narrow C/LLVM probes passed but did not override either
+whole-input falsifier. Keep the field-edge transfer, post-transfer use
+rejection, cleanup ownership, typed publication/currentness and installed
+MIR consumer together in the next whole-chain design; do not revive a
+symbol-only birth heuristic or a blanket unknown-birth refusal.
+Root independently replayed the field-transfer counterexample on the frozen
+d539 native binary: C emission succeeds with 0 errors and is byte-identical
+to the candidate's output. In that output `pair.first` receives the `first`
+descriptor, then `ArrayPush(first, 3)` mutates its original copy; the routine
+also has no ordinary Array/Pair drop on return. The selected automatic
+cleanup contract in document 27 is still explicitly implementation OPEN.
+The native MIR cleanup machinery observed here handles cleanup edges but has
+not supplied an ordinary aggregate field-transfer/drop receipt for this
+case. The precise cleanup producer and MIR payload are **Unknown** and must
+be resolved against actual source before the next production edit.
+
+Executable substitution status: **BLOCKED on a missing compiler fact**, not
+closed. The missing fact is a current per-field `Array`/`HashMap` storage
+transfer receipt that retires the source at the field edge, distinguishes a
+zero-backing copy from an allocated move/explicit Clone, and determines the
+single final cleanup owner on every exit. The intended owner is the existing
+typed publication and program-point/returned-backing chain; it must not be
+recreated in a symbol flag or emitter heuristic. Last consumers are MIR
+validation, C and LLVM aggregate emission/cleanup, and the installed MIR
+driver. Falsifiers are the `Pair(first, second)` post-construction push and
+return probes, nonempty/alias duplicate probes, and the fixed 3188-key
+canonical census. Resume by resolving the actual cleanup producer and
+carried MIR identity, then migrate every reached consumer in one plan.
+
+### Demand-only joint backing frame falsified (`0dc970187` source)
+
+Status: REJECTED, not landed. The attempted whole-chain migration was removed;
+production source, Makefile and phase-unit test are byte-equal to HEAD. Only
+this directive records the trial. The older eager joint candidate's 545 -> 695
+regression was not an argument to waive the unchanged 4096 work budget.
+
+- Objective/owner/consumer: share a charged backing node visit only among
+  formal origins reached in one demand episode. The program-point index would
+  own one formal frame, while summary projection, recursive pending sealing,
+  returned-loan/currentness and final admission remain the last consumers.
+  This trial migrated those consumers and destruction together, kept the loan
+  and declared-result frames separate, and removed the per-ordinal read path.
+- Narrow gates: the trial's phase unit reached 7662 checks, zero failures,
+  including reverse demand, unproved-origin independence, new-episode snapshot
+  clearing and missing active-mask refusal. Strict summary negatives, including
+  4096/4097, and effective source-size gate passed. These do not establish
+  canonical admission.
+- Fixed-input comparison: isolated HEAD and trial builds used the same
+  4273-signature/3188-key manifest and canonical `main.pgy` SHA-256
+  `466ba13e6f1392a35e9b2152d8d84afd6debdb825e0bee09de49970007676805`.
+  HEAD: 545 failures (532 at work 4096, 13 other), internal 128.771 s,
+  wall 3:37.51, peak RSS 1,258,228 KiB. Trial: 581 failures (524 at work
+  4096, 57 other), internal 164.151 s, wall 4:32.45, peak RSS 1,258,288 KiB.
+  Both completed before timeout; neither reached MIR or acceptance.
+- Regression: 46 keys newly failed and 10 formerly failing keys passed.
+  New failures comprised 24 recursive backing stale/incomplete, 20 required
+  return backing stale/incomplete, and two work-budget refusals. At key 200,
+  `SemanticAstIntentActionCallFromText` origin 1 had sealed evidence at
+  epoch 2; a later joint visit activated origins 0/1/3 and unmodelled-call
+  handling marked all three unsupported. Origin 1 became
+  `ready=0, complete=0, unsupported=1` despite current row storage, causing
+  the required-return refusal. This violates origin-independent verdicts.
+  Key 2312 changed from success at work 2227 to recursive stale/incomplete
+  refusal at work 2421; its deeper transition was not established.
+- Decision: do not revive this candidate by weakening admission, increasing
+  budget/time, or accepting the aggregate eight work-budget wins. Before any
+  alternative, measure the first 4096-work demand by charged operation and
+  distinguish repeat visits of one `(routine, ordinal)` from duplication
+  across ordinals. Preserve the existing per-ordinal fact owner until a
+  narrower owner-local change has a falsifier and a no-regression census.
+
+Read-only follow-up on the existing first-demand trace
+`WSL .tmp/p0-current-work-trace.3rGPw2/run.log` (not a new compiler run):
+at demand 608/work 4096 the charges are entry 139, graph 324 and backing 3633.
+Backing has 3625 formal charges (3623 complete, two already incomplete) and
+eight declared-result charges. Every formal `(routine, ordinal, node)` is
+unique: repeat charges of the same formal origin across epochs are zero.
+The 3625 formal charges map to 2305 `(routine, node)` pairs, leaving 1320
+cross-ordinal extra charges on 792 shared nodes. By phase those extras are
+destination 95, origin 220 and eager consumer 1005; CALL 331 and BINARY 206
+are the largest individual syntax shapes. This is an observed prefix bound,
+not a removable-work count or proof that 1320 saved units would admit the
+full demand. Epoch-only optimization is therefore the wrong target.
+
+Next producer-only hypothesis, not implementation permission: the existing
+program-point/publication owner could certify a closed subtree whose current
+typed facts prove no formal backing, no retaining effect, no output write and
+no relevant control-flow edge. Only then could the existing per-ordinal
+consumer omit the corresponding actual visit and its charge. Keep separate
+per-ordinal verdict/currentness and do not reuse a global active-origin
+permission. The safely skippable count is Unknown; reuse of observed
+cross-ordinal work alone is bounded by 1320 units in this prefix. Falsifiers:
+an unmodelled callback under a physical result, `Hold(Echo(input))`,
+different-origin unsupported/retained outcomes, late binding growth,
+shared-DAG diamond expansion, changed publication claims, and 4096/4097.
+If the producer cannot prove subtree closure without walking or reproducing
+the same work per ordinal, reject this hypothesis rather than hiding charges.
+
+
 ### Joint-origin backing falsifier (checkpoint `c34ee0f6`)
 
 - Objective/priority: remove the measured repeated per-formal backing traversal
