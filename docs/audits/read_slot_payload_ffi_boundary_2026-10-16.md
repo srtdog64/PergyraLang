@@ -187,7 +187,31 @@ backing failure at418:6,24.08s/1164676KiB, same18410 cascades/16 warnings.
 Log: `/root/pgy-main-20261016.p0-local-read-bootstrap.log`. Immutable review
 snapshot: `/root/pgy-review-destination-39a8fc1db.DO97fm`, source.diff SHA256
 ec1fea4abf91ae91c65cb3a524ae0061dc546a869bf7d0d5958841e8f3ed3573.
-Its independent verdict is pending. No gen2==gen3, installed-driver, broad FFI
+Its independent review is complete: `.tmp/redteam/review.md` SHA256
+8f0c3ef412906292fa39e98fdccb56b157083deeb307e7a3d2d2bef610da0047.
+Root rechecked source.sha256 and independently replayed all101 analyze-only
+inputs against the frozen binary, with101/101 exit/MIR outcomes matching;
+receipt `/root/pgy-main-20261016/.tmp/p0-review-replay.g04KwZ/`. The report
+finds the prior local/default View payload P1s refused and no new dynamic
+unauthorized payload escape in its bounded probes. Root's original phase7009
+fault units are not claimed as independently executed by that reviewer.
+
+Remaining reviewed limits are not new implementation tracks:
+
+- Safe dead Read branches are conservatively refused; absence of a reached
+  seed is not silently treated as permission.
+- Safe unannotated generic ClaimSlot and defer Read have MIR but fail both
+  backend emissions on local-type/runtime-call ABI facts. Introduction of
+  those gaps was not established by this review.
+- A View descriptor with no Read can reach C FFI output but fails LLVM ABI
+  emission. This eager payload-loan verdict does not close that lifetime
+  boundary or authorize an external holder.
+- A mismatched annotated/generic Slot birth refuses MIR with a misleading
+  out-of-memory lowering diagnostic, not a demonstrated typed rejection.
+  It is a diagnostic/admission-quality obligation, not a successful safety
+  gate or an observed executable UAF.
+
+No gen2==gen3, installed-driver, broad FFI
 soundness, whole-language memory safety, SoT closure or green CI follows from
 these scoped native tests. No runtime UAF was executed or claimed.
 Source recovery checkpoint:6f54b4b53ce4a2ad19fd5d875aff4becf0262d19, not pushed.

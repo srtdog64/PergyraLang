@@ -87,8 +87,16 @@ candidate is frozen separately at
 `/root/pgy-review-destination-39a8fc1db.DO97fm`, binary91cfd12b and source.diff
 SHA256ec1fea4abf91ae91c65cb3a524ae0061dc546a869bf7d0d5958841e8f3ed3573.
 Full source.sha256 is preserved. Root requested read-only independent review
-without changing that chat's model/settings. That review is pending, not
-an approval. General no-input result implementation remains held.
+without changing that chat's model/settings. The scoped review is complete:
+`.tmp/redteam/review.md` SHA256
+8f0c3ef412906292fa39e98fdccb56b157083deeb307e7a3d2d2bef610da0047.
+Root rechecked the full frozen manifest and replayed all101 analyze-only
+inputs: exit/MIR outcomes match101/101, receipt
+`/root/pgy-main-20261016/.tmp/p0-review-replay.g04KwZ/`. Prior payload P1s
+refuse; no new unauthorized dynamic payload escape was found in this scope.
+Dead Read over-refusal, generic/defer backend gaps and no-Read View/FFI
+lifetime remain outside that verdict. General no-input result implementation
+still requires its whole-chain contract; this receipt starts no new code track.
 
 Current whole-chain map: `Reached local Read payload consumer` under
 `Current destination transfer repair` in
@@ -105,7 +113,8 @@ but implementation is deferred behind the reached local Read safety boundary.
 Do not infer result freshness or empty destinations from zero formal inputs:
 global/opaque/cached or retained-local storage can still alias a caller value.
 Root must fix the whole-chain contract before authorising this next edit set.
-The scoped implementation is committed, but independent review is pending.
+The scoped implementation is committed and independently reviewed, not V1
+closed. Required actual canonical/bootstrap and published CI remain RED.
 Top-level String/Int Slot Read programs both emit MIR/C/LLVM; receipt:
 `.tmp/p0-top-level-read.C3zEQw/` in WSL. The earlier callerNULL inference was
 incorrect: parser_program.c synthesises Main before stable IDs/type checking.

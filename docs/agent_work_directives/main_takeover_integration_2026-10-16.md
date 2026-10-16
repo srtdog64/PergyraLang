@@ -240,7 +240,7 @@ validates these and existing view/pin gates before claiming even this scoped
 connection fixed. General View authority or whole-language safety is not
 closed by this payload repair. The no-input result track remains unstarted.
 
-### Reached local Read payload consumer — scoped tests pass, review pending
+### Reached local Read payload consumer — scoped checks/review pass, canonical open
 
 Independent fd17/kGgLNi review confirms the REF repair but reaches a stronger
 local falsifier: Main owns Slot<String>, creates ViewRead, reads its payload,
@@ -264,7 +264,15 @@ reached IR/caps/component/generator and Slot C+LLVM goldens. Receipt: clone
 Actual unchanged bootstrap remains RED before gen0, same418:6 required backing
 first refusal,18410 cascades/16 warnings,24.08s/1164676KiB. This scoped native
 repair is not self-host substitution or V1 closure. Immutable DO97fm review
-is pending; no-input result implementation is still held.
+is complete (review.md SHA2568f0c3ef412906292fa39e98fdccb56b157083deeb307e7a3d2d2bef610da0047).
+Root verified the frozen manifest and replayed all101 analyze-only inputs;
+exit/MIR outcomes match101/101 in `.tmp/p0-review-replay.g04KwZ/` in WSL.
+The prior P1s refuse and no new dynamic unauthorized payload escape was found
+in that scope. Dead Read over-refusal, safe generic/defer backend output gaps,
+no-Read descriptor/FFI lifetime and malformed-birth diagnostic quality remain
+explicit limits, not proof of whole-language or runtime safety. These are not
+new parallel precision/emitter tracks. No-input result implementation still
+requires its whole-chain contract before edits.
 Source recovery checkpoint:6f54b4b53ce4a2ad19fd5d875aff4becf0262d19 on main,
 not pushed. Only coordination documents follow that source checkpoint.
 
