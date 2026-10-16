@@ -1,0 +1,21 @@
+struct Pair
+{
+    first: Array<Int>;
+    second: Array<Int>;
+}
+
+func Make() -> Pair
+{
+    let first: Array<Int> = [1];
+    let second: Array<Int> = [2];
+    let pair: Pair = Pair(first, second);
+    return pair;
+}
+
+func Main() -> Void
+{
+    var pair: Pair = Make();
+    ArraySet(pair.first, 0, 3);
+    Log(pair.first[0]);
+    Log(pair.second[0]);
+}

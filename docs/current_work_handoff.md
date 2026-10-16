@@ -10,9 +10,9 @@ and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
 This evidence slice began from `51fe5c1c9277d0e616f0f4f9dada5b81c886b093`
 on `main` and changes only the active directive, ownership contract wording,
 and a new aggregate-storage behavioral gate/fixtures; no production source
-changed in this work session. Frozen compiler `d539d7...` passes the gate's eight
+changed in this work session. Frozen compiler `d539d7...` passes the gate's ten
 safe C/LLVM runtime positives but admits all twelve unsafe C/LLVM negatives
-(RED; `.tmp/aggregate-storage-transfer.55ozcW/`); unsafe artifacts were not
+(RED; `.tmp/aggregate-storage-transfer.eGbZQD/`); unsafe artifacts were not
 run. The gate is not required CI while red. Three implementation lanes mapped
 the native semantic, post-DCE MIR/backend and installed self-host chain. A
 standalone semantic move/cleanup fact would conflict with the selected MIR
@@ -20,9 +20,11 @@ owner; no such patch was made. The remaining active proof inputs are current
 storage birth/reaching definition, per-operand stable identity and ordered
 runtime ABI, final liveness and all exit drops. The fixed 3188-key work4096
 producer-only hypothesis reached at most 130 certifiable empty-literal visits
-out of 4096 (actual saving unknown), too little evidence to patch; no cost
-charge was waived. Next falsifier is the tracked post-field-push/return and
-duplicate-backing gate, followed by the unchanged census and real bootstrap.
+out of 4096 (actual saving unknown); 83 same-routine lane pairs had zero
+overlapping execution intervals. No cost charge was waived or producer patch
+made. Next falsifier is an end-to-end physical transfer/exit-drop receipt,
+including actual exactly-once retirement, before the unchanged census and
+real bootstrap. Output parity alone is not cleanup evidence.
 Published main is `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA CI
 run `38860052641` is RED with bootstrap/install skipped. Local main source
 checkpoint is `c34ee0f6ed1817c65db4475b3c17ad130cc004f7`, 17 source

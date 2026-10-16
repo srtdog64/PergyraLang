@@ -31,11 +31,14 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   owner while admitting proved fresh results; semantic identity and sound
   transfer precede the 13 factory refusals, 532 work-budget refusals, and
   installed-driver/CI evidence. No gate may substitute for another.
-- Source owner: typed publication records call/binding identity and current
-  generation. The existing program-point/returned-backing owner must prove
-  storage birth, alias/effect history, the ordered constructor field transfer,
-  post-transfer non-use, and all return exits. The nominal result snapshot
-  owns field/type mapping only. `array_storage_release_owner.c` currently
+- Source premises: typed publication records call/binding identity and current
+  generation. The existing program-point/returned-backing owner proves
+  parameter/result backing dependencies and effects, **not** a physical move,
+  source retirement, or cleanup placement. The post-DCE MIR ownership-clean
+  owner specified by `docs/semantics/27_ownership_clean.md` §5 must decide
+  ordered constructor field transfer, post-transfer non-use, copy and every
+  exit drop using current typed premises. The nominal result snapshot owns
+  field/type mapping only. `array_storage_release_owner.c` currently
   revokes `ArrayDrop` exclusivity on escape; that is not a move or a cleanup
   receipt. The `Array<String>` collection-ownership row tracks element
   provenance and cannot be reused as physical-storage proof by name alone.
@@ -50,6 +53,8 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   installed self-host MIR input and C/LLVM artifact routes; native C and LLVM
   aggregate emission and cleanup. `mir_cleanup.c` currently creates
   resource/pin/rollback edges, not ordinary Array/HashMap/aggregate retirement.
+  AIR's present MIR cleanup evidence counts topology markers, not per-value
+  exactly-once drops; it cannot certify this new physical cleanup receipt.
   The exact ownership-clean payload and codegen exit placement remain to be
   established before production edits; absent proof must fail closed.
 - Disjoint implementation lanes after interface agreement: (A) native semantic
@@ -63,7 +68,9 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 - Shared integration gate: same semantic source input and compiler hash;
   duplicate/nonempty, alias, push/pop and post-field-push/return refusals;
   distinct births, repeated proved-empty and explicit-Clone positives on C
-  and LLVM; forged/missing/stale MIR receipt refusal; unchanged 3188-key
+  and LLVM; a runtime/free observer proving each backing retired exactly once
+  on direct and early/branch exits (output parity alone is not cleanup proof);
+  forged/missing/stale MIR receipt refusal; unchanged 3188-key
   census (including 4096/4097); full canonical admission; gen2 == gen3;
   installed C/LLVM parity; required same-published-SHA CI. Narrow phase or
   source-only greens cannot close this rung. An unsafe admitted probe is never
@@ -87,13 +94,17 @@ part of the same owner decision.
 
 The new behavioral gate `tests/aggregate_storage_transfer_smoke.sh` was run
 with unchanged Linux compiler SHA256 `d539d7eca05beb938cae038e08ed13783928b67362fe4670b2e34446d2460b86`.
-Four positive fixtures passed on both native C and LLVM (8/8); six unsafe
-negative fixtures were all compiled on both (12/12 RED). The unsafe programs
-were **not executed**. The gate is not wired into required CI while RED.
-Receipt after strengthening the post-field-return use: D
-`.tmp/aggregate-storage-transfer.55ozcW/`. Its negative path
-requires an actual ownership diagnostic, not a parser error or a missing-fact
-internal refusal. Existing ordered C constructor temporaries were separately
+Five positive fixtures passed on both native C and LLVM (10/10), including a
+local `Pair` assembled without illegal source reuse; six unsafe negative
+fixtures were all compiled on both (12/12 RED). The unsafe programs were
+**not executed**. The gate is not wired into required CI while RED. Receipt
+after strengthening the post-field-return use and the diagnostic oracle: D
+`.tmp/aggregate-storage-transfer.eGbZQD/`, with before/after binary and fixture
+SHA-256 manifest. Its negative path requires an ownership diagnostic at the
+intended operation, not a parser error or a missing-fact internal refusal.
+The positive output does not check that each backing was retired once; that
+requires the separate runtime/free observer above. Existing ordered C
+constructor temporaries were separately
 replayed on both backends, so no duplicate positional-order patch was made.
 
 ### Aggregate storage-result closure card (PLAN; no source edit)
@@ -103,15 +114,19 @@ replayed on both backends, so no duplicate positional-order patch was made.
   Proven birth, per-binding generation/effects, field-edge transfer, all-path
   return, then installed C/LLVM consume the same authority. Work4096 remains a
   separate blocker on this same unchanged canonical input.
-- Fact owner: typed publication records `[]` zero-storage birth, distinct
-  `MapNew` allocated births and array literal births by stable identity. The
-  existing program-point/return-flow owner derives storage at each constructor
-  field edge from ordered, current growth/assignment/alias/call effects; the
-  nominal field snapshot supplies field/type identity only. Unknown control
-  flow or effect is not `ZeroStorageDescriptor`.
-- Last consumers: nominal field admission and returned-backing/cleanup proof,
-  then the direct-MIR validation boundary and both C/LLVM emitters. Migrate
-  these consumers together; do not retain a source-only admission bypass.
+- Fact ownership (intended, not current implementation): typed publication
+  must establish `[]` zero-storage birth, distinct `MapNew` allocated births
+  and array literal births by stable identity. Today's publication has typed
+  call/binding currentness but no complete physical-birth receipt. The
+  program-point/return-flow owner supplies only current dependency/effect
+  premises; the post-DCE MIR ownership-clean owner must decide storage at each
+  ordered constructor field edge, source retirement and final release from
+  those premises. The nominal field snapshot supplies field/type identity
+  only. Unknown control flow or effect is not `ZeroStorageDescriptor`.
+- Consumer split: nominal field type admission and returned-backing dependency
+  checks consume semantic premises. The final physical receipt is consumed by
+  direct-MIR validation, both C/LLVM emitters and installed self-host routes.
+  Migrate these consumers together; do not retain a source-only admission bypass.
   The direct zero-parameter `Make()->Pair` negative must be rejected at
   constructor admission even when the REF-triggered flow-summary path is not
   demanded; a declared-result-only guard cannot cover it.
@@ -155,21 +170,23 @@ also has no ordinary Array/Pair drop on return. The selected automatic
 cleanup contract in document 27 is still explicitly implementation OPEN.
 The native MIR cleanup machinery observed here handles cleanup edges but has
 not supplied an ordinary aggregate field-transfer/drop receipt for this
-case. The precise cleanup producer and MIR payload are **Unknown** and must
-be resolved against actual source before the next production edit.
+case. The precise production implementation, required input facts and MIR
+payload are **Unknown** and must be resolved against actual source before the
+next production edit; the intended post-DCE MIR decision owner is fixed above.
 
 Executable substitution status: **BLOCKED on a missing compiler fact**, not
 closed. The missing fact is a current per-field `Array`/`HashMap` storage
 transfer receipt that retires the source at the field edge, distinguishes a
 zero-backing copy from an allocated move/explicit Clone, and determines the
-single final cleanup owner on every exit. The intended owner is the existing
-typed publication and program-point/returned-backing chain; it must not be
-recreated in a symbol flag or emitter heuristic. Last consumers are MIR
+single final cleanup owner on every exit. Typed publication and program-point
+facts provide current premises, while the post-DCE MIR ownership-clean pass is
+the sole final decision owner; no symbol flag or emitter heuristic may recreate
+it. Last consumers are MIR
 validation, C and LLVM aggregate emission/cleanup, and the installed MIR
 driver. Falsifiers are the `Pair(first, second)` post-construction push and
 return probes, nonempty/alias duplicate probes, and the fixed 3188-key
-canonical census. Resume by resolving the actual cleanup producer and
-carried MIR identity, then migrate every reached consumer in one plan.
+canonical census. Resume by resolving the MIR owner's input and carried
+identity, then migrate every reached consumer in one plan.
 
 ### Demand-only joint backing frame falsified (`0dc970187` source)
 
@@ -249,6 +266,13 @@ semantic promotion were not captured by the trace, so 130 is an upper bound,
 not a measured saving. This does not establish relief of the 532 work-limit
 failures. No producer patch was made: a syntax-shape fast path without a
 current, effect-closed subtree fact would evade the owner rather than close it.
+The 83 same-routine ordinal-lane pairs in this trace have zero overlapping
+charged-event intervals. A shared immutable topology alone would not reduce
+the per-ordinal backing work; a truthful bitset wavefront would need a change
+to demand scheduling while preserving each lane's independent verdict and
+pending/currentness. The already-rejected eager joint frame shows why
+unrequested lanes cannot simply be activated. Measure already-demanded batch
+overlap before attempting that rewrite.
 
 
 ### Joint-origin backing falsifier (checkpoint `c34ee0f6`)

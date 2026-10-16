@@ -14,9 +14,12 @@ pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 mkdir -p "$ROOT_DIR/.tmp"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/aggregate-storage-transfer.XXXXXX")"
 failures=0
+(cd "$ROOT_DIR" && sha256sum "$PGY" "$FIXTURE_DIR/"*.pgy) \
+    >"$WORK_DIR/inputs.before.sha256"
 
 for row in \
     distinct_arrays_positive:3,2 \
+    local_pair_positive:3,2 \
     distinct_maps_positive:1,0 \
     empty_descriptor_positive:1,0 \
     explicit_clone_positive:2,1; do
@@ -66,7 +69,7 @@ for name in duplicate_array_negative array_alias_negative \
             continue
         fi
         if [[ "$status" -ne 1 ]] || [[ -e "$artifact" ]] || \
-            ! python3 - "$log" <<'PY'
+            ! python3 - "$log" "$name" <<'PY'
 import json
 import sys
 
@@ -81,10 +84,25 @@ errors = [row for row in diagnostics if isinstance(row, dict) and
           row.get("severity") == "error"]
 if not errors:
     raise SystemExit(1)
-# A missing-fact refusal is fail-closed but not a completed storage proof.
-if errors[0].get("code") not in {
-        "PGY_SEM_BORROW_ESCAPE", "PGY_SEM_MOVE_FROM_RELEASED",
-        "OWN_EXPLICIT_COPY_REQUIRED"}:
+# The first error must identify ownership. A later type error may cascade
+# from that refusal; a missing ownership fact must never count as the proof.
+allowed = {"PGY_SEM_BORROW_ESCAPE", "PGY_SEM_MOVE_FROM_RELEASED",
+           "OWN_EXPLICIT_COPY_REQUIRED"}
+allowed_cascade = {"PGY_SEM_TYPE_MISMATCH"}
+target_lines = {
+    "duplicate_array_negative": {10},
+    "array_alias_negative": {10, 11},
+    "map_alias_negative": {10, 11},
+    "push_pop_duplicate_negative": {12},
+    "post_field_push_negative": {11, 12},
+    "post_field_return_negative": {11, 13},
+}
+location = errors[0].get("location")
+if errors[0].get("code") not in allowed or any(
+        row.get("stage") == "parse" or
+        row.get("code") not in allowed | allowed_cascade
+        for row in errors) or not isinstance(location, dict) or \
+        location.get("line") not in target_lines[sys.argv[2]]:
     raise SystemExit(1)
 PY
         then
@@ -93,6 +111,14 @@ PY
         fi
     done
 done
+
+if ! (cd "$ROOT_DIR" && sha256sum "$PGY" "$FIXTURE_DIR/"*.pgy) \
+        >"$WORK_DIR/inputs.after.sha256" || \
+        ! cmp -s "$WORK_DIR/inputs.before.sha256" \
+            "$WORK_DIR/inputs.after.sha256"; then
+    echo "[$LABEL] RED: compiler or fixture bytes changed during the gate" >&2
+    failures=$((failures + 1))
+fi
 
 if [[ "$failures" -ne 0 ]]; then
     echo "[$LABEL] RED: $failures C/LLVM behavioral checks failed; evidence=$WORK_DIR" >&2

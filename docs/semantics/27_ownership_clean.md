@@ -567,9 +567,9 @@ the same admitted backing. Its backing/place and checked current-lifetime
 facts must reach liveness; the generation/lifetime issuer is still OPEN
 (§5.10), not an already existing descriptor field.
 
-`Clone` must deep-copy nested collections. Today `Array<String>` clone
-already copies each string, but nested-array clone copies inner descriptors
-by value (section 5.4), and G3 fixes that.
+`Clone` must deep-copy nested collections. Today `Array<String>` clone copies
+each string and the exported nested-array Clone copies each inner backing;
+other shallow literal and pack paths remain open (section 5.4).
 
 Before an explicit-copy refusal, the compiler tries two cheaper outcomes:
 
