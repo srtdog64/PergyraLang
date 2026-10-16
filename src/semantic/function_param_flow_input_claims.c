@@ -196,7 +196,10 @@ promote:
     row->semantic_promoted = true;
     row->execution_present = semantic_param_publication_execution(ctx, node, &row->reachable);
     row->physical_value = semantic_param_publication_value_is_physical_scalar(ctx, node);
-    row->value_ready = semantic_param_publication_value(ctx, node).ok;
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, node);
+    row->value_ready = value.ok;
+    row->value_meta = value.ok && value.meta;
+    row->value_origin_ready = value.ok && value.origin_ready;
     if (node->type == AST_CALL) {
         row->private_array_push = semantic_param_publication_private_array_push(ctx, node, NULL);
         row->result_relation = semantic_param_publication_checked_result_relation(ctx, node, 0,
@@ -319,12 +322,13 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
         if (row->execution_present != execution_present ||
             (execution_present && row->reachable != reachable)) return false;
         if (execution_present && !reachable) continue;
-        if (row->value_ready != semantic_param_publication_value(ctx, row->node).ok) return false;
+        SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
+        if (row->value_ready != value.ok || row->value_meta != (value.ok && value.meta) ||
+            row->value_origin_ready != (value.ok && value.origin_ready)) return false;
         if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
         if (row->shape == AST_ARRAY_LITERAL && row->child_count == 0) {
             /* Replay the same current typed premise as the no-output selector.
              * Child count/identity above seal the absence of evaluations. */
-            SemanticPublishedValue value = semantic_param_publication_value(ctx, row->node);
             if (!value.ok || value.meta) return false;
         }
         if (row->shape == AST_CALL) {

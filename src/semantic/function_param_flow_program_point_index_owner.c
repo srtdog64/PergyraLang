@@ -6,6 +6,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index)
+{
+    ASTNode *body = ast_func_body(index->function_decl);
+    if (body == NULL || body != index->dependency_body || ast_node_stable_id(body) != index->dependency_body_id ||
+        (body->type == AST_BLOCK ? ast_block_statement_count(body) : 1) != index->dependency_root_count) return false;
+    for (size_t r = 0; r < index->dependency_root_count; r++)
+        if (index->dependency_root_ids[r] == 0 ||
+            ast_node_stable_id(index->dependency_roots[r]) != index->dependency_root_ids[r] ||
+            index->dependency_roots[r] != (body->type == AST_BLOCK ? ast_block_statement(body, r) : body)) return false;
+    return true;
+}
+
 static bool
 function_param_flow_identifier_matches(const char *candidate, void *userdata)
 {
@@ -381,7 +393,7 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
     return closed;
 }
 
-static bool function_param_flow_local_replacement(SemanticContext *ctx,
+bool function_param_flow_local_replacement(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *assignment)
 {
     if (!semantic_param_publication_assignment_replacement(ctx, assignment)) return false;

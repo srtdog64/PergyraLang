@@ -1,0 +1,8 @@
+struct TextRecord { text: String; }
+extern "C" { func Keep(text: String) -> Void; }
+// Trim's result is independent of input backing; retained-result cleanup is separate.
+func Extract(ref record: TextRecord) -> Void { Keep(StringTrim(record.text)); }
+func Main() -> Void {
+    let record = TextRecord(Concat(" heap", " text "));
+    Extract(record);
+}

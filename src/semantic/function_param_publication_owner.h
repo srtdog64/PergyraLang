@@ -71,6 +71,7 @@ typedef struct {
     uint32_t id;
     ASTNodeType shape;
     uint32_t binding;
+    const Type *type;
 } PublishedCallArgument;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct {
@@ -108,7 +109,12 @@ typedef struct {
     ASTNodeType assignment_rhs_shape;
     uint32_t category;
     ASTNodeType value_shape;
-    bool origin_ready, string_value, physical_scalar;
+    bool origin_ready, string_value, physical_scalar, builtin_string_concat;
+    const Type *value_type;
+    const ASTNode *unmodelled_constructor, *call_receiver;
+    uint32_t unmodelled_constructor_id, call_receiver_id;
+    const Type *unmodelled_constructor_type;
+    /* Binary concat uses these same owned rows as typed operand snapshots. */
     PublishedCallArgument *arguments;
     ASTNodeType target_shape;
     uint32_t target_binding;
@@ -166,6 +172,11 @@ bool semantic_param_publication_argument_borrowed_for_call(
     const SemanticContext *ctx, const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_string_argument_read_only(
     const SemanticContext *ctx, const ASTNode *call, size_t ordinal);
+bool semantic_param_publication_record_string_concat(SemanticContext *ctx, ASTNode *value);
+bool semantic_param_publication_call_analysis_unmodelled(
+    const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_return_backing_required(
+    const SemanticContext *ctx, const ASTNode *decl, size_t ordinal, bool *required);
 bool semantic_param_publication_routine_return_dependency_is_scalar(
     const SemanticContext *ctx, const ASTNode *decl);
 bool semantic_param_publication_routine_no_output_header_ready(

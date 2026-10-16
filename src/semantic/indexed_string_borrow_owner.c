@@ -58,8 +58,14 @@ semantic_indexed_string_independent_result(const ASTNode *expression)
         ast_call_semantic_callee_value_binding_id(expression) != 0 ||
         !ast_call_semantic_callee_builtin_kind(expression, &builtin_kind))
         return false;
-    if (builtin_kind == BUILTIN_TEXT_BUILDER_FINISH && ast_call_arg_count(expression) == 1)
-        return true;
+    if (builtin_kind == BUILTIN_TEXT_BUILDER_FINISH) {
+        callee = ast_call_callee(expression);
+        return callee != NULL && callee->type == AST_IDENTIFIER &&
+            ast_node_stable_id(expression) != 0 && ast_node_stable_id(callee) != 0 &&
+            ast_identifier_name(callee) != NULL &&
+            strcmp(ast_identifier_name(callee), "TextBuilderFinish") == 0 &&
+            ast_call_arg_count(expression) == 2;
+    }
     if (!ast_call_semantic_callee_is_stdlib(expression))
         return false;
     callee = ast_call_callee(expression);
@@ -72,7 +78,8 @@ semantic_indexed_string_independent_result(const ASTNode *expression)
      * exact-copy or successful-allocation certificate. */
     if (name != NULL && builtin_kind == BUILTIN_NOT_BUILTIN &&
         ast_node_stable_id(expression) != 0 && ast_node_stable_id(callee) != 0 &&
-        ((strcmp(name, "CharAtN") == 0 && ast_call_arg_count(expression) == 3) ||
+        ((strcmp(name, "StringTrim") == 0 && ast_call_arg_count(expression) == 1) ||
+         (strcmp(name, "CharAtN") == 0 && ast_call_arg_count(expression) == 3) ||
          (strcmp(name, "SubstringWithLen") == 0 && ast_call_arg_count(expression) == 4)))
         return true;
     return name != NULL && (strcmp(name, "Concat") == 0

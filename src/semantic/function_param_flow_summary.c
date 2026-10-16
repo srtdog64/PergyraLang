@@ -136,6 +136,7 @@ function_param_flow_fail(FunctionParamFlowSummaryStore *store,
     if (store == NULL || store->failed)
         return;
     store->failed = true;
+    if (store->ctx->has_error) return;
     semantic_error(store->ctx, site,
         "Function parameter flow summary failed closed: %s",
         reason != NULL ? reason : "unknown owner failure");
@@ -145,12 +146,22 @@ static unsigned function_param_flow_evaluate(
     FunctionParamFlowSummaryStore *store,
     size_t index);
 
-static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index)
+bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index, bool pending_proof)
 {
     if (entry_index >= store->count) return false;
+    if (store->entries[entry_index].analysis_unsupported) return function_param_flow_unproved_current(store, entry_index);
     ASTNode *decl = store->entries[entry_index].function_decl;
     size_t ordinal = store->entries[entry_index].param_index;
     FunctionParamFlowOutputProducer producer = store->entries[entry_index].output_producer;
+    bool return_backing_required;
+    if (!semantic_param_publication_return_backing_required(store->ctx, decl, ordinal, &return_backing_required)) return false;
+    bool waiting = pending_proof && store->entries[entry_index].returned_backing_pending;
+    if (return_backing_required && (producer != FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME ||
+        (!waiting && !store->entries[entry_index].output_dependencies_ready) ||
+        store->entries[entry_index].output_dependencies == NULL ||
+        store->entries[entry_index].output_count != ast_func_param_count(decl) ||
+        (!waiting && (store->entries[entry_index].returned_backing_unproved ||
+        store->entries[entry_index].returned_backing_pending)))) return false;
     FunctionParamFlowProgramPointIndex *points;
     if (!function_param_flow_program_point_index_build(store, decl, &points) ||
         !function_param_flow_index_roots_current(points)) return false;
@@ -165,7 +176,7 @@ static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *st
     }
     /* Anchored handles have no descriptor-output receipt, but their cached
      * access/escape summary still depends on the current executed children. */
-    if (!store->entries[entry_index].output_dependencies_ready)
+    if (!waiting && !store->entries[entry_index].output_dependencies_ready)
         return function_param_flow_backing_rows_current(store, decl);
     if (producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) {
         if (points->backing_frames == NULL || ordinal >= points->backing_frame_count) return false;
@@ -176,7 +187,7 @@ static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *st
             frame->destination_count != ast_func_param_count(decl) ||
             frame->destination_count > SIZE_MAX - 63 ||
             frame->destination_words != (frame->destination_count + 63) / 64 ||
-            frame->epoch == 0 || frame->building || !frame->complete || frame->pending) return false;
+            frame->epoch == 0 || frame->building || !frame->complete || (frame->pending && !waiting)) return false;
         if (frame->private_stores_closed && !function_param_flow_no_store_graph(store, decl)) return false;
     } else if (producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR ||
         producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN) {
@@ -211,7 +222,7 @@ function_param_flow_demand_index(FunctionParamFlowSummaryStore *store,
 
     state = store->entries[index].state;
     if (state == FUNCTION_PARAM_FLOW_COMPLETE) {
-        if (!function_param_flow_output_current(store, index)) return SLOT_PARAM_SUMMARY_ALL;
+        if (!function_param_flow_output_current(store, index, false)) return SLOT_PARAM_SUMMARY_ALL;
         store->cache_hits++;
         return store->entries[index].mask;
     }
@@ -252,7 +263,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     if (store->entries[index].state == FUNCTION_PARAM_FLOW_EVALUATED
         || store->entries[index].state == FUNCTION_PARAM_FLOW_COMPLETE) {
         if (store->entries[index].state == FUNCTION_PARAM_FLOW_COMPLETE &&
-            !function_param_flow_output_current(store, index)) return SLOT_PARAM_SUMMARY_ALL;
+            !function_param_flow_output_current(store, index, false)) return SLOT_PARAM_SUMMARY_ALL;
         return store->entries[index].mask;
     }
 
@@ -312,6 +323,11 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     bool anchored = false;
     bool source_kind_ready = semantic_param_publication_parameter_is_anchored_handle(
         store->ctx, function_decl, origin.param_index, &anchored);
+    bool return_backing_required;
+    if (!semantic_param_publication_return_backing_required(store->ctx, function_decl, origin.param_index, &return_backing_required)) {
+        function_param_flow_fail(store, function_decl, "typed return backing classification is missing or stale");
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
     bool mutable_output = false;
     size_t output_count = ast_func_param_count(function_decl);
     for (size_t p = 0; p < output_count; p++) {
@@ -335,18 +351,21 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         return SLOT_PARAM_SUMMARY_ALL;
     }
     bool closed_scalar_return = (scalar_return || prior_scalar_return) && scalar_join;
-    if (!anchored && ((scalar_return && !closed_scalar_return) || mutable_output ||
-        (private_stores && graph_closed))) {
+    if (return_backing_required || (!anchored && ((scalar_return && !closed_scalar_return) || mutable_output ||
+        (private_stores && graph_closed)))) {
         unsigned backing_effects = SLOT_PARAM_SUMMARY_NONE;
         bool pending = false;
         bool *outputs = calloc(output_count, sizeof(*outputs));
         if (outputs == NULL) { function_param_flow_fail(store, function_decl, "output relation allocation failed"); return SLOT_PARAM_SUMMARY_ALL; }
         bool complete = function_param_flow_returned_backing_effects(store, function_decl,
             origin.param_index, &backing_effects, outputs, output_count, &pending, private_stores && graph_closed);
+        bool unsupported = !complete && !pending && function_param_flow_backing_unsupported(store, function_decl, origin.param_index);
+        store->entries[index].analysis_unsupported = unsupported;
+        if (unsupported) { candidate |= SLOT_PARAM_SUMMARY_ALL; storage_unproved = true; }
         if (complete && scalar_return) candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
         else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
         if (!complete && private_stores && graph_closed) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
-        if (!complete && mutable_output && (!pending || store->settling_pending)) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+        if (!complete && mutable_output && !pending) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
         if (store->entries[index].output_dependencies_ready != complete ||
             store->entries[index].returned_backing_pending != pending) store->changed = true;
         store->entries[index].returned_backing_pending = pending;
@@ -449,7 +468,7 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
             return function_param_flow_demand_index(
                 store, function_decl, param_index);
         if (store->entries[existing].state == FUNCTION_PARAM_FLOW_COMPLETE) {
-            if (!function_param_flow_output_current(store, existing)) return SLOT_PARAM_SUMMARY_ALL;
+            if (!function_param_flow_output_current(store, existing, false)) return SLOT_PARAM_SUMMARY_ALL;
             store->cache_hits++;
             return store->entries[existing].mask;
         }
@@ -477,7 +496,6 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     store->admitted_no_store_count = 0;
     store->solving = true;
     store->active_had_recursion = false;
-    store->settling_pending = false;
     /* Bound this demand closure, not the lifetime of the compilation. Completed
      * unrelated summaries remain cached; recursive revisits in this episode
      * still share the same cap. Body-evaluation telemetry stays cumulative. */
@@ -500,13 +518,12 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
                 store->entries[i].mask = SLOT_PARAM_SUMMARY_ALL;
             break;
         }
-        if (!store->changed && store->active_had_recursion && !store->settling_pending)
-            for (size_t i = store->active_start; i < store->count; i++)
-                if (store->entries[i].returned_backing_pending) {
-                    store->settling_pending = true; store->changed = true; break;
-                }
+        if (!store->changed && store->active_had_recursion &&
+            !function_param_flow_complete_pending_relations(store))
+            function_param_flow_fail(store, function_decl, "recursive backing relations are incomplete or stale");
     } while (store->active_had_recursion && store->changed);
 
+    function_param_flow_complete_return_relations(store);
     if (store->failed) {
         for (size_t i = store->active_start; i < store->count; i++)
             store->entries[i].mask = SLOT_PARAM_SUMMARY_ALL;
@@ -562,7 +579,7 @@ bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lo
     if (index == SIZE_MAX || store->entries[index].state == FUNCTION_PARAM_FLOW_COMPUTING ||
         !store->entries[index].output_dependencies_ready ||
         output_ordinal >= store->entries[index].output_count) return false;
-    if (!function_param_flow_output_current(store, index)) return false;
+    if (!function_param_flow_output_current(store, index, false)) return false;
     *dependent = store->entries[index].output_dependencies[output_ordinal];
     return true;
 }

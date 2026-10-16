@@ -1,0 +1,7 @@
+struct TextRecord { text: String; }
+func Alias(ref text: String) -> String { let alias_text = "literal"; return alias_text; }
+func ReadRecord(ref record: TextRecord) -> String { return Alias(record.text); }
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(ReadRecord(record));
+}

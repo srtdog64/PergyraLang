@@ -10,6 +10,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_decls_a_helpers_internal.h"
 #include "type_checker_flow_resources.h"
+#include "function_param_publication_owner.h"
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 
@@ -342,6 +343,12 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
+    if (op == TOKEN_PLUS && left == TYPE_STRING && right == TYPE_STRING &&
+        !ctx->has_error && semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_string_concat(ctx, expr)) {
+        semantic_error(ctx, expr, "Checked String concatenation publication failed");
+        return TYPE_UNKNOWN;
+    }
     return left;
 }
 

@@ -397,10 +397,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             ctx->scope, node, ctx, "function fallthrough");
     }
 
-    semantic_check_param_summary_escapes(node, param_count, param_types,
-        func_type, ctx);
-
-
     semantic_collection_record_owned_string_result_summary(node, ctx);
     type_function_set_body_summary(func_type,
         ctx->current_function_body_summary);
@@ -438,6 +434,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         type_check_func_validate_return_boundary(node, ctx, final_ret);
         type_function_set_return_type(func_type, final_ret);
     }
+    semantic_check_param_summary_escapes(node, param_count, param_types,
+        func_type, ctx);
     /* HIR's implicit exit consumes the checked return type for both declared
      * and inferred signatures; it must not guess Void from an open CFG tail. */
     Type *checked_return = type_function_return_type(func_type);

@@ -128,3 +128,13 @@ bool semantic_typed_map_query_result_independent(const SemanticContext *ctx, con
        allocated MapKeys snapshots; no String MapGet row can enter here. */
     return true;
 }
+bool semantic_typed_map_query_fact_issued(const SemanticContext *ctx, const ASTNode *call)
+{
+    if (ctx == NULL || call == NULL || ctx->typed_map_query_facts == NULL) return false;
+    uint32_t id = ast_node_stable_id(call);
+    for (size_t i = 0; i < ctx->typed_map_query_facts->count; i++) {
+        const TypedMapQueryRow *row = &ctx->typed_map_query_facts->rows[i];
+        if (row->call == call || (id != 0 && row->id == id)) return true;
+    }
+    return false;
+}

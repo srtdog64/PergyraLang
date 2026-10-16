@@ -23,6 +23,84 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   oracle, reduced canonical inputs, increased memory/time budgets, or claiming
   old receipts validate the integrated source.
 
+## Active return-provenance completion policy
+
+The local-alias RETURN repair is a safety prerequisite, not a new precision
+track. Native semantic tests now expose four regressions (storage, datetime,
+layered imports and an enum callback). Before adding representation owners,
+separate unsupported analysis from missing or corrupt authoritative inputs.
+An existing typed operation whose backing relation is not modelled may produce
+the existing conservative ALL effect lattice, never a ready empty relation.
+The producer must distinguish that case explicitly; do not reinterpret every
+`complete=false` or failed currentness check as unsupported. Missing/stale typed
+inputs, identity/shape/claims faults, OOM, overflow and work4096 remain failures.
+ALL must grow during evaluation and propagate through the active fixed point,
+not be substituted only after callers consumed provisional zero. Unproved
+relations cannot grant output-dependency, return-loan or storage-preservation
+permission. Current typed facts, exact pending edges and batch SCC completion
+remain mandatory for precise results; no selector fallback is allowed.
+
+Scopes of this same chain: A owns backing/summary/SCC/internal representation;
+B repairs only the existing formal snapshot's legitimate absent implicit-type
+syntax while preserving actual Type identity and explicit-node currency; C
+adds conservative-effect versus permission behavioral controls in the existing
+phase unit. Root owns integration and all execution. Native semantic success
+cases and strict borrowed/corrupt/work-limit negatives are unchanged. First
+run build/phase/summary, then complete native tests, Map/IR and frozen review,
+then the unchanged canonical and original bootstrap/install/memory/CI chain.
+This policy is a plan until its producers, consumers and tests have run.
+
+Root's analyze-only instrumented storage probe (`p0-nominal-trace.wJUTfr`)
+finds StorageSave's class constructor has current call/argument rows but no
+nominal-result receipt. The existing nominal producer intentionally covers
+structs only. Distinguish that supported typed class target from a missing
+ordinary routine publication at the checked-call producer; retain exact
+declaration identity, not a name whitelist or an owned scope Symbol. This is
+an unsupported-analysis witness, never a class freshness or retention grant.
+An issued nominal/result receipt that becomes stale is not unsupported.
+The diagnostic clone source/build/bin were restored to binary1e77 exactly.
+
+At integration the backing TU reaches600 executable LOC against the unchanged
+599 cap. Move the complete unchanged index-roots-current predicate into the
+existing program-point-index owner (its actual responsibility); shared identity,
+signature and every caller stay unchanged. Do not compress lines, add a new
+owner/file or raise the cap. Rebuild and replay the same currentness falsifiers.
+
+Full native replay on binaryf2c5106 passes MIR327/0 and semantic3228/0, but
+the unchanged transpiler's alias/MapGet<Player> program still fails before
+emission (one source case, five output assertions). Its non-Int MapGet has
+no typed-map relation: the existing owner covers Int MapGet and MapKeys only.
+Extend the same unsupported-effect discriminator for current typed external
+stdlib results, not a new MapGet precision rule. Read issued-row presence from
+the existing typed-map owner so an issued-but-stale MapKeys/IntMapGet relation
+cannot become unsupported. Presence is not a permission. Preserve current
+typed inputs, Void/scalar/independent-result paths, every issued-row corruption
+negative and the original transpile fixture. B owns this small existing-owner
+query, C its behavioral fault controls; no new owner/file or metadata fallback.
+
+The subsequent unchanged Map integration exposes one exact diagnostic
+regression: a harmless lexical defer before a borrowed field return reaches the
+backing consumer's unsupported default and emits a generic error before the
+required BORROW diagnostic. The existing shared input claims already own the
+defer body/identity and typed flow checks it as same-routine cleanup; it is not
+an escaping lambda/worker capture. A connects that already-checked body to the
+same backing consumer, including nested retention and read-before-later-write
+epochs; C preserves independent-positive and retaining-defer falsifiers.
+The original Map negative oracle remains strict. Snapshot DpaZ7z stays frozen;
+the defer delta needs a new identified build and final review evidence.
+
+Final d61 source passes phase6423/0, strict summary/work controls, complete
+native MIR327/0/semantic3228/0/transpile1009/0, Map24 C/LLVM positives and58
+ownership-only negatives, HIR/RIR/MIR/AIR and all reached caps/component checks.
+The actual full bootstrap still fails before gen0 (20.91s/831588KiB): first
+required relation failure is JsonObjectFactIndex id57662, Option<Int> result,
+not work4096. The18410 later diagnostics are cascades. Before any further
+contract/edit, enumerate the complete current-owner failures on the same
+sealed signature/key input. Scratch only, terminal before consumer/MIR/codegen,
+original budgets and current typed/unsupported/SCC receipts preserved. The old
+meta census files are diagnostic references, never a replacement source tree.
+Root's first-owner trace restored source/build/bin and original hashes exactly.
+
 ## Complete execution order
 
 1. Record inherited shared WIP as an explicitly unverified local checkpoint.
@@ -910,6 +988,137 @@ permission:1165 charged identifier shapes include real origin reads too.
 Measure/remove only a redundant per-leaf row/work operation while keeping
 current shared claims/typed binding and every actual origin/read-growth path;
 no zero-origin subtree skip or query-order/budget change is allowed.
+
+Next bounded objective: delete only consumer-only IDENTIFIER leaf row allocation,
+linear lookup and visit/work stamps, not origin reads. Priority is current
+identity/binding/claims, eager effects and read-growth before cost. Existing
+backing/claims owners produce the same relation; last consumers are summary
+outputs and the independent returned-loan admission. Current a8713e9 candidate,
+fixed full canonical, work4096 and diagnostic first-demand1165 identifier charges
+bound this hypothesis; actual removable overlap and savings remain Unknown.
+An exact non-loan AST_IDENTIFIER consumer has no children or transfer operation.
+Keep claim recording/nonzero identity and current typed binding validation,
+including rejection of binding0. backing_origin identifiers retain all origin
+merges and zero-to-growing read stamps. Calls, casts, members, indexes, captures,
+branches, expression effects and all origin/destination reads stay unchanged.
+The loan seed is a checked CALL and cannot be waived as a leaf. Do not broaden
+the exact leaf predicate or delete budget charges while retaining their work.
+A edits only existing backing_dependencies.c; C adds currentness/eager replacement
+and late-growth falsifiers in the existing phase unit; root builds/tests under
+one lease. First phase and original4096/4097/P0 controls, then unchanged full
+canonical; only if it admits proceed immediately to bootstrap/install/memory.
+No new owner, cache, annotation/copy, test-text scan or cap increase is allowed.
+
+The identifier-only candidate passes phase5503/0 and original summary/P0/
+worker/4096/4097 PASS10.95s. Canonical RED22.42s/769740KiB reaches a different
+frontier:8173 cascading errors, no failed-closed/work-budget diagnostic, first
+SemanticAstSignatureTypeExpressionFormalIndexInRow:310 ref facts gets ALL.
+This is not zero refusal or a measured173->N census. Root's standalone unused
+ref + inout + typed None example fails on both frozen scalar and current
+binaries (`.tmp/p0-none-meta.VgDoYN/` in Linux), so the meta seam predates the
+consumer-only change; the earlier global failure concealed it.
+
+Revisited complete meta chain: type_checker_expr's typed record_value(meta=true)
+is the authority, publication preserves that current fact, backing_origin
+already treats it as carrying no input. Its backing node and the consumer-only
+leaf reach two last consumers that nevertheless require a variable binding.
+Existing shared claims seal readiness/physical classification but not meta.
+Repair exactly four existing files: internal claim bool value_meta; semantic
+claim capture/replay of current(ok&&meta); consumer-only identifier and final
+backing-row identifier both require current value.ok&&(meta||binding!=0).
+No origin, name whitelist, owner/API, allocation, geometry or cap change.
+Unpromoted/dead claims retain their existing semantic boundary. Missing typed
+facts and real variable binding0 must still refuse; meta true->false and
+variable false->true must invalidate cached summary/output/loan, then recover
+only after exact restoration. C adds normal typed None to the existing inout+
+static Echo loan control and tests those three consumers; root independently
+rebuilds, runs phase/summary and unchanged full canonical before integration.
+
+Root meta integration0014b8a build/size PASS, new combined None+loan phase
+baseline still RED (one typed assertion), with the original5440 checks intact.
+The reached alias consumer is part of this same chain: LET invokes
+backing_destination_alias on an identifier initializer before origin handling;
+it calls backing_place and rejects a legitimate typed meta binding0. Revisit
+the map before extending: current(ok&&meta) means no alias destination, while
+ordinary/missing values keep the original binding/alias path. Shared meta
+capture/replay remains the currentness authority. Do not change origin/read
+growth or store/retaining behavior to make the positive pass. The standalone
+probe also still refuses (CALL now rather than RETURN/CHANNEL); no closure.
+
+Soundness blocker supersedes cost work. Independent frozen review
+`.tmp/redteam-meta-39a8fc1db-20261016/review.md` reproduces ref String -> local
+alias -> return -> borrowed record caller with published RETURN0/MIR admission.
+The no-meta pair also passes frozen a871, so this predates the meta candidate.
+Direct-return control refuses. A stronger Make() lets the result outlive its
+local dynamic record. C/LLVM source emits pointer copies, not independent
+Clone/retain; no unsafe program was run and runtime UAF is not claimed.
+RETURN0 skips the actual return_loan_admitted consumer, making this a concrete
+proof-obligation bypass. Candidate remains UNPUBLISHED and soundness-BLOCKED;
+do not use the bounded meta controls as whole-candidate approval.
+
+Closure objective: current typed routine header owns result classification;
+the existing per-input backing frame, not a no-store graph or named zero mask,
+owns whether local/field/branch/loop/call result origins reach descriptor RETURN.
+Connect that relation independent of an already-present named RETURN. Last
+consumers are summary_for_call -> final RETURN fact -> return_loan_admitted,
+plus output_dependency_for_call. Keep CALL/CHANNEL/access/storage and SCC
+pending/settling; incomplete relations fail closed. Old CLOSED_SELECTOR must
+not substitute for descriptor-return provenance. No one-LET/name exemption,
+manual Clone/annotation, new owner/cache, skipped safety or increased cap.
+Source survey resolved the classification boundary: ordinary COPY_ONLY includes
+String and is not backing independence. Existing publication owns current
+formal/result Type identities. Its narrow return-backing-required query will
+separate this type premise from no-output/closed-scalar permission, preserving
+async scalar/Void and primitive-input capture cases. Anchored handles get no
+descriptor-return exemption; existing Slot/borrow boundaries remain in force.
+At SCC completion, a required backing relation must be complete/current, never
+an unresolved zero or a CLOSED_SELECTOR substitute. Preserve pending iterations
+without prematurely OR-ing a permanent conservative bit into a live SCC.
+Independent edit scopes on this one repair: B publication routines/header typed
+premise; A summary evaluate/current/final completion consumers; C existing
+phase/summary behavioral falsifiers. Root alone builds and integrates, first
+observing the old binary fail new tests, then checking the same full controls.
+
+First integration exposes the remaining reached producers, not new work tracks.
+All109 paired MIR cases were checked once: only independent StringTrim regressed;
+the12 original worker/capture positives still pass. The phase unit additionally
+finds local whole-value replacement losing RETURN to a destination-only CALL,
+inferred headers published before final return inference, and RenderMoney's
+builtin String+ lacking a checked independent-origin receipt. The repair must
+separate local replacement from mutable contents through the existing exact
+replacement/local-definition owner; never erase member/index/using stores.
+Publish inferred routine headers only after their return Type is final. Extend
+the existing independent String producer for checked allocating StringTrim,
+and issue builtin-concat evidence only after overload/unknown/coalesce paths
+are excluded by the typed operator owner. Publication/claim replay must seal
+that receipt and origin_ready; no syntax-only binary-zero or COPY_ONLY=fresh
+shortcut. Preserve region lifetime obligations separately from input-backing
+independence. A owns replacement/header timing, B typed String-result receipts,
+C their positive/negative/currentness controls; root retains the build lease.
+
+Strict paired diagnostics reveal a final reached SCC obligation: mutual
+descriptor-return routines keep complete-but-pending backing equations after
+their masks/outputs stop growing. The old settling flag turns such dependencies
+into permanent incomplete facts. Replace that transition in the existing
+relation owner: each frame records only the exact call/ordinal dependencies
+that actually caused pending; at a stationary demand boundary validate current
+frames, equations and every external-current or same-active-group dependency,
+then issue readiness atomically. Missing/opaque/stale/building/incomplete edges
+cannot be promoted. Retire dependency storage with its frame. Final existing
+current validation remains mandatory; no generic-error oracle relaxation or
+unconditional pending=false. This is one fact family's completion evidence,
+not a new owner/cache/demand lane. Separately retain the original structured
+capture denial when later relation work fails as its consequence; failed typed
+input must never become an empty permission.
+
+The meta candidate's one current census completed before this new safety repair:
+same4273 signatures/3188 keys,173->290 budget failures (10 resolved/127 new),
+223 admitted masks differ. Diagnostic73.44s/769484KiB; restore byte-identical.
+First root ExclusiveValueFactsFrom input1 -> ConsumedAt: E9+B4075+G12=4096;
+Classify uses3314 charges across4 input rows/922 distinct AST nodes. These are
+not the alias repair's results or an ownership-refusal completion count.
+Receipt Linux `.tmp/p0-current-meta-census.eTjnOy/`. No more cost changes until
+the returned-origin safety producer and its falsifying controls are repaired.
 
 ## Observations
 

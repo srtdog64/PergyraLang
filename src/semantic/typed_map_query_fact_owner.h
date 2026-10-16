@@ -7,6 +7,8 @@ bool semantic_typed_map_query_record(SemanticContext *ctx, ASTNode *call,
 bool semantic_typed_map_query_receiver_read(const SemanticContext *ctx, const ASTNode *call,
     size_t ordinal);
 bool semantic_typed_map_query_result_independent(const SemanticContext *ctx, const ASTNode *call);
+/* Inventory only: an issued row remains issued even when its proof is stale. */
+bool semantic_typed_map_query_fact_issued(const SemanticContext *ctx, const ASTNode *call);
 bool semantic_typed_map_query_facts_ready(const SemanticContext *ctx);
 void semantic_typed_map_query_destroy(SemanticContext *ctx);
 #endif

@@ -1,0 +1,10 @@
+struct TextRecord { text: String; }
+extern "C" { func Keep(text: String) -> Void; }
+func Hold(text: String) -> String { Keep(text); return "independent"; }
+func ReadRecord(ref record: TextRecord) -> String {
+    return Hold(record.text) + " suffix";
+}
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(ReadRecord(record));
+}

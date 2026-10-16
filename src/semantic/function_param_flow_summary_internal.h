@@ -29,6 +29,7 @@ typedef struct
     bool array_storage_unproved;
     bool returned_backing_unproved;
     bool returned_backing_pending;
+    bool analysis_unsupported;
     bool *output_dependencies;
     size_t output_count;
     bool output_dependencies_ready;
@@ -51,6 +52,11 @@ typedef struct {
 } FunctionParamFlowBackingBinding;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct {
+    ASTNode *call;
+    uint32_t call_id, callee_id;
+    size_t ordinal;
+} FunctionParamFlowPendingRelation;
+typedef struct {
     size_t origin_count, origin_words;
     size_t destination_count, destination_words;
     size_t input_ordinal;
@@ -62,6 +68,11 @@ typedef struct {
     size_t node_count;
     FunctionParamFlowBackingBinding *bindings;
     size_t binding_count;
+    FunctionParamFlowPendingRelation *pending_relations;
+    size_t pending_relation_count;
+    size_t sealed_pending_relation_count;
+    bool analysis_unsupported;
+    FunctionParamFlowPendingRelation unsupported_relation;
     bool building, complete, pending, changed;
     bool private_stores_closed;
     FunctionParamFlowIndexClaims *claims;
@@ -85,6 +96,8 @@ typedef struct {
     bool private_array_push;
     bool execution_present, reachable, physical_value;
     bool value_ready;
+    bool value_meta;
+    bool value_origin_ready;
     bool numeric_cast;
     char *cast_target;
     bool result_relation, result_depends, external_retains;
@@ -143,7 +156,6 @@ struct FunctionParamFlowSummaryStore
     bool solving;
     bool changed;
     bool active_had_recursion;
-    bool settling_pending;
     bool failed;
     size_t body_evaluations;
     size_t cache_hits;
@@ -163,6 +175,8 @@ void function_param_flow_program_point_index_destroy(
 void function_param_flow_fail(FunctionParamFlowSummaryStore *store, ASTNode *site, const char *reason);
 bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);
+bool function_param_flow_local_replacement(SemanticContext *ctx,
+    FunctionParamFlowProgramPointIndex *index, ASTNode *assignment);
 void function_param_flow_program_point_indexes_destroy(FunctionParamFlowSummaryStore *store);
 bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore *store,
     ASTNode *decl, size_t ordinal, unsigned *effects, bool *outputs, size_t output_count, bool *pending,
@@ -172,7 +186,14 @@ bool function_param_flow_callee_relation_ready(const SlotFunctionLookup *lookup,
 bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal);
 void function_param_flow_callee_unfinished(const SlotFunctionLookup *lookup,
-    ASTNode *call, size_t ordinal, bool *pending, bool *complete);
+    ASTNode *call, size_t ordinal, FunctionParamFlowBackingFact *fact);
+bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index, bool pending_proof);
+bool function_param_flow_complete_pending_relations(FunctionParamFlowSummaryStore *store);
+bool function_param_flow_backing_unsupported_call(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowBackingFact *fact, ASTNode *call);
+bool function_param_flow_backing_unsupported(FunctionParamFlowSummaryStore *store, ASTNode *decl, size_t ordinal);
+bool function_param_flow_unproved_current(FunctionParamFlowSummaryStore *store, size_t index);
+void function_param_flow_complete_return_relations(FunctionParamFlowSummaryStore *store);
 bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lookup,
     const ASTNode *call, size_t source_ordinal, size_t output_ordinal, bool *dependent);
 bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *decl,

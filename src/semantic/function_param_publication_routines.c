@@ -85,10 +85,30 @@ bool semantic_param_publication_parameter_is_anchored_handle(
     const PendingRoutine *row = publication_routine(ctx->function_param_publications, ast_node_stable_id(decl));
     if (!semantic_param_publication_routine_inputs_current(ctx, decl, true) || ordinal >= row->count) return false;
     const PublishedFormal *formal = &row->formals[ordinal];
-    if (formal->id == 0 || formal->type_node == NULL || formal->type_node_id == 0 ||
-        row->types[ordinal] == TYPE_UNKNOWN || row->types[ordinal] != type_function_param_type(row->function_type, ordinal) ||
+    if (formal->id == 0 || (formal->type_node != NULL && formal->type_node_id == 0) ||
+        row->types[ordinal] == NULL || row->types[ordinal] == TYPE_UNKNOWN ||
+        row->types[ordinal] != type_function_param_type(row->function_type, ordinal) ||
         formal->kind != row->types[ordinal]->kind || formal->anchored != type_is_anchored_resource_handle(row->types[ordinal])) return false;
     *anchored = formal->anchored;
+    return true;
+}
+bool semantic_param_publication_return_backing_required(
+    const SemanticContext *ctx, const ASTNode *decl, size_t ordinal, bool *required)
+{
+    if (required == NULL || !semantic_param_publication_inputs_ready(ctx) ||
+        !semantic_param_publication_routine_inputs_current(ctx, decl, true)) return false;
+    const PendingRoutine *row = publication_routine(ctx->function_param_publications, ast_node_stable_id(decl));
+    if (row == NULL || ordinal >= row->count || row->types == NULL || row->formals == NULL ||
+        row->types[ordinal] == NULL || row->types[ordinal] == TYPE_UNKNOWN ||
+        row->async != decl->is_async_decl || row->return_type == NULL || row->return_type == TYPE_UNKNOWN ||
+        row->return_type != type_function_return_type(row->function_type) ||
+        (row->return_node != NULL && row->return_node_id == 0) ||
+        row->return_node != ast_func_return_type(decl) ||
+        row->return_node_id != ast_node_stable_id(row->return_node)) return false;
+    bool anchored;
+    if (!semantic_param_publication_parameter_is_anchored_handle(ctx, decl, ordinal, &anchored)) return false;
+    *required = !publication_physical_scalar(row->types[ordinal]) &&
+        !(row->return_type == TYPE_VOID || publication_physical_scalar(row->return_type));
     return true;
 }
 bool semantic_param_publication_routine_relation_header_ready(
@@ -242,6 +262,52 @@ ASTNode *semantic_param_publication_callee(const SemanticContext *ctx, const AST
     if (!semantic_param_publication_checked_argument(ctx, call, ordinal)) return NULL;
     ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
     return decl != NULL && ordinal < ast_func_param_count(decl) ? decl : NULL;
+}
+bool semantic_param_publication_call_analysis_unmodelled(
+    const SemanticContext *ctx, const ASTNode *call)
+{
+    PublishedNode *row = publication_current_value(ctx, call);
+    if (row == NULL || call->type != AST_CALL || !publication_call_ready(row) ||
+        row->value_type == NULL || row->value_type == TYPE_UNKNOWN ||
+        row->nominal_result != NULL || row->result_relation) return false;
+    for (size_t i = 0; i < row->argument_count; i++) {
+        const PublishedCallArgument *arg = &row->arguments[i];
+        PublishedNode *value = publication_current_value(ctx, arg->node);
+        if (value == NULL || arg->type == NULL || arg->type == TYPE_UNKNOWN ||
+            arg->type != value->value_type) return false;
+    }
+    if (row->target_shape == AST_IDENTIFIER && row->kind_present &&
+        row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib &&
+        row->declaration == 0 && row->value_binding == 0 &&
+        row->value_type != TYPE_VOID && !publication_physical_scalar(row->value_type) &&
+        !row->origin_ready && !(row->string_value && semantic_indexed_string_independent_result(call)) &&
+        !semantic_typed_map_query_fact_issued(ctx, call) &&
+        !semantic_typed_map_query_result_independent(ctx, call)) return true;
+    if (row->target_shape == AST_MEMBER_ACCESS) {
+        const ASTNode *receiver = ast_member_object(row->target);
+        PublishedNode *value = publication_current_value(ctx, receiver);
+        return receiver != NULL && receiver == row->call_receiver && row->call_receiver_id != 0 &&
+            row->call_receiver_id == ast_node_stable_id(receiver) && value != NULL &&
+            value->value_type != NULL && value->value_type != TYPE_UNKNOWN;
+    }
+    if (row->value_binding != 0) {
+        PublishedNode *target = publication_current_value(ctx, row->target);
+        return row->target_shape == AST_IDENTIFIER && row->target_binding == row->value_binding &&
+            target != NULL && target->value_type != NULL && target->value_type->kind == TYPE_KIND_FUNCTION;
+    }
+    /* Absence of a routine is not constructor evidence: only the typed
+     * producer's exact nominal target receipt distinguishes this case. */
+    if (row->unmodelled_constructor == NULL || row->unmodelled_constructor_id == 0 ||
+        row->unmodelled_constructor_id != ast_node_stable_id(row->unmodelled_constructor) ||
+        row->unmodelled_constructor->type != AST_CLASS_DECL || ast_class_is_struct(row->unmodelled_constructor) ||
+        row->unmodelled_constructor_type != row->value_type || row->value_type->kind != TYPE_KIND_CLASS ||
+        row->value_type->nominal_flavor != TYPE_NOMINAL_CLASS ||
+        row->target_shape != AST_IDENTIFIER || row->target_name == NULL ||
+        ast_class_name(row->unmodelled_constructor) == NULL ||
+        strcmp(row->target_name, ast_class_name(row->unmodelled_constructor)) != 0 ||
+        (row->declaration != 0 && row->declaration != row->unmodelled_constructor_id) ||
+        publication_routine(ctx->function_param_publications, row->unmodelled_constructor_id) != NULL) return false;
+    return true;
 }
 bool semantic_param_publication_admitted_view(const SemanticContext *ctx, SemanticParamPublicationView *view)
 {

@@ -6,6 +6,90 @@ SoT registry, admitted contracts, and executable gates override this note.
 ## Active self-host context — GPT main integration and P0 validation
 
 Active rung: unchanged full canonical native admission, then actual codegen
+bootstrap/gen2==gen3, driver memory, installed C/LLVM and required same-SHA CI.
+Published checkpoint: `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe` on `main`.
+Local and remote each have only `main`; preserved perf worktree is detached.
+Current tree has UNCOMMITTED typed-meta/returned-origin repair and its tests;
+do not overwrite it with an older diagnostic overlay or call it accepted.
+
+Exact-SHA CI38860052641 is completed RED: macOS, Windows and codegen-bootstrap
+failed; Rocq9/prove and TSAN passed. Dependent bootstrap/installed-driver and
+backend jobs were skipped, not green. The last full canonical on typed-meta
+binary ce3fb9c436073ca92f903ff86187da3c60dfd9b35708de32ed51a2e351ce15da
+was RED/work4096 at ExclusiveConsumedAt,41.17s/769436KiB. No current bootstrap,
+fixed-point, installed-driver or full memory acceptance exists.
+
+Safety takes precedence over further cost changes. Independent frozen review
+`.tmp/redteam-meta-39a8fc1db-20261016/review.md` found ref String -> local alias
+-> return publishing RETURN0, bypassing the caller's actual loan check. The
+outliving-record program emits MIR on both ce3 and older scalar binary a871;
+this predates the meta change. C/LLVM source copies the pointer, not Clone or
+retain. No unsafe program was executed and runtime UAF is not claimed.
+
+The current repair connects per-input backing provenance independently of a
+named RETURN bit and requires current evidence at SCC completion/reuse and the
+final loan permission. Exact local replacement, final inferred header capture,
+checked allocating StringTrim and builtin String+ receipts are connected.
+Stationary recursion seals actual checked pending edges, not a blanket flag.
+Typed but unsupported analysis produces ALL during evaluation while output,
+loan and storage permission remain unavailable. Its exact current witness is
+not a stale/missing-input fallback. Issued typed-map/nominal facts cannot be
+downgraded into unsupported; scalar-only constructor inputs keep their existing
+independent origin. No COPY_ONLY=fresh, annotation/copy workaround, new owner,
+weakened safety or larger cap. The unchanged roots-current predicate now lives
+with the existing program-point-index owner, preserving its signature/callers.
+Plan and bounded edit scopes are in
+[`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md),
+section `Active return-provenance completion policy` and the safety blocker.
+A owns summary/replacement/header timing, B typed publication/issued fact
+boundaries, C behavioral tests. All three edit scopes are frozen. Root integrates and
+alone owns the WSL build lease; agents do not build or change Git state.
+
+Observed repair evidence (not acceptance), binary SHA256
+`d61d3695e471e67be549fb2ec0c38fb95889a981b7ac4338d6d7b945fe8abaaa`:
+phase6423/0; strict summary with112 paired MIR cases, original12 worker/capture
+positives, C/LLVM retention and unchanged4096/4097 controls PASS. Whole native
+MIR327/0, semantic3228/0, transpile1009/0 and semantic/test size caps PASS.
+Map24 C/LLVM positives/58 exact analyze-only negatives and HIR/RIR/MIR/AIR,
+all production/test/header/backend caps and component/generator drift pass.
+Receipts: `/root/pgy-main-20261016.p0-return-defer-{verified-final,final-native,final-chain}.log`
+and `p0-return-final-caps-component.log`. The first chain runner used a missing
+scratch gate pathname after its successful Map/IR/header checks; its remaining
+caps/component were then run via the actual repository entrypoints and passed.
+Lexical defer now feeds its existing checked body into the same backing MAY
+analysis, including nested retention and late local-origin growth; no escaping
+capture permission was added. A new compact defer fixture's syntax and its
+helper-only String assumption were corrected, not the existing strict oracle.
+The original storage/datetime/layered/callback, scalar snapshot constructor
+and alias/MapGet<Player> fixtures are unchanged and pass. New tests on old ce3
+gave5747/14 failures, actual alias RETURN omissions rather than parser errors.
+The actual unchanged full codegen bootstrap on d61 is RED before gen0:
+20.91s/831588KiB, exit2, primary required-backing incomplete at
+JsonObjectFactIndex id57662 (json_fact_table.pgy141, result Option<Int>), not a
+work-budget failure. The18410 following errors are cascades, not an independent
+failure census. Read `/root/pgy-main-20261016.p0-return-actual-bootstrap.log`.
+Root's temporary owner-name probe restored source/build/bin to d61 and verified
+the original hashes; receipt `.tmp/p0-primary-return-trace.zbc575` in the clone.
+Next is the complete current-owner fixed-input failure census before choosing
+another contract. Do not reapply the obsolete meta/matrix overlay or patch
+only JsonObjectFactIndex. A prepares scratch instrumentation; B/C read the
+reached producer/behavior boundaries; root alone executes. No production
+optimization or new precision/owner track is selected from this first failure.
+The final frozen review is `/root/pgy-review-return-39a8fc1db.TUl3PL` with
+source.diff SHA25691fe49fbdf31c2c8106f3945a74c797efd53c685955de48ab7fa8e5b7a3ecb36.
+The separate review confirmed the old alias falsifier refuses on its earlier
+snapshot, then stopped with model-capacity error; a bounded resume on TUl3PL
+was requested. There is no final approval yet.
+Only admitted canonical permits bootstrap/install/
+memory acceptance. Native repairs are prerequisites, not C-path substitution
+or closed SoT rows. CI remains the published checkpoint's RED until a new
+reviewed source checkpoint is committed and run; no current closure claim.
+
+### Historical diagnostic archive — lookup only, not an active work queue
+
+#### Earlier integration snapshots
+
+Active rung: unchanged full canonical native admission, then actual codegen
 bootstrap/fixed point, driver memory, installed C/LLVM driver and required CI.
 The P0 prerequisite has focused green evidence, not whole-language closure.
 Published repair checkpoint: `0f22491e6`, parent `795f71423`.
@@ -118,7 +202,7 @@ typing remain unsupported evidence boundaries. Two inherited native warnings
 remain. Bootstrap/driver memory/installed driver/exact-SHA CI remain OPEN.
 Native prerequisite repairs and moved LOC are not C-path substitution progress.
 
-### Historical diagnostic archive — lookup only, not an active work queue
+#### Earlier diagnostic archive
 
 The owner resumed work on 2026-10-16 and requested one main branch. The
 inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
