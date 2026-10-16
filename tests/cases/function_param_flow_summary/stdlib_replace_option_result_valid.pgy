@@ -1,0 +1,17 @@
+func ReplaceOption(ref source: String) -> Option<String>
+{
+    return Some(StringReplace(source, ".", "_"));
+}
+
+func InspectReplace(ref source: String) -> Option<Int>
+{
+    let result = ReplaceOption(source);
+    if !IsSome(result) { return None; }
+    return Some(StringLength(UnwrapOption(result)) + StringLength(source));
+}
+
+func Main() -> Void
+{
+    let source = Concat("a.", "b");
+    Log(UnwrapOption(InspectReplace(source)));
+}

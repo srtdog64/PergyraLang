@@ -1,0 +1,12 @@
+func SubstringOption(ref source: String) -> Option<String>
+{
+    return Some(Substring(source, 1, 2));
+}
+
+func Main() -> Void
+{
+    let source = Concat("ab", "cde");
+    let selected = UnwrapOption(SubstringOption(source));
+    Log(selected);
+    Log(source);
+}

@@ -85,6 +85,9 @@ paired = (
     ("declared_empty_scope_keep_invalid", False),
     ("stdlib_input_retention_valid", True),
     ("stdlib_prefix_factory_valid", True),
+    ("stdlib_replace_option_result_valid", True),
+    ("stdlib_substring_option_result_valid", True),
+    ("stdlib_tostring_scalar_option_result_valid", True),
     ("result_frame_option_multi_exit_valid", True),
     ("result_frame_formal_return_invalid", False),
     ("result_frame_formal_some_invalid", False),
@@ -280,6 +283,33 @@ for name, valid in paired:
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 
+# These calls must still refuse at the unsafe nested actual or alias-forwarding
+# site. Only compile and inspect diagnostics; the external Keep is never run.
+for name, site in (
+    ("stdlib_tostring_string_forward_invalid", (10, 27)),
+    ("stdlib_replace_nested_retaining_invalid", (11, 45)),
+    ("stdlib_substring_nested_retaining_invalid", (11, 41)),
+):
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        timeout=10.0, check=False)
+    output = (checked.stdout + checked.stderr).decode(errors="replace")
+    try:
+        diagnostics = json.loads(output)
+    except json.JSONDecodeError:
+        raise SystemExit(f"typed String result negative {name} lost structured diagnostics: {output}")
+    errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+    if checked.returncode != 1 or '"pgy.mir.v1"' in output or not any(
+            row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
+            row.get("cause_ir") == "semantic:borrow_escape" and
+            (row.get("location", {}).get("line"), row.get("location", {}).get("column")) == site
+            for row in errors):
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"typed String result negative {name} lost its owned refusal at {site}")
+print("[function-param-flow-summary] typed String result alias/retention refusals: PASS")
+
 # Wrong arity must fail at the checked builtin signature, not inherit a
 # same-name retention row or reach a MIR artifact.
 arity_source = root / "tests/cases/function_param_flow_summary/stdlib_prefix_arity_invalid.pgy"
@@ -398,8 +428,13 @@ for name, code, cause in (
             row.get("code") == code and row.get("cause_ir") == cause for row in errors):
         raise SystemExit(f"stdlib identity/arity negative {name} lost {code}/{cause}")
 runtime_dir = pathlib.Path(tempfile.mkdtemp(prefix="stdlib-input-retention."))
+# ToString(Bool) output parity is behavioral only: LLVM may return static text.
+# These cases do not assert a fresh allocation or an exit-drop right.
 for name, expected in (
     ("stdlib_input_retention_valid", "12\n2\n0\n-2147483648\n\n"),
+    ("stdlib_replace_option_result_valid", "6\n"),
+    ("stdlib_substring_option_result_valid", "bc\nabcde\n"),
+    ("stdlib_tostring_scalar_option_result_valid", "5\ntrue\n12345\n7\nabcde\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
     ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),

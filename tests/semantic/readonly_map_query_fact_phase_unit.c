@@ -2192,6 +2192,167 @@ static void checked_local_owner_constructor_currency(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_typed_string_result_constructor_currency(void)
+{
+    const char *source =
+        "func SourceText()->String{return Concat(\"alph\",\"abet\");}"
+        "func MakeSubstring()->String{return Substring(\"alphabet\",0,3);}"
+        "func MakeReplace()->String{return StringReplace(SourceText(),\"a\",\"o\");}"
+        "func MakeScalar()->String{return ToString(73);}"
+        "func MakeBool()->String{return ToString(true);}"
+        "func Probe(ref label:String)->Option<Int>{"
+        "let first=MakeSubstring();let second=MakeReplace();"
+        "let third=MakeScalar();let fourth=MakeBool();"
+        "return Some(StringLength(first)+StringLength(second)+"
+        "StringLength(third)+StringLength(fourth)+StringLength(label));}"
+        "func Observe(ref label:String)->Void{let same=ToString(label);Log(same);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *probe = ast_program_statement(program, 5);
+        ASTNode *calls[4];
+        for (size_t i = 0; i < 4; i++)
+            calls[i] = ast_return_value(ast_block_statement(
+                ast_func_body(ast_program_statement(program, i + 1)), 0));
+        ASTNode *identity = ast_let_initializer(ast_block_statement(
+            ast_func_body(ast_program_statement(program, 6)), 0));
+        SlotFunctionLookup lookup = {ctx, program};
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+        CHECK(store != NULL);
+        unsigned summary = function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK((summary & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+            SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        for (size_t i = 0; i < 4; i++) {
+            CHECK(calls[i] != NULL && calls[i]->type == AST_CALL);
+            CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, calls[i]));
+            CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, calls[i]));
+            CHECK(function_param_flow_no_store_graph(store, ast_program_statement(program, i + 1)));
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, calls[i]);
+            CHECK(value.ok && !value.origin_ready && !value.copy_escape);
+        }
+        CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, calls[0], 0));
+        for (size_t p = 0; p < 3; p++)
+            CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, calls[1], p));
+        CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, identity));
+        CHECK(semantic_param_publication_call_analysis_unmodelled(ctx, identity));
+        SemanticPublishedValue identity_value = semantic_param_publication_value(ctx, identity);
+        CHECK(identity_value.ok && !identity_value.origin_ready && !identity_value.copy_escape);
+
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        for (size_t i = 0; i < 4; i++) {
+            ASTNode *call = calls[i];
+            ASTNode *target = ast_call_callee(call);
+            ASTNode *first = ast_call_argument(call, 0);
+            PublishedNode *row = NULL;
+            for (size_t n = 0; n < publication->node_capacity; n++)
+                if (publication->nodes[n].node == call) row = &publication->nodes[n];
+            CHECK(row != NULL && target != NULL && first != NULL);
+            if (row == NULL || target == NULL || first == NULL) continue;
+            PublishedNode saved = *row;
+            PublishedCallArgument saved_first = row->arguments[0];
+            ASTNode saved_call = *call, saved_target = *target, saved_arg = *first;
+            uint32_t generation = program->stable_id;
+            for (unsigned fault = 0; fault < 14; fault++) {
+                if (fault == 0) row->value_type = TYPE_INT;
+                if (fault == 1) row->value_shape = AST_IDENTIFIER;
+                if (fault == 2) target->data.identifier.name = "OtherStringResult";
+                if (fault == 3) ast_call_set_semantic_callee_is_stdlib(call, false);
+                if (fault == 4) ast_call_set_semantic_callee_builtin_kind(call, BUILTIN_STRING_LENGTH);
+                if (fault == 5) ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(probe));
+                if (fault == 6) ast_call_set_semantic_callee_value_binding_id(call, 1);
+                if (fault == 7) call->data.call.arg_count = 0;
+                if (fault == 8) first->stable_id = 0;
+                if (fault == 9) row->arguments[0].type = i >= 2 ? TYPE_STRING : TYPE_INT;
+                if (fault == 10) row->arguments[0].id = 0;
+                if (fault == 11) row->kind_present = false;
+                if (fault == 12) row->target_shape = AST_MEMBER_ACCESS;
+                if (fault == 13) program->stable_id++;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                bool current = function_param_flow_backing_rows_current(store, probe);
+                if (current) fprintf(stderr, "typed String result kind=%zu fault=%u unexpectedly current\n", i, fault);
+                CHECK(!current);
+                *row = saved; row->arguments[0] = saved_first;
+                *call = saved_call; *target = saved_target; *first = saved_arg;
+                program->stable_id = generation;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+            const char *result_name = ast_call_semantic_value_type_name(call);
+            char *saved_result_name = result_name == NULL ? NULL : strdup(result_name);
+            CHECK(result_name == NULL || saved_result_name != NULL);
+            if (result_name == NULL || saved_result_name != NULL) {
+                CHECK(ast_call_set_semantic_value_type_name_copy(call, "Int"));
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                if (saved_result_name != NULL)
+                    CHECK(ast_call_set_semantic_value_type_name_copy(call, saved_result_name));
+                else CHECK(ast_call_clear_semantic_value_type_name(call));
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+            free(saved_result_name);
+            for (size_t p = 0; p < ast_call_arg_count(call); p++) {
+                ASTNode *argument = ast_call_argument(call, p);
+                PublishedNode *argument_row = NULL;
+                for (size_t n = 0; n < publication->node_capacity; n++)
+                    if (publication->nodes[n].node == argument)
+                        argument_row = &publication->nodes[n];
+                CHECK(argument_row != NULL);
+                if (argument_row == NULL) continue;
+                const Type *actual_type = argument_row->value_type;
+                const Type *snapshot_type = row->arguments[p].type;
+                const Type *wrong_type = actual_type == TYPE_STRING ? TYPE_INT : TYPE_STRING;
+                row->arguments[p].type = wrong_type;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                row->arguments[p].type = snapshot_type;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+                argument_row->value_type = wrong_type;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                argument_row->value_type = actual_type;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+                uint32_t argument_id = argument->stable_id;
+                argument->stable_id = 0;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                argument->stable_id = argument_id;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+        }
+        ASTNode *nested = ast_call_argument(calls[1], 0);
+        CHECK(nested != NULL && nested->type == AST_CALL);
+        if (nested != NULL && nested->type == AST_CALL) {
+            const char *nested_type = ast_call_semantic_value_type_name(nested);
+            char *saved_nested_type = nested_type == NULL ? NULL : strdup(nested_type);
+            CHECK(nested_type == NULL || saved_nested_type != NULL);
+            if (nested_type == NULL || saved_nested_type != NULL) {
+                CHECK(ast_call_set_semantic_value_type_name_copy(nested, "Int"));
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, calls[1]));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                if (saved_nested_type != NULL)
+                    CHECK(ast_call_set_semantic_value_type_name_copy(nested, saved_nested_type));
+                else CHECK(ast_call_clear_semantic_value_type_name(nested));
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, calls[1]));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+            free(saved_nested_type);
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_owned_string_result_receipt_currency(void)
 {
     for (unsigned route = 0; route < 2; route++) {
@@ -6730,6 +6891,7 @@ int main(void)
     checked_unit_enum_selection_boundaries();
     checked_owned_string_result_receipt_currency();
     checked_local_owner_constructor_currency();
+    checked_typed_string_result_constructor_currency();
     checked_finish_independence_currency();
     checked_local_owner_constructor_nested_effect();
     checked_local_owner_map_constructor_currency();

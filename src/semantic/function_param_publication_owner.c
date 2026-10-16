@@ -42,10 +42,6 @@ bool publication_generation_ready(const SemanticContext *ctx)
         ast_node_stable_id(ctx->program_root) == store->program_id &&
         ast_program_statement_count(ctx->program_root) == store->statement_count;
 }
-bool semantic_param_publication_pending(const SemanticContext *ctx)
-{ return publication_generation_ready(ctx) && ctx->function_param_publications->pending; }
-bool semantic_param_publication_inputs_ready(const SemanticContext *ctx)
-{ return publication_generation_ready(ctx) && ctx->function_param_publications->inputs_ready; }
 bool semantic_param_publication_ready(const SemanticContext *ctx)
 { return semantic_param_publication_inputs_ready(ctx) && ctx->function_param_publications->finalized; }
 PublishedNode *publication_node(FunctionParamPublicationStore *store,
@@ -391,6 +387,29 @@ bool semantic_param_publication_checked_local_owner_constructor(
             row->arguments[1].type == TYPE_STRING &&
             semantic_param_publication_argument_borrowed_for_call(ctx, value, 0) &&
             semantic_param_publication_argument_borrowed_for_call(ctx, value, 1);
+    /* The current typed publication owns the result type; a present AST type
+       projection must agree, but stdlib calls need not carry that projection.
+       ToString(String) is identity; Bool may be static text. This proves input-
+       backing independence, never fresh allocation or cleanup authority. */
+    if (row->stdlib && row->builtin == BUILTIN_NOT_BUILTIN && row->value_type == TYPE_STRING &&
+        (ast_call_semantic_value_type_name(value) == NULL ||
+         strcmp(ast_call_semantic_value_type_name(value), "String") == 0)) {
+        bool substring = strcmp(row->target_name, "Substring") == 0;
+        bool scalar = strcmp(row->target_name, "ToString") == 0;
+        if ((substring || scalar || strcmp(row->target_name, "StringReplace") == 0) &&
+            row->argument_count == (scalar ? 1u : 3u)) {
+            for (size_t p = 0; p < row->argument_count; p++) {
+                const PublishedCallArgument *arg = &row->arguments[p];
+                if (scalar ? !publication_physical_scalar(arg->type) :
+                    arg->type != (substring && p != 0 ? TYPE_INT : TYPE_STRING) ||
+                    ((p == 0 || !substring) &&
+                     !semantic_param_publication_argument_borrowed_for_call(ctx, value, p))) return false;
+                if (arg->shape == AST_CALL && ast_call_semantic_value_type_name(arg->node) != NULL && (
+                    strcmp(ast_call_semantic_value_type_name(arg->node), arg->type->name) != 0)) return false;
+            }
+            return true;
+        }
+    }
     if (row->stdlib) return false;
     if (row->builtin == BUILTIN_ALLOCATOR_RESULT)
         return row->value_type == TYPE_ALLOCATOR && row->argument_count == 0;
@@ -465,16 +484,6 @@ bool semantic_param_publication_execution(const SemanticContext *ctx,
     PublishedNode *row = publication_node(ctx->function_param_publications, statement, false);
     if (row == NULL || !row->execution_present) return false;
     *reachable = row->reachable; return true;
-}
-bool semantic_param_publication_checked_argument(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
-{
-    return semantic_param_publication_checked_call(ctx, call) && ordinal < ast_call_arg_count(call);
-}
-bool semantic_param_publication_checked_call(const SemanticContext *ctx, const ASTNode *call)
-{
-    if (!semantic_param_publication_inputs_ready(ctx)) return false;
-    PublishedNode *row = publication_node(ctx->function_param_publications, call, false);
-    return publication_call_ready(row);
 }
 bool semantic_param_publication_argument_borrowed_for_call(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
 {

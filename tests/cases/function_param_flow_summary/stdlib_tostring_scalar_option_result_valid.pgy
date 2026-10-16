@@ -1,0 +1,40 @@
+func FormatLength(ref source: String) -> Option<String>
+{
+    return Some(ToString(StringLength(source)));
+}
+
+func FormatFlag(ref source: String) -> Option<String>
+{
+    return Some(ToString(StringContains(source, "a")));
+}
+
+func FormatLong(ref source: String) -> Option<String>
+{
+    let observed = StringLength(source);
+    if observed > 0 { return Some(ToString(12345L)); }
+    return Some(ToString(0L));
+}
+
+func MakeFormattedSelection() -> Option<String>
+{
+    let number = ToString(42);
+    return Some(number);
+}
+
+func InspectFormatted(ref label: String) -> Option<Int>
+{
+    let selected = MakeFormattedSelection();
+    if !IsSome(selected) { return None; }
+    let value = UnwrapOption(selected);
+    return Some(StringLength(value) + StringLength(label));
+}
+
+func Main() -> Void
+{
+    let source = Concat("ab", "cde");
+    Log(UnwrapOption(FormatLength(source)));
+    Log(UnwrapOption(FormatFlag(source)));
+    Log(UnwrapOption(FormatLong(source)));
+    Log(UnwrapOption(InspectFormatted(source)));
+    Log(source);
+}

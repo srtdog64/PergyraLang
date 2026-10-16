@@ -1,0 +1,18 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func KeepReturning(ref input: String) -> String
+{
+    Keep(input);
+    return "fresh";
+}
+
+func Inspect(ref input: String) -> Option<String>
+{
+    return Some(Substring(KeepReturning(input), 0, 2));
+}
+
+func Main() -> Void
+{
+    let input = Concat("heap", " text");
+    Log(UnwrapOption(Inspect(input)));
+}

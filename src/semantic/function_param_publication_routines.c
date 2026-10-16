@@ -485,21 +485,28 @@ bool semantic_param_publication_checked_finish_independent(const SemanticContext
     return publication_checked_intrinsic(ctx, row->allocator_initializer,
         BUILTIN_ALLOCATOR_RESULT, TYPE_ALLOCATOR, 0) != NULL;
 }
+bool semantic_param_publication_pending(const SemanticContext *ctx)
+{ return publication_generation_ready(ctx) && ctx->function_param_publications->pending; }
+bool semantic_param_publication_inputs_ready(const SemanticContext *ctx)
+{ return publication_generation_ready(ctx) && ctx->function_param_publications->inputs_ready; }
+bool semantic_param_publication_checked_call(const SemanticContext *ctx, const ASTNode *call)
+{
+    if (!semantic_param_publication_inputs_ready(ctx)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, false);
+    return publication_call_ready(row);
+}
+bool semantic_param_publication_checked_argument(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
+{
+    return semantic_param_publication_checked_call(ctx, call) && ordinal < ast_call_arg_count(call);
+}
 bool semantic_param_publication_call_analysis_unmodelled(
     const SemanticContext *ctx, const ASTNode *call)
 {
-    PublishedNode *row = publication_current_value(ctx, call);
-    if (row == NULL || call->type != AST_CALL || !publication_call_ready(row) ||
-        row->value_type == NULL || row->value_type == TYPE_UNKNOWN ||
-        row->nominal_result != NULL || row->result_relation) return false;
-    for (size_t i = 0; i < row->argument_count; i++) {
-        const PublishedCallArgument *arg = &row->arguments[i];
-        PublishedNode *value = publication_current_value(ctx, arg->node);
-        if (value == NULL || arg->type == NULL || arg->type == TYPE_UNKNOWN ||
-            arg->type != value->value_type) return false;
-    }
+    PublishedNode *row = publication_result_current(ctx, call);
+    if (row == NULL || row->nominal_result != NULL || row->result_relation) return false;
     if (row->kind_present && row->builtin == BUILTIN_TEXT_BUILDER_FINISH &&
         !semantic_param_publication_checked_finish_independent(ctx, call)) return true;
+    if (semantic_param_publication_checked_local_owner_constructor(ctx, call)) return false;
     if (row->target_shape == AST_IDENTIFIER && row->kind_present &&
         row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib &&
         row->declaration == 0 && row->value_binding == 0 &&
