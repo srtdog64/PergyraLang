@@ -86,6 +86,11 @@ bool semantic_param_publication_reserve_storage(void **rows, size_t *capacity, s
 
 void semantic_param_publication_retire_value(PublishedNode *row)
 {
+    if (row->owned_string_result != NULL) {
+        free(row->owned_string_result->sources);
+        function_param_flow_claims_destroy(row->owned_string_result->syntax);
+        free(row->owned_string_result);
+    }
     semantic_param_publication_retire_deferred(row);
     void *metadata[] = {row->arguments, row->target_name,
         row->value_type_name, row->relation_argument_type, row->relation_result_type};

@@ -8,7 +8,8 @@ typedef struct SemanticContext SemanticContext;
 typedef struct Symbol Symbol;
 /* Query at an actual successfully typed String publication/binding seam.
  * Independence does not prove exact payload copying or allocation success. */
-bool semantic_indexed_string_independent_result(const ASTNode *expression);
+bool semantic_indexed_string_independent_result(const ASTNode *expression,
+                                               const SemanticContext *ctx);
 
 void semantic_indexed_string_borrow_initialize_binding(
     Symbol *binding, ASTNode *initializer, SemanticContext *ctx);

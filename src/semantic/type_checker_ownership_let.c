@@ -534,6 +534,12 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = symbol_create_variable(name, decl_type,
                                          node->line, node->column);
     symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+    if (!ctx->has_error && decl_type == TYPE_ALLOCATOR &&
+        semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_result_allocator_binding(
+            ctx, node, decl_type))
+        semantic_error(ctx, node,
+            "Checked allocator binding publication failed");
     semantic_string_window_extent_record_let(ctx, node);
     semantic_array_storage_initialize(sym, init, ctx);
     semantic_indexed_string_borrow_initialize_binding(sym, init, ctx);

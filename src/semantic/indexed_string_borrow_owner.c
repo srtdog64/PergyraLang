@@ -7,6 +7,7 @@
 
 #include "diag_codes.h"
 #include "indexed_string_borrow_owner.h"
+#include "function_param_publication_owner.h"
 #include "type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
@@ -42,7 +43,8 @@ identifier_symbol(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
-semantic_indexed_string_independent_result(const ASTNode *expression)
+semantic_indexed_string_independent_result(const ASTNode *expression,
+                                          const SemanticContext *ctx)
 {
     const ASTNode *callee;
     const char *name;
@@ -58,14 +60,8 @@ semantic_indexed_string_independent_result(const ASTNode *expression)
         ast_call_semantic_callee_value_binding_id(expression) != 0 ||
         !ast_call_semantic_callee_builtin_kind(expression, &builtin_kind))
         return false;
-    if (builtin_kind == BUILTIN_TEXT_BUILDER_FINISH) {
-        callee = ast_call_callee(expression);
-        return callee != NULL && callee->type == AST_IDENTIFIER &&
-            ast_node_stable_id(expression) != 0 && ast_node_stable_id(callee) != 0 &&
-            ast_identifier_name(callee) != NULL &&
-            strcmp(ast_identifier_name(callee), "TextBuilderFinish") == 0 &&
-            ast_call_arg_count(expression) == 2;
-    }
+    if (builtin_kind == BUILTIN_TEXT_BUILDER_FINISH)
+        return semantic_param_publication_checked_finish_independent(ctx, expression);
     if (!ast_call_semantic_callee_is_stdlib(expression))
         return false;
     callee = ast_call_callee(expression);
@@ -94,7 +90,7 @@ borrow_source_for_expression(ASTNode *expression, SemanticContext *ctx)
     ASTNode *base;
     if (expression == NULL)
         return INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
-    if (semantic_indexed_string_independent_result(expression))
+    if (semantic_indexed_string_independent_result(expression, ctx))
         return 0;
     if (expression->type == AST_IDENTIFIER) {
         source = identifier_symbol(expression, ctx);

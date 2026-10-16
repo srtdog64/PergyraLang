@@ -1,0 +1,17 @@
+extern "C" { func Keep(text: String) -> Int; }
+func Build(text: String) -> String {
+    let allocator = AllocatorResult();
+    let builder = TextBuilderNew(Keep(text));
+    TextBuilderAppend(builder, text);
+    let output = TextBuilderFinish(builder, allocator);
+    AllocatorDestroy(allocator);
+    return output;
+}
+func Probe(ref text: String) -> Option<Int> {
+    let output = Build(text);
+    return Some(StringLength(output));
+}
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(UnwrapOption(Probe(text)));
+}

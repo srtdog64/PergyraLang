@@ -99,6 +99,13 @@ typedef struct {
 } PublishedCallArgument;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct {
+    const ASTNode *body;
+    uint32_t body_id;
+    FunctionParamFlowIndexClaims *syntax;
+    PublishedCallArgument *sources;
+    size_t source_count, sealed_source_count;
+} PublishedOwnedStringResult;
+typedef struct {
     const ASTNode *source;
     uint32_t source_id, binding_id, category;
     const Type *type;
@@ -118,6 +125,11 @@ typedef struct {
     bool assignment_replacement;
     bool channel_binding;
     bool owned_slot_binding;
+    PublishedOwnedStringResult *owned_string_result;
+    bool result_allocator_binding, allocator_invalidated;
+    const ASTNode *allocator_initializer, *allocator_type_node;
+    uint32_t allocator_initializer_id, allocator_type_node_id;
+    const Type *allocator_type;
     bool slot_token_operand;
     size_t slot_token_ordinal;
     SemanticPublishedSlotBirth slot_birth;
@@ -297,6 +309,12 @@ bool semantic_param_publication_local_call(const SemanticContext *ctx,
 bool semantic_param_publication_checked_argument(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_checked_call(const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_record_result_allocator_binding(SemanticContext *ctx,
+    ASTNode *declaration, const Type *type);
+void semantic_param_publication_invalidate_allocator_binding(SemanticContext *ctx, const ASTNode *value);
+bool semantic_param_publication_checked_finish_independent(const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_checked_local_owner_constructor(
+    const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
     const ASTNode *call, const Type **result_type);

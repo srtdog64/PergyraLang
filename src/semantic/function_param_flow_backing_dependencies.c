@@ -43,6 +43,8 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) return;
     if (published.meta || (!state->checking_declared_result && published.origin_ready && value->type != AST_IDENTIFIER &&
         value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
+    if (value->type == AST_CALL &&
+        semantic_param_publication_checked_local_owner_constructor(state->store->ctx, value)) return;
     if (value->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, value)) return;
     switch (value->type) {
     case AST_STRING: case AST_NUMBER: case AST_BOOLEAN:
@@ -140,6 +142,8 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     if (node->type == AST_IDENTIFIER &&
         semantic_param_publication_slot_token_operand(state->store->ctx, node)) return origins;
     if (value.ok && (value.meta || value.origin_ready)) return origins;
+    if (node->type == AST_CALL &&
+        semantic_param_publication_checked_local_owner_constructor(state->store->ctx, node)) return origins;
     if (node->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, node)) return origins;
     switch (node->type) {
     case AST_IDENTIFIER: {

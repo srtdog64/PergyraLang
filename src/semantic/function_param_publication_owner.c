@@ -108,7 +108,7 @@ bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *valu
         type_equals(type_get_constructed_arg(type, 0), TYPE_STRING) ? type : NULL;
     row->origin_ready = copy || (row->string_value && row->builtin_string_concat);
     if (row->string_value && value->type == AST_STRING &&
-        semantic_indexed_string_independent_result(value))
+        semantic_indexed_string_independent_result(value, ctx))
         row->origin_ready = row->copy_escape = true;
     row->binding_id = value->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(value) : 0;
     row->meta |= meta; return true;
@@ -258,9 +258,18 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
             ast_identifier_binding_syntax_id(arg), value != NULL && value->value_present ? value->value_type : NULL};
     }
     row->argument_count = count; row->call_present = true;
+    bool checked_finish = publication_checked_intrinsic(ctx, call,
+        BUILTIN_TEXT_BUILDER_FINISH, TYPE_STRING, 2) != NULL &&
+        row->arguments[0].type == TYPE_TEXT_BUILDER && row->arguments[1].type == TYPE_ALLOCATOR;
+    bool checked_destroy = publication_checked_intrinsic(ctx, call,
+        BUILTIN_ALLOCATOR_DESTROY, TYPE_VOID, 1) != NULL && row->arguments[0].type == TYPE_ALLOCATOR;
+    if (!checked_finish && !checked_destroy)
+        for (size_t p = 0; p < count; p++)
+            if (row->arguments[p].type == TYPE_ALLOCATOR)
+                semantic_param_publication_invalidate_allocator_binding(ctx, row->arguments[p].node);
     if (row->kind_present && row->builtin == BUILTIN_READ && row->value_present && !row->physical_scalar &&
         !publication_record_read_payload_loan(ctx, call)) return false;
-    if (row->value_present && row->string_value && semantic_indexed_string_independent_result(call))
+    if (row->value_present && row->string_value && semantic_indexed_string_independent_result(call, ctx))
         row->origin_ready = row->copy_escape = true;
     row->private_array_push = false;
     /* The flags are call-time receipts, not live Symbol authority. In
@@ -347,6 +356,9 @@ static PublishedNode *publication_current_value_at(const SemanticContext *ctx,
     if (row == NULL || !row->value_present || row->value_shape != value->type ||
         (value->type == AST_CALL && !semantic_param_publication_checked_call(ctx, value)) || (value->type == AST_IDENTIFIER &&
         row->binding_id != ast_identifier_binding_syntax_id(value))) return NULL;
+    if (row->kind_present && row->builtin == BUILTIN_TEXT_BUILDER_FINISH &&
+        (row->origin_ready || row->copy_escape) &&
+        !semantic_param_publication_checked_finish_independent(ctx, value)) return NULL;
     if (row->empty_map_declaration != NULL && (row->empty_map_declaration_id == 0 ||
         row->empty_map_declaration_id != ast_node_stable_id(row->empty_map_declaration) ||
         !semantic_param_publication_empty_map_binding(ctx, row->empty_map_declaration))) return NULL;
@@ -576,6 +588,11 @@ bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
     const PgyCollectionOwnershipFact *fact = semantic_collection_ownership_fact_find(
         ctx, row->caller_id, row->private_binding_id);
     uint32_t effect = 0, binding = 0, source = 0;
+    if (row->private_effect_source != 0) {
+        uint32_t producer = 0;
+        if (!semantic_collection_owned_string_call_result(ast_call_argument(call, 1),
+                (SemanticContext *)ctx, &producer) || producer != row->private_effect_source) return false;
+    }
     return fact != NULL && fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
         fact->origin_syntax_id == row->private_initializer_id &&
         fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE &&

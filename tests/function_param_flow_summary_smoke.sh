@@ -59,6 +59,16 @@ for relative in (
         raise SystemExit(f"existing worker/capture positive lost MIR admission: {relative}")
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
+    ("result_builder_birth_valid", True),
+    ("retaining_capacity_builder_birth_invalid", False),
+    ("wrapper_pool_builder_birth_invalid", False),
+    ("wrapper_opaque_builder_birth_invalid", False),
+    ("wrapper_rebound_builder_birth_invalid", False),
+    ("wrapper_branch_builder_birth_invalid", False),
+    # The bounded Finish proof does not follow safe Result-only helpers or
+    # recover after any allocator reassignment: these are precision losses.
+    ("wrapper_result_builder_birth_unready", False),
+    ("rebound_result_builder_birth_unready", False),
     ("declared_empty_scope_valid", True),
     ("declared_static_array_valid", True),
     ("declared_array_borrow_invalid", False),
@@ -234,6 +244,41 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
+
+# These constructors were already unready before the Result-birth premise.
+# Preserve the existing required-backing refusal rather than recategorising
+# it as a completed backing relation or a borrow-only refusal.
+required_backing_message = (
+    "Function parameter flow summary failed closed: "
+    "required return backing relation is incomplete or stale"
+)
+for name in (
+    "pool_builder_birth_invalid",
+    "opaque_builder_birth_invalid",
+    "rebound_pool_builder_birth_invalid",
+):
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+    output = (checked.stdout + checked.stderr).decode(errors="replace")
+    try:
+        diagnostics = json.loads(output)
+    except json.JSONDecodeError:
+        raise SystemExit(f"resource-birth unready {name} lost structured diagnostics: {output}")
+    errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+    owner_errors = [row for row in errors if (
+        row.get("message") == required_backing_message and
+        row.get("stage") == "semantic" and "code" not in row and "cause_ir" not in row)]
+    if checked.returncode != 1 or checked.stdout or '"pgy.mir.v1"' in output or not owner_errors or any(
+            row not in owner_errors and (
+                row.get("stage") != "semantic" or
+                row.get("code") != "PGY_SEM_BORROW_ESCAPE" or
+                row.get("cause_ir") != "semantic:borrow_escape")
+            for row in errors):
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"resource-birth unready {name} lost its exact required-backing refusal")
+print("[function-param-flow-summary] resource-birth unready constructor controls: PASS")
 
 # This original full-program falsifier intentionally keeps ClaimSlot, Release
 # and invocation after the rejected Make definition. Native error recovery can

@@ -489,6 +489,12 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
             function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
     case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
     case AST_CALL:
+        if (semantic_param_publication_checked_local_owner_constructor(ctx, node)) {
+            for (size_t p = 0; p < ast_call_arg_count(node); p++)
+                if (!semantic_param_publication_checked_argument(ctx, node, p) ||
+                    function_param_flow_mutable_output_required(ctx, decl, index, ast_call_argument(node, p))) return true;
+            return false;
+        }
         if (semantic_param_publication_private_array_push(ctx, node, decl)) {
             index->private_local_stores = true;
             for (size_t p = 0; p < ast_call_arg_count(node); p++)

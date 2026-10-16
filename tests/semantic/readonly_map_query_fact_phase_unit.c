@@ -19,6 +19,7 @@
 #include "semantic/type_checker_ownership_internal.h"
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
+#include "semantic/collection_ownership_fact.h"
 
 static unsigned checks, failures;
 #define CHECK(x) do { checks++; if (!(x)) { failures++; fprintf(stderr, "fact-phase fault line %d: %s\n", __LINE__, #x); } } while (0)
@@ -539,31 +540,31 @@ static void checked_allocating_reader(const char *source)
     CHECK(value.ok && value.category == OWNERSHIP_TYPE_COPY_ONLY);
     CHECK(value.origin_ready && value.copy_escape);
     CHECK(ast_call_semantic_callee_builtin_kind(call, &kind) && kind == BUILTIN_NOT_BUILTIN);
-    CHECK(semantic_indexed_string_independent_result(call));
+    CHECK(semantic_indexed_string_independent_result(call, ctx));
     CHECK(ast_call_set_semantic_callee_is_stdlib(call, false));
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     CHECK(ast_call_set_semantic_callee_is_stdlib(call, true));
     CHECK(ast_call_set_semantic_callee_builtin_kind(call, BUILTIN_TEXT_BUILDER_FINISH));
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     CHECK(ast_call_set_semantic_callee_builtin_kind(call, kind));
     call->data.call.semantic_callee_builtin_kind_set = false;
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     CHECK(ast_call_set_semantic_callee_builtin_kind(call, kind));
     CHECK(ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(ast_program_statement(program, 0))));
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     CHECK(ast_call_set_semantic_callee_decl_id(call, 0));
     CHECK(ast_call_set_semantic_callee_value_binding_id(call, 1));
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     CHECK(ast_call_set_semantic_callee_value_binding_id(call, 0));
     size_t arity = call->data.call.arg_count;
     call->data.call.arg_count = arity == 1 ? 0 : 1;
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     call->data.call.arg_count = arity;
     uint32_t id = call->stable_id;
     call->stable_id = 0;
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     call->stable_id = id;
-    CHECK(semantic_indexed_string_independent_result(call));
+    CHECK(semantic_indexed_string_independent_result(call, ctx));
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -583,7 +584,7 @@ static void checked_reader_reserved_name(const char *source)
     /* These spellings are reserved; this is not successful lexical shadowing.
      * Raw identity-drift controls above separately test callee spoofing. */
     CHECK(!semantic_param_publication_ready(ctx));
-    CHECK(!semantic_indexed_string_independent_result(call));
+    CHECK(!semantic_indexed_string_independent_result(call, ctx));
     SemanticPublishedValue value = semantic_param_publication_value(ctx, call);
     CHECK(!value.ok && !value.origin_ready && !value.copy_escape);
     semantic_context_destroy(ctx);
@@ -610,8 +611,8 @@ static void checked_input_reader(const char *source, bool result_not_fresh)
     if (result_not_fresh) {
         SemanticPublishedValue value = semantic_param_publication_value(ctx, call);
         CHECK(value.ok && !value.origin_ready && !value.copy_escape);
-        CHECK(!semantic_indexed_string_independent_result(call));
-    } else if (semantic_indexed_string_independent_result(call)) {
+        CHECK(!semantic_indexed_string_independent_result(call, ctx));
+    } else if (semantic_indexed_string_independent_result(call, ctx)) {
         SemanticPublishedValue value = semantic_param_publication_value(ctx, call);
         CHECK(value.ok && value.origin_ready && value.copy_escape);
     }
@@ -663,7 +664,7 @@ static void checked_scalar_return_boundary(const char *source, size_t declaratio
         ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
         SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
         CHECK(result.ok && !result.origin_ready && !result.copy_escape);
-        CHECK(!semantic_indexed_string_independent_result(call));
+        CHECK(!semantic_indexed_string_independent_result(call, ctx));
     }
     if (eligible) {
         unsigned mask = semantic_callable_param_escape_summary(decl, 0, ctx);
@@ -738,7 +739,7 @@ static void retained_backing_source(const char *body, bool alias, bool slot)
         ast_func_param_stable_id(ast_func_param(decl, 1)));
     SemanticPublishedValue result = semantic_param_publication_value(ctx, observed);
     CHECK(!result.origin_ready && !result.copy_escape);
-    CHECK(!semantic_indexed_string_independent_result(observed));
+    CHECK(!semantic_indexed_string_independent_result(observed, ctx));
     /* Refusal concerns the original returned backing, not output WRITE alone. */
     unsigned mask = semantic_callable_param_escape_summary(decl, 0, ctx);
     CHECK((mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
@@ -1749,6 +1750,281 @@ static void checked_zero_argument_output_graph(void)
         CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
         value->value_present = true;
         CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_local_owner_constructor_currency(void)
+{
+    const char *source =
+        "func Build(text:String)->String{let allocator=AllocatorResult();let builder=TextBuilderNew(32);"
+        "TextBuilderAppend(builder,text);let output=TextBuilderFinish(builder,allocator);AllocatorDestroy(allocator);return output;}"
+        "func Probe(ref text:String)->Option<Int>{let output=Build(text);return Some(StringLength(output));}"
+        "func LongCapacity()->Void{let builder=TextBuilderNew(32 as Long);TextBuilderDrop(builder);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *build = ast_program_statement(program, 0);
+        ASTNode *probe = ast_program_statement(program, 1);
+        ASTNode *calls[] = {
+            ast_let_initializer(ast_block_statement(ast_func_body(build), 0)),
+            ast_let_initializer(ast_block_statement(ast_func_body(build), 1))
+        };
+        (void)function_param_flow_summary_for_param(ctx, probe, 0);
+        ASTNode *long_capacity = ast_let_initializer(ast_block_statement(
+            ast_func_body(ast_program_statement(program, 2)), 0));
+        CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, long_capacity));
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        for (size_t kind = 0; kind < 2; kind++) {
+            ASTNode *call = calls[kind], *target = ast_call_callee(call);
+            PublishedNode *claim = NULL;
+            for (size_t i = 0; i < publication->node_capacity; i++)
+                if (publication->nodes[i].node == call) claim = &publication->nodes[i];
+            CHECK(claim != NULL);
+            if (claim == NULL) continue;
+            CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+            PublishedNode saved = *claim;
+            uint32_t target_id = target->stable_id;
+            for (unsigned fault = 0; fault < 9; fault++) {
+                if (fault == 0) claim->value_type = TYPE_INT;
+                if (fault == 1) claim->builtin = BUILTIN_STRING_LENGTH;
+                if (fault == 2) target->stable_id++;
+                if (fault == 3) claim->declaration = ast_node_stable_id(build);
+                if (fault == 4) claim->value_binding = 1;
+                if (fault == 5) claim->argument_count++;
+                if (fault == 6) claim->meta = true;
+                if (fault == 7) claim->value_present = false;
+                if (fault == 8) claim->kind_present = false;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
+                if (current) fprintf(stderr, "local constructor kind=%zu fault=%u unexpectedly current\n", kind, fault);
+                CHECK(!current);
+                *claim = saved;
+                target->stable_id = target_id;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+            }
+        }
+        ASTNode *capacity = ast_call_argument(calls[1], 0);
+        PublishedNode *claim = NULL;
+        for (size_t i = 0; i < publication->node_capacity; i++)
+            if (publication->nodes[i].node == capacity) claim = &publication->nodes[i];
+        CHECK(claim != NULL);
+        if (claim != NULL) {
+            PublishedNode saved = *claim;
+            uint32_t id = capacity->stable_id;
+            for (unsigned fault = 0; fault < 4; fault++) {
+                if (fault == 0) claim->value_type = TYPE_STRING;
+                if (fault == 1) capacity->stable_id++;
+                if (fault == 2) claim->meta = true;
+                if (fault == 3) claim->value_present = false;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, calls[1]));
+                CHECK(!function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+                *claim = saved;
+                capacity->stable_id = id;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, calls[1]));
+                CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+            }
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_owned_string_result_receipt_currency(void)
+{
+    for (unsigned route = 0; route < 2; route++) {
+    char source[1024];
+    snprintf(source, sizeof(source),
+        "func Produce()->String{let allocator=AllocatorResult();let builder=TextBuilderNew(32);"
+        "TextBuilderAppend(builder,\"heap text\");let output=TextBuilderFinish(builder,allocator);AllocatorDestroy(allocator);return output;}"
+        "func Forward()->String{return Produce();}"
+        "func Consumer(ref text:String)->Option<Int>{let rows:Array<String> = [];ArrayPush(rows,%s());"
+        "let count=ArrayLength(rows)+StringLength(text);ArrayDropOwnedStrings(rows);return Some(count);}",
+        route == 0 ? "Produce" : "Forward");
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *producer = ast_program_statement(program, 0);
+        ASTNode *consumer = ast_program_statement(program, 2);
+        ASTNode *birth = ast_block_statement(ast_func_body(producer), 0);
+        ASTNode *finish = ast_let_initializer(ast_block_statement(ast_func_body(producer), 3));
+        ASTNode *push = ast_block_statement(ast_func_body(consumer), 1);
+        ASTNode *produce_call = ast_call_argument(push, 1);
+        PublishedNode *birth_claim = NULL, *producer_claim = NULL;
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        for (size_t i = 0; i < publication->node_capacity; i++) {
+            if (publication->nodes[i].node == birth) birth_claim = &publication->nodes[i];
+            if (publication->nodes[i].node == producer) producer_claim = &publication->nodes[i];
+        }
+        CHECK(birth_claim != NULL);
+        uint32_t producer_id = 0;
+        CHECK(semantic_param_publication_checked_finish_independent(ctx, finish));
+        CHECK(semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id));
+        CHECK(producer_id == ast_node_stable_id(ast_program_statement(program, route)));
+        bool private_push = semantic_param_publication_private_array_push(ctx, push, consumer);
+        CHECK(private_push);
+        if (birth_claim != NULL) {
+            PublishedNode saved = *birth_claim;
+            semantic_param_publication_invalidate_allocator_binding(ctx, ast_call_argument(finish, 1));
+            CHECK(!semantic_param_publication_checked_finish_independent(ctx, finish));
+            CHECK(!semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id));
+            CHECK(!semantic_param_publication_private_array_push(ctx, push, consumer));
+            /* Raw unit restoration is not a source-level un-invalidation. */
+            *birth_claim = saved;
+            CHECK(semantic_param_publication_checked_finish_independent(ctx, finish));
+            CHECK(semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id));
+            CHECK(producer_id == ast_node_stable_id(ast_program_statement(program, route)));
+            CHECK(semantic_param_publication_private_array_push(ctx, push, consumer));
+        }
+        CHECK(producer_claim != NULL && producer_claim->owned_string_result != NULL);
+        if (producer_claim != NULL && producer_claim->owned_string_result != NULL) {
+            PublishedOwnedStringResult *receipt = producer_claim->owned_string_result;
+            CHECK(receipt->source_count != 0 && receipt->sources != NULL);
+            if (receipt->source_count != 0 && receipt->sources != NULL) {
+                PublishedOwnedStringResult saved = *receipt;
+                PublishedCallArgument saved_source = receipt->sources[0];
+                ASTNode *saved_body = ast_func_body(producer);
+                for (unsigned fault = 0; fault < 10; fault++) {
+                    if (fault == 0) receipt->body_id++;
+                    if (fault == 1) receipt->sources[0].id++;
+                    if (fault == 2) receipt->sources[0].type = TYPE_INT;
+                    if (fault == 3) receipt->sources[0].shape = AST_NUMBER;
+                    if (fault == 4) producer_claim->owned_string_result = NULL;
+                    if (fault == 5) receipt->syntax = NULL;
+                    if (fault == 6) producer->data.func_decl.body = ast_func_body(consumer);
+                    if (fault == 7) receipt->sources[0].node = produce_call;
+                    if (fault == 8) receipt->source_count++;
+                    if (fault == 9) receipt->sealed_source_count++;
+                    bool owned = semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id);
+                    if (owned) fprintf(stderr, "owned String receipt route=%u fault=%u unexpectedly current\n", route, fault);
+                    CHECK(!owned);
+                    CHECK(!semantic_param_publication_private_array_push(ctx, push, consumer));
+                    producer_claim->owned_string_result = receipt;
+                    *receipt = saved;
+                    receipt->sources[0] = saved_source;
+                    producer->data.func_decl.body = saved_body;
+                    CHECK(semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id));
+                    CHECK(producer_id == ast_node_stable_id(ast_program_statement(program, route)));
+                    CHECK(semantic_param_publication_private_array_push(ctx, push, consumer));
+                }
+            }
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_finish_independence_currency(void)
+{
+    const char *source =
+        "func Build(text:String)->String{let allocator=AllocatorResult();let builder=TextBuilderNew(32);"
+        "TextBuilderAppend(builder,text);let output=TextBuilderFinish(builder,allocator);AllocatorDestroy(allocator);return output;}"
+        "func Probe(ref text:String)->Option<Int>{let output=Build(text);return Some(StringLength(output));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *build = ast_program_statement(program, 0);
+        ASTNode *probe = ast_program_statement(program, 1);
+        ASTNode *birth = ast_block_statement(ast_func_body(build), 0);
+        ASTNode *initializer = ast_let_initializer(birth);
+        ASTNode *finish = ast_let_initializer(ast_block_statement(ast_func_body(build), 3));
+        ASTNode *actual = ast_call_argument(finish, 1);
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        PublishedNode *initial_claim = NULL, *actual_claim = NULL, *birth_claim = NULL;
+        for (size_t i = 0; i < publication->node_capacity; i++) {
+            if (publication->nodes[i].node == initializer) initial_claim = &publication->nodes[i];
+            if (publication->nodes[i].node == actual) actual_claim = &publication->nodes[i];
+            if (publication->nodes[i].node == birth) birth_claim = &publication->nodes[i];
+        }
+        CHECK(initial_claim != NULL && actual_claim != NULL && birth_claim != NULL);
+        (void)function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK(semantic_param_publication_checked_finish_independent(ctx, finish));
+        CHECK(semantic_indexed_string_independent_result(finish, ctx));
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+        if (initial_claim != NULL && actual_claim != NULL && birth_claim != NULL) {
+            PublishedNode saved_initial = *initial_claim, saved_actual = *actual_claim;
+            PublishedNode saved_birth = *birth_claim;
+            uint32_t birth_id = birth->stable_id, init_id = initializer->stable_id;
+            uint32_t binding = ast_identifier_binding_syntax_id(actual);
+            for (unsigned fault = 0; fault < 11; fault++) {
+                if (fault == 0) initializer->stable_id++;
+                if (fault == 1) initial_claim->value_type = TYPE_INT;
+                if (fault == 2) initial_claim->builtin = BUILTIN_ALLOCATOR_POOL;
+                if (fault == 3) birth->stable_id++;
+                if (fault == 4) ast_identifier_set_binding_syntax_id(actual, 0);
+                if (fault == 5) actual_claim->value_type = TYPE_INT;
+                if (fault == 6) actual_claim->value_present = false;
+                if (fault == 7) initial_claim->meta = true;
+                if (fault == 8) birth_claim->allocator_initializer_id++;
+                if (fault == 9) birth_claim->allocator_type = TYPE_INT;
+                if (fault == 10) semantic_param_publication_invalidate_allocator_binding(ctx, actual);
+                CHECK(!semantic_param_publication_checked_finish_independent(ctx, finish));
+                CHECK(!semantic_indexed_string_independent_result(finish, ctx));
+                bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
+                if (current) fprintf(stderr, "Finish currency fault=%u unexpectedly current\n", fault);
+                CHECK(!current);
+                *initial_claim = saved_initial;
+                *actual_claim = saved_actual;
+                /* Raw receipt corruption controls may restore a snapshot;
+                 * user programs cannot reverse monotonic invalidation. */
+                *birth_claim = saved_birth;
+                birth->stable_id = birth_id;
+                initializer->stable_id = init_id;
+                ast_identifier_set_binding_syntax_id(actual, binding);
+                CHECK(semantic_param_publication_checked_finish_independent(ctx, finish));
+                CHECK(semantic_indexed_string_independent_result(finish, ctx));
+                CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+            }
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_local_owner_constructor_nested_effect(void)
+{
+    const char *source =
+        "extern \"C\"{func Keep(text:String)->Int;}"
+        "func Main()->Void{let text=Concat(\"heap\",\" text\");let builder=TextBuilderNew(Keep(text));TextBuilderDrop(builder);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *decl = ast_program_statement(program, 1);
+        ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(decl), 1));
+        /* The intrinsic result is independent; evaluating capacity retains.
+         * Its constructor query must not pretend to own that separate effect. */
+        CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+        SlotFunctionLookup lookup = {ctx, program};
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+        CHECK(!function_param_flow_no_store_graph(store, decl));
     }
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
@@ -5717,6 +5993,10 @@ static void checked_transaction_function_boundary(void)
 
 int main(void)
 {
+    checked_owned_string_result_receipt_currency();
+    checked_local_owner_constructor_currency();
+    checked_finish_independence_currency();
+    checked_local_owner_constructor_nested_effect();
     checked_declared_result_currency();
     checked_declared_physical_result_currency();
     checked_declared_array_result_currency();

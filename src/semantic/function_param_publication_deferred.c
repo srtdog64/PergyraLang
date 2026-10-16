@@ -14,6 +14,94 @@
 #include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
+static bool publication_channel_shape(const PublishedNode *row)
+{
+    if (row == NULL || !row->channel_binding || row->node == NULL || row->node->type != AST_LET_DECL ||
+        row->id == 0 || row->id != ast_node_stable_id(row->node) || ast_let_is_mutable(row->node) ||
+        ast_let_is_alias(row->node) || row->target_name == NULL || ast_let_name(row->node) == NULL ||
+        strcmp(row->target_name, ast_let_name(row->node)) != 0 ||
+        row->channel_type_node == NULL || row->channel_type_node != ast_let_type(row->node) ||
+        row->channel_type_id == 0 || row->channel_type_id != ast_node_stable_id(row->channel_type_node) ||
+        row->value_shape != row->channel_type_node->type || row->value_type == NULL ||
+        row->value_type->kind != TYPE_KIND_CONSTRUCTED || type_constructed_constructor(row->value_type) != TYPE_CHANNEL ||
+        type_constructed_arg_count(row->value_type) != 1 || row->channel_element_type == NULL ||
+        row->channel_element_type == TYPE_UNKNOWN || type_constructed_arg(row->value_type, 0) != row->channel_element_type ||
+        row->value_type_name == NULL || row->value_type->name == NULL ||
+        strcmp(row->value_type_name, row->value_type->name) != 0 ||
+        row->target == NULL || row->target != ast_let_initializer(row->node) || row->target->type != AST_CALL ||
+        row->target_id == 0 || row->target_id != ast_node_stable_id(row->target) ||
+        ast_call_arg_count(row->target) != 1 || row->argument_count != 1 || row->arguments == NULL ||
+        row->call_receiver == NULL || row->call_receiver != ast_call_callee(row->target) ||
+        row->call_receiver->type != AST_IDENTIFIER || row->call_receiver_id == 0 ||
+        row->call_receiver_id != ast_node_stable_id(row->call_receiver) ||
+        ast_identifier_name(row->call_receiver) == NULL || strcmp(ast_identifier_name(row->call_receiver), "Channel") != 0 ||
+        ast_call_semantic_callee_decl_id(row->target) != 0 ||
+        ast_call_semantic_callee_value_binding_id(row->target) != 0 || ast_call_semantic_callee_is_stdlib(row->target))
+        return false;
+    uint32_t kind;
+    const PublishedCallArgument *arg = &row->arguments[0];
+    return ast_call_semantic_callee_builtin_kind(row->target, &kind) && kind == BUILTIN_NOT_BUILTIN &&
+        arg->node != NULL && arg->node == ast_call_argument(row->target, 0) && arg->id != 0 &&
+        arg->id == ast_node_stable_id(arg->node) && arg->shape == arg->node->type &&
+        arg->binding == ast_identifier_binding_syntax_id(arg->node) && arg->type == TYPE_INT;
+}
+bool semantic_param_publication_record_channel_binding(SemanticContext *ctx,
+    ASTNode *declaration, const Type *channel_type)
+{
+    if (!semantic_param_publication_pending(ctx) || ctx->has_error || declaration == NULL ||
+        declaration->type != AST_LET_DECL || channel_type == NULL || channel_type->name == NULL ||
+        type_constructed_constructor(channel_type) != TYPE_CHANNEL ||
+        type_constructed_arg_count(channel_type) != 1) return false;
+    ASTNode *init = ast_let_initializer(declaration);
+    ASTNode *capacity = init != NULL && init->type == AST_CALL && ast_call_arg_count(init) == 1
+        ? ast_call_argument(init, 0) : NULL;
+    if (init == NULL || capacity == NULL) return false;
+    PublishedNode *value = publication_node(ctx->function_param_publications, capacity, false);
+    if (value == NULL || !value->value_present || value->value_type != TYPE_INT ||
+        !value->physical_scalar || value->value_shape != capacity->type) return false;
+    PublishedCallArgument argument = {capacity, ast_node_stable_id(capacity), capacity->type,
+        ast_identifier_binding_syntax_id(capacity), TYPE_INT};
+    if (!semantic_param_publication_record_value(ctx, init, channel_type, false) ||
+        !semantic_param_publication_record_checked_call(ctx, init)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, declaration, true);
+    if (row == NULL) return false;
+    row->channel_binding = false;
+    free(row->arguments); free(row->target_name); free(row->value_type_name);
+    row->arguments = malloc(sizeof(argument)); row->target_name = pergyra_strdup(ast_let_name(declaration));
+    row->value_type_name = pergyra_strdup(channel_type->name);
+    if (row->arguments == NULL || row->target_name == NULL || row->value_type_name == NULL) return false;
+    *row->arguments = argument; row->argument_count = 1;
+    row->value_type = channel_type; row->channel_element_type = type_constructed_arg(channel_type, 0);
+    row->channel_type_node = ast_let_type(declaration); row->channel_type_id = ast_node_stable_id(row->channel_type_node);
+    row->value_shape = row->channel_type_node == NULL ? AST_LET_DECL : row->channel_type_node->type;
+    row->target = init; row->target_id = ast_node_stable_id(init);
+    row->call_receiver = ast_call_callee(init); row->call_receiver_id = ast_node_stable_id(row->call_receiver);
+    row->channel_binding = true;
+    if (!publication_channel_shape(row)) return false;
+    FunctionParamFlowIndexClaims *syntax = NULL;
+    if (!function_param_flow_syntax_claims_snapshot(ctx, &syntax, declaration)) {
+        function_param_flow_claims_destroy(syntax); return false;
+    }
+    row = publication_node(ctx->function_param_publications, declaration, false);
+    if (row == NULL) { function_param_flow_claims_destroy(syntax); return false; }
+    function_param_flow_claims_destroy(row->deferred_syntax);
+    row->deferred_syntax = syntax;
+    return true;
+}
+bool semantic_param_publication_channel_binding(const SemanticContext *ctx, const ASTNode *declaration)
+{
+    if (!semantic_param_publication_inputs_ready(ctx)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, declaration, false);
+    if (!publication_channel_shape(row) || row->deferred_syntax == NULL ||
+        !function_param_flow_syntax_claims_current(ctx, row->deferred_syntax) ||
+        semantic_type_resolution_lookup_metadata_type_ref((SemanticContext *)ctx, (ASTNode *)row->channel_type_node) != row->value_type)
+        return false;
+    PublishedNode *init = publication_current_value(ctx, row->target);
+    PublishedNode *capacity = publication_current_value(ctx, row->arguments[0].node);
+    return init != NULL && init->value_type == row->value_type && capacity != NULL &&
+        capacity->value_type == TYPE_INT && capacity->physical_scalar;
+}
+
 bool semantic_param_publication_record_slot_token_operand(SemanticContext *ctx, ASTNode *call,
     size_t ordinal, const Symbol *slot, const Symbol *token, const Type *slot_type)
 {

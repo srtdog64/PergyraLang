@@ -301,6 +301,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
          * admit the new value; this grants no array storage exclusivity. */
         if (tracked_value_place && target_sym != NULL)
             target_sym->is_consumed = false;
+        if (target_sym != NULL && target_sym->type == TYPE_ALLOCATOR &&
+            semantic_param_publication_pending(ctx))
+            semantic_param_publication_invalidate_allocator_binding(ctx, target);
         semantic_indexed_string_borrow_record_assignment(
             target_sym, value, expr, ctx);
         if (!ctx->has_error && semantic_param_publication_pending(ctx) &&

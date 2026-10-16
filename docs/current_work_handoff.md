@@ -1,9 +1,97 @@
 # Current Work Handoff
 
-Updated: 2026-10-16 KST (Asia/Seoul). Navigation only. Current source, the
-SoT registry, admitted contracts, and executable gates override this note.
+Updated: 2026-10-16 KST (Asia/Seoul). Navigation only. Source, typed owners,
+registries and executable gates override this card.
 
-## Active self-host context — GPT main integration and P0 validation
+## Active self-host context — canonical admission, then real bootstrap/CI
+
+One rung: unchanged full canonical/DRV-2 admission -> real codegen bootstrap
+and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
+Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe, verified CI RED
+(run38860052641). Local parent checkpoint is86767e3fe0db467eadff02ac95e3907d4fe4c753;
+the current allocator/String-lifetime repair follows it. Check HEAD/status:
+the new candidate is locally verified below; independent review is pending.
+The superseded ec49 candidate remains SOUNDNESS_BLOCKED and must not ship.
+
+Root alone owns WSL builds/tests/processes/Git. Three implementation agents
+share D; no worktrees/new branches. Only main remains; the perf worktree is
+preserved detached and stashes/immutable reviews remain untouched.
+WSL /root/pgy-main-20261016 stays HEAD39a plus the identified candidate overlay,
+not the D commit. Current binary SHA256:
+604bc1702f723fea3f1078edb932af771581f400f295ed7fb65b91d84bb1362e.
+
+Root-observed current gates: phase7450/0, LLVM140/0, strict summary and unchanged
+4096/4097 controls; native MIR327/semantic3228/transpile1009; Map24 C+LLVM
+positives/58 negatives; reached IR/caps/component/generator; Slot goldens.
+Declared EmptyScope/ForwardScope/static array/Result builder execute9/8/11/9
+on BOTH backends. Receipts in WSL: .tmp/p0-destination-candidate.WmQycK/,
+.tmp/p0-result-runtime.J2gUpo/ and adjacent p0-finish-sealed logs.
+These are scoped native prerequisite results, not self-host substitution.
+
+Actual unchanged bootstrap remains RED BEFORE gen0:27.24s/1245668KiB, exit2.
+First failure is required backing at32:6, not prior summary work cap.
+18410 subsequent diagnostics are cascades, not independent refusal counts.
+Fresh exact4273-signature/3188-key isolated census:708 failed (698 work,
+10 required backing), incomplete0; againstbd,40 resolved/0 newly failed/0 mask
+changes; against blockedec,0 changes. This is NOT40 newly admitted programs.
+Nonfailed2480 includes811 TOP/814 unproved, NOT permission.
+.tmp/p0-finish-census.OxbwCQ/,105.20s/1245328KiB; diagnostic
+exit86/no MIR, production source/build/bin/dependencies restored identically.
+
+Completed local repair: checked local AllocatorResult/Builder birth no longer
+inherits an unconditional Finish permission. Typed publication records the
+exact Result local birth and monotonically invalidates any replacement or
+unmodelled allocator argument exposure. Finish, indexed String, owned-String
+result summaries and private ArrayPush consume current evidence. The body bit
+alone is not authority: source calls, body syntax and sealed source count are
+recorded once and replayed, including transitive zero-argument producers.
+Before-falsifier7331/2 reproduced stale owned-result/push grants; after7450/0
+rejects them and restores only the original evidence. No new production
+owner/file or manual annotation/copy workaround. Result-only allocator helpers
+and Result->Result reassignments are conservatively unproved, not Pool-safe.
+
+Next BLOCKED fact: SemanticAstNativePipelineOnlyStatementRefusal input0,
+work30. The earlier exact first-transition receipt v87u6T identifies
+`purpose == SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly`.
+Static enum member typing publishes the parent meta value but no qualifier
+value. Eager backing traversal mistakes that nonexecuting qualifier for a
+runtime use. A/B/C surveyed the next bounded owner relation read-only; no enum
+implementation has started. Do not skip all meta, classify all enums physical,
+use uppercase/bare fallback or publish fake runtime qualifier facts.
+
+Whole-chain plan, owner/last-consumer map, forbidden fallbacks and receipts:
+[main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md),
+section Reached canonical prerequisite — declared-call result provenance.
+No manual annotation/copy workaround, new owner, new query/cache architecture,
+weaker safety, smaller canonical input or larger work/memory budget is allowed.
+
+Current independent review requested: frozen RXLKQ8/binary604, source.diff
+61223eadb1171fe849faa60b626818b98c6e5e36034c63f361ff0ab48326f6f5.
+Root replayed all98 ec probes:5 unsafe allocator compositions and2 safe but
+unproved Result-only helpers now refuse; no prior rejection becomes admission.
+Receipt .tmp/p0-finish-review-replay.zrxYkM/. Independent conclusion pending;
+in-memory fault units ran in root's phase, not in the no-build review.
+Earlier bd/lNEApm68,71/GKFUTd46 and91/DO97fm101 are separate scopes.
+Current gen2==gen3/install/memory and required published CI are NOT passed.
+No push of the new local checkpoints or V1/SoT CLOSED claim yet.
+
+Superseded blocked candidate binary is
+ec49bf0c3dbfa942e91d3639653ca67358ccc1b0d2c088f5ca0d8540000b0878,
+frozen /root/pgy-review-destination-39a8fc1db.sm2qHi. Review report SHA256
+4fcb5df78005dbc4f89ce88ca39a919423c1b537181a2fd067a47363132bc343.
+Nonzero-formal Pool/opaque helpers, Result->Pool and mixed-branch returns
+are newly MIR-admitted; bd rejected them. The unconditional
+indexed_string_independent_result(TextBuilderFinish) grant ignores allocator
+origin and flows into publication origin_ready/copy_escape. Repair that
+existing lifetime producer and its consumers, not just the four probe shapes.
+No existing current Result-allocator provenance fact was found. Original LET
+syntax and an owned-String summary bit are not reaching-definition proof.
+Those source-level counterexamples were reproduced without executing unsafe
+programs. They motivated the current604 repair, not a waiver of its gates.
+
+### Historical diagnostic archive — lookup only, not an active work queue
+
+#### Prior local Read integration snapshot — superseded
 
 Active rung: unchanged full canonical admission, then actual bootstrap and
 gen2==gen3, memory/installed C+LLVM, and required same-published-SHA CI.
@@ -152,8 +240,6 @@ negative/4 positive probes; neither is canonical/bootstrap/CI approval.
 All immutable snapshots and preserved stashes remain untouched. Published
 CI38860052641 is still RED; dependent bootstrap/install jobs were skipped,
 not green. No current gen2==gen3/install/memory or V1/SoT closure claim.
-
-### Historical diagnostic archive — lookup only, not an active work queue
 
 #### Pre-e8a integration snapshot
 

@@ -454,7 +454,7 @@ closure. Complete4273-signature/3188-key same-input census is748 failed:
 changes againstf25, incomplete0. All110 become current conservative TOP/
 unproved, NOT new admitted programs. Nonfailed2440 includes771 TOP and774
 unproved. Receipt `.tmp/p0-negative-tail-census.9fzH4u/`,108.80s/1164068KiB,
-exact production restoration. The810/858-style counts are query failures,
+exact production restoration. Earlier912/893/866/858 counts are query failures,
 not the number of compiler ownership errors or whole canonical admissions.
 
 Next BLOCKED fact/owner/last-consumer/falsifier: actual warm demand531 fails
@@ -472,10 +472,203 @@ handles physical/copy-escapable. Existing typed owner/let birth and publication
 seams must own the premise, exact operation/Type/argument/consumption currency
 must remain fail-closed. Missing contract is Unknown, not permission.
 
+#### Resource-birth chain — bounded contract before editing
+
+- Objective/priority: connect the already checked local Result allocator and
+  TextBuilder constructor contracts to canonical String-name production,
+  preserving ownership identity and refusal first, then admission. This is a
+  prerequisite of the same canonical rung, not a new resource language feature.
+- Source86767e3fe/binarybd; root's before controls are
+  `.tmp/p0-builder-before.ccF5qz/` (Result positive, Pool and opaque negatives
+  all currently unready/no MIR). The earlier QNR temporary-argument probe is
+  superseded, not a valid isolated constructor falsifier.
+- Whole chain: CodegenGenericSpecializationFactsFromSemantic -> qualified and
+  specialized C symbol -> CIdentifier; Result allocator birth + builder birth
+  -> Append -> Finish -> Destroy -> String result -> local names arrays ->
+  returned aggregate. Existing function_param_publication owns checked call,
+  actual Type/kind/arity/IDs/current generation. Native builtin checking owns
+  successful signatures, builder local ownership and consume; no Symbol may
+  survive into the query. Final consumers remain sparse output/loan and REF
+  admission, then unchanged C/LLVM/bootstrap.
+- Runtime evidence: Result starts poolNULL, Finish detaches builder data on
+  that branch, Destroy frees only pool storage. Pool-backed Finish/Destroy is
+  explicitly OPEN in04_ownership_abi. Allocator is rebindable; an original
+  Result initializer is NOT a persistent Result-kind lifetime witness.
+- Selected query: exact CURRENT direct checked AllocatorResult -> TYPE_ALLOCATOR
+  with0 arguments, or TextBuilderNew -> TYPE_TEXT_BUILDER with1 current
+  Int/Long capacity. Result must be nonmeta; no declaration/value target or
+  unknown kind/Type/arity may qualify. Its limited intrinsic contract says
+  the constructor result has no caller backing and the constructor does not
+  retain caller storage. Argument evaluation is a separate mandatory effect
+  traversal. No new stored field/top-level fact/owner is needed.
+- Consumers: mutable-output analysis consumes only that no-retention half and
+  recursively checks EVERY argument; sparse destination/origin consume only
+  result backing independence. Keep exact full index claims/call/value/child
+  currency. Do not derive either premise from the other. Do NOT change
+  origin_ready/copy_escape/physical, generalise other Allocator constructors,
+  propagate Result-kind to identifiers, bypass a later assignment, or grant
+  Finish lifetime/cleanup/transfer permission. Pool and opaque RHS remain
+  unready, even after Result -> Pool rebinding. No name/argc-only fallback.
+- Required changes/dependency order: A implements the query in existing
+  publication_routines plus owner header; B consumes it in existing
+  program-point-index/backing owners; C adds the paired fixture/currentness
+  controls in existing phase/strict gate. Independent edit scopes share the
+  exact query signature agreed below. Freeze together before root builds.
+  No source annotations, copies, manual restoration or new production files.
+- Acceptance/falsifiers: Result builder copies a real borrowed String and
+  returns independent output (C+LLVM runtime9); direct Pool, Result->Pool,
+  opaque allocator, handle copy/return and nested retaining capacity refuse
+  with no MIR. Kind/target/declaration/value ID/arity/actual Type/meta/presence
+  corruption rejects the direct query AND cached output, restoration restores
+  only the original permission. Existing borrowed/opaque negatives,7145 phase,
+  strict4096/4097, native/Map/IR/Slot and unchanged full canonical are root's
+  shared integration boundary. Whole fixed-input census remains mandatory;
+  no partial green becomes V1/CI or C-path substitution.
+
+Shared query signature:
+`bool semantic_param_publication_checked_local_owner_constructor(const SemanticContext *ctx, const ASTNode *call);`
+
+Resource candidateec49bf0c3dbfa942e91d3639653ca67358ccc1b0d2c088f5ca0d8540000b0878
+is SOUNDNESS_BLOCKED, not publishable. Frozen independent review sm2qHi
+(report4fcb5df78005dbc4f89ce88ca39a919423c1b537181a2fd067a47363132bc343)
+finds new nonzero-formal Pool/opaque helper and Result->Pool/branch compositions
+admitted through TextBuilderNew and the old unconditional Finish independence
+grant. The previous bd binary refuses those complete programs. No unsafe
+program was executed. The narrow/broad receipts below do not excuse this
+missing lifetime premise. Do not start the subsequent enum/meta gap.
+
+The same full4273-signature/3188-key ec census completed with708 failures,
+incomplete0, diagnostic exit86/no MIR,117.21s/1163996KiB; receipt
+`.tmp/p0-owner-birth-census.WLH5M0/`, exact production restoration confirmed.
+This diagnostic count is NOT acceptance progress while soundness is blocked.
+
+##### Finish lifetime repair — one bounded producer chain
+
+- Objective/priority: remove the unconditional Finish lifetime grant before
+  admitting resource births. Identity/current lifetime, fail-closed behavior,
+  then canonical admission; no source-copy/annotation workaround.
+- Owner: existing typed parameter publication stores the checked local
+  AllocatorResult birth and monotonic invalidation on replacement or an
+  unmodelled allocator argument use. This is a premise of the existing value
+  publication, not a new top-level family or allocator kind inference engine.
+  Native local `let` immutability is NOT sufficient evidence by itself.
+- The bounded witness is an exact typed local binding -> current direct
+  AllocatorResult call. Any assignment invalidates it, even Result->Result;
+  any call argument exposure except exact checked Finish/Destroy invalidates
+  it. This conservative premise does not follow helper results, branch joins,
+  opaque returns or parameter origins. A Result-only wrapper is Unknown until
+  the existing owner can prove its current returned allocator kind; it must
+  not silently become Pool permission. No fallback to the original LET or
+  an owned-String summary bit is allowed.
+- Finish consumes that receipt through indexed-string classification,
+  origin_ready/copy_escape publication and replay, unmodelled-call refusal,
+  and collection-owned-String summaries. Missing lifetime evidence cannot
+  authorize independent escape. The last consumers remain sparse
+  origin/destination, stored/returned String admission and REF loans.
+- Required edits: A owns publication header/routines/owner implementation;
+  B owns indexed-string header/implementation and collection result summary;
+  C owns currentness units, strict gate and allocator-wrapper fixtures. Root
+  wires typed local initialization/replacement callbacks and maintains the
+  shared integration/replay manifest. No shared production file edit overlap.
+  All source freezes before root builds; only one implementation rung exists.
+- Queries: `semantic_param_publication_record_result_allocator_binding(ctx,
+  declaration, type)`; `semantic_param_publication_invalidate_allocator_binding
+  (ctx, value)`; `semantic_param_publication_checked_finish_independent(ctx,
+  call)`. Indexed-string independence now takes the same semantic context.
+  Recheck exact binding/initializer/callee/Type/argument/current generation;
+  never keep a scope Symbol pointer or grant allocator copy/cleanup rights.
+- Falsifiers: direct/helper/branch/rebound Pool, opaque/unknown origin, same
+  constructor spelling with wrong identity, inout or unknown call exposure,
+  and stale birth/actual/binding facts must not publish independent Finish
+  results or cached output permission. Safe direct Result still executes9 on
+  both backends. Existing strict negatives/budgets are unchanged; all98 frozen
+  review probes are replayed before broader native/Map/Slot/bootstrap/census.
+  Pool-local nonescaping use and Result-only wrappers are not promoted to a
+  new supported contract by this bounded repair. Record any precision loss;
+  do not label V1 or whole-language memory safety CLOSED.
+
+Root independently replayed all98 ec frozen exit/MIR outcomes and checked
+source/probe manifests: `.tmp/p0-review-resource-birth-replay.JIM7KX/`.
+The review soundness blocker is reproduced, not merely reported.
+
+The bounded repair binary5d8f0e9b39a5776ad6358067fb1010ff588c53e2bc29244b1d35d962d8441a59
+passes phase7318/0, LLVM140/0, frozen strict/caps (KQxADu), full native,
+Map/IR/component/Slot and four C+LLVM runtime positives (xXKxWe).
+Root's98-probe replay tWRykY changes exactly7 permissions to refusal:
+5 Pool/opaque/branch safety cases and2 genuinely safe Result-only allocator
+helpers, explicitly unproved by this bounded witness. No old rejection
+becomes admission. The previous scratch replay QHpJoi expected the safe
+zero-formal allocator wrapper to remain admitted; that expectation was
+incorrect for this documented conservative contract, not a safety failure.
+No code/oracle was relaxed to recover those2 helper permissions.
+
+One reached consumer obligation was discovered before committing: the
+collection-owned-String body bit can upgrade ordinary ArrayPush to an owned
+push, but its consumers only replay the producer ID. Normal source typing
+creates the bit after the entire function and sees all monotonic invalidation;
+a later raw receipt/AST mutation can nevertheless leave that bit stale.
+Revisit this same chain, not the next enum gap. Existing collection result
+analysis will record its already-visited returned String source calls once,
+plus an owned syntax snapshot of that producer body, in the existing typed
+publication storage. Querying a result will replay those source witnesses
+and transitive owned-result dependencies rather than rescanning the AST body
+or trusting the bit. Unknown/missing/stale evidence fails closed with no
+bit-only fallback. Publication's owned push consumer must replay that same
+result evidence. A owns the typed carrier/destruction and push replay;
+B owns existing collection result production/consumption; C owns the
+zero-argument producer stale-witness falsifier. The same narrow/full gates
+are required after the new shared freeze. No new production owner/file,
+generic cache, allocator kind propagation or extra language surface is added.
+
+Root reproduced the stale body-bit and private-push problem in YENU8z:
+phase7331/2, exactly the two expected missing revocations. Final same-chain
+repair binary604bc1702f723fea3f1078edb932af771581f400f295ed7fb65b91d84bb1362e
+passes phase7450/0 and LLVM140/0; narrow receipt WmQycK contains the unchanged
+strict/budget/cap gates. Root full native MIR327/semantic3228/transpile1009,
+Map24 C+LLVM positives/58 negatives plus IR/component/generator and Slot
+goldens all PASS; runtime J2gUpo executes9/8/11/9 on C and LLVM. Native30.01s/
+266828KiB; reached chain44.24s/98204KiB; Slot8.81s/166756KiB. Root replay
+zrxYkM rechecks all98 frozen ec probes with the same7 intentional refusals
+and no rejection->admission. No unsafe program was executed.
+
+Actual unchanged bootstrap remains RED BEFORE gen0:27.24s/1245668KiB,
+primary32:6 required backing and18410 cascaded diagnostics. Exact full census
+OxbwCQ (4273 signatures/3188 keys) is708 failures:698 work/10 required,
+incomplete0,105.20s/1245328KiB. Versus committedbd:40 resolved/0 newly failed/
+0 mask changes; versus unsafeec:0 changes. Nonfailed2480 includes811 TOP/
+814 unproved; these diagnostic counts do not grant permission. Observer
+exit86/no MIR, source/build/bin/dependencies/modes/status/diff restored
+byte-identically. Installed-driver/gen2==gen3 are not reached or passed.
+
+Latest read-only red-team request is frozen RXLKQ8/binary604, source.diff
+61223eadb1171fe849faa60b626818b98c6e5e36034c63f361ff0ab48326f6f5;
+independent conclusion pending. Published39a CI run38860052641 was refreshed:
+completed/failure. No V1/SoT closure or published-green claim.
+
+The ec candidate
+passes phase7246/0 and LLVM140/0. First narrow run h3L46x exposed a NEW test
+classification error, not MIR admission: Pool/opaque/rebind were already
+required-backing-UNREADY before the repair, not completed borrow-only refusals.
+Those3 new cases now require their exact existing owner failure, structured
+semantic errors and no stdout/MIR, permitting only existing BORROW extras.
+Old exact-BORROW paired oracles are unchanged; retaining capacity stays paired.
+Root invalidated K3GUKb because root copied the tightened test during execution
+(shell continuation offset changed). That run is not semantic evidence.
+Final fully frozen W61m0w narrow run passes phase7246/0, LLVM140/0, complete
+strict summary including UNREADY/capacity and4096/4097, plus owner caps;
+source manifest matches. Actual canonical and broad integration remain pending.
+
 The current scoped red-team request is frozen at lNEApm/binarybd673/source
 diff694f1e5320aac5899918cb981eccf527af2d67ed44a1676f1a3bbabdbfb6225a,
-not the live overlay. Review is read-only/analyze-only and pending; root did
-not change the review chat's model/settings or grant build/process authority.
+not the live overlay. Read-only/analyze-only review is complete:68 cases,
+18 with MIR and50 refused, previous46 unchanged, no newly found false
+admission in scope. Report SHA256
+e92f841fd0f044687989df53f63bb627f75e063bf9491743f8f0dd931f3fe280.
+Root checked full source/probe manifests and independently replayed68/68
+exit/MIR outcomes, receipt `.tmp/p0-review-negative-tail-replay.f8zWZa/`.
+In-memory stale-fact units were not independently executed by that no-build
+review; root's phase covers them separately. Canonical/CI are not approved.
+No review model/settings/build/process authority was changed or granted.
 
 Frozen declared-result independent review only covers committed binary71,
 snapshotGKFUTd/report2e99dfc5. Root rechecked its full manifest and replayed

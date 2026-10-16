@@ -1,0 +1,17 @@
+func MakeAllocator(unused: Bool) -> Allocator { return AllocatorResult(); }
+func Build(text: String) -> String {
+    let allocator = MakeAllocator(false);
+    let builder = TextBuilderNew(32);
+    TextBuilderAppend(builder, text);
+    let output = TextBuilderFinish(builder, allocator);
+    AllocatorDestroy(allocator);
+    return output;
+}
+func Probe(ref text: String) -> Option<Int> {
+    let output = Build(text);
+    return Some(StringLength(output));
+}
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(UnwrapOption(Probe(text)));
+}
