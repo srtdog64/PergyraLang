@@ -201,6 +201,33 @@ bool semantic_param_publication_value_is_physical_scalar(const SemanticContext *
     PublishedNode *row = publication_current_value(ctx, value);
     return row != NULL && row->physical_scalar;
 }
+bool semantic_param_publication_record_checked_numeric_cast(SemanticContext *ctx, ASTNode *cast)
+{
+    if (!semantic_param_publication_pending(ctx) || cast == NULL || cast->type != AST_CAST ||
+        ast_cast_target_type(cast) == NULL) return false;
+    PublishedNode *operand = publication_node(ctx->function_param_publications, ast_cast_operand(cast), false);
+    if (operand == NULL || !operand->value_present || !operand->physical_scalar ||
+        operand->value_shape != ast_cast_operand(cast)->type) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, cast, true);
+    if (row == NULL) return false;
+    char *name = pergyra_strdup(ast_cast_target_type(cast));
+    if (name == NULL) return false;
+    free(row->target_name); row->target_name = name;
+    row->target = ast_cast_operand(cast); row->target_id = ast_node_stable_id(row->target);
+    row->cast_present = row->target_id != 0;
+    return row->cast_present;
+}
+bool semantic_param_publication_checked_numeric_cast(const SemanticContext *ctx, const ASTNode *cast)
+{
+    if (cast == NULL || cast->type != AST_CAST ||
+        !semantic_param_publication_value_is_physical_scalar(ctx, cast)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, cast, false);
+    const char *target = ast_cast_target_type(cast);
+    return row != NULL && row->cast_present && row->target == ast_cast_operand(cast) &&
+        row->target_id != 0 && row->target_id == ast_node_stable_id(row->target) &&
+        row->target_name != NULL && target != NULL && strcmp(row->target_name, target) == 0 &&
+        semantic_param_publication_value_is_physical_scalar(ctx, row->target);
+}
 bool semantic_param_publication_value_has_static_string_backing(const SemanticContext *ctx, const ASTNode *value)
 {
     PublishedNode *row = publication_current_value(ctx, value);
@@ -351,11 +378,21 @@ bool semantic_param_publication_checked_local_owner_constructor(
 {
     PublishedNode *row = publication_result_current(ctx, call);
     if (row == NULL || row->meta || row->declaration != 0 || row->value_binding != 0 ||
-        row->stdlib || !row->kind_present || row->nominal_result != NULL || row->result_relation ||
+        !row->kind_present || row->nominal_result != NULL || row->result_relation ||
         row->target == NULL || row->target->type != AST_IDENTIFIER || row->target_binding != 0 ||
         row->target_id == 0 || row->target_name == NULL || row->id == 0) return false;
     /* These constructor contracts prove no input retention and independent
      * result backing. They confer no copy, cleanup or Finish lifetime right. */
+    if (row->empty_map_declaration != NULL) {
+        const ASTNode *declaration = row->empty_map_declaration;
+        return row->stdlib && row->builtin == BUILTIN_NOT_BUILTIN &&
+            declaration->type == AST_LET_DECL &&
+            row->empty_map_declaration_id != 0 &&
+            row->empty_map_declaration_id == ast_node_stable_id(declaration) &&
+            ast_let_initializer(declaration) == call &&
+            semantic_param_publication_empty_map_binding(ctx, declaration);
+    }
+    if (row->stdlib) return false;
     if (row->builtin == BUILTIN_ALLOCATOR_RESULT)
         return row->value_type == TYPE_ALLOCATOR && row->argument_count == 0;
     if (row->builtin != BUILTIN_TEXT_BUILDER_NEW || row->value_type != TYPE_TEXT_BUILDER ||

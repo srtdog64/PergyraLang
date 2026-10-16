@@ -1,0 +1,21 @@
+extern "C" { func Keep(rows: Array<String>) -> Void; }
+
+func Build(ref text: String) -> Array<String> {
+    let rows: Array<String> = ["known"];
+    var output: Array<String> = [];
+    if StringLength(text) > 0 {
+        output = rows;
+    }
+    ArrayPush(output, text);
+    return output;
+}
+
+func Publish(ref text: String) -> Bool {
+    Keep(Build(text));
+    return true;
+}
+
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(Publish(text));
+}

@@ -2090,7 +2090,7 @@ static void checked_owned_string_result_receipt_currency(void)
             semantic_param_publication_invalidate_allocator_binding(ctx, ast_call_argument(finish, 1));
             CHECK(!semantic_param_publication_checked_finish_independent(ctx, finish));
             CHECK(!semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id));
-            CHECK(!semantic_param_publication_private_array_push(ctx, push, consumer));
+            CHECK(semantic_param_publication_private_array_push(ctx, push, consumer));
             /* Raw unit restoration is not a source-level un-invalidation. */
             *birth_claim = saved;
             CHECK(semantic_param_publication_checked_finish_independent(ctx, finish));
@@ -2120,7 +2120,7 @@ static void checked_owned_string_result_receipt_currency(void)
                     bool owned = semantic_collection_owned_string_call_result(produce_call, ctx, &producer_id);
                     if (owned) fprintf(stderr, "owned String receipt route=%u fault=%u unexpectedly current\n", route, fault);
                     CHECK(!owned);
-                    CHECK(!semantic_param_publication_private_array_push(ctx, push, consumer));
+                    CHECK(semantic_param_publication_private_array_push(ctx, push, consumer));
                     producer_claim->owned_string_result = receipt;
                     *receipt = saved;
                     receipt->sources[0] = saved_source;
@@ -2232,6 +2232,78 @@ static void checked_local_owner_constructor_nested_effect(void)
         SlotFunctionLookup lookup = {ctx, program};
         FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
         CHECK(!function_param_flow_no_store_graph(store, decl));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_local_owner_map_constructor_currency(void)
+{
+    const char *source =
+        "struct MapScope{values:HashMap<String,Int>;}"
+        "func EmptyMapScope()->MapScope{let values:HashMap<String,Int> = MapNew();return MapScope(values);}"
+        "func Probe(ref text:String)->Option<Int>{let scope=EmptyMapScope();"
+        "return Some(MapSize(scope.values)+StringLength(text));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (typed) {
+        ASTNode *factory = ast_program_statement(program, 1);
+        ASTNode *probe = ast_program_statement(program, 2);
+        ASTNode *map = ast_block_statement(ast_func_body(factory), 0);
+        ASTNode *call = ast_let_initializer(map);
+        ASTNode *target = ast_call_callee(call);
+        CHECK(semantic_param_publication_empty_map_binding(ctx, map));
+        CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+        SlotFunctionLookup lookup = {ctx, program};
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+        CHECK(store != NULL && function_param_flow_no_store_graph(store, factory));
+        unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK((baseline & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+            SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+
+        PublishedNode *map_row = NULL, *call_row = NULL;
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        for (size_t i = 0; i < publication->node_capacity; i++) {
+            if (publication->nodes[i].node == map) map_row = &publication->nodes[i];
+            if (publication->nodes[i].node == call) call_row = &publication->nodes[i];
+        }
+        CHECK(map_row != NULL && call_row != NULL && call_row->empty_map_declaration == map);
+        if (map_row != NULL && call_row != NULL) {
+            PublishedNode saved_map = *map_row, saved_call = *call_row;
+            ASTNode saved_call_syntax = *call;
+            char *saved_target_name = target->data.identifier.name;
+            uint32_t generation = ast_node_stable_id(program);
+            for (unsigned fault = 0; fault < 11; fault++) {
+                if (fault == 0) map_row->empty_map_binding = false;
+                if (fault == 1) map_row->map_type_id++;
+                if (fault == 2) map_row->target_id++;
+                if (fault == 3) call_row->empty_map_declaration = NULL;
+                if (fault == 4) call_row->empty_map_declaration_id++;
+                if (fault == 5) call_row->stdlib = false;
+                if (fault == 6) call_row->value_type = TYPE_INT;
+                if (fault == 7) call_row->argument_count = 1;
+                if (fault == 8) target->data.identifier.name = "NotMapNew";
+                if (fault == 9) ast_call_set_semantic_callee_value_binding_id(call, 1);
+                if (fault == 10) program->stable_id++;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(!function_param_flow_no_store_graph(store, factory));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                *map_row = saved_map; *call_row = saved_call; *call = saved_call_syntax;
+                target->data.identifier.name = saved_target_name;
+                program->stable_id = generation;
+                CHECK(semantic_param_publication_empty_map_binding(ctx, map));
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_no_store_graph(store, factory));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+        }
     }
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
@@ -5500,7 +5572,10 @@ cleanup:
 
 static void checked_private_local_array_push(void)
 {
-    Lexer *lexer = lexer_create("func Build(input:Array<String>)->Array<String>{let owned_rows:Array<String> = [];ArrayPush(owned_rows,input[0]);return owned_rows;}");
+    Lexer *lexer = lexer_create(
+        "func Build(input:Array<String>)->Array<String>{"
+        "let owned_rows:Array<String> = [\"known\",Concat(\"local\",\" value\")];"
+        "ArrayPush(owned_rows,input[0]);return owned_rows;}");
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
     SemanticContext *ctx = semantic_context_create();
@@ -5516,6 +5591,9 @@ static void checked_private_local_array_push(void)
     ASTNode *local = ast_block_statement(ast_func_body(decl), 0);
     ASTNode *initial = ast_let_initializer(local);
     ASTNode *call = ast_block_statement(ast_func_body(decl), 1);
+    ASTNode *child = ast_array_literal_element(initial, 1);
+    ASTNode *target = ast_call_callee(call);
+    CHECK(ast_array_literal_count(initial) == 2 && child != NULL && target != NULL);
     PublishedNode *published = NULL, *initial_value = NULL;
     for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++) {
         PublishedNode *row = &ctx->function_param_publications->nodes[i];
@@ -5529,30 +5607,57 @@ static void checked_private_local_array_push(void)
     CHECK((mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
     FunctionParamFlowProgramPointIndex *index = NULL;
     CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &index));
-    if (published != NULL && initial_value != NULL && index != NULL) {
-        for (unsigned fault = 0; fault < 9; fault++) {
-            bool exclusive = published->private_exclusive, escaped = published->private_escaped;
-            bool pending = published->private_pending, effect = call->data.call.semantic_collection_effect_set;
-            uint32_t binding_id = published->private_binding_id;
-            const Type *type = initial_value->string_array_type;
+    if (published != NULL && initial_value != NULL && index != NULL && child != NULL && target != NULL) {
+        PublishedNode saved = *published, saved_initial = *initial_value;
+        ASTNode saved_call = *call;
+        uint32_t child_id = ast_node_stable_id(child), target_id = ast_node_stable_id(target);
+        size_t initial_count = ast_array_literal_count(initial);
+        for (unsigned fault = 0; fault < 15; fault++) {
             if (fault == 0) published->private_exclusive = false;
             if (fault == 1) published->private_escaped = true;
             if (fault == 2) published->private_pending = true;
             if (fault == 3) local->data.let_decl.is_alias = true;
-            if (fault == 4) initial->data.array_literal.count = 1;
-            if (fault == 5) call->data.call.semantic_collection_effect_set = false;
+            if (fault == 4) child->stable_id++;
+            if (fault == 5) initial->data.array_literal.count = initial_count - 1;
             if (fault == 6) initial_value->string_array_type = NULL;
             if (fault == 7) published->private_binding_id++;
             if (fault == 8) published->private_initializer_id++;
+            if (fault == 9) published->caller_id++;
+            if (fault == 10) call->data.call.arg_count = 1;
+            if (fault == 11) published->stdlib = false;
+            if (fault == 12) target->stable_id++;
+            if (fault == 13) published->deferred_syntax = NULL;
+            if (fault == 14) published->private_binding_type_id++;
             CHECK(!semantic_param_publication_private_array_push(ctx, call, decl));
             CHECK(!function_param_flow_index_claims_current(ctx, index));
-            published->private_exclusive = exclusive; published->private_escaped = escaped;
-            published->private_pending = pending; local->data.let_decl.is_alias = false;
-            initial->data.array_literal.count = 0; call->data.call.semantic_collection_effect_set = effect;
-            initial_value->string_array_type = type; published->private_binding_id = binding_id;
-            if (fault == 8) published->private_initializer_id--;
+            *published = saved; *initial_value = saved_initial; *call = saved_call;
+            local->data.let_decl.is_alias = false;
+            initial->data.array_literal.count = initial_count;
+            child->stable_id = child_id; target->stable_id = target_id;
             CHECK(semantic_param_publication_private_array_push(ctx, call, decl));
             CHECK(function_param_flow_index_claims_current(ctx, index));
+        }
+        size_t annotation_entry = 0;
+        bool annotation_found = false;
+        for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
+            if (ctx->type_resolution_metadata.keys[i] == ast_let_type(local)) {
+                annotation_entry = i;
+                annotation_found = true;
+                break;
+            }
+        }
+        CHECK(annotation_found);
+        if (annotation_found) {
+            void *saved_type = ctx->type_resolution_metadata.values[annotation_entry];
+            for (unsigned fault = 0; fault < 2; fault++) {
+                ctx->type_resolution_metadata.values[annotation_entry] =
+                    fault == 0 ? NULL : TYPE_INT;
+                CHECK(!semantic_param_publication_private_array_push(ctx, call, decl));
+                CHECK(!function_param_flow_index_claims_current(ctx, index));
+                ctx->type_resolution_metadata.values[annotation_entry] = saved_type;
+                CHECK(semantic_param_publication_private_array_push(ctx, call, decl));
+                CHECK(function_param_flow_index_claims_current(ctx, index));
+            }
         }
         unsigned effects = 0; bool outputs[1] = {false}, pending = false;
         CHECK(!function_param_flow_returned_backing_effects(ctx->function_param_flow_summaries,
@@ -6267,6 +6372,7 @@ int main(void)
     checked_local_owner_constructor_currency();
     checked_finish_independence_currency();
     checked_local_owner_constructor_nested_effect();
+    checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();
     checked_declared_physical_result_currency();
     checked_declared_array_result_currency();

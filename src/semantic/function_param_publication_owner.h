@@ -170,7 +170,7 @@ typedef struct {
     bool private_array_push, private_exclusive, private_escaped, private_pending;
     const ASTNode *private_binding, *private_initializer;
     const ASTNode *private_binding_type_node;
-    uint32_t private_binding_id, private_initializer_id, private_effect, private_effect_source;
+    uint32_t private_binding_id, private_initializer_id;
     uint32_t private_binding_type_id;
     const Type *string_array_type;
     const ASTNode *assignment_rhs;

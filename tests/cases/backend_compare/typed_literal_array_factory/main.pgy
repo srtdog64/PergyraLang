@@ -1,0 +1,20 @@
+func MakeWords() -> Array<String> {
+    var words: Array<String> = ["root", Concat("new", "born")];
+    ArrayPush(words, "tail");
+    return words;
+}
+
+func InspectFactory(ref label: String) -> Int {
+    let words: Array<String> = MakeWords();
+    return ArrayLength(words) + StringLength(label);
+}
+
+func Main() -> Void {
+    let label: String = "literal";
+    Log(InspectFactory(label));
+    let words: Array<String> = MakeWords();
+    Log(ArrayLength(words));
+    Log(words[0]);
+    Log(words[1]);
+    Log(words[2]);
+}

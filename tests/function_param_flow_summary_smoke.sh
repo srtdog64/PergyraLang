@@ -73,6 +73,7 @@ paired = (
     ("wrapper_result_builder_birth_unready", False),
     ("rebound_result_builder_birth_unready", False),
     ("declared_empty_scope_valid", True),
+    ("declared_empty_map_scope_valid", True),
     ("declared_static_array_valid", True),
     ("declared_array_borrow_invalid", False),
     ("declared_empty_forward_valid", True),
@@ -83,8 +84,14 @@ paired = (
     ("stdlib_trim_result_copy_retain_valid", True),
     ("stdlib_trim_opaque_invalid", False),
     ("private_array_push_local_read_valid", True),
+    ("private_array_push_nonempty_mixed_valid", True),
     ("private_array_push_return_escape_invalid", False),
     ("private_array_push_wrapper_escape_invalid", False),
+    ("private_array_push_nonempty_ref_initial_invalid", False),
+    ("private_array_push_nonempty_ref_inserted_invalid", False),
+    ("private_array_push_nonempty_nested_retain_invalid", False),
+    ("private_array_push_nonempty_alias_escape_invalid", False),
+    ("private_array_push_nonempty_branch_escape_invalid", False),
     ("physical_return_default_string_valid", True),
     ("physical_return_default_record_valid", True),
     ("physical_return_opaque_invalid", False),
@@ -259,7 +266,6 @@ for name in (
     "pool_builder_birth_invalid",
     "opaque_builder_birth_invalid",
     "rebound_pool_builder_birth_invalid",
-    "declared_empty_map_scope_unready",
 ):
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
     checked = subprocess.run(

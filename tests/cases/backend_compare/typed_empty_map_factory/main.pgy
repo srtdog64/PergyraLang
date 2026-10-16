@@ -1,0 +1,34 @@
+struct MapPair {
+    left: HashMap<String, Int>;
+    right: HashMap<String, Int>;
+}
+
+func MakeMapPair() -> MapPair {
+    let left: HashMap<String, Int> = MapNew();
+    let right: HashMap<String, Int> = MapNew();
+    return MapPair(left, right);
+}
+
+func ReadLabel(ref label: String) -> Void {
+    Log(label);
+}
+
+func InspectFactory(ref label: String) -> Int {
+    let pair: MapPair = MakeMapPair();
+    return MapSize(pair.left) + MapSize(pair.right) + StringLength(label);
+}
+
+func Main() -> Void {
+    let label: String = "independent maps";
+    Log(InspectFactory(label));
+    var pair: MapPair = MakeMapPair();
+    ReadLabel(label);
+    MapSet(pair.left, "key", 11);
+    Log(MapHas(pair.right, "key"));
+    MapSet(pair.right, "key", 29);
+    Log(MapGet(pair.left, "key"));
+    Log(MapGet(pair.right, "key"));
+    MapSet(pair.left, "key", 41);
+    Log(MapGet(pair.left, "key"));
+    Log(MapGet(pair.right, "key"));
+}

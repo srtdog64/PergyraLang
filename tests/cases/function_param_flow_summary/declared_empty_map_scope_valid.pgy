@@ -1,4 +1,3 @@
-// A fresh empty MapNew binding alone does not close the aggregate result.
 struct MapScope { values: HashMap<String, Int>; }
 
 func EmptyMapScope() -> MapScope {
