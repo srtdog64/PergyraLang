@@ -3,6 +3,7 @@
 #include "function_param_publication_internal.h"
 #include "typed_map_query_fact_owner.h"
 #include "type_checker_internal.h"
+#include "type_checker_resolution_metadata_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "slot_analyzer_internal.h"
@@ -387,7 +388,7 @@ bool semantic_param_publication_empty_map_binding(const SemanticContext *ctx, co
     PublishedNode *row = publication_node(ctx->function_param_publications, declaration, false);
     if (!publication_empty_map_shape(row) || row->deferred_syntax == NULL ||
         !function_param_flow_syntax_claims_current(ctx, row->deferred_syntax) ||
-        semantic_type_resolution_lookup_metadata_type_ref((SemanticContext *)ctx, (ASTNode *)row->map_type_node) != row->value_type) return false;
+        semantic_type_resolution_lookup_resolved_type((SemanticContext *)ctx, (ASTNode *)row->map_type_node) != row->value_type) return false;
     PublishedNode *init = publication_node(ctx->function_param_publications, row->target, false);
     return init != NULL && init->value_present && init->value_shape == AST_CALL && publication_call_ready(init) &&
         init->value_type == row->value_type && init->empty_map_declaration == declaration &&

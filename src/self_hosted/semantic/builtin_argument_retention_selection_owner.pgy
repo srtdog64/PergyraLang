@@ -9,6 +9,7 @@ func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
         name == "ToInt" || name == "StringTrim" ||
         name == "Substring" || name == "CharAtN" || name == "SubstringWithLen" ||
         name == "SubEqualsWithLen" || name == "SubIndexOfWithLen" ||
+        name == "SubStartsWithLen" ||
         name == "StringIndexOf" || name == "StringContains" || name == "StringReplace" || name == "Split" ||
         name == "Read" || name == "Write" || name == "ArrayLength" ||
         name == "TextBuilderAppend" || name == "ArrayPushOwnedString";
@@ -41,6 +42,7 @@ func SemanticBuiltinRetentionSourceSignatureMatches(name: String, return_type: S
     if name == "SubstringWithLen" { return return_type == "String" && param_types == "String|Int|Int|Int"; }
     if name == "SubEqualsWithLen" { return return_type == "Bool" && param_types == "String|Int|Int|Int|String"; }
     if name == "SubIndexOfWithLen" { return return_type == "Int" && param_types == "String|Int|Int|Int|String"; }
+    if name == "SubStartsWithLen" { return return_type == "Bool" && param_types == "String|Int|Int|String"; }
     if name == "TextBuilderAppend" { return return_type == "Void" && param_types == "TextBuilder|String"; }
     if name == "ArrayPushOwnedString" { return return_type == "Void" && param_types == "Array<String>|String"; }
     return false;
@@ -63,40 +65,40 @@ import "builtin_shadow_owner.pgy";
 func SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
     signatures: SemanticAstFunctionSignatureFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts
-) -> Int {
+) -> Long {
     if !signatures.ok ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
-        !SemanticBuiltinArgumentRetentionProjectionReady() { return -1; }
+        !SemanticBuiltinArgumentRetentionProjectionReady() { return -1L; }
     let retention_count: Int = SemanticBuiltinArgumentRetentionCount();
-    if retention_count < 1 || retention_count > 31 { return -1; }
-    let selected_mask: Int = 0;
-    let selected_bit: Int = 1;
-    let retention_row: Int = 0;
+    if retention_count < 1 || retention_count > 63 { return -1L; }
+    var selected_mask: Long = 0L;
+    var selected_bit: Long = 1L;
+    var retention_row: Int = 0;
     while retention_row < retention_count {
         let retention: SemanticBuiltinArgumentRetentionRow =
             SemanticBuiltinArgumentRetentionRowAt(retention_row);
         if !retention.valid || retention.source_name == "" ||
-            retention.builtin_identity == "" { return -1; }
+            retention.builtin_identity == "" { return -1L; }
         if SemanticBuiltinSignatureSelectedForProgram(
                 signatures, retention.source_name) &&
             SemanticBuiltinRetentionSourceContractKnown(retention.source_name) {
-            let matches: Int = 0;
-            let table_row: Int = 0;
+            var matches: Int = 0;
+            var table_row: Int = 0;
             while table_row < ArrayLength(function_tables.names) {
                 if function_tables.names[table_row] == retention.source_name {
                     if !SemanticBuiltinRetentionSourceSignatureMatches(
                             retention.source_name,
                             function_tables.returns[table_row],
-                            function_tables.params[table_row]) { return -1; }
+                            function_tables.params[table_row]) { return -1L; }
                     matches = matches + 1;
                 }
                 table_row = table_row + 1;
             }
-            if matches != 1 { return -1; }
+            if matches != 1 { return -1L; }
             selected_mask = selected_mask + selected_bit;
         }
         retention_row = retention_row + 1;
-        if retention_row < retention_count { selected_bit = selected_bit * 2; }
+        if retention_row < retention_count { selected_bit = selected_bit * 2L; }
     }
     return selected_mask;
 }

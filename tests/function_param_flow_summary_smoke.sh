@@ -74,11 +74,21 @@ paired = (
     ("rebound_result_builder_birth_unready", False),
     ("declared_empty_scope_valid", True),
     ("declared_empty_map_scope_valid", True),
+    ("mapnew_ref_key_copy_valid", True),
+    # The runtime copies String values, but source-retention ordinal 2 is not
+    # proved here. This is a conservative source refusal, not runtime UB.
+    ("mapnew_ref_string_value_copy_unready", False),
+    ("mapnew_ref_box_value_storage_invalid", False),
     ("declared_static_array_valid", True),
     ("declared_array_borrow_invalid", False),
     ("declared_empty_forward_valid", True),
     ("declared_empty_scope_keep_invalid", False),
     ("stdlib_input_retention_valid", True),
+    ("stdlib_prefix_factory_valid", True),
+    ("stdlib_prefix_retaining_user_invalid", False),
+    ("stdlib_prefix_opaque_invalid", False),
+    ("stdlib_prefix_shadow_invalid", False),
+    ("stdlib_concat_nested_retaining_invalid", False),
     ("stdlib_trim_result_return_valid", True),
     ("stdlib_trim_result_retain_invalid", False),
     ("stdlib_trim_result_copy_retain_valid", True),
@@ -236,6 +246,10 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"physical-return negative {name} lost its exact borrow refusal")
         retained_sites = {
+            # These sites are the outer consumer of Make's retained result,
+            # not evidence of a refusal directly on the MapSet statement.
+            "mapnew_ref_string_value_copy_unready": (14, 15),
+            "mapnew_ref_box_value_storage_invalid": (18, 15),
             "direct_ref_string_local_retain_invalid": (8, 20),
             "direct_ref_string_slot_invalid": (7, 30),
             "direct_ref_string_channel_invalid": (9, 25),
@@ -254,6 +268,24 @@ for name, valid in paired:
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
+
+# Wrong arity must fail at the checked builtin signature, not inherit a
+# same-name retention row or reach a MIR artifact.
+arity_source = root / "tests/cases/function_param_flow_summary/stdlib_prefix_arity_invalid.pgy"
+checked = subprocess.run(
+    [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(arity_source)],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+try:
+    diagnostics = json.loads((checked.stdout + checked.stderr).decode(errors="replace"))
+except json.JSONDecodeError:
+    raise SystemExit("prefix arity negative lost structured diagnostics")
+errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+if checked.returncode != 1 or checked.stdout or not errors or (
+        errors[0].get("code") != "PGY_SEM_BUILTIN_ARGS_INVALID" or
+        errors[0].get("cause_ir") != "semantic:builtin:signature_mismatch"):
+    sys.stderr.buffer.write(checked.stderr)
+    raise SystemExit("prefix arity negative lost its exact signature refusal")
+print("[function-param-flow-summary] prefix signature arity refusal: PASS")
 
 # These constructors were already unready before the Result-birth premise.
 # Preserve the existing required-backing refusal rather than recategorising

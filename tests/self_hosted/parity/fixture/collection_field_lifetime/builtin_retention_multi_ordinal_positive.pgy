@@ -1,0 +1,9 @@
+func Main() -> Void
+{
+    let slot: Slot<Int> = ClaimSlot();
+    Write(slot, 42);
+    let source: String = Concat("prefix", "-body");
+    let prefix: String = Concat("pre", "fix");
+    Log(SubStartsWithLen(source, StringLength(source), 0, prefix));
+    Release(slot);
+}

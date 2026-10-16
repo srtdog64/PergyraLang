@@ -392,6 +392,12 @@ bool semantic_param_publication_checked_local_owner_constructor(
             ast_let_initializer(declaration) == call &&
             semantic_param_publication_empty_map_binding(ctx, declaration);
     }
+    if (row->builtin == BUILTIN_CONCAT)
+        return row->stdlib && row->value_type == TYPE_STRING && row->argument_count == 2 &&
+            strcmp(row->target_name, "Concat") == 0 && row->arguments[0].type == TYPE_STRING &&
+            row->arguments[1].type == TYPE_STRING &&
+            semantic_param_publication_argument_borrowed_for_call(ctx, call, 0) &&
+            semantic_param_publication_argument_borrowed_for_call(ctx, call, 1);
     if (row->stdlib) return false;
     if (row->builtin == BUILTIN_ALLOCATOR_RESULT)
         return row->value_type == TYPE_ALLOCATOR && row->argument_count == 0;

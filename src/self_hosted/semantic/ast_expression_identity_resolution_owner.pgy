@@ -84,10 +84,10 @@ func SemanticAstAnalysisResolveExpressionIdentities(
         ArrayLength(graph.arena.identities.builtin_argument_retention_calls) != 0 {
         return false;
     }
-    let retention_selection: Int =
+    let retention_selection: Long =
         SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
             analysis.signatures, function_tables);
-    if retention_selection < 0 {
+    if retention_selection < 0L {
         return false;
     }
     // The existing lexical environment owns local types even where the

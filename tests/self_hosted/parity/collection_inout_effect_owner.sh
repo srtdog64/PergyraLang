@@ -270,6 +270,7 @@ INPUTS=(
     inout_index_eq_owned_positive.pgy inout_index_ne_owned_positive.pgy inout_index_borrowed_read_positive.pgy
     inout_index_string_observer_positive.pgy
     builtin_retention_string_length_positive.pgy builtin_retention_char_code_positive.pgy
+    builtin_retention_multi_ordinal_positive.pgy
     builtin_retention_text_builder_append_positive.pgy
     builtin_retention_array_push_owned_string_positive.pgy
     builtin_retention_alias_negative.pgy builtin_retention_custom_call_positive.pgy
@@ -1178,6 +1179,15 @@ BORROW_FORMAL_DIAGNOSTICS
     for ((mutation=125; mutation<=130; mutation++)); do
         timeout 30 "$WORK/$backend-identity.exe" \
             "$FIXTURES/builtin_retention_string_length_positive.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
+    for ((mutation=133; mutation<=141; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" \
+            "$FIXTURES/builtin_retention_multi_ordinal_positive.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
         tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
         [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]

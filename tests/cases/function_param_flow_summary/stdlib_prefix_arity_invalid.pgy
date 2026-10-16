@@ -1,0 +1,20 @@
+struct PrefixDecision {
+    matched: Bool;
+}
+
+func PrefixReadingFactory() -> PrefixDecision {
+    let source = Concat("alpha", "beta");
+    let prefix = Concat("alpha", "");
+    let matched = SubStartsWithLen(source, 0, prefix);
+    return PrefixDecision(matched);
+}
+
+func Probe(ref text: String) -> Option<Int> {
+    let decision = PrefixReadingFactory();
+    return Some(StringLength(text) + 1);
+}
+
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(UnwrapOption(Probe(text)));
+}

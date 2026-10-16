@@ -123,7 +123,7 @@ typedef struct {
     size_t child_count;
     bool assignment_replacement, local_alias;
     bool channel_binding;
-    bool empty_map_binding, slot_write;
+    bool empty_map_binding, slot_write, local_owner_constructor;
     bool owned_slot_binding;
     bool slot_token_operand;
     bool private_array_push;

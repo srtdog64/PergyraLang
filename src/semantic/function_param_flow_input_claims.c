@@ -242,6 +242,7 @@ promote:
     }
     if (node->type == AST_CALL) {
         row->slot_write = semantic_param_publication_checked_slot_write(ctx, node);
+        row->local_owner_constructor = semantic_param_publication_checked_local_owner_constructor(ctx, node);
         row->private_array_push = semantic_param_publication_private_array_push(ctx, node, NULL);
         row->result_relation = semantic_param_publication_checked_result_relation(ctx, node, 0,
             &row->result_depends, &row->external_retains);
@@ -395,6 +396,7 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
         }
         if (row->shape == AST_CALL) {
             if (row->slot_write != semantic_param_publication_checked_slot_write(ctx, row->node)) return false;
+            if (row->local_owner_constructor != semantic_param_publication_checked_local_owner_constructor(ctx, row->node)) return false;
             if (!semantic_param_publication_checked_call(ctx, row->node)) return false;
             if (row->private_array_push != semantic_param_publication_private_array_push(ctx, row->node, NULL)) return false;
             bool depends = false, retains = false;

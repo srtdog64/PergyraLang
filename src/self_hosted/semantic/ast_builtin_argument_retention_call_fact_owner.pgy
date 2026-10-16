@@ -10,32 +10,43 @@ import "builtin_shadow_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "builtin_argument_retention_selection_owner.pgy";
 func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
-    selected_mask: Int,
+    selected_mask: Long,
     inout graph: SemanticExpressionGraphFacts,
     owner_node_id: Int, lane: Int, local_call_ordinal: Int,
     call_node: Int, call_terminal: Int
 ) -> Bool {
     let retention_count: Int = SemanticBuiltinArgumentRetentionCount();
-    if retention_count < 1 || retention_count > 31 { return false; }
+    if retention_count < 1 || retention_count > 63 { return false; }
+    if selected_mask < 0L { return false; }
     let name: Option<String> =
         SemanticExpressionGraphCallTargetName(graph, call_node);
     if !IsSome(name) { return true; }
-    if selected_mask < 0 { return false; }
-    let retention_row: Int = -1;
-    let selected: Int = 0;
-    let selected_bit: Int = 1;
+    var retention_row: Int = -1;
+    var retention_identity: String = "";
+    var target_selected: Bool = false;
+    var target_seen: Bool = false;
+    var selected: Int = 0;
+    var selected_bit: Long = 1L;
     while selected < retention_count {
         let candidate: SemanticBuiltinArgumentRetentionRow =
             SemanticBuiltinArgumentRetentionRowAt(selected);
         if !candidate.valid { return false; }
-        if (selected_mask / selected_bit) % 2 == 1 &&
-            candidate.source_name == UnwrapOption(name) {
-            if retention_row >= 0 { return false; }
-            retention_row = selected;
+        if candidate.source_name == UnwrapOption(name) {
+            let selected_here: Bool = (selected_mask / selected_bit) % 2L == 1L;
+            if target_seen {
+                if candidate.builtin_identity != retention_identity ||
+                    selected_here != target_selected { return false; }
+            } else {
+                retention_identity = candidate.builtin_identity;
+                target_selected = selected_here;
+                target_seen = true;
+            }
+            if selected_here && retention_row < 0 { retention_row = selected; }
         }
         selected = selected + 1;
-        if selected < retention_count { selected_bit = selected_bit * 2; }
+        if selected < retention_count { selected_bit = selected_bit * 2L; }
     }
+    if selected_mask / selected_bit > 1L { return false; }
     if retention_row < 0 ||
         !SemanticAstCollectionOwnershipBuiltinCall(
             graph, call_node, UnwrapOption(name)) { return true; }

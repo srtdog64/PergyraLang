@@ -32,22 +32,22 @@ func Main() -> Void with caps env, io_read {
             }
             row = row + 1;
         }
-        let selection: Int = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
+        let selection: Long = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
             analysis.signatures, tables);
-        if mutation != 125 { Log(selection < 0); return; }
+        if mutation != 125 { Log(selection < 0L); return; }
         let parsed: Bool = false;
         let trimmed: Bool = false;
-        let remaining: Int = selection;
+        var remaining: Long = selection;
         row = 0;
         while row < SemanticBuiltinArgumentRetentionCount() {
             let retention: SemanticBuiltinArgumentRetentionRow =
                 SemanticBuiltinArgumentRetentionRowAt(row);
-            if retention.source_name == "ToInt" { parsed = remaining % 2 == 1; }
-            if retention.source_name == "StringTrim" { trimmed = remaining % 2 == 1; }
-            remaining = remaining / 2;
+            if retention.source_name == "ToInt" { parsed = remaining % 2L == 1L; }
+            if retention.source_name == "StringTrim" { trimmed = remaining % 2L == 1L; }
+            remaining = remaining / 2L;
             row = row + 1;
         }
-        Log(SemanticBuiltinArgumentRetentionProjectionReady() && selection >= 0 && parsed && trimmed);
+        Log(SemanticBuiltinArgumentRetentionProjectionReady() && selection >= 0L && parsed && trimmed);
         return;
     }
     if mutation == 119 {
@@ -208,6 +208,111 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 133 && mutation <= 141 {
+        let selection: Long = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
+            analysis.signatures, analysis.function_tables);
+        let first_prefix: SemanticBuiltinArgumentRetentionRow =
+            SemanticBuiltinArgumentRetentionRowAt(31);
+        let second_prefix: SemanticBuiltinArgumentRetentionRow =
+            SemanticBuiltinArgumentRetentionRowAt(32);
+        let high_rows: Bool = selection >= 0L &&
+            SemanticBuiltinArgumentRetentionCount() == 33 &&
+            first_prefix.valid && second_prefix.valid &&
+            first_prefix.builtin_identity == "SUB_STARTS_WITH_LEN" &&
+            second_prefix.builtin_identity == first_prefix.builtin_identity &&
+            first_prefix.argument_ordinal == 0 && second_prefix.argument_ordinal == 3 &&
+            (selection / 2147483648L) % 2L == 1L &&
+            (selection / 4294967296L) % 2L == 1L;
+        if mutation == 133 { Log(high_rows); return; }
+        let facts: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
+            analysis.expression_surfaces.expression_graph.arena.identities
+                .builtin_argument_retention_calls;
+        var write_index: Int = -1;
+        var prefix_index: Int = -1;
+        var write_count: Int = 0;
+        var prefix_count: Int = 0;
+        var fact_index: Int = 0;
+        while fact_index < ArrayLength(facts) {
+            let target: Option<String> = SemanticExpressionGraphCallTargetName(
+                analysis.expression_surfaces.expression_graph, facts[fact_index].call_node);
+            if IsSome(target) && UnwrapOption(target) == "Write" {
+                write_index = fact_index; write_count = write_count + 1;
+            }
+            if IsSome(target) && UnwrapOption(target) == "SubStartsWithLen" {
+                prefix_index = fact_index; prefix_count = prefix_count + 1;
+            }
+            fact_index = fact_index + 1;
+        }
+        if !high_rows || write_count != 1 || prefix_count != 1 ||
+            !SemanticAstBuiltinArgumentRetentionCallFactsReady(
+                analysis.expression_surfaces) {
+            Log(false); return;
+        }
+        let write_call: SemanticAstBuiltinArgumentRetentionCallFact = facts[write_index];
+        let prefix_call: SemanticAstBuiltinArgumentRetentionCallFact = facts[prefix_index];
+        var graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+        if mutation == 134 {
+            let identity: Option<String> = SemanticAstBuiltinArgumentRetentionIdentityForCall(
+                analysis.expression_surfaces, write_call.call_node);
+            let recorded: Bool = SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
+                selection, graph, write_call.owner_node_id, write_call.lane,
+                write_call.local_call_ordinal, write_call.call_node,
+                write_call.call_node);
+            Log(write_call.retention_row == 9 &&
+                IsSome(identity) && UnwrapOption(identity) == "WRITE" &&
+                SemanticBuiltinArgumentBorrowedForIdentity("WRITE", 0) &&
+                SemanticBuiltinArgumentBorrowedForIdentity("WRITE", 2) &&
+                recorded);
+            return;
+        }
+        if mutation == 135 {
+            let identity: Option<String> = SemanticAstBuiltinArgumentRetentionIdentityForCall(
+                analysis.expression_surfaces, prefix_call.call_node);
+            let recorded: Bool = SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
+                selection, graph, prefix_call.owner_node_id, prefix_call.lane,
+                prefix_call.local_call_ordinal, prefix_call.call_node,
+                prefix_call.call_node);
+            Log(prefix_call.retention_row == 31 &&
+                IsSome(identity) && UnwrapOption(identity) == "SUB_STARTS_WITH_LEN" &&
+                SemanticBuiltinArgumentBorrowedForIdentity("SUB_STARTS_WITH_LEN", 0) &&
+                SemanticBuiltinArgumentBorrowedForIdentity("SUB_STARTS_WITH_LEN", 3) &&
+                !SemanticBuiltinArgumentBorrowedForIdentity("SUB_STARTS_WITH_LEN", 1) &&
+                recorded);
+            return;
+        }
+        var call: SemanticAstBuiltinArgumentRetentionCallFact = prefix_call;
+        var mask: Long = selection;
+        if mutation == 137 { call = write_call; mask = selection - 1024L; }
+        if mutation == 136 { mask = selection - 4294967296L; }
+        if mutation == 138 { mask = selection + 8589934592L; }
+        if mutation == 139 { mask = -1L; }
+        if mutation >= 136 && mutation <= 139 {
+            let recorded: Bool = SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
+                selection, graph, call.owner_node_id, call.lane,
+                call.local_call_ordinal, call.call_node, call.call_node);
+            let refused: Bool = !SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
+                mask, graph, call.owner_node_id, call.lane,
+                call.local_call_ordinal, call.call_node, call.call_node);
+            Log(recorded && refused);
+            return;
+        }
+        if mutation == 140 {
+            while ArrayLength(analysis.expression_surfaces.expression_graph.arena.identities
+                    .builtin_argument_retention_calls) > 0 {
+                ArrayPop(analysis.expression_surfaces.expression_graph.arena.identities
+                    .builtin_argument_retention_calls);
+            }
+        }
+        if mutation == 141 {
+            analysis.expression_surfaces.expression_graph.arena.identities
+                .builtin_argument_retention_calls_sealed = false;
+        }
+        Log(!SemanticAstBuiltinArgumentRetentionCallFactsReady(
+                analysis.expression_surfaces) &&
+            !IsSome(SemanticAstBuiltinArgumentRetentionIdentityForCall(
+                analysis.expression_surfaces, prefix_call.call_node)));
+        return;
+    }
     if mutation >= 129 && mutation <= 132 {
         Log(InspectCollectionStorageMutationIdentity(analysis, mutation)); return;
     }
@@ -318,10 +423,10 @@ func Main() -> Void with caps env, io_read {
         }
         if mutation == 116 { tables.returns[string_length] = "String"; }
         if mutation == 117 { tables.params[string_length] = "Unknown"; }
-        let selection: Int = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
+        let selection: Long = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
             analysis.signatures, tables);
-        if mutation == 118 { Log(selection >= 0); }
-        else { Log(selection < 0); }
+        if mutation == 118 { Log(selection >= 0L); }
+        else { Log(selection < 0L); }
         return;
     }
     let signature: Int = -1;

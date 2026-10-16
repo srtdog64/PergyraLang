@@ -1,0 +1,24 @@
+func MakePrefixRead() -> String
+{
+    let source: String = Concat("prefix", "-body");
+    let prefix: String = Concat("pre", "fix");
+    if SubStartsWithLen(source, StringLength(source), 0, prefix)
+    {
+        return Concat(source, prefix);
+    }
+    return "miss";
+}
+
+func InspectFactory(ref label: String) -> Int
+{
+    let result: String = MakePrefixRead();
+    return StringLength(result) + StringLength(label);
+}
+
+func Main() -> Void
+{
+    let label: String = "held";
+    Log(InspectFactory(label));
+    Log(label);
+    Log(MakePrefixRead());
+}

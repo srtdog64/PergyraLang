@@ -1,0 +1,19 @@
+extern "C" { func KeepText(text: String) -> Void; }
+
+func RetainingStartsWithLen(source: String, sourceLength: Int, start: Int,
+    prefix: String) -> Bool {
+    KeepText(source);
+    KeepText(prefix);
+    return true;
+}
+
+func Probe(ref source: String, ref prefix: String) -> Bool {
+    let sourceLength = StringLength(source);
+    return RetainingStartsWithLen(source, sourceLength, 0, prefix);
+}
+
+func Main() -> Void {
+    let source = Concat("alpha", "beta");
+    let prefix = Concat("alpha", "");
+    Log(Probe(source, prefix));
+}

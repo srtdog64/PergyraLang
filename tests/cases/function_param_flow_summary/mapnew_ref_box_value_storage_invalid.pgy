@@ -1,0 +1,25 @@
+struct Box {
+    text: String;
+}
+
+struct BoxMapScope {
+    values: HashMap<String, Box>;
+}
+
+extern "C" { func Keep(scope: BoxMapScope) -> Void; }
+
+func Make(ref input: String) -> BoxMapScope {
+    let values: HashMap<String, Box> = MapNew();
+    MapSet(values, "key", Box(input));
+    return BoxMapScope(values);
+}
+
+func Publish(ref input: String) -> Bool {
+    Keep(Make(input));
+    return true;
+}
+
+func Main() -> Void {
+    let input = Concat("heap", " value");
+    Log(Publish(input));
+}

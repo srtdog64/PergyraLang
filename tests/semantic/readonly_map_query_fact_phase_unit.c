@@ -1257,6 +1257,152 @@ static void checked_slot_input_contract(void)
     }
 }
 
+static void checked_stdlib_prefix_retention_currency(void)
+{
+    const char *source =
+        "struct PrefixDecision{matched:Bool;}"
+        "func PrefixReadingFactory()->PrefixDecision{"
+        "let source=Concat(\"alpha\",\"beta\");let prefix=Concat(\"alpha\",\"\");"
+        "let matched=SubStartsWithLen(source,StringLength(source),0,prefix);"
+        "return PrefixDecision(matched);}"
+        "func Probe(ref text:String)->Option<Int>{let decision=PrefixReadingFactory();"
+        "if decision.matched{return Some(StringLength(text)+1);}return Some(StringLength(text));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (admitted) {
+        ASTNode *factory = ast_program_statement(program, 1);
+        ASTNode *probe = ast_program_statement(program, 2);
+        ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(factory), 2));
+        ASTNode *target = ast_call_callee(call);
+        ASTNode *first = ast_call_argument(call, 0);
+        ASTNode *last = ast_call_argument(call, 3);
+        CHECK(call != NULL && call->type == AST_CALL && target != NULL &&
+            first != NULL && last != NULL);
+        for (size_t ordinal = 0; ordinal < 4; ordinal++) {
+            bool borrowed = ordinal == 0 || ordinal == 3;
+            CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, call, ordinal) == borrowed);
+            CHECK(semantic_param_publication_string_argument_read_only(ctx, call, ordinal) == borrowed);
+        }
+        CHECK(!semantic_param_publication_argument_borrowed_for_call(ctx, call, 4));
+        SlotFunctionLookup lookup = {ctx, program};
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+        CHECK(store != NULL && function_param_flow_no_store_graph(store, factory));
+        unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK((baseline & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+            SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+
+        ASTNode *concat = ast_let_initializer(ast_block_statement(ast_func_body(factory), 0));
+        ASTNode *concat_target = ast_call_callee(concat);
+        ASTNode *concat_first = ast_call_argument(concat, 0);
+        PublishedNode *concat_row = NULL, *first_value = NULL;
+        for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++) {
+            PublishedNode *row = &ctx->function_param_publications->nodes[i];
+            if (row->node == concat) concat_row = row;
+            if (row->node == concat_first) first_value = row;
+        }
+        CHECK(concat != NULL && concat_target != NULL && concat_first != NULL &&
+            concat_row != NULL && concat_row->argument_count == 2 &&
+            concat_row->arguments != NULL && first_value != NULL);
+        if (store != NULL && concat_target != NULL && concat_first != NULL &&
+            concat_row != NULL && concat_row->argument_count == 2 &&
+            concat_row->arguments != NULL && first_value != NULL) {
+            CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, concat));
+            PublishedNode saved_concat_row = *concat_row, saved_first_value = *first_value;
+            PublishedCallArgument saved_first_argument = concat_row->arguments[0];
+            ASTNode saved_concat = *concat;
+            char *target_name = concat_target->data.identifier.name;
+            uint32_t target_id = concat_target->stable_id;
+            uint32_t first_id = concat_first->stable_id;
+            uint32_t generation = program->stable_id;
+            for (unsigned fault = 0; fault < 12; fault++) {
+                if (fault == 0) concat_row->stdlib = false;
+                if (fault == 1) concat_row->kind_present = false;
+                if (fault == 2) concat_row->builtin = BUILTIN_STRING_LENGTH;
+                if (fault == 3) concat_row->value_type = TYPE_INT;
+                if (fault == 4) concat->data.call.arg_count = 1;
+                if (fault == 5) concat_target->data.identifier.name = "Other";
+                if (fault == 6) concat_target->stable_id++;
+                if (fault == 7) concat_first->stable_id++;
+                if (fault == 8) first_value->value_type = TYPE_INT;
+                if (fault == 9) concat_row->arguments[0].type = TYPE_INT;
+                if (fault == 10) concat_row->value_binding = 1;
+                if (fault == 11) program->stable_id++;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, concat));
+                bool no_store = function_param_flow_no_store_graph(store, factory);
+                bool backing_current = function_param_flow_backing_rows_current(store, probe);
+                if (no_store || backing_current)
+                    fprintf(stderr, "prefix Concat fault=%u stale no_store=%d backing=%d\n",
+                        fault, no_store, backing_current);
+                CHECK(!no_store);
+                CHECK(!backing_current);
+                *concat_row = saved_concat_row;
+                concat_row->arguments[0] = saved_first_argument;
+                *first_value = saved_first_value;
+                *concat = saved_concat;
+                concat_target->data.identifier.name = target_name;
+                concat_target->stable_id = target_id;
+                concat_first->stable_id = first_id;
+                program->stable_id = generation;
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, concat));
+                CHECK(function_param_flow_no_store_graph(store, factory));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+        }
+
+        PublishedNode *published = NULL;
+        for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++) {
+            PublishedNode *row = &ctx->function_param_publications->nodes[i];
+            if (row->node == call) published = row;
+        }
+        CHECK(published != NULL);
+        if (published != NULL) {
+            PublishedNode saved = *published;
+            ASTNode saved_call = *call;
+            uint32_t target_id = ast_node_stable_id(target);
+            uint32_t first_id = ast_node_stable_id(first);
+            uint32_t last_id = ast_node_stable_id(last);
+            char *target_name = target->data.identifier.name;
+            uint32_t generation = program->stable_id;
+            for (unsigned fault = 0; fault < 10; fault++) {
+                if (fault == 0) ast_call_set_semantic_callee_is_stdlib(call, false);
+                if (fault == 1) ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(factory));
+                if (fault == 2) ast_call_set_semantic_callee_value_binding_id(call, 1);
+                if (fault == 3) call->data.call.arg_count = 3;
+                if (fault == 4) target->data.identifier.name = "Other";
+                if (fault == 5) target->stable_id++;
+                if (fault == 6) first->stable_id++;
+                if (fault == 7) last->stable_id++;
+                if (fault == 8) published->stdlib = false;
+                if (fault == 9) program->stable_id++;
+                CHECK(!semantic_param_publication_argument_borrowed_for_call(ctx, call, 0));
+                CHECK(!semantic_param_publication_argument_borrowed_for_call(ctx, call, 3));
+                CHECK(!function_param_flow_no_store_graph(store, factory));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                *published = saved;
+                *call = saved_call;
+                target->data.identifier.name = target_name;
+                target->stable_id = target_id;
+                first->stable_id = first_id;
+                last->stable_id = last_id;
+                program->stable_id = generation;
+                CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, call, 0));
+                CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, call, 3));
+                CHECK(function_param_flow_no_store_graph(store, factory));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void retained_slot_helper_source(void)
 {
     const char *source = "struct TextRecord{text:String} func Observe(ref text:String)->String{return text;} "
@@ -2302,6 +2448,45 @@ static void checked_local_owner_map_constructor_currency(void)
                 CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
                 CHECK(function_param_flow_no_store_graph(store, factory));
                 CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+            for (unsigned fault = 0; fault < 4; fault++) {
+                if (fault == 0) map_row->map_key_type = NULL;
+                if (fault == 1) map_row->map_key_type = TYPE_INT;
+                if (fault == 2) map_row->map_value_type = NULL;
+                if (fault == 3) map_row->map_value_type = TYPE_STRING;
+                CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(!function_param_flow_no_store_graph(store, factory));
+                CHECK(!function_param_flow_backing_rows_current(store, probe));
+                *map_row = saved_map;
+                CHECK(semantic_param_publication_empty_map_binding(ctx, map));
+                CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                CHECK(function_param_flow_no_store_graph(store, factory));
+                CHECK(function_param_flow_backing_rows_current(store, probe));
+            }
+            size_t annotation_entry = 0;
+            bool annotation_found = false;
+            for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
+                if (ctx->type_resolution_metadata.keys[i] == ast_let_type(map)) {
+                    annotation_entry = i;
+                    annotation_found = true;
+                    break;
+                }
+            }
+            CHECK(annotation_found);
+            if (annotation_found) {
+                void *saved_type = ctx->type_resolution_metadata.values[annotation_entry];
+                for (unsigned fault = 0; fault < 2; fault++) {
+                    ctx->type_resolution_metadata.values[annotation_entry] =
+                        fault == 0 ? NULL : TYPE_INT;
+                    CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                    CHECK(!function_param_flow_no_store_graph(store, factory));
+                    CHECK(!function_param_flow_backing_rows_current(store, probe));
+                    ctx->type_resolution_metadata.values[annotation_entry] = saved_type;
+                    CHECK(semantic_param_publication_empty_map_binding(ctx, map));
+                    CHECK(semantic_param_publication_checked_local_owner_constructor(ctx, call));
+                    CHECK(function_param_flow_no_store_graph(store, factory));
+                    CHECK(function_param_flow_backing_rows_current(store, probe));
+                }
             }
         }
     }
@@ -6462,6 +6647,7 @@ int main(void)
     checked_map_result_projection("func Snapshot(ref rows:HashMap<String,Int>)->Array<String>{return MapKeys(rows);}");
     checked_map_result_projection("func Snapshot(ref rows:HashMap<String,Int>)->Int{return MapGet(rows,\"key\");}");
     checked_slot_input_contract();
+    checked_stdlib_prefix_retention_currency();
     checked_secure_slot_input_contract();
     retained_slot_helper_source();
     disjoint_inout_source();
