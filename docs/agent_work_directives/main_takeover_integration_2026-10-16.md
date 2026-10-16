@@ -240,7 +240,7 @@ validates these and existing view/pin gates before claiming even this scoped
 connection fixed. General View authority or whole-language safety is not
 closed by this payload repair. The no-input result track remains unstarted.
 
-### Reached local Read payload consumer — plan, not implementation
+### Reached local Read payload consumer — scoped tests pass, review pending
 
 Independent fd17/kGgLNi review confirms the REF repair but reaches a stronger
 local falsifier: Main owns Slot<String>, creates ViewRead, reads its payload,
@@ -249,6 +249,24 @@ MIR/C/LLVM emit all succeed. Local return and Keep/wrapper/pin variants also
 emit. No unsafe program was executed; physical UAF is not established. The
 whole active boundary must include local and default-formal Read results,
 not just another formal REF exception. No-input result implementation is held.
+
+Root's exact fd17 preflight admitted all seven new paired inputs, with rc0,
+no diagnostics and actual MIR markers: four escape falsifiers and three safe
+read controls. Receipt: `.tmp/p0-local-read-before.oDjN34/` in the WSL clone.
+A/B/C subsequently froze the one-chain implementation and tests for root's
+actual build/phase/strict gates. No unsafe probe was linked or executed.
+
+Root-observed candidate91cfd12ba490463e41a40807e896be8f48965a58aecc7ef3210454e375978d9f
+passes phase7009/0, LLVM140/0, unchanged strict summary/4096-4097, native
+MIR327/semantic3228/transpile1009, Map24 C+LLVM positives/58 negatives,
+reached IR/caps/component/generator and Slot C+LLVM goldens. Receipt: clone
+`.tmp/p0-destination-candidate.loYLzi/` and `p0-local-read-{native,chain,slot}.log`.
+Actual unchanged bootstrap remains RED before gen0, same418:6 required backing
+first refusal,18410 cascades/16 warnings,24.08s/1164676KiB. This scoped native
+repair is not self-host substitution or V1 closure. Immutable DO97fm review
+is pending; no-input result implementation is still held.
+Source recovery checkpoint:6f54b4b53ce4a2ad19fd5d875aff4becf0262d19 on main,
+not pushed. Only coordination documents follow that source checkpoint.
 
 - Objective: connect issued checked Read payloads to final eager escape
   validation using existing loan and publication owners. Priority: exact
@@ -286,16 +304,87 @@ not just another formal REF exception. No-input result implementation is held.
   are analyze-only with exact BORROW and no MIR, never a syntax/ABI failure
   counted as safety. Existing phase/summary/4096-4097/native/Map/IR/Slot/pin
   gates precede unchanged canonical/bootstrap/install/memory/published CI.
-- Root resolved one unknown before edits: callerNULL is a legitimate public
-  path. Top-level Slot<String> and Slot<Int> Claim/Write/Log(Read)/Release
-  programs both emit MIR/C/LLVM onfd17 (`.tmp/p0-top-level-read.C3zEQw/`);
-  semantic checking has no synthetic Main and the backend creates it later.
-  Preserve that positive. The exact program/action/nested execution owner is
-  still to be mapped; neither skipping validation, rejecting all top-level
-  reads, inventing a FUNC owner nor re-scanning a program root per loan is a
-  permitted assumption. Existing source lifetime after Release/lease end and
+- Root corrected the callerNULL hypothesis before edits: top-level String/Int
+  Read positives emit MIR/C/LLVM onfd17 (`.tmp/p0-top-level-read.C3zEQw/`),
+  and the parser already synthesises Main before semantic checking. The typed
+  row inspector confirms actual FUNC/Main caller, Readid19/callerid2, current
+  backing1/depends1/retains0. Publication records the actual callable owner,
+  not ctx.current_function_decl. No new PROGRAM model is justified; preserve
+  the positive and distinguish lambda/intent/deferred execution owners.
+- Newly reached prerequisite before edits: the successful owned-Slot claim LET
+  bypasses generic value publication (root observes ClaimSlot value.ok0).
+  The shared full-body loan visitor cannot skip that missing input. Existing
+  successful resource/Slot claim ownership must issue one exact birth receipt
+  for annotated/generic LET and destructure forms, sealed by shared syntax
+  including generic-call arguments. This is current allocation input-backings
+  evidence, not generic argc0 freshness or post-release permission. It must
+  retire with existing publication/claims; never retain scope Symbols.
+  Existing source lifetime after Release/lease end and
   nested callable ownership remain separate unproved obligations. Native
   REF/default View ABI emission gaps are explicit, not a new emitter track.
+
+Selected implementation boundary after that survey: actual FUNC owners,
+including parser-synthesised Main, reuse the sparse evaluator. Preserve the
+actual owner shape for lambda/intent/deferred/fragment cases; unsupported
+execution proof fails explicitly and grants no loan permission. Do not add
+a PROGRAM model without an actual admitted execution falsifier. Typed
+physical Read results are not payload-loan obligations. No whole-lifetime
+permission is inferred from an eager no-escape result.
+
+Shared API/edit agreement for this one chain:
+
+- Reached producer prerequisites are part of this same slice: successful
+  ViewRead must publish its receiver-dependent descriptor result, separately
+  from Read payload identity; implicit secure token binding0 needs the exact
+  successful paired-token operand witness, not a fabricated binding or a
+  general TYPE_TOKEN exception. Reuse existing publication syntax/currency
+  and keep capability/cleanup permission separate from backing independence.
+  Root moves the complete compilation-owned fact allocation/retirement cohort
+  from store_destroy.c into existing fact_snapshot.c, with identities and
+  lifetime unchanged. This makes room for A's complete ordinary REF-return
+  source-admission cohort in the existing backing-state component. No new
+  semantic owner/file, cap increase or compressed code is introduced.
+
+- B owns PendingReadPayloadLoan in the existing publication header/store/view:
+  issued actual call/caller identities and shape, current result Type/kind and
+  owned diagnostic module lifetime. Current Read result/receiver/auxiliary
+  arguments and both relation projections are revalidated. Every issued row
+  is consumed or fails, never dropped because currentness became unavailable.
+  `semantic_param_publication_read_payload_loan_current` returns only current
+  input facts and an exact owned-identifier Slot binding, or0 for a View; it
+  does not prove no escape. Never fabricate an ordinary callee or ordinal.
+- B's single `record_owned_slot_binding` / `owned_slot_binding` API covers
+  AST_LET_DECL and AST_LET_DESTRUCTURE. SemanticPublishedSlotBirth carries
+  exact slot/token binding IDs and Type pointers. Ordinary implicit secure
+  token ID0 is distinct from no token and cannot become a fabricated ID.
+  Successful existing canonical claim checks own issuance. Seal annotation
+  or generic-call syntax, actual binding topology, owned Slot access/security,
+  inner Type, zero actuals and builtin identity. Generic CALL arguments use
+  the existing shared syntax capture/current vocabulary. Query failure cannot
+  turn into generic no-input independence. Birth claims join cached currency.
+- A owns the common sparse evaluator and
+  `function_param_flow_read_payload_no_escape`, existing final consumer and
+  diagnostics, and any shared-flow-header field needed by B. Read entries
+  accept only proven no-retention effects, never the REF-return static-source
+  exception. Exact source Write-back and successful birth binding initialisers
+  consume B's current facts. Token arguments with no stable binding must use
+  an existing exact typed non-backing witness, not an invented identity.
+- B edits publication components/headers, successful claim LET/destructure
+  hooks and shared input-claims syntax/current only. A edits backing/index,
+  flow internal header and final diagnostic/parameter consumers only. Root
+  owns shared destruction integration; neither agent races on store_destroy.
+  Any cap-driven move is one complete responsibility into an existing owner,
+  reported before editing; no new production file or line compression.
+- C owns existing phase unit/strict harness and bounded local/inout/copy/
+  wrapper/default-view versus nonretaining/same-owner/physical/pin controls.
+  Existing fixtures and strict error oracles stay unchanged. First establish
+  that a new negative is an admitted typed path onfd17; never run it. Safe
+  actual Main/top-level pairs may run on C+LLVM after semantic admission.
+
+This authorises parallel edits only within that shared producer-to-consumer
+chain. Root replays the fixed existing gates before widening integration and
+revisits the map if another reached owner changes this contract. It does not
+authorise no-input result inference, a new borrow model or an ABI/codegen track.
 
 Base: local source checkpoint `c64719068995a7ccf59504d56da87ed05facf80d`,
 matching native binaryd61 and the unchanged canonical input. Root's detailed

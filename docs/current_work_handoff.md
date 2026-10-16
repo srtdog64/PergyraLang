@@ -8,17 +8,33 @@ SoT registry, admitted contracts, and executable gates override this note.
 Active rung: unchanged full canonical admission, then actual bootstrap and
 gen2==gen3, memory/installed C+LLVM, and required same-published-SHA CI.
 Published `main`:39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Local unpushed
-checkpoint:c64719068995a7ccf59504d56da87ed05facf80d. Only main remains; the
-preserved perf worktree is detached. D has the bounded destination/default
-replacement/Read candidate, tests and coordination docs after that checkpoint.
+source checkpoint:6f54b4b53ce4a2ad19fd5d875aff4becf0262d19, parentd0abe2c9
+(earlierc6471906). Its bounded local checked-Read loan implementation,
+typed Slot birth/token/ViewRead prerequisites and tests are committed;
+coordination documents follow that source checkpoint. Only main remains and
+the preserved perf worktree is detached. Verify current HEAD/dirty state;
+documentation receipts do not change the identified source/binary evidence.
 WSL `/root/pgy-main-20261016` remains HEAD39a plus root's candidate overlay.
 The latest integration binary SHA256 is
 fd17c96ab954311f85a924f314b866f088dc1331584cd985829909f9282bf8c2.
 It contains the LLVM admitted-MIR receiver-type repair, same-write runtime
 test, four-file REF ReadView last-consumer repair and scoped ViewRead pair.
 Root alone owns the WSL build/process lease and Git; agents do not build, run
-or change Git state. The fd17 implementation is frozen; subsequent local
-Read-loan work is still planning, not verified source.
+or change Git state. The fd17 implementation is frozen; the subsequent local
+Read-loan implementation is frozen and its scoped root integration passed.
+Its binary SHA256 is
+91cfd12ba490463e41a40807e896be8f48965a58aecc7ef3210454e375978d9f.
+Root observed phase7009/0, LLVM metadata140/0, unchanged strict summary and
+4096/4097 controls, whole native MIR327/semantic3228/transpile1009,
+Map24 C+LLVM positives/58 negatives, reached IR/caps/component/generator and
+Slot/SecureSlot/DeviceSlot runtime goldens on both backends. Four new local/
+default-view escape inputs now give exact BORROW refusal and no MIR; safe
+local/top-level String/Int controls retain admission. Unsafe inputs were not
+linked or executed. Before binaryfd17 admitted all seven inputs, with actual
+MIR and no diagnostics. Receipts: clone `.tmp/p0-local-read-before.oDjN34/`,
+`.tmp/p0-destination-candidate.loYLzi/` and logs
+`p0-local-read-{native,chain,slot}.log` beside that clone. This is a scoped
+native prerequisite, not C-path substitution, canonical or V1 closure.
 
 Root-observed1283 evidence: phase6760/0, old whole native MIR327/0,
 semantic3228/0, transpile1009/0 and caps PASS(35.85s/266176KiB); prior strict
@@ -62,28 +78,46 @@ goldens on C+LLVM and three exact pin/view backend pairs. Receipts:
 `/root/pgy-main-20261016.p0-read-view-{native,chain,slot,pin-parity}.log`.
 This scoped success does not change the canonical failure above.
 
-Selected next slice/whole-chain map: the top bounded card under `Current
-destination transfer repair` in
+Root reran actual unchanged bootstrap on91cfd12b: still RED before gen0,
+24.08s/1164676KiB, exit2, same first418:6 required-backing refusal and18410
+cascade diagnostics/16 warnings. Receipt:
+`/root/pgy-main-20261016.p0-local-read-bootstrap.log`. This is not a new
+independent census, gen2==gen3 or installed-driver evidence. The local Read
+candidate is frozen separately at
+`/root/pgy-review-destination-39a8fc1db.DO97fm`, binary91cfd12b and source.diff
+SHA256ec1fea4abf91ae91c65cb3a524ae0061dc546a869bf7d0d5958841e8f3ed3573.
+Full source.sha256 is preserved. Root requested read-only independent review
+without changing that chat's model/settings. That review is pending, not
+an approval. General no-input result implementation remains held.
+
+Current whole-chain map: `Reached local Read payload consumer` under
+`Current destination transfer repair` in
 [`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md).
-A connects existing exact current REF ReadView contracts and their sealed
-escape masks to final declaration/pending-call boundary validation. C adds
-direct/ordinary-copy/return/output negative controls and scoped actual ViewRead
-caller versus nonretaining/physical-read positives. Descriptor COPY_ONLY must
-not discard an already-known payload escape. No global View reclassification,
-new alias/Read scan, new owner, annotation/copy workaround or weakened oracle.
+A connected issued local Read facts and existing sparse evaluation to final
+eager escape validation; B completed typed registration/birth/token/ViewRead
+prerequisites; C added paired and stale-fact controls. All three are frozen
+and root observed the gates above. Descriptor COPY_ONLY does not permit known
+payload retention. No global View reclassification, new alias/Read scan,
+new semantic owner, annotation/copy workaround or weakened oracle was added.
 General zero-argument declared-result facts remain an open obligation, not an
 approved parallel implementation track. Its read-only change map is recorded
 but implementation is deferred behind the reached local Read safety boundary.
 Do not infer result freshness or empty destinations from zero formal inputs:
 global/opaque/cached or retained-local storage can still alias a caller value.
 Root must fix the whole-chain contract before authorising this next edit set.
-A now maps reuse of sparse loan evaluation for local checked Read results,
-B the exact current Read publication/registration lifetime, C its falsifiers.
-Root observed callerNULL is legitimate: top-level String/Int Slot Read programs
-both emit MIR/C/LLVM; the backend synthesises Main later. Receipt:
-`.tmp/p0-top-level-read.C3zEQw/` in WSL. Neither rejecting all such callers nor
-skipping their validation is allowed. No new edit is authorised until the
-actual program/action/nested execution-owner mapping is resolved.
+The scoped implementation is committed, but independent review is pending.
+Top-level String/Int Slot Read programs both emit MIR/C/LLVM; receipt:
+`.tmp/p0-top-level-read.C3zEQw/` in WSL. The earlier callerNULL inference was
+incorrect: parser_program.c synthesises Main before stable IDs/type checking.
+Root's typed-row inspector observes one FUNC/Main owner, Readid19/callerid2,
+backing1/depends1/retains0. Runner: `.tmp/p0_read_owner_inspect_20261016.sh`.
+No new PROGRAM execution model is justified. Publication already records the
+actual callable owner, distinct from ctx.current_function_decl. Lambda/intent
+and deferred boundaries cannot be guessed to be Main. Before new edits,
+finish their mapping and the successful Slot-claim birth fact needed by the
+shared full-body sparse visitor; ClaimSlot's special LET currently bypasses
+generic value publication. Annotation/generic and destructure forms must be
+covered by the same existing successful claim owner, not an argc0 shortcut.
 
 Current independent review is immutable1283 snapshot
 `/root/pgy-review-destination-39a8fc1db.dRW4Zn`, source.diff SHA256

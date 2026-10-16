@@ -133,27 +133,61 @@ assumption. None was linked or run. Current runtime Release marks occupancy;
 physical payload cleanup/lifetime refinement is not established by that alone,
 so the evidence is admission and alias flow, not an observed UAF.
 
-The current Read row already owns exact caller, receiver and result facts, but
-no final local Read-payload loan registration consumes it. Existing borrowed
-root lookup follows REF formal provenance, not arbitrary local initializers.
-The next scoped plan is to reuse the existing sparse loan evaluator with the
-actual checked Read call as seed, not add another syntax/alias scan. Main with
-zero formals needs no invented parameter ordinal. Before implementation,
-resolve the legitimate caller-NULL/global execution owner and preserve exact
-owned-Slot Write-back, physical reads and nonretaining consumption. This would
-check eager RETURN/CALL/CHANNEL/output escape, not establish all source lifetime
+The prior Read row already owned exact caller, receiver and result facts, but
+no final local Read-payload loan registration consumed it. The bounded repair
+now registers issued nonphysical Read payloads and consumes every row through
+the existing sparse loan evaluator, with the actual checked Read call as seed.
+It does not add another syntax/alias scan or invent a parameter ordinal for
+Main. Read permits only effects0, not the ordinary REF-return static-source
+exception. Exact current owned-Slot Write-back remains separate from Views.
+This checks eager RETURN/CALL/CHANNEL/output escape, not all source lifetime
 or Release-after-last-use properties. Zero-input result implementation is held.
 Root observed top-level String/Int Read positives both emit MIR/C/LLVM onfd17,
-receipt `.tmp/p0-top-level-read.C3zEQw/`. Their backend-synthesised Main does
-not exist during semantic publication. A callerNULL failure or validation skip
-would respectively regress that supported path or leave the admission gap.
+receipt `.tmp/p0-top-level-read.C3zEQw/`. An initial inference that their
+semantic caller was NULL was wrong: the parser already synthesises Main.
+The independent typed-row inspector observes FUNC/Main, Readid19/callerid2,
+backing1/depends1/retains0. Existing publication uses the actual callable owner,
+not ctx.current_function_decl; no new PROGRAM model follows from this case.
+Lambda/intent/deferred owners require their own exact current boundary, not a
+guess that they are Main. Slot birth also needs the existing successful claim
+producer: its special LET currently bypasses generic value publication, so
+blind full-body loan evaluation would reject harmless Log(Read(slot)). The
+existing claim owner now publishes sealed births for annotation/generic LET
+and destructure forms. Successful paired-token validation owns exact token
+operand receipts (including implicit binding0); no TYPE_TOKEN/name shortcut
+is used. Successful ViewRead publishes a receiver-dependent descriptor,
+separate from Read's payload-backing projection. A pre-existing view-token
+alias with no typed VALUE producer stays unready; the tests do not fabricate
+one or count its failed evidence query as a normal witness.
+
+Root's fd17 preflight admits all seven new paired inputs with MIR and no
+diagnostics, receipt `.tmp/p0-local-read-before.oDjN34/`. The new binary
+91cfd12ba490463e41a40807e896be8f48965a58aecc7ef3210454e375978d9f
+passes phase7009/0, LLVM metadata140/0, strict summary/work controls and all
+seven paired controls: the four unsafe cases now give exact BORROW refusal
+and no MIR, while three safe reads retain admission. It also passes the whole
+native MIR327/semantic3228/transpile1009 suite, Map24 C+LLVM positives/58
+negatives, reached IR/caps/component/generator checks and Slot/SecureSlot/
+DeviceSlot C+LLVM runtime goldens. Receipt: clone
+`.tmp/p0-destination-candidate.loYLzi/` and
+`p0-local-read-{native,chain,slot}.log` beside it. The initial integration had
+four contradictory newly added test expectations for the existing missing
+view-token VALUE; the old missing-value oracle was preserved and a separate
+actual owned-slot Read supplies the positive token witness. No unsafe input
+was linked or executed. This is still a scoped native repair, not canonical
+admission or self-host replacement progress.
 
 Reviewer-created REF/default View helper positives can pass semantic admission
 yet fail C/LLVM emission on existing local-view/ABI facts. Direct Main
 Log/Length/physical/pin positives emit on both backends. These are separate
 backend capability limits; no failed helper emission is a memory-safety pass.
 
-Unchanged full bootstrap is still RED before gen0, first required-backing
-failure at418:6,22.87s/1025260KiB. No gen2==gen3, installed-driver, broad FFI
+Unchanged full bootstrap on91cfd12b is still RED before gen0, first required-
+backing failure at418:6,24.08s/1164676KiB, same18410 cascades/16 warnings.
+Log: `/root/pgy-main-20261016.p0-local-read-bootstrap.log`. Immutable review
+snapshot: `/root/pgy-review-destination-39a8fc1db.DO97fm`, source.diff SHA256
+ec1fea4abf91ae91c65cb3a524ae0061dc546a869bf7d0d5958841e8f3ed3573.
+Its independent verdict is pending. No gen2==gen3, installed-driver, broad FFI
 soundness, whole-language memory safety, SoT closure or green CI follows from
 these scoped native tests. No runtime UAF was executed or claimed.
+Source recovery checkpoint:6f54b4b53ce4a2ad19fd5d875aff4becf0262d19, not pushed.
