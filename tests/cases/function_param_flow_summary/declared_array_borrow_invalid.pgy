@@ -1,0 +1,14 @@
+struct TextRecord { text: String; }
+
+func Wrap(ref text: String) -> Array<String> {
+    return ["known", text];
+}
+
+func Probe(ref record: TextRecord) -> Array<String> {
+    return Wrap(record.text);
+}
+
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(ArrayLength(Probe(record)));
+}

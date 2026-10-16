@@ -230,6 +230,7 @@ ASTNode*
 ast_array_literal_element(const ASTNode* node, size_t index)
 {
     if (node == NULL || node->type != AST_ARRAY_LITERAL
+        || node->data.array_literal.elements == NULL
         || index >= node->data.array_literal.count)
         return NULL;
     return node->data.array_literal.elements[index];

@@ -1845,6 +1845,103 @@ static void checked_declared_result_currency(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_declared_physical_result_currency(void)
+{
+    const char *source =
+        "struct Scalar{status:Int;}"
+        "func Empty()->Scalar{let base=Scalar(-1);return Scalar(base.status);}"
+        "func Forward()->Scalar{return Empty();}"
+        "func Probe(ref text:String)->Option<Int>{let result=Forward();return Some(result.status+StringLength(text));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *empty = ast_program_statement(program, 1);
+        ASTNode *probe = ast_program_statement(program, 3);
+        ASTNode *ctor = ast_let_initializer(ast_block_statement(ast_func_body(empty), 0));
+        ASTNode *unary = ast_call_argument(ctor, 0);
+        ASTNode *result_ctor = ast_return_value(ast_block_statement(ast_func_body(empty), 1));
+        ASTNode *field = ast_call_argument(result_ctor, 0);
+        CHECK(unary != NULL && unary->type == AST_UNARY);
+        CHECK(field != NULL && field->type == AST_MEMBER_ACCESS);
+        (void)function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+        ASTNode *values[] = {unary, field};
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        for (size_t v = 0; v < sizeof(values) / sizeof(values[0]); v++) {
+            PublishedNode *claim = NULL;
+            for (size_t i = 0; i < publication->node_capacity; i++)
+                if (publication->nodes[i].node == values[v]) claim = &publication->nodes[i];
+            CHECK(claim != NULL && claim->physical_scalar);
+            if (claim == NULL) continue;
+            PublishedNode saved = *claim;
+            for (unsigned fault = 0; fault < 3; fault++) {
+                if (fault == 0) claim->physical_scalar = false;
+                if (fault == 1) claim->value_type = TYPE_STRING;
+                if (fault == 2) claim->value_present = false;
+                bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
+                if (current) fprintf(stderr, "declared physical result value=%zu fault=%u unexpectedly current\n", v, fault);
+                CHECK(!current);
+                *claim = saved;
+                CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+            }
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_declared_array_result_currency(void)
+{
+    const char *source =
+        "func Codes()->Array<String>{return [\"known\",\"other\"];}"
+        "func Probe(ref text:String)->Option<Int>{let codes=Codes();return Some(ArrayLength(codes)+StringLength(text));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    SemanticContext *ctx = semantic_context_create();
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *codes = ast_program_statement(program, 0);
+        ASTNode *probe = ast_program_statement(program, 1);
+        ASTNode *literal = ast_return_value(ast_block_statement(ast_func_body(codes), 0));
+        (void)function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        for (size_t element = 0; element < 2; element++) {
+            ASTNode *child = ast_array_literal_element(literal, element);
+            PublishedNode *claim = NULL;
+            for (size_t i = 0; i < publication->node_capacity; i++)
+                if (publication->nodes[i].node == child) claim = &publication->nodes[i];
+            CHECK(claim != NULL);
+            if (claim == NULL) continue;
+            PublishedNode saved = *claim;
+            uint32_t saved_id = child->stable_id;
+            for (unsigned fault = 0; fault < 3; fault++) {
+                if (fault == 0) child->stable_id++;
+                if (fault == 1) claim->value_type = TYPE_INT;
+                if (fault == 2) claim->value_present = false;
+                bool current = function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe);
+                if (current) fprintf(stderr, "declared array result element=%zu fault=%u unexpectedly current\n", element, fault);
+                CHECK(!current);
+                *claim = saved;
+                child->stable_id = saved_id;
+                CHECK(function_param_flow_backing_rows_current(ctx->function_param_flow_summaries, probe));
+            }
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_declared_result_unclosed(void)
 {
     const char *sources[] = {
@@ -1859,7 +1956,19 @@ static void checked_declared_result_unclosed(void)
         "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}",
         "func Empty()->Array<Int>{let rows:Array<Int> = [];return rows;}"
         "func Produce()->Array<Int>{let selected=Empty;return selected();}"
-        "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}"
+        "func Main()->Void{let rows=Produce();Log(ArrayLength(rows));}",
+        "extern \"C\"{func Opaque()->Int;}"
+        "func Produce()->Int{return Opaque();}"
+        "func Main()->Void{let result=Produce();Log(result);}",
+        "extern \"C\"{func Keep(rows:Array<Int>)->Int;}"
+        "func Produce()->Int{let rows:Array<Int> = [];return Keep(rows);}"
+        "func Main()->Void{let result=Produce();Log(result);}",
+        "extern \"C\"{func Opaque()->String;}"
+        "func Produce()->Array<String>{return [\"known\",Opaque()];}"
+        "func Main()->Void{let result=Produce();Log(ArrayLength(result));}",
+        "extern \"C\"{func Keep(rows:Array<Int>)->String;}"
+        "func Produce()->Array<String>{let rows:Array<Int> = [];return [\"known\",Keep(rows)];}"
+        "func Main()->Void{let result=Produce();Log(ArrayLength(result));}"
     };
     for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
         Lexer *lexer = lexer_create(sources[kind]);
@@ -5546,6 +5655,8 @@ static void checked_transaction_function_boundary(void)
 int main(void)
 {
     checked_declared_result_currency();
+    checked_declared_physical_result_currency();
+    checked_declared_array_result_currency();
     checked_declared_result_unclosed();
     checked_transaction_function_boundary();
     checked_transaction_compensation_identity();

@@ -322,6 +322,100 @@ CodegenGenericSpecializationInstantiateCalls input0. Survey their complete
 reached SCC before choosing an implementation; do not revive a new owner,
 annotation, copy or budget increase. Published main/CI remain39a8fc1db/RED.
 
+The first actual warm-stage SCC trace resolves that Unknown without changing
+any guard: active576..587 stops at577, GenericCallFactCaptureFromResolvedTarget
+input0, frame incomplete/nonpending/nonunsupported. Its first transition is
+destination evaluation of GenericCallNotApplicable() at source176. The result
+body's nominal constant fields include unary -1; declared-result evaluation
+disabled the ordinary independent-origin shortcut and had no physical-scalar
+premise. ScopeEmpty's arrays passed, but this equally current no-backing scalar
+was unready. Repair the producer's whole physical-value family through the
+existing typed physical-scalar owner, not a unary/-1 syntax exception. Keep
+the complete no-external-store graph AND eager argument/statement traversal:
+physical return storage is not permission for opaque/retaining side effects.
+B owns this result producer premise; C owns scalar-field success, still-opaque/
+retaining failures and current Type/physical-fact corruption/restoration.
+Identity/currentness/last consumers/work limits stay unchanged. Root runs the
+same phase/strict/canonical gates; never skip SCC completion. Traces are
+observation-only exit86; both source/build trees restored byte-identically.
+Receipts `.tmp/p0-scc-trace.xv9E5T/`, `.tmp/p0-scc-transfer.2TBOyi/`.
+
+Physical-premise integration: binary6f6679d510dedf1b95ae825994668a5c2ae0ce7f47119a91757e910e06201bfc,
+phase7082/0, LLVM140/0 and unchanged strict/work/cap gates pass, receipt
+`.tmp/p0-destination-candidate.q1xcRw/`. Actual unchanged bootstrap is still
+RED before gen0 (24.40s/1164388KiB), not fixed by those bounded controls.
+Fresh4273/3188 census now866 failures:814 work,44 required and8 recursive;
+27 resolved/0 newly failed/15 changed masks against71, incomplete0. Nonfailed
+2322 includes653 TOP/656 unproved, not permission. Receipt
+`.tmp/p0-physical-census.lsUcWQ/`,94.23s/1163852KiB;
+production restoration is byte-identical. The warm SCC advanced from entry577
+to590: SemanticError2 input0 -> SemanticErrorWithFacts input0 ->
+SemanticDiagnosticCodeKnown input0 -> local SemanticDiagnosticCodes(). The
+first two results are now explicit current unsupported negatives; no SCC guard
+was skipped. Exact nonpending unfinished edges are recorded in
+`.tmp/p0-scc-physical.HRPsEO/` and `.tmp/p0-scc-edge.FFzmMi/`.
+
+Next bounded producer repair: SemanticDiagnosticCodes returns a current typed
+nonempty Array literal of static strings. The existing no-store graph admits
+only empty literals, so its caller cannot get a closed result. Keep one owner:
+in program-point-index mutable-output analysis, require the original current
+typed literal and recursively inspect EVERY element for actual effects/stores.
+The existing sparse result evaluator separately checks every returned element's
+backing. The shared claim owner already snapshots exact child topology and
+actual Type; replay the same typed-array premise for all literal widths.
+No literal-count/name whitelist, no erased child calls, no no-store-as-freshness,
+no change to normal RETURN/CALL/CHANNEL or last loan/output consumers. B owns
+that index/claim producer; C owns constant-filled success, retained/borrowed/
+opaque element negatives and changed child/Type/currentness controls. Root runs
+the same phase/strict and unchanged canonical gate; this is one result chain,
+not an independent literal language feature or another implementation track.
+
+The first root narrow run found an existing malformed-AST falsifier before
+integration: checked_empty_array_no_output sets count=1 on empty NULL storage.
+The new traversal reaches ast_array_literal_element, whose old accessor
+dereferences that NULL storage; phase exits139. Extend only that existing AST
+child-access owner to return NULL for absent element storage. The no-store
+selector already refuses a NULL child; keep that refusal and the original
+count/topology negative. Do not skip traversal or currentness. Failed receipt
+`.tmp/p0-destination-candidate.RnXal6/`, binaryf01f7fd1; ASan preload locates
+the accessor/selector/test stack. It is not a passed phase or candidate.
+
+Root integrated result physical/filled-array candidatef25e6fdd7c6dfa1c8641ef0c5d2d1536358c8c54606c99c1f57d29ec5142ef4a:
+phase7105/0, LLVM140/0, strict summary/4096/4097/caps PASS. Whole native
+MIR327/semantic3228/transpile1009 PASS (27.76s/266600KiB), Map24 C+LLVM
+positives/58 negatives and reached IR/caps/component/generator PASS (40.96s/
+98320KiB), Slot goldens PASS. New declared EmptyScope/ForwardScope/static
+array programs execute9/8/11 on BOTH C and LLVM. Receipts
+`.tmp/p0-destination-candidate.yOfV35/`, `.tmp/p0-result-runtime.o8RpdF/`,
+`/root/pgy-main-20261016.p0-declared-array-{native,chain,slot}.log`.
+Actual unchanged bootstrap is still RED before gen0 (31.67s/1164040KiB),
+but the first failure changes from recursive backing to work-budget at45:6;
+18410 subsequent diagnostics are cascades, not independent refusals. Log
+`/root/pgy-main-20261016.p0-declared-array-bootstrap.log`.
+The same4273-signature/3188-key isolated census is858 failed:814 work,
+36 required backing,8 recursive;8 resolved/0 newly failed/0 mask changes
+against6f, incomplete0. Nonfailed2330 includes661 TOP/664 unproved, not
+permission. Receipt `.tmp/p0-array-census.mQwFfg/`,107.22s/1163872KiB.
+Its source/build/bin/dependencies/modes/status/diff restore byte-identically.
+
+Before any cost repair, measure this exact binary/unchanged canonical input
+at its existing demanded summary owner: separate body evaluation, no-store
+graph membership visits and sparse backing node/epoch work. Preserve the
+4096 limit and its4097 falsifier. Find the repeated owned operation; do not
+raise the budget, change the input, weaken SCC/currentness or open general
+cache/query/parallel optimisation work. Root alone builds the scratch observer
+and restores production byte-identically. This remains the same blocked
+canonical rung, not substitution progress.
+
+Frozen declared-result independent review only covers committed binary71,
+snapshotGKFUTd/report2e99dfc5. Root rechecked its full manifest and replayed
+all46 analyze-only cases with matching exit/MIR results, receipt
+`.tmp/p0-review-result-replay.Bjyrpt/`. No new false admission was found in
+that scope. Ordinary nonzero-actual fresh local-result admission existed on
+both91 and71; the nonzero-formal unready rule describes the new declared-
+result facet ONLY, not every ordinary backing path. This is neither current
+f25 independent review nor canonical/CI approval.
+
 ### Reached local Read payload consumer — scoped checks/review pass, canonical open
 
 Independent fd17/kGgLNi review confirms the REF repair but reaches a stronger

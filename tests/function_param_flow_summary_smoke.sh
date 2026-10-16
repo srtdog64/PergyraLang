@@ -60,6 +60,8 @@ for relative in (
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
     ("declared_empty_scope_valid", True),
+    ("declared_static_array_valid", True),
+    ("declared_array_borrow_invalid", False),
     ("declared_empty_forward_valid", True),
     ("declared_empty_scope_keep_invalid", False),
     ("stdlib_input_retention_valid", True),

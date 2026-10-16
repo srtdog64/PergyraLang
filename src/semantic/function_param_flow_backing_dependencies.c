@@ -37,6 +37,10 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
     if (at == SIZE_MAX || !backing_work(state, at)) return;
     SemanticPublishedValue published = semantic_param_publication_value(state->store->ctx, value);
     if (!published.ok) { state->fact->complete = false; return; }
+    /* Physical values carry no backing. The result frame still requires its
+     * closed store graph and eager consumer traversal, including call inputs. */
+    if (state->checking_declared_result &&
+        semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) return;
     if (published.meta || (!state->checking_declared_result && published.origin_ready && value->type != AST_IDENTIFIER &&
         value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
     if (value->type == AST_CALL && semantic_typed_map_query_result_independent(state->store->ctx, value)) return;

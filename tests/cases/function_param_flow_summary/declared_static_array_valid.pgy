@@ -1,0 +1,15 @@
+struct TextRecord { text: String; }
+
+func Codes() -> Array<String> {
+    return ["known", "other"];
+}
+
+func Probe(ref record: TextRecord) -> Option<Int> {
+    let codes = Codes();
+    return Some(ArrayLength(codes) + StringLength(record.text));
+}
+
+func Main() -> Void {
+    let record = TextRecord(Concat("heap", " text"));
+    Log(UnwrapOption(Probe(record)));
+}

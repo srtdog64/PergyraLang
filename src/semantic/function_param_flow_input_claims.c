@@ -382,9 +382,9 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
             row->value_origin_ready != (value.ok && value.origin_ready) || row->value_type != value.type) return false;
         if (row->physical_value != semantic_param_publication_value_is_physical_scalar(ctx, row->node)) return false;
         if (row->slot_token_operand != semantic_param_publication_slot_token_operand(ctx, row->node)) return false;
-        if (row->shape == AST_ARRAY_LITERAL && row->child_count == 0) {
+        if (row->shape == AST_ARRAY_LITERAL) {
             /* Replay the same current typed premise as the no-output selector.
-             * Child count/identity above seal the absence of evaluations. */
+             * Child count/identity above seal every element evaluation. */
             if (!value.ok || value.meta) return false;
         }
         if (row->shape == AST_CALL) {

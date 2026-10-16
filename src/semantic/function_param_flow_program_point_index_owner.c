@@ -546,11 +546,15 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
         return function_param_flow_mutable_output_required(ctx, decl, index, ast_array_access_array(node)) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_array_access_index(node));
     case AST_ARRAY_LITERAL: {
-        /* No elements means no evaluation or store edge. The checked value
-         * publication, rather than literal syntax, admits this narrow case;
-         * it grants no returned-backing or cleanup permission. */
+        /* A current literal introduces no store edge of its own. Every element
+         * evaluation still belongs to this graph; this is no backing grant. */
         SemanticPublishedValue value = semantic_param_publication_value(ctx, node);
-        return ast_array_literal_count(node) != 0 || !value.ok || value.meta;
+        if (!value.ok || value.meta) return true;
+        for (size_t p = 0; p < ast_array_literal_count(node); p++) {
+            ASTNode *element = ast_array_literal_element(node, p);
+            if (element == NULL || function_param_flow_mutable_output_required(ctx, decl, index, element)) return true;
+        }
+        return false;
     }
     default: return true;
     }
