@@ -218,6 +218,33 @@ void function_param_flow_program_point_indexes_destroy(FunctionParamFlowSummaryS
     store->program_point_index_count = store->program_point_index_capacity = 0;
 }
 
+bool
+function_param_flow_reserve_entries(FunctionParamFlowSummaryStore *store,
+                                    size_t minimum)
+{
+    FunctionParamFlowSummaryEntry *entries;
+    size_t capacity;
+
+    if (store == NULL)
+        return false;
+    if (minimum <= store->capacity)
+        return true;
+    capacity = store->capacity == 0 ? 16 : store->capacity;
+    while (capacity < minimum) {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+    }
+    if (capacity > SIZE_MAX / sizeof(*entries))
+        return false;
+    entries = realloc(store->entries, capacity * sizeof(*entries));
+    if (entries == NULL)
+        return false;
+    store->entries = entries;
+    store->capacity = capacity;
+    return true;
+}
+
 FunctionParamFlowSummaryStore *
 function_param_flow_store_get(const SlotFunctionLookup *lookup)
 {

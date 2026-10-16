@@ -15,7 +15,8 @@ typedef enum
 typedef enum {
     FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED = 0,
     FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR,
-    FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME
+    FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME,
+    FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN
 } FunctionParamFlowOutputProducer;
 
 typedef struct
@@ -194,6 +195,8 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node);
 bool function_param_flow_index_claims_current(SemanticContext *ctx,
     const FunctionParamFlowProgramPointIndex *index);
+bool function_param_flow_reserve_entries(FunctionParamFlowSummaryStore *store,
+    size_t minimum);
 FunctionParamFlowSummaryStore *function_param_flow_store_get(const SlotFunctionLookup *lookup);
 unsigned function_param_flow_summary_for_call(const SlotFunctionLookup *lookup,
     const ASTNode *call, size_t ordinal);

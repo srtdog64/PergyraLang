@@ -2933,6 +2933,137 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_closed_scalar_return_receipt(void)
+{
+    for (unsigned kind = 0; kind < 3; kind++) {
+        Lexer *lexer = lexer_create(kind == 0
+            ? "func Probe(text:String)->Int{return StringLength(Echo(text));}func Echo(ref text:String)->String{return text;}func Main()->Void{Log(Probe(\"static\"));}"
+            : kind == 1 ? "func Probe(text:String)->Void{Log(text);return;}func Main()->Void{Probe(\"static\");}"
+            : "func Probe(text:String)->Int{if StringLength(text)>0{return Second(text);}return StringLength(Echo(text));}func Echo(ref text:String)->String{return text;}func Second(ref text:String)->Int{return Probe(text);}func Main()->Void{Log(Probe(\"static\"));}");
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        ASTNode *decl = ast_program_statement(program, 0);
+        ASTNode *statement = ast_block_statement(ast_func_body(ast_program_statement(program, kind == 0 ? 2 : kind == 1 ? 1 : 3)), 0);
+        ASTNode *call = kind != 1 ? ast_call_argument(statement, 0) : statement;
+        SlotFunctionLookup lookup = {ctx, program};
+        /* StringLength itself borrows only for the call. Its nested Echo
+         * still contributes Echo's RETURN for text: the named collector
+         * unconditionally traverses call arguments and projects that callee
+         * bit. Echo has no output mutation and a current ref/default header,
+         * so the complete Probe -> Echo no-store graph can close. */
+        CHECK(function_param_flow_store_get(&lookup) != NULL);
+        FunctionParamFlowProgramPointIndex *points = NULL;
+        CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, decl, &points));
+        if (points == NULL) goto cleanup;
+        CHECK(!points->mutable_output_required && !points->private_local_stores);
+        SlotSummaryOrigin origin = {.function_decl = decl, .param_index = 0, .param_name = "text"};
+        unsigned raw = slot_param_summary_in_program_points(points->roots_by_param[0],
+            points->root_counts[0], "text", &lookup, &origin);
+        CHECK(((raw & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) == (kind != 1));
+        CHECK((raw & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+        CHECK(semantic_param_publication_routine_return_dependency_is_scalar(ctx, decl));
+        unsigned mask = function_param_flow_summary_for_param(ctx, decl, 0);
+        CHECK((mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+            SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+        bool dependent = true;
+        CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 0, &dependent) && !dependent);
+        FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+        size_t entry_index = SIZE_MAX;
+        for (size_t i = 0; i < store->count; i++)
+            if (store->entries[i].function_decl == decl && store->entries[i].param_index == 0) entry_index = i;
+        PendingRoutine *routine = NULL;
+        for (size_t i = 0; i < ctx->function_param_publications->routine_count; i++)
+            if (ctx->function_param_publications->routines[i].decl == decl)
+                routine = &ctx->function_param_publications->routines[i];
+        CHECK(entry_index != SIZE_MAX && routine != NULL);
+        if (entry_index == SIZE_MAX || routine == NULL) goto cleanup;
+        FunctionParamFlowSummaryEntry saved = store->entries[entry_index];
+        CHECK(saved.output_dependencies_ready && saved.output_count == 1 &&
+            saved.output_dependencies != NULL && !saved.output_dependencies[0]);
+        CHECK(saved.output_producer == (kind != 1 ? FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN
+            : FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR));
+        CHECK(!saved.returned_backing_pending && !saved.returned_backing_unproved);
+        if (kind == 2) {
+            /* Re-demand both members after the complete recursive solve.
+             * This checks the issued reason's lifetime, not an epoch count
+             * or a claim that a particular intermediate candidate was zero. */
+            ASTNode *second = ast_program_statement(program, 2);
+            unsigned other = function_param_flow_summary_for_param(ctx, second, 0);
+            CHECK((other & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
+            CHECK(store->entries[entry_index].output_producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN);
+        }
+        PendingRoutine saved_routine = *routine;
+        ASTNode *return_node = ast_func_return_type(decl);
+        uint32_t return_id = return_node->stable_id;
+        for (unsigned fault = 0; fault < (kind != 1 ? 11u : 5u); fault++) {
+            if (fault == 0) routine->return_type = TYPE_STRING;
+            if (fault == 1) routine->return_type = TYPE_UNKNOWN;
+            if (fault == 2) decl->data.func_decl.return_type = NULL;
+            if (fault == 3) return_node->stable_id++;
+            if (fault == 4) routine->return_node_id++;
+            if (fault == 5) store->entries[entry_index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+            if (fault == 6) store->entries[entry_index].output_dependencies_ready = false;
+            if (fault == 7) store->entries[entry_index].output_dependencies = NULL;
+            if (fault == 8) store->entries[entry_index].output_count++;
+            if (fault == 9) store->entries[entry_index].returned_backing_pending = true;
+            if (fault == 10) store->entries[entry_index].returned_backing_unproved = true;
+            CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 0, &dependent));
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
+            *routine = saved_routine;
+            decl->data.func_decl.return_type = return_node;
+            return_node->stable_id = return_id;
+            store->entries[entry_index] = saved;
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
+            CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 0, &dependent) && !dependent);
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    /* Descriptor, private-store, mutable, owned and unknown graphs retain
+     * their established proof path despite a physical final return. */
+    const char *controls[] = {
+        "func Probe(ref text:String)->String{return text;}",
+        "struct Held{text:String} func Probe(text:String)->Held{return Held(\"literal\");}",
+        "func Probe(inout output:String,text:String)->Int{output=text;return 1;}",
+        "func Probe(own text:String)->Int{return StringLength(text);}",
+        "func Probe(text:String)->Int{let rows:Array<String> = [];ArrayPush(rows,text);return ArrayLength(rows);}",
+        "extern \"C\"{func Opaque()->Int;}func Probe(text:String)->Int{return StringLength(text)+Opaque();}"
+    };
+    for (size_t i = 0; i < sizeof(controls) / sizeof(controls[0]); i++) {
+        Lexer *lexer = lexer_create(controls[i]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (typed) {
+            ASTNode *decl = ast_program_statement(program, i == 1 || i == 5 ? 1 : 0);
+            size_t ordinal = i == 2 ? 1 : 0;
+            (void)function_param_flow_summary_for_param(ctx, decl, ordinal);
+            FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+            bool found = false;
+            for (size_t e = 0; store != NULL && e < store->count; e++)
+                if (store->entries[e].function_decl == decl && store->entries[e].param_index == ordinal) {
+                    found = true;
+                    CHECK(store->entries[e].output_producer != FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN);
+                }
+            CHECK(found);
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 static void checked_pure_literal_backing_currency(void)
 {
     Lexer *lexer = lexer_create(
@@ -3987,6 +4118,11 @@ int main(void)
     checked_admitted_no_store_proof();
     checked_return_loan_currency();
     checked_pure_literal_backing_currency();
+    checked_closed_scalar_return_receipt();
+    /* A physical outer result does not erase retention of an inner loan. */
+    checked_physical_return_retaining_effects("struct TextRecord{text:String} extern \"C\"{func Hold(text:String)->Void;} func Echo(ref text:String)->String{return text;} func Probe(ref record:TextRecord,ignored:String)->Int{Hold(Echo(record.text));return 1;}", 3, SLOT_PARAM_SUMMARY_CALL_ESCAPE, false);
+    /* The late SCC edge must retain CALL after the scalar RETURN join. */
+    reached_producer_source("struct TextRecord{text:String} extern \"C\"{func Hold(text:String)->Void;} func First(text:String)->Int{if StringLength(text)>0{return Second(text);}return 1;} func Second(text:String)->Int{Hold(text);return First(text);} func Probe(ref record:TextRecord)->Int{return First(record.text);}", false);
     checked_return_loan_alias_currency();
     checked_backing_binding_growth();
     checked_backing_input_frames();

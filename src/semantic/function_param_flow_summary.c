@@ -94,33 +94,6 @@ function_param_flow_find(const FunctionParamFlowSummaryStore *store,
 }
 
 
-static bool
-function_param_flow_reserve_entries(FunctionParamFlowSummaryStore *store,
-                                    size_t minimum)
-{
-    FunctionParamFlowSummaryEntry *entries;
-    size_t capacity;
-
-    if (store == NULL)
-        return false;
-    if (minimum <= store->capacity)
-        return true;
-    capacity = store->capacity == 0 ? 16 : store->capacity;
-    while (capacity < minimum) {
-        if (capacity > SIZE_MAX / 2)
-            return false;
-        capacity *= 2;
-    }
-    if (capacity > SIZE_MAX / sizeof(*entries))
-        return false;
-    entries = realloc(store->entries, capacity * sizeof(*entries));
-    if (entries == NULL)
-        return false;
-    store->entries = entries;
-    store->capacity = capacity;
-    return true;
-}
-
 static size_t
 function_param_flow_add(FunctionParamFlowSummaryStore *store,
                         ASTNode *function_decl,
@@ -181,6 +154,15 @@ static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *st
     FunctionParamFlowProgramPointIndex *points;
     if (!function_param_flow_program_point_index_build(store, decl, &points) ||
         !function_param_flow_index_roots_current(points)) return false;
+    if (producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN) {
+        const FunctionParamFlowSummaryEntry *entry = &store->entries[entry_index];
+        if (!entry->output_dependencies_ready || entry->output_dependencies == NULL ||
+            entry->output_count != ast_func_param_count(decl) ||
+            entry->returned_backing_unproved || entry->returned_backing_pending ||
+            !semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, decl)) return false;
+        for (size_t p = 0; p < entry->output_count; p++)
+            if (entry->output_dependencies[p]) return false;
+    }
     /* Anchored handles have no descriptor-output receipt, but their cached
      * access/escape summary still depends on the current executed children. */
     if (!store->entries[entry_index].output_dependencies_ready)
@@ -196,7 +178,8 @@ static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *st
             frame->destination_words != (frame->destination_count + 63) / 64 ||
             frame->epoch == 0 || frame->building || !frame->complete || frame->pending) return false;
         if (frame->private_stores_closed && !function_param_flow_no_store_graph(store, decl)) return false;
-    } else if (producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR) {
+    } else if (producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR ||
+        producer == FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN) {
         bool anchored = false;
         if (!semantic_param_publication_parameter_is_anchored_handle(store->ctx, decl, ordinal, &anchored) ||
             anchored || points->mutable_output_required || points->private_local_stores ||
@@ -341,7 +324,19 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         function_param_flow_fail(store, function_decl, "typed parameter source kind is missing or stale");
         return SLOT_PARAM_SUMMARY_ALL;
     }
-    if (!anchored && (scalar_return || mutable_output || (private_stores && graph_closed))) {
+    bool prior_scalar_return = store->entries[index].output_producer ==
+        FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN;
+    bool scalar_join = graph_closed && !mutable_output && !private_stores &&
+        source_kind_ready && !anchored &&
+        semantic_param_publication_routine_no_output_header_ready(store->ctx, function_decl) &&
+        semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, function_decl);
+    if (prior_scalar_return && !scalar_join) {
+        function_param_flow_fail(store, function_decl, "closed scalar return premise is missing or stale");
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
+    bool closed_scalar_return = (scalar_return || prior_scalar_return) && scalar_join;
+    if (!anchored && ((scalar_return && !closed_scalar_return) || mutable_output ||
+        (private_stores && graph_closed))) {
         unsigned backing_effects = SLOT_PARAM_SUMMARY_NONE;
         bool pending = false;
         bool *outputs = calloc(output_count, sizeof(*outputs));
@@ -373,15 +368,23 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         free(outputs);
     } else if (source_kind_ready && !anchored &&
         semantic_param_publication_routine_no_output_header_ready(store->ctx, function_decl)) {
-        /* The owned exhaustive selector, not a zero mask, proves no output
-           store. Ordinary RETURN dependence remains in candidate unchanged. */
+        /* Closed output storage and a scalar return are independent premises.
+         * Only their conjunction can remove RETURN; other effects are kept. */
+        if (closed_scalar_return) candidate &= ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
         if (store->entries[index].output_dependencies == NULL) {
             store->entries[index].output_dependencies = calloc(output_count, sizeof(bool));
             if (store->entries[index].output_dependencies == NULL) { function_param_flow_fail(store, function_decl, "empty output relation allocation failed"); return SLOT_PARAM_SUMMARY_ALL; }
             store->entries[index].output_count = output_count;
         }
+        if (closed_scalar_return && (!store->entries[index].output_dependencies_ready ||
+            store->entries[index].returned_backing_pending)) store->changed = true;
         store->entries[index].output_dependencies_ready = store->entries[index].output_dependencies != NULL;
-        store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR;
+        store->entries[index].output_producer = closed_scalar_return
+            ? FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SCALAR_RETURN : FUNCTION_PARAM_FLOW_OUTPUT_CLOSED_SELECTOR;
+        if (closed_scalar_return) {
+            store->entries[index].returned_backing_unproved = false;
+            store->entries[index].returned_backing_pending = false;
+        }
     } else {
         if (store->entries[index].output_dependencies_ready) store->changed = true;
         store->entries[index].output_dependencies_ready = false;

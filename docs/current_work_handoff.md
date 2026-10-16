@@ -8,13 +8,15 @@ SoT registry, admitted contracts, and executable gates override this note.
 Active rung: unchanged full canonical native admission, then actual codegen
 bootstrap/fixed point, driver memory, installed C/LLVM driver and required CI.
 The P0 prerequisite has focused green evidence, not whole-language closure.
-Published implementation checkpoint: `795f71423`, parent `71d9e2ad6`.
+Published repair checkpoint: `0f22491e6`, parent `795f71423`.
 Local and remote each have only `main`; the prerequisite repair is pushed.
 Exact-SHA CI run `38855687075` completed RED: Linux bootstrap reaches the same
 work4096 refusal; macOS/Windows semantic fixtures report3206 passes/16 failures.
 The Rocq job passed; dependent bootstrap/installed-driver jobs were skipped,
-not green. The follow-up checkpoint containing this card has parent795f71423;
-its local gates below do not replace a new exact-SHA CI result.
+not green. Follow-up CI38859097311 passes the corrected semantic fixtures but
+still fails canonical admission and macOS test-mir's compiler-scale probe.
+The scalar checkpoint containing this card has parent0f22491e6; its local
+gates below do not replace a new exact-SHA CI result.
 
 Existing publication, parameter-flow/index, callable-capability and statement-
 flow owners remain authoritative. Complete topology currency, checked deferred
@@ -84,13 +86,31 @@ shortcut. Full canonical is still RED17.90s/peak769560KiB with the same primary
 work4096 and18410 cascading errors (`p0-leaf-canonical`); later physical moves
 do not claim a new canonical verdict or a lower cold-failure count.
 
-Next single candidate is the scratch closed-graph + current scalar-header
-RETURN receipt join described in the directive. It is not yet production code
-or acceptance. Keep CALL/CHANNEL/access/storage, ordinary backing, opaque/
-owned/mutable/capture negatives and the original work cap. Prior scalar receipt
-must retain its current premises through SCC convergence, not downgrade to a
-weaker producer. Root reviews/applies the joint producer+falsifier delta, then
-runs focused controls and unchanged canonical before bootstrap/install/memory.
+The closed-graph + current scalar-header RETURN receipt join is implemented.
+Keep CALL/CHANNEL/access/storage, ordinary backing and the original work cap.
+An issued scalar reason rechecks all premises through SCC convergence instead
+of downgrading. Missing/stale receipt/header/ready/output facts refuse. Entry
+reservation moved verbatim to the existing allocation/lifetime component.
+Candidate binary a8713e9a78ba40d94a062961ce010cdbbc8e52e38aef8c64a904a88fe2cdf581:
+phase5440/0, original summary/P0/worker/4096/4097 PASS9.67s, Map24/58+IR PASS19s.
+Canonical still RED19.26s/peak769624KiB, same work4096/cascading18410.
+Independent frozen review: no new unsafe MIR admission/positive blanket refusal
+found in the bounded scalar/retention/SCC cases; report
+`.tmp/redteam-scalar-0f22491e6-20261016/review.md`. Internal fault cases are
+root's phase evidence, not an externally re-executed CLI fault-injection claim.
+
+Root's one current-candidate census completed with identical4273 typed
+signatures and3188 semantic keys:202->173 cold failures,29 resolved/0 new,
+zero admitted-mask differences, incomplete0. Diagnostic46.75s/769732KiB;
+no later Type-writing consumer or MIR ran. Receipt:
+Linux `.tmp/p0-current-scalar-census.ICWGLF/`; source/build/bin/.d restored
+byte-identically. This is not canonical/bootstrap/install/CI acceptance.
+First demand remains E86+B3728+G282=4096. Its backing shape distribution has
+1165 identifiers; origin and consumer visits overlap, so that is only an upper
+bound, not a promised saving. Before any next edit, distinguish real origin/
+binding reads from consumer-only leaf no-ops; never skip a subtree because its
+current origin bits are zero. Existing shared claims/current typed binding,
+read-growth, loan-seed and opaque/retaining negatives remain obligations.
 
 Limits: transaction snapshots do not prove all metadata rollback or backend
 fail-edge cleanup. General runtime match-pattern MIR emission and Set closure

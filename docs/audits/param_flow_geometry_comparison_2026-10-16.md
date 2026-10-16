@@ -67,3 +67,28 @@ warm/reorder queries to evade it, remove charges without removing the actual
 owned operation, or infer subtree irrelevance from zero current origin bits.
 Cold failure count is diagnostic, not V1 completion. Canonical admission,
 bootstrap/fixed point, installed-driver memory/parity and required CI stay OPEN.
+
+## Follow-up current producer repair, not another matrix
+
+Parent0f22491e6 plus exact literal/scalar producer repair, binary SHA256
+a8713e9a78ba40d94a062961ce010cdbbc8e52e38aef8c64a904a88fe2cdf581.
+Root ran one fresh observation-only overlay retaining all current P0, literal
+and scalar changes. The same sealed/warm/cold terminal boundary and original
+4096 cap apply. Source/build/bin/Makefile/.d/status/diff restored byte-identically.
+
+Identical4273 signatures and3188 keys:202->173 cold failures;29 resolved,
+0 introduced,173 retained;0 admitted mask differences. E51755->54174,
+B2338252->2157133,G130189->132557,R50993->50835,L0. Diagnostic46.75s,
+peak769732KiB, incomplete0, exit86/noMIR. Receipt:
+`/root/pgy-main-20261016/.tmp/p0-current-scalar-census.ICWGLF/`.
+First warm refusal is unchanged E86+B3728+G282=4096, dropped0; B has3728
+distinct(fn,input,AST) and3525 distinct(fn,AST), no row/epoch replay.
+Identifier shape39 accounts for1165 charged nodes, but origin/consumer visits
+overlap; this is not evidence that1165 operations can be removed safely.
+
+Actual uninstrumented canonical is still RED19.26s/769624KiB with18410
+cascading errors, not173 semantic refusals. Phase5440/0, original summary/
+worker/4096/4097 and Map24/58+IR controls pass. Independent frozen scalar
+review finds no unsafe admission in its bounded cases; internal receipt faults
+were checked by root's unit, not injected by that external CLI reviewer.
+This repair does not close the active executable rung or any SoT row.

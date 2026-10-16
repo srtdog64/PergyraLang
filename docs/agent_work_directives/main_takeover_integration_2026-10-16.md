@@ -896,6 +896,21 @@ summary measures604/599, so its existing entry-reservation lifecycle function
 moves verbatim to the existing store allocation/retirement component before
 application. No new semantic owner/file or cap/format compression is allowed.
 
+Root applied the complete scalar producer/falsifier delta, preserving the
+allocator body. Phase5440/0, original summary/worker/P0/4096/4097 PASS9.67s,
+Map24/58+IR PASS19s. Full canonical still RED19.26s/769624KiB, same primary
+4096/cascade18410; frozen external scalar review found no new unsafe admission
+within its bounded cases. One new current-only census, not a matrix run,
+preserved identical4273 signatures/3188 keys and restored all bytes. Failures
+202->173 (29 resolved/0 new), admitted mask differences0, incomplete0,
+46.75s/769732KiB. First warm E86+B3728+G282 remains4096. Receipt and limits:
+geometry audit follow-up; Linux `.tmp/p0-current-scalar-census.ICWGLF/`.
+Consumer-only identifier visits are a next hypothesis, not yet an edit or
+permission:1165 charged identifier shapes include real origin reads too.
+Measure/remove only a redundant per-leaf row/work operation while keeping
+current shared claims/typed binding and every actual origin/read-growth path;
+no zero-origin subtree skip or query-order/budget change is allowed.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and
