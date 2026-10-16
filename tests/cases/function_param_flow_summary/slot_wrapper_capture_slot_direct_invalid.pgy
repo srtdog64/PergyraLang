@@ -1,0 +1,4 @@
+func Probe(ref slot: Slot<Int>) -> Void {
+    let f: func(Int) -> Int = (n: Int) => Read(slot) + n;
+    Log(f(1));
+}

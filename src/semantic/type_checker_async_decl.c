@@ -2,6 +2,7 @@
 #include "type_checker_flow_internal.h"
 #include "diag_codes.h"
 #include "../parser/ast_analysis.h"
+#include "function_param_publication_owner.h"
 
 static Type *
 async_decl_normalize_type(Type *type)
@@ -67,6 +68,10 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
     }
     if (semantic_reject_detached_async_capture(node, ctx))
         return false;
+    if (ctx->has_error || !semantic_param_publication_record_deferred_scan(ctx, node)) {
+        if (!ctx->has_error) semantic_error(ctx, node, "Checked async capture scan publication failed");
+        return false;
+    }
 
     ctx->in_async_func = true;
 
@@ -76,6 +81,10 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->in_async_func = saved_async;
+    if (!ctx->has_error && !semantic_param_publication_record_checked_deferred(ctx, node)) {
+        semantic_error(ctx, node, "Checked async boundary publication failed");
+        return false;
+    }
     return !ctx->has_error;
 }
 

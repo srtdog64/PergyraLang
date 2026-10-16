@@ -1,0 +1,3 @@
+func Probe(ref text: String) -> func(Int) -> Int {
+    return (n: Int) => StringLength(text) + n;
+}

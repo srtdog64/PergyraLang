@@ -1,0 +1,5 @@
+func TakeSlot(ref slot: Slot<Int>) -> Bool { return true; }
+func Probe(ref slot: Slot<Int>) -> Bool {
+    return TakeSlot(slot);
+}
+func Main() -> Void {}

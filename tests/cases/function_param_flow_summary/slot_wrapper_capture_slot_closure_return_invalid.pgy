@@ -1,0 +1,10 @@
+func Make(ref slot: Slot<Int>) -> func(Int) -> Int {
+    let f: func(Int) -> Int = (n: Int) => (Read(slot) as Int) + n;
+    return f;
+}
+func Main() -> Void {
+    let slot: Slot<Int> = ClaimSlot();
+    let f: func(Int) -> Int = Make(slot);
+    Release(slot);
+    Log(f(1));
+}

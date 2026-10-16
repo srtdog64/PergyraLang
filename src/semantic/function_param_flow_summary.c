@@ -285,12 +285,14 @@ static bool function_param_flow_output_current(FunctionParamFlowSummaryStore *st
     if (entry_index >= store->count) return false;
     ASTNode *decl = store->entries[entry_index].function_decl;
     size_t ordinal = store->entries[entry_index].param_index;
-    if (!store->entries[entry_index].output_dependencies_ready)
-        return true; /* No computed output permission is being reused. */
     FunctionParamFlowOutputProducer producer = store->entries[entry_index].output_producer;
     FunctionParamFlowProgramPointIndex *points;
     if (!function_param_flow_program_point_index_build(store, decl, &points) ||
         !function_param_flow_index_roots_current(points)) return false;
+    /* Anchored handles have no descriptor-output receipt, but their cached
+     * access/escape summary still depends on the current executed children. */
+    if (!store->entries[entry_index].output_dependencies_ready)
+        return function_param_flow_backing_rows_current(store, decl);
     if (producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) {
         if (points->backing_frames == NULL || ordinal >= points->backing_frame_count) return false;
         FunctionParamFlowBackingFact *frame = points->backing_frames[ordinal];

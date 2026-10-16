@@ -1,5 +1,7 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
+#include "../common/match_variant_policy.h"
 
 #include <string.h>
 
@@ -96,6 +98,16 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
     if (symbol_is_capturable_global(outer, owner))
         return false;
 
+    /* The body is typed before this scan: a same-name pattern/local binding
+     * is not the outer source. Missing identity cannot prove a capture. */
+    uint32_t binding_id = ast_identifier_binding_syntax_id(node);
+    if (binding_id == 0 || outer->decl_syntax_id == 0) {
+        semantic_error(ctx, node, "Lambda capture binding identity is unavailable");
+        return true;
+    }
+    if (binding_id != outer->decl_syntax_id)
+        return false;
+
     /* Stage A (docs/135): value-type locals are captured by copy (snapshot at
      * closure creation), but only when the lambda is a callable-let initializer
      * (a non-escaping position the closure ABI is wired for). Escaping lambdas
@@ -103,8 +115,12 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
     if (state->allow_copy_capture && capture_symbol_is_copy_value(outer)
         && state->lambda != NULL) {
         if (ast_lambda_add_capture(state->lambda, name, outer->type->name,
-                LAMBDA_CAPTURE_COPY))
-            return false;
+                LAMBDA_CAPTURE_COPY)) {
+            if (semantic_param_publication_record_deferred_capture(ctx, state->lambda,
+                    node, outer->decl_syntax_id, outer->type, LAMBDA_CAPTURE_COPY)) return false;
+            semantic_error(ctx, node, "Checked lambda capture publication failed");
+            return true;
+        }
     }
 
     if (capture_symbol_is_copy_value(outer)) {
@@ -141,6 +157,22 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
 
 static bool reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
     const CaptureState *state);
+static bool reject_nested_lambda_params(ASTNode *lambda, size_t at,
+    SemanticContext *ctx, const CaptureState *state)
+{
+    if (at == ast_lambda_param_count(lambda))
+        return reject_lambda_captures(ast_lambda_body(lambda), ctx, state);
+    ASTNode *param = ast_lambda_param(lambda, at);
+    const char *name = param != NULL && param->type == AST_LET_DECL ? ast_let_name(param) :
+        param != NULL && param->type == AST_IDENTIFIER ? ast_identifier_name(param) : NULL;
+    if (name == NULL) {
+        semantic_error(ctx, lambda, "Lambda capture parameter identity is missing");
+        return true;
+    }
+    CaptureLocal local = {name, state->locals};
+    CaptureState next = *state; next.locals = &local;
+    return reject_nested_lambda_params(lambda, at + 1, ctx, &next);
+}
 
 static bool
 reject_list(ASTNode *const *items, size_t count, SemanticContext *ctx,
@@ -159,10 +191,10 @@ reject_match_case_captures(ASTNode *node, SemanticContext *ctx,
 {
     size_t pattern_count = 0;
     ASTNode **patterns = ast_match_case_patterns(node, &pattern_count);
-    if (reject_lambda_captures(ast_match_case_pattern(node), ctx, state))
-        return true;
-    if (reject_list(patterns, pattern_count, ctx, state))
-        return true;
+    if (ast_match_case_semantic_subject_family(node) == PGY_MATCH_SUBJECT_UNKNOWN) {
+        if (reject_lambda_captures(ast_match_case_pattern(node), ctx, state) ||
+            reject_list(patterns, pattern_count, ctx, state)) return true;
+    }
     return reject_lambda_captures(ast_match_case_guard(node), ctx, state)
         || reject_lambda_captures(ast_match_case_body(node), ctx, state);
 }
@@ -182,10 +214,7 @@ reject_block_after_destructure_names(ASTNode *const *items, size_t count,
         ast_let_destructure_name(destructure, name_index),
         state != NULL ? state->locals : NULL
     };
-    CaptureState next = {
-        state != NULL ? state->lambda_scope : NULL,
-        &local,
-    };
+    CaptureState next = *state; next.locals = &local;
     return reject_block_after_destructure_names(items, count, index,
         destructure, name_index + 1, ctx, &next);
 }
@@ -203,10 +232,7 @@ reject_block_from(ASTNode *const *items, size_t count, size_t index,
             return true;
         CaptureLocal local = { ast_let_name(stmt),
             state != NULL ? state->locals : NULL };
-        CaptureState next = {
-            state != NULL ? state->lambda_scope : NULL,
-            &local,
-        };
+        CaptureState next = *state; next.locals = &local;
         return reject_block_from(items, count, index + 1, ctx, &next);
     }
     if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE) {
@@ -248,6 +274,13 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
         {
             size_t task_count = 0;
             ASTNode **tasks = ast_parallel_tasks(node, &task_count);
+            if (reject_lambda_captures(ast_parallel_join_collection(node), ctx, state) ||
+                reject_lambda_captures(ast_parallel_join_range_end(node), ctx, state)) return true;
+            if (ast_parallel_is_join_form(node) && ast_parallel_join_element(node) != NULL) {
+                CaptureLocal local = {ast_parallel_join_element(node), state->locals};
+                CaptureState next = *state; next.locals = &local;
+                return reject_list(tasks, task_count, ctx, &next);
+            }
             return reject_list(tasks, task_count, ctx, state);
         }
     case AST_WITH_STMT:
@@ -289,6 +322,29 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
                 return true;
         }
         return false;
+    case AST_MAP_LITERAL:
+        for (size_t i = 0; i < ast_map_literal_count(node); i++)
+            if (reject_lambda_captures(ast_map_literal_key(node, i), ctx, state) ||
+                reject_lambda_captures(ast_map_literal_value(node, i), ctx, state)) return true;
+        return false;
+    case AST_SET_LITERAL:
+        for (size_t i = 0; i < ast_set_literal_count(node); i++)
+            if (reject_lambda_captures(ast_set_literal_element(node, i), ctx, state)) return true;
+        return false;
+    case AST_PARTY_INSTANCE:
+        for (size_t i = 0; i < ast_party_instance_assignment_count(node); i++)
+            if (reject_lambda_captures(ast_party_instance_assignment_value(node, i), ctx, state)) return true;
+        return false;
+    case AST_CAST:
+        return reject_lambda_captures(ast_cast_operand(node), ctx, state);
+    case AST_TYPE_TEST:
+        return reject_lambda_captures(ast_type_test_operand(node), ctx, state);
+    case AST_GIVE_STMT:
+        return reject_lambda_captures(ast_give_value(node), ctx, state);
+    case AST_FAIL_STMT:
+        return reject_lambda_captures(ast_fail_stmt_reason(node), ctx, state);
+    case AST_BIND_STMT:
+        return reject_lambda_captures(ast_bind_statement_subject(node), ctx, state);
     case AST_ASSIGNMENT:
         return reject_lambda_captures(ast_assignment_target(node), ctx, state)
             || reject_lambda_captures(ast_assignment_value(node), ctx, state);
@@ -309,7 +365,7 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
             return reject_lambda_captures(ast_for_body(node), ctx, state);
         {
             CaptureLocal local = { ast_for_variable(node), state->locals };
-            CaptureState next = { state->lambda_scope, &local };
+            CaptureState next = *state; next.locals = &local;
             return reject_lambda_captures(ast_for_body(node), ctx, &next);
         }
     case AST_MATCH_STMT:
@@ -351,11 +407,20 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
     case AST_UNSAFE_BLOCK:
         return reject_lambda_captures(ast_unsafe_block_body(node), ctx, state);
     case AST_TRANSACTION_BLOCK:
-        return reject_lambda_captures(ast_transaction_block_body(node), ctx, state);
+        return reject_lambda_captures(ast_transaction_block_body(node), ctx, state)
+            || reject_list(node->data.transaction_block.compensations,
+                node->data.transaction_block.compensation_count, ctx, state);
     case AST_DEFER_STMT:
         return reject_lambda_captures(ast_defer_body(node), ctx, state);
-    default:
+    case AST_LAMBDA_EXPR:
+        return reject_nested_lambda_params(node, 0, ctx, state);
+    case AST_NUMBER: case AST_STRING: case AST_BOOLEAN: case AST_BREAK: case AST_CONTINUE:
+    case AST_TYPE: case AST_CHANNEL_TYPE: case AST_FUTURE_TYPE: case AST_CONTEXT_ACCESS:
+    case AST_FUNC_DECL: case AST_CLASS_DECL: case AST_ENUM_DECL: case AST_TYPE_ALIAS:
         return false;
+    default:
+        semantic_error(ctx, node, "Lambda capture execution facts are unavailable for this node");
+        return true;
     }
 }
 
@@ -369,5 +434,10 @@ semantic_reject_lambda_unsupported_captures(ASTNode *lambda,
         lambda,
         allow_copy_capture,
     };
-    return reject_lambda_captures(ast_lambda_body(lambda), ctx, &state);
+    if (reject_lambda_captures(ast_lambda_body(lambda), ctx, &state)) return true;
+    if (!ctx->has_error && !semantic_param_publication_record_deferred_scan(ctx, lambda)) {
+        semantic_error(ctx, lambda, "Checked lambda capture scan publication failed");
+        return true;
+    }
+    return ctx->has_error;
 }

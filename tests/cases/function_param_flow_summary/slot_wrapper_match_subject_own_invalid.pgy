@@ -1,0 +1,5 @@
+func TakeSlot(own slot: Slot<Int>) -> Bool { return true; }
+func Probe(ref slot: Slot<Int>) -> Void {
+    match TakeSlot(slot) { case true: Log("yes"); default: Log("no"); }
+}
+func Main() -> Void {}

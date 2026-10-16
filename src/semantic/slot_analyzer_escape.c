@@ -13,6 +13,7 @@
 #include "typed_map_query_fact_owner.h"
 #include "function_param_publication_owner.h"
 #include "function_param_flow_summary_internal.h"
+#include "../common/match_variant_policy.h"
 
 bool
 slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
@@ -140,12 +141,135 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             if (!collect_slot_escapes(ast_parallel_task(node, i), entries, count,
                     capacity, program_root, origin, selected_name, failed_out))
                 return false;
+        if (!collect_slot_escapes(ast_parallel_join_collection(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out) ||
+            !collect_slot_escapes(ast_parallel_join_range_end(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out)) return false;
         break;
     case AST_LET_DECL:
         if (!collect_slot_escapes(ast_let_initializer(node), entries, count,
                 capacity, program_root, origin, selected_name, failed_out))
             return false;
         break;
+    case AST_LET_DESTRUCTURE:
+        return collect_slot_escapes(ast_let_destructure_initializer(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_BINARY:
+        if (!collect_slot_escapes(ast_binary_left(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out) ||
+            !collect_slot_escapes(ast_binary_right(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_UNARY:
+        return collect_slot_escapes(ast_unary_operand(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_MEMBER_ACCESS:
+        return collect_slot_escapes(ast_member_object(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_ARRAY_ACCESS:
+        if (!collect_slot_escapes(ast_array_access_array(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out) ||
+            !collect_slot_escapes(ast_array_access_index(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < ast_array_literal_count(node); i++)
+            if (!collect_slot_escapes(ast_array_literal_element(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_TUPLE_LITERAL:
+        for (size_t i = 0; i < ast_tuple_literal_count(node); i++)
+            if (!collect_slot_escapes(ast_tuple_literal_element(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_MAP_LITERAL:
+        for (size_t i = 0; i < ast_map_literal_count(node); i++)
+            if (!collect_slot_escapes(ast_map_literal_key(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out) ||
+                !collect_slot_escapes(ast_map_literal_value(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_SET_LITERAL:
+        for (size_t i = 0; i < ast_set_literal_count(node); i++)
+            if (!collect_slot_escapes(ast_set_literal_element(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_CAST:
+        return collect_slot_escapes(ast_cast_operand(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_TYPE_TEST:
+        return collect_slot_escapes(ast_type_test_operand(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_AWAIT_EXPR:
+        return collect_slot_escapes(ast_await_expression(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_CHANNEL_RECV:
+        return collect_slot_escapes(ast_channel_recv_channel(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_PARTY_INSTANCE:
+        for (size_t i = 0; i < ast_party_instance_assignment_count(node); i++)
+            if (!collect_slot_escapes(ast_party_instance_assignment_value(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < ast_select_case_count(node); i++)
+            if (!collect_slot_escapes(ast_select_case(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        return collect_slot_escapes(ast_select_default_case(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_MATCH_STMT:
+        if (!collect_slot_escapes(ast_match_subject(node), entries, count,
+                capacity, program_root, origin, selected_name, failed_out)) return false;
+        for (size_t i = 0; i < ast_match_case_count(node); i++)
+            if (!collect_slot_escapes(ast_match_case_at(node, i), entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        return collect_slot_escapes(ast_match_default_body(node), entries, count,
+            capacity, program_root, origin, selected_name, failed_out);
+    case AST_MATCH_CASE: {
+        int family = ast_match_case_semantic_subject_family(node);
+        if (family == PGY_MATCH_SUBJECT_UNKNOWN) {
+            ASTNode *single = ast_match_case_pattern(node);
+            bool single_seen = false;
+            for (size_t i = 0; i < ast_match_case_pattern_count(node); i++) {
+                ASTNode *pattern = ast_match_case_pattern_at(node, i);
+                single_seen |= pattern == single;
+                if (!collect_slot_escapes(pattern, entries, count, capacity,
+                        program_root, origin, selected_name, failed_out)) return false;
+            }
+            if (!single_seen && !collect_slot_escapes(single, entries, count, capacity,
+                    program_root, origin, selected_name, failed_out)) return false;
+        } else if (family != PGY_MATCH_SUBJECT_OPTION && family != PGY_MATCH_SUBJECT_RESULT &&
+                   family != PGY_MATCH_SUBJECT_ENUM) {
+            if (failed_out != NULL) *failed_out = true;
+            return false;
+        }
+        if (!collect_slot_escapes(ast_match_case_guard(node), entries, count, capacity,
+                program_root, origin, selected_name, failed_out)) return false;
+        return collect_slot_escapes(ast_match_case_body(node), entries, count, capacity,
+            program_root, origin, selected_name, failed_out);
+    }
+    case AST_GIVE_STMT:
+        return collect_slot_escapes(ast_give_value(node), entries, count, capacity,
+            program_root, origin, selected_name, failed_out);
+    case AST_UNSAFE_BLOCK:
+        return collect_slot_escapes(ast_unsafe_block_body(node), entries, count, capacity,
+            program_root, origin, selected_name, failed_out);
+    case AST_TRANSACTION_BLOCK:
+        if (!collect_slot_escapes(ast_transaction_block_body(node), entries, count, capacity,
+                program_root, origin, selected_name, failed_out)) return false;
+        for (size_t i = 0; i < node->data.transaction_block.compensation_count; i++)
+            if (!collect_slot_escapes(node->data.transaction_block.compensations[i], entries, count,
+                    capacity, program_root, origin, selected_name, failed_out)) return false;
+        break;
+    case AST_FAIL_STMT:
+        return collect_slot_escapes(ast_fail_stmt_reason(node), entries, count, capacity,
+            program_root, origin, selected_name, failed_out);
+    case AST_DEFER_STMT:
+        return collect_slot_escapes(ast_defer_body(node), entries, count, capacity,
+            program_root, origin, selected_name, failed_out);
+    case AST_BIND_STMT:
+        return collect_slot_escapes(ast_bind_statement_subject(node), entries, count, capacity,
+            program_root, origin, selected_name, failed_out);
     case AST_ASSIGNMENT:
         if (!collect_slot_escapes(ast_assignment_target(node), entries, count,
                 capacity, program_root, origin, selected_name, failed_out)
@@ -288,8 +412,70 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             return false;
         break;
     }
-    default:
+    case AST_NUMBER: case AST_STRING: case AST_BOOLEAN: case AST_IDENTIFIER:
+    case AST_BREAK: case AST_CONTINUE: case AST_CONTEXT_ACCESS:
+    case AST_PROGRAM: case AST_FUNC_DECL: case AST_CLASS_DECL: case AST_EXTERN_BLOCK:
+    case AST_TYPE_ALIAS: case AST_ENUM_DECL: case AST_TYPE: case AST_CHANNEL_TYPE:
+    case AST_FUTURE_TYPE: case AST_ABILITY_DECL: case AST_ROLE_DECL: case AST_PARTY_DECL:
+    case AST_ROSTER_DECL: case AST_WORLD_DECL: case AST_INTENT_DECL: case AST_RELATION_DECL:
+    case AST_EFFECT_DECL: case AST_ZONE_DECL: case AST_LIFECYCLE_DECL: case AST_EVENT_DECL:
+    case AST_EVENT_HANDLER_TYPE: case AST_IMPORT_DECL: case AST_USE_DECL: case AST_NAMESPACE_DECL:
         break;
+    case AST_ASYNC_BLOCK: case AST_LAMBDA_EXPR: case AST_SPAWN_EXPR:
+    case AST_EVENT_SUBSCRIBE: case AST_EVENT_UNSUBSCRIBE: case AST_EVENT_INVOKE: {
+        const SemanticContext *ctx = program_root == NULL ? NULL : program_root->ctx;
+        SemanticPublishedDeferred deferred;
+        if (!semantic_param_publication_query_deferred(ctx, node, &deferred)) {
+            if (failed_out != NULL) *failed_out = true;
+            return false;
+        }
+        for (size_t c = 0; c < deferred.capture_count; c++) {
+            const PublishedDeferredCapture *capture = &deferred.captures[c];
+            if (!capture->copy_escape && !slot_escape_record(entries, count, capacity,
+                    capture->name, SLOT_ESCAPE_CALL)) return false;
+        }
+        if (node->type == AST_LAMBDA_EXPR || node->type == AST_ASYNC_BLOCK) break;
+        if (node->type == AST_SPAWN_EXPR) {
+            ASTNode *call = ast_spawn_function(node);
+            for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+                ASTNode *arg = ast_call_argument(call, i);
+                SemanticPublishedValue value = semantic_param_publication_value(ctx, arg);
+                const ASTNode *root = NULL;
+                if (!semantic_param_publication_checked_argument(ctx, call, i) || !value.ok ||
+                    (!value.meta && !value.copy_escape && !slot_call_argument_storage_root(arg, &root)) ||
+                    (root != NULL && !semantic_param_publication_value(ctx, root).ok)) {
+                    if (failed_out != NULL) *failed_out = true;
+                    return false;
+                }
+                if (root != NULL && !slot_escape_record(entries, count, capacity,
+                        ast_identifier_name(root), SLOT_ESCAPE_CALL)) return false;
+            }
+            return collect_slot_escapes(call, entries, count, capacity,
+                program_root, origin, selected_name, failed_out);
+        }
+        ASTNode *event = node->type == AST_EVENT_INVOKE ? ast_event_invoke_event(node) : ast_event_op_event(node);
+        if (!collect_slot_escapes(event, entries, count, capacity, program_root, origin, selected_name, failed_out)) return false;
+        size_t count_args = node->type == AST_EVENT_INVOKE ? ast_event_invoke_arg_count(node) : 1;
+        for (size_t i = 0; i < count_args; i++) {
+            ASTNode *arg = node->type == AST_EVENT_INVOKE ? ast_event_invoke_argument(node, i) : ast_event_op_handler(node);
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, arg);
+            const ASTNode *root = NULL;
+            if (!value.ok || (!value.meta && !value.copy_escape && !slot_call_argument_storage_root(arg, &root)) ||
+                (root != NULL && !semantic_param_publication_value(ctx, root).ok)) {
+                if (failed_out != NULL) *failed_out = true;
+                return false;
+            }
+            if (root != NULL && !slot_escape_record(entries, count, capacity,
+                    ast_identifier_name(root), SLOT_ESCAPE_CALL)) return false;
+            if (!collect_slot_escapes(arg, entries, count, capacity, program_root, origin, selected_name, failed_out)) return false;
+        }
+        break;
+    }
+    default:
+        /* Capture and unknown execution facts cannot be replaced by an empty
+         * escape map. Bounded parallel remains owned by its capture checker. */
+        if (failed_out != NULL) *failed_out = true;
+        return false;
     }
     return true;
 }

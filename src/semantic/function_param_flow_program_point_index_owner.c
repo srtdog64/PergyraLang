@@ -214,6 +214,7 @@ function_param_flow_program_point_index_build(
         }
     }
 
+    if (!function_param_flow_index_claims_snapshot(store->ctx, index, body)) return false;
     index->mutable_output_required = function_param_flow_mutable_output_required(store->ctx, function_decl, index, body);
     index->dependency_roots_ready = true;
     *index_out = index;

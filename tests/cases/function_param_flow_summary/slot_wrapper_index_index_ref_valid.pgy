@@ -1,0 +1,5 @@
+func TakeNumber(ref slot: Slot<Int>) -> Int { return 0; }
+func Probe(ref slot: Slot<Int>) -> Void {
+    let rows: Array<Int> = [7]; Log(rows[TakeNumber(slot)]);
+}
+func Main() -> Void {}

@@ -72,12 +72,30 @@ typedef struct {
     ASTNodeType shape;
     uint32_t binding;
 } PublishedCallArgument;
+typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
+typedef struct {
+    const ASTNode *source;
+    uint32_t source_id, binding_id, category;
+    const Type *type;
+    LambdaCaptureMode mode;
+    bool copy_escape;
+    char *name, *type_name;
+} PublishedDeferredCapture;
+typedef struct {
+    const PublishedDeferredCapture *captures;
+    size_t capture_count;
+} SemanticPublishedDeferred;
 typedef struct {
     const ASTNode *node, *target, *caller;
     uint32_t id, target_id, caller_id, builtin, declaration, value_binding, binding_id;
     bool value_present, copy_escape, meta, execution_present, reachable;
     bool call_present, kind_present, stdlib, local, cast_present;
     bool assignment_replacement;
+    bool deferred_scan, deferred_checked;
+    ASTNodeType deferred_shape;
+    PublishedDeferredCapture *deferred_captures;
+    size_t deferred_capture_count;
+    FunctionParamFlowIndexClaims *deferred_syntax;
     /* A call-time storage premise, never a standalone non-retention grant. */
     bool private_array_push, private_exclusive, private_escaped, private_pending;
     const ASTNode *private_binding, *private_initializer;
@@ -176,6 +194,13 @@ bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *valu
 bool semantic_param_publication_record_execution(SemanticContext *ctx,
     const ASTNode *statement, bool reachable);
 bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNode *call);
+bool semantic_param_publication_record_deferred_capture(SemanticContext *ctx, ASTNode *lambda,
+    ASTNode *source, uint32_t binding_id, const Type *type, LambdaCaptureMode mode);
+bool semantic_param_publication_record_deferred_scan(SemanticContext *ctx, ASTNode *boundary);
+bool semantic_param_publication_record_checked_deferred(SemanticContext *ctx, ASTNode *boundary);
+bool semantic_param_publication_query_deferred(const SemanticContext *ctx,
+    const ASTNode *boundary, SemanticPublishedDeferred *view);
+void semantic_param_publication_retire_deferred(PublishedNode *row);
 bool semantic_param_publication_record_checked_numeric_cast(SemanticContext *ctx, ASTNode *cast);
 bool semantic_param_publication_checked_numeric_cast(const SemanticContext *ctx, const ASTNode *cast);
 SemanticPublishedValue semantic_param_publication_value(const SemanticContext *ctx,

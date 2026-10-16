@@ -593,6 +593,151 @@ delta, then permit at most two fixed-input diagnostic processes (current and
 matrix), with complete source/build/bin restoration. No model result can
 substitute for the original positive/negative or full compiler acceptance.
 
+## Active safety blocker — nested execution children (before matrix comparison)
+
+Atde1335b2/cc91699c, root and the independent reviewer reproduced a real
+ref-to-own contract bypass, not a work-cap refusal. Direct
+`TakeSlot(own slot)->Bool` from `Probe(ref slot)` refuses with the exact
+BORROW_ESCAPE and no MIR; wrapping that same call in binary if/return/Log/LET
+or unary if emits MIR with Probe mask0. The safe REF callee counterpart passes.
+No unsafe output was executed. Evidence:
+`.tmp/redteam-de1335b2-p0-20261016/review.md` and root's
+`.tmp/p0-direct-slot-20261016.pgy` / nested-condition pair. The first malformed
+Release/ClaimSlot draft was corrected before this comparison and is not proof.
+This predates read-growth; the narrow earlier review is not overall approval.
+Matrix preparation is preserved but execution/selection is deferred until this
+same parameter-flow safety seam is repaired.
+
+Whole chain: AST identifier-ref selection -> roots_by_param -> current child
+claims -> named READ/WRITE/RELEASE and RETURN/CALL/CHANNEL collectors -> existing
+FunctionIdParamIndex summary -> publication borrow checks and MIR refusal.
+The root selector sees BINARY/UNARY, but escape collection silently succeeds
+without their children. Anchored handles correctly skip returned-backing
+analysis, so that separate facet cannot repair a missing direct CALL effect.
+Named/full access also miss cast/type-test/aggregate/destructure children;
+root selection misses Set and parallel join inputs. Child sealing must cover
+the newly reached topology. Do not remove anchored semantics or grant ALL
+from missing identity as a supposed fix.
+
+Objective: every supported eager evaluation child reaches its existing effect
+owner, independent of expression wrapping. Priority: preserve all six effect
+facets and typed identity, seal new child identities, explicit failure for an
+unmodelled live form, then unchanged positive behavior and bounded execution.
+Owners stay the existing AST-ref selector, index claims, access and escape
+collectors; last consumers are parameter publication and full Slot/parallel
+analysis. Forbidden: default-success for an unvisited executable child, a
+new generic visitor/cache owner, treating lexical pattern binders as calls,
+skipping worker effects merely because its body was visited, broad source
+annotations or reducing the canonical/safety input.
+
+Before edits, complete the supported-child map against parser/schema, semantic
+match facts and actual C/LLVM evaluation. Eager expressions include binary,
+unary, cast, type-test, member/index, array/tuple/set/map key-value and local
+destructure initialization. Match runtime patterns cannot all be skipped:
+general/multi patterns execute, whereas validated tag/binding patterns do not.
+Walk subject/guard/body plus actual runtime pattern expressions, or refuse
+when the existing typed evidence cannot distinguish them. Unsupported
+deferred/capture/worker forms must not silently supply an empty effect proof;
+consume existing owned evidence where available, otherwise fail explicitly at
+that affected boundary. Pure literals/types/non-evaluating leaves are explicit.
+Keep current typed-call/argument/root checks and all subtree recursion in both
+named and full modes. Seal pointer/ID/count changes for supported children.
+
+Approved implementation decision: use the current typed match subject family,
+never variant spelling. General patterns are evaluated; Option/Result/enum
+tag/binder patterns are syntax-only. Initial index construction seals the whole
+selection-input topology once, including children after the no-output selector's
+first true, rather than rediscovering it at every query. Syntax-only rows cannot
+grant semantic permission; existing semantic claim recording promotes their
+checked facts. Cycles and unknown child topology fail explicitly. Child identity,
+count, shape, match family and decision targets must replay on current queries.
+Bounded parallel task effects and its eager join inputs remain visible without
+replacing the existing type checker's capture/race authority. Unproved detached
+capture forms cannot be silently treated as empty effects.
+
+Approved independent scopes of this one safety chain: A escape collector and
+AST-ref root selection; B access named/full collectors and index child claims;
+C direct semantic unit and executable per-wrapper paired falsifiers. Root alone builds,
+integrates, commits/publishes and owns the shared WSL lease. Verification:
+independent valid wrapper cases with exact BORROW_ESCAPE/MIR0, REF positives,
+all six effect bits at direct APIs, child/current corruption and restoration,
+existing alias/loop/64+/recursive/4096/4097 controls, Map/IR/component, unchanged
+full native/canonical, then the original bootstrap/install/memory/CI chain.
+The read-growth census (same3188/signatures4273) is202 failures:85 resolved/0 new
+vs287; pre-frame515 leaves179 existing+23 new (14 routines). Its warm first
+demand is CodegenIntentPriorityExpression input0, RuntimeCallCName atwork4096:
+E84+B3730+G282, no same-frame AST repeat, receipt graph111. Log
+`a-readguard-census-warm`30.76s/exit89/peak719960KiB is diagnostic before MIR.
+All source/build/bin were exactly restored. Those work failures remain OPEN;
+the P0 cannot be traded for a better aggregate performance count.
+
+Root's fixed de1335 wrapper triage admitted20 REF controls;14 corresponding
+OWN variants incorrectly emitted MIR. Three other shapes (Set, general runtime
+match emission, OR destructuring) were not valid artifact controls and do not
+count as safety evidence. The first integrated executed-child repair refuses
+all20 OWN cases with BORROW_ESCAPE/MIR0 and preserves all20 REF admissions.
+Its blanket deferred-boundary refusal is not acceptable:11 of12 existing worker
+positive programs regressed. Preserve this observation, not the blanket policy.
+
+One coherent extension closes that reached dependency: the existing typed
+publication store owns actual capture scan success, final boundary check, exact
+source binding/type/mode and syntax currentness; existing lambda/async/spawn/
+event producers issue those facts, and both collector modes consume them.
+Lambda bodies are not eager caller executions. Physical copy-only captures
+carry no backing; String descriptor captures retain CALL provenance. The final
+lambda scan occurs after body typing so match payload binders join by exact
+binding ID, not a pre-typing spelling guess. Missing facts still refuse.
+
+The independent frozen review also confirmed CAST/MAP/TYPE_TEST hiding a
+borrowed Slot capture and a `let closure -> return closure` escape. Source and
+analyze-only evidence: `.tmp/redteam-capture-de1335b2-20261016/review.md`.
+The existing callable capability equation owner must retain original compacted
+argument ordinals and resolve all alias/result/return candidates before allowing
+a non-copy environment across a retaining/return/subscription boundary. Direct
+local invocation, copy-only Int environments and no-capture functions stay valid.
+Aggregate-valued environment carriers are an explicitly unverified dependency,
+not a permission or a claim of whole-language closure.
+
+The frozen review subsequently reached `Holder(f)` -> return -> `Relay` argument
+-> return -> caller local, with a locally owned String-capturing lambda. It
+emits MIR; field extraction/invocation fails for both unsafe and copy controls,
+so this is aggregate admission evidence, not an observed runtime UAF. Repair
+the existing callable capability owner at typed FUNCTION leaf stores: nominal
+constructor fields, literals, Option payloads, collection writes, aggregate
+field/index writes, and FUNCTION actuals crossing non-FUNCTION generic formals.
+Record exact typed value/site identity and consume existing environment facts
+at sealing; do not add an aggregate AST rescanner or another value graph.
+Direct local invocation, named functions and physical Int-copy environments
+are the required controls.
+
+The schema recheck found transaction compensations outside `body`. They execute
+on fail in reverse order, so they are evaluation children, but current flow
+typing never publishes them. Existing snapshots do not prove every fail-exit
+resource state. Do not bless conditional ownership cleanup from entry/end
+snapshot equality or typecheck handlers as unconditional normal execution.
+The body/handler scope and typed fail-state producer remain an implementation
+decision before transaction permission; no green/closed claim covers them.
+
+Current independent scopes remain one safety chain: A publication/capture
+producers and escape/root selection; B access/claims plus existing callable
+equations' last retaining consumers; C behavioral tests and transaction flow
+producer investigation. Root owns all builds, integration and publication.
+The initial new phase run was4748 checks/9 failures:8 were an invalid channel
+helper control, now replaced by a lexical owned-send control, and1 was the
+observed deferred blanket refusal. Subsequent edits require a fresh run.
+Source-size measurements also found required599-line gate violations in the
+reached publication/claims/access/summary components. Do not raise caps or
+compress code; coherent physical components must preserve the same store and
+fact identities, with no new semantic owner or fallback.
+
+Local WIP preservation checkpoint (parent `de1335b2e`): root repeated the
+native phase unit after the complete function-type/transaction topology
+correction and deferred-unit oracle repairs:4901 checks,1 failure,0.41s,
+peak52468KiB. The single remaining failure is untyped compensation; receipt
+`/root/pgy-main-20261016.p0-checkpoint-phase.log`. It is intentionally recorded
+RED and is not pushed as accepted work. The fixed canonical/bootstrap/driver/
+memory/CI chain still needs current evidence; older counts do not authorize it.
+
 ## Observations
 
 - The inherited main worktree and Claude lane use different formal-effect and

@@ -1,6 +1,7 @@
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 static const char *
 semantic_event_expr_name(ASTNode *expr)
@@ -225,6 +226,12 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
 
     if (ok && node->type == AST_EVENT_SUBSCRIBE)
         callable_capability_record_subscription(ctx, event_node, handler_node);
+    if (ok && !ctx->has_error &&
+        (!semantic_param_publication_record_deferred_scan(ctx, node) ||
+         !semantic_param_publication_record_checked_deferred(ctx, node))) {
+        semantic_error(ctx, node, "Checked event subscription publication failed");
+        return false;
+    }
     return ok && !ctx->has_error;
 }
 
@@ -290,5 +297,11 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
         callable_capability_record_call(ctx, node,
             event_node->type == AST_IDENTIFIER
                 ? scope_lookup(ctx->scope, ast_identifier_name(event_node)) : NULL, NULL);
+    if (ok && !ctx->has_error &&
+        (!semantic_param_publication_record_deferred_scan(ctx, node) ||
+         !semantic_param_publication_record_checked_deferred(ctx, node))) {
+        semantic_error(ctx, node, "Checked event invocation publication failed");
+        return false;
+    }
     return ok && !ctx->has_error;
 }

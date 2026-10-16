@@ -1,0 +1,4 @@
+func Probe(ref slot: Slot<Int>) -> Void {
+    let delayed: func() -> Long = () => Read(slot) as Long;
+}
+func Main() -> Void {}

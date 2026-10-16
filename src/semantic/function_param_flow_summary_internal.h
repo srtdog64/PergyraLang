@@ -69,12 +69,21 @@ typedef struct {
     ASTNode *node;
     uint32_t id, binding;
     ASTNodeType shape;
+    bool semantic_promoted, snapshot_active, snapshot_complete, snapshot_semantic_complete;
+    int match_family;
+    int syntax_operator;
+    bool parallel_join;
+    char *syntax_name;
+    double syntax_number;
+    int64_t syntax_long;
+    unsigned syntax_literal_flags;
     ASTNode **children;
     uint32_t *child_ids;
     size_t child_count;
     bool assignment_replacement, local_alias;
     bool private_array_push;
     bool execution_present, reachable, physical_value;
+    bool value_ready;
     bool numeric_cast;
     char *cast_target;
     bool result_relation, result_depends, external_retains;
@@ -174,6 +183,13 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
 bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index);
 bool function_param_flow_index_claim_record(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *node);
+bool function_param_flow_index_claims_snapshot(SemanticContext *ctx,
+    FunctionParamFlowProgramPointIndex *index, ASTNode *node);
+bool function_param_flow_syntax_claims_snapshot(SemanticContext *ctx,
+    FunctionParamFlowIndexClaims **claims, ASTNode *node);
+bool function_param_flow_syntax_claims_current(const SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims);
+void function_param_flow_claims_destroy(FunctionParamFlowIndexClaims *claims);
 bool function_param_flow_claim_record(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node);
 bool function_param_flow_index_claims_current(SemanticContext *ctx,

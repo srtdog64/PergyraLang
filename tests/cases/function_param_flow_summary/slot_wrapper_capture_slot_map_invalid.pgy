@@ -1,0 +1,4 @@
+func Probe(ref slot: Slot<Int>) -> Void {
+    let delayed: func() -> HashMap<String, Int> = () => ({"value": Read(slot)});
+}
+func Main() -> Void {}

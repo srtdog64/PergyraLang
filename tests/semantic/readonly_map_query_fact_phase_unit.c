@@ -3356,8 +3356,399 @@ static void checked_named_escape_projection(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+/* Compare the two production collector modes on actual typed nested calls.
+ * A returned scalar must not hide effects of evaluating its arguments. */
+static void checked_nested_slot_effect_facets(void)
+{
+    const char *sources[] = {
+        "func Effect(ref slot:Slot<Int>)->Int{return Read(slot);}func Probe(ref slot:Slot<Int>)->Void{if Effect(slot)>0{Log(1);}}",
+        "func Effect(ref slot:Slot<Int>)->Bool{Write(slot,7);return true;}func Probe(ref slot:Slot<Int>)->Void{if Effect(slot)==true{Log(1);}}",
+        /* Release belongs to a lexical Slot binding, not an owned formal.
+         * Its valid nested statement baseline is separate from own-call escape. */
+        "func Effect()->Bool{return true;}func Probe()->Void{let slot:Slot<Int> =ClaimSlot();if true{Release(slot);}}",
+        /* Ordinary returned String loans are admitted for a read-only outer
+         * consumer; anchored Slot return refusal is a separate boundary. */
+        "func Effect(ref slot:String)->String{return slot;}func Probe(ref slot:String)->Void{Log(Effect(slot));}",
+        "func Effect(own slot:Slot<Int>)->Bool{return true;}func Probe(ref slot:Slot<Int>)->Void{if Effect(slot)==true{Log(1);}}",
+        /* A ref Slot cannot be sent by a helper at all. Use a lexical owned
+         * source so this facet tests nested channel evaluation, not rejection
+         * before the wrapper's typed publication exists. */
+        "func Effect()->Bool{return true;}func Probe()->Void{let slot:Slot<Int> =ClaimSlot();let channel:Channel<Slot<Int>> =Channel(1);if true{channel<-slot;}}"
+    };
+    const unsigned expected_access[] = {SLOT_ACCESS_READ, SLOT_ACCESS_WRITE, SLOT_ACCESS_RELEASE, 0, 0, 0};
+    const unsigned expected_escape[] = {0, 0, 0, SLOT_ESCAPE_RETURN, SLOT_ESCAPE_CALL, SLOT_ESCAPE_CHANNEL};
+    for (size_t effect = 0; effect < sizeof(sources) / sizeof(sources[0]); effect++) {
+        Lexer *lexer = lexer_create(sources[effect]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        CHECK(program != NULL && !parser_has_error(parser));
+        if (program == NULL || parser_has_error(parser)) goto cleanup;
+        bool typed = type_check_program(program, ctx);
+        if (typed != (effect != 4))
+            fprintf(stderr, "nested slot facet baseline effect=%zu typed=%d source=%s\n", effect, typed, sources[effect]);
+        CHECK(typed == (effect != 4));
+        if (effect == 4) CHECK(context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
+        CHECK(semantic_param_publication_inputs_ready(ctx));
+        ASTNode *probe = ast_program_statement(program, 1);
+        ASTNode *body = ast_func_body(probe);
+        SlotFunctionLookup lookup = {ctx, program};
+        SlotSummaryOrigin origin = {.function_decl = probe, .param_index = 0, .param_name = "slot"};
+        SlotAccessEntry *accesses = NULL;
+        SlotEscapeEntry *escapes = NULL;
+        size_t ac = 0, az = 0, ec = 0, ez = 0;
+        bool failed = false;
+        bool access_ready = collect_slot_accesses(body, &accesses, &ac, &az, &lookup, &failed);
+        if (!access_ready || failed)
+            fprintf(stderr, "nested slot facet access effect=%zu ready=%d failed=%d source=%s\n", effect, access_ready, failed, sources[effect]);
+        CHECK(access_ready);
+        CHECK(!failed);
+        unsigned full_access = 0, full_escape = 0;
+        for (size_t i = 0; i < ac; i++)
+            if (strcmp(accesses[i].name, "slot") == 0) full_access |= accesses[i].mask;
+        failed = false;
+        bool escape_ready = collect_slot_escapes(body, &escapes, &ec, &ez, &lookup, &origin, NULL, &failed);
+        if (!escape_ready || failed)
+            fprintf(stderr, "nested slot facet escape effect=%zu ready=%d failed=%d source=%s\n", effect, escape_ready, failed, sources[effect]);
+        CHECK(escape_ready);
+        CHECK(!failed);
+        for (size_t i = 0; i < ec; i++)
+            if (strcmp(escapes[i].name, "slot") == 0) full_escape |= escapes[i].mask;
+        if (full_access != expected_access[effect] || full_escape != expected_escape[effect])
+            fprintf(stderr, "nested slot facet projection effect=%zu access=%u expected-access=%u escape=%u expected-escape=%u source=%s\n",
+                effect, full_access, expected_access[effect], full_escape, expected_escape[effect], sources[effect]);
+        CHECK(full_access == expected_access[effect]);
+        CHECK(full_escape == expected_escape[effect]);
+        CHECK(slot_access_mask_for_named_symbol(body, "slot", &lookup) == full_access);
+        failed = false;
+        CHECK(slot_escape_mask_in_program(body, "slot", &lookup, &origin, &failed) == full_escape && !failed);
+        unsigned summary = slot_param_summary_in_program_points(&body, 1, "slot", &lookup, &origin);
+        unsigned expected = 0;
+        if ((expected_access[effect] & SLOT_ACCESS_READ) != 0) expected |= SLOT_PARAM_SUMMARY_READ;
+        if ((expected_access[effect] & SLOT_ACCESS_WRITE) != 0) expected |= SLOT_PARAM_SUMMARY_WRITE;
+        if ((expected_access[effect] & SLOT_ACCESS_RELEASE) != 0) expected |= SLOT_PARAM_SUMMARY_RELEASE;
+        if ((expected_escape[effect] & SLOT_ESCAPE_RETURN) != 0) expected |= SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+        if ((expected_escape[effect] & SLOT_ESCAPE_CALL) != 0) expected |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+        if ((expected_escape[effect] & SLOT_ESCAPE_CHANNEL) != 0) expected |= SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+        CHECK(summary == expected);
+        free(accesses); free(escapes);
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+/* Mutations keep the parent node alive: original topology and publication
+ * must still own its current evaluation children, including zero-bit reads. */
+static void checked_wrapper_child_currency(void)
+{
+    const char *sources[] = {
+        "func Probe(ref slot:Slot<Int>)->Bool{return Read(slot)>0;}",
+        "func Probe(ref slot:Slot<Int>)->Int{let values:Array<Int> =[Read(slot),0];return ArrayLength(values);}",
+        "func Probe(ref slot:Slot<Int>)->Bool{return Read(slot) is Int;}",
+        "func Probe(ref slot:Slot<Int>)->Void{match Some(Read(slot)){case Some(value):Log(value);case None:Log(0);}}",
+        "func Probe(ref slot:Slot<Int>)->Void{match 1{case 1 if Read(slot)>0:Log(1);default:Log(0);}}",
+        /* Direct owner/HIR behavior only: MIR emission for a general runtime
+         * call pattern is a separate, currently unsupported artifact route. */
+        "func Probe(ref slot:Slot<Int>)->Void{match 1{case Read(slot):Log(1);default:Log(0);}}",
+        "func Probe(ref slot:Slot<Int>)->Void{transaction{compensate Log(Read(slot));fail \"rollback\";}}"
+    };
+    for (size_t shape = 0; shape < sizeof(sources) / sizeof(sources[0]); shape++) {
+        Lexer *lexer = lexer_create(sources[shape]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        CHECK(program != NULL && !parser_has_error(parser));
+        if (program == NULL || parser_has_error(parser)) goto cleanup;
+        CHECK(type_check_program(program, ctx));
+        if (ctx->has_error) goto cleanup;
+        ASTNode *probe = ast_program_statement(program, 0);
+        ASTNode *statement = ast_block_statement(ast_func_body(probe), 0);
+        ASTNode *parent = shape == 0 || shape == 2 ? ast_return_value(statement)
+            : shape == 1 ? ast_let_initializer(statement) : statement;
+        ASTNode **edge = shape == 0 ? &parent->data.binary.left
+            : shape == 1 ? &parent->data.array_literal.elements[0]
+            : shape == 2 ? &parent->data.type_test.operand
+            : shape == 3 ? &parent->data.match_stmt.subject
+            : shape == 4 ? &ast_match_case_at(parent, 0)->data.match_case.guard
+            : shape == 5 ? &ast_match_case_at(parent, 0)->data.match_case.pattern
+            : &parent->data.transaction_block.compensations[0];
+        ASTNode *saved_child = *edge;
+        FunctionParamFlowProgramPointIndex *index = NULL, *rechecked = NULL;
+        unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+        CHECK(baseline == SLOT_PARAM_SUMMARY_READ);
+        CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, probe, &index));
+        if (index == NULL) goto cleanup;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        SlotFunctionLookup lookup = {ctx, program};
+        CHECK(slot_access_mask_for_named_symbol(ast_func_body(probe), "slot", &lookup) == SLOT_ACCESS_READ);
+        SlotAccessEntry *accesses = NULL;
+        size_t count = 0, capacity = 0;
+        bool failed = false;
+        CHECK(collect_slot_accesses(ast_func_body(probe), &accesses, &count, &capacity, &lookup, &failed) && !failed);
+        unsigned full = 0;
+        for (size_t i = 0; i < count; i++)
+            if (strcmp(accesses[i].name, "slot") == 0) full |= accesses[i].mask;
+        CHECK(full == SLOT_ACCESS_READ);
+        free(accesses);
+        *edge = NULL;
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        CHECK(!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, probe, &rechecked));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+        *edge = saved_child;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+        uint32_t saved_id = saved_child->stable_id;
+        saved_child->stable_id = 0;
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        saved_child->stable_id = saved_id;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        ASTNodeType saved_shape = parent->type;
+        parent->type = AST_NUMBER;
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        parent->type = saved_shape;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        if (shape == 0 || shape == 1) {
+            ASTNode *other = shape == 0 ? ast_binary_right(parent) : ast_array_literal_element(parent, 1);
+            *edge = other;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+            *edge = saved_child;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+        }
+        if (shape == 1) {
+            parent->data.array_literal.count--;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            parent->data.array_literal.count++;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+        }
+        if (shape >= 3 && shape <= 5) {
+            ASTNode *arm = ast_match_case_at(parent, 0);
+            ASTNode *pattern = arm->data.match_case.pattern;
+            arm->data.match_case.pattern = NULL;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            arm->data.match_case.pattern = pattern;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            size_t count = parent->data.match_stmt.case_count;
+            parent->data.match_stmt.case_count--;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            parent->data.match_stmt.case_count = count;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            size_t pattern_count = arm->data.match_case.pattern_count;
+            arm->data.match_case.pattern_count = 0;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            arm->data.match_case.pattern_count = pattern_count;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            ASTNode *alternative = arm->data.match_case.patterns[0];
+            arm->data.match_case.patterns[0] = NULL;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            arm->data.match_case.patterns[0] = alternative;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            int family = arm->data.match_case.semantic_subject_family;
+            arm->data.match_case.semantic_subject_family = family + 1;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            arm->data.match_case.semantic_subject_family = family;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+        }
+        if (shape == 2) {
+            char *type_name = parent->data.type_test.target_type;
+            parent->data.type_test.target_type = "Bool";
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            parent->data.type_test.target_type = type_name;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+        }
+        if (shape == 6) {
+            size_t compensation_count = parent->data.transaction_block.compensation_count;
+            parent->data.transaction_block.compensation_count = 0;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+            parent->data.transaction_block.compensation_count = compensation_count;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+        }
+        PublishedNode *publication = NULL;
+        FunctionParamPublicationStore *store = ctx->function_param_publications;
+        for (size_t i = 0; store != NULL && i < store->node_capacity; i++)
+            if (store->nodes[i].node == saved_child) publication = &store->nodes[i];
+        CHECK(publication != NULL && publication->value_present);
+        if (publication != NULL) {
+            bool present = publication->value_present;
+            publication->value_present = false;
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+            publication->value_present = present;
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+        }
+        ASTNode *read = shape == 3 || shape == 6 ? ast_call_argument(saved_child, 0)
+            : shape == 4 ? ast_binary_left(saved_child) : saved_child;
+        CHECK(read != NULL && read->type == AST_CALL);
+        if (read != NULL && read->type == AST_CALL) {
+            ASTNode *argument = ast_call_argument(read, 0), *target = ast_call_callee(read);
+            uint32_t binding = ast_identifier_binding_syntax_id(argument);
+            uint32_t target_id = target->stable_id, callee_id = read->data.call.semantic_callee_decl_id;
+            for (unsigned fault = 0; fault < 3; fault++) {
+                if (fault == 0) ast_identifier_set_binding_syntax_id(argument, binding + 1);
+                if (fault == 1) target->stable_id++;
+                if (fault == 2) read->data.call.semantic_callee_decl_id++;
+                CHECK(!function_param_flow_index_claims_current(ctx, index));
+                CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+                ast_identifier_set_binding_syntax_id(argument, binding);
+                target->stable_id = target_id;
+                read->data.call.semantic_callee_decl_id = callee_id;
+                CHECK(function_param_flow_index_claims_current(ctx, index));
+                CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+            }
+        }
+        CHECK(function_param_flow_program_point_index_build(ctx->function_param_flow_summaries, probe, &rechecked) && rechecked == index);
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_deferred_capture_not_eager(void)
+{
+    /* Raw owner protocol: an unsupported lambda is not an eager execution
+     * container. No typed or source-admission claim is made by this probe. */
+    Lexer *lexer = lexer_create("func Probe(ref slot:Slot<Int>)->Void{let deferred:func()->Int=()=>Read(slot);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    CHECK(program != NULL && !parser_has_error(parser));
+    if (program != NULL && !parser_has_error(parser)) {
+        CHECK(ast_assign_stable_ids(program));
+        ASTNode *lambda = ast_let_initializer(ast_block_statement(ast_func_body(ast_program_statement(program, 0)), 0));
+        CHECK(lambda != NULL && lambda->type == AST_LAMBDA_EXPR);
+        CHECK(slot_access_mask_for_named_symbol(lambda, "slot", NULL) ==
+            (SLOT_ACCESS_READ | SLOT_ACCESS_WRITE | SLOT_ACCESS_RELEASE));
+        SlotAccessEntry *accesses = NULL;
+        SlotEscapeEntry *escapes = NULL;
+        size_t count = 0, capacity = 0;
+        bool failed = false;
+        CHECK(!collect_slot_accesses(lambda, &accesses, &count, &capacity, NULL, &failed) && failed);
+        free(accesses);
+        count = 0; capacity = 0; failed = false;
+        CHECK(!collect_slot_escapes(lambda, &escapes, &count, &capacity, NULL, NULL, NULL, &failed) && failed);
+        free(escapes);
+        failed = false;
+        CHECK(slot_escape_mask_in_program(lambda, "slot", NULL, NULL, &failed) ==
+            (SLOT_ESCAPE_RETURN | SLOT_ESCAPE_CALL | SLOT_ESCAPE_CHANNEL) && failed);
+    }
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_deferred_publication_currency(void)
+{
+    const char *sources[] = {
+        "func Main()->Void{let value:Int=7;let delayed:func()->Int=()=>value;Log(delayed());}",
+        "func Probe(text:String)->Void{let delayed:func()->String=()=>text;}func Main()->Void{}",
+        "func Main()->Void{async{}}"
+    };
+    for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
+        Lexer *lexer = lexer_create(sources[kind]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        CHECK(program != NULL && !parser_has_error(parser));
+        if (program == NULL || parser_has_error(parser)) goto cleanup;
+        bool typed = type_check_program(program, ctx);
+        if (!typed) fprintf(stderr, "deferred receipt baseline kind=%zu source=%s\n", kind, sources[kind]);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        ASTNode *routine = ast_program_statement(program, 0);
+        ASTNode *statement = ast_block_statement(ast_func_body(routine), kind == 0 ? 1 : 0);
+        ASTNode *boundary = kind == 2 ? statement : ast_let_initializer(statement);
+        SemanticPublishedDeferred view;
+        bool ready = semantic_param_publication_query_deferred(ctx, boundary, &view);
+        if (!ready) fprintf(stderr, "deferred receipt query baseline kind=%zu source=%s\n", kind, sources[kind]);
+        CHECK(ready);
+        if (!ready) goto cleanup;
+        CHECK(view.capture_count == (kind == 2 ? 0u : 1u));
+        SlotFunctionLookup lookup = {ctx, program};
+        SlotSummaryOrigin origin = {.function_decl = routine, .param_index = 0, .param_name = "text"};
+        bool failed = false;
+        unsigned expected = kind == 1 ? SLOT_ESCAPE_CALL : SLOT_ESCAPE_NONE;
+        CHECK(slot_escape_mask_in_program(boundary, kind == 0 ? "value" : "text", &lookup, &origin, &failed) == expected && !failed);
+        /* Creating the capture reads its source; executing the deferred body
+         * is not part of this access query. String capture still retains CALL. */
+        CHECK(slot_access_mask_for_named_symbol(boundary, kind == 0 ? "value" : "text", &lookup) ==
+            (kind == 2 ? 0u : SLOT_ACCESS_READ));
+        if (kind == 1)
+            CHECK((function_param_flow_summary_for_param(ctx, routine, 0) & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+        PublishedNode *row = NULL;
+        FunctionParamPublicationStore *store = ctx->function_param_publications;
+        for (size_t i = 0; store != NULL && i < store->node_capacity; i++)
+            if (store->nodes[i].node == boundary) row = &store->nodes[i];
+        CHECK(row != NULL);
+        if (row == NULL) goto cleanup;
+        PublishedNode saved = *row;
+        for (unsigned fault = 0; fault < (kind == 2 ? 4u : 6u); fault++) {
+            if (fault == 0) row->deferred_scan = false;
+            if (fault == 1) row->deferred_checked = false;
+            if (fault == 2) row->deferred_shape = AST_NUMBER;
+            if (fault == 3) row->deferred_syntax = NULL;
+            if (fault == 4) row->value_present = false;
+            if (fault == 5) row->deferred_capture_count = 0;
+            bool accepted = semantic_param_publication_query_deferred(ctx, boundary, &view);
+            if (accepted) fprintf(stderr, "deferred receipt fault accepted kind=%zu fault=%u\n", kind, fault);
+            CHECK(!accepted);
+            failed = false;
+            CHECK(slot_escape_mask_in_program(boundary, kind == 0 ? "value" : "text", &lookup, &origin, &failed) ==
+                (SLOT_ESCAPE_RETURN | SLOT_ESCAPE_CALL | SLOT_ESCAPE_CHANNEL) && failed);
+            *row = saved;
+            CHECK(semantic_param_publication_query_deferred(ctx, boundary, &view));
+            failed = false;
+            CHECK(slot_escape_mask_in_program(boundary, kind == 0 ? "value" : "text", &lookup, &origin, &failed) == expected && !failed);
+        }
+        if (kind != 2 && row->deferred_capture_count == 1) {
+            PublishedDeferredCapture *capture = &row->deferred_captures[0];
+            PublishedDeferredCapture original = *capture;
+            ASTNode *source = (ASTNode *)capture->source;
+            uint32_t source_id = source->stable_id, binding = ast_identifier_binding_syntax_id(source);
+            PublishedNode *source_row = NULL;
+            for (size_t i = 0; i < store->node_capacity; i++)
+                if (store->nodes[i].node == source) source_row = &store->nodes[i];
+            CHECK(source_row != NULL && source_row->value_present);
+            for (unsigned fault = 0; fault < 16; fault++) {
+                if (fault == 15 && source_row == NULL) continue;
+                if (fault == 0) capture->source_id++;
+                if (fault == 1) capture->binding_id++;
+                if (fault == 2) capture->mode = LAMBDA_CAPTURE_REF;
+                if (fault == 3) capture->type = TYPE_BOOL;
+                if (fault == 4) capture->copy_escape = !capture->copy_escape;
+                if (fault == 5) capture->category++;
+                if (fault == 6) capture->name = "foreign";
+                if (fault == 7) capture->type_name = "Bool";
+                if (fault == 8) capture->source = NULL;
+                if (fault == 9) source->stable_id = 0;
+                if (fault == 10) ast_identifier_set_binding_syntax_id(source, binding + 1);
+                if (fault == 11) row->deferred_captures = NULL;
+                if (fault == 12) store->program_id++;
+                if (fault == 13) capture->type = NULL;
+                if (fault == 14) capture->type_name = NULL;
+                if (fault == 15) source_row->value_present = false;
+                bool accepted = semantic_param_publication_query_deferred(ctx, boundary, &view);
+                if (accepted) fprintf(stderr, "deferred capture fault accepted kind=%zu fault=%u\n", kind, fault);
+                CHECK(!accepted);
+                *capture = original;
+                source->stable_id = source_id;
+                ast_identifier_set_binding_syntax_id(source, binding);
+                row->deferred_captures = saved.deferred_captures;
+                store->program_id = ast_node_stable_id(program);
+                if (source_row != NULL) source_row->value_present = true;
+                CHECK(semantic_param_publication_query_deferred(ctx, boundary, &view));
+            }
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 int main(void)
 {
+    checked_deferred_publication_currency();
+    checked_deferred_capture_not_eager();
+    checked_nested_slot_effect_facets();
+    checked_wrapper_child_currency();
     checked_named_escape_projection();
     checked_failed_no_store_selection_epoch();
     checked_admitted_no_store_proof();

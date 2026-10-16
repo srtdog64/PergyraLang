@@ -31,6 +31,32 @@ fixture = sys.argv[3]
 env = os.environ.copy()
 env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
 env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"
+# Runtime call-pattern typed/owner coverage lives in the phase unit. Even the
+# --hir CLI currently reaches an unsupported MIR artifact route for its ref
+# counterpart, so it cannot certify that positive here. The owning case below
+# must fail at the borrow boundary, never at artifact OOM.
+# Reuse the admitted worker/capture inputs at their existing owners. A
+# conservative unknown-capture result must not replace their checked facts.
+for relative in (
+    "backend_compare/closure_copy_capture/main.pgy",
+    "backend_compare/event_lambda_handler/main.pgy",
+    "backend_compare/async_block_runtime/main.pgy",
+    "backend_compare/async_func_decl/main.pgy",
+    "backend_compare/async_spawn_await/main.pgy",
+    "backend_compare/await_inline_spawn/main.pgy",
+    "backend_compare/generic_spawn/main.pgy",
+    "slot_contract/positive/device_slot_async_read/main.pgy",
+    "structured_spawn_lifecycle/positive_joined.pgy",
+    "structured_spawn_lifecycle/positive_own_transfer.pgy",
+    "structured_spawn_lifecycle/positive_immediate_await.pgy",
+    "structured_spawn_lifecycle/positive_parallel_single_join.pgy",
+):
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(root / "tests/cases" / relative)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15.0, check=False)
+    if checked.returncode != 0 or b'"pgy.mir.v1"' not in checked.stdout:
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"existing worker/capture positive lost MIR admission: {relative}")
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
     ("stdlib_input_retention_valid", True),
@@ -80,6 +106,60 @@ paired = (
     ("recursive_record_wrapper_control_invalid", False),
     ("nested_call_retaining_input_invalid", False),
     ("nested_call_independent_result_valid", True),
+    ("slot_wrapper_direct_own_invalid", False),
+    ("slot_wrapper_direct_ref_valid", True),
+    ("slot_wrapper_binary_equal_own_invalid", False),
+    ("slot_wrapper_binary_equal_ref_valid", True),
+    ("slot_wrapper_binary_rhs_own_invalid", False),
+    ("slot_wrapper_binary_rhs_ref_valid", True),
+    ("slot_wrapper_unary_own_invalid", False),
+    ("slot_wrapper_unary_ref_valid", True),
+    ("slot_wrapper_return_own_invalid", False),
+    ("slot_wrapper_return_ref_valid", True),
+    ("slot_wrapper_let_own_invalid", False),
+    ("slot_wrapper_let_ref_valid", True),
+    ("slot_wrapper_call_argument_own_invalid", False),
+    ("slot_wrapper_call_argument_ref_valid", True),
+    ("slot_wrapper_array_own_invalid", False),
+    ("slot_wrapper_array_ref_valid", True),
+    ("slot_wrapper_tuple_own_invalid", False),
+    ("slot_wrapper_tuple_ref_valid", True),
+    ("slot_wrapper_index_base_own_invalid", False),
+    ("slot_wrapper_index_base_ref_valid", True),
+    ("slot_wrapper_index_index_own_invalid", False),
+    ("slot_wrapper_index_index_ref_valid", True),
+    ("slot_wrapper_match_tag_binding_ref_valid", True),
+    ("slot_wrapper_runtime_pattern_own_invalid", False),
+    ("slot_wrapper_transaction_compensation_own_invalid", False),
+    ("slot_wrapper_transaction_compensation_ref_valid", True),
+    ("slot_wrapper_capture_slot_map_invalid", False),
+    ("slot_wrapper_capture_string_map_invalid", False),
+    ("slot_wrapper_capture_slot_cast_invalid", False),
+    ("slot_wrapper_capture_string_cast_invalid", False),
+    ("slot_wrapper_capture_slot_type_test_invalid", False),
+    ("slot_wrapper_capture_string_type_test_invalid", False),
+    ("slot_wrapper_capture_slot_closure_return_invalid", False),
+    ("slot_wrapper_capture_string_closure_return_invalid", False),
+    ("slot_wrapper_capture_slot_direct_invalid", False),
+    ("slot_wrapper_capture_string_direct_return_invalid", False),
+    ("slot_wrapper_assignment_own_invalid", False),
+    ("slot_wrapper_assignment_ref_valid", True),
+    ("slot_wrapper_cast_own_invalid", False),
+    ("slot_wrapper_cast_ref_valid", True),
+    ("slot_wrapper_type_test_own_invalid", False),
+    ("slot_wrapper_type_test_ref_valid", True),
+    ("slot_wrapper_member_own_invalid", False),
+    ("slot_wrapper_member_ref_valid", True),
+    ("slot_wrapper_map_key_own_invalid", False),
+    ("slot_wrapper_map_key_ref_valid", True),
+    ("slot_wrapper_map_value_own_invalid", False),
+    ("slot_wrapper_map_value_ref_valid", True),
+    ("slot_wrapper_match_subject_own_invalid", False),
+    ("slot_wrapper_match_subject_ref_valid", True),
+    ("slot_wrapper_match_guard_own_invalid", False),
+    ("slot_wrapper_match_guard_ref_valid", True),
+    ("slot_wrapper_destructure_own_invalid", False),
+    ("slot_wrapper_destructure_ref_valid", True),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

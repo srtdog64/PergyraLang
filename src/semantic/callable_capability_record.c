@@ -65,7 +65,8 @@ callable_capability_enter(SemanticContext *ctx, ASTNode *decl, Type **params, si
     routine->declared_mask = decl->type == AST_FUNC_DECL
         ? ast_func_declared_capabilities(decl) : 0;
     routine->formals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(uint32_t));
-    if (routine->formals == NULL)
+    routine->formal_ordinals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(*routine->formal_ordinals));
+    if (routine->formals == NULL || routine->formal_ordinals == NULL)
         return previous;
     for (size_t i = 0; i < count; i++) {
         if (params[i] == NULL || params[i]->kind != TYPE_KIND_FUNCTION)
@@ -86,6 +87,7 @@ callable_capability_enter(SemanticContext *ctx, ASTNode *decl, Type **params, si
         }
         else if (decl->type == AST_FUNC_DECL)
             id = ast_func_param_stable_id(ast_func_param(decl, i));
+        routine->formal_ordinals[routine->count] = i;
         routine->formals[routine->count++] = id;
     }
     routine->next = ctx->callable_capabilities->routines;
@@ -166,6 +168,7 @@ callable_capability_record_return(SemanticContext *ctx, ASTNode *value)
         routine->result = (CapabilityTarget){0};
     if (target.kind == CAP_UNKNOWN) {
         routine->result_unknown = true;
+        routine->unknown_result_site = value;
     } else {
         CapabilityResultTarget *seen = routine->results;
         while (seen != NULL && (seen->target.kind != target.kind
@@ -176,6 +179,7 @@ callable_capability_record_return(SemanticContext *ctx, ASTNode *value)
                 callable_capability_allocate_equation(ctx, sizeof(*entry));
             if (entry == NULL) return;
             entry->target = target;
+            entry->site = value;
             entry->next = routine->results;
             routine->results = entry;
         }
@@ -213,12 +217,14 @@ callable_capability_record_call(SemanticContext *ctx, ASTNode *site,
     call->site = site;
     call->callee = capability_symbol_target(callee);
     call->actuals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(CapabilityTarget));
-    if (call->actuals == NULL)
+    call->actual_ordinals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(*call->actual_ordinals));
+    if (call->actuals == NULL || call->actual_ordinals == NULL)
         return;
     for (size_t i = 0; i < count; i++) {
         Type *param = type_function_param_type(callee != NULL ? callee->type : NULL, i);
         if (param == NULL || param->kind != TYPE_KIND_FUNCTION)
             continue;
+        call->actual_ordinals[call->count] = i;
         call->actuals[call->count++] = actual_types == NULL
             || (actual_types[i] != NULL && actual_types[i]->kind == TYPE_KIND_FUNCTION)
             ? capability_expression_target(ctx, event_invoke
@@ -243,12 +249,15 @@ callable_capability_record_method_call(SemanticContext *ctx, ASTNode *site,
     call->callee = (CapabilityTarget){CAP_DECL,
         ast_call_semantic_callee_decl_id(site)};
     call->actuals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(CapabilityTarget));
-    if (call->actuals == NULL) return;
+    call->actual_ordinals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(*call->actual_ordinals));
+    if (call->actuals == NULL || call->actual_ordinals == NULL) return;
     for (size_t p = 0; p < count; p++)
-        if (params[p] != NULL && params[p]->kind == TYPE_KIND_FUNCTION)
+        if (params[p] != NULL && params[p]->kind == TYPE_KIND_FUNCTION) {
+            call->actual_ordinals[call->count] = p;
             call->actuals[call->count++] = actual_types[p] != NULL
                 ? capability_expression_target(ctx, ast_call_argument(site, p))
                 : (CapabilityTarget){0};
+        }
     call->next = routine->calls;
     routine->calls = call;
     ctx->callable_capabilities->equation_count++;

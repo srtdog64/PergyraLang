@@ -1,0 +1,7 @@
+func Probe(ref text: String) -> Void {
+    let delayed: func() -> HashMap<String, String> = () => ({"value": text});
+}
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Probe(text);
+}

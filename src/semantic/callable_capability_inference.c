@@ -5,6 +5,8 @@
 #include "capability_analyze.h"
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
+#include "function_param_flow_summary_internal.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -146,6 +148,80 @@ capability_resolve(SemanticContext *ctx, CapabilityInstance *context,
  * candidate as a child keeps the fixed point sound without pretending the
  * value site resolved to a single declaration. */
 static bool
+capability_capture_environment(SemanticContext *ctx, CapabilityTarget target,
+                               bool *requires_local)
+{
+    if (target.kind == CAP_CONSTRUCTOR) return true;
+    if (target.kind != CAP_DECL) return false;
+    CallableCapabilityRoutine *routine = callable_capability_find_routine(ctx->callable_capabilities, target.id);
+    if (routine == NULL || ast_node_stable_id(routine->decl) != target.id) return false;
+    if (routine->decl->type != AST_LAMBDA_EXPR) return true;
+    SemanticPublishedDeferred view;
+    if (!semantic_param_publication_query_deferred(ctx, routine->decl, &view)) return false;
+    for (size_t c = 0; c < view.capture_count; c++)
+        *requires_local |= !view.captures[c].copy_escape;
+    return true;
+}
+
+static bool
+capability_value_environment(SemanticContext *ctx, CapabilityInstance *context,
+                             CapabilityTarget value, bool *requires_local)
+{
+    *requires_local = false;
+    CapabilityResultTarget *candidates = NULL;
+    CapabilityTarget target = capability_resolve(ctx, context, value,
+        ctx->callable_capabilities->equation_count + 1, &candidates);
+    /* An open formal is symbolic, not a copy-only receipt. Its concrete
+     * instances and actual argument boundaries are checked independently. */
+    if (target.kind == CAP_FORMAL && !context->closed) return true;
+    if (target.kind == CAP_DECL || target.kind == CAP_CONSTRUCTOR)
+        return capability_capture_environment(ctx, target, requires_local);
+    if (candidates == NULL) return false;
+    for (CapabilityResultTarget *c = candidates; c != NULL; c = c->next)
+        if (!capability_capture_environment(ctx, c->target, requires_local)) return false;
+    return true;
+}
+
+static bool
+capability_environment_refusal(SemanticContext *ctx, ASTNode *site)
+{
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, site,
+        "Callable environment escape lacks a current independent capture lifetime proof");
+    return false;
+}
+
+static bool
+capability_actual_environments_admitted(SemanticContext *ctx,
+    CapabilityInstance *caller, CapabilityCall *call, CallableCapabilityRoutine *callee)
+{
+    for (size_t p = 0; p < call->count; p++) {
+        bool requires_local = false;
+        bool known = capability_value_environment(ctx, caller, call->actuals[p], &requires_local);
+        if (!known) return capability_environment_refusal(ctx, call->site);
+        if (known && !requires_local) continue;
+        if (callee == NULL || callee->decl->type != AST_FUNC_DECL ||
+            ast_func_body(callee->decl) == NULL || p >= callee->count ||
+            callee->formal_ordinals == NULL) return capability_environment_refusal(ctx, call->site);
+        size_t ordinal = callee->formal_ordinals[p];
+        /* Synthetic dispatch rows already name the exact implementation's
+         * formal. Source calls must also retain their original argument slot. */
+        if ((call->site->type == AST_CALL || call->site->type == AST_EVENT_INVOKE) &&
+            (call->actual_ordinals == NULL || call->actual_ordinals[p] != ordinal))
+            return capability_environment_refusal(ctx, call->site);
+        if (call->site->type == AST_CALL &&
+            !semantic_param_publication_checked_argument(ctx, call->site, ordinal))
+            return capability_environment_refusal(ctx, call->site);
+        unsigned effect = function_param_flow_summary_for_param(ctx, callee->decl, ordinal);
+        if (ctx->has_error) return false;
+        if ((effect & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE |
+                       SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) != 0)
+            return capability_environment_refusal(ctx, call->site);
+    }
+    return true;
+}
+
+static bool
 capability_link_result_candidates(SemanticContext *ctx,
                                   struct CallableCapabilityStore *store,
                                   CapabilityInstance *caller,
@@ -159,6 +235,7 @@ capability_link_result_candidates(SemanticContext *ctx,
             ? callable_capability_find_routine(store, c->target.id) : NULL;
         if (callee == NULL || callee->count != call->count)
             return false;
+        if (!capability_actual_environments_admitted(ctx, caller, call, callee)) return false;
         CapabilityTarget *actuals = callable_capability_allocate_equation(ctx,
             (call->count + 1) * sizeof(CapabilityTarget));
         if (actuals == NULL)
@@ -285,17 +362,35 @@ callable_capability_seal(SemanticContext *ctx)
             return false;
     }
     for (CapabilityInstance *i = store->instances; i; i = i->next) {
+        if (i->routine->result_unknown)
+            return capability_environment_refusal(ctx, i->routine->unknown_result_site);
+        for (CapabilityResultTarget *r = i->routine->results; r != NULL; r = r->next) {
+            bool requires_local = false;
+            if (!capability_value_environment(ctx, i, r->target, &requires_local) || requires_local)
+                return capability_environment_refusal(ctx, r->site);
+        }
         if (i->routine->abstract_dispatch && i->routine->calls == NULL)
             i->deferred = true;
         for (CapabilityCall *call = i->routine->calls; call; call = call->next) {
             CapabilityResultTarget *candidates = NULL;
             CapabilityTarget target = capability_resolve(ctx, i, call->callee,
                 store->equation_count + 1, &candidates);
-            if (target.kind == CAP_CONSTRUCTOR) continue;
+            if (call->event_id != 0) {
+                bool requires_local = false;
+                if (!capability_value_environment(ctx, i, call->callee, &requires_local) || requires_local)
+                    return capability_environment_refusal(ctx, call->site);
+            }
+            if (target.kind == CAP_CONSTRUCTOR) {
+                if (!capability_actual_environments_admitted(ctx, i, call, NULL)) return false;
+                continue;
+            }
             if (target.kind != CAP_DECL) {
                 if (!capability_link_result_candidates(ctx, store, i,
-                        call, candidates))
+                        call, candidates)) {
+                    if (ctx->has_error) return false;
+                    if (!capability_actual_environments_admitted(ctx, i, call, NULL)) return false;
                     i->deferred = true;
+                }
                 continue;
             }
             CallableCapabilityRoutine *callee = callable_capability_find_routine(store, target.id);
@@ -303,6 +398,7 @@ callable_capability_seal(SemanticContext *ctx)
                 semantic_error(ctx, call->site, "Callable capability target/signature fact is missing");
                 return false;
             }
+            if (!capability_actual_environments_admitted(ctx, i, call, callee)) return false;
             CapabilityTarget *actuals = callable_capability_allocate_equation(ctx,
                 (call->count + 1) * sizeof(CapabilityTarget));
             if (actuals == NULL) return false;

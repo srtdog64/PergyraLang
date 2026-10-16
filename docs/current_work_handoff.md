@@ -5,6 +5,51 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context — GPT main integration and P0 validation
 
+Active priority: finish the executed-child / deferred-capture safety repair
+before resuming the unchanged canonical admission prerequisite. This is an
+UNVERIFIED LOCAL WIP checkpoint, parent `de1335b2e`; do not publish it as a
+green candidate. The only local branch is `main`, and published main remains
+`571ae8c3a`. No push or integrated bootstrap/installed-driver/CI acceptance.
+
+The existing publication, parameter-flow/index and callable-capability owners
+remain authoritative. The repair seals complete input topology, distinguishes
+eager evaluation from checked deferred captures, preserves original argument
+ordinals, and checks the direct callable environment's retaining consumers.
+No new semantic owner, source ceremony, relaxed safety or larger work budget.
+Three existing implementers are frozen; root owns integration and the single
+WSL build lease. The objective/remaining chain is in
+[`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md),
+section `Active safety blocker`.
+
+Latest root-observed phase unit: **4901 checks / 1 failure** on this source,
+receipt `/root/pgy-main-20261016.p0-checkpoint-phase.log`. The remaining failure
+is the compensation REF control: transaction flow never typed its handlers.
+The earlier checked-deferred build restored all12 original worker positives and
+refused all7 independent capture probes before MIR. The first wrapper repair
+preserved20 REF admissions and refused20 OWN cases; these are scoped historical
+receipts, not acceptance of changes made afterwards. Unsafe cases were never
+executed. Existing strict diagnostic oracles remain unchanged.
+
+Next falsifiers / required obligations:
+- Transaction compensation typing must use actual fail-path resource states,
+  reverse handler order and backend-equivalent scope, not entry/end equality or
+  an unconditional normal-path check. Access still needs handler children.
+- A returned `Holder` containing a String-capturing closure crosses aggregate
+  boundaries in the frozen old binary. Connect the existing capability owner
+  to typed leaf-store producers; direct local/copy-only controls must survive.
+- Re-run summary negatives after the function-type topology correction; Set
+  cases whose primary failure is unsupported typing are not safety evidence.
+- The unchanged599-line source gate has12 violations in the combined source.
+  Split cohesive physical components without changing logical ownership or
+  raising/compressing the cap.
+- Full native canonical, unchanged4096/4097 controls, bootstrap/fixed point,
+  driver memory, installed C/LLVM driver and exact-SHA CI all remain OPEN.
+
+Do not resume the deferred matrix cost experiment until these reached safety
+obligations are resolved. Native repair is a prerequisite, not C substitution.
+
+### Historical diagnostic archive — lookup only, not an active work queue
+
 The owner resumed work on 2026-10-16 and requested one main branch. The
 inherited shared WIP is recoverable at `78cc0ba23`; Claude's committed lane
 `3721a901c` was merged at `5684085b2`. The only local branch is `main`;

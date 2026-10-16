@@ -1,0 +1,9 @@
+func Make() -> func(Int) -> Int {
+    let text: String = Concat("heap", " text");
+    let f: func(Int) -> Int = (n: Int) => StringLength(text) + n;
+    return f;
+}
+func Main() -> Void {
+    let f: func(Int) -> Int = Make();
+    Log(f(1));
+}

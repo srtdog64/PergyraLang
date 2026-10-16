@@ -10,13 +10,13 @@ typedef struct {
     CapabilityTargetKind kind;
     uint32_t id;
 } CapabilityTarget;
-/* Callable captures are rejected by the capture owner. Scalar copy captures
- * do not affect a lambda's capability identity; interning declaration/actual
- * tuples therefore remains finite even when recursion creates local lambdas. */
+/* Declaration identity remains independent of capture storage. The seal also
+ * consumes the capture owner's current receipt at each retained value exit. */
 typedef struct CapabilityCall {
     ASTNode *site;
     CapabilityTarget callee;
     CapabilityTarget *actuals;
+    size_t *actual_ordinals;
     size_t count;
     uint32_t event_id;
     struct CapabilityCall *next;
@@ -26,6 +26,7 @@ typedef struct CapabilityCall {
  * so the equation keeps every distinct return target, not just a collapsed one. */
 typedef struct CapabilityResultTarget {
     CapabilityTarget target;
+    ASTNode *site;
     struct CapabilityResultTarget *next;
 } CapabilityResultTarget;
 typedef struct CapabilityBinding {
@@ -43,6 +44,7 @@ struct CallableCapabilityRoutine {
     ASTNode *decl;
     uint32_t id;
     uint32_t *formals;
+    size_t *formal_ordinals;
     size_t count;
     uint32_t direct_mask;
     uint32_t declared_mask;
@@ -55,6 +57,7 @@ struct CallableCapabilityRoutine {
     CapabilityResultTarget *results;
     bool result_unknown;
     bool has_result;
+    ASTNode *unknown_result_site;
     CapabilityCall *calls;
     CapabilityInstance *instances;
     struct CallableCapabilityRoutine *next;

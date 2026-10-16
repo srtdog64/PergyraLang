@@ -1,0 +1,5 @@
+func TakeNumber(own slot: Slot<Int>) -> Int { return 0; }
+func Probe(ref slot: Slot<Int>) -> Void {
+    let observed: Long = TakeNumber(slot) as Long; Log(observed);
+}
+func Main() -> Void {}

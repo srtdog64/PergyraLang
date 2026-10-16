@@ -4,6 +4,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_channel_transport_internal.h"
 #include "type_checker_ownership_internal.h"
+#include "function_param_publication_owner.h"
 
 static const char *
 spawn_direct_callee_name(ASTNode *spawned)
@@ -304,7 +305,7 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
     Type *args[1];
     Type *inner;
 
-    (void)semantic_future_admit_spawn(expr, ctx);
+    bool lifecycle_admitted = semantic_future_admit_spawn(expr, ctx);
     semantic_record_body_summary(ctx, BODY_SUMMARY_SPAWNS_TASK);
     semantic_record_effect(ctx, EFFECT_REMOTE);
     if (semantic_reject_active_slot_view_boundary(expr, ctx,
@@ -330,6 +331,10 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
         args[0] = TYPE_UNKNOWN;
         return type_create_constructed(TYPE_FUTURE, args, 1);
     }
+    if (!ctx->has_error && (!lifecycle_admitted || inner == TYPE_UNKNOWN ||
+        !semantic_param_publication_record_deferred_scan(ctx, expr) ||
+        !semantic_param_publication_record_checked_deferred(ctx, expr)))
+        semantic_error(ctx, expr, "Checked spawn boundary publication failed");
     args[0] = inner;
     return type_create_constructed(TYPE_FUTURE, args, 1);
 }

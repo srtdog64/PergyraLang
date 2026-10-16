@@ -4,6 +4,7 @@
  */
 
 #include "ast_analysis.h"
+#include "../common/match_variant_policy.h"
 
 #include <string.h>
 
@@ -86,6 +87,10 @@ static bool
 ast_match_case_binds_name(const ASTNode *node, const char *name)
 {
     if (node == NULL || node->type != AST_MATCH_CASE)
+        return false;
+    if (node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_OPTION &&
+        node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_RESULT &&
+        node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_ENUM)
         return false;
     if (ast_pattern_binds_name(node->data.match_case.pattern, name))
         return true;
@@ -190,7 +195,9 @@ ast_contains_identifier_ref(const ASTNode *node,
         return ast_contains_identifier_ref(node->data.with_stmt.body, predicate, userdata);
     case AST_PARALLEL_BLOCK:
         return ast_array_contains_identifier_ref(
-            node->data.parallel.tasks, node->data.parallel.task_count, predicate, userdata);
+                node->data.parallel.tasks, node->data.parallel.task_count, predicate, userdata)
+            || ast_contains_identifier_ref(node->data.parallel.join_collection, predicate, userdata)
+            || ast_contains_identifier_ref(node->data.parallel.join_range_end, predicate, userdata);
     case AST_FOR_LOOP:
         return ast_contains_identifier_ref(node->data.for_loop.range_start, predicate, userdata)
             || ast_contains_identifier_ref(node->data.for_loop.range_end, predicate, userdata)
@@ -217,10 +224,18 @@ ast_contains_identifier_ref(const ASTNode *node,
                 node->data.match_stmt.cases, node->data.match_stmt.case_count, predicate, userdata)
             || ast_contains_identifier_ref(node->data.match_stmt.default_body, predicate, userdata);
     case AST_MATCH_CASE:
-        return ast_array_contains_identifier_ref(
-                node->data.match_case.patterns, node->data.match_case.pattern_count,
-                predicate, userdata)
-            || ast_contains_identifier_ref(node->data.match_case.guard, predicate, userdata)
+        if (node->data.match_case.semantic_subject_family == PGY_MATCH_SUBJECT_UNKNOWN) {
+            bool single_seen = false;
+            for (size_t i = 0; i < node->data.match_case.pattern_count; i++) {
+                ASTNode *pattern = node->data.match_case.patterns[i];
+                single_seen |= pattern == node->data.match_case.pattern;
+                if (ast_contains_identifier_ref(pattern, predicate, userdata)) return true;
+            }
+            if (!single_seen && ast_contains_identifier_ref(node->data.match_case.pattern, predicate, userdata)) return true;
+        } else if (node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_OPTION &&
+                   node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_RESULT &&
+                   node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_ENUM) return true;
+        return ast_contains_identifier_ref(node->data.match_case.guard, predicate, userdata)
             || ast_contains_identifier_ref(node->data.match_case.body, predicate, userdata);
     case AST_BINARY:
         return ast_contains_identifier_ref(node->data.binary.left, predicate, userdata)
@@ -242,6 +257,13 @@ ast_contains_identifier_ref(const ASTNode *node,
     case AST_TUPLE_LITERAL:
         return ast_array_contains_identifier_ref(
             node->data.tuple_literal.elements, node->data.tuple_literal.count, predicate, userdata);
+    case AST_SET_LITERAL:
+        return ast_array_contains_identifier_ref(
+            node->data.set_literal.elements, node->data.set_literal.count, predicate, userdata);
+    case AST_PARTY_INSTANCE:
+        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++)
+            if (ast_contains_identifier_ref(node->data.party_instance.assignments[i].value, predicate, userdata)) return true;
+        return false;
     case AST_MAP_LITERAL:
         return ast_array_contains_identifier_ref(
             node->data.map_literal.keys, node->data.map_literal.count, predicate, userdata)
@@ -283,7 +305,9 @@ ast_contains_identifier_ref(const ASTNode *node,
     case AST_UNSAFE_BLOCK:
         return ast_contains_identifier_ref(node->data.unsafe_block.body, predicate, userdata);
     case AST_TRANSACTION_BLOCK:
-        return ast_contains_identifier_ref(node->data.transaction_block.body, predicate, userdata);
+        return ast_contains_identifier_ref(node->data.transaction_block.body, predicate, userdata)
+            || ast_array_contains_identifier_ref(node->data.transaction_block.compensations,
+                node->data.transaction_block.compensation_count, predicate, userdata);
     case AST_FAIL_STMT:
         return ast_contains_identifier_ref(node->data.fail_stmt.reason, predicate, userdata);
     case AST_DEFER_STMT:
@@ -313,8 +337,10 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
     case AST_WITH_STMT:
         return ast_contains_free_identifier_ref(node->data.with_stmt.body, name);
     case AST_PARALLEL_BLOCK:
-        return ast_array_contains_free_identifier_ref(
-            node->data.parallel.tasks, node->data.parallel.task_count, name);
+        return ast_contains_free_identifier_ref(node->data.parallel.join_collection, name)
+            || ast_contains_free_identifier_ref(node->data.parallel.join_range_end, name)
+            || ((!node->data.parallel.is_join_form || !ast_name_matches(node->data.parallel.join_element, name)) &&
+                ast_array_contains_free_identifier_ref(node->data.parallel.tasks, node->data.parallel.task_count, name));
     case AST_FOR_LOOP:
         return ast_contains_free_identifier_ref(node->data.for_loop.range_start, name)
             || ast_contains_free_identifier_ref(node->data.for_loop.range_end, name)
@@ -342,6 +368,17 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
                 node->data.match_stmt.cases, node->data.match_stmt.case_count, name)
             || ast_contains_free_identifier_ref(node->data.match_stmt.default_body, name);
     case AST_MATCH_CASE:
+        if (node->data.match_case.semantic_subject_family == PGY_MATCH_SUBJECT_UNKNOWN) {
+            bool single_seen = false;
+            for (size_t i = 0; i < node->data.match_case.pattern_count; i++) {
+                ASTNode *pattern = node->data.match_case.patterns[i];
+                single_seen |= pattern == node->data.match_case.pattern;
+                if (ast_contains_free_identifier_ref(pattern, name)) return true;
+            }
+            if (!single_seen && ast_contains_free_identifier_ref(node->data.match_case.pattern, name)) return true;
+        } else if (node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_OPTION &&
+                   node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_RESULT &&
+                   node->data.match_case.semantic_subject_family != PGY_MATCH_SUBJECT_ENUM) return true;
         if (ast_match_case_binds_name(node, name))
             return false;
         return ast_contains_free_identifier_ref(node->data.match_case.guard, name)
@@ -366,6 +403,13 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
     case AST_TUPLE_LITERAL:
         return ast_array_contains_free_identifier_ref(
             node->data.tuple_literal.elements, node->data.tuple_literal.count, name);
+    case AST_SET_LITERAL:
+        return ast_array_contains_free_identifier_ref(
+            node->data.set_literal.elements, node->data.set_literal.count, name);
+    case AST_PARTY_INSTANCE:
+        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++)
+            if (ast_contains_free_identifier_ref(node->data.party_instance.assignments[i].value, name)) return true;
+        return false;
     case AST_MAP_LITERAL:
         return ast_array_contains_free_identifier_ref(
             node->data.map_literal.keys, node->data.map_literal.count, name)
@@ -409,7 +453,9 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
     case AST_UNSAFE_BLOCK:
         return ast_contains_free_identifier_ref(node->data.unsafe_block.body, name);
     case AST_TRANSACTION_BLOCK:
-        return ast_contains_free_identifier_ref(node->data.transaction_block.body, name);
+        return ast_contains_free_identifier_ref(node->data.transaction_block.body, name)
+            || ast_array_contains_free_identifier_ref(node->data.transaction_block.compensations,
+                node->data.transaction_block.compensation_count, name);
     case AST_FAIL_STMT:
         return ast_contains_free_identifier_ref(node->data.fail_stmt.reason, name);
     case AST_DEFER_STMT:

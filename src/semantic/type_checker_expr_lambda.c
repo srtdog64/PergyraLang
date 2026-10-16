@@ -2,6 +2,7 @@
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 static Type *
 lambda_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
@@ -116,15 +117,6 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
 
     bool allow_copy_capture = ctx->capture_allowed_let_init;
     ctx->capture_allowed_let_init = false; /* body lambdas are escaping */
-    if (semantic_reject_lambda_unsupported_captures(
-            expr, ctx, allow_copy_capture)) {
-        scope_exit(&ctx->scope);
-        lambda_restore_context(ctx, saved_effects, saved_direct_effects, saved_capabilities,
-                               saved_body_summary, saved_tracking);
-        free(param_types);
-        return TYPE_UNKNOWN;
-    }
-
     CallableCapabilityRoutine *previous_capability =
         callable_capability_enter(ctx, expr, param_types, param_count);
     Type *body_expr_type = NULL;
@@ -163,13 +155,18 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
         ctx->current_return = saved_return;
         ctx->in_async_func = saved_in_async;
     }
+    bool capture_rejected = ctx->has_error;
+    if (!capture_rejected)
+        capture_rejected = semantic_reject_lambda_unsupported_captures(
+            expr, ctx, allow_copy_capture);
     lambda_effects = ctx->current_function_effects;
     lambda_capabilities = ctx->current_function_capabilities;
     lambda_body_summary = ctx->current_function_body_summary;
 
     scope_exit(&ctx->scope);
-    result = type_create_function(param_types, param_count, return_type);
-    if (result != NULL) {
+    result = capture_rejected ? TYPE_UNKNOWN :
+        type_create_function(param_types, param_count, return_type);
+    if (result != NULL && result != TYPE_UNKNOWN) {
         type_function_set_effects(result,
             type_effect_mask_closure(lambda_effects));
         type_function_set_capabilities(result, lambda_capabilities);
@@ -180,5 +177,10 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
     lambda_restore_context(ctx, saved_effects, saved_direct_effects, saved_capabilities,
                            saved_body_summary, saved_tracking);
     free(param_types);
+    if (!ctx->has_error && result != NULL && result != TYPE_UNKNOWN &&
+        !semantic_param_publication_record_checked_deferred(ctx, expr)) {
+        semantic_error(ctx, expr, "Checked lambda boundary publication failed");
+        return TYPE_UNKNOWN;
+    }
     return result != NULL ? result : TYPE_UNKNOWN;
 }
