@@ -163,6 +163,49 @@ not canonical admission. The next operation must remove the measured repeated
 per-input backing traversal behind this same owner, preserving per-origin
 effects/output facts and the 4096/shared-DAG negative controls.
 
+Re-measured on exact binary d539 and unchanged canonical input: first demand
+608 stops at 4096, with 139 summary evaluations, 324 no-store graph members,
+and 3633 backing charges (307 destination, 574 origin, 2752 eager consumers).
+Those events cover 4052 distinct `(routine, input ordinal, node)` occurrences
+but only 2617 distinct `(routine, node)` identities across 116 frames. Receipt
+WSL `.tmp/p0-current-work-trace.3rGPw2/`; observer-only source/build/bin was
+restored byte-identically. This establishes repeated per-input owned work;
+it is not a license to charge fewer units while still doing the same scans.
+
+Whole-chain closure map for the next implementation decision:
+
+1. The fact owner is the existing program-point index and backing frame, not a
+   new query cache. `function_param_flow_returned_backing_effects` currently
+   seeds and traverses one frame per formal; `backing_origin`,
+   `backing_destination_value` and `backing_consumers` produce origins,
+   destination outputs, effects and pending/unsupported relations.
+2. A joint frame would seed one origin bit per formal and traverse each owned
+   node once per fixed-point epoch. It must retain per-origin effects,
+   destination-output rows and **separate** pending, unsupported and unproved
+   verdicts. `owner_store` and recursive self-call exemptions must mask only
+   the matching origin bit; the other input bits still escape or await proof.
+   Snapshot reads must remain stable across later binding growth.
+3. Consumers to migrate together: frame/currentness and exact identity checks
+   in `function_param_flow_backing_rows_current`; output projections in
+   `function_param_flow_output_current` and summary evaluation; recursive
+   pending sealing; unsupported/unproved queries; returned-loan and final
+   required-backing admission; frame destruction. Do not leave per-input
+   frames as a second semantic authority beside a joint owner.
+4. Admission falsifiers: two formals with only one retained, two aliases to
+   the same output, owner-slot write that exempts only its own origin, a
+   recursive self-call that exempts only its matching formal, late binding
+   growth after a read, shared AST diamond/cycle, 65/129-formal bit edges,
+   stale/forged claim or typed publication, 4096/4097 limits, and the same
+   4273-signature/3188-key fixed canonical census. The last consumer is the
+   installed-driver ownership admission, not a local unit-test count.
+
+Unknown before editing: whether one pending call edge must retain an origin
+subset or can be reconstructed from the joint node bits on replay; whether
+unsupported-call classification is uniformly per-origin; and which current
+summary state queries require a fully complete joint frame versus a ready
+projected formal. Resolve these from source and falsifying fixtures before
+changing the frame layout. A partial joint/per-input dual read is forbidden.
+
 The accepted binary's 13 required-backing failures are exactly the current
 input frames of two routines: `SemanticAstCollectionFocusRecoveryFromResolvedFacts`
 (8 inputs) and `SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts`

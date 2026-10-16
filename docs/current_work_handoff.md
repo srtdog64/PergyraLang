@@ -9,7 +9,7 @@ One rung: unchanged full canonical/DRV-2 admission -> real codegen bootstrap
 and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
 Published main is `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA CI
 run `38860052641` is RED with bootstrap/install skipped. Local main source
-checkpoint is `5be590a4463901e61b9373b51018207bf6bdfd02`, 14 commits ahead;
+checkpoint is `aa076ffa3853b6088a142322952ff31244a269dc`, 16 commits ahead;
 this navigation edit is pending its own commit. Nothing from this slice was
 pushed. Only main is edited. Root owns WSL builds/tests/processes and Git.
 WSL `/root/pgy-main-20261016` is Git HEAD39a with a byte-checked source
@@ -37,15 +37,24 @@ gen0 (18410 errors), build directory WSL
 `.tmp/p0-return-bootstrap.tEZZAx/`. No gen2==gen3, installed-driver, memory,
 or required CI green evidence exists on this source; do not push known red.
 
+The two required-backing factory paths both fail their no-store graph's
+`mutable_output_required` check. The first failing call in the focus factory
+is typed `MapNew()`. Consuming its already-published empty-map binding alone
+did not admit the returned aggregate: on the same fixed census, it resolved
+zero keys and changed zero masks. That source trial was reverted and the
+compiler restored to d539. `declared_empty_map_scope_unready.pgy` now guards
+the exact no-MIR required-backing refusal in the focused summary gate.
+
 Next falsifier: the remaining measured repeated *owned* per-input backing
-traversal. First warm demand608 before this leaf had E135/G324/B3635 charges;
-re-measure its new per-owner split before choosing a larger contract. The
+traversal. On the latest d539 binary, first demand608 has 139 summary, 324
+graph and 3633 backing charges; 4052 distinct `(routine, ordinal, node)` but
+only 2617 `(routine, node)` identities across 116 frames. Receipt WSL
+`.tmp/p0-current-work-trace.3rGPw2/`, observer restore byte-identical. The
 fact owner is the backing frame/claims; last consumers are summary outputs,
 returned-loan and ownership admission. Joint-origin facts require full
 consumer migration and separate per-origin pending/unproved evidence, not a
-budget waiver or charge skip. The 13 required-backing failures are self-frames
-of two factories; their declared-result frames refuse at the no-store graph
-prerequisite, whose exact predicate and fresh-ownership proof remain OPEN.
+budget waiver or charge skip. The remaining 13 required-backing failures
+also need a complete fresh-result proof, not a MapNew name grant.
 Do not raise budget, shrink input, grant TOP/unproved, or substitute
 native-only success for installed evidence. Chain map and receipts:
 [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
