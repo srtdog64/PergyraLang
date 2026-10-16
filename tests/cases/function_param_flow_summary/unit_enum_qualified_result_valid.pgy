@@ -1,0 +1,12 @@
+enum Purpose { InspectOnly, Emit }
+
+func Probe(ref text: String, purpose: Purpose) -> Option<Int> {
+    let inspect = purpose == Purpose.InspectOnly;
+    if inspect { return Some(StringLength(text)); }
+    return Some(0);
+}
+
+func Main() -> Void {
+    let text = Concat("heap", " text");
+    Log(UnwrapOption(Probe(text, Purpose.InspectOnly)));
+}

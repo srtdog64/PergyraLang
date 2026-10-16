@@ -47,11 +47,44 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
             sym = scope_lookup(ctx->scope, member_name);
         if (sym != NULL) {
             sym->is_used = true;
-            free(flat_name);
-            free(display_name);
             if (semantic_param_publication_pending(ctx) &&
                 !semantic_param_publication_record_value(ctx, expr, sym->type, true))
                 semantic_error(ctx, expr, "Checked static value publication failed");
+            if (!ctx->has_error &&
+                member_name != NULL &&
+                sym->kind == SYMBOL_VARIABLE && sym->type != NULL &&
+                sym->type->kind == TYPE_KIND_ENUM) {
+                ASTNode *qualifier = ast_member_object(expr);
+                const char *qualifier_name = qualifier != NULL &&
+                    qualifier->type == AST_IDENTIFIER
+                    ? ast_identifier_name(qualifier) : NULL;
+                Symbol *owner = qualifier_name != NULL
+                    ? scope_lookup(ctx->scope, qualifier_name) : NULL;
+                ASTNode *decl = semantic_host_decl_for_type(ctx, sym->type);
+                size_t variant_count = 0, ordinal = 0;
+                char **variants = decl != NULL && decl->type == AST_ENUM_DECL
+                    ? ast_enum_variants(decl, &variant_count) : NULL;
+                while (ordinal < variant_count &&
+                       (variants == NULL || variants[ordinal] == NULL ||
+                        strcmp(variants[ordinal], member_name) != 0))
+                    ordinal++;
+                if (decl != NULL && owner != NULL && owner->kind == SYMBOL_CLASS &&
+                    owner->type == sym->type &&
+                    owner->decl_syntax_id != 0 &&
+                    owner->decl_syntax_id == sym->decl_syntax_id &&
+                    owner->decl_syntax_id == ast_node_stable_id(decl) &&
+                    sym->name != NULL && strcmp(sym->name, member_name) == 0 &&
+                    ast_enum_name(decl) != NULL &&
+                    strcmp(ast_enum_name(decl), qualifier_name) == 0 &&
+                    ordinal < variant_count &&
+                    ast_enum_variant_param_count(decl, ordinal) == 0 &&
+                    !semantic_param_publication_record_checked_unit_enum_selection(
+                        ctx, expr, decl, sym->type, ordinal))
+                    semantic_error(ctx, expr,
+                        "Checked unit enum selection publication failed");
+            }
+            free(flat_name);
+            free(display_name);
             return sym->type;
         }
         semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,

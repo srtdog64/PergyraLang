@@ -74,6 +74,16 @@ void semantic_nominal_result_snapshot_destroy(SemanticNominalResultSnapshot *sna
     free(snapshot);
 }
 
+void semantic_published_unit_enum_selection_destroy(
+    SemanticPublishedUnitEnumSelection *selection)
+{
+    if (selection == NULL) return;
+    free(selection->qualifier_name);
+    free(selection->enum_name);
+    free(selection->member_name);
+    free(selection);
+}
+
 bool semantic_param_publication_reserve_storage(void **rows, size_t *capacity, size_t count, size_t size)
 {
     if (count < *capacity) return true;
@@ -96,6 +106,7 @@ void semantic_param_publication_retire_value(PublishedNode *row)
         row->value_type_name, row->relation_argument_type, row->relation_result_type};
     for (size_t i = 0; i < sizeof(metadata) / sizeof(metadata[0]); i++) free(metadata[i]);
     semantic_nominal_result_snapshot_destroy(row->nominal_result);
+    semantic_published_unit_enum_selection_destroy(row->unit_enum_selection);
     PublishedNode identity = {.node = row->node, .id = row->id, .routine_index = row->routine_index,
         .execution_present = row->execution_present, .reachable = row->reachable};
     *row = identity;

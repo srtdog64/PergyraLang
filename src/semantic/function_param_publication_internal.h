@@ -17,5 +17,7 @@ PublishedNode *publication_result_current(const SemanticContext *ctx,
     const ASTNode *call);
 PublishedNode *publication_current_value(const SemanticContext *ctx,
     const ASTNode *value);
+void semantic_published_unit_enum_selection_destroy(
+    SemanticPublishedUnitEnumSelection *selection);
 
 #endif

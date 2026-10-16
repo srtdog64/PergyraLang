@@ -51,6 +51,13 @@ typedef struct {
     uint32_t slot_binding_id, token_binding_id;
     const Type *slot_type, *token_type;
 } SemanticPublishedSlotBirth;
+typedef struct {
+    const ASTNode *qualifier, *enum_decl;
+    uint32_t qualifier_id, qualifier_binding_id, member_id, enum_decl_id;
+    const Type *enum_type;
+    size_t variant_ordinal, variant_count, payload_count;
+    char *qualifier_name, *enum_name, *member_name;
+} SemanticPublishedUnitEnumSelection;
 bool semantic_param_publication_read_payload_loan_current(const SemanticContext *ctx,
     const PendingReadPayloadLoan *loan, uint32_t *owned_receiver_binding);
 bool semantic_param_publication_record_owned_slot_binding(SemanticContext *ctx,
@@ -139,6 +146,7 @@ typedef struct {
     uint32_t slot_birth_annotation_id, owned_slot_declaration_id;
     const Type *slot_birth_annotation_type;
     size_t read_payload_loan_index;
+    SemanticPublishedUnitEnumSelection *unit_enum_selection;
     bool empty_map_binding, slot_write;
     const ASTNode *map_type_node;
     uint32_t map_type_id;
@@ -222,6 +230,11 @@ bool semantic_param_publication_admitted_view(const SemanticContext *ctx, Semant
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view);
 bool semantic_param_publication_record_checked_result_relation(SemanticContext *ctx, ASTNode *call,
     const Type *argument_type, const Type *result_type, uint32_t selected_decl, size_t payload_ordinal);
+bool semantic_param_publication_record_checked_unit_enum_selection(
+    SemanticContext *ctx, ASTNode *member, ASTNode *enum_decl,
+    const Type *enum_type, size_t variant_ordinal);
+bool semantic_param_publication_checked_unit_enum_selection(
+    const SemanticContext *ctx, const ASTNode *member);
 /* Ownership transfers only on success; failure leaves the producer responsible. */
 bool semantic_param_publication_record_nominal_result(SemanticContext *ctx,
     ASTNode *call, SemanticNominalResultSnapshot *snapshot);

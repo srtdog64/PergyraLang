@@ -56,7 +56,10 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         source->destination_read_epoch = state->fact->epoch;
         backing_merge(state->fact->destination_words, destinations, source->destinations); break;
     }
-    case AST_MEMBER_ACCESS: backing_destination_value(state, ast_member_object(value), destinations); break;
+    case AST_MEMBER_ACCESS:
+        if (!semantic_param_publication_checked_unit_enum_selection(state->store->ctx, value))
+            backing_destination_value(state, ast_member_object(value), destinations);
+        break;
     case AST_ARRAY_ACCESS: backing_destination_value(state, ast_array_access_array(value), destinations); break;
     case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
         for (size_t p = 0; p < (value->type == AST_ARRAY_LITERAL ? ast_array_literal_count(value) : ast_tuple_literal_count(value)); p++)
@@ -155,7 +158,12 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
         else fact->complete = false;
         break;
     }
-    case AST_MEMBER_ACCESS: { const uint64_t *bits = backing_origin(state, ast_member_object(node)); if (bits != NULL) backing_merge(state->fact->origin_words, origins, bits); break; }
+    case AST_MEMBER_ACCESS:
+        if (!semantic_param_publication_checked_unit_enum_selection(state->store->ctx, node)) {
+            const uint64_t *bits = backing_origin(state, ast_member_object(node));
+            if (bits != NULL) backing_merge(state->fact->origin_words, origins, bits);
+        }
+        break;
     case AST_ARRAY_ACCESS: { const uint64_t *bits = backing_origin(state, ast_array_access_array(node)); if (bits != NULL) backing_merge(state->fact->origin_words, origins, bits); break; }
     case AST_STRING: case AST_NUMBER: case AST_BOOLEAN: break;
     case AST_CALL:
@@ -356,7 +364,10 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
     case AST_CAST:
         if (!semantic_param_publication_checked_numeric_cast(state->store->ctx, node)) fact->complete = false;
         backing_consumers(state, ast_cast_operand(node)); break;
-    case AST_MEMBER_ACCESS: backing_consumers(state, ast_member_object(node)); break;
+    case AST_MEMBER_ACCESS:
+        if (!semantic_param_publication_checked_unit_enum_selection(state->store->ctx, node))
+            backing_consumers(state, ast_member_object(node));
+        break;
     case AST_ARRAY_ACCESS: backing_consumers(state, ast_array_access_array(node)); backing_consumers(state, ast_array_access_index(node)); break;
     case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
         for (size_t i = 0; i < (node->type == AST_ARRAY_LITERAL ? ast_array_literal_count(node) : ast_tuple_literal_count(node)); i++)

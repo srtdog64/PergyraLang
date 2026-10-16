@@ -547,7 +547,9 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
     case AST_CAST:
         return !semantic_param_publication_checked_numeric_cast(ctx, node) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_cast_operand(node));
-    case AST_MEMBER_ACCESS: return function_param_flow_mutable_output_required(ctx, decl, index, ast_member_object(node));
+    case AST_MEMBER_ACCESS:
+        return !semantic_param_publication_checked_unit_enum_selection(ctx, node) &&
+            function_param_flow_mutable_output_required(ctx, decl, index, ast_member_object(node));
     case AST_ARRAY_ACCESS:
         return function_param_flow_mutable_output_required(ctx, decl, index, ast_array_access_array(node)) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_array_access_index(node));

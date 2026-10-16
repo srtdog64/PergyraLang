@@ -226,6 +226,8 @@ promote:
     row->semantic_promoted = true;
     row->execution_present = semantic_param_publication_execution(ctx, node, &row->reachable);
     row->physical_value = semantic_param_publication_value_is_physical_scalar(ctx, node);
+    row->unit_enum_selection = node->type == AST_MEMBER_ACCESS &&
+        semantic_param_publication_checked_unit_enum_selection(ctx, node);
     SemanticPublishedValue value = semantic_param_publication_value(ctx, node);
     row->value_ready = value.ok;
     row->value_meta = value.ok && value.meta;
@@ -297,6 +299,8 @@ static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
             claims->failed = true; return false;
         }
         bool child_eager = descendants_eager;
+        if (node->type == AST_MEMBER_ACCESS && c == 0 &&
+            claims->rows[at].unit_enum_selection) child_eager = false;
         if (node->type == AST_CALL && c > ast_call_arg_count(node)) child_eager = false;
         if ((node->type == AST_LET_DECL && c == 1) || (node->type == AST_WITH_STMT && c == 0) ||
             node->type == AST_CONTEXT_ACCESS) child_eager = false;
@@ -370,6 +374,8 @@ static bool function_param_flow_claims_current(const SemanticContext *ctx,
         bool execution_present = semantic_param_publication_execution(ctx, row->node, &reachable);
         if (row->execution_present != execution_present ||
             (execution_present && row->reachable != reachable)) return false;
+        if (row->unit_enum_selection != (row->shape == AST_MEMBER_ACCESS &&
+            semantic_param_publication_checked_unit_enum_selection(ctx, row->node))) return false;
         if (execution_present && !reachable) continue;
         if (row->shape == AST_LET_DECL && row->channel_binding != semantic_param_publication_channel_binding(ctx, row->node)) return false;
         if (row->shape == AST_LET_DECL && row->empty_map_binding != semantic_param_publication_empty_map_binding(ctx, row->node)) return false;

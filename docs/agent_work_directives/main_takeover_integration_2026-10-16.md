@@ -640,10 +640,91 @@ incomplete0,105.20s/1245328KiB. Versus committedbd:40 resolved/0 newly failed/
 exit86/no MIR, source/build/bin/dependencies/modes/status/diff restored
 byte-identically. Installed-driver/gen2==gen3 are not reached or passed.
 
-Latest read-only red-team request is frozen RXLKQ8/binary604, source.diff
-61223eadb1171fe849faa60b626818b98c6e5e36034c63f361ff0ab48326f6f5;
-independent conclusion pending. Published39a CI run38860052641 was refreshed:
+The frozen RXLKQ8/binary604 independent review, source.diff
+61223eadb1171fe849faa60b626818b98c6e5e36034c63f361ff0ab48326f6f5,
+found no new false admission in its bounded Finish repair; 119 analyze-only
+cases were 31 MIR/88 refusals, and root replayed their outcomes. Its separate
+Pool/Destroy read case is an existing OPEN: both prior sound binbd and bin604
+admit the same29532-byte MIR, with no unsafe execution. This review is not a
+whole-language safety approval. Published39a CI run38860052641 was refreshed:
 completed/failure. No V1/SoT closure or published-green claim.
+
+##### Next canonical prerequisite — exact unit-enum qualifier edge
+
+- Objective/order: unblock the unchanged canonical admission at
+  SemanticAstNativePipelineOnlyStatementRefusal:32:6 without turning a type
+  namespace into a fabricated runtime value. Semantic identity/currentness,
+  fail-closed behavior, then bootstrap/install/CI. Source checkpoint78e19dd80,
+  tested binary604; no other implementation track is open.
+- Whole chain: enum registration owns the enum declaration ID and Type;
+  its unit variant Symbol shares both. Existing static-member resolution
+  selects a symbol but publishes only the parent meta Type. Sparse eager
+  traversal subsequently demands a runtime value for the untyped qualifier.
+  Typed member resolution must preserve the successful exact relation;
+  sparse no-store/origin/destination/eager and claim replay consume it.
+- Bounded fact: a simple namespace identifier resolves to an actual enum
+  type Symbol. Source inspection corrected the initial route assumption:
+  enum registration declares the bare variant Symbol, not a synthesized
+  `Enum_Variant` alias, so a valid `Enum.Variant` selects that bare Symbol.
+  The existing selected Symbol (whether the flat lookup found it or the
+  established bare lookup did) must be the exact named unit variant of the
+  SAME enum declaration/Type as the qualifier, and the registered enum AST
+  must contain its exact ordinal/name with payload count0. Bare spelling
+  alone never proves that relation; `First.Two` selecting a `Second.Two`
+  Symbol remains unproved. The existing
+  host-declaration index supplies the declaration; no AST/program root scan
+  or new variant ID is introduced. Keep scope Symbols transient.
+- Carrier/currentness: optional parent-owned receipt in existing publication
+  holds qualifier/parent IDs, exact enum declaration/Type, selected ordinal,
+  names and payload premise. Recheck parent/member spelling, qualifier
+  topology/name/binding, declaration ID/name, Type, variant count/name/payload
+  and current generation. A missing/changed receipt cannot keep cached
+  permission. The qualifier still has a syntax edge and snapshot; only its
+  execution edge is absent. Existing semantic claims seal/replay this fact.
+- Forbidden: uppercase heuristic or bare-member spelling alone as authority,
+  class/global variable/runtime enum receiver, payload constructor, generic
+  all-meta skip, all-enum physical classification, fake qualifier typing,
+  lost input evaluation or weakened budget/loan/negative policy.
+- Edit scopes: A owns existing typed member producer/query, publication
+  carrier/value replay/destruction; B owns sparse/index/claim consumers and
+  the existing flow claim carrier; C owns minimal enum fixtures, strict gate
+  and currentness units. No shared edited production files. Root alone
+  builds/tests/WSL/Git, fixes any new dependency map before expanding a patch.
+- Shared query:
+  `semantic_param_publication_checked_unit_enum_selection(ctx, member)`.
+  It proves the one selected parent/qualifier relation, not enum value
+  ownership in general. Binary still evaluates both operands.
+- Acceptance/falsifiers: actual minimal unit-enum comparison with a retained
+  nonphysical result must be admitted; runtime receiver/cross-enum fallback/
+  payload/global-storage uses must not inherit that permission. Raw identity,
+  member/ordinal/Type/declaration/payload or missing receipt faults revoke
+  direct and cached proof; restore recovers only original permission. Run
+  narrow phase/strict/budgets first, then full native/Map/Slot/C+LLVM runtime,
+  actual unchanged bootstrap, complete fixed-input census if it still fails,
+  installed C+LLVM/gen2==gen3 and exact-published-SHA CI when reachable.
+  No syntax/type-invalid probe counts as an ownership negative.
+
+Enum integration receipt (local candidate7f04442a, not published): the valid
+`Purpose.InspectOnly` source probe was refused by prior bin604 at its
+nonphysical `Probe` return backing, then admitted by the new binary. The
+producer seals the actual qualified syntax and same-declaration unit variant;
+the qualifier remains a syntax child but contributes no execution edge.
+Phase7606/0, LLVM metadata140/0, strict summary including unchanged4096/4097,
+semantic/header caps, native MIR327/semantic3228/transpile1009, Map24 C+LLVM
+positives/58 negatives, reached component/IR/Slot gates, and C+LLVM runtime
+output9 for the new fixture all passed. The previous four runtime controls
+also passed on both backends. The frozen RXLKQ8 119 analyze-only cases had
+identical exit/MIR outcomes on candidate7f. Current frozen enum review is
+7FAhzE, bin7f04442a, source.diff982da2c6; independent verdict pending.
+The unchanged real bootstrap still fails before gen0 at the 4096 recursive
+summary work guard (30.13s/1256780KiB, 18410 cascading diagnostics). The
+isolated full-input census completed with exactly4273 signatures/3188 keys,
+failed707=698 work+9 required backing, incomplete0, no MIR, and byte-identical
+production restoration. Compared with the prior bin604 census on the same
+input, one enum backing key resolved, zero new failures and one expected mask
+change. This is one admitted prerequisite, not canonical/DRV-2 or CI closure.
+Next work remains the reached existing summary work owner; map its complete
+dependency/cost chain before editing, without raising the budget.
 
 The ec candidate
 passes phase7246/0 and LLVM140/0. First narrow run h3L46x exposed a NEW test

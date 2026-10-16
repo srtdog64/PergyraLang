@@ -468,6 +468,213 @@ static void reached_producer_source(const char *source, bool expected)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static PublishedNode *published_node_for(SemanticContext *ctx, const ASTNode *node)
+{
+    FunctionParamPublicationStore *store = ctx != NULL ? ctx->function_param_publications : NULL;
+    for (size_t i = 0; store != NULL && i < store->node_capacity; i++)
+        if (store->nodes[i].node == node) return &store->nodes[i];
+    return NULL;
+}
+
+/* A qualified unit variant is a namespace selection, not a runtime value
+ * demanded from its qualifier. Both the direct receipt and the cached claim
+ * must nevertheless reject every changed identity/payload premise. */
+static void checked_unit_enum_selection_currency(void)
+{
+    const char *source =
+        "enum Purpose{InspectOnly,Emit}"
+        "func Probe(ref text:String,purpose:Purpose)->Option<Int>{"
+        "let inspect=purpose==Purpose.InspectOnly;"
+        "if inspect{return Some(StringLength(text));}return Some(0);}"
+        "func Main()->Void{let text=Concat(\"heap\",\" value\");"
+        "Log(UnwrapOption(Probe(text,Purpose.InspectOnly)));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    if (program == NULL || parser_has_error(parser)) goto cleanup;
+    CHECK(type_check_program(program, ctx));
+    if (ctx->has_error) goto cleanup;
+    ASTNode *enum_decl = ast_program_statement(program, 0);
+    ASTNode *probe = ast_program_statement(program, 1);
+    ASTNode *comparison = ast_let_initializer(ast_block_statement(ast_func_body(probe), 0));
+    ASTNode *member = ast_binary_right(comparison);
+    ASTNode *qualifier = ast_member_object(member);
+    CHECK(enum_decl != NULL && enum_decl->type == AST_ENUM_DECL);
+    CHECK(member != NULL && member->type == AST_MEMBER_ACCESS);
+    CHECK(qualifier != NULL && qualifier->type == AST_IDENTIFIER);
+    CHECK(semantic_param_publication_checked_unit_enum_selection(ctx, member));
+    PublishedNode *published = published_node_for(ctx, member);
+    SemanticPublishedUnitEnumSelection *receipt =
+        published != NULL ? published->unit_enum_selection : NULL;
+    CHECK(published != NULL && receipt != NULL);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+    CHECK(baseline != SLOT_PARAM_SUMMARY_ALL);
+    CHECK(function_param_flow_program_point_index_build(
+        ctx->function_param_flow_summaries, probe, &index));
+    CHECK(index != NULL && function_param_flow_index_claims_current(ctx, index));
+    if (published == NULL || receipt == NULL || index == NULL) goto cleanup;
+
+    for (unsigned fault = 0; fault < 26; fault++) {
+        uint32_t member_id = member->stable_id;
+        uint32_t qualifier_id = qualifier->stable_id;
+        uint32_t qualifier_binding = ast_identifier_binding_syntax_id(qualifier);
+        uint32_t decl_id = enum_decl->stable_id;
+        uint32_t generation = program->stable_id;
+        char *member_name = member->data.member.name;
+        char *qualifier_name = qualifier->data.identifier.name;
+        char *decl_name = enum_decl->data.enum_decl.name;
+        char *variant_name = enum_decl->data.enum_decl.variants[receipt->variant_ordinal];
+        size_t variant_count = enum_decl->data.enum_decl.variant_count;
+        size_t payload_count = enum_decl->data.enum_decl.variant_param_counts[receipt->variant_ordinal];
+        ASTNode *member_qualifier = member->data.member.object;
+        const Type *published_type = published->value_type;
+        const Type *receipt_type = receipt->enum_type;
+        char *type_name = ((Type *)receipt_type)->name;
+        uint32_t receipt_member_id = receipt->member_id;
+        uint32_t receipt_qualifier_id = receipt->qualifier_id;
+        uint32_t receipt_binding = receipt->qualifier_binding_id;
+        uint32_t receipt_decl_id = receipt->enum_decl_id;
+        size_t receipt_ordinal = receipt->variant_ordinal;
+        size_t receipt_variant_count = receipt->variant_count;
+        size_t receipt_payload_count = receipt->payload_count;
+        char *receipt_member_name = receipt->member_name;
+        char *receipt_qualifier_name = receipt->qualifier_name;
+        char *receipt_enum_name = receipt->enum_name;
+        SemanticPublishedUnitEnumSelection *published_receipt = published->unit_enum_selection;
+        ASTNode *replacement = NULL;
+        switch (fault) {
+            case 0: member->stable_id++; break;
+            case 1: qualifier->stable_id++; break;
+            case 2: member->data.member.name = "Emit"; break;
+            case 3: qualifier->data.identifier.name = "Other"; break;
+            case 4: ast_identifier_set_binding_syntax_id(qualifier,
+                qualifier_binding == 0 ? 1 : 0); break;
+            case 5:
+                replacement = ast_create_identifier("Purpose");
+                replacement->stable_id = qualifier->stable_id;
+                ast_identifier_set_binding_syntax_id(replacement, qualifier_binding);
+                member->data.member.object = replacement;
+                break;
+            case 6: published->value_type = TYPE_INT; break;
+            case 7: receipt->enum_type = TYPE_INT; break;
+            case 8: ((Type *)receipt_type)->name = "Other"; break;
+            case 9: enum_decl->stable_id++; break;
+            case 10: enum_decl->data.enum_decl.name = "Other"; break;
+            case 11: receipt->variant_ordinal++; break;
+            case 12: enum_decl->data.enum_decl.variants[receipt->variant_ordinal] = "Other"; break;
+            case 13: enum_decl->data.enum_decl.variant_count--; break;
+            case 14: enum_decl->data.enum_decl.variant_param_counts[receipt->variant_ordinal]++; break;
+            case 15: receipt->payload_count++; break;
+            case 16: published->unit_enum_selection = NULL; break;
+            case 17: program->stable_id++; break;
+            case 18: receipt->member_id++; break;
+            case 19: receipt->qualifier_id++; break;
+            case 20: receipt->qualifier_binding_id++; break;
+            case 21: receipt->enum_decl_id++; break;
+            case 22: receipt->variant_count++; break;
+            case 23: receipt->member_name = "Emit"; break;
+            case 24: receipt->qualifier_name = "Other"; break;
+            case 25: receipt->enum_name = "Other"; break;
+        }
+        CHECK(!semantic_param_publication_checked_unit_enum_selection(ctx, member));
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        member->stable_id = member_id;
+        qualifier->stable_id = qualifier_id;
+        ast_identifier_set_binding_syntax_id(qualifier, qualifier_binding);
+        enum_decl->stable_id = decl_id;
+        program->stable_id = generation;
+        member->data.member.name = member_name;
+        qualifier->data.identifier.name = qualifier_name;
+        enum_decl->data.enum_decl.name = decl_name;
+        enum_decl->data.enum_decl.variant_count = variant_count;
+        enum_decl->data.enum_decl.variant_param_counts[receipt_ordinal] = payload_count;
+        enum_decl->data.enum_decl.variants[receipt_ordinal] = variant_name;
+        member->data.member.object = member_qualifier;
+        published->value_type = published_type;
+        published->unit_enum_selection = published_receipt;
+        receipt->enum_type = receipt_type;
+        ((Type *)receipt_type)->name = type_name;
+        receipt->member_id = receipt_member_id;
+        receipt->qualifier_id = receipt_qualifier_id;
+        receipt->qualifier_binding_id = receipt_binding;
+        receipt->enum_decl_id = receipt_decl_id;
+        receipt->variant_ordinal = receipt_ordinal;
+        receipt->variant_count = receipt_variant_count;
+        receipt->payload_count = receipt_payload_count;
+        receipt->member_name = receipt_member_name;
+        receipt->qualifier_name = receipt_qualifier_name;
+        receipt->enum_name = receipt_enum_name;
+        ast_destroy(replacement);
+        CHECK(semantic_param_publication_checked_unit_enum_selection(ctx, member));
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_unit_enum_selection_boundaries(void)
+{
+    const char *sources[] = {
+        /* A runtime member returning an enum remains ordinary evaluation. */
+        "enum Purpose{InspectOnly,Emit}struct Holder{value:Purpose;}"
+        "func Probe(ref holder:Holder)->Bool{"
+        "return holder.value==Purpose.InspectOnly;}",
+        /* Static lookup must not use a variant from another declaration via
+         * the legacy bare-member fallback. */
+        "enum First{One}enum Second{Two}func Probe()->Bool{return First.Two==Two;}",
+        /* A payload constructor is not a unit selection. */
+        "enum Parcel{Empty,Full(String)}func Probe()->Parcel{return Parcel.Full(\"x\");}",
+        /* A local storage path still has its own value facts. */
+        "enum Purpose{InspectOnly,Emit}func Probe()->Bool{"
+        "let saved:Purpose=Purpose.InspectOnly;"
+        "return saved==Purpose.InspectOnly;}"
+    };
+    for (size_t kind = 0; kind < sizeof(sources) / sizeof(sources[0]); kind++) {
+        Lexer *lexer = lexer_create(sources[kind]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        if (program == NULL || parser_has_error(parser))
+            fprintf(stderr, "unit enum boundary parser case=%zu\n", kind);
+        CHECK(program != NULL && !parser_has_error(parser));
+        if (program == NULL || parser_has_error(parser)) goto boundary_cleanup;
+        bool typed = type_check_program(program, ctx);
+        if (!typed) fprintf(stderr, "unit enum boundary type case=%zu\n", kind);
+        CHECK(typed);
+        if (ctx->has_error) goto boundary_cleanup;
+        ASTNode *member = NULL;
+        if (kind == 0) {
+            ASTNode *comparison = ast_return_value(ast_block_statement(
+                ast_func_body(ast_program_statement(program, 2)), 0));
+            member = ast_binary_left(comparison);
+        } else if (kind == 1) {
+            ASTNode *comparison = ast_return_value(ast_block_statement(
+                ast_func_body(ast_program_statement(program, 2)), 0));
+            member = ast_binary_left(comparison);
+        } else if (kind == 2) {
+            ASTNode *call = ast_return_value(ast_block_statement(
+                ast_func_body(ast_program_statement(program, 1)), 0));
+            member = ast_call_callee(call);
+        } else {
+            member = ast_let_initializer(ast_block_statement(
+                ast_func_body(ast_program_statement(program, 1)), 0));
+        }
+        CHECK(member != NULL && member->type == AST_MEMBER_ACCESS);
+        if (kind < 3)
+            CHECK(!semantic_param_publication_checked_unit_enum_selection(ctx, member));
+        else
+            CHECK(semantic_param_publication_checked_unit_enum_selection(ctx, member));
+boundary_cleanup:
+        semantic_context_destroy(ctx);
+        ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 static void checked_generic_member_source(const char *source, bool copy)
 {
     Lexer *lexer = lexer_create(source);
@@ -5993,6 +6200,8 @@ static void checked_transaction_function_boundary(void)
 
 int main(void)
 {
+    checked_unit_enum_selection_currency();
+    checked_unit_enum_selection_boundaries();
     checked_owned_string_result_receipt_currency();
     checked_local_owner_constructor_currency();
     checked_finish_independence_currency();

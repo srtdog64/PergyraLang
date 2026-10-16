@@ -59,6 +59,7 @@ for relative in (
         raise SystemExit(f"existing worker/capture positive lost MIR admission: {relative}")
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
 paired = (
+    ("unit_enum_qualified_result_valid", True),
     ("result_builder_birth_valid", True),
     ("retaining_capacity_builder_birth_invalid", False),
     ("wrapper_pool_builder_birth_invalid", False),

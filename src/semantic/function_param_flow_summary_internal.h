@@ -128,6 +128,9 @@ typedef struct {
     bool slot_token_operand;
     bool private_array_push;
     bool execution_present, reachable, physical_value;
+    /* Exact typed proof that this member's qualifier is a nonexecuting enum
+     * namespace edge. Syntax children remain sealed independently above. */
+    bool unit_enum_selection;
     bool value_ready;
     bool value_meta;
     bool value_origin_ready;
