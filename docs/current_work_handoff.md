@@ -1,75 +1,61 @@
 # Current Work Handoff
 
-Updated: 2026-10-16 KST (Asia/Seoul). Navigation only. Source, typed owners,
+Updated: 2026-10-17 KST (Asia/Seoul). Navigation only. Source, typed owners,
 registries and executable gates override this card.
 
 ## Active self-host context — canonical admission, then real bootstrap/CI
 
 One rung: unchanged full canonical/DRV-2 admission -> real codegen bootstrap
 and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
-Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe, verified CI RED
-(run38860052641). Local source checkpoint is9b3eb9f1e, parent78e19dd80;
-the enum prerequisite is committed locally, not pushed. Check HEAD/status for
-the navigation-only handoff edit. The superseded ec49 candidate must not ship.
+Published main is `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA CI
+run `38860052641` is RED with bootstrap/install skipped. At this snapshot the
+local main source checkpoint is `7acf6afd529bd77b10cc9eef72c11705fbb6f4d0`,
+12 commits ahead, with this handoff edit pending its own navigation commit.
+Check current Git status before resuming; nothing from this slice has been
+pushed. Only main is being edited. Root owns WSL builds/tests/processes
+and Git. WSL `/root/pgy-main-20261016` is Git HEAD39a with a byte-checked
+source overlay, not the D commit. Current Linux compiler SHA256 is
+`746dfa4d750770d23f7d892d3da9e65684c04d28ae1f56b0c30d4117ff971815`.
 
-Root alone owns WSL builds/tests/processes/Git. Three enum implementation
-scopes have finished; no agent is editing the shared source. Only main remains;
-the detached perf worktree, stashes and immutable reviews are preserved.
-WSL /root/pgy-main-20261016 stays Git HEAD39a plus the byte-checked candidate
-overlay, not the D commit. Current binary SHA256 is
-7f04442a32e66ffc8292bad578975902040afa6b7c33c365f34be38f9ea7ba5c.
-Frozen review source is /root/pgy-review-destination-39a8fc1db.7FAhzE,
-source.diff SHA256 982da2c60183a5cb8bb1285bbad6088b876d74b60a18c5a643277dcf1ffee8d3.
+The identifier-origin leaf uses the current shared claim and typed binding,
+snapshots one input bit and stamps its read epoch; checked implicit Slot token
+is handled before ordinary binding. It removes a redundant per-frame
+expression row without dropping binding-growth or stale-fact checks. Focused
+phase7616/0, LLVM140/0, strict summary and unchanged4096/4097 controls,
+native MIR327/semantic3228/transpile1009, Map24/58, component/IR/Slot and
+five C+LLVM runtime pairs passed. The added SecureSlot positive/negative pair
+is in the summary smoke. Frozen independent review of this exact candidate
+found no new false admission/rejection; its report is
+`/root/pgy-review-destination-39a8fc1db.DO3E6O/.tmp/redteam/review.md`
+(SHA256 `d562aced23425ec34f451c46dce929d17902d6b1554ec55cfbc12746cc893742`).
+The previous 119-case replay also passed. Focused rebuild/summary receipt:
+WSL `.tmp/p0-destination-candidate.R2qCfA/`. A later six-kind wrapper
+experiment was rejected and fully reverted because shared AST DAGs could
+traverse exponentially without work charges; do not restore it.
 
-Root-observed candidate gates: phase7606/0, LLVM140/0, strict summary and
-unchanged4096/4097 controls, semantic/header caps; native MIR327/semantic3228/
-transpile1009; Map24 C+LLVM positives/58 negatives; reached IR/component and
-Slot goldens. The new enum fixture executes with output9 on both C and LLVM;
-four earlier runtime controls also pass. The previous independent review's
-119 source probes have identical exit/MIR outcomes on the new binary. Receipts:
-WSL .tmp/p0-destination-candidate.gpNb5U/,
-.tmp/p0-result-runtime.pinLqV/, .tmp/p0-enum-review-replay.8dTSlU/ and
-adjacent p0-enum-native/chain/slot logs. D and tested WSL source are byte equal.
+Actual unchanged bootstrap is still RED before gen0 at line48:6, original
+work4096 refusal; see `/root/pgy-main-20261016.p0-identifier-bootstrap-v3.log`.
+Full fixed-input scratch census has 4273 signatures/3188 keys and 567
+failures (554 work, 13 required backing), incomplete0/no MIR; receipt WSL
+`.tmp/p0-identifier-origin-census.tnnhLR/` restored source/build/bin byte
+identically. A smaller failure count is not canonical admission. No gen2==gen3,
+installed-driver, memory, or required CI green evidence exists on this source.
 
-Actual unchanged bootstrap remains RED BEFORE gen0:30.13s/1256780KiB, exit2.
-The enum backing failure at32:6 is gone; the first error is now the unchanged
-4096 recursive summary work guard at11:6. The remaining18410 diagnostics
-are cascades, not independent refusals. New isolated full-input census with
-identical4273 signatures/3188 keys:707 failures=698 work+9 required backing,
-incomplete0/no MIR. Against the previous bin604 census, one enum key resolved,
-zero newly failed and one expected mask change. Nonfailed2481 includes811 TOP/
-814 unproved and is not permission. WSL .tmp/p0-enum-census.Il3kYS/ restored
-production source/build/bin/dependencies byte-identically.
+Next falsifier: safely eliminate repeated *owned* per-input backing work,
+starting from the first warm demand608 with E135/G324/B3635 charges (388
+destination, 559 origin, 2688 eager consumer), while retaining bounded work
+on shared DAGs and per-input effects/output dependencies. The fact owner is
+the current backing frame/claims; last consumers are summary outputs,
+returned-loan and ownership admission. A joint-origin bitset within the
+existing owner is under read-only whole-chain investigation, not approved
+implementation. The 13 required-backing failures are separate; trace the
+actual failing callee entry at the final return-relation consumer before
+assuming a common cause. Do not raise budget, shrink input, grant TOP/unproved,
+or substitute native-only success for installed evidence. Full chain map and
+receipts: [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
 
-Enum source fact: the registered enum declares only a bare variant Symbol,
-so the typed flat-first/bare-next resolution must match qualifier and selected
-unit variant by exact enum declaration, Type, spelling, ordinal and payload0.
-The parent publication seals that relation, and sparse/claim consumers skip
-only its nonexecuting qualifier edge. No qualifier value or alias is fabricated.
-Mutation units revoke direct and cached permission for stale receipts; the
-ordinary runtime receiver and mismatched cross-enum fallback keep their paths.
-
-Next active fact is the summary work guard. Survey the complete dependency
-and cost chain of its698 fixed-input failures before editing: production
-entrypoint -> typed publication/claim and program-point facts -> summary
-evaluation/backing work charges -> last return/escape consumer. Identify the
-repeated owned operation and falsifier on the unchanged input. Do not raise
-the4096 budget, shrink the input or turn TOP/unproved into permission.
-
-Whole-chain plan, owner/last-consumer map, forbidden fallbacks and receipts:
-[main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md),
-section Next canonical prerequisite — exact unit-enum qualifier edge.
-No manual annotation/copy workaround, new owner, new query/cache architecture,
-weaker safety, smaller canonical input or larger work/memory budget is allowed.
-
-RXLKQ8/binary604 independent review found no new false admission in its
-bounded Finish repair. Its separate Pool/Destroy read counterexample remains
-OPEN and is admitted by both prior sound binbd and bin604 (same29532-byte
-MIR; no unsafe execution). That is neither resolved by enum work nor whole
-language memory-safety evidence. The independent enum review of 7FAhzE is
-requested and pending; root's119-case replay is separate evidence.
-Current gen2==gen3/install/memory and required published CI are NOT passed.
-No push of local checkpoints or V1/SoT CLOSED claim yet.
+The earlier Pool/Destroy read counterexample remains OPEN; it was not fixed
+or executed unsafely. No V1/SoT CLOSED claim or push of known-red work.
 
 ### Historical diagnostic archive — lookup only, not an active work queue
 
