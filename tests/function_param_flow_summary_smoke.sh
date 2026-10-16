@@ -58,6 +58,13 @@ for relative in (
         sys.stderr.buffer.write(checked.stderr)
         raise SystemExit(f"existing worker/capture positive lost MIR admission: {relative}")
 # Semantic-only paired controls: no unsafe negative is emitted or executed.
+selected_call_targets = {
+    "source_callable_class_tostring_constructor_valid": ("ToString", "class", "ToString", "none"),
+    "source_callable_enum_tostring_payload_valid": ("ToString", "enum", "Conversion", "none"),
+    "source_callable_class_method_alias_valid": ("Box_Value", "method", "Box", "declared_callable"),
+    "source_callable_enum_method_alias_valid": ("Route_Value", "method", "Route", "declared_callable"),
+    "source_callable_enum_payload_method_alias_valid": ("Packet_Value", "method", "Packet", "declared_callable"),
+}
 paired = (
     ("unit_enum_qualified_result_valid", True),
     ("secure_implicit_token_safe", True),
@@ -88,6 +95,13 @@ paired = (
     ("stdlib_replace_option_result_valid", True),
     ("stdlib_substring_option_result_valid", True),
     ("stdlib_tostring_scalar_option_result_valid", True),
+    ("source_callable_intent_tostring_valid", True),
+    ("source_callable_event_tostring_handler_valid", True),
+    ("source_callable_class_tostring_constructor_valid", True),
+    ("source_callable_enum_tostring_payload_valid", True),
+    ("source_callable_class_method_alias_valid", True),
+    ("source_callable_enum_method_alias_valid", True),
+    ("source_callable_enum_payload_method_alias_valid", True),
     ("result_frame_option_multi_exit_valid", True),
     ("result_frame_formal_return_invalid", False),
     ("result_frame_formal_some_invalid", False),
@@ -241,6 +255,45 @@ for name, valid in paired:
         if checked.returncode != 0 or '"pgy.mir.v1"' not in checked.stdout.decode(errors="replace"):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"physical-return positive {name} failed")
+        if name in selected_call_targets:
+            target_name, owner_kind, owner_name, binding_kind = selected_call_targets[name]
+            document = json.loads(checked.stdout)
+            if owner_kind == "method":
+                owners = [row for row in document.get("routines", []) if
+                          row.get("kind") == "method" and row.get("owner") == owner_name
+                          and row.get("name") == "Value"]
+            else:
+                owners = [row for row in document.get("decls", []) if
+                          row.get("kind") == owner_kind and row.get("name") == owner_name]
+            if len(owners) != 1 or not isinstance(owners[0].get("source_syntax_id"), int) or owners[0]["source_syntax_id"] <= 0:
+                raise SystemExit(f"selected-callable {name} lost its unique declaration owner")
+            target_id = owners[0]["source_syntax_id"]
+            mains = [row for row in document.get("routines", []) if row.get("name") == "Main"]
+            if len(mains) != 1:
+                raise SystemExit(f"selected-callable {name} lost its Main routine")
+            calls = []
+            for block in mains[0].get("blocks", []):
+                for instruction in block.get("instructions", []):
+                    for lane in ("expr0_graph", "expr1_graph"):
+                        graph = instruction.get(lane)
+                        if not isinstance(graph, dict):
+                            continue
+                        nodes = graph.get("nodes", [])
+                        for node in nodes:
+                            if node.get("kind") == "call" and node.get("call_target_name") == target_name:
+                                calls.append((node, nodes))
+            if len(calls) != 1:
+                raise SystemExit(f"selected-callable {name} lost its one direct call graph")
+            call, nodes = calls[0]
+            callee_index = call.get("left")
+            callee = nodes[callee_index] if isinstance(callee_index, int) and 0 <= callee_index < len(nodes) else None
+            if (call.get("call_target_kind") != "direct" or
+                    call.get("call_target_syntax_id") != target_id or
+                    not isinstance(callee, dict) or callee.get("kind") != "leaf" or
+                    callee.get("text") != target_name or
+                    callee.get("binding_kind") != binding_kind or
+                    callee.get("binding_syntax_id") != (target_id if binding_kind == "declared_callable" else 0)):
+                raise SystemExit(f"selected-callable {name} lost its exact target/leaf identity")
     else:
         output = (checked.stdout + checked.stderr).decode(errors="replace")
         try:
@@ -327,6 +380,34 @@ if checked.returncode != 1 or checked.stdout or not errors or (
     sys.stderr.buffer.write(checked.stderr)
     raise SystemExit("prefix arity negative lost its exact signature refusal")
 print("[function-param-flow-summary] prefix signature arity refusal: PASS")
+
+# A selected Intent/Event owns its callable identity even when its spelling
+# matches an allocating String builtin. Wrong String bindings must fail at
+# assignability before MIR; none of these rejected programs is executed.
+for name, site in (
+    ("source_callable_intent_tostring_string_invalid", (7, 28)),
+    ("source_callable_event_tostring_string_invalid", (4, 28)),
+    ("source_callable_intent_stringreplace_string_invalid", (7, 28)),
+    ("source_callable_event_substring_string_invalid", (4, 28)),
+):
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+    output = (checked.stdout + checked.stderr).decode(errors="replace")
+    try:
+        diagnostics = json.loads(output)
+    except json.JSONDecodeError:
+        raise SystemExit(f"selected-callable negative {name} lost structured diagnostics: {output}")
+    errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+    first = errors[0] if errors else None
+    if (checked.returncode != 1 or checked.stdout or not isinstance(first, dict)
+            or first.get("code") != "PGY_SEM_TYPE_MISMATCH"
+            or first.get("cause_ir") != "semantic:assignability_check"
+            or (first.get("location", {}).get("line"), first.get("location", {}).get("column")) != site):
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"selected-callable negative {name} lost its exact type refusal at {site}")
+print("[function-param-flow-summary] selected source callable String-spoof refusals: PASS")
 
 # Reuse the CFG owner's source cases here without requiring the not-yet-ready
 # installed driver. A non-Void routine that can fall through has no completed
@@ -435,6 +516,13 @@ for name, expected in (
     ("stdlib_replace_option_result_valid", "6\n"),
     ("stdlib_substring_option_result_valid", "bc\nabcde\n"),
     ("stdlib_tostring_scalar_option_result_valid", "5\ntrue\n12345\n7\nabcde\n"),
+    ("source_callable_intent_tostring_valid", "true\n"),
+    ("source_callable_event_tostring_handler_valid", "handled=7\nafter event\n"),
+    ("source_callable_class_tostring_constructor_valid", "7\n"),
+    ("source_callable_enum_tostring_payload_valid", "9\n"),
+    ("source_callable_class_method_alias_valid", "31\n"),
+    ("source_callable_enum_method_alias_valid", "19\n"),
+    ("source_callable_enum_payload_method_alias_valid", "23\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
     ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),

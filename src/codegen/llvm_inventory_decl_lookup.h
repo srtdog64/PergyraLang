@@ -348,4 +348,37 @@ ASTNode *llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx,
 ASTNode *llvm_current_host_decl(const LLVMGenCtx *ctx);
 const char *llvm_current_host_decl_name(const LLVMGenCtx *ctx);
 
+typedef enum {
+    LLVM_SELECTED_CALL_INVALID,
+    LLVM_SELECTED_CALL_EVENT,
+    LLVM_SELECTED_CALL_FUNCTION,
+    LLVM_SELECTED_CALL_INTENT,
+    LLVM_SELECTED_CALL_HOST_METHOD,
+    LLVM_SELECTED_CALL_METHOD_ALIAS
+} LLVMSelectedCallKind;
+
+typedef struct {
+    LLVMSelectedCallKind kind;
+    ASTNode *decl;
+    const MIRRoutine *alias;
+} LLVMSelectedCall;
+
+LLVMSelectedCall llvm_selected_source_callable(LLVMGenCtx *ctx,
+    ASTNode *call, const char *name);
+
+typedef enum {
+    LLVM_SELECTED_CTOR_NONE,
+    LLVM_SELECTED_CTOR_INVALID,
+    LLVM_SELECTED_CTOR_ENUM,
+    LLVM_SELECTED_CTOR_NOMINAL
+} LLVMSelectedConstructorKind;
+
+typedef struct {
+    LLVMSelectedConstructorKind kind;
+    const char *enum_name;
+} LLVMSelectedConstructor;
+
+LLVMSelectedConstructor llvm_selected_source_constructor(LLVMGenCtx *ctx,
+    ASTNode *call, const char *name);
+
 #endif /* PGY_LLVM_INVENTORY_DECL_LOOKUP_H */

@@ -242,15 +242,16 @@ test_parallel_execution_emit(void)
 
     TEST("TryRecv rejects non-lvalue channel expression");
     {
-        ASTNode *channel_call = make_call("MakeChannel", NULL, 0, 1);
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        ASTNode *channel_call = make_call("Channel", cap_args, 1, 1);
         ASTNode *args[1] = { channel_call };
 
         TranspilerCtx *ctx = transpiler_ctx_create();
         ASTNode *call = make_call("TryRecv", args, 1, 1);
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires a named Channel<T> binding");
@@ -262,15 +263,16 @@ test_parallel_execution_emit(void)
 
     TEST("ChannelLength rejects non-lvalue channel expression");
     {
-        ASTNode *channel_call = make_call("MakeChannel", NULL, 0, 1);
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        ASTNode *channel_call = make_call("Channel", cap_args, 1, 1);
         ASTNode *args[1] = { channel_call };
 
         TranspilerCtx *ctx = transpiler_ctx_create();
         ASTNode *call = make_call("ChannelLength", args, 1, 1);
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires a named Channel<T> binding");
@@ -370,33 +372,44 @@ test_parallel_execution_emit(void)
 
     TEST("Cancel emits pgy_lane_cancel");
     {
+        const char *source =
+            "async func Worker() -> Int { return 1; }\n"
+            "async func Main() -> Void {\n"
+            "    let pending: Future<Int> = spawn Worker();\n"
+            "    let requested: Bool = Cancel(pending);\n"
+            "    let value: Int = await pending;\n"
+            "    Log(value);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_pipeline_from_source(source, &program, &hir,
+            &rir, &mir);
+        ASTNode *main_decl = lowered ? ast_program_statement(program, 1) : NULL;
+        ASTNode *body = main_decl != NULL ? ast_func_body(main_decl) : NULL;
+        ASTNode *request = body != NULL ? ast_block_statement(body, 1) : NULL;
+        ASTNode *call = request != NULL && request->type == AST_LET_DECL
+            ? ast_let_initializer(request) : NULL;
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ASTNode *spawn = calloc(1, sizeof(ASTNode));
-        spawn->type = AST_SPAWN_EXPR;
-        spawn->data.spawn_expr.function = make_identifier("Work", 1);
-        spawn->data.spawn_expr.arguments = NULL;
-        spawn->data.spawn_expr.arg_count = 0;
-        EXPECT(ast_assign_stable_ids(spawn));
-        /* The spawn emitter consumes the AIR-carried lane fact per site. */
-        static PgySpawnLaneFactRow cancel_lane_rows[1];
-        static PgySpawnLanePlan cancel_lane_plan;
-        cancel_lane_rows[0].source_stable_id = ast_node_stable_id(spawn);
-        cancel_lane_rows[0].lane = PGY_LANE_WORKER_POOL;
-        cancel_lane_plan.revision = PGY_SPAWN_LANE_PLAN_REVISION;
-        cancel_lane_plan.rows = cancel_lane_rows;
-        cancel_lane_plan.row_count = 1;
-        cancel_lane_plan.verified = true;
-        ctx->spawn_lane_plan = &cancel_lane_plan;
-        emit_statement(make_let("pending", NULL, spawn, 1), ctx);
+        if (ctx != NULL)
+            ctx->mir = mir;
+        bool projected = ctx != NULL && mir != NULL
+            && bind_test_c_projection_plan(ctx, mir);
+        char *result = lowered && projected && call != NULL
+            ? emit_expression(call, ctx) : NULL;
 
-        ASTNode *args[1] = { make_identifier("pending", 2) };
-        char *result = emit_expression(make_call("Cancel", args, 1, 2), ctx);
-
+        EXPECT(lowered && projected && call != NULL);
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_lane_cancel(pending)") != NULL);
+        EXPECT(result != NULL
+            && strstr(result, "pgy_lane_cancel(pending)") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("IsCancelled emits pgy_task_is_cancelled");

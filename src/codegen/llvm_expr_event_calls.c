@@ -7,6 +7,7 @@
 
 #include "llvm_internal.h"
 #include "llvm_expr_event_calls.h"
+#include "llvm_inventory_decl_lookup.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -46,13 +47,20 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
                                 const char *callee_name, LLVMValueRef *out)
 {
     LLVMEventTypeEntry *evt = llvm_lookup_event(ctx, callee_name);
+    ASTNode *event_decl = llvm_find_decl_in_active_inventory(
+        ctx, AST_EVENT_DECL, callee_name);
     char fname[256];
     LLVMFuncEntry *fn;
     LLVMValueRef ev_ptr;
     size_t arg_count;
     LLVMValueRef *args;
 
-    if (out == NULL || evt == NULL)
+    if (out == NULL || evt == NULL || event_decl == NULL
+        || !ast_call_semantic_callee_declared_callable(node)
+        || ast_call_semantic_callee_is_stdlib(node)
+        || ast_call_semantic_callee_decl_id(node) == 0
+        || ast_call_semantic_callee_decl_id(node)
+            != ast_node_stable_id(event_decl))
         return false;
 
     if (!llvm_event_call_helper_name(fname, sizeof(fname),

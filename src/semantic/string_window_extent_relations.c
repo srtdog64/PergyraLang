@@ -58,7 +58,7 @@ swe_find_routine(StringWindowExtentStore *store, uint32_t decl_id)
 {
     SweRoutine key;
     key.decl_id = decl_id;
-    return decl_id == 0 ? NULL : bsearch(&key, store->routines,
+    return decl_id == 0 || store->routine_count == 0 ? NULL : bsearch(&key, store->routines,
         store->routine_count, sizeof(*store->routines), swe_compare_routine);
 }
 
@@ -73,7 +73,7 @@ swe_find_let(const StringWindowExtentStore *store, uint32_t decl_id)
 {
     SweLet key;
     key.decl_id = decl_id;
-    const SweLet *found = decl_id == 0 ? NULL : bsearch(&key, store->lets,
+    const SweLet *found = decl_id == 0 || store->let_count == 0 ? NULL : bsearch(&key, store->lets,
         store->let_count, sizeof(*store->lets), swe_compare_let);
     return found != NULL ? found->node : NULL;
 }
@@ -81,7 +81,7 @@ swe_find_let(const StringWindowExtentStore *store, uint32_t decl_id)
 static bool
 swe_id_in(const uint32_t *items, size_t count, uint32_t decl_id)
 {
-    return bsearch(&decl_id, items, count, sizeof(*items),
+    return count != 0 && bsearch(&decl_id, items, count, sizeof(*items),
                    swe_compare_u32) != NULL;
 }
 

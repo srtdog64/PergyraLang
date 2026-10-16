@@ -1,0 +1,9 @@
+intent ToString(value: Int) {
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let rendered: String = ToString(7);
+    Log(rendered);
+}

@@ -365,6 +365,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
         ctx->mut_ref_count = 0;
     bool owner_is_role = is_method && routine != NULL
         && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
+    bool owner_is_enum = is_method && routine != NULL
+        && llvm_mir_routine_owner_ast_type(routine) == AST_ENUM_DECL;
     IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count = 0;
 
@@ -416,7 +418,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 ? (owner_cls->is_pointer_self_host
                     ? LLVMPointerType(owner_cls->struct_type, 0)
                     : owner_cls->struct_type)
-                : ctx->type_i8ptr);
+                : (owner_is_enum ? ctx->type_i32 : ctx->type_i8ptr));
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
                 (owner_cls != NULL && owner_cls->is_pointer_self_host
                  && !owner_is_role)

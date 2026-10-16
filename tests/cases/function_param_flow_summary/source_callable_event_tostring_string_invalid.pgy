@@ -1,0 +1,6 @@
+event ToString(value: Int);
+
+func Main() -> Void {
+    let rendered: String = ToString(7);
+    Log(rendered);
+}

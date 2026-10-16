@@ -61,6 +61,270 @@ PendingBodyCall alone has no ordinal/backing dependency and cannot authorize
 ownership admission; unrelated prewarm, generic cache architecture, a bigger
 budget and the previously rejected shared-matrix trials are forbidden.
 
+Measurement completed without changing production. Frozen observer receipt
+`.tmp/p0-cost32.UIYFCx/` balances all4096 charges:103 entries,139 graph members,
+3854 backing visits (C2951/O525/D378), plus exactly one denied charge. Repeated
+same-frame/epoch/node charges are0;2264 cross-formal repeats do not prove that
+their different origins can share a computed answer. Source/build/bin/modes
+and Git status/diff were restored byte-identically.
+
+The causal receipt `.tmp/p0-cost32-causal.9kQN4C/` contains176 nested
+SUMMARY/OUTPUT observations; interval-union additional work is1, with one new
+entry. All138 exact-call-member/already-admitted observations add0 work. The
+stricter private-closed/member/admitted guard matches0 events. Therefore do not
+implement the proposed consumer summary-query shortcut: it cannot repair this
+measured blocker. The next bounded survey enumerates the existing current
+typed publication CALL rows marked unmodelled and joins the actual backing
+frame's unsupported_relation call identity. This distinguishes missing result
+premises from repeated traversal before any contract choice. It does not
+rescan program roots, grant result freshness from input borrowing, or modify
+admission. Root alone runs the scratch observer and restores the full overlay.
+
+### Reached typed String result premises — whole-chain slice
+
+Diagnostic `.tmp/p0-publication-unmodelled.oTqzs2/` inspected all47434 current
+typed CALL rows on the same4273-routine frozen input and restored everything
+byte-identically.1241 rows are marked unmodelled;118 already have exact local
+MapNew premises. Remaining families are ToString717, Substring323,
+Slice<String>52, Split23/StringSplit1, StringReplace4, TextBuilderFinish2 and
+ArraySort1. This is a publication inventory, not reachability or refusal count.
+The isolated failing demand has60 unsupported frames whose direct leaves join
+exactly to2 Substring,2 ToString and1 StringReplace call identities. Do not
+replace that evidence with a single first-failure name.
+
+- Objective/order: close those exact native input-to-result dependency gaps,
+  preserve currentness, nested effects and negatives, then measure the complete
+  fixed input and actual bootstrap. It is not a new ownership algorithm.
+- Owner: existing typed publication checked_local_owner_constructor. Current
+  call/result/argument snapshots own identity, kind, stdlib selection, types,
+  arity and binding. Existing checked input-retention rows own only synchronous
+  borrowing for Substring/StringReplace. For ToString only the existing physical
+  scalar premise is admitted: the String overload returns its input unchanged.
+  LLVM Bool conversion can return static text, so input-independent backing is
+  expressly not fresh heap storage, copy escape, successful allocation or drop.
+- Consumers/change set: publish exact Substring(String,Int,Int),
+  StringReplace(String,String,String) and ToString(physical scalar)->String
+  premises; move the unmodelled-result consumer behind that existing predicate;
+  keep backing origin/destination and no-store visitors consuming it, traversing
+  every actual eagerly. Existing input claims snapshot/replay this predicate at
+  the final summary/result edge. No indexed-string whitelist, origin_ready or
+  copy_escape expansion, registry identity change, new owner or wire field.
+  Within the same publication owner, reuse publication_result_current instead
+  of duplicating current call/argument checks in the unmodelled consumer; move
+  the unchanged checked_call/checked_argument APIs to its existing callable
+  predicate section. This preserves identity and the599 noncomment TU caps
+  without another owner file or unrelated structural cleanup.
+  Current typed value_type is mandatory authority. Native stdlib calls do not
+  necessarily issue AST semantic_value_type_name; if that derived projection
+  is present it must agree, but its absence is not an absent typed result.
+  The first trial040c302b incorrectly required that projection and retained
+  all3 refusals (phase8088/1); the integrated predicate repairs the owner join,
+  not the test expectation or the required typed value.
+- Last consumer: final backing_rows_current -> complete_return_relations ->
+  summary/loan admission -> full canonical/bootstrap. Physical birth, exact
+  exit-drop, allocator/Pool authority and installed-runtime failure parity are
+  separate OPEN obligations, not inferred from this dependency relation.
+- ABI evidence: native C/LLVM Substring/Replace copy non-NULL results; scalar
+  ToString has no input backing, String ToString aliases. Installed helpers have
+  distinct allocation-failure/overflow behavior; this slice makes no claim of
+  physical allocation success or complete native/installed ABI safety parity.
+- Forbidden: all-String/name-only freshness, treating all ToString inputs as
+  physical, clearing forwarded/nested retaining calls, widening indexed-string
+  copy permission, Pool/Finish approval, larger4096 or smaller canonical input.
+- Dependency order/scopes: A edits only existing publication owner/routines;
+  B owns source fixtures and focused summary runtime gate; C owns phase-unit
+  receipt/currentness faults. Root first runs new positive probes on frozen
+ 32cd, then integrates, runs shared caps/phase/strict summary, fixed full census,
+  broad native/IR gates and actual bootstrap. No concurrent build/Git lane.
+- Falsifiers: String ToString and user-shadowed/indirect calls remain dependent;
+  nested retaining actuals remain refused; missing or changed generation,
+  result/argument type, target/kind/std/decl/binding/arity/argument ID revoke the
+  premise and the final cached receipt. Existing Pool/opaque and4096/4097
+  controls remain. Slice/Split/Finish/ArraySort are not silently granted by
+  this contract; revisit only as reached canonical blockers.
+
+Before evidence: identified native32cd rejected all3 new positive fixtures at
+the expected borrow/required-backing boundary in `.tmp/p0-string-result-before.
+hQZWBm/`; no MIR was emitted. The earlier ToString fixture without the zero-
+argument result-frame consumer already passed and was strengthened rather than
+misreported as a regression fix. The3 new negative controls are also refused
+with PGY_SEM_BORROW_ESCAPE at the forwarded or nested retaining source site.
+
+Candidate6927563d3/native0699399a narrow `.tmp/p0-string-result.nrv2CK/`
+passes phase8486/0, strict summary, exact new3 C/LLVM outputs,3 exact-site
+negative refusals, existing Pool/opaque and4096/4097 controls,599/599 TU caps.
+It is NOT integrated closure: full fixed census `.tmp/p0-identifier-origin-
+census.onWYW4/` regresses533 ->762 (0 resolved,229 newly failing), all4096,
+3188/3188,incomplete0,121.110s internal,2:10.05 wall,1248088KiB peak; full
+source/build/bin restoration BYTE_IDENTICAL. Actual bootstrap `.tmp/p0-return-
+bootstrap.xXWg8f/` remains18410 errors/16 warnings before gen0. Keep the source
+checkpoint local, no push. Correct dependency facts expose work beyond earlier
+unsupported cutoffs; that is not permission to claim canonical improvement.
+
+Next measured-operation question, not a new algorithm: backing_consumers always
+calls backing_origin(actual) before discovering that the exact current input is
+synchronously non-retaining and no origin bit is consumed by that call edge.
+The C visitor still must eagerly evaluate the actual and preserve nested effects,
+claims, pending/unsupported relations and declared-result checks. Instrument the
+existing visit to measure actual work/entry/node allocation for the local-true
+subset on0699/full fixed input before changing the operation. No shortcut has
+been approved; merely dropping charges or weakening unsupported/currentness is
+forbidden. The prior no-store summary-query shortcut remains rejected by its
+zero-benefit measurement.
+
+Origin diagnostic `.tmp/p0-cost32-origin.BxvaDo/` restores byte-identically and
+retains the exact4096/101-entry failure.1492 actual-origin invocations include
+708 ordinary-local cases:76 first-charge nodes,0 new callee entries and0
+observed flow-state changes. Those nodes can be charged instead by the required
+later C visit (shared work_epoch);76 is not a saving. More importantly, declared
+result O performs destination/result-frame admission that C alone does not.
+Do not implement this blanket skip. Native broad `.tmp/p0-typed-retention-
+broad.41el1X/` passes MIR327/semantic3228/transpile1009, Map24/58, phase8486/0
+and HIR/RIR/MIR/AIR; full bootstrap is still RED.
+
+Next diagnostic compares only the ordering of the existing registered work.
+The actual semantic_consume_param_publication already demands every registered
+ref formal in declaration order before its final consumers. Its validated
+body_calls already link exact caller/callee routine indexes for body-summary
+publication. Use those edges only to order that same request set callee-first,
+with cyclic edges still handled by the unchanged recursive flow owner. It is
+not another semantic authority or extra/unrelated prewarm; every existing
+routine/formal request remains and4096/currentness/negatives stay unchanged.
+Unknown edges cannot grant anything: the existing demanded solver still owns
+closure and failure. A scratch-only postorder experiment must check indexes,
+overflow/allocation failures, emit the request multiset and stop before MIR.
+Production ordering is not approved until measured on the unchanged full
+canonical input and reviewed for missing edges/cycles. The762 cold-key failures
+remain separately visible even if production ordering changes its result.
+
+### Blocking red-team finding — selected source callable identity
+
+STOP the ordering experiment until this safety boundary is repaired. Independent
+review of6927563d3 found a source-level identity bypass, reproduced by root on
+0699 in `.tmp/p1-callee-collision.Xum6V2/`: intent ToString (Bool), event ToString
+(Void), intent StringReplace (Bool), event Substring (Void) all admitted a
+String binding and emitted MIR. The4 artifacts were never executed. This is a
+real typed-call selection bug, not just a new result-predicate condition.
+
+- Objective/order: selected source identity and type -> current publication ->
+  identical C/LLVM target; fail closed before cost or bootstrap. No fake stdlib
+  input/result contract may be issued for an event/intent or other source symbol.
+- Owner: type_check_call's admitted lexical symbol and exact declaration ID.
+  Existing constructor/value/callable checkers own kind-specific typing; names
+  must not reopen stdlib after a source symbol has been selected. Preserve the
+  current docs/205 reservation policy; do not prohibit legitimate events/intents
+  or add reservation families to hide the bug. Existing language constructor
+  forms keep their explicitly documented precedence.
+- Whole chain: program/import symbol collection -> bare-call selection ->
+  existing symbol-call/constructor typing and decl ID -> declared_callable /
+  stdlib / builtin / value-binding facts -> typed publication snapshot/current
+  replay -> MIR purity and call type inference -> C/LLVM event/function/intent
+  emission. Event dispatch and Void inference must consume exact selected
+  declaration identity, not whichever same-name event a backend happens to find.
+- Required changes: source-callable selection includes legitimate Intent/Event;
+  a non-callable selected source symbol errors instead of retrying stdlib. Join
+  any declaration lookup to the selected symbol ID. Snapshot/replay existing
+  declared_callable in PublishedNode (no new AST/MIR wire). Keep constructor
+  routes and local values distinct. Reached backend declared-call dispatch and
+  type inference must distinguish Event before ordinary function/Intent.
+  Reached existing backend consumers include C user-call host-method selection
+  and both event emit owners as well as dispatch/type inference; those must
+  compare selected source/MIR method/event syntax ID, not a same-name match.
+- Last consumers: final backing currency and both native backend emitted call
+  targets/outputs. Missing or drifted IDs/flags reject; no name-only fallback.
+- Scopes: A owns semantic call selection and publication producer/currentness;
+  B owns reached existing C/LLVM dispatch/type-inference consumers; C owns phase
+  flag faults, source collision negatives and legitimate domain-call positives.
+  Root owns source-plan reconciliation, before evidence, build/test/commit and
+  independent review. Do not modify scratch postorder/source while fixing P1.
+  Reached identity obligations extend these same scopes, not new work tracks:
+  A's existing host-declaration index must own exact nested callable IDs and
+  generated class/enum aliases (enum currently omits the method ID). Build the
+  bounded nested callable index once, retire it with the context, and delete
+  the trial per-call program/extern scan. Top-level lookup must still join ID
+  and kind; generated alias spelling must join its real owner/method. B's
+  existing constructor emitters and two type-inference consumers must join
+  selected nominal/enum binding IDs before choosing an ABI. Do not require the
+  function/event flag on a constructor or let a builtin name retype it.
+  Preserve language Option/Result forms, current MIR-only projections and
+  legitimate generated aliases; new missing producers return to this map,
+  not exemptions. C prepares constructor/alias controls; root observes their
+  actual outputs before registering exact oracles.
+  Constructor/enum producers must publish their selected ID in the existing
+  CALL target field while keeping declared_callable=false. Root's existing MIR
+  graph materializer consumes that flag when issuing a declared-callable leaf;
+  a constructor target ID alone must not select the function ABI. The existing
+  persisted graph schema already permits this distinction; no wire field or
+  new binding kind is introduced. Snapshot/currentness and full native MIR
+  controls must check the changed projection, not only direct-call output.
+  Observed integration45f3fb0e: phase8522/0, strict native summary and scoped
+  R7 C/LLVM pass; MIR334/0 and semantic3228/0. Constructor outputs7/9 and
+  class alias31 match both backends. Two reached obligations block approval:
+  enum alias emits C19 but LLVM declares Route_Value without its body; repair
+  the existing nominal body consumer and align simple-enum self=i32 with its
+  registered prototype (payload-enum struct carriage unchanged). Existing
+  expression-emitter units also invent undeclared Left/Right/Add calls; the
+  new guard rejects them and the old test dereferences NULL at core_a_1:195.
+  The isolated ASAN/UBSan receipt Bn4RPF confirms that exact first UB without
+  changing production native45f. Enumerate the complete unit failure set in
+  a labelled scratch harness, then repair test inputs to use admitted identity;
+  do not weaken production admission, skip assertions or conceal NULL results.
+  The scratch census then stops at a real pre-existing sanitizer defect:
+  string_window_extent_finalize sorts absent zero-row arrays with qsort(NULL,
+  0,...). Root repairs only that reached owner to sort when count>1, preserving
+  the same rows/order/lookup/last consumers and all extent refusals. The same
+  ASAN/UBSan input must proceed past this boundary before the census can be
+  called complete; this is not permission to disable the sanitizer or assert
+  a NULL result valid.
+  Second sanitizer observation KL8IAK reaches bsearch(NULL,0,...) in the same
+  owner. The complete reached family is5 sorts and3 lookups over optional
+  arrays. Finalization now rejects nonzero-count/missing-storage inconsistencies;
+  zero-row lookups return not-found without entering libc, and only multi-row
+  tables are sorted. Preserve positive extent facts and all denied mutations.
+  Recheck the same census under both sanitizers, not a non-sanitized workaround.
+  Complete census9O8WBc reaches the end under ASAN/UBSan with explicit rc86:
+  18 failed assertions plus1 NULL-comparison diagnostic, not a PASS.3 positive
+  expression cases invent Left/Right/Add without declarations.7 addressability
+  negatives depend on a failed builtin falling through to unselected user-call
+  text. Standalone boundary aGwwS2 confirms real ListNew->ListPush returns NULL
+  and the original addressability error. Repair positives through the existing
+  strict source/MIR projection, replace fake Make* operands with real constructor
+  shapes, and strengthen negatives to no C output plus their exact owned error.
+  Root's C dispatcher stops on an emitter's owned error instead of trying a
+  different lane. Do not recreate the old fallback merely to preserve a
+  non-NULL invalid fragment. These are backend component checks, not a claim
+  that every negative source was admitted by the language front end.
+  Latest integrated native92d2bf67, narrow uFZjyp: phase8522/0, strict summary
+  and all constructor/alias identity controls PASS. Final original test suite
+  qk0pof passes native1012/0 and ASAN/UBSan1012/0 (leak detection explicitly
+  off); no diagnostic interposers. Actual source declarations require the
+  existing pgy_u_ emitted names, and Cancel now uses a semantically admitted
+  async Worker/spawn/Future/await source fixture. Backend oQ58gm passes all5
+  C/LLVM constructor/alias outputs7/9/31/19/23 and scoped R7 shadow controls,
+  not installed evidence. Actual prior827 bootstrap VRmRof remains18421
+  errors/16 warnings before gen0. Keep scoped native green and canonical RED
+  separate. Broad rCeOTO is now PASS: MIR334/semantic3228/transpile1012,
+  Map24/58, phase8522/0 and HIR/RIR/MIR/AIR. Save this coherent local source
+  checkpoint and obtain exact-SHA independent review before resuming the
+  fixed-input admission blocker. These are native prerequisite receipts.
+- Falsifiers: the4 String-binding collisions now refuse semantically/no MIR;
+  valid nonreserved ToString Intent/Event retain Bool/Void semantics and C/LLVM
+  agreement, including statement-position effects. Ordinary function/host/value
+  shadow and constructors retain existing meaning. A true stdlib String-result
+  call with declared_callable flipped must revoke its predicate and cached
+  backing proof. Preserve typed String positives, nested retaining/Pool/opaque,
+  CFG, recursion,4096/4097, all native suites and propagation gates. No unsafe
+  pre-fix binary is executed. Installed-driver/bootstrap/CI remain unverified.
+
+Root also reproduced the single-flag proof forgery on unchanged0699:
+`.tmp/p1-declared-flag.qgdBq3/` runs a scratch phase unit with only
+declared_callable=true added as fault14 for4 real stdlib calls.8502 checks,
+8 expected failures: all4 predicates and4 final cached proofs stayed current.
+Native0699/source/build/test/binary restoration is BYTE_IDENTICAL. This is
+before evidence, not a passing acceptance gate. The same assertions must pass
+after producer/consumer repair. Reservation-only declarations remain under
+the existing policy; do not add a new rule merely to make collision tests red.
+
 ### Integration checkpoint and remaining result relation
 
 Source checkpoint `e6010d946` consumes the exact SubStartsWithLen String input

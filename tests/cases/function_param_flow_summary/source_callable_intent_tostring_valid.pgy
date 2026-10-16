@@ -1,0 +1,9 @@
+intent ToString(value: Int) {
+    success: value == 7;
+    failure: false;
+}
+
+func Main() -> Void {
+    let completed: Bool = ToString(7);
+    Log(completed);
+}

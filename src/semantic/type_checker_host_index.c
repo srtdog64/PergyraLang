@@ -118,6 +118,40 @@ host_decl_index_append(SemanticContext *ctx, ASTNode *decl)
     return true;
 }
 
+static bool
+host_decl_index_append_nested_callable(SemanticContext *ctx, ASTNode *decl,
+                                       ASTNode *alias_owner)
+{
+    SemanticNestedCallable *next;
+    size_t capacity;
+    if (decl == NULL || decl->type != AST_FUNC_DECL) return true;
+    if (ast_node_stable_id(decl) == 0 ||
+        (alias_owner != NULL && ast_node_stable_id(alias_owner) == 0)) return false;
+    if (ctx->host_decl_index.nested_count == ctx->host_decl_index.nested_capacity) {
+        capacity = ctx->host_decl_index.nested_capacity == 0
+            ? 16 : ctx->host_decl_index.nested_capacity * 2;
+        if (capacity < ctx->host_decl_index.nested_capacity ||
+            capacity > SIZE_MAX / sizeof(*next)) return false;
+        next = realloc(ctx->host_decl_index.nested_callables,
+                       capacity * sizeof(*next));
+        if (next == NULL) return false;
+        ctx->host_decl_index.nested_callables = next;
+        ctx->host_decl_index.nested_capacity = capacity;
+    }
+    ctx->host_decl_index.nested_callables[ctx->host_decl_index.nested_count++] =
+        (SemanticNestedCallable){decl, alias_owner, ast_node_stable_id(decl),
+            ast_node_stable_id(alias_owner)};
+    return true;
+}
+
+static int
+host_nested_callable_compare(const void *left, const void *right)
+{
+    uint32_t a = ((const SemanticNestedCallable *)left)->id;
+    uint32_t b = ((const SemanticNestedCallable *)right)->id;
+    return (a > b) - (a < b);
+}
+
 /* FNV-1a over the name, mixed with the decl type. Must be byte-identical
  * between build and lookup. */
 static size_t
@@ -200,12 +234,92 @@ semantic_build_host_decl_index(SemanticContext *ctx, ASTNode *program)
         return false;
 
     ctx->host_decl_index.count = 0;
+    ctx->host_decl_index.nested_count = 0;
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        if (!host_decl_index_append(ctx, ast_program_statement(program, i)))
+        ASTNode *decl = ast_program_statement(program, i);
+        ASTNode **nested = NULL;
+        size_t count = 0;
+        ASTNode *alias_owner = NULL;
+        if (!host_decl_index_append(ctx, decl))
             return false;
+        if (decl == NULL) continue;
+        if (decl->type == AST_EXTERN_BLOCK)
+            nested = ast_extern_block_declarations(decl, &count);
+        else if (decl->type == AST_CLASS_DECL) {
+            nested = ast_class_methods(decl, &count);
+            alias_owner = decl;
+        } else if (decl->type == AST_ENUM_DECL) {
+            nested = ast_enum_methods(decl, &count);
+            alias_owner = decl;
+        }
+        if (count != 0 && nested == NULL) return false;
+        for (size_t j = 0; j < count; j++)
+            if (!host_decl_index_append_nested_callable(ctx,
+                    nested[j], alias_owner)) return false;
     }
+    if (ctx->host_decl_index.nested_count > 1)
+        qsort(ctx->host_decl_index.nested_callables,
+              ctx->host_decl_index.nested_count,
+              sizeof(*ctx->host_decl_index.nested_callables),
+              host_nested_callable_compare);
+    for (size_t i = 1; i < ctx->host_decl_index.nested_count; i++)
+        if (ctx->host_decl_index.nested_callables[i - 1].id ==
+            ctx->host_decl_index.nested_callables[i].id) return false;
     host_decl_index_build_hash(ctx);
     return true;
+}
+
+ASTNode *
+semantic_host_index_find_selected_callable(SemanticContext *ctx,
+                                           SymbolKind kind,
+                                           uint32_t declaration_id,
+                                           const char *source_name)
+{
+    ASTNode *decl;
+    size_t low = 0, high;
+    if (ctx == NULL || declaration_id == 0 || source_name == NULL ||
+        (kind != SYMBOL_FUNCTION && kind != SYMBOL_INTENT)) return NULL;
+    decl = semantic_host_index_find_decl_by_name(ctx,
+        kind == SYMBOL_INTENT ? AST_INTENT_DECL : AST_FUNC_DECL, source_name);
+    if (decl != NULL && ast_node_stable_id(decl) == declaration_id)
+        return decl;
+    if (kind == SYMBOL_FUNCTION) {
+        decl = semantic_host_index_find_decl_by_name(ctx, AST_EVENT_DECL,
+                                                     source_name);
+        if (decl != NULL && ast_node_stable_id(decl) == declaration_id)
+            return decl;
+    }
+    high = ctx->host_decl_index.nested_count;
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        const SemanticNestedCallable *row =
+            &ctx->host_decl_index.nested_callables[mid];
+        if (declaration_id < row->id) high = mid;
+        else if (declaration_id > row->id) low = mid + 1;
+        else {
+            const char *name = ast_declaration_name(row->decl);
+            const char *owner_name = row->alias_owner == NULL ? NULL
+                : row->alias_owner->type == AST_CLASS_DECL
+                    ? ast_class_name(row->alias_owner)
+                    : row->alias_owner->type == AST_ENUM_DECL
+                        ? ast_enum_name(row->alias_owner) : NULL;
+            if (kind != SYMBOL_FUNCTION || row->decl->type != AST_FUNC_DECL ||
+                ast_node_stable_id(row->decl) != row->id || name == NULL ||
+                (row->alias_owner != NULL &&
+                    (owner_name == NULL || ast_node_stable_id(row->alias_owner)
+                        != row->alias_owner_id))) return NULL;
+            if (owner_name == NULL)
+                return strcmp(source_name, name) == 0 ? row->decl : NULL;
+            size_t owner_len = strlen(owner_name), name_len = strlen(name);
+            if (owner_len > SIZE_MAX - name_len - 2 ||
+                strlen(source_name) != owner_len + name_len + 1 ||
+                strncmp(source_name, owner_name, owner_len) != 0 ||
+                (source_name[owner_len] != '_' && source_name[owner_len] != '.') ||
+                strcmp(source_name + owner_len + 1, name) != 0) return NULL;
+            return row->decl;
+        }
+    }
+    return NULL;
 }
 
 ASTNode *

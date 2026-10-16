@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "llvm_expr_constructor_channel_guard.h"
+#include "codegen_match_variant_policy.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_domain_projection_count_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -681,10 +682,25 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
 LLVMValueRef
 llvm_emit_constructor_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {
-    LLVMValueRef value = llvm_emit_enum_variant_constructor(node, ctx, callee_name);
-    if (value != NULL)
-        return value;
-    return llvm_emit_class_constructor(node, ctx, callee_name);
+    LLVMSelectedConstructor selected = llvm_selected_source_constructor(
+        ctx, node, callee_name);
+    LLVMValueRef value;
+
+    if (selected.kind == LLVM_SELECTED_CTOR_NONE)
+        return NULL;
+    if (selected.kind == LLVM_SELECTED_CTOR_INVALID)
+        return llvm_constructor_error(node, ctx,
+            "LLVM constructor has no matching selected declaration");
+    if (selected.kind == LLVM_SELECTED_CTOR_ENUM) {
+        value = llvm_emit_enum_variant_constructor(node, ctx, callee_name);
+        return value != NULL || ctx->has_error ? value
+            : llvm_constructor_error(node, ctx,
+                "LLVM selected enum constructor could not be emitted");
+    }
+    value = llvm_emit_class_constructor(node, ctx, callee_name);
+    return value != NULL || ctx->has_error ? value
+        : llvm_constructor_error(node, ctx,
+            "LLVM selected nominal constructor has no class layout");
 }
 
 #endif

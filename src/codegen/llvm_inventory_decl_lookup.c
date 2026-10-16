@@ -7,6 +7,9 @@
 
 #include "host_decl_compat.h"
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_host_methods.h"
+#include "codegen_match_variant_policy.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 
@@ -273,6 +276,93 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
     return llvm_is_host_decl_type(decl->type)
         ? llvm_decl_node_name(decl)
         : NULL;
+}
+
+LLVMSelectedCall
+llvm_selected_source_callable(LLVMGenCtx *ctx, ASTNode *call,
+                              const char *name)
+{
+    LLVMSelectedCall result = {LLVM_SELECTED_CALL_INVALID, NULL, NULL};
+    if (ctx == NULL || call == NULL || name == NULL
+        || !ast_call_semantic_callee_declared_callable(call)
+        || ast_call_semantic_callee_is_stdlib(call)
+        || ast_call_semantic_callee_value_binding_id(call) != 0)
+        return result;
+    uint32_t id = ast_call_semantic_callee_decl_id(call);
+    if (id == 0)
+        return result;
+    ASTNode *decl = llvm_find_decl_in_active_inventory(ctx, AST_EVENT_DECL, name);
+    if (decl != NULL && ast_node_stable_id(decl) == id) {
+        result.kind = LLVM_SELECTED_CALL_EVENT;
+        result.decl = decl;
+        return result;
+    }
+    decl = llvm_find_function_decl(ctx, name);
+    if (decl != NULL && ast_node_stable_id(decl) == id) {
+        result.kind = LLVM_SELECTED_CALL_FUNCTION;
+        result.decl = decl;
+        return result;
+    }
+    decl = llvm_find_intent_decl(ctx, name);
+    if (decl != NULL && ast_node_stable_id(decl) == id) {
+        result.kind = LLVM_SELECTED_CALL_INTENT;
+        result.decl = decl;
+        return result;
+    }
+    ASTNode *host = llvm_current_host_decl(ctx);
+    const char *host_name = llvm_decl_node_name(host);
+    const MIRDeclMethod *method = host_name == NULL ? NULL
+        : llvm_find_host_method_metadata_in_context(ctx, host_name, name);
+    if (method != NULL && mir_decl_method_source_syntax_id(method) == id) {
+        result.kind = LLVM_SELECTED_CALL_HOST_METHOD;
+        return result;
+    }
+    MIRRoutineInventory inventory;
+    mir_routine_inventory_from_program(ctx->mir, &inventory);
+    MIRRoutineSourceLookup alias = mir_routine_inventory_find_method_alias(
+        &inventory, id, name);
+    if (alias.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE) {
+        result.kind = LLVM_SELECTED_CALL_METHOD_ALIAS;
+        result.alias = alias.routine;
+    }
+    return result;
+}
+
+LLVMSelectedConstructor
+llvm_selected_source_constructor(LLVMGenCtx *ctx, ASTNode *call,
+                                 const char *name)
+{
+    LLVMSelectedConstructor result = {LLVM_SELECTED_CTOR_NONE, NULL};
+    if (ctx == NULL || call == NULL || name == NULL
+        || pgy_codegen_match_variant_is_builtin(
+            pgy_codegen_match_variant_lookup(name)))
+        return result;
+    if (ast_call_semantic_callee_is_stdlib(call)
+        && ast_call_semantic_callee_decl_id(call) == 0)
+        return result;
+    LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, name);
+    ASTNode *decl = variant != NULL
+        ? llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL,
+            variant->enum_name) : llvm_find_domain_constructor_decl(ctx, name);
+    if (decl == NULL && variant == NULL)
+        decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
+    if (decl == NULL && variant == NULL)
+        return result;
+    result.kind = LLVM_SELECTED_CTOR_INVALID;
+    ASTNode *callee = ast_call_callee(call);
+    uint32_t id = ast_call_semantic_callee_decl_id(call);
+    uint32_t binding = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_binding_syntax_id(callee) : 0;
+    if (decl == NULL || id == 0 || id != ast_node_stable_id(decl)
+        || (binding != 0 && binding != id)
+        || ast_call_semantic_callee_declared_callable(call)
+        || ast_call_semantic_callee_is_stdlib(call)
+        || ast_call_semantic_callee_value_binding_id(call) != 0)
+        return result;
+    result.kind = variant != NULL
+        ? LLVM_SELECTED_CTOR_ENUM : LLVM_SELECTED_CTOR_NOMINAL;
+    result.enum_name = variant != NULL ? variant->enum_name : NULL;
+    return result;
 }
 
 #endif /* PGY_LLVM_ENABLED */

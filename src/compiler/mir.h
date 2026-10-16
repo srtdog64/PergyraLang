@@ -172,6 +172,10 @@ typedef struct
 MIRRoutineSourceLookup mir_routine_inventory_find_unique_by_source_syntax_id(
                 const MIRRoutineInventory *inventory,
                 uint32_t source_syntax_id);
+MIRRoutineSourceLookup mir_routine_inventory_find_method_alias(
+                const MIRRoutineInventory *inventory,
+                uint32_t source_syntax_id,
+                const char *emitted_name);
 void        mir_decl_header_inventory_from_program(
                 const MIRProgram *mir,
                 MIRDeclHeaderInventory *inventory);

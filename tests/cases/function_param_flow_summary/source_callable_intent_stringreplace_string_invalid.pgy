@@ -1,0 +1,9 @@
+intent StringReplace(source: String, find: String, replacement: String) {
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let rendered: String = StringReplace("a", "a", "b");
+    Log(rendered);
+}

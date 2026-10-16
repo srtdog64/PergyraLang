@@ -305,21 +305,32 @@ bool
 semantic_string_window_extent_finalize(SemanticContext *ctx)
 {
     StringWindowExtentStore *store = swe_store(ctx);
-    if (store == NULL || store->allocation_failed)
+    if (store == NULL || store->allocation_failed ||
+        (store->routine_count != 0 && store->routines == NULL) ||
+        (store->let_count != 0 && store->lets == NULL) ||
+        (store->mutated_count != 0 && store->mutated == NULL) ||
+        (store->inout_passed_count != 0 && store->inout_passed == NULL) ||
+        (store->parameter_count != 0 && store->parameters == NULL))
         return swe_failed_closed(ctx);
-    qsort(store->routines, store->routine_count, sizeof(*store->routines),
-          swe_compare_routine);
-    qsort(store->lets, store->let_count, sizeof(*store->lets), swe_compare_let);
+    /* Empty tables own no storage; libc's array APIs still require a base. */
+    if (store->routine_count > 1)
+        qsort(store->routines, store->routine_count, sizeof(*store->routines),
+              swe_compare_routine);
+    if (store->let_count > 1)
+        qsort(store->lets, store->let_count, sizeof(*store->lets), swe_compare_let);
     for (size_t i = 0; i < store->call_count; i++)
         swe_mark_call_mutations(ctx, store, store->calls[i].call);
     if (store->allocation_failed)
         return swe_failed_closed(ctx);
-    qsort(store->mutated, store->mutated_count, sizeof(*store->mutated),
-          swe_compare_u32);
-    qsort(store->inout_passed, store->inout_passed_count,
-          sizeof(*store->inout_passed), swe_compare_u32);
-    qsort(store->parameters, store->parameter_count,
-          sizeof(*store->parameters), swe_compare_u32);
+    if (store->mutated_count > 1)
+        qsort(store->mutated, store->mutated_count, sizeof(*store->mutated),
+              swe_compare_u32);
+    if (store->inout_passed_count > 1)
+        qsort(store->inout_passed, store->inout_passed_count,
+              sizeof(*store->inout_passed), swe_compare_u32);
+    if (store->parameter_count > 1)
+        qsort(store->parameters, store->parameter_count,
+              sizeof(*store->parameters), swe_compare_u32);
 
     bool changed = true;
     while (changed && !store->allocation_failed) {

@@ -8,22 +8,44 @@ test_expression_emit(void)
 
     TEST("eager binary operands have ordered single-evaluation storage");
     {
+        const char *source =
+            "func Left() -> Int { return 1; }\n"
+            "func Right() -> Int { return 2; }\n"
+            "func Main() -> Void { let value: Int = Left() + Right(); }\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_pipeline_from_source(source, &program, &hir,
+            &rir, &mir);
+        ASTNode *main_decl = lowered ? ast_program_statement(program, 2) : NULL;
+        ASTNode *body = main_decl != NULL ? ast_func_body(main_decl) : NULL;
+        ASTNode *value = body != NULL ? ast_block_statement(body, 0) : NULL;
+        ASTNode *expr = value != NULL && value->type == AST_LET_DECL
+            ? ast_let_initializer(value) : NULL;
         ctx = transpiler_ctx_create();
-        ASTNode *expr = ast_create_binary(make_call("Left", NULL, 0, 1),
-            (Token){ .type = TOKEN_PLUS }, make_call("Right", NULL, 0, 1));
-        result = emit_expression(expr, ctx);
+        if (ctx != NULL)
+            ctx->mir = mir;
+        bool projected = ctx != NULL && mir != NULL
+            && bind_test_c_projection_plan(ctx, mir);
+        result = lowered && projected && expr != NULL
+            ? emit_expression(expr, ctx) : NULL;
+        EXPECT(lowered && projected && expr != NULL);
         EXPECT(result != NULL);
         EXPECT_STR_CONTAINS(result, "({ __auto_type __pgy_binary_");
         if (result != NULL) {
-            const char *left = strstr(result, "= (Left());");
-            const char *right = strstr(result, "= (Right());");
+            const char *left = strstr(result, "= (pgy_u_Left());");
+            const char *right = strstr(result, "= (pgy_u_Right());");
             EXPECT(left != NULL && right != NULL && left < right);
-            EXPECT(left != NULL && strstr(left + strlen("= (Left());"), "Left()") == NULL);
-            EXPECT(right != NULL && strstr(right + strlen("= (Right());"), "Right()") == NULL);
+            EXPECT(left != NULL && strstr(left + strlen("= (pgy_u_Left());"), "pgy_u_Left()") == NULL);
+            EXPECT(right != NULL && strstr(right + strlen("= (pgy_u_Right());"), "pgy_u_Right()") == NULL);
         }
         free(result);
-        ast_destroy(expr);
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("binary temporaries do not capture a compiler-looking source binding");
@@ -48,14 +70,38 @@ test_expression_emit(void)
 
     TEST("logical RHS remains lazy instead of becoming an eager temporary");
     {
+        const char *source =
+            "func Right() -> Bool { return true; }\n"
+            "func Main() -> Void {\n"
+            "    let enabled: Bool = false;\n"
+            "    let value: Bool = enabled && Right();\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_pipeline_from_source(source, &program, &hir,
+            &rir, &mir);
+        ASTNode *main_decl = lowered ? ast_program_statement(program, 1) : NULL;
+        ASTNode *body = main_decl != NULL ? ast_func_body(main_decl) : NULL;
+        ASTNode *value = body != NULL ? ast_block_statement(body, 1) : NULL;
+        ASTNode *expr = value != NULL && value->type == AST_LET_DECL
+            ? ast_let_initializer(value) : NULL;
         ctx = transpiler_ctx_create();
-        ASTNode *expr = ast_create_binary(make_identifier("enabled", 1),
-            (Token){ .type = TOKEN_AND }, make_call("Right", NULL, 0, 1));
-        result = emit_expression(expr, ctx);
-        EXPECT(result != NULL && strcmp(result, "(enabled && Right())") == 0);
+        if (ctx != NULL)
+            ctx->mir = mir;
+        bool projected = ctx != NULL && mir != NULL
+            && bind_test_c_projection_plan(ctx, mir);
+        result = lowered && projected && expr != NULL
+            ? emit_expression(expr, ctx) : NULL;
+        EXPECT(lowered && projected && expr != NULL);
+        EXPECT(result != NULL && strcmp(result, "(enabled && pgy_u_Right())") == 0);
         free(result);
-        ast_destroy(expr);
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("integer literal -> correct C literal");
@@ -189,12 +235,35 @@ test_expression_emit(void)
 
     TEST("user function call -> funcName(arg0, arg1)");
     {
+        const char *source =
+            "func Add(a: Int, b: Int) -> Int { return a + b; }\n"
+            "func Main() -> Void { let value: Int = Add(1, 2); }\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool lowered = lower_pipeline_from_source(source, &program, &hir,
+            &rir, &mir);
+        ASTNode *main_decl = lowered ? ast_program_statement(program, 1) : NULL;
+        ASTNode *body = main_decl != NULL ? ast_func_body(main_decl) : NULL;
+        ASTNode *value = body != NULL ? ast_block_statement(body, 0) : NULL;
+        ASTNode *expr = value != NULL && value->type == AST_LET_DECL
+            ? ast_let_initializer(value) : NULL;
         ctx = transpiler_ctx_create();
-        ASTNode *args[2] = { make_number(1, 1), make_number(2, 1) };
-        result = emit_expression(make_call("Add", args, 2, 1), ctx);
-        EXPECT(strcmp(result, "Add(1, 2)") == 0);
+        if (ctx != NULL)
+            ctx->mir = mir;
+        bool projected = ctx != NULL && mir != NULL
+            && bind_test_c_projection_plan(ctx, mir);
+        result = lowered && projected && expr != NULL
+            ? emit_expression(expr, ctx) : NULL;
+        EXPECT(lowered && projected && expr != NULL);
+        EXPECT(result != NULL && strcmp(result, "pgy_u_Add(1, 2)") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("Log(42) -> pgy_log(42)");

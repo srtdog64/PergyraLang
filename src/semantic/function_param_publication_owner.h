@@ -129,7 +129,7 @@ typedef struct {
     const ASTNode *node, *target, *caller;
     uint32_t id, target_id, caller_id, builtin, declaration, value_binding, binding_id;
     bool value_present, copy_escape, meta, execution_present, reachable;
-    bool call_present, kind_present, stdlib, local, cast_present;
+    bool call_present, kind_present, stdlib, declared_callable, local, cast_present;
     bool assignment_replacement;
     bool channel_binding;
     bool owned_slot_binding;

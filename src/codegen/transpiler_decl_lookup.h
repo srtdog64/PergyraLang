@@ -436,6 +436,22 @@ bool transpiler_decl_is_extern_function(const TranspilerCtx *ctx,
                                         const ASTNode *decl);
 ASTNode *find_intent_decl(TranspilerCtx *ctx, const char *intent_name);
 ASTNode *find_callable_decl(TranspilerCtx *ctx, const char *name);
+typedef enum {
+    TRANSPILER_SELECTED_CALL_INVALID,
+    TRANSPILER_SELECTED_CALL_EVENT,
+    TRANSPILER_SELECTED_CALL_FUNCTION,
+    TRANSPILER_SELECTED_CALL_INTENT,
+    TRANSPILER_SELECTED_CALL_HOST_METHOD,
+    TRANSPILER_SELECTED_CALL_METHOD_ALIAS
+} TranspilerSelectedCallKind;
+typedef struct {
+    TranspilerSelectedCallKind kind;
+    ASTNode *decl;
+    const MIRDeclMethod *host_method;
+    const MIRRoutine *alias;
+} TranspilerSelectedCall;
+TranspilerSelectedCall transpiler_selected_source_callable(
+    TranspilerCtx *ctx, ASTNode *call, const char *name);
 ASTNode *find_party_decl(TranspilerCtx *ctx, const char *party_name);
 ASTNode *find_roster_decl(TranspilerCtx *ctx, const char *roster_name);
 ASTNode *find_enum_decl(TranspilerCtx *ctx, const char *enum_name);

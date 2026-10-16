@@ -1,0 +1,13 @@
+enum Packet {
+    Payload(Int),
+    Empty,
+
+    func Value(self) -> Int {
+        return self.Payload._0;
+    }
+}
+
+func Main() -> Void {
+    let packet: Packet = Payload(23);
+    Log(Packet_Value(packet));
+}

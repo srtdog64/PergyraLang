@@ -8,12 +8,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "codegen_slot_type_policy.h"
 #include "codegen_builtin_type_table.h"
+#include "codegen_match_variant_policy.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_enum.h"
 #include "transpiler_expr_type_infer_call_policy.h"
 #include "transpiler_future_type_query.h"
 #include "transpiler_generic_binding_query.h"
@@ -30,19 +33,21 @@
 #include "../parser/ast_api.h"
 
 static const char *
-transpiler_infer_static_member_call_type_name(TranspilerCtx *ctx,
-                                              ASTNode *call,
-                                              bool *handled)
+transpiler_infer_selected_routine_call_type_name(TranspilerCtx *ctx,
+                                                 ASTNode *call,
+                                                 bool *handled)
 {
     MIRRoutineSourceLookup lookup;
     const char *return_type_name;
     uint32_t callee_decl_id;
+    ASTNode *callee;
 
     if (handled != NULL)
         *handled = false;
     if (ctx == NULL || call == NULL || call->type != AST_CALL
-        || ast_call_callee(call) == NULL
-        || ast_call_callee(call)->type != AST_MEMBER_ACCESS) {
+        || (callee = ast_call_callee(call)) == NULL
+        || (callee->type != AST_MEMBER_ACCESS
+            && callee->type != AST_IDENTIFIER)) {
         return NULL;
     }
 
@@ -50,8 +55,15 @@ transpiler_infer_static_member_call_type_name(TranspilerCtx *ctx,
     if (callee_decl_id == 0)
         return NULL;
 
-    lookup = transpiler_active_routine_lookup_by_source_syntax_id(
-        ctx, callee_decl_id);
+    if (callee->type == AST_IDENTIFIER) {
+        MIRRoutineInventory inventory;
+        mir_routine_inventory_from_program(ctx->mir, &inventory);
+        lookup = mir_routine_inventory_find_method_alias(
+            &inventory, callee_decl_id, ast_identifier_name(callee));
+    } else {
+        lookup = transpiler_active_routine_lookup_by_source_syntax_id(
+            ctx, callee_decl_id);
+    }
     if (lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE) {
         if (handled != NULL)
             *handled = true;
@@ -60,16 +72,18 @@ transpiler_infer_static_member_call_type_name(TranspilerCtx *ctx,
             callee_decl_id);
         return "Unknown";
     }
+    const MIRRoutine *routine = lookup.routine;
     if (lookup.status != MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
-        || lookup.routine == NULL
-        || transpiler_mir_routine_kind(lookup.routine) != MIR_SCOPE_FUNCTION) {
+        || routine == NULL
+        || (callee->type == AST_MEMBER_ACCESS
+            && mir_routine_kind(routine) != MIR_SCOPE_FUNCTION)) {
         return NULL;
     }
 
     if (handled != NULL)
         *handled = true;
     if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
-            lookup.routine,
+            routine,
             NULL,
             TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
             "MIR-only C path missing qualified function-call signature metadata for '%s'",
@@ -78,7 +92,7 @@ transpiler_infer_static_member_call_type_name(TranspilerCtx *ctx,
         return "Unknown";
     }
     return_type_name =
-        transpiler_mir_routine_return_type_name(lookup.routine);
+        transpiler_mir_routine_return_type_name(routine);
     if (return_type_name == NULL)
         return "Unknown";
     return transpiler_infer_arena_copy_type_name(ctx, return_type_name);
@@ -159,33 +173,41 @@ transpiler_infer_function_decl_call_type_name(TranspilerCtx *ctx,
     return "Unknown";
 }
 
-/* A call semantic resolved to a declaration: the host's method first, the
- * way semantic chose it, then the program function. */
+/* A declared call uses only its selected event, method, function, or intent. */
 static const char *
 transpiler_infer_declared_call_type_name(TranspilerCtx *ctx, ASTNode *expr,
                                          const char *name)
 {
-    ASTNode *decl = find_callable_decl(ctx, name);
-    {
-        ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
-        const char *host_name = transpiler_decl_name_local(host_decl);
-        const MIRDeclMethod *host_method_meta =
-            transpiler_find_host_method_metadata_in_context(
-                ctx, host_name, name);
+    TranspilerSelectedCall selected =
+        transpiler_selected_source_callable(ctx, expr, name);
+    ASTNode *decl = selected.decl;
+    if (selected.kind == TRANSPILER_SELECTED_CALL_INVALID) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing selected declaration for call '%s'",
+            name != NULL ? name : "(anonymous)");
+        return "Unknown";
+    }
+    if (selected.kind == TRANSPILER_SELECTED_CALL_EVENT)
+        return "Void";
+    if (selected.kind == TRANSPILER_SELECTED_CALL_METHOD_ALIAS) {
+        if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                selected.alias, NULL,
+                TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
+                "MIR-only C path missing qualified function-call signature metadata for '%s'",
+                "MIR-only C path missing qualified function-call return type-name metadata for '%s'",
+                NULL))
+            return "Unknown";
+        return transpiler_infer_arena_copy_type_name(ctx,
+            transpiler_mir_routine_return_type_name(selected.alias));
+    }
+    if (selected.kind == TRANSPILER_SELECTED_CALL_HOST_METHOD) {
+        const char *host_name = transpiler_decl_name_local(
+            transpiler_current_host_decl_local(ctx));
+        const MIRDeclMethod *host_method_meta = selected.host_method;
         ASTNode *host_return_type = NULL;
         const char *host_return_type_name =
             transpiler_mir_decl_method_return_type_name(
                 host_method_meta);
-        if (host_decl != NULL
-            && host_name != NULL
-            && host_method_meta == NULL
-            && decl == NULL) {
-            transpiler_set_mir_inventory_missing(ctx,
-                "MIR-only C path missing hosted self-call inference method metadata for '%s.%s'",
-                host_name,
-                name != NULL ? name : "(anonymous)");
-            return "Unknown";
-        }
         if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
                 host_method_meta,
                 host_name,
@@ -209,6 +231,10 @@ transpiler_infer_declared_call_type_name(TranspilerCtx *ctx, ASTNode *expr,
             free(resolved);
             return copied != NULL ? copied : "Unknown";
         }
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing selected hosted-call result for '%s.%s'",
+            host_name, name != NULL ? name : "(anonymous)");
+        return "Unknown";
     }
 
     return transpiler_infer_function_decl_call_type_name(
@@ -226,7 +252,7 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
         && ast_member_name(ast_call_callee(expr)) != NULL) {
         bool static_function_call = false;
         const char *static_return_type =
-            transpiler_infer_static_member_call_type_name(
+            transpiler_infer_selected_routine_call_type_name(
                 ctx, expr, &static_function_call);
         if (static_function_call)
             return static_return_type != NULL ? static_return_type : "Unknown";
@@ -307,6 +333,49 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
         && ast_call_callee(expr)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(expr)) != NULL) {
         const char *name = ast_identifier_name(ast_call_callee(expr));
+        uint32_t selected_id = ast_call_semantic_callee_decl_id(expr);
+        uint32_t binding_id = ast_identifier_binding_syntax_id(
+            ast_call_callee(expr));
+        ASTNode *constructor = NULL;
+        char qualified[128];
+        const char *constructor_result = NULL;
+        if (!pgy_codegen_match_variant_is_builtin(
+                pgy_codegen_match_variant_lookup(name))) {
+            constructor = find_class_decl(ctx, name);
+            if (constructor == NULL)
+                constructor = transpiler_find_domain_constructor_decl_local(
+                    ctx, name);
+            if (constructor != NULL) {
+                constructor_result = name;
+            } else if (lookup_enum_variant_qualified_name_copy(
+                    ctx, name, qualified, sizeof(qualified))) {
+                size_t len = strlen(qualified), variant_len = strlen(name);
+                if (len > variant_len + 1
+                    && qualified[len - variant_len - 1] == '_') {
+                    qualified[len - variant_len - 1] = '\0';
+                    constructor = find_enum_decl(ctx, qualified);
+                    constructor_result = qualified;
+                }
+            }
+        }
+        if (constructor_result != NULL) {
+            if (constructor == NULL || selected_id == 0
+                || selected_id != ast_node_stable_id(constructor)
+                || (binding_id != 0 && binding_id != selected_id)
+                || ast_call_semantic_callee_is_stdlib(expr)
+                || ast_call_semantic_callee_value_binding_id(expr) != 0) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C constructor inference has no matching selected declaration");
+                return "Unknown";
+            }
+            return transpiler_infer_arena_copy_type_name(ctx,
+                constructor_result);
+        }
+        if (selected_id != 0) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "C call inference has no matching selected constructor");
+            return "Unknown";
+        }
         size_t argc = ast_call_arg_count(expr);
         ASTNode *arg0 = ast_call_argument(expr, 0);
         const char *simple_type = NULL;
@@ -521,14 +590,11 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
             && ast_identifier_name(arg0) != NULL) {
             return ast_identifier_name(arg0);
         }
-        if (transpiler_has_known_nominal_type(ctx, name))
-            return name;
         /* Semantic resolved this bare call to no declared callable, so it
          * is not an implicit-self method call even inside a host body: an
          * enum variant constructor, an intent or an extern function. Only
          * a declared call above reads the host's method rows. */
-        return transpiler_infer_function_decl_call_type_name(
-            ctx, expr, name, find_callable_decl(ctx, name));
+        return "Unknown";
     }
 
     return "Unknown";

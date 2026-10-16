@@ -357,6 +357,10 @@ bool semantic_build_host_decl_index(SemanticContext *ctx, ASTNode *program);
 ASTNode *semantic_host_index_find_decl_by_name(SemanticContext *ctx,
                                                ASTNodeType decl_type,
                                                const char *name);
+ASTNode *semantic_host_index_find_selected_callable(SemanticContext *ctx,
+                                                     SymbolKind kind,
+                                                     uint32_t declaration_id,
+                                                     const char *source_name);
 ASTNode *semantic_host_index_find_top_level_decl_by_label(
     SemanticContext *ctx,
     const char *label,

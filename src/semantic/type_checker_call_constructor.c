@@ -40,9 +40,21 @@ type_check_constructor_symbol_call(ASTNode *expr,
         || sym->kind == SYMBOL_RELATION
         || sym->kind == SYMBOL_EFFECT || sym->kind == SYMBOL_ROSTER
         || sym->kind == SYMBOL_WORLD || sym->kind == SYMBOL_ZONE) {
+        ASTNode *selected_decl = ctx != NULL
+            ? semantic_constructor_decl_for_symbol_kind(ctx, sym->kind, display_name)
+            : NULL;
+        if (selected_decl == NULL || sym->decl_syntax_id == 0 ||
+            ast_node_stable_id(selected_decl) != sym->decl_syntax_id ||
+            !ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+                "Selected constructor '%s' has no matching declaration identity",
+                display_name != NULL ? display_name : "<constructor>");
+            if (type_out != NULL) *type_out = TYPE_UNKNOWN;
+            return true;
+        }
         if (ctx != NULL) {
-            ASTNode *decl = semantic_constructor_decl_for_symbol_kind(ctx,
-                sym->kind, display_name);
+            ASTNode *decl = selected_decl;
             size_t field_count = 0;
             bool decl_is_generic = false;
             SemanticNominalResultSnapshot *snapshot = NULL;
@@ -350,8 +362,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
             semantic_nominal_result_snapshot_destroy(snapshot);
         }
         if (sym->kind == SYMBOL_ZONE && ctx != NULL) {
-            ASTNode *zone_decl = semantic_constructor_decl_for_symbol_kind(ctx,
-                sym->kind, display_name);
+            ASTNode *zone_decl = selected_decl;
             if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)
                 semantic_reject_zone_subject_embedding(expr, zone_decl,
                     display_name, ctx);

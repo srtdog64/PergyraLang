@@ -56,6 +56,23 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
 
+    if (sym->kind != SYMBOL_FUNCTION && sym->kind != SYMBOL_INTENT
+        && sym->kind != SYMBOL_VARIABLE
+        && sym->kind != SYMBOL_ENUM_CONSTRUCTOR) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+            "Selected symbol '%s' is not a callable declaration",
+            display_name != NULL ? display_name : "<call>");
+        return TYPE_UNKNOWN;
+    }
+
+    if (sym->type == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+            "Selected call target '%s' has no resolved type",
+            display_name != NULL ? display_name : "<call>");
+        return TYPE_UNKNOWN;
+    }
     if (sym->type->kind != TYPE_KIND_FUNCTION) {
         char sig_buf[256];
         semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
@@ -74,10 +91,56 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             sig_buf);
         return TYPE_UNKNOWN;
     }
+    if (ctx != NULL && sym->kind == SYMBOL_ENUM_CONSTRUCTOR) {
+        Type *result = type_function_return_type(sym->type);
+        ASTNode *owner = result != NULL && result->kind == TYPE_KIND_ENUM && result->name != NULL
+            ? semantic_find_enum_decl_by_name(ctx, result->name) : NULL;
+        ASTNode *target = ast_call_callee(expr);
+        const char *variant = target != NULL && target->type == AST_IDENTIFIER
+            ? ast_identifier_name(target)
+            : target != NULL && target->type == AST_MEMBER_ACCESS
+                ? ast_member_name(target) : NULL;
+        ASTNode *qualifier = target != NULL && target->type == AST_MEMBER_ACCESS
+            ? ast_member_object(target) : NULL;
+        size_t count = 0;
+        char **variants = owner != NULL ? ast_enum_variants(owner, &count) : NULL;
+        bool selected = owner != NULL && ast_enum_name(owner) != NULL &&
+            strcmp(result->name, ast_enum_name(owner)) == 0 &&
+            sym->decl_syntax_id != 0 &&
+            ast_node_stable_id(owner) == sym->decl_syntax_id &&
+            semantic_host_decl_for_type(ctx, result) == owner && variant != NULL &&
+            sym->name != NULL && strcmp(sym->name, variant) == 0 &&
+            (target->type == AST_IDENTIFIER || (qualifier != NULL &&
+                qualifier->type == AST_IDENTIFIER &&
+                ast_identifier_name(qualifier) != NULL &&
+                strcmp(ast_identifier_name(qualifier), ast_enum_name(owner)) == 0));
+        bool variant_current = false;
+        for (size_t i = 0; selected && i < count; i++)
+            if (variants != NULL && variants[i] != NULL &&
+                strcmp(variants[i], variant) == 0 &&
+                ast_enum_variant_param_count(owner, i) == type_function_param_count(sym->type))
+                variant_current = true;
+        if (!selected || !variant_current ||
+            !ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+                "Selected enum constructor '%s' has no matching declaration identity",
+                display_name != NULL ? display_name : "<variant>");
+            return TYPE_UNKNOWN;
+        }
+    }
     if (ctx != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
-        callable_decl = semantic_find_callable_decl_by_name(ctx, display_name);
-        if (callable_decl != NULL && !explicit_type_reference_allowed(callable_decl, expr, ctx)) {
+        callable_decl = semantic_host_index_find_selected_callable(
+            ctx, sym->kind, sym->decl_syntax_id, display_name);
+        if (callable_decl == NULL) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, expr,
+                "Selected callable '%s' has no matching declaration identity",
+                display_name != NULL ? display_name : "<call>");
+            return TYPE_UNKNOWN;
+        }
+        if (!explicit_type_reference_allowed(callable_decl, expr, ctx)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
                 PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
                 expr,
@@ -85,9 +148,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 display_name);
             return type_function_return_type(sym->type);
         }
-        if (sym->decl_syntax_id != 0
-            && !ast_call_set_semantic_callee_decl_id(
-                expr, sym->decl_syntax_id)) {
+        if (!ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id)) {
             semantic_error(ctx, expr,
                 "Callable declaration identity requires an AST call site");
             return TYPE_UNKNOWN;
@@ -146,8 +207,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     if (ctx != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
-        callable_decl = semantic_find_callable_decl_by_name(ctx, display_name);
-        callable_generic_params = ast_func_generic_params(callable_decl);
+        callable_generic_params = callable_decl->type == AST_FUNC_DECL
+            ? ast_func_generic_params(callable_decl) : NULL;
         callable_generic_count = ast_generic_param_count(callable_generic_params);
         if (callable_generic_count > 0) {
             effective_generic_types = calloc(

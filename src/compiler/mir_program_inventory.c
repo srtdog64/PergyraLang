@@ -71,6 +71,38 @@ mir_routine_inventory_find_unique_by_source_syntax_id(
     return result;
 }
 
+MIRRoutineSourceLookup
+mir_routine_inventory_find_method_alias(
+    const MIRRoutineInventory *inventory,
+    uint32_t source_syntax_id,
+    const char *emitted_name)
+{
+    MIRRoutineSourceLookup result =
+        mir_routine_inventory_find_unique_by_source_syntax_id(
+            inventory, source_syntax_id);
+    const MIRRoutine *routine = result.routine;
+    const char *owner = mir_routine_owner_name(routine);
+    const char *method = mir_routine_name(routine);
+    size_t owner_len = owner != NULL ? strlen(owner) : 0;
+    size_t method_len = method != NULL ? strlen(method) : 0;
+
+    if (result.status != MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        || routine == NULL || mir_routine_kind(routine) != MIR_SCOPE_METHOD
+        || emitted_name == NULL || owner == NULL || owner_len == 0
+        || method == NULL || method_len == 0
+        || owner_len >= SIZE_MAX - method_len
+        || strlen(emitted_name) != owner_len + method_len + 1
+        || strncmp(emitted_name, owner, owner_len) != 0
+        || emitted_name[owner_len] != '_'
+        || strcmp(emitted_name + owner_len + 1, method) != 0) {
+        if (result.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE) {
+            result.status = MIR_ROUTINE_SOURCE_LOOKUP_MISSING;
+            result.routine = NULL;
+        }
+    }
+    return result;
+}
+
 void
 mir_decl_header_inventory_from_program(const MIRProgram *mir,
                                        MIRDeclHeaderInventory *inventory)

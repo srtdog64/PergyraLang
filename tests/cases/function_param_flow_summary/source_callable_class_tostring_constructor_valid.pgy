@@ -1,0 +1,8 @@
+class ToString {
+    let value: Int;
+}
+
+func Main() -> Void {
+    let instance: ToString = ToString(7);
+    Log(instance.value);
+}

@@ -1,89 +1,85 @@
 # Current Work Handoff
 
-Updated: 2026-10-17 KST (Asia/Seoul). Navigation only. Source, typed owners,
-registries and executable gates override this card.
+Updated: 2026-10-17 KST. Navigation only; current owners and executable
+evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — canonical admission, then real bootstrap/CI
+## Active self-host context — selected-call repair, then canonical admission
 
-One rung: unchanged full canonical/DRV-2 admission -> actual codegen bootstrap
-and gen2==gen3 -> memory/installed C+LLVM -> required same-published-SHA CI.
-Latest local source checkpoint is `72b21cad6adfdf1326bed2b57492472483fcea85`
-on main (parent `87d9b20cb`, preceding source `e6010d946`),
-not pushed. Published main remains
-`39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; exact-SHA run38860052641 is RED
-with bootstrap/install skipped. The result-relation source is committed;
-the next bounded step is diagnostic cost measurement, not a new algorithm.
-Root alone owns builds, WSL processes and
-Git; three implementation agents have non-overlapping source/test scopes.
+- One rung: unchanged canonical/DRV-2 admission -> real bootstrap/gen2==gen3 ->
+  memory and installed C/LLVM driver -> required green CI on that published SHA.
+- D main HEAD: `6927563d3d132fda87769aadd186ab5466112c1e`, local, plus
+  P1 source/test/document WIP. Published main:
+  `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; run38860052641 is RED,
+  bootstrap/install skipped. Do not push known red or substitute native tests.
+- Root alone owns builds, WSL processes and Git. Three implementation agents
+  have bounded, non-overlapping source/test scopes; no new branch/worktree.
 
-faf77 consumes the existing typed empty-MapNew binding as a caller-input
-dependency premise and seals private local Array<String> literal stores with
-current call/LET/type/binding receipts. It removes the old String-element
-effect read; element and inserted backing still use backing_origin/backing_store.
-Neither premise grants physical unique ownership, copy or cleanup authority.
-The existing final expression graph has ordered local operand identity; a new
-global source-ID wire field is not prerequisite. Physical storage birth,
-reaching definition, runtime ABI and final exit-drop evidence remain OPEN.
+### Current blocking slice
 
-Verified Linux binary SHA256:
-`32cd6c2612fb6152920e17fdb59d2081694d8f6115e08627de51a785b3dfd0f2`.
-WSL `/root/pgy-main-20261016` is Git HEAD39a plus a source overlay, not the D
-commit. Narrow receipt `.tmp/p0-result-relation.xszPX6/`: phase8060/0,
-strict summary with unchanged4096/4097 controls and new multi-exit Option
-factory C+LLVM equality. Independent-review faults also passed phase8086/0
-in `.tmp/p0-result-review-faults.0TtftO/`, with native hash unchanged.
-Broad receipt `.tmp/p0-typed-retention-broad.eCC7j0/`:
-strict summary with exact Map retained sites, native MIR327/semantic3228/
-transpile1009, Map24 positives/58
-analyze-only negatives, HIR/RIR/MIR/AIR propagation and TU/header caps PASS.
-These are scoped native prerequisite evidence, not self-host substitution.
+Independent review of692 found Intent/Event ToString/StringReplace/Substring
+could select stdlib by spelling and admit Bool/Void as String. Publication also
+omitted declared_callable currentness. Before receipts:
+`.tmp/p1-callee-collision.Xum6V2/` (4 unsafe admissions, never executed) and
+`.tmp/p1-declared-flag.qgdBq3/` (8 expected fault-test failures).
 
-Fixed full4273-signature/3188-key census improved545 ->541 ->538 ->533,
-with no newly failing key. The5 required-backing failures are resolved;
-remaining533 are work4096, incomplete0/no MIR. Final receipt
-`.tmp/p0-identifier-origin-census.BGdqW8/` restored
-source/build/bin byte-identically. Actual full bootstrap with that binary
-still refuses before gen0 (18410 cascades), build receipt directory
-`.tmp/p0-return-bootstrap.6gDheu/`; no gen2/gen3 or installed evidence exists.
-The actual collection parity gate stops in its prerequisite map-written-root
-program (15321 errors, `.tmp/self_hosted/map-written-root.i8qo5X/`), before
-new high-bit mutations133-141; those remain UNEXECUTED.
-The separate aggregate storage-transfer gate remains RED (10 safe native
-C/LLVM outputs,12 unsafe admissions on d539; unsafe artifacts never run).
-Pool/Destroy lifetime and actual exactly-once retirement remain OPEN.
+Current repair: lexical selected symbol/kind/ID owns typing; the existing host
+index owns nested method/extern IDs; publication seals the existing flag; MIR
+keeps constructor target ID distinct from a declared-callable leaf. C/LLVM
+lookup, inference, constructor/event/function dispatch and enum method bodies
+consume the same identity. Failed C emitters stop rather than try another
+lane. No new wire, owner family, annotation, reservation or work allowance.
+The reached StringWindowExtent optional-table sort/search UB is repaired in
+its existing owner; no sanitizer is disabled.
 
-72b21 connects the full reached factory result chain: existing CFG normal-exit
-closure is published once; nonzero declared-result frames close modulo exact
-typed formal placeholders; actual formal-to-result dependency remains owned
-by admitted current per-formal summaries and is sealed/replayed at each edge.
-Typed Some/Unwrap/String+ composition, per-frame widths and edge destruction
-are connected. Placeholder0 is not independence or cleanup authority.
+Verified integrated Linux native SHA256:
+`92d2bf6701396d24f7cc84999539552294fed0fd78512585aca9b311e76d1694`.
+WSL `/root/pgy-main-20261016` is Git HEAD39a plus byte-checked source overlay,
+NOT the D commit. Narrow receipt `.tmp/p1-selected-call.uFZjyp/`: phase8522/0,
+strict summary,4 exact-site String-spoof refusals/no MIR, normal domain calls,
+constructor/method-alias identity and C/LLVM equality PASS,4096/4097 retained.
+The same92 native passes all5 constructor/alias C/LLVM outputs7/9/31/19/23
+and scoped R7 native shadow/reservation controls:
+`.tmp/p1-backend-checks.oQ58gm/`. This is not full R7 or installed evidence.
 
-Next measured blocker: cold summary key
-`SemanticExpressionGraphResolvedCallConcreteScalarTypeName`, id132263,param0,
-fails at4096 with103 entries/evaluations on the same frozen input. Three charge
-owners are entry evaluation, no-store graph members, and backing visits.
-Instrument one diagnostic-only isolated demand to measure actual D/O/C lane,
-ordinal/epoch/node repetitions before choosing a local repair. Do not exempt
-charges, raise4096, prewarm unrelated summaries or revive the rejected joint
-matrix trials. The533 diagnostic failures are not the full source-refusal
-count:913 nonfailed keys still return ALL,916 reach unsupported summaries.
-Actual bootstrap18410 errors is the acceptance observation, not533.
+Original test_transpile is now green on92: native1012/0 and ASAN/UBSan1012/0,
+`.tmp/p1-transpile-verified.qk0pof/`, native binary/source unchanged; leak
+detection explicitly off. The labelled census first exposed3 positive
+oracles using old unmangled names and an undeclared Cancel spawn target;
+real source/MIR-backed fixtures repair those inputs without changing selection.
+The7 nonaddressable-storage negatives now use real
+constructor shapes and require NULL/no C output plus their owned diagnostic.
+These are backend component checks, not source-admission claims.
 
-Before those Pergyra edits, root froze the full old canonical source with
-per-file/tar hashes at WSL `.tmp/p0-fixed-canonical.nbPIex/`. Run the fixed
-4273/3188 diagnostic against that complete frozen input, separately from the
-full current canonical/bootstrap source. Root must first observe new result-
-composition positive was observed fail on identified dbd before integration;
-retain its current positive/negative consumers while running
-narrow identity/retention negatives, both backends, broad regression, fixed
-census and actual bootstrap. Do not push known red, waive work4096, shrink the
-full input or call dependency evidence physical cleanup proof.
-Independent read-only review found the MapNew metadata hole, repaired in e601,
-and attacked the latest result-edge contract. No fail-open was found in its
-latest static replay; four requested direct faults now pass phase8086/0.
-This is not independent execution or whole-language memory safety. Review chat:
-`Pergyra 컴파일러 레드팀 검증`. Whole-chain card and receipt locations:
+### Next executable gate and remaining canonical blocker
+
+1. Broad receipt `.tmp/p0-typed-retention-broad.rCeOTO/` PASS: native
+   MIR334/semantic3228/transpile1012, Map24 C/LLVM positives/58 analyze-only
+   negatives, phase8522/0 and HIR/RIR/MIR/AIR. Source/test agents are frozen.
+   No actual canonical closure yet.
+2. Save a coherent local P1 source/test checkpoint; request exact-SHA review in
+   `Pergyra 컴파일러 레드팀 검증`. Keep refusal and identity faults current.
+3. Resume only the existing fixed-input canonical admission blocker. Cold census
+   on0699:3188/3188 keys,762 work4096 failures (533 before;229 new), incomplete0,
+   no MIR; `.tmp/p0-identifier-origin-census.onWYW4/`. Improved dependency facts
+   exposed more work; this is regression, not closure. Frozen full4273-signature
+   input is `.tmp/p0-fixed-canonical.nbPIex/`.
+4. Actual827 bootstrap `.tmp/p0-return-bootstrap.VRmRof/` refuses before gen0:
+   18421 errors/16 warnings. No current gen2/gen3, installed-driver or required
+   green CI evidence. Repeat on the final P1 source, then repair measured
+   admission work behind its existing owner. No smaller input, higher4096,
+   unchecked origin skip or unrelated prewarm.
+
+The blanket origin skip and proposed closed/member reuse were measured and
+rejected. Scratch-only ordering of the SAME registered ref request set remains
+unexecuted/unapproved; verify identity, request multiset, cycles,4096/4097 and
+full canonical outcome before considering production. Do not revive a general
+optimization, SoT-count or graph-policy track. Dependency independence grants
+no physical unique storage or cleanup authority: storage birth/reaching-def,
+runtime ABI, final exit-drop, Pool/Destroy and the separate aggregate-transfer
+falsifier remain OPEN. Collection high-bit mutations133-141 are UNEXECUTED
+because their map-written-root prerequisite still refuses.
+
+Full chain/closure card and historical receipts:
 [main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
 
 ### Historical diagnostic archive — lookup only, not an active work queue

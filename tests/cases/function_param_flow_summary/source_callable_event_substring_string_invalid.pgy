@@ -1,0 +1,6 @@
+event Substring(source: String, start: Int, length: Int);
+
+func Main() -> Void {
+    let rendered: String = Substring("abc", 0, 1);
+    Log(rendered);
+}

@@ -132,6 +132,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     bool is_intent = false;
     bool is_method = false;
     bool owner_is_role = false;
+    bool owner_is_enum = false;
     const char *owner_name = NULL;
     IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count = 0;
@@ -177,6 +178,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         && llvm_mir_routine_kind(routine) == MIR_SCOPE_METHOD);
     owner_is_role = is_method
         && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
+    owner_is_enum = is_method
+        && llvm_mir_routine_owner_ast_type(routine) == AST_ENUM_DECL;
     owner_name = llvm_mir_routine_owner_name(routine);
     if (!is_intent
         && !llvm_mir_routine_signature_metadata_complete(ctx,
@@ -196,6 +199,13 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     owner_cls = (is_method && owner_name != NULL)
         ? llvm_lookup_class(ctx, owner_name)
         : NULL;
+    if (owner_is_enum && owner_cls == NULL
+        && !llvm_enum_type_exists(ctx, owner_name)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing enum self ABI for method '%s.%s'",
+            owner_name, routine_name != NULL ? routine_name : "(anonymous)");
+        return NULL;
+    }
     if (is_method && owner_cls != NULL
         && owner_cls->sync_function_name != NULL
         && owner_cls->domain_kind != LLVM_DOMAIN_NONE
@@ -275,6 +285,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 param_types[i] = owner_cls->is_pointer_self_host
                     ? LLVMPointerType(owner_cls->struct_type, 0)
                     : owner_cls->struct_type;
+            } else if (owner_is_enum) {
+                param_types[i] = ctx->type_i32;
             } else {
                 param_types[i] = ctx->type_i8ptr;
             }

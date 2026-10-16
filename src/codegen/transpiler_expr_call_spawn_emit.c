@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/builtin_kind.h"
 #include "../semantic/diag_codes.h"
@@ -34,11 +35,45 @@ emit_call_resolved(ASTNode *call, TranspilerCtx *ctx)
          * pre-registers locals that are not yet in source scope. */
         if (ast_call_semantic_callee_value_binding_id(call) != 0)
             return emit_call_user_function(call, callee, ctx);
-        /* Semantic chose a declaration (the host's method or a program
-         * function) over a builtin or stdlib operation of the same
-         * spelling (docs/205 R7). */
-        if (ast_call_semantic_callee_declared_callable(call))
+        /* Event invocation is a declared call, but it has a different ABI
+         * from a function or intent. Its selected declaration, not its name,
+         * must choose that ABI before the ordinary declared-call route. */
+        uint32_t selected_id = ast_call_semantic_callee_decl_id(call);
+        if (ast_call_semantic_callee_declared_callable(call)) {
+            TranspilerSelectedCall selected =
+                transpiler_selected_source_callable(ctx, call, callee_name);
+            if (selected.kind == TRANSPILER_SELECTED_CALL_INVALID) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: declared call '%s' has conflicting target identity",
+                    callee_name);
+                return NULL;
+            }
+            if (selected.kind == TRANSPILER_SELECTED_CALL_EVENT) {
+                char *invocation = emit_call_event_builtin(call, callee, ctx);
+                if (invocation == NULL)
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C backend: selected event '%s' could not be emitted",
+                        callee_name);
+                return invocation;
+            }
             return emit_call_user_function(call, callee, ctx);
+        }
+        if (selected_id != 0) {
+            char *constructor = emit_call_domain_constructor(call, callee, ctx);
+            if (constructor != NULL || ctx->backend_error != NULL)
+                return constructor;
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: selected source call '%s' is not an admitted constructor",
+                callee_name);
+            return NULL;
+        }
         bk = builtin_resolve(callee_name);
         if ((bk == BUILTIN_BOX || bk == BUILTIN_RC_NEW)
             && transpiler_projection_nominal_decl_exists_local(
@@ -49,23 +84,20 @@ emit_call_resolved(ASTNode *call, TranspilerCtx *ctx)
 
     bool handled = false;
     char *result = emit_call_builtin_dispatch(call, bk, ctx, &handled);
-    if (handled)
+    if (handled || ctx->backend_error != NULL)
         return result;
 
     result = emit_call_domain_constructor(call, callee, ctx);
-    if (result != NULL)
+    if (result != NULL || ctx->backend_error != NULL)
         return result;
     result = emit_call_result_option_builtin(call, callee, ctx, &handled);
-    if (handled)
+    if (handled || ctx->backend_error != NULL)
         return result;
     result = emit_call_stdlib_builtin(call, callee, ctx);
-    if (result != NULL)
-        return result;
-    result = emit_call_event_builtin(call, callee, ctx);
-    if (result != NULL)
+    if (result != NULL || ctx->backend_error != NULL)
         return result;
     result = emit_call_member_style(call, callee, ctx);
-    if (result != NULL)
+    if (result != NULL || ctx->backend_error != NULL)
         return result;
     return emit_call_user_function(call, callee, ctx);
 }

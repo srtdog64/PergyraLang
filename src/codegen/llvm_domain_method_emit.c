@@ -114,7 +114,8 @@ llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx)
         ASTNode *decl = nominal_nodes != NULL ? nominal_nodes[i] : NULL;
         const char *cls_name;
 
-        if (decl == NULL || decl->type != AST_CLASS_DECL)
+        if (decl == NULL || (decl->type != AST_CLASS_DECL
+            && decl->type != AST_ENUM_DECL))
             continue;
 
         cls_name = llvm_decl_node_name(decl);

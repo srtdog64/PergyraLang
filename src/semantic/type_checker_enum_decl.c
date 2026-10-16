@@ -74,6 +74,7 @@ type_check_enum_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         mangled_sym = symbol_create_function(
             mangled, msym->type, method->line, method->column);
+        symbol_mark_declaration(mangled_sym, ast_node_stable_id(method), false);
         enum_scope = ctx->scope;
         ctx->scope = enum_scope->parent;
         if (!scope_declare(ctx->scope, mangled_sym))

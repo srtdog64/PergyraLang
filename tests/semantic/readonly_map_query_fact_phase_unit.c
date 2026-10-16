@@ -2259,7 +2259,7 @@ static void checked_typed_string_result_constructor_currency(void)
             PublishedCallArgument saved_first = row->arguments[0];
             ASTNode saved_call = *call, saved_target = *target, saved_arg = *first;
             uint32_t generation = program->stable_id;
-            for (unsigned fault = 0; fault < 14; fault++) {
+            for (unsigned fault = 0; fault < 15; fault++) {
                 if (fault == 0) row->value_type = TYPE_INT;
                 if (fault == 1) row->value_shape = AST_IDENTIFIER;
                 if (fault == 2) target->data.identifier.name = "OtherStringResult";
@@ -2274,6 +2274,7 @@ static void checked_typed_string_result_constructor_currency(void)
                 if (fault == 11) row->kind_present = false;
                 if (fault == 12) row->target_shape = AST_MEMBER_ACCESS;
                 if (fault == 13) program->stable_id++;
+                if (fault == 14) ast_call_set_semantic_callee_declared_callable(call, true);
                 CHECK(!semantic_param_publication_checked_local_owner_constructor(ctx, call));
                 bool current = function_param_flow_backing_rows_current(store, probe);
                 if (current) fprintf(stderr, "typed String result kind=%zu fault=%u unexpectedly current\n", i, fault);
@@ -2351,6 +2352,49 @@ static void checked_typed_string_result_constructor_currency(void)
     }
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_selected_domain_callable_identity(void)
+{
+    const char *sources[2] = {
+        "intent ToString(value:Int){success:value==7;failure:false;}"
+        "func Main()->Void{let completed:Bool=ToString(7);Log(completed);}",
+        "event ToString(value:Int);"
+        "func Main()->Void{ToString(7);}",
+    };
+    const ASTNodeType declaration_kinds[2] = {AST_INTENT_DECL, AST_EVENT_DECL};
+    for (size_t i = 0; i < 2; i++) {
+        Lexer *lexer = lexer_create(sources[i]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        SemanticContext *ctx = semantic_context_create();
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (typed) {
+            ASTNode *declaration = ast_program_statement(program, 0);
+            ASTNode *main = ast_program_statement(program, 1);
+            ASTNode *body = main == NULL ? NULL : ast_func_body(main);
+            ASTNode *statement = body == NULL ? NULL : ast_block_statement(body, 0);
+            ASTNode *call = i == 0 && statement != NULL
+                ? ast_let_initializer(statement) : statement;
+            uint32_t builtin = UINT32_MAX;
+            CHECK(declaration != NULL && declaration->type == declaration_kinds[i]);
+            CHECK(main != NULL && main->type == AST_FUNC_DECL);
+            CHECK(call != NULL && call->type == AST_CALL);
+            if (declaration != NULL && call != NULL && call->type == AST_CALL) {
+                CHECK(ast_call_semantic_callee_declared_callable(call));
+                CHECK(!ast_call_semantic_callee_is_stdlib(call));
+                CHECK(ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(declaration));
+                CHECK(ast_call_semantic_callee_value_binding_id(call) == 0);
+                CHECK(ast_call_semantic_callee_builtin_kind(call, &builtin)
+                    && builtin == BUILTIN_NOT_BUILTIN);
+            }
+        }
+        semantic_context_destroy(ctx);
+        ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
 }
 
 static void checked_owned_string_result_receipt_currency(void)
@@ -6892,6 +6936,7 @@ int main(void)
     checked_owned_string_result_receipt_currency();
     checked_local_owner_constructor_currency();
     checked_typed_string_result_constructor_currency();
+    checked_selected_domain_callable_identity();
     checked_finish_independence_currency();
     checked_local_owner_constructor_nested_effect();
     checked_local_owner_map_constructor_currency();

@@ -1,0 +1,12 @@
+enum Route {
+    One,
+
+    func Value(self) -> Int {
+        return 19;
+    }
+}
+
+func Main() -> Void {
+    let route: Route = One;
+    Log(Route_Value(route));
+}

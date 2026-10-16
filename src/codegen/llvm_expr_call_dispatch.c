@@ -29,7 +29,9 @@
 #include "llvm_intent_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_host_methods.h"
 #include "llvm_member_call_emit.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 
 LLVMValueRef
@@ -58,11 +60,27 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
      * global function. Missing callable facts must not reopen that route. */
     if (ast_call_semantic_callee_value_binding_id(node) != 0)
         return llvm_emit_callable_variable_call(node, ctx, callee_name);
-    /* Semantic chose a declaration (the host's method or a program
-     * function) over a builtin or stdlib operation of the same spelling
-     * (docs/205 R7); no builtin route below may claim the call by name. */
-    if (ast_call_semantic_callee_declared_callable(node))
+    /* A selected event has an invocation ABI, not the ordinary callable
+     * ABI. Both routes must be chosen by the same declaration identity. */
+    if (ast_call_semantic_callee_declared_callable(node)) {
+        LLVMValueRef event_call = NULL;
+        if (ast_call_semantic_callee_decl_id(node) == 0
+            || ast_call_semantic_callee_is_stdlib(node))
+            return llvm_call_error_recovery(ctx, node,
+                "LLVM declared call has conflicting target identity");
+        if (llvm_emit_event_invocation_call(node, ctx, callee_name,
+                &event_call))
+            return ctx->has_error ? NULL : event_call;
         goto emit_declared_callable;
+    }
+    if (ast_call_semantic_callee_decl_id(node) != 0) {
+        LLVMValueRef selected_constructor =
+            llvm_emit_constructor_call(node, ctx, callee_name);
+        if (selected_constructor != NULL || ctx->has_error)
+            return selected_constructor;
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM selected source call is not an admitted constructor");
+    }
 
     LLVMCallInlineOp inline_op = llvm_call_inline_lookup(callee_name, argc);
 
@@ -122,15 +140,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             if (ctx->has_error)
                 return NULL;
             return slot_builtin;
-        }
-    }
-
-    {
-        LLVMValueRef event_call = NULL;
-        if (llvm_emit_event_invocation_call(node, ctx, callee_name, &event_call)) {
-            if (ctx->has_error)
-                return NULL;
-            return event_call;
         }
     }
 
@@ -202,16 +211,25 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return task_channel_call;
     }
 emit_declared_callable:;
-    if (callee_node->type == AST_IDENTIFIER) {
+    LLVMSelectedCall selected = llvm_selected_source_callable(
+        ctx, node, callee_name);
+    ASTNode *callable_decl = selected.decl;
+    ASTNode *host_decl = llvm_current_host_decl(ctx);
+    if (selected.kind == LLVM_SELECTED_CALL_INVALID
+        || selected.kind == LLVM_SELECTED_CALL_EVENT)
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM declared call has no matching selected declaration");
+    if (selected.kind == LLVM_SELECTED_CALL_HOST_METHOD) {
         LLVMValueRef hosted_call =
             llvm_emit_hosted_self_call(node, ctx, callee_name);
         if (ctx->has_error)
             return NULL;
         if (hosted_call != NULL)
             return hosted_call;
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM selected hosted call could not be emitted");
     }
 
-    ASTNode *callable_decl = llvm_find_callable_decl(ctx, callee_name);
     ASTNode *decl = callable_decl != NULL
         && callable_decl->type == AST_FUNC_DECL ? callable_decl : NULL;
     ASTNode *intent_decl = callable_decl != NULL

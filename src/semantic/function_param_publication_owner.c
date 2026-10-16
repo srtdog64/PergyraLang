@@ -174,7 +174,7 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
     row->reachable |= ctx->future_lifecycle_unreachable_depth == 0;
     row->declaration = ast_call_semantic_callee_decl_id(call);
     row->value_binding = ast_call_semantic_callee_value_binding_id(call);
-    row->stdlib = ast_call_semantic_callee_is_stdlib(call);
+    row->stdlib = ast_call_semantic_callee_is_stdlib(call); row->declared_callable = ast_call_semantic_callee_declared_callable(call);
     row->call_receiver = target->type == AST_MEMBER_ACCESS ? ast_member_object(target) : NULL;
     row->call_receiver_id = ast_node_stable_id(row->call_receiver);
     if (target->type == AST_IDENTIFIER && row->value_present && row->value_type != NULL) {
@@ -295,7 +295,7 @@ bool publication_call_ready(const PublishedNode *row)
         (row->kind_present && builtin != row->builtin) ||
         row->declaration != ast_call_semantic_callee_decl_id(row->node) ||
         row->value_binding != ast_call_semantic_callee_value_binding_id(row->node) ||
-        row->stdlib != ast_call_semantic_callee_is_stdlib(row->node) ||
+        row->stdlib != ast_call_semantic_callee_is_stdlib(row->node) || row->declared_callable != ast_call_semantic_callee_declared_callable(row->node) ||
         row->argument_count != ast_call_arg_count(row->node) ||
         (row->argument_count != 0 && row->arguments == NULL)) return false;
     for (size_t i = 0; i < row->argument_count; i++) {
@@ -366,7 +366,7 @@ bool semantic_param_publication_checked_local_owner_constructor(
             concat->argument_count == 2 && ast_binary_operator(value).type == TOKEN_PLUS;
     }
     PublishedNode *row = publication_result_current(ctx, value);
-    if (row == NULL || row->meta || row->declaration != 0 || row->value_binding != 0 ||
+    if (row == NULL || row->meta || row->declared_callable || row->declaration != 0 || row->value_binding != 0 ||
         !row->kind_present || row->nominal_result != NULL || row->result_relation ||
         row->target == NULL || row->target->type != AST_IDENTIFIER || row->target_binding != 0 ||
         row->target_id == 0 || row->target_name == NULL || row->id == 0) return false;

@@ -1,0 +1,12 @@
+class Box {
+    let number: Int;
+
+    func Value(self) -> Int {
+        return number;
+    }
+}
+
+func Main() -> Void {
+    let box: Box = Box(31);
+    Log(Box_Value(box));
+}

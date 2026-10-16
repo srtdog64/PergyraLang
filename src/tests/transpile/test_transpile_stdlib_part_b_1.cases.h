@@ -120,14 +120,16 @@ test_stdlib_and_enum_emit(void)
 
     TEST("List builtin rejects non-addressable storage expression");
     {
-        ASTNode *list_call = make_call("MakeList", NULL, 0, 1);
+        /* Backend-unit boundary: this is a real builtin constructor, not a
+         * forged user declaration. Source admission is checked separately. */
+        ASTNode *list_call = make_call("ListNew", NULL, 0, 1);
         ASTNode *args[2] = { list_call, make_number(7, 1) };
         ASTNode *call = make_call("ListPush", args, 2, 1);
         ctx = transpiler_ctx_create();
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeList");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable List storage");
@@ -139,14 +141,18 @@ test_stdlib_and_enum_emit(void)
 
     TEST("Array mutator rejects non-addressable storage expression");
     {
-        ASTNode *array_call = make_call("MakeArray", NULL, 0, 1);
-        ASTNode *args[2] = { array_call, make_number(7, 1) };
+        ASTNode *array_value = calloc(1, sizeof(ASTNode));
+        array_value->type = AST_ARRAY_LITERAL;
+        array_value->data.array_literal.count = 1;
+        array_value->data.array_literal.elements = calloc(1, sizeof(ASTNode *));
+        array_value->data.array_literal.elements[0] = make_number(1, 1);
+        ASTNode *args[2] = { array_value, make_number(7, 1) };
         ASTNode *call = make_call("ArrayPush", args, 2, 1);
         ctx = transpiler_ctx_create();
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeArray");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable Array storage");
@@ -158,14 +164,17 @@ test_stdlib_and_enum_emit(void)
 
     TEST("StringJoin rejects non-addressable array expression");
     {
-        ASTNode *array_call = make_call("StringSplit", NULL, 0, 1);
+        ASTNode *split_args[2] = {
+            make_string_lit("a,b", 1), make_string_lit(",", 1)
+        };
+        ASTNode *array_call = make_call("StringSplit", split_args, 2, 1);
         ASTNode *args[2] = { array_call, make_string_lit(",", 1) };
         ASTNode *call = make_call("StringJoin", args, 2, 1);
         ctx = transpiler_ctx_create();
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&StringSplit");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable Array storage");
@@ -177,14 +186,14 @@ test_stdlib_and_enum_emit(void)
 
     TEST("Map builtin rejects non-addressable storage expression");
     {
-        ASTNode *map_call = make_call("MakeMap", NULL, 0, 1);
+        ASTNode *map_call = make_call("MapNew", NULL, 0, 1);
         ASTNode *args[2] = { map_call, make_string_lit("hero", 1) };
         ASTNode *call = make_call("MapGet", args, 2, 1);
         ctx = transpiler_ctx_create();
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeMap");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable HashMap storage");
@@ -196,14 +205,14 @@ test_stdlib_and_enum_emit(void)
 
     TEST("FSM builtin rejects non-addressable storage expression");
     {
-        ASTNode *fsm_call = make_call("MakeFsm", NULL, 0, 1);
+        ASTNode *fsm_call = make_call("FsmNew", NULL, 0, 1);
         ASTNode *args[1] = { fsm_call };
         ASTNode *call = make_call("FsmCurrent", args, 1, 1);
         ctx = transpiler_ctx_create();
         char *result = emit_expression(call, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeFsm");
+        EXPECT(result == NULL);
+        EXPECT(ctx->out != NULL && ctx->out->len == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable FSM storage");

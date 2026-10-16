@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -60,7 +61,13 @@ emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     if (callee->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(callee);
-        if (find_event_decl(ctx, name) != NULL) {
+        ASTNode *event_decl = find_event_decl(ctx, name);
+        if (event_decl != NULL
+            && ast_call_semantic_callee_declared_callable(call)
+            && !ast_call_semantic_callee_is_stdlib(call)
+            && ast_call_semantic_callee_decl_id(call) != 0
+            && ast_call_semantic_callee_decl_id(call)
+                == ast_node_stable_id(event_decl)) {
             CodeBuf *args_buf = codebuf_create();
             if (args_buf == NULL)
                 return NULL;

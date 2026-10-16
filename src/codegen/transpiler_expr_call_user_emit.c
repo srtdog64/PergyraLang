@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
@@ -148,24 +149,26 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             callee_name);
         return NULL;
     }
-    ASTNode *decl = (callee->type == AST_IDENTIFIER && !local_callee)
-        ? find_callable_decl(ctx, callee_name) : NULL;
+    ASTNode *decl = NULL;
+    const MIRRoutine *selected_alias_routine = NULL;
     if (callee->type == AST_IDENTIFIER && !local_callee) {
+        TranspilerSelectedCall selected =
+            transpiler_selected_source_callable(ctx, call, callee_name);
         ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
         const char *host_name = transpiler_decl_name_local(host_decl);
-        const MIRDeclMethod *host_method_meta =
-            transpiler_find_host_method_metadata_in_context(
-                ctx, host_name, callee_name);
-        if (host_method_meta == NULL
-            && host_name != NULL
-            && decl == NULL) {
+        bool selected_host =
+            selected.kind == TRANSPILER_SELECTED_CALL_HOST_METHOD;
+        const MIRDeclMethod *host_method_meta = selected.host_method;
+        decl = selected.decl;
+        selected_alias_routine = selected.alias;
+        if (selected.kind == TRANSPILER_SELECTED_CALL_INVALID
+            || selected.kind == TRANSPILER_SELECTED_CALL_EVENT) {
             transpiler_set_mir_inventory_missing(ctx,
-                "MIR-only C path missing hosted self-call method metadata for '%s.%s'",
-                host_name,
+                "MIR-only C path missing selected callable declaration for '%s'",
                 callee_name != NULL ? callee_name : "(anonymous)");
             return NULL;
         }
-        if (host_method_meta != NULL && host_name != NULL) {
+        if (selected_host && host_name != NULL) {
             size_t hosted_starts[64];
             size_t hosted_ends[64];
             bool hosted_inline[64] = {false};
@@ -276,7 +279,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     const MIRRoutine *intent_routine = NULL;
     IntentBindingMetadataView binding_metadata = {0};
     size_t binding_meta_count = 0;
-    const MIRRoutine *callee_routine = NULL;
+    const MIRRoutine *callee_routine = selected_alias_routine;
     bool callee_has_mir_signature = false;
     bool callee_is_generic_func = false;
     bool callee_is_extern_func = false;
@@ -317,7 +320,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     if (decl != NULL && decl->type == AST_FUNC_DECL)
         callee_is_extern_func = transpiler_decl_is_extern_function(ctx, decl);
 
-    if (decl != NULL && decl->type == AST_FUNC_DECL
+    if ((decl != NULL && decl->type == AST_FUNC_DECL
+            || selected_alias_routine != NULL)
         && !callee_is_extern_func
         && transpiler_active_has_mir(ctx)) {
         if (callee_routine == NULL) {
@@ -422,7 +426,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         MIRParamResourceKind resource_kind = MIR_PARAM_RESOURCE_NONE;
         bool pass_indirect = false;
 
-        if (decl != NULL && decl->type == AST_FUNC_DECL) {
+        if ((decl != NULL && decl->type == AST_FUNC_DECL)
+            || selected_alias_routine != NULL) {
             if (callee_has_mir_signature) {
                 if (i < transpiler_mir_routine_param_count(callee_routine)) {
                     param = transpiler_mir_routine_param(callee_routine, i);

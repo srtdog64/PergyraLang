@@ -40,6 +40,11 @@ typedef struct SemanticContext SemanticContext;
 typedef struct TypeResolutionNode TypeResolutionNode;
 typedef struct TypeResolutionEdge TypeResolutionEdge;
 typedef struct TypeResolutionGraph TypeResolutionGraph;
+
+typedef struct {
+    ASTNode *decl, *alias_owner;
+    uint32_t id, alias_owner_id;
+} SemanticNestedCallable;
 typedef struct ResourceFlowUniverse ResourceFlowUniverse;
 typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
 typedef struct TransactionFlowContext TransactionFlowContext;
@@ -277,6 +282,10 @@ struct SemanticContext
          * fall back to the linear scan". */
         size_t *hash;
         size_t hash_capacity;
+        /* Extern functions and nominal methods have no top-level name key.
+         * Their exact source IDs are indexed once, not rescanned per call. */
+        SemanticNestedCallable *nested_callables;
+        size_t nested_count, nested_capacity;
     } host_decl_index;
 
     size_t type_resolution_metadata_hits;

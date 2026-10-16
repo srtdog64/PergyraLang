@@ -1,0 +1,9 @@
+event ToString(value: Int);
+
+func Main() -> Void {
+    ToString += (value: Int) => {
+        if value == 7 { Log("handled=7"); }
+    };
+    ToString(7);
+    Log("after event");
+}

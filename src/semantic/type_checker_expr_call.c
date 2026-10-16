@@ -121,18 +121,13 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 || sym->kind == SYMBOL_TOKEN);
         bool user_class_overrides_builtin =
             !value_binding && semantic_find_class_decl_by_name(ctx, name) != NULL;
-        /* A function declared in the program owns its spelling over a
-         * builtin or stdlib operation, as a local value and a user class
-         * already do. An event is not a function here: its call is an
-         * invocation. The Option/Result constructors stay language forms
-         * (docs/205 R7). */
-        ASTNode *callable_decl = value_binding || sym == NULL
-                || sym->kind != SYMBOL_FUNCTION || sym->decl_syntax_id == 0
-            ? NULL
-            : semantic_find_callable_decl_by_name(ctx, name);
-        bool program_function = callable_decl != NULL
-            && callable_decl->type == AST_FUNC_DECL
-            && !pgy_match_variant_is_builtin(pgy_match_variant_lookup(name));
+        /* Option/Result variants retain their language-form precedence.
+         * Otherwise the selected lexical symbol owns the spelling, even
+         * when its declaration is an event, intent, or non-callable value. */
+        bool language_variant = pgy_match_variant_is_builtin(pgy_match_variant_lookup(name));
+        bool source_selected = sym != NULL && !language_variant;
+        bool source_callable = source_selected &&
+            (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT);
         /* Inside a method the host's methods are the nearer scope, so a
          * bare call reaches one before a builtin of the same spelling. A
          * reserved spelling means the builtin in every bare call; the
@@ -142,13 +137,14 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             ? NULL
             : expr_current_host_method_decl(ctx, name);
         BuiltinKind bk = value_binding || user_class_overrides_builtin
-                || program_function || host_method != NULL
+                || source_selected || host_method != NULL
             ? BUILTIN_NOT_BUILTIN
             : builtin_resolve(name);
         if ((value_binding && sym->decl_syntax_id == 0)
             || !ast_call_set_semantic_callee_value_binding_id(
                 expr, value_binding ? sym->decl_syntax_id : 0)
             || !ast_call_set_semantic_callee_is_stdlib(expr, false)
+            || !ast_call_set_semantic_callee_declared_callable(expr, false)
             || !ast_call_set_semantic_callee_builtin_kind(
                 expr, (uint32_t)bk)) {
             semantic_error_with_hints(ctx,
@@ -172,15 +168,21 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if (value_binding)
             return type_check_function_symbol_call(expr, sym, name, ctx);
 
-        if (host_method != NULL) {
-            (void)ast_call_set_semantic_callee_declared_callable(expr, true);
-            return expr_type_check_host_method_call(expr, host_method, ctx);
+        if (host_method != NULL || source_callable) {
+            if ((host_method == NULL && source_callable && sym->decl_syntax_id == 0) ||
+                !ast_call_set_semantic_callee_declared_callable(expr, true)) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION,
+                    expr, "Selected callable identity could not be recorded");
+                return TYPE_UNKNOWN;
+            }
+            return host_method != NULL
+                ? expr_type_check_host_method_call(expr, host_method, ctx)
+                : type_check_function_symbol_call(expr, sym, name, ctx);
         }
 
-        if (program_function) {
-            (void)ast_call_set_semantic_callee_declared_callable(expr, true);
+        if (source_selected)
             return type_check_function_symbol_call(expr, sym, name, ctx);
-        }
 
         if (strcmp(name, "Channel") == 0)
             return TYPE_UNKNOWN;

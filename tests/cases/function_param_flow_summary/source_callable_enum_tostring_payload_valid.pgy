@@ -1,0 +1,9 @@
+enum Conversion {
+    ToString(Int),
+    Absent
+}
+
+func Main() -> Void {
+    let value: Conversion = ToString(9);
+    Log(value.ToString._0);
+}

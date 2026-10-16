@@ -159,6 +159,43 @@ test_mir_inventory_source_identity_lookup(void)
     TEST("MIR source identity lookup distinguishes invalid/missing/duplicate/method");
     EXPECT(invalid_rejected && missing_rejected && unique_found
         && duplicate_rejected && method_keeps_kind);
+
+    routines[0].name = "Box_Value";
+    routines[1].owner_name = "Box";
+    routines[1].name = "Value";
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 8, "Box_Value");
+    TEST("MIR method alias joins an exact method source ID and emitted owner/name");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        && lookup.routine == &routines[1]);
+
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 8, "Box_Other");
+    TEST("MIR method alias rejects a wrong emitted method name");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_MISSING
+        && lookup.routine == NULL);
+    routines[1].owner_name = "Other";
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 8, "Box_Value");
+    TEST("MIR method alias rejects a changed source owner");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_MISSING
+        && lookup.routine == NULL);
+    routines[1].owner_name = "Box";
+
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 7, "Box_Value");
+    TEST("MIR method alias does not grant an ordinary function");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_MISSING
+        && lookup.routine == NULL);
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 0, "Box_Value");
+    TEST("MIR method alias rejects a zero source ID");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_INVALID
+        && lookup.routine == NULL);
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 17, "Box_Value");
+    TEST("MIR method alias rejects a missing source ID");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_MISSING
+        && lookup.routine == NULL);
+    routines[0].source_syntax_id = 8;
+    lookup = mir_routine_inventory_find_method_alias(&inventory, 8, "Box_Value");
+    TEST("MIR method alias rejects a duplicated source ID");
+    EXPECT(lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE
+        && lookup.routine == NULL);
 }
 
 static void

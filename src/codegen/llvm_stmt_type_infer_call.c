@@ -4,6 +4,7 @@
 #include "llvm_domain_lookup.h"
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_internal_api.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
 #include "llvm_backend_type_map_internal.h"
@@ -14,9 +15,11 @@
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_expr_call_collections_map_exports.h"
 #include "codegen_match_variant_policy.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 
 #include <stdarg.h>
+#include <string.h>
 
 static bool
 llvm_stmt_call_type_reasonf(char *out, size_t out_size, const char *fmt, ...)
@@ -363,11 +366,31 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
      * result. */
     if (ast_call_semantic_callee_declared_callable(expr)) {
         const char *callee = ast_identifier_name(callee_node);
-        if (llvm_current_host_class_name(ctx) != NULL) {
+        LLVMSelectedCall selected = llvm_selected_source_callable(
+            ctx, expr, callee);
+        ASTNode *callable_decl = selected.decl;
+        if (selected.kind == LLVM_SELECTED_CALL_INVALID)
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "declared call has conflicting target identity");
+        if (selected.kind == LLVM_SELECTED_CALL_EVENT)
+            return ctx->type_void;
+        if (selected.kind == LLVM_SELECTED_CALL_HOST_METHOD) {
+            const char *host_name = llvm_current_host_decl_name(ctx);
             LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
-                ctx, llvm_current_host_class_name(ctx), callee);
+                ctx, host_name, callee);
             if (method_ret != NULL)
                 return method_ret;
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "selected hosted call has no result type");
+        }
+        if (selected.kind == LLVM_SELECTED_CALL_METHOD_ALIAS) {
+                LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(
+                    ctx, callee);
+                if (fn != NULL && mir_routine_has_signature(selected.alias)
+                    && mir_routine_return_type_name(selected.alias) != NULL)
+                    return fn->ret_type;
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "selected method alias lacks its admitted result signature");
         }
         /* A generic function's result is its specialization's: the MIR
          * call fact binds the formals, so `Option<T>` never reaches the
@@ -385,11 +408,14 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             llvm_stmt_lookup_declared_call_return_type(ctx, callee);
         if (declared_type != NULL)
             return declared_type;
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "selected declared call has no result type");
     }
     if (callee_node != NULL && callee_node->type == AST_IDENTIFIER
         && ast_identifier_name(callee_node) != NULL
         && !ast_call_semantic_callee_declared_callable(expr)) {
         const char *callee = ast_identifier_name(callee_node);
+        uint32_t selected_id = ast_call_semantic_callee_decl_id(expr);
         PgyCodegenMatchVariantKind match_variant =
             pgy_codegen_match_variant_lookup(callee);
         if (match_variant == PGY_MATCH_VARIANT_SOME) {
@@ -404,24 +430,42 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             LLVMTypeRef option_ty = llvm_stmt_contextual_option_type(ctx);
             if (option_ty != NULL)
                 return option_ty;
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "None requires contextual Option<T> metadata");
         }
         if (match_variant == PGY_MATCH_VARIANT_OK
             || match_variant == PGY_MATCH_VARIANT_ERR) {
             LLVMTypeRef result_ty = llvm_stmt_contextual_result_type(ctx);
             if (result_ty != NULL)
                 return result_ty;
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "Result constructor requires contextual Result<T,E> metadata");
         }
         {
-            LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, callee);
-            if (variant != NULL) {
+            LLVMSelectedConstructor ctor = llvm_selected_source_constructor(
+                ctx, expr, callee);
+            if (ctor.kind == LLVM_SELECTED_CTOR_INVALID)
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "constructor call has no matching selected declaration");
+            if (ctor.kind == LLVM_SELECTED_CTOR_ENUM) {
                 LLVMClassTypeEntry *enum_cls =
-                    llvm_lookup_class(ctx, variant->enum_name);
+                    llvm_lookup_class(ctx, ctor.enum_name);
                 if (enum_cls != NULL && enum_cls->struct_type != NULL)
                     return enum_cls->struct_type;
-                if (llvm_enum_type_exists(ctx, variant->enum_name))
+                if (llvm_enum_type_exists(ctx, ctor.enum_name))
                     return ctx->type_i32;
             }
+            if (ctor.kind == LLVM_SELECTED_CTOR_NOMINAL) {
+                LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
+                if (cls == NULL || cls->struct_type == NULL)
+                    return llvm_stmt_unknown_expr_type(ctx, expr,
+                        "nominal call has no matching selected declaration or layout");
+                return cls->struct_type;
+            }
         }
+        if (selected_id != 0)
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "source call has no matching selected constructor");
         if (strcmp(callee, "SliceCopy") == 0 && ast_call_arg_count(expr) == 1) {
             LLVMTypeRef slice_ty =
                 llvm_stmt_infer_expr_type(ctx, ast_call_argument(expr, 0));
@@ -478,23 +522,6 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (math_type != NULL)
                 return math_type;
         }
-        /* A bare call inside a host body is an implicit-self method call only
-         * when the host declares that method; otherwise it is a builtin or a
-         * free function (UnwrapOption in a subject action) and the branches
-         * below type it. */
-        if (llvm_current_host_class_name(ctx) != NULL
-            && !llvm_stmt_call_is_slot_builtin(callee)
-            && strcmp(callee, "Log") != 0
-            && strcmp(callee, "Print") != 0
-            && strcmp(callee, "ToString") != 0
-            && strcmp(callee, "Clone") != 0
-            && llvm_find_host_method_metadata_in_context(
-                   ctx, llvm_current_host_class_name(ctx), callee) != NULL) {
-            LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
-                ctx, llvm_current_host_class_name(ctx), callee);
-            if (method_ret != NULL)
-                return method_ret;
-        }
         if (strcmp(callee, "Clone") == 0 && ast_call_arg_count(expr) >= 1
             && ast_call_argument(expr, 0) != NULL) {
             LLVMTypeRef arg_type =
@@ -510,19 +537,6 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (ret_type != NULL && !ctx->has_error)
                 return ret_type;
         }
-        {
-            LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, callee);
-            if (fn != NULL)
-                return fn->ret_type;
-        }
-        {
-            LLVMTypeRef declared_type =
-                llvm_stmt_lookup_declared_call_return_type(ctx, callee);
-            if (declared_type != NULL)
-                return declared_type;
-        }
-        if (llvm_intent_decl_exists(ctx, callee))
-            return ctx->type_i1;
         if ((strcmp(callee, "MapGet") == 0 || strcmp(callee, "MapKeys") == 0)
             && ast_call_semantic_callee_is_stdlib(expr)
             && ast_call_semantic_callee_decl_id(expr) == 0
@@ -542,11 +556,6 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 callee, ast_identifier_name(ast_call_argument(expr, 0)));
             if (inner != NULL)
                 return pergyra_type_to_llvm(ctx, inner);
-        }
-        {
-            LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
-            if (cls != NULL && cls->struct_type != NULL)
-                return cls->struct_type;
         }
     }
     /* A runtime call parameter is the final ABI owner for its argument type.

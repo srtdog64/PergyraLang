@@ -279,6 +279,59 @@ find_callable_decl(TranspilerCtx *ctx, const char *name)
     return find_intent_decl(ctx, name);
 }
 
+TranspilerSelectedCall
+transpiler_selected_source_callable(TranspilerCtx *ctx, ASTNode *call,
+                                    const char *name)
+{
+    TranspilerSelectedCall result = {
+        TRANSPILER_SELECTED_CALL_INVALID, NULL, NULL, NULL};
+    if (ctx == NULL || call == NULL || name == NULL
+        || !ast_call_semantic_callee_declared_callable(call)
+        || ast_call_semantic_callee_is_stdlib(call)
+        || ast_call_semantic_callee_value_binding_id(call) != 0)
+        return result;
+    uint32_t id = ast_call_semantic_callee_decl_id(call);
+    if (id == 0)
+        return result;
+    ASTNode *decl = find_event_decl(ctx, name);
+    if (decl != NULL && ast_node_stable_id(decl) == id) {
+        result.kind = TRANSPILER_SELECTED_CALL_EVENT;
+        result.decl = decl;
+        return result;
+    }
+    decl = find_function_decl(ctx, name);
+    if (decl != NULL && ast_node_stable_id(decl) == id) {
+        result.kind = TRANSPILER_SELECTED_CALL_FUNCTION;
+        result.decl = decl;
+        return result;
+    }
+    decl = find_intent_decl(ctx, name);
+    if (decl != NULL && ast_node_stable_id(decl) == id) {
+        result.kind = TRANSPILER_SELECTED_CALL_INTENT;
+        result.decl = decl;
+        return result;
+    }
+    ASTNode *host = transpiler_current_host_decl_local(ctx);
+    const char *host_name = transpiler_decl_name_local(host);
+    const MIRDeclMethod *method = host_name == NULL ? NULL
+        : transpiler_find_host_method_metadata_in_context(
+            ctx, host_name, name);
+    if (method != NULL && mir_decl_method_source_syntax_id(method) == id) {
+        result.kind = TRANSPILER_SELECTED_CALL_HOST_METHOD;
+        result.host_method = method;
+        return result;
+    }
+    MIRRoutineInventory inventory;
+    mir_routine_inventory_from_program(ctx->mir, &inventory);
+    MIRRoutineSourceLookup alias = mir_routine_inventory_find_method_alias(
+        &inventory, id, name);
+    if (alias.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE) {
+        result.kind = TRANSPILER_SELECTED_CALL_METHOD_ALIAS;
+        result.alias = alias.routine;
+    }
+    return result;
+}
+
 bool
 transpiler_callable_decl_exists_local(TranspilerCtx *ctx, const char *name)
 {

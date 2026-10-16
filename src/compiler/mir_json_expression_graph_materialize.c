@@ -369,12 +369,13 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
             }
             target_syntax_id =
                 graph->nodes[callee_binding_root].binding_syntax_id;
-        } else if (target_syntax_id != 0) {
+        } else if (target_syntax_id != 0
+                   && ast_call_semantic_callee_declared_callable(expr)) {
             graph->nodes[callee_binding_root].binding_syntax_id =
                 target_syntax_id;
             graph->nodes[callee_binding_root].binding_kind =
                 "declared_callable";
-        } else {
+        } else if (target_syntax_id == 0) {
             (void)ast_call_semantic_runtime_call_abi_id(
                 expr, &runtime_call_abi_id);
         }
