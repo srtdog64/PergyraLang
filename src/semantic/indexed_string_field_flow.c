@@ -1,4 +1,5 @@
 #include "indexed_string_field_lineage_internal.h"
+#include "indexed_string_result_inputs.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -9,98 +10,13 @@
 static bool field_id(const ASTNode *node, uint32_t id)
 { return node != NULL && id != 0 && ast_node_stable_id(node) == id; }
 
-static char *field_copy(const char *value)
-{
-    if (value == NULL) return NULL;
-    size_t size = strlen(value) + 1;
-    char *copy = malloc(size);
-    if (copy != NULL) memcpy(copy, value, size);
-    return copy;
-}
-
-static bool field_text_same(const char *left, const char *right)
-{ return (left == NULL && right == NULL) ||
-    (left != NULL && right != NULL && strcmp(left, right) == 0); }
-
-static void field_call_release(IndexedStringFieldCall *row)
-{
-    free(row->callee_name);
-    free(row->result_syntax);
-    for (size_t i = 0; row->formals != NULL && i < row->actual_count; i++) {
-        free(row->formals[i].name);
-        free(row->formals[i].type_syntax);
-        free(row->formals[i].argument_name);
-    }
-    free(row->formals);
-}
-
-static bool field_call_syntax(const IndexedStringFieldCall *row)
-{
-    if (!field_id(row->call, row->call_id) ||
-        !field_id(row->target, row->target_id) ||
-        row->call->type != AST_CALL || ast_call_callee(row->call) != row->target ||
-        row->target->type != AST_IDENTIFIER || row->target_shape != AST_IDENTIFIER ||
-        ast_identifier_binding_syntax_id(row->target) != row->target_binding_id ||
-        ast_call_semantic_callee_is_stdlib(row->call) != row->stdlib ||
-        ast_call_semantic_callee_declared_callable(row->call) != row->declared_callable ||
-        ast_call_semantic_callee_value_binding_id(row->call) != 0 ||
-        ast_call_arg_count(row->call) != row->actual_count ||
-        (row->actual_count != 0 && row->formals == NULL)) return false;
-    if (row->builtin) {
-        uint32_t kind = 0;
-        if (row->callee != NULL || row->callee_id != 0 || row->body != NULL ||
-            row->result_type != NULL || row->callee_name != NULL ||
-            row->result_syntax != NULL || row->formal_count != 0 ||
-            ast_call_semantic_callee_decl_id(row->call) != 0 ||
-            !ast_call_semantic_callee_builtin_kind(row->call, &kind) ||
-            kind != row->builtin_kind) return false;
-    } else if (!field_id(row->callee, row->callee_id) ||
-        !field_id(row->body, row->body_id) ||
-        row->callee->type != AST_FUNC_DECL || row->callee->is_async_decl ||
-        ast_func_body(row->callee) != row->body ||
-        ast_func_param_count(row->callee) != row->formal_count ||
-        row->formal_count != row->actual_count ||
-        ast_func_return_type(row->callee) != row->result_type ||
-        ast_node_stable_id(row->result_type) != row->result_type_id ||
-        !field_text_same(ast_declaration_name(row->callee), row->callee_name) ||
-        !row->declared_callable ||
-        ast_call_semantic_callee_decl_id(row->call) != row->callee_id ||
-        ast_call_semantic_callee_value_binding_id(row->call) != 0) return false;
-    if (!row->builtin && row->result_type != NULL) {
-        char *syntax = ast_capture_inline((ASTNode *)row->result_type);
-        bool same = syntax != NULL && field_text_same(syntax, row->result_syntax);
-        free(syntax);
-        if (!same) return false;
-    } else if (!row->builtin && row->result_syntax != NULL) return false;
-    for (size_t i = 0; i < row->actual_count; i++) {
-        const IndexedStringFieldFormal *saved = &row->formals[i];
-        if (!field_id(saved->actual, saved->actual_id) ||
-            ast_call_argument(row->call, i) != saved->actual ||
-            !field_text_same(ast_call_argument_name(row->call, i),
-                saved->argument_name)) return false;
-        if (row->builtin) continue;
-        FuncParam *formal = ast_func_param(row->callee, saved->formal_ordinal);
-        if (formal == NULL || saved->formal_ordinal != i ||
-            saved->formal_id == 0 || ast_func_param_stable_id(formal) != saved->formal_id ||
-            formal->mode != saved->mode || formal->default_value != NULL ||
-            formal->type != saved->type_node ||
-            ast_node_stable_id(formal->type) != saved->type_id ||
-            !field_text_same(formal->name, saved->name)) return false;
-        char *syntax = ast_capture_inline(formal->type);
-        bool same = syntax != NULL && field_text_same(syntax, saved->type_syntax);
-        free(syntax);
-        if (!same) return false;
-    }
-    return true;
-}
-
 bool indexed_string_field_flow_syntax_current(const IndexedStringFieldRecipe *recipe)
 {
     if (recipe->call_count == 0 || recipe->call_count > recipe->call_capacity ||
         recipe->sealed_calls != recipe->call_count ||
         recipe->calls == NULL) return false;
     for (size_t i = 0; i < recipe->call_count; i++) {
-        if (!field_call_syntax(&recipe->calls[i])) return false;
+        if (!indexed_string_field_call_syntax(&recipe->calls[i])) return false;
         for (size_t j = 0; j < i; j++)
             if (recipe->calls[i].call == recipe->calls[j].call) return false;
     }
@@ -109,7 +25,7 @@ bool indexed_string_field_flow_syntax_current(const IndexedStringFieldRecipe *re
 
 void indexed_string_field_flow_destroy(IndexedStringFieldRecipe *recipe)
 {
-    for (size_t i = 0; i < recipe->call_count; i++) field_call_release(&recipe->calls[i]);
+    for (size_t i = 0; i < recipe->call_count; i++) indexed_string_field_call_destroy(&recipe->calls[i]);
     free(recipe->calls);
 }
 
@@ -130,68 +46,14 @@ bool indexed_string_field_flow_call_current(SemanticContext *ctx,
     for (size_t i = 0; i < recipe->call_count; i++)
         if (recipe->calls[i].call == call) {
             IndexedStringFieldCall *row = &recipe->calls[i];
-            if (!field_call_syntax(row) || row->builtin != builtin ||
+            if (!indexed_string_field_call_current(ctx, row) || row->builtin != builtin ||
                 row->callee != decl || row->builtin_kind != (builtin ? kind : 0)) return false;
-            for (size_t a = 0; decl != NULL && a < row->actual_count; a++) {
-                size_t formal = SIZE_MAX;
-                if (!semantic_param_publication_formal_for_actual(ctx, call, a, &formal) ||
-                    formal != row->formals[a].formal_ordinal) return false;
-            }
             return true;
         }
     if (!prepare || recipe->call_count == SIZE_MAX ||
         recipe->call_count + 1 > SIZE_MAX / sizeof(*recipe->calls)) return false;
     IndexedStringFieldCall row = {0};
-    row.call = call; row.call_id = ast_node_stable_id(call);
-    row.target = target; row.target_id = ast_node_stable_id(target);
-    row.target_shape = target->type;
-    row.target_binding_id = ast_identifier_binding_syntax_id(target);
-    row.stdlib = ast_call_semantic_callee_is_stdlib(call);
-    row.declared_callable = ast_call_semantic_callee_declared_callable(call);
-    row.callee = decl; row.callee_id = ast_node_stable_id(decl);
-    row.body = decl == NULL ? NULL : ast_func_body(decl);
-    row.body_id = ast_node_stable_id(row.body);
-    row.result_type = decl == NULL ? NULL : ast_func_return_type(decl);
-    row.result_type_id = ast_node_stable_id(row.result_type);
-    row.actual_count = ast_call_arg_count(call);
-    row.formal_count = decl == NULL ? 0 : ast_func_param_count(decl);
-    row.builtin = builtin; row.builtin_kind = builtin ? kind : 0;
-    row.callee_name = decl == NULL ? NULL : field_copy(ast_declaration_name(decl));
-    row.result_syntax = row.result_type == NULL ? NULL :
-        ast_capture_inline((ASTNode *)row.result_type);
-    if (row.actual_count > SIZE_MAX / sizeof(*row.formals)) goto failed;
-    row.formals = row.actual_count == 0 ? NULL : calloc(row.actual_count,
-        sizeof(*row.formals));
-    if (row.call_id == 0 || row.target_id == 0 ||
-        (decl != NULL && (row.callee_id == 0 || row.body_id == 0 ||
-            row.callee_name == NULL || (row.result_type != NULL &&
-                (row.result_type_id == 0 || row.result_syntax == NULL)))) ||
-        (row.actual_count != 0 && row.formals == NULL)) goto failed;
-    for (size_t a = 0; a < row.actual_count; a++) {
-        IndexedStringFieldFormal *saved = &row.formals[a];
-        saved->actual = ast_call_argument(call, a);
-        saved->actual_id = ast_node_stable_id(saved->actual);
-        saved->argument_name = field_copy(ast_call_argument_name(call, a));
-        if (saved->actual_id == 0 || (ast_call_argument_name(call, a) != NULL &&
-            saved->argument_name == NULL)) goto failed;
-        if (decl == NULL) continue;
-        size_t formal_at = SIZE_MAX;
-        if (!semantic_param_publication_formal_for_actual(ctx, call, a, &formal_at) ||
-            formal_at != a) goto failed;
-        FuncParam *formal = ast_func_param(decl, formal_at);
-        if (formal == NULL || formal->name == NULL || formal->type == NULL ||
-            formal->default_value != NULL) goto failed;
-        saved->formal_ordinal = formal_at;
-        saved->formal_id = ast_func_param_stable_id(formal);
-        saved->mode = formal->mode;
-        saved->type_node = formal->type;
-        saved->type_id = ast_node_stable_id(formal->type);
-        saved->name = field_copy(formal->name);
-        saved->type_syntax = ast_capture_inline(formal->type);
-        if (saved->formal_id == 0 || saved->type_id == 0 || saved->name == NULL ||
-            saved->type_syntax == NULL) goto failed;
-    }
-    if (!field_call_syntax(&row)) goto failed;
+    if (!indexed_string_field_call_capture(ctx, call, &row)) return false;
     IndexedStringFieldCall *calls = realloc(recipe->calls,
         (recipe->call_count + 1) * sizeof(*calls));
     if (calls == NULL) goto failed;
@@ -200,7 +62,7 @@ bool indexed_string_field_flow_call_current(SemanticContext *ctx,
     recipe->call_capacity = recipe->call_count;
     return true;
 failed:
-    field_call_release(&row);
+    indexed_string_field_call_destroy(&row);
     return false;
 }
 

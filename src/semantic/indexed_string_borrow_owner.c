@@ -12,6 +12,7 @@
 #include "array_storage_deferred_preservation_owner.h"
 #include "array_storage_element_lifetime_owner.h"
 #include "collection_ownership_fact.h"
+#include "indexed_string_definition_recipe.h"
 #include "type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
@@ -232,78 +233,6 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     return true;
 }
 
-typedef struct IndexedStringLineageVisit {
-    const ASTNode *value;
-    const struct IndexedStringLineageVisit *parent;
-} IndexedStringLineageVisit;
-
-static bool
-indexed_string_dependency_at(SemanticContext *ctx, ASTNode *value,
-    const ASTNode **dependency, const IndexedStringLineageVisit *parent)
-{
-    if (value == NULL || value->type != AST_IDENTIFIER) return false;
-    for (const IndexedStringLineageVisit *visit = parent; visit != NULL; visit = visit->parent)
-        if (visit->value == value) return false;
-    PublishedNode *row = publication_node(ctx->function_param_publications, value, false);
-    uint32_t binding_id = ast_identifier_binding_syntax_id(value);
-    PublishedNode *let = publication_node_by_id(ctx->function_param_publications, binding_id);
-    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(value)
-        || !row->value_present || row->meta || row->value_shape != AST_IDENTIFIER
-        || row->value_type != TYPE_STRING || row->binding_id != binding_id
-        || binding_id == 0 || !semantic_param_publication_value(ctx, value).ok) return false;
-    if (let == NULL || !let->indexed_string_let.present) {
-        if (row->indexed_string_let.present) return false;
-        *dependency = NULL;
-        return true;
-    }
-    const IndexedStringLetLineage *issued = &row->indexed_string_let;
-    const IndexedStringLetLineage *current = &let->indexed_string_let;
-    if (!current->available || current->declaration != let->node
-        || current->declaration == NULL || current->declaration->type != AST_LET_DECL
-        || current->declaration_id != binding_id
-        || current->declaration_id != ast_node_stable_id(current->declaration)
-        || current->binding_id != binding_id || current->initializer == NULL
-        || row->indexed_string_source_id != current->source_id
-        || current->initializer != ast_let_initializer(current->declaration)
-        || current->initializer_id == 0
-        || current->initializer_id != ast_node_stable_id(current->initializer)
-        || current->initializer_shape != current->initializer->type
-        || current->caller == NULL || current->caller->type != AST_FUNC_DECL
-        || current->caller_id == 0 || current->caller_id != ast_node_stable_id(current->caller)
-        || !publication_routine_header_current(ctx, current->caller)
-        || !semantic_param_publication_value(ctx, current->initializer).ok
-        || (current->dependent && (!issued->present
-            || row->indexed_string_source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE))
-        || (issued->present && (!issued->available
-            || issued->declaration != current->declaration
-            || issued->initializer != current->initializer || issued->caller != current->caller
-            || issued->declaration_id != current->declaration_id
-            || issued->initializer_id != current->initializer_id
-            || issued->caller_id != current->caller_id
-            || issued->binding_id != current->binding_id
-            || issued->source_id != current->source_id
-            || issued->initializer_shape != current->initializer_shape
-            || issued->dependent != current->dependent))) return false;
-    if (!current->dependent) { *dependency = NULL; return true; }
-    if (current->initializer->type == AST_CALL) {
-        if (!ast_call_semantic_callee_declared_callable(current->initializer)
-            || ast_call_semantic_callee_decl_id(current->initializer) == 0) return false;
-        *dependency = current->initializer;
-        return true;
-    }
-    if (current->initializer->type != AST_IDENTIFIER) return false;
-    IndexedStringLineageVisit visit = {value, parent};
-    return indexed_string_dependency_at(ctx, (ASTNode *)current->initializer, dependency, &visit);
-}
-
-bool semantic_indexed_string_borrow_result_dependency_current(SemanticContext *ctx,
-    ASTNode *value, const ASTNode **dependency)
-{
-    if (dependency == NULL || ctx == NULL || ctx->has_error
-        || !semantic_param_publication_inputs_ready(ctx)) return false;
-    *dependency = NULL;
-    return indexed_string_dependency_at(ctx, value, dependency, NULL);
-}
 
 bool
 semantic_indexed_string_borrow_source_current(ASTNode *expression,
@@ -333,6 +262,9 @@ semantic_indexed_string_borrow_source_current(ASTNode *expression,
         !semantic_indexed_string_field_source_current(ctx, expression, &current_source)) return false;
     if (semantic_param_publication_inputs_ready(ctx)
         && expression->type == AST_IDENTIFIER) {
+        if (semantic_indexed_string_definition_selected(ctx, expression))
+            return semantic_indexed_string_definition_source_current(ctx,
+                expression, source_id);
         const ASTNode *dependency = NULL;
         if (!semantic_indexed_string_borrow_result_dependency_current(
                 ctx, expression, &dependency)) return false;
@@ -356,6 +288,14 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
     uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
     if (ctx == NULL || ctx->has_error || ctx->current_function_decl == NULL) return;
     bool current = semantic_indexed_string_borrow_source_current(expression, ctx, &source_id);
+    IndexedStringDefinitionRecord definition_use =
+        semantic_indexed_string_definition_record_use(ctx, expression, call, ordinal);
+    if (definition_use == INDEXED_STRING_DEFINITION_FAILED) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            expression, "A String use has no exact current definition receipt");
+        return;
+    }
     if (source_id == 0) return;
     /* A shallow store has no callee that can prove non-retention. This also
      * covers a borrowed formal whose payload owner is in the caller's frame. */
@@ -420,13 +360,15 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                     && ast_call_semantic_callee_declared_callable(expression)
                     && ast_call_semantic_callee_decl_id(expression) != 0)
                     || (let != NULL && let->indexed_string_let.present);
-                if (provisional) {
-                    if (!current || row == NULL || row->value_type != TYPE_STRING
-                        || row->id == 0 || row->id != ast_node_stable_id(expression)
-                        || row->indexed_string_source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE
-                        || (let != NULL && let->indexed_string_let.present
-                            && (!let->indexed_string_let.available || !row->indexed_string_let.present))
-                        || store->indexed_string_shallow_retention_count == SIZE_MAX) {
+                if (provisional && current && row != NULL &&
+                    row->value_type == TYPE_STRING && row->id != 0 &&
+                    row->id == ast_node_stable_id(expression) &&
+                    row->indexed_string_source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE &&
+                    (let == NULL || !let->indexed_string_let.present ||
+                        (let->indexed_string_let.available && row->indexed_string_let.present))) {
+                    (void)semantic_indexed_string_definition_protect_use(ctx,
+                        expression, call, ordinal, false);
+                    if (store->indexed_string_shallow_retention_count == SIZE_MAX) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                             expression, "A shallow String store has no current typed source receipt");
@@ -438,11 +380,38 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                     }
                     return;
                 }
-                /* Conditional exclusion of this local risk only. Final replay
-                 * must prove its whole history never acquires payload ownership;
-                 * the String source remains UNKNOWN and other owners still run. */
+                /* Only a withdrawn initializer with a typed replacement enters
+                 * the definition proof ahead of the old nonowner exclusion. */
+                if (let != NULL && let->indexed_string_let.present &&
+                    !let->indexed_string_let.available &&
+                    definition_use == INDEXED_STRING_DEFINITION_RECORDED &&
+                    semantic_indexed_string_definition_protect_use(ctx, expression,
+                        call, ordinal, true)) {
+                    if (row == NULL || row->node != expression ||
+                        row->id != ast_node_stable_id(expression) || !row->value_present ||
+                        !row->string_value || !type_equals(row->value_type, TYPE_STRING) ||
+                        !row->indexed_string_source_present ||
+                        row->indexed_string_source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE ||
+                        store->indexed_string_shallow_retention_count == SIZE_MAX) {
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            expression, "A shallow String store has no current definition candidate");
+                        return;
+                    }
+                    if (!row->indexed_string_shallow_retention) {
+                        row->indexed_string_shallow_retention = true;
+                        store->indexed_string_shallow_retention_count++;
+                    }
+                    return;
+                }
                 if (current && call != NULL &&
                     semantic_indexed_string_nonowner_record(ctx, owner, expression, call, ordinal)) continue;
+                if (provisional) {
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                        expression, "A shallow String store has no current typed source receipt");
+                    return;
+                }
             }
             if (named && source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
                 if (!semantic_array_storage_record_pending_payload(ctx, owner, call, callee, ordinal) ||
@@ -486,6 +455,8 @@ semantic_indexed_string_borrow_initialize_binding(
         binding->indexed_string_borrow_source_syntax_id =
             borrow_source_for_expression(initializer, ctx);
         binding->indexed_string_borrow_invalidated = false;
+        if (semantic_indexed_string_definition_record_birth(ctx, binding,
+                declaration, initializer) == INDEXED_STRING_DEFINITION_FAILED) return false;
         if (semantic_param_publication_pending(ctx) && !ctx->has_error
             && ctx->current_function_decl != NULL
             && binding->indexed_string_borrow_source_syntax_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
@@ -549,6 +520,13 @@ semantic_indexed_string_borrow_record_assignment(
         return;
     }
     if (type_equals(binding->type, TYPE_STRING)) {
+        if (semantic_indexed_string_definition_record_assignment(ctx, binding,
+                assignment, value) == INDEXED_STRING_DEFINITION_FAILED) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                assignment, "A String replacement has no exact definition receipt");
+            return;
+        }
         uint32_t incoming = borrow_source_for_expression(value, ctx);
         binding->indexed_string_borrow_source_syntax_id = borrow_source_join(
             binding->indexed_string_borrow_source_syntax_id, incoming);

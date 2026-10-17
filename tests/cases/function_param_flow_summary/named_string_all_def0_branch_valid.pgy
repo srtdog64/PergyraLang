@@ -1,0 +1,28 @@
+func MakeVariant() -> String {
+    return Substring("ready", 0, 5);
+}
+
+func TrimReuse(value: String, trimmed: Bool) -> String {
+    if trimmed {
+        return Substring(value, 0, StringLength(value));
+    }
+    return value;
+}
+
+func Observe(flag: Bool) -> Void {
+    let variant: String = MakeVariant();
+    let variant_name: String = variant;
+    let names: Array<String> = [];
+    ArrayPush(names, variant_name);
+    if flag {
+        variant_name = TrimReuse(variant, true);
+    }
+    ArrayPush(names, variant_name);
+    Log(names[0]);
+    Log(names[1]);
+}
+
+func Main() -> Void {
+    Observe(true);
+    Observe(false);
+}

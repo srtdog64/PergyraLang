@@ -41,9 +41,9 @@ void mir_free_collection_effect_evidence(MIRProgram *mir)
 
 static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRRoutine *routine,
     const MIRBasicBlock *block, const MIRInstruction *inst,
-    const PgyCollectionEffectView *view, size_t caller, bool *seen)
+    const PgyCollectionEffectView *view, size_t caller, bool *seen, bool *write_seen)
 {
-    if (view->source_use_count != 0 || view->nonowner_risk_count != 0) {
+    if (view->source_use_count != 0 || view->nonowner_risk_count != 0 || view->string_definition_count != 0) {
         const ASTNode *place = NULL, *value = NULL;
         bool initialization = inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_LET_DECL;
         if (initialization) { place = inst->ast; value = inst->expr0; }
@@ -51,13 +51,19 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
         else if (inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_ASSIGNMENT) {
             place = inst->expr1; value = inst->expr0;
         }
-        if ((initialization || inst->kind == MIR_INST_ASSIGN || (inst->kind == MIR_INST_DEF &&
-                inst->ast != NULL && inst->ast->type == AST_ASSIGNMENT)) &&
+        bool definition = initialization || inst->kind == MIR_INST_ASSIGN ||
+            (inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_ASSIGNMENT);
+        size_t write_ordinal = SIZE_MAX;
+        if (definition &&
             !semantic_collection_effect_snapshot_source_definition(
                 mir->collection_effect_snapshot, routine->source_syntax_id,
                 initialization ? ast_node_stable_id(place) : place != NULL && place->type == AST_IDENTIFIER
                     ? ast_identifier_binding_syntax_id(place) : inst->binding_syntax_id,
-                initialization, place, value)) return false;
+                initialization, inst->ast, place, value, &write_ordinal)) return false;
+        if (write_ordinal != SIZE_MAX) {
+            if (write_ordinal >= view->string_write_count || write_seen == NULL || write_seen[write_ordinal]) return false;
+            write_seen[write_ordinal] = true;
+        }
         if (inst->kind == MIR_INST_RETURN) {
             const ASTNode *statement = NULL;
             if (block->source_hir_block_id != SIZE_MAX) {
@@ -91,7 +97,10 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
         if (!mir_instruction_executable_roots(routine, inst, roots, NULL, NULL)) return false;
         for (size_t r = 0; r < 2; r++) {
             if (roots[r] == NULL) continue;
-            if ((inst->kind != MIR_INST_RETURN || roots[r] != inst->expr0) &&
+            /* ASSIGN exposes its target as a root too, but its exact target
+             * role was admitted above; it is not a standalone evaluation. */
+            bool target_role = definition && roots[r] == place;
+            if (!target_role && (inst->kind != MIR_INST_RETURN || roots[r] != inst->expr0) &&
                 !semantic_collection_effect_snapshot_source_evaluation(
                     mir->collection_effect_snapshot, routine->source_syntax_id, roots[r])) return false;
             if (!hir_collection_source_expression_current(
@@ -191,6 +200,9 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
     if (!current) return mir_collection_evidence_error(error);
     bool *seen = view.effect_count == 0 ? NULL : calloc(view.effect_count, sizeof(*seen));
     if (view.effect_count != 0 && seen == NULL) return mir_collection_evidence_error(error);
+    if (view.string_write_count > SIZE_MAX / sizeof(bool)) { free(seen); return mir_collection_evidence_error(error); }
+    bool *write_seen = view.string_write_count == 0 ? NULL : calloc(view.string_write_count, sizeof(*write_seen));
+    if (view.string_write_count != 0 && write_seen == NULL) { free(seen); return mir_collection_evidence_error(error); }
     bool valid = true;
     for (size_t c = 0; c < view.caller_count && valid; c++) {
         if (only != NULL && view.callers[c].decl_id != only->source_syntax_id) continue;
@@ -222,12 +234,13 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
         for (size_t b = 0; b < routine->block_count && valid; b++)
             for (size_t i = 0; i < routine->blocks[b].instruction_count; i++)
                 if (!mir_collection_instruction_current(mir, routine, &routine->blocks[b],
-                    &routine->blocks[b].instructions[i], &view, caller, seen)) { valid = false; break; }
+                    &routine->blocks[b].instructions[i], &view, caller, seen, write_seen)) { valid = false; break; }
     }
     for (size_t e = 0; e < view.effect_count && valid; e++)
         if ((only == NULL || view.callers[view.effects[e].caller].decl_id == only->source_syntax_id) && !seen[e])
             valid = false;
     free(seen);
+    free(write_seen);
     return valid || mir_collection_evidence_error(error);
 }
 

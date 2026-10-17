@@ -113,7 +113,7 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         ASTNode *value = ast_let_initializer(node);
         if (operations->source_only && !semantic_collection_effect_snapshot_source_definition(
                 operations->snapshot, operations->routine->source_syntax_id,
-                ast_node_stable_id(node), true, node, value)) return false;
+                ast_node_stable_id(node), true, node, node, value, NULL)) return false;
         if (!hir_owned_expression(operations, value)) return false;
         if (operations->snapshot != NULL) return true;
         const PgyCollectionOwnershipFact *fact = hir_owned_local_fact(
@@ -225,7 +225,7 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         if (operations->source_only && !semantic_collection_effect_snapshot_source_definition(
                 operations->snapshot, operations->routine->source_syntax_id,
                 place != NULL && place->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(place) : 0,
-                false, place, ast_assignment_value(node))) return false;
+                false, node, place, ast_assignment_value(node), NULL)) return false;
         return hir_owned_expression(operations, ast_assignment_target(node))
             && hir_owned_expression(operations, ast_assignment_value(node));
     }
@@ -308,7 +308,8 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
     }
     for (size_t e = 0; valid && e < view.effect_count; e++)
         valid = seen[e];
-    for (size_t r = 0; valid && (view.source_use_count != 0 || view.nonowner_risk_count != 0) &&
+    for (size_t r = 0; valid && (view.source_use_count != 0 || view.nonowner_risk_count != 0 ||
+            view.string_definition_count != 0) &&
             r < hir->routine_count; r++) {
         const HIRRoutine *routine = &hir->routines[r];
         if (!routine->has_cfg) continue;

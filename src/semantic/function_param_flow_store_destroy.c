@@ -10,83 +10,6 @@
 #include "../common/match_variant_policy.h"
 #include "indexed_string_borrow_owner.h"
 
-typedef struct StringResultSourceVisit {
-    const ASTNode *call;
-    const struct StringResultSourceVisit *parent;
-} StringResultSourceVisit;
-
-static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
-    uint32_t *source, const StringResultSourceVisit *parent, bool prepare)
-{
-    if (source == NULL || ctx == NULL || ctx->has_error || call == NULL ||
-        call->type != AST_CALL || !semantic_param_publication_inputs_ready(ctx)) return false;
-    for (const StringResultSourceVisit *p = parent; p != NULL; p = p->parent)
-        if (p->call == call) return false;
-    const Type *type = NULL;
-    ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &type);
-    if (decl == NULL || type != TYPE_STRING) return false;
-    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
-    if (store == NULL || store->failed || store->solving) return false;
-    StringResultSourceVisit visit = {call, parent};
-    uint32_t joined = 0;
-    for (size_t p = 0; p < ast_call_arg_count(call); p++) {
-        ASTNode *argument = ast_call_argument(call, p);
-        SemanticPublishedValue actual = semantic_param_publication_value(ctx, argument);
-        size_t formal = 0;
-        if (!actual.ok || actual.meta || !semantic_param_publication_checked_argument(ctx, call, p)
-            || semantic_param_publication_callee(ctx, call, p) != decl
-            || !semantic_param_publication_formal_for_actual(ctx, call, p, &formal)) return false;
-        if (prepare) (void)function_param_flow_summary_demand(
-            &(SlotFunctionLookup){ctx, ctx->program_root}, decl, formal);
-        size_t at = function_param_flow_find(store, ast_node_stable_id(decl), formal);
-        if (store->failed || at == SIZE_MAX || store->entries[at].function_decl != decl
-            || store->entries[at].param_index != formal
-            || (store->entries[at].mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0
-            || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE
-            || store->entries[at].analysis_unsupported || store->entries[at].returned_backing_unproved
-            || store->entries[at].returned_backing_pending
-            || !function_param_flow_output_current(store, at, false)) return false;
-        unsigned mask = store->entries[at].mask;
-        if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0
-            || semantic_param_publication_value_is_physical_scalar(ctx, argument)) continue;
-        if (actual.type != TYPE_STRING) return false;
-        const ASTNode *dependency = NULL;
-        if (argument->type == AST_CALL && ast_call_semantic_callee_declared_callable(argument)
-            && ast_call_semantic_callee_decl_id(argument) != 0) dependency = argument;
-        else if (argument->type == AST_IDENTIFIER
-            && !semantic_indexed_string_borrow_result_dependency_current(ctx, argument, &dependency)) return false;
-        uint32_t incoming;
-        if (dependency != NULL ? !string_result_source_at(ctx, dependency, &incoming, &visit, prepare)
-            : !semantic_indexed_string_borrow_source_current(argument, ctx, &incoming)) return false;
-        if (incoming == UINT32_MAX || (joined != 0 && incoming != 0 && joined != incoming)) return false;
-        if (joined == 0) joined = incoming;
-    }
-    if (function_param_flow_declared_result_frame_current(store, (ASTNode *)call, NULL) == NULL
-        || !function_param_flow_backing_rows_current(store, decl)) return false;
-    *source = joined;
-    return true;
-}
-
-bool function_param_flow_string_result_source_current(SemanticContext *ctx,
-    const ASTNode *call, uint32_t *source)
-{
-    bool previous;
-    if (!function_param_flow_current_begin(ctx, &previous)) return false;
-    bool current = string_result_source_at(ctx, call, source, NULL, false);
-    function_param_flow_current_end(ctx, previous);
-    return current;
-}
-
-bool function_param_flow_string_result_source_prepare(SemanticContext *ctx,
-    const ASTNode *call, uint32_t *source)
-{
-    if (ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
-        ctx->function_param_flow_summaries->validating_current)) return false;
-    return function_param_flow_store_get(&(SlotFunctionLookup){ctx, ctx->program_root}) != NULL &&
-        string_result_source_at(ctx, call, source, NULL, true);
-}
-
-
 static bool unsupported_relation_current(FunctionParamFlowSummaryStore *store, const FunctionParamFlowPendingRelation *edge)
 {
     if (edge->call == NULL || edge->call->type != AST_CALL || edge->call_id == 0 ||
@@ -176,7 +99,51 @@ ASTNode *function_param_flow_receiver_readonly_current(FunctionParamFlowSummaryS
 }
 
 
-bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl)
+bool function_param_flow_no_store_member_admitted(
+    const FunctionParamFlowSummaryStore *store, size_t ordinal)
+{
+    if (ordinal >= store->program_point_index_count) return false;
+    const FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[ordinal];
+    size_t position = index->admitted_no_store_position;
+    return store->solving && store->demand_epoch != 0 &&
+        index->admitted_no_store_epoch == store->demand_epoch &&
+        position != 0 && position <= store->admitted_no_store_count &&
+        store->admitted_no_store_indexes[position - 1] == ordinal;
+}
+/* The union is one admitted set in this demand, not copied per root. Replaying
+ * it checks every premise, including edges into the set. An epoch alone is
+ * never permission; current typed facts and exact membership must still join. */
+bool function_param_flow_no_store_admitted_current(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowInputCapture capture, void *user)
+{
+    for (size_t m = 0; m < store->admitted_no_store_count; m++) {
+        size_t ordinal = store->admitted_no_store_indexes[m];
+        if (!function_param_flow_no_store_member_admitted(store, ordinal)) return false;
+        FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[ordinal];
+        ASTNode *decl = index->function_decl;
+        if (index->function_id != ast_node_stable_id(decl) ||
+            index->failed_no_store_epoch == store->demand_epoch ||
+            !semantic_param_publication_routine_no_output_header_ready(store->ctx, decl) ||
+            !function_param_flow_program_point_index_build(store, decl, &index) ||
+            !index->dependency_roots_ready || index->mutable_output_required) return false;
+        if (capture != NULL && !capture(store->ctx, decl, index->claims, NULL, user)) return false;
+        for (size_t e = 0; e < index->no_store_call_count; e++) {
+            ASTNode *call = index->no_store_calls[e];
+            ASTNode *callee = semantic_param_publication_direct_callee(store->ctx, call);
+            if (callee == NULL) return false;
+            for (size_t p = 0; p < ast_call_arg_count(call); p++)
+                if (!semantic_param_publication_checked_argument(store->ctx, call, p) ||
+                    !semantic_param_publication_value(store->ctx, ast_call_argument(call, p)).ok) return false;
+            size_t target = function_param_flow_program_point_index_find(store, ast_node_stable_id(callee));
+            if (!function_param_flow_no_store_member_admitted(store, target) ||
+                store->program_point_indexes[target].function_decl != callee) return false;
+            if (capture != NULL && !capture(store->ctx, decl, NULL, call, user)) return false;
+        }
+    }
+    return true;
+}
+bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *store, ASTNode *decl,
+    FunctionParamFlowInputCapture capture, void *user)
 {
     if (store == NULL || decl == NULL) return false;
     size_t count = 1, capacity = 8;
@@ -191,13 +158,14 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
             !function_param_flow_index_roots_current(index) ||
             !semantic_param_publication_routine_relation_header_ready(store->ctx, current)) { valid = false; break; }
         if (index->declared_result != NULL &&
-            (!function_param_flow_no_store_graph(store, current) ||
+            (!function_param_flow_no_store_graph_capture(store, current, capture, user) ||
              !function_param_flow_program_point_index_build(store, current, &index))) { valid = false; break; }
         FunctionParamFlowBackingFact **frames = index->backing_frames;
         size_t frame_count = index->backing_frame_count;
         size_t parameter_count = index->param_count;
         FunctionParamFlowIndexClaims *claims = index->claims;
         FunctionParamFlowBackingFact *result = index->declared_result;
+        if (capture != NULL && !capture(store->ctx, current, claims, NULL, user)) { valid = false; break; }
         if (frames == NULL && result == NULL) {
             if (frame_count != 0) valid = false;
             continue;
@@ -339,6 +307,7 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
                     (row->result_argument_count != ast_call_arg_count(row->node) ||
                      (row->result_argument_count != 0 && row->result_argument_kinds == NULL))) { valid = false; break; }
                 if (row->node->type != AST_CALL) continue;
+                if (capture != NULL && !capture(store->ctx, current, NULL, row->node, user)) { valid = false; break; }
                 ASTNode *edge_call = row->node;
                 uint32_t edge_callee_id = row->result_callee_id;
                 const Type *edge_type = row->result_type;
@@ -407,7 +376,7 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
                                             (source->outputs[q / 64] & (UINT64_C(1) << (q % 64))) != 0 &&
                                             !entry->output_dependencies[q]) output_current = false;
                                         if (!output_current || (source->private_stores_closed &&
-                                            !function_param_flow_no_store_graph(store, callee))) break;
+                                            !function_param_flow_no_store_graph_capture(store, callee, capture, user))) break;
                                         kind = (entry->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ?
                                             FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_DEPENDENT :
                                             FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_INDEPENDENT;
@@ -437,6 +406,11 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
     }
     free(queue);
     return valid;
+}
+
+bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl)
+{
+    return function_param_flow_backing_rows_capture(store, decl, NULL, NULL);
 }
 
 bool function_param_flow_callee_relation_ready(const SlotFunctionLookup *lookup, ASTNode *call, size_t ordinal)

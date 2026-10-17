@@ -25,6 +25,7 @@
 #include "semantic/type_checker_ownership_internal.h"
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
+#include "semantic/indexed_string_definition_recipe.h"
 #include "semantic/indexed_string_field_lineage_internal.h"
 #include "semantic/indexed_string_nonowner_risk_internal.h"
 #include "semantic/diag_payload.h"
@@ -3254,6 +3255,225 @@ static void checked_named_string_result_source_currency(void)
         CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
     }
     CHECK(identity != NULL);
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_all_def0_string_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func MakeVariant()->String{return Substring(\"ready\",0,5);}"
+        "func TrimReuse(value:String,trimmed:Bool)->String{"
+        "if trimmed{return Substring(value,0,StringLength(value));}return value;}"
+        "func Main()->Void{let variant:String=MakeVariant();"
+        "let variant_name:String=variant;let names:Array<String> = [];"
+        "ArrayPush(names,variant_name);"
+        "if StringLength(variant)>0{variant_name=TrimReuse(variant,true);}"
+        "ArrayPush(names,variant_name);Log(names[0]);Log(names[1]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *main_decl = ast_program_statement(program, 2);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *birth = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *first_push = body == NULL ? NULL : ast_block_statement(body, 3);
+    ASTNode *branch = body == NULL ? NULL : ast_block_statement(body, 4);
+    ASTNode *assignment = branch == NULL ? NULL :
+        ast_block_statement(ast_if_then_branch(branch), 0);
+    ASTNode *later_push = body == NULL ? NULL : ast_block_statement(body, 5);
+    ASTNode *early_use = first_push == NULL ? NULL : ast_call_argument(first_push, 1);
+    ASTNode *later_use = later_push == NULL ? NULL : ast_call_argument(later_push, 1);
+    ASTNode *rhs = assignment == NULL ? NULL : ast_assignment_value(assignment);
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *birth_row = birth == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(birth));
+    IndexedStringDefinitionRecipe *recipe = birth_row == NULL ? NULL :
+        birth_row->indexed_string_definition;
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(main_decl != NULL && birth != NULL && assignment != NULL &&
+        early_use != NULL && later_use != NULL && rhs != NULL &&
+        birth_row != NULL && recipe != NULL && recipe->selected && recipe->prepared &&
+        recipe->declaration == birth && recipe->assignment_count == 1 &&
+        recipe->sealed_assignments == 1 && recipe->use_count == 2 &&
+        recipe->sealed_uses == 2 && recipe->assignments != NULL &&
+        recipe->uses != NULL && recipe->claims != NULL && recipe->claims->count != 0 &&
+        publication->indexed_string_definition_count == 1 && flow != NULL);
+    if (recipe == NULL || recipe->assignment_count != 1 || recipe->use_count != 2 ||
+        recipe->assignments == NULL || recipe->uses == NULL || recipe->claims == NULL ||
+        recipe->claims->count == 0 || flow == NULL || rhs == NULL ||
+        early_use == NULL || later_use == NULL) goto cleanup;
+    uint32_t source = UINT32_MAX;
+    CHECK(semantic_indexed_string_definition_selected(ctx, early_use) &&
+        semantic_indexed_string_definition_selected(ctx, later_use));
+    CHECK(semantic_indexed_string_definition_source_current(ctx, early_use, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_definition_source_current(ctx, later_use, &source) && source == 0);
+    CHECK(semantic_indexed_string_borrow_source_current(later_use, ctx, &source) && source == 0);
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_demand = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    size_t ready_issued = publication->indexed_string_definition_count;
+    for (unsigned fault = 0; fault < 7; fault++) {
+        IndexedStringDefinitionRecipe saved = *recipe;
+        IndexedStringDefinitionAssignment saved_assignment = recipe->assignments[0];
+        IndexedStringDefinitionUse saved_use = recipe->uses[0];
+        IndexedStringDefinitionRecipe *saved_birth = birth_row->indexed_string_definition;
+        uint32_t saved_rhs_id = ast_node_stable_id(rhs);
+        uint32_t saved_claim_id = recipe->claims->rows[0].id;
+        if (fault == 0) birth_row->indexed_string_definition = NULL;
+        if (fault == 1) recipe->selected = false;
+        if (fault == 2) recipe->prepared = false;
+        if (fault == 3) recipe->assignments[0].target_id++;
+        if (fault == 4) rhs->stable_id++;
+        if (fault == 5) recipe->uses[0].sink_id++;
+        if (fault == 6) recipe->claims->rows[0].id = 0;
+        source = UINT32_MAX;
+        bool early_current = semantic_indexed_string_definition_source_current(
+            ctx, early_use, &source);
+        source = UINT32_MAX;
+        bool later_current = semantic_indexed_string_definition_source_current(
+            ctx, later_use, &source);
+        source = UINT32_MAX;
+        bool public_current = semantic_indexed_string_borrow_source_current(
+            later_use, ctx, &source);
+        bool unchanged = flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_demand &&
+            flow->body_evaluations == ready_evaluations &&
+            publication->indexed_string_definition_count == ready_issued &&
+            !flow->validating_current;
+        if (early_current || later_current || public_current || !unchanged)
+            fprintf(stderr, "all-def0 fault=%u early=%d later=%d public=%d unchanged=%d\n",
+                fault, (int)early_current, (int)later_current,
+                (int)public_current, (int)unchanged);
+        CHECK(!early_current && !later_current && !public_current && unchanged);
+        *recipe = saved;
+        recipe->assignments[0] = saved_assignment;
+        recipe->uses[0] = saved_use;
+        birth_row->indexed_string_definition = saved_birth;
+        rhs->stable_id = saved_rhs_id;
+        recipe->claims->rows[0].id = saved_claim_id;
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, early_use, &source) && source == 0);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, later_use, &source) && source == 0);
+        CHECK(semantic_indexed_string_borrow_source_current(later_use, ctx, &source) && source == 0);
+    }
+    ASTNode *trim_decl = ast_program_statement(program, 1);
+    size_t trim_at = trim_decl == NULL ? SIZE_MAX :
+        function_param_flow_find(flow, ast_node_stable_id(trim_decl), 0);
+    bool trim_ready = trim_at != SIZE_MAX && trim_at < flow->count &&
+        flow->entries[trim_at].function_decl == trim_decl &&
+        flow->entries[trim_at].state == FUNCTION_PARAM_FLOW_COMPLETE &&
+        !flow->entries[trim_at].analysis_unsupported &&
+        flow->entries[trim_at].output_producer != FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED &&
+        function_param_flow_output_current(flow, trim_at, false);
+    CHECK(trim_ready);
+    if (!trim_ready) goto cleanup;
+    IndexedStringDefinitionRecipe *original_owner = birth_row->indexed_string_definition;
+    FunctionParamFlowIndexClaims *original_claims = recipe->claims;
+    for (unsigned fault = 0; fault < 3; fault++) {
+        FunctionParamFlowSummaryState saved_state = flow->entries[trim_at].state;
+        bool saved_unsupported = flow->entries[trim_at].analysis_unsupported;
+        FunctionParamFlowOutputProducer saved_output = flow->entries[trim_at].output_producer;
+        if (fault == 0) flow->entries[trim_at].state = FUNCTION_PARAM_FLOW_COMPUTING;
+        if (fault == 1) flow->entries[trim_at].analysis_unsupported = true;
+        if (fault == 2) flow->entries[trim_at].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+        source = UINT32_MAX;
+        bool direct_current = semantic_indexed_string_definition_source_current(
+            ctx, later_use, &source);
+        source = UINT32_MAX;
+        bool public_current = semantic_indexed_string_borrow_source_current(
+            later_use, ctx, &source);
+        PgyCollectionEffectSnapshot *snapshot = NULL;
+        bool taken = semantic_collection_effect_snapshot_take(ctx, &snapshot);
+        bool unchanged = !ctx->has_error && flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_demand &&
+            flow->body_evaluations == ready_evaluations &&
+            publication->indexed_string_definition_count == ready_issued &&
+            birth_row->indexed_string_definition == original_owner &&
+            recipe->claims == original_claims && !flow->validating_current;
+        CHECK(!direct_current && !public_current && !taken && snapshot == NULL && unchanged);
+        flow->entries[trim_at].state = saved_state;
+        flow->entries[trim_at].analysis_unsupported = saved_unsupported;
+        flow->entries[trim_at].output_producer = saved_output;
+        if (taken || snapshot != NULL) {
+            if (snapshot != NULL) semantic_collection_effect_snapshot_destroy(snapshot);
+            goto cleanup;
+        }
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, later_use, &source) && source == 0);
+        CHECK(semantic_indexed_string_definition_syntax_current(recipe));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_all_def0_known_zero_fallback(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Main()->Void{let names:Array<String> = [];"
+        "let text:String=\"seed\";ArrayPush(names,text);"
+        "text=Substring(\"next\",0,4);ArrayPush(names,text);"
+        "Log(names[0]);Log(names[1]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *main_decl = ast_program_statement(program, 0);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *definition = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *early_call = body == NULL ? NULL : ast_block_statement(body, 2);
+    ASTNode *later_call = body == NULL ? NULL : ast_block_statement(body, 4);
+    ASTNode *early_use = early_call == NULL ? NULL : ast_call_argument(early_call, 1);
+    ASTNode *later_use = later_call == NULL ? NULL : ast_call_argument(later_call, 1);
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *birth = definition == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(definition));
+    PublishedNode *early_row = early_use == NULL ? NULL : published_node_for(ctx, early_use);
+    PublishedNode *later_row = later_use == NULL ? NULL : published_node_for(ctx, later_use);
+    IndexedStringDefinitionRecipe *recipe = birth == NULL ? NULL : birth->indexed_string_definition;
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(birth != NULL && recipe != NULL && recipe->selected && recipe->prepared &&
+        recipe->assignment_count == 1 && recipe->use_count == 2 &&
+        early_row != NULL && later_row != NULL &&
+        early_row->indexed_string_source_present && later_row->indexed_string_source_present &&
+        early_row->indexed_string_source_id == 0 && later_row->indexed_string_source_id == 0 &&
+        flow != NULL);
+    if (recipe == NULL || early_row == NULL || later_row == NULL ||
+        early_use == NULL || later_use == NULL || flow == NULL) goto cleanup;
+    uint32_t source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(early_use, ctx, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(later_use, ctx, &source) && source == 0);
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_demand = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    IndexedStringDefinitionRecipe *issued = birth->indexed_string_definition;
+    birth->indexed_string_definition = NULL;
+    source = UINT32_MAX;
+    bool early_fallback = semantic_indexed_string_borrow_source_current(early_use, ctx, &source);
+    source = UINT32_MAX;
+    bool later_fallback = semantic_indexed_string_borrow_source_current(later_use, ctx, &source);
+    birth->indexed_string_definition = issued;
+    CHECK(!early_fallback && !later_fallback && flow->count == ready_count &&
+        flow->program_point_index_count == ready_indexes &&
+        flow->demand_epoch == ready_demand && flow->body_evaluations == ready_evaluations &&
+        !flow->validating_current);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(early_use, ctx, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(later_use, ctx, &source) && source == 0);
 cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -12408,6 +12628,8 @@ int main(void)
     checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();
     checked_named_string_result_source_currency();
+    checked_all_def0_string_currency();
+    checked_all_def0_known_zero_fallback();
     checked_nonlocal_projection_currency();
     checked_compound_projection_currency();
     checked_private_physical_array_mutation_currency();

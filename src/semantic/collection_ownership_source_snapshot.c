@@ -8,8 +8,10 @@ bool semantic_collection_effect_snapshot_source_root(const PgyCollectionEffectSn
     uint32_t caller_id, const ASTNode *root)
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
-    if ((s->source_use_count == 0 && s->nonowner_risk_count == 0) || root == NULL) return true;
+    if ((s->source_use_count == 0 && s->nonowner_risk_count == 0 &&
+            s->string_definition_count == 0) || root == NULL) return true;
     if (caller_id == 0 || ast_node_stable_id(root) == 0) return false;
     for (size_t c = 0; c < s->caller_count; c++) {
         if (s->callers[c].decl_id != caller_id) continue;
@@ -31,10 +33,34 @@ bool semantic_collection_effect_snapshot_source_use(const PgyCollectionEffectSna
     uint32_t caller_id, const ASTNode *sink, size_t ordinal, const ASTNode *value)
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks ||
         sink == NULL || sink->type != AST_CALL || value == NULL) return false;
     uint32_t binding = 0;
     if (!collection_source_place_binding(value, &binding)) return false;
+    for (size_t n = 0; n < s->string_definition_count; n++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[n];
+        if (r == NULL || r->use_count != r->sealed_uses || r->use_count > r->use_capacity ||
+            (r->use_count != 0 && r->uses == NULL)) return false;
+        size_t matched = 0;
+        bool slot_seen = false, value_seen = false;
+        for (size_t u = 0; u < r->use_count; u++) {
+            const IndexedStringDefinitionUse *use = &r->uses[u];
+            bool slot = (use->sink == sink || use->sink_id == ast_node_stable_id(sink)) &&
+                use->actual_ordinal == ordinal;
+            bool source = use->value == value || use->value_id == ast_node_stable_id(value);
+            slot_seen |= slot;
+            value_seen |= source;
+            if (!slot || !source) continue;
+            if (++matched != 1 || caller_id != r->caller_id || use->sink != sink ||
+                use->sink_id != ast_node_stable_id(sink) || use->value != value ||
+                use->value_id != ast_node_stable_id(value) || use->value_shape != value->type ||
+                use->binding_id != binding || binding != r->binding_id ||
+                ordinal >= ast_call_arg_count(sink) || ast_call_argument(sink, ordinal) != value) return false;
+        }
+        if ((slot_seen || value_seen || binding == r->binding_id) &&
+            (!slot_seen || !value_seen || matched != 1)) return false;
+    }
     for (size_t n = 0; n < s->nonowner_risk_count; n++) {
         const IndexedStringNonownerRisk *risk = s->nonowner_risks[n];
         if (risk == NULL || risk->use_count != risk->sealed_uses || risk->use_count > risk->use_capacity ||
@@ -83,7 +109,24 @@ bool semantic_collection_effect_snapshot_source_value(const PgyCollectionEffectS
     uint32_t caller_id, const ASTNode *value)
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks || value == NULL) return false;
+    for (size_t u = 0; u < s->string_definition_count; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (r == NULL || r->claims == NULL) return false;
+        bool sensitive = value == r->declaration || value == r->birth.value ||
+            ast_node_stable_id(value) == r->binding_id ||
+            (value->type == AST_IDENTIFIER && ast_identifier_binding_syntax_id(value) == r->binding_id);
+        if (!sensitive) continue;
+        if (caller_id != r->caller_id) return false;
+        bool matched = false;
+        for (size_t c = 0; c < r->claims->count; c++) {
+            const FunctionParamFlowIndexClaim *row = &r->claims->rows[c];
+            if (row->node == value && row->id == ast_node_stable_id(value) && row->shape == value->type)
+                matched = true;
+        }
+        if (!matched) return false;
+    }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *risk = s->nonowner_risks[u];
         if (risk == NULL || risk->claims == NULL || risk->use_count != risk->sealed_uses ||
@@ -142,8 +185,17 @@ bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEf
     uint32_t caller_id, const ASTNode *value)
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
     (void)caller_id; /* Protected descriptors/carriers cannot migrate to another caller either. */
+    for (size_t u = 0; u < s->string_definition_count; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (r == NULL) return false;
+        /* A call actual or binary child is not a standalone executable root.
+         * Assignment targets are checked separately by the definition role. */
+        if (value != NULL && value->type == AST_IDENTIFIER &&
+            ast_identifier_binding_syntax_id(value) == r->binding_id) return false;
+    }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *risk = s->nonowner_risks[u];
         if (risk == NULL || risk->terminal_count != risk->sealed_terminals ||
@@ -160,14 +212,63 @@ bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEf
 
 bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEffectSnapshot *s,
     uint32_t caller_id, uint32_t binding_id, bool initialization,
-    const ASTNode *place, const ASTNode *value)
+    const ASTNode *statement, const ASTNode *place, const ASTNode *value,
+    size_t *write_ordinal)
 {
+    if (write_ordinal != NULL) *write_ordinal = SIZE_MAX;
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
     if (!semantic_collection_effect_snapshot_source_evaluation(s, caller_id, value)) return false;
-    if (s->source_use_count == 0 && s->nonowner_risk_count == 0) return true;
+    if (s->source_use_count == 0 && s->nonowner_risk_count == 0 &&
+        s->string_definition_count == 0) return true;
     uint32_t actual_binding = 0;
     if (!collection_source_place_binding(place, &actual_binding)) return false;
+    size_t offset = 0, matched_write = SIZE_MAX;
+    for (size_t u = 0; u < s->string_definition_count; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (r == NULL || r->assignment_count != r->sealed_assignments ||
+            r->assignment_count > r->assignment_capacity ||
+            (r->assignment_count != 0 && r->assignments == NULL) ||
+            r->assignment_count == SIZE_MAX ||
+            offset > SIZE_MAX - 1 - r->assignment_count) return false;
+        uint32_t statement_id = statement == NULL ? 0 : ast_node_stable_id(statement);
+        bool protected_statement = statement != NULL &&
+            (statement == r->declaration || statement_id == r->declaration_id);
+        for (size_t a = 0; a < r->assignment_count; a++)
+            if (statement != NULL && (statement == r->assignments[a].assignment ||
+                statement_id == r->assignments[a].assignment_id)) protected_statement = true;
+        bool protected_rhs = value != NULL && value->type == AST_IDENTIFIER &&
+            ast_identifier_binding_syntax_id(value) == r->binding_id;
+        if (binding_id != r->binding_id && actual_binding != r->binding_id &&
+            !protected_rhs && !protected_statement) {
+            offset += 1 + r->assignment_count;
+            continue;
+        }
+        if (caller_id != r->caller_id || binding_id != r->binding_id || actual_binding != r->binding_id)
+            return false;
+        if (initialization) {
+            if (statement != r->declaration || statement_id != r->declaration_id ||
+                place != r->declaration || ast_node_stable_id(place) != r->declaration_id ||
+                value != r->birth.value || ast_node_stable_id(value) != r->birth.value_id ||
+                matched_write != SIZE_MAX) return false;
+            matched_write = offset;
+        } else {
+            size_t matches = 0;
+            for (size_t a = 0; a < r->assignment_count; a++) {
+                const IndexedStringDefinitionAssignment *row = &r->assignments[a];
+                if (statement == row->assignment && statement_id == row->assignment_id &&
+                    place == row->target && ast_node_stable_id(place) == row->target_id &&
+                    value == row->rhs.value && ast_node_stable_id(value) == row->rhs.value_id &&
+                    row->binding_id == r->binding_id) {
+                    matches++;
+                    matched_write = offset + 1 + a;
+                }
+            }
+            if (matches != 1) return false;
+        }
+        offset += 1 + r->assignment_count;
+    }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *r = s->nonowner_risks[u];
         if (r == NULL) return false;
@@ -195,6 +296,7 @@ bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEf
             if (formal != 0 && (binding_id == formal || actual_binding == formal)) return false;
         }
     }
+    if (write_ordinal != NULL) *write_ordinal = matched_write;
     return true;
 }
 
@@ -202,7 +304,14 @@ bool semantic_collection_effect_snapshot_source_return(const PgyCollectionEffect
     uint32_t caller_id, const ASTNode *statement, const ASTNode *value)
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
+    for (size_t u = 0; u < s->string_definition_count; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (r == NULL) return false;
+        if (value != NULL && value->type == AST_IDENTIFIER &&
+            ast_identifier_binding_syntax_id(value) == r->binding_id) return false;
+    }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *risk = s->nonowner_risks[u];
         if (risk == NULL || risk->terminal_count != risk->sealed_terminals ||

@@ -1,0 +1,30 @@
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func TrimReuse(value: String, trimmed: Bool) -> String {
+    if trimmed {
+        return Substring(value, 0, StringLength(value));
+    }
+    return value;
+}
+
+func Observe(flag: Bool) -> Void {
+    let rows: Array<String> = OwnedRows();
+    let source: String = Substring("ready", 0, 5);
+    let name: String = source;
+    let names: Array<String> = [];
+    if flag {
+        name = rows[0];
+    } else {
+        name = TrimReuse(source, true);
+    }
+    ArrayPush(names, name);
+    Log(names[0]);
+}
+
+func Main() -> Void {
+    Observe(true);
+}

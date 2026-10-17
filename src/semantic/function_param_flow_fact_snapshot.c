@@ -2,6 +2,7 @@
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_field_lineage_internal.h"
 #include "indexed_string_nonowner_risk_internal.h"
+#include "indexed_string_definition_recipe.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -454,6 +455,8 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
         store->nodes[n].indexed_string_field = NULL;
         semantic_indexed_string_nonowner_destroy(store->nodes[n].indexed_string_nonowner);
         store->nodes[n].indexed_string_nonowner = NULL;
+        semantic_indexed_string_definition_destroy(store->nodes[n].indexed_string_definition);
+        store->nodes[n].indexed_string_definition = NULL;
         semantic_param_publication_retire_value(&store->nodes[n]);
     }
     for (size_t i = 0; i < store->read_loan_count; i++) free(store->read_loans[i].module);

@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let names: Array<String> = [];
+    var name: String = Substring("a", 0, 1);
+    var index: Int = 0;
+    while index < 3 {
+        ArrayPush(names, name);
+        name = Concat(name, "x");
+        index = index + 1;
+    }
+    Log(names[0]);
+    Log(names[1]);
+    Log(names[2]);
+}

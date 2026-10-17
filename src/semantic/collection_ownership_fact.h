@@ -26,6 +26,8 @@ typedef struct {
     size_t effect_count;
     size_t source_use_count;
     size_t nonowner_risk_count;
+    size_t string_definition_count;
+    size_t string_write_count;
 } PgyCollectionEffectView;
 /* Moves existing caller claims after the last semantic consumer. No further
  * semantic queries may run after a successful take. This grants no permission. */
@@ -55,7 +57,8 @@ bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEf
     uint32_t caller_id, const ASTNode *value);
 bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEffectSnapshot *snapshot,
     uint32_t caller_id, uint32_t binding_id, bool initialization,
-    const ASTNode *definition_or_place, const ASTNode *value);
+    const ASTNode *statement, const ASTNode *place, const ASTNode *value,
+    size_t *write_ordinal);
 bool semantic_collection_effect_snapshot_source_return(const PgyCollectionEffectSnapshot *snapshot,
     uint32_t caller_id, const ASTNode *statement, const ASTNode *value);
 PgyCollectionEffectSnapshot *semantic_collection_effect_snapshot_retain(

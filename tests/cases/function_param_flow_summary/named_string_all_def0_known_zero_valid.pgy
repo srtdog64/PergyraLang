@@ -1,0 +1,8 @@
+func Main()->Void{
+let names:Array<String> = [];
+let text:String="seed";
+ArrayPush(names,text);
+text=Substring("next",0,4);
+ArrayPush(names,text);
+Log(names[0]);Log(names[1]);
+}

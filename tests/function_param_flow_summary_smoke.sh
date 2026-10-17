@@ -113,6 +113,7 @@ release_lifetime_refusals = {
     "named_string_identity_loop_reassignment_invalid": [(*borrow_refusal, 17, 27)],
     "named_string_identity_owned_element_retain_invalid": [
         (*borrow_refusal, 17, 20), (*borrow_refusal, 19, 27)],
+    "named_string_all_def0_branch_borrow_invalid": [(*borrow_refusal, 24, 22)],
     "named_string_field_make_nodes_drop_invalid": [
         (*borrow_refusal, 31, 34), (*borrow_refusal, 33, 27)],
     "named_string_field_forward_project_drop_invalid": [
@@ -471,6 +472,10 @@ paired = (
     ("named_string_identity_substring_push_valid", True),
     ("named_string_identity_loop_reassignment_invalid", False),
     ("named_string_identity_owned_element_retain_invalid", False),
+    ("named_string_all_def0_branch_valid", True),
+    ("named_string_all_def0_loop_concat_valid", True),
+    ("named_string_all_def0_known_zero_valid", True),
+    ("named_string_all_def0_branch_borrow_invalid", False),
     ("named_string_field_empty_arena_valid", True),
     ("named_string_field_make_nodes_drop_invalid", False),
     ("named_string_field_forward_project_drop_invalid", False),
@@ -1084,6 +1089,9 @@ for name, expected in (
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("named_string_identity_substring_push_valid", "1\nowned\n"),
+    ("named_string_all_def0_branch_valid", "ready\nready\nready\nready\n"),
+    ("named_string_all_def0_loop_concat_valid", "a\nax\naxx\n"),
+    ("named_string_all_def0_known_zero_valid", "seed\nnext\n"),
     ("named_string_field_empty_arena_valid", "TypeName\nTypeName\n"),
     ("named_string_field_lineage_two_ref_control_valid", "9\n"),
     ("named_string_field_lineage_two_ref_empty_valid", "9\n"),

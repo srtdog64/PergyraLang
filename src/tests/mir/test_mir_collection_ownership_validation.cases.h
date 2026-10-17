@@ -545,6 +545,438 @@ test_mir_collection_ownership_validation(void)
         }
         mir_destroy(terminal_mir); rir_destroy(terminal_rir); hir_destroy(terminal_hir);
     }
+    {
+        HIRProgram *defs_hir = NULL;
+        RIRProgram *defs_rir = NULL;
+        MIRProgram *defs_mir = NULL;
+        const char *source =
+            "func MakeVariant()->String{return Substring(\"ready\",0,5);}"
+            "func TrimReuse(value:String,trimmed:Bool)->String{"
+            "if trimmed{return Substring(value,0,StringLength(value));}return value;}"
+            "func Main()->Void{let variant:String=MakeVariant();"
+            "let variant_name:String=variant;let names:Array<String> = [];"
+            "let borrowed_rows:Array<String> = [\"seed\"];Log(borrowed_rows[0]);"
+            "ArrayPush(names,variant_name);"
+            "if StringLength(variant)>0{variant_name=TrimReuse(variant,true);}"
+            "ArrayPush(names,variant_name);Log(names[0]);Log(names[1]);"
+            "let foreign_text:String=\"left\";foreign_text=\"right\";Log(foreign_text);}";
+        bool lowered = lower_mir_from_source(source, &defs_hir, &defs_rir, &defs_mir);
+        MIRRoutine *main_routine = lowered ? find_mir_routine_mut(defs_mir,
+            "Main", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = defs_mir == NULL ? NULL :
+            defs_mir->collection_effect_source_program;
+        ASTNode *main_ast = program == NULL ? NULL : ast_program_statement(program, 2);
+        ASTNode *body = main_ast == NULL ? NULL : ast_func_body(main_ast);
+        ASTNode *birth_ast = body == NULL ? NULL : ast_block_statement(body, 1);
+        ASTNode *decoy_log = body == NULL ? NULL : ast_block_statement(body, 4);
+        ASTNode *borrowed_access = decoy_log == NULL ? NULL :
+            ast_call_argument(decoy_log, 0);
+        ASTNode *first_push = body == NULL ? NULL : ast_block_statement(body, 5);
+        ASTNode *second_push = body == NULL ? NULL : ast_block_statement(body, 7);
+        ASTNode *branch = body == NULL ? NULL : ast_block_statement(body, 6);
+        ASTNode *assignment_ast = branch == NULL ? NULL :
+            ast_block_statement(ast_if_then_branch(branch), 0);
+        ASTNode *protected_target = assignment_ast == NULL ? NULL :
+            ast_assignment_target(assignment_ast);
+        ASTNode *foreign_assignment_ast = body == NULL ? NULL : ast_block_statement(body, 11);
+        ASTNode *foreign_target = foreign_assignment_ast == NULL ? NULL :
+            ast_assignment_target(foreign_assignment_ast);
+        ASTNode *protected_use = second_push == NULL ? NULL :
+            ast_call_argument(second_push, 1);
+        MIRInstruction *birth_inst = NULL, *assignment = NULL, *second_push_inst = NULL;
+        MIRBasicBlock *birth_block = NULL;
+        size_t birth_index = 0, birth_count = 0;
+        ASTNode **assignment_rhs_slot = NULL;
+        size_t assignment_count = 0;
+        ASTNode **foreign_rhs_slot = NULL;
+        size_t foreign_count = 0;
+        MIRBasicBlock *second_block = NULL;
+        size_t second_index = 0;
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &main_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == birth_ast) {
+                    birth_inst = inst;
+                    birth_block = &main_routine->blocks[b];
+                    birth_index = i;
+                    birth_count++;
+                }
+                if ((inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_DEF) &&
+                    inst->ast == assignment_ast) {
+                    assignment = inst;
+                    assignment_rhs_slot = inst->kind == MIR_INST_DEF ?
+                        &inst->expr0 : &inst->expr1;
+                    assignment_count++;
+                }
+                if ((inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_DEF) &&
+                    inst->ast == foreign_assignment_ast) {
+                    foreign_rhs_slot = inst->kind == MIR_INST_DEF ?
+                        &inst->expr0 : &inst->expr1;
+                    foreign_count++;
+                }
+                if (inst->kind == MIR_INST_STMT && inst->expr0 == second_push) {
+                    second_push_inst = inst;
+                    second_block = &main_routine->blocks[b];
+                    second_index = i;
+                }
+            }
+        PgyCollectionEffectView view = {0};
+        bool control = main_routine != NULL && birth_ast != NULL &&
+            birth_ast->type == AST_LET_DECL && birth_count == 1 && birth_inst != NULL &&
+            birth_block != NULL && birth_inst->expr0 == ast_let_initializer(birth_ast) &&
+            borrowed_access != NULL &&
+            borrowed_access->type == AST_ARRAY_ACCESS && first_push != NULL &&
+            second_push != NULL && assignment_count == 1 &&
+            assignment != NULL && assignment->kind == MIR_INST_DEF &&
+            protected_target != NULL && assignment->expr1 == protected_target &&
+            assignment_rhs_slot != NULL &&
+            *assignment_rhs_slot == ast_assignment_value(assignment_ast) &&
+            foreign_target != NULL && protected_use != NULL && foreign_count == 1 &&
+            foreign_rhs_slot != NULL &&
+            *foreign_rhs_slot == ast_assignment_value(foreign_assignment_ast) &&
+            second_push_inst != NULL && second_block != NULL &&
+            semantic_collection_effect_snapshot_current(defs_mir->collection_effect_snapshot,
+                program, &view) && view.string_definition_count == 1 &&
+            mir_validate_collection_effect_evidence(defs_mir, main_routine, NULL) &&
+            mir_validate(defs_mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+        TEST("MIR all-def0 branch has one original assignment and two protected uses");
+        EXPECT(control);
+        if (control) {
+            const PgyCollectionEffectSnapshot *snapshot = defs_mir->collection_effect_snapshot;
+            uint32_t caller_id = main_routine->source_syntax_id;
+            uint32_t birth_binding = ast_node_stable_id(birth_ast);
+            uint32_t target_binding = ast_identifier_binding_syntax_id(protected_target);
+            uint32_t foreign_binding = ast_identifier_binding_syntax_id(foreign_target);
+            size_t birth_ordinal = SIZE_MAX, repeated_birth_ordinal = SIZE_MAX;
+            size_t assignment_ordinal = SIZE_MAX, repeated_assignment_ordinal = SIZE_MAX;
+            bool birth_admitted = semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, birth_binding, true, birth_ast, birth_ast,
+                ast_let_initializer(birth_ast), &birth_ordinal);
+            bool birth_reused = semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, birth_binding, true, birth_ast, birth_ast,
+                ast_let_initializer(birth_ast), &repeated_birth_ordinal);
+            bool assignment_admitted = semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, target_binding, false, assignment_ast, protected_target,
+                ast_assignment_value(assignment_ast), &assignment_ordinal);
+            bool assignment_reused = semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, target_binding, false, assignment_ast, protected_target,
+                ast_assignment_value(assignment_ast), &repeated_assignment_ordinal);
+            TEST("MIR all-def0 exact birth and assignment proofs remain reusable");
+            EXPECT(view.string_write_count == 2 && birth_binding != 0 && target_binding != 0 &&
+                birth_admitted && birth_reused && assignment_admitted && assignment_reused &&
+                birth_ordinal < view.string_write_count &&
+                assignment_ordinal < view.string_write_count &&
+                birth_ordinal != assignment_ordinal &&
+                birth_ordinal == repeated_birth_ordinal &&
+                assignment_ordinal == repeated_assignment_ordinal);
+
+            size_t missing_birth_ordinal = SIZE_MAX, wrong_birth_ordinal = SIZE_MAX;
+            size_t missing_assignment_ordinal = SIZE_MAX, wrong_assignment_ordinal = SIZE_MAX;
+            bool missing_birth_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, birth_binding, true, NULL, birth_ast,
+                ast_let_initializer(birth_ast), &missing_birth_ordinal);
+            bool wrong_birth_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, birth_binding, true, foreign_assignment_ast, birth_ast,
+                ast_let_initializer(birth_ast), &wrong_birth_ordinal);
+            bool missing_assignment_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, target_binding, false, NULL, protected_target,
+                ast_assignment_value(assignment_ast), &missing_assignment_ordinal);
+            bool wrong_assignment_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, target_binding, false, foreign_assignment_ast, protected_target,
+                ast_assignment_value(assignment_ast), &wrong_assignment_ordinal);
+            TEST("MIR all-def0 selected writes require their original source statements");
+            EXPECT(missing_birth_refused && wrong_birth_refused && missing_assignment_refused &&
+                wrong_assignment_refused && missing_birth_ordinal == SIZE_MAX &&
+                wrong_birth_ordinal == SIZE_MAX && missing_assignment_ordinal == SIZE_MAX &&
+                wrong_assignment_ordinal == SIZE_MAX);
+
+            size_t foreign_ordinal = SIZE_MAX, protected_rhs_ordinal = SIZE_MAX;
+            bool foreign_role_admitted = foreign_binding != 0 &&
+                semantic_collection_effect_snapshot_source_definition(snapshot, caller_id,
+                    foreign_binding, false, foreign_assignment_ast, foreign_target,
+                    ast_assignment_value(foreign_assignment_ast), &foreign_ordinal);
+            bool protected_rhs_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, foreign_binding, false, foreign_assignment_ast,
+                foreign_target, protected_use, &protected_rhs_ordinal);
+            bool bare_evaluation_refused = !semantic_collection_effect_snapshot_source_evaluation(
+                snapshot, caller_id, protected_use);
+            TEST("MIR all-def0 foreign String assignment has a real admitted role");
+            EXPECT(foreign_role_admitted && foreign_ordinal == SIZE_MAX);
+            TEST("MIR all-def0 protected String rejects a foreign assignment RHS role");
+            EXPECT(protected_rhs_refused && protected_rhs_ordinal == SIZE_MAX);
+            TEST("MIR all-def0 protected String rejects a bare evaluation role");
+            EXPECT(bare_evaluation_refused);
+            ASTNode *saved_foreign_rhs = *foreign_rhs_slot;
+            *foreign_rhs_slot = protected_use;
+            bool foreign_evidence_refused = !mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            bool foreign_full_refused = !mir_validate(defs_mir, NULL);
+            bool foreign_emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            *foreign_rhs_slot = saved_foreign_rhs;
+            bool foreign_evidence_restored = mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            bool foreign_full_restored = mir_validate(defs_mir, NULL);
+            bool foreign_emission_restored = mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            TEST("MIR all-def0 foreign RHS substitution rejects collection evidence");
+            EXPECT(foreign_evidence_refused);
+            TEST("MIR all-def0 foreign RHS substitution rejects full validation");
+            EXPECT(foreign_full_refused);
+            TEST("MIR all-def0 foreign RHS substitution rejects emission");
+            EXPECT(foreign_emission_refused);
+            TEST("MIR all-def0 foreign RHS restores the original admitted role");
+            EXPECT(foreign_evidence_restored && foreign_full_restored &&
+                foreign_emission_restored);
+
+            MIRInstruction saved_assignment = *assignment;
+            assignment->kind = MIR_INST_ASSIGN;
+            assignment->expr0 = protected_target;
+            assignment->expr1 = ast_assignment_value(assignment_ast);
+            bool target_evaluation_refused = !semantic_collection_effect_snapshot_source_evaluation(
+                snapshot, caller_id, protected_target);
+            size_t target_ordinal = SIZE_MAX;
+            bool target_definition_admitted = semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, target_binding, false, assignment_ast,
+                protected_target, assignment->expr1, &target_ordinal);
+            bool assign_layout_owner_admitted = mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            assignment->expr1 = borrowed_access;
+            bool assign_layout_wrong_rhs_refused = !mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            *assignment = saved_assignment;
+            bool assign_layout_owner_restored = mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            TEST("MIR all-def0 ASSIGN target role accepts the original protected place");
+            EXPECT(target_evaluation_refused && target_definition_admitted &&
+                target_ordinal == assignment_ordinal && assign_layout_owner_admitted);
+            TEST("MIR all-def0 ASSIGN target role cannot admit an array-derived RHS");
+            EXPECT(assign_layout_wrong_rhs_refused);
+            TEST("MIR all-def0 ASSIGN layout restores its original DEF owner evidence");
+            EXPECT(assign_layout_owner_restored);
+
+            ASTNode *saved_rhs = *assignment_rhs_slot;
+            *assignment_rhs_slot = borrowed_access;
+            bool evidence_refused = !mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            bool full_refused = !mir_validate(defs_mir, NULL);
+            bool emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            *assignment_rhs_slot = saved_rhs;
+            TEST("MIR all-def0 actual assignment RHS cannot become array-derived");
+            EXPECT(evidence_refused && full_refused && emission_refused &&
+                mir_validate_collection_effect_evidence(defs_mir, main_routine, NULL) &&
+                mir_validate(defs_mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL));
+
+            ASTNode *saved_sink = second_push_inst->expr0;
+            second_push_inst->expr0 = first_push;
+            bool pure_pair_reuse = mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL) && mir_validate(defs_mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            second_push_inst->expr0 = saved_sink;
+            TEST("MIR all-def0 complete pure source-use pair remains reusable");
+            EXPECT(pure_pair_reuse);
+
+            ASTNode changed_sink = *second_push;
+            ASTNode *changed_args[2] = {ast_call_argument(second_push, 0),
+                ast_call_argument(first_push, 1)};
+            changed_sink.data.call.arguments = changed_args;
+            bool changed_slot_refused = !semantic_collection_effect_snapshot_source_use(
+                defs_mir->collection_effect_snapshot, main_routine->source_syntax_id,
+                second_push, 1, changed_args[1]);
+            second_push_inst->expr0 = &changed_sink;
+            evidence_refused = !mir_validate_collection_effect_evidence(
+                defs_mir, main_routine, NULL);
+            full_refused = !mir_validate(defs_mir, NULL);
+            emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            second_push_inst->expr0 = saved_sink;
+            TEST("MIR all-def0 selected sink cannot adopt a foreign actual");
+            EXPECT(changed_slot_refused && evidence_refused && full_refused && emission_refused &&
+                mir_validate_collection_effect_evidence(defs_mir, main_routine, NULL) &&
+                mir_validate(defs_mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL));
+
+            MIRBasicBlock saved_block = *second_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *inserted = calloc(count + 1, sizeof(*inserted));
+            TEST("MIR all-def0 extra write has isolated instruction storage");
+            EXPECT(inserted != NULL);
+            if (inserted != NULL) {
+                memcpy(inserted, saved_block.instructions, second_index * sizeof(*inserted));
+                inserted[second_index] = *assignment;
+                memcpy(&inserted[second_index + 1],
+                    &saved_block.instructions[second_index],
+                    (count - second_index) * sizeof(*inserted));
+                second_block->instructions = inserted;
+                second_block->instruction_count = count + 1;
+                second_block->instruction_capacity = count + 1;
+                bool duplicate_evidence_refused = !mir_validate_collection_effect_evidence(
+                    defs_mir, main_routine, NULL);
+                bool duplicate_full_refused = !mir_validate(defs_mir, NULL);
+                bool duplicate_emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *second_block = saved_block;
+                bool duplicate_evidence_restored = mir_validate_collection_effect_evidence(
+                    defs_mir, main_routine, NULL);
+                bool duplicate_full_restored = mir_validate(defs_mir, NULL);
+                bool duplicate_emission_restored = mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                TEST("MIR all-def0 exact duplicate assignment rejects collection evidence");
+                EXPECT(duplicate_evidence_refused);
+                TEST("MIR all-def0 exact duplicate assignment rejects full validation");
+                EXPECT(duplicate_full_refused);
+                TEST("MIR all-def0 exact duplicate assignment rejects emission");
+                EXPECT(duplicate_emission_refused);
+                TEST("MIR all-def0 exact duplicate assignment restores the original block");
+                EXPECT(duplicate_evidence_restored && duplicate_full_restored &&
+                    duplicate_emission_restored);
+
+                ASTNode **inserted_rhs_slot = inserted[second_index].kind == MIR_INST_DEF ?
+                    &inserted[second_index].expr0 : &inserted[second_index].expr1;
+                *inserted_rhs_slot = borrowed_access;
+                second_block->instructions = inserted;
+                second_block->instruction_count = count + 1;
+                second_block->instruction_capacity = count + 1;
+                evidence_refused = !mir_validate_collection_effect_evidence(
+                    defs_mir, main_routine, NULL);
+                full_refused = !mir_validate(defs_mir, NULL);
+                emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *second_block = saved_block;
+                free(inserted);
+                TEST("MIR all-def0 rejects an unclaimed later array-derived write");
+                EXPECT(evidence_refused && full_refused && emission_refused &&
+                    mir_validate_collection_effect_evidence(defs_mir, main_routine, NULL) &&
+                    mir_validate(defs_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+
+            MIRBasicBlock saved_birth_block = *birth_block;
+            size_t birth_instruction_count = saved_birth_block.instruction_count;
+            MIRInstruction *birth_inserted = calloc(birth_instruction_count + 1,
+                sizeof(*birth_inserted));
+            TEST("MIR all-def0 duplicate birth has isolated instruction storage");
+            EXPECT(birth_inserted != NULL);
+            if (birth_inserted != NULL) {
+                memcpy(birth_inserted, saved_birth_block.instructions,
+                    (birth_index + 1) * sizeof(*birth_inserted));
+                birth_inserted[birth_index + 1] = *birth_inst;
+                memcpy(&birth_inserted[birth_index + 2],
+                    &saved_birth_block.instructions[birth_index + 1],
+                    (birth_instruction_count - birth_index - 1) * sizeof(*birth_inserted));
+                birth_block->instructions = birth_inserted;
+                birth_block->instruction_count = birth_instruction_count + 1;
+                birth_block->instruction_capacity = birth_instruction_count + 1;
+                bool birth_duplicate_evidence_refused = !mir_validate_collection_effect_evidence(
+                    defs_mir, main_routine, NULL);
+                bool birth_duplicate_full_refused = !mir_validate(defs_mir, NULL);
+                bool birth_duplicate_emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *birth_block = saved_birth_block;
+                free(birth_inserted);
+                TEST("MIR all-def0 exact duplicate birth rejects collection evidence");
+                EXPECT(birth_duplicate_evidence_refused);
+                TEST("MIR all-def0 exact duplicate birth rejects full validation");
+                EXPECT(birth_duplicate_full_refused);
+                TEST("MIR all-def0 exact duplicate birth rejects emission");
+                EXPECT(birth_duplicate_emission_refused);
+                TEST("MIR all-def0 exact duplicate birth restores the original block");
+                EXPECT(mir_validate_collection_effect_evidence(defs_mir, main_routine, NULL) &&
+                    mir_validate(defs_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+        }
+        mir_destroy(defs_mir); rir_destroy(defs_rir); hir_destroy(defs_hir);
+    }
+    {
+        HIRProgram *return_hir = NULL;
+        RIRProgram *return_rir = NULL;
+        MIRProgram *return_mir = NULL;
+        const char *source =
+            "func MakeVariant()->String{return Substring(\"ready\",0,5);}"
+            "func TrimReuse(value:String)->String{return Substring(value,0,StringLength(value));}"
+            "func BuildText()->String{let variant:String=MakeVariant();"
+            "let variant_name:String=variant;let names:Array<String> = [];"
+            "ArrayPush(names,variant_name);variant_name=TrimReuse(variant);"
+            "ArrayPush(names,variant_name);return \"steady\";}"
+            "func Main()->Void{Log(BuildText());}";
+        bool lowered = lower_mir_from_source(source, &return_hir, &return_rir, &return_mir);
+        MIRRoutine *build = lowered ? find_mir_routine_mut(return_mir,
+            "BuildText", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = return_mir == NULL ? NULL :
+            return_mir->collection_effect_source_program;
+        ASTNode *build_ast = program == NULL ? NULL : ast_program_statement(program, 2);
+        ASTNode *body = build_ast == NULL ? NULL : ast_func_body(build_ast);
+        ASTNode *push = body == NULL ? NULL : ast_block_statement(body, 5);
+        ASTNode *protected_use = push == NULL ? NULL : ast_call_argument(push, 1);
+        ASTNode *return_statement = body == NULL ? NULL : ast_block_statement(body, 6);
+        ASTNode *original_value = return_statement == NULL ? NULL :
+            ast_return_value(return_statement);
+        MIRInstruction *returned = NULL;
+        size_t return_count = 0;
+        for (size_t b = 0; build != NULL && b < build->block_count; b++)
+            for (size_t i = 0; i < build->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &build->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 == original_value) {
+                    returned = inst;
+                    return_count++;
+                }
+            }
+        PgyCollectionEffectView view = {0};
+        bool control = build != NULL && build_ast != NULL && protected_use != NULL &&
+            return_statement != NULL && return_statement->type == AST_RETURN &&
+            original_value != NULL && return_count == 1 && returned != NULL &&
+            returned->expr0 == original_value &&
+            semantic_collection_effect_snapshot_current(return_mir->collection_effect_snapshot,
+                program, &view) && view.string_definition_count == 1 &&
+            semantic_collection_effect_snapshot_source_return(return_mir->collection_effect_snapshot,
+                build->source_syntax_id, return_statement, original_value) &&
+            mir_validate_collection_effect_evidence(return_mir, build, NULL) &&
+            mir_validate(return_mir, NULL) &&
+            mir_validate_emission_contract(build, build->has_cleanup_block, false, NULL);
+        TEST("MIR all-def0 has an admitted same-caller String RETURN control");
+        EXPECT(control);
+        if (control) {
+            bool direct_refused = !semantic_collection_effect_snapshot_source_return(
+                return_mir->collection_effect_snapshot, build->source_syntax_id,
+                return_statement, protected_use);
+            ASTNode *saved = returned->expr0;
+            returned->expr0 = protected_use;
+            bool evidence_refused = !mir_validate_collection_effect_evidence(return_mir, build, NULL);
+            bool full_refused = !mir_validate(return_mir, NULL);
+            bool emission_refused = !mir_validate_emission_contract(build,
+                build->has_cleanup_block, false, NULL);
+            returned->expr0 = saved;
+            bool direct_restored = semantic_collection_effect_snapshot_source_return(
+                return_mir->collection_effect_snapshot, build->source_syntax_id,
+                return_statement, original_value);
+            bool evidence_restored = mir_validate_collection_effect_evidence(
+                return_mir, build, NULL);
+            bool full_restored = mir_validate(return_mir, NULL);
+            bool emission_restored = mir_validate_emission_contract(build,
+                build->has_cleanup_block, false, NULL);
+            TEST("MIR all-def0 protected use rejects the original RETURN role directly");
+            EXPECT(direct_refused);
+            TEST("MIR all-def0 protected RETURN substitution rejects collection evidence");
+            EXPECT(evidence_refused);
+            TEST("MIR all-def0 protected RETURN substitution rejects full validation");
+            EXPECT(full_refused);
+            TEST("MIR all-def0 protected RETURN substitution rejects emission");
+            EXPECT(emission_refused);
+            TEST("MIR all-def0 RETURN restores the original admitted role");
+            EXPECT(direct_restored && evidence_restored && full_restored && emission_restored);
+        }
+        mir_destroy(return_mir); rir_destroy(return_rir); hir_destroy(return_hir);
+    }
     HIRProgram *borrow_hir = NULL;
     RIRProgram *borrow_rir = NULL;
     MIRProgram *borrow_mir = NULL;

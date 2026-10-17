@@ -263,6 +263,8 @@ bool function_param_flow_control_append(SemanticContext *ctx,
 void function_param_flow_backing_control_roots(ReturnedBacking *state,
     const FunctionParamFlowControlProjection *projection);
 void function_param_flow_fail(FunctionParamFlowSummaryStore *store, ASTNode *site, const char *reason);
+size_t function_param_flow_program_point_index_find(const FunctionParamFlowSummaryStore *store,
+    uint32_t function_id);
 bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);
 bool function_param_flow_local_replacement(SemanticContext *ctx,
@@ -278,6 +280,15 @@ bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *looku
 void function_param_flow_callee_unfinished(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal, FunctionParamFlowBackingFact *fact);
 bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index, bool pending_proof);
+typedef bool (*FunctionParamFlowInputCapture)(SemanticContext *ctx, ASTNode *decl,
+    FunctionParamFlowIndexClaims *claims, const ASTNode *call, void *user);
+bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, FunctionParamFlowInputCapture capture, void *user);
+bool function_param_flow_no_store_graph_capture(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, FunctionParamFlowInputCapture capture, void *user);
+bool function_param_flow_no_store_member_admitted(const FunctionParamFlowSummaryStore *store, size_t ordinal);
+bool function_param_flow_no_store_admitted_current(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowInputCapture capture, void *user);
 bool function_param_flow_backing_required(FunctionParamFlowSummaryStore *store,
     ASTNode *decl, size_t ordinal, bool *required);
 bool function_param_flow_complete_pending_relations(FunctionParamFlowSummaryStore *store);

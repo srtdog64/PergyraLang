@@ -25,6 +25,8 @@ void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *sn
     for (size_t i = 0; i < snapshot->caller_count; i++)
         function_param_flow_claims_destroy(snapshot->claims[i]);
     if (snapshot->owns_source_payloads) {
+        for (size_t i = 0; i < snapshot->string_definition_count; i++)
+            semantic_indexed_string_definition_destroy(snapshot->string_definitions[i]);
         for (size_t i = 0; i < snapshot->nonowner_risk_count; i++)
             semantic_indexed_string_nonowner_destroy(snapshot->nonowner_risks[i]);
         for (size_t i = 0; i < snapshot->source_use_count; i++) {
@@ -41,6 +43,7 @@ void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *sn
     free(snapshot->source_uses);
     free(snapshot->nominals);
     free(snapshot->nonowner_risks);
+    free(snapshot->string_definitions);
     free(snapshot);
 }
 
@@ -48,6 +51,16 @@ static bool collection_snapshot_claim_required(const PgyCollectionEffectSnapshot
     size_t caller, uint32_t routine_id)
 {
     if (routine_id == 0 || s->callers[caller].decl_id == routine_id) return true;
+    for (size_t u = 0; u < s->string_definition_count; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (r->caller_id != routine_id) continue;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            for (size_t d = 0; d < inputs->dependency_count; d++)
+                if (inputs->dependencies[d].decl_id == s->callers[caller].decl_id) return true;
+        }
+    }
     for (size_t u = 0; u < s->source_use_count; u++) {
         const IndexedStringFieldRecipe *r = s->source_uses[u];
         if (r->caller_id != routine_id) continue;
@@ -66,11 +79,43 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         s->program_id != ast_node_stable_id(program) ||
         s->caller_count != s->sealed_callers || s->effect_count != s->sealed_effects ||
         s->source_use_count != s->sealed_source_uses ||
+        s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks ||
         (s->caller_count != 0 && (s->callers == NULL || s->claims == NULL)) ||
         (s->effect_count != 0 && s->effects == NULL) ||
         (s->source_use_count != 0 && s->source_uses == NULL) ||
+        (s->string_definition_count != 0 && s->string_definitions == NULL) ||
         (s->nonowner_risk_count != 0 && s->nonowner_risks == NULL)) return false;
+    size_t string_write_count = 0;
+    for (size_t u = 0; u < s->string_definition_count; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (!semantic_indexed_string_definition_syntax_current(r) ||
+            r->assignment_count == SIZE_MAX ||
+            string_write_count > SIZE_MAX - 1 - r->assignment_count) return false;
+        string_write_count += 1 + r->assignment_count;
+        for (size_t v = 0; v < u; v++)
+            if (s->string_definitions[v] == r || (s->string_definitions[v]->caller_id == r->caller_id &&
+                    s->string_definitions[v]->binding_id == r->binding_id)) return false;
+        size_t matches = 0;
+        for (size_t c = 0; c < s->caller_count; c++)
+            if (s->callers[c].decl == r->caller && s->callers[c].decl_id == r->caller_id &&
+                s->callers[c].body == r->body && s->callers[c].body_id == r->body_id &&
+                s->claims[c] == r->claims) matches++;
+        if (matches != 1) return false;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            for (size_t d = 0; d < inputs->dependency_count; d++) {
+                const IndexedStringFieldDependency *dep = &inputs->dependencies[d];
+                matches = 0;
+                for (size_t c = 0; c < s->caller_count; c++)
+                    if (s->callers[c].decl == dep->decl && s->callers[c].decl_id == dep->decl_id &&
+                        s->callers[c].body == dep->body && s->callers[c].body_id == dep->body_id &&
+                        s->claims[c] == dep->claims) matches++;
+                if (matches != 1) return false;
+            }
+        }
+    }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *risk = s->nonowner_risks[u];
         if (!semantic_indexed_string_nonowner_syntax_current(risk)) return false;
@@ -131,7 +176,8 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         if (!member) return false;
     }
     if (out != NULL) *out = (PgyCollectionEffectView){s->callers, s->caller_count,
-        s->effects, s->effect_count, s->source_use_count, s->nonowner_risk_count};
+        s->effects, s->effect_count, s->source_use_count, s->nonowner_risk_count,
+        s->string_definition_count, string_write_count};
     return true;
 }
 
@@ -240,9 +286,29 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     FunctionParamPublicationStore *pub = ctx->function_param_publications;
     size_t count = pub->private_string_push_count, fields = pub->indexed_string_field_count;
     size_t risks = pub->indexed_string_nonowner_count;
+    size_t definitions = pub->indexed_string_definition_count, definition_seen = 0;
     if (risks > SIZE_MAX - count) return false;
     size_t caller_capacity = count + risks, nominal_capacity = 0, field_seen = 0, risk_seen = 0;
+    if (definitions > SIZE_MAX - caller_capacity) return false;
+    caller_capacity += definitions;
     for (size_t n = 0; n < pub->node_capacity; n++) {
+        IndexedStringDefinitionRecipe *definition = pub->nodes[n].indexed_string_definition;
+        if (definition != NULL && definition->selected) {
+            uint32_t current_source = UINT32_MAX;
+            if (definition_seen == SIZE_MAX || pub->nodes[n].node != definition->declaration ||
+                pub->nodes[n].id != definition->binding_id ||
+                publication_node(pub, definition->declaration, false) != &pub->nodes[n] ||
+                !semantic_indexed_string_definition_syntax_current(definition) ||
+                !semantic_indexed_string_definition_source_current(ctx,
+                    definition->uses[0].value, &current_source) || current_source != 0) return false;
+            definition_seen++;
+            for (size_t input = 0; input <= definition->assignment_count; input++) {
+                const IndexedStringResultInputs *inputs = input == 0 ? &definition->birth.named_inputs :
+                    &definition->assignments[input - 1].rhs.named_inputs;
+                if (inputs->dependency_count > SIZE_MAX - caller_capacity) return false;
+                caller_capacity += inputs->dependency_count;
+            }
+        }
         IndexedStringNonownerRisk *risk = pub->nodes[n].indexed_string_nonowner;
         if (risk != NULL) {
             if (risk_seen == SIZE_MAX || pub->nodes[n].node != risk->definition ||
@@ -262,13 +328,15 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
         caller_capacity += r->dependency_count;
         nominal_capacity += r->return_count;
     }
-    if (field_seen != fields || risk_seen != risks || count > SIZE_MAX / sizeof(PgyCollectionExpectedEffect) ||
+    if (field_seen != fields || risk_seen != risks || definition_seen != definitions ||
+        count > SIZE_MAX / sizeof(PgyCollectionExpectedEffect) ||
         caller_capacity > SIZE_MAX / sizeof(PgyCollectionEffectCaller) ||
         caller_capacity > SIZE_MAX / sizeof(FunctionParamFlowIndexClaims *) ||
         fields > SIZE_MAX / sizeof(IndexedStringFieldRecipe *) ||
         nominal_capacity > SIZE_MAX / sizeof(SemanticNominalResultSnapshot *) ||
         nominal_capacity > SIZE_MAX / sizeof(PublishedNode *) ||
-        risks > SIZE_MAX / sizeof(IndexedStringNonownerRisk *)) return false;
+        risks > SIZE_MAX / sizeof(IndexedStringNonownerRisk *) ||
+        definitions > SIZE_MAX / sizeof(IndexedStringDefinitionRecipe *)) return false;
     PgyCollectionEffectSnapshot *s = calloc(1, sizeof(*s));
     if (s == NULL) return false;
     s->refs = 1;
@@ -281,13 +349,19 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     s->nominals = nominal_capacity == 0 ? NULL : calloc(nominal_capacity, sizeof(*s->nominals));
     PublishedNode **nominal_owners = nominal_capacity == 0 ? NULL : calloc(nominal_capacity, sizeof(*nominal_owners));
     s->nonowner_risks = risks == 0 ? NULL : calloc(risks, sizeof(*s->nonowner_risks));
+    s->string_definitions = definitions == 0 ? NULL : calloc(definitions, sizeof(*s->string_definitions));
     if ((count != 0 && s->effects == NULL) ||
         (caller_capacity != 0 && (s->callers == NULL || s->claims == NULL)) ||
         (fields != 0 && s->source_uses == NULL) ||
         (nominal_capacity != 0 && (s->nominals == NULL || nominal_owners == NULL)) ||
-        (risks != 0 && s->nonowner_risks == NULL)) goto fail;
+        (risks != 0 && s->nonowner_risks == NULL) ||
+        (definitions != 0 && s->string_definitions == NULL)) goto fail;
     for (size_t n = 0; n < pub->node_capacity; n++) {
         PublishedNode *row = &pub->nodes[n];
+        if (row->indexed_string_definition != NULL && row->indexed_string_definition->selected) {
+            if (s->string_definition_count >= definitions) goto fail;
+            s->string_definitions[s->string_definition_count++] = row->indexed_string_definition;
+        }
         if (row->indexed_string_nonowner != NULL) {
             if (s->nonowner_risk_count >= risks) goto fail;
             s->nonowner_risks[s->nonowner_risk_count++] = row->indexed_string_nonowner;
@@ -301,12 +375,26 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
             s->source_uses[s->source_use_count++] = row->indexed_string_field;
         }
     }
-    if (s->effect_count != count || s->source_use_count != fields || s->nonowner_risk_count != risks) goto fail;
+    if (s->effect_count != count || s->source_use_count != fields || s->nonowner_risk_count != risks ||
+        s->string_definition_count != definitions) goto fail;
     for (size_t i = 0; i < count; i++)
         if (!semantic_indexed_string_private_push_current(ctx, s->effects[i].call)) goto fail;
     if (pub->private_string_push_count != count || pub->indexed_string_field_count != fields ||
-        pub->indexed_string_nonowner_count != risks) goto fail;
+        pub->indexed_string_nonowner_count != risks || pub->indexed_string_definition_count != definitions) goto fail;
     FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    for (size_t u = 0; u < definitions; u++) {
+        const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
+        if (!collection_snapshot_add_caller(s, flow, r->caller, r->claims, caller_capacity, NULL)) goto fail;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            for (size_t d = 0; d < inputs->dependency_count; d++) {
+                const IndexedStringFieldDependency *dep = &inputs->dependencies[d];
+                if (!collection_snapshot_add_caller(s, flow, dep->decl, dep->claims,
+                        caller_capacity, NULL)) goto fail;
+            }
+        }
+    }
     for (size_t u = 0; u < risks; u++) {
         const IndexedStringNonownerRisk *r = s->nonowner_risks[u];
         if (!collection_snapshot_add_caller(s, flow, r->caller, r->claims, caller_capacity, NULL)) goto fail;
@@ -342,6 +430,7 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     s->sealed_effects = s->effect_count;
     s->sealed_source_uses = s->source_use_count;
     s->sealed_nonowner_risks = s->nonowner_risk_count;
+    s->sealed_string_definitions = s->string_definition_count;
     if (!semantic_collection_effect_snapshot_current(s, ctx->program_root, NULL)) goto fail;
     /* All fallible validation/allocation precedes this single ownership handoff. */
     for (size_t c = 0; c < s->caller_count; c++)
@@ -351,6 +440,10 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     for (size_t u = 0; u < risks; u++) {
         PublishedNode *definition = publication_node(pub, s->nonowner_risks[u]->definition, false);
         definition->indexed_string_nonowner = NULL;
+    }
+    for (size_t u = 0; u < definitions; u++) {
+        PublishedNode *definition = publication_node(pub, s->string_definitions[u]->declaration, false);
+        definition->indexed_string_definition = NULL;
     }
     for (size_t u = 0; u < fields; u++) {
         IndexedStringFieldRecipe *r = s->source_uses[u];
