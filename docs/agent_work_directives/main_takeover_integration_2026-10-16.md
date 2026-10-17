@@ -419,6 +419,67 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   own-consuming call/formal identity next, preserve the existing extern/static-
   method/generic call classes, then fix alias versus proved linear transfer.
 
+### P1 independent review closure — own-call currency and alias transfer
+
+- Objective/order: close the two reproduced366 review gaps without granting
+  ownership from a shallow alias, weakening retention rules, or adding source
+  annotations/copies. Parent315e4d7bf/nativeb410 is the verified checkpoint;
+  its whole bootstrap remains RED. Root alone owns builds/process/Git.
+- Current ownership/consumer: helpers_late records each own Array actual in
+  collection_owned_element_requirement_owner.c before call consumption. Its
+  finalizer runs after typed publication but snapshots only the actual/target
+  index, so an unchanged actual can hide a changed consuming call or formal.
+- Complete fix in that existing owner: capture call pointer/ID, selected decl
+  pointer/ID, ordinal, exact formal pointer/ID/type-node identity and issued
+  actual Type. At finalization check bounds, current call/selected declaration/
+  actual identity, current typed argument/value, target function/formal join,
+  OWN mode and current formal type-node identity before any seed/pending test.
+  Keep extern and static-method selected declarations admitted as before;
+  checked_argument owns the call target/argument/selection replay. Do not use
+  IDENTIFIER-only direct_callee or body-summary currency as a signature proxy.
+  Generic instantiated actual Type is compared to its current actual value,
+  never directly to the raw Array<T> formal. No new query API or host-index scan.
+- Alias producer fix in array_storage_release_owner.c and ownership_let: run
+  storage initialization after the existing collection transfer issuer, so a
+  proved String-element move has consumed its source. A bare identifier that
+  has not actually been consumed remains a possible descriptor alias; mark
+  that destination escaped rather than silently clear its prior obligations.
+  Preserve prior source escape even for a proved move. The ordered pending
+  move use is still recorded before source retirement. No pending row rewind.
+- Unknown/limit: no native plain-Array last-use move issuer was found. Do not
+  invent one from syntax position, silently clone or tell users to annotate.
+  Measure any real canonical rejection after this conservative authority fix;
+  investigate the responsible producer before extending the contract.
+- Edit scopes: A those three existing production files; B existing phase tests
+  for consuming call ID/argument pointer/selected decl/formal ID, plus mode,
+  type and binding currency (prior reader/actual unchanged for call faults);
+  C source alias-before/after-Leak negatives and existing proved String move/
+  direct-own positives. Raw function-variable calls are already unsupported;
+  do not broaden that unrelated contract. Root runs original strict/broad/SAN,
+  the full4273/3188 census and actual bootstrap before a published-green claim.
+  A correct foreign owner is not released by a name/ID-only compatibility read.
+- Candidate c3f75cf6 passes heJNoe9723/0 and strict original4096-4097 gate,
+  MIR366/0; broad Sa1fpc repeats366/3228/1012, Map24/58 and4IR. SAN DsAdB1
+  passes9723/0, live UAF oracle, leak detection OFF. kUsBTc on oldb410 admits
+  nine of the new faults; its same-context diagnostic dedup is not a semantic
+  failure. Final tests isolate each of ten faults, retain failure plus a new
+  owned diagnostic and verify restored success in the same store.
+  pwBO0s refuses both official alias orders at exact BORROW21:17/no MIR;
+  QBzXVs preserves extern analysis and class/generic C/LLVM1. Unsafe probes0.
+- Full4NcZFU on c3: all4273/3188, zero Pass2 errors;616 failures, no newly
+  failed/resolved/changed-cause or prior-success mask changes versus Ylpvi5.
+  Wall3:22.45/1252752KiB; full scratch restoration BYTE_IDENTICAL. Actual
+  bootstrapS1F73p remains RED before gen0,18410errors/16warnings, original
+  first4096 failure. Required CI/installed acceptance is still OPEN.
+- Diagnostic u675Fj is regenerated from current owners, retaining the stronger
+  COMPLETE/output/currentness query (old cost32 overlays must not be reused).
+  Cold132263/0 charges E115/G148/C2475/O894/D464 at original4096;115 entries
+  and evaluations, all3833 backing visits epoch1, exact same-frame repeats0,
+  cross-input occurrences2005. C types: CALL509, LET470, RETURN468, BINARY437,
+  UNARY234, MEMBER185, ARRAY_ACCESS38. This rules out local/global replay as
+  the reached first cause for this cold key, not for every other key. Transparent
+  selector C traversal is being mapped read-only; no cache or skip is approved.
+
 ### Current checkpoint and reached zero-argument result premise
 
 P1 safety priority before the remaining cost work: independent c143 review

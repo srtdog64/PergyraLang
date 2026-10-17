@@ -108,11 +108,11 @@ semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializer,
         && initializer != NULL && initializer->type == AST_ARRAY_LITERAL;
     if (initializer != NULL && initializer->type == AST_IDENTIFIER) {
         Symbol *source = scope_lookup(ctx->scope, ast_identifier_name(initializer));
-        /* A local move cannot erase a store retained by another descriptor.
-         * Capture the prior state before this handoff invalidates the source. */
+        /* Only a consumed source proves a transfer; a plain let copies the
+         * descriptor. Neither path erases a prior escape. */
         binding->has_escaped_array_storage = source == NULL
             || ast_identifier_binding_syntax_id(initializer) != source->decl_syntax_id
-            || source->has_escaped_array_storage;
+            || source->has_escaped_array_storage || !source->is_consumed;
     }
     semantic_array_storage_escape((ASTNode *)initializer, binding->type, ctx);
 }

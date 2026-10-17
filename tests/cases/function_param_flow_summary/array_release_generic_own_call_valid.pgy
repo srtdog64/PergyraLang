@@ -1,0 +1,10 @@
+func ConsumeGeneric<T>(own ids: Array<T>) -> Int
+{
+    return ArrayLength(ids);
+}
+
+func Main() -> Void
+{
+    let ids: Array<Int> = [7];
+    Log(ConsumeGeneric(ids));
+}

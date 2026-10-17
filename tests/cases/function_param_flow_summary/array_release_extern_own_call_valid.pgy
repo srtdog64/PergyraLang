@@ -1,0 +1,10 @@
+extern "C"
+{
+    func ConsumeExtern(own ids: Array<Int>) -> Int;
+}
+
+func Main() -> Void
+{
+    let ids: Array<Int> = [7];
+    Log(ConsumeExtern(ids));
+}

@@ -1,0 +1,22 @@
+extern "C"
+{
+    func Keep(ids: Array<Int>) -> Void;
+}
+
+func Leak(ids: Array<Int>) -> Void
+{
+    Keep(ids);
+}
+
+func Consume(own ids: Array<Int>) -> Int
+{
+    return ArrayLength(ids);
+}
+
+func Main() -> Void
+{
+    let ids: Array<Int> = [7];
+    Leak(ids);
+    let alias = ids;
+    Log(Consume(alias));
+}

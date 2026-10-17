@@ -10,6 +10,7 @@
 
 #include "collection_ownership_fact.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 #include "type_checker_internal.h"
 #include "../parser/ast_api.h"
 
@@ -28,8 +29,18 @@ typedef struct
 
 typedef struct
 {
+    ASTNode *call;
+    uint32_t call_id;
+    ASTNode *callee_decl;
+    uint32_t callee_id;
+    size_t ordinal;
+    FuncParam *formal;
+    uint32_t formal_id;
+    ASTNode *formal_type;
+    uint32_t formal_type_id;
     ASTNode *argument;
     uint32_t argument_id;
+    const Type *argument_type;
     size_t target;
     PgyStringArrayOwnership element_ownership;
     bool exclusive_storage;
@@ -257,11 +268,18 @@ semantic_collection_owned_element_requirement_record_argument(
         || function_id == 0
         || ast_call_semantic_callee_decl_id(call) != function_id
         || !ast_call_semantic_callee_declared_callable(call)
-        || argument_index >= ast_func_param_count(callee_decl))
+        || ast_call_semantic_callee_value_binding_id(call) != 0
+        || ast_call_semantic_callee_is_stdlib(call)
+        || argument_index >= ast_func_param_count(callee_decl)
+        || argument_index >= ast_call_arg_count(call)
+        || ast_call_argument(call, argument_index) != argument
+        || ast_node_stable_id(argument) == 0)
         return requirement_failure(ctx, call, "missing owned-call declaration identity");
     target_parameter = ast_func_param(callee_decl, argument_index);
     if (target_parameter == NULL || target_parameter->mode != PARAM_MODE_OWN
-        || ast_func_param_stable_id(target_parameter) == 0)
+        || ast_func_param_stable_id(target_parameter) == 0
+        || target_parameter->type == NULL
+        || ast_node_stable_id(target_parameter->type) == 0)
         return requirement_failure(ctx, call, "missing owned-call formal identity");
     /* Parameter placeholders may still be UNKNOWN for forward declarations.
      * Only an exact typed deep-drop seed will activate this target later. */
@@ -323,8 +341,17 @@ semantic_collection_owned_element_requirement_record_argument(
         return requirement_failure(ctx, call, "actual snapshot allocation failed");
     store->actuals = grown;
     store->actuals[store->actual_count++] = (OwnedElementActualSnapshot){
-        argument, ast_node_stable_id(argument), target, ownership, exclusive_storage, pending_binding_id,
-        pending_sequence};
+        .call = call, .call_id = ast_node_stable_id(call),
+        .callee_decl = callee_decl, .callee_id = function_id,
+        .ordinal = argument_index, .formal = target_parameter,
+        .formal_id = ast_func_param_stable_id(target_parameter),
+        .formal_type = target_parameter->type,
+        .formal_type_id = ast_node_stable_id(target_parameter->type),
+        .argument = argument, .argument_id = ast_node_stable_id(argument),
+        .argument_type = argument_type, .target = target,
+        .element_ownership = ownership, .exclusive_storage = exclusive_storage,
+        .pending_binding_id = pending_binding_id,
+        .pending_sequence = pending_sequence};
     return true;
 }
 
@@ -358,6 +385,39 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
         return requirement_failure(ctx, store->program, "forwarding did not converge");
     for (size_t i = 0; i < store->actual_count; i++) {
         OwnedElementActualSnapshot actual = store->actuals[i];
+        SemanticPublishedValue current;
+        if (actual.target >= store->parameter_count || actual.call == NULL
+            || actual.call->type != AST_CALL || actual.call_id == 0
+            || ast_node_stable_id(actual.call) != actual.call_id
+            || !semantic_param_publication_checked_argument(ctx, actual.call, actual.ordinal)
+            || actual.argument == NULL || actual.argument_id == 0
+            || ast_call_argument(actual.call, actual.ordinal) != actual.argument
+            || actual.argument_id != ast_node_stable_id(actual.argument)
+            || actual.callee_decl == NULL || actual.callee_decl->type != AST_FUNC_DECL
+            || actual.callee_id == 0
+            || ast_node_stable_id(actual.callee_decl) != actual.callee_id
+            || ast_call_semantic_callee_decl_id(actual.call) != actual.callee_id
+            || !ast_call_semantic_callee_declared_callable(actual.call)
+            || ast_call_semantic_callee_value_binding_id(actual.call) != 0
+            || ast_call_semantic_callee_is_stdlib(actual.call)
+            || actual.ordinal >= ast_func_param_count(actual.callee_decl)
+            || ast_func_param(actual.callee_decl, actual.ordinal) != actual.formal
+            || actual.formal == NULL || actual.formal_id == 0
+            || ast_func_param_stable_id(actual.formal) != actual.formal_id
+            || actual.formal->mode != PARAM_MODE_OWN
+            || actual.formal->type != actual.formal_type
+            || actual.formal_type_id == 0
+            || ast_node_stable_id(actual.formal_type) != actual.formal_type_id
+            || store->parameters[actual.target].function_id != actual.callee_id
+            || store->parameters[actual.target].parameter_id != actual.formal_id)
+            return requirement_failure(ctx, actual.call,
+                "owned-call identity or formal changed before finalization");
+        current = semantic_param_publication_value(ctx, actual.argument);
+        if (!current.ok || current.meta || current.type == NULL
+            || !type_is_constructed_named(current.type, "Array")
+            || !type_equals(current.type, actual.argument_type))
+            return requirement_failure(ctx, actual.argument,
+                "owned-call actual type changed before finalization");
         OwnedElementParameter target = store->parameters[actual.target];
         /* UNKNOWN stays bootstrap debt. This ratchet grants no permission:
          * it only falsifies a known borrowed actual at a required boundary. */

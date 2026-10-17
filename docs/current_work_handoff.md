@@ -5,29 +5,34 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — unchanged canonical admission, then bootstrap/CI
 
-- Last committed source checkpoint: `366d1afad8564ac827244bfe49ba64ef5494cfd5`
-  on main, parent7bfbb0b59 (prior source cd5efe4d2). Local and unpushed.
+- Last committed source checkpoint: `315e4d7bfb98b4d028058968d198732a353d2929`
+  on main, parent366d1afad. Local and unpushed.
   There is further production/phase/source-gate WIP; verify exact dirty state.
 - IN FLIGHT: the existing path-state/release/collection chain; read its current
   cards near the top of the integration directive, not earlier cost proposals.
-  Current dirty-source Linux native is b410bc0b8d838e3c65e10ae8c6b6462b4e35be7fc24b16ddb43e71cab7f57814.
-  V1keGC passes9649 phase checks,366 MIR tests and the original strict summary/
-  runtime/4096-4097 budgets. AvT1YG executes both outer and loop-local String
-  arrays on C/LLVM (2 and1/1), with delayed escape still BORROW/no MIR.
-  CEAB812B source gate additionally registers that observed local case; rerun
-  it through the broad gate FCfekx. No unsafe negative has been executed.
-- Full unchanged Ylpvi5 on prior native452201b9 (before only the MIR fix): all
-  4273 routines/3188 cold keys, zero direct Pass2 errors,622->616 failed keys,
-  all at the unchanged4096 work cap, zero new failures and zero prior-success
-  mask changes.3:37.15/1252780KiB; diagnostic source/build/bin/modes/Git restore
-  BYTE_IDENTICAL. This is NOT canonical admission. Earlier f5/277 regressions
-  are repaired, not alternate resume points or acceptance candidates.
-- Independent366 review remains OPEN: plain-Array alias -> own-no-seed bypass
-  is reproduced on b410 in5PzMlH with alias before/after Leak (MIR14415/14435,
-  never executed). Own consuming call/formal snapshots also lack currentness.
-  A is resolving the extern/function-value/generic header boundary read-only
-  before that patch. The imported-MIR exact DEF evidence boundary is OPEN;
-  C is mapping its existing consumer. Do not claim whole-chain closure.
+  Current dirty-source Linux native is c3f75cf638ba967429194ebf0a1afe3ee7e4dbecd9db81f8559bac013238596c.
+  heJNoe passes9723 phase checks,366 MIR tests and the original strict summary/
+  runtime/4096-4097 budgets. Sa1fpc broad passes366/3228/1012, Map24/58 and4IR;
+  DsAdB1 SAN passes9723/0 (live UAF oracle; leak detection OFF). No unsafe
+  negative has been executed. Verify the final577296CE source-gate identity.
+- Full unchanged4NcZFU on this native: all4273 routines/3188 cold keys, zero
+  direct Pass2 errors,616 failed at the unchanged4096 cap; no new failures,
+  changed causes or prior-success mask changes versus Ylpvi5.3:22.45 and
+  1252752KiB, restoration BYTE_IDENTICAL. Earlier f5/277 regressions are repaired,
+  not alternate resume points. This census is NOT canonical admission.
+- The two366 review gaps have candidate repairs, pending independent review.
+  Before kUsBTc had9 actual currency faults; fresh-context heJNoe withdraws all10
+  and restores them. pwBO0s refuses both alias orders at BORROW21:17/no MIR;
+  QBzXVs retains extern own analysis and class/generic C/LLVM1. Source-only
+  own currentness is not whole-language safety. Serialized-MIR DEF evidence
+  remains a distinct OPEN boundary; its existing reader does not replay native
+  AST pointer/expression-ID relationships. No new wire work is active.
+- Current diagnostic u675Fj uses regenerated current-source overlays, not stale
+  cost32 production copies: cold132263/0 reaches4096 with115 entries/evaluations;
+  E115/G148/C2475/O894/D464, all3833 backing charges at epoch1. Same-frame exact
+  repeats0; cross-input visits2005. Do not optimize global/local replays as its
+  first cause or infer that all cross-input work is removable. Restore is
+  BYTE_IDENTICAL. A is surveying the old C-only selector traversal read-only.
 - Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Last observed CI
   run38860052641 is RED; bootstrap/install were skipped. No known-red push.
 - One acceptance chain: zero fixed DRV-2 ownership refusals and unchanged full

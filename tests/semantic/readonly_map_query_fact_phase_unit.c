@@ -23,6 +23,7 @@
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
 #include "semantic/collection_ownership_fact.h"
+#include "semantic/collection_owned_element_requirement_owner.h"
 
 static unsigned checks, failures;
 #define CHECK(x) do { checks++; if (!(x)) { failures++; fprintf(stderr, "fact-phase fault line %d: %s\n", __LINE__, #x); } } while (0)
@@ -7549,6 +7550,81 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_owned_actual_final_currency_fault(unsigned fault)
+{
+    Lexer *lexer = lexer_create(
+        "func Inspect(ref rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Use()->Void{let rows:Array<Int> = [1];Inspect(rows);Consume(rows);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (!admitted) goto cleanup;
+    ASTNode *callee = ast_program_statement(program, 1);
+    ASTNode *caller = ast_program_statement(program, 2);
+    ASTNode *reader = ast_block_statement(ast_func_body(caller), 1);
+    ASTNode *call = ast_block_statement(ast_func_body(caller), 2);
+    ASTNode *argument = ast_call_argument(call, 0);
+    FuncParam *formal = ast_func_param(callee, 0);
+    PublishedNode *actual = NULL, *invocation = NULL;
+    for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++) {
+        PublishedNode *row = &ctx->function_param_publications->nodes[i];
+        if (row->node == argument) actual = row;
+        if (row->node == call) invocation = row;
+    }
+    CHECK(argument != NULL && formal != NULL && formal->type != NULL
+        && actual != NULL && invocation != NULL);
+    if (argument == NULL || formal == NULL || formal->type == NULL
+        || actual == NULL || invocation == NULL) goto cleanup;
+    CHECK(semantic_collection_owned_element_requirements_finalize(ctx));
+    CHECK(ctx->diagnostic_count == 0);
+    ASTNode saved_call = *call, saved_argument = *argument;
+    ASTNode saved_type = *formal->type, foreign_argument = *argument, foreign_type = *formal->type;
+    FuncParam saved_formal = *formal;
+    PublishedNode saved_actual = *actual;
+    uint32_t binding = ast_identifier_binding_syntax_id(argument);
+    uint32_t reader_id = ast_node_stable_id(reader);
+    {
+        if (fault == 0) call->stable_id++;
+        if (fault == 1) call->data.call.arguments[0] = &foreign_argument;
+        if (fault == 2) ast_call_set_semantic_callee_decl_id(call, 0);
+        if (fault == 3) formal->stable_id++;
+        if (fault == 4) formal->mode = PARAM_MODE_REF;
+        if (fault == 5) formal->type = &foreign_type;
+        if (fault == 6) formal->type->stable_id++;
+        if (fault == 7) actual->value_type = TYPE_INT;
+        if (fault == 8) actual->value_present = false;
+        if (fault == 9) ast_identifier_set_binding_syntax_id(argument, binding + 1);
+        size_t diagnostics = ctx->diagnostic_count;
+        bool current = semantic_collection_owned_element_requirements_finalize(ctx);
+        if (current) fprintf(stderr, "Own actual final currency fault=%u not refused\n", fault);
+        CHECK(!current && ctx->diagnostic_count > diagnostics);
+        if (fault < 4) {
+            CHECK(ast_node_stable_id(reader) == reader_id
+                && ast_node_stable_id(argument) == saved_argument.stable_id
+                && ast_identifier_binding_syntax_id(argument) == binding);
+        }
+        call->data.call.arguments[0] = argument;
+        *call = saved_call; *argument = saved_argument;
+        *formal = saved_formal; *formal->type = saved_type; *actual = saved_actual;
+        ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(callee));
+        ast_identifier_set_binding_syntax_id(argument, binding);
+        CHECK(semantic_collection_owned_element_requirements_finalize(ctx));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_owned_actual_final_currency(void)
+{
+    for (unsigned fault = 0; fault < 10; fault++)
+        checked_owned_actual_final_currency_fault(fault);
+}
+
 static void checked_collection_exact_replay(const char *source, bool birth, bool retired)
 {
     Lexer *lexer = lexer_create(source);
@@ -8725,6 +8801,7 @@ int main(void)
     checked_array_storage_path_snapshots();
     checked_array_storage_pending_release();
     checked_collection_loop_replay();
+    checked_owned_actual_final_currency();
     checked_array_storage_live_paths();
     checked_private_local_array_push();
     checked_private_physical_array_nested_result_currency();

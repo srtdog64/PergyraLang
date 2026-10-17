@@ -108,6 +108,11 @@ paired = (
     ("array_release_inout_retaining_reader_invalid", False),
     ("array_release_factory_reader_deepdrop_valid", True),
     ("array_release_factory_retaining_reader_invalid", False),
+    ("array_release_alias_before_pending_own_invalid", False),
+    ("array_release_alias_after_pending_own_invalid", False),
+    ("array_release_extern_own_call_valid", True),
+    ("array_release_class_method_own_call_valid", True),
+    ("array_release_generic_own_call_valid", True),
     ("declared_empty_map_scope_valid", True),
     ("mapnew_ref_key_copy_valid", True),
     # The runtime copies String values, but source-retention ordinal 2 is not
@@ -390,6 +395,8 @@ for name, valid in paired:
             "array_release_inout_foreign_owned_strings_invalid": (15, 26),
             "array_release_prefix_foreign_inout_invalid": (20, 14),
             "array_release_factory_retaining_reader_invalid": (27, 27),
+            "array_release_alias_before_pending_own_invalid": (21, 17),
+            "array_release_alias_after_pending_own_invalid": (21, 17),
         }
         if name in array_path_state_sites and (
                 checked.stdout or len(errors) != 1 or
@@ -678,6 +685,8 @@ for name, expected in (
     ("array_release_loop_local_recheck_valid", "1\n1\n"),
     ("array_release_inout_reader_then_push_valid", "2\n"),
     ("array_release_factory_reader_deepdrop_valid", "1\n"),
+    ("array_release_class_method_own_call_valid", "1\n"),
+    ("array_release_generic_own_call_valid", "1\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),

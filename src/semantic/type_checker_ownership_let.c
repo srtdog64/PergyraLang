@@ -541,7 +541,6 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error(ctx, node,
             "Checked allocator binding publication failed");
     semantic_string_window_extent_record_let(ctx, node);
-    semantic_array_storage_initialize(sym, init, ctx);
     semantic_indexed_string_borrow_initialize_binding(sym, init, ctx);
     callable_capability_record_binding(ctx, sym, init);
 
@@ -554,6 +553,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error(ctx, node,
             "Collection ownership fact capture failed");
     }
+    /* The collection issuer retires only a proved linear source before
+     * storage initialization distinguishes it from a shallow descriptor alias. */
+    semantic_array_storage_initialize(sym, init, ctx);
     semantic_future_initialize_binding(sym, init, node, ctx);
     ownership_let_record_slice_split_fact(node, ctx, sym, decl_type);
 

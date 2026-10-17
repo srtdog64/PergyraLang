@@ -1,0 +1,16 @@
+class Sink
+{
+    let marker: Int;
+
+    func Consume(self, own ids: Array<Int>) -> Int
+    {
+        return ArrayLength(ids) + marker;
+    }
+}
+
+func Main() -> Void
+{
+    let sink: Sink = Sink(0);
+    let ids: Array<Int> = [7];
+    Log(Sink_Consume(sink, ids));
+}
