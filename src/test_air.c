@@ -10,6 +10,7 @@
 #include "compiler/air.h"
 #include "compiler/air_erasure_squiggle.h"
 #include "compiler/air_internal.h"
+#include "compiler/air_evidence_certificate.h"
 #include "compiler/mir_program_fact_validate.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -17,6 +18,7 @@
 #include "runtime/pgy_frontier_policy.h"
 #include "runtime/pgy_runtime_observability_schema.h"
 #include "semantic/semantic.h"
+#include "semantic/slot_summary.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -189,6 +191,70 @@ test_air_carries_function_param_flow_summary(void)
         if (carried) {
             AIRFunctionParamFlowSummary *row =
                 &air->function_param_flow_summaries[0];
+            const AIRFunctionParamFlowSummary saved = *row;
+            const char *certificate_error = NULL;
+            const char *fault_names[] = {
+                "AIR parameter-flow certificate rejects changed valid mask",
+                "AIR parameter-flow certificate rejects changed source identity",
+                "AIR parameter-flow certificate rejects changed routine name",
+                "AIR parameter-flow certificate rejects changed parameter count",
+                "AIR parameter-flow certificate rejects changed parameter index"
+            };
+            const bool certified = pgy_air_evidence_certificate_ready(air, &certificate_error);
+            for (size_t fault = 0; fault < 5; fault++) {
+                if (fault == 0) row->mask ^= SLOT_PARAM_SUMMARY_READ;
+                if (fault == 1) row->source_syntax_id++;
+                if (fault == 2) row->routine = "DifferentRoutine";
+                if (fault == 3) row->parameter_count++;
+                if (fault == 4) row->parameter_index = row->parameter_count;
+                bool refused = !pgy_air_evidence_certificate_ready(air, &certificate_error)
+                    && certificate_error != NULL;
+                *row = saved;
+                TEST(fault_names[fault]);
+                EXPECT(certified && refused && pgy_air_evidence_certificate_ready(air, NULL));
+            }
+            bool incomplete_refused = true;
+            AIRFunctionParamFlowSummary *storage = air->function_param_flow_summaries;
+            const size_t count = air->function_param_flow_summary_count;
+            const size_t capacity = air->function_param_flow_summary_capacity;
+            for (size_t fault = 0; fault < 3; fault++) {
+                if (fault == 0) air->function_param_flow_summaries = NULL;
+                if (fault == 1) air->function_param_flow_summary_capacity = count - 1;
+                if (fault == 2) air->function_param_flow_summary_count = capacity + 1;
+                incomplete_refused &= !pgy_air_evidence_certificate_ready(air, NULL);
+                air->function_param_flow_summaries = storage;
+                air->function_param_flow_summary_count = count;
+                air->function_param_flow_summary_capacity = capacity;
+                incomplete_refused &= pgy_air_evidence_certificate_ready(air, NULL);
+            }
+            TEST("AIR parameter-flow seal rejects incomplete row storage");
+            EXPECT(incomplete_refused);
+            row->mask = (unsigned)SLOT_PARAM_SUMMARY_ALL + 1u;
+            bool unknown_air_mask = !air_verify(air, &error) && error != NULL
+                && strstr(error, "mask") != NULL;
+            *row = saved;
+            free(error); error = NULL;
+            TEST("AIR validator rejects unknown parameter-flow mask bits");
+            EXPECT(unknown_air_mask && air_verify(air, &error));
+            free(error); error = NULL;
+            mir_routine.ast = ast_program_statement(sem->annotated_ast, 1);
+            bool valid_mir_row = mir_validate_function_param_flow_summaries(&mir_routine, &error);
+            free(error); error = NULL;
+            mir_flow_row.mask = (unsigned)SLOT_PARAM_SUMMARY_ALL + 1u;
+            bool unknown_mir_mask = !mir_validate_function_param_flow_summaries(&mir_routine, &error)
+                && error != NULL && strstr(error, "mask") != NULL;
+            free(error); error = NULL;
+            TEST("MIR validator rejects unknown parameter-flow mask bits");
+            EXPECT(valid_mir_row && unknown_mir_mask);
+            AIRProgram *invalid_copy = calloc(1, sizeof(*invalid_copy));
+            bool unknown_copy_mask = invalid_copy != NULL
+                && !air_collect_mir_evidence(invalid_copy, &mir, &error)
+                && error != NULL && strstr(error, "mask") != NULL;
+            TEST("AIR collector rejects MIR unknown parameter-flow mask bits");
+            EXPECT(unknown_copy_mask);
+            air_destroy(invalid_copy);
+            mir_flow_row.mask = saved.mask;
+            free(error); error = NULL;
             const size_t original_index = row->parameter_index;
             row->parameter_index = row->parameter_count;
             negative_rejected = !air_verify(air, &error);

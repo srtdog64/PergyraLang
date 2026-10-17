@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "air_internal.h"
+#include "../semantic/slot_summary.h"
 
 /* This fingerprint is an AIR/MIR binding token, not a cryptographic digest.
  * It covers the stable routine and instruction identity plus every MIR fact
@@ -231,6 +232,11 @@ air_collect_function_param_flow_summaries(AIRProgram *air,
     for (size_t i = 0; i < count; i++) {
         const MIRFunctionParamFlowSummary *source =
             &routine->function_param_flow_summaries[i];
+        if (source != NULL && (source->mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0) {
+            air_set_error(error_message,
+                "AIR MIR function parameter flow row %zu has unknown mask bits", i);
+            return false;
+        }
         if (source == NULL
             || source->parameter_index >= mir_routine_param_count(routine)) {
             air_set_error(error_message,

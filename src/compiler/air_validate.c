@@ -10,6 +10,7 @@
 #include "../runtime/pgy_runtime_capability.h"
 #include "../semantic/capability_analyze.h"
 #include "../semantic/diag_codes.h"
+#include "../semantic/slot_summary.h"
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -280,7 +281,8 @@ air_validate_function_param_flow_summary_inventory(
 {
     const size_t count = air_function_param_flow_summary_count(air);
 
-    if (count > 0 && air->function_param_flow_summaries == NULL) {
+    if ((count > 0 && air->function_param_flow_summaries == NULL)
+        || count > air->function_param_flow_summary_capacity) {
         air_set_invariant_error(
             error_message,
             "AIR has function parameter flow summary count without array");
@@ -301,6 +303,11 @@ air_validate_function_param_flow_summary_inventory(
     for (size_t i = 0; i < count; i++) {
         const AIRFunctionParamFlowSummary *row =
             air_function_param_flow_summary_at(air, i);
+        if (row != NULL && (row->mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0) {
+            air_set_invariant_error(error_message,
+                "AIR function parameter flow row %zu has unknown mask bits", i);
+            return false;
+        }
         if (row == NULL || row->source_syntax_id == 0
             || air_name_is_empty(row->routine)
             || row->parameter_count == 0

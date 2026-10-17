@@ -82,7 +82,10 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         || !air_intent_storage_valid(air)
         || !air_boundary_storage_valid(air)
         || !air_drift_storage_valid(air)
-        || !air_evidence_inventory_storage_valid(air)) {
+        || !air_evidence_inventory_storage_valid(air)
+        || air->function_param_flow_summary_count > air->function_param_flow_summary_capacity
+        || (air->function_param_flow_summary_count > 0 && air->function_param_flow_summaries == NULL)
+        || air->has_function_param_flow_facts != (air->function_param_flow_summary_count > 0)) {
         return 0;
     }
     intent_count = air_intent_node_count(air);
@@ -132,6 +135,18 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
     mix_u64(&hash, air->function_param_flow_summary_count);
     mix_bool(&hash, air->has_function_param_flow_facts);
     mix_u64(&hash, air->lifecycle_state_space_count);
+
+    /* Seal the copied rows in the MIR collector's inventory order, not only
+     * the source binding token and count. Reordering also changes the seal. */
+    for (size_t i = 0; i < air->function_param_flow_summary_count; i++) {
+        const AIRFunctionParamFlowSummary *row = air_function_param_flow_summary_at(air, i);
+        if (row == NULL) return 0;
+        mix_u64(&hash, row->source_syntax_id);
+        mix_text(&hash, row->routine);
+        mix_u64(&hash, row->parameter_index);
+        mix_u64(&hash, row->parameter_count);
+        mix_u64(&hash, row->mask);
+    }
 
     for (size_t i = 0; i < intent_count; i++) {
         const AIRIntentNode *intent = air_intent_node_at(air, i);

@@ -5,6 +5,7 @@
 #include "mir_base_helpers.h"
 #include "mir_abi_layout.h"
 #include "mir_public_surface.h"
+#include "../semantic/slot_summary.h"
 
 bool
 mir_validate_non_cfg_fallback_state(const MIRRoutine *routine,
@@ -77,6 +78,13 @@ mir_validate_function_param_flow_summaries(const MIRRoutine *routine,
     for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {
         const MIRFunctionParamFlowSummary *summary =
             &routine->function_param_flow_summaries[i];
+        if ((summary->mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0) {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' function parameter flow summary %zu has unknown mask bits",
+                    routine->name != NULL ? routine->name : "(anonymous)", i);
+            return false;
+        }
         if (summary->parameter_index >= routine->param_count) {
             if (error_message != NULL)
                 *error_message = mir_strdup_fmt(
