@@ -1,9 +1,26 @@
 # Current Work Handoff
 
-Updated: 2026-10-17 KST. Navigation only; current owners and executable
-evidence override this card. Resume this card, not the archive below.
+This page is a facade. It holds links, not facts. The current state and
+the decisions live in [`docs/truth/`](truth/README.md); when a fact
+changes, change it there. Executable gates override every document.
 
-## Active self-host context — canonical String provenance, then bootstrap/CI
+## Active self-host context
+
+1. [What is blocked now and the next step](truth/state/blocker.md)
+2. [Published and local main, last CI](truth/state/main.md)
+3. [Progress gates and regression guards](truth/state/gates.md)
+4. [Memory and time measurements](truth/state/measurements.md)
+5. [Decisions, including the open ones](truth/decisions/README.md)
+6. [Who owns what](truth/lanes/)
+
+Resume from item 1. The plan and edit boundaries for the current work are in
+the first section of
+[`main_takeover_integration_2026-10-16.md`](agent_work_directives/main_takeover_integration_2026-10-16.md).
+
+## Frozen card (2026-10-17): canonical String provenance, then bootstrap/CI
+
+Frozen when `docs/truth/` was created. Its facts now live there. Do not
+append; this card and everything below it are evidence for lookup.
 
 - Compiler source checkpoint: main
   `b53e9dd0568fe5a2ca7b6d7087231a1dfee6aea6`, local/unpublished, followed only
