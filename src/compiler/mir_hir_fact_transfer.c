@@ -37,21 +37,6 @@ void mir_free_collection_effect_evidence(MIRProgram *mir)
     mir->collection_effect_source_program = NULL;
 }
 
-static bool mir_collection_family_reached(const MIRRoutine *routine)
-{
-    if (routine->hir_routine != NULL || routine->collection_ownership_fact_count != 0) return true;
-    for (size_t b = 0; b < routine->block_count; b++) {
-        const MIRBasicBlock *block = &routine->blocks[b];
-        for (size_t i = 0; i < block->instruction_count; i++) {
-            const MIRInstruction *inst = &block->instructions[i];
-            if (inst->has_collection_ownership_receipt ||
-                (inst->expr0 != NULL && inst->expr0->type == AST_CALL &&
-                 ast_call_semantic_collection_effect(inst->expr0, NULL, NULL, NULL))) return true;
-        }
-    }
-    return false;
-}
-
 static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRRoutine *routine,
     const MIRInstruction *inst, const PgyCollectionEffectView *view, size_t caller, bool *seen)
 {
@@ -138,15 +123,8 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
             if (routine->blocks[b].instruction_count != 0 && routine->blocks[b].instructions == NULL)
                 return mir_collection_evidence_error(error);
     }
-    if (mir->collection_effect_snapshot == NULL) {
-        if (mir->collection_effect_source_program != NULL || mir->has_collection_ownership_facts)
-            return mir_collection_evidence_error(error);
-        for (size_t r = 0; r < inventory.count; r++) {
-            const MIRRoutine *routine = mir_routine_inventory_get(&inventory, r);
-            if (mir_collection_family_reached(routine)) return mir_collection_evidence_error(error);
-        }
-        return true; /* Hand-built arithmetic IR has no collection fact family. */
-    }
+    if (mir->collection_effect_snapshot == NULL)
+        return mir_collection_evidence_error(error);
     PgyCollectionEffectView view = {0};
     bool current = only == NULL ? semantic_collection_effect_snapshot_current(
         mir->collection_effect_snapshot, mir->collection_effect_source_program, &view) :

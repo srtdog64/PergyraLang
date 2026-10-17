@@ -6,9 +6,11 @@ evidence override this card. Resume this card, not the archive below.
 ## Active self-host context — native MIR evidence, then canonical/bootstrap/CI
 
 - Source: the local main repair checkpoint containing this card, parent
-  `d2737cacc37531ffb2dca1b103431e273d70ef7e`. The parent is REJECTED:
-  diagnostic x7zv2n could coherently change both AST and MIR private Fresh
-  effects to OWNED and pass validation. This candidate is not yet independently
+  `44a83c2bc90066633b3226d63f5e21cd1ff997e9`. The parent is REJECTED:
+  diagnostic7A9fGx erased snapshot/source/flags/HIR/facts and both effects,
+  kept the actual source AST/call/body, and passed whole-MIR and emission.
+  This candidate deletes the NULL-proof exception, rather than adding another
+  mutable family marker or an arithmetic whitelist. It is not yet independently
   approved or published. Resolve its exact HEAD/status before continuing.
   Only main exists; root alone owns WSL/build/process/Git. No known-red push.
 - Whole-chain plan: first section of
@@ -23,9 +25,10 @@ evidence override this card. Resume this card, not the archive below.
   and the shared C/LLVM per-routine emission contract consume the original
   immutable ledger. Expected private effects must join actual instructions
   exactly once with exact program/caller/call/kind/receiver/source identity.
-  Missing native proof fails closed even if mutable receipts/facts are erased.
-  Known absence remains distinct for hand-built arithmetic with no HIR or
-  collection family. Scoped queries replay the selected caller's claims,
+  Missing proof always fails closed even if all mutable family markers are
+  erased. Valid-empty evidence is still issued by actual lowering. No existing
+  full-MIR/emission positive requires a NULL-proof hand-built routine.
+  Scoped queries replay the selected caller's claims,
   not every unrelated caller body; no current query regenerates facts.
 - LLVM ABI-specialized views bind uniformly through existing routine.id to
   the canonical inventory row. Program/AST/HIR/body/CFG topology and shared
@@ -37,36 +40,42 @@ evidence override this card. Resume this card, not the archive below.
   operation deletion/duplication and missing/foreign identity.
 - Identified non-Git snapshot: `/root/pgy-exact-main-20261017.LlEIOb`.
   Production native SHA256:
-  `fdb23c47c179185d5102da19b8f99bbdd8e32283f5fec91e8b19a2749e0bb14f`.
-  ZGbmEb/Zhkr6Y pass size/build, phase11902/0, old-six currency groups,
+  `cae7f20bfa60cb16ec7145428afb173618f6a92f6f44994afc4ca0ed5cfc00b1`.
+  cTRltk/feNeNQ pass size/build, phase11902/0, old-six currency groups,
   full strict including original generic C/LLVM runtime controls,
-  MIR446/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and all
-  four IR flow gates (FmkXrW). AIR is adjacent regression evidence only:
+  MIR448/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and all
+  four IR flow gates (UClf33). AIR is adjacent regression evidence only:
   its fingerprint does not independently attest this semantic ledger.
-- XRwdLq passes ASan/UBSan phase11902/0 and MIR446/0 with live-UAF witness;
-  leak detection stays OFF. Final test-only hOIQZT keeps the Type registry
-  alive during semantic-first destruction and re-runs normal and sanitized
-  MIR446/0 on that exact text. Production native is unchanged. hS1xHR verifies
+- cIxJ7c passes ASan/UBSan phase11902/0 and MIR448/0 with live-UAF witness;
+  leak detection stays OFF. The final test keeps the Type registry alive
+  during semantic-first destruction under the existing IR borrow contract.
+  tIOq9P reruns the standalone combined-erasure falsifier: evidence, full-MIR
+  and emission all reject with the required missing/stale evidence diagnostic;
+  exact restoration passes. No unsafe code runs. DM7WGz verifies
   all61 changed/new src/test paths since61a byte-equal between D and Linux.
   These are bounded receipts, not a whole-language memory-safety claim.
 - Wire/import stays OPEN. Read-only source shows the Pergyra DirectCall shape
   heuristic conflicts with native Fresh SHALLOW, but the actual old installed
   driver cbab70c7 (checkout b8e66a387) rejects the safe export even earlier,
   at expression admission `direct-call node=4 row=4 source=AST_LET_DECL`.
-  xG1gNa and the final fdb rerun0IF00s record both C/LLVM exits1 and zero
+  xG1gNa,0IF00s and the final cae rerunjwqCio record both C/LLVM exits1 and zero
   artifact bytes; nothing unsafe ran. This is not current-source installed-driver acceptance or an executed
   demonstration of the later collection heuristic mismatch.
-- Full fdb native fixed/current canonical pairaERkOV is RED: both full inputs
-  MIR0/18435 errors plus16 warnings; fixed30.75s/1621344KiB and
-  current29.20s/1619772KiB. rSPNLS verifies current diagnostics byte-equal to
+- Full cae native fixed/current canonical pairQVTkpu is RED: both full inputs
+  MIR0/18435 errors plus16 warnings; fixed29.30s/1621324KiB and
+  current29.12s/1619788KiB. edd4CH verifies current diagnostics byte-equal to
   prior49c pair8IGuDd and the same first466:22 error. It also independently
   rechecks the four original named_string_field invalid inputs against their
   exact BORROW code/cause/locations, with no MIR artifact or unsafe execution.
   Diagnostic-only BbUJ9M identified the first body error with prior_error=0:
   AstTreeArtifactPayloadContractReady/466:22, local artifact.tree_text passed
   to AstTreeArtifactIdentityDigest. The existing concrete-source pending
-  receipt must keep UNKNOWN distinct; an exact synchronous non-retaining
-  read/lifetime obligation is still missing at the indexed-String owner.
+  receipt must keep UNKNOWN distinct. Missing facts include current aggregate
+  field/return String lineage, pre-call/after-actual backing liveness and the
+  synchronous non-retaining boundary. Callee read-only evidence alone cannot
+  recover a source that was already dead. The declared-result frame supports
+  aggregate types but does not prove local Array-source absence; never treat
+  its zero formal-origin bits as String independence.
   No466 implementation is present. Get independent approval of this bounded
   checkpoint before that repair. Five reached cleanup groups remain OPEN;
   field storage generation, uniqueness and deep-element authority must not

@@ -1,3 +1,5 @@
+#include "../../compiler/mir_hir_fact_transfer.h"
+
 static void
 test_mir_collection_ownership_validation(void)
 {
@@ -159,6 +161,66 @@ test_mir_collection_ownership_validation(void)
                     EXPECT(refused && emission_refused && mir_validate(fresh_mir, NULL)
                         && mir_validate_emission_contract(fresh_routine,
                             fresh_routine->has_cleanup_block, false, NULL));
+                }
+                MIRProgram saved_program = *fresh_mir;
+                MIRRoutine *saved_routines = malloc(
+                    fresh_mir->routine_count * sizeof(*saved_routines));
+                TEST("MIR private effect erasure has isolated routine snapshots");
+                EXPECT(saved_routines != NULL);
+                if (saved_routines != NULL) {
+                    memcpy(saved_routines, fresh_mir->routines,
+                        fresh_mir->routine_count * sizeof(*saved_routines));
+                    MIRInstruction saved_push = *push;
+                    ASTNode saved_push_call = *push->expr0;
+                    fresh_mir->collection_effect_snapshot = NULL;
+                    fresh_mir->collection_effect_source_program = NULL;
+                    fresh_mir->has_collection_ownership_facts = false;
+                    for (size_t r = 0; r < fresh_mir->routine_count; r++) {
+                        MIRRoutine *routine = &fresh_mir->routines[r];
+                        routine->hir_routine = NULL;
+                        routine->collection_ownership_facts = NULL;
+                        routine->collection_ownership_fact_count = 0;
+                        routine->collection_ownership_fact_capacity = 0;
+                    }
+                    push->has_collection_ownership_receipt = false;
+                    push->collection_ownership_effect_kind = 0;
+                    push->collection_ownership_receiver_binding_id = 0;
+                    push->collection_ownership_source_binding_id = 0;
+                    push->expr0->data.call.semantic_collection_effect_set = false;
+                    push->expr0->data.call.semantic_collection_effect_kind = 0;
+                    push->expr0->data.call.semantic_collection_receiver_binding_id = 0;
+                    push->expr0->data.call.semantic_collection_source_binding_id = 0;
+                    char *validation_error = NULL;
+                    bool evidence_refused = !mir_validate_collection_effect_evidence(
+                        fresh_mir, NULL, &validation_error) && validation_error != NULL;
+                    free(validation_error);
+                    validation_error = NULL;
+                    bool full_refused = !mir_validate(fresh_mir,
+                        &validation_error) && validation_error != NULL;
+                    free(validation_error);
+                    validation_error = NULL;
+                    bool emission_refused = !mir_validate_emission_contract(
+                        fresh_routine, fresh_routine->has_cleanup_block, false,
+                        &validation_error) && validation_error != NULL;
+                    free(validation_error);
+                    *saved_push.expr0 = saved_push_call;
+                    *push = saved_push;
+                    memcpy(fresh_mir->routines, saved_routines,
+                        fresh_mir->routine_count * sizeof(*saved_routines));
+                    *fresh_mir = saved_program;
+                    free(saved_routines);
+                    bool restored = mir_validate_collection_effect_evidence(
+                        fresh_mir, NULL, NULL) && mir_validate(fresh_mir, NULL)
+                        && mir_validate_emission_contract(fresh_routine,
+                            fresh_routine->has_cleanup_block, false, NULL);
+                    TEST("MIR private effect rejects coherent whole-family erasure");
+                    if (!evidence_refused || !full_refused || !emission_refused ||
+                        !restored)
+                        printf("\n  whole-family erasure evidence=%d full=%d emission=%d restored=%d\n",
+                            evidence_refused, full_refused, emission_refused,
+                            restored);
+                    EXPECT(evidence_refused && full_refused && emission_refused &&
+                        restored);
                 }
                 if (push_block != NULL) {
                     MIRBasicBlock saved_block = *push_block;

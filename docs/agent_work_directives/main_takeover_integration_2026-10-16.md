@@ -29,6 +29,31 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 #### Active review repair of local checkpoint3e3156cf (2026-10-18)
 
+- Child44a83c2bc is REJECTED too. Diagnostic7A9fGx erases snapshot/source,
+  program collection flag, every routine HIR/fact rows, and the actual private
+  push AST/MIR effects while keeping the source AST/call/body. Evidence,
+  whole-MIR and emission validators all accept; restoration accepts too.
+  Production/native/test hashes are unchanged and nothing unsafe ran.
+  Repair this same boundary before466: known absence must be structurally
+  source-free/effect-free, not an absence of mutable family markers. Existing
+  MIR transfer owner is authoritative; root integrates/executes, B repairs
+  that owner, C adds the combined falsifier, A surveys old arithmetic controls.
+  No mutable is_source_lowered/default-absence permission and no new owner.
+  Required shared gates remain original phase/strict/MIR/broad/SAN/parity;
+  replacement checkpoint needs independent review before466 or publication.
+- Replacement candidate removes the NULL-proof exception and its mutable
+  family classifier outright. Real lowering captures valid-empty evidence;
+  the read-only unit inventory found no full/emission positive that needs a
+  NULL-proof manual routine. cae7f20b native cTRltk/feNeNQ/UClf33 pass cap,
+  phase11902/0, old-six, strict/generic C-LLVM, MIR448/0, semantic3230/0,
+  transpile1012/0, AIR156/0 regression-only, Map24/58 and four flow gates.
+  cIxJ7c passes phase/MIR under ASan/UBSan with UAF witness, leaks OFF.
+  Standalone tIOq9P now rejects combined erasure at evidence/full/emission and
+  accepts exact restoration. DM7WGz verifies61 D/Linux source/test pairs.
+  edd4CH preserves the four original field refusals and checks full pairQVTkpu:
+  both MIR0/18435 errors+16 warnings, first466:22; current diagnostics unchanged.
+  jwqCio repeats the older installed driver's early C/LLVM direct-call refusal.
+  This is a local review candidate, not V1, canonical, installed or CI closure.
 - Current child d2737cacc is also REJECTED by independent review. Diagnostic
   x7zv2n changes a Fresh/EMPTY AST effect and its actual MIR receipt together
   from SHALLOW/0 to OWNED_STRING_PUSH/Fresh ID. Both transition and whole-MIR
