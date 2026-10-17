@@ -579,8 +579,7 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
      * nor pretend a previously conservative CALL mask can be subtracted. */
     if (fact->epoch != 0 && fact->private_stores_closed != private_stores_closed) return false;
     fact->private_stores_closed = private_stores_closed;
-    ASTNode **roots = index->dependency_roots;
-    size_t count = index->dependency_root_count;
+    FunctionParamFlowControlProjection *projection = index->control_projection;
     ReturnedBacking state = {.store = store, .lookup = {store->ctx, store->program_root}, .decl = decl,
         .fact = fact, .private_stores_closed = private_stores_closed};
     if (!function_param_flow_backing_rows_current(store, decl)) return false;
@@ -593,7 +592,7 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
         do {
             if (fact->epoch == SIZE_MAX) { function_param_flow_fail(store, decl, "backing iteration identity overflow"); fact->complete = false; break; }
             fact->epoch++; fact->changed = false;
-            for (size_t r = 0; r < count && fact->complete; r++) backing_consumers(&state, roots[r]);
+            function_param_flow_backing_control_roots(&state, projection);
         } while (fact->changed && fact->complete);
         fact->building = false;
     }

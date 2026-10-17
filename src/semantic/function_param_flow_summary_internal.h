@@ -118,6 +118,9 @@ typedef struct {
     uint32_t id, binding;
     ASTNodeType shape;
     bool semantic_promoted, snapshot_active, snapshot_complete, snapshot_semantic_complete;
+    bool control_projected, control_projection_active;
+    size_t control_step_ordinal, control_root_ordinal;
+    size_t control_incoming_count, control_outgoing_count;
     int match_family;
     int syntax_operator;
     bool parallel_join;
@@ -156,6 +159,20 @@ struct FunctionParamFlowIndexClaims {
     bool failed;
 };
 
+typedef struct {
+    ASTNode *node;
+    uint32_t syntax_id;
+    size_t claim_ordinal, root_ordinal;
+} FunctionParamFlowControlStep;
+typedef struct {
+    FunctionParamFlowControlStep *steps;
+    size_t step_count, step_capacity;
+    size_t *root_offsets;
+    size_t *root_claim_ordinals;
+    size_t root_count, projected_claim_count;
+    bool ready;
+} FunctionParamFlowControlProjection;
+
 typedef struct
 {
     uint32_t function_id;
@@ -186,6 +203,7 @@ typedef struct
     size_t backing_frame_count;
     FunctionParamFlowBackingFact *declared_result;
     FunctionParamFlowIndexClaims *claims;
+    FunctionParamFlowControlProjection *control_projection;
 } FunctionParamFlowProgramPointIndex;
 
 struct FunctionParamFlowSummaryStore
@@ -220,6 +238,10 @@ struct FunctionParamFlowSummaryStore
 
 void function_param_flow_program_point_index_destroy(
     FunctionParamFlowProgramPointIndex *index);
+bool function_param_flow_control_append(SemanticContext *ctx,
+    FunctionParamFlowControlProjection *projection, ASTNode *node, size_t claim, size_t root);
+void function_param_flow_backing_control_roots(ReturnedBacking *state,
+    const FunctionParamFlowControlProjection *projection);
 void function_param_flow_fail(FunctionParamFlowSummaryStore *store, ASTNode *site, const char *reason);
 bool function_param_flow_program_point_index_build(FunctionParamFlowSummaryStore *store,
     ASTNode *function_decl, FunctionParamFlowProgramPointIndex **index_out);

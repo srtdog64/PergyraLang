@@ -6587,10 +6587,352 @@ static void checked_backing_binding_growth(void)
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";if flag{output=first;}else{first=text;}return true;}", true);
 }
 
+static void checked_control_navigation_preparation(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Probe(inout output:String,text:String,flag:Bool)->Bool{"
+        "var first:String=\"\";var second:String=\"\";"
+        "while flag{if flag{first=second;break;}else{second=text;continue;}}"
+        "output=first;return true;}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    unsigned mask = function_param_flow_summary_for_param(ctx, decl, 1);
+    CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+    if (index == NULL || index->backing_frames == NULL || index->backing_frames[1] == NULL) {
+        CHECK(false); goto cleanup;
+    }
+    FunctionParamFlowBackingFact *frame = index->backing_frames[1];
+    CHECK(frame->complete && !frame->pending && frame->epoch > 1);
+    CHECK(frame->outputs != NULL && (frame->outputs[0] & UINT64_C(1)) != 0);
+    /* A normal formal evaluation consumes the owner's prepared data order.
+     * Retaining wrapper rows but waiving their charge fails this oracle too. */
+    size_t control_rows = 0;
+    for (size_t n = 0; n < frame->node_count; n++) {
+        ASTNodeType shape = frame->nodes[n].shape;
+        if (shape == AST_BLOCK || shape == AST_IF_STMT || shape == AST_WHILE_LOOP ||
+            shape == AST_FOR_LOOP || shape == AST_WITH_STMT || shape == AST_DEFER_STMT ||
+            shape == AST_BREAK || shape == AST_CONTINUE) control_rows++;
+    }
+    if (control_rows != 0)
+        fprintf(stderr, "control navigation retained %zu per-frame wrapper rows\n", control_rows);
+    CHECK(control_rows == 0);
+    CHECK(function_param_flow_backing_rows_current(store, decl));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_control_navigation_topology(void)
+{
+    for (unsigned cycle = 0; cycle < 2; cycle++) {
+        Lexer *lexer = lexer_create(
+            "func Probe(inout output:String,text:String,flag:Bool)->Void{"
+            "if flag{output=text;}else{output=text;}}");
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        ASTNode *decl = ast_program_statement(program, 0);
+        ASTNode *branch = ast_block_statement(ast_func_body(decl), 0);
+        ASTNode *then_body = ast_if_then_branch(branch), *else_body = ast_if_else_branch(branch);
+        if (!cycle) {
+            FunctionParamFlowProgramPointIndex empty = {0};
+            CHECK(!function_param_flow_index_claims_snapshot(ctx, &empty, NULL));
+            CHECK(empty.claims == NULL && empty.control_projection == NULL);
+            empty.dependency_body = ast_func_body(decl);
+            empty.dependency_body_id = ast_node_stable_id(empty.dependency_body);
+            CHECK(!function_param_flow_index_claims_snapshot(ctx, &empty, decl));
+            empty.dependency_body_id++;
+            CHECK(!function_param_flow_index_claims_snapshot(ctx, &empty, empty.dependency_body));
+            CHECK(empty.claims == NULL && empty.control_projection == NULL);
+            function_param_flow_program_point_index_destroy(&empty);
+        }
+        function_param_flow_summary_store_destroy(ctx);
+        /* Reuse a checked block on both edges; do not typecheck a forged DAG.
+         * The fresh owner snapshot must handle an already completed child. */
+        if (cycle) branch->data.if_stmt.then_branch = branch;
+        else branch->data.if_stmt.else_branch = then_body;
+        SlotFunctionLookup lookup = {ctx, program};
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        FunctionParamFlowIndexClaims *cyclic_claims = NULL;
+        bool built = cycle
+            ? function_param_flow_syntax_claims_snapshot(ctx, &cyclic_claims, ast_func_body(decl))
+            : store != NULL && function_param_flow_program_point_index_build(store, decl, &index);
+        CHECK(built == !cycle);
+        if (!cycle && built) {
+            unsigned effects = 0;
+            bool outputs[3] = {false, false, false}, pending = true;
+            CHECK(function_param_flow_returned_backing_effects(store, decl, 1,
+                &effects, outputs, 3, &pending, false));
+            CHECK(!pending && outputs[0] && !outputs[1] && !outputs[2]);
+            CHECK((effects & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+            CHECK(function_param_flow_backing_rows_current(store, decl));
+        }
+        branch->data.if_stmt.then_branch = then_body;
+        branch->data.if_stmt.else_branch = else_body;
+        function_param_flow_claims_destroy(cyclic_claims);
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_control_navigation_body_boundary(void)
+{
+    Fixture f = fixture();
+    ASTNode *body = ast_func_body(f.reader), *returned = ast_block_statement(body, 0);
+    /* Source typechecking does not issue a top-body execution row. Exercise
+     * that optional owner-protocol fact through the pending producer API;
+     * this is not source admission or a MIR validity claim. */
+    CHECK(semantic_param_publication_record_execution(f.ctx, body, false));
+    CHECK(semantic_param_publication_record_execution(f.ctx, returned, true));
+    CHECK(semantic_param_publication_record_value(f.ctx, f.map_call, TYPE_INT, false));
+    CHECK(register_map(&f));
+    CHECK(register_reader(&f));
+    CHECK(register_caller(&f));
+    CHECK(register_body_dependency(&f));
+    CHECK(semantic_param_publication_finalize(f.ctx));
+    bool reachable = true;
+    CHECK(semantic_param_publication_execution(f.ctx, body, &reachable) && !reachable);
+    CHECK(semantic_param_publication_execution(f.ctx, returned, &reachable) && reachable);
+    SlotFunctionLookup lookup = {f.ctx, f.program};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, f.reader, &index));
+    if (index != NULL) {
+        unsigned effects = 0;
+        uint64_t outputs = 0;
+        FunctionParamFlowBackingFact partial = {.origin_count = 1, .origin_words = 1,
+            .destination_count = 1, .destination_words = 1, .effects = &effects,
+            .outputs = &outputs, .claims = index->claims, .epoch = 1, .complete = true};
+        ReturnedBacking state = {.store = store, .lookup = lookup, .decl = f.reader,
+            .fact = &partial, .checking_declared_result = true};
+        CHECK(backing_binding(&state, ast_func_param_stable_id(ast_func_param(f.reader, 0)), true) != NULL);
+        function_param_flow_backing_control_roots(&state, index->control_projection);
+        bool returned_seen = false, call_seen = false;
+        for (size_t n = 0; n < partial.node_count; n++) {
+            returned_seen |= partial.nodes[n].node == returned;
+            call_seen |= partial.nodes[n].node == f.map_call;
+            free(partial.nodes[n].origins);
+        }
+        CHECK(partial.complete && state.result_return_seen && returned_seen && call_seen);
+        CHECK(effects == 0 && outputs == 0);
+        for (size_t b = 0; b < partial.binding_count; b++) {
+            free(partial.bindings[b].origins); free(partial.bindings[b].destinations);
+        }
+        free(partial.nodes); free(partial.bindings); free(partial.pending_relations);
+    }
+    dispose(&f);
+}
+
+static void checked_control_navigation_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Probe(inout output:String,text:String,flag:Bool)->Bool{"
+        "if flag{output=text;}else{output=\"fresh\";}return true;"
+        "if flag{while flag{output=text;}}}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    unsigned baseline = function_param_flow_summary_for_param(ctx, decl, 1);
+    CHECK((baseline & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+    if (index == NULL) goto cleanup;
+    FunctionParamFlowControlProjection *control = index->control_projection;
+    CHECK(control != NULL && control->ready && control->step_count >= 2 &&
+        control->steps != NULL && control->root_offsets != NULL && control->root_count == 3);
+    if (control == NULL || !control->ready || control->step_count < 2 || control->steps == NULL ||
+        control->root_offsets == NULL || control->root_count != 3) goto cleanup;
+    CHECK(control->root_offsets[0] == 0 && control->root_offsets[3] == control->step_count &&
+        control->root_offsets[2] == control->root_offsets[3]);
+    FunctionParamFlowControlProjection saved = *control;
+    unsigned char first[sizeof(*control->steps)], second[sizeof(*control->steps)];
+    memcpy(first, &control->steps[0], sizeof(first));
+    memcpy(second, &control->steps[1], sizeof(second));
+    size_t offsets[4];
+    memcpy(offsets, control->root_offsets, sizeof(offsets));
+    size_t root_claim = control->root_claim_ordinals[0];
+    for (unsigned fault = 0; fault < 21; fault++) {
+        if (fault == 0) control->ready = false;
+        if (fault == 1) control->steps = NULL;
+        if (fault == 2) control->step_count = 0;
+        if (fault == 3) control->step_count++;
+        if (fault == 4) control->root_offsets = NULL;
+        if (fault == 5) control->root_offsets[0] = 1;
+        if (fault == 6) control->root_offsets[3] = control->step_count + 1;
+        if (fault == 7) control->root_offsets[1] = control->step_count + 1;
+        if (fault == 8) control->steps[0].node = NULL;
+        if (fault == 9) control->steps[0].syntax_id++;
+        if (fault == 10) control->steps[0].claim_ordinal = SIZE_MAX;
+        if (fault == 11) {
+            memcpy(&control->steps[0], second, sizeof(second));
+            memcpy(&control->steps[1], first, sizeof(first));
+        }
+        if (fault == 12) {
+            control->step_count--;
+            control->root_offsets[2] = control->step_count;
+            control->root_offsets[3] = control->step_count;
+        }
+        if (fault == 13) control->root_offsets[1]--;
+        if (fault == 14) control->steps[0].root_ordinal++;
+        if (fault == 15) control->root_count--;
+        if (fault == 16) index->control_projection = NULL;
+        if (fault == 17) control->projected_claim_count--;
+        if (fault == 18) control->root_claim_ordinals = NULL;
+        if (fault == 19) control->root_claim_ordinals[0] = SIZE_MAX;
+        if (fault == 20) control->root_claim_ordinals[0] = control->root_claim_ordinals[1];
+        FunctionParamFlowProgramPointIndex *rechecked = NULL;
+        CHECK(!function_param_flow_program_point_index_build(store, decl, &rechecked));
+        CHECK(!function_param_flow_backing_rows_current(store, decl));
+        index->control_projection = control;
+        *control = saved;
+        memcpy(&control->steps[0], first, sizeof(first));
+        memcpy(&control->steps[1], second, sizeof(second));
+        memcpy(control->root_offsets, offsets, sizeof(offsets));
+        control->root_claim_ordinals[0] = root_claim;
+        CHECK(function_param_flow_program_point_index_build(store, decl, &rechecked));
+        CHECK(function_param_flow_backing_rows_current(store, decl));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
+    }
+    CHECK(root_claim < index->claims->count);
+    if (root_claim < index->claims->count) {
+        FunctionParamFlowIndexClaim saved_root = index->claims->rows[root_claim];
+        CHECK(saved_root.control_outgoing_count != 0 && saved_root.control_incoming_count != 0);
+        for (unsigned fault = 0; fault < 3; fault++) {
+            if (fault == 0) index->claims->rows[root_claim].control_projected = false;
+            if (fault == 1) index->claims->rows[root_claim].control_incoming_count = 0;
+            if (fault == 2) index->claims->rows[root_claim].control_outgoing_count--;
+            FunctionParamFlowProgramPointIndex *rechecked = NULL;
+            CHECK(!function_param_flow_program_point_index_build(store, decl, &rechecked));
+            CHECK(!function_param_flow_backing_rows_current(store, decl));
+            index->claims->rows[root_claim] = saved_root;
+            CHECK(function_param_flow_program_point_index_build(store, decl, &rechecked));
+            CHECK(function_param_flow_backing_rows_current(store, decl));
+        }
+    }
+    size_t claim_at = control->steps[0].claim_ordinal;
+    CHECK(claim_at < index->claims->count);
+    if (claim_at < index->claims->count) {
+        FunctionParamFlowIndexClaim saved_claim = index->claims->rows[claim_at];
+        for (unsigned fault = 0; fault < 2; fault++) {
+            if (fault == 0) index->claims->rows[claim_at].control_projected = false;
+            if (fault == 1) index->claims->rows[claim_at].control_step_ordinal = SIZE_MAX;
+            FunctionParamFlowProgramPointIndex *rechecked = NULL;
+            CHECK(!function_param_flow_program_point_index_build(store, decl, &rechecked));
+            CHECK(!function_param_flow_backing_rows_current(store, decl));
+            index->claims->rows[claim_at] = saved_claim;
+            CHECK(function_param_flow_program_point_index_build(store, decl, &rechecked));
+            CHECK(function_param_flow_backing_rows_current(store, decl));
+        }
+    }
+    ASTNode *dead = ast_block_statement(ast_func_body(decl), 2);
+    PublishedNode *execution = NULL;
+    for (size_t p = 0; p < ctx->function_param_publications->node_capacity; p++)
+        if (ctx->function_param_publications->nodes[p].node == dead)
+            execution = &ctx->function_param_publications->nodes[p];
+    CHECK(execution != NULL && execution->execution_present && !execution->reachable);
+    if (execution != NULL) {
+        PublishedNode saved_execution = *execution;
+        for (unsigned fault = 0; fault < 2; fault++) {
+            if (fault == 0) execution->reachable = true;
+            if (fault == 1) execution->execution_present = false;
+            FunctionParamFlowProgramPointIndex *rechecked = NULL;
+            CHECK(!function_param_flow_program_point_index_build(store, decl, &rechecked));
+            CHECK(!function_param_flow_backing_rows_current(store, decl));
+            *execution = saved_execution;
+            CHECK(function_param_flow_program_point_index_build(store, decl, &rechecked));
+            CHECK(function_param_flow_backing_rows_current(store, decl));
+        }
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_control_navigation_root_sequence(void)
+{
+    for (unsigned mode = 0; mode < 3; mode++) {
+        const char *source = mode == 0
+            ? "func Probe(text:String,flag:Bool)->String{if flag{let first=text;let sibling=\"sibling\";}return \"next\";}"
+            : mode == 1
+                ? "func Probe(text:String,callback:func(String)->String)->String{if true{callback(text);Log(\"tail\");}return \"next\";}"
+                : "func Probe()->Array<Int>{if true{let rows:Array<Int> = [];return rows;}return [];}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed);
+        if (!typed) goto cleanup;
+        ASTNode *decl = ast_program_statement(program, 0);
+        ASTNode *body = ast_func_body(decl);
+        ASTNode *branch = ast_block_statement(body, 0);
+        ASTNode *inside = ast_if_then_branch(branch);
+        ASTNode *sibling = ast_block_statement(inside, 1);
+        ASTNode *next_root = ast_block_statement(body, 1);
+        SlotFunctionLookup lookup = {ctx, program};
+        FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+        if (index == NULL || index->control_projection == NULL) goto cleanup;
+        unsigned effects = 0;
+        uint64_t outputs = 0;
+        FunctionParamFlowBackingFact partial = {.origin_count = 1, .origin_words = 1,
+            .destination_count = 1, .destination_words = 1, .effects = &effects,
+            .outputs = &outputs, .claims = index->claims, .epoch = 1, .complete = true};
+        ReturnedBacking state = {.store = store, .lookup = lookup, .decl = decl,
+            .fact = &partial, .checking_declared_result = mode == 2};
+        /* Missing formal storage is deliberate: the first LET must fail but
+         * its same-root sibling must still run. A later top-level root must not. */
+        function_param_flow_backing_control_roots(&state, index->control_projection);
+        bool saw_sibling = false, saw_next = false;
+        size_t control_rows = 0;
+        for (size_t n = 0; n < partial.node_count; n++) {
+            saw_sibling |= partial.nodes[n].node == sibling;
+            saw_next |= partial.nodes[n].node == next_root;
+            ASTNodeType shape = partial.nodes[n].shape;
+            if (shape == AST_BLOCK || shape == AST_IF_STMT) control_rows++;
+        }
+        CHECK(control_rows == 0);
+        if (mode == 0) CHECK(!partial.complete && !partial.analysis_unsupported && saw_sibling && !saw_next);
+        if (mode == 1) CHECK(!partial.complete && partial.analysis_unsupported && !saw_sibling && !saw_next);
+        if (mode == 2) CHECK(partial.complete && !partial.analysis_unsupported && state.result_return_seen && saw_sibling);
+        for (size_t n = 0; n < partial.node_count; n++) free(partial.nodes[n].origins);
+        for (size_t b = 0; b < partial.binding_count; b++) {
+            free(partial.bindings[b].origins); free(partial.bindings[b].destinations);
+        }
+        free(partial.nodes); free(partial.bindings); free(partial.pending_relations);
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 static void checked_backing_input_frames(void)
 {
     for (unsigned reverse = 0; reverse < 2; reverse++) {
-        Lexer *lexer = lexer_create("func Choose(inout output:String,left:String,right:String)->Void{output=left;}func Main()->Void{var output=\"\";Choose(output,\"left\",\"right\");}");
+        Lexer *lexer = lexer_create("func Choose(inout output:String,left:String,right:String)->Void{if true{output=left;}}func Main()->Void{var output=\"\";Choose(output,\"left\",\"right\");}");
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticContext *ctx = semantic_context_create();
@@ -6623,7 +6965,8 @@ static void checked_backing_input_frames(void)
         FunctionParamFlowBackingFact *frame = index->backing_frames[1];
         CHECK(frame != NULL && frame->origin_count == 1 && frame->destination_count == 3);
         if (frame == NULL) goto cleanup;
-        ASTNode *source = ast_assignment_value(ast_block_statement(ast_func_body(decl), 0));
+        ASTNode *source = ast_assignment_value(ast_block_statement(
+            ast_if_then_branch(ast_block_statement(ast_func_body(decl), 0)), 0));
         CHECK(source != NULL && source->type == AST_IDENTIFIER);
         if (source == NULL || source->type != AST_IDENTIFIER) goto cleanup;
         uint32_t source_id = source->stable_id;
@@ -7755,6 +8098,11 @@ int main(void)
     reached_producer_source("struct TextRecord{text:String} extern \"C\"{func Hold(text:String)->Void;} func First(text:String)->Int{if StringLength(text)>0{return Second(text);}return 1;} func Second(text:String)->Int{Hold(text);return First(text);} func Probe(ref record:TextRecord)->Int{return First(record.text);}", false);
     checked_return_loan_alias_currency();
     checked_backing_binding_growth();
+    checked_control_navigation_preparation();
+    checked_control_navigation_topology();
+    checked_control_navigation_body_boundary();
+    checked_control_navigation_currency();
+    checked_control_navigation_root_sequence();
     checked_defer_return_backing();
     checked_backing_input_frames();
     checked_private_array_push_opaque_boundaries();

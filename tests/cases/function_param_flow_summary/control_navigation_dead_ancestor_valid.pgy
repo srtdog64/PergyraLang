@@ -1,0 +1,21 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func Count(ref text: String) -> Option<Int> {
+    return Some(StringLength(text));
+    if StringLength(text) > 0 {
+        var step: Int = 0;
+        while step < 2 {
+            Keep(text);
+            step = step + 1;
+        }
+    }
+}
+
+func Probe(ref text: String) -> Option<Int> {
+    return Count(text);
+}
+
+func Main() -> Void {
+    let text = Concat("heap", "");
+    Log(UnwrapOption(Probe(text)));
+}

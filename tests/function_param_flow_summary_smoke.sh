@@ -116,6 +116,9 @@ paired = (
     ("physical_array_element_loop_valid", True),
     ("physical_array_element_effectful_index_invalid", False),
     ("physical_array_element_effectful_receiver_invalid", False),
+    ("control_navigation_nested_loop_valid", True),
+    ("control_navigation_dead_ancestor_valid", True),
+    ("control_navigation_nested_retain_invalid", False),
     ("stdlib_prefix_retaining_user_invalid", False),
     ("stdlib_prefix_opaque_invalid", False),
     ("stdlib_prefix_shadow_invalid", False),
@@ -357,6 +360,13 @@ for name, valid in paired:
                  for row in errors} != array_element_effect_sites[name]):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"physical Array element negative {name} lost its two call effects")
+        if name == "control_navigation_nested_retain_invalid" and (
+                checked.stdout or len(errors) != 2 or
+                any(row.get("stage") != "semantic" for row in errors) or
+                {(row.get("location", {}).get("line"), row.get("location", {}).get("column"))
+                 for row in errors} != {(21, 19), (26, 15)}):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("nested control retention lost its two owned refusal sites")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 
 # These calls must still refuse at the unsafe nested actual or alias-forwarding
@@ -583,6 +593,8 @@ for name, expected in (
     ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
     ("physical_call_alias_inout_valid", "7\n"),
     ("physical_array_element_loop_valid", "7\n"),
+    ("control_navigation_nested_loop_valid", "6\n"),
+    ("control_navigation_dead_ancestor_valid", "4\n"),
     ("zeroarg_private_int_nested_valid", "1\n4\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),

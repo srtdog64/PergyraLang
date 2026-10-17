@@ -7,15 +7,199 @@ evidence override this card. Resume this card, not the archive below.
 
 - One rung: unchanged canonical/DRV-2 admission -> real bootstrap/gen2==gen3 ->
   memory and installed C/LLVM driver -> required green CI on that published SHA.
-- D source checkpoint: `f3015c448a99af4dcb6962f4771312f3c4eb00a5` on main
-  (parent6927563d3), local, plus canonical namespace lookup/test/doc follow-up
-  WIP. No unrelated changes. Published main:
+- D source base before this slice: `98549707b41d5c05612d27c46940fa2f00c1f480` on main
+  (parent247b2c549), local and not pushed. Parent247 replaces the incomplete
+  P1 presence scan with persistent exact caller witnesses, repairs mixed
+  ready/pending sealing, and admits private physical-array stores through the
+  existing publication owner.985 commits the bounded physical Array element
+  D correction and its phase/source controls. This slice adds the bounded
+  existing-owner C control projection below, its phase/source controls and
+  these2 navigation files; verify the current HEAD/dirty state before resuming.
+  No unrelated changes. Published main:
   `39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe`; run38860052641 is RED,
   bootstrap/install skipped. Do not push known red or substitute native tests.
 - Root alone owns builds, WSL processes and Git. Three implementation agents
   have bounded, non-overlapping source/test scopes; no new branch/worktree.
 
-### Current blocking slice
+### Current executable evidence and next falsifier
+
+Current implementation: the existing claims snapshot now produces one
+heap-owned ordered C control projection with original root ranges. Formal and
+declared-result consumers replay only its data nodes; C/D/O, per-input frames,
+eager effects, pending relations and loan traversal remain separate/unchanged.
+No new owner file or language annotation. Before JVn7iw has8956 checks/1
+failure:7 unwanted control-only backing rows. Source-before1dwWNi observes
+C/LLVM outputs6 and4 and exact2-site BORROW/no-MIR retention refusal. First
+cut TCMhya native6f81944a passes9095/0, strict source/runtime/negative gates,
+4096/4097 and caps. It is not full-input admission. Root then found the new
+snapshot API's NULL-body offset access; producer now rejects NULL/mismatched
+body (claims460B980E, still599 effective lines). Final phase9DE20BF2 adds
+missing-input/root/edge faults and the legal pending raw-owner body control.
+Root alone owns Linux/build/Git. All6 production files, phase, gate and3 source
+fixtures are frozen. Do not use first-cut receipts for the guarded binary.
+Guarded rebuild fTIvda native31128358 passes compilation/caps; phase9132 has
+one failure in the new test prerequisite (source body BLOCK has no execution
+publication row), not a changed source verdict. B is replacing that assumption
+with the existing legal pending raw-owner fixture, not skipping an assertion
+or changing production. Final ryiHsw native31128358 passes9164/0 and the entire
+strict/runtime/negative/4096-4097/caps gate. Broad0suNfM passes MIR334,
+semantic3228,transpile1012,Map24/58 and4IR. Full qpB5oL checks all3188 keys /
+4273 unchanged routines:713->645 failures,68 resolved,0 newly failed,
+0 previously nonfailed mask changes, incomplete0. All remaining failures are
+work4096. Wall3:02.16, peak1249008KiB, BYTE_IDENTICAL restoration. This is not
+canonical admission. Warm HVINn7 still fails request254 at4096, but reaches
+ScalarUtilityReturnType input4/epoch2 rather than the old ExprType first pass:
+E104/G78/B3914, C2786/D581/O547. ReadTypeFact0/3 each267->211. Actual u5q5uG
+bootstrap remains RED before gen0 (18410errors/16warnings). Separate-build
+ASan/UBSan VgzmuE passes9164/0 with a live UAF witness; leak detection is OFF.
+Current native SHA256 is
+`311283587cee1a8df22b58d9b55c3713604c31c50865782ad6b7c04bea3432d9`.
+Exact-checkpoint independent review follows; no known-red push. The next
+measurement is actual D/O/C callee reads across pending-frame re-evaluation,
+including ready edges. Existing pending tuples record identity, not all read
+payloads; they cannot justify skipping work. Observation only until that
+unknown is resolved; no solver schedule, proof readiness or budget change.
+
+Committed slice985: a current physical Array element is a value, not a retained
+descriptor alias. A edits only the existing D consumer, B the existing phase
+unit, C three source controls and existing summary gate; root integrates.
+Production candidate855E24D8 adds26 D lines plus its direct declaration include
+in backing_dependencies (588/599 noncomment LOC). Literal/identifier Int index and identifier Array receiver
+only, current matching physical element/result types, existing claims, eager
+C visits unchanged. No call/subtree skip or new owner/cache. Before sTxN2w
+observes positive C/LLVM `7\n`, both effectful index/receiver negatives refuse
+with exactly2 BORROW diagnostics/no MIR. Before hQ9CrQ has8948checks/2 false
+destination failures. Candidate3OYt3n passes8948/0, strict summary/CLLVM7,
+descriptor/effect refusals, old controls and caps. Broad BjuKNW passes
+MIR334/semantic3228/transpile1012,Map24/58 and4IR. Full1egAQH checks all3188
+keys/4273 routines:713 failures,0 new/0 resolved/0 previously nonfailed mask
+changes vs247, incomplete0;2:54.20 wall,1249056KiB, BYTE_IDENTICAL restore.
+Warm GwNFEg confirms ReadTypeFact0/3 each533->267 (two epochs->one), but the
+same request254 still reaches4096 at ExprType129563,input2: E76/G74/B3946,
+C3069/D435/O442. Source/build/bin restore BYTE_IDENTICAL. Actual C38avJ
+bootstrap remains RED before gen0,18410errors/16warnings. This is a narrow
+false-alias repair, not canonical admission or CI relief.
+Exact985 independent static review completed without a blocking finding. It
+did not rerun the supplied Linux receipts or approve bootstrap/install/CI.
+
+Linux `/root/pgy-main-20261016` is Git HEAD39a plus a byte-checked overlay,
+not the D commit. Prior committed985 native SHA256 (not the current projection) is
+`b92168a554ea479bab4dc70dd6cf1fe41a60d22fdaf39b7f2011000e54c6acf4`.
+The following cold/bootstrap receipts belong to parent native385c, not b921.
+Cold QHnR78 completed all3188 keys from unchanged4273 routines:713 failures,
+all work4096;8 resolved/0 new vs jCNA6p721, incomplete0. Wall2:50.75,
+peak1249168KiB; source/build/bin/modes/Git restored BYTE_IDENTICAL.
+Prior broad FxGJu6 passes MIR334/semantic3228/transpile1012,Map24/58 and4IR,
+including the updated strict/runtime gate. Actual bootstrap1TyubV remains
+RED before gen0:18410errors/16warnings. Root alone owns shared Linux builds.
+Neither that native binary nor the old Windows bin is installed self-host evidence.
+
+- Current committed repair: the870 review found source-ready marker withdrawal
+  still bypassed callers. The replacement retires its global entry scan and
+  persists exact ready call/callee/ordinal witnesses in the existing sealed
+  relation list.5 withdrawal faults now reject. The same existing publication
+  owner issues the bounded private physical-array store premise; no new
+  family/schema/owner. Before JU1rGb has11 failures; sed77P passes8834/0,
+  strict summary, all existing String/opaque/4096/4097 controls and caps.
+  Native runtime9FKcAT observes identical C/LLVM `1\n4\n`; the same existing
+  summary gate now owns that oracle. Both external Keep variants remain
+  exact-site BORROW/no MIR and are never executed. Exact247 independent static
+  review found no blocking defect and judged the earlier P1 closed. It did not
+  rerun Linux receipts or approve bootstrap/install/CI closure. Broad6YdHva
+  passes the earlier candidate's native
+  suites/Map/4IR and the observed runtime gate. The whole input exposed a mixed
+  ready/pending seal-count transition; before6ENDAc reproduces its positive
+  refusal (8836checks/1failure). sKAFxn confirms98/98 failed keys have a
+  partial seal, not missing source proof. The producer now reopens the seal
+  whenever a pending relation is introduced; validation is unchanged. Final
+  D9iQew passes8849checks/0, strict summary/runtime/negatives and caps.
+  Full QHnR78 removes the98 relation regressions with no newly failed key.
+  The713 remaining work refusals, bootstrap/install and CI stay OPEN.
+- P1 commit870b28e94: independent c143 review found required callee row deletion bypassing
+  cached caller currentness. Before3q9mSz has8651 checks/4 failures for row NULL
+  and whole-vector deletion/count0. A broad typed-required NULL guard e64eb1a9
+  is REJECTED (47 old phase failures).85c5 instead requires presence only for
+  existing exact-decl/ID/ordinal summary entries that issued BACKING_FRAME;
+  unissued rows and solver construction remain legal.4dyy4J passes8651/0,
+  strict summary/runtime/negatives,4096/4097 and caps. Broad GxGwiQ passes
+  MIR334/semantic3228/transpile1012,Map24/58 and4IR. Full census jCNA6p has
+  721 failures,0 new/0 resolved vs dff3, all3188/3188;2:23.91 wall,
+  peak1248044KiB, BYTE_IDENTICAL restore. Actual auR9m9 bootstrap still has
+  18410 errors/16 warnings before gen0. Source SHA72317119; phase SHA4AA58F57.
+  Exact870 review requested.
+- The following full-input receipts belong to c143/native dff3, not85c5:
+- `.tmp/p0-physical-d-verify.m68ymx/`: phase8639/0, strict summary,
+  positive C/LLVM7,3 exact-site BORROW refusals/no HIR,4096/4097 PASS.
+- `.tmp/p0-typed-retention-broad.dozwQg/`: native MIR334/semantic3228/
+  transpile1012, Map24 C/LLVM positives/58 analyze-only negatives and4IR PASS.
+- Full frozen4273-routine/3188-key census `.tmp/p0-identifier-origin-census.oqClaW/`:
+  762 ->721 failures,41 resolved,0 new.714 work4096 and7
+  incomplete_required_return; no MIR, no admission claim. All source/build/bin,
+  modes and Git state restored BYTE_IDENTICAL. Input remains
+  `.tmp/p0-fixed-canonical.nbPIex/`; do not reduce it.
+- Actual bootstrap `.tmp/p0-return-bootstrap.NmTeXN/`:18410 errors/16 warnings
+  before gen0. No current gen2/gen3, installed-driver or required green CI.
+- Warm `.tmp/p0-warm-cost.ditGpm/`: physical D queries are now0, but request254
+  ResultCallReturnType id127572,input3 still reaches4096. Entries/evaluations
+  557/601 ->480/518; ReadTypeFact inputs0 and3 still cost533 each. Do not
+  infer closure from removed queries or repeat the blanket physical-skip proposal.
+
+The7 new incomplete keys all first lose completion on the same inner chain:
+MirExpressionGraphSequenceError id448163,input0 -> local initializer
+MirExpressionGraphSequenceEmpty(), call448169. Scratch
+`.tmp/p0-reached-relation.XSpgzN/` records the first D loss before propagation
+through MirExpressionGraphSequenceAppend id448557,input0; it restores
+BYTE_IDENTICAL to dff3. Empty is a zero-argument nominal-result function.
+No loss was observed inside its body. Follow-up lStm9v confirms typed result,
+normal exit and index are current; no_store_graph fails in nested
+SemanticExpressionIdentityRowsUnknown id91729 (mutable_output=1), reached via
+SemanticExpressionGraphArenaEmpty id92478. Its local Array<Int> pushes have no
+private-store publication: the existing producer/consumer admit only String
+payloads. Preserve the separate physical uniqueness boundary. Do not attribute
+this dependency refusal to source aliasing or add manual copies/annotations.
+
+The current control-projection card in the directive supersedes these rejected
+observation-only proposals. Scratch vAp6HM preserves all26369 charged
+events byte-for-byte against GwNFEg. Its817 binary/unary C visits include192
+physical leaf shapes, but only1 has a current built-in-only contract; the
+other191 may select overloaded operators. The tiny leaf skip is REJECTED.
+The same failed demand has947 C control visits over450 unique routine/node
+pairs. Existing claims own currency, not an ordered per-origin execution
+frontier. Reusing their DFS or merely dropping control charges is REJECTED.
+The implemented candidate instead has an explicit owner-produced projection,
+root/edge completeness and currentness. Blanket no-store/D elision is also
+REJECTED: D owns required zero-argument result edges that O/C cannot replace.
+The evaluator's short-circuit graph_closed bool alone is NOT that proof
+(it may coexist with inout).
+Current warm AEWNVY measures the earlier first failure:
+request254 ResultCallReturnType127572,input3,4096=E69/G74/B3953;
+C3037/D443/O473. ReadTypeFact103229 inputs0 and3 each cost533 in two epochs.
+Physical D queries0. It restores BYTE_IDENTICAL to385c. Further nj3cQJ
+records848 binding events: the only changed0->1 is `i=cursor_out[0]` D bit0->8
+for those two inputs; all26369 charged events match AEWNVY byte-for-byte.
+No new candidate is admitted from those shape counts; no new owner/cache,
+schedule/budget change or blanket scalar skip. Keep exact
+element/receiver/annotation/exclusivity and eager payload effects.
+Before dzPyo5 reproduces no-HIR refusals for a nested Int factory positive and
+2 external-retention negatives.3 fixtures and the observed runtime oracle are
+registered in the existing summary gate. Root alone executes scratch/build/restoration;
+the three lanes implement production, phase faults and source fixtures under
+the directive's bounded whole-chain plan. Before/after narrow gates -> full
+census -> actual bootstrap. Existing
+no-store/output/pending/opaque negatives and4096/4097 remain mandatory.
+Independent c143 review in `Pergyra 컴파일러 레드팀 검증` requested the P1
+presence fix; other bounded checks found no additional defect. The review did
+not rerun supplied Linux receipts and is not CI approval.
+Dependency independence grants no physical unique storage or cleanup authority.
+The aggregate-storage-transfer, installed-driver and same-SHA CI obligations
+remain OPEN, not additional independent implementation tracks.
+
+Full chain/closure card and receipts:
+[main_takeover_integration_2026-10-16.md](agent_work_directives/main_takeover_integration_2026-10-16.md).
+
+### Historical diagnostic archive — lookup only, not an active work queue
+
+#### Prior selected-call and physical-actual investigation
 
 Independent review of692 found Intent/Event ToString/StringReplace/Substring
 could select stdlib by spelling and admit Bool/Void as String. Publication also
@@ -58,14 +242,16 @@ These are backend component checks, not source-admission claims.
 1. Current5532 broad `.tmp/p0-typed-retention-broad.Njn5fa/` PASS: native
    MIR334/semantic3228/transpile1012, Map24 C/LLVM positives/58 analyze-only
    negatives, phase8532/0 and HIR/RIR/MIR/AIR. Source/test agents are frozen.
-   Save the coherent namespace follow-up. No actual canonical closure yet.
+   Namespace follow-up is committed67aee05af. No actual canonical closure yet.
 2. Exact-source review of f3015c448 is complete in
    `Pergyra 컴파일러 레드팀 검증` (thread01a12ba0-fc1d-7650-b1fc-2fe9c3de642b).
    cursor26: change requested for the namespace identity regression; no flag
    addition is justified and no extra enum-ABI/empty-table defect was found.
    The approved fix is sym->name in the existing exact query, not a new lookup.
-   D contains this one-line fix/comment and an actual namespace runtime fixture
-   plus canonical/crossed-ID phase controls. Source/test agents are frozen.
+   Commit67 contains the one-line fix/comment and an actual namespace runtime
+   fixture plus canonical/crossed-ID phase controls. The independent67-delta
+   review is complete: no additional finding, namespace regression only;
+   the reviewer did not rerun the supplied receipts. Source/test agents are frozen.
 3. Resume only the existing fixed-input canonical admission blocker. Cold census
    on0699:3188/3188 keys,762 work4096 failures (533 before;229 new), incomplete0,
    no MIR; `.tmp/p0-identifier-origin-census.onWYW4/`. Improved dependency facts
@@ -84,7 +270,7 @@ These are backend component checks, not source-admission claims.
    refusal, strict summary PASS. Its lbpznn full cold census is762 work4096,
    new failures0/resolved0 vs0699;4273/3188 unchanged. Outer source/build/bin
    restore is BYTE_IDENTICAL to92. No flag/schema change is required on the
-   native MEMBER path. This patch is now in D WIP and integrated in5532;
+   native MEMBER path. This patch is committed67 and integrated in5532;
    keep actual installed-driver/roundtrip/ID-mutation evidence OPEN.
 4. Actual5532 bootstrap `.tmp/p0-return-bootstrap.eUeXQO/` refuses before gen0:
    18410 errors/16 warnings; the11 namespace/cast regressions are gone.
@@ -93,9 +279,31 @@ These are backend component checks, not source-admission claims.
    unchecked origin skip or unrelated prewarm.
 
 The blanket origin skip and proposed closed/member reuse were measured and
-rejected. Scratch-only ordering of the SAME registered ref request set remains
-unexecuted/unapproved; verify identity, request multiset, cycles,4096/4097 and
-full canonical outcome before considering production. Do not revive a general
+rejected. Scratch-only ordering of the SAME3188 registered ref requests is also
+REJECTED: `.tmp/p0-ref-order.QdOiMH/` finishes with the same18410 errors and
+work4096; entries/evaluations increase557/601 ->558/602. All4273 routines,
+23181 recorded edges and201 cyclic edges were considered. Exact request
+multisets and existing4096/4097 controls are unchanged; this is diagnostic,
+not acceptance. WSL src/build/bin/modes/Git state are restored BYTE_IDENTICAL
+to5532. No process from session98734 remains. Three read-only agent audits
+confirm that cached output still requires current premises, PendingBodyCall
+is selective rather than a complete semantic graph, and per-episode limits
+are distinct from independent requests. No production ordering change.
+Next identify the first actual warm-demand work blocker and its reached fact
+producer, not another unsupported scheduling or blanket-skip proposal.
+Warm pIfYKe/YRPkB2 diagnostics finish at ResultCallReturnType id127572,p3:
+60 entry+69 graph+3967 backing charges.160 physical D summary queries add
+1646 interval-union work (not guaranteed savings). D WIP reuses only an earlier
+same-call required full-frame witness for later physical actuals; scalar-only
+opaque/missing witnesses retain old checks. O/C remain intact. Original5532
+before gtQAzv confirms positive C/LLVM7 and3 exact-site BORROW negatives/noHIR.
+Old-source phase bx2VOn:8604checks7 expected failures expose3 scalar-type/bit
+faults and4 cached parent acceptance faults for incomplete/pending callee
+frames. Fix these existing owners before acceptance. No candidate build yet;
+Linux native remains5532 and source owners unchanged. Three lanes own source,
+phase faults and fixtures; root alone builds/integrates. See directive's
+physical-actual section for exact scopes and witnesses.
+Do not revive a general
 optimization, SoT-count or graph-policy track. Dependency independence grants
 no physical unique storage or cleanup authority: storage birth/reaching-def,
 runtime ABI, final exit-drop, Pool/Destroy and the separate aggregate-transfer

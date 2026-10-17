@@ -25,6 +25,391 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Current checkpoint and reached zero-argument result premise
+
+P1 safety priority before the remaining cost work: independent c143 review
+found required callee frame deletion bypassing backing_rows_current. Before
+receipt `.tmp/p0-required-frame-before.3q9mSz/` has8651 checks/4 failures:
+the caller remains current/precise after either its required source row is
+NULL or the entire callee vector is removed and count reset to0. Direct
+output_dependency already refuses both; the cached caller is the missing last
+consumer. Fix the existing validator, not the oracle or solver construction.
+The first guard candidate e64eb1a9 is REJECTED: WVVTnK has47 existing phase
+failures because unrequested callback/unsupported ordinals can legitimately
+have no frame. Typed requiredness alone does not claim an issued proof.
+Outside the solver, replay the existing summary entries that actually issued
+OUTPUT_BACKING_FRAME: exact decl/ID plus ordinal requires the same index's
+vector and row to exist. An issued producer cannot become unmaterialized by
+deleting its vector. Unissued NULL rows remain legal. Use existing store
+entries/identity, no new fact family, flag, schema or owner. Preserve the
+non-NULL incomplete/pending/epoch checks and all recursive construction. Root runs
+phase/strict summary/caps and broad gates, then sends the exact fix for review.
+Fix commit870b28e94c68d498f26dda9b5032045a8c1c3e9a, native85c5d569:
+4dyy4J passes8651/0 plus strict summary/paired-runtime/negative/caps;
+GxGwiQ passes MIR334/semantic3228/transpile1012,Map24/58 and4IR. Full fixed
+census jCNA6p completed721 failures/0 new, with BYTE_IDENTICAL restoration.
+Exact870 review found the additional withdrawal gap below; it is not approved.
+
+The870 review found a further P1 premise: a caller must remember the exact
+ready witness it used, not infer its past existence by scanning current
+OUTPUT_BACKING_FRAME markers. Marker/state/output-ready/unproved withdrawal
+must revoke caller permission even if the frame remains. Replace that global
+presence inference with the existing exact call/callee/ordinal relation
+vocabulary: physical D reuse records its earlier required ordinal in the
+caller frame's relation list; pending witnesses reuse their existing tuple,
+ready witnesses add the same sealed relation without setting pending.
+Existing final relation replay then validates COMPLETE/ready/producer/frame
+and all current identities; include unsupported withdrawal. No new semantic
+family, wire field, parent/child cache architecture or blanket typed-required
+scan. Preserve solver pending construction and old String/raw/callback paths.
+Scopes: A existing dependencies/store owners only; B adds the4 source-entry
+withdrawal faults to the existing witnessed fixture and preserves row/vector
+and recursive tuple faults; C's private Int fixtures remain a separate edit
+scope on this same rung. Root runs before/after phase, strict/broad/full-input
+and actual bootstrap; commit870's approval is still OPEN. The speculative
+marker-based guard is retired when the persistent relation takes ownership.
+
+Integrated39dc3ecb passes sed77P phase8834/0, strict summary,9FKcAT CLLVM
+`1\n4\n` and broad6YdHva, but full9Mm3ap is RED:793 failures (695work,
+98 recursive-relation),80 new/8 resolved vs721. All7 old required-return
+failures disappear (6 resolved,1 now work-limited); that does not excuse the
+new relation regression. No commit/push of this candidate.
+All98 failed relation keys were re-demanded cold on the same full4273-routine
+input in sKAFxn;98/98 report pending=1,count2,sealed1 (and analogous partial
+seals),0 without the mismatch. Source/build/bin/Git/modes restore byte-identically.
+Minimal mixed Select-ready -> Recur-pending phase6ENDAc has8836checks/1failure.
+The missing transition is existing callee_unfinished setting pending without
+reopening the earlier ready seal. Set sealed_pending_relation_count=0 whenever
+that producer introduces a pending relation, including an existing tuple.
+Do not weaken the validator to accept partial seals. The existing completion
+owner must replay all relations and atomically reseal the full count. Then
+repeat the minimal case, old withdrawal faults, broad/full/actual bootstrap.
+
+Final producer-reset candidate native385c2e3e passes D9iQew phase8849/0,
+strict summary including C/LLVM `1\n4\n`, exact Keep refusals, old controls
+and caps. Full QHnR78 checks all3188 keys/4273 unchanged routines:713 failures,
+all work4096, incomplete0;8 resolved/0 new vs jCNA6p721. The98 mixed-relation
+regressions disappear. Wall2:50.75, peak1249168KiB, full BYTE_IDENTICAL restore.
+This is narrow safety/regression evidence, not canonical admission. Broad
+FxGJu6 passes MIR334/semantic3228/transpile1012,Map24/58,4IR and strict/runtime
+summary. Actual bootstrap1TyubV still has18410errors/16warnings before gen0.
+Local checkpoint247b2c54944f27166f771667beb138ac6b578935 commits the3 production
+owners plus phase/gate/source controls (8files); exact247 review was requested.
+Exact247 independent static review completed without a blocking finding and
+judged the earlier P1 closed; supplied Linux receipts were not rerun and this
+does not approve bootstrap/install/CI or whole-chain closure.
+No budget, canonical Pergyra source or owner identity changed; no safety
+validator was weakened.
+
+Warm AEWNVY on this exact385c source restores BYTE_IDENTICAL. First failure is
+still request254 ResultCallReturnType127572,input3:4096=E69/G74/B3953,
+C3037/D443/O473, physical D queries0. ReadTypeFact103229 inputs0 and3 each
+charge533 (E1 plus266 in each of two epochs). Next observation is the exact
+binding growth after a read that demands those epochs; do not choose a
+matrix/cache/skip or remove a charge before resolving that Unknown. The
+existing dependencies/store owners and currentness consumers retain authority.
+
+### Reached physical Array element destination — bounded closure card
+
+- Objective: remove a false storage alias for a typed physical element read,
+  not its eager reads/effects, to unblock the same canonical bootstrap demand.
+- Evidence: exact247/native385c, unchanged4273-routine input. Warm nj3cQJ
+  preserves all4096 charges and restores BYTE_IDENTICAL. In both reached
+  ReadTypeFact inputs0/3, D on `i = cursor_out[0]` (node103291,binding103237)
+  grows destination0->8 after an earlier read, demanding a second266-node
+  epoch. The value is Int, not a retained array descriptor. Origin tracking
+  does not grow at that site; do not disable the general growth rule.
+- Priority: current typed identity and one owner, eager effect preservation,
+  currentness/negative behavior, then measured cost. Existing physical-value
+  publication and input claims own the type; the existing backing destination
+  traversal consumes it. Final output/currentness/loan consumers keep authority.
+- Proposed boundary, to verify against source before implementation: a physical
+  Array element with a current simple identifier receiver and literal/identifier
+  physical index has no backing destination. Require matching current Array
+  element/result types. No calls or composite receiver/index can be hidden by
+  this rule. All other projections keep the existing general dependency path.
+  C still visits both children; all node/child IDs, type and physical claims
+  must revoke cached permission if withdrawn. Slot, descriptor, nominal and
+  nested-array results are not physical values.
+- Forbidden: blanket physical subtree/call skipping, dropping eager C visits,
+  a new fact family/cache/schema, cross-origin mask reuse, changing convergence
+  or work charging, annotation/copy/manual-drop workarounds, cap/input changes.
+- Complete change set: A verifies and edits only existing backing_dependencies;
+  B adds direct typed/currentness and preserved descriptor cases to the existing
+  phase unit; C adds minimal loop positive plus effectful index/receiver negatives
+  to the existing source gate. Root owns navigation/builds/integration/Git.
+  All lanes share one objective, not independent implementation rungs.
+- Gates: old baseline demonstrates the false D bits/second epoch; narrow phase
+  and strict source/runtime gate, old alias/backward/recursive/4096-4097 controls,
+  broad Map/IR/native suites, same3188-key census (no new failure), same warm
+  trace, actual unchanged bootstrap, then original fixed-point/install/CI chain.
+  Physical-flag/type/child identity withdrawal, descriptor or Slot payload,
+  and hidden call effects are the falsifiers. If a typed premise cannot be
+  validated with existing publication/claims, stop this proposed edit and
+  record the missing owner fact rather than infer it from syntax.
+
+Before-source sTxN2w on247/native385c observes the loop positive admitted and
+C/LLVM output `7\n`; both effectful projection variants reject with exactly2
+BORROW/no-MIR diagnostics. The first phase attempt lFOLjn is NOT the intended
+falsifier:2 failures are typed prerequisites (reserved function name Read and
+an invalid borrowed nested-descriptor binding). Those fixtures were corrected
+without changing production or weakening safety. hQ9CrQ on the same385c now
+has8948checks/2failures, both the physical scalar local's false nonzero D bits;
+all other new premises/descriptor refusal/eager child/currentness checks pass.
+Production B4F95665 is26 added lines/587 noncomment LOC in the existing owner.
+Candidate narrow verification was started; no acceptance claim from the before run.
+The first build AgqJpb found a missing direct declaration include and is not
+a pass. Adding existing type_checker_internal.h fixes that compile dependency
+without changing the predicate. Final source855E24D8 is588/599 noncomment LOC;
+phase8A24BE82 and source gate84EE8C17 are frozen. Candidate3OYt3n nativeb92168a5
+passes phase8948/0, strict paired C/LLVM7, descriptor/effect negatives,
+old String/opaque/recursive/4096-4097 controls and caps. Broad BjuKNW also passes
+MIR334/semantic3228/transpile1012,Map24/58 and4IR. Same-input full census
+1egAQH completes all3188/4273:713 failures,0 new/0 resolved and0 mask changes
+among previously nonfailed keys vs247; incomplete0. Wall2:54.20,1249056KiB,
+BYTE_IDENTICAL restore. Warm GwNFEg proves the intended532-unit saving:
+ReadTypeFact inputs0/3 each533->267 and one epoch instead of two. The same
+request254 nevertheless remains work4096, now at ExprType129563,input2;
+E76/G74/B3946, C3069/D435/O442. Diagnostic source/build/bin restore exactly.
+Actual bootstrap C38avJ still fails before gen0 with18410errors/16warnings.
+No claim of canonical admission, installed driver or CI relief follows.
+Local checkpoint98549707b41d5c05612d27c46940fa2f00c1f480(parent247) commits
+the6 bounded production/test paths. Only the2 navigation files remain dirty.
+Exact985 independent static review completed without a blocking finding. It
+did not rerun supplied Linux receipts or approve bootstrap/install/CI. No
+known-red push.
+
+Next observation only (not permission for a producer/consumer edit): current
+nativeb921's first warm demand still spends3069 charges in C. Classify the
+charged binary/unary nodes by current result/operand type, leaf shape,
+operator identity and loan-seed participation. A possible bounded certificate
+is an ordinary built-in primitive operation over only current literal or
+identifier leaves, with no executable child, write or backing transfer. Its
+actual count and the existing typed owner's guarantee are Unknown. Prove
+those premises and measured savings before changing C; a physical result
+alone is insufficient. Calls, projections, Slot/nominal/function values,
+overloaded/state-changing operators and loan-seed paths cannot be inferred
+pure. Keep per-origin verdicts and general eager traversal; do not revive
+the rejected joint/matrix scheduling or delete charges for work still done.
+Root owns the one shared scratch build; A prepares observation only, B checks
+the reached typed operator contract read-only, C checks falsifiers read-only.
+
+Observation vAp6HM (no source admission): all26369 charged events are byte
+identical to GwNFEg, and the first request still fails at4096. Of817 binary/
+unary C visits,192 have physical leaf shapes; only1 has an existing built-in-
+only contract. The other191 require selected-operator evidence because the
+type checker can select overloads for canonical primitive types. This tiny
+elision is REJECTED; do not add a new operator contract for a one-unit claim.
+There are947 charged C control visits over450 unique routine/node pairs, not
+947 guaranteed savings. Existing input claims seal current syntax and typed
+facts but do not issue C execution order, root-internal stopping or loan
+context. Three read-only reviews reject treating claims DFS as that frontier
+or simply exempting repeated visits from work. No frontier implementation.
+
+Next observation remains behind the existing no-store/D owners: can an actual
+current no_store_graph with a no-output header make D destination aliases
+irrelevant in a formal backing frame while preserving C/O and eager effects?
+Do not use evaluate.graph_closed alone: its graph_required short circuit can
+coexist with inout parameters. Explicit current graph/header, private stores,
+local replacement, return/wrapper origins, pending relations and cache
+withdrawal must be resolved before choosing any production edit. Loan and
+declared-result D paths are not permission to generalize this proposal.
+
+The three no-store/D reviews found a concrete last consumer: LET/ASSIGN D
+validates zero-argument declared results and records result_callee_id/type for
+backing_rows_current. O/C alone do not replace that validation. Blanket D
+elision is REJECTED. No production edit was made for it.
+
+### Current implementation card — owner-produced C control navigation
+
+- Goal/order: remove the measured repeated control-wrapper preparation behind
+  the existing program-point owner, preserving semantic identity, source
+  currency, per-input admission and eager data effects before cost savings.
+- Evidence/input:985/nativeb921, unchanged4273 routines/3188 keys; first warm
+  demand254 hits4096 with947 C control charges for450 routine/node identities.
+  This count is an upper bound, not promised savings or admission.
+- Owner: the existing input-claims snapshot/program-point index produces an
+  ordered navigation projection from its current control edges. Claims keep
+  syntax/typed/reachability authority. No new semantic family or general cache.
+- Complete change set: one immutable heap-owned sequence with original root
+  ranges, IDs and readiness in the existing index; producer/currentness and
+  destruction; normal formal and declared-result root consumers. Non-control
+  expressions/statements remain under the existing C/D/O evaluators. Loan
+  analysis retains its distinct seed/consumer-stack traversal, not a fallback.
+- Meaning: expand only BLOCK, IF(condition/then/else), WHILE(condition/body),
+  FOR(range-start/range-end/iterable/body), WITH(body), DEFER(body); BREAK and
+  CONTINUE add no data operation. A non-control node is emitted unchanged and
+  its subtree is not flattened. An explicitly unreachable control ancestor
+  emits no descendant. Missing reachability is never guessed false.
+- Preserve original top-level root boundaries: complete=false stops the next
+  root, not siblings within a root; analysis_unsupported stops immediately.
+  Keep data-node epoch/identity dedup, origins, outputs, pending witnesses,
+  call-retention and result-currentness unchanged. No requested ordinal may
+  activate an unrequested ordinal or inherit another ordinal's permission.
+- Production must piggyback the already required snapshot, not rescan the
+  whole AST/body or replay every claim per origin. Count actual removed node
+  allocation/lookup/preparation; never leave the same C wrapper visit in place
+  and merely exempt its charge. A shared AST DAG, completed raw snapshot or
+  index-array relocation must not lose/reorder data nodes or grow storage
+  quadratically. A missing/stale projection fails closed; no old/new fallback.
+- Scopes: A owns existing production index/claims/header/destructor and the
+  two normal root consumers; B existing phase unit; C existing source gate
+  and bounded fixtures. Root alone owns builds, integration and Git.
+- Falsifiers: unreachable ancestor currency withdrawal; root-internal failure
+  versus next-root stop; unsupported callback tail; shared-node DAG and cycle;
+  nested loops/break/continue with binding growth; reverse input demand; loan
+  seed/escape site; declared-result return_seen; missing projection identity,
+  pointer/count/range/readiness. Existing D result edges must remain.
+- Gates/order: focused before/after phase, strict source C/LLVM runtime and
+  negatives, unchanged4096/4097, broad native/Map/IR, full3188-key census with
+  no newly failed key, same warm observer and actual bootstrap. If projection
+  construction has new unbounded work, changes verdict/effects or cannot be
+  validated in the existing owner, reject it rather than expand scope or caps.
+  No canonical/bootstrap/install/CI closure or known-red push is authorized by
+  a faster narrow receipt.
+
+First executable receipts: JVn7iw before has8956 checks/1 failure for7 actual
+control-only backing rows; all other new effects/output/epoch/currentness
+assertions pass. Harness's final descriptive grep does not match CHECK text,
+so its rc1 is not a separate product failure; raw phase exit1/that one CHECK
+is the observed falsifier. Complete source/build/bin/modes/Git restore is
+BYTE_IDENTICAL. Source-before1dwWNi on nativeb921 observes C/LLVM6 and4 for the
+two positives and exactly2 BORROW sites(21,19),(26,15), no MIR for the negative.
+First cut TCMhya native6f81944a passes phase9095/0, the strict/runtime/source
+gate, old4096/4097 and size caps. This is narrow evidence only. Production is
+6 existing files; final distribution claims599/index595/deps587/store584/
+fact265, without a new owner file or arbitrary line compression. Root's API
+review then found NULL snapshot input could write root_offsets[1] on a
+zero-root allocation. The producer now rejects NULL/mismatched body identity
+(claims460B980E); B extends missing-input and root/edge faults. Rebuild/retest
+that guarded source before the full canonical/warm/bootstrap boundary.
+
+Guarded rebuild fTIvda native31128358 compiles and stays inside caps. Phase9132
+has1 failure: the added body-wrapper test assumes a PublishedNode execution
+row exists after source typecheck, but that producer does not issue one.
+This is an invalid new test prerequisite, not proof of a production regression.
+B replaces it with the existing pending raw-owner fixture, which can legally
+publish body=false and statement-root=true before finalize. No silent test
+skip, reopened finalized store or production safety weakening is permitted.
+
+Final phase9DE20BF2 uses that legal pending owner fixture. ryiHsw guarded
+native31128358 passes9164/0 and the complete strict summary/runtime/negative/
+4096-4097/caps gate; broad0suNfM passes MIR334/semantic3228/transpile1012,
+Map24/58 and4IR. Full qpB5oL completes4273 routines/3188 keys:645 failures,
+68 resolved/0 newly failed/0 previously nonfailed mask changes against1egAQH.
+Every remaining refusal is work4096; incomplete0. Wall3:02.16,
+peak1249008KiB, source/build/bin/modes/Git restore BYTE_IDENTICAL. This is
+partial fixed-input cost relief, not canonical admission. Warm HVINn7 still
+fails request254 at4096: E104/G78/B3914, C2786/D581/O547. It reaches
+ScalarUtilityReturnType128691,input4,epoch2 rather than the old ExprType first
+pass; ReadTypeFact0/3 each267->211. Complete scratch restoration is
+BYTE_IDENTICAL. Actual u5q5uG bootstrap remains RED before gen0 with unchanged
+18410errors/16warnings. Separate-build ASan/UBSan VgzmuE passes9164/0 and the
+intentional UAF witness proves the detector is live; leak detection is OFF.
+Native SHA256 is
+`311283587cee1a8df22b58d9b55c3713604c31c50865782ad6b7c04bea3432d9`.
+Exact-checkpoint independent review follows; no known-red push.
+Self-host substitution is BLOCKED at the native admission boundary: the
+existing function-param backing owner still reaches work4096 on the fixed
+canonical input; its last consumers are cleanup admission and bootstrap gen0.
+No new SoT row or replacement count is claimed from this C prerequisite.
+
+Next measurement only: the reached frames now repeat in a second global
+pending pass. Existing pending relations retain call/callee/ordinal identity,
+not all actually consumed masks/output relations, and omit some ready edges.
+Record actual D/O/C read facets, output relation results and solver states
+without a new query or charge; compare the previous read with the next-pass
+snapshot. A frame-end snapshot cannot stand in for the earlier read value.
+Do not treat UNSEEN/COMPUTING as a current completed target or seal a pending
+equation from equal numeric masks. The existing stationary-group completion
+owner remains the last authority; declared-result frames have a separate
+completion path and are outside this possible computation-reuse boundary.
+No production replay shortcut is authorized before these unknowns are resolved.
+
+D main `c1435d62664144ddd60573bc05d51a35f1e97781` (parent67aee05af)
+commits the physical-actual repair below; it is local, not published. Production
+Linux overlay binary is dff3f869049933053ee794900b0f2ae7e40f8b84b20a45a77964c3479e6b4d2f;
+Linux Git remains39a and must not be reported as the D revision. Only navigation
+documents are dirty. c143 independent review is pending;67's namespace delta
+was approved without rerunning supplied receipts.
+
+Acceptance observed: m68ymx phase8639/0 and strict summary/paired runtime/
+negative controls; dozwQg native MIR334/semantic3228/transpile1012, Map24/58
+and4IR PASS. Full unchanged4273/3188 census oqClaW has721 failures (714work4096,
+7incomplete_required_return),41 resolved/0 new vs5532. Bootstrap NmTeXN still
+refuses before gen0 with18410 errors/16 warnings. Warm ditGpm removes every
+physical D query but request254 still reaches4096; this is not closure.
+All scratch overlays restore source/build/bin/modes/Git BYTE_IDENTICAL.
+
+The next falsifier is the common first completion loss for all7 incomplete
+keys, recorded by XSpgzN: MirExpressionGraphSequenceError id448163,input0,
+local initializer MirExpressionGraphSequenceEmpty(), call448169, D lane.
+MirExpressionGraphSequenceAppend id448557,input0 propagates that failure to
+the7 requested keys. Empty has zero arguments and a nominal result. No body
+loss appears before the outer D failure; the failing declared-result premise
+is not yet known. The source program is frozen; do not choose a copy, manual
+drop, annotation, solver exception or work allowance from this observation.
+
+- Objective/order: identify the exact missing producer/currentness premise;
+  preserve selected identity, complete body/eager effects and negative gates;
+  repair that owner and its existing consumers, then retry the full chain.
+- Owner/last consumer: existing typed declared-result publication ->
+  declared_result_closed -> backing destination/origin -> final backing_rows_current
+  and complete_return_relations -> canonical/bootstrap/installed-driver.
+- Current change set: scratch-only stage diagnostics in those reached owners;
+  phase/source lanes map the minimal behavioral falsifier. Production changes
+  are not decided until that observation. Root owns the only shared build,
+  WSL processes and Git. No parallel implementation track is opened.
+- Forbidden: name-only factory freshness, zero-argument automatic approval,
+  weakening return/currentness checks, treating dependency facts as unique
+  storage/drop authority, or enlarging4096/reducing the canonical input.
+- Gates: before/after minimal source+phase falsifiers, strict summary,
+  broad native/IR checks, unchanged3188-key census and real bootstrap; then
+  installed C/LLVM/gen2==gen3 and required same-SHA CI, all still OPEN.
+
+### Bounded private physical-array store premise
+
+After the P1 checkpoint, the same7 incomplete keys reach the exact closure
+Empty448147 -> ArenaEmpty92478 -> IdentityRowsUnknown91729. lStm9v confirms
+the first2 members are current/nonmutating and the third has mutable_output=1.
+Its5 local Array<Int> pushes have typed literal origins and no publication
+under the current String-only private-store predicate. No-store failure is
+observed before declared-result body evaluation, not a uniqueness verdict.
+Before dzPyo5 rejects the minimal nested Int factory and both Keep-before/
+Keep-after variants with BORROW/no HIR; no unsafe artifact was run.
+
+- Objective/order: issue the missing local-only store premise, preserve all
+  actual effects/currentness/retention refusals, then replay the full canonical
+  and real bootstrap. No new memory policy, owner family or layout.
+- Producer and query: existing function_param_publication_owner.c, same
+  private_array_push fact. Admit the existing String case unchanged or an
+  exact physical-scalar element through publication_physical_scalar. Join
+  Array element, actual payload, receiver, literal initializer and resolved
+  annotation types. Require the same exclusive, unescaped, nonpending local
+  storage and syntax/currentness evidence. A missing primitive-array premise
+  fails closed; do not infer exclusivity from a nominal result or type alone.
+  String-specific string_array_type premises/negative controls remain required
+  for String; generic typed value_type owns the new physical-array type.
+- Consumers: existing index claim replay -> private no-store graph -> backing
+  store/origin/consumer propagation -> declared-result closure -> final rows /
+  summary -> canonical/bootstrap. Preserve eager payload evaluation; a scalar
+  result does not excuse a nested retaining call. Do not approve Array<Slot>,
+  Array<nominal>, Array<Array<T>> or a type mismatch as physical. This premise
+  grants neither unique result fields nor physical storage birth/drop authority.
+- Retire only the reached String-only restriction for physical element types;
+  no compatibility read, fallback, new fact bit, descriptor field or raw pointer.
+- Scope A: that existing production owner only; stop/revisit this map if a new
+  producer or ownership dependency is required. B: existing phase unit, nested
+  Int factory plus stale type/ID/annotation/exclusivity/pending/escape faults.
+  C:3 source fixtures in the existing summary gate; root observes runtime
+  outputs before fixing the oracle. Root alone builds, executes and integrates.
+- Acceptance/falsifiers: minimal before/after, old String fault matrix,
+  new Int typed/private proof and final currentness; foreign Keep before/after
+  push and nested scalar retention stay analyze-only refusals. Then caps,
+  strict summary/paired CLLVM, broad native/IR, unchanged3188-key census and
+  actual bootstrap.4096/4097 and the full input are unchanged. Shared closure
+  evidence, not file/fixture counts, decides whether this slice is complete.
+
 ### Result-relation checkpoint and next measured blocker
 
 Source `72b21cad6adfdf1326bed2b57492472483fcea85` implements the complete
@@ -196,6 +581,112 @@ overflow/allocation failures, emit the request multiset and stop before MIR.
 Production ordering is not approved until measured on the unchanged full
 canonical input and reviewed for missing edges/cycles. The762 cold-key failures
 remain separately visible even if production ordering changes its result.
+
+Ordering experiment finished and is REJECTED, not an implementation plan:
+`.tmp/p0-ref-order.QdOiMH/` checks identical request multisets (3188 on the
+full input),4273 routines,23181 recorded edges and201 cyclic edges. Both
+orders fail with18410 errors/work4096; postorder adds one entry/evaluation
+(557/601 ->558/602). Independent4097 requests still pass and the single
+4096-closure negative still refuses. Production source/build/bin/modes/Git
+state restore BYTE_IDENTICAL to5532. The call-edge registry is selective,
+not an authorization to infer complete callee effects; cached COMPLETE rows
+still replay current output premises. Do not land scheduling, a generic
+cache, a higher cap or an unrelated prewarm. Next measurement must name the
+actual first warm-demand key and charged producer behind the existing owner.
+
+### Reached physical-actual destination relation (2026-10-17)
+
+Warm diagnostic `.tmp/p0-warm-cost.pIfYKe/` uses production declaration-order
+requests on the unchanged full4273-routine input, stopping before MIR at the
+first failed request:254th request `ResultCallReturnType` id127572,ordinal3.
+Its4096 charges are60 entry evaluations,69 no-store graph members and3967
+backing visits. ReadTypeFact id103229 spends533 each on input0:String,
+input1:Int,input2:Int,input3:inout Array<Int>. Additional observer YRPkB2
+finds160 physical-actual D summary queries whose nested interval union adds
+1646 work units. This is observed cost, not guaranteed savings. Both scratch
+runs restore source/build/bin/modes/Git BYTE_IDENTICAL to5532.
+
+- Objective/priority: remove only proven-empty physical actual -> call-result
+  backing joins, then retry full canonical/bootstrap; preserve identity,
+  currentness, eager effects, recursive pending relations and4096/4097.
+- Owner: current typed publication physical-scalar value classification
+  (Int/Long/Float/Double/Bool/Duration only), consumed by existing
+  backing_destination_value's non-declared-result AST_CALL argument join.
+  Its declared-result branch already uses the same premise. A physical
+  *returned value* is not an address/descriptor borrowed from that argument.
+- Change set/last consumers: after checked_argument, a current physical
+  actual contributes no destination bits, but its callee ordinal query may
+  also be the last whole-body validator. Therefore blanket declared-actual
+  skipping is NOT approved. An earlier nonphysical argument of the SAME
+  exact call must retain a required BACKING_FRAME relation (ready, or linked
+  by the existing pending relation until that full frame closes). Only then
+  may a later physical actual avoid its duplicate D query. With no such
+  witness, retain the original query, including scalar-only opaque factories.
+  Source audits approved this narrower witness/recursion condition.
+  Before phase bx2VOn confirms a reached last-consumer gap on67: cached parent
+  receipts accept an incomplete/pending required callee frame. Existing
+  backing_rows_current must reject non-unsupported unfinished REQUIRED parameter
+  frames outside the solver. Optional raw scalar-return draft frames are not
+  that admitted witness; their existing shape/claim/edge checks remain. Active
+  solver construction/pending sealing stays valid. A first overly broad guard
+  broke28 old raw-producer unit assertions; narrow it, not those test oracles.
+  Do not weaken the fault test or invent another witness owner to bypass this.
+  Record/replay its existing shared claim; keep O and C visitors intact,
+  including every eagerly evaluated actual, output stores, unsupported-call
+  preflight, zero-argument result closure and final backing_rows_current.
+  Keep the skip INSIDE the existing exact declared-callee branch; opaque/
+  builtin missing relations must still refuse. The reached scalar predicate
+  must join its issued boolean with publication_physical_scalar(value_type),
+  not trust a forged scalar bit on a String/Slot value. This is the same
+  publication owner and no additional snapshot or schema.
+  No formal-frame shortcut, new producer/cache/family or wire is needed.
+- Forbidden: global physical-place skipping, inferring physical from
+  return_backing_required=false, classifying String/Slot/nominal values as
+  scalar, removing nested consumers, granting output authority, shrinking
+  the canonical input or increasing a limit. Do not reopen the rejected
+  joint-matrix, ordering, origin-skip or general-cache proposals.
+- Scopes: A owns function_param_flow_backing_dependencies.c, the existing
+  scalar query in function_param_publication_routines.c and the reached final
+  currency check in function_param_flow_store_destroy.c, not a new track.
+  B owns existing readonly_map_query_fact_phase_unit.c's behavioral currentness
+  faults; C owns bounded source fixtures and their existing summary gate
+  registration. Root owns before probes, integrated build, caps, strict
+  summary/phase, full fixed census, broad native/IR, actual bootstrap,
+  review and Git. No other lane builds or touches shared WSL.
+- Falsifiers: physical call actual with separate inout output; nested
+  RetainThenLength/Keep remains a borrow refusal despite scalar return;
+  known opaque allocator-birth cases still refuse and pending full-body witnesses
+  must seal before any caller receipt becomes complete;
+  descriptor actual still propagates backing; scalar classification/type,
+  argument ID/binding/arity and selected callee drift revoke the cached
+  receipt. Keep recursive and high-ordinal outputs plus4096/4097 controls.
+  Record the full unchanged census outcome and actual bootstrap, not just
+  the removed query count. Installed-driver and same-SHA CI remain OPEN.
+
+Before probes gtQAzv confirm C/LLVM positive7 and3 exact-site BORROW refusals
+with no HIR; negatives are never executed. The initial proposed scalar-only
+MakeText(Int)->ForeignText wrapper is admitted by5532 (XfE2QK); do not invent
+a refusal oracle or call this new regression. It is not a freshness proof.
+The retained negative uses the existing unproved allocator-birth boundary.
+Old phase7SbuBN has8639 checks/9 expected failures:3 scalar type/bit faults,
+4 incomplete/pending required-callee currency faults and2 recursive-edge faults.
+Candidate7151433 fixes all9 but has the28 raw-producer failures above; it is
+not acceptance. Its CLI summary trial Iu3wV2 passes the current positive/
+negative,4096/4097 and C/LLVM controls; rebuild the narrowed guard and rerun.
+
+Integrated dff3f869 narrowed-guard receipt m68ymx passes8639/0 phase checks,
+strict summary including all4 new cases,599/header caps and4096/4097. Broad
+dozwQg passes native MIR334/semantic3228/transpile1012,Map24/58,phase8639
+and HIR/RIR/MIR/AIR. Full frozen census oqClaW:3188/3188,721 failed vs762,
+41 resolved,0 newly failed,incomplete0;714 work4096 and7 now reach required
+return-relation incompleteness instead of the earlier work limit. Internal
+138.558s,wall2:29.60,peak1247988KiB; BYTE_IDENTICAL restoration. Do not call
+these failures resolved or equate a nonfailed ALL mask with admission.
+Actual bootstrap NmTeXN is still RED before gen0,18410errors/16warnings.
+No current gen2/gen3/installed/CI evidence. Remote main39a and CI38860052641
+were checked live and remain unchanged/RED. This bounded repair is safe to
+checkpoint locally; do not publish it as green. Next inspect actual warm
+failure after the repair and the7 reached incomplete producer/consumer rows.
 
 ### Blocking red-team finding — selected source callable identity
 

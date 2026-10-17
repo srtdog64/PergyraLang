@@ -225,6 +225,12 @@ function_param_flow_program_point_index_destroy(
     }
     free(index->backing_frames);
     function_param_flow_claims_destroy(index->claims);
+    if (index->control_projection != NULL) {
+        free(index->control_projection->steps);
+        free(index->control_projection->root_offsets);
+        free(index->control_projection->root_claim_ordinals);
+        free(index->control_projection);
+    }
     memset(index, 0, sizeof(*index));
 }
 

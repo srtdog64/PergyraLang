@@ -179,7 +179,8 @@ static bool function_param_flow_claim_capture(SemanticContext *ctx,
     if (rows == NULL) { claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim allocation failed"); return false; }
     claims->rows = rows;
     row = &rows[claims->count++];
-    *row = (FunctionParamFlowIndexClaim){.node = node, .id = ast_node_stable_id(node), .shape = node->type, .child_count = children};
+    *row = (FunctionParamFlowIndexClaim){.node = node, .id = ast_node_stable_id(node), .shape = node->type,
+        .child_count = children, .control_step_ordinal = SIZE_MAX, .control_root_ordinal = SIZE_MAX};
     row->children = children == 0 ? NULL : calloc(children, sizeof(*row->children));
     row->child_ids = children == 0 ? NULL : calloc(children, sizeof(*row->child_ids));
     if (children != 0 && (row->children == NULL || row->child_ids == NULL)) {
@@ -270,28 +271,56 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
 {
     return function_param_flow_claim_capture(ctx, claims, node, true);
 }
-static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
-    FunctionParamFlowIndexClaims *claims, ASTNode *node, bool eager)
+static bool function_param_flow_control_expands(ASTNodeType shape)
 {
-    if (node == NULL) return true;
+    return shape == AST_BLOCK || shape == AST_IF_STMT || shape == AST_WHILE_LOOP ||
+        shape == AST_FOR_LOOP || shape == AST_WITH_STMT || shape == AST_DEFER_STMT;
+}
+static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
+    FunctionParamFlowIndexClaims *claims, ASTNode *node, bool eager,
+    FunctionParamFlowControlProjection *projection, size_t root, bool project, bool body_roots,
+    size_t *claim_out)
+{
+    if (node == NULL) { if (claim_out != NULL) *claim_out = SIZE_MAX; return !body_roots; }
     if (node->type == AST_TYPE || node->type == AST_CHANNEL_TYPE || node->type == AST_FUTURE_TYPE ||
         node->type == AST_FUNC_DECL || node->type == AST_TYPE_ALIAS || node->type == AST_EVENT_HANDLER_TYPE) eager = false;
     if (!function_param_flow_claim_capture(ctx, claims, node, eager)) return false;
     size_t at = 0;
     while (at < claims->count && claims->rows[at].node != node) at++;
-    if (at == claims->count || claims->rows[at].snapshot_active) {
+    if (at == claims->count || claims->rows[at].snapshot_active ||
+        (project && claims->rows[at].control_projection_active)) {
         claims->failed = true; return false;
     }
-    if (claims->rows[at].snapshot_complete &&
-        (!eager || claims->rows[at].snapshot_semantic_complete)) return true;
-    claims->rows[at].snapshot_active = true;
+    if (claim_out != NULL) *claim_out = at;
+    bool snapshot_done = claims->rows[at].snapshot_complete &&
+        (!eager || claims->rows[at].snapshot_semantic_complete);
+    bool project_needed = project && !claims->rows[at].control_projected;
+    if (snapshot_done && !project_needed && !body_roots) return true;
+    if (!snapshot_done) claims->rows[at].snapshot_active = true;
+    if (project_needed) {
+        if (projection == NULL || root >= projection->root_count ||
+            projection->projected_claim_count == SIZE_MAX) { claims->failed = true; return false; }
+        claims->rows[at].control_projection_active = true;
+        claims->rows[at].control_root_ordinal = root;
+        if (!function_param_flow_control_expands(node->type) &&
+            node->type != AST_BREAK && node->type != AST_CONTINUE) {
+            if (!function_param_flow_control_append(ctx, projection, node, at, root)) {
+                claims->failed = true; return false;
+            }
+            claims->rows[at].control_step_ordinal = projection->step_count - 1;
+        }
+    }
     bool descendants_eager = eager;
     if (eager && claims->rows[at].execution_present && !claims->rows[at].reachable) descendants_eager = false;
     if (node->type == AST_LAMBDA_EXPR || node->type == AST_ASYNC_BLOCK || node->type == AST_SPAWN_EXPR ||
         node->type == AST_EVENT_SUBSCRIBE || node->type == AST_EVENT_UNSUBSCRIBE || node->type == AST_EVENT_INVOKE)
         descendants_eager = false;
     size_t children = claims->rows[at].child_count;
-    for (size_t c = 0; c < children; c++) {
+    if (body_roots && (projection == NULL || node->type != AST_BLOCK ||
+        children != projection->root_count)) { claims->failed = true; return false; }
+    bool visit_children = !snapshot_done || body_roots ||
+        (project_needed && descendants_eager && function_param_flow_control_expands(node->type));
+    for (size_t c = 0; c < children && visit_children; c++) {
         ASTNode *child = claims->rows[at].children[c];
         if (child == NULL && (node->type == AST_ARRAY_LITERAL || node->type == AST_TUPLE_LITERAL ||
             node->type == AST_SET_LITERAL || node->type == AST_MAP_LITERAL ||
@@ -299,7 +328,9 @@ static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
             (node->type == AST_EVENT_HANDLER_TYPE && c != 0))) {
             claims->failed = true; return false;
         }
-        bool child_eager = descendants_eager;
+        /* The function body wrapper is not a C root; each statement starts
+         * with its own publication/currentness, regardless of body metadata. */
+        bool child_eager = body_roots || descendants_eager;
         if (node->type == AST_MEMBER_ACCESS && c == 0 &&
             claims->rows[at].unit_enum_selection) child_eager = false;
         if (node->type == AST_CALL && c > ast_call_arg_count(node)) child_eager = false;
@@ -307,28 +338,81 @@ static bool function_param_flow_claim_snapshot(SemanticContext *ctx,
             node->type == AST_CONTEXT_ACCESS) child_eager = false;
         if (node->type == AST_MATCH_CASE && (c == 0 || c >= 3) &&
             ast_match_case_semantic_subject_family(node) != PGY_MATCH_SUBJECT_UNKNOWN) child_eager = false;
-        if (!function_param_flow_claim_snapshot(ctx, claims, child, child_eager)) {
+        bool child_project = body_roots || (project_needed && descendants_eager &&
+            function_param_flow_control_expands(node->type) &&
+            (node->type != AST_WITH_STMT || c == 1));
+        if (body_roots) projection->root_offsets[c] = projection->step_count;
+        if (body_roots && (child == NULL || ast_node_stable_id(child) == 0)) { claims->failed = true; return false; }
+        size_t child_at = SIZE_MAX;
+        if ((!snapshot_done || child_project) && !function_param_flow_claim_snapshot(ctx, claims, child,
+            child_eager, projection, body_roots ? c : root, child_project, false, &child_at)) {
             claims->failed = true; return false;
         }
+        if (child_project && child != NULL && (child_at == SIZE_MAX || child_at >= claims->count)) {
+            claims->failed = true; return false;
+        }
+        if (project_needed && child_project && child != NULL) {
+            if (claims->rows[at].control_outgoing_count == SIZE_MAX ||
+                claims->rows[child_at].control_incoming_count == SIZE_MAX) { claims->failed = true; return false; }
+            claims->rows[at].control_outgoing_count++;
+            claims->rows[child_at].control_incoming_count++;
+        }
+        if (body_roots) {
+            if (claims->rows[child_at].control_incoming_count == SIZE_MAX) { claims->failed = true; return false; }
+            claims->rows[child_at].control_incoming_count++;
+            projection->root_claim_ordinals[c] = child_at;
+        }
+        if (body_roots) projection->root_offsets[c + 1] = projection->step_count;
     }
-    claims->rows[at].snapshot_active = false;
-    claims->rows[at].snapshot_complete = true;
-    claims->rows[at].snapshot_semantic_complete |= eager;
+    if (!snapshot_done) {
+        claims->rows[at].snapshot_active = false;
+        claims->rows[at].snapshot_complete = true;
+        claims->rows[at].snapshot_semantic_complete |= eager;
+    }
+    if (project_needed) {
+        claims->rows[at].control_projection_active = false;
+        claims->rows[at].control_projected = true;
+        projection->projected_claim_count++;
+    }
     return true;
 }
 bool function_param_flow_index_claims_snapshot(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *node)
 {
-    if (ctx == NULL || index == NULL) return false;
+    if (ctx == NULL || index == NULL || node == NULL || node != index->dependency_body || ast_node_stable_id(node) != index->dependency_body_id) return false;
     if (index->claims == NULL) index->claims = calloc(1, sizeof(*index->claims));
-    return index->claims != NULL && function_param_flow_claim_snapshot(ctx, index->claims, node, true);
+    if (index->control_projection == NULL) index->control_projection = calloc(1, sizeof(*index->control_projection));
+    if (index->claims == NULL || index->control_projection == NULL ||
+        index->dependency_root_count == SIZE_MAX ||
+        index->dependency_root_count + 1 > SIZE_MAX / sizeof(size_t)) return false;
+    FunctionParamFlowControlProjection *projection = index->control_projection;
+    if (projection->ready || projection->root_offsets != NULL) return false;
+    projection->root_count = index->dependency_root_count;
+    projection->root_offsets = calloc(projection->root_count + 1, sizeof(*projection->root_offsets));
+    projection->root_claim_ordinals = projection->root_count == 0 ? NULL :
+        calloc(projection->root_count, sizeof(*projection->root_claim_ordinals));
+    if (projection->root_offsets == NULL ||
+        (projection->root_count != 0 && projection->root_claim_ordinals == NULL)) return false;
+    bool body_roots = node != NULL && node->type == AST_BLOCK;
+    size_t body_claim = SIZE_MAX;
+    bool ok = function_param_flow_claim_snapshot(ctx, index->claims, node, true,
+        projection, 0, !body_roots, body_roots, &body_claim);
+    if (!body_roots && ok) {
+        if (body_claim == SIZE_MAX || index->claims->rows[body_claim].control_incoming_count == SIZE_MAX) return false;
+        index->claims->rows[body_claim].control_incoming_count++;
+        projection->root_claim_ordinals[0] = body_claim;
+        projection->root_offsets[1] = projection->step_count;
+    }
+    projection->ready = ok;
+    return ok;
 }
 bool function_param_flow_syntax_claims_snapshot(SemanticContext *ctx,
     FunctionParamFlowIndexClaims **claims, ASTNode *node)
 {
     if (ctx == NULL || claims == NULL || node == NULL) return false;
     if (*claims == NULL) *claims = calloc(1, sizeof(**claims));
-    return *claims != NULL && function_param_flow_claim_snapshot(ctx, *claims, node, false);
+    return *claims != NULL && function_param_flow_claim_snapshot(ctx, *claims, node, false,
+        NULL, SIZE_MAX, false, false, NULL);
 }
 static bool function_param_flow_claims_current(const SemanticContext *ctx,
     const FunctionParamFlowIndexClaims *claims, bool semantic)
@@ -436,10 +520,72 @@ bool function_param_flow_index_claims_current(SemanticContext *ctx,
     const FunctionParamFlowProgramPointIndex *index)
 {
     if (index == NULL) return false;
+    const FunctionParamFlowIndexClaims *claims = index->claims;
+    const FunctionParamFlowControlProjection *projection = index->control_projection;
+    ASTNode *const *roots = index->dependency_roots;
+    const uint32_t *root_ids = index->dependency_root_ids;
+    size_t root_count = index->dependency_root_count;
     for (size_t i = 0; i < index->local_count; i++)
         if (index->local_definitions[i]->type != AST_LET_DECL || ast_let_is_alias(index->local_definitions[i]) ||
             ast_node_stable_id(index->local_definitions[i]) != index->local_ids[i]) return false;
-    return function_param_flow_claims_current(ctx, index->claims, true);
+    if (!function_param_flow_claims_current(ctx, claims, true)) return false;
+    if (projection == NULL || !projection->ready || projection->root_count != root_count ||
+        (root_count != 0 && (roots == NULL || root_ids == NULL)) ||
+        projection->root_offsets == NULL || projection->root_offsets[0] != 0 ||
+        projection->root_offsets[projection->root_count] != projection->step_count ||
+        projection->step_count > projection->step_capacity ||
+        (projection->step_count != 0 && projection->steps == NULL) ||
+        (projection->root_count != 0 && projection->root_claim_ordinals == NULL) ||
+        projection->step_count > claims->count) return false;
+    size_t projected = 0, emitted = 0, incoming = 0, outgoing = 0;
+    for (size_t c = 0; c < claims->count; c++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[c];
+        if (row->control_projection_active) return false;
+        if (!row->control_projected) {
+            if (row->control_step_ordinal != SIZE_MAX || row->control_root_ordinal != SIZE_MAX ||
+                row->control_incoming_count != 0 || row->control_outgoing_count != 0) return false;
+            continue;
+        }
+        if (!row->snapshot_complete || row->control_root_ordinal >= projection->root_count ||
+            row->control_incoming_count == 0 ||
+            incoming > SIZE_MAX - row->control_incoming_count ||
+            outgoing > SIZE_MAX - row->control_outgoing_count) return false;
+        incoming += row->control_incoming_count;
+        outgoing += row->control_outgoing_count;
+        size_t expected_children = 0;
+        if (function_param_flow_control_expands(row->shape) &&
+            !(row->execution_present && !row->reachable))
+            for (size_t child = 0; child < row->child_count; child++)
+                if (row->children[child] != NULL && (row->shape != AST_WITH_STMT || child == 1))
+                    expected_children++;
+        if (row->control_outgoing_count != expected_children) return false;
+        projected++;
+        if (row->control_step_ordinal == SIZE_MAX) {
+            if (!function_param_flow_control_expands(row->shape) &&
+                row->shape != AST_BREAK && row->shape != AST_CONTINUE) return false;
+        } else {
+            if (function_param_flow_control_expands(row->shape) || row->shape == AST_BREAK ||
+                row->shape == AST_CONTINUE || row->control_step_ordinal >= projection->step_count) return false;
+            const FunctionParamFlowControlStep *step = &projection->steps[row->control_step_ordinal];
+            if (step->node != row->node || step->syntax_id != row->id ||
+                step->claim_ordinal != c || step->root_ordinal != row->control_root_ordinal) return false;
+            emitted++;
+        }
+    }
+    if (projected != projection->projected_claim_count || emitted != projection->step_count ||
+        outgoing > SIZE_MAX - projection->root_count ||
+        incoming != outgoing + projection->root_count) return false;
+    for (size_t r = 0; r < projection->root_count; r++) {
+        size_t root_claim = projection->root_claim_ordinals[r];
+        if (root_claim >= claims->count || !claims->rows[root_claim].control_projected ||
+            claims->rows[root_claim].node != roots[r] ||
+            claims->rows[root_claim].id != root_ids[r]) return false;
+        if (projection->root_offsets[r] > projection->root_offsets[r + 1] ||
+            projection->root_offsets[r + 1] > projection->step_count) return false;
+        for (size_t s = projection->root_offsets[r]; s < projection->root_offsets[r + 1]; s++)
+            if (projection->steps[s].root_ordinal != r) return false;
+    }
+    return true;
 }
 
 /* Each synchronous validation owns its reached declaration set. Shared DAG

@@ -1,0 +1,32 @@
+func Count(ref left: String, ref right: String) -> Option<Int> {
+    var total: Int = 0;
+    var outer: Int = 0;
+    while outer < 2 {
+        var inner: Int = 0;
+        while inner < 3 {
+            if inner == 0 {
+                total = total + StringLength(left);
+                inner = inner + 1;
+                continue;
+            }
+            if inner == 1 {
+                total = total + StringLength(right);
+                break;
+            }
+            inner = inner + 1;
+        }
+        outer = outer + 1;
+    }
+    return Some(total);
+}
+
+func Probe(ref left: String, ref right: String) -> Option<Int> {
+    let observed = Count(left, right);
+    return observed;
+}
+
+func Main() -> Void {
+    let left = Concat("a", "");
+    let right = Concat("bc", "");
+    Log(UnwrapOption(Probe(left, right)));
+}

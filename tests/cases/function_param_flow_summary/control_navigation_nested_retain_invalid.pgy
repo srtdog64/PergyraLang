@@ -1,0 +1,27 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func Retain(ref text: String) -> Bool {
+    var outer: Int = 0;
+    while outer < 2 {
+        var inner: Int = 0;
+        while inner < 2 {
+            if inner == 0 {
+                inner = inner + 1;
+                continue;
+            }
+            Keep(text);
+            break;
+        }
+        outer = outer + 1;
+    }
+    return true;
+}
+
+func Probe(ref text: String) -> Bool {
+    return Retain(text);
+}
+
+func Main() -> Void {
+    let text = Concat("heap", "");
+    Log(Probe(text));
+}

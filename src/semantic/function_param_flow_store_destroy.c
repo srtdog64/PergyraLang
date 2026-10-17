@@ -157,8 +157,7 @@ bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *s
     }
     /* Only heap-owned roots, claims and frames survive recursive index growth. */
     FunctionParamFlowBackingFact *fact = index->declared_result;
-    ASTNode **roots = index->dependency_roots;
-    size_t count = index->dependency_root_count;
+    FunctionParamFlowControlProjection *projection = index->control_projection;
     if (fact->declared_result_type != result_type || fact->input_id != 0 || fact->input_ordinal != SIZE_MAX ||
         fact->origin_count != 1 || fact->origin_words != 1 || fact->destination_count != 1 || fact->destination_words != 1)
         return false;
@@ -174,7 +173,7 @@ bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *s
         do {
             if (fact->epoch == SIZE_MAX) { function_param_flow_fail(store, decl, "declared result iteration identity overflow"); fact->complete = false; break; }
             fact->epoch++; fact->changed = false; state.result_return_seen = false;
-            for (size_t r = 0; r < count && fact->complete; r++) backing_consumers(&state, roots[r]);
+            function_param_flow_backing_control_roots(&state, projection);
             if (!state.result_return_seen) fact->complete = false;
         } while (fact->changed && fact->complete);
         fact->building = false;
