@@ -3,24 +3,24 @@
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — typed Option candidate, array-return boundary next
+## Active self-host context — permanent literal Array element source connection
 
-- Pre-commit HEAD main `2a4bade4e77e7ea3eb89ed2ea8a4c931269c32b1`; implementation
-  base `573dec99fbdb6980ce0fbfd030a202f2f274be07` is independently approved.
-  New Option source/issuer/actual-role edits are bounded independently approved;
-  final extra no-cleanup-grant gates pass. This card precedes the source commit.
-  Preserve `docs/01_intent_first_design.md`, another lane's change.
+- Implementation checkpoint main `fb54aed078a62f586bf1ac6bedae13e32fdc139f`
+  commits the independently approved Option source/issuer/actual-role repair.
+  This navigation card and next plan are documentation-only descendants.
+  No production WIP at this update. Preserve `docs/01_intent_first_design.md`,
+  another lane's sole unrelated dirty file after this navigation commit.
 - Active whole-chain plan:
-  `docs/agent_work_directives/indexed_string_option_payload_closure_2026-10-18.md`.
-  A definition selection/birth, B same result owner/Option proof, C phase/MIR
-  falsifiers; root snapshot/actual joins, all commands/WSL/process/Git. One
+  `docs/agent_work_directives/indexed_string_literal_array_element_closure_2026-10-18.md`.
+  A existing array-return closure, B same indexed String source/Option inputs,
+  C phase/MIR falsifiers; root snapshot/actual joins, commands/WSL/process/Git. One
   chain, no worktree/branch. WSL is `Ubuntu-E-WSL -u root`, not the default.
 - Approved baseline native SHA256
   `9dddcd887cbc5c1e783ad4ee20c6439b027d2054b858ee5def2da1a3ec5f351f`.
-  Candidate native6a03162d26ae8bbccd8f2f36d0ac18b8fe59b0aedfe01ad4fcd66081845ab06c
+  Current native6a03162d26ae8bbccd8f2f36d0ac18b8fe59b0aedfe01ad4fcd66081845ab06c
   in `/root/pgy-nonowner-20261018.5t1W96`. Option uses the same immutable
   String source family; raw UNKNOWN and cleanup rights are unchanged.
-- Candidate eks1ct passes size/build, phase12251/0 and MIR526/0. dzQDql passes
+- Approved eks1ct passes size/build, phase12251/0 and MIR526/0. dzQDql passes
   unchanged strict C/LLVM; registered strict N2ANBX also passes.
   KTj5rq admits3 positives and preserves mixed borrowed refusal5:24/MIR0.
   Runtime43lZmR confirms3 safe C/LLVM stdout pairs/stderr0. Broad tiz7k8 passes
@@ -47,7 +47,11 @@ evidence override this card. Resume this card, not the archive below.
   `Some(codes[i])`. Prior450:87 passes. Inspect the exact SemanticDiagnosticCodes
   producer and element storage/cleanup/return chain before choosing a repair;
   do not make arbitrary Array<String> elements independent. No source copies
-  or manual drops. Cascades are not distinct defects; no publication yet.
+  or manual drops. HrTPcQ on6a refuses minimal literal-return and mixed/heap
+  controls at10:30/MIR0; both are analyze-only. Existing literal typed origins
+  and original all-return events must supply the permanence facet; a borrowed
+  element enum or source0 alone is insufficient. See the new complete plan.
+  Cascades are not distinct defects. fb54 is committed locally, not pushed.
 - Prior approved evidence: oLnQ0O phase12112/MIR511, strict OyNcZg unchanged
   C/LLVM, broader Uqib4J6currency/semantic3230/transpile1012/AIR156/Map24+58/
   4IRflow and separate ASan/UBSan phase/MIR (leaks OFF). OaeVgN105 source
