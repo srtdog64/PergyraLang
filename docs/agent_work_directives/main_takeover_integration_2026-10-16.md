@@ -27,6 +27,58 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ### Current element-retention integration boundary
 
+#### Reached full-input boundary after named-String integration
+
+- Objective/order: preserve typed String payload provenance through a field
+  read such as `nodes[i].type_name`, without treating unrelated local
+  Array<String> storage or a parameter mode as ownership evidence. Current
+  full-main entrypoint is `src/self_hosted/codegen/main.pgy`; the first real
+  refusal is `CodegenAstTextTypedArenaFromNodes`/185:44 at ArrayPush of that
+  field. The former135:13 named-result use has only narrow proof so far;
+  semantic success and canonical admission remain unestablished.
+- Current chain: typed member/index selection and parameter publication ->
+  existing flow input claims/backing dependencies -> indexed String source ->
+  actual retaining-call consumer -> returned arena/caller cleanup. The
+  indexed owner has no admitted aggregate-field source here and conservatively
+  matches a local String-array candidate. Map the exact producer, carried path,
+  mutation/rebind invalidation, all consumers and actual caller retirement
+  before choosing the repair. A current field identity alone is not a storage
+  or payload-lifetime certificate.
+- No fallback: do not map a field/parameter root to source0 solely from its
+  syntax, assume value mode owns its fields, restore the removed member-ID
+  exclusive grant, or insert Clone/drop/annotations into the canonical input.
+  Do not weaken the old String retention or negative gates.
+- Unknowns to resolve before production edits: the existing typed place fact
+  that can own nested member/index lineage; the lifetime/return dependency
+  needed when the source is an aggregate parameter; and whether the actual
+  caller's release is blocked while a returned payload remains live.
+  A surveys existing typed/indexed publication, B the reached flow/caller
+  lifetime chain, C bounded positive and analyze-only negative falsifiers in
+  scratch. These are read-only investigations, not successor implementation
+  tracks. Root alone builds, instruments and owns the shared integration gate.
+- Acceptance/falsification: admit the actual unchanged compiler projection;
+  reject a retained field borrowed from an owned String array when its owner
+  is released, including aliases and mutation/rebinding. Preserve original
+  phase/full strict, C/LLVM parity, ASan/UBSan, both frozen/current full inputs,
+  then bootstrap/gen2==gen3/installed driver and exact published-SHA CI.
+- Receipt: native01d64ac6, source61a+22 verified current code/test overlays:
+  phase10995/0, original/full registered strict, safe C/LLVM66/66, MIR370/0,
+  semantic3230/0, transpile1012/0, AIR156/0, Map24/58, all four IR flow gates
+  PASS (HIR/RIR first needed their fresh-snapshot test binaries built).
+  Named currency B0poXd separately invokes every requested old fault group.
+  ASan/UBSan tmCfU7 passes10995/0 with a live UAF witness, leaks OFF.
+  Full fixed/current jnk0G1 remains RED/MIR0,27.97/28.16s,
+  1367584/1365684KiB. 18435 errors are cascading BORROW diagnostics, not an
+  independent defect count. Diagnostic-only `azyrRX`
+  retains original semantics and identifies the first refusal above; the two
+  own-field retire errors occur after it. No bootstrap/CI closure or push.
+- Bounded String source checkpoint is now
+  `b53e9dd0568fe5a2ca7b6d7087231a1dfee6aea6`, local/unpublished. Corrected
+  broad runner Df1vHx exits0 with the newly registered positive/negative
+  fixtures. The ASan phase uses204840KiB with leaks OFF. Documentation follows
+  in its own checkpoint; subsequent field-provenance investigation is not part
+  of this bounded green proof.
+
 #### Broad integration failures before canonical continuation
 
 - Current integration native is
@@ -73,6 +125,50 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   grant independence or element cleanup rights. B owns existing flow store,
   internal declarations and frame/control-root factoring; root owns existing
   indexed/LET/deferred consumers. C supplies paired and currentness falsifiers.
+- Integration checkpoint: `61a92442f684c4d3c2c23653461bf4cb665d2a45` on
+  main, local/unpublished. Nativec807 broadA8cuX0 is fully green at this bounded
+  boundary: original strict including4097/4096 controls, MIR370/0,
+  semantic3230/0, transpile1012/0, Map24C/LLVM positives+58 negatives and4IR.
+  ASan/UBSan0aE5mf:10942/0, intentional UAF witness live, leak detection OFF,
+  202572KiB. These are not canonical/bootstrap/installed/CI acceptance.
+- Next dependency's independent edit scopes: B existing flow store/internal/
+  consumer-navigation frame proof and ready getter; A existing indexed source,
+  typed publication/LET initializer receipt and final shallow-retention
+  obligation; C existing behavioral/currentness fixtures. Root alone connects
+  the final consumer at the existing program-success boundary and runs builds,
+  Git and integration. Prefer carrying the obligation in its existing typed
+  publication row over a second store; no Symbol pointer survives its scope.
+  Assignment revokes initializer provenance monotonically. No ready proof means
+  the original refusal, not source0. Shared gate: named independent String
+  positive and retained owned-element negative, exact currentness tampering,
+  original full strict/broad and unchanged full canonical, then real bootstrap
+  and installed C/LLVM. Only one active rung, no new language or owner track.
+- Reached public-fact last consumer: semantic parameter summaries publish only
+  the existing mask, not the native internal descriptor/element-unproved bits.
+  HIR/RIR/MIR carry that mask; AIR copies MIR rows and the planner consumes its
+  certificate. Root confirmed the certificate hashes only the AIR row count,
+  not the copied row contents. Objective: seal all five existing public row
+  fields in current owner order and reject unknown mask bits at MIR validation,
+  AIR copy admission and AIR validation. Existing owners/identities stay; no
+  reanalysis, new fact family or assertion of AIR-owned native lifetime proof.
+  Falsifiers: after successful verification mutate each copied row field and
+  require certificate refusal; unknown-bit MIR/AIR input must refuse before use.
+  Root alone owns these existing certificate/validator/test files, disjoint
+  from A/B/C's source provenance chain. Run the original AIR unit and MIR/AIR
+  flow gates, then include this same last-consumer delta in the shared gate.
+- AIR pre-fix executable falsifier:147 pass/8 fail on the exact61a production
+  sources with only the new tests. After sealing all five fields and adding
+  mask guards:156/0 (including incomplete-storage guards), original MIR370/0,
+  and AIR flow gate PASS. Native internal descriptor/element bits still do
+  not cross that public mask boundary. The ready String-result consumer also
+  rejects unknown mask bits; this does not add a new semantic flag.
+- Final String-source obligation consumer is the success return of the existing
+  `type_check_program`, after its other finalizers, graph/currentness checks,
+  scope retirement and capability sealing but before semantic success/MIR.
+  Do not insert its error-free ready query into the earlier Array finalizer:
+  doing so would short-circuit other existing error collectors and couple
+  unrelated private stores. Root replaces the old success return with this
+  required final predicate; there is no second acceptance path.
 
 - Frozen native01286244423dd67cbd85a36eed806d2328466cf34fe6f9b34593fc9119660e97:
   safe C/LLVM runtime64/64, phase10747/0 and paired348/unique349 decisions

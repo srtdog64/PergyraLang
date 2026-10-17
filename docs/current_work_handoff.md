@@ -5,21 +5,32 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — canonical String provenance, then bootstrap/CI
 
-- Source: main `cd5afc0a3e832e3a92370272b86a0ccbc0611797` plus the
-  checked deferred lifetime/host identity integration. Only main exists.
-  Root alone owns WSL/build/process/Git. The next local checkpoint preserves
-  this integration; it is not permission for a known-red push.
+- Compiler source checkpoint: main
+  `b53e9dd0568fe5a2ca7b6d7087231a1dfee6aea6`, local/unpublished, followed only
+  by this documentation checkpoint. Named String source/retention is checked
+  in. Parent61a preserved deferred lifetime/host identity;80e seals AIR public
+  summary rows and rejects unknown mask bits. Only main exists.
+  Root alone owns WSL/build/process/Git. No known-red push.
 - Existing whole-chain plan and edit boundaries are the first section of
   `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
   No manual Clone/drop or extra user annotation is the inference repair.
 - Linux `/root/pgy-main-20261016` is HEAD39a plus identified overlays, NOT
-  D HEAD. Current native SHA256 is
+  D HEAD. Its last bounded native SHA256 is
   `c807569c165d9795470c5517ed9c1a15f8110ce564e406ead8fac85ea3efd912`.
   Finalize-once110300: cap PASS, phase10942/0. BroadA8cuX0: original full
   strict PASS, MIR370/0, semantic3230/0, transpile1012/0, read-only Map24
   positive C/LLVM runs +58 analyze-only negatives +phase PASS, four IR-stage
   param-flow gates PASS. No unsafe input was executed. Earlier dc974625
   runtimeAB5FJp separately passed64/64 safe C/LLVM cases.
+- Current integration build root is the non-Git source snapshot
+  `/root/pgy-exact-main-20261017.LlEIOb`, created by Git archive61a. Its current
+  native is `01d64ac628f620d9b50b79316c61621a10bc134a65b5caf1472e9e5281c7d5e0`:
+  phase10995/0, full registered strict, safe C/LLVM66/66, MIR370/0,
+  semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR gates PASS.
+  All22 current code/test differences from61a match the D tree byte-for-byte.
+  AIR copied-row tamper tests first reproduced8 failures before80e repair.
+  Fresh-snapshot HIR/RIR binaries initially were missing; they were built and
+  their gates then passed. Full broad-runner03 Df1vHx replay exits0.
 - Cost repair: the same original4097 demand input previously exceeded30s
   (diagnostic45.86s timeout); finalization repeated all prior call proofs for
   each consumer. Reuse existing verdicts only inside its synchronous checked
@@ -30,21 +41,41 @@ evidence override this card. Resume this card, not the archive below.
   actuals and Array RETURN now use the same current lifetime consumers.
   Defer remains routine-exit LIFO. Multi-part registration/exit SSA identity
   is native-checked; installed JSON/driver evidence is still OPEN.
-- Next reached canonical failure: named String call-result backing has not
-  reached the indexed source owner. Fixed full input remains4273 routines/
+- Fixed full input remains4273 routines/
  3188 keys at `.tmp/p0-fixed-canonical.nbPIex/.../codegen/main.pgy` in Linux.
-  Last full native012 run rmhqsL is RED/MIR0,19.54s/1286648KiB; its first
-  primary diagnostic is `SemanticConstructedTypeNameFactFrom`/135:13.
-  Latest c9 minimal named-String positive still refuses BORROW12:21/MIR0;
-  its owned-element retention negative refuses BORROW18:10/MIR0. Both are
-  unregistered falsifiers, not passing tests. UNKNOWN never means source0.
-- B prepared the bounded existing frame/summary ready getter and control-root
-  factoring; root owns indexed initializer lineage and final retention
-  consumers; C owns paired/currentness tests. Begin only from the now-green
-  integration, preserve no-grant/negative gates and the original full input.
-  Five field-cleanup routines/ten direct Pass2 obligations remain OPEN.
-- Current sanitizer, full canonical, real gen2==gen3 and installed-driver
-  checks have not yet passed. Published main remains39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe;
+  Latest fixed-input nativec807 run czmENy is RED/MIR0,30.78s/1287988KiB;
+  actual current full-main input on exact61a nativeecc is also RED/MIR0,
+  30.29s/1286612KiB (j1gSmt). Both first primary diagnostics are
+  `SemanticConstructedTypeNameFactFrom`/135:13. The actual main differs from
+  the frozen input in4 already-committed retention-mask Pergyra files; require
+  both inputs, not a silent replacement of the fixed falsifier.
+  Latest01d full fixed/current jnk0G1 is still RED/MIR0,27.97/28.16s,
+  1367584/1365684KiB. Diagnostic-onlyazyrRX retains original semantics and
+  identifies the first error: `CodegenAstTextTypedArenaFromNodes`/185:44,
+  `ArrayPush(atom_table,nodes[i].type_name)`. The18435 BORROW errors are mostly
+  cascades, not an independent defect count. Two own-field retire errors
+  follow the first error; five field-cleanup obligations remain OPEN.
+- Named-String dependency is narrowly green, not whole-chain CLOSED. B owns
+  the bounded frame/summary getter, A indexed initializer lineage/retention,
+  root the program-success consumer, C the unchanged plus new behavioral
+  tests. Only provisional UNKNOWN named-result lineage receives obligations;
+  old known-source contracts remain. Assignment revokes provisional lineage,
+  including earlier AST uses that a loop backedge could repeat. The last
+  consumer is the existing program-success return, before MIR, not the earlier
+  Array finalizer. Issuance replaces only an existing reached unsafe local
+  String-array candidate, including builtins and ordinary named callees.
+  Rn0IfM phase10995/0 restores the initial8 regression failures unchanged.
+  New positive runs equally on C/LLVM; both registered negatives refuse with
+  exact BORROW diagnostics/MIR0. Named-currencyB0poXd separately runs all old
+  requested fault groups (31/29/76/21 checks and deferred39/39, all0 failures).
+- Next read-only chain survey: A typed nested field/index publication, B
+  flow/caller payload lifetime and last retirement, C scratch falsifiers.
+  Objective/unknowns are at the top of the same work directive. No production
+  edits or field/parameter-to-source0 guesses before resolving that map.
+- Current sanitizertmCfU7 passes10995/0 with ASan/UBSan, intentional UAF
+  witness live, leak detection OFF,204840KiB. Full canonical, real
+  gen2==gen3 and installed-driver checks have not yet passed.
+  Published main remains39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe;
   last observed CI38860052641 RED. Required bootstrap/install jobs must execute
   and required CI must be green on the same published SHA. No V1/all-SoT/
   whole-language memory-safety or GUI-readiness claim is justified.
