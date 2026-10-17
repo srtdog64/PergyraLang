@@ -3359,6 +3359,214 @@ cleanup:
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+/* Reading an Int element cannot make the local scalar alias the Array's
+ * inout storage, while both array and index remain eager, current children. */
+static void checked_physical_array_element_destination(void)
+{
+    const char *source =
+        "func ReadCursorFact(ref label:String,inout cursor_out:Array<Int>)->String{"
+        "let index:Int=0;let named:Int=cursor_out[index];"
+        "let literal:Int=cursor_out[0];ArraySet(cursor_out,0,named+literal);"
+        "return label;}"
+        "func Probe(ref label:String)->Option<Int>{var cursor:Array<Int> = [1];"
+        "let observed=ReadCursorFact(label,cursor);"
+        "return Some(StringLength(observed)+cursor[0]);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+
+    ASTNode *read = ast_program_statement(program, 0);
+    ASTNode *probe = ast_program_statement(program, 1);
+    ASTNode *named_local = ast_block_statement(ast_func_body(read), 1);
+    ASTNode *literal_local = ast_block_statement(ast_func_body(read), 2);
+    ASTNode *named = ast_let_initializer(named_local);
+    ASTNode *literal = ast_let_initializer(literal_local);
+    ASTNode *receiver = named != NULL && named->type == AST_ARRAY_ACCESS ?
+        ast_array_access_array(named) : NULL;
+    ASTNode *named_index = named != NULL && named->type == AST_ARRAY_ACCESS ?
+        ast_array_access_index(named) : NULL;
+    ASTNode *literal_index = literal != NULL && literal->type == AST_ARRAY_ACCESS ?
+        ast_array_access_index(literal) : NULL;
+    ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(probe), 1));
+    CHECK(named != NULL && named->type == AST_ARRAY_ACCESS &&
+        literal != NULL && literal->type == AST_ARRAY_ACCESS &&
+        receiver != NULL && named_index != NULL && literal_index != NULL &&
+        call != NULL && call->type == AST_CALL);
+    if (named == NULL || named->type != AST_ARRAY_ACCESS ||
+        literal == NULL || literal->type != AST_ARRAY_ACCESS || receiver == NULL ||
+        named_index == NULL || literal_index == NULL || call == NULL || call->type != AST_CALL)
+        goto cleanup;
+    CHECK(semantic_param_publication_value_is_physical_scalar(ctx, named) &&
+        semantic_param_publication_value_is_physical_scalar(ctx, literal) &&
+        semantic_param_publication_value_is_physical_scalar(ctx, named_index) &&
+        semantic_param_publication_value_is_physical_scalar(ctx, literal_index));
+
+    unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+    CHECK(baseline != SLOT_PARAM_SUMMARY_ALL);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    CHECK(store != NULL && !store->failed && function_param_flow_backing_rows_current(store, probe));
+    if (store == NULL || store->failed) goto cleanup;
+    SlotFunctionLookup lookup = {ctx, program};
+    bool depends = true;
+    CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 1, &depends) && !depends);
+    FunctionParamFlowProgramPointIndex *point = NULL;
+    bool indexed = function_param_flow_program_point_index_build(store, read, &point);
+    CHECK(indexed);
+    if (!indexed || point == NULL || point->backing_frames == NULL ||
+        point->backing_frame_count == 0 || point->backing_frames[0] == NULL) goto cleanup;
+    size_t point_position = (size_t)(point - store->program_point_indexes);
+    FunctionParamFlowBackingFact *frame = point->backing_frames[0];
+    CHECK(frame->complete && !frame->pending && frame->epoch != 0);
+    for (unsigned which = 0; which < 2; which++) {
+        ASTNode *local = which == 0 ? named_local : literal_local;
+        FunctionParamFlowBackingBinding *binding = NULL;
+        for (size_t b = 0; b < frame->binding_count; b++)
+            if (frame->bindings[b].binding == ast_node_stable_id(local)) binding = &frame->bindings[b];
+        CHECK(binding != NULL && binding->local && binding->destinations != NULL &&
+            binding->destinations[0] == 0);
+    }
+
+    PublishedNode *element_value = published_node_for(ctx, named);
+    PublishedNode *receiver_value = published_node_for(ctx, receiver);
+    PublishedNode *index_value = published_node_for(ctx, named_index);
+    CHECK(element_value != NULL && receiver_value != NULL && index_value != NULL);
+    if (element_value == NULL || receiver_value == NULL || index_value == NULL) goto cleanup;
+    PublishedNode saved_element = *element_value, saved_receiver = *receiver_value;
+    PublishedNode saved_index = *index_value;
+    uint32_t named_id = ast_node_stable_id(named);
+    uint32_t receiver_id = ast_node_stable_id(receiver);
+    uint32_t index_id = ast_node_stable_id(named_index);
+    uint32_t literal_index_id = ast_node_stable_id(literal_index);
+    for (unsigned fault = 0; fault < 9; fault++) {
+        if (fault == 0) element_value->physical_scalar = false;
+        if (fault == 1) element_value->value_type = TYPE_STRING;
+        if (fault == 2) element_value->value_present = false;
+        if (fault == 3) receiver->stable_id++;
+        if (fault == 4) named_index->stable_id++;
+        if (fault == 5) receiver_value->value_type = TYPE_STRING;
+        if (fault == 6) index_value->value_type = TYPE_STRING;
+        if (fault == 7) index_value->physical_scalar = false;
+        if (fault == 8) named->stable_id++;
+        CHECK(!function_param_flow_index_claims_current(ctx,
+            &store->program_point_indexes[point_position]));
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+        *element_value = saved_element; *receiver_value = saved_receiver;
+        *index_value = saved_index;
+        named->stable_id = named_id; receiver->stable_id = receiver_id;
+        named_index->stable_id = index_id;
+        CHECK(function_param_flow_index_claims_current(ctx,
+            &store->program_point_indexes[point_position]));
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+    literal_index->stable_id++;
+    CHECK(!function_param_flow_index_claims_current(ctx,
+        &store->program_point_indexes[point_position]));
+    CHECK(!function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+    literal_index->stable_id = literal_index_id;
+    CHECK(function_param_flow_index_claims_current(ctx,
+        &store->program_point_indexes[point_position]));
+    CHECK(function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+/* A descriptor read from a borrowed nested Array cannot be promoted to a
+ * new owned local by the physical Int element rule. */
+static void checked_descriptor_array_element_escape(void)
+{
+    Lexer *lexer = lexer_create(
+        "func ReadDescriptorFact(ref label:String,ref rows:Array<Array<Int>>)->String{"
+        "let inner:Array<Int> = rows[0];return label;}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    if (parsed) CHECK(!type_check_program(program, ctx) &&
+        context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+/* Destination narrowing cannot turn child evaluation into dead code. A
+ * receiver call and an index call must each still be visited by C. */
+static void checked_array_element_call_children_eager(void)
+{
+    const char *source =
+        "func Index(ref label:String)->Int{return StringLength(label)-StringLength(label);}"
+        "func Rows(ref label:String)->Array<Int>{return [StringLength(label)];}"
+        "func ReadIndex(ref label:String,inout rows:Array<Int>)->String{"
+        "let value:Int=rows[Index(label)];ArraySet(rows,0,value);return label;}"
+        "func ReadReceiver(ref label:String,inout rows:Array<Int>)->String{"
+        "let value:Int=Rows(label)[0];ArraySet(rows,0,value);return label;}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    CHECK(store != NULL);
+    if (store == NULL) goto cleanup;
+    for (unsigned which = 0; which < 2; which++) {
+        ASTNode *decl = ast_program_statement(program, 2 + which);
+        ASTNode *element = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
+        ASTNode *child = element != NULL && element->type == AST_ARRAY_ACCESS ?
+            (which == 0 ? ast_array_access_index(element) : ast_array_access_array(element)) : NULL;
+        CHECK(element != NULL && element->type == AST_ARRAY_ACCESS &&
+            child != NULL && child->type == AST_CALL &&
+            semantic_param_publication_value_is_physical_scalar(ctx, element));
+        if (element == NULL || element->type != AST_ARRAY_ACCESS ||
+            child == NULL || child->type != AST_CALL) continue;
+        unsigned summary = function_param_flow_summary_for_param(ctx, decl, 0);
+        CHECK(summary != SLOT_PARAM_SUMMARY_ALL);
+        FunctionParamFlowProgramPointIndex *point = NULL;
+        bool indexed = function_param_flow_program_point_index_build(store, decl, &point);
+        CHECK(indexed);
+        if (!indexed || point == NULL || point->backing_frames == NULL ||
+            point->backing_frame_count == 0 || point->backing_frames[0] == NULL) continue;
+        size_t point_position = (size_t)(point - store->program_point_indexes);
+        FunctionParamFlowBackingFact *frame = point->backing_frames[0];
+        CHECK(frame->complete && !frame->pending && frame->epoch != 0 &&
+            function_param_flow_backing_rows_current(store, decl));
+        bool visited = false;
+        for (size_t n = 0; n < frame->node_count; n++)
+            if (frame->nodes[n].node == child &&
+                frame->nodes[n].visit_epoch == frame->epoch) visited = true;
+        CHECK(visited);
+        ASTNode *target = ast_call_callee(child);
+        CHECK(target != NULL);
+        if (target == NULL) continue;
+        uint32_t target_id = ast_node_stable_id(target);
+        target->stable_id++;
+        CHECK(!function_param_flow_index_claims_current(ctx,
+            &store->program_point_indexes[point_position]));
+        CHECK(!function_param_flow_backing_rows_current(store, decl));
+        target->stable_id = target_id;
+        CHECK(function_param_flow_index_claims_current(ctx,
+            &store->program_point_indexes[point_position]));
+        CHECK(function_param_flow_backing_rows_current(store, decl));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == summary);
+    }
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_declared_physical_result_currency(void)
 {
     const char *source =
@@ -7515,6 +7723,9 @@ int main(void)
     checked_slot_physical_scalar_forgery();
     checked_witnessed_physical_recursive_alias_currency();
     checked_mixed_ready_pending_physical_alias();
+    checked_physical_array_element_destination();
+    checked_descriptor_array_element_escape();
+    checked_array_element_call_children_eager();
     checked_declared_physical_result_currency();
     checked_declared_array_result_currency();
     checked_declared_result_unclosed();

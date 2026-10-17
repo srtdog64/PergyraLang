@@ -1,0 +1,23 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func RetainingRows(ref label: String) -> Array<Int> {
+    Keep(label);
+    return [7];
+}
+
+func Probe(ref label: String) -> Option<Int> {
+    let i: Int = 0;
+    let total: Int = 0;
+    let turn: Int = 0;
+    while turn < 2 {
+        i = RetainingRows(label)[0];
+        total = total + i;
+        turn = turn + 1;
+    }
+    return Some(total + StringLength(label));
+}
+
+func Main() -> Void {
+    let label = Concat("heap", "");
+    Log(UnwrapOption(Probe(label)));
+}

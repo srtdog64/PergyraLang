@@ -113,6 +113,9 @@ paired = (
     ("physical_call_alias_nested_retain_invalid", False),
     ("physical_call_alias_scalar_opaque_invalid", False),
     ("physical_call_alias_descriptor_retain_invalid", False),
+    ("physical_array_element_loop_valid", True),
+    ("physical_array_element_effectful_index_invalid", False),
+    ("physical_array_element_effectful_receiver_invalid", False),
     ("stdlib_prefix_retaining_user_invalid", False),
     ("stdlib_prefix_opaque_invalid", False),
     ("stdlib_prefix_shadow_invalid", False),
@@ -343,6 +346,17 @@ for name, valid in paired:
                 == retained_sites[name] for row in errors):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
+        array_element_effect_sites = {
+            "physical_array_element_effectful_index_invalid": {(14, 33), (23, 28)},
+            "physical_array_element_effectful_receiver_invalid": {(13, 27), (22, 28)},
+        }
+        if name in array_element_effect_sites and (
+                checked.stdout or len(errors) != 2 or
+                any(row.get("stage") != "semantic" for row in errors) or
+                {(row.get("location", {}).get("line"), row.get("location", {}).get("column"))
+                 for row in errors} != array_element_effect_sites[name]):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"physical Array element negative {name} lost its two call effects")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 
 # These calls must still refuse at the unsafe nested actual or alias-forwarding
@@ -568,6 +582,7 @@ for name, expected in (
     ("stdlib_trim_result_return_valid", "heap text\n"),
     ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
     ("physical_call_alias_inout_valid", "7\n"),
+    ("physical_array_element_loop_valid", "7\n"),
     ("zeroarg_private_int_nested_valid", "1\n4\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),

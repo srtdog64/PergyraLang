@@ -3,6 +3,7 @@
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "typed_map_query_fact_owner.h"
+#include "type_checker_internal.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,6 +61,32 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
      * closed store graph and eager consumer traversal, including call inputs. */
     if (state->checking_declared_result &&
         semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) return;
+    if (value->type == AST_ARRAY_ACCESS && !published.meta &&
+        semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) {
+        ASTNode *array = ast_array_access_array(value), *index = ast_array_access_index(value);
+        if (array != NULL && array->type == AST_IDENTIFIER && index != NULL &&
+            (index->type == AST_NUMBER || index->type == AST_IDENTIFIER) &&
+            ast_node_stable_id(array) != 0 && ast_node_stable_id(index) != 0 &&
+            semantic_param_publication_binding(state->store->ctx, array) != 0 &&
+            (index->type != AST_IDENTIFIER ||
+                semantic_param_publication_binding(state->store->ctx, index) != 0)) {
+            SemanticPublishedValue receiver = semantic_param_publication_value(state->store->ctx, array);
+            SemanticPublishedValue offset = semantic_param_publication_value(state->store->ctx, index);
+            const Type *element = receiver.ok && !receiver.meta &&
+                type_is_constructed_named(receiver.type, "Array") ? type_get_constructed_arg(receiver.type, 0) : NULL;
+            if (element != NULL && publication_physical_scalar(element) &&
+                type_equals(element, published.type) && offset.ok && !offset.meta &&
+                type_equals(offset.type, TYPE_INT) &&
+                semantic_param_publication_value_is_physical_scalar(state->store->ctx, index)) {
+                /* The element is a value, not an alias to the Array descriptor. */
+                if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, value) ||
+                    !function_param_flow_claim_record(state->store->ctx, state->fact->claims, array) ||
+                    !function_param_flow_claim_record(state->store->ctx, state->fact->claims, index))
+                    state->fact->complete = false;
+                return;
+            }
+        }
+    }
     if (published.meta || (!state->checking_declared_result && published.origin_ready && value->type != AST_IDENTIFIER &&
         value->type != AST_MEMBER_ACCESS && value->type != AST_ARRAY_ACCESS)) return;
     if (semantic_param_publication_checked_local_owner_constructor(state->store->ctx, value)) return;
