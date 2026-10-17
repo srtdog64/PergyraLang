@@ -411,8 +411,37 @@ getter to succeed on a leaf/CALL/CAST. Production is unchanged. Corrected
 phase5C0FC28F checks every derived carrier and explicitly refuses the getter's
 nonwrapper inputs. Final07NHAw passes9350/0 and the complete strict source/
 runtime/negative/4096-4097/caps gate on the same native. Broad9HzQAP passes
-MIR334/semantic3228/transpile1012,Map24/58 and4IR. Full LCaaSV is running;
-warm/sanitizer/actual-bootstrap and exact-checkpoint review remain required.
+MIR334/semantic3228/transpile1012,Map24/58 and4IR. Local checkpoint
+cd5efe4d291ea6a5527bfc1a4159cfc0ef0215b6 preserves all12 scoped paths.
+Full LCaaSV completes all3188 keys/4273 unchanged routines:645->622 failures,
+23 resolved/0 newly failed/0 previously nonfailed mask changes,incomplete0.
+All remaining refusals are work4096. Wall3:22.96, peak1249824KiB, full
+source/build/bin/modes/Git restoration BYTE_IDENTICAL. Prior qpB5oL was
+3:02.16/1249008KiB: do not claim a wall-time improvement.
+
+Warm mhYGZh on exact e7 remains request254 ResultCallReturnType127572,input3
+at4096, but reaches OptionCallReturnType129252,input0,epoch2. Charges
+E133/G78/C2534/D690/O661, entries492/evaluations581. ReadTypeFact0/3 now each
+execute210 in each of two global passes,422 total. This is newly reached
+pending replay, not the earlier physical-element local-growth bug returning.
+Full scratch restoration is BYTE_IDENTICAL. Actual bootstrap86juHM remains
+RED before gen0:18410errors/16warnings, unchanged. Separate-build ASan/UBSan
+NZlqlb passes9350/0 with a live UAF witness and leak detection OFF. Exact cd5
+independent static review found no blocking defect; it did not execute the
+Linux receipts or approve canonical/install/CI/whole-language memory safety.
+No known-red push. Native e7 is still a C prerequisite, not Pergyra substitution.
+
+Whole remaining-set guard before the next edit: of622 failed cold keys,
+23 have evaluations>entries,578 equal and21 fewer. Local backing epochs are
+UNMEASURED, so this is not proof every equal-count key is single-pass, but
+it rejects a whole-scope plan based solely on ReadTypeFact's second global
+pass. Read-only worklist review also finds missing reader identities, zero
+reads, O-cache ancestry, callee/output/ready/result-edge facets and persistent
+consumer ordering. Existing epoch stamps/pending tuples cannot justify
+selective replay. No production worklist/ledger/cache/matrix is authorized.
+Observe the actual E/G/D/O/C and local epochs of an equal-count failed cold
+demand on the same full semantic program before choosing a new producer
+contract. Preserve all original charges, order,4096 and fail-closed outcomes.
 
 D main `c1435d62664144ddd60573bc05d51a35f1e97781` (parent67aee05af)
 commits the physical-actual repair below; it is local, not published. Production
