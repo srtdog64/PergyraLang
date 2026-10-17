@@ -1,0 +1,18 @@
+func SharedOptional() -> Option<String> {
+    return Some("shared");
+}
+
+func Main() -> Void {
+    let rows: Array<String> = [];
+    let candidate: Option<String> = SharedOptional();
+    if IsSome(candidate) {
+        let first: String = UnwrapOption(candidate);
+        let second: String = UnwrapOption(candidate);
+        let liveRisk: Array<String> = [Concat("he", "ap")];
+        ArrayPush(rows, first);
+        ArrayPush(rows, second);
+        Log(rows[0]);
+        Log(rows[1]);
+        Log(liveRisk[0]);
+    }
+}

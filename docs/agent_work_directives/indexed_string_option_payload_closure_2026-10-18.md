@@ -1,6 +1,7 @@
 # Indexed String: typed Option payload source connection
 
-Status: IMPLEMENTATION CANDIDATE, not canonical/CI closure.
+Status: BOUNDED IMPLEMENTATION COMPLETE, independently APPROVED;
+not canonical/CI closure.
 Base: main `573dec99fbdb6980ce0fbfd030a202f2f274be07`, approved all-definitions
 native repair. Navigation only; no new language contract or top-level fact.
 
@@ -46,6 +47,10 @@ no unsafe execution. The full fixed/current program remains18435 errors,
    actual live-owner retention obligation. Ordinary candidates/pure reads
    acquire no new obligation. Raw UNKNOWN and old initializer currency stay
    unchanged. Assignment recipes retain all prior restrictions.
+   The existing exact-empty-risk exclusion is selected first in pending,
+   before the new Option obligation; it does not grant String source0. Its
+   ready failure cannot retry another owner. This preserves old synchronous
+   nonowner-reader controls instead of forcing independence for pure reads.
 2. Extend the existing result-input derivation, not a global source default.
    The selected UnwrapOption must carry its original checked Option<String>
    ->String arg0-dependent/nonretaining relation, exact target/stdlib route,
@@ -68,11 +73,30 @@ no unsafe execution. The full fixed/current program remains18435 errors,
    existing algorithms; immutable local aliases additionally require original
    birth and all-use evidence. Unknown/mixed/cyclic/unsupported returns fail
    closed. No empty backing-origin matrix substitutes for this payload proof.
+   The original bare None issuer is a meta constant: type_checker_expr records
+   Option<UNKNOWN> with meta=true and binding0. Replay that exact typed facet;
+   do not require ordinary-value !meta or an origin_ready String certificate.
+   Some payloads remain ordinary non-meta String values. No backing-owner
+   change is needed to model None; its original meta leaf already owns that.
 5. Carry exact Some/Unwrap ABI relation facets and their argument/result type
    names with original typed claims/header/child identity. Validate full
    semantic currency before MOVE; syntax-only generic claims alone do not
    replay these semantic facets after teardown. Ready current may not demand,
    append inputs or reconstruct a publication store.
+   Scratch xtlWWR on native3a833b confirms an original issuer gap:
+   Some(Substring(...)) has relation=true and typed String input, but the
+   child CALL has no AST result-type receipt. The existing ready relation
+   correctly refuses it, so no-store's original index records mutable=true.
+   Complete that exact checked child CALL receipt at the existing pending
+   checked-result-relation issuer, before claims/no-store publication. Verify
+   the child original typed call and exact Type; an existing conflicting
+   receipt must fail. Current queries never recreate a missing receipt,
+   reset mutable-output evidence, or skip the closed store graph. Add missing
+   and wrong child-type receipt falsifiers and preserve restoration/no-growth.
+   The existing relation issuer/current pair is moved together from the full
+   routines TU into function_param_publication_result_relation.c to preserve
+   its responsibility and the unchanged size cap. This is a physical split
+   of the same publication owner, not an additional fact family or fallback.
 6. All new proof inputs live in the existing IndexedStringResultInputs union;
    original claims/call/header dependencies join the existing deduplicated
    snapshot MOVE. All fallible validation/allocation precedes MOVE. Failure
@@ -84,6 +108,11 @@ no unsafe execution. The full fixed/current program remains18435 errors,
    births join the validation-local at-most-once write identity; pure queries
    and repeated admitted call+actual pairs remain reusable. Shared source
    births use the first stable derived ordinal, never two write permissions.
+   An admitted definition's target and RHS are definition roles, not bare
+   evaluation roots. The snapshot validates both directions of the exact
+   definition tuple; MIR skips only their redundant bare-evaluation query,
+   preserving all recursive value/use checks. Standalone evaluation still
+   rejects the same protected source node.
 
 ## Independent edit scopes, one implementation chain
 
@@ -100,7 +129,8 @@ no unsafe execution. The full fixed/current program remains18435 errors,
   and registration. Fresh/literal/None positive, mixed borrowed negative,
   original-fact withdrawal/restoration and actual role/write mutations.
 - Root: interface coordination, snapshot MOVE/capacity/derived write ordinals,
-  actual consumer joins and Makefile, all commands/build/WSL/process/Git,
+  actual consumer joins, existing checked-relation issuer and Makefile,
+  all commands/build/WSL/process/Git,
   exact-source integration, independent review and final CI. No overlapping
   source writes; three lanes do not own independent implementation tracks.
 
@@ -128,3 +158,38 @@ Completion of this native prerequisite is not self-host substitution, every
 SoT-row closure, whole-language safety, or a green CI claim. If a new reached
 dependency changes this ownership decision, update this map before extending
 the patch; do not add a local exemption at the next diagnostic.
+
+## Observed candidate receipts
+
+- Candidate6a03162d26ae8bbccd8f2f36d0ac18b8fe59b0aedfe01ad4fcd66081845ab06c:
+  eks1ct size/build, phase12251/0, MIR526/0; unchanged strict dzQDql PASS.
+- KTj5rq admits3 real-risk Option positives; mixed remains BORROW5:24/MIR0.
+  Runtime43lZmR: all3 C/LLVM outputs equal, stderr0, no unsafe execution.
+- Broad tiz7k8: six currency controls, semantic3230, transpile1012, AIR156,
+  Map24 positives/58 analysis-only negatives, four IR-flow gates, separate
+  ASan/UBSan phase12251/MIR526 PASS. Leak detection remains OFF.
+- Full fixed/current zyPWRq still RED18435 errors/16 warnings/MIR0, not
+  candidate acceptance. Observer1PR0kz passes the reached450:87 boundary and
+  first refuses SemanticDiagnosticCodeFromMessage506:30, Some(codes[i]).
+  This next exact array producer/element return obligation is not permission
+  to accept borrowed payloads generally.
+
+Independent review approves this bounded source connection on native6a0316,
+not the full canonical program. Frozen body v1 source manifest02DA0955...118
+paths/evidence7E518D12...152items and supplemental retention v4 manifest
+F2E3C563...56items were independently rehashed. The initial suggestion that
+multiple Some/shallow uses necessarily consume cleanup authority was withdrawn:
+source0 is not an ownership or deep-release grant. Do not add a linear Some
+restriction on that premise. The six base/candidate analysis controls and
+three C/LLVM emitted artifact pairs are retained, without unsafe execution.
+The failed supplemental v1 UNC export is not evidence; v4 is the final supplement.
+
+Strengthening after review: `option_payload_unwrap_no_deep_drop_invalid`
+preserves the actual Unwrap -> shallow push -> deep-drop refusal at11:31/MIR0.
+The phase control also checks that derived String source0 leaves its receiver's
+element ownership and return-elements-owned certificate ungranted. iQEzRz
+passes phase12252/0 and MIR526/0, same native6a0316. Final strict c6qosH and
+ASan/UBSan qP1qLG pass after that strengthening; nBnGGz confirms115 exact
+source pairs. D1 automatic cleanup/Option payload deep
+destruction remains OPEN and must recheck copy/move/cleanup authority plus
+the shared-payload cases when connected; this source proof does not supply it.

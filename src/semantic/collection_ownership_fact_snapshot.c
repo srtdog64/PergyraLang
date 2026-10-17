@@ -105,6 +105,10 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         for (size_t input = 0; input <= r->assignment_count; input++) {
             const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
                 &r->assignments[input - 1].rhs.named_inputs;
+            size_t writes = 0;
+            if (!semantic_indexed_string_result_inputs_source_write_count(inputs, &writes) ||
+                writes > SIZE_MAX - string_write_count) return false;
+            string_write_count += writes;
             for (size_t d = 0; d < inputs->dependency_count; d++) {
                 const IndexedStringFieldDependency *dep = &inputs->dependencies[d];
                 matches = 0;

@@ -97,10 +97,10 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
         if (!mir_instruction_executable_roots(routine, inst, roots, NULL, NULL)) return false;
         for (size_t r = 0; r < 2; r++) {
             if (roots[r] == NULL) continue;
-            /* ASSIGN exposes its target as a root too, but its exact target
-             * role was admitted above; it is not a standalone evaluation. */
-            bool target_role = definition && roots[r] == place;
-            if (!target_role && (inst->kind != MIR_INST_RETURN || roots[r] != inst->expr0) &&
+            /* A definition exposes target/RHS roots whose exact roles were
+             * admitted above; neither is a standalone evaluation. */
+            bool definition_role = definition && (roots[r] == place || roots[r] == value);
+            if (!definition_role && (inst->kind != MIR_INST_RETURN || roots[r] != inst->expr0) &&
                 !semantic_collection_effect_snapshot_source_evaluation(
                     mir->collection_effect_snapshot, routine->source_syntax_id, roots[r])) return false;
             if (!hir_collection_source_expression_current(

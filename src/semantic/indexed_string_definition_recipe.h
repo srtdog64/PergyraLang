@@ -48,7 +48,7 @@ typedef struct IndexedStringDefinitionRecipe {
     IndexedStringFieldCall *use_calls;
     size_t use_call_count, use_call_capacity, sealed_use_calls;
     FunctionParamFlowIndexClaims *claims; /* original owner, borrowed until MOVE */
-    bool selected, prepared, validating_current;
+    bool option_unwrap_candidate, selected, prepared, validating_current;
 } IndexedStringDefinitionRecipe;
 
 IndexedStringDefinitionRecord semantic_indexed_string_definition_record_birth(
@@ -63,6 +63,8 @@ IndexedStringDefinitionRecord semantic_indexed_string_definition_record_use(
 bool semantic_indexed_string_definition_protect_use(SemanticContext *ctx,
     const ASTNode *value, const ASTNode *sink, size_t actual_ordinal,
     bool require_assignment);
+bool semantic_indexed_string_definition_protect_option_use(SemanticContext *ctx,
+    const ASTNode *value, const ASTNode *sink, size_t actual_ordinal);
 bool semantic_indexed_string_definition_selected(SemanticContext *ctx,
     const ASTNode *value);
 bool semantic_indexed_string_definition_source_current(SemanticContext *ctx,
@@ -71,6 +73,9 @@ bool indexed_string_definition_claims_roles(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe, bool prepare);
 bool indexed_string_definition_classify_uses(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe, bool *protected_use);
+bool indexed_string_definition_source_raw_current(SemanticContext *ctx,
+    const IndexedStringDefinitionRecipe *recipe,
+    const IndexedStringDefinitionSource *source);
 bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prepare);
 bool semantic_indexed_string_definition_syntax_current(
     const IndexedStringDefinitionRecipe *recipe);

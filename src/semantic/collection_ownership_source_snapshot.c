@@ -41,7 +41,16 @@ bool semantic_collection_effect_snapshot_source_use(const PgyCollectionEffectSna
     for (size_t n = 0; n < s->string_definition_count; n++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[n];
         if (r == NULL || r->use_count != r->sealed_uses || r->use_count > r->use_capacity ||
-            (r->use_count != 0 && r->uses == NULL)) return false;
+            (r->use_count != 0 && r->uses == NULL) || r->assignment_count == SIZE_MAX ||
+            r->assignment_count != r->sealed_assignments ||
+            r->assignment_count > r->assignment_capacity ||
+            (r->assignment_count != 0 && r->assignments == NULL)) return false;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            if (!semantic_indexed_string_result_inputs_source_use(inputs,
+                    caller_id, sink, ordinal, value)) return false;
+        }
         size_t matched = 0;
         bool slot_seen = false, value_seen = false;
         for (size_t u = 0; u < r->use_count; u++) {
@@ -113,7 +122,16 @@ bool semantic_collection_effect_snapshot_source_value(const PgyCollectionEffectS
         s->nonowner_risk_count != s->sealed_nonowner_risks || value == NULL) return false;
     for (size_t u = 0; u < s->string_definition_count; u++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
-        if (r == NULL || r->claims == NULL) return false;
+        if (r == NULL || r->claims == NULL || r->assignment_count == SIZE_MAX ||
+            r->assignment_count != r->sealed_assignments ||
+            r->assignment_count > r->assignment_capacity ||
+            (r->assignment_count != 0 && r->assignments == NULL)) return false;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            if (!semantic_indexed_string_result_inputs_source_value(inputs,
+                    caller_id, value)) return false;
+        }
         bool sensitive = value == r->declaration || value == r->birth.value ||
             ast_node_stable_id(value) == r->binding_id ||
             (value->type == AST_IDENTIFIER && ast_identifier_binding_syntax_id(value) == r->binding_id);
@@ -181,16 +199,26 @@ static bool collection_source_place_binding(const ASTNode *place, uint32_t *bind
     return true;
 }
 
-bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEffectSnapshot *s,
-    uint32_t caller_id, const ASTNode *value)
+static bool collection_source_evaluation_current(const PgyCollectionEffectSnapshot *s,
+    uint32_t caller_id, const ASTNode *value, bool standalone)
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
-    (void)caller_id; /* Protected descriptors/carriers cannot migrate to another caller either. */
     for (size_t u = 0; u < s->string_definition_count; u++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
-        if (r == NULL) return false;
+        if (r == NULL || r->assignment_count == SIZE_MAX ||
+            r->assignment_count != r->sealed_assignments ||
+            r->assignment_count > r->assignment_capacity ||
+            (r->assignment_count != 0 && r->assignments == NULL)) return false;
+        /* A definition RHS has its own exact statement/place/value join
+         * below. Only a standalone root is checked as a bare evaluation. */
+        for (size_t input = 0; standalone && input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            if (!semantic_indexed_string_result_inputs_source_evaluation(inputs,
+                    caller_id, value)) return false;
+        }
         /* A call actual or binary child is not a standalone executable root.
          * Assignment targets are checked separately by the definition role. */
         if (value != NULL && value->type == AST_IDENTIFIER &&
@@ -210,6 +238,12 @@ bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEf
     return true;
 }
 
+bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEffectSnapshot *s,
+    uint32_t caller_id, const ASTNode *value)
+{
+    return collection_source_evaluation_current(s, caller_id, value, true);
+}
+
 bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEffectSnapshot *s,
     uint32_t caller_id, uint32_t binding_id, bool initialization,
     const ASTNode *statement, const ASTNode *place, const ASTNode *value,
@@ -219,7 +253,7 @@ bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEf
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
-    if (!semantic_collection_effect_snapshot_source_evaluation(s, caller_id, value)) return false;
+    if (!collection_source_evaluation_current(s, caller_id, value, false)) return false;
     if (s->source_use_count == 0 && s->nonowner_risk_count == 0 &&
         s->string_definition_count == 0) return true;
     uint32_t actual_binding = 0;
@@ -240,34 +274,49 @@ bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEf
                 statement_id == r->assignments[a].assignment_id)) protected_statement = true;
         bool protected_rhs = value != NULL && value->type == AST_IDENTIFIER &&
             ast_identifier_binding_syntax_id(value) == r->binding_id;
-        if (binding_id != r->binding_id && actual_binding != r->binding_id &&
-            !protected_rhs && !protected_statement) {
-            offset += 1 + r->assignment_count;
-            continue;
-        }
-        if (caller_id != r->caller_id || binding_id != r->binding_id || actual_binding != r->binding_id)
-            return false;
-        if (initialization) {
-            if (statement != r->declaration || statement_id != r->declaration_id ||
-                place != r->declaration || ast_node_stable_id(place) != r->declaration_id ||
-                value != r->birth.value || ast_node_stable_id(value) != r->birth.value_id ||
-                matched_write != SIZE_MAX) return false;
-            matched_write = offset;
-        } else {
-            size_t matches = 0;
-            for (size_t a = 0; a < r->assignment_count; a++) {
-                const IndexedStringDefinitionAssignment *row = &r->assignments[a];
-                if (statement == row->assignment && statement_id == row->assignment_id &&
-                    place == row->target && ast_node_stable_id(place) == row->target_id &&
-                    value == row->rhs.value && ast_node_stable_id(value) == row->rhs.value_id &&
-                    row->binding_id == r->binding_id) {
-                    matches++;
-                    matched_write = offset + 1 + a;
+        if (binding_id == r->binding_id || actual_binding == r->binding_id ||
+            protected_rhs || protected_statement) {
+            if (caller_id != r->caller_id || binding_id != r->binding_id || actual_binding != r->binding_id)
+                return false;
+            if (initialization) {
+                if (statement != r->declaration || statement_id != r->declaration_id ||
+                    place != r->declaration || ast_node_stable_id(place) != r->declaration_id ||
+                    value != r->birth.value || ast_node_stable_id(value) != r->birth.value_id ||
+                    matched_write != SIZE_MAX) return false;
+                matched_write = offset;
+            } else {
+                size_t matches = 0;
+                for (size_t a = 0; a < r->assignment_count; a++) {
+                    const IndexedStringDefinitionAssignment *row = &r->assignments[a];
+                    if (statement == row->assignment && statement_id == row->assignment_id &&
+                        place == row->target && ast_node_stable_id(place) == row->target_id &&
+                        value == row->rhs.value && ast_node_stable_id(value) == row->rhs.value_id &&
+                        row->binding_id == r->binding_id) {
+                        matches++;
+                        matched_write = offset + 1 + a;
+                    }
                 }
+                if (matches != 1) return false;
             }
-            if (matches != 1) return false;
         }
         offset += 1 + r->assignment_count;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            size_t count = 0, local = SIZE_MAX;
+            if (!semantic_indexed_string_result_inputs_source_write_count(inputs, &count) ||
+                count > SIZE_MAX - offset ||
+                !semantic_indexed_string_result_inputs_source_definition(inputs,
+                    caller_id, binding_id, initialization, statement, place, value, &local)) return false;
+            if (local != SIZE_MAX) {
+                if (local >= count) return false;
+                /* Shared immutable proof inputs may name the same original
+                 * birth. Every join must match; one actual write always uses
+                 * its first stable ordinal, never a second permission. */
+                if (matched_write == SIZE_MAX) matched_write = offset + local;
+            }
+            offset += count;
+        }
     }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *r = s->nonowner_risks[u];
@@ -308,7 +357,16 @@ bool semantic_collection_effect_snapshot_source_return(const PgyCollectionEffect
         s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
     for (size_t u = 0; u < s->string_definition_count; u++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
-        if (r == NULL) return false;
+        if (r == NULL || r->assignment_count == SIZE_MAX ||
+            r->assignment_count != r->sealed_assignments ||
+            r->assignment_count > r->assignment_capacity ||
+            (r->assignment_count != 0 && r->assignments == NULL)) return false;
+        for (size_t input = 0; input <= r->assignment_count; input++) {
+            const IndexedStringResultInputs *inputs = input == 0 ? &r->birth.named_inputs :
+                &r->assignments[input - 1].rhs.named_inputs;
+            if (!semantic_indexed_string_result_inputs_source_return(inputs,
+                    caller_id, statement, value)) return false;
+        }
         if (value != NULL && value->type == AST_IDENTIFIER &&
             ast_identifier_binding_syntax_id(value) == r->binding_id) return false;
     }

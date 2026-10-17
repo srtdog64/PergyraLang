@@ -568,6 +568,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_field_lineage.c \
                    $(SEMANTIC_DIR)/indexed_string_field_flow.c \
                    $(SEMANTIC_DIR)/indexed_string_result_inputs.c \
+                   $(SEMANTIC_DIR)/indexed_string_option_payload.c \
+                   $(SEMANTIC_DIR)/indexed_string_option_roles.c \
                    $(SEMANTIC_DIR)/indexed_string_definition_recipe.c \
                    $(SEMANTIC_DIR)/indexed_string_definition_flow.c \
                    $(SEMANTIC_DIR)/indexed_string_nonowner_risk.c \
@@ -692,6 +694,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_publication_owner.c \
                    $(SEMANTIC_DIR)/function_param_publication_routines.c \
+                   $(SEMANTIC_DIR)/function_param_publication_result_relation.c \
                    $(SEMANTIC_DIR)/function_param_publication_deferred.c \
                    $(SEMANTIC_DIR)/typed_map_query_fact_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \

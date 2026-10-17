@@ -1,0 +1,14 @@
+func Make(value: String) -> Option<String> {
+    return Some(Substring(value, 0, StringLength(value)));
+}
+func Main() -> Void {
+    let risk: Array<String> = [Concat("he", "ap")];
+    let chosen: Option<String> = Make("ready");
+    let rows: Array<String> = [];
+    if IsSome(chosen) {
+        let text: String = UnwrapOption(chosen);
+        ArrayPush(rows, text);
+        ArrayDropOwnedStrings(rows);
+    }
+    Log(risk[0]);
+}

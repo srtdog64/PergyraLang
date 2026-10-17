@@ -406,6 +406,27 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                 }
                 if (current && call != NULL &&
                     semantic_indexed_string_nonowner_record(ctx, owner, expression, call, ordinal)) continue;
+                if (current && call != NULL &&
+                    definition_use == INDEXED_STRING_DEFINITION_RECORDED &&
+                    row != NULL && row->node == expression &&
+                    row->id == ast_node_stable_id(expression) && row->value_present &&
+                    row->string_value && type_equals(row->value_type, TYPE_STRING) &&
+                    row->indexed_string_source_present &&
+                    row->indexed_string_source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE &&
+                    semantic_indexed_string_definition_protect_option_use(ctx,
+                        expression, call, ordinal)) {
+                    if (store->indexed_string_shallow_retention_count == SIZE_MAX) {
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            expression, "A shallow String store has no current Option source receipt");
+                        return;
+                    }
+                    if (!row->indexed_string_shallow_retention) {
+                        row->indexed_string_shallow_retention = true;
+                        store->indexed_string_shallow_retention_count++;
+                    }
+                    return;
+                }
                 if (provisional) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,

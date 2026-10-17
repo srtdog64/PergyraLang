@@ -3,33 +3,57 @@
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — connect typed Option payload source evidence
+## Active self-host context — typed Option candidate, array-return boundary next
 
-- Implementation checkpoint main `573dec99fbdb6980ce0fbfd030a202f2f274be07`
-  commits the independently APPROVED all-definitions repair. Native9ddd below
-  is unchanged at this update; new Option source edits are unbuilt candidates.
+- Pre-commit HEAD main `2a4bade4e77e7ea3eb89ed2ea8a4c931269c32b1`; implementation
+  base `573dec99fbdb6980ce0fbfd030a202f2f274be07` is independently approved.
+  New Option source/issuer/actual-role edits are bounded independently approved;
+  final extra no-cleanup-grant gates pass. This card precedes the source commit.
   Preserve `docs/01_intent_first_design.md`, another lane's change.
 - Active whole-chain plan:
   `docs/agent_work_directives/indexed_string_option_payload_closure_2026-10-18.md`.
   A definition selection/birth, B same result owner/Option proof, C phase/MIR
   falsifiers; root snapshot/actual joins, all commands/WSL/process/Git. One
   chain, no worktree/branch. WSL is `Ubuntu-E-WSL -u root`, not the default.
-- Baseline native SHA256
+- Approved baseline native SHA256
   `9dddcd887cbc5c1e783ad4ee20c6439b027d2054b858ee5def2da1a3ec5f351f`.
-  Full fixed/current canonical9Swov2 stays RED18435 errors/16 warnings/MIR0,
-  first actual observer6Pvzm0: `SemanticVerdictPayloadFixtureManifestRows`,
-  diagnostic_owner.pgy450:87. Cascades are not a defect census. No publication.
-- Next falsifier xV1B03 on exact9ddd: fresh/literal Option payload controls
-  refuse at18:39/19:39; mixed Array payload negative refuses at5:24. Allrc1,
-  MIR0, unsafe execution0. Connect original typed Some/None return, immutable
-  carrier and Unwrap evidence through the existing String result/definition
-  input union. Source0 is not a cleanup right. Raw UNKNOWN stays unchanged.
+  Candidate native6a03162d26ae8bbccd8f2f36d0ac18b8fe59b0aedfe01ad4fcd66081845ab06c
+  in `/root/pgy-nonowner-20261018.5t1W96`. Option uses the same immutable
+  String source family; raw UNKNOWN and cleanup rights are unchanged.
+- Candidate eks1ct passes size/build, phase12251/0 and MIR526/0. dzQDql passes
+  unchanged strict C/LLVM; registered strict N2ANBX also passes.
+  KTj5rq admits3 positives and preserves mixed borrowed refusal5:24/MIR0.
+  Runtime43lZmR confirms3 safe C/LLVM stdout pairs/stderr0. Broad tiz7k8 passes
+  six currency controls, semantic3230, transpile1012, AIR156, Map24+58, four IR
+  flow gates and separate ASan/UBSan phase/MIR (leaks OFF).
+- Scratch xtlWWR found a missing child CALL type receipt in Some(Substring).
+  The pending checked-relation issuer now seals that exact typed receipt;
+  ready queries still refuse missing/wrong receipts. An attempted ready-only
+  getter in pending caused97 phase failures (82wXDD), then was corrected to
+  the original raw issuance validator. No failed candidate is approved.
+  Portable review-only replay also passes phase/MIR with19 hashed inputs;
+  missing inputs refuse and restoration passes. Bounded independent review
+  APPROVED source/evidence freeze118/152 and supplemental retention v4 56items.
+  Its initial source0=cleanup-right assumption was withdrawn after actual
+  analysis/artifact checks. Multiple shallow Some uses were not made affine.
+  Added no-deep-drop-grant fixture11:31 and phase fact check pass in iQEzRz:
+  phase12252/0, MIR526/0, same6a native. Final strict c6qosH and ASan/UBSan
+  qP1qLG pass; nBnGGz verifies115 D/Linux source pairs. Independent review
+  covered the original12251 phase assertions; the additional assertion and
+  no-deep-drop fixture were then run by root without production changes.
+- Full unchanged fixed/current zyPWRq remains RED18435 errors/16 warnings/MIR0,
+  30.48s/1719444KiB and30.57s/1717180KiB. Observer1PR0kz now first refuses
+  `SemanticDiagnosticCodeFromMessage`, diagnostic_owner.pgy506:30,
+  `Some(codes[i])`. Prior450:87 passes. Inspect the exact SemanticDiagnosticCodes
+  producer and element storage/cleanup/return chain before choosing a repair;
+  do not make arbitrary Array<String> elements independent. No source copies
+  or manual drops. Cascades are not distinct defects; no publication yet.
 - Prior approved evidence: oLnQ0O phase12112/MIR511, strict OyNcZg unchanged
   C/LLVM, broader Uqib4J6currency/semantic3230/transpile1012/AIR156/Map24+58/
   4IRflow and separate ASan/UBSan phase/MIR (leaks OFF). OaeVgN105 source
   pairs and IBRCyu3 safe C/LLVM outputs match. Not self-host substitution.
 - v3 freeze source manifest00675C2E...110paths, evidence1BA29C3E...125items:
-  independent read-only review APPROVED this bounded repair, not canonical or
+  independent read-only review APPROVED the prior bounded repair, not canonical or
   V1. Old reverse-role f32937 MIR491/6 and duplicate H8PYrx MIR501/3 retained.
   Portable review-only binaries c73090b0/332245e5 plus19 hashed inputs replay
   phase12112/MIR511; input removal fails and restore passes. Root's verified

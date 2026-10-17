@@ -4,12 +4,14 @@
 #define PGY_INDEXED_STRING_RESULT_INPUTS_H
 #include "indexed_string_field_lineage_internal.h"
 
+typedef struct IndexedStringOptionInputs IndexedStringOptionInputs;
 typedef struct {
     IndexedStringFieldCall *calls;
     IndexedStringFieldDependency *dependencies;
     size_t call_count, call_capacity, sealed_calls;
     size_t dependency_count, dependency_capacity, sealed_dependencies;
     bool prepared;
+    IndexedStringOptionInputs *option;
 } IndexedStringResultInputs;
 
 /* Prepare accepts a zero object and may leave partial storage on failure;
@@ -25,6 +27,22 @@ bool semantic_indexed_string_result_inputs_syntax_current(const IndexedStringRes
 void semantic_indexed_string_result_inputs_destroy(IndexedStringResultInputs *inputs);
 const IndexedStringFieldDependency *semantic_indexed_string_result_inputs_dependencies(
     const IndexedStringResultInputs *inputs, size_t *count);
+
+/* Candidate only: an issued checked Option ABI is not a String source proof. */
+bool semantic_indexed_string_option_unwrap_candidate(SemanticContext *ctx, const ASTNode *call);
+bool semantic_indexed_string_result_inputs_has_option(const IndexedStringResultInputs *inputs);
+bool semantic_indexed_string_result_inputs_source_write_count(const IndexedStringResultInputs *inputs, size_t *count);
+bool semantic_indexed_string_result_inputs_source_definition(const IndexedStringResultInputs *inputs,
+    uint32_t caller, uint32_t binding, bool initialization, const ASTNode *statement,
+    const ASTNode *place, const ASTNode *value, size_t *write_ordinal);
+bool semantic_indexed_string_result_inputs_source_use(const IndexedStringResultInputs *inputs,
+    uint32_t caller, const ASTNode *sink, size_t ordinal, const ASTNode *value);
+bool semantic_indexed_string_result_inputs_source_value(const IndexedStringResultInputs *inputs,
+    uint32_t caller, const ASTNode *value);
+bool semantic_indexed_string_result_inputs_source_evaluation(const IndexedStringResultInputs *inputs,
+    uint32_t caller, const ASTNode *value);
+bool semantic_indexed_string_result_inputs_source_return(const IndexedStringResultInputs *inputs,
+    uint32_t caller, const ASTNode *statement, const ASTNode *value);
 
 bool indexed_string_field_call_capture(SemanticContext *ctx, ASTNode *call,
     IndexedStringFieldCall *out);

@@ -1,6 +1,8 @@
 #include "indexed_string_result_inputs.h"
 #include "function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
+#include "indexed_string_option_payload.h"
+#include "type_checker_internal.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -182,7 +184,7 @@ typedef struct StringResultSourceVisit {
 
 static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
     uint32_t *source, const StringResultSourceVisit *parent, bool prepare,
-    FunctionParamFlowInputCapture capture, void *user)
+    FunctionParamFlowInputCapture capture, void *user, bool option_result)
 {
     if (source == NULL || ctx == NULL || ctx->has_error || call == NULL ||
         call->type != AST_CALL || !semantic_param_publication_inputs_ready(ctx)) return false;
@@ -190,7 +192,9 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
         if (p->call == call) return false;
     const Type *type = NULL;
     ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &type);
-    if (decl == NULL || type != TYPE_STRING) return false;
+    if (decl == NULL || (option_result ? !type_is_constructed_named(type, "Option") ||
+        type_constructed_arg_count(type) != 1 || type_constructed_arg(type, 0) != TYPE_STRING :
+        type != TYPE_STRING)) return false;
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     if (store == NULL || store->failed || store->solving) return false;
     if (capture != NULL && !capture(ctx, decl, NULL, call, user)) return false;
@@ -223,7 +227,7 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
         else if (argument->type == AST_IDENTIFIER
             && !semantic_indexed_string_borrow_result_dependency_current(ctx, argument, &dependency)) return false;
         uint32_t incoming;
-        if (dependency != NULL ? !string_result_source_at(ctx, dependency, &incoming, &visit, prepare, capture, user)
+        if (dependency != NULL ? !string_result_source_at(ctx, dependency, &incoming, &visit, prepare, capture, user, false)
             : !semantic_indexed_string_borrow_source_current(argument, ctx, &incoming)) return false;
         if (capture != NULL && dependency == NULL && argument->type == AST_CALL &&
             !capture(ctx, decl, NULL, argument, user)) return false;
@@ -241,7 +245,7 @@ bool function_param_flow_string_result_source_current(SemanticContext *ctx,
 {
     bool previous;
     if (!function_param_flow_current_begin(ctx, &previous)) return false;
-    bool current = string_result_source_at(ctx, call, source, NULL, false, NULL, NULL);
+    bool current = string_result_source_at(ctx, call, source, NULL, false, NULL, NULL, false);
     function_param_flow_current_end(ctx, previous);
     return current;
 }
@@ -252,7 +256,7 @@ bool function_param_flow_string_result_source_prepare(SemanticContext *ctx,
     if (ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
         ctx->function_param_flow_summaries->validating_current)) return false;
     return function_param_flow_store_get(&(SlotFunctionLookup){ctx, ctx->program_root}) != NULL &&
-        string_result_source_at(ctx, call, source, NULL, true, NULL, NULL);
+        string_result_source_at(ctx, call, source, NULL, true, NULL, NULL, false);
 }
 
 typedef struct {
@@ -326,6 +330,28 @@ static bool result_input_capture(SemanticContext *ctx, ASTNode *decl,
     return true;
 }
 
+bool indexed_string_result_derive(SemanticContext *ctx, const ASTNode *call,
+    uint32_t *source, bool prepare, bool option_result, IndexedStringResultInputs *inputs)
+{
+    StringResultInputCapture capture = {inputs, prepare};
+    return string_result_source_at(ctx, call, source, NULL, prepare,
+        result_input_capture, &capture, option_result);
+}
+
+bool indexed_string_result_capture_dependency(SemanticContext *ctx, ASTNode *decl,
+    FunctionParamFlowIndexClaims *claims, IndexedStringResultInputs *inputs, bool prepare)
+{
+    StringResultInputCapture capture = {inputs, prepare};
+    return result_input_capture(ctx, decl, claims, NULL, &capture);
+}
+
+bool indexed_string_result_capture_call(SemanticContext *ctx, const ASTNode *call,
+    IndexedStringResultInputs *inputs, bool prepare)
+{
+    StringResultInputCapture capture = {inputs, prepare};
+    return result_input_capture(ctx, NULL, NULL, call, &capture);
+}
+
 bool semantic_indexed_string_result_inputs_syntax_current(const IndexedStringResultInputs *inputs)
 {
     if (inputs == NULL || !inputs->prepared || inputs->call_count != inputs->sealed_calls ||
@@ -351,7 +377,8 @@ bool semantic_indexed_string_result_inputs_syntax_current(const IndexedStringRes
         for (size_t p = 0; p < d; p++) if (inputs->dependencies[p].decl == row->decl ||
             inputs->dependencies[p].decl_id == row->decl_id || inputs->dependencies[p].claims == row->claims) return false;
     }
-    return inputs->call_count != 0 && inputs->dependency_count != 0;
+    return inputs->call_count != 0 && inputs->dependency_count != 0 &&
+        (inputs->option == NULL || indexed_string_option_syntax(inputs));
 }
 
 void semantic_indexed_string_result_inputs_destroy(IndexedStringResultInputs *inputs)
@@ -360,6 +387,7 @@ void semantic_indexed_string_result_inputs_destroy(IndexedStringResultInputs *in
     for (size_t c = 0; c < inputs->call_count; c++) indexed_string_field_call_destroy(&inputs->calls[c]);
     free(inputs->calls);
     free(inputs->dependencies);
+    indexed_string_option_destroy(inputs->option);
     *inputs = (IndexedStringResultInputs){0};
 }
 
@@ -380,11 +408,12 @@ bool semantic_indexed_string_result_source_prepare(SemanticContext *ctx,
     if (inputs->prepared || inputs->call_count != 0 || inputs->dependency_count != 0 ||
         inputs->calls != NULL || inputs->dependencies != NULL || inputs->call_capacity != 0 ||
         inputs->dependency_capacity != 0 || inputs->sealed_calls != 0 || inputs->sealed_dependencies != 0 ||
-        ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
+        inputs->option != NULL || ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
         ctx->function_param_flow_summaries->validating_current)) return false;
-    StringResultInputCapture capture = {inputs, true};
     if (function_param_flow_store_get(&(SlotFunctionLookup){ctx, ctx->program_root}) == NULL ||
-        !string_result_source_at(ctx, call, source, NULL, true, result_input_capture, &capture)) return false;
+        !(semantic_indexed_string_option_unwrap_candidate(ctx, call) ?
+          indexed_string_option_source(ctx, call, source, inputs, true) :
+          indexed_string_result_derive(ctx, call, source, true, false, inputs))) return false;
     inputs->sealed_calls = inputs->call_count;
     inputs->sealed_dependencies = inputs->dependency_count;
     inputs->prepared = true;
@@ -398,8 +427,8 @@ bool semantic_indexed_string_result_source_current(SemanticContext *ctx,
     if (!semantic_indexed_string_result_inputs_syntax_current(inputs)) return false;
     bool previous;
     if (!function_param_flow_current_begin(ctx, &previous)) return false;
-    StringResultInputCapture capture = {inputs, false};
-    bool current = string_result_source_at(ctx, call, source, NULL, false, result_input_capture, &capture);
+    bool current = inputs->option != NULL ? indexed_string_option_source(ctx, call, source, inputs, false) :
+        indexed_string_result_derive(ctx, call, source, false, false, inputs);
     function_param_flow_current_end(ctx, previous);
     return current;
 }

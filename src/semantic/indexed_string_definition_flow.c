@@ -6,6 +6,20 @@
 #include "type_checker_internal.h"
 #include "indexed_string_borrow_owner.h"
 
+bool indexed_string_definition_source_raw_current(SemanticContext *ctx,
+    const IndexedStringDefinitionRecipe *recipe,
+    const IndexedStringDefinitionSource *source)
+{
+    uint32_t current = UINT32_MAX;
+    if (!semantic_indexed_string_borrow_source_current((ASTNode *)source->value,
+            ctx, &current)) return false;
+    if (source == &recipe->birth && recipe->option_unwrap_candidate)
+        return recipe->assignment_count == 0 && source->shape == AST_CALL &&
+            source->named_call == source->value && current == UINT32_MAX &&
+            semantic_indexed_string_result_inputs_has_option(&source->named_inputs);
+    return current == 0;
+}
+
 typedef struct IndexedStringLineageVisit {
     const ASTNode *value;
     const struct IndexedStringLineageVisit *parent;
@@ -312,7 +326,8 @@ bool indexed_string_definition_claims_roles(SemanticContext *ctx,
         }
     }
     if (definition_count != 1 || assignments_seen != recipe->assignment_count ||
-        recipe->assignment_count == 0 || recipe->use_count == 0) goto done;
+        (recipe->assignment_count == 0 && !recipe->option_unwrap_candidate) ||
+        recipe->use_count == 0) goto done;
     for (size_t u = 0; u < recipe->use_count; u++) if (!seen_uses[u]) goto done;
     ok = true;
 done:

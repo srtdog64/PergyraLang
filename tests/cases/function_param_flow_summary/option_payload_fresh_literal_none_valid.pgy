@@ -1,0 +1,38 @@
+func FreshOptional(value: String, found: Bool) -> Option<String> {
+    if found {
+        return Some(Substring(value, 0, StringLength(value)));
+    }
+    return None;
+}
+
+func LiteralOptional(found: Bool) -> Option<String> {
+    if found {
+        return Some("literal");
+    }
+    return None;
+}
+
+func FormatPayload(value: String) -> String {
+    return Concat(value, "!");
+}
+
+func Main() -> Void {
+    let storage: Array<String> = [Concat("se", "ed")];
+    let rows: Array<String> = [];
+    let fresh: Option<String> = FreshOptional(storage[0], true);
+    if IsSome(fresh) {
+        let value: String = UnwrapOption(fresh);
+        ArrayPush(rows, FormatPayload(value));
+        Log(rows[0]);
+    }
+    let literal: Option<String> = LiteralOptional(true);
+    if IsSome(literal) {
+        let value: String = UnwrapOption(literal);
+        ArrayPush(rows, FormatPayload(value));
+        Log(rows[1]);
+    }
+    let absent_fresh: Option<String> = FreshOptional(storage[0], false);
+    let absent_literal: Option<String> = LiteralOptional(false);
+    Log(IsSome(absent_fresh));
+    Log(IsSome(absent_literal));
+}

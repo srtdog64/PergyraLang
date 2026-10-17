@@ -1,0 +1,19 @@
+func AliasOptional(value: String, found: Bool) -> Option<String> {
+    if !found {
+        return None;
+    }
+    let payload: String = Substring(value, 0, StringLength(value));
+    return Some(payload);
+}
+
+func Main() -> Void {
+    let rows: Array<String> = [];
+    let candidate: Option<String> = AliasOptional("ready", true);
+    if IsSome(candidate) {
+        let text: String = UnwrapOption(candidate);
+        let liveRisk: Array<String> = [Concat("he", "ap")];
+        ArrayPush(rows, text);
+        Log(rows[0]);
+        Log(liveRisk[0]);
+    }
+}

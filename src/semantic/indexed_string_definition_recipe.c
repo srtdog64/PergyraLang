@@ -58,7 +58,8 @@ static bool definition_birth_current(SemanticContext *ctx,
 static bool definition_select(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe)
 {
-    if (recipe->selected || recipe->assignment_count == 0 || recipe->use_count == 0) return false;
+    if (recipe->selected || (recipe->assignment_count == 0 &&
+        !recipe->option_unwrap_candidate) || recipe->use_count == 0) return false;
     bool protected_use = false;
     for (size_t i = 0; i < recipe->use_count; i++)
         if (recipe->uses[i].protected_use) protected_use = true;
@@ -234,6 +235,23 @@ bool semantic_indexed_string_definition_protect_use(SemanticContext *ctx,
     return false;
 }
 
+bool semantic_indexed_string_definition_protect_option_use(SemanticContext *ctx,
+    const ASTNode *value, const ASTNode *sink, size_t actual_ordinal)
+{
+    if (ctx == NULL || ctx->has_error || value == NULL ||
+        value->type != AST_IDENTIFIER || !semantic_param_publication_pending(ctx))
+        return false;
+    IndexedStringDefinitionRecipe *recipe = definition_for_binding(ctx,
+        ast_identifier_binding_syntax_id(value));
+    if (recipe == NULL || recipe->prepared || recipe->assignment_count != 0 ||
+        !definition_birth_syntax(recipe) || recipe->birth.shape != AST_CALL ||
+        !semantic_indexed_string_option_unwrap_candidate(ctx, recipe->birth.value) ||
+        !semantic_indexed_string_definition_protect_use(ctx, value, sink,
+            actual_ordinal, false)) return false;
+    recipe->option_unwrap_candidate = true;
+    return true;
+}
+
 bool semantic_indexed_string_definition_selected(SemanticContext *ctx,
     const ASTNode *value)
 {
@@ -321,13 +339,12 @@ static bool definition_source_prepare(SemanticContext *ctx,
             source->independent_call_present = true;
         }
     }
-    uint32_t current = UINT32_MAX;
     return definition_source_syntax(source) &&
-        semantic_indexed_string_borrow_source_current((ASTNode *)source->value,
-            ctx, &current) && current == 0;
+        indexed_string_definition_source_raw_current(ctx, recipe, source);
 }
 
 static bool definition_source_current(SemanticContext *ctx,
+    const IndexedStringDefinitionRecipe *recipe,
     const IndexedStringDefinitionSource *source)
 {
     if (!definition_source_syntax(source)) return false;
@@ -348,16 +365,15 @@ static bool definition_source_current(SemanticContext *ctx,
         (!indexed_string_field_call_current(ctx, &source->independent_call) ||
          !semantic_indexed_string_independent_result(source->shape == AST_IDENTIFIER ?
             source->alias_initializer : source->value, ctx))) return false;
-    uint32_t current = UINT32_MAX;
-    return semantic_indexed_string_borrow_source_current((ASTNode *)source->value,
-        ctx, &current) && current == 0;
+    return indexed_string_definition_source_raw_current(ctx, recipe, source);
 }
 
 static bool definition_prepare(SemanticContext *ctx,
     IndexedStringDefinitionRecipe *recipe)
 {
     if (recipe == NULL || !recipe->selected || recipe->prepared || recipe->claims != NULL ||
-        recipe->assignment_count == 0 || recipe->use_count == 0 ||
+        (recipe->assignment_count == 0 && !recipe->option_unwrap_candidate) ||
+        recipe->use_count == 0 ||
         !semantic_param_publication_inputs_ready(ctx) ||
         !definition_birth_current(ctx, recipe) ||
         !semantic_param_publication_routine_inputs_current(ctx, recipe->caller, true))
@@ -415,10 +431,11 @@ static bool definition_current(SemanticContext *ctx,
                 !function_param_flow_index_roots_current(index) ||
                 !function_param_flow_index_claims_current(ctx, index) ||
                 !indexed_string_definition_claims_roles(ctx, recipe, false) ||
-                !definition_source_current(ctx, &recipe->birth)) break;
+                !definition_source_current(ctx, recipe, &recipe->birth)) break;
             current = true;
             for (size_t a = 0; a < recipe->assignment_count; a++)
-                if (!definition_source_current(ctx, &recipe->assignments[a].rhs)) {
+                if (!definition_source_current(ctx, recipe,
+                        &recipe->assignments[a].rhs)) {
                     current = false; break;
                 }
             if (current) for (size_t u = 0; u < recipe->use_count; u++) {
@@ -459,7 +476,8 @@ bool semantic_indexed_string_definition_syntax_current(
 {
     if (recipe == NULL || !recipe->selected || !recipe->prepared ||
         !definition_birth_syntax(recipe) || recipe->claims == NULL ||
-        recipe->assignment_count == 0 || recipe->use_count == 0 ||
+        (recipe->assignment_count == 0 && !recipe->option_unwrap_candidate) ||
+        recipe->use_count == 0 ||
         recipe->assignment_count != recipe->sealed_assignments ||
         recipe->use_count != recipe->sealed_uses ||
         recipe->use_call_count != recipe->sealed_use_calls ||
@@ -470,7 +488,12 @@ bool semantic_indexed_string_definition_syntax_current(
         (recipe->use_count != 0 && recipe->uses == NULL) ||
         (recipe->use_call_count != 0 && recipe->use_calls == NULL) ||
         !function_param_flow_syntax_claims_current(NULL, recipe->claims) ||
-        !definition_source_syntax(&recipe->birth)) return false;
+        !definition_source_syntax(&recipe->birth) ||
+        (recipe->option_unwrap_candidate &&
+         (recipe->assignment_count != 0 || recipe->birth.shape != AST_CALL ||
+          recipe->birth.named_call != recipe->birth.value ||
+          !semantic_indexed_string_result_inputs_has_option(
+              &recipe->birth.named_inputs)))) return false;
     for (size_t a = 0; a < recipe->assignment_count; a++) {
         const IndexedStringDefinitionAssignment *row = &recipe->assignments[a];
         if (!definition_id(row->assignment, row->assignment_id) ||
@@ -546,7 +569,8 @@ bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prep
     for (size_t i = 0; i < store->node_capacity; i++) {
         IndexedStringDefinitionRecipe *recipe = store->nodes[i].indexed_string_definition;
         if (recipe == NULL) continue;
-        if (prepare && !recipe->selected && recipe->assignment_count != 0 &&
+        if (prepare && !recipe->selected &&
+            (recipe->assignment_count != 0 || recipe->option_unwrap_candidate) &&
             recipe->use_count != 0) {
             bool protected_use = false;
             if (!indexed_string_definition_classify_uses(ctx, recipe, &protected_use) ||
@@ -575,4 +599,3 @@ bool semantic_indexed_string_definition_receipts(SemanticContext *ctx, bool prep
         ctx->program_root, "A String definition receipt was withdrawn");
     return false;
 }
-

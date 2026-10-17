@@ -977,6 +977,341 @@ test_mir_collection_ownership_validation(void)
         }
         mir_destroy(return_mir); rir_destroy(return_rir); hir_destroy(return_hir);
     }
+    {
+        HIRProgram *option_hir = NULL;
+        RIRProgram *option_rir = NULL;
+        MIRProgram *option_mir = NULL;
+        const char *source =
+            "func Choose(value:String,kind:Int)->Option<String>{"
+            "if kind==0{return None;}"
+            "if kind==1{return Some(Substring(value,0,StringLength(value)));}"
+            "return Some(\"literal\");}"
+            "func Main()->Void{let rows:Array<String> = [];"
+            "let candidate:Option<String> = Choose(\"ready\",1);"
+            "let alternate:Option<String> = Some(\"other\");"
+            "var foreign:Option<String> = None;foreign=Some(\"other\");"
+            "Log(IsSome(alternate));"
+            "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
+            "let liveRisk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "ArrayPush(rows,text);Log(rows[0]);Log(liveRisk[0]);}}";
+        bool lowered = lower_mir_from_source(source, &option_hir, &option_rir, &option_mir);
+        MIRRoutine *main_routine = lowered ? find_mir_routine_mut(option_mir,
+            "Main", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *choose_routine = lowered ? find_mir_routine_mut(option_mir,
+            "Choose", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = option_mir == NULL ? NULL :
+            option_mir->collection_effect_source_program;
+        ASTNode *choose_ast = program == NULL ? NULL : ast_program_statement(program, 0);
+        ASTNode *main_ast = program == NULL ? NULL : ast_program_statement(program, 1);
+        ASTNode *choose_body = choose_ast == NULL ? NULL : ast_func_body(choose_ast);
+        ASTNode *none_branch = choose_body == NULL ? NULL : ast_block_statement(choose_body, 0);
+        ASTNode *some_branch = choose_body == NULL ? NULL : ast_block_statement(choose_body, 1);
+        ASTNode *none_statement = none_branch == NULL ? NULL :
+            ast_block_statement(ast_if_then_branch(none_branch), 0);
+        ASTNode *some_statement = some_branch == NULL ? NULL :
+            ast_block_statement(ast_if_then_branch(some_branch), 0);
+        ASTNode *none_value = none_statement == NULL ? NULL : ast_return_value(none_statement);
+        ASTNode *some_value = some_statement == NULL ? NULL : ast_return_value(some_statement);
+        ASTNode *body = main_ast == NULL ? NULL : ast_func_body(main_ast);
+        ASTNode *carrier = body == NULL ? NULL : ast_block_statement(body, 1);
+        ASTNode *alternate = body == NULL ? NULL : ast_block_statement(body, 2);
+        ASTNode *foreign_assignment = body == NULL ? NULL : ast_block_statement(body, 4);
+        ASTNode *alternate_log = body == NULL ? NULL : ast_block_statement(body, 5);
+        ASTNode *is_some_alternate = alternate_log == NULL ? NULL :
+            ast_call_argument(alternate_log, 0);
+        ASTNode *alternate_use = is_some_alternate == NULL ? NULL :
+            ast_call_argument(is_some_alternate, 0);
+        ASTNode *branch = body == NULL ? NULL : ast_block_statement(body, 6);
+        ASTNode *inside = branch == NULL ? NULL : ast_if_then_branch(branch);
+        ASTNode *definition = inside == NULL ? NULL : ast_block_statement(inside, 0);
+        ASTNode *unwrap = definition == NULL ? NULL : ast_let_initializer(definition);
+        ASTNode *carrier_use = unwrap == NULL ? NULL : ast_call_argument(unwrap, 0);
+        ASTNode *push = inside == NULL ? NULL : ast_block_statement(inside, 2);
+        ASTNode *text_use = push == NULL ? NULL : ast_call_argument(push, 1);
+        MIRInstruction *carrier_inst = NULL, *text_inst = NULL, *foreign_inst = NULL;
+        MIRInstruction *push_inst = NULL, *some_return_inst = NULL;
+        MIRBasicBlock *carrier_block = NULL;
+        size_t carrier_index = 0;
+        ASTNode **foreign_rhs_slot = NULL;
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &main_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == carrier) {
+                    carrier_inst = inst;
+                    carrier_block = &main_routine->blocks[b];
+                    carrier_index = i;
+                }
+                if (inst->kind == MIR_INST_DEF && inst->ast == definition) text_inst = inst;
+                if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_ASSIGN) &&
+                    inst->ast == foreign_assignment) {
+                    foreign_inst = inst;
+                    foreign_rhs_slot = inst->kind == MIR_INST_DEF ? &inst->expr0 : &inst->expr1;
+                }
+                if (inst->kind == MIR_INST_STMT && inst->expr0 == push) push_inst = inst;
+            }
+        for (size_t b = 0; choose_routine != NULL && b < choose_routine->block_count; b++)
+            for (size_t i = 0; i < choose_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &choose_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 == some_value)
+                    some_return_inst = inst;
+            }
+        PgyCollectionEffectView view = {0};
+        bool control = lowered && main_routine != NULL && choose_routine != NULL &&
+            carrier != NULL && alternate != NULL && foreign_inst != NULL &&
+            foreign_rhs_slot != NULL && *foreign_rhs_slot == ast_assignment_value(foreign_assignment) &&
+            alternate_use != NULL && none_value != NULL && some_value != NULL &&
+            unwrap != NULL && carrier_use != NULL && text_use != NULL &&
+            carrier_inst != NULL && carrier_block != NULL &&
+            carrier_inst->expr0 == ast_let_initializer(carrier) &&
+            text_inst != NULL && text_inst->expr0 == unwrap &&
+            push_inst != NULL && some_return_inst != NULL &&
+            semantic_collection_effect_snapshot_current(option_mir->collection_effect_snapshot,
+                program, &view) && view.string_definition_count != 0 &&
+            mir_validate_collection_effect_evidence(option_mir, main_routine, NULL) &&
+            mir_validate(option_mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+        TEST("MIR Option payload has an admitted original carrier and Some/None producer");
+        EXPECT(control);
+        if (control) {
+            const PgyCollectionEffectSnapshot *snapshot = option_mir->collection_effect_snapshot;
+            uint32_t caller_id = main_routine->source_syntax_id;
+            size_t carrier_ordinal = SIZE_MAX, foreign_ordinal = SIZE_MAX;
+            bool carrier_birth_current = semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, ast_node_stable_id(carrier), true,
+                carrier, carrier, ast_let_initializer(carrier), &carrier_ordinal);
+            bool foreign_birth_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, caller_id, ast_node_stable_id(carrier), true,
+                carrier, carrier, ast_let_initializer(alternate), &foreign_ordinal);
+            bool some_return_current = semantic_collection_effect_snapshot_source_return(
+                snapshot, choose_routine->source_syntax_id, some_statement, some_value);
+            bool none_crosswire_refused = !semantic_collection_effect_snapshot_source_return(
+                snapshot, choose_routine->source_syntax_id, some_statement, none_value);
+            TEST("MIR Option source owner binds exact carrier birth and Some RETURN roles");
+            EXPECT(carrier_birth_current && carrier_ordinal < view.string_write_count &&
+                foreign_birth_refused && foreign_ordinal == SIZE_MAX &&
+                some_return_current && none_crosswire_refused);
+            bool pure_once = semantic_collection_effect_snapshot_source_use(snapshot,
+                caller_id, push, 1, text_use);
+            bool pure_again = semantic_collection_effect_snapshot_source_use(snapshot,
+                caller_id, push, 1, text_use);
+            TEST("MIR Option payload complete pure call-actual proof is reusable");
+            EXPECT(pure_once && pure_again);
+
+            ASTNode *saved_carrier_rhs = carrier_inst->expr0;
+            carrier_inst->expr0 = ast_let_initializer(alternate);
+            bool carrier_evidence_refused = !mir_validate_collection_effect_evidence(
+                option_mir, main_routine, NULL);
+            bool carrier_full_refused = !mir_validate(option_mir, NULL);
+            bool carrier_emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            carrier_inst->expr0 = saved_carrier_rhs;
+            TEST("MIR Option carrier DEF cannot adopt another Option initializer");
+            EXPECT(carrier_evidence_refused && carrier_full_refused && carrier_emission_refused &&
+                mir_validate_collection_effect_evidence(option_mir, main_routine, NULL));
+
+            ASTNode changed_unwrap = *unwrap;
+            ASTNode *changed_actuals[1] = {alternate_use};
+            changed_unwrap.data.call.arguments = changed_actuals;
+            ASTNode *saved_unwrap = text_inst->expr0;
+            text_inst->expr0 = &changed_unwrap;
+            bool actual_evidence_refused = !mir_validate_collection_effect_evidence(
+                option_mir, main_routine, NULL);
+            bool actual_full_refused = !mir_validate(option_mir, NULL);
+            bool actual_emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            text_inst->expr0 = saved_unwrap;
+            TEST("MIR UnwrapOption cannot adopt a foreign original Option actual");
+            EXPECT(actual_evidence_refused && actual_full_refused && actual_emission_refused &&
+                mir_validate_collection_effect_evidence(option_mir, main_routine, NULL));
+
+            ASTNode *saved_some = some_return_inst->expr0;
+            some_return_inst->expr0 = none_value;
+            bool return_evidence_refused = !mir_validate_collection_effect_evidence(
+                option_mir, choose_routine, NULL);
+            bool return_full_refused = !mir_validate(option_mir, NULL);
+            bool return_emission_refused = !mir_validate_emission_contract(choose_routine,
+                choose_routine->has_cleanup_block, false, NULL);
+            some_return_inst->expr0 = saved_some;
+            TEST("MIR Some RETURN cannot borrow another RETURN's None issuer");
+            EXPECT(return_evidence_refused && return_full_refused && return_emission_refused &&
+                mir_validate_collection_effect_evidence(option_mir, choose_routine, NULL));
+
+            ASTNode *saved_foreign_rhs = *foreign_rhs_slot;
+            *foreign_rhs_slot = carrier_use;
+            bool alias_evidence_refused = !mir_validate_collection_effect_evidence(
+                option_mir, main_routine, NULL);
+            bool alias_full_refused = !mir_validate(option_mir, NULL);
+            bool alias_emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            *foreign_rhs_slot = saved_foreign_rhs;
+            TEST("MIR Option carrier cannot become a foreign alias assignment RHS");
+            EXPECT(alias_evidence_refused && alias_full_refused && alias_emission_refused &&
+                mir_validate_collection_effect_evidence(option_mir, main_routine, NULL));
+
+            MIRBasicBlock saved_block = *carrier_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *duplicated = calloc(count + 1, sizeof(*duplicated));
+            TEST("MIR Option carrier duplicate birth has isolated storage");
+            EXPECT(duplicated != NULL);
+            if (duplicated != NULL) {
+                memcpy(duplicated, saved_block.instructions,
+                    (carrier_index + 1) * sizeof(*duplicated));
+                duplicated[carrier_index + 1] = *carrier_inst;
+                memcpy(&duplicated[carrier_index + 2],
+                    &saved_block.instructions[carrier_index + 1],
+                    (count - carrier_index - 1) * sizeof(*duplicated));
+                carrier_block->instructions = duplicated;
+                carrier_block->instruction_count = count + 1;
+                carrier_block->instruction_capacity = count + 1;
+                bool duplicate_evidence_refused = !mir_validate_collection_effect_evidence(
+                    option_mir, main_routine, NULL);
+                bool duplicate_full_refused = !mir_validate(option_mir, NULL);
+                bool duplicate_emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *carrier_block = saved_block;
+                free(duplicated);
+                TEST("MIR Option static carrier birth cannot occur twice");
+                EXPECT(duplicate_evidence_refused && duplicate_full_refused &&
+                    duplicate_emission_refused &&
+                    mir_validate_collection_effect_evidence(option_mir, main_routine, NULL) &&
+                    mir_validate(option_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+        }
+        mir_destroy(option_mir); rir_destroy(option_rir); hir_destroy(option_hir);
+    }
+    {
+        HIRProgram *alias_hir = NULL;
+        RIRProgram *alias_rir = NULL;
+        MIRProgram *alias_mir = NULL;
+        const char *source =
+            "func AliasOptional(value:String,found:Bool)->Option<String>{"
+            "if !found{return None;}"
+            "let payload:String=Substring(value,0,StringLength(value));"
+            "return Some(payload);}"
+            "func Main()->Void{let rows:Array<String> = [];"
+            "let candidate:Option<String> = AliasOptional(\"ready\",true);"
+            "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
+            "let liveRisk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "ArrayPush(rows,text);Log(rows[0]);Log(liveRisk[0]);}}";
+        bool lowered = lower_mir_from_source(source, &alias_hir, &alias_rir, &alias_mir);
+        MIRRoutine *producer = lowered ? find_mir_routine_mut(alias_mir,
+            "AliasOptional", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = alias_mir == NULL ? NULL :
+            alias_mir->collection_effect_source_program;
+        ASTNode *producer_ast = program == NULL ? NULL : ast_program_statement(program, 0);
+        ASTNode *producer_body = producer_ast == NULL ? NULL : ast_func_body(producer_ast);
+        ASTNode *payload = producer_body == NULL ? NULL : ast_block_statement(producer_body, 1);
+        ASTNode *initializer = payload == NULL ? NULL : ast_let_initializer(payload);
+        ASTNode *borrowed = initializer == NULL ? NULL : ast_call_argument(initializer, 0);
+        ASTNode *return_statement = producer_body == NULL ? NULL :
+            ast_block_statement(producer_body, 2);
+        ASTNode *some = return_statement == NULL ? NULL : ast_return_value(return_statement);
+        MIRInstruction *birth = NULL, *returned = NULL;
+        MIRBasicBlock *birth_block = NULL;
+        size_t birth_index = 0;
+        for (size_t b = 0; producer != NULL && b < producer->block_count; b++)
+            for (size_t i = 0; i < producer->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &producer->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == payload) {
+                    birth = inst;
+                    birth_block = &producer->blocks[b];
+                    birth_index = i;
+                }
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 == some) returned = inst;
+            }
+        PgyCollectionEffectView view = {0};
+        bool control = lowered && producer != NULL && payload != NULL &&
+            initializer != NULL && borrowed != NULL && some != NULL &&
+            birth != NULL && birth_block != NULL && birth->expr0 == initializer &&
+            returned != NULL &&
+            semantic_collection_effect_snapshot_current(alias_mir->collection_effect_snapshot,
+                program, &view) && view.string_definition_count != 0 &&
+            mir_validate_collection_effect_evidence(alias_mir, producer, NULL) &&
+            mir_validate(alias_mir, NULL) &&
+            mir_validate_emission_contract(producer, producer->has_cleanup_block, false, NULL);
+        TEST("MIR Option local Substring payload alias has one admitted source birth");
+        EXPECT(control);
+        if (control) {
+            const PgyCollectionEffectSnapshot *snapshot = alias_mir->collection_effect_snapshot;
+            size_t ordinal = SIZE_MAX, repeated = SIZE_MAX, wrong = SIZE_MAX;
+            uint32_t binding = ast_node_stable_id(payload);
+            bool birth_current = semantic_collection_effect_snapshot_source_definition(
+                snapshot, producer->source_syntax_id, binding, true,
+                payload, payload, initializer, &ordinal);
+            bool birth_reused = semantic_collection_effect_snapshot_source_definition(
+                snapshot, producer->source_syntax_id, binding, true,
+                payload, payload, initializer, &repeated);
+            bool borrowed_refused = !semantic_collection_effect_snapshot_source_definition(
+                snapshot, producer->source_syntax_id, binding, true,
+                payload, payload, borrowed, &wrong);
+            TEST("MIR Option payload alias birth is exact and its source query is reusable");
+            EXPECT(birth_current && birth_reused && ordinal < view.string_write_count &&
+                ordinal == repeated && borrowed_refused && wrong == SIZE_MAX);
+
+            ASTNode *saved_rhs = birth->expr0;
+            birth->expr0 = borrowed;
+            bool rhs_evidence_refused = !mir_validate_collection_effect_evidence(
+                alias_mir, producer, NULL);
+            bool rhs_full_refused = !mir_validate(alias_mir, NULL);
+            bool rhs_emission_refused = !mir_validate_emission_contract(producer,
+                producer->has_cleanup_block, false, NULL);
+            birth->expr0 = saved_rhs;
+            TEST("MIR Option alias DEF RHS cannot become a borrowed parameter");
+            EXPECT(rhs_evidence_refused && rhs_full_refused && rhs_emission_refused &&
+                mir_validate_collection_effect_evidence(alias_mir, producer, NULL));
+
+            ASTNode changed_some = *some;
+            ASTNode *changed_args[1] = {borrowed};
+            changed_some.data.call.arguments = changed_args;
+            ASTNode *saved_return = returned->expr0;
+            returned->expr0 = &changed_some;
+            bool return_evidence_refused = !mir_validate_collection_effect_evidence(
+                alias_mir, producer, NULL);
+            bool return_full_refused = !mir_validate(alias_mir, NULL);
+            bool return_emission_refused = !mir_validate_emission_contract(producer,
+                producer->has_cleanup_block, false, NULL);
+            returned->expr0 = saved_return;
+            TEST("MIR Option Some RETURN cannot substitute a borrowed payload");
+            EXPECT(return_evidence_refused && return_full_refused &&
+                return_emission_refused &&
+                mir_validate_collection_effect_evidence(alias_mir, producer, NULL));
+
+            MIRBasicBlock saved_block = *birth_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *duplicated = calloc(count + 1, sizeof(*duplicated));
+            TEST("MIR Option payload alias duplicate birth has isolated storage");
+            EXPECT(duplicated != NULL);
+            if (duplicated != NULL) {
+                memcpy(duplicated, saved_block.instructions,
+                    (birth_index + 1) * sizeof(*duplicated));
+                duplicated[birth_index + 1] = *birth;
+                memcpy(&duplicated[birth_index + 2],
+                    &saved_block.instructions[birth_index + 1],
+                    (count - birth_index - 1) * sizeof(*duplicated));
+                birth_block->instructions = duplicated;
+                birth_block->instruction_count = count + 1;
+                birth_block->instruction_capacity = count + 1;
+                bool duplicate_evidence_refused = !mir_validate_collection_effect_evidence(
+                    alias_mir, producer, NULL);
+                bool duplicate_full_refused = !mir_validate(alias_mir, NULL);
+                bool duplicate_emission_refused = !mir_validate_emission_contract(producer,
+                    producer->has_cleanup_block, false, NULL);
+                *birth_block = saved_block;
+                free(duplicated);
+                TEST("MIR Option payload alias cannot issue two static births");
+                EXPECT(duplicate_evidence_refused && duplicate_full_refused &&
+                    duplicate_emission_refused &&
+                    mir_validate_collection_effect_evidence(alias_mir, producer, NULL) &&
+                    mir_validate(alias_mir, NULL) &&
+                    mir_validate_emission_contract(producer,
+                        producer->has_cleanup_block, false, NULL));
+            }
+        }
+        mir_destroy(alias_mir); rir_destroy(alias_rir); hir_destroy(alias_hir);
+    }
     HIRProgram *borrow_hir = NULL;
     RIRProgram *borrow_rir = NULL;
     MIRProgram *borrow_mir = NULL;

@@ -5996,6 +5996,311 @@ cleanup:
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_option_payload_source_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Choose(value:String,kind:Int)->Option<String>{"
+        "if kind==0{return None;}"
+        "if kind==1{return Some(Substring(value,0,StringLength(value)));}"
+        "return Some(\"literal\");}"
+        "func Main()->Void{let rows:Array<String> = [];"
+        "let candidate:Option<String> = Choose(\"ready\",1);"
+        "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
+        "let second:String=UnwrapOption(candidate);"
+        "let liveRisk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "ArrayPush(rows,text);Log(rows[0]);"
+        "ArrayPush(rows,second);Log(rows[1]);Log(liveRisk[0]);}}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *choose = ast_program_statement(program, 0);
+    ASTNode *main_decl = ast_program_statement(program, 1);
+    ASTNode *choose_body = choose == NULL ? NULL : ast_func_body(choose);
+    ASTNode *none_branch = choose_body == NULL ? NULL : ast_block_statement(choose_body, 0);
+    ASTNode *fresh_branch = choose_body == NULL ? NULL : ast_block_statement(choose_body, 1);
+    ASTNode *none_return = none_branch == NULL ? NULL :
+        ast_block_statement(ast_if_then_branch(none_branch), 0);
+    ASTNode *some_return = fresh_branch == NULL ? NULL :
+        ast_block_statement(ast_if_then_branch(fresh_branch), 0);
+    ASTNode *literal_return = choose_body == NULL ? NULL : ast_block_statement(choose_body, 2);
+    ASTNode *none_value = none_return == NULL ? NULL : ast_return_value(none_return);
+    ASTNode *some_call = some_return == NULL ? NULL : ast_return_value(some_return);
+    ASTNode *some_payload = some_call == NULL ? NULL : ast_call_argument(some_call, 0);
+    ASTNode *literal_call = literal_return == NULL ? NULL : ast_return_value(literal_return);
+    ASTNode *literal_payload = literal_call == NULL ? NULL : ast_call_argument(literal_call, 0);
+    ASTNode *borrowed_value = some_payload == NULL ? NULL : ast_call_argument(some_payload, 0);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *rows = body == NULL ? NULL : ast_block_statement(body, 0);
+    ASTNode *carrier = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *producer = carrier == NULL ? NULL : ast_let_initializer(carrier);
+    ASTNode *branch = body == NULL ? NULL : ast_block_statement(body, 2);
+    ASTNode *inside = branch == NULL ? NULL : ast_if_then_branch(branch);
+    ASTNode *definition = inside == NULL ? NULL : ast_block_statement(inside, 0);
+    ASTNode *unwrap = definition == NULL ? NULL : ast_let_initializer(definition);
+    ASTNode *target = unwrap == NULL ? NULL : ast_call_callee(unwrap);
+    ASTNode *push = inside == NULL ? NULL : ast_block_statement(inside, 3);
+    ASTNode *use = push == NULL ? NULL : ast_call_argument(push, 1);
+    ASTNode *second_definition = inside == NULL ? NULL : ast_block_statement(inside, 1);
+    ASTNode *second_unwrap = second_definition == NULL ? NULL :
+        ast_let_initializer(second_definition);
+    ASTNode *second_push = inside == NULL ? NULL : ast_block_statement(inside, 5);
+    ASTNode *second_use = second_push == NULL ? NULL : ast_call_argument(second_push, 1);
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *birth = definition == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(definition));
+    PublishedNode *unwrap_row = unwrap == NULL ? NULL :
+        publication_node(publication, unwrap, false);
+    IndexedStringDefinitionRecipe *recipe = birth == NULL ? NULL :
+        birth->indexed_string_definition;
+    PublishedNode *second_birth = second_definition == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(second_definition));
+    IndexedStringDefinitionRecipe *second_recipe = second_birth == NULL ? NULL :
+        second_birth->indexed_string_definition;
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(choose != NULL && main_decl != NULL && none_value != NULL &&
+        some_call != NULL && some_payload != NULL && some_payload->type == AST_CALL &&
+        ast_call_semantic_value_type_name(some_payload) != NULL &&
+        strcmp(ast_call_semantic_value_type_name(some_payload), "String") == 0 &&
+        literal_payload != NULL &&
+        borrowed_value != NULL &&
+        carrier != NULL && producer != NULL && unwrap != NULL && target != NULL &&
+        use != NULL && second_unwrap != NULL && second_use != NULL &&
+        birth != NULL && second_birth != NULL && unwrap_row != NULL &&
+        recipe != NULL && second_recipe != NULL && recipe != second_recipe && flow != NULL &&
+        recipe->selected && recipe->prepared && recipe->option_unwrap_candidate &&
+        recipe->assignment_count == 0 && recipe->use_count == 1 &&
+        recipe->birth.named_call == unwrap &&
+        second_recipe->selected && second_recipe->prepared &&
+        second_recipe->option_unwrap_candidate &&
+        second_recipe->assignment_count == 0 && second_recipe->use_count == 1 &&
+        second_recipe->birth.named_call == second_unwrap &&
+        ast_identifier_binding_syntax_id(ast_call_argument(unwrap, 0)) ==
+            ast_identifier_binding_syntax_id(ast_call_argument(second_unwrap, 0)) &&
+        semantic_indexed_string_result_inputs_has_option(&recipe->birth.named_inputs));
+    if (recipe == NULL || second_recipe == NULL || unwrap_row == NULL ||
+        flow == NULL || target == NULL ||
+        none_value == NULL ||
+        some_payload == NULL || some_payload->type != AST_CALL ||
+        ast_call_semantic_value_type_name(some_payload) == NULL ||
+        literal_payload == NULL || borrowed_value == NULL ||
+        producer == NULL ||
+        use == NULL || second_use == NULL || recipe->claims == NULL ||
+        recipe->claims->count == 0)
+        goto cleanup;
+    bool depends = false, retains = true;
+    CHECK(semantic_param_publication_checked_result_relation(ctx, unwrap, 0,
+        &depends, &retains) && depends && !retains);
+    uint32_t source = UINT32_MAX;
+    CHECK(semantic_indexed_string_result_source_current(ctx, unwrap, &source,
+        &recipe->birth.named_inputs) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_definition_source_current(ctx, use, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(use, ctx, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_definition_source_current(ctx, second_use, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(second_use, ctx, &source) && source == 0);
+    const PgyCollectionOwnershipFact *rows_fact = rows == NULL || main_decl == NULL ? NULL :
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(main_decl),
+            ast_node_stable_id(rows));
+    CHECK(rows_fact != NULL &&
+        rows_fact->element_ownership != PGY_STRING_ARRAY_OWNED_ELEMENTS &&
+        rows_fact->element_ownership != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT &&
+        !rows_fact->return_elements_owned);
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_demand = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    size_t ready_issued = publication->indexed_string_definition_count;
+    for (unsigned fault = 0; fault < 16; fault++) {
+        IndexedStringDefinitionRecipe saved_recipe = *recipe;
+        IndexedStringDefinitionRecipe *saved_birth = birth->indexed_string_definition;
+        PublishedNode saved_unwrap_row = *unwrap_row;
+        uint32_t saved_producer_id = producer->stable_id;
+        uint32_t saved_some_id = some_payload->stable_id;
+        uint32_t saved_literal_id = literal_payload->stable_id;
+        uint32_t saved_none_id = none_value->stable_id;
+        uint32_t saved_use_binding = ast_identifier_binding_syntax_id(use);
+        uint32_t saved_claim_id = recipe->claims->rows[0].id;
+        ASTNode *saved_carrier_initializer = carrier->data.let_decl.initializer;
+        ASTNode *saved_some_payload = some_call->data.call.arguments[0];
+        ASTNode *saved_unwrap_actual = unwrap->data.call.arguments[0];
+        char *saved_target_name = target->data.identifier.name;
+        char *saved_some_type = some_payload->data.call.semantic_value_type_name;
+        char wrong_some_type[] = "Int";
+        if (fault == 0) birth->indexed_string_definition = NULL;
+        if (fault == 1) recipe->option_unwrap_candidate = false;
+        if (fault == 2) unwrap_row->result_relation = false;
+        if (fault == 3) unwrap_row->relation_argument_id++;
+        if (fault == 4) unwrap->data.call.arguments[0] = none_value;
+        if (fault == 5) producer->stable_id++;
+        if (fault == 6) some_payload->stable_id++;
+        if (fault == 7) none_value->stable_id++;
+        if (fault == 8) carrier->data.let_decl.initializer = some_call;
+        if (fault == 9) some_call->data.call.arguments[0] = borrowed_value;
+        if (fault == 10) recipe->claims->rows[0].id = 0;
+        if (fault == 11) target->data.identifier.name = "ForeignOptionExtractor";
+        if (fault == 12) ast_identifier_set_binding_syntax_id(use, saved_use_binding + 1);
+        if (fault == 13) literal_payload->stable_id++;
+        if (fault == 14) some_payload->data.call.semantic_value_type_name = NULL;
+        if (fault == 15) some_payload->data.call.semantic_value_type_name = wrong_some_type;
+        source = UINT32_MAX;
+        bool direct_current = semantic_indexed_string_definition_source_current(
+            ctx, use, &source);
+        source = UINT32_MAX;
+        bool result_current = semantic_indexed_string_result_source_current(
+            ctx, unwrap, &source, &recipe->birth.named_inputs);
+        source = UINT32_MAX;
+        bool public_current = semantic_indexed_string_borrow_source_current(
+            use, ctx, &source);
+        bool unchanged = !ctx->has_error && flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_demand &&
+            flow->body_evaluations == ready_evaluations &&
+            publication->indexed_string_definition_count == ready_issued &&
+            !flow->validating_current;
+        CHECK(!direct_current && !public_current && unchanged);
+        /* Result inputs replay the checked Option actual, producer returns
+         * and selected route; caller-only definition faults are separate. */
+        if ((fault >= 2 && fault <= 9) || fault == 11 || fault == 13 || fault >= 14)
+            CHECK(!result_current);
+        *recipe = saved_recipe;
+        birth->indexed_string_definition = saved_birth;
+        *unwrap_row = saved_unwrap_row;
+        producer->stable_id = saved_producer_id;
+        some_payload->stable_id = saved_some_id;
+        literal_payload->stable_id = saved_literal_id;
+        none_value->stable_id = saved_none_id;
+        ast_identifier_set_binding_syntax_id(use, saved_use_binding);
+        recipe->claims->rows[0].id = saved_claim_id;
+        carrier->data.let_decl.initializer = saved_carrier_initializer;
+        some_call->data.call.arguments[0] = saved_some_payload;
+        unwrap->data.call.arguments[0] = saved_unwrap_actual;
+        target->data.identifier.name = saved_target_name;
+        some_payload->data.call.semantic_value_type_name = saved_some_type;
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, use, &source) && source == 0);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_result_source_current(ctx, unwrap, &source,
+            &recipe->birth.named_inputs) && source == 0);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_borrow_source_current(use, ctx, &source) && source == 0);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, second_use,
+            &source) && source == 0);
+        CHECK(!ctx->has_error && flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_demand &&
+            flow->body_evaluations == ready_evaluations &&
+            publication->indexed_string_definition_count == ready_issued &&
+            !flow->validating_current);
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_option_payload_local_alias_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func AliasOptional(value:String,found:Bool)->Option<String>{"
+        "if !found{return None;}"
+        "let payload:String=Substring(value,0,StringLength(value));"
+        "return Some(payload);}"
+        "func Main()->Void{let rows:Array<String> = [];"
+        "let candidate:Option<String> = AliasOptional(\"ready\",true);"
+        "if IsSome(candidate){let text:String=UnwrapOption(candidate);"
+        "let liveRisk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "ArrayPush(rows,text);Log(rows[0]);Log(liveRisk[0]);}}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *producer = ast_program_statement(program, 0);
+    ASTNode *producer_body = producer == NULL ? NULL : ast_func_body(producer);
+    ASTNode *alias = producer_body == NULL ? NULL : ast_block_statement(producer_body, 1);
+    ASTNode *initializer = alias == NULL ? NULL : ast_let_initializer(alias);
+    ASTNode *borrowed = initializer == NULL ? NULL : ast_call_argument(initializer, 0);
+    ASTNode *returned = producer_body == NULL ? NULL : ast_block_statement(producer_body, 2);
+    ASTNode *some_call = returned == NULL ? NULL : ast_return_value(returned);
+    ASTNode *payload = some_call == NULL ? NULL : ast_call_argument(some_call, 0);
+    ASTNode *main_decl = ast_program_statement(program, 1);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *branch = body == NULL ? NULL : ast_block_statement(body, 2);
+    ASTNode *inside = branch == NULL ? NULL : ast_if_then_branch(branch);
+    ASTNode *definition = inside == NULL ? NULL : ast_block_statement(inside, 0);
+    ASTNode *unwrap = definition == NULL ? NULL : ast_let_initializer(definition);
+    ASTNode *push = inside == NULL ? NULL : ast_block_statement(inside, 2);
+    ASTNode *use = push == NULL ? NULL : ast_call_argument(push, 1);
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *birth = definition == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(definition));
+    IndexedStringDefinitionRecipe *recipe = birth == NULL ? NULL :
+        birth->indexed_string_definition;
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(alias != NULL && initializer != NULL && borrowed != NULL &&
+        some_call != NULL && payload != NULL && unwrap != NULL && use != NULL &&
+        birth != NULL && recipe != NULL && recipe->selected && recipe->prepared &&
+        recipe->option_unwrap_candidate && recipe->assignment_count == 0 &&
+        semantic_indexed_string_result_inputs_has_option(&recipe->birth.named_inputs) &&
+        flow != NULL);
+    if (alias == NULL || initializer == NULL || borrowed == NULL ||
+        some_call == NULL || payload == NULL || recipe == NULL || flow == NULL ||
+        use == NULL) goto cleanup;
+    uint32_t source = UINT32_MAX;
+    CHECK(semantic_indexed_string_definition_source_current(ctx, use, &source) && source == 0);
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_epoch = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    for (unsigned fault = 0; fault < 6; fault++) {
+        ASTNode *saved_initializer = alias->data.let_decl.initializer;
+        ASTNode *saved_payload = some_call->data.call.arguments[0];
+        uint32_t saved_alias_id = alias->stable_id;
+        uint32_t saved_initializer_id = initializer->stable_id;
+        uint32_t saved_payload_id = payload->stable_id;
+        uint32_t saved_binding = ast_identifier_binding_syntax_id(payload);
+        if (fault == 0) alias->data.let_decl.initializer = borrowed;
+        if (fault == 1) alias->stable_id++;
+        if (fault == 2) initializer->stable_id++;
+        if (fault == 3) payload->stable_id++;
+        if (fault == 4) some_call->data.call.arguments[0] = borrowed;
+        if (fault == 5) ast_identifier_set_binding_syntax_id(payload, saved_binding + 1);
+        source = UINT32_MAX;
+        bool result_current = semantic_indexed_string_result_source_current(
+            ctx, unwrap, &source, &recipe->birth.named_inputs);
+        source = UINT32_MAX;
+        bool definition_current = semantic_indexed_string_definition_source_current(
+            ctx, use, &source);
+        CHECK(!result_current && !definition_current && !ctx->has_error &&
+            flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_epoch &&
+            flow->body_evaluations == ready_evaluations &&
+            !flow->validating_current);
+        alias->data.let_decl.initializer = saved_initializer;
+        some_call->data.call.arguments[0] = saved_payload;
+        alias->stable_id = saved_alias_id;
+        initializer->stable_id = saved_initializer_id;
+        payload->stable_id = saved_payload_id;
+        ast_identifier_set_binding_syntax_id(payload, saved_binding);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_result_source_current(ctx, unwrap, &source,
+            &recipe->birth.named_inputs) && source == 0);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, use, &source) && source == 0);
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_some_unwrap_result_relations(void)
 {
     Lexer *lexer = lexer_create("func ReadMaybe(ref text:String)->Bool{let alternate:String=\"literal\";let observed=Some(text);let extracted=UnwrapOption(observed);let repeated=UnwrapOption(Some(text));return StringLength(extracted)>0;}");
@@ -12729,6 +13034,8 @@ int main(void)
     checked_nominal_unsupported_producers();
     checked_unmodelled_map_class_result();
     type_system_init();
+    checked_option_payload_source_currency();
+    checked_option_payload_local_alias_currency();
     checked_some_unwrap_result_relations();
     checked_nested_option_result_relations();
     checked_string_map_get_result_relation();
