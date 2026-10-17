@@ -3,7 +3,82 @@
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — native MIR evidence, then canonical/bootstrap/CI
+## Active self-host context — canonical466 selected String field lineage
+
+- Implementation checkpoint: main
+  `7d08b9db575a1a06c46b64b77a8cae6c61802a51`, parent
+  `7349d73559057ce2c1e88ea10c581a2bed151c7d`. The bounded native field
+  recipe is independently APPROVED and committed, not published or a
+  canonical/CI success. The navigation-only child containing this updated
+  card does not change that source. See
+  `docs/agent_work_directives/indexed_string_field_lineage_466_closure_2026-10-18.md`.
+  At this card's update, code/tests have no WIP; a separate change to
+  `docs/01_intent_first_design.md` belongs to another lane and was not edited
+  or staged by root. Resolve exact status before continuing.
+  Only main; root owns builds, WSL,
+  process control and Git. No known-red push or independent new work track.
+- Objective: infer the actual selected String field's independent source,
+  without manual Clone/drop/annotations, UNKNOWN=0 or new cleanup authority.
+  The first bounded recipe is literal -> exact formal/constructor field ->
+  named aggregate result -> unchanged local definition -> actual String use.
+  Local Array-derived, ambiguous, mutated and recursive-unproved paths refuse.
+  Existing projection/nominal mapping and flow claims remain the fact owners.
+- Parallel implementation scopes on this one chain: A typed mapping and the
+  cohesive indexed-String recipe; B shared existing HIR/MIR actual-use visitor
+  and executable-root selection; C source fixtures and semantic/MIR negatives.
+  Root integrates immutable evidence handoff and independently runs gates.
+  No new SoT family, Pergyra substitution or whole-language safety claim.
+- Independent design review confirmed: pure field-read evidence is reusable;
+  it is not an affine effect. Every actual protected sink/argument must have
+  current provenance. Private mutations still join exactly once. A later
+  actual retiring backing before callee entry is a genuine negative; the new
+  literal-only recipe does not admit borrowed backing at all.
+- Frozen candidate native SHA256:
+  `3a8beae6d16828e49392518992c47564c4d633ec43814fb5524d01c1401e98ff`,
+  in `/root/pgy-exact-main-20261017.LlEIOb`. DeliverylgUC21 passes size/build,
+  phase11994/0, MIR462/0 and full strict C/LLVM/negative gates. Exact source
+  pairGG60Nb verifies81 changed/new src/test paths and Makefile byte-equal
+  between D and Linux. These are bounded candidate receipts, not CI closure.
+- The original projection/nominal payloads and unique dependency claims now
+  move into the same opaque snapshot at the last semantic boundary. Actual
+  HIR/MIR roots, sink slots, definitions and producer returns consume it.
+  Tests reject withdrawal, detached/foreign/coherently replaced roles and
+  cycles; pure source reads remain reusable. Unrelated match/with functions
+  remain admitted through exact evaluated-child visitation. Cross-owner
+  nominal Types use type equality plus exact declaration/field receipts,
+  rather than an unsupported requirement that two issuers share a pointer.
+- Broader acceptanceLMTDFX PASS: old-six currency groups; strict C/LLVM;
+  broad8ya0or MIR462/0, semantic3230/0, transpile1012/0, AIR156/0, Map and
+  four IR-flow gates. Separate ASan/UBSan1cDKRi passes phase11994/0 and
+  MIR462/0 with a live-UAF witness; leak detection stays OFF. AIR remains
+  adjacent regression evidence, not independent attestation of this ledger.
+- Independent frozen review APPROVED the bounded recipe/native contract.
+  Review bundle `D:\PergyraLang\.tmp\p0-field-lineage-review-20261018-3a8bea`
+  has83 rehashed files, mismatch0. QktA0r reruns the exact frozen binaries
+  and separately records slot/value/sink/ordinal, foreign-caller and cycle
+  PASS labels (MIR462/0). VG45XI rejects combined family erasure at evidence,
+  full-MIR and emission, then accepts restoration. No unsafe case ran.
+  Pure-use deletion is a lifetime-verifier boundary, not program equivalence.
+- Full fixed/current canonicalKK4sKy on the final3a8bea native is RED:
+  both MIR0/errors18435/warnings16, 30.01s/1689884KiB and
+  30.66s/1688460KiB. Diagnostic-only7QTzYm, with production unchanged,
+  locates the sole prior_error=0 at `SemanticAstEnumFactsFromArtifact`,
+  `src/self_hosted/semantic/ast_enum_fact_owner.pgy:80:61`.
+  `variants_text = UnwrapOption(variants_opt)` flows into
+  `SemanticNestedCommaRangeFactsFromSource`; its source is
+  `Some(arena.atom_table[value_atom])` through a named Option result.
+  The existing typed result relation owns payload dependency, not backing
+  lifetime. No default aggregate entry-loan fact currently binds the actual
+  field storage/alias/generation to that returned borrow. Do not substitute
+  source0, a read-only mask or empty formal-origin bits for that missing fact.
+  Read-only whole-chain investigation and five scratch cases are recorded in
+  the current directive; no next implementation contract is selected yet.
+  This native repair is not hard Pergyra substitution progress.
+  Bootstrap, gen2==gen3, current installed C/LLVM driver and exact-SHA CI
+  remain OPEN. Published main39a8fc1d and CI38860052641 remain RED, verified
+  again 2026-10-18 KST. Do not push known-red or claim whole-language safety.
+
+## Historical archive — approved7349 native MIR checkpoint, lookup only
 
 - Source: the local main repair checkpoint containing this card, parent
   `44a83c2bc90066633b3226d63f5e21cd1ff997e9`. The parent is REJECTED:
@@ -11,7 +86,8 @@ evidence override this card. Resume this card, not the archive below.
   kept the actual source AST/call/body, and passed whole-MIR and emission.
   This candidate deletes the NULL-proof exception, rather than adding another
   mutable family marker or an arithmetic whitelist. It is not yet independently
-  approved or published. Resolve its exact HEAD/status before continuing.
+  approved or published at the time of this archived card. It was subsequently
+  approved as7349; the active card above owns navigation. Resolve exact status.
   Only main exists; root alone owns WSL/build/process/Git. No known-red push.
 - Whole-chain plan: first section of
   `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
