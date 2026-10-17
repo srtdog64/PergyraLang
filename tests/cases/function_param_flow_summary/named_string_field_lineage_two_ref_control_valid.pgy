@@ -1,0 +1,15 @@
+struct TextRecord { text: String; }
+struct Rows { ids: Array<Int>; }
+
+func MakeRecord(text: String) -> TextRecord { return TextRecord(text); }
+
+func Inspect(text: String, count: Int, ref first: Rows, ref second: Rows) -> Int {
+    return StringLength(text) + count + ArrayLength(first.ids) + ArrayLength(second.ids);
+}
+
+func Main() -> Void {
+    let record: TextRecord = MakeRecord("stable");
+    let first: Rows = Rows([1]);
+    let second: Rows = Rows([2]);
+    Log(Inspect(record.text, 1, first, second));
+}

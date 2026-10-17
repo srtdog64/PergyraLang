@@ -1,8 +1,171 @@
 #include "../../compiler/mir_hir_fact_transfer.h"
+#include "../../compiler/hir_collection_owned_local_transition_adapter.h"
 
 static void
 test_mir_collection_ownership_validation(void)
 {
+    {
+        HIRProgram *field_hir = NULL;
+        RIRProgram *field_rir = NULL;
+        MIRProgram *field_mir = NULL;
+        const char *source =
+            "struct FieldArtifact{text:String;}struct FieldRows{values:Array<Int>;}"
+            "func FieldArtifactFrom(text:String)->FieldArtifact{let spare=FieldArtifact(\"other\");return FieldArtifact(text);}"
+            "func FieldDigest(text:String,count:Int,ref left:FieldRows,ref right:FieldRows)->Int{"
+            "return StringLength(text)+count+ArrayLength(left.values)+ArrayLength(right.values);}"
+            "func FieldProbe()->Bool{let artifact=FieldArtifactFrom(\"literal\");let spare=FieldArtifact(\"other\");"
+            "let unrelated:Array<String> = [];let data=FieldRows([1]);"
+            "return FieldDigest(artifact.text,0,data,data)>0;}"
+            "func FieldForeign()->Bool{return true;}"
+            "func Main()->Void{if FieldProbe(){Log(\"ok\");}}";
+        bool lowered = lower_mir_from_source(source, &field_hir, &field_rir, &field_mir);
+        MIRRoutine *probe = lowered ? find_mir_routine_mut(field_mir, "FieldProbe", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *foreign = lowered ? find_mir_routine_mut(field_mir, "FieldForeign", MIR_SCOPE_FUNCTION) : NULL;
+        MIRInstruction *returned = NULL, *foreign_return = NULL;
+        MIRBasicBlock *return_block = NULL;
+        for (size_t b = 0; probe != NULL && b < probe->block_count; b++)
+            for (size_t i = 0; i < probe->blocks[b].instruction_count; i++)
+                if (probe->blocks[b].instructions[i].kind == MIR_INST_RETURN) {
+                    returned = &probe->blocks[b].instructions[i];
+                    return_block = &probe->blocks[b];
+                }
+        for (size_t b = 0; foreign != NULL && b < foreign->block_count; b++)
+            for (size_t i = 0; i < foreign->blocks[b].instruction_count; i++)
+                if (foreign->blocks[b].instructions[i].kind == MIR_INST_RETURN)
+                    foreign_return = &foreign->blocks[b].instructions[i];
+        ASTNode *root = returned == NULL ? NULL : returned->expr0;
+        ASTNode *sink = root != NULL && root->type == AST_BINARY ? ast_binary_left(root) : NULL;
+        ASTNode *member = sink != NULL && sink->type == AST_CALL ? ast_call_argument(sink, 0) : NULL;
+        PgyCollectionEffectView view = {0};
+        bool control = lowered && probe != NULL && foreign_return != NULL && return_block != NULL &&
+            sink != NULL && sink->type == AST_CALL && ast_call_arg_count(sink) == 4 &&
+            member != NULL && member->type == AST_MEMBER_ACCESS &&
+            semantic_collection_effect_snapshot_current(field_mir->collection_effect_snapshot,
+                field_mir->collection_effect_source_program, &view) && view.source_use_count != 0 &&
+            mir_validate_collection_effect_evidence(field_mir, NULL, NULL) && mir_validate(field_mir, NULL) &&
+            mir_validate_emission_contract(probe, probe->has_cleanup_block, false, NULL);
+        TEST("MIR nested selected-field source has an admitted immutable recipe");
+        EXPECT(control);
+        if (control) {
+            MIRRoutine *producer = find_mir_routine_mut(field_mir, "FieldArtifactFrom", MIR_SCOPE_FUNCTION);
+            MIRInstruction *definition = NULL, *producer_return = NULL;
+            ASTNode *alternate_definition = NULL, *alternate_return = NULL;
+            for (size_t b = 0; b < probe->block_count; b++)
+                for (size_t i = 0; i < probe->blocks[b].instruction_count; i++) {
+                    MIRInstruction *inst = &probe->blocks[b].instructions[i];
+                    if (inst->kind != MIR_INST_DEF || inst->arg0 == NULL) continue;
+                    if (strcmp(inst->arg0, "artifact") == 0) definition = inst;
+                    if (strcmp(inst->arg0, "spare") == 0) alternate_definition = inst->expr0;
+                }
+            for (size_t b = 0; producer != NULL && b < producer->block_count; b++)
+                for (size_t i = 0; i < producer->blocks[b].instruction_count; i++) {
+                    MIRInstruction *inst = &producer->blocks[b].instructions[i];
+                    if (inst->kind == MIR_INST_RETURN) producer_return = inst;
+                    if (inst->kind == MIR_INST_DEF && inst->arg0 != NULL && strcmp(inst->arg0, "spare") == 0)
+                        alternate_return = inst->expr0;
+                }
+            bool roles = definition != NULL && alternate_definition != NULL &&
+                producer_return != NULL && alternate_return != NULL;
+            TEST("MIR field recipe role substitutions have original same-caller alternatives");
+            EXPECT(roles);
+            for (unsigned role = 0; roles && role < 2; role++) {
+                MIRInstruction *inst = role == 0 ? definition : producer_return;
+                MIRRoutine *owner = role == 0 ? probe : producer;
+                ASTNode *saved = inst->expr0;
+                inst->expr0 = role == 0 ? alternate_definition : alternate_return;
+                bool refused = !mir_validate_collection_effect_evidence(field_mir, owner, NULL) &&
+                    !mir_validate(field_mir, NULL) &&
+                    !mir_validate_emission_contract(owner, owner->has_cleanup_block, false, NULL);
+                inst->expr0 = saved;
+                TEST("MIR field recipe producer cannot become another original nominal call");
+                EXPECT(refused && mir_validate(field_mir, NULL) &&
+                    mir_validate_emission_contract(owner, owner->has_cleanup_block, false, NULL));
+            }
+            ASTNode unrelated_sink = *sink;
+            unrelated_sink.stable_id = 0;
+            TEST("MIR source hook binds both protected value and exact sink slot");
+            EXPECT(!semantic_collection_effect_snapshot_source_use(field_mir->collection_effect_snapshot,
+                    probe->source_syntax_id, &unrelated_sink, 0, member) &&
+                !semantic_collection_effect_snapshot_source_use(field_mir->collection_effect_snapshot,
+                    probe->source_syntax_id, sink, 1, member) &&
+                !semantic_collection_effect_snapshot_source_use(field_mir->collection_effect_snapshot,
+                    probe->source_syntax_id, sink, 0, ast_call_argument(sink, 1)) &&
+                semantic_collection_effect_snapshot_source_use(field_mir->collection_effect_snapshot,
+                    probe->source_syntax_id, sink, 0, member) &&
+                semantic_collection_effect_snapshot_source_use(field_mir->collection_effect_snapshot,
+                    probe->source_syntax_id, sink, 0, member));
+            TEST("MIR pure field source classification is reusable");
+            EXPECT(hir_collection_source_expression_current(field_mir->collection_effect_snapshot,
+                    probe->hir_routine, root) &&
+                hir_collection_source_expression_current(field_mir->collection_effect_snapshot,
+                    probe->hir_routine, root));
+            MIRInstruction saved_return = *returned;
+            for (unsigned fault = 0; fault < 5; fault++) {
+                ASTNode changed_root = *root, changed_sink = *sink, changed_member = *member;
+                ASTNode *arguments[4];
+                for (size_t a = 0; a < 4; a++) arguments[a] = ast_call_argument(sink, a);
+                if (fault != 0) {
+                    changed_root.data.binary.left = &changed_sink;
+                    changed_sink.data.call.arguments = arguments;
+                }
+                if (fault == 2) {
+                    arguments[0] = ast_call_argument(sink, 1);
+                    arguments[1] = member;
+                }
+                if (fault == 3) changed_sink.data.call.arg_count = 0;
+                if (fault == 4) arguments[0] = &changed_member;
+                bool local_refused = fault == 0
+                    ? !semantic_collection_effect_snapshot_source_root(field_mir->collection_effect_snapshot,
+                        probe->source_syntax_id, &changed_root)
+                    : fault == 4
+                        ? !semantic_collection_effect_snapshot_source_value(field_mir->collection_effect_snapshot,
+                            probe->source_syntax_id, &changed_member)
+                        : !semantic_collection_effect_snapshot_source_use(field_mir->collection_effect_snapshot,
+                            probe->source_syntax_id, fault == 1 ? &changed_sink : sink, 0,
+                            fault == 3 ? NULL : arguments[0]);
+                returned->expr0 = &changed_root;
+                bool evidence_refused = !mir_validate_collection_effect_evidence(field_mir, probe, NULL);
+                bool full_refused = !mir_validate(field_mir, NULL);
+                bool emission_refused = !mir_validate_emission_contract(probe,
+                    probe->has_cleanup_block, false, NULL);
+                *returned = saved_return;
+                TEST("MIR actual nested source operand cannot detach or change ordinal");
+                if (!evidence_refused || !full_refused || !emission_refused)
+                    printf("\n  nested source fault=%u evidence=%d full=%d emission=%d\n",
+                        fault, evidence_refused, full_refused, emission_refused);
+                EXPECT(local_refused && evidence_refused && full_refused && emission_refused &&
+                    ast_binary_left(root) == sink && ast_call_argument(sink, 0) == member &&
+                    mir_validate(field_mir, NULL) &&
+                    mir_validate_emission_contract(probe, probe->has_cleanup_block, false, NULL));
+            }
+            MIRInstruction saved_foreign = *foreign_return;
+            foreign_return->expr0 = root;
+            bool foreign_refused = !mir_validate_collection_effect_evidence(field_mir, foreign, NULL) &&
+                !mir_validate(field_mir, NULL) && !mir_validate_emission_contract(foreign,
+                    foreign->has_cleanup_block, false, NULL);
+            *foreign_return = saved_foreign;
+            TEST("MIR protected nested source cannot migrate to another caller");
+            EXPECT(foreign_refused && mir_validate(field_mir, NULL) &&
+                mir_validate_emission_contract(foreign, foreign->has_cleanup_block, false, NULL));
+            ASTNode cycle = *root;
+            cycle.data.binary.left = &cycle;
+            TEST("MIR pure source visitor refuses an active-path cycle");
+            EXPECT(!hir_collection_source_expression_current(field_mir->collection_effect_snapshot,
+                    foreign->hir_routine, &cycle) &&
+                hir_collection_source_expression_current(field_mir->collection_effect_snapshot,
+                    foreign->hir_routine, saved_foreign.expr0));
+            /* This checks only lifetime evidence, not equivalence of return deletion. */
+            size_t saved_count = return_block->instruction_count;
+            return_block->instruction_count = (size_t)(returned - return_block->instructions);
+            bool unused_allowed = mir_validate_collection_effect_evidence(field_mir, probe, NULL);
+            return_block->instruction_count = saved_count;
+            TEST("MIR pure source recipe need not have an executed consumer");
+            EXPECT(unused_allowed && mir_validate(field_mir, NULL));
+        }
+        mir_destroy(field_mir);
+        rir_destroy(field_rir);
+        hir_destroy(field_hir);
+    }
     HIRProgram *borrow_hir = NULL;
     RIRProgram *borrow_rir = NULL;
     MIRProgram *borrow_mir = NULL;

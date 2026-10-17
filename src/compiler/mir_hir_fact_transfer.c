@@ -1,6 +1,8 @@
 #include "mir_hir_fact_transfer.h"
 
 #include "mir.h"
+#include "mir_call_fact.h"
+#include "hir_collection_owned_local_transition_adapter.h"
 
 #include "../common/string_compat.h"
 #include "../semantic/semantic.h"
@@ -40,6 +42,29 @@ void mir_free_collection_effect_evidence(MIRProgram *mir)
 static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRRoutine *routine,
     const MIRInstruction *inst, const PgyCollectionEffectView *view, size_t caller, bool *seen)
 {
+    if (view->source_use_count != 0) {
+        const ASTNode *place = NULL, *value = NULL;
+        bool initialization = inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_LET_DECL;
+        if (initialization) { place = inst->ast; value = inst->expr0; }
+        else if (inst->kind == MIR_INST_ASSIGN) { place = inst->expr0; value = inst->expr1; }
+        else if (inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_ASSIGNMENT) {
+            place = inst->expr1; value = inst->expr0;
+        }
+        if ((initialization || inst->kind == MIR_INST_ASSIGN || (inst->kind == MIR_INST_DEF &&
+                inst->ast != NULL && inst->ast->type == AST_ASSIGNMENT)) &&
+            !semantic_collection_effect_snapshot_source_definition(
+                mir->collection_effect_snapshot, routine->source_syntax_id,
+                initialization ? ast_node_stable_id(place) : place != NULL && place->type == AST_IDENTIFIER
+                    ? ast_identifier_binding_syntax_id(place) : inst->binding_syntax_id,
+                initialization, place, value)) return false;
+        if (inst->kind == MIR_INST_RETURN && !semantic_collection_effect_snapshot_source_return(
+                mir->collection_effect_snapshot, routine->source_syntax_id, inst->expr0)) return false;
+        ASTNode *roots[2];
+        if (!mir_instruction_executable_roots(routine, inst, roots, NULL, NULL)) return false;
+        for (size_t r = 0; r < 2; r++)
+            if (roots[r] != NULL && !hir_collection_source_expression_current(
+                mir->collection_effect_snapshot, routine->hir_routine, roots[r])) return false;
+    }
     const ASTNode *call = inst->expr0;
     size_t expected = SIZE_MAX;
     if (call != NULL && call->type == AST_CALL) {

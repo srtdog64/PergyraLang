@@ -1,0 +1,26 @@
+struct TextRecord { text: String; }
+struct Rows { ids: Array<Int>; }
+
+func MakeRecord(text: String) -> TextRecord { return TextRecord(text); }
+
+func Inspect(text: String, count: Int, ref first: Rows, ref second: Rows) -> Int {
+    return StringLength(text) + count + ArrayLength(first.ids) + ArrayLength(second.ids);
+}
+
+func Main() -> Void {
+    let record: TextRecord = MakeRecord("stable");
+    let first: Rows = Rows([1]);
+    let second: Rows = Rows([2]);
+    let no_texts: Array<String> = [];
+    Log(Inspect(record.text, 1, first, second));
+}
+
+enum Choice { One, Two }
+
+func UnrelatedMatch(value: Choice) -> Int {
+    match value {
+        case One: return 1;
+        case Two: return 2;
+    }
+    return 0;
+}

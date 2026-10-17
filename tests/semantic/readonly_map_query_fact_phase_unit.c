@@ -25,6 +25,7 @@
 #include "semantic/type_checker_ownership_internal.h"
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
+#include "semantic/indexed_string_field_lineage_internal.h"
 #include "semantic/diag_payload.h"
 #include "semantic/collection_ownership_fact.h"
 #include "semantic/collection_owned_element_requirement_owner.h"
@@ -5162,6 +5163,302 @@ static void checked_nominal_result_relations(void)
         CHECK(!semantic_param_publication_checked_result_relation(ctx, call, 0, &depends, &retains));
     }
 cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+/* Selected field identity and the nominal constructor's actual are separate
+ * current receipts. Neither getter grants String storage or cleanup rights. */
+static void checked_selected_string_field_constructor_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextRecord{text:String;other:String;}"
+        "func Main()->Void{let record:TextRecord = "
+        "TextRecord(other:\"x\",text:\"stable\");Log(record.text);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    bool typed = program != NULL && !parser_has_error(parser) &&
+        type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *main_decl = ast_program_statement(program, 1);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *local = body == NULL ? NULL : ast_block_statement(body, 0);
+    ASTNode *log = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *ctor = local == NULL ? NULL : ast_let_initializer(local);
+    ASTNode *member = log == NULL ? NULL : ast_call_argument(log, 0);
+    ASTNode *receiver = member == NULL ? NULL : ast_member_object(member);
+    PublishedNode *member_row = published_node_for(ctx, member);
+    PublishedNode *ctor_row = published_node_for(ctx, ctor);
+    CHECK(ctor != NULL && ctor->type == AST_CALL &&
+        ast_call_arg_count(ctor) == 2 && ctor->data.call.arg_names != NULL &&
+        member != NULL && member->type == AST_MEMBER_ACCESS &&
+        receiver != NULL && receiver->type == AST_IDENTIFIER &&
+        member_row != NULL && ctor_row != NULL &&
+        ctor_row->nominal_result != NULL &&
+        ctor_row->nominal_result->field_count == 2);
+    if (ctor == NULL || ctor->type != AST_CALL ||
+        ast_call_arg_count(ctor) != 2 || ctor->data.call.arg_names == NULL ||
+        member == NULL || member->type != AST_MEMBER_ACCESS ||
+        receiver == NULL || receiver->type != AST_IDENTIFIER ||
+        member_row == NULL || ctor_row == NULL ||
+        ctor_row->nominal_result == NULL ||
+        ctor_row->nominal_result->field_count != 2) goto cleanup;
+    ASTNode *caller = NULL, *root = NULL, *actual = NULL;
+    size_t ordinal = SIZE_MAX;
+    SemanticPublishedSelectedField selected = {0};
+    CHECK(semantic_param_publication_selected_member_field_current(ctx,
+        member, &caller, &root, &selected) && caller == main_decl &&
+        root == receiver && selected.field_ordinal == 0 &&
+        selected.field_count == 2 && selected.field_type == TYPE_STRING);
+    CHECK(semantic_param_publication_constructor_field_actual_current(ctx,
+        ctor, &selected, &actual, &ordinal) && ordinal == 1 &&
+        actual == ast_call_argument(ctor, 1));
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    size_t ready_count = flow == NULL ? 0 : flow->count;
+    size_t ready_indexes = flow == NULL ? 0 : flow->program_point_index_count;
+    size_t ready_work = flow == NULL ? 0 : flow->work_units;
+    size_t ready_demand = flow == NULL ? 0 : flow->demand_epoch;
+    size_t ready_evaluations = flow == NULL ? 0 : flow->body_evaluations;
+    PublishedProjection projection = member_row->projection;
+    SemanticNominalResultField mapped = ctor_row->nominal_result->fields[1];
+    ASTNode *mapped_actual = ctor->data.call.arguments[1];
+    char *mapped_name = ctor->data.call.arg_names[1];
+    uint32_t member_id = member->stable_id, receiver_id = receiver->stable_id;
+    uint32_t receiver_binding = ast_identifier_binding_syntax_id(receiver);
+    uint32_t ctor_id = ctor->stable_id;
+    uint32_t selected_decl = ast_call_semantic_callee_decl_id(ctor);
+    CHECK(selected_decl != 0 &&
+        ctor_row->nominal_result->fields[1].field_index == 0);
+    for (unsigned fault = 0; fault < 15; fault++) {
+        if (fault == 0) member_row->projection.present = false;
+        if (fault == 1) member_row->projection.field_ordinal++;
+        if (fault == 2) member_row->projection.field_id++;
+        if (fault == 3) member_row->projection.field_type_node = NULL;
+        if (fault == 4) member_row->projection.declaration_id++;
+        if (fault == 5) member->stable_id++;
+        if (fault == 6) receiver->stable_id++;
+        if (fault == 7) ast_identifier_set_binding_syntax_id(receiver,
+            receiver_binding + 1);
+        if (fault == 8) ast_call_set_semantic_callee_decl_id(ctor, 0);
+        if (fault == 9) ctor->data.call.arguments[1] = ctor->data.call.arguments[0];
+        if (fault == 10) ctor->data.call.arg_names[1] = "other";
+        if (fault == 11) ctor_row->nominal_result->fields[1].field_index = 1;
+        if (fault == 12) ctor_row->nominal_result->fields[1].field_id++;
+        if (fault == 13) ctor_row->nominal_result->fields[1].type_id++;
+        if (fault == 14) ctor->stable_id++;
+        SemanticPublishedSelectedField current = {0};
+        bool member_current = semantic_param_publication_selected_member_field_current(
+            ctx, member, &caller, &root, &current);
+        bool constructor_current =
+            semantic_param_publication_constructor_field_actual_current(
+                ctx, ctor, &selected, &actual, &ordinal);
+        CHECK((fault < 8 ? !member_current : member_current) &&
+            !constructor_current);
+        member_row->projection = projection;
+        ctor_row->nominal_result->fields[1] = mapped;
+        ctor->data.call.arguments[1] = mapped_actual;
+        ctor->data.call.arg_names[1] = mapped_name;
+        member->stable_id = member_id;
+        receiver->stable_id = receiver_id;
+        ast_identifier_set_binding_syntax_id(receiver, receiver_binding);
+        ast_call_set_semantic_callee_decl_id(ctor, selected_decl);
+        ctor->stable_id = ctor_id;
+        CHECK(semantic_param_publication_selected_member_field_current(ctx,
+            member, &caller, &root, &current) && caller == main_decl &&
+            root == receiver);
+        CHECK(semantic_param_publication_constructor_field_actual_current(ctx,
+            ctor, &selected, &actual, &ordinal) && ordinal == 1 &&
+            actual == mapped_actual);
+    }
+    CHECK(ctx->function_param_flow_summaries == flow &&
+        (flow == NULL || (flow->count == ready_count &&
+        flow->program_point_index_count == ready_indexes &&
+        flow->work_units == ready_work && flow->demand_epoch == ready_demand &&
+        flow->body_evaluations == ready_evaluations)));
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    lexer = lexer_create(
+        "struct TextRecord{text:String;other:String;}struct Holder{record:TextRecord;}"
+        "func Main()->Void{let rows:Array<TextRecord> = [TextRecord(\"array\",\"x\")];"
+        "let holder:Holder = Holder(TextRecord(\"nested\",\"y\"));"
+        "Log(rows[0].text);Log(holder.record.text);}");
+    parser = parser_create(lexer);
+    program = parser_parse_program(parser);
+    ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    typed = program != NULL && !parser_has_error(parser) &&
+        type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *routine = ast_program_statement(program, 2);
+        ASTNode *body = routine == NULL ? NULL : ast_func_body(routine);
+        ASTNode *array_log = body == NULL ? NULL : ast_block_statement(body, 2);
+        ASTNode *nested_log = body == NULL ? NULL : ast_block_statement(body, 3);
+        ASTNode *array_member = array_log == NULL ? NULL : ast_call_argument(array_log, 0);
+        ASTNode *nested_member = nested_log == NULL ? NULL : ast_call_argument(nested_log, 0);
+        ASTNode *array_receiver = array_member == NULL ? NULL : ast_member_object(array_member);
+        ASTNode *nested_receiver = nested_member == NULL ? NULL : ast_member_object(nested_member);
+        SemanticPublishedSelectedField ignored = {0};
+        CHECK(array_member != NULL && array_member->type == AST_MEMBER_ACCESS &&
+            array_receiver != NULL && array_receiver->type == AST_ARRAY_ACCESS);
+        CHECK(nested_member != NULL && nested_member->type == AST_MEMBER_ACCESS &&
+            nested_receiver != NULL && nested_receiver->type == AST_MEMBER_ACCESS);
+        CHECK(!semantic_param_publication_selected_member_field_current(ctx,
+            array_member, NULL, NULL, &ignored));
+        CHECK(!semantic_param_publication_selected_member_field_current(ctx,
+            nested_member, NULL, NULL, &ignored));
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_indexed_string_field_recipe_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextRecord{text:String;}struct Rows{ids:Array<Int>;}"
+        "func MakeRecord(text:String)->TextRecord{return TextRecord(text);}"
+        "func Inspect(text:String,count:Int,ref first:Rows,ref second:Rows)->Int{"
+        "return StringLength(text)+count+ArrayLength(first.ids)+ArrayLength(second.ids);}"
+        "func Main()->Void{let record:TextRecord=MakeRecord(\"stable\");"
+        "let first:Rows=Rows([1]);let second:Rows=Rows([2]);"
+        "let no_texts:Array<String> = [];"
+        "Log(Inspect(record.text,1,first,second));}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    Lexer *foreign_lexer = NULL;
+    Parser *foreign_parser = NULL;
+    ASTNode *foreign_program = NULL;
+    CHECK(program != NULL && !parser_has_error(parser));
+    bool typed = program != NULL && !parser_has_error(parser) &&
+        type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *main_decl = ast_program_statement(program, 4);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *definition = body == NULL ? NULL : ast_block_statement(body, 0);
+    ASTNode *log = body == NULL ? NULL : ast_block_statement(body, 4);
+    ASTNode *sink = log == NULL ? NULL : ast_call_argument(log, 0);
+    ASTNode *member = sink == NULL ? NULL : ast_call_argument(sink, 0);
+    PublishedNode *member_row = published_node_for(ctx, member);
+    IndexedStringFieldRecipe *recipe = member_row == NULL ? NULL :
+        member_row->indexed_string_field;
+    CHECK(main_decl != NULL && definition != NULL && sink != NULL &&
+        member != NULL && member->type == AST_MEMBER_ACCESS &&
+        recipe != NULL && recipe->definition == definition &&
+        recipe->producer == ast_let_initializer(definition) &&
+        recipe->sink == sink && recipe->sink_ordinal == 0 &&
+        recipe->return_count != 0 && recipe->dependency_count != 0 &&
+        recipe->sealed_returns == recipe->return_count &&
+        recipe->sealed_dependencies == recipe->dependency_count);
+    if (recipe == NULL || recipe->producer == NULL ||
+        recipe->producer->type != AST_CALL ||
+        ast_call_arg_count(recipe->producer) == 0 ||
+        recipe->return_count == 0 || recipe->dependency_count == 0 ||
+        recipe->returns == NULL || recipe->dependencies == NULL) goto cleanup;
+    ASTNode *literal = ast_call_argument(recipe->producer, 0);
+    ASTNode *constructor = (ASTNode *)recipe->returns[0].constructor;
+    PublishedNode *constructor_row = published_node_for(ctx, constructor);
+    CHECK(literal != NULL && literal->type == AST_STRING &&
+        constructor != NULL && constructor_row != NULL &&
+        constructor_row->nominal_result == recipe->returns[0].mapping &&
+        member_row->indexed_string_source_present &&
+        member_row->indexed_string_source_id == UINT32_MAX);
+    if (literal == NULL || constructor_row == NULL ||
+        constructor_row->nominal_result == NULL) goto cleanup;
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(flow != NULL);
+    if (flow == NULL) goto cleanup;
+    size_t index_slot = SIZE_MAX;
+    for (size_t i = 0; i < flow->program_point_index_count; i++)
+        if (flow->program_point_indexes[i].function_decl ==
+            recipe->dependencies[0].decl) index_slot = i;
+    CHECK(index_slot != SIZE_MAX &&
+        flow->program_point_indexes[index_slot].claims ==
+            recipe->dependencies[0].claims);
+    if (index_slot == SIZE_MAX) goto cleanup;
+    foreign_lexer = lexer_create(
+        "func Foreign()->Void{let borrowed:Array<String> = [\"borrowed\"];"
+        "Log(borrowed[0]);}");
+    foreign_parser = parser_create(foreign_lexer);
+    foreign_program = parser_parse_program(foreign_parser);
+    CHECK(foreign_program != NULL && !parser_has_error(foreign_parser));
+    ASTNode *foreign_decl = foreign_program == NULL ? NULL :
+        ast_program_statement(foreign_program, 0);
+    ASTNode *foreign_body = foreign_decl == NULL ? NULL :
+        ast_func_body(foreign_decl);
+    ASTNode *foreign_log = foreign_body == NULL ? NULL :
+        ast_block_statement(foreign_body, 1);
+    ASTNode *foreign_access = foreign_log == NULL ? NULL :
+        ast_call_argument(foreign_log, 0);
+    CHECK(foreign_access != NULL && foreign_access->type == AST_ARRAY_ACCESS);
+    if (foreign_access == NULL || foreign_access->type != AST_ARRAY_ACCESS)
+        goto cleanup;
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_demand = flow->demand_epoch, ready_work = flow->work_units;
+    size_t ready_evaluations = flow->body_evaluations;
+    FunctionParamFlowSummaryEntry *ready_entries = flow->entries;
+    FunctionParamFlowProgramPointIndex *ready_points = flow->program_point_indexes;
+    uint32_t source = UINT32_MAX;
+    CHECK(semantic_indexed_string_field_current(ctx, recipe) &&
+        semantic_indexed_string_borrow_source_current(member, ctx, &source) &&
+        source == 0);
+    CHECK(flow->count == ready_count &&
+        flow->program_point_index_count == ready_indexes &&
+        flow->demand_epoch == ready_demand &&
+        flow->work_units == ready_work &&
+        flow->body_evaluations == ready_evaluations &&
+        flow->entries == ready_entries &&
+        flow->program_point_indexes == ready_points);
+    PublishedProjection projection = member_row->projection;
+    SemanticNominalResultSnapshot *nominal = constructor_row->nominal_result;
+    ASTNode *initializer = definition->data.let_decl.initializer;
+    ASTNode *actual = recipe->producer->data.call.arguments[0];
+    FunctionParamFlowIndexClaims *dependency_claims = recipe->dependencies[0].claims;
+    for (unsigned fault = 0; fault < 8; fault++) {
+        FunctionParamFlowProgramPointIndex *index =
+            &flow->program_point_indexes[index_slot];
+        if (fault == 0) member_row->indexed_string_field = NULL;
+        if (fault == 1) member_row->projection.present = false;
+        if (fault == 2) member_row->projection.field_id++;
+        if (fault == 3) constructor_row->nominal_result = NULL;
+        if (fault == 4) definition->data.let_decl.initializer = foreign_access;
+        if (fault == 5) recipe->producer->data.call.arguments[0] = foreign_access;
+        if (fault == 6) recipe->dependencies[0].claims = NULL;
+        if (fault == 7) index->claims = NULL;
+        source = UINT32_MAX;
+        bool current = semantic_indexed_string_field_current(ctx, recipe);
+        bool sourced = semantic_indexed_string_borrow_source_current(
+            member, ctx, &source);
+        CHECK(!current && (!sourced || source != 0));
+        member_row->indexed_string_field = recipe;
+        member_row->projection = projection;
+        constructor_row->nominal_result = nominal;
+        definition->data.let_decl.initializer = initializer;
+        recipe->producer->data.call.arguments[0] = actual;
+        recipe->dependencies[0].claims = dependency_claims;
+        index = &flow->program_point_indexes[index_slot];
+        index->claims = dependency_claims;
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_field_current(ctx, recipe) &&
+            semantic_indexed_string_borrow_source_current(member, ctx, &source) &&
+            source == 0);
+        CHECK(ctx->function_param_flow_summaries == flow &&
+            flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_demand &&
+            flow->work_units == ready_work &&
+            flow->body_evaluations == ready_evaluations &&
+            flow->entries == ready_entries &&
+            flow->program_point_indexes == ready_points);
+    }
+cleanup:
+    ast_destroy(foreign_program);
+    parser_destroy(foreign_parser); lexer_destroy(foreign_lexer);
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -11938,6 +12235,8 @@ int main(void)
     checked_tuple_literal_type_receipt();
     checked_secure_view_call_tuple();
     checked_nominal_result_relations();
+    checked_selected_string_field_constructor_currency();
+    checked_indexed_string_field_recipe_currency();
     checked_nominal_result_growth();
     checked_nominal_unsupported_producers();
     checked_unmodelled_map_class_result();

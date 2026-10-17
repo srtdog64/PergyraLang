@@ -1,10 +1,29 @@
 #include "type_checker_internal.h"
 #include "type_checker_call_constructor_internal.h"
 #include "function_param_publication_owner.h"
+#include "function_param_publication_internal.h"
 #include "diag_codes.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+void semantic_nominal_result_snapshot_destroy(SemanticNominalResultSnapshot *snapshot)
+{
+    if (snapshot == NULL) return;
+    for (size_t i = 0; i < snapshot->field_count && snapshot->fields != NULL; i++) {
+        SemanticNominalResultField *field = &snapshot->fields[i];
+        free(field->field_name);
+        free(field->argument_name);
+        free(field->field_type_name);
+        free(field->argument_type_name);
+        free(field->type_syntax_name);
+    }
+    free(snapshot->fields);
+    free(snapshot->decl_name);
+    free(snapshot->result_type_name);
+    free(snapshot);
+}
 
 bool
 domain_constructor_has_role_filtered_inputs(ASTNode *decl)
@@ -216,15 +235,15 @@ bool constructor_payload_type_ready(const Type *type, bool outer_result)
     return true;
 }
 
-bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
-    const ASTNode *call, const SemanticNominalResultSnapshot *snapshot)
+bool semantic_nominal_result_snapshot_syntax_current(const ASTNode *call,
+    const SemanticNominalResultSnapshot *snapshot)
 {
-    const char *result_name = ast_call_semantic_value_type_name(call);
+    const char *result_name = call != NULL && call->type == AST_CALL ?
+        ast_call_semantic_value_type_name(call) : NULL;
     if (snapshot == NULL || snapshot->decl_name == NULL || snapshot->result_type_name == NULL ||
         result_name == NULL || strcmp(result_name, snapshot->result_type_name) != 0 ||
-        (snapshot->field_count != 0 && snapshot->fields == NULL) || !semantic_param_publication_inputs_ready(ctx) ||
-        semantic_host_index_find_decl_by_name((SemanticContext *)ctx, AST_CLASS_DECL,
-            snapshot->decl_name) != snapshot->decl ||
+        (snapshot->field_count != 0 && snapshot->fields == NULL) ||
+        snapshot->decl == NULL ||
         ast_node_stable_id(snapshot->decl) != snapshot->decl_id ||
         !constructor_nominal_mapping_decl(snapshot->decl) ||
         snapshot->flavor != nominal_flavor_from_decl(snapshot->decl) ||
@@ -240,7 +259,8 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
     for (size_t i = 0; i < count; i++) {
         const SemanticNominalResultField *row = &snapshot->fields[i];
         const char *name = ast_call_argument_name(call, i);
-        if (row->field == NULL || row->field_name == NULL || row->field_type_name == NULL ||
+        if (row->field == NULL || row->type_node == NULL ||
+            row->field_name == NULL || row->field_type_name == NULL ||
             row->argument_type_name == NULL || row->type_syntax_name == NULL ||
             row->field_index >= count || fields[row->field_index] != row->field ||
             row->field->stable_id != row->field_id || row->field->default_value != NULL ||
@@ -251,12 +271,80 @@ bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
         if (name == NULL ? row->field_index != i : strcmp(name, row->field_name) != 0) return false;
         for (size_t j = 0; j < i; j++)
             if (snapshot->fields[j].field_index == row->field_index) return false;
-        Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
-        if (!constructor_payload_type_ready(type, false) || strcmp(type->name, row->field_type_name) != 0) return false;
         char *syntax = ast_capture_inline(row->type_node);
         bool same = syntax != NULL && strcmp(syntax, row->type_syntax_name) == 0;
         free(syntax);
         if (!same) return false;
     }
+    return true;
+}
+
+bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
+    const ASTNode *call, const SemanticNominalResultSnapshot *snapshot)
+{
+    if (!semantic_param_publication_inputs_ready(ctx) ||
+        !semantic_nominal_result_snapshot_syntax_current(call, snapshot) ||
+        semantic_host_index_find_decl_by_name((SemanticContext *)ctx, AST_CLASS_DECL,
+            snapshot->decl_name) != snapshot->decl) return false;
+    for (size_t i = 0; i < snapshot->field_count; i++) {
+        const SemanticNominalResultField *row = &snapshot->fields[i];
+        Type *type = semantic_host_resolve_type_ref(row->type_node, (SemanticContext *)ctx);
+        if (!constructor_payload_type_ready(type, false) ||
+            strcmp(type->name, row->field_type_name) != 0) return false;
+    }
+    return true;
+}
+
+bool
+semantic_param_publication_constructor_field_actual_current(const SemanticContext *ctx,
+    const ASTNode *call, const SemanticPublishedSelectedField *field,
+    ASTNode **actual_out, size_t *actual_ordinal_out)
+{
+    if (actual_out != NULL) *actual_out = NULL;
+    if (actual_ordinal_out != NULL) *actual_ordinal_out = SIZE_MAX;
+    if (field == NULL || field->member == NULL || call == NULL ||
+        call->type != AST_CALL || actual_out == NULL || actual_ordinal_out == NULL)
+        return false;
+    SemanticPublishedSelectedField current = {0};
+    if (!semantic_param_publication_selected_member_field_current(ctx,
+            field->member, NULL, NULL, &current) ||
+        current.member_id != field->member_id ||
+        current.declaration != field->declaration ||
+        current.declaration_id != field->declaration_id ||
+        current.field_id != field->field_id ||
+        current.field_type_node != field->field_type_node ||
+        current.field_type_id != field->field_type_id ||
+        current.field_ordinal != field->field_ordinal ||
+        current.field_count != field->field_count ||
+        current.nominal_type != field->nominal_type ||
+        current.field_type != field->field_type) return false;
+    PublishedNode *row = publication_result_current(ctx, call);
+    if (row == NULL || row->meta || row->nominal_result == NULL ||
+        !type_equals(row->value_type, current.nominal_type)) return false;
+    const SemanticNominalResultSnapshot *snapshot = row->nominal_result;
+    if (snapshot->decl != current.declaration ||
+        snapshot->decl_id != current.declaration_id ||
+        row->declaration != snapshot->decl_id ||
+        snapshot->field_count != current.field_count ||
+        current.field_ordinal >= snapshot->field_count ||
+        row->argument_count != snapshot->field_count) return false;
+    size_t matched = SIZE_MAX;
+    for (size_t i = 0; i < snapshot->field_count; i++) {
+        const SemanticNominalResultField *entry = &snapshot->fields[i];
+        if (entry->field_index != current.field_ordinal) continue;
+        if (matched != SIZE_MAX || entry->field == NULL ||
+            entry->field->stable_id != current.field_id ||
+            entry->field_id != current.field_id ||
+            entry->type_node != current.field_type_node ||
+            entry->type_id != current.field_type_id ||
+            semantic_host_resolve_type_ref(entry->type_node,
+                (SemanticContext *)ctx) != current.field_type ||
+            row->arguments[i].node != ast_call_argument(call, i) ||
+            !semantic_param_publication_checked_argument(ctx, call, i)) return false;
+        matched = i;
+    }
+    if (matched == SIZE_MAX) return false;
+    *actual_out = ast_call_argument(call, matched);
+    *actual_ordinal_out = matched;
     return true;
 }

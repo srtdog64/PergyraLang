@@ -28,6 +28,10 @@ bool semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     SemanticContext *ctx);
 bool semantic_indexed_string_borrow_source_current(ASTNode *expression,
     SemanticContext *ctx, uint32_t *source_id);
+bool semantic_indexed_string_field_record(SemanticContext *ctx,
+    ASTNode *value, ASTNode *sink, size_t ordinal);
+bool semantic_indexed_string_field_source_current(SemanticContext *ctx,
+    ASTNode *value, uint32_t *source_id);
 bool semantic_indexed_string_borrow_result_dependency_current(SemanticContext *ctx,
     ASTNode *value, const ASTNode **dependency);
 bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx);

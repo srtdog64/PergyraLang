@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct HIRSourceExpressionVisit {
+    const ASTNode *node;
+    const struct HIRSourceExpressionVisit *previous;
+} HIRSourceExpressionVisit;
 typedef struct {
     const HIRRoutine *routine;
     PgyCollectionTransitionOperation *rows;
@@ -13,6 +17,8 @@ typedef struct {
     const PgyCollectionEffectSnapshot *snapshot;
     bool *effect_seen;
     size_t caller, effect_count;
+    bool source_only;
+    const HIRSourceExpressionVisit *source_active;
 } HIRCollectionOperations;
 
 static const PgyCollectionOwnershipFact *
@@ -63,12 +69,51 @@ hir_owned_canonical_call(const ASTNode *call, const char *name)
 
 /* Visit evaluated expressions in an already-owned CFG statement, not a
  * program root. Function/lambda bodies are separate routine authority. */
+static bool hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node);
 static bool
-hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
+hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
 {
     if (node == NULL) return true;
+    if (operations->source_only && !semantic_collection_effect_snapshot_source_value(
+            operations->snapshot, operations->routine->source_syntax_id, node)) return false;
+    if (operations->source_only && node->type == AST_BLOCK) {
+        for (size_t s = 0; s < ast_block_statement_count(node); s++)
+            if (!hir_owned_expression(operations, ast_block_statement(node, s))) return false;
+        return true;
+    }
+    if (operations->source_only && node->type == AST_DEFER_STMT)
+        return hir_owned_expression(operations, ast_defer_body(node));
+    if (operations->source_only && node->type == AST_IF_STMT)
+        return hir_owned_expression(operations, ast_if_condition(node)) &&
+            hir_owned_expression(operations, ast_if_then_branch(node)) &&
+            hir_owned_expression(operations, ast_if_else_branch(node));
+    if (operations->source_only && node->type == AST_WHILE_LOOP)
+        return hir_owned_expression(operations, ast_while_condition(node)) &&
+            hir_owned_expression(operations, ast_while_body(node));
+    if (operations->source_only && node->type == AST_FOR_LOOP)
+        return hir_owned_expression(operations, ast_for_range_start(node)) &&
+            hir_owned_expression(operations, ast_for_range_end(node)) &&
+            hir_owned_expression(operations, ast_for_iterable(node)) &&
+            hir_owned_expression(operations, ast_for_body(node));
+    if (operations->source_only && node->type == AST_MATCH_STMT) {
+        if (!hir_owned_expression(operations, ast_match_subject(node))) return false;
+        for (size_t i = 0; i < ast_match_case_count(node); i++)
+            if (!hir_owned_expression(operations, ast_match_case_at(node, i))) return false;
+        return hir_owned_expression(operations, ast_match_default_body(node));
+    }
+    if (operations->source_only && node->type == AST_MATCH_CASE) {
+        for (size_t i = 0; i < ast_match_case_pattern_count(node); i++)
+            if (!hir_owned_expression(operations, ast_match_case_pattern_at(node, i))) return false;
+        return hir_owned_expression(operations, ast_match_case_guard(node)) &&
+            hir_owned_expression(operations, ast_match_case_body(node));
+    }
+    if (operations->source_only && node->type == AST_WITH_STMT)
+        return hir_owned_expression(operations, ast_with_body(node));
     if (node->type == AST_LET_DECL) {
         ASTNode *value = ast_let_initializer(node);
+        if (operations->source_only && !semantic_collection_effect_snapshot_source_definition(
+                operations->snapshot, operations->routine->source_syntax_id,
+                ast_node_stable_id(node), true, node, value)) return false;
         if (!hir_owned_expression(operations, value)) return false;
         if (operations->snapshot != NULL) return true;
         const PgyCollectionOwnershipFact *fact = hir_owned_local_fact(
@@ -100,8 +145,12 @@ hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
         if (!hir_owned_expression(operations, ast_call_callee(node))) return false;
         size_t count = 0;
         ASTNode **arguments = ast_call_arguments(node, &count);
-        for (size_t i = 0; i < count; i++)
+        for (size_t i = 0; i < count; i++) {
+            if (operations->source_only && !semantic_collection_effect_snapshot_source_use(
+                    operations->snapshot, operations->routine->source_syntax_id, node, i, arguments[i])) return false;
             if (!hir_owned_expression(operations, arguments[i])) return false;
+        }
+        if (operations->source_only) return true;
         if (operations->snapshot != NULL) {
             size_t effect = SIZE_MAX;
             if (!semantic_collection_effect_snapshot_call(operations->snapshot,
@@ -155,6 +204,7 @@ hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
                 && !hir_owned_expression(operations, ast_map_literal_key(node, i))) return false;
             if (!hir_owned_expression(operations, value)) return false;
         }
+        return true;
     } else if (node->type == AST_CAST || node->type == AST_TYPE_TEST) {
         return hir_owned_expression(operations, node->type == AST_CAST
             ? ast_cast_operand(node) : ast_type_test_operand(node));
@@ -166,12 +216,47 @@ hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
     } else if (node->type == AST_CHANNEL_RECV) {
         return hir_owned_expression(operations, ast_channel_recv_channel(node));
     } else if (node->type == AST_RETURN) {
+        if (operations->source_only && !semantic_collection_effect_snapshot_source_return(
+                operations->snapshot, operations->routine->source_syntax_id, ast_return_value(node))) return false;
         return hir_owned_expression(operations, ast_return_value(node));
     } else if (node->type == AST_ASSIGNMENT) {
+        ASTNode *place = ast_assignment_target(node);
+        if (operations->source_only && !semantic_collection_effect_snapshot_source_definition(
+                operations->snapshot, operations->routine->source_syntax_id,
+                place != NULL && place->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(place) : 0,
+                false, place, ast_assignment_value(node))) return false;
         return hir_owned_expression(operations, ast_assignment_target(node))
             && hir_owned_expression(operations, ast_assignment_value(node));
     }
+    if (operations->source_only) {
+        switch (node->type) {
+        case AST_IDENTIFIER: case AST_NUMBER: case AST_STRING: case AST_BOOLEAN:
+        case AST_TYPE: case AST_BREAK: case AST_CONTINUE: return true;
+        default: return false;
+        }
+    }
     return true;
+}
+
+static bool hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
+{
+    if (!operations->source_only || node == NULL) return hir_owned_expression_body(operations, node);
+    for (const HIRSourceExpressionVisit *p = operations->source_active; p != NULL; p = p->previous)
+        if (p->node == node) return false;
+    HIRSourceExpressionVisit visit = {node, operations->source_active};
+    operations->source_active = &visit;
+    bool current = hir_owned_expression_body(operations, node);
+    operations->source_active = visit.previous;
+    return current;
+}
+
+bool hir_collection_source_expression_current(const PgyCollectionEffectSnapshot *snapshot,
+    const HIRRoutine *routine, ASTNode *root)
+{
+    if (snapshot == NULL || routine == NULL || routine->source_syntax_id == 0 || root == NULL ||
+        !semantic_collection_effect_snapshot_source_root(snapshot, routine->source_syntax_id, root)) return false;
+    HIRCollectionOperations operations = {.routine = routine, .snapshot = snapshot, .source_only = true};
+    return hir_owned_expression(&operations, root);
 }
 
 /* Replay cached source claims once, then join expected calls to the actual
@@ -222,6 +307,29 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
     }
     for (size_t e = 0; valid && e < view.effect_count; e++)
         valid = seen[e];
+    for (size_t r = 0; valid && view.source_use_count != 0 && r < hir->routine_count; r++) {
+        const HIRRoutine *routine = &hir->routines[r];
+        if (!routine->has_cfg) continue;
+        if (routine->cfg.block_count > routine->cfg.block_capacity ||
+            (routine->cfg.block_count != 0 && routine->cfg.blocks == NULL)) { valid = false; break; }
+        for (size_t b = 0; valid && b < routine->cfg.block_count; b++) {
+            const HIRBasicBlock *block = &routine->cfg.blocks[b];
+            if (block->statement_count > block->statement_capacity ||
+                (block->statement_count != 0 && block->statements == NULL)) { valid = false; break; }
+            for (size_t s = 0; valid && s < block->statement_count; s++)
+                valid = hir_collection_source_expression_current(semantic->collection_effect_snapshot,
+                    routine, block->statements[s]);
+            if (valid && block->terminator_condition != NULL)
+                valid = hir_collection_source_expression_current(semantic->collection_effect_snapshot,
+                    routine, block->terminator_condition);
+            if (valid && block->terminator_value != NULL)
+                valid = (block->terminator_kind != HIR_BLOCK_RETURN ||
+                    semantic_collection_effect_snapshot_source_return(semantic->collection_effect_snapshot,
+                        routine->source_syntax_id, block->terminator_value)) &&
+                    hir_collection_source_expression_current(semantic->collection_effect_snapshot,
+                        routine, block->terminator_value);
+        }
+    }
     free(seen);
     if (!valid && error_message != NULL)
         *error_message = pergyra_strdup("HIR collection effect snapshot is missing, stale or crosswired");

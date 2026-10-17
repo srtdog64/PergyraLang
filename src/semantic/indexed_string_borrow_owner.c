@@ -330,6 +330,9 @@ semantic_indexed_string_borrow_source_current(ASTNode *expression,
             && !semantic_collection_owned_string_call_result(expression, ctx, &producer)) return false;
     }
     uint32_t current_source = row->indexed_string_source_id;
+    if (current_source == INDEXED_STRING_BORROW_UNKNOWN_SOURCE && expression->type == AST_MEMBER_ACCESS &&
+        row->indexed_string_field != NULL && semantic_param_publication_inputs_ready(ctx) &&
+        !semantic_indexed_string_field_source_current(ctx, expression, &current_source)) return false;
     if (semantic_param_publication_inputs_ready(ctx)
         && expression->type == AST_IDENTIFIER) {
         const ASTNode *dependency = NULL;
@@ -392,6 +395,10 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                 if (!reserved) continue;
             }
             if (fact == NULL || fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS) continue;
+            if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
+                && semantic_param_publication_pending(ctx) && call != NULL
+                && expression != NULL && expression->type == AST_MEMBER_ACCESS
+                && semantic_indexed_string_field_record(ctx, expression, call, ordinal)) return;
             if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                 && semantic_param_publication_pending(ctx) && expression != NULL
                 && call != NULL && callee == NULL && !constructor && ordinal == 1) {

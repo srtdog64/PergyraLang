@@ -210,36 +210,10 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
     MIRLocalBinding *raw_uses = NULL;
     size_t raw_use_count = 0;
     size_t raw_use_capacity = 0;
-    ASTNode *exprs[2] = {inst->kind == MIR_INST_BRANCH
-        && inst->branch_shape == MIR_BRANCH_FOR_RANGE
-        ? inst->expr1
-        : (inst->expr0 != NULL ? inst->expr0 : inst->expr1), NULL};
-
-    /* RIR resource rows carry effect/ABI evidence, not lexical value reads.
-     * They may be summarized in the entry block before the defining scope.
-     * DEF/STMT expressions own their executable operands; with-scope claim
-     * and release are the two resource rows materialized directly instead. */
-    if (inst->kind == MIR_INST_RESOURCE_OP
-        && !mir_instruction_source_is_with_slot_claim(inst)
-        && !mir_instruction_source_is_with_slot_release(inst))
-        return true;
-
-    if (inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_LOOP_INIT) {
-        if (inst->expr0 == NULL || inst->expr1 == NULL) {
-            if (error_message != NULL && *error_message == NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' instruction[%zu] %s is missing MIR expression facts for SSA use edges",
-                    routine->name != NULL ? routine->name : "(anonymous)",
-                    inst->id,
-                    inst->kind == MIR_INST_ASSIGN ? "ASSIGN" : "LOOP_INIT");
-            }
-            return false;
-        }
-        /* Typed statements own both RHS/bounds and target-address reads.
-         * Omitting either side lets DCE erase a still-consumed join value. */
-        exprs[0] = inst->expr0;
-        exprs[1] = inst->expr1;
-    }
+    ASTNode *exprs[2];
+    bool resource_summary = false;
+    if (!mir_instruction_executable_roots(routine, inst, exprs, &resource_summary, error_message)) return false;
+    if (resource_summary) return true;
     for (size_t e = 0; e < 2; e++) {
         if (exprs[e] == NULL || (e == 1 && exprs[e] == exprs[0]))
             continue;

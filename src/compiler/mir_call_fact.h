@@ -7,6 +7,8 @@
 
 void mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt);
 ASTNode *mir_defer_part_statement(const MIRInstruction *inst);
+bool mir_instruction_executable_roots(const MIRRoutine *routine,
+    const MIRInstruction *inst, ASTNode *roots[2], bool *resource_summary, char **error_message);
 const char *mir_defer_statement_routing(const ASTNode *stmt);
 ASTNode *mir_defer_assignment_value_fact(const MIRInstruction *inst);
 ASTNode *mir_defer_assignment_target_fact(const MIRInstruction *inst);

@@ -104,6 +104,8 @@ typedef struct {
 } SemanticNominalResultSnapshot;
 bool semantic_nominal_result_snapshot_current(const SemanticContext *ctx,
     const ASTNode *call, const SemanticNominalResultSnapshot *snapshot);
+bool semantic_nominal_result_snapshot_syntax_current(const ASTNode *call,
+    const SemanticNominalResultSnapshot *snapshot);
 void semantic_nominal_result_snapshot_destroy(SemanticNominalResultSnapshot *snapshot);
 typedef struct {
     const ASTNode *node;
@@ -122,6 +124,7 @@ typedef struct {
 } IndexedStringLetLineage;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct PendingPrivateStringPush PendingPrivateStringPush;
+typedef struct IndexedStringFieldRecipe IndexedStringFieldRecipe;
 typedef struct {
     const ASTNode *body;
     uint32_t body_id;
@@ -143,19 +146,29 @@ typedef struct {
 } SemanticPublishedDeferred;
 typedef struct {
     const ASTNode *receiver, *index, *declaration, *field_type_node, *root;
+    const ASTNode *member, *caller;
     uint32_t receiver_id, index_id, declaration_id, field_id, field_type_id;
-    uint32_t root_id, root_binding_id;
+    uint32_t root_id, root_binding_id, member_id, caller_id;
     size_t field_ordinal, field_count;
     const Type *receiver_type, *index_type, *field_type, *result_type;
+    TypeNominalFlavor declaration_flavor;
     AccessModifier access;
+    bool declaration_struct, field_is_string;
     bool explicit_access, mutable_field, vessel_field, default_field;
     double index_number;
     int64_t index_long;
     unsigned index_flags;
     ASTNodeType index_shape;
-    char *name, *index_name, *field_type_name;
+    char *name, *index_name, *field_type_name, *declaration_name, *root_name;
     bool present;
 } PublishedProjection;
+/* Borrowed typed identity only; it does not prove a field's backing lifetime. */
+typedef struct {
+    const ASTNode *member, *declaration, *field_type_node;
+    uint32_t member_id, declaration_id, field_id, field_type_id;
+    size_t field_ordinal, field_count;
+    const Type *nominal_type, *field_type;
+} SemanticPublishedSelectedField;
 typedef struct {
     const ASTNode *node, *target, *caller;
     uint32_t id, target_id, caller_id, builtin, declaration, value_binding, binding_id;
@@ -219,6 +232,7 @@ typedef struct {
     IndexedStringLetLineage indexed_string_let;
     bool indexed_string_shallow_retention;
     PendingPrivateStringPush *private_string_push;
+    IndexedStringFieldRecipe *indexed_string_field;
     bool indexed_array_source_present;
     uint32_t indexed_array_source_id;
     const Type *value_type;
@@ -255,6 +269,7 @@ struct FunctionParamPublicationStore {
     PublishedNode *nodes; size_t node_count, node_capacity;
     size_t indexed_string_shallow_retention_count;
     size_t private_string_push_count;
+    size_t indexed_string_field_count;
 };
 typedef struct {
     const ASTNode *program;
@@ -356,6 +371,14 @@ void semantic_param_publication_projection_record_array(SemanticContext *ctx,
 void semantic_param_publication_projection_destroy(PublishedNode *row);
 bool semantic_param_publication_projection_root_current(const SemanticContext *ctx,
     const ASTNode *value, ASTNode **caller_out, ASTNode **root_out);
+bool semantic_param_publication_member_projection_syntax_current(const ASTNode *value,
+    const ASTNode *caller, const PublishedProjection *projection);
+bool semantic_param_publication_selected_member_field_current(const SemanticContext *ctx,
+    const ASTNode *value, ASTNode **caller_out, ASTNode **root_out,
+    SemanticPublishedSelectedField *field_out);
+bool semantic_param_publication_constructor_field_actual_current(const SemanticContext *ctx,
+    const ASTNode *call, const SemanticPublishedSelectedField *field,
+    ASTNode **actual_out, size_t *actual_ordinal_out);
 bool semantic_param_publication_record_execution(SemanticContext *ctx,
     const ASTNode *statement, bool reachable);
 bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNode *call);

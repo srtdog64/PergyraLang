@@ -6,6 +6,7 @@
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
+#include "callable_capability_inference.h"
 #include "../common/string_compat.h"
 #include "diag_codes.h"
 
@@ -18,6 +19,8 @@ semantic_param_publication_projection_destroy(PublishedNode *row)
     free(row->projection.name);
     free(row->projection.index_name);
     free(row->projection.field_type_name);
+    free(row->projection.declaration_name);
+    free(row->projection.root_name);
     memset(&row->projection, 0, sizeof(row->projection));
 }
 
@@ -99,6 +102,7 @@ projection_record_member(SemanticContext *ctx, ASTNode *value,
     const Type *field_type, const Type *result_type)
 {
     if (!semantic_param_publication_pending(ctx) || ctx->has_error ||
+        declaration == NULL || declaration->type != AST_CLASS_DECL ||
         field.name == NULL || field.type_ast == NULL || field.type_ast->type != AST_TYPE ||
         field.declaration_syntax_id == 0 || result_type == TYPE_UNKNOWN ||
         field_type == TYPE_UNKNOWN || !type_equals(field_type, result_type)) return;
@@ -107,7 +111,8 @@ projection_record_member(SemanticContext *ctx, ASTNode *value,
     if ((generics != NULL && generics->count != 0) || type_name == NULL) return;
     ASTNode *root = projection_identifier_root(ctx, receiver);
     if (root == NULL) return;
-    PublishedProjection receipt = {.present = true, .receiver = receiver,
+    PublishedProjection receipt = {.present = true, .member = value,
+        .member_id = ast_node_stable_id(value), .receiver = receiver,
         .receiver_id = ast_node_stable_id(receiver), .declaration = declaration,
         .declaration_id = ast_node_stable_id(declaration),
         .field_id = field.declaration_syntax_id, .field_type_node = field.type_ast,
@@ -115,24 +120,37 @@ projection_record_member(SemanticContext *ctx, ASTNode *value,
         .root = root, .root_id = ast_node_stable_id(root),
         .root_binding_id = ast_identifier_binding_syntax_id(root),
         .field_ordinal = ordinal, .field_count = count,
+        .declaration_flavor = nominal_flavor_from_decl(declaration),
+        .declaration_struct = ast_class_is_struct(declaration),
+        .field_is_string = field_type == TYPE_STRING,
         .receiver_type = receiver_type, .field_type = field_type,
         .result_type = result_type, .access = field.access,
         .explicit_access = field.has_explicit_access,
         .mutable_field = field.is_mutable, .vessel_field = field.is_vessel_field,
         .default_field = field.has_default};
-    if (receipt.receiver_id == 0 || receipt.declaration_id == 0 ||
+    if (receipt.member_id == 0 || receipt.receiver_id == 0 || receipt.declaration_id == 0 ||
         receipt.field_type_id == 0 || receipt.root_id == 0) return;
     receipt.name = pergyra_strdup(field.name);
     receipt.field_type_name = pergyra_strdup(type_name);
-    if (receipt.name == NULL || receipt.field_type_name == NULL) {
+    if (receipt.field_is_string && ast_class_name(declaration) != NULL)
+        receipt.declaration_name = pergyra_strdup(ast_class_name(declaration));
+    if (receipt.field_is_string && ast_identifier_name(root) != NULL)
+        receipt.root_name = pergyra_strdup(ast_identifier_name(root));
+    if (receipt.name == NULL || receipt.field_type_name == NULL ||
+        (receipt.field_is_string && (receipt.declaration_name == NULL ||
+         receipt.root_name == NULL))) {
         free(receipt.name); free(receipt.field_type_name);
+        free(receipt.declaration_name); free(receipt.root_name);
         return;
     }
     PublishedNode *row = publication_node(ctx->function_param_publications, value, false);
     if (row == NULL) {
         free(receipt.name); free(receipt.field_type_name);
+        free(receipt.declaration_name); free(receipt.root_name);
         return;
     }
+    receipt.caller = callable_capability_current_declaration(ctx);
+    receipt.caller_id = ast_node_stable_id(receipt.caller);
     semantic_param_publication_projection_destroy(row);
     row->projection = receipt;
 }
@@ -250,6 +268,95 @@ semantic_param_publication_projection_root_current(const SemanticContext *ctx,
         cursor = receiver;
     }
     return false;
+}
+
+bool semantic_param_publication_member_projection_syntax_current(const ASTNode *value,
+    const ASTNode *caller, const PublishedProjection *p)
+{
+    if (value == NULL || value->type != AST_MEMBER_ACCESS ||
+        caller == NULL || caller->type != AST_FUNC_DECL || p == NULL ||
+        !p->present || p->member != value || p->member_id == 0 ||
+        p->member_id != ast_node_stable_id(value) || p->caller != caller ||
+        p->caller_id == 0 || p->caller_id != ast_node_stable_id(caller) ||
+        p->index != NULL || p->root == NULL || p->root->type != AST_IDENTIFIER ||
+        p->receiver != p->root || p->receiver != ast_member_object(value) ||
+        p->receiver_id == 0 || p->receiver_id != ast_node_stable_id(p->receiver) ||
+        p->root_id == 0 || p->root_id != ast_node_stable_id(p->root) ||
+        p->root_binding_id == 0 ||
+        p->root_binding_id != ast_identifier_binding_syntax_id(p->root) ||
+        p->root_name == NULL || ast_identifier_name(p->root) == NULL ||
+        strcmp(p->root_name, ast_identifier_name(p->root)) != 0 ||
+        p->declaration == NULL || p->declaration->type != AST_CLASS_DECL ||
+        p->declaration_id == 0 ||
+        p->declaration_id != ast_node_stable_id(p->declaration) ||
+        p->declaration_flavor != nominal_flavor_from_decl(p->declaration) ||
+        p->declaration_struct != ast_class_is_struct(p->declaration) ||
+        p->declaration_name == NULL || ast_class_name(p->declaration) == NULL ||
+        strcmp(p->declaration_name, ast_class_name(p->declaration)) != 0 ||
+        ast_generic_param_count(ast_class_generic_params(p->declaration)) != 0 ||
+        ast_class_field_destructure_count(p->declaration) != 0 ||
+        p->field_count != projection_source_field_count((ASTNode *)p->declaration) ||
+        p->field_ordinal >= p->field_count || !p->field_is_string ||
+        p->field_type != TYPE_STRING || p->result_type != TYPE_STRING ||
+        p->name == NULL || ast_member_name(value) == NULL ||
+        strcmp(p->name, ast_member_name(value)) != 0 ||
+        p->field_type_node == NULL || p->field_type_node->type != AST_TYPE ||
+        p->field_type_id == 0 ||
+        p->field_type_id != ast_node_stable_id(p->field_type_node) ||
+        p->field_type_name == NULL || ast_type_name(p->field_type_node) == NULL ||
+        strcmp(p->field_type_name, ast_type_name(p->field_type_node)) != 0)
+        return false;
+    GenericParams *generics = ast_type_generic_args(p->field_type_node);
+    if (generics != NULL && generics->count != 0) return false;
+    PgyDeclField field = projection_source_field_at(
+        (ASTNode *)p->declaration, p->field_ordinal);
+    return field.name != NULL && strcmp(field.name, p->name) == 0 &&
+        field.declaration_syntax_id != 0 &&
+        field.declaration_syntax_id == p->field_id &&
+        field.type_ast == p->field_type_node &&
+        field.access == p->access &&
+        field.has_explicit_access == p->explicit_access &&
+        field.is_mutable == p->mutable_field &&
+        field.is_vessel_field == p->vessel_field &&
+        field.has_default == p->default_field;
+}
+
+bool semantic_param_publication_selected_member_field_current(const SemanticContext *ctx,
+    const ASTNode *value, ASTNode **caller_out, ASTNode **root_out,
+    SemanticPublishedSelectedField *field_out)
+{
+    if (caller_out != NULL) *caller_out = NULL;
+    if (root_out != NULL) *root_out = NULL;
+    if (field_out != NULL) memset(field_out, 0, sizeof(*field_out));
+    if (field_out == NULL || value == NULL || value->type != AST_MEMBER_ACCESS)
+        return false;
+    ASTNode *caller = NULL, *root = NULL;
+    if (!semantic_param_publication_projection_root_current(ctx, value,
+            &caller, &root)) return false;
+    const ASTNode *receiver = ast_member_object(value);
+    if (receiver == NULL || receiver->type != AST_IDENTIFIER || receiver != root)
+        return false;
+    PublishedNode *row = publication_current_value(ctx, value);
+    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(value) ||
+        !row->projection.present) return false;
+    const PublishedProjection *p = &row->projection;
+    if (p->receiver != receiver || p->root != root || p->declaration == NULL ||
+        p->declaration->type != AST_CLASS_DECL || p->field_type_node == NULL ||
+        p->field_type == NULL || p->field_type == TYPE_UNKNOWN ||
+        p->receiver_type == NULL || p->receiver_type == TYPE_UNKNOWN ||
+        p->field_id == 0 || p->field_ordinal >= p->field_count) return false;
+    if (p->field_type == TYPE_STRING &&
+        !semantic_param_publication_member_projection_syntax_current(value,
+            caller, p)) return false;
+    *field_out = (SemanticPublishedSelectedField){.member = value,
+        .member_id = row->id, .declaration = p->declaration,
+        .declaration_id = p->declaration_id, .field_id = p->field_id,
+        .field_type_node = p->field_type_node, .field_type_id = p->field_type_id,
+        .field_ordinal = p->field_ordinal, .field_count = p->field_count,
+        .nominal_type = p->receiver_type, .field_type = p->field_type};
+    if (caller_out != NULL) *caller_out = caller;
+    if (root_out != NULL) *root_out = root;
+    return true;
 }
 
 static Type *

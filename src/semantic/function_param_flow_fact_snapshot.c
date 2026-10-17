@@ -1,5 +1,6 @@
 #include "function_param_flow_summary_internal.h"
 #include "indexed_string_borrow_owner.h"
+#include "indexed_string_field_lineage_internal.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -389,22 +390,6 @@ function_param_flow_summary_snapshot(SemanticContext *ctx)
     return true;
 }
 
-void semantic_nominal_result_snapshot_destroy(SemanticNominalResultSnapshot *snapshot)
-{
-    if (snapshot == NULL) return;
-    for (size_t i = 0; i < snapshot->field_count && snapshot->fields != NULL; i++) {
-        SemanticNominalResultField *field = &snapshot->fields[i];
-        free(field->field_name);
-        free(field->argument_name);
-        free(field->field_type_name);
-        free(field->argument_type_name);
-        free(field->type_syntax_name);
-    }
-    free(snapshot->fields);
-    free(snapshot->decl_name);
-    free(snapshot->result_type_name);
-    free(snapshot);
-}
 
 void semantic_published_unit_enum_selection_destroy(
     SemanticPublishedUnitEnumSelection *selection)
@@ -443,7 +428,8 @@ void semantic_param_publication_retire_value(PublishedNode *row)
     PublishedNode identity = {.node = row->node, .id = row->id, .routine_index = row->routine_index,
         .execution_present = row->execution_present, .reachable = row->reachable,
         .indexed_string_shallow_retention = row->indexed_string_shallow_retention,
-        .private_string_push = row->private_string_push};
+        .private_string_push = row->private_string_push,
+        .indexed_string_field = row->indexed_string_field};
     *row = identity;
 }
 
@@ -462,6 +448,8 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
     for (size_t n = 0; n < store->node_capacity; n++) {
         semantic_indexed_string_private_push_destroy(store->nodes[n].private_string_push);
         store->nodes[n].private_string_push = NULL;
+        semantic_indexed_string_field_destroy(store->nodes[n].indexed_string_field);
+        store->nodes[n].indexed_string_field = NULL;
         semantic_param_publication_retire_value(&store->nodes[n]);
     }
     for (size_t i = 0; i < store->read_loan_count; i++) free(store->read_loans[i].module);

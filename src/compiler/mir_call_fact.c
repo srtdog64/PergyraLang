@@ -10,6 +10,7 @@
 #include "mir_type_helpers.h"
 #include "mir_abi_layout.h"
 #include "mir_nominal_abi_layout.h"
+#include "mir_base_helpers.h"
 
 static void
 mir_attach_text_builder_runtime_row(MIRInstruction *inst,
@@ -166,6 +167,37 @@ mir_defer_assignment_target_fact(const MIRInstruction *inst)
     return stmt != NULL && stmt->type == AST_ASSIGNMENT
         ? ast_assignment_target(stmt)
         : NULL;
+}
+
+bool mir_instruction_executable_roots(const MIRRoutine *routine,
+    const MIRInstruction *inst, ASTNode *roots[2], bool *resource_summary, char **error_message)
+{
+    if (routine == NULL || inst == NULL || roots == NULL) return false;
+    if (resource_summary != NULL) *resource_summary = false;
+    roots[0] = inst->kind == MIR_INST_BRANCH && inst->branch_shape == MIR_BRANCH_FOR_RANGE
+        ? inst->expr1 : (inst->expr0 != NULL ? inst->expr0 : inst->expr1);
+    roots[1] = NULL;
+    /* RIR summaries carry ABI/effect evidence, not another lexical evaluation. */
+    if (inst->kind == MIR_INST_RESOURCE_OP && !mir_instruction_source_is_with_slot_claim(inst) &&
+        !mir_instruction_source_is_with_slot_release(inst)) {
+        roots[0] = NULL;
+        if (resource_summary != NULL) *resource_summary = true;
+        return true;
+    }
+    if (inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_LOOP_INIT) {
+        if (inst->expr0 == NULL || inst->expr1 == NULL) {
+            if (error_message != NULL && *error_message == NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' instruction[%zu] %s is missing MIR expression facts for SSA use edges",
+                    routine->name != NULL ? routine->name : "(anonymous)", inst->id,
+                    inst->kind == MIR_INST_ASSIGN ? "ASSIGN" : "LOOP_INIT");
+            return false;
+        }
+        roots[0] = inst->expr0;
+        roots[1] = inst->expr1;
+    }
+    if (roots[1] == roots[0]) roots[1] = NULL;
+    return true;
 }
 
 void
