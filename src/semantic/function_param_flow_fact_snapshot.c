@@ -1,5 +1,6 @@
 #include "function_param_flow_summary_internal.h"
 #include "function_param_publication_owner.h"
+#include "indexed_string_borrow_owner.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -323,7 +324,8 @@ void semantic_param_publication_retire_value(PublishedNode *row)
     semantic_published_unit_enum_selection_destroy(row->unit_enum_selection);
     PublishedNode identity = {.node = row->node, .id = row->id, .routine_index = row->routine_index,
         .execution_present = row->execution_present, .reachable = row->reachable,
-        .indexed_string_shallow_retention = row->indexed_string_shallow_retention};
+        .indexed_string_shallow_retention = row->indexed_string_shallow_retention,
+        .private_string_push = row->private_string_push};
     *row = identity;
 }
 
@@ -339,7 +341,11 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
         free(store->calls[i].borrowed); free(store->calls[i].destination); free(store->calls[i].fix); free(store->calls[i].module);
         free(store->calls[i].target_name);
     }
-    for (size_t n = 0; n < store->node_capacity; n++) semantic_param_publication_retire_value(&store->nodes[n]);
+    for (size_t n = 0; n < store->node_capacity; n++) {
+        semantic_indexed_string_private_push_destroy(store->nodes[n].private_string_push);
+        store->nodes[n].private_string_push = NULL;
+        semantic_param_publication_retire_value(&store->nodes[n]);
+    }
     for (size_t i = 0; i < store->read_loan_count; i++) free(store->read_loans[i].module);
     free(store->read_loans);
     free(store->nodes); free(store->routines); free(store->calls); free(store->body_calls);

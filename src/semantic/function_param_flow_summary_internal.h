@@ -288,7 +288,9 @@ bool function_param_flow_string_result_source_current(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source);
 bool function_param_flow_nonlocal_input_current(SemanticContext *ctx,
     ASTNode *routine, size_t formal_ordinal);
-bool function_param_flow_nonlocal_result(SemanticContext *ctx, ASTNode *call,
+/* Navigation result shape only: String acceptance is no nonlocal-source or
+ * independence proof. The optional Array output requires its owned receipt. */
+bool function_param_flow_navigation_result_shape(SemanticContext *ctx, ASTNode *call,
     bool *independent_physical_array);
 bool function_param_flow_physical_result_header_current(SemanticContext *ctx, ASTNode *routine);
 bool function_param_flow_nonlocal_physical_input_current(SemanticContext *ctx,

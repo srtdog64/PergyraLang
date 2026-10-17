@@ -1,0 +1,23 @@
+struct TextNode { type_name: String; }
+struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
+
+func Project(nodes: Array<TextNode>) -> Arena {
+    let provenance_texts: Array<String> = [];
+    let atom_table: Array<String> = [""];
+    let i: Int = 0;
+    while i < ArrayLength(nodes) {
+        if nodes[i].type_name != "" {
+            ArrayPush(atom_table, nodes[i].type_name);
+        }
+        i = i + 1;
+    }
+    return Arena(atom_table, provenance_texts);
+}
+
+func Main() -> Void {
+    let name = Concat("Type", "Name");
+    let nodes: Array<TextNode> = [TextNode(name)];
+    let arena = Project(nodes);
+    Log(arena.atom_table[1]);
+    Log(nodes[0].type_name);
+}

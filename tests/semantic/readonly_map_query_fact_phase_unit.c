@@ -25,6 +25,7 @@
 #include "semantic/type_checker_ownership_internal.h"
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
+#include "semantic/diag_payload.h"
 #include "semantic/collection_ownership_fact.h"
 #include "semantic/collection_owned_element_requirement_owner.h"
 
@@ -11051,27 +11052,67 @@ static void checked_physical_result_nonlocal_currency(void)
     CHECK(nonlocal);
     uint32_t call_id = fresh_call->stable_id;
     fresh_call->stable_id++;
+    CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
     CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
     CHECK(!semantic_array_storage_owned_result_current(ctx, fresh_call));
     fresh_call->stable_id = call_id;
+    CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
     CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
     uint32_t actual_id = actual->stable_id;
     actual->stable_id++;
+    CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
     CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
     actual->stable_id = actual_id;
+    CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
     CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
     uint32_t callee_id = ast_call_semantic_callee_decl_id(fresh_call);
     CHECK(ast_call_set_semantic_callee_decl_id(fresh_call, ast_node_stable_id(copy)));
+    CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
     CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
     CHECK(ast_call_set_semantic_callee_decl_id(fresh_call, callee_id));
+    CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
     CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    PublishedNode *fresh_row = published_node_for(ctx, fresh_call);
+    CHECK(fresh_row != NULL);
+    if (fresh_row != NULL) {
+        bool value_present = fresh_row->value_present;
+        const Type *value_type = fresh_row->value_type;
+        fresh_row->value_present = false;
+        CHECK(!semantic_array_storage_owned_result_current(ctx, fresh_call));
+        CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+        fresh_row->value_present = value_present;
+        CHECK(semantic_array_storage_owned_result_current(ctx, fresh_call));
+        CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+        fresh_row->value_type = TYPE_STRING;
+        CHECK(!semantic_array_storage_owned_result_current(ctx, fresh_call));
+        CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+        fresh_row->value_type = value_type;
+        CHECK(semantic_array_storage_owned_result_current(ctx, fresh_call));
+        CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+    }
+    PendingRoutine *fresh_routine = NULL;
+    for (size_t i = 0; i < ctx->function_param_publications->routine_count; i++)
+        if (ctx->function_param_publications->routines[i].decl == fresh)
+            fresh_routine = &ctx->function_param_publications->routines[i];
+    CHECK(fresh_routine != NULL && fresh_routine->normal_exit_closed);
+    if (fresh_routine != NULL) {
+        bool normal_exit_closed = fresh_routine->normal_exit_closed;
+        fresh_routine->normal_exit_closed = false;
+        CHECK(!semantic_array_storage_owned_result_current(ctx, fresh_call));
+        CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+        fresh_routine->normal_exit_closed = normal_exit_closed;
+        CHECK(semantic_array_storage_owned_result_current(ctx, fresh_call));
+        CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+    }
     PublishedNode *actual_row = published_node_for(ctx, actual);
     CHECK(actual_row != NULL);
     if (actual_row != NULL) {
         bool physical = actual_row->physical_scalar;
         actual_row->physical_scalar = false;
+        CHECK(!function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
         CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
         actual_row->physical_scalar = physical;
+        CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
         CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
     }
     uint32_t root_binding = ast_identifier_binding_syntax_id(root);
@@ -11079,6 +11120,165 @@ static void checked_physical_result_nonlocal_currency(void)
     CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
     ast_identifier_set_binding_syntax_id(root, root_binding);
     CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_private_string_push_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextNode{name:String;payload:String;}"
+        "struct Arena{atom_table:Array<String>;provenance_texts:Array<String>;}"
+        "func AtomFor(node:TextNode)->String{"
+        "if node.name!=\"\"{return node.name;}return node.payload;}"
+        "func Project(nodes:Array<TextNode>)->Arena{"
+        "let provenance_texts:Array<String> = [];"
+        "let atom_table:Array<String> = [\"\"];"
+        "ArrayPush(atom_table,nodes[0].name);"
+        "let atom_text:String=AtomFor(nodes[0]);"
+        "ArrayPush(atom_table,atom_text);"
+        "return Arena(atom_table,provenance_texts);}"
+        "func Main()->Void{let name=Concat(\"N\",\"ame\");"
+        "let nodes:Array<TextNode> = [TextNode(name,\"\")];"
+        "let arena=Project(nodes);Log(arena.atom_table[1]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *atom_for = ast_program_statement(program, 2);
+    ASTNode *project = ast_program_statement(program, 3);
+    ASTNode *body = project == NULL ? NULL : ast_func_body(project);
+    ASTNode *provenance = body == NULL ? NULL : ast_block_statement(body, 0);
+    ASTNode *atom_table = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *direct = body == NULL ? NULL : ast_block_statement(body, 2);
+    ASTNode *named_let = body == NULL ? NULL : ast_block_statement(body, 3);
+    ASTNode *named = body == NULL ? NULL : ast_block_statement(body, 4);
+    ASTNode *source = direct == NULL ? NULL : ast_call_argument(direct, 1);
+    ASTNode *receiver = direct == NULL ? NULL : ast_call_argument(direct, 0);
+    ASTNode *named_source = named == NULL ? NULL : ast_call_argument(named, 1);
+    ASTNode *dependency = named_let == NULL ? NULL : ast_let_initializer(named_let);
+    ASTNode *actual = dependency == NULL ? NULL : ast_call_argument(dependency, 0);
+    CHECK(atom_for != NULL && project != NULL && provenance != NULL && atom_table != NULL &&
+        direct != NULL && direct->type == AST_CALL && named_let != NULL &&
+        named != NULL && named->type == AST_CALL && source != NULL &&
+        source->type == AST_MEMBER_ACCESS && receiver != NULL &&
+        named_source != NULL && named_source->type == AST_IDENTIFIER &&
+        dependency != NULL && dependency->type == AST_CALL &&
+        actual != NULL && actual->type == AST_ARRAY_ACCESS);
+    if (atom_for == NULL || project == NULL || provenance == NULL || atom_table == NULL ||
+        direct == NULL || named_let == NULL || named == NULL || source == NULL || receiver == NULL ||
+        named_source == NULL || dependency == NULL || actual == NULL) goto cleanup;
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(publication != NULL && flow != NULL);
+    if (publication == NULL || flow == NULL) goto cleanup;
+    PublishedNode *direct_row = published_node_for(ctx, direct);
+    PublishedNode *named_row = published_node_for(ctx, named);
+    PublishedNode *source_row = published_node_for(ctx, source);
+    PublishedNode *named_source_row = published_node_for(ctx, named_source);
+    PublishedNode *let_row = published_node_for(ctx, named_let);
+    PublishedNode *actual_row = published_node_for(ctx, actual);
+    CHECK(direct_row != NULL && named_row != NULL && source_row != NULL &&
+        named_source_row != NULL && let_row != NULL && actual_row != NULL);
+    if (direct_row == NULL || named_row == NULL || source_row == NULL ||
+        named_source_row == NULL || let_row == NULL || actual_row == NULL) goto cleanup;
+    CHECK(direct_row->private_string_push != NULL && named_row->private_string_push != NULL &&
+        publication->private_string_push_count == 2);
+    CHECK(source_row->indexed_string_source_present && source_row->indexed_string_source_id == UINT32_MAX &&
+        named_source_row->indexed_string_source_present && named_source_row->indexed_string_source_id == UINT32_MAX);
+    CHECK(!semantic_collection_owned_string_call_result(dependency, ctx, NULL));
+    const PgyCollectionOwnershipFact *atom_fact = semantic_collection_ownership_fact_find(
+        ctx, ast_node_stable_id(project), ast_node_stable_id(atom_table));
+    PgyCollectionOwnershipFact *risk = (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(project), ast_node_stable_id(provenance));
+    CHECK(atom_fact != NULL && atom_fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS);
+    CHECK(risk != NULL && risk->element_ownership != PGY_STRING_ARRAY_BORROWED_ELEMENTS);
+    unsigned mask = function_param_flow_summary_for_param(ctx, project, 0);
+    CHECK(mask != SLOT_PARAM_SUMMARY_ALL && function_param_flow_nonlocal_input_current(ctx, project, 0));
+    FunctionParamFlowBackingFact *result = function_param_flow_declared_result_frame_current(flow, dependency, NULL);
+    CHECK(result != NULL && result->epoch != 0 && result->complete && !result->pending);
+    FunctionParamFlowProgramPointIndex *project_index = NULL;
+    CHECK(function_param_flow_program_point_index_build(flow, project, &project_index));
+    FunctionParamFlowBackingFact *normal = project_index != NULL && project_index->backing_frames != NULL &&
+        project_index->backing_frame_count != 0 ? project_index->backing_frames[0] : NULL;
+    CHECK(normal != NULL && normal->epoch != 0 && normal->private_stores_closed);
+    CHECK(semantic_indexed_string_private_push_current(ctx, direct));
+    CHECK(semantic_indexed_string_private_push_current(ctx, named));
+    CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    if (risk == NULL || result == NULL || normal == NULL) goto cleanup;
+    /* A query can recover after restoring its row. Finalization records an
+     * error, so each diagnostic must be discarded before checking recovery. */
+    for (unsigned fault = 0; fault < 12; fault++) {
+        uint32_t direct_id = direct->stable_id, source_id = source->stable_id;
+        uint32_t receiver_id = receiver->stable_id;
+        uint32_t projected_field = source_row->projection.field_id;
+        uint32_t callee_id = ast_call_semantic_callee_decl_id(dependency);
+        uint32_t initializer_id = let_row->indexed_string_let.initializer_id;
+        uint32_t projected_index = actual_row->projection.index_id;
+        uint32_t risk_binding = risk->binding_syntax_id;
+        size_t epoch = result->epoch, count = publication->private_string_push_count;
+        bool private_closed = normal->private_stores_closed;
+        PendingPrivateStringPush *receipt = direct_row->private_string_push;
+        if (fault == 0) direct->stable_id++;
+        if (fault == 1) source->stable_id++;
+        if (fault == 2) receiver->stable_id++;
+        if (fault == 3) source_row->projection.field_id++;
+        if (fault == 4) ast_call_set_semantic_callee_decl_id(dependency, ast_node_stable_id(project));
+        if (fault == 5) let_row->indexed_string_let.initializer_id++;
+        if (fault == 6) actual_row->projection.index_id++;
+        if (fault == 7) result->epoch = 0;
+        if (fault == 8) normal->private_stores_closed = false;
+        if (fault == 9) direct_row->private_string_push = NULL;
+        if (fault == 10) publication->private_string_push_count++;
+        if (fault == 11) risk->binding_syntax_id++;
+        bool direct_current = semantic_indexed_string_private_push_current(ctx, direct);
+        bool named_current = semantic_indexed_string_private_push_current(ctx, named);
+        /* Both receipts consume the caller's current claims. Altering either
+         * projection or selected call can withdraw that shared proof. */
+        bool expected_direct = fault == 5 || fault == 10;
+        bool expected_named = fault == 9 || fault == 10;
+        if (direct_current != expected_direct || named_current != expected_named)
+            fprintf(stderr, "private String push fault=%u direct=%d named=%d expected=%d,%d\n",
+                fault, (int)direct_current, (int)named_current,
+                (int)expected_direct, (int)expected_named);
+        CHECK(direct_current == expected_direct && named_current == expected_named);
+        size_t diagnostics = ctx->diagnostic_count;
+        CHECK(!semantic_indexed_string_borrow_finalize(ctx));
+        CHECK(ctx->has_error && ctx->diagnostic_count == diagnostics + 1 &&
+            ctx->diagnostics[diagnostics] != NULL &&
+            ctx->diagnostics[diagnostics]->code != NULL &&
+            strcmp(ctx->diagnostics[diagnostics]->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0);
+        direct->stable_id = direct_id; source->stable_id = source_id;
+        receiver->stable_id = receiver_id;
+        source_row->projection.field_id = projected_field;
+        ast_call_set_semantic_callee_decl_id(dependency, callee_id);
+        let_row->indexed_string_let.initializer_id = initializer_id;
+        actual_row->projection.index_id = projected_index;
+        risk->binding_syntax_id = risk_binding;
+        result->epoch = epoch; normal->private_stores_closed = private_closed;
+        direct_row->private_string_push = receipt;
+        publication->private_string_push_count = count;
+        for (size_t d = diagnostics; d < ctx->diagnostic_count; d++) {
+            free(ctx->diagnostics[d]->message);
+            diag_payload_snapshot_destroy(ctx->diagnostics[d]->payload);
+            free(ctx->diagnostics[d]);
+            ctx->diagnostics[d] = NULL;
+        }
+        ctx->diagnostic_count = diagnostics;
+        ctx->has_error = false;
+        bool restored_direct = semantic_indexed_string_private_push_current(ctx, direct);
+        bool restored_named = semantic_indexed_string_private_push_current(ctx, named);
+        bool restored_final = semantic_indexed_string_borrow_finalize(ctx);
+        if (!restored_direct || !restored_named || !restored_final)
+            fprintf(stderr, "private String push restore fault=%u direct=%d named=%d finalize=%d\n",
+                fault, (int)restored_direct, (int)restored_named, (int)restored_final);
+        CHECK(restored_direct && restored_named && restored_final);
+    }
 cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -11105,6 +11305,7 @@ int main(void)
     checked_string_field_return_nonlocal_currency();
     checked_scalar_noframe_nonlocal_currency();
     checked_physical_result_nonlocal_currency();
+    checked_private_string_push_currency();
     checked_named_string_shallow_retention_currency();
     checked_result_argument_currency();
     checked_witnessed_physical_call_alias_currency();

@@ -8,6 +8,18 @@
 typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 typedef struct Symbol Symbol;
+typedef enum {
+    INDEXED_STRING_PUSH_NOT_APPLICABLE,
+    INDEXED_STRING_PUSH_RECORDED,
+    INDEXED_STRING_PUSH_FAILED
+} IndexedStringPushRecord;
+IndexedStringPushRecord semantic_indexed_string_record_private_push(
+    SemanticContext *ctx, ASTNode *call, ASTNode *source,
+    ASTNode *receiver, uint32_t risk_binding_id);
+bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
+    const ASTNode *call);
+bool semantic_indexed_string_prepare_private_push(SemanticContext *ctx, const ASTNode *call);
+void semantic_indexed_string_private_push_destroy(void *receipt);
 /* Query at an actual successfully typed String publication/binding seam.
  * Independence does not prove exact payload copying or allocation success. */
 bool semantic_indexed_string_independent_result(const ASTNode *expression,

@@ -35,7 +35,7 @@ static bool function_param_flow_nonlocal_call(SemanticContext *ctx, ASTNode *rou
     if (selected != NULL && !semantic_param_publication_instance_receiver(ctx, call, &receiver)) return false;
     if (receiver == argument) {
         ASTNode *callee = semantic_param_publication_direct_callee(ctx, call);
-        return callee != NULL && function_param_flow_nonlocal_result(ctx, call, NULL) &&
+        return callee != NULL && function_param_flow_navigation_result_shape(ctx, call, NULL) &&
             function_param_flow_nonlocal_read(ctx, callee, 0, active);
     }
     for (size_t a = 0; a < ast_call_arg_count(call); a++) {
@@ -56,7 +56,7 @@ static bool function_param_flow_nonlocal_call(SemanticContext *ctx, ASTNode *rou
         ASTNode *callee = semantic_param_publication_direct_callee(ctx, call);
         size_t formal = SIZE_MAX;
         bool independent_array = false;
-        if (callee == NULL || !function_param_flow_nonlocal_result(ctx, call, &independent_array) ||
+        if (callee == NULL || !function_param_flow_navigation_result_shape(ctx, call, &independent_array) ||
             !semantic_param_publication_formal_for_actual(ctx, call, a, &formal)) return false;
         if (independent_array && semantic_param_publication_value_is_physical_scalar(ctx, argument))
             return function_param_flow_nonlocal_physical_input_current(ctx, call, a);

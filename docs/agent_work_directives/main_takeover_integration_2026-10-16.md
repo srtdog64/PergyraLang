@@ -192,6 +192,27 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   aliases, repeated field extraction, branch/loop generations and live deferred
   readers must be falsifiers. Recheck these downstream cases only after the
   primary String projection error is removed.
+- Private-push consumer checkpoint (parent249b): native90b4911b, D1XzCU
+  phase11325/0 and strict PASS including five registered field fixtures and
+  C/LLVM positive runtime. Xdn7Zt passes old six currency groups, broad DOBBdP
+  (MIR370/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR) and
+  sanitizerSy98oX with phase11325/0, live UAF witness and leaks OFF. All34
+  changed/new src/test paths compare byte-equal between D and Linux.
+  The exact pending tuple/count is issued only at the reached risk branch;
+  one-time preparation is separate from ready-only current queries. Standalone
+  physical-input proof consumes its own owned result; shape is not independence.
+  Storage-source getter moved verbatim to the existing storage-release owner.
+  No new TU, source0 interpretation, outward-dependency or cleanup grant.
+- Both full inputs remain RED in AqldHF: MIR0/18435 cascading BORROW errors,
+  fixed31.01s/1621388KiB and current29.20s/1619564KiB. Diagnostic-only S4XKWp
+  identifies the new first error as AstTreeArtifactPayloadContractReady466:22
+  (prior_error0), artifact.tree_text passed to IdentityDigest. Provisional
+  admission past185:44 does not establish its production final proof: body
+  errors still block publication/finalization. The next boundary is a typed
+  synchronous nonretaining String call, not a private ArrayPush or source0.
+  Current concrete-source payload receipts must not accept UNKNOWN by dropping
+  source equality. A/B/C produced read-only maps; no466 implementation yet.
+  Freeze and independently review this checkpoint before that next repair.
 
 #### Broad integration failures before canonical continuation
 

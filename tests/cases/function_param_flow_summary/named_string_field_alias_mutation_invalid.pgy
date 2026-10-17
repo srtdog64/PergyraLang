@@ -1,0 +1,27 @@
+struct TextNode { type_name: String; }
+struct Arena { atom_table: Array<String>; provenance_texts: Array<String>; }
+
+func AliasNodes(nodes: Array<TextNode>) -> Array<TextNode> {
+    return nodes;
+}
+
+func Project(nodes: Array<TextNode>) -> Arena {
+    let provenance_texts: Array<String> = [];
+    let atom_table: Array<String> = [""];
+    let i: Int = 0;
+    while i < ArrayLength(nodes) {
+        if nodes[i].type_name != "" {
+            ArrayPush(atom_table, nodes[i].type_name);
+        }
+        i = i + 1;
+    }
+    return Arena(atom_table, provenance_texts);
+}
+
+func Main() -> Void {
+    let nodes: Array<TextNode> = [TextNode(Concat("owned", " value"))];
+    let alias: Array<TextNode> = AliasNodes(nodes);
+    let arena: Arena = Project(nodes);
+    ArraySet(alias, 0, TextNode(Concat("replacement", " value")));
+    Log(arena.atom_table[1]);
+}

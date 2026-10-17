@@ -37,7 +37,7 @@ static FunctionParamFlowProgramPointIndex *function_param_flow_current_claim_ind
     return NULL;
 }
 
-bool function_param_flow_nonlocal_result(SemanticContext *ctx, ASTNode *call,
+bool function_param_flow_navigation_result_shape(SemanticContext *ctx, ASTNode *call,
     bool *independent_physical_array)
 {
     if (independent_physical_array != NULL) *independent_physical_array = false;
@@ -60,14 +60,19 @@ bool function_param_flow_physical_result_header_current(SemanticContext *ctx, AS
         semantic_param_publication_routine_result_current(ctx, routine, type);
 }
 
-/* Input currency alone grants no result independence. The navigation consumer
- * additionally requires the exact owned physical-Array result receipt above. */
+/* Standalone consumption requires both physical input currency and the exact
+ * owned physical-Array result; a navigation shape predicate is not that proof. */
 bool function_param_flow_nonlocal_physical_input_current(SemanticContext *ctx,
     ASTNode *call, size_t actual)
 {
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_inputs_ready(ctx) ||
         ctx->function_param_flow_summaries == NULL || ctx->function_param_flow_summaries->failed ||
         ctx->function_param_flow_summaries->solving) return false;
+    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+    if (!semantic_param_publication_checked_call(ctx, call) || !result.ok || result.meta ||
+        !type_is_constructed_named(result.type, "Array") ||
+        !publication_physical_scalar(type_get_constructed_arg(result.type, 0)) ||
+        !semantic_array_storage_owned_result_current(ctx, call)) return false;
     ASTNode *decl = semantic_param_publication_callee(ctx, call, actual);
     size_t ordinal = SIZE_MAX;
     if (decl == NULL || !semantic_param_publication_checked_argument(ctx, call, actual) ||

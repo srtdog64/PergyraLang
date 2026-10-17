@@ -234,25 +234,6 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     return true;
 }
 
-bool
-semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
-    SemanticContext *ctx, uint32_t *source_id)
-{
-    if (expression == NULL || expression->type != AST_IDENTIFIER || source_id == NULL
-        || !publication_generation_ready(ctx)) return false;
-    PublishedNode *row = publication_node(ctx->function_param_publications, expression, false);
-    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(expression)
-        || !row->value_present || row->meta || row->value_shape != AST_IDENTIFIER
-        || row->binding_id == 0 || row->binding_id != ast_identifier_binding_syntax_id(expression)
-        || !type_is_constructed_named(row->value_type, "Array")
-        || !type_equals(type_get_constructed_arg(row->value_type, 0), TYPE_STRING)
-        || !row->indexed_array_source_present || row->indexed_array_source_id == 0
-        || (semantic_param_publication_inputs_ready(ctx)
-            && !semantic_param_publication_value(ctx, expression).ok)) return false;
-    *source_id = row->indexed_array_source_id;
-    return true;
-}
-
 typedef struct IndexedStringLineageVisit {
     const ASTNode *value;
     const struct IndexedStringLineageVisit *parent;
@@ -411,6 +392,19 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                 if (!reserved) continue;
             }
             if (fact == NULL || fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS) continue;
+            if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
+                && semantic_param_publication_pending(ctx) && expression != NULL
+                && call != NULL && callee == NULL && !constructor && ordinal == 1) {
+                IndexedStringPushRecord decision = semantic_indexed_string_record_private_push(
+                    ctx, call, expression, ast_call_argument(call, 0), owner->decl_syntax_id);
+                if (decision == INDEXED_STRING_PUSH_RECORDED) return;
+                if (decision == INDEXED_STRING_PUSH_FAILED) {
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                        expression, "A private String push lacks an exact current source receipt");
+                    return;
+                }
+            }
             if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                 && semantic_param_publication_pending(ctx) && expression != NULL) {
                 FunctionParamPublicationStore *store = ctx->function_param_publications;

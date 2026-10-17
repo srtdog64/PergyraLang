@@ -3,109 +3,74 @@
 Updated: 2026-10-17 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — canonical String provenance, then bootstrap/CI
+## Active self-host context — exact String uses, then canonical/bootstrap/CI
 
-- Compiler source checkpoint: main stage2, parent
-  `3ddd0784da2cad550300750dd2676df9398f97e2`, local/unpublished. It records
-  typed aggregate projection and nonlocal-input evidence only; no new
-  String-sink admission or cleanup permission is connected. Named String source/retention
-  remains b53. Parent61a preserved deferred lifetime/host identity;80e seals AIR public
-  summary rows and rejects unknown mask bits. Only main exists.
-  Root alone owns WSL/build/process/Git. No known-red push.
-- Existing whole-chain plan and edit boundaries are the first section of
+- Bounded source checkpoint: main private-String-push slice, parent
+  `249b27f6d789e4d78b68ac023f97e7171db6c633`, local/unpublished.
+  Only main exists. Root alone owns WSL/build/process/Git. No known-red push.
+  The whole-chain plan is the current first section of
   `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
-  No manual Clone/drop or extra user annotation is the inference repair.
-- Linux `/root/pgy-main-20261016` is HEAD39a plus identified overlays, NOT
-  D HEAD. Its last bounded native SHA256 is
-  `c807569c165d9795470c5517ed9c1a15f8110ce564e406ead8fac85ea3efd912`.
-  Finalize-once110300: cap PASS, phase10942/0. BroadA8cuX0: original full
-  strict PASS, MIR370/0, semantic3230/0, transpile1012/0, read-only Map24
-  positive C/LLVM runs +58 analyze-only negatives +phase PASS, four IR-stage
-  param-flow gates PASS. No unsafe input was executed. Earlier dc974625
-  runtimeAB5FJp separately passed64/64 safe C/LLVM cases.
-- Current integration build root is the non-Git source snapshot
-  `/root/pgy-exact-main-20261017.LlEIOb`, created by Git archive61a. Its current
-  native is `4228f7f09095fbbc61188d8d63951a6313dc89195737d5f45e2761bce4e798a5`:
-  phase11238/0, full registered strict, MIR370/0,
-  semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR gates PASS.
-  All24 current code/test differences from61a match the D tree byte-for-byte.
-  Stage2 f4c3GJ phase/full strict and EYvgjm old-named/broad/SAN acceptance pass;
-  ewhUmO separately runs safe C/LLVM66/66 on this same stage2 native.
-  AIR copied-row tamper tests first reproduced8 failures before80e repair.
-  Fresh-snapshot HIR/RIR binaries initially were missing; they were built and
-  their gates then passed. Full broad-runner03 Df1vHx replay exits0.
-- Cost repair: the same original4097 demand input previously exceeded30s
-  (diagnostic45.86s timeout); finalization repeated all prior call proofs for
-  each consumer. Reuse existing verdicts only inside its synchronous checked
-  consumer loop, then clear the scope. Current input completes in1.74s with
- 4097 entries/evaluations; the unchanged oversized4096 negative also passes
-  the original strict gate. Post-finalization tamper tests still fail closed.
-- String/Array lifetime is separate from element cleanup authority. Host OWN
-  actuals and Array RETURN now use the same current lifetime consumers.
-  Defer remains routine-exit LIFO. Multi-part registration/exit SSA identity
-  is native-checked; installed JSON/driver evidence is still OPEN.
-- Fixed full input remains4273 routines/
- 3188 keys at `.tmp/p0-fixed-canonical.nbPIex/.../codegen/main.pgy` in Linux.
-  Latest fixed-input nativec807 run czmENy is RED/MIR0,30.78s/1287988KiB;
-  actual current full-main input on exact61a nativeecc is also RED/MIR0,
-  30.29s/1286612KiB (j1gSmt). Both first primary diagnostics are
-  `SemanticConstructedTypeNameFactFrom`/135:13. The actual main differs from
-  the frozen input in4 already-committed retention-mask Pergyra files; require
-  both inputs, not a silent replacement of the fixed falsifier.
-  Latest01d full fixed/current jnk0G1 is still RED/MIR0,27.97/28.16s,
-  1367584/1365684KiB. Diagnostic-onlyazyrRX retains original semantics and
-  identifies the first error: `CodegenAstTextTypedArenaFromNodes`/185:44,
-  `ArrayPush(atom_table,nodes[i].type_name)`. The18435 BORROW errors are mostly
-  cascades, not an independent defect count. Two own-field retire errors
-  follow the first error; five field-cleanup obligations remain OPEN.
-- Named-String dependency is narrowly green, not whole-chain CLOSED. B owns
-  the bounded frame/summary getter, A indexed initializer lineage/retention,
-  root the program-success consumer, C the unchanged plus new behavioral
-  tests. Only provisional UNKNOWN named-result lineage receives obligations;
-  old known-source contracts remain. Assignment revokes provisional lineage,
-  including earlier AST uses that a loop backedge could repeat. The last
-  consumer is the existing program-success return, before MIR, not the earlier
-  Array finalizer. Issuance replaces only an existing reached unsafe local
-  String-array candidate, including builtins and ordinary named callees.
-  Rn0IfM phase10995/0 restores the initial8 regression failures unchanged.
-  New positive runs equally on C/LLVM; both registered negatives refuse with
-  exact BORROW diagnostics/MIR0. Named-currencyB0poXd separately runs all old
-  requested fault groups (31/29/76/21 checks and deferred39/39, all0 failures).
-- Evidence-only full replay HnOKLX still refuses both complete inputs with
-  MIR0/18435 cascading BORROW errors: fixed31.22s/1601232KiB,
-  current30.98s/1600204KiB. First real refusal remains185:44. The extra
-  projection metadata has an observed native memory cost; no performance
-  superiority or closure is inferred from evidence-only phase results.
-- Next unit is the same field-provenance rung, not a new track. The whole
-  required chain and independent scopes are at the top of the same directive:
-  compound-index claims, exact private physical Set/Pop, bounded noframe
-  scalar reads, exhaustive AtomFor RETURN linkage, then exact private
-  ArrayPush sink finalization. Raw String UNKNOWN, outward RETURN/backing
-  dependencies and cleanup authority stay distinct. No field-to-source0.
-  Root alone owns integration/build/Git; A/B/C do not touch those operations.
-- Stage2 closes the two evidence-only review conditions: normal frame epoch
-  must be nonzero and private String pushes require private_stores_closed;
-  unsubstituted generic field types do not receive a projection receipt.
-  Compound indexes consume existing typed child claims; exact literal-local
-  physical Set/Pop, current physical-result noframe reads, owned physical
-  Array results and exhaustive String field RETURN linkage have fault gates.
-  The String-source getter, raw UNKNOWN and outward RETURN remain unchanged.
-  The next consumer must record exact pending call/source/receiver/formal
-  identity at the original risk branch, then revalidate at program success.
-  Scratch draft is not applied: borrowed receiver elements are not the risk
-  owner, and ordinary independent named Strings must retain their old path.
-- Current integration receipt EYvgjm includes broad GogMhz and sanitizer
-  PXLmdD: phase11238/0, old six currency groups, original strict/budget controls,
-  MIR370/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR PASS.
-  ASan/UBSan intentional-UAF witness is live; leak detection remains OFF.
-  Documentation-quality gate also passes. No unsafe fixture was executed.
-- Current sanitizerPXLmdD passes11238/0 with ASan/UBSan, intentional UAF
-  witness live, leak detection OFF. Full canonical, real
-  gen2==gen3 and installed-driver checks have not yet passed.
-  Published main remains39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe;
-  last observed CI38860052641 RED. Required bootstrap/install jobs must execute
-  and required CI must be green on the same published SHA. No V1/all-SoT/
-  whole-language memory-safety or GUI-readiness claim is justified.
+- Current identified non-Git build snapshot:
+  `/root/pgy-exact-main-20261017.LlEIOb` (Git archive61a plus verified overlays).
+  Native SHA256:
+  `90b4911ba8ac03af2e2ae65c49df9c7c3536c5684cd381b3393c18c1bd0d8b15`.
+  Phase TU SHA256:
+  `BE2427B6480B61266936C8CD54FC83F4249E36EE91C292D67BB9A00F5E75CE98`.
+  All34 modified/new src/test paths since61a compare byte-equal D to Linux,
+  using Windows Git's actual changed path set. WSL Git working-tree discovery
+  has different CRLF handling; its slow comparison was stopped by exact owned
+  process group, not a process-name kill. No other compile was stopped.
+- Scope: exact private literal-local String ArrayPush at the original reached
+  LIVE non-BORROWED risk branch records call/source/receiver/caller/formal,
+  selected-call/LET/projection identity and an independent issuance count.
+  The risk owner and borrowed-element receiver are different identities.
+  One-time preparation uses the existing declared-result producer under the
+  original budget; later current queries cannot recreate withdrawn evidence.
+  Program-success replay checks every receipt and its count. Raw UNKNOWN,
+  outward RETURN/backing and deep-cleanup authority are unchanged.
+- Review repairs: standalone physical-input proof now requires its own
+  current Array<physical> owned-result receipt; navigation_result_shape is
+  explicitly only a shape predicate. Frame epoch/private_stores_closed and
+  unsubstituted generic-field refusal remain enforced. No new owner TU,
+  summary mask, source0 fallback, manual Clone/drop or canonical edit.
+- Bounded acceptance: D1XzCU phase11325/0 and original strict PASS.
+  Five named_string_field fixtures are registered in the existing strict
+  gate: empty-provenance positive, MakeNodes/forward/mixed/drop and alias
+  mutation negatives with exact BORROW diagnostics/MIR0. The positive also
+  executes on C/LLVM with TypeName/TypeName output; unsafe_execution=0.
+  Xdn7Zt passes all six old named-currency groups, broad DOBBdP
+  (MIR370/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR),
+  and ASan/UBSan Sy98oX phase11325/0 with live UAF witness and leaks OFF.
+  Earlier same-stage2 native4228f7f0 separately passed safe66/66 (ewhUmO).
+- Full canonical is still RED. AqldHF checks both unchanged fixed input
+  (4273 routines/3188 keys under p0-fixed-canonical.nbPIex) and actual main.
+  Both produce MIR0/18435 cascading BORROW errors: fixed31.01s/1621388KiB,
+  current29.20s/1619564KiB. Do not count cascades as independent defects.
+  The former185:44 refusal is provisionally passed, not proof that its
+  production finalizer succeeded: earlier body errors still prevent full
+  publication/final replay. Minimal-program acceptance is not canonical closure.
+- Diagnostic-only S4XKWp changes no semantics and identifies the next first
+  error (prior_error=0): AstTreeArtifactPayloadContractReady/466:22,
+  artifact.tree_text passed to AstTreeArtifactIdentityDigest. The source is a
+  local aggregate field, not the aggregate formal/private ArrayPush case.
+  Existing concrete-source pending-payload receipts reject UNKNOWN by design;
+  never loosen source equality or treat it as zero. A/B/C mapped the exact
+  synchronous-read obligation and its falsifiers read-only; no466 repair is
+  implemented yet. First freeze/review this checkpoint, then decide that
+  whole-chain repair at the existing owner.
+- The two IndexedStringBorrowStateRetire own-field errors have prior_error=1.
+  Five reached cleanup groups (eight String/two physical handoffs) remain OPEN:
+  current field storage generation/uniqueness, String element authority and
+  terminal-empty restoration cannot come from MEMBER_MOVE, inout or reset[].
+  Root copies/sibling aliases/loop reuse/defer readers must remain negatives.
+- Earlier verified lineage (b53), AIR copied-row sealing (80e), deferred/host
+  identity and synchronous finalization reuse (61a) remain preserved. Defer is
+  routine-exit LIFO. Original4097/oversized4096 controls retain their budgets.
+  String lifetime is never element cleanup authority.
+- Full admission, actual bootstrap/gen2==gen3 and installed C/LLVM driver are
+  OPEN. Last verified published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe,
+  CI38860052641 RED. Finish on one published commit with required jobs actually
+  executed. No V1/all-SoT/whole-language memory-safety or GUI-readiness claim.
 
 ## Historical archive — earlier Array integration, lookup only
 

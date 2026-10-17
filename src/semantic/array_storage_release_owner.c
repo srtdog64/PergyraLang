@@ -16,11 +16,30 @@
 
 #include <string.h>
 
+bool
+semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
+    SemanticContext *ctx, uint32_t *source_id)
+{
+    if (expression == NULL || expression->type != AST_IDENTIFIER || source_id == NULL
+        || !publication_generation_ready(ctx)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, expression, false);
+    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(expression)
+        || !row->value_present || row->meta || row->value_shape != AST_IDENTIFIER
+        || row->binding_id == 0 || row->binding_id != ast_identifier_binding_syntax_id(expression)
+        || !type_is_constructed_named(row->value_type, "Array")
+        || !type_equals(type_get_constructed_arg(row->value_type, 0), TYPE_STRING)
+        || !row->indexed_array_source_present || row->indexed_array_source_id == 0
+        || (semantic_param_publication_inputs_ready(ctx)
+            && !semantic_param_publication_value(ctx, expression).ok)) return false;
+    *source_id = row->indexed_array_source_id;
+    return true;
+}
+
 bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
 {
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
-    size_t issued = 0;
+    size_t issued = 0, private_issued = 0;
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];
         if (!row->indexed_string_shallow_retention) continue;
@@ -41,6 +60,26 @@ bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             ctx->program_root, "A shallow String store receipt was withdrawn");
+        return false;
+    }
+    for (size_t i = 0; i < store->node_capacity; i++) {
+        PublishedNode *row = &store->nodes[i];
+        if (row->private_string_push == NULL) continue;
+        if (private_issued == SIZE_MAX ||
+            !semantic_indexed_string_prepare_private_push(ctx, row->node) ||
+            !semantic_indexed_string_private_push_current(ctx, row->node)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                (ASTNode *)row->node,
+                "A private String push has no current nonlocal source proof");
+            return false;
+        }
+        private_issued++;
+    }
+    if (private_issued != store->private_string_push_count) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            ctx->program_root, "A private String push receipt was withdrawn");
         return false;
     }
     return true;

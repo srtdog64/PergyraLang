@@ -121,6 +121,7 @@ typedef struct {
     bool present, available, dependent;
 } IndexedStringLetLineage;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
+typedef struct PendingPrivateStringPush PendingPrivateStringPush;
 typedef struct {
     const ASTNode *body;
     uint32_t body_id;
@@ -217,6 +218,7 @@ typedef struct {
     uint32_t indexed_string_source_id;
     IndexedStringLetLineage indexed_string_let;
     bool indexed_string_shallow_retention;
+    PendingPrivateStringPush *private_string_push;
     bool indexed_array_source_present;
     uint32_t indexed_array_source_id;
     const Type *value_type;
@@ -252,6 +254,7 @@ struct FunctionParamPublicationStore {
     PendingReadPayloadLoan *read_loans; size_t read_loan_count, read_loan_capacity;
     PublishedNode *nodes; size_t node_count, node_capacity;
     size_t indexed_string_shallow_retention_count;
+    size_t private_string_push_count;
 };
 typedef struct {
     const ASTNode *program;
