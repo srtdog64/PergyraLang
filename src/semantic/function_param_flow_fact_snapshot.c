@@ -169,6 +169,7 @@ bool semantic_param_publication_reserve_storage(void **rows, size_t *capacity, s
 
 void semantic_param_publication_retire_value(PublishedNode *row)
 {
+    semantic_param_publication_projection_destroy(row);
     if (row->owned_string_result != NULL) {
         free(row->owned_string_result->sources);
         function_param_flow_claims_destroy(row->owned_string_result->syntax);

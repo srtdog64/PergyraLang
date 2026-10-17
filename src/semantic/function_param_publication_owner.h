@@ -141,6 +141,20 @@ typedef struct {
     size_t capture_count;
 } SemanticPublishedDeferred;
 typedef struct {
+    const ASTNode *receiver, *index, *declaration, *field_type_node, *root;
+    uint32_t receiver_id, index_id, declaration_id, field_id, field_type_id;
+    uint32_t root_id, root_binding_id;
+    size_t field_ordinal, field_count;
+    const Type *receiver_type, *index_type, *field_type, *result_type;
+    AccessModifier access;
+    bool explicit_access, mutable_field, vessel_field, default_field;
+    double index_number;
+    int64_t index_long;
+    unsigned index_flags;
+    char *name, *index_name, *field_type_name;
+    bool present;
+} PublishedProjection;
+typedef struct {
     const ASTNode *node, *target, *caller;
     uint32_t id, target_id, caller_id, builtin, declaration, value_binding, binding_id;
     bool value_present, copy_escape, meta, execution_present, reachable;
@@ -204,6 +218,7 @@ typedef struct {
     bool indexed_array_source_present;
     uint32_t indexed_array_source_id;
     const Type *value_type;
+    PublishedProjection projection;
     const ASTNode *unmodelled_constructor, *call_receiver;
     uint32_t unmodelled_constructor_id, call_receiver_id;
     const Type *unmodelled_constructor_type;
@@ -328,6 +343,14 @@ typedef struct {
 bool semantic_param_publication_begin_value(SemanticContext *ctx, const ASTNode *value);
 bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *value,
     const Type *type, bool meta);
+void semantic_param_publication_projection_record_identifier(SemanticContext *ctx,
+    ASTNode *value);
+void semantic_param_publication_projection_record_array(SemanticContext *ctx,
+    ASTNode *value, ASTNode *receiver, ASTNode *index, const Type *receiver_type,
+    const Type *index_type, const Type *result_type);
+void semantic_param_publication_projection_destroy(PublishedNode *row);
+bool semantic_param_publication_projection_root_current(const SemanticContext *ctx,
+    const ASTNode *value, ASTNode **caller_out, ASTNode **root_out);
 bool semantic_param_publication_record_execution(SemanticContext *ctx,
     const ASTNode *statement, bool reachable);
 bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNode *call);

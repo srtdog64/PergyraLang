@@ -1,11 +1,189 @@
 #include "function_param_flow_summary_internal.h"
 #include "../parser/ast_analysis.h"
 #include "function_param_publication_owner.h"
+#include "type_checker_builtins_stdlib_collections_internal.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 /* Frame creation and fixed-point execution share the control-root owner. */
+
+typedef struct FunctionParamNonlocalRead {
+    ASTNode *routine;
+    size_t ordinal;
+    const struct FunctionParamNonlocalRead *previous;
+} FunctionParamNonlocalRead;
+
+static bool function_param_flow_nonlocal_read(SemanticContext *ctx, ASTNode *routine,
+    size_t ordinal, const FunctionParamNonlocalRead *previous);
+
+/* This is a root non-injection proof, not a storage, element or source0 grant.
+ * Mutable copies are refused rather than reconstructed as an alias analysis. */
+static bool function_param_flow_nonlocal_call(SemanticContext *ctx, ASTNode *routine,
+    ASTNode *call, ASTNode *argument, const FunctionParamNonlocalRead *active)
+{
+    if (!semantic_param_publication_checked_call(ctx, call)) return false;
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, argument);
+    bool leaf = value.ok && !value.meta && (type_equals(value.type, TYPE_STRING) ||
+        semantic_param_publication_value_is_physical_scalar(ctx, argument));
+    ASTNode *receiver = NULL;
+    ASTNode *selected = semantic_param_publication_direct_callee(ctx, call);
+    if (selected != NULL && !semantic_param_publication_instance_receiver(ctx, call, &receiver)) return false;
+    if (receiver == argument) {
+        ASTNode *callee = semantic_param_publication_direct_callee(ctx, call);
+        SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+        return callee != NULL && result.ok && !result.meta &&
+            (type_equals(result.type, TYPE_VOID) || type_equals(result.type, TYPE_STRING) ||
+             semantic_param_publication_value_is_physical_scalar(ctx, call)) &&
+            function_param_flow_nonlocal_read(ctx, callee, 0, active);
+    }
+    for (size_t a = 0; a < ast_call_arg_count(call); a++) {
+        if (ast_call_argument(call, a) != argument) continue;
+        if (!semantic_param_publication_checked_argument(ctx, call, a)) return false;
+        if (a == 1 && leaf && semantic_param_publication_private_array_push(ctx, call, routine))
+            return true;
+        ASTNode *target = ast_call_callee(call);
+        if (a == 0 && ast_call_arg_count(call) == 1 && target != NULL &&
+            target->type == AST_IDENTIFIER &&
+            ast_identifier_name(target) != NULL && strcmp(ast_identifier_name(target), "ArrayLength") == 0 &&
+            semantic_stdlib_array_argument_preserves_elements(call, a, ctx)) return true;
+        if (leaf && type_equals(value.type, TYPE_STRING) &&
+            semantic_param_publication_string_argument_read_only(ctx, call, a)) return true;
+        ASTNode *callee = semantic_param_publication_direct_callee(ctx, call);
+        size_t formal = SIZE_MAX;
+        SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+        if (callee == NULL || !result.ok || result.meta ||
+            !(type_equals(result.type, TYPE_VOID) || type_equals(result.type, TYPE_STRING) ||
+              semantic_param_publication_value_is_physical_scalar(ctx, call)) ||
+            !semantic_param_publication_formal_for_actual(ctx, call, a, &formal) ||
+            !function_param_flow_nonlocal_read(ctx, callee, formal, active)) return false;
+        return true;
+    }
+    return false;
+}
+
+static bool function_param_flow_nonlocal_read(SemanticContext *ctx, ASTNode *routine,
+    size_t ordinal, const FunctionParamNonlocalRead *previous)
+{
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    if (routine == NULL || routine->type != AST_FUNC_DECL ||
+        !semantic_param_publication_routine_inputs_current(ctx, routine, true)) return false;
+    FuncParam *formal = ast_func_param(routine, ordinal);
+    uint32_t binding = formal == NULL ? 0 : ast_func_param_stable_id(formal);
+    if (binding == 0) return false;
+    for (const FunctionParamNonlocalRead *p = previous; p != NULL; p = p->previous)
+        if (p->routine == routine && p->ordinal == ordinal) return false;
+    bool complete = false;
+    for (size_t e = 0; e < store->count; e++) {
+        const FunctionParamFlowSummaryEntry *entry = &store->entries[e];
+        if (entry->function_decl == routine && entry->function_id == ast_node_stable_id(routine) &&
+            entry->param_index == ordinal) {
+            complete = entry->state == FUNCTION_PARAM_FLOW_COMPLETE && !entry->analysis_unsupported &&
+                (entry->mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) == 0;
+            break;
+        }
+    }
+    if (!complete || !function_param_flow_no_store_graph(store, routine)) return false;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    for (size_t i = 0; i < store->program_point_index_count; i++)
+        if (store->program_point_indexes[i].function_decl == routine &&
+            store->program_point_indexes[i].function_id == ast_node_stable_id(routine))
+            index = &store->program_point_indexes[i];
+    if (index == NULL || !function_param_flow_index_roots_current(index) ||
+        !function_param_flow_index_claims_current(ctx, index)) return false;
+    /* Alias provenance remains owned by the completed normal backing frame.
+     * Without it, no local String copy can be declared unrelated to this input. */
+    if (!function_param_flow_backing_rows_current(store, routine)) return false;
+    index = NULL;
+    for (size_t i = 0; i < store->program_point_index_count; i++)
+        if (store->program_point_indexes[i].function_decl == routine)
+            index = &store->program_point_indexes[i];
+    if (index == NULL || index->backing_frames == NULL || ordinal >= index->backing_frame_count)
+        return false;
+    const FunctionParamFlowBackingFact *frame = index->backing_frames[ordinal];
+    if (frame == NULL || !frame->complete || frame->building || frame->pending || frame->analysis_unsupported ||
+        frame->input_ordinal != ordinal || frame->input_id != binding || frame->claims != index->claims ||
+        frame->origin_count != 1 || frame->origin_words != 1) return false;
+    const FunctionParamFlowIndexClaims *claims = index->claims;
+    FunctionParamNonlocalRead active = {routine, ordinal, previous};
+    for (size_t p = 0; p < claims->count; p++) {
+        const FunctionParamFlowIndexClaim *parent = &claims->rows[p];
+        for (size_t c = 0; c < parent->child_count; c++) {
+            ASTNode *child = parent->children[c], *caller = NULL, *root = NULL;
+            if (child == NULL || (child->type != AST_IDENTIFIER && child->type != AST_MEMBER_ACCESS &&
+                child->type != AST_ARRAY_ACCESS)) continue;
+            bool path = semantic_param_publication_projection_root_current(ctx, child, &caller, &root);
+            if (!path) {
+                if (child->type == AST_IDENTIFIER && ast_identifier_binding_syntax_id(child) == binding)
+                    return false;
+                continue;
+            }
+            uint32_t root_binding = ast_identifier_binding_syntax_id(root);
+            if (caller != routine) {
+                if (root_binding == binding) return false;
+                continue;
+            }
+            bool related = root_binding == binding;
+            SemanticPublishedValue root_value = semantic_param_publication_value(ctx, root);
+            if (!related && root_value.ok && !root_value.meta &&
+                (type_equals(root_value.type, TYPE_STRING) ||
+                 semantic_param_publication_value_is_physical_scalar(ctx, root)))
+                for (size_t b = 0; b < frame->binding_count; b++)
+                    if (frame->bindings[b].binding == root_binding && frame->bindings[b].origins != NULL &&
+                        (frame->bindings[b].origins[0] & UINT64_C(1)) != 0) related = true;
+            if (!related) continue;
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, child);
+            bool leaf = value.ok && !value.meta && (type_equals(value.type, TYPE_STRING) ||
+                semantic_param_publication_value_is_physical_scalar(ctx, child));
+            ASTNode *node = parent->node;
+            if ((node->type == AST_MEMBER_ACCESS && ast_member_object(node) == child) ||
+                (node->type == AST_ARRAY_ACCESS && ast_array_access_array(node) == child)) {
+                ASTNode *next_caller = NULL, *next_root = NULL;
+                if (!semantic_param_publication_projection_root_current(ctx, node, &next_caller, &next_root) ||
+                    next_caller != routine || next_root != root) return false;
+                continue;
+            }
+            if (node->type == AST_CALL) {
+                if (!function_param_flow_nonlocal_call(ctx, routine, node, child, &active)) return false;
+                continue;
+            }
+            if (!leaf) return false;
+            switch (node->type) {
+            case AST_LET_DECL:
+                if (ast_let_is_alias(node)) return false;
+                break;
+            case AST_ASSIGNMENT:
+                if (ast_assignment_target(node) == child) return false;
+                break;
+            case AST_UNARY:
+                if (ast_unary_operator(node).type != TOKEN_NOT &&
+                    ast_unary_operator(node).type != TOKEN_MINUS &&
+                    ast_unary_operator(node).type != TOKEN_PLUS) return false;
+                break;
+            case AST_RETURN: case AST_BINARY: case AST_CAST: case AST_TYPE_TEST:
+            case AST_IF_STMT: case AST_WHILE_LOOP: case AST_FOR_LOOP:
+            case AST_ARRAY_ACCESS: case AST_ARRAY_LITERAL: case AST_TUPLE_LITERAL:
+                break;
+            default: return false;
+            }
+        }
+    }
+    if (!function_param_flow_no_store_graph(store, routine)) return false;
+    index = NULL;
+    for (size_t i = 0; i < store->program_point_index_count; i++)
+        if (store->program_point_indexes[i].function_decl == routine)
+            index = &store->program_point_indexes[i];
+    return index != NULL && function_param_flow_index_claims_current(ctx, index);
+}
+
+bool function_param_flow_nonlocal_input_current(SemanticContext *ctx,
+    ASTNode *routine, size_t formal_ordinal)
+{
+    return ctx != NULL && !ctx->has_error && semantic_param_publication_inputs_ready(ctx) &&
+        ctx->function_param_flow_summaries != NULL && !ctx->function_param_flow_summaries->failed &&
+        !ctx->function_param_flow_summaries->solving &&
+        function_param_flow_nonlocal_read(ctx, routine, formal_ordinal, NULL);
+}
 
 FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(FunctionParamFlowSummaryStore *store,
     ASTNode *call, FunctionParamFlowBackingFact *consumer)

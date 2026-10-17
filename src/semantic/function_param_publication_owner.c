@@ -130,6 +130,8 @@ bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *valu
         semantic_indexed_string_independent_result(value, ctx))
         row->origin_ready = row->copy_escape = true;
     row->binding_id = value->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(value) : 0;
+    row->caller = callable_capability_current_declaration(ctx); row->caller_id = ast_node_stable_id(row->caller);
+    semantic_param_publication_projection_record_identifier(ctx, value);
     row->meta |= meta; return semantic_indexed_string_borrow_publish_source(value, ctx);
 }
 bool semantic_param_publication_record_string_concat(SemanticContext *ctx, ASTNode *value)

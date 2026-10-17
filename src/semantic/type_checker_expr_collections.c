@@ -370,7 +370,10 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_constructed_named(object_type, "Array")
         || type_is_constructed_named(object_type, "Slice")) {
-        return expr_collection_normalize_type(type_get_constructed_arg(object_type, 0));
+        Type *result = expr_collection_normalize_type(type_get_constructed_arg(object_type, 0));
+        semantic_param_publication_projection_record_array(ctx, expr, array_node,
+            index_node, object_type, index_type, result);
+        return result;
     }
 
     semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,

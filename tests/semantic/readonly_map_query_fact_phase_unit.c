@@ -10381,6 +10381,221 @@ static void checked_transaction_function_boundary(void)
     }
 }
 
+/* A typed projection path and a nonlocal-input proof are distinct receipts.
+ * Neither makes the indexed String payload owned or source-independent. */
+static void checked_nonlocal_projection_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
+        "func Project(nodes:Array<TextNode>)->Arena{"
+        "let atom_table:Array<String> = [\"\"];let i:Int=0;"
+        "while i<ArrayLength(nodes){if nodes[i].type_name!=\"\"{"
+        "ArrayPush(atom_table,nodes[i].type_name);}i=i+1;}"
+        "return Arena(atom_table);}"
+        "func Main()->Void{let name=Concat(\"Type\",\"Name\");"
+        "let nodes:Array<TextNode> = [TextNode(name)];let arena=Project(nodes);"
+        "Log(arena.atom_table[1]);Log(nodes[0].type_name);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *text_node = ast_program_statement(program, 0);
+    ASTNode *project = ast_program_statement(program, 2);
+    ASTNode *loop = ast_block_statement(ast_func_body(project), 2);
+    ASTNode *branch = loop != NULL ? ast_block_statement(ast_while_body(loop), 0) : NULL;
+    ASTNode *push = branch != NULL ? ast_block_statement(ast_if_then_branch(branch), 0) : NULL;
+    ASTNode *member = push != NULL ? ast_call_argument(push, 1) : NULL;
+    ASTNode *array = member != NULL ? ast_member_object(member) : NULL;
+    ASTNode *root = array != NULL ? ast_array_access_array(array) : NULL;
+    ASTNode *index = array != NULL ? ast_array_access_index(array) : NULL;
+    size_t field_count = 0;
+    ClassField **fields = text_node != NULL ? ast_class_fields(text_node, &field_count) : NULL;
+    CHECK(member != NULL && member->type == AST_MEMBER_ACCESS &&
+        array != NULL && array->type == AST_ARRAY_ACCESS &&
+        root != NULL && root->type == AST_IDENTIFIER &&
+        index != NULL && index->type == AST_IDENTIFIER &&
+        fields != NULL && field_count == 1 && fields[0] != NULL);
+    if (member == NULL || array == NULL || root == NULL || index == NULL ||
+        fields == NULL || field_count != 1 || fields[0] == NULL) goto cleanup;
+    ASTNode *caller = NULL, *found_root = NULL;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member,
+        &caller, &found_root) && caller == project && found_root == root);
+    CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+    uint32_t source_id = 0;
+    CHECK(semantic_indexed_string_borrow_source_current(member, ctx, &source_id) &&
+        source_id == UINT32_MAX);
+    uint32_t owned_producer = 0;
+    CHECK(!semantic_collection_owned_string_call_result(member, ctx, &owned_producer));
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, member);
+    CHECK(value.ok && !value.meta && type_equals(value.type, TYPE_STRING));
+    uint32_t saved_id = member->stable_id;
+    member->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    member->stable_id = saved_id;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    saved_id = root->stable_id;
+    root->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    root->stable_id = saved_id;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    uint32_t saved_binding = ast_identifier_binding_syntax_id(root);
+    ast_identifier_set_binding_syntax_id(root, 0);
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    ast_identifier_set_binding_syntax_id(root, saved_binding);
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    saved_id = index->stable_id;
+    index->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    index->stable_id = saved_id;
+    saved_binding = ast_identifier_binding_syntax_id(index);
+    ast_identifier_set_binding_syntax_id(index, 0);
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    ast_identifier_set_binding_syntax_id(index, saved_binding);
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    char *saved_name = member->data.member.name;
+    member->data.member.name = "other";
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    member->data.member.name = saved_name;
+    saved_name = fields[0]->name;
+    fields[0]->name = "other";
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    fields[0]->name = saved_name;
+    saved_id = fields[0]->stable_id;
+    fields[0]->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    fields[0]->stable_id = saved_id;
+    ASTNode *field_type = fields[0]->type;
+    saved_id = field_type->stable_id;
+    field_type->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    field_type->stable_id = saved_id;
+    saved_name = field_type->data.type.name;
+    field_type->data.type.name = "Int";
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    field_type->data.type.name = saved_name;
+    ASTNode *saved_receiver = member->data.member.object;
+    member->data.member.object = NULL;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    member->data.member.object = saved_receiver;
+    ASTNode *saved_index = array->data.array_access.index;
+    array->data.array_access.index = NULL;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    array->data.array_access.index = saved_index;
+    PublishedNode *member_row = published_node_for(ctx, member);
+    CHECK(member_row != NULL && member_row->projection.present);
+    if (member_row != NULL) {
+        const Type *field_type_ref = member_row->projection.field_type;
+        member_row->projection.field_type = TYPE_INT;
+        CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+        member_row->projection.field_type = field_type_ref;
+        uint32_t field_id = member_row->projection.field_id;
+        member_row->projection.field_id++;
+        CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+        member_row->projection.field_id = field_id;
+    }
+    CHECK(semantic_param_publication_projection_root_current(ctx, member,
+        &caller, &found_root) && caller == project && found_root == root);
+    CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    FunctionParamFlowSummaryEntry *entry = NULL;
+    for (size_t n = 0; flow != NULL && n < flow->count; n++)
+        if (flow->entries[n].function_decl == project && flow->entries[n].param_index == 0)
+            entry = &flow->entries[n];
+    CHECK(entry != NULL && entry->state == FUNCTION_PARAM_FLOW_COMPLETE);
+    unsigned original_mask = entry != NULL ? entry->mask : 0;
+    CHECK(flow != NULL && function_param_flow_no_store_graph(flow, project));
+    if (entry != NULL) {
+        FunctionParamFlowSummaryState state = entry->state;
+        entry->state = FUNCTION_PARAM_FLOW_COMPUTING;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        entry->state = state;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        unsigned forbidden[] = {SLOT_PARAM_SUMMARY_WRITE,
+            SLOT_PARAM_SUMMARY_CALL_ESCAPE, (unsigned)SLOT_PARAM_SUMMARY_ALL + 1u};
+        for (size_t f = 0; f < sizeof(forbidden) / sizeof(forbidden[0]); f++) {
+            entry->mask = original_mask | forbidden[f];
+            CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+            entry->mask = original_mask;
+            CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        }
+    }
+    FunctionParamFlowProgramPointIndex *point = NULL;
+    CHECK(flow != NULL && function_param_flow_program_point_index_build(flow, project, &point));
+    CHECK(point != NULL && point->backing_frames != NULL &&
+        point->backing_frame_count != 0 && point->backing_frames[0] != NULL);
+    if (point != NULL && point->backing_frames != NULL &&
+        point->backing_frame_count != 0 && point->backing_frames[0] != NULL) {
+        FunctionParamFlowBackingFact *frame = point->backing_frames[0];
+        bool complete = frame->complete;
+        frame->complete = false;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->complete = complete;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        bool pending = frame->pending;
+        frame->pending = true;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->pending = pending;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        uint32_t input_id = frame->input_id;
+        frame->input_id++;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->input_id = input_id;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        size_t input_ordinal = frame->input_ordinal;
+        frame->input_ordinal = SIZE_MAX;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->input_ordinal = input_ordinal;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        FunctionParamFlowIndexClaims *claims = frame->claims;
+        frame->claims = NULL;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->claims = claims;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        uint32_t body_id = point->dependency_body_id;
+        point->dependency_body_id++;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        CHECK(!function_param_flow_no_store_graph(flow, project));
+        point->dependency_body_id = body_id;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+    }
+    ASTNode *push_receiver = ast_call_argument(push, 0);
+    CHECK(push_receiver != NULL && push_receiver->type == AST_IDENTIFIER);
+    if (push_receiver != NULL && push_receiver->type == AST_IDENTIFIER) {
+        uint32_t receiver_binding = ast_identifier_binding_syntax_id(push_receiver);
+        unsigned mask = entry != NULL ? entry->mask : 0;
+        bool storage_unproved = entry != NULL && entry->array_storage_unproved;
+        ast_identifier_set_binding_syntax_id(push_receiver,
+            ast_func_param_stable_id(ast_func_param(project, 0)));
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        CHECK(entry == NULL || (entry->mask == mask &&
+            entry->array_storage_unproved == storage_unproved));
+        ast_identifier_set_binding_syntax_id(push_receiver, receiver_binding);
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+    }
+    ASTNode *push_target = ast_call_callee(push);
+    CHECK(push_target != NULL && push_target->type == AST_IDENTIFIER);
+    if (push_target != NULL && push_target->type == AST_IDENTIFIER) {
+        char *target_name = push_target->data.identifier.name;
+        push_target->data.identifier.name = "Unknown";
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        push_target->data.identifier.name = target_name;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+    }
+    CHECK(semantic_indexed_string_borrow_source_current(member, ctx, &source_id) &&
+        source_id == UINT32_MAX);
+    CHECK(!semantic_collection_owned_string_call_result(member, ctx, &owned_producer));
+    SemanticPublishedValue restored = semantic_param_publication_value(ctx, member);
+    CHECK(restored.ok && restored.origin_ready == value.origin_ready &&
+        restored.copy_escape == value.copy_escape);
+    CHECK(entry != NULL && entry->mask == original_mask);
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 int main(void)
 {
     checked_unit_enum_selection_currency();
@@ -10397,6 +10612,7 @@ int main(void)
     checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();
     checked_named_string_result_source_currency();
+    checked_nonlocal_projection_currency();
     checked_named_string_shallow_retention_currency();
     checked_result_argument_currency();
     checked_witnessed_physical_call_alias_currency();

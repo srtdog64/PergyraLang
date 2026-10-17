@@ -48,14 +48,14 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   syntax, assume value mode owns its fields, restore the removed member-ID
   exclusive grant, or insert Clone/drop/annotations into the canonical input.
   Do not weaken the old String retention or negative gates.
-- Unknowns to resolve before production edits: the existing typed place fact
+- Initial survey obligations before production edits: the existing typed place fact
   that can own nested member/index lineage; the lifetime/return dependency
   needed when the source is an aggregate parameter; and whether the actual
   caller's release is blocked while a returned payload remains live.
-  A surveys existing typed/indexed publication, B the reached flow/caller
-  lifetime chain, C bounded positive and analyze-only negative falsifiers in
-  scratch. These are read-only investigations, not successor implementation
-  tracks. Root alone builds, instruments and owns the shared integration gate.
+  A mapped typed/indexed publication, B the reached flow/caller lifetime chain,
+  C bounded analyze-only falsifiers. Their evidence-only implementation below
+  does not connect a new admission consumer. Root alone builds, instruments
+  and owns the shared integration gate.
 - Acceptance/falsification: admit the actual unchanged compiler projection;
   reject a retained field borrowed from an owned String array when its owner
   is released, including aliases and mutation/rebinding. Preserve original
@@ -78,6 +78,76 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   fixtures. The ASan phase uses204840KiB with leaks OFF. Documentation follows
   in its own checkpoint; subsequent field-provenance investigation is not part
   of this bounded green proof.
+- The first coherent implementation unit is **evidence production only**. The new
+  field premise must NEVER become source0: zero keeps its existing independent
+  meaning. It is a separate, whole-formal nonlocal-source receipt, with the
+  raw indexed source still UNKNOWN and the outward dependency still present.
+  A extends the existing typed member/index publication with exact receiver,
+  field declaration/type, index and containing-routine/root identity and
+  currentness; no syntax-only field reconstruction. B extends the existing
+  control/input-claim owner with a bounded nonlocal-input premise, not a
+  reinterpretation of WRITE/no-store/descriptor-preservation bits. It rejects
+  root or alias writes/rebinding, mutable alias births/results, unsupported or
+  retaining opaque calls, and unproved recursive edges. Selected read-only
+  calls must have the same current premise; outward RETURN origin stays intact.
+  C adds behavioral/currentness tests against the original currently admitted
+  projection. A owns public publication declarations and typed expr producers;
+  B flow internal declarations/control consumer; C the phase unit only. No
+  new owner file, public mask bit, compiler-input edit or deep-drop permission.
+- Shared interface: publication queries the exact typed projection's routine
+  and root; flow queries whether that value has the strong nonlocal premise.
+  A/B coordinate these two existing-owner APIs before concurrent edits. Root
+  alone connects the exact private, exclusive, literal-local ArrayPush store
+  consumer in a later checked slice. It may exclude that UNKNOWN payload from
+  indiscriminate matching against callee-local String-array candidates, never
+  exempt ArraySet, field/global/parameter stores, inout targets, opaque calls,
+  captures, channels or async. Pending issuance requires exact store identity,
+  receipt count/currentness at finalization, current no-store/backing facts and
+  no formal WRITE/RELEASE/CALL/CHANNEL escape or direct/derived-alias mutation.
+  RETURN is preserved, not interpreted as independence. At this first
+  boundary raw indexed source remains UNKNOWN, and origin_ready/copy_escape,
+  output dependency bits and element-owned flags must remain unchanged.
+- Scratch observations on unchanged01d: original Project with only borrowed
+  literal atom_table is already admitted; adding canonical's empty local
+  provenance_texts reproduces the opaque-field refusal. REF Fill is rejected
+  by ref-escape checks; DEFAULT Fill -> Project -> deep-drop is rejected at
+  the actual Array/ArrayDropOwnedStrings preservation consumers (42:5,44:27).
+  These are analyze-only observations, not a whole-language safety proof.
+  Returned-artifact yM5ZjW emits MIR/C without execution; its generated local
+  nodes/field path has no automatic deep cleanup. Ordinary String-array push
+  is shallow/no-free; the explicit owned push duplicates its payload. General
+  cleanup synthesis/authority transfer remains OPEN and is not inferred from
+  a source0 facet. Preserve these distinctions at the actual artifact caller.
+- Independent review requires cross-boundary MakeNodes(text)->Array<Node>,
+  ForwardProject(nodes)->Arena, mixed borrowed/independent branch and a helper
+  returning a nodes alias before mutation. Each negative is analyze-only and
+  must refuse with MIR0 after any consumer connection. Existing named String,
+  deferred, Clone/MapKeys, nested return and AIR faults rerun after the slice.
+- Evidence-only receipt, source7dda plus the bounded publication/control/test
+  changes: native817d5125, phase11060/0 and full strict PASS (Z09Wji).
+  GsNYHs replays all six old named-currency groups, full broad SK3agD
+  (MIR370/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR),
+  and ASan/UBSan4wtnE6 with a live UAF witness and leak detection OFF: PASS.
+  No new permission consumer exists; neither the full input nor CI is green.
+  Both complete inputs are being replayed, not reduced or replaced.
+- Reached stage2 change set, to fix before connecting permission: compound
+  index identity must consume existing full typed child claims; ParentRows
+  returns an independent physical-element Array<Int> and mutates only its
+  private active array; physical-result NominalSubkindFor/StartsWith need a
+  current closed-scalar, direct-only proof when no normal frame exists;
+  AtomFor needs exhaustive cached RETURN-to-formal-to-actual linkage, not a
+  summary bit reinterpreted as unique origin. ChildCounts/Children also use
+  private physical ArraySet; these local mutation facts must not license a
+  formal, field, alias or opaque receiver. Preserve String ArraySet refusal.
+  Existing normal-frame production after a completed demand would inherit
+  its spent budget; do not reset it or invent an extra allowance here.
+- Global-alias hypothesis is not a confirmed bypass. Analyze-only kBdO6m
+  parses the attempted top-level variants but rejects them with UNDEFINED_SYMBOL:
+  top-level lets are implicit-Main locals, not global storage. The base proof
+  is true; a local physical ArraySet control is admitted but proof=false
+  (mask17), exposing the conservative local-mutation boundary instead.
+  Capture/extern/unsupported noStore edges remain fail-closed. Do not create
+  a new global memory model to repair an inexpressible counterexample.
 
 #### Broad integration failures before canonical continuation
 
