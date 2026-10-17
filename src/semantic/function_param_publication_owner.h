@@ -151,6 +151,7 @@ typedef struct {
     double index_number;
     int64_t index_long;
     unsigned index_flags;
+    ASTNodeType index_shape;
     char *name, *index_name, *field_type_name;
     bool present;
 } PublishedProjection;
@@ -197,7 +198,8 @@ typedef struct {
     /* Owned syntax receipt for deferred nodes or checked typed storage. */
     FunctionParamFlowIndexClaims *deferred_syntax;
     /* A call-time storage premise, never a standalone non-retention grant. */
-    bool private_array_push, private_exclusive, private_escaped, private_pending;
+    bool private_array_push, private_physical_mutation;
+    bool private_exclusive, private_escaped, private_pending;
     const ASTNode *private_binding, *private_initializer;
     const ASTNode *private_binding_type_node;
     uint32_t private_binding_id, private_initializer_id;
@@ -396,6 +398,8 @@ bool semantic_param_publication_value_call_target(const SemanticContext *ctx, co
 /* Candidate only. A NULL owner supports claim replay, never CALL admission;
  * consumers additionally need the current routine's closed graph witness. */
 bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *owner);
+bool semantic_param_publication_private_physical_array_mutation(const SemanticContext *ctx,
     const ASTNode *call, const ASTNode *owner);
 ASTNode *semantic_param_publication_callee(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);

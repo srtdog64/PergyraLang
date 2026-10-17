@@ -5,10 +5,11 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — canonical String provenance, then bootstrap/CI
 
-- Compiler source checkpoint: main
-  `b53e9dd0568fe5a2ca7b6d7087231a1dfee6aea6`, local/unpublished, followed only
-  by this documentation checkpoint. Named String source/retention is checked
-  in. Parent61a preserved deferred lifetime/host identity;80e seals AIR public
+- Compiler source checkpoint: main stage2, parent
+  `3ddd0784da2cad550300750dd2676df9398f97e2`, local/unpublished. It records
+  typed aggregate projection and nonlocal-input evidence only; no new
+  String-sink admission or cleanup permission is connected. Named String source/retention
+  remains b53. Parent61a preserved deferred lifetime/host identity;80e seals AIR public
   summary rows and rejects unknown mask bits. Only main exists.
   Root alone owns WSL/build/process/Git. No known-red push.
 - Existing whole-chain plan and edit boundaries are the first section of
@@ -24,10 +25,12 @@ evidence override this card. Resume this card, not the archive below.
   runtimeAB5FJp separately passed64/64 safe C/LLVM cases.
 - Current integration build root is the non-Git source snapshot
   `/root/pgy-exact-main-20261017.LlEIOb`, created by Git archive61a. Its current
-  native is `01d64ac628f620d9b50b79316c61621a10bc134a65b5caf1472e9e5281c7d5e0`:
-  phase10995/0, full registered strict, safe C/LLVM66/66, MIR370/0,
+  native is `4228f7f09095fbbc61188d8d63951a6313dc89195737d5f45e2761bce4e798a5`:
+  phase11238/0, full registered strict, MIR370/0,
   semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR gates PASS.
-  All22 current code/test differences from61a match the D tree byte-for-byte.
+  All24 current code/test differences from61a match the D tree byte-for-byte.
+  Stage2 f4c3GJ phase/full strict and EYvgjm old-named/broad/SAN acceptance pass;
+  ewhUmO separately runs safe C/LLVM66/66 on this same stage2 native.
   AIR copied-row tamper tests first reproduced8 failures before80e repair.
   Fresh-snapshot HIR/RIR binaries initially were missing; they were built and
   their gates then passed. Full broad-runner03 Df1vHx replay exits0.
@@ -68,12 +71,36 @@ evidence override this card. Resume this card, not the archive below.
   New positive runs equally on C/LLVM; both registered negatives refuse with
   exact BORROW diagnostics/MIR0. Named-currencyB0poXd separately runs all old
   requested fault groups (31/29/76/21 checks and deferred39/39, all0 failures).
-- Next read-only chain survey: A typed nested field/index publication, B
-  flow/caller payload lifetime and last retirement, C scratch falsifiers.
-  Objective/unknowns are at the top of the same work directive. No production
-  edits or field/parameter-to-source0 guesses before resolving that map.
-- Current sanitizertmCfU7 passes10995/0 with ASan/UBSan, intentional UAF
-  witness live, leak detection OFF,204840KiB. Full canonical, real
+- Evidence-only full replay HnOKLX still refuses both complete inputs with
+  MIR0/18435 cascading BORROW errors: fixed31.22s/1601232KiB,
+  current30.98s/1600204KiB. First real refusal remains185:44. The extra
+  projection metadata has an observed native memory cost; no performance
+  superiority or closure is inferred from evidence-only phase results.
+- Next unit is the same field-provenance rung, not a new track. The whole
+  required chain and independent scopes are at the top of the same directive:
+  compound-index claims, exact private physical Set/Pop, bounded noframe
+  scalar reads, exhaustive AtomFor RETURN linkage, then exact private
+  ArrayPush sink finalization. Raw String UNKNOWN, outward RETURN/backing
+  dependencies and cleanup authority stay distinct. No field-to-source0.
+  Root alone owns integration/build/Git; A/B/C do not touch those operations.
+- Stage2 closes the two evidence-only review conditions: normal frame epoch
+  must be nonzero and private String pushes require private_stores_closed;
+  unsubstituted generic field types do not receive a projection receipt.
+  Compound indexes consume existing typed child claims; exact literal-local
+  physical Set/Pop, current physical-result noframe reads, owned physical
+  Array results and exhaustive String field RETURN linkage have fault gates.
+  The String-source getter, raw UNKNOWN and outward RETURN remain unchanged.
+  The next consumer must record exact pending call/source/receiver/formal
+  identity at the original risk branch, then revalidate at program success.
+  Scratch draft is not applied: borrowed receiver elements are not the risk
+  owner, and ordinary independent named Strings must retain their old path.
+- Current integration receipt EYvgjm includes broad GogMhz and sanitizer
+  PXLmdD: phase11238/0, old six currency groups, original strict/budget controls,
+  MIR370/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR PASS.
+  ASan/UBSan intentional-UAF witness is live; leak detection remains OFF.
+  Documentation-quality gate also passes. No unsafe fixture was executed.
+- Current sanitizerPXLmdD passes11238/0 with ASan/UBSan, intentional UAF
+  witness live, leak detection OFF. Full canonical, real
   gen2==gen3 and installed-driver checks have not yet passed.
   Published main remains39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe;
   last observed CI38860052641 RED. Required bootstrap/install jobs must execute

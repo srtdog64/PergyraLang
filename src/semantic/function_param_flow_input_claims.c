@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "function_param_publication_owner.h"
+#include "function_param_publication_internal.h"
+#include "type_checker_internal.h"
+#include "type_checker_resolution_metadata_internal.h"
+#include "array_storage_deferred_preservation_owner.h"
 #include "../common/string_compat.h"
 #include "typed_map_query_fact_owner.h"
 #include "../common/match_variant_policy.h"
@@ -17,145 +21,176 @@ uint32_t function_param_flow_backing_place(ReturnedBacking *state, ASTNode *node
     return id;
 }
 
-static size_t function_param_flow_claim_child_count(const ASTNode *node, bool *supported)
+/* These queries consume an already captured body; they never prepare a new
+ * subtree, summary demand or backing iteration after its charging boundary. */
+static FunctionParamFlowProgramPointIndex *function_param_flow_current_claim_index(
+    SemanticContext *ctx, ASTNode *routine)
 {
-    *supported = true;
-    switch (node->type) {
-    case AST_BLOCK: return ast_block_statement_count(node);
-    case AST_CALL: {
-        GenericParams *args = ast_call_generic_args(node);
-        size_t count = args == NULL ? 0 : args->count;
-        size_t actuals = ast_call_arg_count(node);
-        if (actuals == SIZE_MAX || count > (SIZE_MAX - actuals - 1) / 2 ||
-            (count != 0 && args->params == NULL)) return SIZE_MAX;
-        for (size_t p = 0; p < count; p++)
-            if (args->params[p] == NULL || args->params[p]->name == NULL) return SIZE_MAX;
-        return actuals + 1 + count * 2;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    if (!semantic_param_publication_routine_inputs_current(ctx, routine, true)) return NULL;
+    for (size_t i = 0; i < store->program_point_index_count; i++) {
+        FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[i];
+        if (index->function_decl == routine && index->function_id == ast_node_stable_id(routine))
+            return function_param_flow_index_roots_current(index) &&
+                function_param_flow_index_claims_current(ctx, index) ? index : NULL;
     }
-    case AST_ARRAY_LITERAL: return ast_array_literal_count(node) != 0 && node->data.array_literal.elements == NULL ? SIZE_MAX : ast_array_literal_count(node);
-    case AST_TUPLE_LITERAL: return ast_tuple_literal_count(node) != 0 && node->data.tuple_literal.elements == NULL ? SIZE_MAX : ast_tuple_literal_count(node);
-    case AST_SET_LITERAL: return ast_set_literal_count(node) != 0 && node->data.set_literal.elements == NULL ? SIZE_MAX : ast_set_literal_count(node);
-    case AST_MAP_LITERAL: return ast_map_literal_count(node) > SIZE_MAX / 2 || (ast_map_literal_count(node) != 0 &&
-        (node->data.map_literal.keys == NULL || node->data.map_literal.values == NULL)) ? SIZE_MAX : ast_map_literal_count(node) * 2;
-    case AST_SELECT_STMT: return ast_select_case_count(node) == SIZE_MAX ? SIZE_MAX : ast_select_case_count(node) + 1;
-    case AST_MATCH_STMT: return ast_match_case_count(node) > SIZE_MAX - 2 ? SIZE_MAX : ast_match_case_count(node) + 2;
-    case AST_MATCH_CASE: return ast_match_case_pattern_count(node) > SIZE_MAX - 3 ? SIZE_MAX : ast_match_case_pattern_count(node) + 3;
-    case AST_PARALLEL_BLOCK: return ast_parallel_task_count(node) > SIZE_MAX - 2 ? SIZE_MAX : ast_parallel_task_count(node) + 2;
-    case AST_ASYNC_BLOCK: return ast_async_block_statement_count(node);
-    case AST_SPAWN_EXPR: return ast_spawn_arg_count(node) == SIZE_MAX ? SIZE_MAX : ast_spawn_arg_count(node) + 1;
-    case AST_LAMBDA_EXPR: return ast_lambda_param_count(node) > SIZE_MAX - 2 ? SIZE_MAX : ast_lambda_param_count(node) + 2;
-    case AST_PARTY_INSTANCE: return node->data.party_instance.assignment_count;
-    case AST_CONTEXT_ACCESS: return 1;
-    case AST_EVENT_HANDLER_TYPE: {
-        size_t count = 0;
-        ASTNode **params = ast_event_handler_param_types(node, &count);
-        return count == SIZE_MAX || (count != 0 && params == NULL) ? SIZE_MAX : count + 1;
-    }
-    case AST_TRANSACTION_BLOCK:
-        return node->data.transaction_block.compensation_count == SIZE_MAX ||
-            (node->data.transaction_block.compensation_count != 0 && node->data.transaction_block.compensations == NULL)
-            ? SIZE_MAX : node->data.transaction_block.compensation_count + 1;
-    case AST_FUNC_DECL: return ast_func_param_count(node) > (SIZE_MAX - 2) / 2 ? SIZE_MAX : ast_func_param_count(node) * 2 + 2;
-    case AST_TYPE: {
-        GenericParams *args = ast_type_generic_args(node);
-        size_t count = args == NULL ? 0 : args->count;
-        if (count > (SIZE_MAX - ast_type_tuple_element_count(node)) / 2) return SIZE_MAX;
-        if (count != 0 && args->params == NULL) return SIZE_MAX;
-        for (size_t p = 0; p < count; p++)
-            if (args->params[p] == NULL || args->params[p]->name == NULL) return SIZE_MAX;
-        return count * 2 + ast_type_tuple_element_count(node);
-    }
-    case AST_CHANNEL_TYPE: return 2;
-    case AST_FUTURE_TYPE: case AST_TYPE_ALIAS: case AST_LET_DESTRUCTURE:
-    case AST_GIVE_STMT: case AST_TYPE_TEST: case AST_AWAIT_EXPR: case AST_CHANNEL_RECV:
-    case AST_UNSAFE_BLOCK: case AST_FAIL_STMT: case AST_DEFER_STMT:
-    case AST_BIND_STMT: return 1;
-    case AST_EVENT_SUBSCRIBE: case AST_EVENT_UNSUBSCRIBE: return 2;
-    case AST_EVENT_INVOKE: return ast_event_invoke_arg_count(node) == SIZE_MAX ? SIZE_MAX : ast_event_invoke_arg_count(node) + 1;
-    case AST_IF_STMT: return 3;
-    case AST_FOR_LOOP: return 4;
-    case AST_LET_DECL: case AST_ASSIGNMENT: case AST_BINARY: case AST_ARRAY_ACCESS:
-    case AST_WHILE_LOOP: case AST_WITH_STMT: case AST_CHANNEL_SEND: return 2;
-    case AST_RETURN: case AST_UNARY: case AST_MEMBER_ACCESS: case AST_CAST: return 1;
-    case AST_IDENTIFIER: case AST_NUMBER: case AST_STRING: case AST_BOOLEAN:
-    case AST_BREAK: case AST_CONTINUE: case AST_IMPORT_DECL: case AST_USE_DECL: return 0;
-    default: *supported = false; return 0;
-    }
+    return NULL;
 }
-static ASTNode *function_param_flow_claim_child(const ASTNode *node, size_t ordinal)
+
+bool function_param_flow_nonlocal_result(SemanticContext *ctx, ASTNode *call,
+    bool *independent_physical_array)
 {
-    switch (node->type) {
-    case AST_BLOCK: return ast_block_statement(node, ordinal);
-    case AST_CALL: {
-        size_t actuals = ast_call_arg_count(node);
-        if (ordinal == 0) return ast_call_callee(node);
-        if (ordinal <= actuals) return ast_call_argument(node, ordinal - 1);
-        GenericParam *param = ast_generic_param_at(ast_call_generic_args(node), (ordinal - actuals - 1) / 2);
-        return param == NULL ? NULL : (ordinal - actuals - 1) % 2 == 0 ? param->constraint : param->default_type;
-    }
-    case AST_ARRAY_LITERAL: return ast_array_literal_element(node, ordinal);
-    case AST_TUPLE_LITERAL: return ast_tuple_literal_element(node, ordinal);
-    case AST_SET_LITERAL: return ast_set_literal_element(node, ordinal);
-    case AST_MAP_LITERAL: return ordinal % 2 == 0 ? ast_map_literal_key(node, ordinal / 2) : ast_map_literal_value(node, ordinal / 2);
-    case AST_SELECT_STMT: return ordinal == ast_select_case_count(node) ? ast_select_default_case(node) : ast_select_case(node, ordinal);
-    case AST_MATCH_STMT: return ordinal == 0 ? ast_match_subject(node) : ordinal == 1 ? ast_match_default_body(node) : ast_match_case_at(node, ordinal - 2);
-    case AST_MATCH_CASE: return ordinal == 0 ? ast_match_case_pattern(node) : ordinal == 1 ? ast_match_case_guard(node) : ordinal == 2 ? ast_match_case_body(node) : ast_match_case_pattern_at(node, ordinal - 3);
-    case AST_PARALLEL_BLOCK: return ordinal == 0 ? ast_parallel_join_collection(node) : ordinal == 1 ? ast_parallel_join_range_end(node) : ast_parallel_task(node, ordinal - 2);
-    case AST_ASYNC_BLOCK: return ast_async_block_statement(node, ordinal);
-    case AST_SPAWN_EXPR: return ordinal == 0 ? ast_spawn_function(node) : ast_spawn_argument(node, ordinal - 1);
-    case AST_LAMBDA_EXPR: return ordinal == 0 ? ast_lambda_body(node) : ordinal == 1 ? ast_lambda_return_type(node) : ast_lambda_param(node, ordinal - 2);
-    case AST_PARTY_INSTANCE: return node->data.party_instance.assignments[ordinal].value;
-    case AST_CONTEXT_ACCESS: return node->data.context_access.ability_type;
-    case AST_EVENT_HANDLER_TYPE: {
-        if (ordinal == 0) return ast_event_handler_return_type(node);
-        size_t count = 0;
-        ASTNode **params = ast_event_handler_param_types(node, &count);
-        return params != NULL && ordinal - 1 < count ? params[ordinal - 1] : NULL;
-    }
-    case AST_FUNC_DECL: {
-        if (ordinal == 0) return ast_func_body(node);
-        if (ordinal == 1) return node->data.func_decl.return_type;
-        FuncParam *param = ast_func_param(node, (ordinal - 2) / 2);
-        return param == NULL ? NULL : ordinal % 2 == 0 ? param->type : param->default_value;
-    }
-    case AST_TYPE: {
-        GenericParams *args = ast_type_generic_args(node);
-        size_t count = args == NULL ? 0 : args->count;
-        if (ordinal >= count * 2) return ast_type_tuple_element(node, ordinal - count * 2);
-        GenericParam *param = args->params[ordinal / 2];
-        return param == NULL ? NULL : ordinal % 2 == 0 ? param->constraint : param->default_type;
-    }
-    case AST_CHANNEL_TYPE: return ordinal == 0 ? node->data.channel_type.element_type : node->data.channel_type.capacity;
-    case AST_FUTURE_TYPE: return node->data.future_type.value_type;
-    case AST_TYPE_ALIAS: return ast_type_alias_target_type(node);
-    case AST_LET_DESTRUCTURE: return ast_let_destructure_initializer(node);
-    case AST_GIVE_STMT: return ast_give_value(node);
-    case AST_TYPE_TEST: return ast_type_test_operand(node);
-    case AST_AWAIT_EXPR: return ast_await_expression(node);
-    case AST_CHANNEL_RECV: return ast_channel_recv_channel(node);
-    case AST_UNSAFE_BLOCK: return ast_unsafe_block_body(node);
-    case AST_TRANSACTION_BLOCK: return ordinal == 0 ? ast_transaction_block_body(node) : node->data.transaction_block.compensations[ordinal - 1];
-    case AST_FAIL_STMT: return ast_fail_stmt_reason(node);
-    case AST_DEFER_STMT: return ast_defer_body(node);
-    case AST_BIND_STMT: return ast_bind_statement_subject(node);
-    case AST_EVENT_SUBSCRIBE: case AST_EVENT_UNSUBSCRIBE: return ordinal == 0 ? ast_event_op_event(node) : ast_event_op_handler(node);
-    case AST_EVENT_INVOKE: return ordinal == 0 ? ast_event_invoke_event(node) : ast_event_invoke_argument(node, ordinal - 1);
-    case AST_CHANNEL_SEND: return ordinal == 0 ? ast_channel_send_value(node) : ast_channel_send_channel(node);
-    case AST_CAST: return ast_cast_operand(node);
-    case AST_IF_STMT: return ordinal == 0 ? ast_if_condition(node) : ordinal == 1 ? ast_if_then_branch(node) : ast_if_else_branch(node);
-    case AST_FOR_LOOP: return ordinal == 0 ? ast_for_range_start(node) : ordinal == 1 ? ast_for_range_end(node) : ordinal == 2 ? ast_for_iterable(node) : ast_for_body(node);
-    case AST_LET_DECL: return ordinal == 0 ? ast_let_initializer(node) : ast_let_type(node);
-    case AST_ASSIGNMENT: return ordinal == 0 ? ast_assignment_target(node) : ast_assignment_value(node);
-    case AST_BINARY: return ordinal == 0 ? ast_binary_left(node) : ast_binary_right(node);
-    case AST_ARRAY_ACCESS: return ordinal == 0 ? ast_array_access_array(node) : ast_array_access_index(node);
-    case AST_WHILE_LOOP: return ordinal == 0 ? ast_while_condition(node) : ast_while_body(node);
-    case AST_WITH_STMT: return ordinal == 0 ? ast_with_slot_type(node) : ast_with_body(node);
-    case AST_RETURN: return ast_return_value(node);
-    case AST_UNARY: return ast_unary_operand(node);
-    case AST_MEMBER_ACCESS: return ast_member_object(node);
-    default: return NULL;
-    }
+    if (independent_physical_array != NULL) *independent_physical_array = false;
+    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+    if (!result.ok || result.meta) return false;
+    if (type_equals(result.type, TYPE_VOID) || type_equals(result.type, TYPE_STRING) ||
+        publication_physical_scalar(result.type)) return true;
+    bool independent = type_is_constructed_named(result.type, "Array") &&
+        publication_physical_scalar(type_get_constructed_arg(result.type, 0)) &&
+        semantic_array_storage_owned_result_current(ctx, call);
+    if (independent_physical_array != NULL) *independent_physical_array = independent;
+    return independent;
 }
+
+bool function_param_flow_physical_result_header_current(SemanticContext *ctx, ASTNode *routine)
+{
+    if (ctx == NULL || routine == NULL || routine->type != AST_FUNC_DECL) return false;
+    const Type *type = semantic_type_resolution_lookup_resolved_type(ctx, ast_func_return_type(routine));
+    return publication_physical_scalar(type) &&
+        semantic_param_publication_routine_result_current(ctx, routine, type);
+}
+
+/* Input currency alone grants no result independence. The navigation consumer
+ * additionally requires the exact owned physical-Array result receipt above. */
+bool function_param_flow_nonlocal_physical_input_current(SemanticContext *ctx,
+    ASTNode *call, size_t actual)
+{
+    if (ctx == NULL || ctx->has_error || !semantic_param_publication_inputs_ready(ctx) ||
+        ctx->function_param_flow_summaries == NULL || ctx->function_param_flow_summaries->failed ||
+        ctx->function_param_flow_summaries->solving) return false;
+    ASTNode *decl = semantic_param_publication_callee(ctx, call, actual);
+    size_t ordinal = SIZE_MAX;
+    if (decl == NULL || !semantic_param_publication_checked_argument(ctx, call, actual) ||
+        !semantic_param_publication_value_is_physical_scalar(ctx, ast_call_argument(call, actual)) ||
+        !semantic_param_publication_formal_for_actual(ctx, call, actual, &ordinal)) return false;
+    FuncParam *formal = ast_func_param(decl, ordinal);
+    if (formal == NULL || (formal->mode != PARAM_MODE_DEFAULT && formal->mode != PARAM_MODE_REF) ||
+        !semantic_param_publication_routine_no_output_header_ready(ctx, decl)) return false;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    for (size_t e = 0; e < store->count; e++) {
+        const FunctionParamFlowSummaryEntry *entry = &store->entries[e];
+        if (entry->function_decl != decl || entry->param_index != ordinal) continue;
+        if (!entry->output_dependencies_ready || entry->output_dependencies == NULL ||
+            entry->output_count != ast_func_param_count(decl)) return false;
+        for (size_t p = 0; p < entry->output_count; p++)
+            if (entry->output_dependencies[p]) return false;
+        return entry->function_id == ast_node_stable_id(decl) &&
+            entry->state == FUNCTION_PARAM_FLOW_COMPLETE && !entry->analysis_unsupported &&
+            !entry->returned_backing_unproved && !entry->returned_backing_pending &&
+            (entry->mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) == 0 &&
+            function_param_flow_output_current(store, e, false) &&
+            function_param_flow_no_store_graph(store, decl) &&
+            function_param_flow_current_claim_index(ctx, decl) != NULL;
+    }
+    return false;
+}
+
+bool function_param_flow_typed_expression_children_current(SemanticContext *ctx,
+    ASTNode *caller, const ASTNode *expression)
+{
+    if (ctx == NULL || ctx->has_error || expression == NULL || caller == NULL ||
+        !semantic_param_publication_inputs_ready(ctx) || ctx->function_param_flow_summaries == NULL ||
+        ctx->function_param_flow_summaries->failed || ctx->function_param_flow_summaries->solving) return false;
+    FunctionParamFlowProgramPointIndex *index = function_param_flow_current_claim_index(ctx, caller);
+    if (index == NULL) return false;
+    for (size_t i = 0; i < index->claims->count; i++) {
+        const FunctionParamFlowIndexClaim *row = &index->claims->rows[i];
+        if (row->node == expression) return row->id != 0 && row->id == ast_node_stable_id(expression) &&
+            row->snapshot_complete && row->semantic_promoted && row->snapshot_semantic_complete &&
+            !row->snapshot_active && row->value_ready && !row->value_meta;
+    }
+    return false;
+}
+
+/* A field-return link is not an independent String or an element cleanup
+ * certificate. All admitted leaves must link to the same caller formal. */
+bool function_param_flow_string_result_nonlocal_current(SemanticContext *ctx,
+    const ASTNode *call, ASTNode *caller, size_t formal_ordinal)
+{
+    if (ctx == NULL || ctx->has_error || call == NULL || call->type != AST_CALL ||
+        caller == NULL || !semantic_param_publication_inputs_ready(ctx) ||
+        ctx->function_param_flow_summaries == NULL || ctx->function_param_flow_summaries->failed ||
+        ctx->function_param_flow_summaries->solving ||
+        !semantic_param_publication_checked_call(ctx, call) ||
+        !function_param_flow_typed_expression_children_current(ctx, caller, call)) return false;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    const Type *result_type = NULL;
+    ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &result_type), *receiver = NULL;
+    FuncParam *caller_formal = ast_func_param(caller, formal_ordinal);
+    uint32_t caller_binding = caller_formal == NULL ? 0 : ast_func_param_stable_id(caller_formal);
+    if (decl == NULL || decl == caller || result_type != TYPE_STRING || caller_binding == 0 ||
+        semantic_param_publication_direct_callee(ctx, call) != decl ||
+        !semantic_param_publication_instance_receiver(ctx, call, &receiver) || receiver != NULL ||
+        !function_param_flow_nonlocal_input_current(ctx, caller, formal_ordinal)) return false;
+    FunctionParamFlowProgramPointIndex *index = function_param_flow_current_claim_index(ctx, decl);
+    if (index == NULL || index->declared_result == NULL || index->declared_result->epoch == 0 ||
+        !index->declared_result->complete || index->declared_result->pending ||
+        index->declared_result->building || index->declared_result->analysis_unsupported ||
+        index->declared_result->claims != index->claims ||
+        index->declared_result->declared_result_type != TYPE_STRING) return false;
+    const FunctionParamFlowIndexClaims *claims = index->claims;
+    size_t reached = 0;
+    for (size_t r = 0; r < claims->count; r++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[r];
+        if (row->shape != AST_RETURN) continue;
+        if (!row->execution_present) return false;
+        if (!row->reachable) continue;
+        ASTNode *value = ast_return_value(row->node), *returned_caller = NULL, *root = NULL;
+        if (!row->semantic_promoted || !row->snapshot_semantic_complete ||
+            semantic_param_publication_value(ctx, value).type != TYPE_STRING ||
+            !semantic_param_publication_projection_root_current(ctx, value, &returned_caller, &root) ||
+            returned_caller != decl || root == NULL) return false;
+        uint32_t binding = ast_identifier_binding_syntax_id(root);
+        size_t formal = SIZE_MAX;
+        for (size_t p = 0; p < ast_func_param_count(decl); p++)
+            if (binding != 0 && ast_func_param_stable_id(ast_func_param(decl, p)) == binding) formal = p;
+        size_t entry_at = SIZE_MAX;
+        for (size_t e = 0; e < store->count; e++)
+            if (store->entries[e].function_decl == decl && store->entries[e].param_index == formal)
+                entry_at = e;
+        if (formal == SIZE_MAX || entry_at == SIZE_MAX) return false;
+        const FunctionParamFlowSummaryEntry *entry = &store->entries[entry_at];
+        if (!entry->output_dependencies_ready || entry->output_dependencies == NULL ||
+            entry->output_count != ast_func_param_count(decl)) return false;
+        for (size_t p = 0; p < entry->output_count; p++)
+            if (entry->output_dependencies[p]) return false;
+        if (entry->state != FUNCTION_PARAM_FLOW_COMPLETE || entry->analysis_unsupported ||
+            entry->returned_backing_unproved || entry->returned_backing_pending ||
+            (entry->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
+            (entry->mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) != 0 ||
+            !function_param_flow_output_current(store, entry_at, false) ||
+            !function_param_flow_nonlocal_input_current(ctx, decl, formal)) return false;
+        ASTNode *argument = NULL;
+        for (size_t a = 0; a < ast_call_arg_count(call); a++) {
+            size_t selected = SIZE_MAX;
+            if (!semantic_param_publication_checked_argument(ctx, call, a) ||
+                !semantic_param_publication_formal_for_actual(ctx, call, a, &selected)) return false;
+            if (selected == formal) {
+                if (argument != NULL) return false;
+                argument = ast_call_argument(call, a);
+            }
+        }
+        ASTNode *actual_caller = NULL, *actual_root = NULL;
+        if (argument == NULL || !semantic_param_publication_projection_root_current(ctx,
+                argument, &actual_caller, &actual_root) || actual_caller != caller || actual_root == NULL ||
+            ast_identifier_binding_syntax_id(actual_root) != caller_binding) return false;
+        reached++;
+    }
+    return reached != 0 && function_param_flow_declared_result_frame_current(store, (ASTNode *)call, NULL) != NULL &&
+        function_param_flow_backing_rows_current(store, decl) &&
+        function_param_flow_nonlocal_input_current(ctx, caller, formal_ordinal);
+}
+
 bool function_param_flow_index_claim_record(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *node)
 {

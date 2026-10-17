@@ -134,7 +134,7 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   index identity must consume existing full typed child claims; ParentRows
   returns an independent physical-element Array<Int> and mutates only its
   private active array; physical-result NominalSubkindFor/StartsWith need a
-  current closed-scalar, direct-only proof when no normal frame exists;
+  current physical-result-header, direct-only proof when no normal frame exists;
   AtomFor needs exhaustive cached RETURN-to-formal-to-actual linkage, not a
   summary bit reinterpreted as unique origin. ChildCounts/Children also use
   private physical ArraySet; these local mutation facts must not license a
@@ -148,6 +148,50 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   (mask17), exposing the conservative local-mutation boundary instead.
   Capture/extern/unsupported noStore edges remain fail-closed. Do not create
   a new global memory model to repair an inexpressible counterexample.
+- Stage2 base is3ddd0784d, one continuation of the same executable rung.
+  Dependency order is typed compound-index currentness and private physical
+  local mutation -> nonlocal scalar/aggregate call and exact String RETURN
+  linkage -> exact private String ArrayPush sink receipt -> full input and
+  five reached field-cleanup obligations -> bootstrap/install/published CI.
+  No new permission connects until the first two dependencies and their
+  negative/currentness tests pass. Existing safety oracles stay unchanged.
+  A edits member/collections publication, existing private array-transfer
+  producer/query and reached noStore/backing consumers. B edits existing
+  control navigation, input-claim RETURN linkage, snapshot edge vocabulary
+  and flow-internal declarations; the shallow child vocabulary may move
+  verbatim to its existing snapshot owner, without changing edges or charging.
+  C edits the existing phase unit and bounded analyze-only fixtures. Root
+  owns the later String sink/finalizer and docs, and alone builds/commits.
+  Publication headers belong to A; flow-internal headers/snapshot to B.
+  Required shared gates remain phase/full strict, old named faults/AIR,
+  broad/runtime/SAN, both unchanged full inputs and actual installed chain.
+  Pending or unsupported facts refuse; no new owner TU, budget, source0,
+  String ArraySet grant, copied canonical input, or manual cleanup ceremony.
+- Stage2 receipt: parent3ddd source plus the identified stage2 changes builds
+  native4228f7f0. f4c3GJ passes phase11238/0 and unchanged strict; EYvgjm
+  passes all six old named groups, broad GogMhz (MIR370/0, semantic3230/0,
+  transpile1012/0, AIR156/0, Map24/58 and4IR), and sanitizerPXLmdD with
+  phase11238/0, live UAF witness and leaks OFF. All24 source/test paths changed
+  since61a compare byte-equal between D and the identified Linux snapshot.
+  Safe runtime ewhUmO passes66/66 on C/LLVM with unsafe_execution=0;
+  documentation-quality gate also passes on D.
+  This is evidence production, not full canonical or CI closure.
+- Next exact sink receipt must distinguish its borrowed literal receiver from
+  the original LIVE non-BORROWED risk candidate. Candidate identity is an
+  aggregate caller-formal projection (direct or named-call actual), not every
+  UNKNOWN named String; ordinary b53 independent-result obligations stay put.
+  Store the formal identity once, follow named LET-to-CALL before local String
+  roots, preserve UNKNOWN/RETURN, and validate all issued receipts at success.
+  No compatibility source0, reset budget, or element cleanup grant is allowed.
+- Reached cleanup survey remains OPEN, not another implementation track:
+  eight String and two physical own handoffs across the five named field
+  cleanup groups need current aggregate field storage generations. Constructor
+  freshness, member identity, inout and field reset alone are insufficient.
+  String fields additionally need uniform element authority; terminal-empty
+  restoration after drop is not LIVE-owner restoration. Root copies, sibling
+  aliases, repeated field extraction, branch/loop generations and live deferred
+  readers must be falsifiers. Recheck these downstream cases only after the
+  primary String projection error is removed.
 
 #### Broad integration failures before canonical continuation
 

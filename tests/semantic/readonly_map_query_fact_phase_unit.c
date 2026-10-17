@@ -697,6 +697,9 @@ static void checked_generic_member_source(const char *source, bool copy)
     CHECK(call != NULL && call->type == AST_CALL);
     ASTNode *member = ast_call_argument(call, 0);
     CHECK(member != NULL && member->type == AST_MEMBER_ACCESS);
+    ASTNode *projection_caller = NULL, *projection_root = NULL;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member,
+        &projection_caller, &projection_root));
     SemanticPublishedValue value = semantic_param_publication_value(ctx, member);
     CHECK(value.ok && value.copy_escape == copy && !value.meta);
     CHECK(value.category == OWNERSHIP_TYPE_COPY_ONLY);
@@ -10530,6 +10533,17 @@ static void checked_nonlocal_projection_currency(void)
     if (point != NULL && point->backing_frames != NULL &&
         point->backing_frame_count != 0 && point->backing_frames[0] != NULL) {
         FunctionParamFlowBackingFact *frame = point->backing_frames[0];
+        CHECK(frame->epoch != 0 && frame->private_stores_closed);
+        size_t epoch = frame->epoch;
+        frame->epoch = 0;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->epoch = epoch;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+        bool private_stores_closed = frame->private_stores_closed;
+        frame->private_stores_closed = false;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
+        frame->private_stores_closed = private_stores_closed;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
         bool complete = frame->complete;
         frame->complete = false;
         CHECK(!function_param_flow_nonlocal_input_current(ctx, project, 0));
@@ -10596,6 +10610,479 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_compound_projection_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
+        "func Project(nodes:Array<TextNode>)->Arena{"
+        "let atom_table:Array<String> = [\"\"];let i:Int=0;"
+        "while i<ArrayLength(nodes){if nodes[i+0].type_name!=\"\"{"
+        "ArrayPush(atom_table,nodes[i+0].type_name);}i=i+1;}"
+        "return Arena(atom_table);}"
+        "func Main()->Void{let name=Concat(\"Type\",\"Name\");"
+        "let nodes:Array<TextNode> = [TextNode(name)];let arena=Project(nodes);"
+        "Log(arena.atom_table[1]);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *project = ast_program_statement(program, 2);
+    ASTNode *loop = ast_block_statement(ast_func_body(project), 2);
+    ASTNode *branch = loop != NULL ? ast_block_statement(ast_while_body(loop), 0) : NULL;
+    ASTNode *push = branch != NULL ? ast_block_statement(ast_if_then_branch(branch), 0) : NULL;
+    ASTNode *member = push != NULL ? ast_call_argument(push, 1) : NULL;
+    ASTNode *array = member != NULL ? ast_member_object(member) : NULL;
+    ASTNode *index = array != NULL ? ast_array_access_index(array) : NULL;
+    ASTNode *left = index != NULL ? ast_binary_left(index) : NULL;
+    ASTNode *right = index != NULL ? ast_binary_right(index) : NULL;
+    ASTNode *root = array != NULL ? ast_array_access_array(array) : NULL;
+    CHECK(member != NULL && member->type == AST_MEMBER_ACCESS &&
+        index != NULL && index->type == AST_BINARY &&
+        left != NULL && left->type == AST_IDENTIFIER &&
+        right != NULL && right->type == AST_NUMBER && root != NULL);
+    if (member == NULL || index == NULL || left == NULL || right == NULL || root == NULL)
+        goto cleanup;
+    ASTNode *caller = NULL, *found_root = NULL;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member,
+        &caller, &found_root) && caller == project && found_root == root);
+    CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+    uint32_t source_id = 0;
+    CHECK(semantic_indexed_string_borrow_source_current(member, ctx, &source_id) &&
+        source_id == UINT32_MAX);
+    uint32_t child_id = right->stable_id;
+    right->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    right->stable_id = child_id;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    child_id = left->stable_id;
+    left->stable_id++;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    left->stable_id = child_id;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    ASTNode *saved_right = index->data.binary.right;
+    index->data.binary.right = left;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    index->data.binary.right = saved_right;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    PgyTokenType op = index->data.binary.op.type;
+    index->data.binary.op.type = TOKEN_MINUS;
+    CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    index->data.binary.op.type = op;
+    CHECK(semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+    PublishedNode *index_row = published_node_for(ctx, index);
+    CHECK(index_row != NULL);
+    if (index_row != NULL) {
+        const Type *index_type = index_row->value_type;
+        index_row->value_type = TYPE_STRING;
+        CHECK(!semantic_param_publication_projection_root_current(ctx, member, &caller, &found_root));
+        index_row->value_type = index_type;
+    }
+    CHECK(semantic_param_publication_projection_root_current(ctx, member,
+        &caller, &found_root) && caller == project && found_root == root);
+    CHECK(function_param_flow_nonlocal_input_current(ctx, project, 0));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_private_physical_array_mutation_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Rows{ids:Array<Int>;}"
+        "func ParentRows()->Rows{let ids:Array<Int> = [1,2];"
+        "ArraySet(ids,0,3);ArrayPop(ids);return Rows(ids);}"
+        "func Main()->Void{let rows=ParentRows();Log(rows.ids[0]);"
+        "Log(ArrayLength(rows.ids));}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *parent = ast_program_statement(program, 1);
+    ASTNode *main_decl = ast_program_statement(program, 2);
+    ASTNode *local = ast_block_statement(ast_func_body(parent), 0);
+    ASTNode *initial = ast_let_initializer(local);
+    ASTNode *calls[] = {ast_block_statement(ast_func_body(parent), 1),
+        ast_block_statement(ast_func_body(parent), 2)};
+    CHECK(local != NULL && initial != NULL && initial->type == AST_ARRAY_LITERAL &&
+        calls[0] != NULL && calls[0]->type == AST_CALL &&
+        calls[1] != NULL && calls[1]->type == AST_CALL);
+    if (local == NULL || initial == NULL || calls[0] == NULL || calls[1] == NULL)
+        goto cleanup;
+    for (size_t kind = 0; kind < 2; kind++) {
+        ASTNode *call = calls[kind];
+        ASTNode *receiver = ast_call_argument(call, 0);
+        ASTNode *target = ast_call_callee(call);
+        PublishedNode *row = published_node_for(ctx, call);
+        CHECK(receiver != NULL && target != NULL && row != NULL &&
+            row->private_physical_mutation && row->deferred_syntax != NULL &&
+            row->argument_count == (kind == 0 ? 3u : 1u));
+        if (receiver == NULL || target == NULL || row == NULL) continue;
+        CHECK(semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+        CHECK(!semantic_param_publication_private_physical_array_mutation(ctx, call, main_decl));
+        PublishedNode saved = *row;
+        uint32_t receiver_binding = ast_identifier_binding_syntax_id(receiver);
+        char *target_name = target->data.identifier.name;
+        bool alias = ast_let_is_alias(local);
+        for (unsigned fault = 0; fault < 12; fault++) {
+            if (fault == 0) row->private_physical_mutation = false;
+            if (fault == 1) row->private_exclusive = false;
+            if (fault == 2) row->private_escaped = true;
+            if (fault == 3) row->private_pending = true;
+            if (fault == 4) row->private_binding_id++;
+            if (fault == 5) row->private_binding_type_id++;
+            if (fault == 6) row->private_initializer_id++;
+            if (fault == 7) row->deferred_syntax = NULL;
+            if (fault == 8) row->caller_id++;
+            if (fault == 9) ast_identifier_set_binding_syntax_id(receiver, 0);
+            if (fault == 10) target->data.identifier.name = "Unknown";
+            if (fault == 11) local->data.let_decl.is_alias = true;
+            CHECK(!semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+            *row = saved;
+            ast_identifier_set_binding_syntax_id(receiver, receiver_binding);
+            target->data.identifier.name = target_name;
+            local->data.let_decl.is_alias = alias;
+            CHECK(semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+        }
+        if (kind == 0) {
+            ASTNode *index = ast_call_argument(call, 1);
+            ASTNode *payload = ast_call_argument(call, 2);
+            PublishedNode *index_row = published_node_for(ctx, index);
+            PublishedNode *payload_row = published_node_for(ctx, payload);
+            CHECK(index != NULL && payload != NULL && index_row != NULL && payload_row != NULL);
+            if (index != NULL && payload != NULL && index_row != NULL && payload_row != NULL) {
+                uint32_t index_id = index->stable_id;
+                index->stable_id++;
+                CHECK(!semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+                index->stable_id = index_id;
+                CHECK(semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+                const Type *index_type = index_row->value_type;
+                index_row->value_type = TYPE_STRING;
+                CHECK(!semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+                index_row->value_type = index_type;
+                const Type *payload_type = payload_row->value_type;
+                payload_row->value_type = TYPE_STRING;
+                CHECK(!semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+                payload_row->value_type = payload_type;
+                CHECK(semantic_param_publication_private_physical_array_mutation(ctx, call, parent));
+            }
+        }
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_string_field_return_nonlocal_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextNode{name:String;payload:String;}"
+        "struct Arena{atom_table:Array<String>;}"
+        "func AtomFor(node:TextNode)->String{"
+        "if node.name!=\"\"{return node.name;}return node.payload;}"
+        "func Project(nodes:Array<TextNode>)->Arena{"
+        "let atom_table:Array<String> = [\"\"];let i:Int=0;"
+        "while i<ArrayLength(nodes){let atom_text:String=AtomFor(nodes[i]);"
+        "if atom_text!=\"\"{ArrayPush(atom_table,atom_text);}i=i+1;}"
+        "return Arena(atom_table);}"
+        "func Main()->Void{let name=Concat(\"N\",\"ame\");"
+        "let nodes:Array<TextNode> = [TextNode(name,\"\")];"
+        "let arena=Project(nodes);Log(arena.atom_table[1]);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *atom_for = ast_program_statement(program, 2);
+    ASTNode *project = ast_program_statement(program, 3);
+    ASTNode *loop = ast_block_statement(ast_func_body(project), 2);
+    ASTNode *named = loop != NULL ? ast_block_statement(ast_while_body(loop), 0) : NULL;
+    ASTNode *call = named != NULL ? ast_let_initializer(named) : NULL;
+    ASTNode *actual = call != NULL ? ast_call_argument(call, 0) : NULL;
+    ASTNode *first_return = ast_block_statement(ast_if_then_branch(
+        ast_block_statement(ast_func_body(atom_for), 0)), 0);
+    ASTNode *second_return = ast_block_statement(ast_func_body(atom_for), 1);
+    ASTNode *first_field = first_return != NULL ? ast_return_value(first_return) : NULL;
+    ASTNode *second_field = second_return != NULL ? ast_return_value(second_return) : NULL;
+    CHECK(atom_for != NULL && project != NULL && call != NULL && call->type == AST_CALL &&
+        actual != NULL && actual->type == AST_ARRAY_ACCESS &&
+        first_field != NULL && first_field->type == AST_MEMBER_ACCESS &&
+        second_field != NULL && second_field->type == AST_MEMBER_ACCESS);
+    if (atom_for == NULL || project == NULL || call == NULL || actual == NULL ||
+        first_field == NULL || second_field == NULL) goto cleanup;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    CHECK(store != NULL);
+    if (store == NULL) goto cleanup;
+    unsigned mask = function_param_flow_summary_for_param(ctx, project, 0);
+    CHECK(mask != SLOT_PARAM_SUMMARY_ALL && function_param_flow_nonlocal_input_current(ctx, project, 0));
+    /* The existing declared-result owner, not this query, produces the frame. */
+    FunctionParamFlowBackingFact *result = function_param_flow_declared_result_frame_current(store, call, NULL);
+    CHECK(result != NULL && result->epoch != 0 && result->complete && !result->pending);
+    if (result == NULL) goto cleanup;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    PublishedNode *call_row = published_node_for(ctx, call);
+    CHECK(call_row != NULL && call_row->indexed_string_source_present &&
+        call_row->indexed_string_source_id == UINT32_MAX);
+    uint32_t owned_producer = 0;
+    CHECK(!semantic_collection_owned_string_call_result(call, ctx, &owned_producer));
+    FunctionParamFlowSummaryEntry *entry = NULL;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    for (size_t e = 0; e < store->count; e++)
+        if (store->entries[e].function_decl == atom_for && store->entries[e].param_index == 0)
+            entry = &store->entries[e];
+    for (size_t i = 0; i < store->program_point_index_count; i++)
+        if (store->program_point_indexes[i].function_decl == atom_for)
+            index = &store->program_point_indexes[i];
+    CHECK(entry != NULL && index != NULL && index->declared_result == result &&
+        index->backing_frames != NULL && index->backing_frame_count != 0 &&
+        index->backing_frames[0] != NULL);
+    if (entry == NULL || index == NULL || index->backing_frames == NULL ||
+        index->backing_frame_count == 0 || index->backing_frames[0] == NULL) goto cleanup;
+    uint32_t call_id = call->stable_id;
+    call->stable_id++;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    call->stable_id = call_id;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    uint32_t actual_id = actual->stable_id;
+    actual->stable_id++;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    actual->stable_id = actual_id;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    uint32_t callee_id = ast_call_semantic_callee_decl_id(call);
+    CHECK(ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(project)));
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    CHECK(ast_call_set_semantic_callee_decl_id(call, callee_id));
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    ASTNode *fields[] = {first_field, second_field};
+    for (size_t f = 0; f < 2; f++) {
+        uint32_t field_id = fields[f]->stable_id;
+        fields[f]->stable_id++;
+        CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+        fields[f]->stable_id = field_id;
+        CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    }
+    unsigned original_mask = entry->mask;
+    entry->mask &= ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    entry->mask = original_mask;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    entry->mask = original_mask | ((unsigned)SLOT_PARAM_SUMMARY_ALL + 1u);
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    entry->mask = original_mask;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    bool output_ready = entry->output_dependencies_ready;
+    entry->output_dependencies_ready = false;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    entry->output_dependencies_ready = output_ready;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    CHECK(entry->output_dependencies != NULL && entry->output_count == 1);
+    if (entry->output_dependencies != NULL && entry->output_count == 1) {
+        bool dependency = entry->output_dependencies[0];
+        entry->output_dependencies[0] = true;
+        CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+        entry->output_dependencies[0] = dependency;
+        CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    }
+    size_t epoch = result->epoch;
+    result->epoch = 0;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    result->epoch = epoch;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    bool complete = result->complete;
+    result->complete = false;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    result->complete = complete;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    FunctionParamFlowBackingFact *normal = index->backing_frames[0];
+    complete = normal->complete;
+    normal->complete = false;
+    CHECK(!function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    normal->complete = complete;
+    CHECK(function_param_flow_string_result_nonlocal_current(ctx, call, project, 0));
+    CHECK(call_row != NULL && call_row->indexed_string_source_id == UINT32_MAX);
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_scalar_noframe_nonlocal_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Direct(value:Int)->Int{return value+1;}"
+        "func StringPush(value:Int)->Int{let texts:Array<String> = [\"\"];"
+        "ArrayPush(texts,ToString(value));return value;}"
+        "func Main()->Void{Log(Direct(3));Log(StringPush(3));}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *direct = ast_program_statement(program, 0);
+    ASTNode *string_push = ast_program_statement(program, 1);
+    ASTNode *binary = ast_return_value(ast_block_statement(ast_func_body(direct), 0));
+    ASTNode *push = ast_block_statement(ast_func_body(string_push), 1);
+    CHECK(binary != NULL && binary->type == AST_BINARY &&
+        push != NULL && push->type == AST_CALL);
+    if (binary == NULL || push == NULL) goto cleanup;
+    unsigned mask = function_param_flow_summary_for_param(ctx, direct, 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    CHECK(store != NULL);
+    if (store == NULL) goto cleanup;
+    CHECK(mask != SLOT_PARAM_SUMMARY_ALL);
+    FunctionParamFlowProgramPointIndex *point = NULL;
+    CHECK(function_param_flow_program_point_index_build(store, direct, &point) && point != NULL);
+    CHECK(point != NULL && (point->backing_frames == NULL ||
+        point->backing_frame_count == 0 || point->backing_frames[0] == NULL));
+    CHECK(function_param_flow_nonlocal_input_current(ctx, direct, 0));
+    CHECK(!function_param_flow_nonlocal_input_current(ctx, string_push, 0));
+    CHECK(!semantic_param_publication_private_physical_array_mutation(ctx, push, string_push));
+    FunctionParamFlowSummaryEntry *entry = NULL;
+    for (size_t e = 0; e < store->count; e++)
+        if (store->entries[e].function_decl == direct && store->entries[e].param_index == 0)
+            entry = &store->entries[e];
+    CHECK(entry != NULL && function_param_flow_physical_result_header_current(ctx, direct));
+    if (entry != NULL) {
+        FunctionParamFlowOutputProducer producer = entry->output_producer;
+        entry->output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, direct, 0));
+        entry->output_producer = producer;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, direct, 0));
+        FunctionParamFlowSummaryState state = entry->state;
+        entry->state = FUNCTION_PARAM_FLOW_COMPUTING;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, direct, 0));
+        entry->state = state;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, direct, 0));
+    }
+    ASTNode *header = ast_func_return_type(direct);
+    CHECK(header != NULL);
+    if (header != NULL) {
+        uint32_t header_id = header->stable_id;
+        header->stable_id++;
+        CHECK(!function_param_flow_physical_result_header_current(ctx, direct));
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, direct, 0));
+        header->stable_id = header_id;
+        CHECK(function_param_flow_physical_result_header_current(ctx, direct));
+        CHECK(function_param_flow_nonlocal_input_current(ctx, direct, 0));
+        size_t metadata_at = 0;
+        while (metadata_at < ctx->type_resolution_metadata.count &&
+            ctx->type_resolution_metadata.keys[metadata_at] != header) metadata_at++;
+        CHECK(metadata_at < ctx->type_resolution_metadata.count);
+        if (metadata_at < ctx->type_resolution_metadata.count) {
+            void *saved = ctx->type_resolution_metadata.values[metadata_at];
+            ctx->type_resolution_metadata.values[metadata_at] = NULL;
+            CHECK(!function_param_flow_physical_result_header_current(ctx, direct));
+            CHECK(!function_param_flow_nonlocal_input_current(ctx, direct, 0));
+            ctx->type_resolution_metadata.values[metadata_at] = TYPE_VOID;
+            CHECK(!function_param_flow_physical_result_header_current(ctx, direct));
+            CHECK(!function_param_flow_nonlocal_input_current(ctx, direct, 0));
+            ctx->type_resolution_metadata.values[metadata_at] = saved;
+            CHECK(function_param_flow_physical_result_header_current(ctx, direct));
+            CHECK(function_param_flow_nonlocal_input_current(ctx, direct, 0));
+        }
+    }
+    PgyTokenType op = binary->data.binary.op.type;
+    binary->data.binary.op.type = TOKEN_MINUS;
+    CHECK(!function_param_flow_nonlocal_input_current(ctx, direct, 0));
+    binary->data.binary.op.type = op;
+    CHECK(function_param_flow_nonlocal_input_current(ctx, direct, 0));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_physical_result_nonlocal_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Fresh(value:Int)->Array<Int>{return [value];}"
+        "func Copy(ref values:Array<Int>)->Array<Int>{return Fresh(values[0]);}"
+        "func Main()->Void{let values:Array<Int> = [7];"
+        "let rows:Array<Int> = Copy(values);Log(rows[0]);Log(values[0]);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *fresh = ast_program_statement(program, 0);
+    ASTNode *copy = ast_program_statement(program, 1);
+    ASTNode *fresh_call = ast_return_value(ast_block_statement(ast_func_body(copy), 0));
+    ASTNode *actual = fresh_call != NULL ? ast_call_argument(fresh_call, 0) : NULL;
+    ASTNode *root = actual != NULL ? ast_array_access_array(actual) : NULL;
+    CHECK(fresh_call != NULL && fresh_call->type == AST_CALL &&
+        actual != NULL && actual->type == AST_ARRAY_ACCESS &&
+        root != NULL && root->type == AST_IDENTIFIER);
+    if (fresh_call == NULL || actual == NULL || root == NULL) goto cleanup;
+    ASTNode *caller = NULL, *found_root = NULL;
+    CHECK(semantic_param_publication_projection_root_current(ctx, actual,
+        &caller, &found_root) && caller == copy && found_root == root);
+    CHECK(semantic_array_storage_owned_result_current(ctx, fresh_call));
+    /* The callee's completed formal summary is the physical-input premise. */
+    unsigned fresh_mask = function_param_flow_summary_for_param(ctx, fresh, 0);
+    CHECK(fresh_mask != SLOT_PARAM_SUMMARY_ALL);
+    CHECK(function_param_flow_nonlocal_physical_input_current(ctx, fresh_call, 0));
+    unsigned mask = function_param_flow_summary_for_param(ctx, copy, 0);
+    bool nonlocal = function_param_flow_nonlocal_input_current(ctx, copy, 0);
+    if (mask == SLOT_PARAM_SUMMARY_ALL || !nonlocal) {
+        FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+        for (size_t e = 0; store != NULL && e < store->count; e++) {
+            FunctionParamFlowSummaryEntry *entry = &store->entries[e];
+            if (entry->function_decl == copy && entry->param_index == 0) {
+                fprintf(stderr, "physical result input: returned=%u entry=%u state=%u producer=%u "
+                    "output_ready=%d unproved=%d pending=%d nonlocal=%d\n",
+                    mask, entry->mask, (unsigned)entry->state, (unsigned)entry->output_producer,
+                    (int)entry->output_dependencies_ready, (int)entry->returned_backing_unproved,
+                    (int)entry->returned_backing_pending, (int)nonlocal);
+                break;
+            }
+        }
+    }
+    CHECK(mask != SLOT_PARAM_SUMMARY_ALL);
+    CHECK(nonlocal);
+    uint32_t call_id = fresh_call->stable_id;
+    fresh_call->stable_id++;
+    CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    CHECK(!semantic_array_storage_owned_result_current(ctx, fresh_call));
+    fresh_call->stable_id = call_id;
+    CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    uint32_t actual_id = actual->stable_id;
+    actual->stable_id++;
+    CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    actual->stable_id = actual_id;
+    CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    uint32_t callee_id = ast_call_semantic_callee_decl_id(fresh_call);
+    CHECK(ast_call_set_semantic_callee_decl_id(fresh_call, ast_node_stable_id(copy)));
+    CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    CHECK(ast_call_set_semantic_callee_decl_id(fresh_call, callee_id));
+    CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    PublishedNode *actual_row = published_node_for(ctx, actual);
+    CHECK(actual_row != NULL);
+    if (actual_row != NULL) {
+        bool physical = actual_row->physical_scalar;
+        actual_row->physical_scalar = false;
+        CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
+        actual_row->physical_scalar = physical;
+        CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    }
+    uint32_t root_binding = ast_identifier_binding_syntax_id(root);
+    ast_identifier_set_binding_syntax_id(root, 0);
+    CHECK(!function_param_flow_nonlocal_input_current(ctx, copy, 0));
+    ast_identifier_set_binding_syntax_id(root, root_binding);
+    CHECK(function_param_flow_nonlocal_input_current(ctx, copy, 0));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 int main(void)
 {
     checked_unit_enum_selection_currency();
@@ -10613,6 +11100,11 @@ int main(void)
     checked_declared_result_currency();
     checked_named_string_result_source_currency();
     checked_nonlocal_projection_currency();
+    checked_compound_projection_currency();
+    checked_private_physical_array_mutation_currency();
+    checked_string_field_return_nonlocal_currency();
+    checked_scalar_noframe_nonlocal_currency();
+    checked_physical_result_nonlocal_currency();
     checked_named_string_shallow_retention_currency();
     checked_result_argument_currency();
     checked_witnessed_physical_call_alias_currency();

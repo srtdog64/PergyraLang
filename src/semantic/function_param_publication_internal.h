@@ -16,6 +16,8 @@ PublishedNode *publication_checked_intrinsic(const SemanticContext *ctx,
 bool publication_record_read_payload_loan(SemanticContext *ctx, ASTNode *call);
 bool publication_record_private_array_push(SemanticContext *ctx, ASTNode *call,
     PublishedNode *row);
+bool publication_record_private_physical_array_mutation(SemanticContext *ctx,
+    ASTNode *call, PublishedNode *row);
 bool publication_routine_header_current(const SemanticContext *ctx, const ASTNode *decl);
 PublishedNode *publication_result_current(const SemanticContext *ctx,
     const ASTNode *call);

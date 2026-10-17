@@ -7,6 +7,146 @@
 #include <string.h>
 #include "typed_map_query_fact_owner.h"
 
+size_t function_param_flow_claim_child_count(const ASTNode *node, bool *supported)
+{
+    *supported = true;
+    switch (node->type) {
+    case AST_BLOCK: return ast_block_statement_count(node);
+    case AST_CALL: {
+        GenericParams *args = ast_call_generic_args(node);
+        size_t count = args == NULL ? 0 : args->count;
+        size_t actuals = ast_call_arg_count(node);
+        if (actuals == SIZE_MAX || count > (SIZE_MAX - actuals - 1) / 2 ||
+            (count != 0 && args->params == NULL)) return SIZE_MAX;
+        for (size_t p = 0; p < count; p++)
+            if (args->params[p] == NULL || args->params[p]->name == NULL) return SIZE_MAX;
+        return actuals + 1 + count * 2;
+    }
+    case AST_ARRAY_LITERAL: return ast_array_literal_count(node) != 0 && node->data.array_literal.elements == NULL ? SIZE_MAX : ast_array_literal_count(node);
+    case AST_TUPLE_LITERAL: return ast_tuple_literal_count(node) != 0 && node->data.tuple_literal.elements == NULL ? SIZE_MAX : ast_tuple_literal_count(node);
+    case AST_SET_LITERAL: return ast_set_literal_count(node) != 0 && node->data.set_literal.elements == NULL ? SIZE_MAX : ast_set_literal_count(node);
+    case AST_MAP_LITERAL: return ast_map_literal_count(node) > SIZE_MAX / 2 || (ast_map_literal_count(node) != 0 &&
+        (node->data.map_literal.keys == NULL || node->data.map_literal.values == NULL)) ? SIZE_MAX : ast_map_literal_count(node) * 2;
+    case AST_SELECT_STMT: return ast_select_case_count(node) == SIZE_MAX ? SIZE_MAX : ast_select_case_count(node) + 1;
+    case AST_MATCH_STMT: return ast_match_case_count(node) > SIZE_MAX - 2 ? SIZE_MAX : ast_match_case_count(node) + 2;
+    case AST_MATCH_CASE: return ast_match_case_pattern_count(node) > SIZE_MAX - 3 ? SIZE_MAX : ast_match_case_pattern_count(node) + 3;
+    case AST_PARALLEL_BLOCK: return ast_parallel_task_count(node) > SIZE_MAX - 2 ? SIZE_MAX : ast_parallel_task_count(node) + 2;
+    case AST_ASYNC_BLOCK: return ast_async_block_statement_count(node);
+    case AST_SPAWN_EXPR: return ast_spawn_arg_count(node) == SIZE_MAX ? SIZE_MAX : ast_spawn_arg_count(node) + 1;
+    case AST_LAMBDA_EXPR: return ast_lambda_param_count(node) > SIZE_MAX - 2 ? SIZE_MAX : ast_lambda_param_count(node) + 2;
+    case AST_PARTY_INSTANCE: return node->data.party_instance.assignment_count;
+    case AST_CONTEXT_ACCESS: return 1;
+    case AST_EVENT_HANDLER_TYPE: {
+        size_t count = 0;
+        ASTNode **params = ast_event_handler_param_types(node, &count);
+        return count == SIZE_MAX || (count != 0 && params == NULL) ? SIZE_MAX : count + 1;
+    }
+    case AST_TRANSACTION_BLOCK:
+        return node->data.transaction_block.compensation_count == SIZE_MAX ||
+            (node->data.transaction_block.compensation_count != 0 && node->data.transaction_block.compensations == NULL)
+            ? SIZE_MAX : node->data.transaction_block.compensation_count + 1;
+    case AST_FUNC_DECL: return ast_func_param_count(node) > (SIZE_MAX - 2) / 2 ? SIZE_MAX : ast_func_param_count(node) * 2 + 2;
+    case AST_TYPE: {
+        GenericParams *args = ast_type_generic_args(node);
+        size_t count = args == NULL ? 0 : args->count;
+        if (count > (SIZE_MAX - ast_type_tuple_element_count(node)) / 2) return SIZE_MAX;
+        if (count != 0 && args->params == NULL) return SIZE_MAX;
+        for (size_t p = 0; p < count; p++)
+            if (args->params[p] == NULL || args->params[p]->name == NULL) return SIZE_MAX;
+        return count * 2 + ast_type_tuple_element_count(node);
+    }
+    case AST_CHANNEL_TYPE: return 2;
+    case AST_FUTURE_TYPE: case AST_TYPE_ALIAS: case AST_LET_DESTRUCTURE:
+    case AST_GIVE_STMT: case AST_TYPE_TEST: case AST_AWAIT_EXPR: case AST_CHANNEL_RECV:
+    case AST_UNSAFE_BLOCK: case AST_FAIL_STMT: case AST_DEFER_STMT:
+    case AST_BIND_STMT: return 1;
+    case AST_EVENT_SUBSCRIBE: case AST_EVENT_UNSUBSCRIBE: return 2;
+    case AST_EVENT_INVOKE: return ast_event_invoke_arg_count(node) == SIZE_MAX ? SIZE_MAX : ast_event_invoke_arg_count(node) + 1;
+    case AST_IF_STMT: return 3;
+    case AST_FOR_LOOP: return 4;
+    case AST_LET_DECL: case AST_ASSIGNMENT: case AST_BINARY: case AST_ARRAY_ACCESS:
+    case AST_WHILE_LOOP: case AST_WITH_STMT: case AST_CHANNEL_SEND: return 2;
+    case AST_RETURN: case AST_UNARY: case AST_MEMBER_ACCESS: case AST_CAST: return 1;
+    case AST_IDENTIFIER: case AST_NUMBER: case AST_STRING: case AST_BOOLEAN:
+    case AST_BREAK: case AST_CONTINUE: case AST_IMPORT_DECL: case AST_USE_DECL: return 0;
+    default: *supported = false; return 0;
+    }
+}
+ASTNode *function_param_flow_claim_child(const ASTNode *node, size_t ordinal)
+{
+    switch (node->type) {
+    case AST_BLOCK: return ast_block_statement(node, ordinal);
+    case AST_CALL: {
+        size_t actuals = ast_call_arg_count(node);
+        if (ordinal == 0) return ast_call_callee(node);
+        if (ordinal <= actuals) return ast_call_argument(node, ordinal - 1);
+        GenericParam *param = ast_generic_param_at(ast_call_generic_args(node), (ordinal - actuals - 1) / 2);
+        return param == NULL ? NULL : (ordinal - actuals - 1) % 2 == 0 ? param->constraint : param->default_type;
+    }
+    case AST_ARRAY_LITERAL: return ast_array_literal_element(node, ordinal);
+    case AST_TUPLE_LITERAL: return ast_tuple_literal_element(node, ordinal);
+    case AST_SET_LITERAL: return ast_set_literal_element(node, ordinal);
+    case AST_MAP_LITERAL: return ordinal % 2 == 0 ? ast_map_literal_key(node, ordinal / 2) : ast_map_literal_value(node, ordinal / 2);
+    case AST_SELECT_STMT: return ordinal == ast_select_case_count(node) ? ast_select_default_case(node) : ast_select_case(node, ordinal);
+    case AST_MATCH_STMT: return ordinal == 0 ? ast_match_subject(node) : ordinal == 1 ? ast_match_default_body(node) : ast_match_case_at(node, ordinal - 2);
+    case AST_MATCH_CASE: return ordinal == 0 ? ast_match_case_pattern(node) : ordinal == 1 ? ast_match_case_guard(node) : ordinal == 2 ? ast_match_case_body(node) : ast_match_case_pattern_at(node, ordinal - 3);
+    case AST_PARALLEL_BLOCK: return ordinal == 0 ? ast_parallel_join_collection(node) : ordinal == 1 ? ast_parallel_join_range_end(node) : ast_parallel_task(node, ordinal - 2);
+    case AST_ASYNC_BLOCK: return ast_async_block_statement(node, ordinal);
+    case AST_SPAWN_EXPR: return ordinal == 0 ? ast_spawn_function(node) : ast_spawn_argument(node, ordinal - 1);
+    case AST_LAMBDA_EXPR: return ordinal == 0 ? ast_lambda_body(node) : ordinal == 1 ? ast_lambda_return_type(node) : ast_lambda_param(node, ordinal - 2);
+    case AST_PARTY_INSTANCE: return node->data.party_instance.assignments[ordinal].value;
+    case AST_CONTEXT_ACCESS: return node->data.context_access.ability_type;
+    case AST_EVENT_HANDLER_TYPE: {
+        if (ordinal == 0) return ast_event_handler_return_type(node);
+        size_t count = 0;
+        ASTNode **params = ast_event_handler_param_types(node, &count);
+        return params != NULL && ordinal - 1 < count ? params[ordinal - 1] : NULL;
+    }
+    case AST_FUNC_DECL: {
+        if (ordinal == 0) return ast_func_body(node);
+        if (ordinal == 1) return node->data.func_decl.return_type;
+        FuncParam *param = ast_func_param(node, (ordinal - 2) / 2);
+        return param == NULL ? NULL : ordinal % 2 == 0 ? param->type : param->default_value;
+    }
+    case AST_TYPE: {
+        GenericParams *args = ast_type_generic_args(node);
+        size_t count = args == NULL ? 0 : args->count;
+        if (ordinal >= count * 2) return ast_type_tuple_element(node, ordinal - count * 2);
+        GenericParam *param = args->params[ordinal / 2];
+        return param == NULL ? NULL : ordinal % 2 == 0 ? param->constraint : param->default_type;
+    }
+    case AST_CHANNEL_TYPE: return ordinal == 0 ? node->data.channel_type.element_type : node->data.channel_type.capacity;
+    case AST_FUTURE_TYPE: return node->data.future_type.value_type;
+    case AST_TYPE_ALIAS: return ast_type_alias_target_type(node);
+    case AST_LET_DESTRUCTURE: return ast_let_destructure_initializer(node);
+    case AST_GIVE_STMT: return ast_give_value(node);
+    case AST_TYPE_TEST: return ast_type_test_operand(node);
+    case AST_AWAIT_EXPR: return ast_await_expression(node);
+    case AST_CHANNEL_RECV: return ast_channel_recv_channel(node);
+    case AST_UNSAFE_BLOCK: return ast_unsafe_block_body(node);
+    case AST_TRANSACTION_BLOCK: return ordinal == 0 ? ast_transaction_block_body(node) : node->data.transaction_block.compensations[ordinal - 1];
+    case AST_FAIL_STMT: return ast_fail_stmt_reason(node);
+    case AST_DEFER_STMT: return ast_defer_body(node);
+    case AST_BIND_STMT: return ast_bind_statement_subject(node);
+    case AST_EVENT_SUBSCRIBE: case AST_EVENT_UNSUBSCRIBE: return ordinal == 0 ? ast_event_op_event(node) : ast_event_op_handler(node);
+    case AST_EVENT_INVOKE: return ordinal == 0 ? ast_event_invoke_event(node) : ast_event_invoke_argument(node, ordinal - 1);
+    case AST_CHANNEL_SEND: return ordinal == 0 ? ast_channel_send_value(node) : ast_channel_send_channel(node);
+    case AST_CAST: return ast_cast_operand(node);
+    case AST_IF_STMT: return ordinal == 0 ? ast_if_condition(node) : ordinal == 1 ? ast_if_then_branch(node) : ast_if_else_branch(node);
+    case AST_FOR_LOOP: return ordinal == 0 ? ast_for_range_start(node) : ordinal == 1 ? ast_for_range_end(node) : ordinal == 2 ? ast_for_iterable(node) : ast_for_body(node);
+    case AST_LET_DECL: return ordinal == 0 ? ast_let_initializer(node) : ast_let_type(node);
+    case AST_ASSIGNMENT: return ordinal == 0 ? ast_assignment_target(node) : ast_assignment_value(node);
+    case AST_BINARY: return ordinal == 0 ? ast_binary_left(node) : ast_binary_right(node);
+    case AST_ARRAY_ACCESS: return ordinal == 0 ? ast_array_access_array(node) : ast_array_access_index(node);
+    case AST_WHILE_LOOP: return ordinal == 0 ? ast_while_condition(node) : ast_while_body(node);
+    case AST_WITH_STMT: return ordinal == 0 ? ast_with_slot_type(node) : ast_with_body(node);
+    case AST_RETURN: return ast_return_value(node);
+    case AST_UNARY: return ast_unary_operand(node);
+    case AST_MEMBER_ACCESS: return ast_member_object(node);
+    default: return NULL;
+    }
+}
+
 /* Compilation-owned storage, bitset accumulation and epoch charging share
  * their exported snapshot lifetime. Effect selection, admission and currentness
  * remain with the backing dependency and relation owners. */

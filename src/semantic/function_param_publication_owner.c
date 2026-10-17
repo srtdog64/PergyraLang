@@ -256,12 +256,15 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
         !publication_record_read_payload_loan(ctx, call)) return false;
     if (row->value_present && row->string_value && semantic_indexed_string_independent_result(call, ctx))
         row->origin_ready = row->copy_escape = true;
-    if (row->private_array_push) {
+    if (row->private_array_push || row->private_physical_mutation) {
         function_param_flow_claims_destroy(row->deferred_syntax);
         row->deferred_syntax = NULL;
     }
     row->private_array_push = false;
+    row->private_physical_mutation = false;
     if (!publication_record_private_array_push(ctx, call, row)) return false;
+    row = publication_node(ctx->function_param_publications, call, false);
+    if (row == NULL || !publication_record_private_physical_array_mutation(ctx, call, row)) return false;
     row = publication_node(ctx->function_param_publications, call, false);
     return row != NULL && (!row->string_value || semantic_indexed_string_borrow_publish_source(call, ctx));
 }
@@ -566,43 +569,4 @@ bool semantic_param_publication_value_call_target(const SemanticContext *ctx, co
     }
     return row->kind_present && row->declaration == 0 &&
         (row->builtin != BUILTIN_NOT_BUILTIN || row->stdlib);
-}
-bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
-    const ASTNode *call, const ASTNode *owner)
-{
-    PublishedNode *row = publication_result_current(ctx, call);
-    if (row == NULL || !row->private_array_push || row->caller == NULL ||
-        (owner != NULL && row->caller != owner) ||
-        row->caller_id != ast_node_stable_id(row->caller) || !row->private_exclusive ||
-        row->private_escaped || row->private_pending || row->argument_count != 2 ||
-        row->value_type != TYPE_VOID ||
-        !row->stdlib || !row->kind_present || row->builtin != BUILTIN_NOT_BUILTIN ||
-        row->declaration != 0 || row->value_binding != 0 || row->target_binding != 0 ||
-        row->target_shape != AST_IDENTIFIER || row->target_name == NULL ||
-        strcmp(row->target_name, "ArrayPush") != 0 || row->deferred_syntax == NULL ||
-        !function_param_flow_syntax_claims_current(ctx, row->deferred_syntax)) return false;
-    const ASTNode *local = row->private_binding, *initial = row->private_initializer;
-    const ASTNode *receiver = ast_call_argument(call, 0);
-    if (local == NULL || local->type != AST_LET_DECL || ast_let_is_alias(local) ||
-        ast_node_stable_id(local) != row->private_binding_id || initial == NULL ||
-        ast_let_type(local) != row->private_binding_type_node ||
-        row->private_binding_type_node == NULL || row->private_binding_type_node->type != AST_TYPE ||
-        ast_node_stable_id(row->private_binding_type_node) != row->private_binding_type_id ||
-        ast_let_initializer(local) != initial || initial->type != AST_ARRAY_LITERAL ||
-        ast_node_stable_id(initial) != row->private_initializer_id ||
-        receiver == NULL || receiver->type != AST_IDENTIFIER ||
-        ast_identifier_binding_syntax_id(receiver) != row->private_binding_id) return false;
-    PublishedNode *iv = publication_current_value(ctx, initial), *rv = publication_current_value(ctx, receiver);
-    PublishedNode *pv = publication_current_value(ctx, ast_call_argument(call, 1));
-    const Type *array = row->arguments[0].type;
-    const Type *element = type_is_constructed_named(array, "Array") ? type_get_constructed_arg(array, 0) : NULL;
-    if (iv == NULL || rv == NULL || pv == NULL || iv->meta || rv->meta || pv->meta ||
-        !(type_equals(element, TYPE_STRING) || publication_physical_scalar(element)) ||
-        pv->value_type != (type_equals(element, TYPE_STRING) ? TYPE_STRING : element) || (!type_equals(element, TYPE_STRING) && !pv->physical_scalar) ||
-        !type_equals(iv->value_type, array) ||
-        !type_equals(iv->string_array_type, type_equals(element, TYPE_STRING) ? array : NULL) ||
-        !type_equals(rv->string_array_type, type_equals(element, TYPE_STRING) ? array : NULL) ||
-        semantic_type_resolution_lookup_resolved_type((SemanticContext *)ctx,
-            (ASTNode *)row->private_binding_type_node) != array) return false;
-    return true;
 }

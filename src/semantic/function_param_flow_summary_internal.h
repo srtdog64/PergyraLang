@@ -288,6 +288,17 @@ bool function_param_flow_string_result_source_current(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source);
 bool function_param_flow_nonlocal_input_current(SemanticContext *ctx,
     ASTNode *routine, size_t formal_ordinal);
+bool function_param_flow_nonlocal_result(SemanticContext *ctx, ASTNode *call,
+    bool *independent_physical_array);
+bool function_param_flow_physical_result_header_current(SemanticContext *ctx, ASTNode *routine);
+bool function_param_flow_nonlocal_physical_input_current(SemanticContext *ctx,
+    ASTNode *call, size_t actual);
+bool function_param_flow_typed_expression_children_current(SemanticContext *ctx,
+    ASTNode *caller, const ASTNode *expression);
+bool function_param_flow_string_result_nonlocal_current(SemanticContext *ctx,
+    const ASTNode *call, ASTNode *caller, size_t formal_ordinal);
+size_t function_param_flow_claim_child_count(const ASTNode *node, bool *supported);
+ASTNode *function_param_flow_claim_child(const ASTNode *node, size_t ordinal);
 bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *call);
 ASTNode *function_param_flow_receiver_readonly_current(FunctionParamFlowSummaryStore *store,
     ASTNode *call, bool demand);

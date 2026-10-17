@@ -5,6 +5,7 @@
 #include "type_checker_visibility.h"
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
+#include "function_param_flow_summary_internal.h"
 #include "../common/string_compat.h"
 #include "diag_codes.h"
 
@@ -59,7 +60,9 @@ semantic_param_publication_projection_record_array(SemanticContext *ctx,
 {
     if (!semantic_param_publication_pending(ctx) || ctx->has_error ||
         value == NULL || receiver == NULL || index == NULL ||
-        (index->type != AST_IDENTIFIER && index->type != AST_NUMBER)) return;
+        (index->type != AST_IDENTIFIER && index->type != AST_NUMBER &&
+         index->type != AST_BINARY && index->type != AST_UNARY &&
+         index->type != AST_ARRAY_ACCESS)) return;
     ASTNode *root = projection_identifier_root(ctx, receiver);
     if (root == NULL || ast_node_stable_id(index) == 0 ||
         !type_equals(index_type, TYPE_INT) || result_type == TYPE_UNKNOWN) return;
@@ -69,6 +72,7 @@ semantic_param_publication_projection_record_array(SemanticContext *ctx,
         .root_id = ast_node_stable_id(root),
         .root_binding_id = ast_identifier_binding_syntax_id(root),
         .receiver_type = receiver_type, .index_type = index_type,
+        .index_shape = index->type,
         .result_type = result_type};
     if (receipt.receiver_id == 0 || receipt.root_id == 0) return;
     if (index->type == AST_IDENTIFIER) {
@@ -96,7 +100,8 @@ projection_record_member(SemanticContext *ctx, ASTNode *value,
 {
     if (!semantic_param_publication_pending(ctx) || ctx->has_error ||
         field.name == NULL || field.type_ast == NULL || field.type_ast->type != AST_TYPE ||
-        field.declaration_syntax_id == 0 || result_type == TYPE_UNKNOWN) return;
+        field.declaration_syntax_id == 0 || result_type == TYPE_UNKNOWN ||
+        field_type == TYPE_UNKNOWN || !type_equals(field_type, result_type)) return;
     GenericParams *generics = ast_type_generic_args(field.type_ast);
     const char *type_name = ast_type_name(field.type_ast);
     if ((generics != NULL && generics->count != 0) || type_name == NULL) return;
@@ -179,7 +184,8 @@ semantic_param_publication_projection_root_current(const SemanticContext *ctx,
         if (cursor->type == AST_ARRAY_ACCESS) {
             const ASTNode *index = ast_array_access_index(cursor);
             PublishedNode *index_row = publication_current_value(ctx, index);
-            if (index == NULL || index != p->index || p->index_id == 0 ||
+            if (index == NULL || index != p->index || index->type != p->index_shape ||
+                p->index_id == 0 ||
                 p->index_id != ast_node_stable_id(index) || index_row == NULL ||
                 index_row->caller != caller ||
                 index_row->caller_id != ast_node_stable_id(caller) ||
@@ -201,10 +207,14 @@ semantic_param_publication_projection_root_current(const SemanticContext *ctx,
                 if (p->index_name != NULL || p->index_number != ast_number_value(index) ||
                     p->index_long != ast_number_exact_long_value(index) ||
                     p->index_flags != flags) return false;
-            } else return false;
+            } else if ((index->type != AST_BINARY && index->type != AST_UNARY &&
+                        index->type != AST_ARRAY_ACCESS) || p->index_name != NULL ||
+                       !function_param_flow_typed_expression_children_current(
+                           (SemanticContext *)ctx, (ASTNode *)caller, index)) return false;
         } else {
             const char *name = ast_member_name(cursor);
-            if (p->index != NULL || p->declaration == NULL ||
+            if (p->index != NULL || !type_equals(p->field_type, p->result_type) ||
+                p->declaration == NULL ||
                 p->declaration->type != AST_CLASS_DECL ||
                 p->declaration_id == 0 ||
                 p->declaration_id != ast_node_stable_id(p->declaration) ||

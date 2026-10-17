@@ -504,14 +504,16 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                 if (!fact->complete) break;
             }
         }
-        if (state->private_stores_closed &&
-            semantic_param_publication_private_array_push(state->store->ctx, node, state->decl)) {
-            /* Store the inserted backing, not a blanket non-retention claim.
-             * Subsequent return/wrapper/output/channel operations read it. */
-            const uint64_t *bits = backing_origin(state, ast_call_argument(node, 1));
+        bool physical_store = state->private_stores_closed &&
+            semantic_param_publication_private_physical_array_mutation(
+            state->store->ctx, node, state->decl);
+        if (state->private_stores_closed && (physical_store ||
+            semantic_param_publication_private_array_push(state->store->ctx, node, state->decl))) {
+            /* Physical mutation transfers no backing; String push still does. */
+            const uint64_t *bits = physical_store ? NULL : backing_origin(state, ast_call_argument(node, 1));
             if (bits != NULL) backing_store(state, ast_call_argument(node, 0), bits, false);
-            backing_consumers(state, ast_call_argument(node, 0));
-            backing_consumers(state, ast_call_argument(node, 1));
+            for (size_t p = 0; p < ast_call_arg_count(node); p++)
+                backing_consumers(state, ast_call_argument(node, p));
             break;
         }
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
