@@ -1,0 +1,23 @@
+func Identity(value: String) -> String {
+    return value;
+}
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let owned: Array<String> = OwnedRows();
+    let copies: Array<String> = [];
+    var text: String = Identity(Substring("fresh", 0, 5));
+    var index: Int = 0;
+    while index < 2 {
+        ArrayPush(copies, text);
+        text = owned[0];
+        index = index + 1;
+    }
+    ArrayDropOwnedStrings(owned);
+    Log(copies[1]);
+}

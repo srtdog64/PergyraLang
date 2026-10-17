@@ -71,6 +71,14 @@ PublishedNode *publication_node(FunctionParamPublicationStore *store,
     if (!insert) return NULL;
     row->id = id; row->node = node; store->node_count++; return row;
 }
+PublishedNode *publication_node_by_id(FunctionParamPublicationStore *store, uint32_t id)
+{
+    if (store == NULL || id == 0 || store->node_capacity == 0) return NULL;
+    size_t slot = (id * (size_t)2654435761u) & (store->node_capacity - 1);
+    while (store->nodes[slot].id != 0 && store->nodes[slot].id != id)
+        slot = (slot + 1) & (store->node_capacity - 1);
+    return store->nodes[slot].id == id ? &store->nodes[slot] : NULL;
+}
 bool semantic_param_publication_begin_value(SemanticContext *ctx, const ASTNode *value)
 {
     if (!semantic_param_publication_pending(ctx)) return false;

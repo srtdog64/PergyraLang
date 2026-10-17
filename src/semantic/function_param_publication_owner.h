@@ -114,6 +114,12 @@ typedef struct {
     size_t formal_ordinal;
     uint32_t formal_id;
 } PublishedCallArgument;
+typedef struct {
+    const ASTNode *declaration, *initializer, *caller;
+    uint32_t declaration_id, initializer_id, caller_id, binding_id, source_id;
+    ASTNodeType initializer_shape;
+    bool present, available, dependent;
+} IndexedStringLetLineage;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct {
     const ASTNode *body;
@@ -193,6 +199,8 @@ typedef struct {
      * point; zero is independent, UINT32_MAX is explicitly unproved. */
     bool indexed_string_source_present;
     uint32_t indexed_string_source_id;
+    IndexedStringLetLineage indexed_string_let;
+    bool indexed_string_shallow_retention;
     bool indexed_array_source_present;
     uint32_t indexed_array_source_id;
     const Type *value_type;
@@ -226,6 +234,7 @@ struct FunctionParamPublicationStore {
     PendingBodyCall *body_calls; size_t body_call_count, body_call_capacity;
     PendingReadPayloadLoan *read_loans; size_t read_loan_count, read_loan_capacity;
     PublishedNode *nodes; size_t node_count, node_capacity;
+    size_t indexed_string_shallow_retention_count;
 };
 typedef struct {
     const ASTNode *program;

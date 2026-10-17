@@ -181,7 +181,8 @@ void semantic_param_publication_retire_value(PublishedNode *row)
     semantic_nominal_result_snapshot_destroy(row->nominal_result);
     semantic_published_unit_enum_selection_destroy(row->unit_enum_selection);
     PublishedNode identity = {.node = row->node, .id = row->id, .routine_index = row->routine_index,
-        .execution_present = row->execution_present, .reachable = row->reachable};
+        .execution_present = row->execution_present, .reachable = row->reachable,
+        .indexed_string_shallow_retention = row->indexed_string_shallow_retention};
     *row = identity;
 }
 

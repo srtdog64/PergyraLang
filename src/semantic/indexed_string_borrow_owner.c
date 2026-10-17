@@ -10,7 +10,9 @@
 #include "indexed_string_borrow_owner.h"
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
+#include "function_param_flow_summary_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_element_lifetime_owner.h"
 #include "collection_ownership_fact.h"
 #include "type_checker_internal.h"
 
@@ -49,6 +51,26 @@ identifier_symbol(ASTNode *node, SemanticContext *ctx)
     return binding != NULL && binding->decl_syntax_id != 0
         && binding->decl_syntax_id == ast_identifier_binding_syntax_id(node)
         ? binding : NULL;
+}
+
+bool semantic_indexed_string_borrow_array_binding_source(const Symbol *binding,
+    uint32_t *source_id)
+{
+    if (source_id == NULL || !symbol_is_string_array(binding)) return false;
+    *source_id = collection_storage_source_id(binding);
+    return *source_id != 0;
+}
+
+bool semantic_indexed_string_borrow_array_receiver_source(ASTNode *receiver,
+    SemanticContext *ctx, bool *tracked, uint32_t *source_id)
+{
+    if (tracked == NULL || source_id == NULL) return false;
+    *tracked = false; *source_id = 0;
+    if (receiver == NULL || receiver->type != AST_IDENTIFIER) return true;
+    Symbol *binding = identifier_symbol(receiver, ctx);
+    if (binding == NULL) return false;
+    *tracked = symbol_is_string_array(binding);
+    return !*tracked || semantic_indexed_string_borrow_array_binding_source(binding, source_id);
 }
 
 typedef struct IndexedConcatVisit {
@@ -179,148 +201,6 @@ borrow_source_join(uint32_t current, uint32_t incoming)
     return INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
 }
 
-static bool
-deferred_string_read_failure(ASTNode *site, SemanticContext *ctx, const char *reason)
-{
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-        site, "Deferred String read requires its Array owner to remain live: %s", reason);
-    return false;
-}
-
-static bool
-record_deferred_string_read(ASTNode *use, uint32_t source_id, Symbol *binding,
-    bool array_receiver, bool owner_release, SemanticContext *ctx)
-{
-    if (ctx == NULL || !ctx->in_defer_cleanup || ctx->future_lifecycle_unreachable_depth != 0)
-        return true;
-    if (source_id == 0 && binding == NULL) return true;
-    Scope *owner = ctx->indexed_string_defer_scope;
-    bool active = false;
-    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) if (s == owner && s->kind == SCOPE_FUNCTION) active = true;
-    uint32_t use_id = ast_node_stable_id(use);
-    uint32_t body_id = ast_node_stable_id(ctx->indexed_string_defer_body);
-    uint32_t function_id = ast_node_stable_id(ctx->current_function_decl);
-    if (!active || owner == NULL || use_id == 0 || body_id == 0 || function_id == 0
-        || ctx->indexed_string_defer_sequence == 0
-        || owner->indexed_string_deferred_read_count > owner->indexed_string_deferred_read_capacity
-        || (owner->indexed_string_deferred_read_count != 0 && owner->indexed_string_deferred_reads == NULL))
-        return deferred_string_read_failure(use, ctx, "missing lexical receipt identity");
-    uint32_t binding_id = binding != NULL ? binding->decl_syntax_id : 0;
-    const ASTNode *bound = array_receiver ? ast_array_access_array(use) : use;
-    if (binding != NULL && (binding_id == 0 || bound == NULL || bound->type != AST_IDENTIFIER
-        || ast_identifier_binding_syntax_id(bound) != binding_id))
-        return deferred_string_read_failure(use, ctx, "missing deferred binding identity");
-    for (size_t i = 0; i < owner->indexed_string_deferred_read_count; i++) {
-        IndexedStringDeferredRead *row = &owner->indexed_string_deferred_reads[i];
-        if (row->function_id != function_id || row->body_id != body_id || row->use_id != use_id
-            || row->owner_release != owner_release) continue;
-        if (row->use != use || row->binding_id != binding_id || row->array_receiver != array_receiver)
-            return deferred_string_read_failure(use, ctx, "changed deferred read identity");
-        if (row->issued_source_id != source_id)
-            return deferred_string_read_failure(use, ctx, "changed issued read source");
-        return semantic_array_storage_deferred_read_current(row, ctx);
-    }
-    if (owner->indexed_string_deferred_read_count == owner->indexed_string_deferred_read_capacity) {
-        size_t capacity = owner->indexed_string_deferred_read_capacity;
-        size_t next = capacity == 0 ? 8 : capacity * 2;
-        if (next <= capacity || next > SIZE_MAX / sizeof(IndexedStringDeferredRead))
-            return deferred_string_read_failure(use, ctx, "receipt capacity overflow");
-        IndexedStringDeferredRead *rows = realloc(owner->indexed_string_deferred_reads,
-            next * sizeof(*rows));
-        if (rows == NULL) return deferred_string_read_failure(use, ctx, "receipt allocation failed");
-        owner->indexed_string_deferred_reads = rows;
-        owner->indexed_string_deferred_read_capacity = next;
-    }
-    owner->indexed_string_deferred_reads[owner->indexed_string_deferred_read_count++] =
-        (IndexedStringDeferredRead){.function = ctx->current_function_decl,
-            .body = ctx->indexed_string_defer_body, .use = use, .bound = bound,
-            .function_id = function_id, .body_id = body_id, .use_id = use_id,
-            .use_kind = (uint32_t)use->type, .bound_id = ast_node_stable_id(bound),
-            .binding_id = binding_id, .source_id = source_id,
-            .issued_source_id = source_id,
-            .sequence = ctx->indexed_string_defer_sequence,
-            .array_receiver = array_receiver, .nested = ctx->indexed_string_nested_defer,
-            .owner_release = owner_release};
-    return true;
-}
-
-static void
-deferred_string_read_assignment(Symbol *binding, uint32_t source_id,
-    bool array_receiver, ASTNode *assignment, ASTNode *value, SemanticContext *ctx)
-{
-    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
-        if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
-            || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL)) {
-            (void)deferred_string_read_failure(assignment, ctx, "missing assignment read storage");
-            return;
-        }
-        for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
-            IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
-            if (row->binding_id == binding->decl_syntax_id
-                && (row->array_receiver || row->owner_release) == array_receiver
-                && !semantic_array_storage_deferred_read_assignment(row, assignment, value, source_id, ctx)) {
-                (void)deferred_string_read_failure(assignment, ctx, "stale assignment lineage");
-                return;
-            }
-        }
-    }
-}
-
-bool
-semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,
-    uint32_t binding_id, uint32_t source_id, bool *reserved)
-{
-    if (reserved == NULL) return false;
-    *reserved = false;
-    if (ctx == NULL || ctx->has_error || binding_id == 0) return false;
-    bool current_binding = false;
-    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
-        for (size_t j = 0; j < s->symbol_count; j++) {
-            Symbol *binding = s->symbols[j];
-            if (symbol_is_string_array(binding) && binding->decl_syntax_id == binding_id
-                && collection_storage_source_id(binding) == source_id) current_binding = true;
-        }
-        if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
-            || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL)) return false;
-        for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
-            const IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
-            if (!semantic_array_storage_deferred_read_current(row, ctx)) return false;
-            if (!row->owner_release) continue;
-            if (source_id == 0 || source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
-                || row->source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE) return false;
-            if (row->source_id == source_id) *reserved = true;
-        }
-    }
-    return current_binding;
-}
-
-bool
-semantic_indexed_string_borrow_owner_transfer_allowed(ASTNode *receiver, SemanticContext *ctx)
-{
-    if (ctx == NULL || ctx->has_error) return false;
-    Symbol *owner = identifier_symbol(receiver, ctx);
-    if (!symbol_is_string_array(owner)) return true;
-    uint32_t source_id = collection_storage_source_id(owner);
-    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
-        if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
-            || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL))
-            return deferred_string_read_failure(receiver, ctx, "missing active read storage");
-        for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
-            const IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
-            if (!semantic_array_storage_deferred_read_current(row, ctx))
-                return deferred_string_read_failure(receiver, ctx, "stale deferred read identity");
-            if (row->source_id == 0) continue;
-            if (!row->owner_release && !row->nested && ctx->in_defer_cleanup
-                && row->body == ctx->indexed_string_defer_body)
-                continue; /* Earlier reads in this cleanup obey the ordinary sequential use check. */
-            if (source_id == 0 || source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
-                || row->source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE || row->source_id == source_id)
-                return deferred_string_read_failure(receiver, ctx, "a later cleanup still reads this source");
-        }
-    }
-    return true;
-}
 
 bool
 semantic_indexed_string_borrow_publish_source(ASTNode *expression,
@@ -336,10 +216,19 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     row->indexed_string_source_present = row->string_value;
     row->indexed_string_source_id = row->string_value
         ? borrow_source_for_expression(expression, ctx) : 0;
+    if (row->string_value && expression->type == AST_IDENTIFIER
+        && row->indexed_string_source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
+        Symbol *binding = identifier_symbol(expression, ctx);
+        PublishedNode *let = binding == NULL ? NULL : publication_node_by_id(
+            ctx->function_param_publications, binding->decl_syntax_id);
+        if (let != NULL && let->node != NULL && let->node->type == AST_LET_DECL
+            && let->indexed_string_let.present)
+            row->indexed_string_let = let->indexed_string_let;
+    }
     if (row->string_value) {
         bool array_receiver = expression->type == AST_ARRAY_ACCESS;
         Symbol *binding = identifier_symbol(array_receiver ? ast_array_access_array(expression) : expression, ctx);
-        if (!record_deferred_string_read(expression, row->indexed_string_source_id,
+        if (!semantic_array_storage_record_deferred_string_read(expression, row->indexed_string_source_id,
                 binding, array_receiver, false, ctx)) return false;
     }
     return true;
@@ -364,6 +253,79 @@ semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
     return true;
 }
 
+typedef struct IndexedStringLineageVisit {
+    const ASTNode *value;
+    const struct IndexedStringLineageVisit *parent;
+} IndexedStringLineageVisit;
+
+static bool
+indexed_string_dependency_at(SemanticContext *ctx, ASTNode *value,
+    const ASTNode **dependency, const IndexedStringLineageVisit *parent)
+{
+    if (value == NULL || value->type != AST_IDENTIFIER) return false;
+    for (const IndexedStringLineageVisit *visit = parent; visit != NULL; visit = visit->parent)
+        if (visit->value == value) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, value, false);
+    uint32_t binding_id = ast_identifier_binding_syntax_id(value);
+    PublishedNode *let = publication_node_by_id(ctx->function_param_publications, binding_id);
+    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(value)
+        || !row->value_present || row->meta || row->value_shape != AST_IDENTIFIER
+        || row->value_type != TYPE_STRING || row->binding_id != binding_id
+        || binding_id == 0 || !semantic_param_publication_value(ctx, value).ok) return false;
+    if (let == NULL || !let->indexed_string_let.present) {
+        if (row->indexed_string_let.present) return false;
+        *dependency = NULL;
+        return true;
+    }
+    const IndexedStringLetLineage *issued = &row->indexed_string_let;
+    const IndexedStringLetLineage *current = &let->indexed_string_let;
+    if (!current->available || current->declaration != let->node
+        || current->declaration == NULL || current->declaration->type != AST_LET_DECL
+        || current->declaration_id != binding_id
+        || current->declaration_id != ast_node_stable_id(current->declaration)
+        || current->binding_id != binding_id || current->initializer == NULL
+        || row->indexed_string_source_id != current->source_id
+        || current->initializer != ast_let_initializer(current->declaration)
+        || current->initializer_id == 0
+        || current->initializer_id != ast_node_stable_id(current->initializer)
+        || current->initializer_shape != current->initializer->type
+        || current->caller == NULL || current->caller->type != AST_FUNC_DECL
+        || current->caller_id == 0 || current->caller_id != ast_node_stable_id(current->caller)
+        || !publication_routine_header_current(ctx, current->caller)
+        || !semantic_param_publication_value(ctx, current->initializer).ok
+        || (current->dependent && (!issued->present
+            || row->indexed_string_source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE))
+        || (issued->present && (!issued->available
+            || issued->declaration != current->declaration
+            || issued->initializer != current->initializer || issued->caller != current->caller
+            || issued->declaration_id != current->declaration_id
+            || issued->initializer_id != current->initializer_id
+            || issued->caller_id != current->caller_id
+            || issued->binding_id != current->binding_id
+            || issued->source_id != current->source_id
+            || issued->initializer_shape != current->initializer_shape
+            || issued->dependent != current->dependent))) return false;
+    if (!current->dependent) { *dependency = NULL; return true; }
+    if (current->initializer->type == AST_CALL) {
+        if (!ast_call_semantic_callee_declared_callable(current->initializer)
+            || ast_call_semantic_callee_decl_id(current->initializer) == 0) return false;
+        *dependency = current->initializer;
+        return true;
+    }
+    if (current->initializer->type != AST_IDENTIFIER) return false;
+    IndexedStringLineageVisit visit = {value, parent};
+    return indexed_string_dependency_at(ctx, (ASTNode *)current->initializer, dependency, &visit);
+}
+
+bool semantic_indexed_string_borrow_result_dependency_current(SemanticContext *ctx,
+    ASTNode *value, const ASTNode **dependency)
+{
+    if (dependency == NULL || ctx == NULL || ctx->has_error
+        || !semantic_param_publication_inputs_ready(ctx)) return false;
+    *dependency = NULL;
+    return indexed_string_dependency_at(ctx, value, dependency, NULL);
+}
+
 bool
 semantic_indexed_string_borrow_source_current(ASTNode *expression,
     SemanticContext *ctx, uint32_t *source_id)
@@ -386,7 +348,21 @@ semantic_indexed_string_borrow_source_current(ASTNode *expression,
         if (!semantic_indexed_string_independent_result(expression, ctx)
             && !semantic_collection_owned_string_call_result(expression, ctx, &producer)) return false;
     }
-    *source_id = row->indexed_string_source_id;
+    uint32_t current_source = row->indexed_string_source_id;
+    if (semantic_param_publication_inputs_ready(ctx)
+        && expression->type == AST_IDENTIFIER) {
+        const ASTNode *dependency = NULL;
+        if (!semantic_indexed_string_borrow_result_dependency_current(
+                ctx, expression, &dependency)) return false;
+        if (dependency != NULL && !function_param_flow_string_result_source_current(
+                ctx, dependency, &current_source)) return false;
+    } else if (semantic_param_publication_inputs_ready(ctx)
+        && expression->type == AST_CALL
+        && current_source == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
+        && ast_call_semantic_callee_declared_callable(expression)
+        && !function_param_flow_string_result_source_current(ctx, expression, &current_source))
+        return false;
+    *source_id = current_source;
     return true;
 }
 
@@ -397,7 +373,7 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
 {
     uint32_t source_id = INDEXED_STRING_BORROW_UNKNOWN_SOURCE;
     if (ctx == NULL || ctx->has_error || ctx->current_function_decl == NULL) return;
-    (void)semantic_indexed_string_borrow_source_current(expression, ctx, &source_id);
+    bool current = semantic_indexed_string_borrow_source_current(expression, ctx, &source_id);
     if (source_id == 0) return;
     /* A shallow store has no callee that can prove non-retention. This also
      * covers a borrowed formal whose payload owner is in the caller's frame. */
@@ -435,6 +411,35 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                 if (!reserved) continue;
             }
             if (fact == NULL || fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS) continue;
+            if (source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
+                && semantic_param_publication_pending(ctx) && expression != NULL) {
+                FunctionParamPublicationStore *store = ctx->function_param_publications;
+                PublishedNode *row = publication_node(store, expression, false);
+                PublishedNode *let = expression->type == AST_IDENTIFIER
+                    ? publication_node_by_id(store, ast_identifier_binding_syntax_id(expression)) : NULL;
+                bool provisional = (expression->type == AST_CALL
+                    && ast_call_semantic_callee_declared_callable(expression)
+                    && ast_call_semantic_callee_decl_id(expression) != 0)
+                    || (let != NULL && let->indexed_string_let.present);
+                if (provisional) {
+                    if (!current || row == NULL || row->value_type != TYPE_STRING
+                        || row->id == 0 || row->id != ast_node_stable_id(expression)
+                        || row->indexed_string_source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE
+                        || (let != NULL && let->indexed_string_let.present
+                            && (!let->indexed_string_let.available || !row->indexed_string_let.present))
+                        || store->indexed_string_shallow_retention_count == SIZE_MAX) {
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                            expression, "A shallow String store has no current typed source receipt");
+                        return;
+                    }
+                    if (!row->indexed_string_shallow_retention) {
+                        row->indexed_string_shallow_retention = true;
+                        store->indexed_string_shallow_retention_count++;
+                    }
+                    return;
+                }
+            }
             if (named && source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
                 if (!semantic_array_storage_record_pending_payload(ctx, owner, call, callee, ordinal) ||
                     !semantic_array_storage_record_pending_call_consumer(ctx, owner, call, ordinal)) {
@@ -455,13 +460,13 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
     }
 }
 
-void
+bool
 semantic_indexed_string_borrow_initialize_binding(
-    Symbol *binding, ASTNode *initializer, SemanticContext *ctx)
+    Symbol *binding, ASTNode *declaration, ASTNode *initializer, SemanticContext *ctx)
 {
     Symbol *source;
     if (binding == NULL)
-        return;
+        return false;
     if (type_is_constructed_named(binding->type, "Array")) {
         binding->collection_storage_source_syntax_id =
             binding->decl_syntax_id;
@@ -477,7 +482,46 @@ semantic_indexed_string_borrow_initialize_binding(
         binding->indexed_string_borrow_source_syntax_id =
             borrow_source_for_expression(initializer, ctx);
         binding->indexed_string_borrow_invalidated = false;
+        if (semantic_param_publication_pending(ctx) && !ctx->has_error
+            && ctx->current_function_decl != NULL
+            && binding->indexed_string_borrow_source_syntax_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
+            uint32_t binding_id = binding->decl_syntax_id;
+            uint32_t initializer_id = ast_node_stable_id(initializer);
+            uint32_t caller_id = ast_node_stable_id(ctx->current_function_decl);
+            PublishedNode *value = publication_node(ctx->function_param_publications, initializer, false);
+            bool named = initializer != NULL && (
+                (initializer->type == AST_CALL
+                    && ast_call_semantic_callee_declared_callable(initializer)
+                    && ast_call_semantic_callee_decl_id(initializer) != 0)
+                || (initializer->type == AST_IDENTIFIER && value != NULL
+                    && value->indexed_string_let.present));
+            if (!named) return true;
+            if (declaration == NULL || declaration->type != AST_LET_DECL
+                || ast_let_initializer(declaration) != initializer || binding_id == 0
+                || binding_id != ast_node_stable_id(declaration) || initializer_id == 0
+                || caller_id == 0 || value == NULL || !value->value_present
+                || value->value_shape != initializer->type || value->value_type != TYPE_STRING)
+                return false;
+            PublishedNode *row = publication_node(ctx->function_param_publications, declaration, true);
+            if (row == NULL) return false;
+            IndexedStringLetLineage *lineage = &row->indexed_string_let;
+            if (lineage->present) return lineage->declaration == declaration
+                && lineage->initializer == initializer
+                && lineage->caller == ctx->current_function_decl
+                && lineage->declaration_id == binding_id
+                && lineage->initializer_id == initializer_id
+                && lineage->caller_id == caller_id
+                && lineage->binding_id == binding_id
+                && lineage->source_id == binding->indexed_string_borrow_source_syntax_id
+                && lineage->initializer_shape == initializer->type
+                && lineage->dependent;
+            *lineage = (IndexedStringLetLineage){declaration, initializer,
+                ctx->current_function_decl, binding_id, initializer_id, caller_id,
+                binding_id, binding->indexed_string_borrow_source_syntax_id,
+                initializer->type, true, true, true};
+        }
     }
+    return true;
 }
 
 void
@@ -497,14 +541,20 @@ semantic_indexed_string_borrow_record_assignment(
             source_id = collection_storage_source_id(source);
         binding->collection_storage_source_syntax_id =
             borrow_source_join(current_id, source_id);
-        deferred_string_read_assignment(binding, source_id, true, assignment, value, ctx);
+        semantic_array_storage_deferred_string_read_assignment(binding, source_id, true, assignment, value, ctx);
         return;
     }
     if (type_equals(binding->type, TYPE_STRING)) {
         uint32_t incoming = borrow_source_for_expression(value, ctx);
         binding->indexed_string_borrow_source_syntax_id = borrow_source_join(
             binding->indexed_string_borrow_source_syntax_id, incoming);
-        deferred_string_read_assignment(binding, incoming, false, assignment, value, ctx);
+        if (semantic_param_publication_pending(ctx)) {
+            PublishedNode *let = publication_node_by_id(ctx->function_param_publications,
+                binding->decl_syntax_id);
+            if (let != NULL && let->indexed_string_let.present)
+                let->indexed_string_let.available = false;
+        }
+        semantic_array_storage_deferred_string_read_assignment(binding, incoming, false, assignment, value, ctx);
     }
 }
 
@@ -519,7 +569,7 @@ semantic_indexed_string_borrow_invalidate_deep_drop(
     source_id = collection_storage_source_id(owner);
     if (source_id == 0)
         return;
-    if (ctx->in_defer_cleanup && !record_deferred_string_read(receiver, source_id,
+    if (ctx->in_defer_cleanup && !semantic_array_storage_record_deferred_string_read(receiver, source_id,
             owner, false, true, ctx)) return;
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
@@ -541,7 +591,7 @@ semantic_indexed_string_borrow_validate_use(
     Symbol *binding, ASTNode *use, SemanticContext *ctx)
 {
     if (binding != NULL && type_equals(binding->type, TYPE_STRING)
-        && !record_deferred_string_read(use, binding->indexed_string_borrow_source_syntax_id,
+        && !semantic_array_storage_record_deferred_string_read(use, binding->indexed_string_borrow_source_syntax_id,
             binding, false, false, ctx)) return false;
     if (binding == NULL ||
         binding->indexed_string_borrow_source_syntax_id == 0 ||

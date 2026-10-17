@@ -544,7 +544,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error(ctx, node,
             "Checked allocator binding publication failed");
     semantic_string_window_extent_record_let(ctx, node);
-    semantic_indexed_string_borrow_initialize_binding(sym, init, ctx);
+    if (!semantic_indexed_string_borrow_initialize_binding(sym, node, init, ctx))
+        semantic_error(ctx, node, "Checked indexed String initializer publication failed");
     callable_capability_record_binding(ctx, sym, init);
 
     if (type_is_constructed_named(decl_type, "DeviceSlot"))

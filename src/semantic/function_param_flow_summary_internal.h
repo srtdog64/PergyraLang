@@ -282,6 +282,10 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
 bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
     ASTNode *call, FunctionParamFlowBackingFact *consumer);
+FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
+    FunctionParamFlowSummaryStore *store, ASTNode *call, FunctionParamFlowBackingFact *consumer);
+bool function_param_flow_string_result_source_current(SemanticContext *ctx,
+    const ASTNode *call, uint32_t *source);
 bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *call);
 ASTNode *function_param_flow_receiver_readonly_current(FunctionParamFlowSummaryStore *store,
     ASTNode *call, bool demand);

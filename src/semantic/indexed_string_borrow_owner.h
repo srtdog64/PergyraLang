@@ -16,16 +16,19 @@ bool semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     SemanticContext *ctx);
 bool semantic_indexed_string_borrow_source_current(ASTNode *expression,
     SemanticContext *ctx, uint32_t *source_id);
+bool semantic_indexed_string_borrow_result_dependency_current(SemanticContext *ctx,
+    ASTNode *value, const ASTNode **dependency);
+bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx);
 bool semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
     SemanticContext *ctx, uint32_t *source_id);
-/* A NULL call and callee denote an actual shallow store, not an unknown
- * function call. Only independent String payloads may cross that boundary. */
+/* A NULL callee covers shallow stores and builtin Array mutators, including
+ * a non-NULL call site; named handoffs also consume the source relation. */
 void semantic_indexed_string_borrow_call_argument(ASTNode *expression,
     ASTNode *call, ASTNode *callee, size_t ordinal, bool constructor,
     SemanticContext *ctx);
 
-void semantic_indexed_string_borrow_initialize_binding(
-    Symbol *binding, ASTNode *initializer, SemanticContext *ctx);
+bool semantic_indexed_string_borrow_initialize_binding(
+    Symbol *binding, ASTNode *declaration, ASTNode *initializer, SemanticContext *ctx);
 void semantic_indexed_string_borrow_record_assignment(
     Symbol *binding, ASTNode *value, ASTNode *assignment,
     SemanticContext *ctx);
@@ -37,5 +40,9 @@ bool semantic_indexed_string_borrow_owner_transfer_allowed(
     ASTNode *receiver, SemanticContext *ctx);
 bool semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,
     uint32_t binding_id, uint32_t source_id, bool *reserved);
+bool semantic_indexed_string_borrow_array_binding_source(const Symbol *binding,
+    uint32_t *source_id);
+bool semantic_indexed_string_borrow_array_receiver_source(ASTNode *receiver,
+    SemanticContext *ctx, bool *tracked, uint32_t *source_id);
 
 #endif

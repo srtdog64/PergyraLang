@@ -16,6 +16,65 @@
 
 #include <string.h>
 
+bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
+{
+    if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
+    FunctionParamPublicationStore *store = ctx->function_param_publications;
+    size_t issued = 0;
+    for (size_t i = 0; i < store->node_capacity; i++) {
+        PublishedNode *row = &store->nodes[i];
+        if (!row->indexed_string_shallow_retention) continue;
+        uint32_t source = UINT32_MAX;
+        if (issued == SIZE_MAX || row->node == NULL || row->id == 0
+            || row->id != ast_node_stable_id(row->node)
+            || !semantic_indexed_string_borrow_source_current((ASTNode *)row->node, ctx, &source)
+            || source != 0) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                (ASTNode *)row->node,
+                "A shallow String store has no current independent-result proof");
+            return false;
+        }
+        issued++;
+    }
+    if (issued != store->indexed_string_shallow_retention_count) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            ctx->program_root, "A shallow String store receipt was withdrawn");
+        return false;
+    }
+    return true;
+}
+
+bool semantic_indexed_string_borrow_owner_transfer_allowed(ASTNode *receiver, SemanticContext *ctx)
+{
+    if (ctx == NULL || ctx->has_error) return false;
+    bool tracked = false;
+    uint32_t source_id = 0;
+    if (!semantic_indexed_string_borrow_array_receiver_source(receiver, ctx,
+            &tracked, &source_id)) return false;
+    if (!tracked) return true;
+    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
+        if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
+            || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL))
+            return semantic_array_storage_deferred_read_failure(receiver, ctx, "missing active read storage");
+        for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
+            const IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
+            if (!semantic_array_storage_deferred_read_current(row, ctx))
+                return semantic_array_storage_deferred_read_failure(receiver, ctx, "stale deferred read identity");
+            if (row->source_id == 0) continue;
+            if (!row->owner_release && !row->nested && ctx->in_defer_cleanup
+                && row->body == ctx->indexed_string_defer_body)
+                continue; /* Earlier reads in this cleanup obey ordinary sequential use. */
+            if (source_id == 0 || source_id == UINT32_MAX
+                || row->source_id == UINT32_MAX || row->source_id == source_id)
+                return semantic_array_storage_deferred_read_failure(receiver, ctx,
+                    "a later cleanup still reads this source");
+        }
+    }
+    return true;
+}
+
 unsigned
 semantic_array_storage_pending_call_failures(SemanticContext *ctx,
     const ArrayStoragePendingCallReceipt *source)

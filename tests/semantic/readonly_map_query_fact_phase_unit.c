@@ -3026,6 +3026,187 @@ static void checked_declared_result_currency(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+/* A named String result only inherits sources from current RETURN-dependent actuals. */
+static void checked_named_string_result_source_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Identity(value:String)->String{return value;}"
+        "func IgnoreRows(ref ignored:Array<String>,value:String)->String{return value;}"
+        "func Forward()->String{let ignored:Array<String> = [];"
+        "let source=Substring(\"owned\",0,5);let named=Identity(source);"
+        "return IgnoreRows(ignored,named);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *identity = ast_program_statement(program, 0);
+    ASTNode *ignored_reader = ast_program_statement(program, 1);
+    ASTNode *forward = ast_program_statement(program, 2);
+    ASTNode *named_decl = ast_block_statement(ast_func_body(forward), 2);
+    ASTNode *inner = ast_let_initializer(named_decl);
+    ASTNode *outer = ast_return_value(ast_block_statement(ast_func_body(forward), 3));
+    ASTNode *named_use = outer != NULL ? ast_call_argument(outer, 1) : NULL;
+    CHECK(outer != NULL && outer->type == AST_CALL && inner != NULL && inner->type == AST_CALL);
+    CHECK(named_use != NULL && named_use->type == AST_IDENTIFIER);
+    if (inner == NULL || inner->type != AST_CALL || named_use == NULL) goto cleanup;
+    uint32_t source_id = UINT32_MAX;
+    CHECK(function_param_flow_string_result_source_current(ctx, inner, &source_id) && source_id == 0);
+    source_id = UINT32_MAX;
+    CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    ASTNode *source_use = ast_call_argument(inner, 0);
+    PublishedNode *named_row = published_node_for(ctx, named_decl);
+    PublishedNode *named_use_row = published_node_for(ctx, named_use);
+    CHECK(source_use != NULL && named_row != NULL && named_use_row != NULL);
+    if (source_use != NULL && named_row != NULL && named_use_row != NULL) {
+        const ASTNode *dependency = NULL;
+        CHECK(semantic_indexed_string_borrow_result_dependency_current(ctx, source_use,
+            &dependency) && dependency == NULL);
+        CHECK(semantic_indexed_string_borrow_result_dependency_current(ctx, named_use,
+            &dependency) && dependency == inner);
+        CHECK(semantic_indexed_string_borrow_source_current(source_use, ctx, &source_id)
+            && source_id == 0);
+        CHECK(semantic_indexed_string_borrow_source_current(named_use, ctx, &source_id)
+            && source_id == 0);
+        CHECK(named_row->indexed_string_let.present
+            && named_row->indexed_string_let.available && named_row->indexed_string_let.dependent
+            && named_use_row->indexed_string_let.present);
+        IndexedStringLetLineage named_original = named_row->indexed_string_let;
+        named_row->indexed_string_let.initializer_id++;
+        CHECK(!semantic_indexed_string_borrow_result_dependency_current(ctx, named_use,
+            &dependency));
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        named_row->indexed_string_let = named_original;
+        CHECK(semantic_indexed_string_borrow_result_dependency_current(ctx, named_use,
+            &dependency) && dependency == inner);
+        named_row->indexed_string_let.initializer_shape = AST_BINARY;
+        CHECK(!semantic_indexed_string_borrow_result_dependency_current(ctx, named_use,
+            &dependency));
+        named_row->indexed_string_let = named_original;
+        IndexedStringLetLineage named_issued = named_use_row->indexed_string_let;
+        named_use_row->indexed_string_let.initializer_id++;
+        CHECK(!semantic_indexed_string_borrow_result_dependency_current(ctx, named_use,
+            &dependency));
+        named_use_row->indexed_string_let = named_issued;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+        named_row->indexed_string_let.available = false;
+        CHECK(!semantic_indexed_string_borrow_result_dependency_current(ctx, named_use,
+            &dependency));
+        CHECK(!semantic_indexed_string_borrow_source_current(named_use, ctx, &source_id));
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        named_row->indexed_string_let = named_original;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    }
+    uint32_t call_id = inner->stable_id;
+    inner->stable_id++;
+    CHECK(!function_param_flow_string_result_source_current(ctx, inner, &source_id));
+    CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+    inner->stable_id = call_id;
+    CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    uint32_t selected = ast_call_semantic_callee_decl_id(outer);
+    CHECK(ast_call_set_semantic_callee_decl_id(outer, ast_node_stable_id(forward)));
+    CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+    CHECK(ast_call_set_semantic_callee_decl_id(outer, selected));
+    CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    size_t arity = outer->data.call.arg_count;
+    outer->data.call.arg_count = 1;
+    CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+    outer->data.call.arg_count = arity;
+    CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowSummaryEntry *aggregate = NULL, *dependent = NULL;
+    for (size_t i = 0; store != NULL && i < store->count; i++) {
+        if (store->entries[i].function_decl == ignored_reader && store->entries[i].param_index == 0)
+            aggregate = &store->entries[i];
+        if (store->entries[i].function_decl == ignored_reader && store->entries[i].param_index == 1)
+            dependent = &store->entries[i];
+    }
+    CHECK(aggregate != NULL && dependent != NULL);
+    if (aggregate != NULL && dependent != NULL) {
+        CHECK((aggregate->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0);
+        CHECK((dependent->mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0);
+        unsigned mask = aggregate->mask;
+        aggregate->mask |= SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        aggregate->mask = mask;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+        bool ready = dependent->output_dependencies_ready;
+        dependent->output_dependencies_ready = false;
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        dependent->output_dependencies_ready = ready;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+        unsigned known_mask = dependent->mask;
+        dependent->mask |= (unsigned)SLOT_PARAM_SUMMARY_ALL + 1u;
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        dependent->mask = known_mask;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    }
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, ignored_reader, &index));
+    FunctionParamFlowBackingFact *frame = index != NULL && index->backing_frames != NULL &&
+        index->backing_frame_count > 1 ? index->backing_frames[1] : NULL;
+    CHECK(frame != NULL && frame->complete && frame->epoch != 0);
+    if (frame != NULL) {
+        bool complete = frame->complete;
+        frame->complete = false;
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        frame->complete = complete;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    }
+    PendingRoutine *routine = NULL;
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    for (size_t i = 0; publication != NULL && i < publication->routine_count; i++)
+        if (publication->routines[i].decl == ignored_reader) routine = &publication->routines[i];
+    CHECK(routine != NULL && routine->count == 2);
+    if (routine != NULL && routine->count == 2) {
+        uint32_t formal_id = routine->formals[1].id;
+        routine->formals[1].id++;
+        CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
+        routine->formals[1].id = formal_id;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    }
+    CHECK(identity != NULL);
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_named_string_shallow_retention_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Identity(value:String)->String{return value;}"
+        "func Main()->Void{let rows:Array<String> = [];"
+        "let source=Substring(\"owned\",0,5);let named=Identity(source);"
+        "ArrayPush(rows,named);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    FunctionParamPublicationStore *store = ctx->function_param_publications;
+    PublishedNode *retained = NULL;
+    size_t count = 0;
+    for (size_t i = 0; store != NULL && i < store->node_capacity; i++) {
+        if (!store->nodes[i].indexed_string_shallow_retention) continue;
+        retained = &store->nodes[i];
+        count++;
+    }
+    CHECK(retained != NULL && count != 0
+        && count == store->indexed_string_shallow_retention_count);
+    CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    if (retained != NULL) {
+        retained->indexed_string_shallow_retention = false;
+        CHECK(!semantic_indexed_string_borrow_finalize(ctx));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 /* A declared-result edge seals each actual's return dependency independently. */
 static void checked_result_argument_currency(void)
 {
@@ -10215,6 +10396,8 @@ int main(void)
     checked_local_owner_constructor_nested_effect();
     checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();
+    checked_named_string_result_source_currency();
+    checked_named_string_shallow_retention_currency();
     checked_result_argument_currency();
     checked_witnessed_physical_call_alias_currency();
     checked_slot_physical_scalar_forgery();

@@ -1,6 +1,7 @@
 ﻿#include "array_storage_deferred_preservation_owner.h"
 #include <stdlib.h>
 #include "function_param_publication_owner.h"
+#include "indexed_string_borrow_owner.h"
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -605,5 +606,6 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         ctx->scope, program, ctx, "program exit");
 
     free(topo_order);
-    return callable_capability_seal(ctx) && !ctx->has_error;
+    return callable_capability_seal(ctx) && !ctx->has_error
+        && semantic_indexed_string_borrow_finalize(ctx);
 }

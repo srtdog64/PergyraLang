@@ -7,6 +7,7 @@
 #include "function_param_publication_internal.h"
 #include "collection_ownership_fact.h"
 #include "indexed_string_borrow_owner.h"
+#include "diag_codes.h"
 #include "type_checker_resolution_metadata_internal.h"
 #include "slot_summary.h"
 #include "builtin_kind.h"
@@ -101,6 +102,122 @@ semantic_array_storage_deferred_read_assignment(IndexedStringDeferredRead *row,
     if (row->source_id == 0) row->source_id = source_id;
     else if (source_id != 0 && source_id != row->source_id) row->source_id = UINT32_MAX;
     return true;
+}
+
+bool semantic_array_storage_deferred_read_failure(ASTNode *site,
+    SemanticContext *ctx, const char *reason)
+{
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+        site, "Deferred String read requires its Array owner to remain live: %s", reason);
+    return false;
+}
+
+bool semantic_array_storage_record_deferred_string_read(ASTNode *use,
+    uint32_t source_id, Symbol *binding, bool array_receiver,
+    bool owner_release, SemanticContext *ctx)
+{
+    if (ctx == NULL || !ctx->in_defer_cleanup || ctx->future_lifecycle_unreachable_depth != 0)
+        return true;
+    if (source_id == 0 && binding == NULL) return true;
+    Scope *owner = ctx->indexed_string_defer_scope;
+    bool active = false;
+    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) if (s == owner && s->kind == SCOPE_FUNCTION) active = true;
+    uint32_t use_id = ast_node_stable_id(use);
+    uint32_t body_id = ast_node_stable_id(ctx->indexed_string_defer_body);
+    uint32_t function_id = ast_node_stable_id(ctx->current_function_decl);
+    if (!active || owner == NULL || use_id == 0 || body_id == 0 || function_id == 0
+        || ctx->indexed_string_defer_sequence == 0
+        || owner->indexed_string_deferred_read_count > owner->indexed_string_deferred_read_capacity
+        || (owner->indexed_string_deferred_read_count != 0 && owner->indexed_string_deferred_reads == NULL))
+        return semantic_array_storage_deferred_read_failure(use, ctx, "missing lexical receipt identity");
+    uint32_t binding_id = binding != NULL ? binding->decl_syntax_id : 0;
+    const ASTNode *bound = array_receiver ? ast_array_access_array(use) : use;
+    if (binding != NULL && (binding_id == 0 || bound == NULL || bound->type != AST_IDENTIFIER
+        || ast_identifier_binding_syntax_id(bound) != binding_id))
+        return semantic_array_storage_deferred_read_failure(use, ctx, "missing deferred binding identity");
+    for (size_t i = 0; i < owner->indexed_string_deferred_read_count; i++) {
+        IndexedStringDeferredRead *row = &owner->indexed_string_deferred_reads[i];
+        if (row->function_id != function_id || row->body_id != body_id || row->use_id != use_id
+            || row->owner_release != owner_release) continue;
+        if (row->use != use || row->binding_id != binding_id || row->array_receiver != array_receiver)
+            return semantic_array_storage_deferred_read_failure(use, ctx, "changed deferred read identity");
+        if (row->issued_source_id != source_id)
+            return semantic_array_storage_deferred_read_failure(use, ctx, "changed issued read source");
+        return semantic_array_storage_deferred_read_current(row, ctx);
+    }
+    if (owner->indexed_string_deferred_read_count == owner->indexed_string_deferred_read_capacity) {
+        size_t capacity = owner->indexed_string_deferred_read_capacity;
+        size_t next = capacity == 0 ? 8 : capacity * 2;
+        if (next <= capacity || next > SIZE_MAX / sizeof(IndexedStringDeferredRead))
+            return semantic_array_storage_deferred_read_failure(use, ctx, "receipt capacity overflow");
+        IndexedStringDeferredRead *rows = realloc(owner->indexed_string_deferred_reads,
+            next * sizeof(*rows));
+        if (rows == NULL) return semantic_array_storage_deferred_read_failure(use, ctx, "receipt allocation failed");
+        owner->indexed_string_deferred_reads = rows;
+        owner->indexed_string_deferred_read_capacity = next;
+    }
+    owner->indexed_string_deferred_reads[owner->indexed_string_deferred_read_count++] =
+        (IndexedStringDeferredRead){.function = ctx->current_function_decl,
+            .body = ctx->indexed_string_defer_body, .use = use, .bound = bound,
+            .function_id = function_id, .body_id = body_id, .use_id = use_id,
+            .use_kind = (uint32_t)use->type, .bound_id = ast_node_stable_id(bound),
+            .binding_id = binding_id, .source_id = source_id,
+            .issued_source_id = source_id,
+            .sequence = ctx->indexed_string_defer_sequence,
+            .array_receiver = array_receiver, .nested = ctx->indexed_string_nested_defer,
+            .owner_release = owner_release};
+    return true;
+}
+
+void semantic_array_storage_deferred_string_read_assignment(Symbol *binding,
+    uint32_t source_id, bool array_receiver, ASTNode *assignment,
+    ASTNode *value, SemanticContext *ctx)
+{
+    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
+        if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
+            || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL)) {
+            (void)semantic_array_storage_deferred_read_failure(assignment, ctx, "missing assignment read storage");
+            return;
+        }
+        for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
+            IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
+            if (row->binding_id == binding->decl_syntax_id
+                && (row->array_receiver || row->owner_release) == array_receiver
+                && !semantic_array_storage_deferred_read_assignment(row, assignment, value, source_id, ctx)) {
+                (void)semantic_array_storage_deferred_read_failure(assignment, ctx, "stale assignment lineage");
+                return;
+            }
+        }
+    }
+}
+
+bool semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,
+    uint32_t binding_id, uint32_t source_id, bool *reserved)
+{
+    if (reserved == NULL) return false;
+    *reserved = false;
+    if (ctx == NULL || ctx->has_error || binding_id == 0) return false;
+    bool current_binding = false;
+    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
+        for (size_t j = 0; j < s->symbol_count; j++) {
+            Symbol *binding = s->symbols[j];
+            uint32_t current_source = 0;
+            if (binding != NULL && binding->decl_syntax_id == binding_id
+                && semantic_indexed_string_borrow_array_binding_source(binding, &current_source)
+                && current_source == source_id) current_binding = true;
+        }
+        if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
+            || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL)) return false;
+        for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
+            const IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
+            if (!semantic_array_storage_deferred_read_current(row, ctx)) return false;
+            if (!row->owner_release) continue;
+            if (source_id == 0 || source_id == UINT32_MAX || row->source_id == UINT32_MAX) return false;
+            if (row->source_id == source_id) *reserved = true;
+        }
+    }
+    return current_binding;
 }
 
 static bool

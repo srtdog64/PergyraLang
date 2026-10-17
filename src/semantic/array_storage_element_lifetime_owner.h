@@ -11,6 +11,14 @@ bool semantic_array_storage_deferred_read_current(
     const IndexedStringDeferredRead *row, SemanticContext *ctx);
 bool semantic_array_storage_deferred_read_assignment(IndexedStringDeferredRead *row,
     ASTNode *assignment, ASTNode *value, uint32_t source_id, SemanticContext *ctx);
+bool semantic_array_storage_deferred_read_failure(ASTNode *site,
+    SemanticContext *ctx, const char *reason);
+bool semantic_array_storage_record_deferred_string_read(ASTNode *use,
+    uint32_t source_id, Symbol *binding, bool array_receiver,
+    bool owner_release, SemanticContext *ctx);
+void semantic_array_storage_deferred_string_read_assignment(Symbol *binding,
+    uint32_t source_id, bool array_receiver, ASTNode *assignment,
+    ASTNode *value, SemanticContext *ctx);
 typedef struct PgyCollectionOwnershipFact PgyCollectionOwnershipFact;
 
 /* Recursively plain value elements need no destructor or borrowed lifetime. */
