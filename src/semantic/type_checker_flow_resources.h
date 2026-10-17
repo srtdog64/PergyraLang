@@ -6,6 +6,14 @@
 
 #include "type_checker_internal.h"
 
+/* Path-local Array authority; the pending-call sequence ledger is separate. */
+typedef struct
+{
+    bool exclusive;
+    bool escaped;
+    bool pending;
+} ArrayStoragePathState;
+
 typedef struct
 {
     Symbol              **symbols;
@@ -17,6 +25,7 @@ typedef struct
     SlotState            *slot_states;
     QubitSemanticState   *sem_states;
     int32_t              *pool_ids;
+    ArrayStoragePathState *array_storage_states;
     size_t                count;
     size_t                capacity;
     bool                  valid;

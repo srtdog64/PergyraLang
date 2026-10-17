@@ -29,10 +29,11 @@ typedef struct
 typedef struct
 {
     ASTNode *argument;
+    uint32_t argument_id;
     size_t target;
     PgyStringArrayOwnership element_ownership;
     bool exclusive_storage;
-    /* Nonzero when exclusivity rests on inout handoffs decided after Pass 2. */
+    /* Nonzero when an own transfer follows a deferred storage handoff. */
     uint32_t pending_binding_id;
     size_t pending_sequence;
 } OwnedElementActualSnapshot;
@@ -322,7 +323,7 @@ semantic_collection_owned_element_requirement_record_argument(
         return requirement_failure(ctx, call, "actual snapshot allocation failed");
     store->actuals = grown;
     store->actuals[store->actual_count++] = (OwnedElementActualSnapshot){
-        argument, target, ownership, exclusive_storage, pending_binding_id,
+        argument, ast_node_stable_id(argument), target, ownership, exclusive_storage, pending_binding_id,
         pending_sequence};
     return true;
 }
@@ -360,9 +361,19 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
         OwnedElementParameter target = store->parameters[actual.target];
         /* UNKNOWN stays bootstrap debt. This ratchet grants no permission:
          * it only falsifies a known borrowed actual at a required boundary. */
-        bool exclusive = actual.exclusive_storage && (actual.pending_binding_id == 0
-            || semantic_array_storage_pending_preserved(ctx, actual.pending_binding_id,
-                actual.pending_sequence));
+        if (actual.pending_binding_id != 0 &&
+            (actual.argument == NULL || actual.argument->type != AST_IDENTIFIER
+             || actual.argument_id == 0
+             || actual.argument_id != ast_node_stable_id(actual.argument)
+             || ast_identifier_binding_syntax_id(actual.argument) != actual.pending_binding_id
+             || !semantic_array_storage_pending_preserved(ctx,
+                 actual.pending_binding_id, actual.pending_sequence))) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                actual.argument, "An own Array handoff requires preserved storage after prior calls");
+            return false;
+        }
+        bool exclusive = actual.exclusive_storage;
         if ((target.requirements & 2u) != 0 && !exclusive) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,

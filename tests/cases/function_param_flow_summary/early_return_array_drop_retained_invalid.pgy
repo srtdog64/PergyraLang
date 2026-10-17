@@ -1,0 +1,17 @@
+struct Rows { ids: Array<Int>; }
+extern "C" { func Keep(ids: Array<Int>) -> Void; }
+
+func Retire(flag: Bool) -> Int {
+    let ids: Array<Int> = [7];
+    if flag {
+        let wrapped: Rows = Rows(ids);
+        return ArrayLength(wrapped.ids) - 1;
+    }
+    Keep(ids);
+    ArrayDrop(ids);
+    return 1;
+}
+
+func Main() -> Void {
+    Log(Retire(false));
+}

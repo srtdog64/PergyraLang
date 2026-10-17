@@ -48,13 +48,13 @@ merge_resource_states(ResourceConsumeSnapshot *dst,
                 || dst->used_states == NULL || dst->future_states == NULL
                 || dst->access_masks == NULL
                 || dst->slot_states == NULL || dst->sem_states == NULL
-                || dst->pool_ids == NULL))
+                || dst->pool_ids == NULL || dst->array_storage_states == NULL))
         || (src->count > 0
             && (src->symbols == NULL || src->states == NULL
                 || src->used_states == NULL || src->future_states == NULL
                 || src->access_masks == NULL
                 || src->slot_states == NULL || src->sem_states == NULL
-                || src->pool_ids == NULL))) {
+                || src->pool_ids == NULL || src->array_storage_states == NULL))) {
         dst->valid = false;
         return;
     }
@@ -94,6 +94,13 @@ merge_resource_states(ResourceConsumeSnapshot *dst,
             dst->sem_states[i] = src->sem_states[src_index];
         if (dst->pool_ids[i] < 0)
             dst->pool_ids[i] = src->pool_ids[src_index];
+        /* Every live path must own the backing; one escape or handoff blocks it. */
+        dst->array_storage_states[i].exclusive &=
+            src->array_storage_states[src_index].exclusive;
+        dst->array_storage_states[i].escaped |=
+            src->array_storage_states[src_index].escaped;
+        dst->array_storage_states[i].pending |=
+            src->array_storage_states[src_index].pending;
     }
 }
 

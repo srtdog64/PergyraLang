@@ -25,6 +25,251 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Reached first-pass cost survey after cd5 (read-only, not a permission)
+
+- Objective/priority: unblock unchanged canonical admission within the original
+  4096 demand bound, preserving typed identity, all escape/output facets and
+  refusal behavior before reducing work. Bootstrap/install/CI remain RED.
+- Frozen source is cd5 plus navigation-only7bf; native is
+  `e7f4111dabbb36d63771c457f19a4e5054f99ba6fdd66c048c907eb10a8f10f9`.
+  LCaaSV's complete3188-key census leaves622 work failures:23 with evaluations
+  above entries,578 equal and21 below. A worklist for repeated evaluation alone
+  is therefore not the current whole-set plan.
+- Diagnostic-only cold receipt8LktUI uses the same4273-routine full program and
+  `SemanticAstEnumPayloadStateBeforeUseInNode`334504,input2. It reaches4096
+  with90 entries/90 evaluations: E90/G280/C2459/O853/D414, major frames at
+  epoch1. Full source/build/bin/modes/Git restore is BYTE_IDENTICAL; no MIR or
+  successful admission is claimed.
+- Reached chain: typed routine publication -> existing no-output/no-store graph
+  and return-backing classification -> summary producer -> required C/D/O
+  backing frame -> final currentness/output consumers -> canonical admission.
+  `SemanticAstEnumPayloadApplyNodeToEnd`333843 pays128 backing visits per
+  input while returning a two-field Bool/Int struct. Publication currently
+  recognizes only primitive physical scalars. This is a candidate missing
+  descriptor-free result fact, not proof that its whole frame is unnecessary.
+- Unknowns before any edit: existing typed nominal field/enum/tuple owner and
+  currentness; descriptor-free result versus input/side-effect/output contracts;
+  exact no-store graph conditions; affected failed-key coverage; String,
+  recursive/generic/handle and unresolved types must remain conservative.
+- Parallel read-only scopes: A traces the existing type/publication owner and
+  consumers; B maps falsifiers and dangerous predicate reuses; C classifies the
+  full remaining census and observation coverage. Root alone owns WSL/build/
+  process/Git. No production/test source edits are authorized by this survey.
+- Forbidden: widening global `publication_physical_scalar`, treating COPY_ONLY
+  as backing-free, rescanning program roots, erasing CALL/CHANNEL/inout/store
+  effects, partial dependency replay, a new cache/ledger/SoT family, increased
+  allowance, annotations/copies, or a green count as canonical acceptance.
+- Integration boundary for a subsequently justified bounded change: before/
+  after behavioral and stale-fact phase controls, unchanged budget falsifiers,
+  strict summary/C+LLVM parity, full fixed census with no regressions, then
+  actual unchanged bootstrap/install and exact-SHA CI. Root must first fix the
+  complete owner/consumer edit set and removal obligations in this card.
+
+### Array storage path-state repair — implementation boundary
+
+- Objective: correct the existing flow owner's fallthrough storage authority,
+  not expand plain-result permissions. Priority is sound path identity and
+  complete join/replay before cost. The physical-scalar predicate is unchanged.
+- Measured first failure: QbxT4O/vk4c05 isolate the same full334504,input2
+  demand; the first failing no-store member is123657
+  `SemanticCallSpineViewFromGraph`. Its first mutable site is123725 ArrayPush,
+  before ArraySet. Receipt3UnqwI observes that exact call's local literal
+  `reversed`: parameter0/host0/exclusive0/escaped1/pending0, current Array<Int>/
+  Int, no prior error. All4096 charged events equal8LktUI byte-for-byte; each
+  scratch run restores source/build/bin/modes/Git BYTE_IDENTICAL.
+- Cause: a preceding terminating if-arm returns a constructor containing
+  `reversed`; constructor correctly invalidates that arm's storage authority.
+  Existing FlowFlags exclude terminating arms from fallthrough. Existing
+  ResourceConsumeSnapshot omits Array exclusive/escaped/pending fields, so the
+  Symbol mutation survives restoration. Array bindings already belong to its
+  existing constructed-type inventory; no classifier change is needed.
+  The published private-store issuer correctly refuses the now-poisoned state.
+- Fact owner/lifetime: existing resource-flow snapshots and function-local
+  declaration indices, from branch/loop entry through the actual reachable
+  join. Add the three existing Array Symbol facts as one typed snapshot state;
+  no new semantic owner/family, wire, AST rescan or private-store exception.
+- Required production set: ResourceConsumeSnapshot declaration;
+  allocation/grow/copy/failure/destroy; raw and stable-index
+  restoration; alternative/parallel merge; equality and availability comparison.
+  Exclusive is AND; escaped/pending are OR at joins. Conditions remain before
+  the baseline; return is excluded only by existing FlowFlags. Break/continue,
+  loops, defer, transaction/compensation and private whole-loop summary reuse
+  must carry the same fields through their existing copy/restore/merge paths.
+  The pending-call sequence owner is never erased or rewound. These transient
+  storage fields confer no new backend cleanup or ArrayDrop authority. The
+  original resource/loop inventory is unchanged: HIR/MIR/RIR validate names
+  and unique indices, and RIR associates
+  resource authority only with its existing Slot/Qubit/Future resource kinds.
+  The three new transient bits are not exported, like existing Future lifecycle
+  state; no schema/kind/filter is added. Verify mixed Array/Slot identities and
+  all four IR projections. Keep existing Array formal identities and resource
+  parameter ordinals unchanged. Missing new state cannot restore positive
+  storage authority; its affected Array is conservatively nonexclusive/escaped.
+- Last consumers: unchanged ArrayDrop/collection and private ArrayPush issuer,
+  then claims/no-store/backing output currentness, canonical admission and the
+  actual bootstrap/install/CI chain. Remove the old omission in every snapshot
+  path; do not leave a separate Array-only branch pass or guessed fallback.
+- Parallel edits: A owns only the production flow snapshot/merge/lifecycle/
+  equality files; B owns phase behavioral snapshot and publication regressions;
+  C owns source fixtures and the existing summary smoke gate. Root owns this
+  plan, all WSL/build/process/Git, before/after evidence and integration.
+- Falsifiers: early terminating arm with transfer followed by a local operation
+  (positive); live fallthrough alias/condition escape/other reachable arm
+  (negative); break/continue and loop-summary replay; pending inout must not be
+  erased; snapshot copy/restore/merge/missing-column behavior; unchanged Hold
+  before/after and cached private receipt withdrawal. Existing release, String,
+  loan, C/D/O,4096/4097 and both-backend controls remain unchanged.
+- Acceptance order: frozen before phase/source falsifiers, native phase and
+  strict source C/LLVM/no-MIR negatives, flow/resource/MIR broad gates, full
+  unchanged census and actual bootstrap. This repairs one producer; remaining
+  ArraySet/String-store and return-layout obligations stay OPEN until measured.
+  No claim that this slice alone removes622 failures or makes CI green.
+- Before7wyxrn: e7 with E70721F4 phase yields9355 checks/1 failure, solely
+  private_push. Full scratch restore BYTE_IDENTICAL. The outer runner's last
+  phrase grep used a space instead of the emitted hyphen and returned1; the
+  actual phase verdict and sole failure were read directly, not called PASS.
+  Source-before vuuvQ5: public early-return ArrayDrop wrongly refuses BORROW at
+  9:15/MIR0; nested private push compiles/runs C+LLVM4. Retained fallthrough and
+  retaining-condition controls refuse exact BORROW at11:15 and10:15/MIR0;
+  neither negative was executed.
+- Candidate native0d7cf2a from OgoDSX compiles the5 frozen flow files. Public
+  early-return drop now runs C/LLVM0,1 and nested private push C/LLVM4
+  (9uGaI7); mixed Array parameter/local Array/Slot input runs C/LLVM6,6
+  (eGGWRP). This is NOT slice acceptance:9uGaI7's retained-fallthrough
+  negative is newly reachable and emits MIR. It was never executed.
+- P1 blocking last consumer: dodcvn analyzes minimal cases with both original
+  e7 and candidate0d7. Both admit foreign Void DEFAULT/ref Array calls and a
+  local Void forwarder to that foreign call followed by ArrayDrop. A real
+  read-only local Void helper remains admitted; own handoff then drop already
+  refuses MOVE_FROM_RELEASED at5:15. Thus early-return poisoning had hidden
+  an independent final release-authority gap: Void/scalar result shape is not
+  no-retention evidence. Do not remove the negative or publish this candidate.
+  Survey the existing array-storage call owner -> deferred preservation ->
+  release/own consumers before extending the implementation. Any extension
+  must preserve legitimate named read-only helpers and the original inout
+  contract, fail closed on opaque calls, and never erase the pending ledger.
+
+### P1 completion of the same release-authority chain
+
+- Before choosing a broader permission, correct the survey: Array is already
+  BORROW_TRACKED through the existing constructed-type classifier. The added
+  non-parameter classification shortcut is redundant and must be removed.
+  Preserve the original tracked binding/identity inventory; carry the missing
+  three path bits for those existing Array rows, including already tracked
+  formals. Do not introduce new parameter ordinals, types or backend fields.
+- Actual security boundary: C by-value Array arguments copy a descriptor with
+  an aliased data pointer, not independent storage. 0Yjw5y confirms both e7 and
+  0d admit MapKeys -> foreign Void Keep -> ArrayDropOwnedStrings as well as the
+  plain-release counterexamples. All probes are analyze-only. Existing own
+  consumption still refuses later release. Named read-only helpers on Int and
+  owned String arrays are required positives, not exceptions to remove.
+- Owner decision: existing array-storage call admission preserves current
+  authority only from an exact selected named body and its existing descriptor
+  preservation facet, never from Void/scalar result shape. Extend the existing
+  delayed call/sequence store for REF/DEFAULT only when preserving actual
+  authority: current exclusive named binding, or a local exact LIVE
+  MAP_KEYS_SNAPSHOT/OWNED_ELEMENTS fact with the same function/binding IDs.
+  Borrowed/unknown facts grant nothing. Existing inout issuance and own
+  consumption remain; resource-bearing result guards stay conservative.
+- Unproved foreign/opaque/indirect calls revoke both exclusive storage and
+  possible-retention permission (`escaped`), so plain release, owned-element
+  release and later own forwarding all see the same loss. A proved/deferred
+  named read-only call preserves its existing authority, not a fresh grant.
+- Complete additional production edit set: array_storage_release_owner.c;
+  array_storage_deferred_preservation_owner.c/.h (exact call/callee/argument/
+  binding identities and current replay, same sequence lifetime); existing
+  function_param_flow_preserves_array_storage query; collection owned-string
+  release's pending-consumer hook. Share the existing pending release record
+  for plain/deep cleanup with an explicit operation identity for diagnostics;
+  no new ledger, family, fallback or generic policy wrapper. Keep successful
+  MapKeys cleanup even though its plain `exclusive` flag is initially false.
+- Internal solving may read its existing provisional preservation facet.
+  Outside solving, the release consumer requires COMPLETE/current output,
+  exact entry identity, supported analysis and proved preservation. A rejected
+  demand with an old false `array_storage_unproved` bit is never permission.
+  The existing4096/4097 boundary controls are not altered; the cap remains4096.
+- Do not rewind/drop delayed rows to guess branch reachability. The existing
+  ledger can conservatively reject some path-correlated cases; this is OPEN
+  precision, not permission to erase an unproved call. Track source order and
+  generation/currentness to the last plain/deep/own consumer.
+- Acceptance/falsifiers: direct foreign DEFAULT/ref, a named forwarder to
+  foreign, retaining condition and owned-String deep cleanup must refuse
+  without MIR; source-before unsafe admissions are never executed. Preserve
+  named read-only Void helpers (including forward declarations), independent
+  owned-result cleanup, original inout/own positives/negatives, stale receipt
+  revocation, full path-state phase controls, unchanged work-budget tests,
+  broad native/IR/runtime gates, then full fixed canonical/bootstrap/install/CI.
+- Delegation remains disjoint: A production in the named owners only; B phase
+  protocol/fault tests; C source positives/negatives and existing smoke gate;
+  root integration/build/process/Git/docs. No new optimization work starts
+  while these discovered release-authority negatives remain open.
+- vPNSRY phase9405/1 observes count10: Array formals were already tracked,
+  confirming the classifier correction above. Its only remaining negative is
+  a continue path. Existing loop owner merges continue into the backedge, but
+  omits it from a dynamic while's condition-false exit and from finite for exits
+  except the special one-iteration case. The new snapshot restoration exposes
+  that loss of authority. Add `type_checker_flow_loops.c` to the same A scope:
+  reachable continue states also contribute to non-static-true while exits and
+  finite for exits, using the existing identity-checked merge; static-true
+  while does not invent a normal exit. Use a real terminating falsifier (set a
+  local condition false before continue), plus a finite for continuation; do
+  not rely solely on a constant-true infinite body's unreachable later store.
+  Keep break, condition effects, cached loop replay and original budgets.
+- Frozen candidate c3d868cc: native phase kIiRSd passes9487/0 and the complete
+  existing strict summary/source/runtime/4096-4097/caps gate. Its two previous
+  failures in6ZdYoz were exactly output-ready withdrawal(fault3), on both plain
+  and deep release. Array is not an anchored handle; outside the solver its
+  authority consumer now requires the existing ready output seal as well as
+  COMPLETE/current. General anchored-handle currentness and solver-internal
+  provisional behavior are unchanged. Hold-before-push now correctly has no
+  private candidate after the opaque call; Hold-after keeps its candidate.
+  Both still require graph refusal and CALL_ESCAPE.
+- bVgMT4 on the preceding d704 candidate: named forward/Void readers run C and
+  LLVM1; foreign DEFAULT/ref, named foreign forward and owned-String retention
+  all refuse BORROW with no MIR at6:15,6:15,10:15,8:27. Unsafe negatives were
+  never executed. These are narrow receipts, not canonical/bootstrap/CI.
+- Namespace probe q1cVYQ is not a new positive-regression claim: both old e7 and
+  new d704 refuse the Array-reading Tools call as Undefined Tools before MIR.
+  No selected-call producer flag or namespace route is changed in this slice.
+- Last-consumer review is part of P1, not a new precision track. Analyze-only
+  aQ1NDc on c3d reproduces two missing consumers: a named DEFAULT forwarder to
+  foreign Keep followed by an own call with no drop seed emits13077 MIR bytes;
+  MapKeys -> the same unproved forwarder -> owned binding move -> deep drop
+  emits17384. A ref forwarder is already refused by the separate borrow gate,
+  so it cannot falsify these boundaries. Neither unsafe program was executed.
+- Complete the existing decision chain before acceptance: own-argument
+  requirements must consume their captured pending result regardless of a
+  callee's drop-seed bits; the authoritative owned-String binding-move producer
+  must record a pending authority consumption before retiring its source fact.
+  Reuse the existing ordered consumer store with an explicit move diagnostic
+  operation; no alias ledger, transferred-call identity rewrite, new owner or
+  blanket restriction on descriptor reads. Actual binding/current call IDs
+  and sequence still identify the original evidence. This avoids dropping the
+  obligation when the destination receives a new binding ID. Preserve a proved
+  named reader followed by either own consumption or a legitimate owned move.
+  Add collection_owned_element_requirement_owner.c to A's existing production
+  scope; B keeps phase protocol/fault tests and C the matching source pairs.
+  Re-run the entire frozen narrow/broad boundary after these two consumers.
+- xYPejF on f5: the own-unseeded and moved-owned-String negatives now refuse
+  BORROW at17:17 and14:17 with no MIR; paired C/LLVM readers preserve1,1 and1.
+  FV646Y passes9529/0 and the complete strict gate. Earlier c3 broad EQqxYO
+  passes MIR334/semantic3228/transpile1012,Map24/58 and4IR; c3 actual bootstrap
+  mlWH3L still refuses before gen0 with18785 errors/16warnings, versus e7's
+  18410. Do not count stricter rejection or narrow greens as canonical progress.
+- Final f5 broad ADhxLu repeats the complete strict gate with both last-consumer
+  exact-site checks, MIR334/semantic3228/transpile1012,Map24/58 and4IR. Native
+  phase remains9529/0. The same source's sanitizer and full fixed canonical
+  census still need their own observed receipts; no CI acceptance is claimed.
+- Read-only full consumer map distinguishes unrelated policies: ArrayPush
+  relocates backing, Pop only changes length, Set/Sort/Reverse write in place;
+  they are not one invalidation operation. The privileged internal retire
+  checks its caller registry/own signature and consumes storage, but does not
+  directly consume the public exclusive/escaped/pending predicate. Its caller
+  invariant and foreign-retention -> growth safety are OPEN source findings,
+  not observed executable vulnerabilities or an approved new implementation
+  track. Public release/own/move repair does not establish these contracts or
+  whole-language memory safety. Preserve the current canonical finish line.
+
 ### Current checkpoint and reached zero-argument result premise
 
 P1 safety priority before the remaining cost work: independent c143 review

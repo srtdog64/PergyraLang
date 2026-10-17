@@ -605,5 +605,9 @@ function_param_flow_preserves_array_storage(SemanticContext *ctx,
     if (store == NULL || store->failed)
         return false;
     index = function_param_flow_find(store, ast_node_stable_id(function_decl), param_index);
-    return index != SIZE_MAX && !store->entries[index].array_storage_unproved;
+    if (index == SIZE_MAX || store->entries[index].function_decl != function_decl ||
+        (!store->solving && (store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE ||
+            store->entries[index].analysis_unsupported || !store->entries[index].output_dependencies_ready ||
+            !function_param_flow_output_current(store, index, false)))) return false;
+    return !store->entries[index].array_storage_unproved;
 }

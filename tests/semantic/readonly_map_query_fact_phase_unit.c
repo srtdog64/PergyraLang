@@ -10,6 +10,9 @@
 #include "semantic/type_checker.h"
 #include "semantic/type_checker_internal.h"
 #include "semantic/type_checker_flow_internal.h"
+#include "semantic/type_checker_flow_universe.h"
+#include "semantic/type_checker_flow_loop_summary.h"
+#include "semantic/array_storage_deferred_preservation_owner.h"
 #include "semantic/type_system.h"
 #include "semantic/diag_codes.h"
 #include "semantic/function_param_publication_owner.h"
@@ -7546,6 +7549,317 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_array_storage_pending_currency(const char *source, bool moved)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (!admitted) goto cleanup;
+    ASTNode *callee = ast_program_statement(program, 0);
+    ASTNode *caller = ast_program_statement(program, 1);
+    ASTNode *local = ast_block_statement(ast_func_body(caller), 0);
+    ASTNode *call = ast_block_statement(ast_func_body(caller), 1);
+    ASTNode *argument = ast_call_argument(call, 0);
+    uint32_t binding = ast_node_stable_id(local);
+    size_t sequence = semantic_array_storage_pending_sequence(ctx);
+    CHECK(sequence > 0 && binding != 0 && argument != NULL);
+    CHECK(semantic_array_storage_pending_preserved(ctx, binding, sequence));
+    if (moved) {
+        ASTNode *destination = ast_block_statement(ast_func_body(caller), 2);
+        const PgyCollectionOwnershipFact *from = semantic_collection_ownership_fact_find(
+            ctx, ast_node_stable_id(caller), binding);
+        const PgyCollectionOwnershipFact *to = semantic_collection_ownership_fact_find(
+            ctx, ast_node_stable_id(caller), ast_node_stable_id(destination));
+        CHECK(sequence >= 2 && destination != NULL && destination->type == AST_LET_DECL);
+        CHECK(from != NULL && from->disposition == PGY_COLLECTION_DISPOSITION_RETIRED);
+        CHECK(to != NULL && to->source_binding_syntax_id == binding
+            && to->origin == PGY_COLLECTION_ORIGIN_BINDING
+            && to->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT);
+    }
+    PublishedNode *actual = NULL, *invocation = NULL;
+    for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++) {
+        PublishedNode *row = &ctx->function_param_publications->nodes[i];
+        if (row->node == argument) actual = row;
+        if (row->node == call) invocation = row;
+    }
+    CHECK(actual != NULL && invocation != NULL && invocation->arguments != NULL);
+    if (actual == NULL || invocation == NULL || invocation->arguments == NULL
+        || argument == NULL) goto cleanup;
+    ASTNode saved_call = *call, saved_argument = *argument, saved_callee = *callee;
+    PublishedNode saved_actual = *actual, saved_invocation = *invocation;
+    ASTNode foreign_argument = *argument;
+    for (unsigned fault = 0; fault < 11; fault++) {
+        if (fault == 0) call->stable_id++;
+        if (fault == 1) callee->stable_id++;
+        if (fault == 2) argument->stable_id++;
+        if (fault == 3) ast_call_set_semantic_callee_decl_id(call, 0);
+        if (fault == 4) ast_identifier_set_binding_syntax_id(argument, 0);
+        if (fault == 5) actual->value_present = false;
+        if (fault == 6) actual->value_type = TYPE_INT;
+        if (fault == 7) invocation->call_present = false;
+        if (fault == 8) invocation->declaration = 0;
+        if (fault == 9) invocation->arguments[0].binding++;
+        if (fault == 10) call->data.call.arguments[0] = &foreign_argument;
+        CHECK(!semantic_array_storage_pending_preserved(ctx, binding, sequence));
+        if (fault == 9) invocation->arguments[0].binding--;
+        call->data.call.arguments[0] = argument;
+        *call = saved_call; *argument = saved_argument; *callee = saved_callee;
+        *actual = saved_actual; *invocation = saved_invocation;
+        ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(callee));
+        ast_identifier_set_binding_syntax_id(argument, binding);
+        CHECK(semantic_array_storage_pending_preserved(ctx, binding, sequence));
+    }
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    size_t index = SIZE_MAX;
+    for (size_t i = 0; store != NULL && i < store->count; i++)
+        if (store->entries[i].function_decl == callee && store->entries[i].param_index == 0)
+            index = i;
+    CHECK(index != SIZE_MAX && !store->solving);
+    if (index == SIZE_MAX) goto cleanup;
+    FunctionParamFlowSummaryEntry saved_entry = store->entries[index];
+    CHECK(saved_entry.state == FUNCTION_PARAM_FLOW_COMPLETE
+        && !saved_entry.array_storage_unproved && !saved_entry.analysis_unsupported);
+    for (unsigned fault = 0; fault < 5; fault++) {
+        if (fault == 0) store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
+        if (fault == 1) store->entries[index].analysis_unsupported = true;
+        if (fault == 2) store->entries[index].array_storage_unproved = true;
+        if (fault == 3) store->entries[index].output_dependencies_ready = false;
+        if (fault == 4) store->entries[index].output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+        bool preserved = semantic_array_storage_pending_preserved(ctx, binding, sequence);
+        if (preserved)
+            fprintf(stderr, "Array pending currency fault=%u saved producer=%u ready=%d state=%u unproved=%d\n",
+                fault, (unsigned)saved_entry.output_producer,
+                (int)saved_entry.output_dependencies_ready, (unsigned)saved_entry.state,
+                (int)saved_entry.array_storage_unproved);
+        CHECK(!preserved);
+        store->entries[index] = saved_entry;
+        CHECK(semantic_array_storage_pending_preserved(ctx, binding, sequence));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_array_storage_pending_release(void)
+{
+    checked_array_storage_pending_currency(
+        "func Inspect(ref rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Use()->Void{let rows:Array<Int> = [];Inspect(rows);ArrayDrop(rows);}", false);
+    checked_array_storage_pending_currency(
+        "func Inspect(ref rows:Array<String>)->Int{return ArrayLength(rows);}"
+        "func Use(ref values:HashMap<String,Int>)->Void{let rows=MapKeys(values);"
+        "Inspect(rows);ArrayDropOwnedStrings(rows);}", false);
+    checked_array_storage_pending_currency(
+        "func Inspect(rows:Array<String>)->Int{return ArrayLength(rows);}"
+        "func Use(ref values:HashMap<String,Int>)->Void{let rows=MapKeys(values);"
+        "Inspect(rows);let moved=rows;ArrayDropOwnedStrings(moved);}", true);
+}
+
+static void checked_array_storage_path_snapshots(void)
+{
+    SemanticContext *ctx = semantic_context_create();
+    Type *element[] = {TYPE_INT};
+    Type *array = type_create_constructed(TYPE_ARRAY, element, 1);
+    Symbol values[10] = {0};
+    Symbol *bindings[10];
+    char names[10][16];
+    Scope scope = {0};
+    Scope *saved_scope = ctx->scope;
+    for (size_t i = 0; i < 10; i++) {
+        snprintf(names[i], sizeof(names[i]), "path_rows_%zu", i);
+        values[i].name = names[i]; values[i].kind = SYMBOL_VARIABLE;
+        values[i].type = array; values[i].decl_syntax_id = (uint32_t)i + 1;
+        values[i].has_exclusive_array_storage = true;
+        bindings[i] = &values[i];
+    }
+    /* Existing ownership classification tracks both local and formal Arrays. */
+    values[9].is_parameter = true;
+    scope.symbols = bindings; scope.symbol_count = 10;
+    ctx->scope = &scope;
+    resource_flow_universe_begin(ctx);
+    ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
+    fprintf(stderr, "Array path-state snapshot valid=%d count=%zu capacity=%zu\n",
+        (int)base.valid, base.count, base.capacity);
+    CHECK(base.valid && base.count == 10 && base.capacity >= 10);
+    CHECK(base.array_storage_states != NULL);
+    if (!base.valid || base.count != 10 || base.array_storage_states == NULL)
+        goto cleanup;
+    ResourceConsumeSnapshot copy = copy_resource_snapshot(&base);
+    CHECK(copy.valid && copy.array_storage_states != base.array_storage_states);
+    if (!copy.valid || copy.array_storage_states == NULL)
+        goto cleanup;
+    CHECK(resource_snapshots_equal(&base, &copy));
+    CHECK(resource_snapshot_availability_equal(&base, &copy));
+    for (size_t bit = 0; bit < 3; bit++) {
+        copy.array_storage_states[0] = base.array_storage_states[0];
+        if (bit == 0) copy.array_storage_states[0].exclusive = false;
+        if (bit == 1) copy.array_storage_states[0].escaped = true;
+        if (bit == 2) copy.array_storage_states[0].pending = true;
+        CHECK(!resource_snapshots_equal(&base, &copy));
+        CHECK(!resource_snapshot_availability_equal(&base, &copy));
+    }
+    copy.array_storage_states[0] = (ArrayStoragePathState){false, true, true};
+    ASTNode loop = {0};
+    loop.type = AST_WHILE_LOOP;
+    FlowFlags replayed = FLOW_NONE;
+    loop_flow_summary_begin_function(ctx);
+    loop_flow_summary_record(ctx, &loop, &base, &copy, 0, 0, FLOW_FALLTHROUGH);
+    CHECK(loop_flow_summary_try_apply(ctx, &loop, &base, 0, &replayed));
+    CHECK(replayed == FLOW_FALLTHROUGH && !values[0].has_exclusive_array_storage
+        && values[0].has_escaped_array_storage
+        && values[0].has_pending_inout_preservation);
+    for (size_t bit = 0; bit < 3; bit++) {
+        ArrayStoragePathState saved = base.array_storage_states[0];
+        if (bit == 0) base.array_storage_states[0].exclusive = false;
+        if (bit == 1) base.array_storage_states[0].escaped = true;
+        if (bit == 2) base.array_storage_states[0].pending = true;
+        CHECK(!loop_flow_summary_try_apply(ctx, &loop, &base, 0, &replayed));
+        base.array_storage_states[0] = saved;
+    }
+    loop_flow_summary_end_function(ctx);
+    for (size_t parallel = 0; parallel < 2; parallel++) {
+        ResourceConsumeSnapshot joined = copy_resource_snapshot(&base);
+        if (parallel) merge_resource_states_parallel(&joined, &copy);
+        else merge_resource_states_or(&joined, &copy);
+        CHECK(joined.valid && !joined.array_storage_states[0].exclusive
+            && joined.array_storage_states[0].escaped
+            && joined.array_storage_states[0].pending);
+        destroy_resource_snapshot(&joined);
+    }
+    values[0].has_exclusive_array_storage = false;
+    values[0].has_escaped_array_storage = true;
+    values[0].has_pending_inout_preservation = true;
+    restore_resource_states(&base);
+    CHECK(values[0].has_exclusive_array_storage
+        && !values[0].has_escaped_array_storage
+        && !values[0].has_pending_inout_preservation);
+    Symbol replacement = values[0];
+    replacement.has_exclusive_array_storage = false;
+    replacement.has_escaped_array_storage = true;
+    replacement.has_pending_inout_preservation = true;
+    bindings[0] = &replacement;
+    restore_resource_states_for_context(&base, ctx);
+    CHECK(replacement.has_exclusive_array_storage
+        && !replacement.has_escaped_array_storage
+        && !replacement.has_pending_inout_preservation);
+    CHECK(base.symbols[0] == &values[0]);
+    CHECK(base.symbol_indices[0] != RESOURCE_FLOW_INDEX_NONE);
+    ArrayStoragePathState *saved_column = copy.array_storage_states;
+    copy.array_storage_states = NULL;
+    CHECK(!resource_snapshots_equal(&base, &copy));
+    CHECK(!resource_snapshot_availability_equal(&base, &copy));
+    ResourceConsumeSnapshot refused = copy_resource_snapshot(&copy);
+    CHECK(!refused.valid);
+    destroy_resource_snapshot(&refused);
+    ResourceConsumeSnapshot joined = copy_resource_snapshot(&base);
+    merge_resource_states_or(&joined, &copy);
+    CHECK(!joined.valid);
+    destroy_resource_snapshot(&joined);
+    joined = copy_resource_snapshot(&base);
+    merge_resource_states_parallel(&joined, &copy);
+    CHECK(!joined.valid);
+    destroy_resource_snapshot(&joined);
+    restore_resource_states(&copy);
+    CHECK(!values[0].has_exclusive_array_storage
+        && values[0].has_escaped_array_storage
+        && values[0].has_pending_inout_preservation);
+    restore_resource_states_for_context(&copy, ctx);
+    CHECK(!replacement.has_exclusive_array_storage
+        && replacement.has_escaped_array_storage
+        && replacement.has_pending_inout_preservation);
+    CHECK(!values[9].has_exclusive_array_storage
+        && values[9].has_escaped_array_storage
+        && values[9].has_pending_inout_preservation);
+    copy.array_storage_states = saved_column;
+    bindings[0] = &values[0];
+    destroy_resource_snapshot(&copy);
+cleanup:
+    destroy_resource_snapshot(&base);
+    resource_flow_universe_end(ctx);
+    ctx->scope = saved_scope;
+    semantic_context_destroy(ctx);
+}
+
+static void checked_array_storage_live_arm(const char *source, size_t push_statement)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (admitted) {
+        ASTNode *decl = ast_program_statement(program, 1);
+        ASTNode *push = ast_block_statement(ast_func_body(decl), push_statement);
+        CHECK(push != NULL && push->type == AST_CALL);
+        bool private_push = semantic_param_publication_private_array_push(ctx, push, decl);
+        if (private_push)
+            fprintf(stderr, "Array path-state unexpected live-arm private grant: %s\n", source);
+        CHECK(!private_push);
+    }
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_array_storage_live_paths(void)
+{
+    checked_array_storage_live_arm(
+        "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
+        "let rows:Array<Int> = [];if flag{let held=Rows(rows);}"
+        "ArrayPush(rows,1);return Rows(rows);}", 2);
+    checked_array_storage_live_arm(
+        "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
+        "let rows:Array<Int> = [];if flag{return Rows(rows);}else{let held=Rows(rows);}"
+        "ArrayPush(rows,1);return Rows(rows);}", 2);
+    checked_array_storage_live_arm(
+        "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
+        "let rows:Array<Int> = [];while flag{let held=Rows(rows);break;}"
+        "ArrayPush(rows,1);return Rows(rows);}", 2);
+    checked_array_storage_live_arm(
+        "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
+        "let rows:Array<Int> = [];var go=flag;while go{let held=Rows(rows);go=false;continue;}"
+        "ArrayPush(rows,1);return Rows(rows);}", 3);
+    checked_array_storage_live_arm(
+        "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
+        "let rows:Array<Int> = [];for i in 0..2{let held=Rows(rows);continue;}"
+        "ArrayPush(rows,1);return Rows(rows);}", 2);
+    checked_array_storage_live_arm(
+        "struct Rows{items:Array<Int>}func Build(flag:Bool)->Rows{"
+        "let rows:Array<Int> = [];if ArrayLength(Rows(rows).items)>0{}"
+        "ArrayPush(rows,1);return Rows(rows);}", 2);
+}
+
+static void checked_private_array_push_terminating_arm(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Rows{items:Array<Int>}"
+        "func Build(flag:Bool)->Rows{let rows:Array<Int> = [];"
+        "if flag{return Rows(rows);}ArrayPush(rows,1);return Rows(rows);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (admitted) {
+        ASTNode *decl = ast_program_statement(program, 1);
+        ASTNode *push = ast_block_statement(ast_func_body(decl), 2);
+        CHECK(push != NULL && push->type == AST_CALL);
+        bool private_push = semantic_param_publication_private_array_push(ctx, push, decl);
+        if (!private_push)
+            fprintf(stderr, "Array path-state retained terminating-arm escape before private push\n");
+        CHECK(private_push);
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == 0);
+    }
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_private_array_push_closed_boundary(const char *source,
     size_t declaration, size_t statement, bool expected_candidate)
 {
@@ -7574,7 +7888,7 @@ static void checked_private_array_push_closed_boundary(const char *source,
 static void checked_private_array_push_opaque_boundaries(void)
 {
     checked_private_array_push_closed_boundary(
-        "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{let owned_rows:Array<String> = [];Hold(owned_rows);ArrayPush(owned_rows,input[0]);return ArrayLength(owned_rows);}", 1, 2, true);
+        "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{let owned_rows:Array<String> = [];Hold(owned_rows);ArrayPush(owned_rows,input[0]);return ArrayLength(owned_rows);}", 1, 2, false);
     checked_private_array_push_closed_boundary(
         "extern \"C\"{func Hold(rows:Array<String>)->Void;}func Build(input:Array<String>)->Int{let owned_rows:Array<String> = [];ArrayPush(owned_rows,input[0]);Hold(owned_rows);return ArrayLength(owned_rows);}", 1, 1, true);
 }
@@ -8301,6 +8615,10 @@ int main(void)
     checked_defer_return_backing();
     checked_backing_input_frames();
     checked_private_array_push_opaque_boundaries();
+    checked_private_array_push_terminating_arm();
+    checked_array_storage_path_snapshots();
+    checked_array_storage_pending_release();
+    checked_array_storage_live_paths();
     checked_private_local_array_push();
     checked_private_physical_array_nested_result_currency();
     checked_empty_array_no_output();

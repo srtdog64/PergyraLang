@@ -1,0 +1,21 @@
+struct Rows { ids: Array<Int>; }
+
+func Inspect(ref input: Array<Int>, ref source: Slot<Int>, flag: Bool) -> Int {
+    let scratch: Array<Int> = [5];
+    if flag {
+        let wrapped: Rows = Rows(scratch);
+        return ArrayLength(wrapped.ids) + ArrayLength(input) + Read(source);
+    }
+    let observed: Int = ArrayLength(scratch) + ArrayLength(input) + Read(source);
+    ArrayDrop(scratch);
+    return observed;
+}
+
+func Main() -> Void {
+    let input: Array<Int> = [1, 2];
+    let source: Slot<Int> = ClaimSlot();
+    Write(source, 3);
+    Log(Inspect(input, source, true));
+    Log(Inspect(input, source, false));
+    Release(source);
+}

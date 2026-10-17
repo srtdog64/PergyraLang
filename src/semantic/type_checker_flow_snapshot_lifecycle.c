@@ -8,6 +8,7 @@ restore_resource_states(const ResourceConsumeSnapshot *snap)
 {
     if (snap == NULL || !snap->valid)
         return;
+    bool missing_array_state = snap->count > 0 && snap->array_storage_states == NULL;
     for (size_t i = 0; i < snap->count; i++) {
         if (snap->symbols[i] != NULL) {
             snap->symbols[i]->is_consumed = snap->states[i];
@@ -17,6 +18,15 @@ restore_resource_states(const ResourceConsumeSnapshot *snap)
             snap->symbols[i]->slot_info.state = snap->slot_states[i];
             snap->symbols[i]->qubit_info.semantic_state = snap->sem_states[i];
             snap->symbols[i]->qubit_info.entangle_pool_id = snap->pool_ids[i];
+            if (type_is_constructed_named(snap->symbols[i]->type, "Array")) {
+                /* A damaged snapshot cannot restore private storage authority. */
+                snap->symbols[i]->has_exclusive_array_storage =
+                    !missing_array_state && snap->array_storage_states[i].exclusive;
+                snap->symbols[i]->has_escaped_array_storage =
+                    missing_array_state || snap->array_storage_states[i].escaped;
+                snap->symbols[i]->has_pending_inout_preservation =
+                    missing_array_state || snap->array_storage_states[i].pending;
+            }
         }
     }
 }
@@ -27,6 +37,7 @@ restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
 {
     if (snap == NULL || !snap->valid)
         return;
+    bool missing_array_state = snap->count > 0 && snap->array_storage_states == NULL;
     for (size_t i = 0; i < snap->count; i++) {
         Symbol *symbol = snap->symbols[i];
         if (ctx != NULL && ctx->resource_flow_universe != NULL
@@ -43,6 +54,14 @@ restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
             symbol->slot_info.state = snap->slot_states[i];
             symbol->qubit_info.semantic_state = snap->sem_states[i];
             symbol->qubit_info.entangle_pool_id = snap->pool_ids[i];
+            if (type_is_constructed_named(symbol->type, "Array")) {
+                symbol->has_exclusive_array_storage =
+                    !missing_array_state && snap->array_storage_states[i].exclusive;
+                symbol->has_escaped_array_storage =
+                    missing_array_state || snap->array_storage_states[i].escaped;
+                symbol->has_pending_inout_preservation =
+                    missing_array_state || snap->array_storage_states[i].pending;
+            }
         }
     }
 }
@@ -61,6 +80,7 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     free(snap->slot_states);
     free(snap->sem_states);
     free(snap->pool_ids);
+    free(snap->array_storage_states);
     snap->symbols = NULL;
     snap->symbol_indices = NULL;
     snap->states = NULL;
@@ -70,6 +90,7 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     snap->slot_states = NULL;
     snap->sem_states = NULL;
     snap->pool_ids = NULL;
+    snap->array_storage_states = NULL;
     snap->count = 0;
     snap->capacity = 0;
     snap->valid = false;

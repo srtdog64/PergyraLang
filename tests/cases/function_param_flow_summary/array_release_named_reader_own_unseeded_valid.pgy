@@ -1,0 +1,16 @@
+func ReadLength(ref ids: Array<Int>) -> Void
+{
+    Log(ArrayLength(ids));
+}
+
+func Consume(own ids: Array<Int>) -> Int
+{
+    return ArrayLength(ids);
+}
+
+func Main() -> Void
+{
+    let ids: Array<Int> = [7];
+    ReadLength(ids);
+    Log(Consume(ids));
+}

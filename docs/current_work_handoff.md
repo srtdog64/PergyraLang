@@ -5,9 +5,19 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — unchanged canonical admission, then bootstrap/CI
 
-- Source checkpoint: `cd5efe4d291ea6a5527bfc1a4159cfc0ef0215b6` on main,
+- Last committed source checkpoint: `cd5efe4d291ea6a5527bfc1a4159cfc0ef0215b6` on main,
   parent80bab8e5b. Both are local and unpushed. Only navigation updates follow
   this checkpoint; verify exact HEAD/dirty state before any build.
+- IN FLIGHT: path-state and release-authority repair in the existing flow,
+  array-storage/deferred-preservation and collection owners, with phase/source
+  gates. Read the two current cards near the top of the integration directive.
+  Native0d7cf2a and c3d868cc exposed release/own/move bypasses and are NOT
+  acceptable. Current frozen native is f5d34d71f145bc968ff3c5b3d5fb36e6eac90fe3f701ee4dc6dd0c8e41419d58.
+  FV646Y passes9529 phase checks and the full strict summary/source/runtime/
+  budget gate. xYPejF proves both last-consumer negatives refuse without MIR
+  while both positive C/LLVM outputs are retained. Unsafe negatives were never
+  executed. Final f5 broad ADhxLu passes the native/Map/four-IR boundary below;
+  sanitizer, full fixed census and independent review remain pending.
 - Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Last observed CI
   run38860052641 is RED; bootstrap/install were skipped. No known-red push.
 - One acceptance chain: zero fixed DRV-2 ownership refusals and unchanged full
@@ -46,7 +56,7 @@ maps and historical receipts live in the directive, not this active queue.
 ### Exact executable evidence
 
 Linux `/root/pgy-main-20261016` is Git HEAD39a plus byte-checked source overlay,
-not the D commit. Current native SHA256:
+not the D commit. The preceding committed-source native SHA256 was:
 `e7f4111dabbb36d63771c457f19a4e5054f99ba6fdd66c048c907eb10a8f10f9`.
 The installed Windows binary is not current self-host acceptance evidence.
 
@@ -75,10 +85,18 @@ The installed Windows binary is not current self-host acceptance evidence.
   witness and leak detection OFF. Exact cd5 independent static review found
   no blocking defect. It did not execute the supplied Linux receipts or
   approve canonical/install/CI/whole-language memory safety.
+- Current P1 receipt: FV646Y on native f5 passes9529/0 plus the full strict
+  gate; final f5 broad ADhxLu repeats MIR334/semantic3228/transpile1012,
+  Map24/58 and4IR with the final exact-site source gate. Actual c3 bootstrap
+  mlWH3L is RED before gen0 with18785
+  errors/16warnings (previous e7 had18410); stronger retention rejection is not
+  canonical progress. Re-run the unchanged full chain on the final source.
 
 ### Next falsifier and limits
 
-1. Current source/test work and all builds are finished/frozen. Independent
+1. cd5 source/test work and its builds are historical frozen evidence. Current
+   A production/B phase/C source work is the path-state/release P1 chain above.
+   Finish its original and own/move last-consumer contracts first. Independent
    review chat is `Pergyra 컴파일러 레드팀 검증`, thread
    `01a12ba0-fc1d-7650-b1fc-2fe9c3de642b`; last observed cursor38.
 2. Map the remaining full failure set's charged dependency/transfer chain

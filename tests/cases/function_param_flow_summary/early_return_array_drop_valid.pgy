@@ -1,0 +1,16 @@
+struct Rows { ids: Array<Int>; }
+
+func Retire(flag: Bool) -> Int {
+    let ids: Array<Int> = [7];
+    if flag {
+        let wrapped: Rows = Rows(ids);
+        return ArrayLength(wrapped.ids) - 1;
+    }
+    ArrayDrop(ids);
+    return 1;
+}
+
+func Main() -> Void {
+    Log(Retire(true));
+    Log(Retire(false));
+}

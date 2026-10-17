@@ -1,0 +1,28 @@
+struct Rows { ids: Array<Int>; }
+struct Envelope { row: Rows; }
+
+func Build(flag: Bool) -> Rows {
+    let ids: Array<Int> = [2];
+    if flag {
+        let wrapped: Rows = Rows(ids);
+        return wrapped;
+    }
+    ArrayPush(ids, 3);
+    return Rows(ids);
+}
+
+func Outer(flag: Bool) -> Envelope {
+    return Envelope(Build(flag));
+}
+
+func Inspect(ref label: String) -> Option<Int> {
+    let grown: Envelope = Outer(false);
+    let early: Envelope = Outer(true);
+    return Some(ArrayLength(grown.row.ids) +
+        ArrayLength(early.row.ids) + StringLength(label));
+}
+
+func Main() -> Void {
+    let label: String = Concat("x", "");
+    Log(UnwrapOption(Inspect(label)));
+}

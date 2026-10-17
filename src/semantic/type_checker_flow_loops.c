@@ -211,10 +211,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         if (loop_flow.has_continue_states) {
             merge_resource_snapshots_or(&backedge, &has_backedge,
                                         &loop_flow.continue_states);
-            if (known_iterations && known_cap == 1) {
-                merge_resource_snapshots_or(&merged, &merged_initialized,
-                                            &loop_flow.continue_states);
-            }
+            merge_resource_snapshots_or(&merged, &merged_initialized,
+                                        &loop_flow.continue_states);
         }
         if (loop_flow.has_break_states)
             merge_resource_snapshots_or(&merged, &merged_initialized,
@@ -432,9 +430,13 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             destroy_resource_snapshot(&body_snap);
         }
 
-        if (loop_flow.has_continue_states)
+        if (loop_flow.has_continue_states) {
             merge_resource_snapshots_or(&backedge, &has_backedge,
                                         &loop_flow.continue_states);
+            if (!condition_static_true)
+                merge_resource_snapshots_or(&merged, &merged_initialized,
+                                            &loop_flow.continue_states);
+        }
         if (loop_flow.has_break_states)
             merge_resource_snapshots_or(&merged, &merged_initialized,
                                         &loop_flow.break_states);

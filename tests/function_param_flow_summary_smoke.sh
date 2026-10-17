@@ -81,6 +81,21 @@ paired = (
     ("rebound_result_builder_birth_unready", False),
     ("declared_empty_scope_valid", True),
     ("zeroarg_private_int_nested_valid", True),
+    ("early_return_array_drop_valid", True),
+    ("early_return_array_drop_mixed_inputs_valid", True),
+    ("early_return_private_array_push_nested_valid", True),
+    ("early_return_array_drop_retained_invalid", False),
+    ("early_return_array_drop_condition_escape_invalid", False),
+    ("array_release_foreign_default_invalid", False),
+    ("array_release_foreign_ref_invalid", False),
+    ("array_release_forward_foreign_invalid", False),
+    ("array_release_owned_strings_foreign_invalid", False),
+    ("array_release_named_reader_forward_valid", True),
+    ("array_release_owned_strings_named_reader_valid", True),
+    ("array_release_forward_own_unseeded_invalid", False),
+    ("array_release_owned_strings_move_invalid", False),
+    ("array_release_named_reader_own_unseeded_valid", True),
+    ("array_release_owned_strings_move_valid", True),
     ("declared_empty_map_scope_valid", True),
     ("mapnew_ref_key_copy_valid", True),
     # The runtime copies String values, but source-retention ordinal 2 is not
@@ -351,6 +366,23 @@ for name, valid in paired:
                 == retained_sites[name] for row in errors):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
+        array_path_state_sites = {
+            "early_return_array_drop_retained_invalid": (11, 15),
+            "early_return_array_drop_condition_escape_invalid": (10, 15),
+            "array_release_foreign_default_invalid": (6, 15),
+            "array_release_foreign_ref_invalid": (6, 15),
+            "array_release_forward_foreign_invalid": (10, 15),
+            "array_release_owned_strings_foreign_invalid": (8, 27),
+            "array_release_forward_own_unseeded_invalid": (17, 17),
+            "array_release_owned_strings_move_invalid": (14, 17),
+        }
+        if name in array_path_state_sites and (
+                checked.stdout or len(errors) != 1 or
+                errors[0].get("stage") != "semantic" or
+                (errors[0].get("location", {}).get("line"),
+                 errors[0].get("location", {}).get("column")) != array_path_state_sites[name]):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"array path-state negative {name} lost its exact refusal")
         array_element_effect_sites = {
             "physical_array_element_effectful_index_invalid": {(14, 33), (23, 28)},
             "physical_array_element_effectful_receiver_invalid": {(13, 27), (22, 28)},
@@ -606,6 +638,13 @@ for name, expected in (
     ("control_navigation_dead_ancestor_valid", "4\n"),
     ("consumer_empty_nested_compare_valid", "7\n"),
     ("zeroarg_private_int_nested_valid", "1\n4\n"),
+    ("early_return_array_drop_valid", "0\n1\n"),
+    ("early_return_array_drop_mixed_inputs_valid", "6\n6\n"),
+    ("early_return_private_array_push_nested_valid", "4\n"),
+    ("array_release_named_reader_forward_valid", "1\n"),
+    ("array_release_owned_strings_named_reader_valid", "1\n"),
+    ("array_release_named_reader_own_unseeded_valid", "1\n1\n"),
+    ("array_release_owned_strings_move_valid", "1\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),

@@ -1,0 +1,11 @@
+extern "C" { func Keep(ids: Array<Int>) -> Void; }
+
+func Forward(ids: Array<Int>) -> Void {
+    Keep(ids);
+}
+
+func Main() -> Void {
+    let ids: Array<Int> = [7];
+    Forward(ids);
+    ArrayDrop(ids);
+}

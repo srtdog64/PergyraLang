@@ -15,7 +15,8 @@ flow_snapshot_count_fits(size_t count)
         && count <= SIZE_MAX / sizeof(uint8_t)
         && count <= SIZE_MAX / sizeof(SlotState)
         && count <= SIZE_MAX / sizeof(QubitSemanticState)
-        && count <= SIZE_MAX / sizeof(int32_t);
+        && count <= SIZE_MAX / sizeof(int32_t)
+        && count <= SIZE_MAX / sizeof(ArrayStoragePathState);
 }
 
 static bool
@@ -46,7 +47,6 @@ flow_snapshot_tracks_symbol(Symbol *sym, SemanticContext *ctx)
 
     if (!resource_flow_universe_is_value_binding(sym) || sym->type == NULL)
         return false;
-
     if (sym->flow_tracks_memo != 0
         && sym->flow_tracks_memo_type == sym->type) {
         if (verify_memo < 0)
@@ -110,12 +110,15 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 QubitSemanticState *new_sem = calloc(next_capacity,
                                                      sizeof(QubitSemanticState));
                 int32_t *new_pools = calloc(next_capacity, sizeof(int32_t));
+                ArrayStoragePathState *new_array_storage_states =
+                    calloc(next_capacity, sizeof(ArrayStoragePathState));
                 if (new_symbols == NULL || new_symbol_indices == NULL
                     || new_states == NULL
                     || new_used_states == NULL || new_future_states == NULL
                     || new_access_masks == NULL
                     || new_slot_states == NULL
-                    || new_sem == NULL || new_pools == NULL) {
+                    || new_sem == NULL || new_pools == NULL
+                    || new_array_storage_states == NULL) {
                     free(new_symbols);
                     free(new_symbol_indices);
                     free(new_states);
@@ -125,6 +128,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                     free(new_slot_states);
                     free(new_sem);
                     free(new_pools);
+                    free(new_array_storage_states);
                     destroy_resource_snapshot(&snap);
                     snap.valid = false;
                     return snap;
@@ -144,6 +148,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                     memcpy(new_sem, snap.sem_states,
                            snap.count * sizeof(QubitSemanticState));
                     memcpy(new_pools, snap.pool_ids, snap.count * sizeof(int32_t));
+                    memcpy(new_array_storage_states, snap.array_storage_states,
+                           snap.count * sizeof(ArrayStoragePathState));
                 }
                 free(snap.symbols);
                 free(snap.symbol_indices);
@@ -154,6 +160,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 free(snap.slot_states);
                 free(snap.sem_states);
                 free(snap.pool_ids);
+                free(snap.array_storage_states);
                 snap.symbols = new_symbols;
                 snap.symbol_indices = new_symbol_indices;
                 snap.states = new_states;
@@ -163,6 +170,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 snap.slot_states = new_slot_states;
                 snap.sem_states = new_sem;
                 snap.pool_ids = new_pools;
+                snap.array_storage_states = new_array_storage_states;
                 snap.capacity = next_capacity;
             }
             if (snap.symbols == NULL || snap.symbol_indices == NULL
@@ -170,7 +178,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 || snap.used_states == NULL || snap.future_states == NULL
                 || snap.access_masks == NULL
                 || snap.slot_states == NULL
-                || snap.sem_states == NULL || snap.pool_ids == NULL) {
+                || snap.sem_states == NULL || snap.pool_ids == NULL
+                || snap.array_storage_states == NULL) {
                 destroy_resource_snapshot(&snap);
                 snap.valid = false;
                 return snap;
@@ -192,6 +201,11 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
             snap.slot_states[snap.count] = sym->slot_info.state;
             snap.sem_states[snap.count] = sym->qubit_info.semantic_state;
             snap.pool_ids[snap.count] = sym->qubit_info.entangle_pool_id;
+            snap.array_storage_states[snap.count] = (ArrayStoragePathState) {
+                .exclusive = sym->has_exclusive_array_storage,
+                .escaped = sym->has_escaped_array_storage,
+                .pending = sym->has_pending_inout_preservation
+            };
             snap.count++;
         }
         scope = scope->parent;

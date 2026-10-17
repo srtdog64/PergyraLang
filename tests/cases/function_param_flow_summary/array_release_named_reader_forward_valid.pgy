@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let ids: Array<Int> = [7];
+    ReadLength(ids);
+    ArrayDrop(ids);
+}
+
+func ReadLength(ref ids: Array<Int>) -> Void {
+    Log(ArrayLength(ids));
+}

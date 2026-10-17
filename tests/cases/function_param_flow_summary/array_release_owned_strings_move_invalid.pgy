@@ -1,0 +1,16 @@
+extern "C" { func Keep(keys: Array<String>) -> Void; }
+
+func Leak(keys: Array<String>) -> Void
+{
+    Keep(keys);
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    Leak(keys);
+    let moved = keys;
+    ArrayDropOwnedStrings(moved);
+}

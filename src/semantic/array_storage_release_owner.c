@@ -9,6 +9,7 @@
 #include "diag_codes.h"
 #include "slot_summary.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "collection_ownership_fact.h"
 
 static void
 array_storage_invalidate_exclusivity(ASTNode *source, const Type *type,
@@ -35,30 +36,60 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     const Type *result_type, ParamMode mode, bool constructor,
     ASTNode *call, ASTNode *callee_decl, size_t ordinal, SemanticContext *ctx)
 {
-    /* An exact no-retention/no-rebind summary preserves existing authority;
-     * a missing proof still invalidates it. Resource-bearing results retain
-     * their independent conservative guard. */
+    Symbol *binding = source != NULL && source->type == AST_IDENTIFIER && ctx != NULL
+        ? scope_lookup(ctx->scope, ast_identifier_name(source)) : NULL;
+    uint32_t binding_id = binding != NULL ? binding->decl_syntax_id : 0;
+    bool array = type_is_constructed_named(type, "Array");
+    bool string_array = array
+        && type_equals(type_get_constructed_arg(type, 0), TYPE_STRING);
+    const PgyCollectionOwnershipFact *owned_strings = string_array && binding_id != 0
+        && binding != NULL && !binding->has_exclusive_array_storage && ctx != NULL
+        && ctx->current_function_decl != NULL
+        ? semantic_collection_ownership_fact_find(ctx,
+            ast_node_stable_id(ctx->current_function_decl), binding_id) : NULL;
+    bool existing_authority = binding != NULL && binding_id != 0
+        && ast_identifier_binding_syntax_id(source) == binding_id
+        && (!binding->is_parameter || binding->param_mode == PARAM_MODE_OWN)
+        && !binding->is_host_field && !binding->is_consumed
+        && !binding->has_escaped_array_storage
+        && (binding->has_exclusive_array_storage
+            || (string_array
+                && owned_strings != NULL
+                && owned_strings->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                && (owned_strings->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+                    || owned_strings->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS)));
+    bool plain_result = type_equals(result_type, TYPE_VOID)
+        || semantic_array_storage_plain_element(result_type, ctx);
+    bool exact_named = call != NULL && call->type == AST_CALL
+        && callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
+        && ast_func_body(callee_decl) != NULL && !callee_decl->is_async_decl
+        && ast_node_stable_id(callee_decl) != 0
+        && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee_decl)
+        && ast_call_semantic_callee_value_binding_id(call) == 0
+        && ast_call_semantic_callee_declared_callable(call);
+    /* Only a body summary can preserve an existing storage authority. A
+     * Void/scalar return says nothing about a callee retaining its argument. */
     bool exact_user_inout = mode == PARAM_MODE_MUT_REF
         && callee_decl != NULL && ast_node_stable_id(callee_decl) != 0
         && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee_decl)
         && ast_call_semantic_callee_value_binding_id(call) == 0
-        && type_is_constructed_named(type, "Array")
+        && array
         && semantic_array_storage_plain_element(type_get_constructed_arg(type, 0), ctx);
+    bool exact_user_borrow = (mode == PARAM_MODE_REF || mode == PARAM_MODE_DEFAULT)
+        && array && plain_result
+        && existing_authority && exact_named;
     /* The callee's summary reads call identities that its own body check
      * records; a later declaration has none yet. Pass 2 records the handoff
      * and keeps exclusivity provisional until every body is checked. */
-    Symbol *handoff = exact_user_inout && source != NULL && source->type == AST_IDENTIFIER
-        && semantic_array_storage_deferral_active(ctx)
-        ? scope_lookup(ctx->scope, ast_identifier_name(source)) : NULL;
-    bool preserving_inout = exact_user_inout && (handoff != NULL
+    Symbol *handoff = (exact_user_inout || exact_user_borrow) && binding != NULL
+        && semantic_array_storage_deferral_active(ctx) ? binding : NULL;
+    bool preserving = (exact_user_inout || exact_user_borrow) && (handoff != NULL
         ? semantic_array_storage_record_pending_call(ctx, handoff, call, callee_decl, ordinal)
         : function_param_flow_preserves_array_storage(ctx, callee_decl, ordinal));
-    if (constructor || (mode != PARAM_MODE_OWN && ((mode == PARAM_MODE_MUT_REF && !preserving_inout)
-        || (!type_equals(result_type, TYPE_VOID)
-            && !semantic_array_storage_plain_element(result_type, ctx)))))
-        /* A possible call-result alias is not a recorded descriptor store.
-         * Preserve that distinction for legacy Clone/MapKeys deep cleanup. */
-        array_storage_invalidate_exclusivity(source, type, constructor, ctx);
+    if (constructor || (mode != PARAM_MODE_OWN && (!preserving || !plain_result)))
+        /* A call without current preservation proof may retain the shallow
+         * descriptor even when its result is Void. Deep cleanup must see it. */
+        array_storage_invalidate_exclusivity(source, type, true, ctx);
 }
 
 void
@@ -138,7 +169,8 @@ semantic_array_storage_admit_drop(ASTNode *receiver, Type *array_type,
     /* Exclusivity that rests on a recorded inout handoff is decided after
      * Pass 2, which refuses this release there if a handoff is unproved. */
     if (binding->has_pending_inout_preservation
-        && !semantic_array_storage_record_pending_drop(ctx, receiver, binding)) {
+        && !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
+            ARRAY_STORAGE_RELEASE_DROP_STORAGE)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
             receiver, "ArrayDrop requires one named, exclusive owned Array<T> binding; borrowed or aliased storage cannot be released");

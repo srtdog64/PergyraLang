@@ -1,0 +1,14 @@
+func ReadLength(ref keys: Array<String>) -> Void
+{
+    Log(ArrayLength(keys));
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    ReadLength(keys);
+    let moved = keys;
+    ArrayDropOwnedStrings(moved);
+}

@@ -8,6 +8,7 @@
 #include "symbol_table.h"
 #include "type_checker.h"
 #include "type_checker_internal.h"
+#include "array_storage_deferred_preservation_owner.h"
 #include "../parser/ast_api.h"
 
 static bool
@@ -261,8 +262,20 @@ semantic_collection_ownership_initialize_binding(
     if (move_source_binding) {
         source_fact = collection_ownership_fact_find_mutable(
             ctx, fact.function_syntax_id, fact.source_binding_syntax_id);
-        if (source_fact == NULL || source == NULL)
+        if (source_fact == NULL || source == NULL || initializer == NULL
+            || initializer->type != AST_IDENTIFIER
+            || source->decl_syntax_id != fact.source_binding_syntax_id)
             return false;
+        if (source->has_pending_inout_preservation &&
+            !semantic_array_storage_record_pending_drop(ctx, (ASTNode *)initializer,
+                source, ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                (ASTNode *)initializer,
+                "Array<String> move requires current preserved storage from '%s'",
+                source->name != NULL ? source->name : "<array>");
+            return false;
+        }
         source_fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
         source->is_consumed = true;
     }
@@ -426,6 +439,16 @@ semantic_collection_admit_owned_string_drop(
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
             PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             receiver, "ArrayDropOwnedStrings cannot release escaped array storage in '%s'",
+            name);
+        return false;
+    }
+    if (binding != NULL && binding->has_pending_inout_preservation &&
+        (ast_identifier_binding_syntax_id(receiver) != binding->decl_syntax_id ||
+         !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
+             ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS))) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver, "ArrayDropOwnedStrings requires current preserved array storage in '%s'",
             name);
         return false;
     }

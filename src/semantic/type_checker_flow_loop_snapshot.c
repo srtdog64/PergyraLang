@@ -18,7 +18,8 @@ resource_snapshot_count_fits(size_t count)
         && count <= SIZE_MAX / sizeof(uint8_t)
         && count <= SIZE_MAX / sizeof(SlotState)
         && count <= SIZE_MAX / sizeof(QubitSemanticState)
-        && count <= SIZE_MAX / sizeof(int32_t);
+        && count <= SIZE_MAX / sizeof(int32_t)
+        && count <= SIZE_MAX / sizeof(ArrayStoragePathState);
 }
 
 bool
@@ -30,6 +31,9 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
     if (!a->valid || !b->valid)
         return false;
     if (a->count != b->count)
+        return false;
+    if (a->count > 0 && (a->array_storage_states == NULL
+                         || b->array_storage_states == NULL))
         return false;
     for (size_t i = 0; i < a->count; i++) {
         if (a->symbol_indices != NULL && b->symbol_indices != NULL
@@ -53,6 +57,10 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
             return false;
         if (a->pool_ids[i] != b->pool_ids[i])
             return false;
+        if (a->array_storage_states[i].exclusive != b->array_storage_states[i].exclusive
+            || a->array_storage_states[i].escaped != b->array_storage_states[i].escaped
+            || a->array_storage_states[i].pending != b->array_storage_states[i].pending)
+            return false;
     }
     return true;
 }
@@ -64,6 +72,9 @@ resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
     if (a == NULL || b == NULL)
         return a == b;
     if (!a->valid || !b->valid || a->count != b->count)
+        return false;
+    if (a->count > 0 && (a->array_storage_states == NULL
+                         || b->array_storage_states == NULL))
         return false;
     for (size_t i = 0; i < a->count; i++) {
         if (a->symbol_indices != NULL && b->symbol_indices != NULL
@@ -78,7 +89,10 @@ resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
             || a->future_states[i] != b->future_states[i]
             || a->slot_states[i] != b->slot_states[i]
             || a->sem_states[i] != b->sem_states[i]
-            || a->pool_ids[i] != b->pool_ids[i]) {
+            || a->pool_ids[i] != b->pool_ids[i]
+            || a->array_storage_states[i].exclusive != b->array_storage_states[i].exclusive
+            || a->array_storage_states[i].escaped != b->array_storage_states[i].escaped
+            || a->array_storage_states[i].pending != b->array_storage_states[i].pending) {
             return false;
         }
     }
@@ -96,7 +110,8 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
         return dst;
     if (src->count == 0)
         return dst;
-    if (!resource_snapshot_count_fits(src->count)) {
+    if (!resource_snapshot_count_fits(src->count)
+        || src->array_storage_states == NULL) {
         dst.valid = false;
         return dst;
     }
@@ -111,12 +126,15 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     dst.slot_states = calloc(src->count, sizeof(SlotState));
     dst.sem_states = calloc(src->count, sizeof(QubitSemanticState));
     dst.pool_ids = calloc(src->count, sizeof(int32_t));
+    dst.array_storage_states = calloc(src->count,
+                                      sizeof(ArrayStoragePathState));
     if (dst.symbols == NULL || dst.symbol_indices == NULL
         || dst.states == NULL
         || dst.used_states == NULL || dst.future_states == NULL
         || dst.access_masks == NULL
         || dst.slot_states == NULL
-        || dst.sem_states == NULL || dst.pool_ids == NULL) {
+        || dst.sem_states == NULL || dst.pool_ids == NULL
+        || dst.array_storage_states == NULL) {
         destroy_resource_snapshot(&dst);
         dst.valid = false;
         return dst;
@@ -134,6 +152,8 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     memcpy(dst.sem_states, src->sem_states,
            src->count * sizeof(QubitSemanticState));
     memcpy(dst.pool_ids, src->pool_ids, src->count * sizeof(int32_t));
+    memcpy(dst.array_storage_states, src->array_storage_states,
+           src->count * sizeof(ArrayStoragePathState));
     dst.count = src->count;
     dst.capacity = src->count;
     return dst;
