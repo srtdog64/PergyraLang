@@ -1,0 +1,24 @@
+struct Arena { atoms: Array<String>; }
+
+func VariantAt(arena: Arena, index: Int) -> Option<String> {
+    if index < 0 || index >= ArrayLength(arena.atoms) { return None; }
+    return Some(arena.atoms[index]);
+}
+
+func NonownerRead(text: String) -> Int { return StringLength(text); }
+
+func Main() -> Void {
+    let arena: Arena = Arena(["red,blue"]);
+    let selected: Option<String> = VariantAt(arena, 0);
+    if IsSome(selected) {
+        let text: String = UnwrapOption(selected);
+        let no_texts: Array<String> = [];
+        var index: Int = 0;
+        while index < 2 {
+            Log(NonownerRead(text));
+            ArrayPush(no_texts, "literal");
+            index = index + 1;
+        }
+        Log(ArrayLength(no_texts));
+    }
+}

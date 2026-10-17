@@ -40,9 +40,10 @@ void mir_free_collection_effect_evidence(MIRProgram *mir)
 }
 
 static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRRoutine *routine,
-    const MIRInstruction *inst, const PgyCollectionEffectView *view, size_t caller, bool *seen)
+    const MIRBasicBlock *block, const MIRInstruction *inst,
+    const PgyCollectionEffectView *view, size_t caller, bool *seen)
 {
-    if (view->source_use_count != 0) {
+    if (view->source_use_count != 0 || view->nonowner_risk_count != 0) {
         const ASTNode *place = NULL, *value = NULL;
         bool initialization = inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_LET_DECL;
         if (initialization) { place = inst->ast; value = inst->expr0; }
@@ -57,13 +58,45 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
                 initialization ? ast_node_stable_id(place) : place != NULL && place->type == AST_IDENTIFIER
                     ? ast_identifier_binding_syntax_id(place) : inst->binding_syntax_id,
                 initialization, place, value)) return false;
-        if (inst->kind == MIR_INST_RETURN && !semantic_collection_effect_snapshot_source_return(
-                mir->collection_effect_snapshot, routine->source_syntax_id, inst->expr0)) return false;
+        if (inst->kind == MIR_INST_RETURN) {
+            const ASTNode *statement = NULL;
+            if (block->source_hir_block_id != SIZE_MAX) {
+                if (block->source_hir_block_id >= routine->hir_routine->cfg.block_count ||
+                    routine->hir_routine->cfg.blocks == NULL) return false;
+                const HIRBasicBlock *source =
+                    &routine->hir_routine->cfg.blocks[block->source_hir_block_id];
+                if (source->id != block->source_hir_block_id) return false;
+                if (source->terminator_kind == HIR_BLOCK_RETURN) {
+                    if (source->terminator_value != inst->expr0 || inst->ast != inst->expr0 ||
+                        source->statement_count != block->source_statement_inventory.count ||
+                        (source->statement_count != 0 &&
+                            (source->statements == NULL || block->source_statement_inventory.items == NULL)))
+                        return false;
+                    if (source->statement_count != 0) {
+                        size_t last = source->statement_count - 1;
+                        const ASTNode *candidate = source->statements[last];
+                        if (candidate != block->source_statement_inventory.items[last]) return false;
+                        if (candidate != NULL && candidate->type == AST_RETURN) {
+                            if (ast_return_value(candidate) != inst->expr0) return false;
+                            statement = candidate;
+                        }
+                    }
+                }
+            }
+            if (!semantic_collection_effect_snapshot_source_return(
+                    mir->collection_effect_snapshot, routine->source_syntax_id,
+                    statement, inst->expr0)) return false;
+        }
         ASTNode *roots[2];
         if (!mir_instruction_executable_roots(routine, inst, roots, NULL, NULL)) return false;
-        for (size_t r = 0; r < 2; r++)
-            if (roots[r] != NULL && !hir_collection_source_expression_current(
-                mir->collection_effect_snapshot, routine->hir_routine, roots[r])) return false;
+        for (size_t r = 0; r < 2; r++) {
+            if (roots[r] == NULL) continue;
+            if ((inst->kind != MIR_INST_RETURN || roots[r] != inst->expr0) &&
+                !semantic_collection_effect_snapshot_source_evaluation(
+                    mir->collection_effect_snapshot, routine->source_syntax_id, roots[r])) return false;
+            if (!hir_collection_source_expression_current(
+                    mir->collection_effect_snapshot, routine->hir_routine, roots[r])) return false;
+        }
     }
     const ASTNode *call = inst->expr0;
     size_t expected = SIZE_MAX;
@@ -188,7 +221,7 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
             if (view.callers[c].decl_id == routine->source_syntax_id) caller = c;
         for (size_t b = 0; b < routine->block_count && valid; b++)
             for (size_t i = 0; i < routine->blocks[b].instruction_count; i++)
-                if (!mir_collection_instruction_current(mir, routine,
+                if (!mir_collection_instruction_current(mir, routine, &routine->blocks[b],
                     &routine->blocks[b].instructions[i], &view, caller, seen)) { valid = false; break; }
     }
     for (size_t e = 0; e < view.effect_count && valid; e++)

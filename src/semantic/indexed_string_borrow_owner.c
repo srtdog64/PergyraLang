@@ -3,12 +3,10 @@
  * definition. Symbol pointers are used only for transient scope lookup. */
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "diag_codes.h"
 #include "indexed_string_borrow_owner.h"
-#include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
@@ -440,6 +438,11 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                     }
                     return;
                 }
+                /* Conditional exclusion of this local risk only. Final replay
+                 * must prove its whole history never acquires payload ownership;
+                 * the String source remains UNKNOWN and other owners still run. */
+                if (current && call != NULL &&
+                    semantic_indexed_string_nonowner_record(ctx, owner, expression, call, ordinal)) continue;
             }
             if (named && source_id != INDEXED_STRING_BORROW_UNKNOWN_SOURCE) {
                 if (!semantic_array_storage_record_pending_payload(ctx, owner, call, callee, ordinal) ||

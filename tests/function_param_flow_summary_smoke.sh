@@ -124,6 +124,16 @@ release_lifetime_refusals = {
     "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
     "named_string_same_empty_borrowed_then_owned_direct_invalid": [(*borrow_refusal, 6, 5)],
     "named_string_same_empty_borrowed_then_owned_named_invalid": [(*borrow_refusal, 11, 5)],
+    "nonowner_risk_alias_owned_insert_invalid": [
+        (*borrow_refusal, 16, 21), (*borrow_refusal, 18, 30)],
+    "nonowner_risk_rebind_clone_invalid": [(*borrow_refusal, 16, 26)],
+    "nonowner_risk_branch_owned_insert_invalid": [(*borrow_refusal, 12, 9)],
+    "nonowner_risk_later_loop_owned_invalid": [(*borrow_refusal, 15, 13)],
+    "nonowner_risk_later_actual_handoff_invalid": [(*borrow_refusal, 22, 13)],
+    "nonowner_risk_local_carrier_invalid": [(*borrow_refusal, 18, 26)],
+    "nonowner_risk_safe_then_owned_invalid": [(*borrow_refusal, 16, 13)],
+    "nonowner_risk_owned_then_safe_invalid": [(*borrow_refusal, 15, 13)],
+    "nonowner_risk_lambda_capture_invalid": [(*borrow_refusal, 16, 56)],
     # The String-field getter is not receiver-independent. The first error is
     # the summary's unproved backing relation; eight concrete borrow paths
     # must also refuse it. Do not treat this as a physical-storage grant.
@@ -137,6 +147,17 @@ release_lifetime_refusals = {
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
+    ("nonowner_risk_option_reader_valid", True),
+    ("nonowner_risk_shallow_loop_valid", True),
+    ("nonowner_risk_alias_owned_insert_invalid", False),
+    ("nonowner_risk_rebind_clone_invalid", False),
+    ("nonowner_risk_branch_owned_insert_invalid", False),
+    ("nonowner_risk_later_loop_owned_invalid", False),
+    ("nonowner_risk_later_actual_handoff_invalid", False),
+    ("nonowner_risk_local_carrier_invalid", False),
+    ("nonowner_risk_safe_then_owned_invalid", False),
+    ("nonowner_risk_owned_then_safe_invalid", False),
+    ("nonowner_risk_lambda_capture_invalid", False),
     ("secure_implicit_token_safe", True),
     ("secure_implicit_token_keep_invalid", False),
     ("result_builder_birth_valid", True),
@@ -1072,6 +1093,8 @@ for name, expected in (
     ("named_string_same_empty_direct_valid", "TypeName\nTypeName\n"),
     ("named_string_same_empty_named_valid", "TypeName\nTypeName\n"),
     ("named_string_same_empty_fresh_valid", "fresh value\n"),
+    ("nonowner_risk_option_reader_valid", "9\n0\n"),
+    ("nonowner_risk_shallow_loop_valid", "8\n8\n2\n"),
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
     ("return_loan_read_static_local_valid", "14\n14\nstatic literal\n"),

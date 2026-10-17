@@ -1,0 +1,23 @@
+struct Arena { atoms: Array<String>; }
+
+func VariantAt(arena: Arena, index: Int) -> Option<String> {
+    if index < 0 || index >= ArrayLength(arena.atoms) { return None; }
+    return Some(arena.atoms[index]);
+}
+
+func NonownerRead(text: String) -> Int { return StringLength(text); }
+
+func Probe(arena: Arena, insert_owned: Bool) -> Int {
+    let selected: Option<String> = VariantAt(arena, 0);
+    let no_texts: Array<String> = [];
+    if IsSome(selected) {
+        let text: String = UnwrapOption(selected);
+        if insert_owned {
+            ArrayPushOwnedString(no_texts, Concat("owned", " value"));
+        }
+        return NonownerRead(text);
+    }
+    return 0;
+}
+
+func Main() -> Void { Log(Probe(Arena(["red,blue"]), false)); }

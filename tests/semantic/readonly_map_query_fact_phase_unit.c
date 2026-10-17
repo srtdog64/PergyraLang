@@ -26,6 +26,7 @@
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
 #include "semantic/indexed_string_field_lineage_internal.h"
+#include "semantic/indexed_string_nonowner_risk_internal.h"
 #include "semantic/diag_payload.h"
 #include "semantic/collection_ownership_fact.h"
 #include "semantic/collection_owned_element_requirement_owner.h"
@@ -11675,6 +11676,269 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_nonowner_risk_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Arena{atoms:Array<String>;}"
+        "func VariantAt(arena:Arena,index:Int)->Option<String>{"
+        "if index<0||index>=ArrayLength(arena.atoms){return None;}"
+        "return Some(arena.atoms[index]);}"
+        "func NonownerRead(text:String,count:Int)->Int{return StringLength(text)+count;}"
+        "func Main()->Void{let arena:Arena=Arena([\"red,blue\"]);"
+        "let selected:Option<String> = VariantAt(arena,0);"
+        "if IsSome(selected){let text:String=UnwrapOption(selected);"
+        "let no_texts:Array<String> = [];"
+        "Log(NonownerRead(text,1));Log(ArrayLength(no_texts));}}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *main_decl = ast_program_statement(program, 3);
+    ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *branch = body == NULL ? NULL : ast_block_statement(body, 2);
+    ASTNode *inside = branch == NULL ? NULL : ast_if_then_branch(branch);
+    ASTNode *definition = inside == NULL ? NULL : ast_block_statement(inside, 1);
+    ASTNode *initializer = definition == NULL ? NULL : ast_let_initializer(definition);
+    ASTNode *log_call = inside == NULL ? NULL : ast_block_statement(inside, 2);
+    ASTNode *read_call = log_call == NULL ? NULL : ast_call_argument(log_call, 0);
+    ASTNode *text_use = read_call == NULL ? NULL : ast_call_argument(read_call, 0);
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *birth = definition == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(definition));
+    PublishedNode *literal_row = initializer == NULL ? NULL :
+        publication_node(publication, initializer, false);
+    PublishedNode *text_row = text_use == NULL ? NULL : published_node_for(ctx, text_use);
+    IndexedStringNonownerRisk *risk = birth == NULL ? NULL : birth->indexed_string_nonowner;
+    PgyCollectionOwnershipFact *fact = risk == NULL ? NULL : (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(ctx, risk->caller_id, risk->binding_id);
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(main_decl != NULL && definition != NULL && initializer != NULL &&
+        initializer->type == AST_ARRAY_LITERAL && ast_array_literal_count(initializer) == 0 &&
+        read_call != NULL && read_call->type == AST_CALL && text_use != NULL &&
+        text_use->type == AST_IDENTIFIER && birth != NULL && literal_row != NULL &&
+        risk != NULL && fact != NULL &&
+        flow != NULL && risk->prepared && risk->claims != NULL && risk->claims->count != 0 &&
+        risk->uses != NULL && risk->use_count == 1 && risk->sealed_uses == 1 &&
+        risk->uses[0].value == text_use && risk->uses[0].sink == read_call &&
+        risk->uses[0].actual_ordinal == 0 &&
+        publication->indexed_string_nonowner_count == 1 &&
+        text_row != NULL && text_row->indexed_string_source_present &&
+        text_row->indexed_string_source_id == UINT32_MAX &&
+        fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+        fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN &&
+        fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE);
+    if (risk == NULL || fact == NULL || flow == NULL || risk->claims == NULL ||
+        risk->claims->count == 0 || risk->uses == NULL || risk->use_count == 0 ||
+        text_row == NULL || birth == NULL || literal_row == NULL || initializer == NULL)
+        goto cleanup;
+    CHECK(semantic_indexed_string_nonowner_current(ctx, risk) &&
+        semantic_indexed_string_nonowner_syntax_current(risk) &&
+        semantic_indexed_string_borrow_finalize(ctx));
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_epoch = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    FunctionParamFlowIndexClaims *ready_claims = risk->claims;
+    for (unsigned fault = 0; fault < 26; fault++) {
+        IndexedStringNonownerRisk saved_risk = *risk;
+        IndexedStringNonownerUse saved_use = risk->uses[0];
+        PgyCollectionOwnershipFact saved_fact = *fact;
+        uint32_t saved_claim_id = ready_claims->rows[0].id;
+        IndexedStringNonownerRisk *saved_birth = birth->indexed_string_nonowner;
+        uint32_t saved_literal_caller_id = literal_row->caller_id;
+        ASTNode *saved_initializer = definition->data.let_decl.initializer;
+        bool saved_source_present = text_row->indexed_string_source_present;
+        bool saved_value_present = text_row->value_present;
+        uint32_t saved_source_id = text_row->indexed_string_source_id;
+        uint32_t saved_text_id = text_row->id;
+        if (fault == 0) risk->prepared = false;
+        if (fault == 1) risk->definition = NULL;
+        if (fault == 2) risk->initializer_id = 0;
+        if (fault == 3) risk->body_id = 0;
+        if (fault == 4) risk->binding_id = 0;
+        if (fault == 5) risk->claims = NULL;
+        if (fault == 6) risk->array_type = TYPE_INT;
+        if (fault == 7) risk->binding_name = NULL;
+        if (fault == 8) fact->element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
+        if (fault == 9) fact->origin = PGY_COLLECTION_ORIGIN_MAP_KEYS;
+        if (fault == 10) birth->indexed_string_nonowner = NULL;
+        if (fault == 11) literal_row->caller_id++;
+        if (fault == 12) definition->data.let_decl.initializer = ast_let_initializer(
+            ast_block_statement(body, 0));
+        if (fault == 13) ready_claims->rows[0].id = 0;
+        if (fault == 14) text_row->indexed_string_source_present = false;
+        if (fault == 15) text_row->indexed_string_source_id = 0;
+        if (fault == 16) risk->uses[0].value_id = 0;
+        if (fault == 17) risk->uses[0].sink_id = 0;
+        if (fault == 18) risk->uses[0].actual_ordinal = SIZE_MAX;
+        if (fault == 19) risk->use_count = 0;
+        if (fault == 20) text_row->value_present = false;
+        if (fault == 21) text_row->id = 0;
+        if (fault == 22) risk->uses[0].value = definition;
+        if (fault == 23) risk->uses[0].sink = log_call;
+        if (fault == 24) risk->uses[0].binding_id++;
+        if (fault == 25) risk->uses[0].shape = AST_CALL;
+        bool current = semantic_indexed_string_nonowner_current(ctx, risk);
+        bool unchanged = flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_epoch &&
+            flow->body_evaluations == ready_evaluations &&
+            risk->claims == (fault == 5 ? NULL : ready_claims) &&
+            !flow->validating_current;
+        if (current || !unchanged)
+            fprintf(stderr, "nonowner risk fault=%u current=%d unchanged=%d\n",
+                fault, (int)current, (int)unchanged);
+        CHECK(!current && unchanged);
+        *risk = saved_risk;
+        risk->uses[0] = saved_use;
+        *fact = saved_fact;
+        ready_claims->rows[0].id = saved_claim_id;
+        birth->indexed_string_nonowner = saved_birth;
+        literal_row->caller_id = saved_literal_caller_id;
+        definition->data.let_decl.initializer = saved_initializer;
+        text_row->indexed_string_source_present = saved_source_present;
+        text_row->value_present = saved_value_present;
+        text_row->indexed_string_source_id = saved_source_id;
+        text_row->id = saved_text_id;
+        CHECK(semantic_indexed_string_nonowner_current(ctx, risk) &&
+            semantic_indexed_string_nonowner_syntax_current(risk));
+    }
+    size_t issued = publication->indexed_string_nonowner_count;
+    publication->indexed_string_nonowner_count++;
+    size_t diagnostics = ctx->diagnostic_count;
+    CHECK(!semantic_indexed_string_borrow_finalize(ctx));
+    CHECK(ctx->has_error && ctx->diagnostic_count == diagnostics + 1 &&
+        ctx->diagnostics[diagnostics] != NULL && ctx->diagnostics[diagnostics]->code != NULL &&
+        strcmp(ctx->diagnostics[diagnostics]->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0);
+    publication->indexed_string_nonowner_count = issued;
+    for (size_t d = diagnostics; d < ctx->diagnostic_count; d++) {
+        free(ctx->diagnostics[d]->message);
+        diag_payload_snapshot_destroy(ctx->diagnostics[d]->payload);
+        free(ctx->diagnostics[d]);
+        ctx->diagnostics[d] = NULL;
+    }
+    ctx->diagnostic_count = diagnostics;
+    ctx->has_error = false;
+    CHECK(semantic_indexed_string_nonowner_current(ctx, risk) &&
+        semantic_indexed_string_borrow_finalize(ctx));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_nonowner_terminal_capture_parent(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Arena{atoms:Array<String>;}struct Stored{values:Array<String>;}"
+        "func VariantAt(arena:Arena,index:Int)->Option<String>{"
+        "if index<0||index>=ArrayLength(arena.atoms){return None;}"
+        "return Some(arena.atoms[index]);}"
+        "func NonownerRead(text:String)->Int{return StringLength(text);}"
+        "func Build(arena:Arena)->Stored{"
+        "let selected:Option<String> = VariantAt(arena,0);"
+        "let text:String=UnwrapOption(selected);"
+        "let no_texts:Array<String> = [];"
+        "Log(NonownerRead(text));"
+        "let decoy:func()->Stored=()=>{return Stored([]);};"
+        "return Stored(no_texts);}"
+        "func Main()->Void{let arena=Arena([\"red,blue\"]);"
+        "let stored=Build(arena);Log(ArrayLength(stored.values));}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *build = ast_program_statement(program, 4);
+    ASTNode *body = build == NULL ? NULL : ast_func_body(build);
+    ASTNode *definition = body == NULL ? NULL : ast_block_statement(body, 2);
+    ASTNode *lambda_let = body == NULL ? NULL : ast_block_statement(body, 4);
+    ASTNode *lambda = lambda_let == NULL ? NULL : ast_let_initializer(lambda_let);
+    ASTNode *lambda_body = lambda == NULL ? NULL : ast_lambda_body(lambda);
+    ASTNode *outer_return = body == NULL ? NULL : ast_block_statement(body, 5);
+    ASTNode *inner_return = lambda_body == NULL ? NULL : ast_block_statement(lambda_body, 0);
+    PublishedNode *birth = definition == NULL ? NULL :
+        publication_node_by_id(ctx->function_param_publications,
+            ast_node_stable_id(definition));
+    IndexedStringNonownerRisk *risk = birth == NULL ? NULL : birth->indexed_string_nonowner;
+    CHECK(build != NULL && body != NULL && definition != NULL &&
+        lambda != NULL && lambda->type == AST_LAMBDA_EXPR &&
+        lambda_body != NULL && lambda_body->type == AST_BLOCK &&
+        outer_return != NULL && inner_return != NULL &&
+        outer_return->type == AST_RETURN && inner_return->type == AST_RETURN &&
+        risk != NULL && risk->prepared && risk->claims != NULL &&
+        risk->terminal_count == 1 && risk->sealed_terminals == 1 &&
+        risk->terminals != NULL && risk->terminals[0].statement == outer_return &&
+        risk->terminals[0].call == ast_return_value(outer_return) &&
+        semantic_indexed_string_nonowner_current(ctx, risk) &&
+        semantic_indexed_string_nonowner_syntax_current(risk));
+    if (risk == NULL || !risk->prepared || risk->claims == NULL ||
+        risk->terminal_count != 1 || body == NULL || lambda_body == NULL ||
+        outer_return == NULL || inner_return == NULL) goto cleanup;
+    FunctionParamFlowIndexClaim *body_row = NULL, *lambda_row = NULL;
+    size_t outer_at = SIZE_MAX, inner_at = SIZE_MAX;
+    for (size_t i = 0; i < risk->claims->count; i++) {
+        FunctionParamFlowIndexClaim *row = &risk->claims->rows[i];
+        if (row->node == body) body_row = row;
+        if (row->node == lambda_body) lambda_row = row;
+    }
+    for (size_t c = 0; body_row != NULL && c < body_row->child_count; c++)
+        if (body_row->children[c] == outer_return) outer_at = c;
+    for (size_t c = 0; lambda_row != NULL && c < lambda_row->child_count; c++)
+        if (lambda_row->children[c] == inner_return) inner_at = c;
+    CHECK(body_row != NULL && lambda_row != NULL && outer_at != SIZE_MAX &&
+        inner_at != SIZE_MAX && body_row->child_ids != NULL &&
+        body_row->child_claim_ordinals != NULL && lambda_row->child_ids != NULL &&
+        lambda_row->child_claim_ordinals != NULL);
+    if (body_row == NULL || lambda_row == NULL || outer_at == SIZE_MAX ||
+        inner_at == SIZE_MAX || body_row->child_ids == NULL ||
+        body_row->child_claim_ordinals == NULL || lambda_row->child_ids == NULL ||
+        lambda_row->child_claim_ordinals == NULL) goto cleanup;
+    /* Keep the original claims and nominal mapping: only the live AST parent
+     * changes. A return inside a capture is not Build's terminal return. */
+    body->data.block.statements[5] = inner_return;
+    lambda_body->data.block.statements[0] = outer_return;
+    bool ast_current = semantic_indexed_string_nonowner_current(ctx, risk);
+    bool ast_syntax = semantic_indexed_string_nonowner_syntax_current(risk);
+    body->data.block.statements[5] = outer_return;
+    lambda_body->data.block.statements[0] = inner_return;
+    CHECK(!ast_current && !ast_syntax &&
+        semantic_indexed_string_nonowner_current(ctx, risk) &&
+        semantic_indexed_string_nonowner_syntax_current(risk));
+    /* Separately forge the original claim parent edges, not the AST. The
+     * risk's child now reaches a lambda ancestor in the claimed graph. */
+    ASTNode *saved_outer = body_row->children[outer_at];
+    ASTNode *saved_inner = lambda_row->children[inner_at];
+    uint32_t saved_outer_id = body_row->child_ids[outer_at];
+    uint32_t saved_inner_id = lambda_row->child_ids[inner_at];
+    size_t saved_outer_claim = body_row->child_claim_ordinals[outer_at];
+    size_t saved_inner_claim = lambda_row->child_claim_ordinals[inner_at];
+    body_row->children[outer_at] = saved_inner;
+    body_row->child_ids[outer_at] = saved_inner_id;
+    body_row->child_claim_ordinals[outer_at] = saved_inner_claim;
+    lambda_row->children[inner_at] = saved_outer;
+    lambda_row->child_ids[inner_at] = saved_outer_id;
+    lambda_row->child_claim_ordinals[inner_at] = saved_outer_claim;
+    bool claim_current = semantic_indexed_string_nonowner_current(ctx, risk);
+    bool claim_syntax = semantic_indexed_string_nonowner_syntax_current(risk);
+    body_row->children[outer_at] = saved_outer;
+    body_row->child_ids[outer_at] = saved_outer_id;
+    body_row->child_claim_ordinals[outer_at] = saved_outer_claim;
+    lambda_row->children[inner_at] = saved_inner;
+    lambda_row->child_ids[inner_at] = saved_inner_id;
+    lambda_row->child_claim_ordinals[inner_at] = saved_inner_claim;
+    CHECK(!claim_current && !claim_syntax &&
+        semantic_indexed_string_nonowner_current(ctx, risk) &&
+        semantic_indexed_string_nonowner_syntax_current(risk));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_private_string_empty_receiver_currency(bool named)
 {
     Lexer *lexer = lexer_create(named
@@ -12151,6 +12415,8 @@ int main(void)
     checked_scalar_noframe_nonlocal_currency();
     checked_physical_result_nonlocal_currency();
     checked_private_string_push_currency();
+    checked_nonowner_risk_currency();
+    checked_nonowner_terminal_capture_parent();
     checked_private_string_empty_receiver_currency(false);
     checked_private_string_empty_receiver_currency(true);
     checked_private_string_borrowed_without_receipt();

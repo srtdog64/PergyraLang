@@ -166,6 +166,385 @@ test_mir_collection_ownership_validation(void)
         rir_destroy(field_rir);
         hir_destroy(field_hir);
     }
+    {
+        HIRProgram *risk_hir = NULL;
+        RIRProgram *risk_rir = NULL;
+        MIRProgram *risk_mir = NULL;
+        const char *risk_source =
+            "struct Arena{atoms:Array<String>;}"
+            "func VariantAt(arena:Arena,index:Int)->Option<String>{"
+            "if index<0||index>=ArrayLength(arena.atoms){return None;}"
+            "return Some(arena.atoms[index]);}"
+            "func NonownerRead(text:String)->Int{return StringLength(text);}"
+            "func Main()->Void{let arena=Arena([\"red,blue\"]);"
+            "let selected=VariantAt(arena,0);if IsSome(selected){"
+            "let text=UnwrapOption(selected);let no_texts:Array<String> = [];"
+            "var spare:Array<String> = [\"literal\"];spare=[\"other\"];"
+            "var marker:Int=0;marker=1;"
+            "ArrayPush(no_texts,\"literal\");Log(no_texts[0]);Log(NonownerRead(text));"
+            "Log(ArrayLength(no_texts));Log(ArrayLength(spare));}}";
+        bool lowered = lower_mir_from_source(risk_source, &risk_hir, &risk_rir, &risk_mir);
+        MIRRoutine *main_routine = lowered
+            ? find_mir_routine_mut(risk_mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+        MIRInstruction *risk_def = NULL, *spare_def = NULL, *push = NULL;
+        MIRInstruction *assignment = NULL, *spare_assignment = NULL;
+        MIRBasicBlock *push_block = NULL;
+        size_t push_index = 0;
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &main_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->arg0 != NULL) {
+                    if (strcmp(inst->arg0, "no_texts") == 0) risk_def = inst;
+                    if (strcmp(inst->arg0, "spare") == 0) spare_def = inst;
+                }
+                if (inst->ast != NULL && inst->ast->type == AST_ASSIGNMENT) {
+                    ASTNode *target = ast_assignment_target(inst->ast);
+                    const char *name = target == NULL ? NULL : ast_identifier_name(target);
+                    if (name != NULL && strcmp(name, "marker") == 0) assignment = inst;
+                    if (name != NULL && strcmp(name, "spare") == 0) spare_assignment = inst;
+                }
+                if (inst->has_collection_ownership_receipt &&
+                    inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION) {
+                    push = inst;
+                    push_block = &main_routine->blocks[b];
+                    push_index = i;
+                }
+            }
+        PgyCollectionEffectView risk_view = {0};
+        bool risk_control = main_routine != NULL && risk_def != NULL && spare_def != NULL &&
+            risk_def->expr0 != NULL && spare_def->expr0 != NULL && push != NULL &&
+            push_block != NULL && assignment != NULL && spare_assignment != NULL &&
+            push->expr0 != NULL && push->expr0->type == AST_CALL &&
+            semantic_collection_effect_snapshot_current(risk_mir->collection_effect_snapshot,
+                risk_mir->collection_effect_source_program, &risk_view) &&
+            risk_view.nonowner_risk_count == 1 &&
+            mir_validate_collection_effect_evidence(risk_mir, NULL, NULL) &&
+            mir_validate(risk_mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+        TEST("MIR non-owning empty risk retains its original whole-body evidence");
+        EXPECT(risk_control);
+        if (risk_control) {
+            ASTNode *risk_receiver = ast_call_argument(push->expr0, 0);
+            ASTNode *original_spare_rhs = spare_assignment->expr1;
+            TEST("MIR unrelated typed Array assignment has an original RHS");
+            EXPECT(risk_receiver != NULL && risk_receiver->type == AST_IDENTIFIER &&
+                original_spare_rhs != NULL && original_spare_rhs->type == AST_ARRAY_LITERAL);
+            if (risk_receiver != NULL && original_spare_rhs != NULL) {
+                spare_assignment->expr1 = risk_receiver;
+                bool evidence_refused = !mir_validate_collection_effect_evidence(
+                    risk_mir, main_routine, NULL);
+                bool full_refused = !mir_validate(risk_mir, NULL);
+                bool emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                spare_assignment->expr1 = original_spare_rhs;
+                TEST("MIR unrelated Array assignment cannot alias a nonowner risk RHS");
+                EXPECT(evidence_refused && full_refused && emission_refused &&
+                    mir_validate_collection_effect_evidence(risk_mir, main_routine, NULL) &&
+                    mir_validate(risk_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+            ASTNode *main_ast = ast_program_statement(risk_mir->collection_effect_source_program, 3);
+            ASTNode *branch = main_ast == NULL ? NULL :
+                ast_block_statement(ast_func_body(main_ast), 2);
+            ASTNode *risk_let = branch == NULL ? NULL :
+                ast_block_statement(ast_if_then_branch(branch), 1);
+            ASTNode *original = risk_let == NULL ? NULL : ast_let_initializer(risk_let);
+            TEST("MIR risk definition identifies its original empty LET");
+            EXPECT(risk_let != NULL && original == risk_def->expr0);
+            if (risk_let != NULL && original == risk_def->expr0) {
+                risk_def->expr0 = spare_def->expr0;
+                risk_let->data.let_decl.initializer = spare_def->expr0;
+                bool evidence_refused = !mir_validate_collection_effect_evidence(
+                    risk_mir, main_routine, NULL);
+                bool full_refused = !mir_validate(risk_mir, NULL);
+                bool emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                risk_let->data.let_decl.initializer = original;
+                risk_def->expr0 = original;
+                TEST("MIR risk cannot rebind both AST and DEF to another original array");
+                EXPECT(evidence_refused && full_refused && emission_refused &&
+                    mir_validate(risk_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+            MIRInstruction saved_push = *push;
+            ASTNode saved_call = *push->expr0;
+            uint32_t forged_source = ast_node_stable_id(ast_call_argument(push->expr0, 1));
+            push->collection_ownership_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+            push->collection_ownership_source_binding_id = forged_source;
+            push->expr0->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+            push->expr0->data.call.semantic_collection_source_binding_id = forged_source;
+            bool evidence_refused = !mir_validate_collection_effect_evidence(
+                risk_mir, main_routine, NULL);
+            bool full_refused = !mir_validate(risk_mir, NULL);
+            bool emission_refused = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            *saved_push.expr0 = saved_call;
+            *push = saved_push;
+            TEST("MIR risk cannot promote a shallow effect through coherent AST and MIR mutation");
+            EXPECT(forged_source != 0 && evidence_refused && full_refused && emission_refused &&
+                mir_validate(risk_mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL));
+            MIRBasicBlock saved_block = *push_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *inserted = calloc(count + 1, sizeof(*inserted));
+            TEST("MIR extra nonowner alias operation has isolated instruction storage");
+            EXPECT(inserted != NULL);
+            if (inserted != NULL) {
+                memcpy(inserted, saved_block.instructions, push_index * sizeof(*inserted));
+                inserted[push_index] = *assignment;
+                inserted[push_index].kind = MIR_INST_ASSIGN;
+                inserted[push_index].expr0 = ast_call_argument(push->expr0, 0);
+                inserted[push_index].expr1 = risk_def->expr0;
+                memcpy(&inserted[push_index + 1], &saved_block.instructions[push_index],
+                    (count - push_index) * sizeof(*inserted));
+                push_block->instructions = inserted;
+                push_block->instruction_count = count + 1;
+                push_block->instruction_capacity = count + 1;
+                bool evidence_refused = !mir_validate_collection_effect_evidence(
+                    risk_mir, main_routine, NULL);
+                bool full_refused = !mir_validate(risk_mir, NULL);
+                bool emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *push_block = saved_block;
+                free(inserted);
+                TEST("MIR unclaimed later risk assignment cannot hide behind old claims");
+                EXPECT(evidence_refused && full_refused && emission_refused &&
+                    mir_validate(risk_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+        }
+        mir_destroy(risk_mir); rir_destroy(risk_rir); hir_destroy(risk_hir);
+    }
+    {
+        HIRProgram *return_hir = NULL;
+        RIRProgram *return_rir = NULL;
+        MIRProgram *return_mir = NULL;
+        const char *source =
+            "struct Arena{atoms:Array<String>;}"
+            "func VariantAt(arena:Arena,index:Int)->Option<String>{"
+            "if index<0||index>=ArrayLength(arena.atoms){return None;}"
+            "return Some(arena.atoms[index]);}"
+            "func NonownerRead(text:String)->Int{return StringLength(text);}"
+            "func Build()->Array<String>{let arena=Arena([\"red,blue\"]);"
+            "let selected:Option<String> = VariantAt(arena,0);"
+            "let text:String=UnwrapOption(selected);"
+            "let no_texts:Array<String> = [];Log(NonownerRead(text));"
+            "Log(ArrayLength(no_texts));return [\"fallback\"]; }"
+            "func Main()->Void{let rows=Build();Log(ArrayLength(rows));}";
+        bool lowered = lower_mir_from_source(source,
+            &return_hir, &return_rir, &return_mir);
+        MIRRoutine *build = lowered ? find_mir_routine_mut(return_mir,
+            "Build", MIR_SCOPE_FUNCTION) : NULL;
+        MIRInstruction *returned = NULL;
+        for (size_t b = 0; build != NULL && b < build->block_count; b++)
+            for (size_t i = 0; i < build->blocks[b].instruction_count; i++)
+                if (build->blocks[b].instructions[i].kind == MIR_INST_RETURN)
+                    returned = &build->blocks[b].instructions[i];
+        const ASTNode *program = return_mir == NULL ? NULL :
+            return_mir->collection_effect_source_program;
+        ASTNode *build_ast = program == NULL ? NULL : ast_program_statement(program, 3);
+        ASTNode *body = build_ast == NULL ? NULL : ast_func_body(build_ast);
+        ASTNode *length_log = body == NULL ? NULL : ast_block_statement(body, 5);
+        ASTNode *length_call = length_log == NULL ? NULL : ast_call_argument(length_log, 0);
+        ASTNode *risk_identifier = length_call == NULL ? NULL : ast_call_argument(length_call, 0);
+        PgyCollectionEffectView view = {0};
+        bool control = build != NULL && returned != NULL && returned->expr0 != NULL &&
+            returned->expr0->type == AST_ARRAY_LITERAL &&
+            risk_identifier != NULL && risk_identifier->type == AST_IDENTIFIER &&
+            semantic_collection_effect_snapshot_current(
+                return_mir->collection_effect_snapshot, program, &view) &&
+            view.nonowner_risk_count == 1 &&
+            mir_validate_collection_effect_evidence(return_mir, build, NULL) &&
+            mir_validate(return_mir, NULL) &&
+            mir_validate_emission_contract(build,
+                build->has_cleanup_block, false, NULL);
+        TEST("MIR unrelated fallback Array return has one current nonowner risk");
+        EXPECT(control);
+        if (control) {
+            ASTNode *fallback = returned->expr0;
+            returned->expr0 = risk_identifier;
+            bool evidence_refused = !mir_validate_collection_effect_evidence(
+                return_mir, build, NULL);
+            bool full_refused = !mir_validate(return_mir, NULL);
+            bool emission_refused = !mir_validate_emission_contract(build,
+                build->has_cleanup_block, false, NULL);
+            returned->expr0 = fallback;
+            TEST("MIR direct RETURN cannot reuse a nonowner risk identifier");
+            EXPECT(evidence_refused && full_refused && emission_refused &&
+                mir_validate_collection_effect_evidence(return_mir, build, NULL) &&
+                mir_validate(return_mir, NULL) &&
+                mir_validate_emission_contract(build,
+                    build->has_cleanup_block, false, NULL));
+        }
+        mir_destroy(return_mir); rir_destroy(return_rir); hir_destroy(return_hir);
+    }
+    {
+        HIRProgram *terminal_hir = NULL;
+        RIRProgram *terminal_rir = NULL;
+        MIRProgram *terminal_mir = NULL;
+        const char *source =
+            "struct Arena{atoms:Array<String>;}struct Stored{values:Array<String>;}"
+            "func VariantAt(arena:Arena,index:Int)->Option<String>{"
+            "if index<0||index>=ArrayLength(arena.atoms){return None;}"
+            "return Some(arena.atoms[index]);}"
+            "func NonownerRead(text:String)->Int{return StringLength(text);}"
+            "func Build()->Stored{"
+            "let arena:Arena=Arena([\"red,blue\"]);"
+            "let selected:Option<String> = VariantAt(arena,0);"
+            "let text:String=UnwrapOption(selected);"
+            "let no_texts:Array<String> = [];"
+            "let spare:Stored = Stored([]);"
+            "Log(NonownerRead(text));"
+            "return Stored(no_texts);}"
+            "func Main()->Void{let stored=Build();Log(ArrayLength(stored.values));}";
+        bool lowered = lower_mir_from_source(source,
+            &terminal_hir, &terminal_rir, &terminal_mir);
+        MIRRoutine *build = lowered ? find_mir_routine_mut(terminal_mir,
+            "Build", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = terminal_mir == NULL ? NULL :
+            terminal_mir->collection_effect_source_program;
+        ASTNode *build_ast = program == NULL ? NULL : ast_program_statement(program, 4);
+        ASTNode *body = build_ast == NULL ? NULL : ast_func_body(build_ast);
+        ASTNode *outer_return = body == NULL ? NULL : ast_block_statement(body, 6);
+        MIRInstruction *spare_def = NULL, *statement_template = NULL, *terminal_return = NULL;
+        MIRBasicBlock *terminal_block = NULL;
+        size_t terminal_index = 0;
+        for (size_t b = 0; build != NULL && b < build->block_count; b++)
+            for (size_t i = 0; i < build->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &build->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->arg0 != NULL &&
+                    strcmp(inst->arg0, "spare") == 0) spare_def = inst;
+                if (inst->kind == MIR_INST_STMT && inst->expr0 != NULL)
+                    statement_template = inst;
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 != NULL &&
+                    inst->expr0->type == AST_CALL) {
+                    terminal_return = inst;
+                    terminal_block = &build->blocks[b];
+                    terminal_index = i;
+                }
+            }
+        PgyCollectionEffectView view = {0};
+        bool snapshot_current = terminal_mir != NULL && program != NULL &&
+            semantic_collection_effect_snapshot_current(
+                terminal_mir->collection_effect_snapshot, program, &view);
+        bool evidence_current = snapshot_current && build != NULL &&
+            mir_validate_collection_effect_evidence(terminal_mir, build, NULL);
+        bool full_current = evidence_current && mir_validate(terminal_mir, NULL);
+        bool emission_current = full_current &&
+            mir_validate_emission_contract(build,
+                build->has_cleanup_block, false, NULL);
+        bool control = build != NULL && body != NULL && outer_return != NULL &&
+            outer_return->type == AST_RETURN && snapshot_current &&
+            view.nonowner_risk_count == 1 && evidence_current && full_current &&
+            emission_current && spare_def != NULL && spare_def->expr0 != NULL &&
+            statement_template != NULL && terminal_return != NULL &&
+            terminal_return->expr0 == ast_return_value(outer_return) &&
+            terminal_block != NULL;
+        TEST("MIR nonowner terminal nominal return has an admitted risk snapshot");
+        if (!control) printf("\n  terminal control lowered=%d build=%d body=%d return=%d snapshot=%d risks=%zu evidence=%d full=%d emission=%d\n",
+            (int)lowered, build != NULL, body != NULL,
+            outer_return != NULL && outer_return->type == AST_RETURN,
+            (int)snapshot_current, view.nonowner_risk_count,
+            (int)evidence_current, (int)full_current, (int)emission_current);
+        EXPECT(control);
+        if (control) {
+            ASTNode *protected_constructor = terminal_return->expr0;
+            ASTNode *original_spare_initializer = spare_def->expr0;
+            spare_def->expr0 = protected_constructor;
+            bool def_evidence_refused = !mir_validate_collection_effect_evidence(
+                terminal_mir, build, NULL);
+            bool def_full_refused = !mir_validate(terminal_mir, NULL);
+            bool def_emission_refused = !mir_validate_emission_contract(build,
+                build->has_cleanup_block, false, NULL);
+            spare_def->expr0 = original_spare_initializer;
+            TEST("MIR nominal terminal constructor cannot become a separate local DEF value");
+            EXPECT(def_evidence_refused && def_full_refused && def_emission_refused &&
+                mir_validate_collection_effect_evidence(terminal_mir, build, NULL) &&
+                mir_validate(terminal_mir, NULL) &&
+                mir_validate_emission_contract(build,
+                    build->has_cleanup_block, false, NULL));
+
+            MIRBasicBlock saved_terminal_block = *terminal_block;
+            size_t instruction_count = saved_terminal_block.instruction_count;
+            MIRInstruction *with_extra_statement =
+                calloc(instruction_count + 1, sizeof(*with_extra_statement));
+            TEST("MIR nominal terminal non-return evaluation has isolated storage");
+            EXPECT(with_extra_statement != NULL);
+            if (with_extra_statement != NULL) {
+                memcpy(with_extra_statement, saved_terminal_block.instructions,
+                    terminal_index * sizeof(*with_extra_statement));
+                with_extra_statement[terminal_index] = *statement_template;
+                with_extra_statement[terminal_index].expr0 = protected_constructor;
+                memcpy(&with_extra_statement[terminal_index + 1],
+                    &saved_terminal_block.instructions[terminal_index],
+                    (instruction_count - terminal_index) * sizeof(*with_extra_statement));
+                terminal_block->instructions = with_extra_statement;
+                terminal_block->instruction_count = instruction_count + 1;
+                terminal_block->instruction_capacity = instruction_count + 1;
+                bool stmt_evidence_refused = !mir_validate_collection_effect_evidence(
+                    terminal_mir, build, NULL);
+                bool stmt_full_refused = !mir_validate(terminal_mir, NULL);
+                bool stmt_emission_refused = !mir_validate_emission_contract(build,
+                    build->has_cleanup_block, false, NULL);
+                *terminal_block = saved_terminal_block;
+                free(with_extra_statement);
+                TEST("MIR nominal terminal constructor cannot replay as a non-return STMT");
+                EXPECT(stmt_evidence_refused && stmt_full_refused && stmt_emission_refused &&
+                    mir_validate_collection_effect_evidence(terminal_mir, build, NULL) &&
+                    mir_validate(terminal_mir, NULL) &&
+                    mir_validate_emission_contract(build,
+                        build->has_cleanup_block, false, NULL));
+            }
+
+            ASTNode *capture = ast_create_lambda_expression();
+            ASTNode *capture_body = ast_create_block();
+            ASTNode **captured_statements = calloc(1, sizeof(*captured_statements));
+            TEST("MIR nested-capture mutant has isolated AST storage");
+            EXPECT(capture != NULL && capture_body != NULL && captured_statements != NULL);
+            if (capture != NULL && capture_body != NULL && captured_statements != NULL) {
+                capture->stable_id = UINT32_MAX - 1;
+                capture_body->stable_id = UINT32_MAX;
+                captured_statements[0] = outer_return;
+                capture_body->data.block.statements = captured_statements;
+                capture_body->data.block.count = 1;
+                capture_body->data.block.capacity = 1;
+                capture->data.lambda_expr.body = capture_body;
+                /* Original claims, terminal mapping, and MIR are unchanged.
+                 * The live AST's original RETURN is now under a new, unclaimed
+                 * lambda parent rather than Build's terminal statement. */
+                body->data.block.statements[6] = capture;
+                bool evidence_refused = !mir_validate_collection_effect_evidence(
+                    terminal_mir, build, NULL);
+                bool full_refused = !mir_validate(terminal_mir, NULL);
+                bool emission_refused = !mir_validate_emission_contract(build,
+                    build->has_cleanup_block, false, NULL);
+                body->data.block.statements[6] = outer_return;
+                captured_statements[0] = NULL;
+                TEST("MIR unclaimed nested lambda cannot disguise a nominal terminal return");
+                EXPECT(evidence_refused && full_refused && emission_refused &&
+                    mir_validate_collection_effect_evidence(terminal_mir, build, NULL) &&
+                    mir_validate(terminal_mir, NULL) &&
+                    mir_validate_emission_contract(build,
+                        build->has_cleanup_block, false, NULL));
+                ast_destroy(capture);
+            } else {
+                if (capture != NULL && capture_body != NULL) {
+                    capture->data.lambda_expr.body = capture_body;
+                    ast_destroy(capture);
+                } else {
+                    ast_destroy(capture);
+                    ast_destroy(capture_body);
+                }
+                free(captured_statements);
+            }
+        }
+        mir_destroy(terminal_mir); rir_destroy(terminal_rir); hir_destroy(terminal_hir);
+    }
     HIRProgram *borrow_hir = NULL;
     RIRProgram *borrow_rir = NULL;
     MIRProgram *borrow_mir = NULL;

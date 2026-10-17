@@ -217,7 +217,8 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         return hir_owned_expression(operations, ast_channel_recv_channel(node));
     } else if (node->type == AST_RETURN) {
         if (operations->source_only && !semantic_collection_effect_snapshot_source_return(
-                operations->snapshot, operations->routine->source_syntax_id, ast_return_value(node))) return false;
+                operations->snapshot, operations->routine->source_syntax_id,
+                node, ast_return_value(node))) return false;
         return hir_owned_expression(operations, ast_return_value(node));
     } else if (node->type == AST_ASSIGNMENT) {
         ASTNode *place = ast_assignment_target(node);
@@ -307,7 +308,8 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
     }
     for (size_t e = 0; valid && e < view.effect_count; e++)
         valid = seen[e];
-    for (size_t r = 0; valid && view.source_use_count != 0 && r < hir->routine_count; r++) {
+    for (size_t r = 0; valid && (view.source_use_count != 0 || view.nonowner_risk_count != 0) &&
+            r < hir->routine_count; r++) {
         const HIRRoutine *routine = &hir->routines[r];
         if (!routine->has_cfg) continue;
         if (routine->cfg.block_count > routine->cfg.block_capacity ||
@@ -316,18 +318,39 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
             const HIRBasicBlock *block = &routine->cfg.blocks[b];
             if (block->statement_count > block->statement_capacity ||
                 (block->statement_count != 0 && block->statements == NULL)) { valid = false; break; }
-            for (size_t s = 0; valid && s < block->statement_count; s++)
+            for (size_t s = 0; valid && s < block->statement_count; s++) {
+                ASTNode *statement = block->statements[s];
+                if (statement == NULL) { valid = false; break; }
+                if (statement->type == AST_RETURN) {
+                    if (s + 1 != block->statement_count || block->terminator_kind != HIR_BLOCK_RETURN ||
+                        block->terminator_value != ast_return_value(statement)) { valid = false; break; }
+                } else if (!semantic_collection_effect_snapshot_source_evaluation(
+                        semantic->collection_effect_snapshot, routine->source_syntax_id, statement)) {
+                    valid = false; break;
+                }
                 valid = hir_collection_source_expression_current(semantic->collection_effect_snapshot,
-                    routine, block->statements[s]);
+                    routine, statement);
+            }
             if (valid && block->terminator_condition != NULL)
-                valid = hir_collection_source_expression_current(semantic->collection_effect_snapshot,
-                    routine, block->terminator_condition);
-            if (valid && block->terminator_value != NULL)
-                valid = (block->terminator_kind != HIR_BLOCK_RETURN ||
+                valid = semantic_collection_effect_snapshot_source_evaluation(
+                    semantic->collection_effect_snapshot, routine->source_syntax_id,
+                    block->terminator_condition) &&
+                    hir_collection_source_expression_current(semantic->collection_effect_snapshot,
+                        routine, block->terminator_condition);
+            if (valid && block->terminator_value != NULL) {
+                const ASTNode *statement = block->statement_count == 0 ? NULL :
+                    block->statements[block->statement_count - 1];
+                valid = (block->terminator_kind == HIR_BLOCK_RETURN ?
                     semantic_collection_effect_snapshot_source_return(semantic->collection_effect_snapshot,
-                        routine->source_syntax_id, block->terminator_value)) &&
+                        routine->source_syntax_id,
+                        statement != NULL && statement->type == AST_RETURN ? statement : NULL,
+                        block->terminator_value) :
+                    semantic_collection_effect_snapshot_source_evaluation(
+                        semantic->collection_effect_snapshot, routine->source_syntax_id,
+                        block->terminator_value)) &&
                     hir_collection_source_expression_current(semantic->collection_effect_snapshot,
                         routine, block->terminator_value);
+            }
         }
     }
     free(seen);

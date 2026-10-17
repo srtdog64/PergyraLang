@@ -1,25 +1,15 @@
 #include "collection_ownership_fact_internal.h"
+#include "collection_ownership_effect_snapshot_internal.h"
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_field_lineage_internal.h"
+#include "indexed_string_nonowner_risk_internal.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-struct PgyCollectionEffectSnapshot {
-    const ASTNode *program;
-    uint32_t program_id;
-    PgyCollectionEffectCaller *callers;
-    FunctionParamFlowIndexClaims **claims;
-    PgyCollectionExpectedEffect *effects;
-    IndexedStringFieldRecipe **source_uses;
-    SemanticNominalResultSnapshot **nominals;
-    size_t caller_count, effect_count, sealed_callers, sealed_effects;
-    size_t source_use_count, sealed_source_uses, nominal_count;
-    size_t refs;
-    bool owns_source_payloads;
-};
+
 
 PgyCollectionEffectSnapshot *semantic_collection_effect_snapshot_retain(
     PgyCollectionEffectSnapshot *snapshot)
@@ -35,6 +25,8 @@ void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *sn
     for (size_t i = 0; i < snapshot->caller_count; i++)
         function_param_flow_claims_destroy(snapshot->claims[i]);
     if (snapshot->owns_source_payloads) {
+        for (size_t i = 0; i < snapshot->nonowner_risk_count; i++)
+            semantic_indexed_string_nonowner_destroy(snapshot->nonowner_risks[i]);
         for (size_t i = 0; i < snapshot->source_use_count; i++) {
             PublishedNode payload = {.projection = snapshot->source_uses[i]->projection};
             semantic_param_publication_projection_destroy(&payload);
@@ -48,6 +40,7 @@ void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *sn
     free(snapshot->effects);
     free(snapshot->source_uses);
     free(snapshot->nominals);
+    free(snapshot->nonowner_risks);
     free(snapshot);
 }
 
@@ -73,9 +66,23 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         s->program_id != ast_node_stable_id(program) ||
         s->caller_count != s->sealed_callers || s->effect_count != s->sealed_effects ||
         s->source_use_count != s->sealed_source_uses ||
+        s->nonowner_risk_count != s->sealed_nonowner_risks ||
         (s->caller_count != 0 && (s->callers == NULL || s->claims == NULL)) ||
         (s->effect_count != 0 && s->effects == NULL) ||
-        (s->source_use_count != 0 && s->source_uses == NULL)) return false;
+        (s->source_use_count != 0 && s->source_uses == NULL) ||
+        (s->nonowner_risk_count != 0 && s->nonowner_risks == NULL)) return false;
+    for (size_t u = 0; u < s->nonowner_risk_count; u++) {
+        const IndexedStringNonownerRisk *risk = s->nonowner_risks[u];
+        if (!semantic_indexed_string_nonowner_syntax_current(risk)) return false;
+        for (size_t v = 0; v < u; v++)
+            if (s->nonowner_risks[v] == risk || (s->nonowner_risks[v]->caller_id == risk->caller_id &&
+                    s->nonowner_risks[v]->binding_id == risk->binding_id)) return false;
+        size_t matches = 0;
+        for (size_t c = 0; c < s->caller_count; c++)
+            if (s->callers[c].decl == risk->caller && s->callers[c].decl_id == risk->caller_id &&
+                s->callers[c].body_id == risk->body_id && s->claims[c] == risk->claims) matches++;
+        if (matches != 1) return false;
+    }
     for (size_t u = 0; u < s->source_use_count; u++) {
         const IndexedStringFieldRecipe *recipe = s->source_uses[u];
         if (!semantic_indexed_string_field_syntax_current(recipe)) return false;
@@ -124,7 +131,7 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         if (!member) return false;
     }
     if (out != NULL) *out = (PgyCollectionEffectView){s->callers, s->caller_count,
-        s->effects, s->effect_count, s->source_use_count};
+        s->effects, s->effect_count, s->source_use_count, s->nonowner_risk_count};
     return true;
 }
 
@@ -178,132 +185,6 @@ bool semantic_collection_effect_snapshot_call(const PgyCollectionEffectSnapshot 
     return true;
 }
 
-/* The boundary already replayed shared claims. Per-use queries only consume
- * their membership and immutable admission edges, not another whole body. */
-bool semantic_collection_effect_snapshot_source_root(const PgyCollectionEffectSnapshot *s,
-    uint32_t caller_id, const ASTNode *root)
-{
-    if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses) return false;
-    if (s->source_use_count == 0 || root == NULL) return true;
-    if (caller_id == 0 || ast_node_stable_id(root) == 0) return false;
-    for (size_t c = 0; c < s->caller_count; c++) {
-        if (s->callers[c].decl_id != caller_id) continue;
-        const FunctionParamFlowIndexClaims *claims = s->claims[c];
-        if (claims == NULL || claims->failed || claims->rows == NULL) return false;
-        for (size_t r = 0; r < claims->count; r++) {
-            const FunctionParamFlowIndexClaim *row = &claims->rows[r];
-            if (row->node == root) return row->id == ast_node_stable_id(root) &&
-                row->shape == root->type && row->snapshot_complete && !row->snapshot_active;
-        }
-        return false;
-    }
-    return true; /* No field permission: the visitor still checks global edges. */
-}
-
-bool semantic_collection_effect_snapshot_source_use(const PgyCollectionEffectSnapshot *s,
-    uint32_t caller_id, const ASTNode *sink, size_t ordinal, const ASTNode *value)
-{
-    if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
-        sink == NULL || sink->type != AST_CALL || value == NULL) return false;
-    size_t matches = 0;
-    for (size_t u = 0; u < s->source_use_count; u++) {
-        const IndexedStringFieldRecipe *r = s->source_uses[u];
-        if (r == NULL) return false;
-        bool slot = (r->sink == sink || r->sink_id == ast_node_stable_id(sink)) && r->sink_ordinal == ordinal;
-        bool source = r->value == value || r->value_id == ast_node_stable_id(value);
-        if (!slot && !source) continue;
-        if (!slot || !source || ++matches != 1) return false;
-        if (!r->issued || r->caller_id != caller_id || r->sink != sink ||
-            r->sink_id != ast_node_stable_id(sink) || r->value != value ||
-            r->value_id != ast_node_stable_id(value) || ordinal >= ast_call_arg_count(sink) ||
-            ast_call_argument(sink, ordinal) != value) return false;
-    }
-    return true;
-}
-
-bool semantic_collection_effect_snapshot_source_value(const PgyCollectionEffectSnapshot *s,
-    uint32_t caller_id, const ASTNode *value)
-{
-    if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses || value == NULL) return false;
-    for (size_t u = 0; u < s->source_use_count; u++) {
-        const IndexedStringFieldRecipe *r = s->source_uses[u];
-        if (r == NULL) return false;
-        if (r->value != value && r->value_id != ast_node_stable_id(value)) continue;
-        if (!r->issued || r->caller_id != caller_id || r->value != value ||
-            r->value_id != ast_node_stable_id(value) || value->type != AST_MEMBER_ACCESS) return false;
-    }
-    return true;
-}
-
-static const ASTNode *collection_source_place_parent(const ASTNode *place)
-{
-    return place != NULL && place->type == AST_MEMBER_ACCESS ? ast_member_object(place) :
-        place != NULL && place->type == AST_ARRAY_ACCESS ? ast_array_access_array(place) : NULL;
-}
-
-static bool collection_source_place_binding(const ASTNode *place, uint32_t *binding)
-{
-    const ASTNode *slow = place, *fast = place;
-    while (fast != NULL && collection_source_place_parent(fast) != NULL) {
-        slow = collection_source_place_parent(slow);
-        fast = collection_source_place_parent(collection_source_place_parent(fast));
-        if (slow == fast) return false;
-    }
-    const ASTNode *parent;
-    while ((parent = collection_source_place_parent(place)) != NULL) place = parent;
-    *binding = place != NULL && place->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(place) :
-        place != NULL && place->type == AST_LET_DECL ? ast_node_stable_id(place) : 0;
-    return true;
-}
-
-bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEffectSnapshot *s,
-    uint32_t caller_id, uint32_t binding_id, bool initialization,
-    const ASTNode *place, const ASTNode *value)
-{
-    if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses) return false;
-    if (s->source_use_count == 0) return true;
-    uint32_t actual_binding = 0;
-    if (!collection_source_place_binding(place, &actual_binding)) return false;
-    for (size_t u = 0; u < s->source_use_count; u++) {
-        const IndexedStringFieldRecipe *r = s->source_uses[u];
-        if (r == NULL) return false;
-        bool root = binding_id == r->binding_id || actual_binding == r->binding_id;
-        bool producer = value != NULL && (value == r->producer || ast_node_stable_id(value) == r->producer_id);
-        if (root || (initialization && producer)) {
-            if (!initialization || caller_id != r->caller_id || binding_id != r->binding_id ||
-                actual_binding != r->binding_id || place != r->definition ||
-                ast_node_stable_id(place) != r->definition_id || value != r->producer ||
-                ast_node_stable_id(value) != r->producer_id) return false;
-        }
-        if (caller_id != r->producer_decl_id) continue;
-        for (size_t t = 0; t < r->return_count; t++) {
-            uint32_t formal = r->returns[t].formal_id;
-            if (formal != 0 && (binding_id == formal || actual_binding == formal)) return false;
-        }
-    }
-    return true;
-}
-
-bool semantic_collection_effect_snapshot_source_return(const PgyCollectionEffectSnapshot *s,
-    uint32_t caller_id, const ASTNode *value)
-{
-    if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses) return false;
-    for (size_t u = 0; u < s->source_use_count; u++) {
-        const IndexedStringFieldRecipe *r = s->source_uses[u];
-        if (r == NULL) return false;
-        bool matched = false;
-        for (size_t t = 0; t < r->return_count; t++) {
-            const IndexedStringFieldReturn *ret = &r->returns[t];
-            if (value == NULL || (value != ret->constructor && ast_node_stable_id(value) != ret->constructor_id)) continue;
-            if (caller_id != r->producer_decl_id || value != ret->constructor ||
-                ast_node_stable_id(value) != ret->constructor_id) return false;
-            matched = true;
-        }
-        if (caller_id == r->producer_decl_id && !matched) return false;
-    }
-    return true;
-}
-
 static bool collection_snapshot_add_caller(PgyCollectionEffectSnapshot *s,
     FunctionParamFlowSummaryStore *flow, const ASTNode *decl,
     FunctionParamFlowIndexClaims *expected, size_t capacity, size_t *out)
@@ -335,6 +216,22 @@ static bool collection_snapshot_add_caller(PgyCollectionEffectSnapshot *s,
     return true;
 }
 
+static bool collection_snapshot_add_nominal(PgyCollectionEffectSnapshot *s,
+    FunctionParamPublicationStore *pub, const ASTNode *call,
+    SemanticNominalResultSnapshot *mapping, size_t capacity, PublishedNode **owners)
+{
+    PublishedNode *row = publication_node(pub, call, false);
+    if (row == NULL || mapping == NULL || row->nominal_result != mapping) return false;
+    size_t m = 0;
+    for (; m < s->nominal_count; m++)
+        if (s->nominals[m] == mapping) return owners[m] == row;
+    if (m >= capacity) return false;
+    s->nominals[m] = mapping;
+    owners[m] = row;
+    s->nominal_count++;
+    return true;
+}
+
 bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     PgyCollectionEffectSnapshot **out)
 {
@@ -342,8 +239,20 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
         !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *pub = ctx->function_param_publications;
     size_t count = pub->private_string_push_count, fields = pub->indexed_string_field_count;
-    size_t caller_capacity = count, nominal_capacity = 0, field_seen = 0;
+    size_t risks = pub->indexed_string_nonowner_count;
+    if (risks > SIZE_MAX - count) return false;
+    size_t caller_capacity = count + risks, nominal_capacity = 0, field_seen = 0, risk_seen = 0;
     for (size_t n = 0; n < pub->node_capacity; n++) {
+        IndexedStringNonownerRisk *risk = pub->nodes[n].indexed_string_nonowner;
+        if (risk != NULL) {
+            if (risk_seen == SIZE_MAX || pub->nodes[n].node != risk->definition ||
+                pub->nodes[n].id != risk->binding_id ||
+                publication_node(pub, risk->definition, false) != &pub->nodes[n] ||
+                !semantic_indexed_string_nonowner_current(ctx, risk) ||
+                risk->terminal_count > SIZE_MAX - nominal_capacity) return false;
+            risk_seen++;
+            nominal_capacity += risk->terminal_count;
+        }
         IndexedStringFieldRecipe *r = pub->nodes[n].indexed_string_field;
         if (r == NULL) continue;
         if (field_seen == SIZE_MAX || !semantic_indexed_string_field_current(ctx, r) ||
@@ -353,11 +262,13 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
         caller_capacity += r->dependency_count;
         nominal_capacity += r->return_count;
     }
-    if (field_seen != fields || count > SIZE_MAX / sizeof(PgyCollectionExpectedEffect) ||
+    if (field_seen != fields || risk_seen != risks || count > SIZE_MAX / sizeof(PgyCollectionExpectedEffect) ||
         caller_capacity > SIZE_MAX / sizeof(PgyCollectionEffectCaller) ||
         caller_capacity > SIZE_MAX / sizeof(FunctionParamFlowIndexClaims *) ||
         fields > SIZE_MAX / sizeof(IndexedStringFieldRecipe *) ||
-        nominal_capacity > SIZE_MAX / sizeof(SemanticNominalResultSnapshot *)) return false;
+        nominal_capacity > SIZE_MAX / sizeof(SemanticNominalResultSnapshot *) ||
+        nominal_capacity > SIZE_MAX / sizeof(PublishedNode *) ||
+        risks > SIZE_MAX / sizeof(IndexedStringNonownerRisk *)) return false;
     PgyCollectionEffectSnapshot *s = calloc(1, sizeof(*s));
     if (s == NULL) return false;
     s->refs = 1;
@@ -368,12 +279,19 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     s->claims = caller_capacity == 0 ? NULL : calloc(caller_capacity, sizeof(*s->claims));
     s->source_uses = fields == 0 ? NULL : calloc(fields, sizeof(*s->source_uses));
     s->nominals = nominal_capacity == 0 ? NULL : calloc(nominal_capacity, sizeof(*s->nominals));
+    PublishedNode **nominal_owners = nominal_capacity == 0 ? NULL : calloc(nominal_capacity, sizeof(*nominal_owners));
+    s->nonowner_risks = risks == 0 ? NULL : calloc(risks, sizeof(*s->nonowner_risks));
     if ((count != 0 && s->effects == NULL) ||
         (caller_capacity != 0 && (s->callers == NULL || s->claims == NULL)) ||
         (fields != 0 && s->source_uses == NULL) ||
-        (nominal_capacity != 0 && s->nominals == NULL)) goto fail;
+        (nominal_capacity != 0 && (s->nominals == NULL || nominal_owners == NULL)) ||
+        (risks != 0 && s->nonowner_risks == NULL)) goto fail;
     for (size_t n = 0; n < pub->node_capacity; n++) {
         PublishedNode *row = &pub->nodes[n];
+        if (row->indexed_string_nonowner != NULL) {
+            if (s->nonowner_risk_count >= risks) goto fail;
+            s->nonowner_risks[s->nonowner_risk_count++] = row->indexed_string_nonowner;
+        }
         if (row->private_string_push != NULL) {
             if (s->effect_count >= count) goto fail;
             s->effects[s->effect_count++].call = row->node;
@@ -383,11 +301,19 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
             s->source_uses[s->source_use_count++] = row->indexed_string_field;
         }
     }
-    if (s->effect_count != count || s->source_use_count != fields) goto fail;
+    if (s->effect_count != count || s->source_use_count != fields || s->nonowner_risk_count != risks) goto fail;
     for (size_t i = 0; i < count; i++)
         if (!semantic_indexed_string_private_push_current(ctx, s->effects[i].call)) goto fail;
-    if (pub->private_string_push_count != count || pub->indexed_string_field_count != fields) goto fail;
+    if (pub->private_string_push_count != count || pub->indexed_string_field_count != fields ||
+        pub->indexed_string_nonowner_count != risks) goto fail;
     FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    for (size_t u = 0; u < risks; u++) {
+        const IndexedStringNonownerRisk *r = s->nonowner_risks[u];
+        if (!collection_snapshot_add_caller(s, flow, r->caller, r->claims, caller_capacity, NULL)) goto fail;
+        for (size_t t = 0; t < r->terminal_count; t++)
+            if (!collection_snapshot_add_nominal(s, pub, r->terminals[t].call,
+                    r->terminals[t].mapping, nominal_capacity, nominal_owners)) goto fail;
+    }
     for (size_t i = 0; i < count; i++) {
         PgyCollectionExpectedEffect *e = &s->effects[i];
         PublishedNode *row = publication_node(pub, e->call, false);
@@ -408,41 +334,39 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
         }
         for (size_t t = 0; t < r->return_count; t++) {
             const IndexedStringFieldReturn *ret = &r->returns[t];
-            PublishedNode *ctor = publication_node(pub, ret->constructor, false);
-            if (ctor == NULL || ctor->nominal_result != ret->mapping) goto fail;
-            size_t m = 0;
-            for (; m < s->nominal_count; m++) if (s->nominals[m] == ret->mapping) break;
-            if (m == s->nominal_count) {
-                if (m >= nominal_capacity) goto fail;
-                s->nominals[s->nominal_count++] = ret->mapping;
-            }
+            if (!collection_snapshot_add_nominal(s, pub, ret->constructor, ret->mapping,
+                    nominal_capacity, nominal_owners)) goto fail;
         }
     }
     s->sealed_callers = s->caller_count;
     s->sealed_effects = s->effect_count;
     s->sealed_source_uses = s->source_use_count;
+    s->sealed_nonowner_risks = s->nonowner_risk_count;
     if (!semantic_collection_effect_snapshot_current(s, ctx->program_root, NULL)) goto fail;
     /* All fallible validation/allocation precedes this single ownership handoff. */
     for (size_t c = 0; c < s->caller_count; c++)
         for (size_t p = 0; p < flow->program_point_index_count; p++)
             if (flow->program_point_indexes[p].claims == s->claims[c])
                 flow->program_point_indexes[p].claims = NULL;
+    for (size_t u = 0; u < risks; u++) {
+        PublishedNode *definition = publication_node(pub, s->nonowner_risks[u]->definition, false);
+        definition->indexed_string_nonowner = NULL;
+    }
     for (size_t u = 0; u < fields; u++) {
         IndexedStringFieldRecipe *r = s->source_uses[u];
         PublishedNode *value = publication_node(pub, r->value, false);
         value->indexed_string_field = NULL;
         value->projection = (PublishedProjection){0};
-        for (size_t t = 0; t < r->return_count; t++) {
-            PublishedNode *ctor = publication_node(pub, r->returns[t].constructor, false);
-            ctor->nominal_result = NULL;
-        }
     }
+    for (size_t m = 0; m < s->nominal_count; m++) nominal_owners[m]->nominal_result = NULL;
+    free(nominal_owners);
     s->owns_source_payloads = true;
     *out = s;
     return true;
 fail:
     /* Payloads/claims still belong to publication/indexes until successful take. */
     s->caller_count = 0;
+    free(nominal_owners);
     semantic_collection_effect_snapshot_destroy(s);
     return false;
 }

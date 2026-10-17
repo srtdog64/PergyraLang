@@ -8,6 +8,9 @@
 typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 typedef struct Symbol Symbol;
+/* Conditional local-risk exclusion; no String source or cleanup grant. */
+bool semantic_indexed_string_nonowner_record(SemanticContext *ctx,
+    const Symbol *candidate, ASTNode *value, ASTNode *sink, size_t actual_ordinal);
 typedef enum {
     INDEXED_STRING_PUSH_NOT_APPLICABLE,
     INDEXED_STRING_PUSH_RECORDED,

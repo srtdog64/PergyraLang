@@ -14,6 +14,7 @@
 #include "function_param_flow_summary_internal.h"
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_field_lineage_internal.h"
+#include "indexed_string_nonowner_risk_internal.h"
 
 #include <string.h>
 
@@ -41,6 +42,7 @@ static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     size_t issued = 0, private_issued = 0;
+    if (!semantic_indexed_string_nonowner_receipts(ctx, prepare)) return false;
     if (!semantic_indexed_string_field_receipts(ctx, prepare)) return false;
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];

@@ -1,6 +1,7 @@
 #include "function_param_flow_summary_internal.h"
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_field_lineage_internal.h"
+#include "indexed_string_nonowner_risk_internal.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -429,7 +430,8 @@ void semantic_param_publication_retire_value(PublishedNode *row)
         .execution_present = row->execution_present, .reachable = row->reachable,
         .indexed_string_shallow_retention = row->indexed_string_shallow_retention,
         .private_string_push = row->private_string_push,
-        .indexed_string_field = row->indexed_string_field};
+        .indexed_string_field = row->indexed_string_field,
+        .indexed_string_nonowner = row->indexed_string_nonowner};
     *row = identity;
 }
 
@@ -450,6 +452,8 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
         store->nodes[n].private_string_push = NULL;
         semantic_indexed_string_field_destroy(store->nodes[n].indexed_string_field);
         store->nodes[n].indexed_string_field = NULL;
+        semantic_indexed_string_nonowner_destroy(store->nodes[n].indexed_string_nonowner);
+        store->nodes[n].indexed_string_nonowner = NULL;
         semantic_param_publication_retire_value(&store->nodes[n]);
     }
     for (size_t i = 0; i < store->read_loan_count; i++) free(store->read_loans[i].module);

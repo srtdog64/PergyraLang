@@ -125,6 +125,7 @@ typedef struct {
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct PendingPrivateStringPush PendingPrivateStringPush;
 typedef struct IndexedStringFieldRecipe IndexedStringFieldRecipe;
+typedef struct IndexedStringNonownerRisk IndexedStringNonownerRisk;
 typedef struct {
     const ASTNode *body;
     uint32_t body_id;
@@ -233,6 +234,7 @@ typedef struct {
     bool indexed_string_shallow_retention;
     PendingPrivateStringPush *private_string_push;
     IndexedStringFieldRecipe *indexed_string_field;
+    IndexedStringNonownerRisk *indexed_string_nonowner;
     bool indexed_array_source_present;
     uint32_t indexed_array_source_id;
     const Type *value_type;
@@ -270,6 +272,7 @@ struct FunctionParamPublicationStore {
     size_t indexed_string_shallow_retention_count;
     size_t private_string_push_count;
     size_t indexed_string_field_count;
+    size_t indexed_string_nonowner_count;
 };
 typedef struct {
     const ASTNode *program;

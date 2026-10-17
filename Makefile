@@ -567,7 +567,9 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
                    $(SEMANTIC_DIR)/indexed_string_field_lineage.c \
                    $(SEMANTIC_DIR)/indexed_string_field_flow.c \
+                   $(SEMANTIC_DIR)/indexed_string_nonowner_risk.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_snapshot.c \
+                   $(SEMANTIC_DIR)/collection_ownership_source_snapshot.c \
                    $(SEMANTIC_DIR)/string_window_extent.c \
                    $(SEMANTIC_DIR)/string_window_extent_relations.c \
                    $(SEMANTIC_DIR)/string_window_extent_finalize.c \
