@@ -226,7 +226,7 @@ bool semantic_param_publication_routine_return_dependency_is_scalar(
 bool semantic_param_publication_value_is_physical_scalar(const SemanticContext *ctx, const ASTNode *value)
 {
     PublishedNode *row = publication_current_value(ctx, value);
-    return row != NULL && row->physical_scalar;
+    return row != NULL && row->physical_scalar && publication_physical_scalar(row->value_type);
 }
 bool semantic_param_publication_record_checked_numeric_cast(SemanticContext *ctx, ASTNode *cast)
 {

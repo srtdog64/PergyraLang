@@ -3008,6 +3008,219 @@ cleanup:
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_witnessed_physical_call_alias_currency(void)
+{
+    const char *source =
+        "func Select(ref content:String,index:Int,inout cursor_out:Array<Int>)->String{ArraySet(cursor_out,0,index);return content;}"
+        "func Probe(ref label:String)->Option<Int>{let content=Concat(\"abc\",\"\");var cursor:Array<Int> = [0];"
+        "let observed=Select(content,StringLength(label),cursor);return Some(StringLength(observed)+cursor[0]);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+
+    ASTNode *select = ast_program_statement(program, 0);
+    ASTNode *probe = ast_program_statement(program, 1);
+    ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(probe), 2));
+    CHECK(call != NULL && call->type == AST_CALL && ast_call_arg_count(call) == 3);
+    if (call == NULL || call->type != AST_CALL || ast_call_arg_count(call) != 3) goto cleanup;
+    ASTNode *descriptor = ast_call_argument(call, 0);
+    ASTNode *physical = ast_call_argument(call, 1);
+    ASTNode *output = ast_call_argument(call, 2);
+    bool required = false;
+    CHECK(semantic_param_publication_return_backing_required(ctx, select, 0, &required) && required);
+    CHECK(semantic_param_publication_return_backing_required(ctx, select, 1, &required) && !required);
+    CHECK(semantic_param_publication_callee(ctx, call, 0) == select);
+    CHECK(semantic_param_publication_callee(ctx, call, 1) == select);
+    CHECK(semantic_param_publication_value_is_physical_scalar(ctx, physical));
+    unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+    CHECK(baseline != SLOT_PARAM_SUMMARY_ALL);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *probe_index = NULL, *select_index = NULL;
+    CHECK(store != NULL && !store->failed &&
+        function_param_flow_program_point_index_build(store, probe, &probe_index) &&
+        function_param_flow_program_point_index_build(store, select, &select_index));
+    if (store == NULL || probe_index == NULL || select_index == NULL ||
+        probe_index->backing_frames == NULL || select_index->backing_frames == NULL) goto cleanup;
+    FunctionParamFlowBackingFact *probe_frame = probe_index->backing_frames[0];
+    FunctionParamFlowBackingFact *source_frame = select_index->backing_frames[0];
+    CHECK(probe_frame != NULL && source_frame != NULL && source_frame->epoch != 0 &&
+        source_frame->complete && !source_frame->pending);
+    if (probe_frame == NULL || source_frame == NULL) goto cleanup;
+    bool non_declared_alias = false;
+    for (size_t n = 0; n < probe_frame->node_count; n++)
+        if (probe_frame->nodes[n].node == call && probe_frame->nodes[n].result_callee_id == 0)
+            non_declared_alias = true;
+    CHECK(non_declared_alias && function_param_flow_backing_rows_current(store, probe));
+    SlotFunctionLookup lookup = {ctx, program};
+    bool output_depends = true;
+    CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends) && !output_depends);
+
+    PublishedNode *physical_claim = published_node_for(ctx, physical);
+    PublishedNode *descriptor_claim = published_node_for(ctx, descriptor);
+    CHECK(physical_claim != NULL && descriptor_claim != NULL);
+    if (physical_claim == NULL || descriptor_claim == NULL) goto cleanup;
+    PublishedNode saved_physical = *physical_claim, saved_descriptor = *descriptor_claim;
+    CHECK(!semantic_param_publication_value_is_physical_scalar(ctx, descriptor));
+    descriptor_claim->physical_scalar = true;
+    CHECK(!semantic_param_publication_value_is_physical_scalar(ctx, descriptor));
+    *descriptor_claim = saved_descriptor;
+    for (unsigned fault = 0; fault < 4; fault++) {
+        if (fault == 0) physical_claim->physical_scalar = false;
+        if (fault == 1) physical_claim->value_type = TYPE_STRING;
+        if (fault == 2) physical_claim->value_present = false;
+        if (fault == 3) physical_claim->id++;
+        CHECK(!semantic_param_publication_value_is_physical_scalar(ctx, physical));
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+        *physical_claim = saved_physical;
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+    uint32_t physical_id = physical->stable_id, output_id = output->stable_id;
+    uint32_t callee_id = ast_call_semantic_callee_decl_id(call);
+    size_t arity = call->data.call.arg_count;
+    for (unsigned fault = 0; fault < 4; fault++) {
+        if (fault == 0) physical->stable_id++;
+        if (fault == 1) call->data.call.arg_count = arity - 1;
+        if (fault == 2) ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(probe));
+        if (fault == 3) output->stable_id++;
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+        physical->stable_id = physical_id;
+        output->stable_id = output_id;
+        call->data.call.arg_count = arity;
+        ast_call_set_semantic_callee_decl_id(call, callee_id);
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+    bool complete = source_frame->complete, pending = source_frame->pending;
+    size_t epoch = source_frame->epoch;
+    for (unsigned fault = 0; fault < 3; fault++) {
+        if (fault == 0) source_frame->complete = false;
+        if (fault == 1) source_frame->pending = true;
+        if (fault == 2) source_frame->epoch = 0;
+        CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends));
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+        source_frame->complete = complete; source_frame->pending = pending; source_frame->epoch = epoch;
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_slot_physical_scalar_forgery(void)
+{
+    Lexer *lexer = lexer_create("func Probe()->Void{let slot:Slot<Int> = ClaimSlot();Release(slot);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (typed) {
+        ASTNode *decl = ast_program_statement(program, 0);
+        ASTNode *slot = ast_let_initializer(ast_block_statement(ast_func_body(decl), 0));
+        PublishedNode *claim = published_node_for(ctx, slot);
+        CHECK(claim != NULL && !semantic_param_publication_value_is_physical_scalar(ctx, slot));
+        if (claim != NULL) {
+            bool physical = claim->physical_scalar;
+            claim->physical_scalar = true;
+            CHECK(!semantic_param_publication_value_is_physical_scalar(ctx, slot));
+            claim->physical_scalar = physical;
+            CHECK(!semantic_param_publication_value_is_physical_scalar(ctx, slot));
+        }
+    }
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_witnessed_physical_recursive_alias_currency(void)
+{
+    const char *source =
+        "func Select(ref content:String,index:Int,inout cursor_out:Array<Int>)->String{"
+        "if index>0{let observed=Select(content,index-1,cursor_out);return observed;}"
+        "ArraySet(cursor_out,0,index);return content;}"
+        "func Probe(ref label:String)->Option<Int>{let content=Concat(\"abc\",\"\");var cursor:Array<Int> = [0];"
+        "let observed=Select(content,StringLength(label),cursor);return Some(StringLength(observed)+cursor[0]);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+
+    ASTNode *select = ast_program_statement(program, 0);
+    ASTNode *probe = ast_program_statement(program, 1);
+    ASTNode *branch = ast_block_statement(ast_func_body(select), 0);
+    ASTNode *recursive = ast_let_initializer(ast_block_statement(ast_if_then_branch(branch), 0));
+    ASTNode *outer = ast_let_initializer(ast_block_statement(ast_func_body(probe), 2));
+    CHECK(recursive != NULL && recursive->type == AST_CALL && ast_call_arg_count(recursive) == 3);
+    CHECK(outer != NULL && outer->type == AST_CALL && ast_call_arg_count(outer) == 3);
+    if (recursive == NULL || recursive->type != AST_CALL || outer == NULL || outer->type != AST_CALL) goto cleanup;
+    CHECK(semantic_param_publication_callee(ctx, recursive, 0) == select &&
+        semantic_param_publication_callee(ctx, recursive, 1) == select);
+    CHECK(semantic_param_publication_value_is_physical_scalar(ctx, ast_call_argument(recursive, 1)));
+    bool required = false;
+    CHECK(semantic_param_publication_return_backing_required(ctx, select, 0, &required) && required);
+    (void)function_param_flow_summary_for_param(ctx, probe, 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && !store->failed && function_param_flow_program_point_index_build(store, select, &index));
+    if (store == NULL || index == NULL || index->backing_frames == NULL || index->backing_frames[0] == NULL) goto cleanup;
+    FunctionParamFlowBackingFact *frame = index->backing_frames[0];
+    CHECK(frame->complete && !frame->pending && !frame->building && frame->epoch != 0 &&
+        frame->pending_relations != NULL && frame->pending_relation_count != 0 &&
+        frame->sealed_pending_relation_count == frame->pending_relation_count);
+    size_t edge_at = 0;
+    while (edge_at < frame->pending_relation_count &&
+        (frame->pending_relations[edge_at].call != recursive ||
+         frame->pending_relations[edge_at].ordinal != 0)) edge_at++;
+    CHECK(edge_at < frame->pending_relation_count);
+    if (edge_at == frame->pending_relation_count) goto cleanup;
+    FunctionParamFlowPendingRelation *edge = &frame->pending_relations[edge_at];
+    CHECK(edge->call_id == ast_node_stable_id(recursive) && edge->callee_id == ast_node_stable_id(select));
+    size_t entry_at = 0;
+    while (entry_at < store->count && (store->entries[entry_at].function_decl != select ||
+        store->entries[entry_at].param_index != 0)) entry_at++;
+    CHECK(entry_at < store->count);
+    if (entry_at == store->count) goto cleanup;
+    CHECK(function_param_flow_output_current(store, entry_at, false));
+    CHECK(function_param_flow_backing_rows_current(store, select));
+    CHECK(function_param_flow_backing_rows_current(store, probe));
+
+    FunctionParamFlowPendingRelation saved_edge = *edge;
+    size_t sealed = frame->sealed_pending_relation_count;
+    for (unsigned fault = 0; fault < 5; fault++) {
+        if (fault == 0) edge->call_id++;
+        if (fault == 1) edge->callee_id = ast_node_stable_id(probe);
+        if (fault == 2) edge->ordinal = 1;
+        if (fault == 3) edge->call = outer;
+        if (fault == 4) frame->sealed_pending_relation_count = 0;
+        CHECK(!function_param_flow_output_current(store, entry_at, false));
+        CHECK(!function_param_flow_backing_rows_current(store, select));
+        *edge = saved_edge;
+        frame->sealed_pending_relation_count = sealed;
+        CHECK(function_param_flow_output_current(store, entry_at, false));
+        CHECK(function_param_flow_backing_rows_current(store, select));
+    }
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_declared_physical_result_currency(void)
 {
     const char *source =
@@ -6986,6 +7199,9 @@ int main(void)
     checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();
     checked_result_argument_currency();
+    checked_witnessed_physical_call_alias_currency();
+    checked_slot_physical_scalar_forgery();
+    checked_witnessed_physical_recursive_alias_currency();
     checked_declared_physical_result_currency();
     checked_declared_array_result_currency();
     checked_declared_result_unclosed();

@@ -1,6 +1,7 @@
 #include "function_param_flow_summary_internal.h"
 #include "../parser/ast_analysis.h"
 #include "function_param_publication_owner.h"
+#include "function_param_publication_internal.h"
 #include "typed_map_query_fact_owner.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -126,19 +127,51 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
                 !function_param_flow_declared_result_closed(state->store, value, state->fact)) state->fact->complete = false;
             break;
         }
-        for (size_t p = 0; p < ast_call_arg_count(value); p++) {
+        ASTNode *body_witness = NULL;
+        size_t arity = ast_call_arg_count(value);
+        for (size_t p = 0; p < arity; p++) {
             if (!semantic_param_publication_checked_argument(state->store->ctx, value, p)) { state->fact->complete = false; break; }
-            bool depends = false, retains = true;
+            ASTNode *arg = ast_call_argument(value, p);
             ASTNode *callee = semantic_param_publication_callee(state->store->ctx, value, p);
+            if (body_witness != NULL && callee == body_witness &&
+                arity == ast_func_param_count(callee) &&
+                semantic_param_publication_value_is_physical_scalar(state->store->ctx, arg)) {
+                /* The earlier required frame owns callee-body validation. This
+                 * actual has no descriptor destination; C still visits it. */
+                if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, arg))
+                    state->fact->complete = false;
+                if (!state->fact->complete) break;
+                continue;
+            }
+            bool depends = false, retains = true;
+            bool ready = false, pending_edge = false;
             if (callee != NULL) {
                 unsigned mask = function_param_flow_summary_for_call(&state->lookup, value, p);
-                if (!function_param_flow_callee_relation_ready(&state->lookup, value, p))
+                ready = function_param_flow_callee_relation_ready(&state->lookup, value, p);
+                if (!ready)
                     function_param_flow_callee_unfinished(&state->lookup, value, p, state->fact);
+                if (!ready && state->fact->complete && state->fact->pending &&
+                    !state->fact->analysis_unsupported) {
+                    uint32_t call_id = ast_node_stable_id(value), callee_id = ast_node_stable_id(callee);
+                    for (size_t e = 0; e < state->fact->pending_relation_count; e++) {
+                        const FunctionParamFlowPendingRelation *edge = &state->fact->pending_relations[e];
+                        if (edge->call == value && edge->call_id == call_id &&
+                            edge->callee_id == callee_id && edge->ordinal == p) pending_edge = true;
+                    }
+                }
                 depends = (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
             } else if (!semantic_param_publication_checked_backing_relation(state->store->ctx, value, p, &depends, &retains)) {
                 state->fact->complete = false; break;
             }
-            if (depends) backing_destination_value(state, ast_call_argument(value, p), destinations);
+            if (depends) backing_destination_value(state, arg, destinations);
+            if (state->fact->complete && callee != NULL && (ready || pending_edge) &&
+                arity == ast_func_param_count(callee)) {
+                SemanticPublishedValue actual = semantic_param_publication_value(state->store->ctx, arg);
+                bool required = false;
+                if (actual.ok && !publication_physical_scalar(actual.type) &&
+                    semantic_param_publication_return_backing_required(state->store->ctx, callee, p, &required) &&
+                    required) body_witness = callee;
+            }
         }
         break;
     default: state->fact->complete = false; break;

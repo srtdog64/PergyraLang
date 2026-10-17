@@ -222,6 +222,12 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
             bool result_frame = input == frame_count;
             FunctionParamFlowBackingFact *fact = result_frame ? result : frames[input];
             if (fact == NULL) continue;
+            if (!result_frame && !store->solving && !fact->analysis_unsupported &&
+                (fact->epoch == 0 || !fact->complete || fact->building || fact->pending)) {
+                bool required = false;
+                if (!semantic_param_publication_return_backing_required(store->ctx, current, input, &required) ||
+                    required) { valid = false; break; }
+            }
             size_t destination_count = result_frame ? 1 : parameter_count;
             size_t destination_words = (destination_count + 63) / 64;
             uint64_t final_mask = destination_count % 64 == 0 ? UINT64_MAX :

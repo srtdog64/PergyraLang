@@ -1,0 +1,16 @@
+func Select(ref content: String, index: Int, inout cursor_out: Array<Int>) -> String {
+    ArraySet(cursor_out, 0, index);
+    return content;
+}
+
+func Probe(ref label: String) -> Option<Int> {
+    let content = Concat("abc", "");
+    var cursor: Array<Int> = [0];
+    let observed = Select(content, StringLength(label), cursor);
+    return Some(StringLength(observed) + cursor[0]);
+}
+
+func Main() -> Void {
+    let label = Concat("heap", "");
+    Log(UnwrapOption(Probe(label)));
+}

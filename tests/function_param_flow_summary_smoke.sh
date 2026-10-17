@@ -108,6 +108,10 @@ paired = (
     ("result_frame_formal_some_invalid", False),
     ("result_frame_formal_nominal_invalid", False),
     ("result_frame_formal_array_push_invalid", False),
+    ("physical_call_alias_inout_valid", True),
+    ("physical_call_alias_nested_retain_invalid", False),
+    ("physical_call_alias_scalar_opaque_invalid", False),
+    ("physical_call_alias_descriptor_retain_invalid", False),
     ("stdlib_prefix_retaining_user_invalid", False),
     ("stdlib_prefix_opaque_invalid", False),
     ("stdlib_prefix_shadow_invalid", False),
@@ -329,6 +333,9 @@ for name, valid in paired:
             "result_frame_formal_some_invalid": (7, 6),
             "result_frame_formal_nominal_invalid": (8, 6),
             "result_frame_formal_array_push_invalid": (9, 6),
+            "physical_call_alias_nested_retain_invalid": (16, 52),
+            "physical_call_alias_scalar_opaque_invalid": (23, 28),
+            "physical_call_alias_descriptor_retain_invalid": (11, 27),
         }
         if name in retained_sites and not any(
                 (row.get("location", {}).get("line"), row.get("location", {}).get("column"))
@@ -527,6 +534,7 @@ for name, expected in (
     ("source_callable_namespace_valid", "7\n"),
     ("stdlib_trim_result_return_valid", "heap text\n"),
     ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
+    ("physical_call_alias_inout_valid", "7\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),

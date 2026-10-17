@@ -1,0 +1,18 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func Select(ref content: String, index: Int, inout cursor_out: Array<Int>) -> String {
+    Keep(content);
+    ArraySet(cursor_out, 0, index);
+    return "literal";
+}
+
+func Probe(ref label: String) -> Option<Int> {
+    var cursor: Array<Int> = [0];
+    let observed = Select(label, StringLength(label), cursor);
+    return Some(StringLength(observed) + cursor[0]);
+}
+
+func Main() -> Void {
+    let label = Concat("heap", "");
+    Log(UnwrapOption(Probe(label)));
+}
