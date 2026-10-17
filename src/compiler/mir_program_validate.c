@@ -16,6 +16,7 @@
 #include "mir_generic_method_specialization.h"
 #include "mir_intent_execution.h"
 #include "mir_validation.h"
+#include "mir_hir_fact_transfer.h"
 
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
@@ -48,6 +49,13 @@ mir_validate(const MIRProgram *mir, char **error_message)
         return false;
     if (!mir_validate_program_inventory_shape(mir, error_message))
         return false;
+    mir_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++)
+        if (!mir_validate_non_cfg_fallback_state(
+                mir_routine_inventory_get(&inventory, i), error_message))
+            return false;
+    if (!mir_validate_non_cfg_fallback_inventory(mir, error_message))
+        return false;
     if (!mir_validate_receiver_carriage_facts(mir, error_message))
         return false;
     if (!mir_validate_inventory_surface_usage(mir, error_message))
@@ -58,8 +66,9 @@ mir_validate(const MIRProgram *mir, char **error_message)
         return false;
     if (!mir_generic_method_specializations_validate(mir, error_message))
         return false;
+    if (!mir_validate_collection_effect_evidence(mir, NULL, error_message))
+        return false;
 
-    mir_routine_inventory_from_program(mir, &inventory);
     {
         size_t resource_flow_symbol_total = 0;
         size_t function_param_flow_summary_total = 0;
@@ -116,8 +125,6 @@ mir_validate(const MIRProgram *mir, char **error_message)
             return false;
         }
 
-        if (!mir_validate_non_cfg_fallback_state(routine, error_message))
-            return false;
         if (!mir_validate_resource_flow_symbols(routine, error_message))
             return false;
         if (!mir_validate_function_param_flow_summaries(routine,
@@ -275,9 +282,6 @@ mir_validate(const MIRProgram *mir, char **error_message)
     }
 
     if (!mir_validate_intent_execution_program(mir, error_message))
-        return false;
-
-    if (!mir_validate_non_cfg_fallback_inventory(mir, error_message))
         return false;
 
     return true;

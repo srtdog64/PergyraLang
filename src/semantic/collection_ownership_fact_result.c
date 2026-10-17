@@ -24,11 +24,20 @@ struct PgyCollectionEffectSnapshot {
     FunctionParamFlowIndexClaims **claims;
     PgyCollectionExpectedEffect *effects;
     size_t caller_count, effect_count, sealed_callers, sealed_effects;
+    size_t refs;
 };
+
+PgyCollectionEffectSnapshot *semantic_collection_effect_snapshot_retain(
+    PgyCollectionEffectSnapshot *snapshot)
+{
+    if (snapshot == NULL || snapshot->refs == 0 || snapshot->refs == SIZE_MAX) return NULL;
+    snapshot->refs++;
+    return snapshot;
+}
 
 void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *snapshot)
 {
-    if (snapshot == NULL) return;
+    if (snapshot == NULL || snapshot->refs == 0 || --snapshot->refs != 0) return;
     for (size_t i = 0; i < snapshot->caller_count; i++)
         function_param_flow_claims_destroy(snapshot->claims[i]);
     free(snapshot->claims);
@@ -37,16 +46,17 @@ void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *sn
     free(snapshot);
 }
 
-bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapshot *s,
-    const ASTNode *program, PgyCollectionEffectView *out)
+static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnapshot *s,
+    const ASTNode *program, uint32_t routine_id, PgyCollectionEffectView *out)
 {
     if (out != NULL) *out = (PgyCollectionEffectView){0};
-    if (s == NULL || program == NULL || program->type != AST_PROGRAM ||
+    if (s == NULL || s->refs == 0 || program == NULL || program->type != AST_PROGRAM ||
         s->program != program || s->program_id == 0 ||
         s->program_id != ast_node_stable_id(program) ||
         s->caller_count != s->sealed_callers || s->effect_count != s->sealed_effects ||
         (s->caller_count != 0 && (s->callers == NULL || s->claims == NULL)) ||
         (s->effect_count != 0 && s->effects == NULL)) return false;
+    /* Identity is global; only the selected routine replays its full claims. */
     for (size_t i = 0; i < s->caller_count; i++) {
         const PgyCollectionEffectCaller *c = &s->callers[i];
         for (size_t j = 0; j < i; j++)
@@ -55,8 +65,9 @@ bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapsh
         if (c->decl == NULL || c->decl->type != AST_FUNC_DECL || c->decl_id == 0 ||
             c->decl_id != ast_node_stable_id(c->decl) || c->body == NULL ||
             c->body != ast_func_body(c->decl) || c->body_id == 0 ||
-            c->body_id != ast_node_stable_id(c->body) ||
-            !function_param_flow_syntax_claims_current(NULL, s->claims[i])) return false;
+            c->body_id != ast_node_stable_id(c->body) || s->claims[i] == NULL) return false;
+        if (routine_id != 0 && c->decl_id != routine_id) continue;
+        if (!function_param_flow_syntax_claims_current(NULL, s->claims[i])) return false;
         bool root = false;
         for (size_t r = 0; r < s->claims[i]->count; r++)
             if (s->claims[i]->rows[r].node == c->body &&
@@ -68,8 +79,10 @@ bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapsh
         uint32_t kind = 0, receiver = 0, source = 0;
         if (e->caller >= s->caller_count || e->call == NULL || e->call->type != AST_CALL ||
             e->id == 0 || e->id != ast_node_stable_id(e->call) ||
-            e->kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION || e->receiver == 0 || e->source != 0 ||
-            !ast_call_semantic_collection_effect(e->call, &kind, &receiver, &source) ||
+            e->kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION || e->receiver == 0 || e->source != 0)
+            return false;
+        if (routine_id != 0 && s->callers[e->caller].decl_id != routine_id) continue;
+        if (!ast_call_semantic_collection_effect(e->call, &kind, &receiver, &source) ||
             kind != e->kind || receiver != e->receiver || source != e->source) return false;
         bool member = false;
         const FunctionParamFlowIndexClaims *claims = s->claims[e->caller];
@@ -80,6 +93,22 @@ bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapsh
     if (out != NULL) *out = (PgyCollectionEffectView){s->callers, s->caller_count,
         s->effects, s->effect_count};
     return true;
+}
+
+bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapshot *s,
+    const ASTNode *program, PgyCollectionEffectView *out)
+{
+    return collection_effect_snapshot_current_at(s, program, 0, out);
+}
+
+bool semantic_collection_effect_snapshot_routine_current(const PgyCollectionEffectSnapshot *s,
+    const ASTNode *program, uint32_t routine_id, PgyCollectionEffectView *out)
+{
+    if (routine_id == 0) {
+        if (out != NULL) *out = (PgyCollectionEffectView){0};
+        return false;
+    }
+    return collection_effect_snapshot_current_at(s, program, routine_id, out);
 }
 
 bool semantic_collection_effect_snapshot_call(const PgyCollectionEffectSnapshot *s,
@@ -128,6 +157,7 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
         count > SIZE_MAX / sizeof(FunctionParamFlowIndexClaims *)) return false;
     PgyCollectionEffectSnapshot *s = calloc(1, sizeof(*s));
     if (s == NULL) return false;
+    s->refs = 1;
     s->program = pub->program;
     s->program_id = pub->program_id;
     s->effects = count == 0 ? NULL : calloc(count, sizeof(*s->effects));

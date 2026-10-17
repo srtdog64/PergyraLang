@@ -63,6 +63,8 @@ test_mir_collection_ownership_validation(void)
         MIRProgram *fresh_mir = NULL;
         MIRRoutine *fresh_routine = NULL;
         MIRInstruction *push = NULL;
+        MIRBasicBlock *push_block = NULL;
+        size_t push_index = 0;
         const char *fresh_source =
             "struct TextNode{text:String;}struct Arena{rows:Array<String>;}"
             "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
@@ -76,8 +78,11 @@ test_mir_collection_ownership_validation(void)
             for (size_t i = 0; i < fresh_routine->blocks[b].instruction_count; i++) {
                 MIRInstruction *inst = &fresh_routine->blocks[b].instructions[i];
                 if (inst->has_collection_ownership_receipt &&
-                    inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION)
+                    inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION) {
                     push = inst;
+                    push_block = &fresh_routine->blocks[b];
+                    push_index = i;
+                }
             }
         uint32_t fresh_id = push == NULL ? 0 :
             ast_call_semantic_callee_decl_id(ast_call_argument(push->expr0, 1));
@@ -103,6 +108,276 @@ test_mir_collection_ownership_validation(void)
                 TEST("MIR independent push cannot promote SHALLOW into owned cleanup");
                 if (!refused) printf("\n  empty independent effect fault=%u not refused\n", fault);
                 EXPECT(refused && mir_validate_collection_ownership_transitions(fresh_routine, NULL));
+            }
+            bool emission_control = mir_validate_emission_contract(
+                fresh_routine, fresh_routine->has_cleanup_block, false, NULL);
+            TEST("MIR private String effect reaches the routine emission contract");
+            EXPECT(emission_control);
+            if (emission_control) {
+                for (unsigned fault = 0; fault < 5; fault++) {
+                    if (fault == 0) {
+                        push->has_collection_ownership_receipt = false;
+                        push->expr0->data.call.semantic_collection_effect_set = false;
+                    }
+                    if (fault == 1) {
+                        push->collection_ownership_effect_kind =
+                            PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                        push->collection_ownership_source_binding_id = fresh_id;
+                        push->expr0->data.call.semantic_collection_effect_kind =
+                            PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                        push->expr0->data.call.semantic_collection_source_binding_id =
+                            fresh_id;
+                    }
+                    if (fault == 2) {
+                        push->collection_ownership_receiver_binding_id++;
+                        push->expr0->data.call.semantic_collection_receiver_binding_id++;
+                    }
+                    if (fault == 3) {
+                        push->collection_ownership_source_binding_id++;
+                        push->expr0->data.call.semantic_collection_source_binding_id++;
+                    }
+                    if (fault == 4) {
+                        push->collection_ownership_effect_kind = PGY_COLLECTION_EFFECT_DROP;
+                        push->expr0->data.call.semantic_collection_effect_kind =
+                            PGY_COLLECTION_EFFECT_DROP;
+                    }
+                    char *validation_error = NULL;
+                    bool refused = !mir_validate(fresh_mir, &validation_error)
+                        && validation_error != NULL;
+                    free(validation_error);
+                    validation_error = NULL;
+                    bool emission_refused = !mir_validate_emission_contract(
+                        fresh_routine, fresh_routine->has_cleanup_block, false,
+                        &validation_error) && validation_error != NULL;
+                    free(validation_error);
+                    *saved.expr0 = saved_call;
+                    *push = saved;
+                    TEST("MIR private String effect rejects coherent receipt and AST forgery");
+                    if (!refused || !emission_refused)
+                        printf("\n  coherent private effect fault=%u full=%d emission=%d\n",
+                            fault, refused, emission_refused);
+                    EXPECT(refused && emission_refused && mir_validate(fresh_mir, NULL)
+                        && mir_validate_emission_contract(fresh_routine,
+                            fresh_routine->has_cleanup_block, false, NULL));
+                }
+                if (push_block != NULL) {
+                    MIRBasicBlock saved_block = *push_block;
+                    size_t count = saved_block.instruction_count;
+                    MIRInstruction *changed = malloc((count + 1) * sizeof(*changed));
+                    TEST("MIR private effect operation mutations have isolated storage");
+                    EXPECT(changed != NULL);
+                    if (changed != NULL) {
+                        uint32_t saved_source_id = fresh_routine->source_syntax_id;
+                        for (unsigned fault = 0; fault < 3; fault++) {
+                            memcpy(changed, saved_block.instructions,
+                                count * sizeof(*changed));
+                            push_block->instructions = changed;
+                            push_block->instruction_capacity = count + 1;
+                            if (fault == 0 || fault == 2) {
+                                memmove(&changed[push_index],
+                                    &changed[push_index + 1],
+                                    (count - push_index - 1) * sizeof(*changed));
+                                push_block->instruction_count = count - 1;
+                                if (fault == 2)
+                                    fresh_routine->source_syntax_id = UINT32_MAX;
+                            } else {
+                                memmove(&changed[push_index + 2],
+                                    &changed[push_index + 1],
+                                    (count - push_index - 1) * sizeof(*changed));
+                                changed[push_index + 1] = changed[push_index];
+                                push_block->instruction_count = count + 1;
+                            }
+                            char *validation_error = NULL;
+                            bool refused = !mir_validate(fresh_mir,
+                                &validation_error) && validation_error != NULL;
+                            free(validation_error);
+                            validation_error = NULL;
+                            bool emission_refused =
+                                !mir_validate_emission_contract(fresh_routine,
+                                    fresh_routine->has_cleanup_block, false,
+                                    &validation_error) && validation_error != NULL;
+                            free(validation_error);
+                            *push_block = saved_block;
+                            fresh_routine->source_syntax_id = saved_source_id;
+                            TEST("MIR private effect needs one instruction in its exact caller");
+                            if (!refused || !emission_refused)
+                                printf("\n  private effect operation fault=%u full=%d emission=%d\n",
+                                    fault, refused, emission_refused);
+                            EXPECT(refused && emission_refused &&
+                                mir_validate(fresh_mir, NULL) &&
+                                mir_validate_emission_contract(fresh_routine,
+                                    fresh_routine->has_cleanup_block, false,
+                                    NULL));
+                        }
+                        free(changed);
+                    }
+                }
+                Lexer *foreign_lexer = lexer_create(
+                    "func Foreign() -> Void { return; }");
+                Parser *foreign_parser = parser_create(foreign_lexer);
+                ASTNode *foreign_program = parser_parse_program(foreign_parser);
+                TEST("MIR private effect foreign program fault has an AST owner");
+                EXPECT(foreign_program != NULL &&
+                    !parser_has_error(foreign_parser));
+                if (foreign_program != NULL &&
+                    !parser_has_error(foreign_parser)) {
+                    PgyCollectionEffectSnapshot *saved_snapshot =
+                        fresh_mir->collection_effect_snapshot;
+                    const ASTNode *saved_program =
+                        fresh_mir->collection_effect_source_program;
+                    MIRRoutine saved_routine = *fresh_routine;
+                    for (unsigned fault = 0; fault < 7; fault++) {
+                        if (fault == 0)
+                            fresh_mir->collection_effect_snapshot = NULL;
+                        if (fault == 1)
+                            fresh_mir->collection_effect_source_program = NULL;
+                        if (fault == 2)
+                            fresh_mir->collection_effect_source_program =
+                                foreign_program;
+                        if (fault == 3) fresh_routine->source_syntax_id++;
+                        if (fault == 4) fresh_routine->hir_routine = NULL;
+                        if (fault == 5) fresh_routine->program = NULL;
+                        if (fault == 6) fresh_routine->id = UINT32_MAX;
+                        char *validation_error = NULL;
+                        bool refused = !mir_validate(fresh_mir,
+                            &validation_error) && validation_error != NULL;
+                        free(validation_error);
+                        validation_error = NULL;
+                        bool emission_refused =
+                            !mir_validate_emission_contract(fresh_routine,
+                                fresh_routine->has_cleanup_block, false,
+                                &validation_error) && validation_error != NULL;
+                        free(validation_error);
+                        fresh_mir->collection_effect_snapshot = saved_snapshot;
+                        fresh_mir->collection_effect_source_program =
+                            saved_program;
+                        *fresh_routine = saved_routine;
+                        TEST("MIR private effect requires its retained owner and exact routine");
+                        if (!refused || !emission_refused)
+                            printf("\n  private effect owner fault=%u full=%d emission=%d\n",
+                                fault, refused, emission_refused);
+                        EXPECT(refused && emission_refused &&
+                            mir_validate(fresh_mir, NULL) &&
+                            mir_validate_emission_contract(fresh_routine,
+                                fresh_routine->has_cleanup_block, false,
+                                NULL));
+                    }
+                }
+                ast_destroy(foreign_program);
+                parser_destroy(foreign_parser);
+                lexer_destroy(foreign_lexer);
+                char **view_param_names = calloc(
+                    fresh_routine->param_count > 0 ? fresh_routine->param_count : 1,
+                    sizeof(*view_param_names));
+                TEST("MIR emission view has isolated ABI pointer storage");
+                EXPECT(view_param_names != NULL);
+                if (view_param_names != NULL) {
+                    char view_name[] = "ProjectEmissionView";
+                    for (size_t p = 0; p < fresh_routine->param_count; p++)
+                        view_param_names[p] = fresh_routine->param_type_names[p];
+                    MIRRoutine view = *fresh_routine;
+                    view.name = view_name;
+                    view.param_type_names = view_param_names;
+                    bool view_control = mir_validate_emission_contract(
+                        &view, view.has_cleanup_block, false, NULL);
+                    TEST("MIR emission accepts a canonical-backed ABI/name view");
+                    EXPECT(view_control);
+                    if (view_control) {
+                        MIRSourceLocalType detached_local = {0};
+                        for (unsigned fault = 0; fault < 8; fault++) {
+                            MIRRoutine damaged = view;
+                            MIRCollectionOwnershipFact *copied_facts = NULL;
+                            if (fault == 0) damaged.source_syntax_id = UINT32_MAX;
+                            if (fault == 1) damaged.program = NULL;
+                            if (fault == 2) damaged.hir_routine = NULL;
+                            if (fault == 3) damaged.ast = NULL;
+                            if (fault == 4) {
+                                copied_facts = malloc(damaged.collection_ownership_fact_count *
+                                    sizeof(*copied_facts));
+                                if (copied_facts != NULL) {
+                                    memcpy(copied_facts, damaged.collection_ownership_facts,
+                                        damaged.collection_ownership_fact_count * sizeof(*copied_facts));
+                                    damaged.collection_ownership_facts = copied_facts;
+                                }
+                            }
+                            if (fault == 5) damaged.source_local_types =
+                                damaged.source_local_types == NULL ? &detached_local : NULL;
+                            if (fault == 6) damaged.source_local_type_count++;
+                            if (fault == 7) damaged.source_local_type_capacity++;
+                            char *validation_error = NULL;
+                            bool refused = (fault != 4 || copied_facts != NULL) &&
+                                !mir_validate_emission_contract(&damaged,
+                                    damaged.has_cleanup_block, false,
+                                    &validation_error) && validation_error != NULL;
+                            free(validation_error);
+                            free(copied_facts);
+                            TEST("MIR emission view cannot replace canonical routine evidence");
+                            if (!refused)
+                                printf("\n  private effect view identity fault=%u not refused\n", fault);
+                            EXPECT(refused && mir_validate(fresh_mir, NULL) &&
+                                mir_validate_emission_contract(&view,
+                                    view.has_cleanup_block, false, NULL));
+                        }
+                        if (push_block != NULL) {
+                            MIRBasicBlock *detached_blocks = malloc(
+                                fresh_routine->block_count * sizeof(*detached_blocks));
+                            size_t count = push_block->instruction_count;
+                            MIRInstruction *detached_instructions = malloc(
+                                (count + 1) * sizeof(*detached_instructions));
+                            TEST("MIR emission view mutation has detached block storage");
+                            EXPECT(detached_blocks != NULL && detached_instructions != NULL);
+                            if (detached_blocks != NULL && detached_instructions != NULL) {
+                                size_t block_index = (size_t)(push_block - fresh_routine->blocks);
+                                for (unsigned fault = 0; fault < 4; fault++) {
+                                    memcpy(detached_blocks, fresh_routine->blocks,
+                                        fresh_routine->block_count * sizeof(*detached_blocks));
+                                    memcpy(detached_instructions, push_block->instructions,
+                                        count * sizeof(*detached_instructions));
+                                    detached_blocks[block_index].instructions = detached_instructions;
+                                    detached_blocks[block_index].instruction_capacity = count + 1;
+                                    ASTNode call_copy = *push->expr0;
+                                    if (fault == 1)
+                                        detached_instructions[push_index].has_collection_ownership_receipt = false;
+                                    if (fault == 2) {
+                                        memmove(&detached_instructions[push_index + 2],
+                                            &detached_instructions[push_index + 1],
+                                            (count - push_index - 1) * sizeof(*detached_instructions));
+                                        detached_instructions[push_index + 1] =
+                                            detached_instructions[push_index];
+                                        detached_blocks[block_index].instruction_count = count + 1;
+                                    }
+                                    if (fault == 3) {
+                                        detached_instructions[push_index].collection_ownership_effect_kind =
+                                            PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                                        detached_instructions[push_index].collection_ownership_source_binding_id =
+                                            fresh_id;
+                                        call_copy.data.call.semantic_collection_effect_kind =
+                                            PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                                        call_copy.data.call.semantic_collection_source_binding_id = fresh_id;
+                                        detached_instructions[push_index].expr0 = &call_copy;
+                                        detached_instructions[push_index].ast = &call_copy;
+                                    }
+                                    MIRRoutine damaged = view;
+                                    damaged.blocks = detached_blocks;
+                                    char *validation_error = NULL;
+                                    bool refused = !mir_validate_emission_contract(&damaged,
+                                        damaged.has_cleanup_block, false,
+                                        &validation_error) && validation_error != NULL;
+                                    free(validation_error);
+                                    TEST("MIR emission view rejects detached or forged blocks");
+                                    if (!refused)
+                                        printf("\n  private effect detached view fault=%u not refused\n", fault);
+                                    EXPECT(refused && mir_validate(fresh_mir, NULL) &&
+                                        mir_validate_emission_contract(&view,
+                                            view.has_cleanup_block, false, NULL));
+                                }
+                            }
+                            free(detached_instructions);
+                            free(detached_blocks);
+                        }
+                    }
+                    free(view_param_names);
+                }
             }
         }
         mir_destroy(fresh_mir); rir_destroy(fresh_rir); hir_destroy(fresh_hir);
@@ -236,8 +511,63 @@ test_mir_collection_ownership_validation(void)
             }
         }
         mir_destroy(accepted_mir); rir_destroy(accepted_rir); dir_destroy(accepted_dir);
-        hir_destroy(accepted); semantic_result_destroy(sem);
+        hir_destroy(accepted);
+        TEST("semantic effect ledger survives MIR-first destruction");
+        EXPECT(sem != NULL && sem->success &&
+            semantic_collection_effect_snapshot_current(
+                sem->collection_effect_snapshot, sem->annotated_ast, NULL));
+        semantic_result_destroy(sem);
         ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
+        const char *source =
+            "struct TextNode{text:String;}struct Arena{rows:Array<String>;}"
+            "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+            "func Project(nodes:Array<TextNode>)->Arena{let rows:Array<String> = [];"
+            "ArrayPush(rows,Fresh(nodes[0]));return Arena(rows);}"
+            "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
+            "let arena=Project(nodes);Log(arena.rows[0]);}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = parser_has_error(parser) ? NULL :
+            semantic_analyze(ast);
+        char *error = NULL;
+        HIRProgram *hir = sem == NULL || !sem->success ? NULL :
+            hir_lower_with_semantic_facts(sem, NULL, &error);
+        DIRProgram *dir = hir == NULL ? NULL :
+            dir_lower_with_hir_facts(ast, hir, &error);
+        RIRProgram *rir = hir == NULL ? NULL : rir_lower(ast, &error);
+        if (hir != NULL && rir != NULL)
+            (void)rir_enrich_with_hir_flow(rir, hir, &error);
+        MIRProgram *mir = NULL;
+        if (hir != NULL && dir != NULL && rir != NULL &&
+            dir_validate(dir, &error)) {
+            MIRLowerRequest request;
+            mir_lower_request_init(&request, hir, rir, sem);
+            mir_lower_request_bind_dir(&request, dir);
+            mir = mir_lower(&request, &error);
+        }
+        bool control = sem != NULL && sem->success && mir != NULL &&
+            mir->collection_effect_snapshot == sem->collection_effect_snapshot &&
+            mir_validate(mir, NULL);
+        TEST("MIR owns a reference to the semantic effect ledger");
+        if (!control) printf("\n  semantic-first lifetime error=%s\n",
+            error != NULL ? error : "none");
+        EXPECT(control);
+        free(error);
+        /* The ledger is independently retained, but existing IR Type borrows
+         * still require their original registry until all IRs are destroyed. */
+        TypeRegistry *borrowed_types = sem == NULL ? NULL : sem->owned_types;
+        if (sem != NULL) sem->owned_types = NULL;
+        semantic_result_destroy(sem);
+        sem = NULL;
+        TEST("MIR private effect evidence survives semantic result destruction");
+        EXPECT(control && mir_validate(mir, NULL));
+        mir_destroy(mir); rir_destroy(rir); dir_destroy(dir);
+        hir_destroy(hir); ast_destroy(ast);
+        type_registry_destroy(borrowed_types);
+        parser_destroy(parser); lexer_destroy(lexer);
     }
     const char *source =
         "func Main() -> Void {\n"

@@ -22,6 +22,9 @@ typedef struct MIRProgram MIRProgram;
 
 struct MIRProgram
 {
+    /* Retains the original semantic ledger; AST storage follows IR borrow lifetime. */
+    struct PgyCollectionEffectSnapshot *collection_effect_snapshot;
+    const ASTNode *collection_effect_source_program;
     MIRRoutine *routines;
     size_t      routine_count;
     size_t      routine_capacity;

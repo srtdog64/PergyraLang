@@ -18,6 +18,7 @@
 #include "mir_domain_topology.h"
 #include "mir_domain_runtime.h"
 #include "mir_branch_source_facts.h"
+#include "mir_hir_fact_transfer.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -218,6 +219,7 @@ mir_destroy(MIRProgram *mir)
     free(mir->intents);
     free(mir->functions);
     free(mir->routines);
+    mir_free_collection_effect_evidence(mir);
     free(mir);
 }
 

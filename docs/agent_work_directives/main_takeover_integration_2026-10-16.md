@@ -29,6 +29,69 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 #### Active review repair of local checkpoint3e3156cf (2026-10-18)
 
+- Current child d2737cacc is also REJECTED by independent review. Diagnostic
+  x7zv2n changes a Fresh/EMPTY AST effect and its actual MIR receipt together
+  from SHALLOW/0 to OWNED_STRING_PUSH/Fresh ID. Both transition and whole-MIR
+  validators accept it (410 original checks pass, the added falsifier fails).
+  Original header/test/native hashes were restored; no unsafe artifact ran.
+- MIR last-consumer repair objective/order: preserve the semantic snapshot as
+  the sole expected-effect authority through mandatory MIR validation and
+  native C/LLVM emission, then measure/export/import its remaining seam.
+  AST/MIR equality is not authority. Existing collection fact/transfer and
+  transition owners own the projection and exhaustive expected/actual join.
+  The last consumers are whole MIR validation and per-routine emission
+  admission; AIR does not currently attest these tuples independently.
+- Lifetime decision: retain the existing immutable opaque snapshot for MIR's
+  lifetime, with one context-local reference owner per result/program. This is
+  compiler evidence storage, not source-language sharing or tracing GC. AST
+  lifetime remains the existing IR contract. Do not rebuild claims or hold a
+  live SemanticContext. Validate caller-specific cached claims once at each
+  routine boundary, not every caller's full claims once per unrelated routine.
+  Expected tuples/call IDs must match actual MIR exactly once; absent, moved,
+  duplicated, coherently rewritten or cross-program operations fail closed.
+- Independent edit scopes: A owns semantic snapshot retain/release and scoped
+  current API; B owns existing MIR fact-transfer evidence predicate/storage;
+  root owns capture/free/mandatory-validator/emission integration and the
+  unchanged shared executable gate; C owns coherent native MIR falsifiers.
+  No new owner TU, authority fallback, canonical edit or safety weakening.
+- Wire boundary remains OPEN: the current Pergyra import policy infers OWNED
+  from DirectCall shape, contrary to native Fresh SHALLOW. Native evidence
+  repair is not import closure. Measure the existing installed C/LLVM route
+  with the safe exported fixture; forged artifacts are refusal-only tests.
+  Any serialization/import change must consume the semantic-issued decision,
+  not keep the shape heuristic as a second authority. Unverifiable authority
+  must fail closed; serialized tuple equality alone is not authentication.
+  Required falsifiers: coherent AST+MIR tuple deletion, kind/receiver/source
+  drift and SHALLOW-to-OWNED promotion; operation deletion/duplication; missing
+  ledger and foreign identity; original four field-lifetime negatives. Re-run
+  phase/MIR/semantic/transpile/AIR/Map/IR/SAN and D/Linux equality on the new
+  executable before another checkpoint.466 remains OPEN and unimplemented.
+- Integration refinement: identified c86f2edf passes phase11902/0 and the new
+  coherent-MIR falsifiers, but strict catches normal LLVM specialization stack
+  views rejected by inventory-address equality. Existing LLVM owners alter
+  ABI naming/type projections while borrowing the same original MIR body.
+  Bind scoped evidence uniformly by existing routine.id to the canonical
+  inventory owner and require exact program/AST/HIR/source/CFG and collection
+  source-row borrow identity; validate the actual instruction carrier against
+  the same immutable ledger. Do not resolve by name or source-ID fallback.
+  ABI validity stays with the existing specialization owner. An accepted view
+  and detached/mutated-view negatives precede re-running strict. MIR429/1 has
+  one existing diagnostic-order failure, not acceptance; preserve its original
+  stale-inventory diagnostic at the inventory boundary before scoped evidence.
+- Bounded final native fdb23c47: ZGbmEb/Zhkr6Y and FmkXrW pass phase11902/0,
+  original strict/generic C-LLVM controls, old-six, MIR446/0, semantic3230/0,
+  transpile1012/0, AIR156/0 regression-only, Map24/58 and four flow gates.
+  XRwdLq passes sanitized phase/MIR; hOIQZT rechecks final Type-registry-safe
+  destruction text with normal/sanitized MIR446/0 (leaks OFF). hS1xHR verifies
+  all61 D/Linux src/test pairs. rSPNLS repeats exact original four named-field
+  refusals. Full pairaERkOV remains MIR0/18435 errors+16 warnings with first
+  466:22; current diagnostics byte-equal to prior49c. That executable rung is
+  BLOCKED on an exact synchronous read/lifetime fact at the existing indexed
+  String owner, not on MIR verifier acceptance. No466 implementation is in
+  this checkpoint. Independent review precedes that next repair; no red push.
+  Final safe Fresh import probe0IF00s against oldcbab/b8e driver refuses both
+  backends at the earlier direct-call expression admission, no artifact bytes.
+
 - Objective: finish the private String-push contract before extending admission
   to the next canonical466 call. Priority is exact receiver identity/currentness,
   element-policy history, explicit independent/nonlocal result classification,

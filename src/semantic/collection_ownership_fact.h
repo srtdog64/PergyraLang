@@ -31,10 +31,18 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     PgyCollectionEffectSnapshot **out);
 bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapshot *snapshot,
     const ASTNode *program, PgyCollectionEffectView *optional_out);
-/* The same synchronous validation must first pass snapshot_current. This
- * consumes one actual call's cached membership, not another whole-body replay. */
+/* MIR validates one routine at its boundary; the returned view still points
+ * to the complete immutable ledger. A routine with no expected caller is valid. */
+bool semantic_collection_effect_snapshot_routine_current(
+    const PgyCollectionEffectSnapshot *snapshot, const ASTNode *program,
+    uint32_t routine_id, PgyCollectionEffectView *optional_out);
+/* The same synchronous validation must first pass snapshot_current or
+ * snapshot_routine_current. This consumes one actual call's cached membership,
+ * not another whole-body replay. */
 bool semantic_collection_effect_snapshot_call(const PgyCollectionEffectSnapshot *snapshot,
     size_t caller_ordinal, const ASTNode *actual_call, size_t *effect_ordinal);
+PgyCollectionEffectSnapshot *semantic_collection_effect_snapshot_retain(
+    PgyCollectionEffectSnapshot *snapshot);
 void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *snapshot);
 
 /* Element-lifetime provenance for Array<String>.  This is deliberately

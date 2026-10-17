@@ -118,6 +118,10 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
     mir->has_collection_ownership_facts =
         hir->has_collection_ownership_facts;
     mir->has_loop_flow_facts = hir->has_loop_flow_facts;
+    if (!mir_capture_collection_effect_evidence(mir, semantic, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
     if (!mir_import_parallel_capture_facts(mir, semantic, error_message)) {
         mir_destroy(mir);
         return NULL;

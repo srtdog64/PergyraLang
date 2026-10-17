@@ -12,6 +12,7 @@
 #include "mir_decl_headers.h"
 #include "mir_fact_validate.h"
 #include "mir_validation.h"
+#include "mir_hir_fact_transfer.h"
 
 void
 mir_instruction_record_surface_usage(MIRInstruction *inst)
@@ -304,7 +305,9 @@ mir_validate_emission_contract(const MIRRoutine *routine,
     free(contract_error);
     contract_error = NULL;
 
-    if (!mir_validate_routine_emission_facts(routine, &contract_error)) {
+    if (!mir_validate_collection_effect_evidence(routine->program, routine,
+                                                   &contract_error)
+        || !mir_validate_routine_emission_facts(routine, &contract_error)) {
         if (error_message != NULL)
             *error_message = contract_error != NULL
                 ? contract_error

@@ -10,6 +10,7 @@
 #include "collection_owned_local_transition_owner.h"
 #include "../semantic/builtin_kind.h"
 #include "mir_json_expression_graph_materialize.h"
+#include "mir_hir_fact_transfer.h"
 
 #include "mir_branch_source_facts_internal.h"
 
@@ -453,6 +454,9 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                                               char **error_message)
 {
     if (routine == NULL)
+        return false;
+    if (!mir_validate_collection_effect_evidence(routine->program, routine,
+                                                  error_message))
         return false;
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         const MIRBasicBlock *block = &routine->blocks[block_id];
