@@ -1,0 +1,12 @@
+func Consume(own rows: Array<Int>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let nested: Array<Array<Int>> = [[7], [0]];
+    let (alias, marker) = nested;
+    Log(Consume(alias));
+    Log(ArrayLength(nested[0]));
+}

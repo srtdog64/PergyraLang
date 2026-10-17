@@ -1,0 +1,14 @@
+struct Box { rows: Array<Int>; }
+
+func Consume(own rows: Array<Int>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let box: Box = Box([7]);
+    let alias = box.rows;
+    Log(Consume(alias));
+    Log(ArrayLength(box.rows));
+}

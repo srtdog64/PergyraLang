@@ -1,0 +1,17 @@
+struct Offset
+{
+    amount: Int;
+}
+
+func Probe() -> Int
+{
+    let offset: Offset = Offset(2);
+    let nums: Array<Int> = [7];
+    let index: Int = 0;
+    return -(offset.amount + nums[index]);
+}
+
+func Main() -> Void
+{
+    Log(Probe());
+}

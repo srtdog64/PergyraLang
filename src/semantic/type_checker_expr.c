@@ -10,6 +10,7 @@
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
 #include "function_param_publication_owner.h"
+#include "array_storage_release_owner.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING visit census: total expression visits vs
  * distinct nodes separates "each node costs too much" from "nodes are
@@ -294,6 +295,7 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         for (size_t i = 0; i < n; i++) {
             elems[i] = expr_normalize_type(type_check_expression(
                 ast_tuple_literal_element(expr, i), ctx));
+            semantic_array_storage_escape(ast_tuple_literal_element(expr, i), elems[i], ctx);
             callable_capability_record_retained_value(ctx, expr, ast_tuple_literal_element(expr, i), elems[i]);
             if (type_equals(elems[i], TYPE_VOID)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,

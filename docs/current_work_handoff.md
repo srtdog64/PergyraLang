@@ -5,22 +5,46 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — unchanged canonical admission, then bootstrap/CI
 
-- Last committed source checkpoint: `315e4d7bfb98b4d028058968d198732a353d2929`
-  on main, parent366d1afad. Local and unpushed.
-  There is further production/phase/source-gate WIP; verify exact dirty state.
+- Last committed source checkpoint: `bbf3fbffe34eecbed10ba5de22fee9b1fa4f28af`
+  on main, parent315e4d7b. Local and unpushed. Production/phase/source gates
+  are committed; current navigation edits describe the next bounded slice.
 - IN FLIGHT: the existing path-state/release/collection chain; read its current
   cards near the top of the integration directive, not earlier cost proposals.
-  Current dirty-source Linux native is c3f75cf638ba967429194ebf0a1afe3ee7e4dbecd9db81f8559bac013238596c.
+  Committed-source Linux native was c3f75cf638ba967429194ebf0a1afe3ee7e4dbecd9db81f8559bac013238596c.
   heJNoe passes9723 phase checks,366 MIR tests and the original strict summary/
   runtime/4096-4097 budgets. Sa1fpc broad passes366/3228/1012, Map24/58 and4IR;
   DsAdB1 SAN passes9723/0 (live UAF oracle; leak detection OFF). No unsafe
   negative has been executed. Verify the final577296CE source-gate identity.
+- New selector candidate08c2c37d26cc6c4fc73956a3ca12edb74f49e196a4c062e8cea4514d76c46580
+  passes nIWyR5:9957 phase/0,366 MIR/0 and full strict original budget controls.
+  Before wUnJ3V retains one member and one array-access C row; candidate removes
+  those exact rows while keeping effectful children, loan/width and unreachable
+  behavior. No same-input cost/census or actual bootstrap was run on08 yet.
+- BLOCKING independent bbf3 P1: xIJ5ME on immutablec3 admits tuple, Array/Slice
+  element destructure and match-payload aliases to unseeded own callees with
+  live originals (MIR only, never executed). For-payload is already refused at
+  MOVE_FROM_RELEASED11:21. Fresh tuple destructure is only MIR-positive: C
+  lowering already fails Unknown initializer at baseline, not a runtime PASS.
+  A/B/C are mapping the complete alias birth/store/own-consumer chain before
+  production repair; cost work is paused for this soundness boundary.
+- Bounded repair is now implemented, not yet committed: c7279c85409bc1a534c2b46935f307748a89fe9657f77e058cf33be5dd5b07fb.
+  Array births default-deny except explicit existing issuers; tuple storage
+  revokes the original; own rejects borrowed/host formals. UFRktc refuses all10
+  negatives, including8 old unsafe admissions, no MIR/unsafe execution.
+  ikIU88 passes10008 phase/0,366 MIR/0 and full strict original budget/runtime
+  controls. New fixture mistakes were verified identical on old/new, not
+  production regressions. uDmzYy broad passes366/3228/1012+Map24/58+4IR;
+  uDW0O1 SAN10008/0, live UAF oracle, leak OFF,191284KiB. Full fixed census
+  and actual bootstrap remain pending on this candidate; no CI claim.
+  Normal CALL-return UNKNOWN bootstrap admission explicitly remains OPEN and
+  has real own/deepdrop consequences; it is not fresh/unique ownership proof.
 - Full unchanged4NcZFU on this native: all4273 routines/3188 cold keys, zero
   direct Pass2 errors,616 failed at the unchanged4096 cap; no new failures,
   changed causes or prior-success mask changes versus Ylpvi5.3:22.45 and
   1252752KiB, restoration BYTE_IDENTICAL. Earlier f5/277 regressions are repaired,
   not alternate resume points. This census is NOT canonical admission.
-- The two366 review gaps have candidate repairs, pending independent review.
+- The two366 review gaps have committed repairs; bbf3 independent review found
+  no further own-call currency flaw, but the new alias-birth P1 above blocks it.
   Before kUsBTc had9 actual currency faults; fresh-context heJNoe withdraws all10
   and restores them. pwBO0s refuses both alias orders at BORROW21:17/no MIR;
   QBzXVs retains extern own analysis and class/generic C/LLVM1. Source-only
@@ -32,7 +56,9 @@ evidence override this card. Resume this card, not the archive below.
   E115/G148/C2475/O894/D464, all3833 backing charges at epoch1. Same-frame exact
   repeats0; cross-input visits2005. Do not optimize global/local replays as its
   first cause or infer that all cross-input work is removable. Restore is
-  BYTE_IDENTICAL. A is surveying the old C-only selector traversal read-only.
+  BYTE_IDENTICAL. The current selector-C boundary card in the integration
+  directive fixes the next production/phase/source scopes; getter currentness
+  is being checked before implementation. Savings remain unmeasured.
 - Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Last observed CI
   run38860052641 is RED; bootstrap/install were skipped. No known-red push.
 - One acceptance chain: zero fixed DRV-2 ownership refusals and unchanged full

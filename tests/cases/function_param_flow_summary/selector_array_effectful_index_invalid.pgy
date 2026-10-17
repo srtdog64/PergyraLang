@@ -1,0 +1,23 @@
+extern "C"
+{
+    func Keep(ids: Array<Int>) -> Void;
+}
+
+func RetainingIndex(ids: Array<Int>) -> Int
+{
+    Keep(ids);
+    return 0;
+}
+
+func Probe() -> Int
+{
+    let ids: Array<Int> = [7];
+    let n: Int = ids[RetainingIndex(ids)];
+    ArrayDrop(ids);
+    return n;
+}
+
+func Main() -> Void
+{
+    Log(Probe());
+}

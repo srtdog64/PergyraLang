@@ -347,6 +347,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             p->param_mode = param != NULL ? param->mode : PARAM_MODE_DEFAULT;
             p->has_exclusive_array_storage = p->param_mode == PARAM_MODE_OWN
                 && type_is_constructed_named(p->type, "Array");
+            if (type_is_constructed_named(p->type, "Array"))
+                p->has_escaped_array_storage = false;
             symbol_mark_declaration(
                 p, ast_func_param_stable_id(param), false);
             semantic_future_initialize_parameter(p);

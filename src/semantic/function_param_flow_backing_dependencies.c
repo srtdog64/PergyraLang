@@ -351,7 +351,12 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 void backing_consumers(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL || state->fact->analysis_unsupported) return;
-    if (state->loan_seed == NULL && (node->type == AST_BINARY || node->type == AST_UNARY)) {
+    bool selector = node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS;
+    bool selector_reachable = true;
+    bool explicit_unreachable = state->loan_seed == NULL && selector &&
+        semantic_param_publication_execution(state->store->ctx, node, &selector_reachable) && !selector_reachable;
+    if (state->loan_seed == NULL && (node->type == AST_BINARY || node->type == AST_UNARY ||
+        selector) && !explicit_unreachable) {
         bool empty = false;
         if (state->fact->origin_count != 1 || state->fact->origin_words != 1 ||
             !function_param_flow_consumer_empty_current(state->store->ctx,

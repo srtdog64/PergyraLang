@@ -293,6 +293,9 @@ semantic_collection_owned_element_requirement_record_argument(
         if (binding == NULL || binding_id == 0
             || binding_id != binding->decl_syntax_id)
             return requirement_failure(ctx, call, "missing actual binding identity");
+        if (binding->is_host_field || (binding->is_parameter
+            && binding->param_mode != PARAM_MODE_OWN))
+            return requirement_failure(ctx, call, "borrowed or hosted array cannot be transferred by own");
         /* An own handoff consumes storage even when the callee has no
          * element-drop seed. Do not forward a known stored descriptor alias. */
         if (binding->has_escaped_array_storage) {

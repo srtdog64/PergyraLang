@@ -14,6 +14,7 @@
 #include "type_checker_ownership_let_internal.h"
 #include "destructure_type_fact.h"
 #include "function_param_publication_owner.h"
+#include "array_storage_release_owner.h"
 
 static Type *
 ownership_destructure_normalize_type(Type *type)
@@ -74,6 +75,10 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
             symbol_mark_declaration(s,
                 ownership_destructure_binding_syntax_id(
                     node, i), false);
+            if (init != NULL && init->type == AST_TUPLE_LITERAL
+                && i < ast_tuple_literal_count(init))
+                semantic_array_storage_initialize(
+                    s, ast_tuple_literal_element(init, i), ctx);
             scope_declare(ctx->scope, s);
         }
         return true;

@@ -25,6 +25,125 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Blocking review follow-up — Array descriptor alias births
+
+- Independent bbf3 review found tuple destructuring creates Array symbols with
+  zero-initialized escaped=false and no source retirement; an own handoff to
+  an unseeded callee accepts the shallow descriptor while its original remains.
+  Reproduce with analyze-only MIR; never execute or link the unsafe input.
+- Soundness takes precedence over the following cost slice. Its nIWyR5
+  candidate08c2c37d passes9957 phase checks/366 MIR/full strict including the
+  original4096/4097 controls, but that does not close this additional birth path.
+- Before editing production, enumerate all variable/parameter/payload/loop/
+  destructure/outcome creation and alias-assignment paths, their existing
+  storage/fact issuance, and the final own/release consumers. A is doing this
+  read-only; B maps phase evidence; C prepares minimal source falsifiers.
+  Root alone runs WSL/build/process/Git. No new authority field or owner.
+- The required repair must preserve legitimate literal/Clone/MapKeys/owned
+  parameter transfers and existing positive/negative gates. A stored alias
+  cannot become ownership merely because a calloc default says not escaped;
+  a genuine move needs current source identity and retirement, not syntax.
+  Complete producer/consumer edits and currentness tests must be fixed here
+  after the survey and before implementation. Costs/CI are not yet green.
+- Fixed bounded repair after survey: Array `symbol_create_variable` defaults
+  escaped=true; the existing initializer explicitly reproduces the admitted
+  literal/checked producer/linear move states, while member/index and other
+  unproved extracted births remain escaped. Existing typed formal modes retain
+  their current borrow/inout behavior; own handoff independently refuses a
+  borrowed formal or host field. Tuple storage invalidates an identifier source
+  via the existing storage owner; direct fresh tuple components use the same
+  initializer. No syntax-only move, new bit/owner or element-ownership grant.
+- Required production set: symbol_table.c, array_storage_release_owner.c,
+  type_checker_func_decl.c, type_checker_ownership_destructure.c,
+  type_checker_expr.c and collection_owned_element_requirement_owner.c.
+  Preserve any already-current String member-move/linear-transfer fact rather
+  than replacing it with a descriptor copy. A owns these edits and the pending
+  one-line loan-query preservation; B phase only; C source/gate only.
+- Explicit exclusion, not a safety proof: existing normal CALL-return Array
+  UNKNOWN bootstrap admission is retained without widening its set. It has
+  real own/deepdrop admission consequences; false escaped is NOT fresh/owned
+  evidence. Its missing physical-result producer remains OPEN. The current
+  result/header/dependency and owned-String receipts cannot supply that proof.
+  Do not label this bounded alias repair whole Array or language memory safety.
+- Before6BW27Z on immutablec3 admits7 unsafe MIR-only cases: tuple alias,
+  Array/Slice element destructure, match payload, tuple-store original own,
+  ordinary field/index extraction. For payload already refuses MOVE_FROM_RELEASED
+  at11:21. Fresh literal tuple is only MIR-positive; its existing C Unknown
+  initializer-lowering failure is recorded, not silenced or counted as runtime.
+- Integration falsifiers: those7 exact old admissions must now refuse with no
+  MIR; existing direct-let orders, chains, borrowed formals and assignment
+  refusals persist. Positive normal literal/Clone/MapKeys/String move, named
+  ref/default/inout/own and existing UNKNOWN factory behavior must remain.
+  Run static, phase, strict, broad and SAN, then full fixed census/actual chain.
+  Any additional source dependency revises this map before extending edits.
+- Final before3AjLgM adds for-payload with an immediate break: it also admits
+  unsafe MIR, while the original loop's second iteration had masked the alias
+  with MOVE_FROM_RELEASED. Total newly falsified paths8; two-hop is already
+  refused. UFRktc on c7279c refuses all10 negatives with exactly one BORROW and
+  no MIR, retaining fresh tuple MIR7747. No unsafe negative was executed.
+- ikIU88 on nativec7279c85409bc1a534c2b46935f307748a89fe9657f77e058cf33be5dd5b07fb
+  passes10008 phase checks/0,366 MIR/0 and full strict source/runtime/unchanged
+  4096-4097 controls. Initial Xm84vN's two new-positive failures were invalid
+  test inputs: reserved Read spelling and existing REF Clone refusal, identical
+  on oldc3 and candidate. Replacing only those test inputs with InspectLength
+  and local-source Clone gives identical admitted MIR13649/5765 on both; no
+  production safety condition or existing oracle was changed for that repair.
+  uDmzYy broad repeats366 MIR/3228 semantic/1012 transpile, Map24 C/LLVM
+  positives/58 analyze-only negatives and4IR flows. uDW0O1 separate-build SAN
+  passes10008/0 with a live UAF oracle, leak detection OFF, peak191284KiB.
+  Full fixed census and actual bootstrap are still pending here. No CI claim.
+
+### Current selector C traversal boundary — bbf3 checkpoint
+
+- Objective/priority: unblock the unchanged full canonical program within the
+  existing4096 demand bound. Preserve typed identity, escape/output facets,
+  fail-closed currentness and negative gates before reducing repeated work.
+  This remains a native-admission prerequisite, not self-host substitution.
+- Fixed source is `bbf3fbffe34eecbed10ba5de22fee9b1fa4f28af`, native
+  `c3f75cf638ba967429194ebf0a1afe3ee7e4dbecd9db81f8559bac013238596c`.
+  Full4NcZFU has4273 routines/3188 keys, zero direct Pass2 errors and616
+  failures, all work4096. Actual S1F73p bootstrap remains RED18410/16 before
+  gen0. No fixed point, installed-driver or CI acceptance is established.
+- Reached diagnostic u675Fj on cold132263/input0: E115/G148/C2475/O894/D464,
+  all3833 backing charges at epoch1; exact same-frame repeats0, cross-input
+  occurrences2005. C includes185 MEMBER and38 ARRAY_ACCESS visits plus671
+  Binary/Unary ancestors, not all necessarily removable. Savings and coverage
+  are UNKNOWN until the same-input after run. The full scratch restore was
+  BYTE_IDENTICAL. Do not optimize global-pass replay as this demand's cause.
+- Owner/chain: current typed publication -> existing input claims and derived
+  empty-C receipt -> existing backing C traversal -> required return/output
+  finalizers -> unchanged admission -> bootstrap/install/CI. No new fact family,
+  field, ledger, cache, ABI, annotation or copy is selected.
+- Exact existing traversal: MEMBER visits only its object unless the current
+  typed unit-enum selection says to skip it; ARRAY_ACCESS visits receiver then
+  index. Neither wrapper emits a C store/call/return itself. Extend the existing
+  derived receipt only when those exact child traversals are empty. CALL,
+  CAST, unknown nodes and any effectful descendant remain nonempty. This is
+  equivalence to old C traversal, not operator purity or backing-origin elision.
+- Complete production edit set: consumer_navigation.c derive/currentness;
+  backing_dependencies.c wrapper dispatch. Existing claims already capture
+  child pointer/ID/ordinal/order and enum selection. Add a bounded current-row
+  check there only if the getter contract requires it; do not reconstruct a
+  program root or recursively replay the whole AST on each C query. Owner-wide
+  claims currentness remains mandatory at its existing integration boundaries.
+  D/O, LET/RETURN/CALL, loan traversal, one-origin guard, charging and limits
+  remain unchanged. Delete no other owner and add no compatibility route.
+- Before edits, resolve current getter versus owner-wide validation guarantees.
+  A owns those existing production files only; B owns phase falsifiers only;
+  C owns source fixtures and the existing summary smoke gate only. Root owns
+  this card, all WSL/build/process/Git and the shared integration gate.
+- Falsifiers: typed member/index over empty children omits actual C row work;
+  effectful member receiver and array index retain their calls and refusals;
+  child pointer/ID/order/type/value or enum-selection withdrawal fails closed
+  at its owning validation boundary, restoration revalidates. Existing loans,
+  D/O, ordinary calls/casts, releases and original4096/4097 controls stay intact.
+- Acceptance: capture old-native before probes; run phase and strict C/LLVM
+  positives plus analyze-only negatives, then same fixed cold trace/full census
+  with no new failure/cause/success-mask regression. Measure actual charged
+  work and wall/memory without changing input or allowances. If this does not
+  unblock admission, report the next reached operation rather than claiming
+  all616 failures fixed. Actual unchanged bootstrap/install/CI still required.
+
 ### Reached first-pass cost survey after cd5 (read-only, not a permission)
 
 - Objective/priority: unblock unchanged canonical admission within the original

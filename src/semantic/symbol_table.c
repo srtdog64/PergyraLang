@@ -400,6 +400,11 @@ symbol_create_variable(const char *name, Type *type,
         return NULL;
 
     sym->qubit_info.entangle_pool_id = -1;
+    Type *constructor = type_constructed_constructor(type);
+    /* An Array binding is not release authority until its birth is checked. */
+    sym->has_escaped_array_storage = constructor != NULL
+        && constructor->name != NULL
+        && strcmp(constructor->name, "Array") == 0;
     return sym;
 }
 

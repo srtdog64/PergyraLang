@@ -13,6 +13,7 @@
 #include "semantic/type_checker_flow_universe.h"
 #include "semantic/type_checker_flow_loop_summary.h"
 #include "semantic/array_storage_deferred_preservation_owner.h"
+#include "semantic/array_storage_release_owner.h"
 #include "semantic/type_system.h"
 #include "semantic/diag_codes.h"
 #include "semantic/function_param_publication_owner.h"
@@ -6629,6 +6630,221 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_selector_c_empty_preparation(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Flag{value:Bool}"
+        "func Probe(inout output:String,text:String,flag:Flag,flags:Array<Bool>)->Void{"
+        "if flag.value||flags[0]{output=text;}}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 1);
+    unsigned mask = function_param_flow_summary_for_param(ctx, decl, 1);
+    CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+    if (index == NULL || index->backing_frames == NULL || index->backing_frames[1] == NULL) {
+        CHECK(false); goto cleanup;
+    }
+    FunctionParamFlowBackingFact *frame = index->backing_frames[1];
+    CHECK(frame->complete && !frame->pending && frame->outputs != NULL
+        && (frame->outputs[0] & UINT64_C(1)) != 0);
+    size_t member_rows = 0, index_rows = 0;
+    for (size_t n = 0; n < frame->node_count; n++) {
+        member_rows += frame->nodes[n].shape == AST_MEMBER_ACCESS;
+        index_rows += frame->nodes[n].shape == AST_ARRAY_ACCESS;
+    }
+    if (member_rows != 0 || index_rows != 0)
+        fprintf(stderr, "Selector C-empty retained member=%zu index=%zu per-frame rows\n",
+            member_rows, index_rows);
+    CHECK(member_rows == 0 && index_rows == 0);
+    CHECK(function_param_flow_backing_rows_current(store, decl));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_selector_c_unreachable(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Flag{value:Bool}"
+        "func Probe(inout output:String,text:String,flag:Flag,flags:Array<Bool>)->Void{"
+        "output=text;return;flag.value;flags[0];}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 1), *body = ast_func_body(decl);
+    ASTNode *dead[] = {ast_block_statement(body, 2), ast_block_statement(body, 3)};
+    for (size_t i = 0; i < 2; i++) {
+        bool reachable = true;
+        CHECK(semantic_param_publication_execution(ctx, dead[i], &reachable) && !reachable);
+    }
+    CHECK(function_param_flow_summary_for_param(ctx, decl, 2) == 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(store, decl, &index));
+    FunctionParamFlowBackingFact *frame = index != NULL && index->backing_frames != NULL
+        ? index->backing_frames[2] : NULL;
+    CHECK(frame != NULL && frame->complete && !frame->pending);
+    if (frame != NULL) {
+        CHECK(frame->effects != NULL && frame->effects[0] == 0
+            && frame->outputs != NULL && frame->outputs[0] == 0);
+        for (size_t i = 0; i < 2; i++) {
+            bool seen = false;
+            for (size_t n = 0; n < frame->node_count; n++) seen |= frame->nodes[n].node == dead[i];
+            CHECK(seen);
+        }
+    }
+    CHECK(function_param_flow_backing_rows_current(store, decl));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_selector_c_empty_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct Flag{value:Bool}enum Purpose{On,Off}"
+        "extern \"C\"{func Observe(text:String)->Flag;func Choose(text:String)->Int;}"
+        "func Probe(inout output:String,text:String,flag:Flag,flags:Array<Bool>,purpose:Purpose)->Void{"
+        "if flag.value{output=text;}if flags[0+0]{output=text;}"
+        "if Observe(text).value||flags[Choose(text)]{output=text;}"
+        "if purpose==Purpose.On{output=text;}}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 3), *body = ast_func_body(decl);
+    ASTNode *effectful = ast_if_condition(ast_block_statement(body, 2));
+    ASTNode *targets[] = {ast_if_condition(ast_block_statement(body, 0)),
+        ast_if_condition(ast_block_statement(body, 1)), ast_binary_left(effectful),
+        ast_binary_right(effectful), ast_binary_right(ast_if_condition(ast_block_statement(body, 3)))};
+    unsigned baseline = function_param_flow_summary_for_param(ctx, decl, 1);
+    CHECK((baseline & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0 && baseline != SLOT_PARAM_SUMMARY_ALL);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(store, decl, &index));
+    if (index == NULL || index->claims == NULL) goto cleanup;
+    size_t ordinals[5] = {SIZE_MAX, SIZE_MAX, SIZE_MAX, SIZE_MAX, SIZE_MAX};
+    for (size_t c = 0; c < index->claims->count; c++)
+        for (size_t t = 0; t < 5; t++) if (index->claims->rows[c].node == targets[t]) ordinals[t] = c;
+    for (size_t t = 0; t < 5; t++) {
+        bool empty = false;
+        CHECK(ordinals[t] != SIZE_MAX);
+        if (ordinals[t] == SIZE_MAX) goto cleanup;
+        CHECK(function_param_flow_consumer_empty_current(ctx, index->claims, targets[t], &empty));
+        CHECK(empty == (t < 2 || t == 4));
+    }
+    FunctionParamFlowBackingFact *frame = index->backing_frames != NULL ? index->backing_frames[1] : NULL;
+    CHECK(frame != NULL && frame->complete && !frame->pending);
+    if (frame == NULL) goto cleanup;
+    for (size_t t = 0; t < 4; t++) {
+        bool seen = false;
+        for (size_t n = 0; n < frame->node_count; n++) seen |= frame->nodes[n].node == targets[t];
+        CHECK(seen == (t >= 2));
+    }
+    for (size_t t = 0; t < 2; t++) {
+        FunctionParamFlowIndexClaim *row = &index->claims->rows[ordinals[t]];
+        FunctionParamFlowIndexClaim saved_row = *row;
+        ASTNode *node = targets[t], saved_node = *node;
+        ASTNode *child = row->children[0], saved_child = *child;
+        ASTNode foreign_child = *child;
+        size_t child_ordinal = row->child_claim_ordinals[0];
+        uint32_t child_id = row->child_ids[0];
+        uint32_t child_binding = ast_identifier_binding_syntax_id(child);
+        PublishedNode *value = published_node_for(ctx, child);
+        CHECK(value != NULL);
+        if (value == NULL) goto cleanup;
+        PublishedNode saved_value = *value;
+        for (unsigned fault = 0; fault < (t == 0 ? 14u : 15u); fault++) {
+            if (fault == 0) row->consumer_empty = false;
+            if (fault == 1) row->child_claim_ordinals = NULL;
+            if (fault == 2) row->child_claim_ordinals[0] = SIZE_MAX;
+            if (fault == 3) row->children[0] = &foreign_child;
+            if (fault == 4) row->id++;
+            if (fault == 5) node->stable_id++;
+            if (fault == 6) child->stable_id++;
+            if (fault == 7) value->value_present = false;
+            if (fault == 8) value->value_type = TYPE_INT;
+            if (fault == 9) ast_identifier_set_binding_syntax_id(child, 0);
+            if (fault == 10) {
+                if (t == 0) node->data.member.object = NULL;
+                else node->data.array_access.array = NULL;
+            }
+            if (fault == 11) row->child_count--;
+            if (fault == 12) row->child_ids[0]++;
+            if (fault == 13) row->semantic_promoted = false;
+            if (fault == 14) {
+                ASTNode *receiver = node->data.array_access.array;
+                node->data.array_access.array = node->data.array_access.index;
+                node->data.array_access.index = receiver;
+            }
+            bool empty = true;
+            CHECK(!function_param_flow_consumer_empty_current(ctx, index->claims, node, &empty));
+            CHECK(!function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+            *node = saved_node; *child = saved_child; *value = saved_value; *row = saved_row;
+            ast_identifier_set_binding_syntax_id(child, child_binding);
+            row->children[0] = child; row->child_claim_ordinals[0] = child_ordinal; row->child_ids[0] = child_id;
+            CHECK(function_param_flow_consumer_empty_current(ctx, index->claims, node, &empty) && empty);
+            CHECK(function_param_flow_index_claims_current(ctx, index));
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
+        }
+    }
+    /* Grandchild currency belongs to the full owner, not a recursive getter. */
+    ASTNode *number = ast_binary_left(ast_array_access_index(targets[1]));
+    uint32_t number_id = number->stable_id;
+    number->stable_id++;
+    CHECK(!function_param_flow_index_claims_current(ctx, index));
+    CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+    number->stable_id = number_id;
+    CHECK(function_param_flow_index_claims_current(ctx, index));
+    CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
+    PublishedNode *selection = published_node_for(ctx, targets[4]);
+    CHECK(selection != NULL && selection->unit_enum_selection != NULL);
+    if (selection != NULL && selection->unit_enum_selection != NULL) {
+        SemanticPublishedUnitEnumSelection *saved = selection->unit_enum_selection;
+        selection->unit_enum_selection = NULL;
+        bool empty = true;
+        CHECK(!function_param_flow_consumer_empty_current(ctx, index->claims, targets[4], &empty));
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+        selection->unit_enum_selection = saved;
+        CHECK(function_param_flow_consumer_empty_current(ctx, index->claims, targets[4], &empty) && empty);
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
+    }
+    for (size_t t = 0; t < 2; t++) for (unsigned mode = 0; mode < 3; mode++) {
+        uint64_t effects[2] = {0, 0}, outputs = 0;
+        FunctionParamFlowBackingFact partial = {.origin_count = mode == 0 ? 2 : 1,
+            .origin_words = mode == 1 ? 2 : 1, .destination_count = 1,
+            .destination_words = 1, .effects = effects, .outputs = &outputs,
+            .claims = index->claims, .epoch = 1, .complete = true};
+        ReturnedBacking state = {.store = store, .lookup = {ctx, program}, .decl = decl,
+            .fact = &partial, .loan_seed = mode == 2 ? targets[t] : NULL};
+        backing_consumers(&state, targets[t]);
+        if (mode < 2) CHECK(!partial.complete);
+        else CHECK(partial.complete && state.loan_seed_seen && state.loan_work != 0 && partial.node_count != 0);
+        for (size_t n = 0; n < partial.node_count; n++) free(partial.nodes[n].origins);
+        free(partial.nodes); free(partial.bindings); free(partial.pending_relations);
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_c_empty_currency(void)
 {
     Lexer *lexer = lexer_create(
@@ -7548,6 +7764,152 @@ static void checked_private_physical_array_nested_result_currency(void)
     }
 cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_array_alias_birth_before(void)
+{
+    Type *arguments[] = {TYPE_INT};
+    Type *array_type = type_create_constructed(TYPE_ARRAY, arguments, 1);
+    Symbol *raw = symbol_create_variable("raw_rows", array_type, 1, 1);
+    Symbol *scalar = symbol_create_variable("raw_count", TYPE_INT, 1, 1);
+    CHECK(raw != NULL && scalar != NULL);
+    if (raw != NULL) {
+        if (!raw->has_escaped_array_storage)
+            fprintf(stderr, "Array alias birth raw default still grants unescaped storage\n");
+        CHECK(raw->has_escaped_array_storage && !raw->has_exclusive_array_storage
+            && !raw->has_pending_inout_preservation);
+    }
+    if (scalar != NULL)
+        CHECK(!scalar->has_escaped_array_storage && !scalar->has_exclusive_array_storage
+            && !scalar->has_pending_inout_preservation);
+    symbol_destroy(raw); symbol_destroy(scalar);
+    const char *sources[] = {
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let rows:Array<Int> = [7];let(alias,marker)=(rows,0);"
+        "Log(Consume(alias));Log(ArrayLength(rows));}",
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let rows:Array<Int> = [7];let pair=(rows,0);"
+        "Log(Consume(rows));let(alias,marker)=pair;Log(ArrayLength(alias));}",
+        "struct Box{rows:Array<Int>}func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let box:Box=Box([7]);let alias=box.rows;"
+        "Log(Consume(alias));Log(ArrayLength(box.rows));}",
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let nested:Array<Array<Int>> = [[7],[0]];"
+        "let(alias,marker)=nested;Log(Consume(alias));Log(ArrayLength(nested[0]));}",
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let nested:Array<Array<Int>> = [[7],[0]];let view=nested.Slice(0,2);"
+        "let(alias,marker)=view;Log(Consume(alias));Log(ArrayLength(nested[0]));}",
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let wrapped:Option<Array<Int>> = Some([7]);"
+        "match wrapped{case Some(alias):Log(Consume(alias));case None:Log(0);}"
+        "match wrapped{case Some(rows):Log(ArrayLength(rows));case None:Log(0);}}",
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let nested:Array<Array<Int>> = [[7]];let alias=nested[0];"
+        "Log(Consume(alias));Log(ArrayLength(nested[0]));}"
+    };
+    for (size_t path = 0; path < sizeof(sources) / sizeof(sources[0]); path++) {
+        Lexer *lexer = lexer_create(sources[path]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool admitted = parsed && type_check_program(program, ctx);
+        if (admitted) fprintf(stderr, "Array alias birth unsafe source path=%zu still admitted\n", path);
+        CHECK(!admitted && ctx->has_error && ctx->diagnostic_count != 0);
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_array_birth_initializer_states(void)
+{
+    const char *sources[] = {
+        "func Use()->Void{let rows:Array<Int> = [7];}",
+        "func Factory()->Array<Int>{return [7];}func Use()->Void{let rows=Factory();}",
+        "func Use(ref map:HashMap<String,Int>)->Void{let rows=MapKeys(map);}",
+        "func Use()->Void{let source:Array<String> = [\"a\"];let rows=Clone(source);}"
+    };
+    for (size_t route = 0; route < 4; route++) {
+        Lexer *lexer = lexer_create(sources[route]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        if (!typed) {
+            fprintf(stderr, "Array birth initializer route=%zu unexpectedly refused\n", route);
+            for (size_t d = 0; d < ctx->diagnostic_count; d++)
+                fprintf(stderr, "Array birth initializer diagnostic: %s\n", ctx->diagnostics[d]->message);
+        }
+        CHECK(typed);
+        if (typed) {
+            ASTNode *decl = ast_program_statement(program, route == 1 ? 1 : 0);
+            ASTNode *local = ast_block_statement(ast_func_body(decl), route == 3 ? 1 : 0);
+            ASTNode *initial = ast_let_initializer(local);
+            SemanticPublishedValue value = semantic_param_publication_value(ctx, initial);
+            CHECK(value.ok && type_is_constructed_named(value.type, "Array"));
+            if (value.ok) {
+                Symbol *binding = symbol_create_variable("rows", (Type *)value.type, 1, 1);
+                CHECK(binding != NULL && binding->has_escaped_array_storage);
+                if (binding != NULL) {
+                    binding->decl_syntax_id = ast_node_stable_id(local);
+                    ASTNode *saved_function = ctx->current_function_decl;
+                    ctx->current_function_decl = decl;
+                    semantic_array_storage_initialize(binding, initial, ctx);
+                    CHECK(!binding->has_escaped_array_storage
+                        && binding->has_exclusive_array_storage == (route == 0)
+                        && !binding->has_pending_inout_preservation);
+                    /* In particular an admitted CALL is not an exclusive birth. */
+                    ctx->current_function_decl = saved_function;
+                    symbol_destroy(binding);
+                }
+            }
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_array_birth_preserved_sources(void)
+{
+    const char *sources[] = {
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Forward(own rows:Array<Int>)->Int{return Consume(rows);}"
+        "func Main()->Void{let rows:Array<Int> = [7];Log(Forward(rows));}",
+        "func InspectLength(ref rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Mutate(inout rows:Array<Int>)->Void{ArrayPush(rows,2);}"
+        "func Main()->Void{var rows:Array<Int> = [1];Log(InspectLength(rows));Mutate(rows);ArrayDrop(rows);}",
+        "func Main()->Void{let rows:Array<String> = [];ArrayPushOwnedString(rows,Concat(\"a\",\"b\"));"
+        "ArrayDropOwnedStrings(rows);}",
+        "func Main()->Void{let map:HashMap<String,Int> = MapNew();MapSet(map,\"a\",1);"
+        "let rows=MapKeys(map);let moved=rows;ArrayDropOwnedStrings(moved);}",
+        "func Main()->Void{let borrowed:Array<String> = [\"a\"];let rows=Clone(borrowed);"
+        "ArrayDropOwnedStrings(rows);}",
+        /* Existing UNKNOWN call-return admission, not physical-result ownership proof. */
+        "func Factory()->Array<Int>{return [7];}"
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let rows=Factory();Log(Consume(rows));}",
+        /* Semantic positive only: the separate source gate records the existing
+         * Unknown tuple initializer backend limitation rather than executing it. */
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let(rows,marker)=([7],0);Log(Consume(rows));Log(marker);}"
+    };
+    for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); i++) {
+        Lexer *lexer = lexer_create(sources[i]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool admitted = parsed && type_check_program(program, ctx);
+        if (!admitted) {
+            fprintf(stderr, "Array birth preserved source=%zu unexpectedly refused\n", i);
+            for (size_t d = 0; d < ctx->diagnostic_count; d++)
+                fprintf(stderr, "Array birth preserved diagnostic: %s\n", ctx->diagnostics[d]->message);
+        }
+        CHECK(admitted && !ctx->has_error);
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
 }
 
 static void checked_owned_actual_final_currency_fault(unsigned fault)
@@ -8788,6 +9150,9 @@ int main(void)
     checked_return_loan_alias_currency();
     checked_backing_binding_growth();
     checked_c_empty_preparation();
+    checked_selector_c_empty_preparation();
+    checked_selector_c_unreachable();
+    checked_selector_c_empty_currency();
     checked_c_empty_currency();
     checked_control_navigation_preparation();
     checked_control_navigation_topology();
@@ -8802,6 +9167,9 @@ int main(void)
     checked_array_storage_pending_release();
     checked_collection_loop_replay();
     checked_owned_actual_final_currency();
+    checked_array_alias_birth_before();
+    checked_array_birth_preserved_sources();
+    checked_array_birth_initializer_states();
     checked_array_storage_live_paths();
     checked_private_local_array_push();
     checked_private_physical_array_nested_result_currency();

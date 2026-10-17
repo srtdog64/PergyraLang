@@ -2,6 +2,7 @@
  * operation; unresolved metadata and descriptor aliases refuse release. */
 #include "array_storage_release_owner.h"
 #include "array_storage_element_lifetime_owner.h"
+#include "collection_ownership_fact.h"
 #include "type_checker_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "collection_owned_element_requirement_owner.h"
@@ -106,13 +107,26 @@ semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializer,
      * ownership rung; callable identity alone is not storage provenance. */
     binding->has_exclusive_array_storage = ctx->current_function_decl != NULL
         && initializer != NULL && initializer->type == AST_ARRAY_LITERAL;
-    if (initializer != NULL && initializer->type == AST_IDENTIFIER) {
+    if (initializer != NULL && (initializer->type == AST_ARRAY_LITERAL
+        || initializer->type == AST_CALL)) {
+        /* CALL retains the pre-existing UNKNOWN bootstrap admission, not a
+         * physical fresh-storage proof or an exclusive grant. */
+        binding->has_escaped_array_storage = false;
+    } else if (initializer != NULL && initializer->type == AST_IDENTIFIER) {
         Symbol *source = scope_lookup(ctx->scope, ast_identifier_name(initializer));
         /* Only a consumed source proves a transfer; a plain let copies the
          * descriptor. Neither path erases a prior escape. */
         binding->has_escaped_array_storage = source == NULL
             || ast_identifier_binding_syntax_id(initializer) != source->decl_syntax_id
             || source->has_escaped_array_storage || !source->is_consumed;
+    } else if (initializer != NULL && initializer->type == AST_MEMBER_ACCESS
+               && ctx != NULL && ctx->current_function_decl != NULL) {
+        const PgyCollectionOwnershipFact *fact = semantic_collection_ownership_fact_find(
+            ctx, ast_node_stable_id(ctx->current_function_decl), binding->decl_syntax_id);
+        if (fact != NULL && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE
+            && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+            && fact->source_binding_syntax_id != 0 && fact->origin_syntax_id != 0)
+            binding->has_escaped_array_storage = false;
     }
     semantic_array_storage_escape((ASTNode *)initializer, binding->type, ctx);
 }

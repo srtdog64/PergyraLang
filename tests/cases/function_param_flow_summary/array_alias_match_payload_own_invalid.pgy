@@ -1,0 +1,19 @@
+func Consume(own rows: Array<Int>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let wrapped: Option<Array<Int>> = Some([7]);
+    match wrapped
+    {
+        case Some(alias): Log(Consume(alias));
+        case None: Log(0);
+    }
+    match wrapped
+    {
+        case Some(rows): Log(ArrayLength(rows));
+        case None: Log(0);
+    }
+}

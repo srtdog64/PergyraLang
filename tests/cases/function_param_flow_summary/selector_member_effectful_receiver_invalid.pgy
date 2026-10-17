@@ -1,0 +1,28 @@
+extern "C"
+{
+    func Keep(ids: Array<Int>) -> Void;
+}
+
+struct Count
+{
+    n: Int;
+}
+
+func RetainingCount(ids: Array<Int>) -> Count
+{
+    Keep(ids);
+    return Count(ArrayLength(ids));
+}
+
+func Probe() -> Int
+{
+    let ids: Array<Int> = [7];
+    let n: Int = RetainingCount(ids).n;
+    ArrayDrop(ids);
+    return n;
+}
+
+func Main() -> Void
+{
+    Log(Probe());
+}

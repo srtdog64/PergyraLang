@@ -1,0 +1,12 @@
+func Consume(own rows: Array<Int>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let rows: Array<Int> = [7];
+    let (alias, marker) = (rows, 0);
+    Log(Consume(alias));
+    Log(ArrayLength(rows));
+}
