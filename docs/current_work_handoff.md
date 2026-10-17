@@ -3,7 +3,75 @@
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — canonical466 selected String field lineage
+## Active self-host context — indexed String non-owning risk exclusion
+
+- Implementation checkpoint main
+  `ac599dd76385cbe1929944923bb5360a8a384d25`, parent
+  `1dae4522189bb48cf09dd299ca165c2807d8c228`. The bounded repair is
+  independently APPROVED and committed locally. Code/tests have no WIP at
+  this update; resolve current status before continuing. Approved native
+  code checkpoint7d08 below is preserved.
+  Do not approve or revive the rejected a9cf/d58 intermediate candidates.
+  The separate intent-design document change
+  belongs to another lane. Root alone runs builds/WSL/process control/Git.
+- Plan and shared scope:
+  `docs/agent_work_directives/indexed_string_nonowner_risk_exclusion_2026-10-18.md`.
+  Exclude only an exact fresh empty local cleanup risk whose complete typed
+  history proves no String payload ownership. UNKNOWN String provenance stays
+  UNKNOWN. No new Option borrow admission, source0, entry loan or cleanup grant.
+- The completed implementation scopes were A actual-role HIR/MIR consumers,
+  B the same immutable snapshot queries, C behavioral role mutations, and
+  root shared protocol/integration. The next all-definitions String-source
+  work is read-only planning until its complete evidence chain is selected.
+- Frozen baseline native3a8bea and81 source pairs remain unchanged in
+  `/root/pgy-exact-main-20261017.LlEIOb`. A separate non-Git validation copy
+  `/root/pgy-nonowner-20261018.5t1W96` preserves that baseline. Diagnostic-only
+  censusWvJGJz is forced to refuse before HIR/MIR: its164 first-error scopes
+  are not an authoritative remaining-defect count. Baseline4bvixD reproduces
+  the new positive fixture's opaque String refusal after fixing its reserved
+  function spelling; no unsafe fixture executes.
+- Current native SHA256
+  `55c332cdebaabc21c4a89810ab5a1ad652923036f8f438f610d05e6674b279f2`.
+  DeliveryLMqXEA passes size/build, phase12059/0, MIR478/0 and full strict
+  C/LLVM. PairRlkd8L verifies96 source/test/Makefile paths D/Linux byte-equal.
+  Source observations2pRjbp verify2 positives/9 refused cases, and runtime
+  ZtlSeu verifies both safe outputs on both backends, stderr0/byte-equal.
+- fZYwNj reproduced the rejected a9cf RHS-role bypass (all three validators
+  accepted). Current ETh3ky rejects all three and accepts restoration.
+  Current role tests also reject direct RETURN, terminal constructor as
+  separate DEF or STMT, and nested capture parent mutations. Payload String
+  element reads and the exact nominal terminal RETURN remain admitted.
+  Source-evaluation and return roles are consumed by actual HIR/MIR roots,
+  not inferred from isolated node membership. The same opaque source-query
+  owner was moved cohesively; no new SoT family or cleanup permission exists.
+- Broader post-reviewLsRnZz passes semantic3230/0, transpile1012/0, AIR156/0,
+  Map24 C/LLVM positives and58 analysis-only negatives, plus four IR flow
+  gates. Its separate sanitizer rebuild passes phase12059/0 and MIR478/0.
+  The earlier hf8i6T live-UAF witness remains valid; leak detection is OFF. AIR is
+  adjacent regression, not independent ledger attestation.
+- Full unchanged fixed/current canonicalAMbb4V remains RED: each18435 errors,
+  16 warnings, MIR0 (31.29s/1698852KiB;31.23s/1697336KiB). ObserversCdSlF
+  locates prior_error=0 at
+  `SemanticAstEnumFactsFromArtifact`, `ast_enum_fact_owner.pgy:141:54`, now
+  `ArrayPush(variant_names, variant_name)`. Its branch assignment correctly
+  withdraws initializer-only lineage. The next bounded proposal is all
+  definitions of that binding independently proven source0, not revival of
+  a stale initializer; whole typed claims and immutable actual-use proof
+  are required. It is read-only planning, not implemented yet.
+- Frozen independent review v3 APPROVED this bounded repair only. Bundle
+  `E:\PergyraValidation\nonowner-20261018-roles-v3` rehashes98 source/nav
+  files and117 evidence files without mismatch. Approval is not canonical,
+  bootstrap, installed-driver or CI closure.
+- Next: continue the reached String-definition evidence chain. Its exact
+  early-use ledger and transitive named-result proof inputs are missing;
+  investigate those before selecting implementation. A scratch literal0
+  loop/backedge probe is analysis-only and must never execute unsafe code.
+  Do not revive a retired initializer or equate UNKNOWN with source0.
+  Do not push known red. Canonical,
+  actual bootstrap/gen2==gen3, installed C/LLVM driver and published-SHA CI
+  remain OPEN; the native repair is not Pergyra substitution progress.
+
+## Previous bounded checkpoint — canonical466 selected String field lineage
 
 - Implementation checkpoint: main
   `7d08b9db575a1a06c46b64b77a8cae6c61802a51`, parent
