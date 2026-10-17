@@ -607,5 +607,6 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
 
     free(topo_order);
     return callable_capability_seal(ctx) && !ctx->has_error
+        && semantic_indexed_string_borrow_prepare(ctx)
         && semantic_indexed_string_borrow_finalize(ctx);
 }

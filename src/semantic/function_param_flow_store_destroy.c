@@ -16,15 +16,16 @@ typedef struct StringResultSourceVisit {
 } StringResultSourceVisit;
 
 static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
-    uint32_t *source, const StringResultSourceVisit *parent)
+    uint32_t *source, const StringResultSourceVisit *parent, bool prepare)
 {
+    if (source == NULL || ctx == NULL || ctx->has_error || call == NULL ||
+        call->type != AST_CALL || !semantic_param_publication_inputs_ready(ctx)) return false;
     for (const StringResultSourceVisit *p = parent; p != NULL; p = p->parent)
         if (p->call == call) return false;
     const Type *type = NULL;
     ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &type);
     if (decl == NULL || type != TYPE_STRING) return false;
-    SlotFunctionLookup lookup = {ctx, ctx->program_root};
-    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     if (store == NULL || store->failed || store->solving) return false;
     StringResultSourceVisit visit = {call, parent};
     uint32_t joined = 0;
@@ -35,14 +36,17 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
         if (!actual.ok || actual.meta || !semantic_param_publication_checked_argument(ctx, call, p)
             || semantic_param_publication_callee(ctx, call, p) != decl
             || !semantic_param_publication_formal_for_actual(ctx, call, p, &formal)) return false;
-        unsigned mask = function_param_flow_summary_demand(&lookup, decl, formal);
+        if (prepare) (void)function_param_flow_summary_demand(
+            &(SlotFunctionLookup){ctx, ctx->program_root}, decl, formal);
         size_t at = function_param_flow_find(store, ast_node_stable_id(decl), formal);
         if (store->failed || at == SIZE_MAX || store->entries[at].function_decl != decl
-            || (mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0
+            || store->entries[at].param_index != formal
+            || (store->entries[at].mask & ~(unsigned)SLOT_PARAM_SUMMARY_ALL) != 0
             || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE
             || store->entries[at].analysis_unsupported || store->entries[at].returned_backing_unproved
             || store->entries[at].returned_backing_pending
             || !function_param_flow_output_current(store, at, false)) return false;
+        unsigned mask = store->entries[at].mask;
         if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0
             || semantic_param_publication_value_is_physical_scalar(ctx, argument)) continue;
         if (actual.type != TYPE_STRING) return false;
@@ -52,7 +56,7 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
         else if (argument->type == AST_IDENTIFIER
             && !semantic_indexed_string_borrow_result_dependency_current(ctx, argument, &dependency)) return false;
         uint32_t incoming;
-        if (dependency != NULL ? !string_result_source_at(ctx, dependency, &incoming, &visit)
+        if (dependency != NULL ? !string_result_source_at(ctx, dependency, &incoming, &visit, prepare)
             : !semantic_indexed_string_borrow_source_current(argument, ctx, &incoming)) return false;
         if (incoming == UINT32_MAX || (joined != 0 && incoming != 0 && joined != incoming)) return false;
         if (joined == 0) joined = incoming;
@@ -66,9 +70,20 @@ static bool string_result_source_at(SemanticContext *ctx, const ASTNode *call,
 bool function_param_flow_string_result_source_current(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source)
 {
-    if (source == NULL || ctx == NULL || ctx->has_error || call == NULL
-        || call->type != AST_CALL || !semantic_param_publication_inputs_ready(ctx)) return false;
-    return string_result_source_at(ctx, call, source, NULL);
+    bool previous;
+    if (!function_param_flow_current_begin(ctx, &previous)) return false;
+    bool current = string_result_source_at(ctx, call, source, NULL, false);
+    function_param_flow_current_end(ctx, previous);
+    return current;
+}
+
+bool function_param_flow_string_result_source_prepare(SemanticContext *ctx,
+    const ASTNode *call, uint32_t *source)
+{
+    if (ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
+        ctx->function_param_flow_summaries->validating_current)) return false;
+    return function_param_flow_store_get(&(SlotFunctionLookup){ctx, ctx->program_root}) != NULL &&
+        string_result_source_at(ctx, call, source, NULL, true);
 }
 
 
@@ -120,7 +135,7 @@ ASTNode *function_param_flow_receiver_readonly_current(FunctionParamFlowSummaryS
     ASTNode *decl = semantic_param_publication_direct_callee(store->ctx, call);
     if (decl == NULL || !semantic_param_publication_instance_receiver(store->ctx, call, &receiver)
         || receiver == NULL || !semantic_param_publication_value(store->ctx, receiver).ok) return NULL;
-    if (demand) (void)function_param_flow_summary_demand(
+    if (demand && !store->validating_current) (void)function_param_flow_summary_demand(
         &(SlotFunctionLookup){store->ctx, store->program_root}, decl, 0);
     size_t at = function_param_flow_find(store, ast_node_stable_id(decl), 0);
     if (store->failed || at == SIZE_MAX) return NULL;

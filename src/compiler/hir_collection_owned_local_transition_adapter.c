@@ -2,6 +2,7 @@
 #include "collection_owned_local_transition_owner.h"
 #include "../common/string_compat.h"
 #include "../semantic/builtin_kind.h"
+#include "../semantic/semantic.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,6 +10,9 @@ typedef struct {
     const HIRRoutine *routine;
     PgyCollectionTransitionOperation *rows;
     size_t count, capacity;
+    const PgyCollectionEffectSnapshot *snapshot;
+    bool *effect_seen;
+    size_t caller, effect_count;
 } HIRCollectionOperations;
 
 static const PgyCollectionOwnershipFact *
@@ -66,6 +70,7 @@ hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
     if (node->type == AST_LET_DECL) {
         ASTNode *value = ast_let_initializer(node);
         if (!hir_owned_expression(operations, value)) return false;
+        if (operations->snapshot != NULL) return true;
         const PgyCollectionOwnershipFact *fact = hir_owned_local_fact(
             operations->routine, ast_node_stable_id(node));
         if (fact == NULL) {
@@ -97,6 +102,16 @@ hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
         ASTNode **arguments = ast_call_arguments(node, &count);
         for (size_t i = 0; i < count; i++)
             if (!hir_owned_expression(operations, arguments[i])) return false;
+        if (operations->snapshot != NULL) {
+            size_t effect = SIZE_MAX;
+            if (!semantic_collection_effect_snapshot_call(operations->snapshot,
+                    operations->caller, node, &effect)) return false;
+            if (effect == SIZE_MAX) return true;
+            if (effect >= operations->effect_count || operations->effect_seen[effect])
+                return false;
+            operations->effect_seen[effect] = true;
+            return true;
+        }
         ASTNode *receiver = ast_call_argument(node, 0);
         uint32_t binding = receiver != NULL && receiver->type == AST_IDENTIFIER
             ? ast_identifier_binding_syntax_id(receiver) : 0;
@@ -159,6 +174,60 @@ hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node)
     return true;
 }
 
+/* Replay cached source claims once, then join expected calls to the actual
+ * CFG. Source membership alone cannot witness an erased or duplicated call. */
+bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
+    const HIRProgram *hir, char **error_message)
+{
+    PgyCollectionEffectView view = {0};
+    bool valid = semantic != NULL && hir != NULL &&
+        hir->source_program_syntax_id == ast_node_stable_id(semantic->annotated_ast) &&
+        hir->routine_count <= hir->routine_capacity &&
+        (hir->routine_count == 0 || hir->routines != NULL) &&
+        semantic_collection_effect_snapshot_current(semantic->collection_effect_snapshot,
+            semantic->annotated_ast, &view);
+    bool *seen = !valid || view.effect_count == 0 ? NULL : calloc(view.effect_count, sizeof(*seen));
+    if (valid && view.effect_count != 0 && seen == NULL) valid = false;
+    for (size_t c = 0; valid && c < view.caller_count; c++) {
+        const PgyCollectionEffectCaller *caller = &view.callers[c];
+        const HIRRoutine *actual = NULL;
+        for (size_t r = 0; valid && r < hir->routine_count; r++) {
+            const HIRRoutine *routine = &hir->routines[r];
+            if (routine->source_syntax_id != caller->decl_id) continue;
+            if (actual != NULL || routine->ast != caller->decl || routine->body != caller->body ||
+                ast_node_stable_id(routine->ast) != caller->decl_id ||
+                ast_node_stable_id(routine->body) != caller->body_id) {
+                valid = false; break;
+            }
+            actual = routine;
+        }
+        if (!valid || actual == NULL || !actual->has_cfg || actual->cfg.block_count == 0 ||
+            actual->cfg.block_count > actual->cfg.block_capacity ||
+            actual->cfg.blocks == NULL) { valid = false; break; }
+        HIRCollectionOperations operations = {.routine = actual,
+            .snapshot = semantic->collection_effect_snapshot, .effect_seen = seen,
+            .caller = c, .effect_count = view.effect_count};
+        for (size_t b = 0; valid && b < actual->cfg.block_count; b++) {
+            const HIRBasicBlock *block = &actual->cfg.blocks[b];
+            if (block->statement_count > block->statement_capacity ||
+                (block->statement_count != 0 && block->statements == NULL)) {
+                valid = false; break;
+            }
+            for (size_t s = 0; valid && s < block->statement_count; s++)
+                valid = block->statements[s] != NULL &&
+                    hir_owned_expression(&operations, block->statements[s]);
+            if (valid) valid = hir_owned_expression(&operations, block->terminator_condition);
+            if (valid) valid = hir_owned_expression(&operations, block->terminator_value);
+        }
+    }
+    for (size_t e = 0; valid && e < view.effect_count; e++)
+        valid = seen[e];
+    free(seen);
+    if (!valid && error_message != NULL)
+        *error_message = pergyra_strdup("HIR collection effect snapshot is missing, stale or crosswired");
+    return valid;
+}
+
 bool
 hir_collection_owned_local_transitions_validate(const HIRRoutine *routine, char **error_message)
 {
@@ -173,7 +242,7 @@ hir_collection_owned_local_transitions_validate(const HIRRoutine *routine, char 
     for (size_t i = 0; i < routine->collection_ownership_fact_count; i++)
         if (pgy_collection_owned_local_fact_tracked(&routine->collection_ownership_facts[i]))
             bindings[binding++] = routine->collection_ownership_facts[i];
-    HIRCollectionOperations operations = {routine, NULL, 0, 0};
+    HIRCollectionOperations operations = {.routine = routine};
     PgyCollectionTransitionBlock *blocks = calloc(routine->cfg.block_count, sizeof(*blocks));
     size_t predecessor_count = 0;
     for (size_t i = 0; i < routine->cfg.block_count; i++) {

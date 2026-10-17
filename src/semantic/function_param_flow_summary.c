@@ -471,6 +471,14 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
 
     function_id = ast_node_stable_id(function_decl);
     existing = function_param_flow_find(store, function_id, param_index);
+    if (store->validating_current)
+        return existing != SIZE_MAX && store->entries[existing].function_decl == function_decl &&
+            store->entries[existing].function_id == function_id && store->entries[existing].param_index == param_index &&
+            store->entries[existing].state == FUNCTION_PARAM_FLOW_COMPLETE &&
+            !store->entries[existing].analysis_unsupported && !store->entries[existing].returned_backing_unproved &&
+            !store->entries[existing].returned_backing_pending &&
+            function_param_flow_output_current(store, existing, false)
+                ? store->entries[existing].mask : SLOT_PARAM_SUMMARY_ALL;
     if (existing != SIZE_MAX) {
         FunctionParamFlowProgramPointIndex *cached;
         if (store->entries[existing].state == FUNCTION_PARAM_FLOW_COMPLETE &&

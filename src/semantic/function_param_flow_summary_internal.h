@@ -228,6 +228,8 @@ struct FunctionParamFlowSummaryStore
     size_t program_point_index_capacity;
     size_t active_start;
     bool solving;
+    /* Context-local synchronous replay barrier, never evidence or a cache. */
+    bool validating_current;
     bool changed;
     bool active_had_recursion;
     bool failed;
@@ -246,6 +248,16 @@ struct FunctionParamFlowSummaryStore
 
 void function_param_flow_program_point_index_destroy(
     FunctionParamFlowProgramPointIndex *index);
+bool function_param_flow_current_begin(SemanticContext *ctx, bool *previous);
+void function_param_flow_current_end(SemanticContext *ctx, bool previous);
+/* Only the explicit indexed-receipt preparation or an unprepared private receipt may
+ * materialize. Never call after a failed current query as a fallback. */
+bool function_param_flow_string_result_source_prepare(SemanticContext *ctx,
+    const ASTNode *call, uint32_t *source);
+bool function_param_flow_private_string_receiver_replay(SemanticContext *ctx,
+    ASTNode *routine, uint32_t binding);
+bool function_param_flow_string_result_independent_replay(SemanticContext *ctx,
+    const ASTNode *call);
 bool function_param_flow_control_append(SemanticContext *ctx,
     FunctionParamFlowControlProjection *projection, ASTNode *node, size_t claim, size_t root);
 void function_param_flow_backing_control_roots(ReturnedBacking *state,

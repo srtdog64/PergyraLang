@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, ASTNode **escape_site);

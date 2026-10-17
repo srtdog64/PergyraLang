@@ -468,6 +468,14 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                         "missing-published-receipt");
                 continue;
             }
+            uint32_t issued_kind = 0, issued_receiver = 0, issued_source = 0;
+            if (!ast_call_semantic_collection_effect(inst->expr0,
+                    &issued_kind, &issued_receiver, &issued_source)
+                || issued_kind != inst->collection_ownership_effect_kind
+                || issued_receiver != inst->collection_ownership_receiver_binding_id
+                || issued_source != inst->collection_ownership_source_binding_id)
+                return mir_collection_transition_error(routine, error_message,
+                    inst->collection_ownership_receiver_binding_id, "crosswired-published-receipt");
             fact = mir_routine_collection_ownership_fact(
                 routine, inst->collection_ownership_receiver_binding_id);
             /* Borrowed literal mutation is an effect receipt, not an owned

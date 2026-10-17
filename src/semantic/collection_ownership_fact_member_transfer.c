@@ -294,29 +294,40 @@ bool semantic_indexed_string_prepare_private_push(SemanticContext *ctx, const AS
         function_param_flow_declared_result_frame_current(ctx->function_param_flow_summaries,
             (ASTNode *)r->dependency, NULL) == NULL)) return false;
     uint32_t prepared_source = UINT32_MAX;
-    /* The old b53 producer materializes COMPLETE inputs; its answer grants nothing here. */
-    if (r->named && !function_param_flow_string_result_source_current(
+    /* Only this unprepared receipt may materialize; its answer grants nothing here. */
+    if (r->named && !function_param_flow_string_result_source_prepare(
             ctx, r->dependency, &prepared_source) && ctx->function_param_flow_summaries->failed) return false;
+    FunctionParamFlowProgramPointIndex *caller_index = NULL;
+    if (!function_param_flow_program_point_index_build(ctx->function_param_flow_summaries,
+            (ASTNode *)r->caller, &caller_index) || caller_index == NULL) return false;
+    uint32_t kind = 0, receiver = 0, source = 0;
+    if (!ast_call_semantic_collection_effect(call, &kind, &receiver, &source) ||
+        kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
+        receiver != r->receiver_binding_id || source != 0) return false;
+    /* Capture the post-effect cleanup state, not the empty initializer's state. */
+    const PgyCollectionOwnershipFact *receiver_fact = semantic_collection_ownership_fact_find(
+        ctx, r->caller_id, r->receiver_binding_id);
+    if (receiver_fact == NULL || receiver_fact->function_syntax_id != r->caller_id ||
+        receiver_fact->binding_syntax_id != r->receiver_binding_id ||
+        receiver_fact->return_elements_owned ||
+        receiver_fact->return_elements_source != NULL ||
+        receiver_fact->return_elements_source_id != 0) return false;
     r->independent = r->named && function_param_flow_string_result_independent_current(
         ctx, r->dependency);
     if (!r->independent) {
-        uint32_t kind = 0, receiver = 0, source = 0;
         if (!(r->named ? function_param_flow_string_result_nonlocal_current(ctx,
                 r->dependency, (ASTNode *)r->caller, r->caller_formal) :
                 function_param_flow_nonlocal_input_current(ctx,
-                    (ASTNode *)r->caller, r->caller_formal)) ||
-            !ast_call_semantic_collection_effect(call, &kind, &receiver, &source) ||
-            kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
-            receiver != r->receiver_binding_id || source != 0) return false;
-        r->effect_kind = kind;
-        r->effect_receiver_id = receiver;
-        r->effect_source_id = source;
+                    (ASTNode *)r->caller, r->caller_formal))) return false;
     }
+    r->effect_kind = kind;
+    r->effect_receiver_id = receiver;
+    r->effect_source_id = source;
     r->prepared = true;
     return true;
 }
 
-bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
+static bool private_push_current_body(SemanticContext *ctx,
     const ASTNode *call)
 {
     if (ctx == NULL || ctx->has_error || call == NULL ||
@@ -359,6 +370,8 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
         !semantic_param_publication_checked_argument(ctx, call, 0) ||
         !semantic_param_publication_checked_argument(ctx, call, 1) ||
         !semantic_param_publication_private_array_push(ctx, call, r->caller) ||
+        !function_param_flow_typed_expression_children_current(ctx,
+            (ASTNode *)r->caller, call) ||
         !semantic_param_publication_routine_inputs_current(ctx, (ASTNode *)r->caller, true))
         return false;
     const PgyCollectionOwnershipFact *risk = semantic_collection_ownership_fact_find(
@@ -380,6 +393,9 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
         receiver_fact->disposition != r->receiver_disposition ||
         receiver_fact->origin_syntax_id != r->receiver_origin_id ||
         receiver_fact->source_binding_syntax_id != r->receiver_source_binding_id ||
+        receiver_fact->return_elements_owned ||
+        receiver_fact->return_elements_source != NULL ||
+        receiver_fact->return_elements_source_id != 0 ||
         r->receiver_origin_id != r->receiver_init_id ||
         (r->receiver_origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
             (r->receiver_binding_id != r->risk_binding_id ||
@@ -389,14 +405,14 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
              ast_array_literal_count(r->receiver_init) == 0)) ||
         (r->receiver_origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
          r->receiver_origin != PGY_COLLECTION_ORIGIN_BORROWED_LITERAL)) return false;
+    uint32_t kind = 0, receiver = 0, source = 0;
+    if (r->effect_kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
+        r->effect_receiver_id != r->receiver_binding_id || r->effect_source_id != 0 ||
+        !ast_call_semantic_collection_effect(call, &kind, &receiver, &source) ||
+        kind != r->effect_kind || receiver != r->effect_receiver_id ||
+        source != r->effect_source_id) return false;
     if (!r->independent) {
-        uint32_t kind = 0, receiver = 0, source = 0;
-        if (r->effect_kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
-            r->effect_receiver_id != r->receiver_binding_id || r->effect_source_id != 0 ||
-            !ast_call_semantic_collection_effect(call, &kind, &receiver, &source) ||
-            kind != r->effect_kind || receiver != r->effect_receiver_id ||
-            source != r->effect_source_id ||
-            (r->receiver_origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+        if ((r->receiver_origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
              !function_param_flow_private_string_receiver_current(ctx,
                  (ASTNode *)r->caller, r->receiver_binding_id)) ||
             !function_param_flow_no_store_graph(ctx->function_param_flow_summaries,
@@ -471,6 +487,16 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
         dependency, (ASTNode *)r->caller, r->caller_formal);
 }
 
+bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
+    const ASTNode *call)
+{
+    bool previous = false;
+    if (!function_param_flow_current_begin(ctx, &previous)) return false;
+    bool current = private_push_current_body(ctx, call);
+    function_param_flow_current_end(ctx, previous);
+    return current;
+}
+
 bool
 collection_binding_is_current_parameter(const SemanticContext *ctx,
                                         uint32_t binding_syntax_id)
@@ -482,50 +508,6 @@ collection_binding_is_current_parameter(const SemanticContext *ctx,
         FuncParam *param = ast_func_param(function_decl, i);
         if (param != NULL && ast_func_param_stable_id(param) == binding_syntax_id)
             return true;
-    }
-    return false;
-}
-
-bool
-collection_member_move_identity(const ASTNode *member_access,
-                                SemanticContext *ctx,
-                                uint32_t *root_binding_id_out,
-                                uint32_t *field_syntax_id_out)
-{
-    ASTNode *root;
-    Symbol *binding;
-    ASTNode *decl;
-    const char *field_name;
-    uint32_t root_binding_id;
-
-    if (root_binding_id_out != NULL)
-        *root_binding_id_out = 0;
-    if (field_syntax_id_out != NULL)
-        *field_syntax_id_out = 0;
-    if (member_access == NULL || member_access->type != AST_MEMBER_ACCESS
-        || ctx == NULL)
-        return false;
-    root = ast_member_object(member_access);
-    if (root == NULL || root->type != AST_IDENTIFIER)
-        return false;
-    binding = scope_lookup(ctx->scope, ast_identifier_name(root));
-    root_binding_id = receiver_binding_syntax_id(root, binding);
-    field_name = ast_member_name(member_access);
-    decl = binding != NULL
-        ? semantic_host_decl_for_type(ctx, binding->type) : NULL;
-    if (root_binding_id == 0 || field_name == NULL || decl == NULL
-        || decl->type != AST_CLASS_DECL)
-        return false;
-    for (size_t i = 0; i < projection_source_field_count(decl); i++) {
-        PgyDeclField field = projection_source_field_at(decl, i);
-        if (field.name != NULL && strcmp(field.name, field_name) == 0
-            && field.declaration_syntax_id != 0) {
-            if (root_binding_id_out != NULL)
-                *root_binding_id_out = root_binding_id;
-            if (field_syntax_id_out != NULL)
-                *field_syntax_id_out = field.declaration_syntax_id;
-            return true;
-        }
     }
     return false;
 }

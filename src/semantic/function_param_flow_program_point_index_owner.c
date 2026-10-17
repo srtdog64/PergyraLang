@@ -8,6 +8,38 @@
 #include <stdlib.h>
 #include <string.h>
 
+bool function_param_flow_current_begin(SemanticContext *ctx, bool *previous)
+{
+    FunctionParamFlowSummaryStore *store = ctx == NULL ? NULL : ctx->function_param_flow_summaries;
+    if (previous == NULL || store == NULL || store->failed || store->solving || ctx->has_error ||
+        store->ctx != ctx || store->program_root != ctx->program_root ||
+        !semantic_param_publication_inputs_ready(ctx)) return false;
+    *previous = store->validating_current;
+    store->validating_current = true;
+    return true;
+}
+void function_param_flow_current_end(SemanticContext *ctx, bool previous)
+{
+    ctx->function_param_flow_summaries->validating_current = previous;
+}
+bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
+    ASTNode *routine, uint32_t binding)
+{
+    bool previous;
+    if (!function_param_flow_current_begin(ctx, &previous)) return false;
+    bool current = function_param_flow_private_string_receiver_replay(ctx, routine, binding);
+    function_param_flow_current_end(ctx, previous);
+    return current;
+}
+bool function_param_flow_string_result_independent_current(SemanticContext *ctx, const ASTNode *call)
+{
+    bool previous;
+    if (!function_param_flow_current_begin(ctx, &previous)) return false;
+    bool current = function_param_flow_string_result_independent_replay(ctx, call);
+    function_param_flow_current_end(ctx, previous);
+    return current;
+}
+
 bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index)
 {
     ASTNode *body = ast_func_body(index->function_decl);
@@ -139,6 +171,7 @@ function_param_flow_program_point_index_build(
             function_param_flow_index_claims_current(store->ctx, *index_out);
     }
 
+    if (store->validating_current) return false;
     param_count = ast_func_param_count(function_decl);
     if (!function_param_flow_program_point_index_reserve(
             store, store->program_point_index_count + 1)

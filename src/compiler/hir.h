@@ -410,6 +410,9 @@ HIRProgram *hir_lower_with_semantic_facts(
     const struct SemanticResult *semantic,
     HIRSemanticProjectionFailure *failure,
     char **error_message);
+bool hir_collection_effect_snapshot_current(
+    const struct SemanticResult *semantic, const HIRProgram *hir,
+    char **error_message);
 HIRProgram *hir_lower_with_resource_flow_facts(
         ASTNode *annotated_ast,
         const PgyResourceFlowFact *facts,

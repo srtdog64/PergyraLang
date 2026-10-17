@@ -3061,6 +3061,86 @@ static void checked_named_string_result_source_currency(void)
     CHECK(function_param_flow_string_result_source_current(ctx, inner, &source_id) && source_id == 0);
     source_id = UINT32_MAX;
     CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    size_t identity_entry = function_param_flow_find(store, ast_node_stable_id(identity), 0);
+    FunctionParamFlowBackingFact *identity_result = NULL;
+    for (size_t i = 0; store != NULL && i < store->program_point_index_count; i++)
+        if (store->program_point_indexes[i].function_decl == identity)
+            identity_result = store->program_point_indexes[i].declared_result;
+    CHECK(identity_entry != SIZE_MAX && store->entries[identity_entry].function_decl == identity &&
+        store->entries[identity_entry].state == FUNCTION_PARAM_FLOW_COMPLETE &&
+        identity_result != NULL && identity_result->epoch != 0 && store->hash != NULL);
+    if (identity_entry == SIZE_MAX || identity_result == NULL || store->hash == NULL) goto cleanup;
+    size_t ready_count = store->count, ready_index_count = store->program_point_index_count;
+    size_t ready_demand = store->demand_epoch, ready_evaluations = store->body_evaluations;
+    size_t ready_result_epoch = identity_result->epoch;
+    FunctionParamFlowSummaryEntry *ready_entries = store->entries;
+    FunctionParamFlowProgramPointIndex *ready_indexes = store->program_point_indexes;
+    size_t *ready_hash = store->hash;
+    size_t ready_hash_capacity = store->hash_capacity;
+    bool ready_validating = store->validating_current;
+    CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+    CHECK(store->count == ready_count && store->program_point_index_count == ready_index_count &&
+        store->demand_epoch == ready_demand && store->body_evaluations == ready_evaluations &&
+        store->entries == ready_entries && store->program_point_indexes == ready_indexes &&
+        store->hash == ready_hash && store->hash_capacity == ready_hash_capacity &&
+        identity_result->epoch == ready_result_epoch && store->validating_current == ready_validating);
+    /* The outer result depends on Identity's already issued input summary and
+     * result frame. Currentness must not demand replacements for either. */
+    for (unsigned fault = 0; fault < 4; fault++) {
+        FunctionParamFlowSummaryEntry *entry = &store->entries[identity_entry];
+        FunctionParamFlowSummaryState saved_state = entry->state;
+        ASTNode *saved_decl = entry->function_decl;
+        size_t saved_epoch = identity_result->epoch;
+        if (fault == 0) entry->state = FUNCTION_PARAM_FLOW_UNSEEN;
+        if (fault == 1) entry->function_decl = forward;
+        if (fault == 2) identity_result->epoch = 0;
+        if (fault == 3) {
+            CHECK(ready_hash_capacity != 0 && ready_hash_capacity <= SIZE_MAX / sizeof(size_t));
+            if (ready_hash_capacity == 0 || ready_hash_capacity > SIZE_MAX / sizeof(size_t)) goto cleanup;
+            size_t *shadow = malloc(ready_hash_capacity * sizeof(size_t));
+            CHECK(shadow != NULL);
+            if (shadow == NULL) goto cleanup;
+            memcpy(shadow, ready_hash, ready_hash_capacity * sizeof(size_t));
+            size_t slot = SIZE_MAX;
+            for (size_t i = 0; i < ready_hash_capacity; i++)
+                if (shadow[i] == identity_entry + 1) slot = i;
+            CHECK(slot != SIZE_MAX);
+            if (slot == SIZE_MAX) { free(shadow); goto cleanup; }
+            shadow[slot] = 0;
+            store->hash = shadow;
+        }
+        size_t *active_hash = store->hash;
+        bool current = function_param_flow_string_result_source_current(ctx, outer, &source_id);
+        bool unchanged = store->count == ready_count &&
+            store->program_point_index_count == ready_index_count &&
+            store->demand_epoch == ready_demand && store->body_evaluations == ready_evaluations &&
+            store->entries == ready_entries && store->program_point_indexes == ready_indexes &&
+            store->hash == active_hash && store->hash_capacity == ready_hash_capacity &&
+            identity_result->epoch == (fault == 2 ? 0 : ready_result_epoch) &&
+            store->validating_current == ready_validating;
+        if (current || !unchanged)
+            fprintf(stderr, "nested named source fault=%u current=%d count=%zu/%zu index=%zu/%zu "
+                "demand=%zu/%zu eval=%zu/%zu\n", fault, (int)current,
+                store->count, ready_count, store->program_point_index_count, ready_index_count,
+                store->demand_epoch, ready_demand, store->body_evaluations, ready_evaluations);
+        CHECK(!current && unchanged);
+        if (fault == 3) {
+            if (store->hash != ready_hash) free(store->hash);
+            store->hash = ready_hash;
+            store->hash_capacity = ready_hash_capacity;
+        }
+        if (!unchanged) goto cleanup;
+        entry->state = saved_state;
+        entry->function_decl = saved_decl;
+        identity_result->epoch = saved_epoch;
+        CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
+        CHECK(store->count == ready_count && store->program_point_index_count == ready_index_count &&
+            store->demand_epoch == ready_demand && store->body_evaluations == ready_evaluations &&
+            store->entries == ready_entries && store->program_point_indexes == ready_indexes &&
+            store->hash == ready_hash && store->hash_capacity == ready_hash_capacity &&
+            identity_result->epoch == ready_result_epoch && store->validating_current == ready_validating);
+    }
     ASTNode *source_use = ast_call_argument(inner, 0);
     PublishedNode *named_row = published_node_for(ctx, named_decl);
     PublishedNode *named_use_row = published_node_for(ctx, named_use);
@@ -3120,7 +3200,6 @@ static void checked_named_string_result_source_currency(void)
     CHECK(!function_param_flow_string_result_source_current(ctx, outer, &source_id));
     outer->data.call.arg_count = arity;
     CHECK(function_param_flow_string_result_source_current(ctx, outer, &source_id) && source_id == 0);
-    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     FunctionParamFlowSummaryEntry *aggregate = NULL, *dependent = NULL;
     for (size_t i = 0; store != NULL && i < store->count; i++) {
         if (store->entries[i].function_decl == ignored_reader && store->entries[i].param_index == 0)
@@ -11200,11 +11279,14 @@ static void checked_private_string_push_currency(void)
         direct_receiver == ast_node_stable_id(atom_table) &&
         named_receiver == direct_receiver && direct_source == 0 && named_effect_source == 0);
     CHECK(!semantic_collection_owned_string_call_result(dependency, ctx, NULL));
-    const PgyCollectionOwnershipFact *atom_fact = semantic_collection_ownership_fact_find(
-        ctx, ast_node_stable_id(project), ast_node_stable_id(atom_table));
+    PgyCollectionOwnershipFact *atom_fact = (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(
+            ctx, ast_node_stable_id(project), ast_node_stable_id(atom_table));
     PgyCollectionOwnershipFact *risk = (PgyCollectionOwnershipFact *)
         semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(project), ast_node_stable_id(provenance));
-    CHECK(atom_fact != NULL && atom_fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS);
+    CHECK(atom_fact != NULL && atom_fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
+        !atom_fact->return_elements_owned && atom_fact->return_elements_source == NULL &&
+        atom_fact->return_elements_source_id == 0);
     CHECK(risk != NULL && risk->element_ownership != PGY_STRING_ARRAY_BORROWED_ELEMENTS);
     unsigned mask = function_param_flow_summary_for_param(ctx, project, 0);
     CHECK(mask != SLOT_PARAM_SUMMARY_ALL && function_param_flow_nonlocal_input_current(ctx, project, 0));
@@ -11218,10 +11300,10 @@ static void checked_private_string_push_currency(void)
     CHECK(semantic_indexed_string_private_push_current(ctx, direct));
     CHECK(semantic_indexed_string_private_push_current(ctx, named));
     CHECK(semantic_indexed_string_borrow_finalize(ctx));
-    if (risk == NULL || result == NULL || normal == NULL) goto cleanup;
+    if (risk == NULL || atom_fact == NULL || result == NULL || normal == NULL) goto cleanup;
     /* A query can recover after restoring its row. Finalization records an
      * error, so each diagnostic must be discarded before checking recovery. */
-    for (unsigned fault = 0; fault < 12; fault++) {
+    for (unsigned fault = 0; fault < 15; fault++) {
         uint32_t direct_id = direct->stable_id, source_id = source->stable_id;
         uint32_t receiver_id = receiver->stable_id;
         uint32_t projected_field = source_row->projection.field_id;
@@ -11229,6 +11311,7 @@ static void checked_private_string_push_currency(void)
         uint32_t initializer_id = let_row->indexed_string_let.initializer_id;
         uint32_t projected_index = actual_row->projection.index_id;
         uint32_t risk_binding = risk->binding_syntax_id;
+        PgyCollectionOwnershipFact saved_atom_fact = *atom_fact;
         size_t epoch = result->epoch, count = publication->private_string_push_count;
         bool private_closed = normal->private_stores_closed;
         PendingPrivateStringPush *receipt = direct_row->private_string_push;
@@ -11244,6 +11327,9 @@ static void checked_private_string_push_currency(void)
         if (fault == 9) direct_row->private_string_push = NULL;
         if (fault == 10) publication->private_string_push_count++;
         if (fault == 11) risk->binding_syntax_id++;
+        if (fault == 12) atom_fact->return_elements_owned = true;
+        if (fault == 13) atom_fact->return_elements_source = atom_table;
+        if (fault == 14) atom_fact->return_elements_source_id = ast_node_stable_id(atom_table);
         bool direct_current = semantic_indexed_string_private_push_current(ctx, direct);
         bool named_current = semantic_indexed_string_private_push_current(ctx, named);
         /* Both receipts consume the caller's current claims. Altering either
@@ -11268,6 +11354,7 @@ static void checked_private_string_push_currency(void)
         let_row->indexed_string_let.initializer_id = initializer_id;
         actual_row->projection.index_id = projected_index;
         risk->binding_syntax_id = risk_binding;
+        *atom_fact = saved_atom_fact;
         result->epoch = epoch; normal->private_stores_closed = private_closed;
         direct_row->private_string_push = receipt;
         publication->private_string_push_count = count;
@@ -11338,6 +11425,8 @@ static void checked_private_string_empty_receiver_currency(bool named)
         fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
         fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN &&
         fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE &&
+        !fact->return_elements_owned && fact->return_elements_source == NULL &&
+        fact->return_elements_source_id == 0 &&
         ast_identifier_binding_syntax_id(receiver) == binding_id);
     uint32_t effect_kind = 0, effect_receiver = 0, effect_source = UINT32_MAX;
     CHECK(ast_call_semantic_collection_effect(push, &effect_kind, &effect_receiver, &effect_source) &&
@@ -11367,7 +11456,7 @@ static void checked_private_string_empty_receiver_currency(bool named)
     if (fact == NULL || claim == NULL) goto cleanup;
     /* The receiver is the risk binding itself. Its current history and the
      * native/AST effect tuple must both survive final replay. */
-    for (unsigned fault = 0; fault < 17; fault++) {
+    for (unsigned fault = 0; fault < 20; fault++) {
         PgyCollectionOwnershipFact saved_fact = *fact;
         bool saved_effect_present = push->data.call.semantic_collection_effect_set;
         uint32_t saved_kind = push->data.call.semantic_collection_effect_kind;
@@ -11394,7 +11483,11 @@ static void checked_private_string_empty_receiver_currency(bool named)
         if (fault == 14) claim->collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
         if (fault == 15) claim->collection_effect_receiver++;
         if (fault == 16) claim->collection_effect_source++;
-        CHECK(!function_param_flow_private_string_receiver_current(ctx, project, binding_id));
+        if (fault == 17) fact->return_elements_owned = true;
+        if (fault == 18) fact->return_elements_source = binding;
+        if (fault == 19) fact->return_elements_source_id = binding_id;
+        if (fault < 17)
+            CHECK(!function_param_flow_private_string_receiver_current(ctx, project, binding_id));
         CHECK(!semantic_indexed_string_private_push_current(ctx, push));
         size_t diagnostics = ctx->diagnostic_count;
         CHECK(!semantic_indexed_string_borrow_finalize(ctx));
@@ -11451,15 +11544,25 @@ static void checked_private_string_borrowed_without_receipt(void)
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
-static void checked_private_string_independent_result_currency(void)
+static void checked_private_string_independent_result_currency(bool borrowed_receiver)
 {
-    Lexer *lexer = lexer_create(
-        "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
-        "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
-        "func Project(nodes:Array<TextNode>)->Arena{let atom_table:Array<String> = [];"
-        "ArrayPush(atom_table,Fresh(nodes[0]));return Arena(atom_table);}"
-        "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"unused\")];"
-        "let arena=Project(nodes);Log(arena.atom_table[0]);}"
+    Lexer *lexer = lexer_create(borrowed_receiver
+        ? "struct TextNode{type_name:String;}"
+          "struct Arena{atom_table:Array<String>;provenance_texts:Array<String>;}"
+          "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+          "func Project(nodes:Array<TextNode>)->Arena{"
+          "let provenance_texts:Array<String> = [];"
+          "let atom_table:Array<String> = [\"\"];"
+          "ArrayPush(atom_table,Fresh(nodes[0]));"
+          "return Arena(atom_table,provenance_texts);}"
+          "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"unused\")];"
+          "let arena=Project(nodes);Log(arena.atom_table[1]);}"
+        : "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
+          "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+          "func Project(nodes:Array<TextNode>)->Arena{let atom_table:Array<String> = [];"
+          "ArrayPush(atom_table,Fresh(nodes[0]));return Arena(atom_table);}"
+          "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"unused\")];"
+          "let arena=Project(nodes);Log(arena.atom_table[0]);}"
     );
     Parser *parser = parser_create(lexer);
     ASTNode *program = parser_parse_program(parser);
@@ -11472,22 +11575,237 @@ static void checked_private_string_independent_result_currency(void)
     ASTNode *fresh = ast_program_statement(program, 2);
     ASTNode *project = ast_program_statement(program, 3);
     ASTNode *body = project == NULL ? NULL : ast_func_body(project);
-    ASTNode *push = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *risk_binding = borrowed_receiver && body != NULL ? ast_block_statement(body, 0) : NULL;
+    ASTNode *receiver_binding = body == NULL ? NULL : ast_block_statement(body, borrowed_receiver ? 1 : 0);
+    ASTNode *push = body == NULL ? NULL : ast_block_statement(body, borrowed_receiver ? 2 : 1);
     ASTNode *call = push == NULL ? NULL : ast_call_argument(push, 1);
     FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
-    CHECK(fresh != NULL && project != NULL && push != NULL && push->type == AST_CALL &&
-        call != NULL && call->type == AST_CALL && flow != NULL);
-    if (fresh == NULL || push == NULL || call == NULL || flow == NULL) goto cleanup;
+    CHECK(fresh != NULL && project != NULL && receiver_binding != NULL &&
+        (!borrowed_receiver || risk_binding != NULL) && push != NULL &&
+        push->type == AST_CALL && call != NULL && call->type == AST_CALL && flow != NULL);
+    if (fresh == NULL || project == NULL || receiver_binding == NULL ||
+        (borrowed_receiver && risk_binding == NULL) || push == NULL || call == NULL || flow == NULL)
+        goto cleanup;
+    uint32_t receiver_id = ast_node_stable_id(receiver_binding);
+    PgyCollectionOwnershipFact *receiver_fact = (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(project), receiver_id);
+    const PgyCollectionOwnershipFact *risk_fact = borrowed_receiver
+        ? semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(project),
+            ast_node_stable_id(risk_binding)) : receiver_fact;
+    CHECK(receiver_fact != NULL && risk_fact != NULL &&
+        receiver_fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE &&
+        receiver_fact->origin == (borrowed_receiver
+            ? PGY_COLLECTION_ORIGIN_BORROWED_LITERAL : PGY_COLLECTION_ORIGIN_EMPTY_LITERAL) &&
+        receiver_fact->element_ownership == (borrowed_receiver
+            ? PGY_STRING_ARRAY_BORROWED_ELEMENTS : PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN) &&
+        !receiver_fact->return_elements_owned && receiver_fact->return_elements_source == NULL &&
+        receiver_fact->return_elements_source_id == 0 &&
+        risk_fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE &&
+        risk_fact->element_ownership != PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
+        risk_fact->binding_syntax_id == (borrowed_receiver
+            ? ast_node_stable_id(risk_binding) : receiver_id));
+    if (receiver_fact == NULL || risk_fact == NULL) goto cleanup;
+    uint32_t effect_kind = 0, effect_receiver = 0, effect_source = UINT32_MAX;
+    CHECK(ast_call_semantic_collection_effect(push, &effect_kind, &effect_receiver, &effect_source) &&
+        effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+        effect_receiver == receiver_id && effect_source == 0);
+    PublishedNode *push_row = published_node_for(ctx, push);
+    CHECK(push_row != NULL && push_row->private_string_push != NULL);
     unsigned mask = function_param_flow_summary_for_param(ctx, fresh, 0);
     CHECK(mask != SLOT_PARAM_SUMMARY_ALL && (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0);
     FunctionParamFlowBackingFact *result = function_param_flow_declared_result_frame_current(flow, call, NULL);
     CHECK(result != NULL && result->epoch != 0 && result->complete && !result->pending);
     if (result == NULL) goto cleanup;
+    size_t ready_count = flow->count, ready_index_count = flow->program_point_index_count;
+    size_t ready_epoch = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    size_t ready_result_epoch = result->epoch;
+    FunctionParamFlowSummaryEntry *ready_entries = flow->entries;
+    FunctionParamFlowProgramPointIndex *ready_indexes = flow->program_point_indexes;
     uint32_t source = UINT32_MAX;
     CHECK(function_param_flow_string_result_independent_current(ctx, call));
     CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
     CHECK(semantic_indexed_string_private_push_current(ctx, push));
     CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    CHECK(flow->count == ready_count && flow->program_point_index_count == ready_index_count &&
+        flow->demand_epoch == ready_epoch && flow->body_evaluations == ready_evaluations &&
+        flow->entries == ready_entries && flow->program_point_indexes == ready_indexes &&
+        result->epoch == ready_result_epoch);
+    size_t fresh_entry = function_param_flow_find(flow, ast_node_stable_id(fresh), 0);
+    CHECK(fresh_entry != SIZE_MAX && flow->entries[fresh_entry].function_decl == fresh &&
+        flow->entries[fresh_entry].function_id == ast_node_stable_id(fresh) &&
+        flow->entries[fresh_entry].param_index == 0 &&
+        flow->entries[fresh_entry].state == FUNCTION_PARAM_FLOW_COMPLETE &&
+        flow->hash != NULL && flow->hash_capacity != 0);
+    if (fresh_entry == SIZE_MAX || flow->hash == NULL || flow->hash_capacity == 0) goto cleanup;
+    /* A current query must never demand a replacement for a withdrawn callee
+     * summary. The hash fault uses a copy, so even an erroneous rebuild cannot
+     * free the original table before this fixture reports and stops. */
+    for (unsigned fault = 0; fault < 5; fault++) {
+        FunctionParamFlowSummaryEntry *entry = &flow->entries[fresh_entry];
+        FunctionParamFlowSummaryState saved_state = entry->state;
+        ASTNode *saved_decl = entry->function_decl;
+        uint32_t saved_function_id = entry->function_id;
+        size_t saved_param = entry->param_index;
+        size_t *saved_hash = flow->hash;
+        size_t saved_hash_capacity = flow->hash_capacity;
+        if (fault == 0) entry->state = FUNCTION_PARAM_FLOW_UNSEEN;
+        if (fault == 1) entry->function_decl = project;
+        if (fault == 2) entry->function_id++;
+        if (fault == 3) entry->param_index = SIZE_MAX;
+        if (fault == 4) {
+            CHECK(saved_hash_capacity <= SIZE_MAX / sizeof(size_t));
+            if (saved_hash_capacity > SIZE_MAX / sizeof(size_t)) goto cleanup;
+            size_t *shadow = malloc(saved_hash_capacity * sizeof(size_t));
+            CHECK(shadow != NULL);
+            if (shadow == NULL) goto cleanup;
+            memcpy(shadow, saved_hash, saved_hash_capacity * sizeof(size_t));
+            size_t slot = SIZE_MAX;
+            for (size_t i = 0; i < saved_hash_capacity; i++)
+                if (shadow[i] == fresh_entry + 1) slot = i;
+            CHECK(slot != SIZE_MAX);
+            if (slot == SIZE_MAX) { free(shadow); goto cleanup; }
+            shadow[slot] = 0;
+            flow->hash = shadow;
+        }
+        size_t *active_hash = flow->hash;
+        bool current = function_param_flow_string_result_independent_current(ctx, call);
+        bool push_current = semantic_indexed_string_private_push_current(ctx, push);
+        size_t diagnostics = ctx->diagnostic_count;
+        bool finalized = semantic_indexed_string_borrow_finalize(ctx);
+        FunctionParamFlowBackingFact *current_result = NULL;
+        for (size_t i = 0; i < flow->program_point_index_count; i++)
+            if (flow->program_point_indexes[i].function_decl == fresh)
+                current_result = flow->program_point_indexes[i].declared_result;
+        bool unchanged = flow->count == ready_count &&
+            flow->program_point_index_count == ready_index_count &&
+            flow->demand_epoch == ready_epoch &&
+            flow->body_evaluations == ready_evaluations &&
+            flow->entries == ready_entries &&
+            flow->program_point_indexes == ready_indexes &&
+            flow->hash == active_hash && flow->hash_capacity == saved_hash_capacity &&
+            current_result == result && current_result != NULL &&
+            current_result->epoch == ready_result_epoch;
+        bool refused = !current && !push_current && !finalized && ctx->has_error &&
+            ctx->diagnostic_count == diagnostics + 1 &&
+            ctx->diagnostics[diagnostics] != NULL &&
+            ctx->diagnostics[diagnostics]->code != NULL &&
+            strcmp(ctx->diagnostics[diagnostics]->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0;
+        if (!unchanged || !refused)
+            fprintf(stderr, "independent summary fault=%u borrowed=%d current=%d push=%d final=%d "
+                "count=%zu/%zu index=%zu/%zu epoch=%zu/%zu eval=%zu/%zu frame=%d\n",
+                fault, (int)borrowed_receiver, (int)current, (int)push_current, (int)finalized,
+                flow->count, ready_count, flow->program_point_index_count, ready_index_count,
+                flow->demand_epoch, ready_epoch, flow->body_evaluations, ready_evaluations,
+                (int)(current_result == result && current_result != NULL &&
+                    current_result->epoch == ready_result_epoch));
+        CHECK(unchanged && refused);
+        if (fault == 4) {
+            if (flow->hash != saved_hash) free(flow->hash);
+            flow->hash = saved_hash;
+            flow->hash_capacity = saved_hash_capacity;
+        }
+        if (unchanged) {
+            entry = &flow->entries[fresh_entry];
+            entry->state = saved_state;
+            entry->function_decl = saved_decl;
+            entry->function_id = saved_function_id;
+            entry->param_index = saved_param;
+        }
+        for (size_t d = diagnostics; d < ctx->diagnostic_count; d++) {
+            free(ctx->diagnostics[d]->message);
+            diag_payload_snapshot_destroy(ctx->diagnostics[d]->payload);
+            free(ctx->diagnostics[d]);
+            ctx->diagnostics[d] = NULL;
+        }
+        ctx->diagnostic_count = diagnostics;
+        ctx->has_error = false;
+        if (!unchanged || !refused) goto cleanup;
+        CHECK(function_param_flow_string_result_independent_current(ctx, call));
+        CHECK(semantic_indexed_string_private_push_current(ctx, push));
+        CHECK(semantic_indexed_string_borrow_finalize(ctx));
+        CHECK(flow->count == ready_count && flow->program_point_index_count == ready_index_count &&
+            flow->demand_epoch == ready_epoch && flow->body_evaluations == ready_evaluations &&
+            flow->entries == ready_entries && flow->program_point_indexes == ready_indexes &&
+            result->epoch == ready_result_epoch);
+    }
+    size_t index_slot = SIZE_MAX, claim_slot = SIZE_MAX;
+    for (size_t i = 0; i < flow->program_point_index_count; i++)
+        if (flow->program_point_indexes[i].function_decl == project) index_slot = i;
+    CHECK(index_slot != SIZE_MAX && flow->program_point_indexes[index_slot].claims != NULL);
+    if (index_slot == SIZE_MAX || flow->program_point_indexes[index_slot].claims == NULL) goto cleanup;
+    FunctionParamFlowIndexClaims *claims = flow->program_point_indexes[index_slot].claims;
+    for (size_t i = 0; i < claims->count; i++)
+        if (claims->rows[i].node == push) claim_slot = i;
+    CHECK(claim_slot != SIZE_MAX && claims->rows[claim_slot].collection_effect_present &&
+        claims->rows[claim_slot].collection_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+        claims->rows[claim_slot].collection_effect_receiver == receiver_id &&
+        claims->rows[claim_slot].collection_effect_source == 0);
+    if (claim_slot == SIZE_MAX) goto cleanup;
+    /* The independent source remains source-zero, but it still owes the
+     * exact receiver mutation at final consumption. Neither query may heal
+     * withdrawn caller claims or a withdrawn declared-result epoch. */
+    for (unsigned fault = 0; fault < 14; fault++) {
+        FunctionParamFlowProgramPointIndex *index = &flow->program_point_indexes[index_slot];
+        FunctionParamFlowIndexClaim *claim = &claims->rows[claim_slot];
+        bool saved_effect_present = push->data.call.semantic_collection_effect_set;
+        uint32_t saved_kind = push->data.call.semantic_collection_effect_kind;
+        uint32_t saved_receiver = push->data.call.semantic_collection_receiver_binding_id;
+        uint32_t saved_source = push->data.call.semantic_collection_source_binding_id;
+        bool saved_claim_present = claim->collection_effect_present;
+        uint32_t saved_claim_kind = claim->collection_effect_kind;
+        uint32_t saved_claim_receiver = claim->collection_effect_receiver;
+        uint32_t saved_claim_source = claim->collection_effect_source;
+        uint32_t saved_index_id = index->function_id;
+        size_t saved_epoch = result->epoch;
+        PgyCollectionOwnershipFact saved_receiver_fact = *receiver_fact;
+        if (fault == 0) push->data.call.semantic_collection_effect_set = false;
+        if (fault == 1) push->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+        if (fault == 2) push->data.call.semantic_collection_receiver_binding_id++;
+        if (fault == 3) push->data.call.semantic_collection_source_binding_id++;
+        if (fault == 4) claim->collection_effect_present = false;
+        if (fault == 5) claim->collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+        if (fault == 6) claim->collection_effect_receiver++;
+        if (fault == 7) claim->collection_effect_source++;
+        if (fault == 8) index->function_id = 0;
+        if (fault == 9) index->claims = NULL;
+        if (fault == 10) result->epoch = 0;
+        if (fault == 11) receiver_fact->return_elements_owned = true;
+        if (fault == 12) receiver_fact->return_elements_source = receiver_binding;
+        if (fault == 13) receiver_fact->return_elements_source_id = receiver_id;
+        bool current = semantic_indexed_string_private_push_current(ctx, push);
+        if (current) fprintf(stderr, "independent private String fault=%u borrowed=%d remained current\n",
+            fault, (int)borrowed_receiver);
+        CHECK(!current);
+        size_t diagnostics = ctx->diagnostic_count;
+        CHECK(!semantic_indexed_string_borrow_finalize(ctx));
+        CHECK(ctx->has_error && ctx->diagnostic_count == diagnostics + 1 &&
+            ctx->diagnostics[diagnostics] != NULL && ctx->diagnostics[diagnostics]->code != NULL &&
+            strcmp(ctx->diagnostics[diagnostics]->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0);
+        index = &flow->program_point_indexes[index_slot];
+        index->function_id = saved_index_id;
+        index->claims = claims;
+        claim = &claims->rows[claim_slot];
+        push->data.call.semantic_collection_effect_set = saved_effect_present;
+        push->data.call.semantic_collection_effect_kind = saved_kind;
+        push->data.call.semantic_collection_receiver_binding_id = saved_receiver;
+        push->data.call.semantic_collection_source_binding_id = saved_source;
+        claim->collection_effect_present = saved_claim_present;
+        claim->collection_effect_kind = saved_claim_kind;
+        claim->collection_effect_receiver = saved_claim_receiver;
+        claim->collection_effect_source = saved_claim_source;
+        result->epoch = saved_epoch;
+        *receiver_fact = saved_receiver_fact;
+        for (size_t d = diagnostics; d < ctx->diagnostic_count; d++) {
+            free(ctx->diagnostics[d]->message);
+            diag_payload_snapshot_destroy(ctx->diagnostics[d]->payload);
+            free(ctx->diagnostics[d]);
+            ctx->diagnostics[d] = NULL;
+        }
+        ctx->diagnostic_count = diagnostics;
+        ctx->has_error = false;
+        CHECK(semantic_indexed_string_private_push_current(ctx, push));
+        CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    }
     size_t epoch = result->epoch;
     result->epoch = 0;
     CHECK(!function_param_flow_string_result_independent_current(ctx, call));
@@ -11539,7 +11857,8 @@ int main(void)
     checked_private_string_empty_receiver_currency(false);
     checked_private_string_empty_receiver_currency(true);
     checked_private_string_borrowed_without_receipt();
-    checked_private_string_independent_result_currency();
+    checked_private_string_independent_result_currency(false);
+    checked_private_string_independent_result_currency(true);
     checked_named_string_shallow_retention_currency();
     checked_result_argument_currency();
     checked_witnessed_physical_call_alias_currency();

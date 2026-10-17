@@ -130,11 +130,12 @@ static bool function_param_flow_claim_returned_only(const FunctionParamFlowIndex
     return returned;
 }
 
-bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
+bool function_param_flow_private_string_receiver_replay(SemanticContext *ctx,
     ASTNode *routine, uint32_t binding)
 {
     if (ctx == NULL || ctx->has_error || binding == 0 ||
         !semantic_param_publication_inputs_ready(ctx) || ctx->function_param_flow_summaries == NULL ||
+        !ctx->function_param_flow_summaries->validating_current ||
         ctx->function_param_flow_summaries->failed || ctx->function_param_flow_summaries->solving) return false;
     FunctionParamFlowProgramPointIndex *index = function_param_flow_current_claim_index(ctx, routine);
     if (index == NULL || !function_param_flow_no_store_graph(ctx->function_param_flow_summaries, routine)) return false;
@@ -198,10 +199,11 @@ bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
     return true;
 }
 
-bool function_param_flow_string_result_independent_current(SemanticContext *ctx, const ASTNode *call)
+bool function_param_flow_string_result_independent_replay(SemanticContext *ctx, const ASTNode *call)
 {
     if (ctx == NULL || ctx->has_error || call == NULL || call->type != AST_CALL ||
         !semantic_param_publication_inputs_ready(ctx) || ctx->function_param_flow_summaries == NULL ||
+        !ctx->function_param_flow_summaries->validating_current ||
         ctx->function_param_flow_summaries->failed || ctx->function_param_flow_summaries->solving) return false;
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
     const Type *type = NULL;

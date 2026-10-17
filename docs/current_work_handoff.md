@@ -1,25 +1,28 @@
 # Current Work Handoff
 
-Updated: 2026-10-17 KST. Navigation only; current owners and executable
+Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — exact String uses, then canonical/bootstrap/CI
 
-- Bounded source: main `7ff14cf603c22c2d43cae8dcfa8de4ec6e493f42` plus
-  frozen receiver-review repair; local/unpublished, independent review pending.
+- Bounded source: the local main repair checkpoint containing this card,
+  parent `3e3156cf5022f21e6111d91f0fbe1ae6480441a6`, with frozen input hashes
+  in BPpKWL below. The parent was rejected by independent review; this repair
+  is not yet reviewed or published. All tracked dirty paths are this repair
+  (two navigation documents, semantic/HIR/MIR code and its tests), not another
+  lane. Resolve the exact checkpoint with git log/status before continuing.
   Only main exists. Root alone owns WSL/build/process/Git. No known-red push.
   The whole-chain plan is the current first section of
   `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
 - Current identified non-Git build snapshot:
   `/root/pgy-exact-main-20261017.LlEIOb` (Git archive61a plus verified overlays).
   Native SHA256:
-  `8f2292411caaa5531e2d4245fdfc50b011f3c132728720575841609b2652591b`.
-  Phase TU SHA256:
-  `246BA342647CE3EA6F22B39B8DD489772FEFB5244C401A065C0AA31F830F26A7`.
-  All46 modified/new src/test paths since61a compare byte-equal D to Linux,
-  using Windows Git's actual changed path set. WSL Git working-tree discovery
-  has different CRLF handling; its slow comparison was stopped by exact owned
-  process group, not a process-name kill. No other compile was stopped.
+  `49c0ed98108c43aed9685a911ec207e9b8fc795526d1147738fe109312ef75da`.
+  BPpKWL records the frozen runner and source hashes, native/phase binaries,
+  size/build/phase/full-strict receipts. Recheck changed-path D/Linux equality
+  before the next checkpoint. All55 changed/new src/test paths since61a are
+  byte-equal D/Linux after final preparation-stage correction. No shared
+  process-name kill is allowed.
 - Scope: exact private literal-local String ArrayPush at the original reached
   LIVE non-BORROWED risk branch records call/source/receiver/caller/formal,
   selected-call/LET/projection identity and an independent issuance count.
@@ -31,33 +34,44 @@ evidence override this card. Resume this card, not the archive below.
   typed claims capture every effect tuple, including absence. Named independent
   String results use explicit b53 source0 evidence, never a field grant. The
   MIR consumer accepts only the scoped borrowed SHALLOW tuple, not owned/drop
-  authority; missing copied receipts and AST/MIR drift fail. Raw UNKNOWN,
+  authority; all origins require exact AST/MIR tuples. Raw UNKNOWN,
   outward RETURN/backing and deep-cleanup authority are unchanged.
 - Review repairs: standalone physical-input proof now requires its own
   current Array<physical> owned-result receipt; navigation_result_shape is
   explicitly only a shape predicate. Frame epoch/private_stores_closed and
   unsubstituted generic-field refusal remain enforced. No new owner TU,
   summary mask, source0 fallback, manual Clone/drop or canonical edit.
-- Bounded acceptance: xb4VaO phase11610/0 and full strict PASS, including C/LLVM
-  execution of direct/named EMPTY receivers and Fresh independent String.
-  A0ljlj records all four mixing orders as exact BORROW/MIR0; no unsafe run.
-  Broad qT4b6t passes semantic3230/0, transpile1012/0, AIR156/0, Map24/58
-  and HIR/RIR/AIR flow. Its MIR failure was one newly introduced control also
-  refused before MIR by the previous native. It now uses the already-admitted
-  call chain; no original oracle changed.
-  Corrected jhy8cQ MIR384/0 includes13 tuple/retirement/owned/drop faults.
-  0zZsmN re-runs old six/broad/SAN on unchanged native8f; PENDING.
-  TZJteZ observes unchanged old/new post-push move behavior: plain borrowed
-  move admitted, private-field move refused by both. No precision track opened.
-- Last full canonical is still RED on90b (8f full input not yet rerun).
-  AqldHF checks both unchanged fixed input
+- Review repairs: all private receipts replay complete caller claims, exact
+  effects and false/NULL/0 cleanup premises, including independent Fresh.
+  One explicit receipt preparation runs after callable sealing; subsequent
+  current/finalize/take queries use an existing-store-only synchronous barrier.
+  Missing entries/hash/indexes/frames cannot be regenerated. Successful and
+  revoked/nested queries preserve count/index count/demand epoch/body work and
+  frame epoch. Ordinary source0, RETURN and deep-cleanup contracts are unchanged.
+  SemanticResult owns moved cached claims until destruction. HIR and MIR
+  request boundaries replay them, join unique caller/body IDs and check each
+  expected private call appears exactly once in the actual CFG, using the
+  existing local expression visitor. This is not another AST-root traversal.
+- Bounded acceptance: BPpKWL phase11902/0 and full strict PASS, including the
+  original named-return positives, exact mixing-order negatives and C/LLVM
+  safe executions. vcyxzk on the prior17db native passes MIR407/0, including
+  pre-HIR deletion, missing body, actual CFG deletion/replacement/duplication
+  and coherent EMPTY SHALLOW-to-OWNED forgery. Same49c native acceptance m6SsXo
+  passes old-six, full strict, MIR410/0, semantic3230/0, transpile1012/0,
+  AIR156/0, Map24/58 and all four IR flow gates (broad5u9UYz). Separate
+  ASan/UBSan7duHlg passes the phase and live-UAF witness; leaks remain OFF.
+  These are bounded receipts, not full compiler or CI closure.
+  Diagnostic-only4Kj7HB compared397 unique inputs old8f/new17db: one named
+  Identity positive regressed; BPpKWL restores it. The failed initial helper
+  was removed, not left as another prepare owner. No original oracle changed.
+- Full49c canonical is still RED.8IGuDd checks both unchanged fixed input
   (4273 routines/3188 keys under p0-fixed-canonical.nbPIex) and actual main.
-  Both produce MIR0/18435 cascading BORROW errors: fixed31.01s/1621388KiB,
-  current29.20s/1619564KiB. Do not count cascades as independent defects.
+  Both produce MIR0/18435 errors plus16 warnings: fixed32.89s/1621040KiB,
+  current32.17s/1619376KiB. Do not count cascades as independent defects.
   The former185:44 refusal is provisionally passed, not proof that its
   production finalizer succeeded: earlier body errors still prevent full
   publication/final replay. Minimal-program acceptance is not canonical closure.
-- Diagnostic-only S4XKWp changes no semantics and identifies the next first
+- Diagnostic-only BbUJ9M changes no semantics and identifies the next first
   error (prior_error=0): AstTreeArtifactPayloadContractReady/466:22,
   artifact.tree_text passed to AstTreeArtifactIdentityDigest. The source is a
   local aggregate field, not the aggregate formal/private ArrayPush case.

@@ -35,7 +35,7 @@ semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
     return true;
 }
 
-bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
+static bool indexed_string_borrow_receipts(SemanticContext *ctx, bool prepare)
 {
     if (ctx == NULL || ctx->has_error || !semantic_param_publication_ready(ctx)) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
@@ -43,6 +43,15 @@ bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
     for (size_t i = 0; i < store->node_capacity; i++) {
         PublishedNode *row = &store->nodes[i];
         if (!row->indexed_string_shallow_retention) continue;
+        if (prepare) {
+            const ASTNode *dependency = row->node;
+            bool lineage = dependency != NULL && (dependency->type != AST_IDENTIFIER ||
+                semantic_indexed_string_borrow_result_dependency_current(ctx, (ASTNode *)dependency, &dependency));
+            uint32_t ignored_source = UINT32_MAX;
+            if (lineage && dependency != NULL && dependency->type == AST_CALL &&
+                ast_call_semantic_callee_declared_callable(dependency))
+                (void)function_param_flow_string_result_source_prepare(ctx, dependency, &ignored_source);
+        }
         uint32_t source = UINT32_MAX;
         if (issued == SIZE_MAX || row->node == NULL || row->id == 0
             || row->id != ast_node_stable_id(row->node)
@@ -66,7 +75,7 @@ bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
         PublishedNode *row = &store->nodes[i];
         if (row->private_string_push == NULL) continue;
         if (private_issued == SIZE_MAX ||
-            !semantic_indexed_string_prepare_private_push(ctx, row->node) ||
+            (prepare && !semantic_indexed_string_prepare_private_push(ctx, row->node)) ||
             !semantic_indexed_string_private_push_current(ctx, row->node)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
@@ -83,6 +92,15 @@ bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
         return false;
     }
     return true;
+}
+
+bool semantic_indexed_string_borrow_prepare(SemanticContext *ctx)
+{
+    return indexed_string_borrow_receipts(ctx, true);
+}
+bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx)
+{
+    return indexed_string_borrow_receipts(ctx, false);
 }
 
 bool semantic_indexed_string_borrow_owner_transfer_allowed(ASTNode *receiver, SemanticContext *ctx)

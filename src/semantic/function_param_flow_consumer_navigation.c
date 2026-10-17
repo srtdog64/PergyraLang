@@ -207,7 +207,8 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
 {
     const Type *result_type = NULL;
     ASTNode *decl = store == NULL ? NULL : semantic_param_publication_declared_result(store->ctx, call, &result_type);
-    if (store == NULL || store->failed || decl == NULL || result_type == NULL) return NULL;
+    if (store == NULL || store->failed || decl == NULL || result_type == NULL ||
+        (store->validating_current && consumer != NULL)) return NULL;
     ASTNode *receiver = NULL;
     if (!semantic_param_publication_instance_receiver(store->ctx, call, &receiver)
         || ast_call_arg_count(call) + (receiver != NULL) != ast_func_param_count(decl)) return NULL;
@@ -222,6 +223,15 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
         !function_param_flow_index_roots_current(index)) return NULL;
     size_t arity = ast_func_param_count(decl);
     if (index->param_count != arity) return NULL;
+    if (store->validating_current) {
+        FunctionParamFlowBackingFact *fact = index->declared_result;
+        return fact != NULL && fact->epoch != 0 && fact->complete && !fact->building && !fact->pending &&
+            !fact->analysis_unsupported && fact->private_stores_closed && fact->claims == index->claims &&
+            fact->declared_result_type == result_type && fact->input_id == 0 && fact->input_ordinal == SIZE_MAX &&
+            fact->origin_count == 1 && fact->origin_words == 1 && fact->destination_count == 1 &&
+            fact->destination_words == 1 && semantic_param_publication_routine_result_current(store->ctx, decl, result_type) &&
+            function_param_flow_backing_rows_current(store, decl) ? fact : NULL;
+    }
     if (arity != 0 && index->backing_frames == NULL) {
         if (arity > SIZE_MAX / sizeof(*index->backing_frames)) return NULL;
         index->backing_frames = calloc(arity, sizeof(*index->backing_frames));

@@ -57,6 +57,188 @@ test_mir_collection_ownership_validation(void)
         }
     }
     mir_destroy(borrow_mir); rir_destroy(borrow_rir); hir_destroy(borrow_hir);
+    {
+        HIRProgram *fresh_hir = NULL;
+        RIRProgram *fresh_rir = NULL;
+        MIRProgram *fresh_mir = NULL;
+        MIRRoutine *fresh_routine = NULL;
+        MIRInstruction *push = NULL;
+        const char *fresh_source =
+            "struct TextNode{text:String;}struct Arena{rows:Array<String>;}"
+            "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+            "func Project(nodes:Array<TextNode>)->Arena{let rows:Array<String> = [];"
+            "ArrayPush(rows,Fresh(nodes[0]));return Arena(rows);}"
+            "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
+            "let arena=Project(nodes);Log(arena.rows[0]);}";
+        if (lower_mir_from_source(fresh_source, &fresh_hir, &fresh_rir, &fresh_mir))
+            fresh_routine = find_mir_routine_mut(fresh_mir, "Project", MIR_SCOPE_FUNCTION);
+        for (size_t b = 0; fresh_routine != NULL && b < fresh_routine->block_count; b++)
+            for (size_t i = 0; i < fresh_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &fresh_routine->blocks[b].instructions[i];
+                if (inst->has_collection_ownership_receipt &&
+                    inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION)
+                    push = inst;
+            }
+        uint32_t fresh_id = push == NULL ? 0 :
+            ast_call_semantic_callee_decl_id(ast_call_argument(push->expr0, 1));
+        bool control = push != NULL && fresh_id != 0 && mir_validate(fresh_mir, NULL);
+        TEST("MIR independent String push retains its semantic SHALLOW effect");
+        EXPECT(control);
+        if (control) {
+            MIRInstruction saved = *push;
+            ASTNode saved_call = *push->expr0;
+            for (unsigned fault = 0; fault < 7; fault++) {
+                if (fault == 0) {
+                    push->collection_ownership_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                    push->collection_ownership_source_binding_id = fresh_id;
+                }
+                if (fault == 1) push->expr0->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                if (fault == 2) push->expr0->data.call.semantic_collection_receiver_binding_id++;
+                if (fault == 3) push->expr0->data.call.semantic_collection_source_binding_id++;
+                if (fault == 4) push->expr0->data.call.semantic_collection_effect_set = false;
+                if (fault == 5) push->has_collection_ownership_receipt = false;
+                if (fault == 6) push->collection_ownership_receiver_binding_id++;
+                bool refused = !mir_validate_collection_ownership_transitions(fresh_routine, NULL);
+                *saved.expr0 = saved_call; *push = saved;
+                TEST("MIR independent push cannot promote SHALLOW into owned cleanup");
+                if (!refused) printf("\n  empty independent effect fault=%u not refused\n", fault);
+                EXPECT(refused && mir_validate_collection_ownership_transitions(fresh_routine, NULL));
+            }
+        }
+        mir_destroy(fresh_mir); rir_destroy(fresh_rir); hir_destroy(fresh_hir);
+    }
+    {
+        const char *transport_source =
+            "struct TextNode{text:String;}struct Arena{rows:Array<String>;risk:Array<String>;}"
+            "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+            "func Project(nodes:Array<TextNode>)->Arena{let risk:Array<String> = [];"
+            "let rows:Array<String> = [\"a\"];ArrayPush(rows,Fresh(nodes[0]));return Arena(rows,risk);}"
+            "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
+            "let arena=Project(nodes);Log(arena.rows[1]);}";
+        Lexer *lexer = lexer_create(transport_source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = parser_has_error(parser) ? NULL : semantic_analyze(ast);
+        ASTNode *project = ast == NULL ? NULL : ast_program_statement(ast, 3);
+        ASTNode *body = project == NULL ? NULL : ast_func_body(project);
+        ASTNode *call = body == NULL ? NULL : ast_block_statement(body, 2);
+        char *error = NULL;
+        HIRSemanticProjectionFailure failure = HIR_SEMANTIC_PROJECTION_NONE;
+        HIRProgram *accepted = sem == NULL || !sem->success ? NULL :
+            hir_lower_with_semantic_facts(sem, &failure, &error);
+        DIRProgram *accepted_dir = accepted == NULL ? NULL :
+            dir_lower_with_hir_facts(ast, accepted, &error);
+        RIRProgram *accepted_rir = accepted == NULL ? NULL : rir_lower(ast, &error);
+        if (accepted_rir != NULL)
+            (void)rir_enrich_with_hir_flow(accepted_rir, accepted, &error);
+        MIRLowerRequest request;
+        mir_lower_request_init(&request, accepted, accepted_rir, sem);
+        mir_lower_request_bind_dir(&request, accepted_dir);
+        MIRProgram *accepted_mir = accepted == NULL || accepted_rir == NULL ||
+            accepted_dir == NULL ? NULL : mir_lower(&request, &error);
+        bool control = accepted != NULL && call != NULL && call->type == AST_CALL &&
+            accepted_mir != NULL && hir_collection_effect_snapshot_current(sem, accepted, NULL);
+        TEST("HIR retains admitted private effects after semantic context teardown");
+        if (!control) printf("\n  semantic=%d HIR=%d call=%d failure=%d error=%s\n",
+            sem != NULL && sem->success, accepted != NULL, call != NULL,
+            (int)failure, error != NULL ? error : "none");
+        EXPECT(control);
+        free(error); error = NULL;
+        if (control) {
+            ASTNode saved_call = *call;
+            PgyCollectionEffectSnapshot *saved_snapshot = sem->collection_effect_snapshot;
+            for (unsigned fault = 0; fault < 5; fault++) {
+                if (fault == 0) call->data.call.semantic_collection_effect_set = false;
+                if (fault == 1) call->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                if (fault == 2) call->data.call.semantic_collection_receiver_binding_id++;
+                if (fault == 3) call->data.call.semantic_collection_source_binding_id++;
+                if (fault == 4) sem->collection_effect_snapshot = NULL;
+                HIRProgram *rejected = hir_lower_with_semantic_facts(sem, &failure, &error);
+                bool refused = rejected == NULL &&
+                    failure == HIR_SEMANTIC_PROJECTION_COLLECTION_OWNERSHIP && error != NULL;
+                bool request_refused = !hir_collection_effect_snapshot_current(sem, accepted, NULL);
+                hir_destroy(rejected); free(error); error = NULL;
+                MIRProgram *rejected_mir = mir_lower(&request, &error);
+                request_refused = request_refused && rejected_mir == NULL && error != NULL;
+                mir_destroy(rejected_mir); free(error); error = NULL;
+                *call = saved_call; sem->collection_effect_snapshot = saved_snapshot;
+                TEST("HIR refuses deleted or rewritten borrowed independent effects before MIR");
+                if (!refused || !request_refused) printf("\n  transport fault=%u HIR=%d request=%d\n",
+                    fault, refused, request_refused);
+                EXPECT(refused && request_refused && hir_collection_effect_snapshot_current(sem, accepted, NULL));
+            }
+            HIRRoutine *actual = NULL;
+            for (size_t r = 0; r < accepted->routine_count; r++)
+                if (accepted->routines[r].ast == project) actual = &accepted->routines[r];
+            bool member = actual != NULL;
+            TEST("HIR expected effect caller is present in the lowered routine owner");
+            EXPECT(member);
+            if (member) {
+                HIRRoutine saved_routine = *actual;
+                for (unsigned fault = 0; fault < 6; fault++) {
+                    if (fault == 0) actual->body = NULL;
+                    if (fault == 1) actual->source_syntax_id++;
+                    if (fault == 2) actual->ast = body;
+                    if (fault == 3) actual->has_cfg = false;
+                    if (fault == 4) actual->cfg.blocks = NULL;
+                    if (fault == 5) actual->cfg.block_capacity = 0;
+                    bool refused = !hir_collection_effect_snapshot_current(sem, accepted, NULL);
+                    MIRProgram *rejected_mir = mir_lower(&request, &error);
+                    refused = refused && rejected_mir == NULL && error != NULL;
+                    mir_destroy(rejected_mir); free(error); error = NULL;
+                    *actual = saved_routine;
+                    TEST("MIR request cannot use a detached expected caller body");
+                    EXPECT(refused && hir_collection_effect_snapshot_current(sem, accepted, NULL));
+                }
+                HIRBasicBlock *effect_block = NULL;
+                size_t effect_statement = 0, occurrences = 0;
+                for (size_t b = 0; b < actual->cfg.block_count; b++)
+                    for (size_t s = 0; s < actual->cfg.blocks[b].statement_count; s++)
+                        if (actual->cfg.blocks[b].statements[s] == call) {
+                            effect_block = &actual->cfg.blocks[b];
+                            effect_statement = s; occurrences++;
+                        }
+                TEST("HIR private effect has one actual CFG statement witness");
+                EXPECT(occurrences == 1 && effect_block != NULL);
+                if (occurrences == 1 && effect_block != NULL) {
+                    HIRBasicBlock saved_block = *effect_block;
+                    size_t count = effect_block->statement_count;
+                    ASTNode **changed = malloc((count + 1) * sizeof(*changed));
+                    TEST("HIR effect omission mutation has isolated statement storage");
+                    EXPECT(changed != NULL);
+                    if (changed != NULL) {
+                        for (unsigned fault = 0; fault < 3; fault++) {
+                            memcpy(changed, saved_block.statements, count * sizeof(*changed));
+                            effect_block->statements = changed;
+                            if (fault == 0) {
+                                memmove(&changed[effect_statement], &changed[effect_statement + 1],
+                                    (count - effect_statement - 1) * sizeof(*changed));
+                                effect_block->statement_count = count - 1;
+                            }
+                            if (fault == 1) changed[effect_statement] = ast_block_statement(body, 0);
+                            if (fault == 2) {
+                                changed[count] = call;
+                                effect_block->statement_count = count + 1;
+                                effect_block->statement_capacity = count + 1;
+                            }
+                            bool refused = !hir_collection_effect_snapshot_current(sem, accepted, NULL);
+                            MIRProgram *rejected_mir = mir_lower(&request, &error);
+                            refused = refused && rejected_mir == NULL && error != NULL;
+                            mir_destroy(rejected_mir); free(error); error = NULL;
+                            *effect_block = saved_block;
+                            TEST("MIR request refuses erased, replaced or duplicated CFG effects");
+                            if (!refused) printf("\n  actual CFG effect fault=%u not refused\n", fault);
+                            EXPECT(refused && hir_collection_effect_snapshot_current(sem, accepted, NULL));
+                        }
+                        free(changed);
+                    }
+                }
+            }
+        }
+        mir_destroy(accepted_mir); rir_destroy(accepted_rir); dir_destroy(accepted_dir);
+        hir_destroy(accepted); semantic_result_destroy(sem);
+        ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
+    }
     const char *source =
         "func Main() -> Void {\n"
         "    let values: HashMap<String, Int> = MapNew();\n"

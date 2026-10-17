@@ -31,6 +31,7 @@ bool semantic_indexed_string_borrow_source_current(ASTNode *expression,
 bool semantic_indexed_string_borrow_result_dependency_current(SemanticContext *ctx,
     ASTNode *value, const ASTNode **dependency);
 bool semantic_indexed_string_borrow_finalize(SemanticContext *ctx);
+bool semantic_indexed_string_borrow_prepare(SemanticContext *ctx);
 bool semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
     SemanticContext *ctx, uint32_t *source_id);
 /* A NULL callee covers shallow stores and builtin Array mutators, including

@@ -334,6 +334,11 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
             "Lifecycle state-space fact snapshot allocation failed");
     }
 
+    /* Last semantic consumer: claims ownership moves without another AST walk. */
+    if (!ctx->has_error && !semantic_collection_effect_snapshot_take(ctx,
+            &result->collection_effect_snapshot))
+        semantic_error(ctx, ast, "Collection effect snapshot transfer failed closed");
+
     /* Transfer diagnostics to result */
     result->success          = !ctx->has_error;
     result->annotated_ast    = ast;
@@ -481,6 +486,7 @@ semantic_result_destroy(SemanticResult *result)
     pgy_collection_ownership_facts_destroy(
         result->collection_ownership_facts,
         result->collection_ownership_fact_count);
+    semantic_collection_effect_snapshot_destroy(result->collection_effect_snapshot);
     pgy_domain_participant_role_facts_destroy(
         result->domain_participant_role_facts,
         result->domain_participant_role_fact_count);

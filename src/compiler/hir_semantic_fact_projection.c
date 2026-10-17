@@ -577,6 +577,11 @@ hir_lower_with_semantic_facts(const SemanticResult *semantic,
             *failure = HIR_SEMANTIC_PROJECTION_LOWER;
         return NULL;
     }
+    if (!hir_collection_effect_snapshot_current(semantic, hir, error_message)) {
+        if (failure != NULL) *failure = HIR_SEMANTIC_PROJECTION_COLLECTION_OWNERSHIP;
+        hir_destroy(hir);
+        return NULL;
+    }
     if (!hir_attach_loop_flow_facts(
             hir,
             semantic->loop_flow_summary_facts,

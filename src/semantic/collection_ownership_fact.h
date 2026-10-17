@@ -9,6 +9,33 @@ typedef struct ASTNode ASTNode;
 typedef struct SemanticContext SemanticContext;
 typedef struct Symbol Symbol;
 typedef struct Type Type;
+typedef struct PgyCollectionEffectSnapshot PgyCollectionEffectSnapshot;
+typedef struct {
+    const ASTNode *decl, *body;
+    uint32_t decl_id, body_id;
+} PgyCollectionEffectCaller;
+typedef struct {
+    const ASTNode *call;
+    uint32_t id, kind, receiver, source;
+    size_t caller;
+} PgyCollectionExpectedEffect;
+typedef struct {
+    const PgyCollectionEffectCaller *callers;
+    size_t caller_count;
+    const PgyCollectionExpectedEffect *effects;
+    size_t effect_count;
+} PgyCollectionEffectView;
+/* Moves existing caller claims after the last semantic consumer. No further
+ * semantic queries may run after a successful take. This grants no permission. */
+bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
+    PgyCollectionEffectSnapshot **out);
+bool semantic_collection_effect_snapshot_current(const PgyCollectionEffectSnapshot *snapshot,
+    const ASTNode *program, PgyCollectionEffectView *optional_out);
+/* The same synchronous validation must first pass snapshot_current. This
+ * consumes one actual call's cached membership, not another whole-body replay. */
+bool semantic_collection_effect_snapshot_call(const PgyCollectionEffectSnapshot *snapshot,
+    size_t caller_ordinal, const ASTNode *actual_call, size_t *effect_ordinal);
+void semantic_collection_effect_snapshot_destroy(PgyCollectionEffectSnapshot *snapshot);
 
 /* Element-lifetime provenance for Array<String>.  This is deliberately
  * orthogonal to Slot and to the physical array descriptor: it records which

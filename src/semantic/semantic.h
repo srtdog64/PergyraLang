@@ -88,6 +88,7 @@ typedef struct SemanticResult
      * these identities instead of retaining or recreating Symbol state. */
     PgyCollectionOwnershipFact *collection_ownership_facts;
     size_t       collection_ownership_fact_count;
+    PgyCollectionEffectSnapshot *collection_effect_snapshot;
     /* Semantic-owned bounded region escape facts. The driver converts these
      * stable rows into the verified plan; it must not rescan the AST. */
     PgyRegionEscapeFact *region_escape_facts;

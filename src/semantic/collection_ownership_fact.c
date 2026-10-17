@@ -30,6 +30,50 @@ current_function_syntax_id(const SemanticContext *ctx)
         ? ast_node_stable_id(ctx->current_function_decl) : 0;
 }
 
+bool
+collection_member_move_identity(const ASTNode *member_access,
+                                SemanticContext *ctx,
+                                uint32_t *root_binding_id_out,
+                                uint32_t *field_syntax_id_out)
+{
+    ASTNode *root;
+    Symbol *binding;
+    ASTNode *decl;
+    const char *field_name;
+    uint32_t root_binding_id;
+
+    if (root_binding_id_out != NULL)
+        *root_binding_id_out = 0;
+    if (field_syntax_id_out != NULL)
+        *field_syntax_id_out = 0;
+    if (member_access == NULL || member_access->type != AST_MEMBER_ACCESS
+        || ctx == NULL)
+        return false;
+    root = ast_member_object(member_access);
+    if (root == NULL || root->type != AST_IDENTIFIER)
+        return false;
+    binding = scope_lookup(ctx->scope, ast_identifier_name(root));
+    root_binding_id = receiver_binding_syntax_id(root, binding);
+    field_name = ast_member_name(member_access);
+    decl = binding != NULL
+        ? semantic_host_decl_for_type(ctx, binding->type) : NULL;
+    if (root_binding_id == 0 || field_name == NULL || decl == NULL
+        || decl->type != AST_CLASS_DECL)
+        return false;
+    for (size_t i = 0; i < projection_source_field_count(decl); i++) {
+        PgyDeclField field = projection_source_field_at(decl, i);
+        if (field.name != NULL && strcmp(field.name, field_name) == 0
+            && field.declaration_syntax_id != 0) {
+            if (root_binding_id_out != NULL)
+                *root_binding_id_out = root_binding_id;
+            if (field_syntax_id_out != NULL)
+                *field_syntax_id_out = field.declaration_syntax_id;
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool
 array_literal_is_empty(const ASTNode *expr)
 {

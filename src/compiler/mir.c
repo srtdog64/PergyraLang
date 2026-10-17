@@ -84,6 +84,8 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 "MIR lowering requires HIR and semantic facts");
         return NULL;
     }
+    if (!hir_collection_effect_snapshot_current(semantic, hir, error_message))
+        return NULL;
     if ((hir->relation_count != 0 || hir->effect_count != 0
          || hir->zone_count != 0)
         && dir == NULL) {

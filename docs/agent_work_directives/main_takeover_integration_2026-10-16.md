@@ -27,7 +27,7 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ### Current element-retention integration boundary
 
-#### Active review repair of local checkpoint7ff14cf
+#### Active review repair of local checkpoint3e3156cf (2026-10-18)
 
 - Objective: finish the private String-push contract before extending admission
   to the next canonical466 call. Priority is exact receiver identity/currentness,
@@ -36,8 +36,9 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 - Existing owners: collection facts own receiver origin and disposition;
   write-once call effects own element policy; current flow program-point claims
   own exhaustive effect history; declared-result frames own String independence.
-  The last consumer is program-success private-push replay. A pending receipt
-  is an obligation, not an ownership or cleanup permission.
+  Program-success private replay hands admitted claims to SemanticResult;
+  the last reached consumers are HIR projection and MIR request admission.
+  A pending receipt is an obligation, not an ownership or cleanup permission.
 - Required changes: A snapshots/replays the actual receiver fact and separates
   borrowed-literal/distinct-risk from genuinely empty/same-risk receivers.
   B validates current effect history using existing typed claims and exposes a
@@ -71,12 +72,79 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   semantic3230, transpile1012, AIR156, Map24/58 and HIR/RIR/AIR flow; its MIR
   failure was a newly added control also refused by the prior native before
   MIR. No original oracle changed. The admitted control now passes MIR384/0
-  including13 new forged/missing/retired receipt cases (jhy8cQ). 0zZsmN repeats
-  the full bounded acceptance/SAN; results remain PENDING until observed.
+  including13 new forged/missing/retired receipt cases (jhy8cQ). 0zZsmN passes
+  the full bounded acceptance/SAN on8f, not on the current dirty source.
   TZJteZ also checks old/new borrowed-array move behavior without executing
   rejected programs: ordinary move stays admitted; the private-field move is
   refused by both. Do not open a new precision track for that pre-existing
-  conservative case. Actual full8f canonical/bootstrap/CI remain unverified.
+  conservative case. Full8f yQ3EF8 remains RED on both unchanged inputs:
+  MIR0/18435 errors plus16 warnings. Bootstrap/installed-driver/CI remain OPEN.
+- Independent review of3e3156cf blocks further admission. All private receipts,
+  including independent results, must replay the exact SHALLOW tuple and full
+  caller claims, and require receiver cleanup premise false/NULL/0 without
+  mutating it. MIR must compare AST/MIR effect tuples for every origin, not only
+  borrowed literals. These are existing evidence obligations, not new authority.
+- Translation-lifetime closure: semantic context teardown currently destroys
+  the expected private effects and caller claims. Move each unique admitted
+  caller's cached claims once into an opaque collection-effect result snapshot,
+  after every other semantic consumer and before context destruction. Allocate
+  and validate before detaching; never leave a partial transfer. The snapshot
+  owns the transferred claims until SemanticResult destruction. No AST re-scan,
+  context retention, second effect authority or deep-copy of global facts.
+  Its context-free syntax replay plus immutable effect tuples detect deleted
+  or changed calls. HIR and MIR request boundaries also join each expected
+  caller to exactly one actual HIR routine with identical declaration/body IDs.
+  Source membership is not execution coverage: reuse the existing local CFG
+  expression visitor to join each sealed private effect to exactly one actual
+  CFG call. Deleted/replaced/duplicated calls must fail even while the source
+  body and its receipt remain current. Calls use the moved cached membership,
+  not a new root scan or effect inference. No cleanup permission is implied.
+  The existing semantic owner publishes a valid empty snapshot when no private
+  effects exist; missing snapshots fail closed. No query recreates evidence.
+- A owns common receipt/cleanup-premise checks. B owns snapshot export/current
+  and SemanticResult teardown. Root owns HIR/MIR translation consumption and
+  common AST/MIR equality. C owns withdrawal/finalizer tests. Acceptance adds
+  EMPTY/BORROWED independent effect and cleanup-bit faults, pre-HIR deletion,
+  missing caller/body evidence, and coherent EMPTY SHALLOW-to-OWNED MIR forgery.
+  Re-run the same original gates on a new immutable executable.466 stays on
+  hold; this result must not be called V1, canonical or whole-language closure.
+- Ready-only review obligation (Oct18): summary/current queries reached by
+  private-push replay must not recreate missing COMPLETE entries, indexes or
+  backing/result frames. A synchronous context-local production barrier uses
+  the existing algorithms and restores its prior value on every exit, including
+  nested queries. Preparation remains the sole materialization stage. Test
+  successful and withdrawn-entry/hash/identity paths against unchanged entry
+  count, index count, demand epoch, body evaluations and result-frame epoch.
+  z0OiDr passes11824 phase checks but strict fails on the original while/if
+  positive. Diagnostic-only QyzOhi finds issued1 vs enumerated0: publication
+  nodes are a sparse hash, so snapshot enumeration must use node_capacity,
+  like its existing finalizer/destructor, not node_count. No oracle is relaxed.
+- The initial call-argument helper did not reach the existing named-result
+  store obligations (ad85 phase two original typed failures). Delete that
+  helper. The actual preparation owner is one explicit indexed receipt stage
+  after callable sealing and before pure finalize in type_check_program.
+  It shares the existing registered sparse-row traversal and diagnostics;
+  no program-root walk or second fact authority is added. Private preparation
+  remains one-time, guarded by its existing prepared bit. Source preparation
+  and current queries share the recursive join algorithm, but only prepare
+  may demand existing semantic producers. Current cannot fall back to prepare.
+  BPpKWL native49c0ed98 passes11902 phase checks and full strict, including
+  the original named positives, nested source/hash/frame withdrawal and safe
+  C/LLVM executions. m6SsXo passes the same-native old-six/broad/SAN acceptance:
+  MIR410/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58, all four IR
+  flow gates (5u9UYz) and separate ASan/UBSan (7duHlg, leak detection OFF).
+  New checkpoint review and full canonical/bootstrap/CI are still required.
+- Full native49c run8IGuDd remains RED on both unchanged canonical inputs:
+  MIR0/18435 errors plus16 warnings. Fixed32.89s/1621040KiB;
+  current32.17s/1619376KiB. All55 changed/new source/test paths since61a
+  compare byte-equal D/Linux. This is no DRV-2/canonical admission gain.
+  The executable rung remains BLOCKED at the actual local aggregate-field
+  String read466: current non-retention evidence is missing for that exact
+  synchronous reader. Existing publication/indexed owners and the retaining
+  call consumer own that repair, not source0/UNKNOWN reinterpretation. Keep
+  private185 replay provisional until all body errors and final publication
+  succeed. The next falsifier is the same reader changed to retain/return
+  backing, including a deferred/worker context, not a smaller compiler input.
 
 #### Reached full-input boundary after named-String integration
 
