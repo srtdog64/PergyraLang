@@ -1,0 +1,48 @@
+struct Rows { ids: Array<Int>; }
+struct Arena { rows: Rows; }
+struct Sequence {
+    ok: Bool;
+    roots: Array<Int>;
+    arena: Arena;
+    ordinals: Array<Int>;
+}
+
+extern "C" { func Keep(ids: Array<Int>) -> Void; }
+
+func Nested(count: Int) -> Rows {
+    let ids: Array<Int> = [];
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(ids, row);
+        row = row + 1;
+    }
+    Keep(ids);
+    return Rows(ids);
+}
+
+func OuterEmpty() -> Sequence {
+    let roots: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    return Sequence(true, roots, Arena(Nested(0)), ordinals);
+}
+
+func Error(input: Sequence) -> Sequence {
+    let failed: Sequence = OuterEmpty();
+    failed.ok = false;
+    return failed;
+}
+
+func Probe(ref label: String) -> Option<Int> {
+    let input: Sequence = OuterEmpty();
+    let failed: Sequence = Error(input);
+    return Some(ArrayLength(failed.roots) +
+        ArrayLength(failed.arena.rows.ids) +
+        ArrayLength(failed.ordinals) + StringLength(label));
+}
+
+func Main() -> Void {
+    let grown: Rows = Nested(1);
+    Log(ArrayLength(grown.ids));
+    let label: String = Concat("heap", "");
+    Log(UnwrapOption(Probe(label)));
+}

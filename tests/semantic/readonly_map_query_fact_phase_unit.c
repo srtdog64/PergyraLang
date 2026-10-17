@@ -3061,6 +3061,36 @@ static void checked_witnessed_physical_call_alias_currency(void)
     bool output_depends = true;
     CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends) && !output_depends);
 
+    size_t source_entry_index = SIZE_MAX;
+    for (size_t e = 0; e < store->count; e++)
+        if (store->entries[e].function_decl == select &&
+            store->entries[e].function_id == ast_node_stable_id(select) &&
+            store->entries[e].param_index == 0)
+            source_entry_index = e;
+    CHECK(source_entry_index != SIZE_MAX);
+    if (source_entry_index == SIZE_MAX) goto cleanup;
+    FunctionParamFlowSummaryEntry saved_source_entry = store->entries[source_entry_index];
+    CHECK(saved_source_entry.state == FUNCTION_PARAM_FLOW_COMPLETE &&
+        saved_source_entry.output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME &&
+        saved_source_entry.output_dependencies_ready &&
+        !saved_source_entry.returned_backing_unproved &&
+        !saved_source_entry.analysis_unsupported);
+    for (unsigned fault = 0; fault < 5; fault++) {
+        FunctionParamFlowSummaryEntry *source_entry = &store->entries[source_entry_index];
+        if (fault == 0) source_entry->output_producer = FUNCTION_PARAM_FLOW_OUTPUT_UNPROVED;
+        if (fault == 1) source_entry->state = FUNCTION_PARAM_FLOW_COMPUTING;
+        if (fault == 2) source_entry->output_dependencies_ready = false;
+        if (fault == 3) source_entry->returned_backing_unproved = true;
+        if (fault == 4) source_entry->analysis_unsupported = true;
+        CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends));
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+        store->entries[source_entry_index] = saved_source_entry;
+        CHECK(function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends) && !output_depends);
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+
     PublishedNode *physical_claim = published_node_for(ctx, physical);
     PublishedNode *descriptor_claim = published_node_for(ctx, descriptor);
     CHECK(physical_claim != NULL && descriptor_claim != NULL);
@@ -3243,6 +3273,87 @@ static void checked_witnessed_physical_recursive_alias_currency(void)
         CHECK(function_param_flow_output_current(store, entry_at, false));
         CHECK(function_param_flow_backing_rows_current(store, select));
     }
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+/* A ready body witness and a recursive pending edge can occupy one backing
+ * frame. Both must be sealed before the caller consumes its return relation. */
+static void checked_mixed_ready_pending_physical_alias(void)
+{
+    const char *source =
+        "func Select(ref content:String,index:Int,inout cursor_out:Array<Int>)->String{"
+        "ArraySet(cursor_out,0,index);return content;}"
+        "func Recur(ref content:String,index:Int,inout cursor_out:Array<Int>)->String{"
+        "let first=Select(content,index,cursor_out);"
+        "if index>0{return Recur(first,index-1,cursor_out);}return first;}"
+        "func Probe(ref label:String)->Option<Int>{let content=Concat(\"abc\",\"\");"
+        "var cursor:Array<Int> = [0];"
+        "let observed=Recur(content,StringLength(label),cursor);"
+        "return Some(StringLength(observed)+cursor[0]);}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+
+    ASTNode *select = ast_program_statement(program, 0);
+    ASTNode *recur = ast_program_statement(program, 1);
+    ASTNode *probe = ast_program_statement(program, 2);
+    ASTNode *ready_call = ast_let_initializer(ast_block_statement(ast_func_body(recur), 0));
+    ASTNode *branch = ast_block_statement(ast_func_body(recur), 1);
+    ASTNode *pending_call = ast_return_value(ast_block_statement(ast_if_then_branch(branch), 0));
+    ASTNode *outer_call = ast_let_initializer(ast_block_statement(ast_func_body(probe), 2));
+    CHECK(ready_call != NULL && ready_call->type == AST_CALL &&
+        pending_call != NULL && pending_call->type == AST_CALL &&
+        outer_call != NULL && outer_call->type == AST_CALL);
+    if (ready_call == NULL || ready_call->type != AST_CALL ||
+        pending_call == NULL || pending_call->type != AST_CALL ||
+        outer_call == NULL || outer_call->type != AST_CALL) goto cleanup;
+    CHECK(semantic_param_publication_callee(ctx, ready_call, 0) == select &&
+        semantic_param_publication_callee(ctx, pending_call, 0) == recur &&
+        semantic_param_publication_callee(ctx, outer_call, 0) == recur);
+    CHECK(semantic_param_publication_value_is_physical_scalar(ctx,
+        ast_call_argument(ready_call, 1)) &&
+        semantic_param_publication_value_is_physical_scalar(ctx,
+            ast_call_argument(pending_call, 1)));
+    bool required = false;
+    CHECK(semantic_param_publication_return_backing_required(ctx, select, 0, &required) && required);
+    CHECK(semantic_param_publication_return_backing_required(ctx, recur, 0, &required) && required);
+    unsigned summary = function_param_flow_summary_for_param(ctx, probe, 0);
+    CHECK(summary != SLOT_PARAM_SUMMARY_ALL);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    CHECK(store != NULL && !store->failed && function_param_flow_backing_rows_current(store, probe));
+    if (store == NULL || store->failed) goto cleanup;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    bool indexed = function_param_flow_program_point_index_build(store, recur, &index);
+    CHECK(indexed);
+    if (!indexed || index == NULL || index->backing_frames == NULL ||
+        index->backing_frame_count == 0 || index->backing_frames[0] == NULL) goto cleanup;
+    FunctionParamFlowBackingFact *frame = index->backing_frames[0];
+    CHECK(frame->complete && !frame->pending && !frame->building && frame->epoch != 0 &&
+        frame->pending_relations != NULL && frame->pending_relation_count >= 2 &&
+        frame->sealed_pending_relation_count == frame->pending_relation_count);
+    if (frame->pending_relations == NULL) goto cleanup;
+    bool saw_ready = false, saw_recursive = false;
+    for (size_t e = 0; e < frame->pending_relation_count; e++) {
+        const FunctionParamFlowPendingRelation *edge = &frame->pending_relations[e];
+        if (edge->call == ready_call && edge->call_id == ast_node_stable_id(ready_call) &&
+            edge->callee_id == ast_node_stable_id(select) && edge->ordinal == 0)
+            saw_ready = true;
+        if (edge->call == pending_call && edge->call_id == ast_node_stable_id(pending_call) &&
+            edge->callee_id == ast_node_stable_id(recur) && edge->ordinal == 0)
+            saw_recursive = true;
+    }
+    CHECK(saw_ready && saw_recursive);
+    CHECK(function_param_flow_backing_rows_current(store, recur));
+    CHECK(function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == summary);
 cleanup:
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
@@ -6517,6 +6628,180 @@ static void checked_private_local_array_push(void)
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+/* The private Int push must remain a current dependency through both nominal
+ * result frames, rather than merely making the direct ArrayPush query green. */
+static void checked_private_physical_array_nested_result_currency(void)
+{
+    const char *source =
+        "struct Rows{ids:Array<Int>;}"
+        "struct Arena{rows:Rows;}"
+        "struct Sequence{ok:Bool;roots:Array<Int>;arena:Arena;ordinals:Array<Int>;}"
+        "func Nested(count:Int)->Rows{let ids:Array<Int> = [];let row:Int=0;"
+        "while row<count{ArrayPush(ids,row);row=row+1;}return Rows(ids);}"
+        "func OuterEmpty()->Sequence{let roots:Array<Int> = [];"
+        "let ordinals:Array<Int> = [];"
+        "return Sequence(true,roots,Arena(Nested(0)),ordinals);}"
+        "func Error(input:Sequence)->Sequence{let failed:Sequence=OuterEmpty();"
+        "failed.ok=false;return failed;}"
+        "func Probe(ref label:String)->Option<Int>{let input:Sequence=OuterEmpty();"
+        "let failed:Sequence=Error(input);"
+        "return Some(ArrayLength(failed.roots)+ArrayLength(failed.arena.rows.ids)+"
+        "ArrayLength(failed.ordinals)+StringLength(label));}"
+        "func Main()->Void{let grown:Rows=Nested(1);Log(ArrayLength(grown.ids));"
+        "let label:String=Concat(\"heap\",\"\");Log(UnwrapOption(Probe(label)));}";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (!admitted) goto cleanup;
+
+    ASTNode *nested = ast_program_statement(program, 3);
+    ASTNode *outer = ast_program_statement(program, 4);
+    ASTNode *error = ast_program_statement(program, 5);
+    ASTNode *probe = ast_program_statement(program, 6);
+    ASTNode *local = ast_block_statement(ast_func_body(nested), 0);
+    ASTNode *initial = ast_let_initializer(local);
+    ASTNode *loop = ast_block_statement(ast_func_body(nested), 2);
+    ASTNode *push = ast_block_statement(ast_while_body(loop), 0);
+    ASTNode *payload = ast_call_argument(push, 1);
+    ASTNode *target = ast_call_callee(push);
+    ASTNode *rows_ctor = ast_return_value(ast_block_statement(ast_func_body(nested), 3));
+    ASTNode *sequence_ctor = ast_return_value(ast_block_statement(ast_func_body(outer), 2));
+    ASTNode *arena_ctor = ast_call_argument(sequence_ctor, 2);
+    ASTNode *nested_call = ast_call_argument(arena_ctor, 0);
+    ASTNode *outer_call = ast_let_initializer(ast_block_statement(ast_func_body(error), 0));
+    CHECK(nested != NULL && outer != NULL && error != NULL && probe != NULL &&
+        local != NULL && initial != NULL && loop != NULL && push != NULL &&
+        payload != NULL && target != NULL && rows_ctor != NULL &&
+        nested_call != NULL && outer_call != NULL);
+    if (nested == NULL || outer == NULL || error == NULL || probe == NULL ||
+        local == NULL || initial == NULL || loop == NULL || push == NULL ||
+        payload == NULL || target == NULL || rows_ctor == NULL ||
+        nested_call == NULL || outer_call == NULL) goto cleanup;
+    CHECK(ast_array_literal_count(initial) == 0 &&
+        semantic_param_publication_private_array_push(ctx, push, nested));
+    SlotFunctionLookup lookup = {ctx, program};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    CHECK(store != NULL);
+    if (store == NULL) goto cleanup;
+    unsigned baseline = function_param_flow_summary_for_param(ctx, probe, 0);
+    CHECK(baseline != SLOT_PARAM_SUMMARY_ALL &&
+        (baseline & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+            SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
+    CHECK(function_param_flow_no_store_graph(store, nested));
+    CHECK(function_param_flow_no_store_graph(store, outer));
+    const Type *result_type = NULL;
+    CHECK(semantic_param_publication_declared_result(ctx, nested_call, &result_type) == nested &&
+        result_type != NULL);
+    CHECK(semantic_param_publication_declared_result(ctx, outer_call, &result_type) == outer &&
+        result_type != NULL);
+    CHECK(function_param_flow_backing_rows_current(store, probe));
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(function_param_flow_program_point_index_build(store, nested, &index) &&
+        index != NULL && function_param_flow_index_claims_current(ctx, index));
+    CHECK(function_param_flow_program_point_index_build(store, outer, &index) &&
+        index != NULL && index->declared_result != NULL &&
+        index->declared_result->epoch != 0 && index->declared_result->complete &&
+        !index->declared_result->pending);
+    CHECK(function_param_flow_program_point_index_build(store, nested, &index) &&
+        index != NULL && index->declared_result != NULL &&
+        index->declared_result->epoch != 0 && index->declared_result->complete &&
+        !index->declared_result->pending);
+    if (index == NULL || index->function_decl != nested) goto cleanup;
+    size_t nested_index_position = (size_t)(index - store->program_point_indexes);
+
+    PublishedNode *row = published_node_for(ctx, push);
+    PublishedNode *initial_value = published_node_for(ctx, initial);
+    PublishedNode *receiver_value = published_node_for(ctx, ast_call_argument(push, 0));
+    PublishedNode *payload_value = published_node_for(ctx, payload);
+    CHECK(row != NULL && initial_value != NULL && receiver_value != NULL &&
+        payload_value != NULL && row->argument_count == 2);
+    if (row == NULL || initial_value == NULL || receiver_value == NULL ||
+        payload_value == NULL || row->argument_count != 2) goto cleanup;
+    PublishedNode saved_row = *row, saved_initial = *initial_value;
+    PublishedNode saved_receiver = *receiver_value, saved_payload = *payload_value;
+    ASTNode saved_call = *push;
+    uint32_t payload_id = ast_node_stable_id(payload);
+    uint32_t target_id = ast_node_stable_id(target);
+    for (unsigned fault = 0; fault < 17; fault++) {
+        if (fault == 0) row->private_exclusive = false;
+        if (fault == 1) row->private_escaped = true;
+        if (fault == 2) row->private_pending = true;
+        if (fault == 3) local->data.let_decl.is_alias = true;
+        if (fault == 4) payload->stable_id++;
+        if (fault == 5) initial_value->value_type = TYPE_STRING;
+        if (fault == 6) receiver_value->value_type = TYPE_STRING;
+        if (fault == 7) payload_value->value_type = TYPE_STRING;
+        if (fault == 8) payload_value->physical_scalar = false;
+        if (fault == 9) row->private_binding_id++;
+        if (fault == 10) row->private_initializer_id++;
+        if (fault == 11) row->private_binding_type_id++;
+        if (fault == 12) row->caller_id++;
+        if (fault == 13) push->data.call.arg_count = 1;
+        if (fault == 14) row->stdlib = false;
+        if (fault == 15) target->stable_id++;
+        if (fault == 16) row->deferred_syntax = NULL;
+        CHECK(!semantic_param_publication_private_array_push(ctx, push, nested));
+        CHECK(!function_param_flow_index_claims_current(ctx,
+            &store->program_point_indexes[nested_index_position]));
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        *row = saved_row; *initial_value = saved_initial;
+        *receiver_value = saved_receiver; *payload_value = saved_payload;
+        *push = saved_call; local->data.let_decl.is_alias = false;
+        payload->stable_id = payload_id; target->stable_id = target_id;
+        CHECK(semantic_param_publication_private_array_push(ctx, push, nested));
+        CHECK(function_param_flow_program_point_index_build(store, nested, &index) &&
+            index != NULL && function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+        CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    }
+
+    size_t annotation_entry = 0;
+    bool annotation_found = false;
+    for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++)
+        if (ctx->type_resolution_metadata.keys[i] == ast_let_type(local)) {
+            annotation_entry = i; annotation_found = true; break;
+        }
+    CHECK(annotation_found);
+    if (annotation_found) {
+        void *saved_type = ctx->type_resolution_metadata.values[annotation_entry];
+        ctx->type_resolution_metadata.values[annotation_entry] = TYPE_STRING;
+        CHECK(!semantic_param_publication_private_array_push(ctx, push, nested));
+        CHECK(!function_param_flow_index_claims_current(ctx,
+            &store->program_point_indexes[nested_index_position]));
+        CHECK(!function_param_flow_backing_rows_current(store, probe));
+        ctx->type_resolution_metadata.values[annotation_entry] = saved_type;
+        CHECK(semantic_param_publication_private_array_push(ctx, push, nested));
+        CHECK(function_param_flow_backing_rows_current(store, probe));
+    }
+
+    const Type *nominal = semantic_param_publication_value(ctx, rows_ctor).type;
+    const Type *array_int = saved_row.arguments[0].type;
+    CHECK(nominal != NULL && array_int != NULL);
+    if (nominal != NULL && array_int != NULL) {
+        for (unsigned fault = 0; fault < 2; fault++) {
+            Type forged_array = *array_int;
+            Type *element[1] = {(Type *)(fault == 0 ? TYPE_ALLOCATOR : nominal)};
+            forged_array.name = fault == 0 ? "Array<Allocator>" : "Array<Rows>";
+            forged_array.data.constructed.args = element;
+            row->arguments[0].type = &forged_array;
+            CHECK(!semantic_param_publication_private_array_push(ctx, push, nested));
+            CHECK(!function_param_flow_index_claims_current(ctx,
+                &store->program_point_indexes[nested_index_position]));
+            CHECK(!function_param_flow_backing_rows_current(store, probe));
+            row->arguments[0].type = array_int;
+            CHECK(semantic_param_publication_private_array_push(ctx, push, nested));
+            CHECK(function_param_flow_backing_rows_current(store, probe));
+        }
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_private_array_push_closed_boundary(const char *source,
     size_t declaration, size_t statement, bool expected_candidate)
 {
@@ -7229,6 +7514,7 @@ int main(void)
     checked_witnessed_physical_call_alias_currency();
     checked_slot_physical_scalar_forgery();
     checked_witnessed_physical_recursive_alias_currency();
+    checked_mixed_ready_pending_physical_alias();
     checked_declared_physical_result_currency();
     checked_declared_array_result_currency();
     checked_declared_result_unclosed();
@@ -7262,6 +7548,7 @@ int main(void)
     checked_backing_input_frames();
     checked_private_array_push_opaque_boundaries();
     checked_private_local_array_push();
+    checked_private_physical_array_nested_result_currency();
     checked_empty_array_no_output();
     checked_static_string_backing();
     checked_nested_call_currentness();

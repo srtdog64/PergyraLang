@@ -128,6 +128,7 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
             break;
         }
         ASTNode *body_witness = NULL;
+        size_t body_witness_ordinal = SIZE_MAX;
         size_t arity = ast_call_arg_count(value);
         for (size_t p = 0; p < arity; p++) {
             if (!semantic_param_publication_checked_argument(state->store->ctx, value, p)) { state->fact->complete = false; break; }
@@ -141,6 +142,34 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
                 if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, arg))
                     state->fact->complete = false;
                 if (!state->fact->complete) break;
+                uint32_t call_id = ast_node_stable_id(value), callee_id = ast_node_stable_id(callee);
+                if (body_witness_ordinal >= p || call_id == 0 || callee_id == 0 ||
+                    !semantic_param_publication_checked_argument(state->store->ctx, value, body_witness_ordinal)) {
+                    state->fact->complete = false; break;
+                }
+                size_t e = 0;
+                for (; e < state->fact->pending_relation_count; e++) {
+                    FunctionParamFlowPendingRelation *edge = &state->fact->pending_relations[e];
+                    if (edge->call == value && edge->call_id == call_id && edge->callee_id == callee_id &&
+                        edge->ordinal == body_witness_ordinal) break;
+                }
+                if (e == state->fact->pending_relation_count) {
+                    if (e == SIZE_MAX / sizeof(*state->fact->pending_relations)) {
+                        function_param_flow_fail(state->store, value, "backing witness relation size overflow");
+                        state->fact->complete = false; break;
+                    }
+                    FunctionParamFlowPendingRelation *rows = realloc(state->fact->pending_relations,
+                        (e + 1) * sizeof(*rows));
+                    if (rows == NULL) {
+                        function_param_flow_fail(state->store, value, "backing witness relation allocation failed");
+                        state->fact->complete = false; break;
+                    }
+                    state->fact->pending_relations = rows;
+                    rows[state->fact->pending_relation_count++] =
+                        (FunctionParamFlowPendingRelation){value, call_id, callee_id, body_witness_ordinal};
+                }
+                if (!state->fact->pending)
+                    state->fact->sealed_pending_relation_count = state->fact->pending_relation_count;
                 continue;
             }
             bool depends = false, retains = true;
@@ -170,7 +199,7 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
                 bool required = false;
                 if (actual.ok && !publication_physical_scalar(actual.type) &&
                     semantic_param_publication_return_backing_required(state->store->ctx, callee, p, &required) &&
-                    required) body_witness = callee;
+                    required) { body_witness = callee; body_witness_ordinal = p; }
             }
         }
         break;

@@ -211,16 +211,6 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
         size_t parameter_count = index->param_count;
         FunctionParamFlowIndexClaims *claims = index->claims;
         FunctionParamFlowBackingFact *result = index->declared_result;
-        if (!store->solving)
-            for (size_t s = 0; s < store->count; s++) {
-                const FunctionParamFlowSummaryEntry *entry = &store->entries[s];
-                if (entry->function_decl != current || entry->function_id != ast_node_stable_id(current) ||
-                    entry->output_producer != FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) continue;
-                if (frames == NULL || entry->param_index >= frame_count || frames[entry->param_index] == NULL) {
-                    valid = false; break;
-                }
-            }
-        if (!valid) break;
         if (frames == NULL && result == NULL) {
             if (frame_count != 0) valid = false;
             continue;
@@ -286,7 +276,8 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
                     FunctionParamFlowSummaryEntry *entry = &store->entries[target];
                     bool required;
                     valid = entry->function_decl == callee && entry->state == FUNCTION_PARAM_FLOW_COMPLETE &&
-                        !entry->returned_backing_pending && !entry->returned_backing_unproved &&
+                        !entry->analysis_unsupported && !entry->returned_backing_pending &&
+                        !entry->returned_backing_unproved &&
                         function_param_flow_backing_required(store, callee, edge->ordinal, &required);
                     if (valid && required && entry->output_producer != FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) valid = false;
                     if (valid && entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) {
@@ -296,7 +287,8 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
                             !function_param_flow_program_point_index_build(store, callee, &callee_index) ||
                             callee_index->backing_frames == NULL || edge->ordinal >= callee_index->backing_frame_count) { valid = false; break; }
                         FunctionParamFlowBackingFact *callee_fact = callee_index->backing_frames[edge->ordinal];
-                        valid = callee_fact != NULL && callee_fact->epoch != 0 && callee_fact->complete &&
+                        valid = callee_fact != NULL && !callee_fact->analysis_unsupported &&
+                            callee_fact->epoch != 0 && callee_fact->complete &&
                             !callee_fact->pending && !callee_fact->building && callee_fact->input_ordinal == edge->ordinal &&
                             callee_fact->input_id == ast_func_param_stable_id(ast_func_param(callee, edge->ordinal));
                     }
@@ -496,7 +488,8 @@ void function_param_flow_callee_unfinished(const SlotFunctionLookup *lookup,
     if (call_id == 0 || callee_id == 0 || !semantic_param_publication_checked_argument(lookup->ctx, call, ordinal)) {
         fact->complete = false; return;
     }
-    fact->pending = true;
+    /* A pending edge reopens the whole relation set, including existing edges. */
+    fact->pending = true; fact->sealed_pending_relation_count = 0;
     for (size_t e = 0; e < fact->pending_relation_count; e++) {
         FunctionParamFlowPendingRelation *edge = &fact->pending_relations[e];
         if (edge->call == call && edge->call_id == call_id && edge->callee_id == callee_id && edge->ordinal == ordinal) return;

@@ -80,6 +80,7 @@ paired = (
     ("wrapper_result_builder_birth_unready", False),
     ("rebound_result_builder_birth_unready", False),
     ("declared_empty_scope_valid", True),
+    ("zeroarg_private_int_nested_valid", True),
     ("declared_empty_map_scope_valid", True),
     ("mapnew_ref_key_copy_valid", True),
     # The runtime copies String values, but source-retention ordinal 2 is not
@@ -472,6 +473,38 @@ for name in (
         raise SystemExit(f"resource-birth unready {name} lost its exact required-backing refusal")
 print("[function-param-flow-summary] resource-birth unready constructor controls: PASS")
 
+# A private Int push may justify a local store, but an external call before or
+# after it still cannot make the returned nested rows input-independent. The
+# old compiler also reports an incomplete result relation; once the local
+# store premise lands, the exact borrow refusal must remain at the consumer.
+for name in (
+    "zeroarg_private_int_keep_before_invalid",
+    "zeroarg_private_int_keep_after_invalid",
+):
+    source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
+    checked = subprocess.run(
+        [pgy, "--native-pipeline", "--mir-json", "--error-format=json", str(source)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10.0, check=False)
+    output = (checked.stdout + checked.stderr).decode(errors="replace")
+    try:
+        diagnostics = json.loads(output)
+    except json.JSONDecodeError:
+        raise SystemExit(f"private Int store negative {name} lost structured diagnostics: {output}")
+    errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+    def required_relation(row):
+        return (row.get("stage") == "semantic" and row.get("message") == required_backing_message and
+                "code" not in row and "cause_ir" not in row and
+                (row.get("location", {}).get("line"), row.get("location", {}).get("column")) == (35, 6))
+    def borrowed_at_consumer(row):
+        return (row.get("stage") == "semantic" and row.get("code") == "PGY_SEM_BORROW_ESCAPE" and
+                row.get("cause_ir") == "semantic:borrow_escape" and
+                (row.get("location", {}).get("line"), row.get("location", {}).get("column")) == (47, 28))
+    if checked.returncode != 1 or checked.stdout or not errors or not any(map(borrowed_at_consumer, errors)) or any(
+            not required_relation(row) and not borrowed_at_consumer(row) for row in errors):
+        sys.stderr.buffer.write(checked.stderr)
+        raise SystemExit(f"private Int store negative {name} lost its exact borrow refusal")
+print("[function-param-flow-summary] private Int store retention refusals: PASS")
+
 # This original full-program falsifier intentionally keeps ClaimSlot, Release
 # and invocation after the rejected Make definition. Native error recovery can
 # leave those later locals unbound. Only this independently observed case uses
@@ -535,6 +568,7 @@ for name, expected in (
     ("stdlib_trim_result_return_valid", "heap text\n"),
     ("result_frame_option_multi_exit_valid", "heap text!\none!\nfalse\n13\n"),
     ("physical_call_alias_inout_valid", "7\n"),
+    ("zeroarg_private_int_nested_valid", "1\n4\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),
