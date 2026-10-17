@@ -1,0 +1,22 @@
+extern "C" { func Keep(ids: Array<Int>) -> Void; }
+
+struct State { ids: Array<Int>; invalid: Array<Bool>; }
+
+func SinkIds(own ids: Array<Int>) -> Int
+{
+    return ArrayLength(ids);
+}
+
+func Retire(inout state: State) -> Int
+{
+    let ids: Array<Int> = state.ids;
+    Keep(ids);
+    state.ids = [];
+    return SinkIds(ids);
+}
+
+func Main() -> Void
+{
+    let state: State = State([7], [true]);
+    Log(Retire(state));
+}

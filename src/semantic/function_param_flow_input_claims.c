@@ -205,6 +205,7 @@ static bool function_param_flow_claim_capture(SemanticContext *ctx,
         row->syntax_literal_flags = ast_number_is_long(node) | (ast_number_is_float(node) << 1) | (ast_number_is_duration(node) << 2);
     }
     const char *syntax_name = node->type == AST_IDENTIFIER ? ast_identifier_name(node) :
+        node->type == AST_MEMBER_ACCESS ? ast_member_name(node) :
         node->type == AST_TYPE ? ast_type_name(node) : node->type == AST_STRING ? ast_string_value(node) : NULL;
     row->syntax_name = syntax_name == NULL ? NULL : pergyra_strdup(syntax_name);
     if (syntax_name != NULL && row->syntax_name == NULL) { claims->failed = true; return false; }
@@ -454,6 +455,7 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
             row->syntax_long != ast_number_exact_long_value(row->node) || row->syntax_literal_flags !=
             (unsigned)(ast_number_is_long(row->node) | (ast_number_is_float(row->node) << 1) | (ast_number_is_duration(row->node) << 2)))) return false;
         const char *syntax_name = row->shape == AST_IDENTIFIER ? ast_identifier_name(row->node) :
+            row->shape == AST_MEMBER_ACCESS ? ast_member_name(row->node) :
             row->shape == AST_TYPE ? ast_type_name(row->node) : row->shape == AST_STRING ? ast_string_value(row->node) : NULL;
         if ((syntax_name == NULL) != (row->syntax_name == NULL) ||
             (syntax_name != NULL && strcmp(syntax_name, row->syntax_name) != 0)) return false;

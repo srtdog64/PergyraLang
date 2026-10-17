@@ -6714,7 +6714,7 @@ cleanup:
 static void checked_selector_c_empty_currency(void)
 {
     Lexer *lexer = lexer_create(
-        "struct Flag{value:Bool}enum Purpose{On,Off}"
+        "struct Flag{value:Bool;other:Bool}enum Purpose{On,Off}"
         "extern \"C\"{func Observe(text:String)->Flag;func Choose(text:String)->Int;}"
         "func Probe(inout output:String,text:String,flag:Flag,flags:Array<Bool>,purpose:Purpose)->Void{"
         "if flag.value{output=text;}if flags[0+0]{output=text;}"
@@ -6804,6 +6804,25 @@ static void checked_selector_c_empty_currency(void)
             CHECK(function_param_flow_index_claims_current(ctx, index));
             CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
         }
+    }
+    /* A same-typed field change must not borrow the old selector receipt. */
+    FunctionParamFlowIndexClaim *member_row = &index->claims->rows[ordinals[0]];
+    char *member_name = targets[0]->data.member.name;
+    char *claim_name = member_row->syntax_name;
+    for (unsigned fault = 0; fault < 4; fault++) {
+        if (fault == 0) targets[0]->data.member.name = "other";
+        if (fault == 1) targets[0]->data.member.name = NULL;
+        if (fault == 2) member_row->syntax_name = "other";
+        if (fault == 3) member_row->syntax_name = NULL;
+        bool empty = true;
+        CHECK(!function_param_flow_consumer_empty_current(ctx, index->claims, targets[0], &empty));
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+        targets[0]->data.member.name = member_name;
+        member_row->syntax_name = claim_name;
+        CHECK(function_param_flow_consumer_empty_current(ctx, index->claims, targets[0], &empty) && empty);
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
     }
     /* Grandchild currency belongs to the full owner, not a recursive getter. */
     ASTNode *number = ast_binary_left(ast_array_access_index(targets[1]));

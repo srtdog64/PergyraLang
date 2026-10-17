@@ -120,6 +120,11 @@ paired = (
     ("array_alias_field_read_own_invalid", False),
     ("array_alias_index_read_own_invalid", False),
     ("array_alias_two_hop_own_invalid", False),
+    ("array_field_detach_wrong_field_own_invalid", False),
+    ("array_field_detach_duplicate_alias_own_invalid", False),
+    ("array_field_detach_partial_branch_own_invalid", False),
+    ("array_field_detach_opaque_hold_own_invalid", False),
+    ("array_field_detach_live_root_alias_own_invalid", False),
     # Semantic MIR admission only: native C still reports "Unknown destructuring
     # initializer" for this fresh tuple. It is not a C/LLVM runtime control.
     ("array_literal_tuple_destructure_own_valid", True),
@@ -423,6 +428,10 @@ for name, valid in paired:
             "array_alias_field_read_own_invalid": (12, 17),
             "array_alias_index_read_own_invalid": (10, 17),
             "array_alias_two_hop_own_invalid": (11, 17),
+            "array_field_detach_wrong_field_own_invalid": (12, 20),
+            "array_field_detach_partial_branch_own_invalid": (14, 20),
+            "array_field_detach_opaque_hold_own_invalid": (15, 20),
+            "array_field_detach_live_root_alias_own_invalid": (13, 20),
             "selector_member_effectful_receiver_invalid": (21, 15),
             "selector_array_effectful_index_invalid": (16, 15),
         }
@@ -436,6 +445,7 @@ for name, valid in paired:
         array_release_multi_sites = {
             "array_release_loop_second_iteration_escape_invalid": {(20, 30), (24, 27)},
             "array_release_inout_retaining_reader_invalid": {(12, 26), (22, 27)},
+            "array_field_detach_duplicate_alias_own_invalid": {(13, 20), (13, 35)},
         }
         if name in array_release_multi_sites and (
                 checked.stdout or len(errors) != 2 or

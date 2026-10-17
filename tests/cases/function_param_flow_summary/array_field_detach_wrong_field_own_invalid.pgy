@@ -1,0 +1,20 @@
+struct State { ids: Array<Int>; invalid: Array<Bool>; }
+
+func SinkIds(own ids: Array<Int>) -> Int
+{
+    return ArrayLength(ids);
+}
+
+func Retire(inout state: State) -> Int
+{
+    let ids: Array<Int> = state.ids;
+    state.invalid = [];
+    return SinkIds(ids);
+}
+
+func Main() -> Void
+{
+    let state: State = State([7], [true]);
+    Log(Retire(state));
+    Log(ArrayLength(state.ids));
+}

@@ -3,6 +3,7 @@
 #include "function_param_publication_owner.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 bool function_param_flow_control_append(SemanticContext *ctx,
     FunctionParamFlowControlProjection *projection, ASTNode *node, size_t claim, size_t root)
@@ -78,6 +79,11 @@ static bool function_param_flow_consumer_value_current(const SemanticContext *ct
         (row->shape == AST_IDENTIFIER && row->binding != ast_identifier_binding_syntax_id(row->node)) ||
         (row->shape == AST_BINARY && row->syntax_operator != (int)row->node->data.binary.op.type) ||
         (row->shape == AST_UNARY && row->syntax_operator != (int)row->node->data.unary.op.type)) return false;
+    if (row->shape == AST_MEMBER_ACCESS) {
+        const char *name = ast_member_name(row->node);
+        if ((name == NULL) != (row->syntax_name == NULL) ||
+            (name != NULL && strcmp(name, row->syntax_name) != 0)) return false;
+    }
     bool reachable = false;
     bool execution = semantic_param_publication_execution(ctx, row->node, &reachable);
     if (row->execution_present != execution || (execution && row->reachable != reachable)) return false;
