@@ -1,0 +1,16 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func Retain(ref text: String) -> Bool {
+    Keep(text);
+    return true;
+}
+
+func Probe(ref text: String) -> Bool {
+    let accepted: Bool = !((text != "ready") || !Retain(text));
+    return accepted;
+}
+
+func Main() -> Void {
+    let text = Concat("rea", "dy");
+    Log(Probe(text));
+}

@@ -1,0 +1,13 @@
+func Classify(ref text: String, ref expected: String) -> Option<Int> {
+    let matches: Bool = !(!(text == "ready") || expected != "ready");
+    if matches && true {
+        return Some(7);
+    }
+    return Some(0);
+}
+
+func Main() -> Void {
+    let text = Concat("rea", "dy");
+    let expected = Concat("ready", "");
+    Log(UnwrapOption(Classify(text, expected)));
+}

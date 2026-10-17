@@ -6587,6 +6587,198 @@ static void checked_backing_binding_growth(void)
         "func Probe(inout output:String,text:String,flag:Bool)->Bool{var first:String=\"\";if flag{output=first;}else{first=text;}return true;}", true);
 }
 
+static void checked_c_empty_preparation(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Probe(inout output:String,text:String,flag:Bool)->Void{"
+        "if !flag||flag{output=text;}}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    unsigned mask = function_param_flow_summary_for_param(ctx, decl, 1);
+    CHECK((mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+    if (index == NULL || index->backing_frames == NULL || index->backing_frames[1] == NULL) {
+        CHECK(false); goto cleanup;
+    }
+    FunctionParamFlowBackingFact *frame = index->backing_frames[1];
+    CHECK(frame->complete && !frame->pending && frame->outputs != NULL &&
+        (frame->outputs[0] & UINT64_C(1)) != 0);
+    size_t binary_rows = 0, unary_rows = 0;
+    for (size_t n = 0; n < frame->node_count; n++) {
+        binary_rows += frame->nodes[n].shape == AST_BINARY;
+        unary_rows += frame->nodes[n].shape == AST_UNARY;
+    }
+    if (binary_rows != 0 || unary_rows != 0)
+        fprintf(stderr, "C-empty retained binary=%zu unary=%zu per-frame rows\n", binary_rows, unary_rows);
+    CHECK(binary_rows == 0 && unary_rows == 0);
+    CHECK(function_param_flow_backing_rows_current(store, decl));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_c_empty_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Probe(inout output:String,text:String,flag:Bool)->Void{"
+        "if !flag||flag{output=text;}if StringLength(text)>0{output=text;}"
+        "if (1 as Long)>0L{output=text;}}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0), *body = ast_func_body(decl);
+    ASTNode *binary = ast_if_condition(ast_block_statement(body, 0));
+    ASTNode *unary = ast_binary_left(binary), *leaf = ast_unary_operand(unary);
+    ASTNode *with_call = ast_if_condition(ast_block_statement(body, 1));
+    ASTNode *with_cast = ast_if_condition(ast_block_statement(body, 2));
+    unsigned baseline = function_param_flow_summary_for_param(ctx, decl, 1);
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(store != NULL && function_param_flow_program_point_index_build(store, decl, &index));
+    if (index == NULL) goto cleanup;
+    ASTNode *targets[] = {binary, unary, leaf, with_call, with_cast,
+        ast_binary_left(with_call), ast_binary_left(with_cast)};
+    size_t ordinals[7];
+    for (size_t t = 0; t < 7; t++) {
+        ordinals[t] = SIZE_MAX;
+        for (size_t c = 0; c < index->claims->count; c++)
+            if (index->claims->rows[c].node == targets[t]) ordinals[t] = c;
+        CHECK(ordinals[t] < index->claims->count);
+        if (ordinals[t] == SIZE_MAX) goto cleanup;
+        CHECK(index->claims->rows[ordinals[t]].consumer_empty == (t < 3));
+        CHECK(function_param_flow_consumer_empty_derive(ctx, index->claims, ordinals[t]) == (t < 3));
+        bool empty = t >= 3;
+        bool queried = function_param_flow_consumer_empty_current(ctx, index->claims, targets[t], &empty);
+        if (t == 0 || t == 1 || t == 3 || t == 4) {
+            CHECK(queried);
+            CHECK(empty == (t < 3));
+        } else CHECK(!queried);
+    }
+    ASTNode foreign = *binary;
+    bool missing_empty = true;
+    CHECK(!function_param_flow_consumer_empty_current(ctx, index->claims, NULL, &missing_empty));
+    CHECK(!function_param_flow_consumer_empty_current(ctx, index->claims, &foreign, &missing_empty));
+    for (size_t t = 0; t < 7; t++) {
+        FunctionParamFlowIndexClaim *row = &index->claims->rows[ordinals[t]];
+        bool saved = row->consumer_empty;
+        row->consumer_empty = !saved;
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+        row->consumer_empty = saved;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
+    }
+    FunctionParamFlowIndexClaim *parent = &index->claims->rows[ordinals[0]];
+    FunctionParamFlowIndexClaim saved_parent = *parent;
+    size_t saved_child = parent->child_claim_ordinals[0];
+    ASTNode *saved_child_node = parent->children[0];
+    for (unsigned fault = 0; fault < 7; fault++) {
+        if (fault == 0) parent->child_claim_ordinals = NULL;
+        if (fault == 1) parent->child_claim_ordinals[0] = SIZE_MAX;
+        if (fault == 2) parent->child_claim_ordinals[0] = ordinals[2];
+        if (fault == 3) parent->child_count--;
+        if (fault == 4) parent->snapshot_semantic_complete = false;
+        if (fault == 5) parent->children = NULL;
+        if (fault == 6) parent->children[0] = ast_binary_right(binary);
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+        *parent = saved_parent;
+        parent->child_claim_ordinals[0] = saved_child;
+        parent->children[0] = saved_child_node;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+    }
+    FunctionParamFlowIndexClaim *child = &index->claims->rows[ordinals[1]];
+    FunctionParamFlowIndexClaim saved_child_row = *child;
+    FunctionParamFlowIndexClaim saved_leaf_row = index->claims->rows[ordinals[2]];
+    ASTNode saved_binary = *binary, saved_unary = *unary, saved_leaf = *leaf;
+    PublishedNode *value = published_node_for(ctx, leaf);
+    CHECK(value != NULL);
+    if (value == NULL) goto cleanup;
+    PublishedNode saved_value = *value;
+    for (unsigned fault = 0; fault < 13; fault++) {
+        if (fault == 0) child->snapshot_complete = false;
+        if (fault == 1) child->semantic_promoted = false;
+        if (fault == 2) binary->data.binary.left = NULL;
+        if (fault == 3) unary->data.unary.operand = NULL;
+        if (fault == 4) leaf->stable_id++;
+        if (fault == 5) leaf->data.identifier.name = "other";
+        if (fault == 6) ast_identifier_set_binding_syntax_id(leaf, 0);
+        if (fault == 7) value->value_present = false;
+        if (fault == 8) value->value_type = TYPE_STRING;
+        if (fault == 9) value->meta = !saved_value.meta;
+        if (fault == 10) child->snapshot_semantic_complete = false;
+        if (fault == 11) child->id++;
+        if (fault == 12) index->claims->rows[ordinals[2]].slot_token_operand = true;
+        CHECK(!function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == SLOT_PARAM_SUMMARY_ALL);
+        *binary = saved_binary; *unary = saved_unary; *leaf = saved_leaf;
+        *value = saved_value; *child = saved_child_row;
+        index->claims->rows[ordinals[2]] = saved_leaf_row;
+        CHECK(function_param_flow_index_claims_current(ctx, index));
+        CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
+    }
+    /* A completed raw syntax snapshot is not an eager leaf receipt. */
+    FunctionParamFlowProgramPointIndex staged = {.dependency_body = body,
+        .dependency_body_id = ast_node_stable_id(body),
+        .dependency_root_count = ast_block_statement_count(body)};
+    CHECK(function_param_flow_syntax_claims_snapshot(ctx, &staged.claims, body));
+    for (size_t c = 0; c < staged.claims->count; c++) CHECK(!staged.claims->rows[c].consumer_empty);
+    bool empty = true;
+    bool raw = function_param_flow_consumer_empty_current(ctx, staged.claims, binary, &empty);
+    CHECK(!raw || !empty);
+    CHECK(function_param_flow_index_claims_snapshot(ctx, &staged, body));
+    CHECK(function_param_flow_consumer_empty_current(ctx, staged.claims, binary, &empty) && empty);
+    function_param_flow_program_point_index_destroy(&staged);
+    /* Raw topology controls do not claim these edited trees were typechecked. */
+    for (unsigned shape = 0; shape < 4; shape++) {
+        FunctionParamFlowProgramPointIndex probe = {.dependency_body = body,
+            .dependency_body_id = ast_node_stable_id(body),
+            .dependency_root_count = ast_block_statement_count(body)};
+        if (shape == 0) binary->data.binary.left = NULL;
+        if (shape == 1) unary->data.unary.operand = NULL;
+        if (shape == 2) binary->data.binary.left = ast_binary_right(binary);
+        if (shape == 3) binary->data.binary.left = binary;
+        bool built = function_param_flow_index_claims_snapshot(ctx, &probe, body);
+        empty = true;
+        bool issued = built && function_param_flow_consumer_empty_current(ctx, probe.claims, binary, &empty);
+        if (shape < 2) CHECK(!issued || !empty);
+        if (shape == 2) CHECK(issued && empty);
+        if (shape == 3) CHECK(!built && !issued);
+        *binary = saved_binary; *unary = saved_unary;
+        function_param_flow_program_point_index_destroy(&probe);
+    }
+    for (unsigned mode = 0; mode < 3; mode++) {
+        unsigned effects[2] = {0, 0};
+        uint64_t outputs = 0;
+        FunctionParamFlowBackingFact partial = {.origin_count = mode == 0 ? 2 : 1,
+            .origin_words = mode == 1 ? 2 : 1, .destination_count = 1,
+            .destination_words = 1, .effects = effects, .outputs = &outputs,
+            .claims = index->claims, .epoch = 1, .complete = true};
+        ReturnedBacking state = {.store = store, .lookup = {ctx, program}, .decl = decl,
+            .fact = &partial, .loan_seed = mode == 2 ? binary : NULL};
+        backing_consumers(&state, binary);
+        if (mode < 2) CHECK(!partial.complete);
+        else CHECK(partial.complete && state.loan_seed_seen && state.loan_work != 0 && partial.node_count != 0);
+        for (size_t n = 0; n < partial.node_count; n++) free(partial.nodes[n].origins);
+        free(partial.nodes); free(partial.bindings); free(partial.pending_relations);
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_control_navigation_preparation(void)
 {
     Lexer *lexer = lexer_create(
@@ -6876,7 +7068,7 @@ static void checked_control_navigation_root_sequence(void)
             ? "func Probe(text:String,flag:Bool)->String{if flag{let first=text;let sibling=\"sibling\";}return \"next\";}"
             : mode == 1
                 ? "func Probe(text:String,callback:func(String)->String)->String{if true{callback(text);Log(\"tail\");}return \"next\";}"
-                : "func Probe()->Array<Int>{if true{let rows:Array<Int> = [];return rows;}return [];}";
+                : "func Probe()->Array<Int>{if !false||true{let rows:Array<Int> = [];return rows;}return [];}";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
@@ -6913,7 +7105,8 @@ static void checked_control_navigation_root_sequence(void)
             saw_sibling |= partial.nodes[n].node == sibling;
             saw_next |= partial.nodes[n].node == next_root;
             ASTNodeType shape = partial.nodes[n].shape;
-            if (shape == AST_BLOCK || shape == AST_IF_STMT) control_rows++;
+            if (shape == AST_BLOCK || shape == AST_IF_STMT ||
+                (mode == 2 && (shape == AST_BINARY || shape == AST_UNARY))) control_rows++;
         }
         CHECK(control_rows == 0);
         if (mode == 0) CHECK(!partial.complete && !partial.analysis_unsupported && saw_sibling && !saw_next);
@@ -6932,7 +7125,7 @@ cleanup:
 static void checked_backing_input_frames(void)
 {
     for (unsigned reverse = 0; reverse < 2; reverse++) {
-        Lexer *lexer = lexer_create("func Choose(inout output:String,left:String,right:String)->Void{if true{output=left;}}func Main()->Void{var output=\"\";Choose(output,\"left\",\"right\");}");
+        Lexer *lexer = lexer_create("func Choose(inout output:String,left:String,right:String)->Void{if !false||true{output=left;}}func Main()->Void{var output=\"\";Choose(output,\"left\",\"right\");}");
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticContext *ctx = semantic_context_create();
@@ -8098,6 +8291,8 @@ int main(void)
     reached_producer_source("struct TextRecord{text:String} extern \"C\"{func Hold(text:String)->Void;} func First(text:String)->Int{if StringLength(text)>0{return Second(text);}return 1;} func Second(text:String)->Int{Hold(text);return First(text);} func Probe(ref record:TextRecord)->Int{return First(record.text);}", false);
     checked_return_loan_alias_currency();
     checked_backing_binding_growth();
+    checked_c_empty_preparation();
+    checked_c_empty_currency();
     checked_control_navigation_preparation();
     checked_control_navigation_topology();
     checked_control_navigation_body_boundary();

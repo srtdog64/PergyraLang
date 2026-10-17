@@ -308,7 +308,9 @@ BYTE_IDENTICAL. Actual u5q5uG bootstrap remains RED before gen0 with unchanged
 intentional UAF witness proves the detector is live; leak detection is OFF.
 Native SHA256 is
 `311283587cee1a8df22b58d9b55c3713604c31c50865782ad6b7c04bea3432d9`.
-Exact-checkpoint independent review follows; no known-red push.
+Local checkpoint80bab8e5bc384134d01d82b2bfaa5493b97809dc preserves the13 scoped
+paths. Exact80bab independent static review found no blocking defect; it did
+not rerun Linux receipts or approve canonical/install/CI. No known-red push.
 Self-host substitution is BLOCKED at the native admission boundary: the
 existing function-param backing owner still reaches work4096 on the fixed
 canonical input; its last consumers are cleanup admission and bootstrap gen0.
@@ -324,7 +326,93 @@ Do not treat UNSEEN/COMPUTING as a current completed target or seal a pending
 equation from equal numeric masks. The existing stationary-group completion
 owner remains the last authority; declared-result frames have a separate
 completion path and are outside this possible computation-reuse boundary.
-No production replay shortcut is authorized before these unknowns are resolved.
+Observer jh1jIL preserves all22463 warm charge events byte-for-byte and restores
+the full scratch BYTE_IDENTICAL. ScalarUtility input4's second-pass PRE finds
+ExprType targets still COMPUTING, with producer0->2/output shape0->5 and
+pending/unproved transitions. Equal consumed mask bits are insufficient;
+the pending computation shortcut is REJECTED. No new dependency ledger.
+
+Next observation only: the same failed demand still pays1033 C binary and23
+C unary wrapper charges. Existing C does not query their selected operator;
+it visits children. An owner-produced empty C frontier is a traversal-
+equivalence candidate, not a purity or overload-safety claim. Preserve every
+effectful data child at its original C invocation point, all D/O and LET/CALL
+interleaving, and the separate loan traversal. Before any implementation,
+measure the actual empty-frontier upper bound and fix the complete typed/
+identity/currentness contract, DAG/semantic-promotion boundaries and negative
+gates. No flat body rewrite, cross-frame permission or budget change.
+
+### Active bounded C-empty slice — measured, one shared acceptance chain
+
+- Objective/order: remove repeated per-input C-only Binary/Unary wrapper rows
+  and their leaf walks; preserve current identity, exact old-C traversal and
+  all transfer/effect/currentness behavior before cost. This does not prove
+  operators pure or fix any pre-existing overload-analysis obligation.
+- Owner/chain: sealed typed publication -> existing claims snapshot -> child
+  completion/ordinal evidence -> empty-C judgment -> ordinary formal and
+  declared-result C consumers -> existing final claims/backing currentness.
+  D/O, LET and CALL interleaving, result edges and pending completion stay put.
+- Scope: Number/String/Bool and current identifier leaves; Binary/Unary only
+  when all required children are present and empty. Every other shape is
+  nonempty, including CALL/CAST/member/array/control nodes. No special
+  unreachable shortcut. Raw syntax is not a semantic receipt; promotion must
+  finish children before derivation. Consumer requires normal non-loan mode
+  and the original one-origin frame width. A missing required current fact
+  cannot become an empty permission.
+- Linear storage/replay: preserve snapshot's existing child_at ordinals rather
+  than searching every child during currentness or duplicating frontiers per
+  subtree. Replay each ordinal's pointer/ID/completion and the same derivation.
+  Shared DAGs reuse completed children; active cycles reject. Heap-owned claims
+  survive index relocation. Measure the extra edge storage on the fixed input.
+- Placement if measurement justifies it: consolidate the existing control
+  navigation append/executor/currentness and the new derived judgment into one
+  responsibility-named compilation unit under the same logical claims/index
+  owner. Move existing functions, not owner identity or authority; add no SoT
+  family. This avoids both >600-line files and fragmented tiny owner files.
+  Claims retain snapshot/promotion, backing_dependencies the C last consumer,
+  fact_snapshot storage retirement, and Makefile the single unit registration.
+- Three edit scopes after root authorizes implementation: A production/header/
+  Makefile only; B existing direct phase unit only; C existing source gate and
+  two positive/negative fixtures only. Root alone builds, reviews, commits and
+  publishes. One shared gate: before falsifier -> strict phase/source C/LLVM/
+  negative/4096-4097/caps -> broad -> unchanged full3188-key census -> warm and
+  actual bootstrap -> original fixed-point/install/CI acceptance.
+- Falsifiers: actual C-only row removal rather than waived work; nested CALL
+  remains visited; width/raw/promotion and identity/type/meta/binding/token
+  withdrawal; child ordinal/pointer/count/completion and derived-flag faults;
+  missing child, DAG/cycle/relocation, reverse inputs, loan/unsupported/root
+  boundaries and all existing D/result/pending controls. No canonical source
+  edits, annotation/copy/manual drops, larger allowance or source text scans.
+- Measurement YUo54d preserves every22463 charge byte-for-byte and restores
+  source/build/bin/modes/Git BYTE_IDENTICAL. Warm254 has2786 actual C charges;
+  among1056 Binary/Unary wrappers,700 have the bounded empty-frontier shape
+  (699 Binary/1 Unary),258 distinct routine/node identities,0 unknown/cycle.
+  This is an upper bound, not700 promised saved charges or source admission.
+  Existing claims must issue and replay the semantic receipt before use.
+- Implementation is authorized within the above three scopes. Shared interface:
+  child claim ordinals and consumer_empty remain in the existing claim carrier;
+  use one classifier for snapshot issuance and currentness replay. A normal
+  C shortcut has to preserve the original one-origin width refusal, and loans
+  never consume this receipt. The extra edge storage's actual memory/cost is
+  still Unknown until the same full-input candidate run, not an optimization
+  success claim. No pending-equation replay or unrelated shape extension.
+
+Before UkUjxx on unchanged311 observes9171 phase checks/1 failure: the new
+old-API oracle finds exactly1 Binary and1 Unary per-input C-only row; effects,
+output and currentness assertions pass. Full scratch restoration is
+BYTE_IDENTICAL. The runner's trailing label used lowercase `c-empty` while
+the observed label is `C-empty`, so its rc1 is not an additional product
+failure; the raw phase exit1 and that one CHECK are the falsifier. Source-
+before yghSn5 observes the positive MIR admission and C/LLVM `7\n`, plus exact
+two BORROW/no-MIR errors at(9,57),(15,15) for the negative. The negative was
+never executed. Candidate j0wNqc builds/caps PASS, nativee7f4111d; phase9339/6
+finds a new test interface error: it expects the Binary/Unary-only bounded
+getter to succeed on a leaf/CALL/CAST. Production is unchanged. Corrected
+phase5C0FC28F checks every derived carrier and explicitly refuses the getter's
+nonwrapper inputs. Final07NHAw passes9350/0 and the complete strict source/
+runtime/negative/4096-4097/caps gate on the same native. Broad9HzQAP passes
+MIR334/semantic3228/transpile1012,Map24/58 and4IR. Full LCaaSV is running;
+warm/sanitizer/actual-bootstrap and exact-checkpoint review remain required.
 
 D main `c1435d62664144ddd60573bc05d51a35f1e97781` (parent67aee05af)
 commits the physical-actual repair below; it is local, not published. Production

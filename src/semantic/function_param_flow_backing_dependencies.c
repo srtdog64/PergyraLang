@@ -351,6 +351,13 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 void backing_consumers(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL || state->fact->analysis_unsupported) return;
+    if (state->loan_seed == NULL && (node->type == AST_BINARY || node->type == AST_UNARY)) {
+        bool empty = false;
+        if (state->fact->origin_count != 1 || state->fact->origin_words != 1 ||
+            !function_param_flow_consumer_empty_current(state->store->ctx,
+                state->fact->claims, node, &empty)) { state->fact->complete = false; return; }
+        if (empty) return;
+    }
     if (node != state->loan_seed &&
         (node->type == AST_STRING || node->type == AST_NUMBER || node->type == AST_BOOLEAN ||
          node->type == AST_IDENTIFIER)) {

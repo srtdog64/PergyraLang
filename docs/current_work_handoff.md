@@ -7,7 +7,9 @@ evidence override this card. Resume this card, not the archive below.
 
 - One rung: unchanged canonical/DRV-2 admission -> real bootstrap/gen2==gen3 ->
   memory and installed C/LLVM driver -> required green CI on that published SHA.
-- D source base before this slice: `98549707b41d5c05612d27c46940fa2f00c1f480` on main
+- D source checkpoint: `80bab8e5bc384134d01d82b2bfaa5493b97809dc` on main
+  (source base98549707b; only navigation changes may follow this checkpoint).
+  Previous base: `98549707b41d5c05612d27c46940fa2f00c1f480`
   (parent247b2c549), local and not pushed. Parent247 replaces the incomplete
   P1 presence scan with persistent exact caller witnesses, repairs mixed
   ready/pending sealing, and admits private physical-array stores through the
@@ -54,11 +56,32 @@ bootstrap remains RED before gen0 (18410errors/16warnings). Separate-build
 ASan/UBSan VgzmuE passes9164/0 with a live UAF witness; leak detection is OFF.
 Current native SHA256 is
 `311283587cee1a8df22b58d9b55c3713604c31c50865782ad6b7c04bea3432d9`.
-Exact-checkpoint independent review follows; no known-red push. The next
-measurement is actual D/O/C callee reads across pending-frame re-evaluation,
-including ready edges. Existing pending tuples record identity, not all read
-payloads; they cannot justify skipping work. Observation only until that
-unknown is resolved; no solver schedule, proof readiness or budget change.
+Exact80bab independent static review found no blocking defect; it did not
+rerun Linux or approve canonical/install/CI. No known-red push. Actual D/O/C
+read observer jh1jIL preserves all22463 warm charge events byte-for-byte.
+At the failed frame's replay, ExprType targets are still COMPUTING and their
+producer/output shapes changed. Equal consumed mask bits cannot justify
+reusing that calculation; the pending shortcut is REJECTED. Full currentness
+was not measured by that snapshot. Next observation only: C still charges
+1033 binary and23 unary wrappers. Check whether existing C's complete child
+visit is an empty frontier; this is traversal equivalence, not proof of pure
+operators or absent overloads. Calls/casts and all D/O remain unchanged. No
+new producer is admitted before the bound/currentness/falsifiers are fixed.
+
+Current uncommitted bounded C-empty candidate is native
+`e7f4111dabbb36d63771c457f19a4e5054f99ba6fdd66c048c907eb10a8f10f9`.
+Whole-chain card is the directive's Active bounded C-empty slice. It adds a
+linear child-ordinal/derived receipt to existing claims, consolidates existing
+navigation functions in one compilation unit, and removes actual empty-C
+Binary/Unary rows; D/O and loans remain unchanged. Before UkUjxx9171/1 finds
+the two old rows; yghSn5 observes C/LLVM7 and exact2 BORROW/no MIR. First
+candidate j0wNqc has9339/6 because the new test queried wrapper-only API on
+leaf/CALL/CAST; production is unchanged. Corrected phase5C0FC28F uses carrier
+checks for those categories and explicit API refusal. Final07NHAw passes9350/0
+and full strict/runtime/negative/4096-4097/caps. Broad9HzQAP also passes
+MIR334/semantic3228/transpile1012,Map24/58 and4IR. Whole-input, sanitizer
+and actual bootstrap on e7 remain to run; do not claim the older645 result
+or80bab review applies to this candidate. All12 scoped paths are frozen.
 
 Committed slice985: a current physical Array element is a value, not a retained
 descriptor alias. A edits only the existing D consumer, B the existing phase

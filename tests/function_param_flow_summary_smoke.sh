@@ -119,6 +119,8 @@ paired = (
     ("control_navigation_nested_loop_valid", True),
     ("control_navigation_dead_ancestor_valid", True),
     ("control_navigation_nested_retain_invalid", False),
+    ("consumer_empty_nested_compare_valid", True),
+    ("consumer_empty_nested_retain_invalid", False),
     ("stdlib_prefix_retaining_user_invalid", False),
     ("stdlib_prefix_opaque_invalid", False),
     ("stdlib_prefix_shadow_invalid", False),
@@ -367,6 +369,13 @@ for name, valid in paired:
                  for row in errors} != {(21, 19), (26, 15)}):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit("nested control retention lost its two owned refusal sites")
+        if name == "consumer_empty_nested_retain_invalid" and (
+                checked.stdout or len(errors) != 2 or
+                any(row.get("stage") != "semantic" for row in errors) or
+                {(row.get("location", {}).get("line"), row.get("location", {}).get("column"))
+                 for row in errors} != {(9, 57), (15, 15)}):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit("nested C consumer retention lost its two owned refusal sites")
 print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 
 # These calls must still refuse at the unsafe nested actual or alias-forwarding
@@ -595,6 +604,7 @@ for name, expected in (
     ("physical_array_element_loop_valid", "7\n"),
     ("control_navigation_nested_loop_valid", "6\n"),
     ("control_navigation_dead_ancestor_valid", "4\n"),
+    ("consumer_empty_nested_compare_valid", "7\n"),
     ("zeroarg_private_int_nested_valid", "1\n4\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),

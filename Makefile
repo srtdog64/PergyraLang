@@ -678,6 +678,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_program_point_index_owner.c \
+                   $(SEMANTIC_DIR)/function_param_flow_consumer_navigation.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_dependencies.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \

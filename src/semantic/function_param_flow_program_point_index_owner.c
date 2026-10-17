@@ -20,49 +20,6 @@ bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPoint
     return true;
 }
 
-bool function_param_flow_control_append(SemanticContext *ctx,
-    FunctionParamFlowControlProjection *projection, ASTNode *node, size_t claim, size_t root)
-{
-    if (projection->step_count == projection->step_capacity) {
-        size_t capacity = projection->step_capacity == 0 ? 16 : projection->step_capacity * 2;
-        if (capacity < projection->step_capacity || capacity > SIZE_MAX / sizeof(*projection->steps)) {
-            function_param_flow_fail(ctx->function_param_flow_summaries, node, "control projection size overflow");
-            return false;
-        }
-        FunctionParamFlowControlStep *steps = realloc(projection->steps, capacity * sizeof(*steps));
-        if (steps == NULL) {
-            function_param_flow_fail(ctx->function_param_flow_summaries, node, "control projection allocation failed");
-            return false;
-        }
-        projection->steps = steps;
-        projection->step_capacity = capacity;
-    }
-    projection->steps[projection->step_count++] = (FunctionParamFlowControlStep){
-        node, ast_node_stable_id(node), claim, root};
-    return true;
-}
-
-void function_param_flow_backing_control_roots(ReturnedBacking *state,
-    const FunctionParamFlowControlProjection *projection)
-{
-    if (state == NULL || state->fact == NULL) return;
-    if (projection == NULL || !projection->ready || projection->root_offsets == NULL ||
-        projection->step_count > projection->step_capacity ||
-        (projection->step_count != 0 && projection->steps == NULL)) {
-        state->fact->complete = false; return;
-    }
-    for (size_t r = 0; r < projection->root_count && state->fact->complete; r++) {
-        size_t begin = projection->root_offsets[r], end = projection->root_offsets[r + 1];
-        if (begin > end || end > projection->step_count) { state->fact->complete = false; return; }
-        for (size_t s = begin; s < end; s++) {
-            if (state->fact->analysis_unsupported) return;
-            if (projection->steps[s].node == NULL || projection->steps[s].syntax_id == 0 ||
-                projection->steps[s].root_ordinal != r) { state->fact->complete = false; return; }
-            backing_consumers(state, projection->steps[s].node);
-        }
-    }
-}
-
 static bool
 function_param_flow_identifier_matches(const char *candidate, void *userdata)
 {

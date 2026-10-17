@@ -132,7 +132,9 @@ typedef struct {
     unsigned syntax_literal_flags;
     ASTNode **children;
     uint32_t *child_ids;
+    size_t *child_claim_ordinals;
     size_t child_count;
+    bool consumer_empty;
     bool assignment_replacement, local_alias;
     bool channel_binding;
     bool empty_map_binding, slot_write, local_owner_constructor;
@@ -290,6 +292,13 @@ bool function_param_flow_claim_record(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node);
 bool function_param_flow_index_claims_current(SemanticContext *ctx,
     const FunctionParamFlowProgramPointIndex *index);
+bool function_param_flow_claims_current(const SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims, bool semantic);
+bool function_param_flow_control_expands(ASTNodeType shape);
+bool function_param_flow_consumer_empty_derive(const SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims, size_t ordinal);
+bool function_param_flow_consumer_empty_current(const SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims, ASTNode *node, bool *empty);
 bool function_param_flow_reserve_entries(FunctionParamFlowSummaryStore *store,
     size_t minimum);
 FunctionParamFlowSummaryStore *function_param_flow_store_get(const SlotFunctionLookup *lookup);
