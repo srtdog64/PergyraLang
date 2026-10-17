@@ -1,6 +1,62 @@
 static void
 test_mir_collection_ownership_validation(void)
 {
+    HIRProgram *borrow_hir = NULL;
+    RIRProgram *borrow_rir = NULL;
+    MIRProgram *borrow_mir = NULL;
+    MIRRoutine *borrow_routine = NULL;
+    MIRInstruction *borrow_push = NULL;
+    MIRCollectionOwnershipFact *borrow_fact = NULL;
+    if (lower_mir_from_source("struct TextNode{text:String;}struct Arena{rows:Array<String>;risk:Array<String>;}"
+            "func Project(nodes:Array<TextNode>)->Arena{let risk:Array<String> = [];"
+            "let rows:Array<String> = [\"a\"];ArrayPush(rows,nodes[0].text);return Arena(rows,risk);}"
+            "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"name\")];"
+            "let arena=Project(nodes);Log(arena.rows[1]);}", &borrow_hir, &borrow_rir, &borrow_mir))
+        borrow_routine = find_mir_routine_mut(borrow_mir, "Project", MIR_SCOPE_FUNCTION);
+    if (borrow_routine != NULL) {
+        for (size_t f = 0; f < borrow_routine->collection_ownership_fact_count; f++)
+            if (borrow_routine->collection_ownership_facts[f].origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL)
+                borrow_fact = &borrow_routine->collection_ownership_facts[f];
+        for (size_t b = 0; b < borrow_routine->block_count; b++)
+            for (size_t i = 0; i < borrow_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &borrow_routine->blocks[b].instructions[i];
+                if (inst->has_collection_ownership_receipt) borrow_push = inst;
+            }
+    }
+    bool borrow_control = borrow_push != NULL && borrow_fact != NULL
+        && mir_validate(borrow_mir, NULL)
+        && mir_validate_collection_ownership_transitions(borrow_routine, NULL);
+    TEST("MIR borrowed literal shallow effect is not owned cleanup authority");
+    if (!borrow_control) printf("\n  borrowed fixture routine=%d fact=%d receipt=%d\n",
+        borrow_routine != NULL, borrow_fact != NULL, borrow_push != NULL);
+    EXPECT(borrow_control);
+    if (borrow_control) {
+        MIRInstruction saved_inst = *borrow_push;
+        MIRCollectionOwnershipFact saved_fact = *borrow_fact;
+        ASTNode saved_call = *borrow_push->expr0;
+        for (unsigned fault = 0; fault < 13; fault++) {
+            if (fault == 0) borrow_push->collection_ownership_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+            if (fault == 1) borrow_push->collection_ownership_effect_kind = PGY_COLLECTION_EFFECT_DROP;
+            if (fault == 2) borrow_push->collection_ownership_source_binding_id++;
+            if (fault == 3) borrow_push->expr0->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+            if (fault == 4) borrow_push->expr0->data.call.semantic_collection_receiver_binding_id++;
+            if (fault == 5) borrow_push->expr0->data.call.semantic_collection_source_binding_id++;
+            if (fault == 6) borrow_push->expr0->data.call.semantic_collection_effect_set = false;
+            if (fault == 7) borrow_fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
+            if (fault == 8) borrow_fact->element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
+            if (fault == 9) borrow_fact->function_syntax_id++;
+            if (fault == 10) borrow_push->has_collection_ownership_receipt = false;
+            if (fault == 11) borrow_push->collection_ownership_receiver_binding_id++;
+            if (fault == 12) borrow_fact->origin_syntax_id = 0;
+            bool refused = !mir_validate_collection_ownership_transitions(borrow_routine, NULL);
+            *saved_inst.expr0 = saved_call;
+            *borrow_push = saved_inst; *borrow_fact = saved_fact;
+            TEST("MIR borrowed effect refuses tuple drift or owned/drop forgery");
+            if (!refused) printf("\n  borrowed effect fault=%u not refused\n", fault);
+            EXPECT(refused && mir_validate_collection_ownership_transitions(borrow_routine, NULL));
+        }
+    }
+    mir_destroy(borrow_mir); rir_destroy(borrow_rir); hir_destroy(borrow_hir);
     const char *source =
         "func Main() -> Void {\n"
         "    let values: HashMap<String, Int> = MapNew();\n"

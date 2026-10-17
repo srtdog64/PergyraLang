@@ -462,13 +462,38 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
             const MIRInstruction *inst = &block->instructions[inst_row];
             const MIRCollectionOwnershipFact *fact;
 
-            if (!inst->has_collection_ownership_receipt)
+            if (!inst->has_collection_ownership_receipt) {
+                if (ast_call_semantic_collection_effect(inst->expr0, NULL, NULL, NULL))
+                    return mir_collection_transition_error(routine, error_message, 0,
+                        "missing-published-receipt");
                 continue;
+            }
             fact = mir_routine_collection_ownership_fact(
                 routine, inst->collection_ownership_receiver_binding_id);
+            /* Borrowed literal mutation is an effect receipt, not an owned
+             * lifetime transition. It cannot authorize owned insertion/drop. */
+            bool borrowed_mutation = false;
+            if (fact != NULL && fact->origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL) {
+                const MIRSourceLocalType *local =
+                    mir_routine_source_local_type_fact_by_binding_syntax_id(
+                        routine, fact->binding_syntax_id);
+                uint32_t kind = 0, binding = 0, source = 0;
+                borrowed_mutation = fact->function_syntax_id == routine->source_syntax_id
+                    && fact->binding_syntax_id != 0 && fact->origin_syntax_id != 0
+                    && fact->source_binding_syntax_id == 0
+                    && fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
+                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                    && local != NULL && local->type_name != NULL
+                    && strcmp(local->type_name, "Array<String>") == 0
+                    && inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
+                    && ast_call_semantic_collection_effect(inst->expr0, &kind, &binding, &source)
+                    && kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
+                    && binding == fact->binding_syntax_id && source == 0;
+            }
             if (fact == NULL
                 || (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
-                    && !pgy_collection_owned_local_fact_tracked(fact))
+                    && !pgy_collection_owned_local_fact_tracked(fact)
+                    && !borrowed_mutation)
                 || !mir_collection_receipt_shape_ready(
                     inst, fact->binding_syntax_id)) {
                 return mir_collection_transition_error(

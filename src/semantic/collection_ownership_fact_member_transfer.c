@@ -26,16 +26,36 @@ struct PendingPrivateStringPush {
     uint32_t dependency_id, callee_id, actual_id, formal_root_id, formal_binding_id;
     uint32_t projected_receiver_id, projected_index_id, projected_field_id, projected_decl_id;
     uint32_t risk_origin_id, risk_source_binding_id;
+    uint32_t receiver_origin_id, receiver_source_binding_id;
+    uint32_t effect_kind, effect_receiver_id, effect_source_id;
     PgyCollectionOrigin risk_origin;
+    PgyCollectionOrigin receiver_origin;
+    PgyStringArrayOwnership receiver_elements;
+    PgyCollectionDisposition receiver_disposition;
     uint32_t caller_formal_id, dependency_formal_id;
     size_t caller_formal, dependency_actual, dependency_formal;
     ASTNodeType source_shape;
-    bool named, prepared;
+    bool named, prepared, independent;
 };
 
 void semantic_indexed_string_private_push_destroy(void *receipt)
 {
     free(receipt);
+}
+
+bool collection_private_push_recorded(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *receiver, uint32_t binding_id)
+{
+    PublishedNode *row = ctx == NULL || ctx->function_param_publications == NULL ||
+        call == NULL ? NULL :
+        publication_node(ctx->function_param_publications, call, false);
+    const PendingPrivateStringPush *r = row == NULL ? NULL : row->private_string_push;
+    return r != NULL && row->node == call && row->id == ast_node_stable_id(call) &&
+        r->call == call && r->call_id == row->id && ast_call_arg_count(call) == 2 &&
+        ast_call_argument(call, 0) == receiver &&
+        ast_call_argument(call, 1) == r->source && r->receiver == receiver &&
+        r->receiver_id == ast_node_stable_id(receiver) &&
+        r->receiver_binding_id == binding_id && binding_id != 0;
 }
 
 static bool private_push_same(const PendingPrivateStringPush *a,
@@ -63,43 +83,15 @@ static bool private_push_same(const PendingPrivateStringPush *a,
         a->risk_origin_id == b->risk_origin_id &&
         a->risk_source_binding_id == b->risk_source_binding_id &&
         a->risk_origin == b->risk_origin &&
+        a->receiver_origin_id == b->receiver_origin_id &&
+        a->receiver_source_binding_id == b->receiver_source_binding_id &&
+        a->receiver_origin == b->receiver_origin &&
+        a->receiver_elements == b->receiver_elements &&
+        a->receiver_disposition == b->receiver_disposition &&
         a->caller_formal == b->caller_formal &&
         a->dependency_actual == b->dependency_actual &&
         a->dependency_formal == b->dependency_formal &&
         a->source_shape == b->source_shape && a->named == b->named;
-}
-
-/* Pending publication already captured the typed child and root. Do not
- * derive a root from syntax or call the ready-only projection query here. */
-static bool private_push_formal_root(SemanticContext *ctx, ASTNode *caller,
-    const ASTNode *value, const ASTNode **root_out, size_t *formal_out)
-{
-    FunctionParamPublicationStore *store = ctx->function_param_publications;
-    PublishedNode *row = publication_node(store, value, false);
-    const PublishedProjection *p = row == NULL ? NULL : &row->projection;
-    if (p == NULL || !p->present || row->caller != caller ||
-        row->caller_id != ast_node_stable_id(caller) || p->root == NULL ||
-        p->root->type != AST_IDENTIFIER || p->root_id == 0 ||
-        p->root_id != ast_node_stable_id(p->root) ||
-        p->root_binding_id != ast_identifier_binding_syntax_id(p->root))
-        return false;
-    PublishedNode *root = publication_node(store, p->root, false);
-    const Type *type = root == NULL ? NULL : root->value_type;
-    if (root == NULL || !root->value_present || root->meta || type == NULL ||
-        !(type_is_constructed_named(type, "Array") ||
-          type_is_constructed_named(type, "Slice") ||
-          type->kind == TYPE_KIND_CLASS || type->kind == TYPE_KIND_TUPLE))
-        return false;
-    size_t found = SIZE_MAX;
-    for (size_t pidx = 0; pidx < ast_func_param_count(caller); pidx++)
-        if (p->root_binding_id == ast_func_param_stable_id(ast_func_param(caller, pidx))) {
-            if (found != SIZE_MAX) return false;
-            found = pidx;
-        }
-    if (found == SIZE_MAX) return false;
-    *root_out = p->root;
-    *formal_out = found;
-    return true;
 }
 
 IndexedStringPushRecord semantic_indexed_string_record_private_push(
@@ -132,7 +124,8 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         risk->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS)
         return INDEXED_STRING_PUSH_FAILED;
     Symbol *receiver_binding = NULL;
-    (void)receiver_collection_fact(receiver, ctx, &receiver_binding);
+    const PgyCollectionOwnershipFact *receiver_fact =
+        receiver_collection_fact(receiver, ctx, &receiver_binding);
     uint32_t receiver_id = receiver_binding == NULL ? 0 : receiver_binding->decl_syntax_id;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     PublishedNode *receiver_let = publication_node_by_id(store, receiver_id);
@@ -168,6 +161,21 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
         !source_row->indexed_string_source_present ||
         source_row->indexed_string_source_id != UINT32_MAX)
         return INDEXED_STRING_PUSH_NOT_APPLICABLE;
+    bool borrowed_receiver = receiver_fact != NULL &&
+        receiver_fact->origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL &&
+        receiver_fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
+        receiver_id != risk_binding_id && ast_array_literal_count(initial) != 0;
+    bool empty_receiver = receiver_fact != NULL &&
+        receiver_fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+        receiver_fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN &&
+        receiver_id == risk_binding_id && ast_array_literal_count(initial) == 0;
+    if ((!borrowed_receiver && !empty_receiver) ||
+        receiver_fact->function_syntax_id != caller_id ||
+        receiver_fact->binding_syntax_id != receiver_id ||
+        receiver_fact->origin_syntax_id != ast_node_stable_id(initial) ||
+        receiver_fact->source_binding_syntax_id != 0 ||
+        receiver_fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE)
+        return INDEXED_STRING_PUSH_NOT_APPLICABLE;
     PendingPrivateStringPush r = {0};
     r.call = call; r.source = source; r.receiver = receiver; r.caller = caller;
     r.receiver_let = local; r.receiver_init = initial;
@@ -178,11 +186,17 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
     r.risk_origin_id = risk->origin_syntax_id;
     r.risk_source_binding_id = risk->source_binding_syntax_id;
     r.risk_origin = risk->origin;
+    r.receiver_origin_id = receiver_fact->origin_syntax_id;
+    r.receiver_source_binding_id = receiver_fact->source_binding_syntax_id;
+    r.receiver_origin = receiver_fact->origin;
+    r.receiver_elements = receiver_fact->element_ownership;
+    r.receiver_disposition = receiver_fact->disposition;
     r.source_shape = source->type;
     if (r.call_id == 0 || r.source_id == 0 || r.receiver_id == 0 ||
         r.receiver_init_id == 0) return INDEXED_STRING_PUSH_FAILED;
     if (source->type == AST_MEMBER_ACCESS || source->type == AST_ARRAY_ACCESS) {
-        if (!private_push_formal_root(ctx, caller, source, &r.formal_root, &r.caller_formal))
+        if (!semantic_param_publication_pending_projection_formal_root(
+                ctx, caller, source, &r.formal_root, &r.caller_formal))
             return INDEXED_STRING_PUSH_NOT_APPLICABLE;
     } else {
         const ASTNode *dependency = source;
@@ -217,7 +231,8 @@ IndexedStringPushRecord semantic_indexed_string_record_private_push(
             const PublishedCallArgument *arg = &dep_row->arguments[a];
             const ASTNode *root = NULL;
             size_t formal = SIZE_MAX;
-            if (!private_push_formal_root(ctx, caller, arg->node, &root, &formal)) continue;
+            if (!semantic_param_publication_pending_projection_formal_root(
+                    ctx, caller, arg->node, &root, &formal)) continue;
             if (arg->node != ast_call_argument(dependency, a) ||
                 arg->id == 0 || arg->id != ast_node_stable_id(arg->node) ||
                 arg->formal_ordinal >= ast_func_param_count(dep_row->selected_callable) ||
@@ -278,6 +293,25 @@ bool semantic_indexed_string_prepare_private_push(SemanticContext *ctx, const AS
         !semantic_param_publication_checked_call(ctx, r->dependency) ||
         function_param_flow_declared_result_frame_current(ctx->function_param_flow_summaries,
             (ASTNode *)r->dependency, NULL) == NULL)) return false;
+    uint32_t prepared_source = UINT32_MAX;
+    /* The old b53 producer materializes COMPLETE inputs; its answer grants nothing here. */
+    if (r->named && !function_param_flow_string_result_source_current(
+            ctx, r->dependency, &prepared_source) && ctx->function_param_flow_summaries->failed) return false;
+    r->independent = r->named && function_param_flow_string_result_independent_current(
+        ctx, r->dependency);
+    if (!r->independent) {
+        uint32_t kind = 0, receiver = 0, source = 0;
+        if (!(r->named ? function_param_flow_string_result_nonlocal_current(ctx,
+                r->dependency, (ASTNode *)r->caller, r->caller_formal) :
+                function_param_flow_nonlocal_input_current(ctx,
+                    (ASTNode *)r->caller, r->caller_formal)) ||
+            !ast_call_semantic_collection_effect(call, &kind, &receiver, &source) ||
+            kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
+            receiver != r->receiver_binding_id || source != 0) return false;
+        r->effect_kind = kind;
+        r->effect_receiver_id = receiver;
+        r->effect_source_id = source;
+    }
     r->prepared = true;
     return true;
 }
@@ -325,9 +359,8 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
         !semantic_param_publication_checked_argument(ctx, call, 0) ||
         !semantic_param_publication_checked_argument(ctx, call, 1) ||
         !semantic_param_publication_private_array_push(ctx, call, r->caller) ||
-        !semantic_param_publication_routine_inputs_current(ctx, (ASTNode *)r->caller, true) ||
-        !function_param_flow_no_store_graph(ctx->function_param_flow_summaries,
-            (ASTNode *)r->caller)) return false;
+        !semantic_param_publication_routine_inputs_current(ctx, (ASTNode *)r->caller, true))
+        return false;
     const PgyCollectionOwnershipFact *risk = semantic_collection_ownership_fact_find(
         ctx, r->caller_id, r->risk_binding_id);
     if (risk == NULL || risk->function_syntax_id != r->caller_id ||
@@ -338,6 +371,37 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
         risk->origin_syntax_id != r->risk_origin_id ||
         risk->source_binding_syntax_id != r->risk_source_binding_id)
         return false;
+    const PgyCollectionOwnershipFact *receiver_fact = semantic_collection_ownership_fact_find(
+        ctx, r->caller_id, r->receiver_binding_id);
+    if (receiver_fact == NULL || receiver_fact->function_syntax_id != r->caller_id ||
+        receiver_fact->binding_syntax_id != r->receiver_binding_id ||
+        receiver_fact->origin != r->receiver_origin ||
+        receiver_fact->element_ownership != r->receiver_elements ||
+        receiver_fact->disposition != r->receiver_disposition ||
+        receiver_fact->origin_syntax_id != r->receiver_origin_id ||
+        receiver_fact->source_binding_syntax_id != r->receiver_source_binding_id ||
+        r->receiver_origin_id != r->receiver_init_id ||
+        (r->receiver_origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+            (r->receiver_binding_id != r->risk_binding_id ||
+             ast_array_literal_count(r->receiver_init) != 0)) ||
+        (r->receiver_origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL &&
+            (r->receiver_binding_id == r->risk_binding_id ||
+             ast_array_literal_count(r->receiver_init) == 0)) ||
+        (r->receiver_origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+         r->receiver_origin != PGY_COLLECTION_ORIGIN_BORROWED_LITERAL)) return false;
+    if (!r->independent) {
+        uint32_t kind = 0, receiver = 0, source = 0;
+        if (r->effect_kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
+            r->effect_receiver_id != r->receiver_binding_id || r->effect_source_id != 0 ||
+            !ast_call_semantic_collection_effect(call, &kind, &receiver, &source) ||
+            kind != r->effect_kind || receiver != r->effect_receiver_id ||
+            source != r->effect_source_id ||
+            (r->receiver_origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+             !function_param_flow_private_string_receiver_current(ctx,
+                 (ASTNode *)r->caller, r->receiver_binding_id)) ||
+            !function_param_flow_no_store_graph(ctx->function_param_flow_summaries,
+                (ASTNode *)r->caller)) return false;
+    }
     SemanticPublishedValue typed = semantic_param_publication_value(ctx, r->source);
     if (!typed.ok || typed.meta || typed.type != TYPE_STRING) return false;
     PublishedNode *source_row = publication_current_value(ctx, r->source);
@@ -397,6 +461,12 @@ bool semantic_indexed_string_private_push_current(SemanticContext *ctx,
         return false;
     /* The one-time preparation already produced the frame. A current query
      * must not rebuild a withdrawn epoch or reinterpret UNKNOWN as zero. */
+    if (r->independent) {
+        uint32_t source = UINT32_MAX;
+        return function_param_flow_string_result_independent_current(ctx, dependency) &&
+            semantic_indexed_string_borrow_source_current(
+                (ASTNode *)r->source, ctx, &source) && source == 0;
+    }
     return function_param_flow_string_result_nonlocal_current(ctx,
         dependency, (ASTNode *)r->caller, r->caller_formal);
 }
@@ -499,53 +569,6 @@ semantic_collection_reject_moved_member_use(ASTNode *member_access,
         return true;
     }
     return false;
-}
-
-bool
-semantic_collection_admit_owned_string_push(ASTNode *receiver,
-                                             SemanticContext *ctx)
-{
-    Symbol *binding = NULL;
-    PgyCollectionOwnershipFact *fact =
-        receiver_collection_fact(receiver, ctx, &binding);
-    const char *name = binding != NULL && binding->name != NULL
-        ? binding->name : "<array>";
-
-    if (binding != NULL && binding->has_escaped_array_storage) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-            receiver, "ArrayPushOwnedString cannot mutate escaped array storage in '%s'",
-            name);
-        return false;
-    }
-    if (fact != NULL && (fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
-        || (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
-            && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE))) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_BORROW_ESCAPE,
-            PGY_CAUSE_BORROW_ESCAPE,
-            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-            receiver,
-            "ArrayPushOwnedString cannot mix an owned String into '%s' without uniform element ownership.\n"
-            "Reason:\n"
-            "- the existing elements are borrowed or have no deep-release proof\n"
-            "- the resulting array would have no sound whole-array cleanup policy\n"
-            "Fix:\n"
-            "- Clone the collection into an owned snapshot before the owned push\n"
-            "- or use ArrayPush for a borrowed String element",
-            name);
-        return false;
-    }
-    if (semantic_array_storage_has_pending(binding)
-        && !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
-            ARRAY_STORAGE_MUTATE_OWNED_STRINGS)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
-            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-            receiver, "ArrayPushOwnedString requires current preserved array storage in '%s'",
-            name);
-        return false;
-    }
-    return true;
 }
 
 bool

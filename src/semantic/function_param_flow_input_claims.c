@@ -8,6 +8,8 @@
 #include "type_checker_internal.h"
 #include "type_checker_resolution_metadata_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "collection_ownership_fact.h"
+#include "type_checker_builtins_stdlib_collections_internal.h"
 #include "../common/string_compat.h"
 #include "typed_map_query_fact_owner.h"
 #include "../common/match_variant_policy.h"
@@ -117,6 +119,121 @@ bool function_param_flow_typed_expression_children_current(SemanticContext *ctx,
     return false;
 }
 
+static bool function_param_flow_claim_returned_only(const FunctionParamFlowIndexClaims *claims, ASTNode *node)
+{
+    bool returned = false;
+    for (size_t r = 0; r < claims->count; r++)
+        for (size_t c = 0; c < claims->rows[r].child_count; c++) if (claims->rows[r].children[c] == node) {
+            if (claims->rows[r].shape != AST_RETURN || ast_return_value(claims->rows[r].node) != node) return false;
+            returned = true;
+        }
+    return returned;
+}
+
+bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
+    ASTNode *routine, uint32_t binding)
+{
+    if (ctx == NULL || ctx->has_error || binding == 0 ||
+        !semantic_param_publication_inputs_ready(ctx) || ctx->function_param_flow_summaries == NULL ||
+        ctx->function_param_flow_summaries->failed || ctx->function_param_flow_summaries->solving) return false;
+    FunctionParamFlowProgramPointIndex *index = function_param_flow_current_claim_index(ctx, routine);
+    if (index == NULL || !function_param_flow_no_store_graph(ctx->function_param_flow_summaries, routine)) return false;
+    index = function_param_flow_current_claim_index(ctx, routine);
+    if (index == NULL) return false;
+    const FunctionParamFlowIndexClaims *claims = index->claims;
+    ASTNode *initializer = NULL;
+    for (size_t r = 0; r < claims->count; r++) if (claims->rows[r].id == binding) {
+        ASTNode *decl = claims->rows[r].node;
+        if (initializer != NULL || decl->type != AST_LET_DECL || ast_let_is_alias(decl)) return false;
+        initializer = ast_let_initializer(decl);
+    }
+    SemanticPublishedValue birth = semantic_param_publication_value(ctx, initializer);
+    const PgyCollectionOwnershipFact *fact = semantic_collection_ownership_fact_find(
+        ctx, ast_node_stable_id(routine), binding);
+    if (initializer == NULL || initializer->type != AST_ARRAY_LITERAL || ast_array_literal_count(initializer) != 0 ||
+        !birth.ok || birth.meta || !type_is_constructed_named(birth.type, "Array") ||
+        !type_equals(type_get_constructed_arg(birth.type, 0), TYPE_STRING) || fact == NULL ||
+        fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL || fact->source_binding_syntax_id != 0 ||
+        fact->origin_syntax_id != ast_node_stable_id(initializer) ||
+        fact->element_ownership != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN ||
+        fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE || fact->return_elements_source != NULL ||
+        fact->return_elements_source_id != 0) return false;
+    for (size_t r = 0; r < claims->count; r++) {
+        const FunctionParamFlowIndexClaim *row = &claims->rows[r];
+        ASTNode *node = row->node;
+        if (row->shape == AST_ASSIGNMENT) {
+            ASTNode *target = ast_assignment_target(node);
+            if (target != NULL && target->type == AST_ARRAY_ACCESS &&
+                ast_identifier_binding_syntax_id(ast_array_access_array(target)) == binding) return false;
+        }
+        for (size_t c = 0; c < row->child_count; c++) {
+            ASTNode *child = row->children[c];
+            if (child == NULL || child->type != AST_IDENTIFIER ||
+                ast_identifier_binding_syntax_id(child) != binding) continue;
+            if (semantic_param_publication_binding(ctx, child) != binding) return false;
+            if (node->type == AST_ARRAY_ACCESS && ast_array_access_array(node) == child) continue;
+            if (node->type == AST_RETURN && ast_return_value(node) == child) continue;
+            if (node->type == AST_CALL && !row->collection_effect_present &&
+                semantic_param_publication_nominal_result_complete(ctx, node) &&
+                function_param_flow_claim_returned_only(claims, node)) {
+                bool matched = false;
+                for (size_t a = 0; a < ast_call_arg_count(node); a++) if (ast_call_argument(node, a) == child) {
+                    matched = true;
+                    bool depends = false, retains = true;
+                    if (!semantic_param_publication_checked_argument(ctx, node, a) ||
+                        !semantic_param_publication_checked_result_relation(ctx, node, a, &depends, &retains) ||
+                        !depends || retains) return false;
+                }
+                if (!matched) return false;
+                continue;
+            }
+            if (node->type != AST_CALL || ast_call_argument(node, 0) != child) return false;
+            if (ast_call_arg_count(node) == 1 && !row->collection_effect_present &&
+                semantic_stdlib_array_argument_preserves_elements(node, 0, ctx)) continue;
+            if (!semantic_param_publication_private_array_push(ctx, node, routine) ||
+                !row->collection_effect_present || row->collection_effect_kind != PGY_COLLECTION_EFFECT_SHALLOW_MUTATION ||
+                row->collection_effect_receiver != binding || row->collection_effect_source != 0) return false;
+        }
+    }
+    return true;
+}
+
+bool function_param_flow_string_result_independent_current(SemanticContext *ctx, const ASTNode *call)
+{
+    if (ctx == NULL || ctx->has_error || call == NULL || call->type != AST_CALL ||
+        !semantic_param_publication_inputs_ready(ctx) || ctx->function_param_flow_summaries == NULL ||
+        ctx->function_param_flow_summaries->failed || ctx->function_param_flow_summaries->solving) return false;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    const Type *type = NULL;
+    ASTNode *decl = semantic_param_publication_declared_result(ctx, call, &type);
+    FunctionParamFlowProgramPointIndex *index = decl == NULL ? NULL : function_param_flow_current_claim_index(ctx, decl);
+    if (type != TYPE_STRING || index == NULL || index->declared_result == NULL ||
+        index->declared_result->epoch == 0 || !index->declared_result->complete ||
+        index->declared_result->pending || index->declared_result->building ||
+        index->declared_result->analysis_unsupported || !index->declared_result->private_stores_closed ||
+        index->declared_result->claims != index->claims ||
+        index->declared_result->declared_result_type != TYPE_STRING) return false;
+    ASTNode *receiver = NULL;
+    if (!semantic_param_publication_instance_receiver(ctx, call, &receiver) ||
+        (receiver != NULL && function_param_flow_receiver_readonly_current(store, (ASTNode *)call, false) == NULL)) return false;
+    for (size_t a = 0; a < ast_call_arg_count(call); a++) {
+        size_t formal = SIZE_MAX, at = SIZE_MAX;
+        ASTNode *argument = ast_call_argument(call, a);
+        if (!semantic_param_publication_checked_argument(ctx, call, a) ||
+            !semantic_param_publication_formal_for_actual(ctx, call, a, &formal)) return false;
+        for (size_t e = 0; e < store->count; e++)
+            if (store->entries[e].function_decl == decl && store->entries[e].param_index == formal) at = e;
+        if (at == SIZE_MAX || store->entries[at].state != FUNCTION_PARAM_FLOW_COMPLETE ||
+            store->entries[at].analysis_unsupported || store->entries[at].returned_backing_unproved ||
+            store->entries[at].returned_backing_pending ||
+            (!semantic_param_publication_value_is_physical_scalar(ctx, argument) &&
+             (store->entries[at].mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) ||
+            !function_param_flow_output_current(store, at, false)) return false;
+    }
+    uint32_t source = UINT32_MAX;
+    return function_param_flow_string_result_source_current(ctx, call, &source) && source == 0;
+}
+
 /* A field-return link is not an independent String or an element cleanup
  * certificate. All admitted leaves must link to the same caller formal. */
 bool function_param_flow_string_result_nonlocal_current(SemanticContext *ctx,
@@ -202,121 +319,6 @@ bool function_param_flow_index_claim_record(SemanticContext *ctx,
     if (index->claims == NULL) index->claims = calloc(1, sizeof(*index->claims));
     if (index->claims == NULL) { function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim carrier allocation failed"); return false; }
     return function_param_flow_claim_record(ctx, index->claims, node);
-}
-static bool function_param_flow_claim_capture(SemanticContext *ctx,
-    FunctionParamFlowIndexClaims *claims, ASTNode *node, bool semantic)
-{
-    if (claims == NULL || claims->failed || node == NULL) return false;
-    FunctionParamFlowIndexClaim *row = NULL;
-    for (size_t i = 0; i < claims->count; i++) if (claims->rows[i].node == node) {
-        row = &claims->rows[i];
-        if (!semantic || row->semantic_promoted) return true;
-        goto promote;
-    }
-    bool supported = false;
-    size_t children = function_param_flow_claim_child_count(node, &supported);
-    if (!supported) {
-        claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim syntax topology is unsupported"); return false;
-    }
-    if (children > SIZE_MAX / sizeof(ASTNode *)) {
-        claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim child storage is missing or its count is not addressable"); return false;
-    }
-    if (claims->count >= SIZE_MAX / sizeof(*claims->rows)) {
-        claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim size overflow"); return false;
-    }
-    FunctionParamFlowIndexClaim *rows = realloc(claims->rows, (claims->count + 1) * sizeof(*rows));
-    if (rows == NULL) { claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim allocation failed"); return false; }
-    claims->rows = rows;
-    row = &rows[claims->count++];
-    *row = (FunctionParamFlowIndexClaim){.node = node, .id = ast_node_stable_id(node), .shape = node->type,
-        .child_count = children, .control_step_ordinal = SIZE_MAX, .control_root_ordinal = SIZE_MAX};
-    row->children = children == 0 ? NULL : calloc(children, sizeof(*row->children));
-    row->child_ids = children == 0 ? NULL : calloc(children, sizeof(*row->child_ids));
-    row->child_claim_ordinals = children == 0 ? NULL : malloc(children * sizeof(*row->child_claim_ordinals));
-    if (children != 0 && (row->children == NULL || row->child_ids == NULL || row->child_claim_ordinals == NULL)) {
-        claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "index claim edge allocation failed"); return false;
-    }
-    for (size_t c = 0; c < children; c++) {
-        row->children[c] = function_param_flow_claim_child(node, c);
-        row->child_ids[c] = ast_node_stable_id(row->children[c]);
-        row->child_claim_ordinals[c] = SIZE_MAX;
-    }
-    if (node->type == AST_IDENTIFIER) row->binding = ast_identifier_binding_syntax_id(node);
-    if (node->type == AST_LET_DECL) row->local_alias = ast_let_is_alias(node);
-    if (node->type == AST_MATCH_CASE) row->match_family = ast_match_case_semantic_subject_family(node);
-    if (node->type == AST_BINARY) row->syntax_operator = node->data.binary.op.type;
-    if (node->type == AST_UNARY) row->syntax_operator = node->data.unary.op.type;
-    if (node->type == AST_PARALLEL_BLOCK) row->parallel_join = ast_parallel_is_join_form(node);
-    if (node->type == AST_BOOLEAN) row->syntax_literal_flags = ast_boolean_value(node);
-    if (node->type == AST_NUMBER) {
-        row->syntax_number = ast_number_value(node);
-        row->syntax_long = ast_number_exact_long_value(node);
-        row->syntax_literal_flags = ast_number_is_long(node) | (ast_number_is_float(node) << 1) | (ast_number_is_duration(node) << 2);
-    }
-    const char *syntax_name = node->type == AST_IDENTIFIER ? ast_identifier_name(node) :
-        node->type == AST_MEMBER_ACCESS ? ast_member_name(node) :
-        node->type == AST_TYPE ? ast_type_name(node) : node->type == AST_STRING ? ast_string_value(node) : NULL;
-    row->syntax_name = syntax_name == NULL ? NULL : pergyra_strdup(syntax_name);
-    if (syntax_name != NULL && row->syntax_name == NULL) { claims->failed = true; return false; }
-    if (node->type == AST_TYPE || node->type == AST_CALL) {
-        GenericParams *args = node->type == AST_TYPE ? ast_type_generic_args(node) : ast_call_generic_args(node);
-        row->generic_name_count = args == NULL ? 0 : args->count;
-        if (row->generic_name_count > SIZE_MAX / sizeof(*row->generic_names)) { claims->failed = true; return false; }
-        row->generic_names = row->generic_name_count == 0 ? NULL : calloc(row->generic_name_count, sizeof(*row->generic_names));
-        if (row->generic_name_count != 0 && row->generic_names == NULL) { claims->failed = true; return false; }
-        for (size_t p = 0; p < row->generic_name_count; p++) {
-            row->generic_names[p] = pergyra_strdup(args->params[p]->name);
-            if (row->generic_names[p] == NULL) { claims->failed = true; return false; }
-        }
-    }
-    if (node->type == AST_CAST || node->type == AST_TYPE_TEST) {
-        const char *target = node->type == AST_CAST ? ast_cast_target_type(node) : ast_type_test_target_type(node);
-        row->cast_target = target == NULL ? NULL : pergyra_strdup(target);
-        if (target != NULL && row->cast_target == NULL) { claims->failed = true; return false; }
-    }
-    if (!semantic) return row->id != 0;
-promote:
-    row->semantic_promoted = true;
-    row->execution_present = semantic_param_publication_execution(ctx, node, &row->reachable);
-    row->physical_value = semantic_param_publication_value_is_physical_scalar(ctx, node);
-    row->unit_enum_selection = node->type == AST_MEMBER_ACCESS &&
-        semantic_param_publication_checked_unit_enum_selection(ctx, node);
-    SemanticPublishedValue value = semantic_param_publication_value(ctx, node);
-    row->value_ready = value.ok;
-    row->value_meta = value.ok && value.meta;
-    row->value_origin_ready = value.ok && value.origin_ready;
-    row->value_type = value.type;
-    row->slot_token_operand = semantic_param_publication_slot_token_operand(ctx, node);
-    if (node->type == AST_LET_DECL) row->channel_binding = semantic_param_publication_channel_binding(ctx, node);
-    if (node->type == AST_LET_DECL) row->empty_map_binding = semantic_param_publication_empty_map_binding(ctx, node);
-    if (node->type == AST_LET_DECL || node->type == AST_LET_DESTRUCTURE) {
-        SemanticPublishedSlotBirth birth;
-        row->owned_slot_binding = semantic_param_publication_owned_slot_binding(ctx, node, &birth);
-    }
-    if (node->type == AST_CALL) {
-        row->slot_write = semantic_param_publication_checked_slot_write(ctx, node);
-        row->local_owner_constructor = semantic_param_publication_checked_local_owner_constructor(ctx, node);
-        row->private_array_push = semantic_param_publication_private_array_push(ctx, node, NULL);
-        row->result_relation = semantic_param_publication_checked_result_relation(ctx, node, 0,
-            &row->result_depends, &row->external_retains);
-        row->backing_relation = semantic_param_publication_checked_backing_relation(ctx, node, 0,
-            &row->backing_depends, &row->backing_external_retains);
-        if (row->result_relation || row->backing_relation) {
-            row->result_type_name = pergyra_strdup(ast_call_semantic_value_type_name(node));
-            if (row->result_type_name == NULL) {
-                claims->failed = true; function_param_flow_fail(ctx->function_param_flow_summaries, node, "result claim allocation failed"); return false;
-            }
-        }
-    }
-    if (node->type == AST_CAST) {
-        row->numeric_cast = semantic_param_publication_checked_numeric_cast(ctx, node);
-    }
-    if (node->type == AST_ASSIGNMENT) {
-        ASTNode *target = ast_assignment_target(node);
-        row->binding = semantic_param_publication_binding(ctx, target);
-        row->assignment_replacement = semantic_param_publication_assignment_replacement(ctx, node);
-    }
-    return row->id != 0;
 }
 bool function_param_flow_claim_record(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node)
@@ -545,6 +547,10 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
             if (!value.ok || value.meta) return false;
         }
         if (row->shape == AST_CALL) {
+            uint32_t kind = 0, receiver = 0, source = 0;
+            bool present = ast_call_semantic_collection_effect(row->node, &kind, &receiver, &source);
+            if (present != row->collection_effect_present || kind != row->collection_effect_kind ||
+                receiver != row->collection_effect_receiver || source != row->collection_effect_source) return false;
             if (row->slot_write != semantic_param_publication_checked_slot_write(ctx, row->node)) return false;
             if (row->local_owner_constructor != semantic_param_publication_checked_local_owner_constructor(ctx, row->node)) return false;
             if (!semantic_param_publication_checked_call(ctx, row->node)) return false;

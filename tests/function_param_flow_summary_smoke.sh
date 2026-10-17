@@ -120,6 +120,10 @@ release_lifetime_refusals = {
     "named_string_field_mixed_branch_drop_invalid": [
         (*borrow_refusal, 28, 5), (*borrow_refusal, 30, 27)],
     "named_string_field_alias_mutation_invalid": [(*borrow_refusal, 4, 6)],
+    "named_string_same_empty_owned_then_borrowed_direct_invalid": [(*borrow_refusal, 7, 5)],
+    "named_string_same_empty_owned_then_borrowed_named_invalid": [(*borrow_refusal, 12, 5)],
+    "named_string_same_empty_borrowed_then_owned_direct_invalid": [(*borrow_refusal, 6, 5)],
+    "named_string_same_empty_borrowed_then_owned_named_invalid": [(*borrow_refusal, 11, 5)],
     # The String-field getter is not receiver-independent. The first error is
     # the summary's unproved backing relation; eight concrete borrow paths
     # must also refuse it. Do not treat this as a physical-storage grant.
@@ -451,6 +455,13 @@ paired = (
     ("named_string_field_forward_project_drop_invalid", False),
     ("named_string_field_mixed_branch_drop_invalid", False),
     ("named_string_field_alias_mutation_invalid", False),
+    ("named_string_same_empty_direct_valid", True),
+    ("named_string_same_empty_named_valid", True),
+    ("named_string_same_empty_fresh_valid", True),
+    ("named_string_same_empty_owned_then_borrowed_direct_invalid", False),
+    ("named_string_same_empty_owned_then_borrowed_named_invalid", False),
+    ("named_string_same_empty_borrowed_then_owned_direct_invalid", False),
+    ("named_string_same_empty_borrowed_then_owned_named_invalid", False),
     ("slot_wrapper_direct_own_invalid", False),
     ("slot_wrapper_direct_ref_valid", True),
     ("slot_wrapper_binary_equal_own_invalid", False),
@@ -1043,6 +1054,9 @@ for name, expected in (
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("named_string_identity_substring_push_valid", "1\nowned\n"),
     ("named_string_field_empty_arena_valid", "TypeName\nTypeName\n"),
+    ("named_string_same_empty_direct_valid", "TypeName\nTypeName\n"),
+    ("named_string_same_empty_named_valid", "TypeName\nTypeName\n"),
+    ("named_string_same_empty_fresh_valid", "fresh value\n"),
     ("private_array_push_local_read_valid", "1\n"),
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
     ("return_loan_read_static_local_valid", "14\n14\nstatic literal\n"),

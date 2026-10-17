@@ -11,7 +11,57 @@
 #include "function_param_publication_owner.h"
 #include "function_param_publication_internal.h"
 #include "function_param_flow_summary_internal.h"
+#include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_release_owner.h"
+#include "array_storage_element_lifetime_owner.h"
 #include "../parser/ast_api.h"
+
+bool
+semantic_collection_admit_owned_string_push(ASTNode *receiver,
+                                             SemanticContext *ctx)
+{
+    Symbol *binding = NULL;
+    PgyCollectionOwnershipFact *fact =
+        receiver_collection_fact(receiver, ctx, &binding);
+    const char *name = binding != NULL && binding->name != NULL
+        ? binding->name : "<array>";
+
+    if (binding != NULL && binding->has_escaped_array_storage) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver, "ArrayPushOwnedString cannot mutate escaped array storage in '%s'",
+            name);
+        return false;
+    }
+    if (fact != NULL && (fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
+        || (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+            && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE))) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver,
+            "ArrayPushOwnedString cannot mix an owned String into '%s' without uniform element ownership.\n"
+            "Reason:\n"
+            "- the existing elements are borrowed or have no deep-release proof\n"
+            "- the resulting array would have no sound whole-array cleanup policy\n"
+            "Fix:\n"
+            "- Clone the collection into an owned snapshot before the owned push\n"
+            "- or use ArrayPush for a borrowed String element",
+            name);
+        return false;
+    }
+    if (semantic_array_storage_has_pending(binding)
+        && !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
+            ARRAY_STORAGE_MUTATE_OWNED_STRINGS)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver, "ArrayPushOwnedString requires current preserved array storage in '%s'",
+            name);
+        return false;
+    }
+    return true;
+}
 
 bool
 collection_call_is_unshadowed_builtin(const ASTNode *expr,
@@ -28,6 +78,60 @@ collection_call_is_unshadowed_builtin(const ASTNode *expr,
     name = ast_identifier_name(callee);
     return name != NULL && strcmp(name, expected_name) == 0
         && ast_identifier_binding_syntax_id(callee) == 0;
+}
+
+bool
+semantic_collection_record_call_effect(ASTNode *call, ASTNode *receiver,
+    PgyCollectionOwnershipEffectKind kind, SemanticContext *ctx)
+{
+    return semantic_collection_record_call_effect_from(call, receiver, kind, 0, ctx);
+}
+
+bool
+semantic_collection_record_call_effect_from(ASTNode *call, ASTNode *receiver,
+    PgyCollectionOwnershipEffectKind kind, uint32_t source_syntax_id, SemanticContext *ctx)
+{
+    Symbol *binding = NULL;
+    uint32_t binding_id, issued_kind = 0, issued_binding = 0, issued_source = 0;
+    if (call == NULL || call->type != AST_CALL || receiver == NULL
+        || kind <= PGY_COLLECTION_EFFECT_NONE || kind > PGY_COLLECTION_EFFECT_DROP
+        || (source_syntax_id != 0 && kind != PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH))
+        return false;
+    PgyCollectionOwnershipFact *fact = receiver_collection_fact(receiver, ctx, &binding);
+    if (fact == NULL)
+        return !ast_call_semantic_collection_effect(call, NULL, NULL, NULL);
+    bool owned_local_drop = kind == PGY_COLLECTION_EFFECT_DROP
+        && (fact->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
+            || fact->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+        && (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
+            || fact->origin == PGY_COLLECTION_ORIGIN_CLONE
+            || fact->origin == PGY_COLLECTION_ORIGIN_BINDING);
+    bool borrowed_shallow = fact->origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL
+        && fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
+        && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+        && kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION
+        && collection_call_is_unshadowed_builtin(call, "ArrayPush")
+        && ast_call_semantic_callee_decl_id(call) == 0
+        && ast_call_semantic_callee_value_binding_id(call) == 0
+        && collection_private_push_recorded(ctx, call, receiver,
+            receiver_binding_syntax_id(receiver, binding));
+    if (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+        && !owned_local_drop && !borrowed_shallow)
+        return semantic_array_storage_record_return_element_effect(receiver, kind,
+            !ast_call_semantic_collection_effect(call, NULL, NULL, NULL), ctx);
+    if (fact->disposition != (owned_local_drop
+            ? PGY_COLLECTION_DISPOSITION_RETIRED
+            : PGY_COLLECTION_DISPOSITION_LIVE)) return false;
+    binding_id = receiver_binding_syntax_id(receiver, binding);
+    if (binding == NULL || !collection_array_string_type(binding->type) || binding_id == 0
+        || binding->decl_syntax_id != binding_id) return false;
+    /* The parser receipt stays write-once; only its exact recheck is valid. */
+    return semantic_array_storage_record_return_element_effect(receiver, kind,
+        ast_call_set_semantic_collection_effect(call, (uint32_t)kind, binding_id,
+            source_syntax_id) || (ast_call_semantic_collection_effect(
+        call, &issued_kind, &issued_binding, &issued_source)
+        && issued_kind == (uint32_t)kind && issued_binding == binding_id
+        && issued_source == source_syntax_id), ctx);
 }
 
 static ASTNode *

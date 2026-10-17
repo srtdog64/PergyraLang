@@ -570,3 +570,38 @@ bool semantic_param_publication_value_call_target(const SemanticContext *ctx, co
     return row->kind_present && row->declaration == 0 &&
         (row->builtin != BUILTIN_NOT_BUILTIN || row->stdlib);
 }
+
+/* Pending typed projection owns the child-to-formal identity; ready-only
+ * projection queries cannot be used while the String argument is issued. */
+bool semantic_param_publication_pending_projection_formal_root(SemanticContext *ctx,
+    ASTNode *caller, const ASTNode *value, const ASTNode **root_out, size_t *formal_out)
+{
+    if (ctx == NULL || caller == NULL || value == NULL || root_out == NULL ||
+        formal_out == NULL || !semantic_param_publication_pending(ctx)) return false;
+    FunctionParamPublicationStore *store = ctx->function_param_publications;
+    PublishedNode *row = publication_node(store, value, false);
+    const PublishedProjection *p = row == NULL ? NULL : &row->projection;
+    if (p == NULL || !p->present || row->caller != caller ||
+        row->caller_id != ast_node_stable_id(caller) || p->root == NULL ||
+        p->root->type != AST_IDENTIFIER || p->root_id == 0 ||
+        p->root_id != ast_node_stable_id(p->root) ||
+        p->root_binding_id != ast_identifier_binding_syntax_id(p->root))
+        return false;
+    PublishedNode *root = publication_node(store, p->root, false);
+    const Type *type = root == NULL ? NULL : root->value_type;
+    if (root == NULL || !root->value_present || root->meta || type == NULL ||
+        !(type_is_constructed_named(type, "Array") ||
+          type_is_constructed_named(type, "Slice") ||
+          type->kind == TYPE_KIND_CLASS || type->kind == TYPE_KIND_TUPLE))
+        return false;
+    size_t found = SIZE_MAX;
+    for (size_t pidx = 0; pidx < ast_func_param_count(caller); pidx++)
+        if (p->root_binding_id == ast_func_param_stable_id(ast_func_param(caller, pidx))) {
+            if (found != SIZE_MAX) return false;
+            found = pidx;
+        }
+    if (found == SIZE_MAX) return false;
+    *root_out = p->root;
+    *formal_out = found;
+    return true;
+}

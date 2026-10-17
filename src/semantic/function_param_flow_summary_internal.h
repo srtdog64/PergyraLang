@@ -145,6 +145,8 @@ typedef struct {
     bool owned_slot_binding;
     bool slot_token_operand;
     bool private_array_push;
+    bool collection_effect_present;
+    uint32_t collection_effect_kind, collection_effect_receiver, collection_effect_source;
     bool execution_present, reachable, physical_value;
     /* Exact typed proof that this member's qualifier is a nonexecuting enum
      * namespace edge. Syntax children remain sealed independently above. */
@@ -288,6 +290,11 @@ bool function_param_flow_string_result_source_current(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source);
 bool function_param_flow_nonlocal_input_current(SemanticContext *ctx,
     ASTNode *routine, size_t formal_ordinal);
+bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
+    ASTNode *routine, uint32_t binding);
+bool function_param_flow_string_result_independent_current(SemanticContext *ctx, const ASTNode *call);
+bool function_param_flow_claim_capture(SemanticContext *ctx,
+    FunctionParamFlowIndexClaims *claims, ASTNode *node, bool semantic);
 /* Navigation result shape only: String acceptance is no nonlocal-source or
  * independence proof. The optional Array output requires its owned receipt. */
 bool function_param_flow_navigation_result_shape(SemanticContext *ctx, ASTNode *call,

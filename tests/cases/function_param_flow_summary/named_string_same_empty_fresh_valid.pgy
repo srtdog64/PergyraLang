@@ -1,0 +1,18 @@
+struct TextNode { type_name: String; }
+struct Arena { atom_table: Array<String>; }
+
+func Fresh(node: TextNode) -> String {
+    return Concat("fresh", " value");
+}
+
+func Project(nodes: Array<TextNode>) -> Arena {
+    let atom_table: Array<String> = [];
+    ArrayPush(atom_table, Fresh(nodes[0]));
+    return Arena(atom_table);
+}
+
+func Main() -> Void {
+    let nodes: Array<TextNode> = [TextNode("unused")];
+    let arena = Project(nodes);
+    Log(arena.atom_table[0]);
+}

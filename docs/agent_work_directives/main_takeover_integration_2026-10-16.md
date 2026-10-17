@@ -27,6 +27,57 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ### Current element-retention integration boundary
 
+#### Active review repair of local checkpoint7ff14cf
+
+- Objective: finish the private String-push contract before extending admission
+  to the next canonical466 call. Priority is exact receiver identity/currentness,
+  element-policy history, explicit independent/nonlocal result classification,
+  original negative gates, then full canonical/bootstrap/installed-driver CI.
+- Existing owners: collection facts own receiver origin and disposition;
+  write-once call effects own element policy; current flow program-point claims
+  own exhaustive effect history; declared-result frames own String independence.
+  The last consumer is program-success private-push replay. A pending receipt
+  is an obligation, not an ownership or cleanup permission.
+- Required changes: A snapshots/replays the actual receiver fact and separates
+  borrowed-literal/distinct-risk from genuinely empty/same-risk receivers.
+  B validates current effect history using existing typed claims and exposes a
+  ready-only independent-result query. A classifies a named result once, after
+  the existing result producer, without rebuilding evidence during replay.
+  C adds behavioral and withdrawal/tamper falsifiers. No new owner TU or mask.
+- Reached consumer dependency: borrowed-literal shallow effects were not
+  published because MIR accepted only empty/owned-local receipts. Extend the
+  existing call-effect producer and MIR validator together, only for a LIVE
+  BORROWED_LITERAL/BORROWED String-array SHALLOW tuple. Keep owned/drop
+  transitions and cleanup authority unchanged. MIR must reject missing copied
+  receipts and AST/MIR tuple drift; no parallel publication-local effect owner.
+  Publish this additional borrowed tuple only for an exact registered pending
+  private-push obligation. Unrelated borrowed operations keep their old path:
+  a terminal global fact cannot be retrofitted into every historical mutation.
+- Forbidden: final-state return_elements_owned=false as proof of no owned
+  history; UNKNOWN=source0; receiver syntax as ownership; current queries that
+  regenerate withdrawn epochs; canonical edits/manual copies; new466 admission
+  before this unit is independently reviewed. Independent fresh String results
+  and nonlocal borrowed fields have distinct effect obligations, not fallback.
+- Shared integration: unchanged old phase/strict/six currency/broad/SAN gates,
+  empty receiver positives, both owned/borrowed mixing orders, exact effect
+  tuple/receiver/currentness faults, independent Fresh result C/LLVM parity.
+  Root alone owns builds/processes/Git. Full fixed/current canonical remain
+  RED and are not replaced by these bounded receipts. No known-red push.
+- Local receiver-review receipt: native8f229241, phase TU246BA342. xb4VaO
+  passes11610 phase checks and full strict, including the three new C/LLVM
+  executions; A0ljlj verifies exact BORROW/MIR0 for four mixing orders.
+  46 changed/new source/test paths since61a92442f compare byte-equal to the
+  identified Linux snapshot. Old six currency groups pass. qT4b6t passes
+  semantic3230, transpile1012, AIR156, Map24/58 and HIR/RIR/AIR flow; its MIR
+  failure was a newly added control also refused by the prior native before
+  MIR. No original oracle changed. The admitted control now passes MIR384/0
+  including13 new forged/missing/retired receipt cases (jhy8cQ). 0zZsmN repeats
+  the full bounded acceptance/SAN; results remain PENDING until observed.
+  TZJteZ also checks old/new borrowed-array move behavior without executing
+  rejected programs: ordinary move stays admitted; the private-field move is
+  refused by both. Do not open a new precision track for that pre-existing
+  conservative case. Actual full8f canonical/bootstrap/CI remain unverified.
+
 #### Reached full-input boundary after named-String integration
 
 - Objective/order: preserve typed String payload provenance through a field

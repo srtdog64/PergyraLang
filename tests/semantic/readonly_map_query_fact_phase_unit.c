@@ -11191,6 +11191,14 @@ static void checked_private_string_push_currency(void)
         publication->private_string_push_count == 2);
     CHECK(source_row->indexed_string_source_present && source_row->indexed_string_source_id == UINT32_MAX &&
         named_source_row->indexed_string_source_present && named_source_row->indexed_string_source_id == UINT32_MAX);
+    uint32_t direct_kind = 0, direct_receiver = 0, direct_source = UINT32_MAX;
+    uint32_t named_kind = 0, named_receiver = 0, named_effect_source = UINT32_MAX;
+    CHECK(ast_call_semantic_collection_effect(direct, &direct_kind, &direct_receiver, &direct_source) &&
+        ast_call_semantic_collection_effect(named, &named_kind, &named_receiver, &named_effect_source) &&
+        direct_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+        named_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+        direct_receiver == ast_node_stable_id(atom_table) &&
+        named_receiver == direct_receiver && direct_source == 0 && named_effect_source == 0);
     CHECK(!semantic_collection_owned_string_call_result(dependency, ctx, NULL));
     const PgyCollectionOwnershipFact *atom_fact = semantic_collection_ownership_fact_find(
         ctx, ast_node_stable_id(project), ast_node_stable_id(atom_table));
@@ -11283,6 +11291,228 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_private_string_empty_receiver_currency(bool named)
+{
+    Lexer *lexer = lexer_create(named
+        ? "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
+          "func AtomFor(node:TextNode)->String{return node.type_name;}"
+          "func Project(nodes:Array<TextNode>)->Arena{"
+          "let atom_table:Array<String> = [];"
+          "let atom_text:String=AtomFor(nodes[0]);ArrayPush(atom_table,atom_text);"
+          "return Arena(atom_table);}"
+          "func Main()->Void{let name=Concat(\"Type\",\"Name\");"
+          "let nodes:Array<TextNode> = [TextNode(name)];"
+          "let arena=Project(nodes);Log(arena.atom_table[0]);}"
+        : "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
+          "func Project(nodes:Array<TextNode>)->Arena{"
+          "let atom_table:Array<String> = [];"
+          "ArrayPush(atom_table,nodes[0].type_name);return Arena(atom_table);}"
+          "func Main()->Void{let name=Concat(\"Type\",\"Name\");"
+          "let nodes:Array<TextNode> = [TextNode(name)];"
+          "let arena=Project(nodes);Log(arena.atom_table[0]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *project = ast_program_statement(program, named ? 3 : 2);
+    ASTNode *body = project == NULL ? NULL : ast_func_body(project);
+    ASTNode *binding = body == NULL ? NULL : ast_block_statement(body, 0);
+    ASTNode *push = body == NULL ? NULL : ast_block_statement(body, named ? 2 : 1);
+    ASTNode *receiver = push == NULL ? NULL : ast_call_argument(push, 0);
+    ASTNode *source = push == NULL ? NULL : ast_call_argument(push, 1);
+    ASTNode *dependency = named && body != NULL
+        ? ast_let_initializer(ast_block_statement(body, 1)) : NULL;
+    CHECK(project != NULL && binding != NULL && push != NULL && push->type == AST_CALL &&
+        receiver != NULL && source != NULL && (!named || dependency != NULL));
+    if (project == NULL || binding == NULL || push == NULL || receiver == NULL || source == NULL ||
+        (named && dependency == NULL)) goto cleanup;
+    uint32_t binding_id = ast_node_stable_id(binding);
+    PgyCollectionOwnershipFact *fact = (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(project), binding_id);
+    CHECK(fact != NULL && binding_id != 0 && fact->binding_syntax_id == binding_id &&
+        fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL &&
+        fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN &&
+        fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE &&
+        ast_identifier_binding_syntax_id(receiver) == binding_id);
+    uint32_t effect_kind = 0, effect_receiver = 0, effect_source = UINT32_MAX;
+    CHECK(ast_call_semantic_collection_effect(push, &effect_kind, &effect_receiver, &effect_source) &&
+        effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+        effect_receiver == binding_id && effect_source == 0);
+    CHECK(published_node_for(ctx, push) != NULL &&
+        published_node_for(ctx, push)->private_string_push != NULL);
+    unsigned mask = function_param_flow_summary_for_param(ctx, project, 0);
+    CHECK(mask != SLOT_PARAM_SUMMARY_ALL);
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    FunctionParamFlowBackingFact *result = named && flow != NULL
+        ? function_param_flow_declared_result_frame_current(flow, dependency, NULL) : NULL;
+    CHECK(!named || (result != NULL && result->epoch != 0 && result->complete && !result->pending));
+    if (named) CHECK(!function_param_flow_string_result_independent_current(ctx, dependency));
+    FunctionParamFlowProgramPointIndex *index = NULL;
+    CHECK(flow != NULL && function_param_flow_program_point_index_build(flow, project, &index));
+    FunctionParamFlowIndexClaim *claim = NULL;
+    if (index != NULL && index->claims != NULL)
+        for (size_t i = 0; i < index->claims->count; i++)
+            if (index->claims->rows[i].node == push) claim = &index->claims->rows[i];
+    CHECK(claim != NULL && claim->collection_effect_present &&
+        claim->collection_effect_kind == PGY_COLLECTION_EFFECT_SHALLOW_MUTATION &&
+        claim->collection_effect_receiver == binding_id && claim->collection_effect_source == 0);
+    CHECK(function_param_flow_private_string_receiver_current(ctx, project, binding_id));
+    CHECK(semantic_indexed_string_private_push_current(ctx, push));
+    CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    if (fact == NULL || claim == NULL) goto cleanup;
+    /* The receiver is the risk binding itself. Its current history and the
+     * native/AST effect tuple must both survive final replay. */
+    for (unsigned fault = 0; fault < 17; fault++) {
+        PgyCollectionOwnershipFact saved_fact = *fact;
+        bool saved_effect_present = push->data.call.semantic_collection_effect_set;
+        uint32_t saved_kind = push->data.call.semantic_collection_effect_kind;
+        uint32_t saved_receiver = push->data.call.semantic_collection_receiver_binding_id;
+        uint32_t saved_source = push->data.call.semantic_collection_source_binding_id;
+        bool saved_claim_present = claim->collection_effect_present;
+        uint32_t saved_claim_kind = claim->collection_effect_kind;
+        uint32_t saved_claim_receiver = claim->collection_effect_receiver;
+        uint32_t saved_claim_source = claim->collection_effect_source;
+        if (fault == 0) memset(fact, 0, sizeof(*fact));
+        if (fault == 1) fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
+        if (fault == 2) fact->element_ownership = PGY_STRING_ARRAY_OWNED_ELEMENTS;
+        if (fault == 3) fact->element_ownership = PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT;
+        if (fault == 4) fact->origin = PGY_COLLECTION_ORIGIN_MAP_KEYS;
+        if (fault == 5) fact->origin_syntax_id++;
+        if (fault == 6) fact->source_binding_syntax_id++;
+        if (fault == 7) fact->binding_syntax_id++;
+        if (fault == 8) fact->function_syntax_id++;
+        if (fault == 9) push->data.call.semantic_collection_effect_set = false;
+        if (fault == 10) push->data.call.semantic_collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+        if (fault == 11) push->data.call.semantic_collection_receiver_binding_id++;
+        if (fault == 12) push->data.call.semantic_collection_source_binding_id++;
+        if (fault == 13) claim->collection_effect_present = false;
+        if (fault == 14) claim->collection_effect_kind = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+        if (fault == 15) claim->collection_effect_receiver++;
+        if (fault == 16) claim->collection_effect_source++;
+        CHECK(!function_param_flow_private_string_receiver_current(ctx, project, binding_id));
+        CHECK(!semantic_indexed_string_private_push_current(ctx, push));
+        size_t diagnostics = ctx->diagnostic_count;
+        CHECK(!semantic_indexed_string_borrow_finalize(ctx));
+        CHECK(ctx->has_error && ctx->diagnostic_count == diagnostics + 1 &&
+            ctx->diagnostics[diagnostics] != NULL && ctx->diagnostics[diagnostics]->code != NULL &&
+            strcmp(ctx->diagnostics[diagnostics]->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0);
+        *fact = saved_fact;
+        push->data.call.semantic_collection_effect_set = saved_effect_present;
+        push->data.call.semantic_collection_effect_kind = saved_kind;
+        push->data.call.semantic_collection_receiver_binding_id = saved_receiver;
+        push->data.call.semantic_collection_source_binding_id = saved_source;
+        claim->collection_effect_present = saved_claim_present;
+        claim->collection_effect_kind = saved_claim_kind;
+        claim->collection_effect_receiver = saved_claim_receiver;
+        claim->collection_effect_source = saved_claim_source;
+        for (size_t d = diagnostics; d < ctx->diagnostic_count; d++) {
+            free(ctx->diagnostics[d]->message);
+            diag_payload_snapshot_destroy(ctx->diagnostics[d]->payload);
+            free(ctx->diagnostics[d]);
+            ctx->diagnostics[d] = NULL;
+        }
+        ctx->diagnostic_count = diagnostics;
+        ctx->has_error = false;
+        CHECK(function_param_flow_private_string_receiver_current(ctx, project, binding_id));
+        CHECK(semantic_indexed_string_private_push_current(ctx, push));
+        CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_private_string_borrowed_without_receipt(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Main()->Void{let rows:Array<String> = [\"\"];"
+        "ArrayPush(rows,\"next\");Log(rows[1]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (typed) {
+        ASTNode *main_decl = ast_program_statement(program, 0);
+        ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+        ASTNode *push = body == NULL ? NULL : ast_block_statement(body, 1);
+        PublishedNode *row = push == NULL ? NULL : published_node_for(ctx, push);
+        CHECK(push != NULL && push->type == AST_CALL && row != NULL &&
+            row->private_string_push == NULL &&
+            !ast_call_semantic_collection_effect(push, NULL, NULL, NULL));
+    }
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_private_string_independent_result_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "struct TextNode{type_name:String;}struct Arena{atom_table:Array<String>;}"
+        "func Fresh(node:TextNode)->String{return Concat(\"fresh\",\" value\");}"
+        "func Project(nodes:Array<TextNode>)->Arena{let atom_table:Array<String> = [];"
+        "ArrayPush(atom_table,Fresh(nodes[0]));return Arena(atom_table);}"
+        "func Main()->Void{let nodes:Array<TextNode> = [TextNode(\"unused\")];"
+        "let arena=Project(nodes);Log(arena.atom_table[0]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *fresh = ast_program_statement(program, 2);
+    ASTNode *project = ast_program_statement(program, 3);
+    ASTNode *body = project == NULL ? NULL : ast_func_body(project);
+    ASTNode *push = body == NULL ? NULL : ast_block_statement(body, 1);
+    ASTNode *call = push == NULL ? NULL : ast_call_argument(push, 1);
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(fresh != NULL && project != NULL && push != NULL && push->type == AST_CALL &&
+        call != NULL && call->type == AST_CALL && flow != NULL);
+    if (fresh == NULL || push == NULL || call == NULL || flow == NULL) goto cleanup;
+    unsigned mask = function_param_flow_summary_for_param(ctx, fresh, 0);
+    CHECK(mask != SLOT_PARAM_SUMMARY_ALL && (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0);
+    FunctionParamFlowBackingFact *result = function_param_flow_declared_result_frame_current(flow, call, NULL);
+    CHECK(result != NULL && result->epoch != 0 && result->complete && !result->pending);
+    if (result == NULL) goto cleanup;
+    uint32_t source = UINT32_MAX;
+    CHECK(function_param_flow_string_result_independent_current(ctx, call));
+    CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+    CHECK(semantic_indexed_string_private_push_current(ctx, push));
+    CHECK(semantic_indexed_string_borrow_finalize(ctx));
+    size_t epoch = result->epoch;
+    result->epoch = 0;
+    CHECK(!function_param_flow_string_result_independent_current(ctx, call));
+    CHECK(!semantic_indexed_string_private_push_current(ctx, push));
+    size_t diagnostics = ctx->diagnostic_count;
+    CHECK(!semantic_indexed_string_borrow_finalize(ctx));
+    CHECK(ctx->has_error && ctx->diagnostic_count == diagnostics + 1 &&
+        ctx->diagnostics[diagnostics] != NULL && ctx->diagnostics[diagnostics]->code != NULL &&
+        strcmp(ctx->diagnostics[diagnostics]->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0);
+    result->epoch = epoch;
+    for (size_t d = diagnostics; d < ctx->diagnostic_count; d++) {
+        free(ctx->diagnostics[d]->message);
+        diag_payload_snapshot_destroy(ctx->diagnostics[d]->payload);
+        free(ctx->diagnostics[d]);
+        ctx->diagnostics[d] = NULL;
+    }
+    ctx->diagnostic_count = diagnostics;
+    ctx->has_error = false;
+    CHECK(function_param_flow_string_result_independent_current(ctx, call));
+    CHECK(semantic_indexed_string_private_push_current(ctx, push));
+    CHECK(semantic_indexed_string_borrow_finalize(ctx));
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 int main(void)
 {
     checked_unit_enum_selection_currency();
@@ -11306,6 +11536,10 @@ int main(void)
     checked_scalar_noframe_nonlocal_currency();
     checked_physical_result_nonlocal_currency();
     checked_private_string_push_currency();
+    checked_private_string_empty_receiver_currency(false);
+    checked_private_string_empty_receiver_currency(true);
+    checked_private_string_borrowed_without_receipt();
+    checked_private_string_independent_result_currency();
     checked_named_string_shallow_retention_currency();
     checked_result_argument_currency();
     checked_witnessed_physical_call_alias_currency();

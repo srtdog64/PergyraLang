@@ -6,6 +6,8 @@
 uint32_t
 current_function_syntax_id(const SemanticContext *ctx);
 
+bool collection_array_string_type(const Type *type);
+
 uint32_t
 receiver_binding_syntax_id(ASTNode *receiver, const Symbol *binding);
 
@@ -16,6 +18,9 @@ receiver_collection_fact(ASTNode *receiver, SemanticContext *ctx,
 bool
 collection_call_is_unshadowed_builtin(const ASTNode *expr,
                                       const char *expected_name);
+
+bool collection_private_push_recorded(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *receiver, uint32_t binding_id);
 
 bool
 collection_member_move_identity(const ASTNode *member_access,

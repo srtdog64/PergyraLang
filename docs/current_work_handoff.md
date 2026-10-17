@@ -5,44 +5,52 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — exact String uses, then canonical/bootstrap/CI
 
-- Bounded source checkpoint: main private-String-push slice, parent
-  `249b27f6d789e4d78b68ac023f97e7171db6c633`, local/unpublished.
+- Bounded source: main `7ff14cf603c22c2d43cae8dcfa8de4ec6e493f42` plus
+  frozen receiver-review repair; local/unpublished, independent review pending.
   Only main exists. Root alone owns WSL/build/process/Git. No known-red push.
   The whole-chain plan is the current first section of
   `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
 - Current identified non-Git build snapshot:
   `/root/pgy-exact-main-20261017.LlEIOb` (Git archive61a plus verified overlays).
   Native SHA256:
-  `90b4911ba8ac03af2e2ae65c49df9c7c3536c5684cd381b3393c18c1bd0d8b15`.
+  `8f2292411caaa5531e2d4245fdfc50b011f3c132728720575841609b2652591b`.
   Phase TU SHA256:
-  `BE2427B6480B61266936C8CD54FC83F4249E36EE91C292D67BB9A00F5E75CE98`.
-  All34 modified/new src/test paths since61a compare byte-equal D to Linux,
+  `246BA342647CE3EA6F22B39B8DD489772FEFB5244C401A065C0AA31F830F26A7`.
+  All46 modified/new src/test paths since61a compare byte-equal D to Linux,
   using Windows Git's actual changed path set. WSL Git working-tree discovery
   has different CRLF handling; its slow comparison was stopped by exact owned
   process group, not a process-name kill. No other compile was stopped.
 - Scope: exact private literal-local String ArrayPush at the original reached
   LIVE non-BORROWED risk branch records call/source/receiver/caller/formal,
   selected-call/LET/projection identity and an independent issuance count.
-  The risk owner and borrowed-element receiver are different identities.
+  BORROWED literal receivers are distinct from the risk owner. A genuinely
+  EMPTY/UNKNOWN receiver can be that owner only with current no-owned-history.
   One-time preparation uses the existing declared-result producer under the
   original budget; later current queries cannot recreate withdrawn evidence.
-  Program-success replay checks every receipt and its count. Raw UNKNOWN,
+  Exact receiver facts and write-once SHALLOW tuples are replayed. Existing
+  typed claims capture every effect tuple, including absence. Named independent
+  String results use explicit b53 source0 evidence, never a field grant. The
+  MIR consumer accepts only the scoped borrowed SHALLOW tuple, not owned/drop
+  authority; missing copied receipts and AST/MIR drift fail. Raw UNKNOWN,
   outward RETURN/backing and deep-cleanup authority are unchanged.
 - Review repairs: standalone physical-input proof now requires its own
   current Array<physical> owned-result receipt; navigation_result_shape is
   explicitly only a shape predicate. Frame epoch/private_stores_closed and
   unsubstituted generic-field refusal remain enforced. No new owner TU,
   summary mask, source0 fallback, manual Clone/drop or canonical edit.
-- Bounded acceptance: D1XzCU phase11325/0 and original strict PASS.
-  Five named_string_field fixtures are registered in the existing strict
-  gate: empty-provenance positive, MakeNodes/forward/mixed/drop and alias
-  mutation negatives with exact BORROW diagnostics/MIR0. The positive also
-  executes on C/LLVM with TypeName/TypeName output; unsafe_execution=0.
-  Xdn7Zt passes all six old named-currency groups, broad DOBBdP
-  (MIR370/0, semantic3230/0, transpile1012/0, AIR156/0, Map24/58 and4IR),
-  and ASan/UBSan Sy98oX phase11325/0 with live UAF witness and leaks OFF.
-  Earlier same-stage2 native4228f7f0 separately passed safe66/66 (ewhUmO).
-- Full canonical is still RED. AqldHF checks both unchanged fixed input
+- Bounded acceptance: xb4VaO phase11610/0 and full strict PASS, including C/LLVM
+  execution of direct/named EMPTY receivers and Fresh independent String.
+  A0ljlj records all four mixing orders as exact BORROW/MIR0; no unsafe run.
+  Broad qT4b6t passes semantic3230/0, transpile1012/0, AIR156/0, Map24/58
+  and HIR/RIR/AIR flow. Its MIR failure was one newly introduced control also
+  refused before MIR by the previous native. It now uses the already-admitted
+  call chain; no original oracle changed.
+  Corrected jhy8cQ MIR384/0 includes13 tuple/retirement/owned/drop faults.
+  0zZsmN re-runs old six/broad/SAN on unchanged native8f; PENDING.
+  TZJteZ observes unchanged old/new post-push move behavior: plain borrowed
+  move admitted, private-field move refused by both. No precision track opened.
+- Last full canonical is still RED on90b (8f full input not yet rerun).
+  AqldHF checks both unchanged fixed input
   (4273 routines/3188 keys under p0-fixed-canonical.nbPIex) and actual main.
   Both produce MIR0/18435 cascading BORROW errors: fixed31.01s/1621388KiB,
   current29.20s/1619564KiB. Do not count cascades as independent defects.

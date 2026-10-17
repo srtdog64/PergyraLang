@@ -13,8 +13,8 @@
 #include "array_storage_element_lifetime_owner.h"
 #include "../parser/ast_api.h"
 
-static bool
-is_array_string(const Type *type)
+bool
+collection_array_string_type(const Type *type)
 {
     Type *inner;
     if (!type_is_constructed_named(type, "Array"))
@@ -149,7 +149,7 @@ semantic_collection_ownership_initialize_binding(
     Symbol *source = NULL;
     bool move_source_binding = false;
 
-    if (binding == NULL || !is_array_string(binding_type))
+    if (binding == NULL || !collection_array_string_type(binding_type))
         return true;
     memset(&fact, 0, sizeof(fact));
     fact.function_syntax_id = current_function_syntax_id(ctx);
@@ -282,72 +282,13 @@ semantic_collection_ownership_initialize_binding(
     return true;
 }
 
-bool
-semantic_collection_record_call_effect(
-    ASTNode *call,
-    ASTNode *receiver,
-    PgyCollectionOwnershipEffectKind kind,
-    SemanticContext *ctx)
-{
-    return semantic_collection_record_call_effect_from(
-        call, receiver, kind, 0, ctx);
-}
-
-bool
-semantic_collection_record_call_effect_from(
-    ASTNode *call,
-    ASTNode *receiver,
-    PgyCollectionOwnershipEffectKind kind,
-    uint32_t source_syntax_id,
-    SemanticContext *ctx)
-{
-    Symbol *binding = NULL;
-    PgyCollectionOwnershipFact *fact;
-    uint32_t binding_id, issued_kind = 0, issued_binding = 0, issued_source = 0;
-
-    if (call == NULL || call->type != AST_CALL || receiver == NULL
-        || kind <= PGY_COLLECTION_EFFECT_NONE
-        || kind > PGY_COLLECTION_EFFECT_DROP
-        || (source_syntax_id != 0
-            && kind != PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH)) {
-        return false;
-    }
-    fact = receiver_collection_fact(receiver, ctx, &binding);
-    if (fact == NULL)
-        return !ast_call_semantic_collection_effect(call, NULL, NULL, NULL);
-    bool owned_local_drop = kind == PGY_COLLECTION_EFFECT_DROP
-        && (fact->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
-            || fact->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
-        && (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
-            || fact->origin == PGY_COLLECTION_ORIGIN_CLONE
-            || fact->origin == PGY_COLLECTION_ORIGIN_BINDING);
-    if (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL && !owned_local_drop)
-        return semantic_array_storage_record_return_element_effect(receiver, kind,
-            !ast_call_semantic_collection_effect(call, NULL, NULL, NULL), ctx);
-    if (fact->disposition != (owned_local_drop
-            ? PGY_COLLECTION_DISPOSITION_RETIRED
-            : PGY_COLLECTION_DISPOSITION_LIVE))
-        return false;
-    binding_id = receiver_binding_syntax_id(receiver, binding);
-    if (binding == NULL || !is_array_string(binding->type) || binding_id == 0
-        || binding->decl_syntax_id != binding_id)
-        return false;
-    /* The parser receipt stays write-once; only its exact recheck is valid. */
-    return semantic_array_storage_record_return_element_effect(receiver, kind,
-        ast_call_set_semantic_collection_effect(call, (uint32_t)kind, binding_id,
-            source_syntax_id) || (ast_call_semantic_collection_effect(
-        call, &issued_kind, &issued_binding, &issued_source)
-        && issued_kind == (uint32_t)kind && issued_binding == binding_id
-        && issued_source == source_syntax_id), ctx);
-}
-
 static bool
 reject_missing_collection_fact(ASTNode *receiver,
                                const Symbol *binding,
                                const char *operation,
                                SemanticContext *ctx)
 {
-    if (binding == NULL || !is_array_string(binding->type))
+    if (binding == NULL || !collection_array_string_type(binding->type))
         return false;
     /* Parameter provenance is owned by the separate interprocedural
      * carriage rung. Do not manufacture a local fact or fail an existing
@@ -449,7 +390,7 @@ semantic_collection_admit_owned_string_drop(
     }
     if (fact == NULL) {
         if (binding != NULL && binding->is_parameter
-            && is_array_string(binding->type)
+            && collection_array_string_type(binding->type)
             && binding->param_mode != PARAM_MODE_OWN) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BORROW_ESCAPE,
@@ -580,7 +521,7 @@ semantic_collection_reject_unsafe_string_array_assignment(
 
     if (target == NULL || value == NULL || ctx == NULL
         || target->type != AST_IDENTIFIER || value->type != AST_IDENTIFIER
-        || !is_array_string(target_type) || !is_array_string(value_type)) {
+        || !collection_array_string_type(target_type) || !collection_array_string_type(value_type)) {
         return false;
     }
     target_binding = scope_lookup(ctx->scope, ast_identifier_name(target));

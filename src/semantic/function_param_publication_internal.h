@@ -9,6 +9,8 @@ bool publication_physical_scalar(const Type *type);
 PublishedNode *publication_node(FunctionParamPublicationStore *store,
     const ASTNode *node, bool insert);
 PublishedNode *publication_node_by_id(FunctionParamPublicationStore *store, uint32_t id);
+bool semantic_param_publication_pending_projection_formal_root(SemanticContext *ctx,
+    ASTNode *caller, const ASTNode *value, const ASTNode **root, size_t *formal);
 bool publication_call_ready(const PublishedNode *row);
 PendingRoutine *publication_routine(FunctionParamPublicationStore *store, uint32_t id);
 PublishedNode *publication_checked_intrinsic(const SemanticContext *ctx,
