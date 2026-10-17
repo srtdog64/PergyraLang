@@ -107,25 +107,6 @@ collection_ownership_fact_find_mutable(SemanticContext *ctx,
             ctx, function_syntax_id, binding_syntax_id);
 }
 
-static bool
-collection_ownership_fact_append(SemanticContext *ctx,
-                                 const PgyCollectionOwnershipFact *fact)
-{
-    if (ctx == NULL || fact == NULL || fact->function_syntax_id == 0
-        || fact->binding_syntax_id == 0
-        || fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
-        || semantic_collection_ownership_fact_find(
-            ctx, fact->function_syntax_id,
-            fact->binding_syntax_id) != NULL)
-        return false;
-    if (!collection_ownership_fact_reserve(
-            ctx, ctx->collection_ownership_fact_count + 1))
-        return false;
-    ctx->collection_ownership_facts[
-        ctx->collection_ownership_fact_count++] = *fact;
-    return true;
-}
-
 static Symbol *
 receiver_symbol(ASTNode *receiver, SemanticContext *ctx)
 {
@@ -257,8 +238,22 @@ semantic_collection_ownership_initialize_binding(
         }
     }
 
-    if (!collection_ownership_fact_append(ctx, &fact))
-        return false;
+    source_fact = collection_ownership_fact_find_mutable(
+        ctx, fact.function_syntax_id, fact.binding_syntax_id);
+    if (source_fact != NULL) {
+        /* A loop recheck may reuse a live birth, never revive a retired one. */
+        if (source_fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+            || source_fact->origin_syntax_id != fact.origin_syntax_id
+            || source_fact->source_binding_syntax_id != fact.source_binding_syntax_id
+            || source_fact->element_ownership != fact.element_ownership
+            || source_fact->origin != fact.origin)
+            return false;
+    } else {
+        if (!collection_ownership_fact_reserve(
+                ctx, ctx->collection_ownership_fact_count + 1))
+            return false;
+        ctx->collection_ownership_facts[ctx->collection_ownership_fact_count++] = fact;
+    }
     if (move_source_binding) {
         source_fact = collection_ownership_fact_find_mutable(
             ctx, fact.function_syntax_id, fact.source_binding_syntax_id);
@@ -303,7 +298,7 @@ semantic_collection_record_call_effect_from(
 {
     Symbol *binding = NULL;
     PgyCollectionOwnershipFact *fact;
-    uint32_t binding_id;
+    uint32_t binding_id, issued_kind = 0, issued_binding = 0, issued_source = 0;
 
     if (call == NULL || call->type != AST_CALL || receiver == NULL
         || kind <= PGY_COLLECTION_EFFECT_NONE
@@ -314,7 +309,7 @@ semantic_collection_record_call_effect_from(
     }
     fact = receiver_collection_fact(receiver, ctx, &binding);
     if (fact == NULL)
-        return true;
+        return !ast_call_semantic_collection_effect(call, NULL, NULL, NULL);
     bool owned_local_drop = kind == PGY_COLLECTION_EFFECT_DROP
         && (fact->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
             || fact->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
@@ -322,11 +317,23 @@ semantic_collection_record_call_effect_from(
             || fact->origin == PGY_COLLECTION_ORIGIN_CLONE
             || fact->origin == PGY_COLLECTION_ORIGIN_BINDING);
     if (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL && !owned_local_drop)
-        return true;
+        return !ast_call_semantic_collection_effect(call, NULL, NULL, NULL);
+    if (fact->disposition != (owned_local_drop
+            ? PGY_COLLECTION_DISPOSITION_RETIRED
+            : PGY_COLLECTION_DISPOSITION_LIVE))
+        return false;
     binding_id = receiver_binding_syntax_id(receiver, binding);
-    return binding_id != 0
-        && ast_call_set_semantic_collection_effect(
-            call, (uint32_t)kind, binding_id, source_syntax_id);
+    if (binding == NULL || !is_array_string(binding->type) || binding_id == 0
+        || binding->decl_syntax_id != binding_id)
+        return false;
+    /* The parser receipt stays write-once; only its exact recheck is valid. */
+    if (ast_call_set_semantic_collection_effect(
+            call, (uint32_t)kind, binding_id, source_syntax_id))
+        return true;
+    return ast_call_semantic_collection_effect(
+        call, &issued_kind, &issued_binding, &issued_source)
+        && issued_kind == (uint32_t)kind && issued_binding == binding_id
+        && issued_source == source_syntax_id;
 }
 
 static bool

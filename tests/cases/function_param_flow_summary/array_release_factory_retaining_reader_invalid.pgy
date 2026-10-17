@@ -1,0 +1,28 @@
+extern "C" { func Keep(keys: Array<String>) -> Void; }
+
+struct Count
+{
+    n: Int;
+    text: String;
+}
+
+func Keys() -> Array<String>
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    return MapKeys(map);
+}
+
+func ReadCount(keys: Array<String>) -> Count
+{
+    Keep(keys);
+    return Count(ArrayLength(keys), "count");
+}
+
+func Main() -> Void
+{
+    let keys: Array<String> = Keys();
+    let count: Count = ReadCount(keys);
+    Log(count.n);
+    ArrayDropOwnedStrings(keys);
+}

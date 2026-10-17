@@ -7549,6 +7549,106 @@ cleanup:
     semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_collection_exact_replay(const char *source, bool birth, bool retired)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted);
+    if (!admitted) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    ASTNode *local = ast_block_statement(ast_func_body(decl), 0);
+    ASTNode *initializer = ast_let_initializer(local);
+    ASTNode *call = ast_block_statement(ast_func_body(decl), 1);
+    ASTNode *receiver = ast_call_argument(call, 0);
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, receiver);
+    PgyCollectionOwnershipFact *fact = (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(decl), ast_node_stable_id(local));
+    CHECK(value.ok && value.type != NULL && fact != NULL);
+    if (!value.ok || fact == NULL) goto cleanup;
+    Symbol symbol = {0};
+    symbol.name = (char *)ast_identifier_name(receiver); symbol.kind = SYMBOL_VARIABLE;
+    symbol.decl_syntax_id = ast_node_stable_id(local); symbol.type = (Type *)value.type;
+    Symbol *symbols[] = {&symbol};
+    Scope scope = {0}; scope.symbols = symbols; scope.symbol_count = 1;
+    Scope *saved_scope = ctx->scope;
+    ASTNode *saved_function = ctx->current_function_decl;
+    ctx->scope = &scope; ctx->current_function_decl = decl;
+    uint32_t kind = 0, binding = 0, seed = 0;
+    CHECK(ast_call_semantic_collection_effect(call, &kind, &binding, &seed));
+    CHECK(binding == symbol.decl_syntax_id && fact->disposition ==
+        (retired ? PGY_COLLECTION_DISPOSITION_RETIRED : PGY_COLLECTION_DISPOSITION_LIVE));
+    CHECK(!ast_call_set_semantic_collection_effect(call, kind, binding, seed));
+    CHECK(semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    CHECK(!semantic_collection_record_call_effect_from(call, receiver,
+        kind == PGY_COLLECTION_EFFECT_DROP ? PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+            : PGY_COLLECTION_EFFECT_DROP, seed, ctx));
+    CHECK(!semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed + 1, ctx));
+    uint32_t receiver_binding = ast_identifier_binding_syntax_id(receiver);
+    ast_identifier_set_binding_syntax_id(receiver, receiver_binding + 1);
+    CHECK(!semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    ast_identifier_set_binding_syntax_id(receiver, receiver_binding);
+    symbol.decl_syntax_id++;
+    CHECK(!semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    symbol.decl_syntax_id--;
+    symbol.type = TYPE_INT;
+    CHECK(!semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    symbol.type = (Type *)value.type;
+    CHECK(semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    PgyCollectionOwnershipFact saved = *fact;
+    fact->disposition = retired ? PGY_COLLECTION_DISPOSITION_LIVE : PGY_COLLECTION_DISPOSITION_RETIRED;
+    CHECK(!semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    *fact = saved;
+    CHECK(semantic_collection_record_call_effect_from(call, receiver,
+        (PgyCollectionOwnershipEffectKind)kind, seed, ctx));
+    if (birth) {
+        size_t count = ctx->collection_ownership_fact_count;
+        CHECK(semantic_collection_ownership_initialize_binding(&symbol, initializer, value.type, ctx));
+        CHECK(ctx->collection_ownership_fact_count == count);
+        for (unsigned fault = 0; fault < 5; fault++) {
+            if (fault == 0) fact->origin_syntax_id++;
+            if (fault == 1) fact->source_binding_syntax_id++;
+            if (fault == 2) fact->element_ownership = PGY_STRING_ARRAY_BORROWED_ELEMENTS;
+            if (fault == 3) fact->origin = PGY_COLLECTION_ORIGIN_CLONE;
+            if (fault == 4) fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
+            CHECK(!semantic_collection_ownership_initialize_binding(&symbol, initializer, value.type, ctx));
+            CHECK(ctx->collection_ownership_fact_count == count);
+            *fact = saved;
+            CHECK(semantic_collection_ownership_initialize_binding(&symbol, initializer, value.type, ctx));
+        }
+        uint32_t initializer_id = initializer->stable_id;
+        initializer->stable_id++;
+        CHECK(!semantic_collection_ownership_initialize_binding(&symbol, initializer, value.type, ctx));
+        initializer->stable_id = initializer_id;
+    }
+    ctx->scope = saved_scope; ctx->current_function_decl = saved_function;
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_collection_loop_replay(void)
+{
+    checked_collection_exact_replay(
+        "func Use()->Void{let rows:Array<String> = [];"
+        "ArrayPushOwnedString(rows,Concat(\"a\",\"b\"));}", true, false);
+    checked_collection_exact_replay(
+        "func Use()->Void{let rows:Array<String> = [];ArrayDropOwnedStrings(rows);}", true, false);
+    checked_collection_exact_replay(
+        "func Use(ref values:HashMap<String,Int>)->Void{let rows=MapKeys(values);"
+        "ArrayDropOwnedStrings(rows);}", false, true);
+}
+
 static void checked_array_storage_pending_currency(const char *source, bool moved)
 {
     Lexer *lexer = lexer_create(source);
@@ -7657,6 +7757,12 @@ static void checked_array_storage_pending_release(void)
         "func Inspect(rows:Array<String>)->Int{return ArrayLength(rows);}"
         "func Use(ref values:HashMap<String,Int>)->Void{let rows=MapKeys(values);"
         "Inspect(rows);let moved=rows;ArrayDropOwnedStrings(moved);}", true);
+    /* Finalized call-proof currency only. The separate source negative owns
+     * evidence that OwnedPush registered and consumed its pending prefix. */
+    checked_array_storage_pending_currency(
+        "func Inspect(ref rows:Array<String>)->Int{return ArrayLength(rows);}"
+        "func Use(ref values:HashMap<String,Int>)->Void{let rows=MapKeys(values);"
+        "Inspect(rows);ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));}", false);
 }
 
 static void checked_array_storage_path_snapshots(void)
@@ -8618,6 +8724,7 @@ int main(void)
     checked_private_array_push_terminating_arm();
     checked_array_storage_path_snapshots();
     checked_array_storage_pending_release();
+    checked_collection_loop_replay();
     checked_array_storage_live_paths();
     checked_private_local_array_push();
     checked_private_physical_array_nested_result_currency();

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "array_storage_deferred_preservation_owner.h"
 #include "symbol_table.h"
 #include "type_checker.h"
 #include "type_checker_internal.h"
@@ -112,26 +113,34 @@ semantic_collection_admit_owned_string_push(ASTNode *receiver,
             name);
         return false;
     }
-    if (fact == NULL)
-        return true;
-    if (fact->element_ownership != PGY_STRING_ARRAY_BORROWED_ELEMENTS
-        && !(fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
-             && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE))
-        return true;
-    semantic_error_with_hints(ctx,
-        PGY_CODE_SEM_BORROW_ESCAPE,
-        PGY_CAUSE_BORROW_ESCAPE,
-        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-        receiver,
-        "ArrayPushOwnedString cannot mix an owned String into '%s' without uniform element ownership.\n"
-        "Reason:\n"
-        "- the existing elements are borrowed or have no deep-release proof\n"
-        "- the resulting array would have no sound whole-array cleanup policy\n"
-        "Fix:\n"
-        "- Clone the collection into an owned snapshot before the owned push\n"
-        "- or use ArrayPush for a borrowed String element",
-        name);
-    return false;
+    if (fact != NULL && (fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS
+        || (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+            && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE))) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver,
+            "ArrayPushOwnedString cannot mix an owned String into '%s' without uniform element ownership.\n"
+            "Reason:\n"
+            "- the existing elements are borrowed or have no deep-release proof\n"
+            "- the resulting array would have no sound whole-array cleanup policy\n"
+            "Fix:\n"
+            "- Clone the collection into an owned snapshot before the owned push\n"
+            "- or use ArrayPush for a borrowed String element",
+            name);
+        return false;
+    }
+    if (binding != NULL && binding->has_pending_inout_preservation
+        && !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
+            ARRAY_STORAGE_MUTATE_OWNED_STRINGS)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver, "ArrayPushOwnedString requires current preserved array storage in '%s'",
+            name);
+        return false;
+    }
+    return true;
 }
 
 bool

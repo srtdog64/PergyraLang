@@ -270,6 +270,155 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   track. Public release/own/move repair does not establish these contracts or
   whole-language memory safety. Preserve the current canonical finish line.
 
+### P1 integration regression — descriptor preservation versus result shape
+
+- Full unchanged uyyZgj on366/f5 is RED:3188 keys/4273 routines,1785 failed
+  (1660 incomplete/stale return relation,125 stale program-point index),1302
+  newly failed versus LCaaSV's622. Its9.33s is NOT a speed win. Earlier Pass2
+  errors suppress later checked publications. No current admission/CI claim.
+- Diagnostic-only SXid8g preserves the same verdict and restores source/build/
+  binaries/modes/Git BYTE_IDENTICAL. Complete Pass2 error attribution starts at
+  SemanticAstSignatureTypeExpressionAppend32965: recursive inout Array<String>
+  followed by OwnedPush is marked escaped. Next FactContractReady35049 deep
+  drops arrays after a source helper returns independent aggregate facts.
+- Correct the producer decision, not the negative gate: descriptor nonretention,
+  existing release authority and result backing are separate facts. Unknown/
+  extern/indirect/constructor calls still revoke possible-retention authority.
+  A current exact named descriptor proof preserves the prior escaped state;
+  nonplain results still revoke plain-release exclusivity as before. Do not
+  turn descriptor preservation into an element-ownership or public-drop grant.
+- Complete required edit set behind existing owners: release call issuer accepts
+  the existing String inout descriptor boundary as well as plain elements and
+  carries an existing pending same-binding proof through consecutive named
+  borrows; its result-shape guard remains separate. The exact stdlib descriptor
+  transfer list admits only receiver ordinal0 of ArrayPushOwnedString in addition
+  to its existing ArrayPush/Set/Pop/Reverse rules. OwnedString push consumes its
+  pending receiver proof at the recorded sequence through the same ordered store
+  with an explicit push operation. Public plain/deep/own/move consumers and
+  their currentness remain intact. No new ledger/family/ABI/annotation/copy.
+- A owns that production set (existing release/deferred owners, stdlib collection
+  transfer and owned-String member-transfer owner); B phase currentness and actual
+  last-consumer withdrawal; C source positive/negative pairs. Root alone owns
+  scratch observation/build/process/Git and the shared integration boundary.
+- Falsifiers: recursive String inout then owned push; independent nonplain named
+  result then deep cleanup; retaining named inout then caller owned push without
+  any drop (must still reject); current call/argument/binding/summary withdrawal,
+  shadowed builtin, mixed/borrowed elements and all earlier release/own/move
+  negatives. Require the original strict/broad/SAN/full fixed census gates and
+  actual bootstrap. A scalar-only Count struct is not a nonplain-result falsifier.
+- Unknown: the named aggregate-result callee may need an existing output seal
+  before descriptor preservation is authoritative. Observe its real producer/
+  state/ready first if it fails; do not bypass COMPLETE/current/ready or add a
+  separate descriptor cache to force this positive. Restore all diagnostic edits.
+- Consecutive pending named calls are not new authority. The later call itself
+  must consume its earlier same-binding sequence prefix at finalization; its
+  own preservation row cannot conceal a failed predecessor merely because no
+  drop follows. Reuse those existing call rows and the same currentness replay,
+  diagnose at the later argument, and keep unsupported first calls conservative.
+
+### P1 loop recheck — acknowledge the same current receipt, never reissue authority
+
+- Objective/order: restore unchanged canonical analysis after the path-state
+  repair, without weakening any loop-state comparison or release check.
+  Native2778c164/8n7XQ8 still has1776 failed cold keys. Scratch aOSI3A records
+  the complete reached replay set:262 call-effect reissuances and55 binding-fact
+  reissuances, all exact tuple matches; every binding fact is LIVE. Zero tuple
+  drift or RETIRED binding matches were observed. Source/build/binaries/modes/
+  Git restore BYTE_IDENTICAL. This is diagnostic evidence, not admission.
+- Existing fact owner: collection_ownership_fact.c, reached from repeated loop
+  body typing after a storage pending bit changes. Last consumers remain HIR/
+  MIR collection-transition admission. Preserve their operation/binding identity.
+  The raw AST setter stays write-once. Its semantic issuer may acknowledge the
+  same kind/receiver/source only after current typing, binding and disposition
+  checks. Binding append may acknowledge the same seven fields only when LIVE.
+  A changed tuple, stale binding or retired binding must still fail; do not
+  overwrite a receipt, resurrect a retired fact, or create a second authority.
+- DROP keeps its existing issuance order: owned-local facts have already retired
+  at effect publication, while the admitted empty-literal path remains LIVE.
+  Do not manufacture one disposition rule that changes either contract.
+- Edit scopes: A existing production owner; B phase replay/mismatch/retirement
+  checks; C executable loop-recheck positive and second-iteration escape
+  falsifiers. Root alone builds and runs the shared strict/broad/full-input gate.
+  No new owner, cache, loop-bit exclusion, allowance increase or manual clone.
+- Falsifiers: repeated identical LIVE binding and effect succeeds once; changed
+  receiver/source/effect or a retired binding fails. Execute outer String-array
+  and loop-local fresh-binding cases on C/LLVM, retain delayed escape rejection,
+  and preserve independent4097 timeout/work boundaries. Then rerun all3188 cold
+  keys/4273 routines and actual unchanged bootstrap; narrow green is not closure.
+- Open: repeated typing also appends ordered deferred rows. No safety bypass is
+  established, but a later prefix can conservatively include another analysis
+  pass's rows. Classify remaining full-input refusals after this repair; do not
+  rewind sequence numbers or delete rows speculatively.
+- rQHbeR/native76ba5065 passes9649 phase checks and the original complete strict
+  budget gate, including4097 within30s. Outer-loop recheck executes C/LLVM2.
+  Loop-local fresh birth now reaches MIR but fails branch-join; its exact DEF
+  lifetime is a reached last-consumer obligation, not a reason to hide the case.
+- Complete tKT0b8 Pass2 set is now9 rows rather than261: seven escaped pushes,
+  one escaped deep drop and one downstream numeric publication failure. The
+  first three sites borrow an inout String-array formal through a named reader;
+  another borrows a named factory result. Borrow eligibility still wrongly
+  requires an owned release authority. Correct the same issuer to require a
+  current typed named, unconsumed, non-host, nonescaped binding for descriptor
+  proof; do not require or grant its exclusive/element release authority.
+  The existing deferred ledger/currentness and last consumers remain mandatory.
+  Unknown/foreign/indirect/constructor calls still revoke; invalid prior prefixes
+  still fail. Parameter read-then-push and factory-read-then-cleanup are the
+  paired positives; retaining reader variants must refuse without MIR.
+
+### P1 reached MIR lifetime — an empty local is born at its exact DEF
+
+- Objective/priority: carry the same lexical birth/transition evidence through
+  the actual last MIR consumer, preserving use-after-drop and forged-receipt
+  refusal. No new syntax, wire row, semantic owner or per-program route.
+- Owner/chain: semantic empty-literal fact -> existing LET DEF population
+  (source/binding ID, expr0 initializer, declared-local marker) -> existing MIR
+  source-local type -> mir_branch_collection_transitions.c. It currently starts
+  every empty-literal binding at routine entry and ignores its DEF. An exact
+  body-local birth/drop therefore joins fictitious EMPTY with RETIRED at the
+  loop header. OEhmI7 is the unchanged falsifier; do not remove or shrink it.
+- Required replacement: keep possible inactive/EMPTY/BORROWED/OWNED/RETIRED
+  states at CFG joins; begin inactive, and activate only an exact current empty
+  literal DEF whose binding/source/origin IDs and Array<String> local type join.
+  Push/drop must be legal for every incoming possibility. A fresh DEF may not
+  reset a live prior generation. Remove the unconditional routine-entry EMPTY
+  authority and immediate mixed-state rejection, not safety checking itself.
+- Reuse the existing canonical-birth shape predicate if its invariant fits;
+  do not add a sibling state owner. Preserve MapKeys/Clone/move admission and
+  terminal rules. Keep unchanged size caps; cohesive replacement can remove
+  the old enum join branches rather than append another validation path.
+- A production: only the reached MIR owner after freezing the release issuer;
+  B existing MIR tests for birth deletion/move, live-overwrite and after-drop
+  use; C the frozen loop-local C/LLVM source oracle. Root alone runs the exact
+  MIR artifact, roundtrip, strict/broad and unchanged full bootstrap boundary.
+  Capture the pre-fix case before edits. Unknown: imported MIR preserves these
+  DEF facts; test that boundary explicitly before claiming closure.
+
+### Current integration receipt and remaining independent-review boundary
+
+- Native b410bc0b / V1keGC passes9649 phase checks,366 MIR tests and strict
+  summary/runtime/original4096-4097 budgets. Before upTlNL had337 pass/14 fail
+  with only the new MIR falsifiers added. AvT1YG executes the unchanged local
+  loop on C/LLVM1/1 and outer loop2; its delayed escape stays two BORROW/no MIR.
+  Final CEAB812B gate is included in broad FCfekx: MIR366, semantic3228,
+  transpile1012, Map24 C/LLVM positives/58 analysis negatives and4IR PASS.
+  SAN cMOlU2 passes9649/0 with a live UAF oracle, leak detection explicitly OFF.
+- Full unchanged Ylpvi5 on452201b9 before only the MIR fix: zero direct Pass2
+  errors, all4273 signatures/3188 cold keys;622->616 failures, all unchanged4096
+  work cap, zero new failures and zero prior-success mask changes.3:37.15,
+  peak1252780KiB, full scratch restoration BYTE_IDENTICAL. No timing win claim.
+  Actual b410 bootstrap8puFIY is RED before gen0:18410 errors/16 warnings,
+  first recursive-summary4096 failure followed by conservative escape cascade.
+  This is not admission, installed-driver evidence or CI closure.
+- Serialized-MIR scope is OPEN, not a demonstrated vulnerability: its existing
+  reader checks local_ref/DEF/source kind/type/empty graph, while native checks
+  current AST pointer/origin relationships too. The wire has no expression
+  stable-ID or AST-pointer field. Do not claim the native proof is byte-for-byte
+  reproduced by imported MIR or start a new wire track without a reached rung.
+- Independent366 review is still OPEN. 5PzMlH reproduces alias before/after Leak
+  crossing unseeded own with MIR14415/14435, never executed. Capture/validate the
+  own-consuming call/formal identity next, preserve the existing extern/static-
+  method/generic call classes, then fix alias versus proved linear transfer.
+
 ### Current checkpoint and reached zero-argument result premise
 
 P1 safety priority before the remaining cost work: independent c143 review

@@ -9,7 +9,6 @@
 #include "diag_codes.h"
 #include "slot_summary.h"
 #include "array_storage_deferred_preservation_owner.h"
-#include "collection_ownership_fact.h"
 
 static void
 array_storage_invalidate_exclusivity(ASTNode *source, const Type *type,
@@ -42,22 +41,17 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     bool array = type_is_constructed_named(type, "Array");
     bool string_array = array
         && type_equals(type_get_constructed_arg(type, 0), TYPE_STRING);
-    const PgyCollectionOwnershipFact *owned_strings = string_array && binding_id != 0
-        && binding != NULL && !binding->has_exclusive_array_storage && ctx != NULL
-        && ctx->current_function_decl != NULL
-        ? semantic_collection_ownership_fact_find(ctx,
-            ast_node_stable_id(ctx->current_function_decl), binding_id) : NULL;
-    bool existing_authority = binding != NULL && binding_id != 0
+    bool named_descriptor = binding != NULL && binding_id != 0
         && ast_identifier_binding_syntax_id(source) == binding_id
-        && (!binding->is_parameter || binding->param_mode == PARAM_MODE_OWN)
+        && type_equals(type, binding->type)
+        && !binding->is_host_field && !binding->is_consumed
+        && !binding->has_escaped_array_storage;
+    bool pending_same_binding = binding != NULL && binding_id != 0
+        && source != NULL && ast_identifier_binding_syntax_id(source) == binding_id
         && !binding->is_host_field && !binding->is_consumed
         && !binding->has_escaped_array_storage
-        && (binding->has_exclusive_array_storage
-            || (string_array
-                && owned_strings != NULL
-                && owned_strings->disposition == PGY_COLLECTION_DISPOSITION_LIVE
-                && (owned_strings->element_ownership == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
-                    || owned_strings->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS)));
+        && binding->has_pending_inout_preservation
+        && semantic_array_storage_deferral_active(ctx);
     bool plain_result = type_equals(result_type, TYPE_VOID)
         || semantic_array_storage_plain_element(result_type, ctx);
     bool exact_named = call != NULL && call->type == AST_CALL
@@ -67,29 +61,38 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
         && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee_decl)
         && ast_call_semantic_callee_value_binding_id(call) == 0
         && ast_call_semantic_callee_declared_callable(call);
-    /* Only a body summary can preserve an existing storage authority. A
-     * Void/scalar return says nothing about a callee retaining its argument. */
+    /* Descriptor preservation comes from the callee body, not its result
+     * shape. Release authority remains a separate, stricter decision. */
     bool exact_user_inout = mode == PARAM_MODE_MUT_REF
         && callee_decl != NULL && ast_node_stable_id(callee_decl) != 0
         && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee_decl)
         && ast_call_semantic_callee_value_binding_id(call) == 0
         && array
-        && semantic_array_storage_plain_element(type_get_constructed_arg(type, 0), ctx);
+        && (semantic_array_storage_plain_element(type_get_constructed_arg(type, 0), ctx)
+            || string_array);
     bool exact_user_borrow = (mode == PARAM_MODE_REF || mode == PARAM_MODE_DEFAULT)
-        && array && plain_result
-        && existing_authority && exact_named;
+        && array
+        && named_descriptor && exact_named;
     /* The callee's summary reads call identities that its own body check
      * records; a later declaration has none yet. Pass 2 records the handoff
      * and keeps exclusivity provisional until every body is checked. */
-    Symbol *handoff = (exact_user_inout || exact_user_borrow) && binding != NULL
-        && semantic_array_storage_deferral_active(ctx) ? binding : NULL;
-    bool preserving = (exact_user_inout || exact_user_borrow) && (handoff != NULL
+    /* Ref cannot mutate or release this descriptor; default can forward it
+     * to inout, so only ref defers the prefix check to a real consumer. */
+    bool prior_consumed = !pending_same_binding || mode == PARAM_MODE_REF
+        || !(exact_user_inout || exact_user_borrow)
+        || semantic_array_storage_record_pending_drop(ctx, source, binding,
+            ARRAY_STORAGE_CALL_AFTER_PENDING);
+    Symbol *handoff = prior_consumed && (exact_user_inout || exact_user_borrow)
+        && binding != NULL && semantic_array_storage_deferral_active(ctx) ? binding : NULL;
+    bool preserving = prior_consumed && (exact_user_inout || exact_user_borrow) && (handoff != NULL
         ? semantic_array_storage_record_pending_call(ctx, handoff, call, callee_decl, ordinal)
         : function_param_flow_preserves_array_storage(ctx, callee_decl, ordinal));
-    if (constructor || (mode != PARAM_MODE_OWN && (!preserving || !plain_result)))
+    if (constructor || (mode != PARAM_MODE_OWN && !preserving))
         /* A call without current preservation proof may retain the shallow
          * descriptor even when its result is Void. Deep cleanup must see it. */
         array_storage_invalidate_exclusivity(source, type, true, ctx);
+    else if (mode != PARAM_MODE_OWN && !plain_result)
+        array_storage_invalidate_exclusivity(source, type, false, ctx);
 }
 
 void

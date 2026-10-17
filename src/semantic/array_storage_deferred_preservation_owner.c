@@ -124,7 +124,9 @@ semantic_array_storage_record_pending_drop(SemanticContext *ctx,
         || ast_identifier_binding_syntax_id(receiver) != binding->decl_syntax_id
         || (operation != ARRAY_STORAGE_RELEASE_DROP_STORAGE
             && operation != ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS
-            && operation != ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS)
+            && operation != ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS
+            && operation != ARRAY_STORAGE_MUTATE_OWNED_STRINGS
+            && operation != ARRAY_STORAGE_CALL_AFTER_PENDING)
         || !deferred_reserve((void **)&store->drops, &store->drop_capacity,
             store->drop_count + 1, sizeof(*store->drops)))
         return false;
@@ -216,7 +218,11 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
             drop->operation == ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS
                 ? "ArrayDropOwnedStrings"
                 : drop->operation == ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS
-                    ? "Array<String> move" : "ArrayDrop");
+                    ? "Array<String> move"
+                    : drop->operation == ARRAY_STORAGE_MUTATE_OWNED_STRINGS
+                        ? "ArrayPushOwnedString"
+                        : drop->operation == ARRAY_STORAGE_CALL_AFTER_PENDING
+                            ? "Array argument call" : "ArrayDrop");
     }
     return true;
 }

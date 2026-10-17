@@ -5,19 +5,29 @@ evidence override this card. Resume this card, not the archive below.
 
 ## Active self-host context — unchanged canonical admission, then bootstrap/CI
 
-- Last committed source checkpoint: `cd5efe4d291ea6a5527bfc1a4159cfc0ef0215b6` on main,
-  parent80bab8e5b. Both are local and unpushed. Only navigation updates follow
-  this checkpoint; verify exact HEAD/dirty state before any build.
-- IN FLIGHT: path-state and release-authority repair in the existing flow,
-  array-storage/deferred-preservation and collection owners, with phase/source
-  gates. Read the two current cards near the top of the integration directive.
-  Native0d7cf2a and c3d868cc exposed release/own/move bypasses and are NOT
-  acceptable. Current frozen native is f5d34d71f145bc968ff3c5b3d5fb36e6eac90fe3f701ee4dc6dd0c8e41419d58.
-  FV646Y passes9529 phase checks and the full strict summary/source/runtime/
-  budget gate. xYPejF proves both last-consumer negatives refuse without MIR
-  while both positive C/LLVM outputs are retained. Unsafe negatives were never
-  executed. Final f5 broad ADhxLu passes the native/Map/four-IR boundary below;
-  sanitizer, full fixed census and independent review remain pending.
+- Last committed source checkpoint: `366d1afad8564ac827244bfe49ba64ef5494cfd5`
+  on main, parent7bfbb0b59 (prior source cd5efe4d2). Local and unpushed.
+  There is further production/phase/source-gate WIP; verify exact dirty state.
+- IN FLIGHT: the existing path-state/release/collection chain; read its current
+  cards near the top of the integration directive, not earlier cost proposals.
+  Current dirty-source Linux native is b410bc0b8d838e3c65e10ae8c6b6462b4e35be7fc24b16ddb43e71cab7f57814.
+  V1keGC passes9649 phase checks,366 MIR tests and the original strict summary/
+  runtime/4096-4097 budgets. AvT1YG executes both outer and loop-local String
+  arrays on C/LLVM (2 and1/1), with delayed escape still BORROW/no MIR.
+  CEAB812B source gate additionally registers that observed local case; rerun
+  it through the broad gate FCfekx. No unsafe negative has been executed.
+- Full unchanged Ylpvi5 on prior native452201b9 (before only the MIR fix): all
+  4273 routines/3188 cold keys, zero direct Pass2 errors,622->616 failed keys,
+  all at the unchanged4096 work cap, zero new failures and zero prior-success
+  mask changes.3:37.15/1252780KiB; diagnostic source/build/bin/modes/Git restore
+  BYTE_IDENTICAL. This is NOT canonical admission. Earlier f5/277 regressions
+  are repaired, not alternate resume points or acceptance candidates.
+- Independent366 review remains OPEN: plain-Array alias -> own-no-seed bypass
+  is reproduced on b410 in5PzMlH with alias before/after Leak (MIR14415/14435,
+  never executed). Own consuming call/formal snapshots also lack currentness.
+  A is resolving the extern/function-value/generic header boundary read-only
+  before that patch. The imported-MIR exact DEF evidence boundary is OPEN;
+  C is mapping its existing consumer. Do not claim whole-chain closure.
 - Published main is39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Last observed CI
   run38860052641 is RED; bootstrap/install were skipped. No known-red push.
 - One acceptance chain: zero fixed DRV-2 ownership refusals and unchanged full
@@ -85,12 +95,18 @@ The installed Windows binary is not current self-host acceptance evidence.
   witness and leak detection OFF. Exact cd5 independent static review found
   no blocking defect. It did not execute the supplied Linux receipts or
   approve canonical/install/CI/whole-language memory safety.
-- Current P1 receipt: FV646Y on native f5 passes9529/0 plus the full strict
+- Current P1 narrow receipt: FV646Y on native f5 passes9529/0 plus the full strict
   gate; final f5 broad ADhxLu repeats MIR334/semantic3228/transpile1012,
   Map24/58 and4IR with the final exact-site source gate. Actual c3 bootstrap
   mlWH3L is RED before gen0 with18785
   errors/16warnings (previous e7 had18410); stronger retention rejection is not
   canonical progress. Re-run the unchanged full chain on the final source.
+- f5 SAN hlNshA passes9529/0 with live UAF oracle and leak detection OFF;
+  `.tmp/p0-array-flow-integration.sqR8FL` covers loop/resource/CFG integration.
+  uyyZgj full3188/4273:1785 failures,1660 stale return relations/125 stale
+  program-point indexes;1302 new and1191 previously-nonfailed mask changes.
+  Elapsed9.33s/1244464KiB is early failure, NOT a performance improvement.
+  Full source/build/binary/mode/Git restoration is BYTE_IDENTICAL.
 
 ### Next falsifier and limits
 

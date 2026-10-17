@@ -1,0 +1,20 @@
+func Grow(inout keys: Array<String>, remaining: Int) -> Option<Int>
+{
+    if remaining <= 0
+    {
+        return Some(ArrayLength(keys));
+    }
+    let before: Option<Int> = Grow(keys, remaining - 1);
+    ArrayPushOwnedString(keys, Concat("added", " row"));
+    return Some(UnwrapOption(before) + 1);
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    let count: Option<Int> = Grow(keys, 1);
+    Log(UnwrapOption(count));
+    ArrayDropOwnedStrings(keys);
+}

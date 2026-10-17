@@ -84,6 +84,7 @@ semantic_stdlib_array_argument_preserves_storage(const ASTNode *call, size_t ord
     switch (stdlib_collection_builtin_kind(ast_identifier_name(callee))) {
     case STDLIB_COLLECTION_ARRAY_LENGTH:
     case STDLIB_COLLECTION_ARRAY_PUSH:
+    case STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING:
     case STDLIB_COLLECTION_ARRAY_SET:
     case STDLIB_COLLECTION_ARRAY_POP:
     case STDLIB_COLLECTION_ARRAY_REVERSE:

@@ -1,0 +1,20 @@
+struct Count
+{
+    n: Int;
+    text: String;
+}
+
+func ReadCount(ref keys: Array<String>) -> Count
+{
+    return Count(ArrayLength(keys), "count");
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    let count: Count = ReadCount(keys);
+    Log(count.n);
+    ArrayDropOwnedStrings(keys);
+}

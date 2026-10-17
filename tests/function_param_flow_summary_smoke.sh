@@ -96,6 +96,18 @@ paired = (
     ("array_release_owned_strings_move_invalid", False),
     ("array_release_named_reader_own_unseeded_valid", True),
     ("array_release_owned_strings_move_valid", True),
+    ("array_release_recursive_inout_owned_strings_valid", True),
+    ("array_release_reader_record_owned_strings_valid", True),
+    ("array_release_inout_foreign_owned_strings_invalid", False),
+    ("array_release_prefix_foreign_inout_invalid", False),
+    ("array_release_prefix_reader_inout_valid", True),
+    ("array_release_loop_outer_recheck_valid", True),
+    ("array_release_loop_local_recheck_valid", True),
+    ("array_release_loop_second_iteration_escape_invalid", False),
+    ("array_release_inout_reader_then_push_valid", True),
+    ("array_release_inout_retaining_reader_invalid", False),
+    ("array_release_factory_reader_deepdrop_valid", True),
+    ("array_release_factory_retaining_reader_invalid", False),
     ("declared_empty_map_scope_valid", True),
     ("mapnew_ref_key_copy_valid", True),
     # The runtime copies String values, but source-retention ordinal 2 is not
@@ -375,6 +387,9 @@ for name, valid in paired:
             "array_release_owned_strings_foreign_invalid": (8, 27),
             "array_release_forward_own_unseeded_invalid": (17, 17),
             "array_release_owned_strings_move_invalid": (14, 17),
+            "array_release_inout_foreign_owned_strings_invalid": (15, 26),
+            "array_release_prefix_foreign_inout_invalid": (20, 14),
+            "array_release_factory_retaining_reader_invalid": (27, 27),
         }
         if name in array_path_state_sites and (
                 checked.stdout or len(errors) != 1 or
@@ -383,6 +398,17 @@ for name, valid in paired:
                  errors[0].get("location", {}).get("column")) != array_path_state_sites[name]):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"array path-state negative {name} lost its exact refusal")
+        array_release_multi_sites = {
+            "array_release_loop_second_iteration_escape_invalid": {(20, 30), (24, 27)},
+            "array_release_inout_retaining_reader_invalid": {(12, 26), (22, 27)},
+        }
+        if name in array_release_multi_sites and (
+                checked.stdout or len(errors) != 2 or
+                any(row.get("stage") != "semantic" for row in errors) or
+                {(row.get("location", {}).get("line"), row.get("location", {}).get("column"))
+                 for row in errors} != array_release_multi_sites[name]):
+            sys.stderr.buffer.write(checked.stderr)
+            raise SystemExit(f"array release negative {name} lost its two owned refusal sites")
         array_element_effect_sites = {
             "physical_array_element_effectful_index_invalid": {(14, 33), (23, 28)},
             "physical_array_element_effectful_receiver_invalid": {(13, 27), (22, 28)},
@@ -645,6 +671,13 @@ for name, expected in (
     ("array_release_owned_strings_named_reader_valid", "1\n"),
     ("array_release_named_reader_own_unseeded_valid", "1\n1\n"),
     ("array_release_owned_strings_move_valid", "1\n"),
+    ("array_release_recursive_inout_owned_strings_valid", "2\n"),
+    ("array_release_reader_record_owned_strings_valid", "1\n"),
+    ("array_release_prefix_reader_inout_valid", "2\n"),
+    ("array_release_loop_outer_recheck_valid", "2\n"),
+    ("array_release_loop_local_recheck_valid", "1\n1\n"),
+    ("array_release_inout_reader_then_push_valid", "2\n"),
+    ("array_release_factory_reader_deepdrop_valid", "1\n"),
     ("backward_loop_output_literal_valid", "literal output\n"),
     ("nested_call_independent_result_valid", "independent result\ntrue\n"),
     ("private_array_push_local_read_valid", "1\n"),

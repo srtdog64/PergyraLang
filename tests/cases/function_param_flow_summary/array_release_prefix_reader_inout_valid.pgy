@@ -1,0 +1,22 @@
+func ReadLength(ref keys: Array<String>) -> Int
+{
+    return ArrayLength(keys);
+}
+
+func Grow(inout keys: Array<String>) -> Int
+{
+    ArrayPushOwnedString(keys, Concat("added", " row"));
+    return ArrayLength(keys);
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    let before: Int = ReadLength(keys);
+    if before == 1
+    {
+        Log(Grow(keys));
+    }
+}

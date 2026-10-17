@@ -1,0 +1,17 @@
+extern "C" { func Keep(keys: Array<String>) -> Void; }
+
+func LeakAndGrow(inout keys: Array<String>) -> Int
+{
+    Keep(keys);
+    return ArrayLength(keys);
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    let count: Int = LeakAndGrow(keys);
+    ArrayPushOwnedString(keys, Concat("added", " row"));
+    Log(count);
+}

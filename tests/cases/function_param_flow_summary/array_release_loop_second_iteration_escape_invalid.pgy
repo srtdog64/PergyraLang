@@ -1,0 +1,25 @@
+extern "C" { func Keep(names: Array<String>) -> Void; }
+
+func Inspect(ref values: Array<Int>) -> Int
+{
+    return ArrayLength(values);
+}
+
+func Main() -> Void
+{
+    let values: Array<Int> = [1];
+    let names: Array<String> = [];
+    var i: Int = 0;
+    while i < 2
+    {
+        let count: Int = Inspect(values);
+        if i == 1
+        {
+            Keep(names);
+        }
+        ArrayPushOwnedString(names, "entry");
+        i = i + count;
+    }
+    Log(ArrayLength(names));
+    ArrayDropOwnedStrings(names);
+}

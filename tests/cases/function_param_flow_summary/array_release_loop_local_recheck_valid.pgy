@@ -1,0 +1,19 @@
+func Inspect(ref values: Array<Int>) -> Int
+{
+    return ArrayLength(values);
+}
+
+func Main() -> Void
+{
+    let values: Array<Int> = [1];
+    var i: Int = 0;
+    while i < 2
+    {
+        let names: Array<String> = [];
+        let count: Int = Inspect(values);
+        ArrayPushOwnedString(names, "entry");
+        Log(ArrayLength(names));
+        ArrayDropOwnedStrings(names);
+        i = i + count;
+    }
+}

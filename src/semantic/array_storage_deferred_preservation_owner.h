@@ -24,7 +24,9 @@ typedef struct ASTNode ASTNode;
 typedef enum {
     ARRAY_STORAGE_RELEASE_DROP_STORAGE,
     ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS,
-    ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS
+    ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS,
+    ARRAY_STORAGE_MUTATE_OWNED_STRINGS,
+    ARRAY_STORAGE_CALL_AFTER_PENDING
 } ArrayStorageReleaseOperation;
 
 bool semantic_array_storage_deferral_begin(SemanticContext *ctx);
@@ -34,7 +36,7 @@ bool semantic_array_storage_deferral_active(const SemanticContext *ctx);
 bool semantic_array_storage_record_pending_call(SemanticContext *ctx,
     Symbol *binding, ASTNode *call, ASTNode *callee_decl, size_t ordinal);
 
-/* Records a release or move consuming storage authority after prior handoffs;
+/* Records a storage-dependent use after prior handoffs;
  * a missing identity or record fails closed at the caller. */
 bool semantic_array_storage_record_pending_drop(SemanticContext *ctx,
     ASTNode *receiver, const Symbol *binding, ArrayStorageReleaseOperation operation);

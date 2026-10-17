@@ -172,6 +172,115 @@ test_mir_collection_ownership_validation(void)
     rir_destroy(rir);
     hir_destroy(hir);
 
+    /* The same lexical binding is born at DEF on every retired loop entry;
+     * routine entry and a join alone must never invent a live allocation. */
+    for (unsigned loop_local = 0; loop_local < 2; loop_local++) {
+        const char *birth_source = loop_local
+            ? "func Main()->Void{var i:Int=0;while i<2{let names:Array<String> = [];"
+              "ArrayPushOwnedString(names,\"entry\");ArrayDropOwnedStrings(names);i=i+1;}}"
+            : "func Main()->Void{let names:Array<String> = [];"
+              "ArrayPushOwnedString(names,\"entry\");ArrayDropOwnedStrings(names);}";
+        HIRProgram *birth_hir = NULL;
+        RIRProgram *birth_rir = NULL;
+        MIRProgram *birth_mir = NULL;
+        MIRRoutine *birth = NULL;
+        if (lower_mir_from_source(birth_source, &birth_hir, &birth_rir, &birth_mir))
+            birth = find_mir_routine_mut(birth_mir, "Main", MIR_SCOPE_FUNCTION);
+        MIRCollectionOwnershipFact *birth_fact = NULL;
+        MIRSourceLocalType *birth_type = NULL;
+        MIRBasicBlock *body = NULL;
+        size_t definition = SIZE_MAX, push = SIZE_MAX, drop = SIZE_MAX;
+        if (birth != NULL && birth->collection_ownership_fact_count == 1) {
+            birth_fact = &birth->collection_ownership_facts[0];
+            for (size_t i = 0; i < birth->source_local_type_count; i++)
+                if (birth->source_local_types[i].binding_syntax_id == birth_fact->binding_syntax_id)
+                    birth_type = &birth->source_local_types[i];
+            for (size_t b = 0; b < birth->block_count; b++) {
+                MIRBasicBlock *candidate = &birth->blocks[b];
+                for (size_t i = 0; i < candidate->instruction_count; i++) {
+                    MIRInstruction *inst = &candidate->instructions[i];
+                    if (inst->kind == MIR_INST_DEF && inst->binding_syntax_id == birth_fact->binding_syntax_id) {
+                        body = candidate; definition = i;
+                    }
+                }
+            }
+            for (size_t i = 0; body != NULL && i < body->instruction_count; i++) {
+                MIRInstruction *inst = &body->instructions[i];
+                if (!inst->has_collection_ownership_receipt) continue;
+                if (inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH) push = i;
+                if (inst->collection_ownership_effect_kind == PGY_COLLECTION_EFFECT_DROP) drop = i;
+            }
+        }
+        bool birth_control = birth_fact != NULL && birth_type != NULL && body != NULL
+            && definition < push && push < drop && drop < body->instruction_count
+            && mir_validate(birth_mir, NULL)
+            && mir_validate_collection_ownership_transitions(birth, NULL);
+        TEST(loop_local ? "MIR exact loop-local DEF restarts only a retired generation"
+                        : "MIR routine-local empty lifetime starts at its actual DEF");
+        if (!birth_control)
+            printf("\n  loop=%u birth fact=%d type=%d body=%d def=%zu push=%zu drop=%zu\n",
+                loop_local, birth_fact != NULL, birth_type != NULL, body != NULL, definition, push, drop);
+        EXPECT(birth_control);
+        if (birth_control) {
+            MIRInstruction *def = &body->instructions[definition];
+            MIRInstruction saved_def = *def;
+            MIRSourceLocalType saved_type = *birth_type;
+            MIRCollectionOwnershipFact saved_fact = *birth_fact;
+            ASTNode saved_literal = *def->expr0;
+            ASTNode *elements[] = {ast_call_argument(body->instructions[push].expr0, 1)};
+            for (unsigned fault = 0; fault < 11; fault++) {
+                if (fault == 0) def->kind = MIR_INST_STMT;
+                if (fault == 1) def->expr0 = NULL;
+                if (fault == 2) def->source_stable_id++;
+                if (fault == 3) def->binding_syntax_id++;
+                if (fault == 4) birth_fact->origin_syntax_id++;
+                if (fault == 5) birth_type->type_name = "Array<Int>";
+                if (fault == 6) def->requires_source_local_decl_emit = false;
+                if (fault == 7) {
+                    def->expr0->data.array_literal.count = 1;
+                    def->expr0->data.array_literal.elements = elements;
+                }
+                if (fault == 8) def->expr0->stable_id++;
+                if (fault == 9) def->ast = NULL;
+                if (fault == 10) def->expr1 = NULL;
+                bool refused = !mir_validate_collection_ownership_transitions(birth, NULL);
+                *saved_def.expr0 = saved_literal;
+                *def = saved_def; *birth_type = saved_type; *birth_fact = saved_fact;
+                TEST("MIR empty birth refuses missing or crosswired DEF evidence");
+                if (!refused) printf("\n  loop=%u DEF fault=%u not refused\n", loop_local, fault);
+                EXPECT(refused && mir_validate_collection_ownership_transitions(birth, NULL));
+            }
+            size_t count = body->instruction_count;
+            MIRInstruction *original = body->instructions;
+            MIRInstruction *changed = malloc((count + 1) * sizeof(*changed));
+            TEST("MIR lifetime faults allocate a separate instruction view");
+            EXPECT(changed != NULL);
+            if (changed != NULL) {
+                for (unsigned fault = 0; fault < 3; fault++) {
+                    memcpy(changed, original, count * sizeof(*changed));
+                    body->instructions = changed;
+                    if (fault == 0) {
+                        changed[definition] = original[push];
+                        changed[push] = original[definition];
+                    } else {
+                        size_t after = fault == 1 ? drop : push;
+                        memmove(changed + after + 2, changed + after + 1,
+                            (count - after - 1) * sizeof(*changed));
+                        changed[after + 1] = original[fault == 1 ? push : definition];
+                        body->instruction_count = count + 1;
+                    }
+                    bool refused = !mir_validate_collection_ownership_transitions(birth, NULL);
+                    body->instructions = original; body->instruction_count = count;
+                    TEST("MIR rejects pre-birth push, post-drop push and live overwrite");
+                    if (!refused) printf("\n  loop=%u ordering fault=%u not refused\n", loop_local, fault);
+                    EXPECT(refused && mir_validate_collection_ownership_transitions(birth, NULL));
+                }
+                free(changed);
+            }
+        }
+        mir_destroy(birth_mir); rir_destroy(birth_rir); hir_destroy(birth_hir);
+    }
+
     /* One real typed binding move, with final destination lifetime preserved.
      * This does not grant an unsupported second-hop move or revive the source. */
     for (unsigned dropped = 0; dropped < 2; dropped++) {

@@ -16,33 +16,14 @@
 typedef enum
 {
     MIR_COLLECTION_STATE_BOTTOM = 0,
-    MIR_COLLECTION_STATE_EMPTY,
-    MIR_COLLECTION_STATE_BORROWED,
-    MIR_COLLECTION_STATE_OWNED,
-    MIR_COLLECTION_STATE_RETIRED,
-    MIR_COLLECTION_STATE_CONFLICT
+    MIR_COLLECTION_STATE_UNBORN = 1,
+    MIR_COLLECTION_STATE_EMPTY = 2,
+    MIR_COLLECTION_STATE_BORROWED = 4,
+    MIR_COLLECTION_STATE_OWNED = 8,
+    MIR_COLLECTION_STATE_RETIRED = 16
 } MIRCollectionTransitionState;
 
-static MIRCollectionTransitionState
-mir_collection_state_join(MIRCollectionTransitionState left,
-                          MIRCollectionTransitionState right)
-{
-    if (left == MIR_COLLECTION_STATE_BOTTOM)
-        return right;
-    if (right == MIR_COLLECTION_STATE_BOTTOM || left == right)
-        return left;
-    if ((left == MIR_COLLECTION_STATE_EMPTY
-         && right == MIR_COLLECTION_STATE_BORROWED)
-        || (left == MIR_COLLECTION_STATE_BORROWED
-            && right == MIR_COLLECTION_STATE_EMPTY))
-        return MIR_COLLECTION_STATE_BORROWED;
-    if ((left == MIR_COLLECTION_STATE_EMPTY
-         && right == MIR_COLLECTION_STATE_OWNED)
-        || (left == MIR_COLLECTION_STATE_OWNED
-            && right == MIR_COLLECTION_STATE_EMPTY))
-        return MIR_COLLECTION_STATE_OWNED;
-    return MIR_COLLECTION_STATE_CONFLICT;
-}
+/* A join retains every possible lifetime, not permission from one path. */
 
 static const char *
 mir_collection_call_name(const MIRInstruction *inst)
@@ -167,29 +148,53 @@ mir_collection_binding_requires_transition_validation(
 }
 
 static bool
+mir_collection_empty_birth_ready(const MIRRoutine *routine,
+                                 const MIRInstruction *inst,
+                                 const MIRCollectionOwnershipFact *fact)
+{
+    const MIRSourceLocalType *local =
+        mir_routine_source_local_type_fact_by_binding_syntax_id(
+            routine, fact->binding_syntax_id);
+    return local != NULL && local->type_name != NULL
+        && strcmp(local->type_name, "Array<String>") == 0
+        && inst->kind == MIR_INST_DEF
+        && inst->requires_source_local_decl_emit
+        && inst->binding_syntax_id == fact->binding_syntax_id
+        && inst->source_stable_id == fact->binding_syntax_id
+        && inst->ast != NULL && inst->ast->type == AST_LET_DECL
+        && ast_node_stable_id(inst->ast) == fact->binding_syntax_id
+        && inst->expr0 == ast_let_initializer(inst->ast)
+        && inst->expr1 != NULL && inst->expr1 == ast_let_type(inst->ast)
+        && inst->expr0 != NULL && inst->expr0->type == AST_ARRAY_LITERAL
+        && ast_array_literal_count(inst->expr0) == 0
+        && ast_node_stable_id(inst->expr0) == fact->origin_syntax_id;
+}
+
+static bool
 mir_collection_transition_apply(const MIRInstruction *inst,
                                 MIRCollectionTransitionState *state)
 {
     if (inst == NULL || state == NULL
+        || *state == MIR_COLLECTION_STATE_BOTTOM
         || !inst->has_collection_ownership_receipt)
         return false;
     switch ((PgyCollectionOwnershipEffectKind)
                 inst->collection_ownership_effect_kind) {
     case PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH:
-        if (*state != MIR_COLLECTION_STATE_EMPTY
-            && *state != MIR_COLLECTION_STATE_OWNED)
+        if ((*state & ~(MIR_COLLECTION_STATE_EMPTY
+                        | MIR_COLLECTION_STATE_OWNED)) != 0)
             return false;
         *state = MIR_COLLECTION_STATE_OWNED;
         return true;
     case PGY_COLLECTION_EFFECT_SHALLOW_MUTATION:
-        if (*state != MIR_COLLECTION_STATE_EMPTY
-            && *state != MIR_COLLECTION_STATE_BORROWED)
+        if ((*state & ~(MIR_COLLECTION_STATE_EMPTY
+                        | MIR_COLLECTION_STATE_BORROWED)) != 0)
             return false;
         *state = MIR_COLLECTION_STATE_BORROWED;
         return true;
     case PGY_COLLECTION_EFFECT_DROP:
-        if (*state != MIR_COLLECTION_STATE_EMPTY
-            && *state != MIR_COLLECTION_STATE_OWNED)
+        if ((*state & ~(MIR_COLLECTION_STATE_EMPTY
+                        | MIR_COLLECTION_STATE_OWNED)) != 0)
             return false;
         *state = MIR_COLLECTION_STATE_RETIRED;
         return true;
@@ -480,7 +485,6 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
          fact_row++) {
         const MIRCollectionOwnershipFact *fact =
             &routine->collection_ownership_facts[fact_row];
-        MIRCollectionTransitionState *inputs;
         MIRCollectionTransitionState *outputs;
         size_t iteration_limit;
         bool changed = true;
@@ -499,10 +503,8 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                 routine, error_message, fact->binding_syntax_id,
                 "missing-cfg");
         }
-        inputs = calloc(routine->block_count, sizeof(*inputs));
         outputs = calloc(routine->block_count, sizeof(*outputs));
-        if (inputs == NULL || outputs == NULL) {
-            free(inputs);
+        if (outputs == NULL) {
             free(outputs);
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");
@@ -519,7 +521,7 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                 const MIRBasicBlock *block = &routine->blocks[block_id];
                 MIRCollectionTransitionState joined =
                     block_id == routine->entry_block
-                        ? MIR_COLLECTION_STATE_EMPTY
+                        ? MIR_COLLECTION_STATE_UNBORN
                         : MIR_COLLECTION_STATE_BOTTOM;
                 MIRCollectionTransitionState state;
 
@@ -530,32 +532,37 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                      pred_row++) {
                     size_t predecessor = block->predecessors[pred_row];
                     if (predecessor >= routine->block_count) {
-                        free(inputs);
                         free(outputs);
                         return mir_collection_transition_error(
                             routine, error_message, fact->binding_syntax_id,
                             "predecessor");
                     }
                     if (routine->blocks[predecessor].is_reachable) {
-                        joined = mir_collection_state_join(
-                            joined, outputs[predecessor]);
+                        joined = (MIRCollectionTransitionState)(
+                            joined | outputs[predecessor]);
                     }
                 }
                 if (joined == MIR_COLLECTION_STATE_BOTTOM)
                     continue;
-                if (joined == MIR_COLLECTION_STATE_CONFLICT) {
-                    free(inputs);
-                    free(outputs);
-                    return mir_collection_transition_error(
-                        routine, error_message, fact->binding_syntax_id,
-                        "branch-join");
-                }
                 state = joined;
                 for (size_t inst_row = 0;
                      inst_row < block->instruction_count;
                      inst_row++) {
                     const MIRInstruction *inst =
                         &block->instructions[inst_row];
+                    if (inst->kind == MIR_INST_DEF
+                        && inst->binding_syntax_id == fact->binding_syntax_id) {
+                        if (!mir_collection_empty_birth_ready(routine, inst, fact)
+                            || (state & ~(MIR_COLLECTION_STATE_UNBORN
+                                          | MIR_COLLECTION_STATE_RETIRED)) != 0) {
+                            free(outputs);
+                            return mir_collection_transition_error(
+                                routine, error_message, fact->binding_syntax_id,
+                                "invalid-empty-birth");
+                        }
+                        state = MIR_COLLECTION_STATE_EMPTY;
+                        continue;
+                    }
                     bool relevant = mir_collection_relevant_call_for_binding(
                         inst, fact->binding_syntax_id);
                     if (inst->has_collection_ownership_receipt
@@ -567,7 +574,6 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                         continue;
                     if (!mir_collection_receipt_shape_ready(
                             inst, fact->binding_syntax_id)) {
-                        free(inputs);
                         free(outputs);
                         return mir_collection_transition_error(
                             routine, error_message, fact->binding_syntax_id,
@@ -575,23 +581,19 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                                      : "cross-binding-receipt");
                     }
                     if (!mir_collection_transition_apply(inst, &state)) {
-                        free(inputs);
                         free(outputs);
                         return mir_collection_transition_error(
                             routine, error_message, fact->binding_syntax_id,
                             "invalid-state-transition");
                     }
                 }
-                if (inputs[block_id] != joined
-                    || outputs[block_id] != state) {
-                    inputs[block_id] = joined;
+                if (outputs[block_id] != state) {
                     outputs[block_id] = state;
                     changed = true;
                 }
             }
         }
         if (changed) {
-            free(inputs);
             free(outputs);
             return mir_collection_transition_error(
                 routine, error_message, fact->binding_syntax_id,
@@ -602,14 +604,12 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
              block_id++) {
             if (routine->blocks[block_id].is_reachable
                 && outputs[block_id] == MIR_COLLECTION_STATE_BOTTOM) {
-                free(inputs);
                 free(outputs);
                 return mir_collection_transition_error(
                     routine, error_message, fact->binding_syntax_id,
                     "unresolved-reachable-block");
             }
         }
-        free(inputs);
         free(outputs);
     }
     return true;

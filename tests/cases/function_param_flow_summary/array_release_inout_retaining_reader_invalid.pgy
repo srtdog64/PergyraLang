@@ -1,0 +1,23 @@
+extern "C" { func Keep(names: Array<String>) -> Void; }
+
+func ReadLength(names: Array<String>) -> Int
+{
+    Keep(names);
+    return ArrayLength(names);
+}
+
+func Append(inout names: Array<String>) -> Int
+{
+    let before: Int = ReadLength(names);
+    ArrayPushOwnedString(names, Concat("added", " row"));
+    return before + 1;
+}
+
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let names: Array<String> = MapKeys(map);
+    Log(Append(names));
+    ArrayDropOwnedStrings(names);
+}
