@@ -1,0 +1,6 @@
+func Extract(ref values: HashMap<String, Array<Int>>) -> Array<Int>
+{
+    return MapGet(values, "key");
+}
+
+func Main() -> Void {}

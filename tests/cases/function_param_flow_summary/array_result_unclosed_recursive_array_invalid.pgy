@@ -1,0 +1,15 @@
+func Produce() -> Array<Int>
+{
+    return Again();
+}
+
+func Again() -> Array<Int>
+{
+    return Produce();
+}
+
+func Main() -> Void
+{
+    let rows = Produce();
+    Log(ArrayLength(rows));
+}

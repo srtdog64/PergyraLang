@@ -12,6 +12,7 @@
 #include "callable_capability_inference.h"
 #include "type_checker_builtins_internal.h"
 #include "array_storage_release_owner.h"
+#include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
 #include "../common/match_variant_policy.h"
@@ -137,6 +138,8 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             if (semantic_reject_affine_aggregate_storage(
                     value, payload, ctx, "Option Some payload"))
                 return TYPE_UNKNOWN;
+            if (type_equals(payload, TYPE_STRING))
+                semantic_indexed_string_borrow_call_argument(value, NULL, NULL, 0, false, ctx);
             semantic_array_storage_escape(value, payload, ctx);
             option_type = wrap_constructed(TYPE_OPTION, payload);
             /* Native LLVM lays out Some(x) from this type when no consumer

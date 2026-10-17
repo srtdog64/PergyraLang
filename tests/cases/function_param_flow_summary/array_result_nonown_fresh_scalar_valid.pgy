@@ -1,0 +1,13 @@
+func FreshFromScalar(value: Int) -> Array<Int>
+{
+    let rows: Array<Int> = [];
+    ArrayPush(rows, value);
+    return rows;
+}
+
+func Main() -> Void
+{
+    let rows: Array<Int> = FreshFromScalar(7);
+    Log(ArrayLength(rows));
+    ArrayDrop(rows);
+}

@@ -1,0 +1,17 @@
+func Empty() -> Array<Int>
+{
+    let rows: Array<Int> = [];
+    return rows;
+}
+
+func Produce() -> Array<Int>
+{
+    let selected = Empty;
+    return selected();
+}
+
+func Main() -> Void
+{
+    let rows = Produce();
+    Log(ArrayLength(rows));
+}

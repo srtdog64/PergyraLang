@@ -2,6 +2,29 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "function_param_publication_internal.h"
+#include "callable_capability_inference.h"
+
+bool semantic_param_publication_selected_formal_for_actual(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *decl, size_t actual, size_t *formal)
+{
+    if (!semantic_param_publication_pending(ctx) || call == NULL ||
+        decl == NULL || formal == NULL || actual >= ast_call_arg_count(call)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, false);
+    const ASTNode *target = ast_call_callee(call);
+    const ASTNode *receiver = target != NULL && target->type == AST_MEMBER_ACCESS
+        ? ast_member_object(target) : NULL;
+    PublishedNode *value = publication_node(ctx->function_param_publications, receiver, false);
+    const Type *receiver_type = value != NULL && value->value_present &&
+        value->id == ast_node_stable_id(receiver) && value->value_shape == receiver->type &&
+        !value->meta ? value->value_type : NULL;
+    return row != NULL && row->selected_callable == decl &&
+        row->selected_callable_id == ast_node_stable_id(decl) &&
+        ast_call_semantic_callee_declared_callable(call) &&
+        ast_call_semantic_callee_value_binding_id(call) == 0 &&
+        semantic_host_index_selected_call_formal(ctx, call, decl, receiver_type,
+            callable_capability_current_declaration(ctx), actual, formal);
+}
 
 static const char *
 host_decl_index_name(ASTNode *decl)
@@ -320,6 +343,177 @@ semantic_host_index_find_selected_callable(SemanticContext *ctx,
         }
     }
     return NULL;
+}
+
+bool semantic_host_index_selected_call_formal(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *decl, const Type *receiver_type,
+    const ASTNode *caller, size_t actual,
+    size_t *formal)
+{
+    if (ctx == NULL || call == NULL || call->type != AST_CALL ||
+        decl == NULL || decl->type != AST_FUNC_DECL || formal == NULL ||
+        ast_node_stable_id(decl) == 0 ||
+        ast_call_semantic_callee_decl_id(call) != ast_node_stable_id(decl) ||
+        actual > ast_call_arg_count(call)) return false;
+    const ASTNode *target = ast_call_callee(call);
+    if (target == NULL || (target->type != AST_IDENTIFIER &&
+        target->type != AST_MEMBER_ACCESS)) return false;
+    const SemanticNestedCallable *selected = NULL;
+    size_t low = 0, high = ctx->host_decl_index.nested_count;
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        const SemanticNestedCallable *row = &ctx->host_decl_index.nested_callables[mid];
+        if (ast_node_stable_id(decl) < row->id) high = mid;
+        else if (ast_node_stable_id(decl) > row->id) low = mid + 1;
+        else { selected = row; break; }
+    }
+    if (selected != NULL && (selected->decl != decl ||
+        selected->id != ast_node_stable_id(decl) ||
+        selected->alias_owner_id != ast_node_stable_id(selected->alias_owner))) return false;
+    size_t offset = 0;
+    if (selected != NULL && selected->alias_owner != NULL) {
+        const ASTNode *alias_owner = selected->alias_owner;
+        const char *owner_name = ast_declaration_name(alias_owner);
+        const char *method_name = ast_declaration_name(decl);
+        if (owner_name == NULL || method_name == NULL) return false;
+        if (target->type == AST_MEMBER_ACCESS && receiver_type != NULL &&
+            semantic_host_decl_for_type(ctx, receiver_type) == alias_owner &&
+            ast_member_name(target) != NULL &&
+            strcmp(ast_member_name(target), method_name) == 0) {
+            FuncParam *self = ast_func_param(decl, 0);
+            offset = self != NULL && self->name != NULL &&
+                strcmp(self->name, "self") == 0 && self->type == NULL ? 1 : 0;
+        } else if (target->type == AST_IDENTIFIER && caller != NULL &&
+            ast_identifier_name(target) != NULL &&
+            strcmp(ast_identifier_name(target), method_name) == 0) {
+            size_t i = 0;
+            for (; i < ctx->host_decl_index.nested_count; i++)
+                if (ctx->host_decl_index.nested_callables[i].decl == caller &&
+                    ctx->host_decl_index.nested_callables[i].alias_owner == alias_owner &&
+                    ast_node_stable_id(caller) ==
+                        ctx->host_decl_index.nested_callables[i].id) break;
+            if (i == ctx->host_decl_index.nested_count) return false;
+            FuncParam *self = ast_func_param(decl, 0);
+            offset = self != NULL && self->name != NULL &&
+                strcmp(self->name, "self") == 0 && self->type == NULL ? 1 : 0;
+        } else if (target->type == AST_IDENTIFIER) {
+            const char *spelling = ast_identifier_name(target);
+            size_t owner_length = strlen(owner_name);
+            if (spelling == NULL || strlen(spelling) <= owner_length ||
+                strncmp(spelling, owner_name, owner_length) != 0 ||
+                spelling[owner_length] != '_' ||
+                strcmp(spelling + owner_length + 1, method_name) != 0) return false;
+        } else {
+            const ASTNode *qualifier = ast_member_object(target);
+            if (qualifier == NULL || qualifier->type != AST_IDENTIFIER ||
+                ast_identifier_name(qualifier) == NULL ||
+                strcmp(ast_identifier_name(qualifier), owner_name) != 0 ||
+                ast_member_name(target) == NULL ||
+                strcmp(ast_member_name(target), method_name) != 0) return false;
+        }
+    }
+    if (offset > ast_func_param_count(decl) ||
+        ast_call_arg_count(call) != ast_func_param_count(decl) - offset ||
+        actual > SIZE_MAX - offset) return false;
+    size_t index = actual + offset;
+    if (actual == ast_call_arg_count(call)) {
+        *formal = index;
+        return true;
+    }
+    FuncParam *param = ast_func_param(decl, index);
+    if (param == NULL || ast_func_param_stable_id(param) == 0) return false;
+    *formal = index;
+    return true;
+}
+
+ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call)
+{
+    if (!semantic_param_publication_checked_call(ctx, call)) return NULL;
+    PublishedNode *node = publication_node(ctx->function_param_publications, call, false);
+    if (node == NULL || node->declaration == 0 || node->value_binding != 0 ||
+        node->selected_callable == NULL || node->selected_callable_id != node->declaration) return NULL;
+    PendingRoutine *row = publication_routine(ctx->function_param_publications, node->declaration);
+    PublishedNode *receiver = publication_current_value(ctx, node->call_receiver);
+    const Type *receiver_type = receiver != NULL && !receiver->meta ? receiver->value_type : NULL;
+    size_t last = 0;
+    if (row == NULL || row->decl != node->selected_callable ||
+        !semantic_host_index_selected_call_formal((SemanticContext *)ctx, call, row->decl,
+            receiver_type, node->caller, node->argument_count, &last) ||
+        last != row->count ||
+        !semantic_param_publication_routine_inputs_current(ctx, row->decl, true)) return NULL;
+    return row->decl;
+}
+bool semantic_param_publication_bodyless_selected_call_current(
+    const SemanticContext *ctx, const ASTNode *call)
+{
+    PublishedNode *node = publication_result_current(ctx, call);
+    if (node == NULL || !node->declared_callable || node->value_binding != 0 ||
+        node->selected_callable == NULL || node->selected_callable_id != node->declaration) return false;
+    PendingRoutine *row = publication_routine(ctx->function_param_publications, node->declaration);
+    if (row == NULL || row->decl != node->selected_callable || row->id != node->declaration ||
+        row->function_type == NULL || (row->count != 0 && (row->types == NULL || row->formals == NULL)) ||
+        !semantic_param_publication_routine_inputs_current(ctx, row->decl, false) ||
+        row->body != NULL || row->body_id != 0 || ast_func_body(row->decl) != NULL ||
+        row->normal_exit_closed || row->async != row->decl->is_async_decl ||
+        row->return_type == NULL || row->return_type == TYPE_UNKNOWN ||
+        row->return_type != type_function_return_type(row->function_type) ||
+        row->return_node != ast_func_return_type(row->decl) ||
+        row->return_node_id != ast_node_stable_id(row->return_node)) return false;
+    PublishedNode *receiver = publication_current_value(ctx, node->call_receiver);
+    const Type *receiver_type = receiver != NULL && !receiver->meta ? receiver->value_type : NULL;
+    size_t last = 0;
+    if (!semantic_host_index_selected_call_formal((SemanticContext *)ctx, call, row->decl,
+        receiver_type, node->caller, node->argument_count, &last) || last != row->count) return false;
+    for (size_t p = 0; p < row->count; p++)
+        if (row->types[p] == NULL || row->types[p] == TYPE_UNKNOWN ||
+            row->formals[p].kind != row->types[p]->kind ||
+            row->formals[p].anchored != type_is_anchored_resource_handle(row->types[p])) return false;
+    size_t offset = last - node->argument_count;
+    for (size_t a = 0; a < node->argument_count; a++) {
+        size_t formal = a + offset;
+        if (formal >= row->count || node->arguments[a].formal_ordinal != formal ||
+            node->arguments[a].formal_id != row->formals[formal].id) return false;
+    }
+    return true;
+}
+bool semantic_param_publication_instance_receiver(const SemanticContext *ctx,
+    const ASTNode *call, ASTNode **receiver_out)
+{
+    if (receiver_out == NULL) return false;
+    *receiver_out = NULL;
+    ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
+    if (decl == NULL) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, false);
+    if (row == NULL || row->target == NULL) return false;
+    PublishedNode *value = publication_current_value(ctx, row->call_receiver);
+    const Type *receiver_type = value != NULL && !value->meta ? value->value_type : NULL;
+    size_t first = 0;
+    if (!semantic_host_index_selected_call_formal((SemanticContext *)ctx, call, decl,
+            receiver_type, row->caller, 0, &first)) return false;
+    if (first == 0) return true; /* Static/namespace qualifier is not evaluated as a value. */
+    if (first != 1 || row->target_shape != AST_MEMBER_ACCESS || value == NULL ||
+        row->call_receiver != ast_member_object(row->target) || row->call_receiver_id == 0 ||
+        row->call_receiver_id != ast_node_stable_id(row->call_receiver)) return false;
+    *receiver_out = row->call_receiver;
+    return true;
+}
+bool semantic_param_publication_formal_for_actual(const SemanticContext *ctx,
+    const ASTNode *call, size_t actual, size_t *formal)
+{
+    ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
+    if (formal == NULL || decl == NULL ||
+        !semantic_param_publication_checked_argument(ctx, call, actual)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, false);
+    PublishedNode *receiver = publication_current_value(ctx, row->call_receiver);
+    const Type *type = receiver != NULL && !receiver->meta ? receiver->value_type : NULL;
+    size_t index = 0;
+    if (!semantic_host_index_selected_call_formal((SemanticContext *)ctx, call, decl,
+            type, row->caller, actual, &index) ||
+        row->arguments[actual].formal_ordinal != index ||
+        row->arguments[actual].formal_id != ast_func_param_stable_id(
+            ast_func_param(decl, index))) return false;
+    *formal = index;
+    return true;
 }
 
 ASTNode *

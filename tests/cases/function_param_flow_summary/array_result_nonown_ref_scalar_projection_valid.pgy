@@ -1,0 +1,13 @@
+func Fresh(ref values: Array<Int>) -> Array<Int>
+{
+    return [values[0]];
+}
+
+func Main() -> Void
+{
+    let values: Array<Int> = [7];
+    let rows: Array<Int> = Fresh(values);
+    Log(rows[0]);
+    ArrayDrop(rows);
+    Log(values[0]);
+}

@@ -24,6 +24,8 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         return "String";
     case AST_BOOLEAN:
         return "Bool";
+    case AST_TUPLE_LITERAL:
+        return ast_tuple_literal_semantic_type_name(expr);
     case AST_ARRAY_LITERAL:
         if (ast_array_literal_count(expr) > 0
             && ast_array_literal_element(expr, 0) != NULL) {

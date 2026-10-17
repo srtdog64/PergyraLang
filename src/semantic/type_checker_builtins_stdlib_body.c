@@ -18,6 +18,7 @@
 #include "capability_analyze.h"
 #include "runtime/pgy_runtime_capability.h"
 #include "diag_codes.h"
+#include "indexed_string_borrow_owner.h"
 
 static Type *
 stdlib_body_normalize_type(Type *type)
@@ -69,6 +70,8 @@ type_check_builtin_device_write(ASTNode *expr, const char *name,
 {
     Type *slot_type;
     Type *inner;
+    ASTNode *value;
+    Type *value_type;
 
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
@@ -76,9 +79,12 @@ type_check_builtin_device_write(ASTNode *expr, const char *name,
     slot_type = type_check_device_handle_arg(
         ast_call_argument(expr, 0), ctx, name, false);
     inner = stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0));
-    require_assignable(stdlib_body_normalize_type(
-            type_check_expression(ast_call_argument(expr, 1), ctx)),
-        inner, ast_call_argument(expr, 1), ctx);
+    value = ast_call_argument(expr, 1);
+    value_type = stdlib_body_normalize_type(type_check_expression(value, ctx));
+    if (require_assignable(value_type, inner, value, ctx)
+        && !ctx->has_error && type_equals(inner, TYPE_STRING))
+        semantic_indexed_string_borrow_call_argument(
+            value, NULL, NULL, 0, false, ctx);
     return TYPE_VOID;
 }
 

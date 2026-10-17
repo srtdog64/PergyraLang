@@ -8,6 +8,8 @@
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "array_storage_deferred_preservation_owner.h"
+#include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
 
 static Type *
@@ -152,6 +154,8 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             node, value, ctx, ret_type, NULL,
             OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
             false, NULL, NULL);
+        if (!ctx->has_error && type_equals(ret_type, TYPE_STRING))
+            semantic_indexed_string_borrow_call_argument(value, NULL, NULL, 0, false, ctx);
     }
 
     if (value != NULL
@@ -164,6 +168,14 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
      * live completion handle may be discarded by that control-flow edge. */
     semantic_future_require_function_retired(
         ctx->scope, node, ctx, "return");
+
+    if (!ctx->has_error && semantic_array_storage_deferral_active(ctx)
+        && value != NULL && type_is_constructed_named(ret_type, "Array")
+        && !semantic_array_storage_record_owned_return(ctx, node, value, ret_type)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE,
+            value, "Array return storage could not be recorded with current typed ownership evidence");
+    }
 
     return !ctx->has_error;
 }

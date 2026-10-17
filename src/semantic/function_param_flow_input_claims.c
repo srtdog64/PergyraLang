@@ -8,6 +8,15 @@
 #include "typed_map_query_fact_owner.h"
 #include "../common/match_variant_policy.h"
 
+uint32_t function_param_flow_backing_place(ReturnedBacking *state, ASTNode *node)
+{
+    while (node != NULL && (node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS))
+        node = node->type == AST_MEMBER_ACCESS ? ast_member_object(node) : ast_array_access_array(node);
+    uint32_t id = semantic_param_publication_binding(state->store->ctx, node);
+    if (id == 0) state->fact->complete = false;
+    return id;
+}
+
 static size_t function_param_flow_claim_child_count(const ASTNode *node, bool *supported)
 {
     *supported = true;

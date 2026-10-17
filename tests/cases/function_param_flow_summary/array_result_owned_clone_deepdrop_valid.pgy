@@ -1,0 +1,7 @@
+func Main() -> Void
+{
+    let source: Array<String> = ["original"];
+    let rows: Array<String> = Clone(source);
+    ArrayDropOwnedStrings(rows);
+    Log(1);
+}

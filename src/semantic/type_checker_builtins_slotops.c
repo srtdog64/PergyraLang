@@ -5,6 +5,7 @@
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "indexed_string_borrow_owner.h"
 
 static Type *
 slotops_normalize_type(Type *type)
@@ -227,6 +228,10 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
             inner_type->name != NULL ? inner_type->name : "<unknown>");
         return false;
     }
+
+    if (!ctx->has_error && type_equals(inner_type, TYPE_STRING))
+        semantic_indexed_string_borrow_call_argument(
+            value_arg, NULL, NULL, 0, false, ctx);
 
     if (!ctx->has_error && ast_node_stable_id(call) != 0 && semantic_param_publication_pending(ctx) &&
         (!type_slot_is_secure(slot_type) || token_validated) && arg_count == (type_slot_is_secure(slot_type) ? 3u : 2u) &&

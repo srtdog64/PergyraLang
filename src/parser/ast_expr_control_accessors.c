@@ -253,6 +253,75 @@ ast_tuple_literal_element(const ASTNode* node, size_t index)
     return node->data.tuple_literal.elements[index];
 }
 
+const char *
+ast_tuple_literal_semantic_type_name(const ASTNode *node)
+{
+    if (node == NULL || node->type != AST_TUPLE_LITERAL
+        || node->stable_id == 0 || node->data.tuple_literal.semantic_type_syntax_id != node->stable_id
+        || node->data.tuple_literal.semantic_type_name == NULL
+        || node->data.tuple_literal.semantic_type_name[0] == '\0'
+        || node->data.tuple_literal.semantic_type_child_count != node->data.tuple_literal.count
+        || (node->data.tuple_literal.count != 0 && (node->data.tuple_literal.elements == NULL
+            || node->data.tuple_literal.semantic_type_children == NULL))) return NULL;
+    for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
+        const ASTNode *child = node->data.tuple_literal.elements[i];
+        if (child == NULL || child != node->data.tuple_literal.semantic_type_children[i].node
+            || child->stable_id == 0 || child->stable_id != node->data.tuple_literal.semantic_type_children[i].id
+            || child->type != node->data.tuple_literal.semantic_type_children[i].shape) return NULL;
+    }
+    return node->data.tuple_literal.semantic_type_name;
+}
+
+bool
+ast_tuple_literal_clear_semantic_type_name(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_TUPLE_LITERAL) return false;
+    free(node->data.tuple_literal.semantic_type_name);
+    free(node->data.tuple_literal.semantic_type_children);
+    node->data.tuple_literal.semantic_type_name = NULL;
+    node->data.tuple_literal.semantic_type_children = NULL;
+    node->data.tuple_literal.semantic_type_syntax_id = 0;
+    node->data.tuple_literal.semantic_type_child_count = 0;
+    return true;
+}
+
+bool
+ast_tuple_literal_set_semantic_type_name_copy(ASTNode *node, const char *type_name)
+{
+    if (node == NULL || node->type != AST_TUPLE_LITERAL || node->stable_id == 0
+        || type_name == NULL || type_name[0] == '\0') return false;
+    if (node->data.tuple_literal.semantic_type_name != NULL) {
+        const char *prior = ast_tuple_literal_semantic_type_name(node);
+        return prior != NULL && strcmp(prior, type_name) == 0;
+    }
+    if (node->data.tuple_literal.semantic_type_children != NULL
+        || node->data.tuple_literal.semantic_type_syntax_id != 0
+        || node->data.tuple_literal.semantic_type_child_count != 0) return false;
+    size_t count = node->data.tuple_literal.count;
+    if (count > SIZE_MAX / sizeof(*node->data.tuple_literal.semantic_type_children)
+        || (count != 0 && node->data.tuple_literal.elements == NULL)) return false;
+    for (size_t i = 0; i < count; i++)
+        if (node->data.tuple_literal.elements[i] == NULL
+            || node->data.tuple_literal.elements[i]->stable_id == 0) return false;
+    char *copy = pergyra_strdup(type_name);
+    if (copy == NULL) return false;
+    if (count != 0) {
+        node->data.tuple_literal.semantic_type_children = calloc(count,
+            sizeof(*node->data.tuple_literal.semantic_type_children));
+        if (node->data.tuple_literal.semantic_type_children == NULL) { free(copy); return false; }
+    }
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *child = node->data.tuple_literal.elements[i];
+        node->data.tuple_literal.semantic_type_children[i].node = child;
+        node->data.tuple_literal.semantic_type_children[i].id = child->stable_id;
+        node->data.tuple_literal.semantic_type_children[i].shape = child->type;
+    }
+    node->data.tuple_literal.semantic_type_name = copy;
+    node->data.tuple_literal.semantic_type_syntax_id = node->stable_id;
+    node->data.tuple_literal.semantic_type_child_count = count;
+    return true;
+}
+
 size_t
 ast_map_literal_count(const ASTNode* node)
 {

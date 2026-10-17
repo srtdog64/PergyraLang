@@ -282,8 +282,13 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
 
     case AST_TUPLE_LITERAL: {
         size_t n = ast_tuple_literal_count(expr);
-        if (n == 0)
+        if (n == 0) {
+            if (!ctx->has_error && !ast_tuple_literal_set_semantic_type_name_copy(expr, "Void")) {
+                semantic_error(ctx, expr, "Checked tuple type publication failed");
+                return TYPE_UNKNOWN;
+            }
             return TYPE_VOID;  /* unit value `()` */
+        }
         if (n < 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                 "Tuple literal requires at least 2 elements");
@@ -295,6 +300,9 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         for (size_t i = 0; i < n; i++) {
             elems[i] = expr_normalize_type(type_check_expression(
                 ast_tuple_literal_element(expr, i), ctx));
+            if (type_equals(elems[i], TYPE_STRING))
+                semantic_indexed_string_borrow_call_argument(
+                    ast_tuple_literal_element(expr, i), NULL, NULL, 0, false, ctx);
             semantic_array_storage_escape(ast_tuple_literal_element(expr, i), elems[i], ctx);
             callable_capability_record_retained_value(ctx, expr, ast_tuple_literal_element(expr, i), elems[i]);
             if (type_equals(elems[i], TYPE_VOID)) {
@@ -308,6 +316,11 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         }
         Type *tup = type_create_tuple(elems, n);
         free(elems);
+        if (tup != NULL && !ctx->has_error
+            && !ast_tuple_literal_set_semantic_type_name_copy(expr, tup->name)) {
+            semantic_error(ctx, expr, "Checked tuple type publication failed");
+            return TYPE_UNKNOWN;
+        }
         return tup != NULL ? tup : TYPE_UNKNOWN;
     }
 

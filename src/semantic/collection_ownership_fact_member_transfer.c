@@ -6,10 +6,26 @@
 
 #include "diag_codes.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_release_owner.h"
 #include "symbol_table.h"
 #include "type_checker.h"
 #include "type_checker_internal.h"
 #include "../parser/ast_api.h"
+
+bool
+collection_binding_is_current_parameter(const SemanticContext *ctx,
+                                        uint32_t binding_syntax_id)
+{
+    if (ctx == NULL || binding_syntax_id == 0) return false;
+    ASTNode *function_decl = ctx->current_function_decl;
+    if (function_decl == NULL || function_decl->type != AST_FUNC_DECL) return false;
+    for (size_t i = 0; i < ast_func_param_count(function_decl); i++) {
+        FuncParam *param = ast_func_param(function_decl, i);
+        if (param != NULL && ast_func_param_stable_id(param) == binding_syntax_id)
+            return true;
+    }
+    return false;
+}
 
 bool
 collection_member_move_identity(const ASTNode *member_access,
@@ -131,7 +147,7 @@ semantic_collection_admit_owned_string_push(ASTNode *receiver,
             name);
         return false;
     }
-    if (binding != NULL && binding->has_pending_inout_preservation
+    if (semantic_array_storage_has_pending(binding)
         && !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
             ARRAY_STORAGE_MUTATE_OWNED_STRINGS)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,

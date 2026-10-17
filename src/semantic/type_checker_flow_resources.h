@@ -12,6 +12,7 @@ typedef struct
     bool exclusive;
     bool escaped;
     bool pending;
+    bool result_pending;
 } ArrayStoragePathState;
 
 typedef struct

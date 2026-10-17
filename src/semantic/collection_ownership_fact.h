@@ -58,7 +58,14 @@ typedef struct PgyCollectionOwnershipFact
     PgyStringArrayOwnership element_ownership;
     PgyCollectionDisposition disposition;
     PgyCollectionOrigin origin;
+    /* Native RETURN-element premise; not a HIR/MIR ownership classification. */
+    bool return_elements_owned;
+    const ASTNode *return_elements_source;
+    uint32_t return_elements_source_id;
 } PgyCollectionOwnershipFact;
+
+bool collection_binding_is_current_parameter(const SemanticContext *ctx,
+    uint32_t binding_syntax_id);
 
 bool semantic_collection_ownership_initialize_binding(
     Symbol *binding,

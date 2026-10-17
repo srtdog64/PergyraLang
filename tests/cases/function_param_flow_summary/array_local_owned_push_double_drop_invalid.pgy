@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    ArrayDropOwnedStrings(rows);
+    ArrayDropOwnedStrings(rows);
+}

@@ -1,6 +1,7 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "indexed_string_borrow_owner.h"
 #include "../common/match_variant_policy.h"
 
 #include <string.h>
@@ -18,8 +19,8 @@ typedef struct {
 } CaptureState;
 
 /* Stage A: a value-type local is captured by copy (snapshot at closure
- * creation). Primitives (Int/Long/Bool/Float/Double/String) have no aliasing
- * or lifetime link, so the copy can never dangle. Anything else (slot, token,
+ * creation). String pointers also need an independent payload; copying an
+ * indexed borrow does not copy its lifetime. Anything else (slot, token,
  * authority, constructed/aggregate types) is not yet capturable. */
 static bool
 capture_symbol_is_copy_value(const Symbol *sym)
@@ -114,6 +115,10 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
      * (event handlers, arguments, returns, spawns) stay rejected until Stage C. */
     if (state->allow_copy_capture && capture_symbol_is_copy_value(outer)
         && state->lambda != NULL) {
+        if (type_equals(outer->type, TYPE_STRING)) {
+            semantic_indexed_string_borrow_call_argument(node, NULL, NULL, 0, false, ctx);
+            if (ctx->has_error) return true;
+        }
         if (ast_lambda_add_capture(state->lambda, name, outer->type->name,
                 LAMBDA_CAPTURE_COPY)) {
             if (semantic_param_publication_record_deferred_capture(ctx, state->lambda,

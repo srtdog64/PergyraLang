@@ -1,0 +1,25 @@
+struct State { rows: Array<String>; }
+
+func Extract(state: State) -> Array<String>
+{
+    return state.rows;
+}
+
+func Forward(state: State) -> Array<String>
+{
+    let rows: Array<String> = Extract(state);
+    return rows;
+}
+
+func Consume(own rows: Array<String>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let state: State = State(["row"]);
+    let rows: Array<String> = Forward(state);
+    Log(Consume(rows));
+    Log(ArrayLength(state.rows));
+}

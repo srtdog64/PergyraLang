@@ -1,0 +1,16 @@
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Wrap(ref rows: Array<String>) -> (String, Int) {
+    return (rows[0], 0);
+}
+
+func Main() -> Void {
+    let rows: Array<String> = OwnedRows();
+    let (output, marker) = Wrap(rows);
+    ArrayDropOwnedStrings(rows);
+    Log(output);
+}

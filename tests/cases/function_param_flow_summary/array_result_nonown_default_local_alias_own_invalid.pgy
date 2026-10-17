@@ -1,0 +1,20 @@
+struct State { rows: Array<String>; }
+
+func Extract(state: State) -> Array<String>
+{
+    let alias: Array<String> = state.rows;
+    return alias;
+}
+
+func Consume(own rows: Array<String>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let state: State = State(["row"]);
+    let rows: Array<String> = Extract(state);
+    Log(Consume(rows));
+    Log(ArrayLength(state.rows));
+}

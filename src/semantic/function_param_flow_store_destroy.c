@@ -91,15 +91,17 @@ static bool unsupported_relation_current(FunctionParamFlowSummaryStore *store, c
         return edge->ordinal == SIZE_MAX && semantic_param_publication_call_analysis_unmodelled(store->ctx, edge->call);
     ASTNode *callee = semantic_param_publication_callee(store->ctx, edge->call, edge->ordinal);
     if (callee == NULL || edge->callee_id != ast_node_stable_id(callee)) return false;
+    size_t formal = 0;
+    if (!semantic_param_publication_formal_for_actual(store->ctx, edge->call, edge->ordinal, &formal)) return false;
     for (size_t i = 0; i < store->count; i++) {
         FunctionParamFlowSummaryEntry *entry = &store->entries[i];
-        if (entry->function_decl != callee || entry->param_index != edge->ordinal) continue;
+        if (entry->function_decl != callee || entry->param_index != formal) continue;
         if (!entry->analysis_unsupported || entry->mask != SLOT_PARAM_SUMMARY_ALL ||
             !entry->returned_backing_unproved || entry->returned_backing_pending || entry->output_dependencies_ready) return false;
         FunctionParamFlowProgramPointIndex *index;
         if (!function_param_flow_program_point_index_build(store, callee, &index) || index->backing_frames == NULL ||
-            edge->ordinal >= index->backing_frame_count) return false;
-        FunctionParamFlowBackingFact *fact = index->backing_frames[edge->ordinal];
+            formal >= index->backing_frame_count) return false;
+        FunctionParamFlowBackingFact *fact = index->backing_frames[formal];
         return fact != NULL && fact->analysis_unsupported && !fact->complete && !fact->pending;
     }
     return false;
@@ -121,6 +123,7 @@ bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *s
 {
     const Type *result_type = NULL;
     ASTNode *decl = store == NULL ? NULL : semantic_param_publication_declared_result(store->ctx, call, &result_type);
+    /* An implicit self has no corresponding explicit actual in this result edge. */
     if (store == NULL || store->failed || consumer == NULL || decl == NULL || result_type == NULL ||
         ast_call_arg_count(call) != ast_func_param_count(decl)) return false;
     FunctionParamFlowProgramPointIndex *index;
@@ -260,36 +263,37 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
             for (size_t e = 0; e < fact->pending_relation_count && valid; e++) {
                 FunctionParamFlowPendingRelation *edge = &fact->pending_relations[e];
                 ASTNode *callee = semantic_param_publication_callee(store->ctx, edge->call, edge->ordinal);
+                size_t formal = 0;
                 bool owned = false;
                 for (size_t n = 0; n < fact->node_count; n++)
                     if (fact->nodes[n].node == edge->call && fact->nodes[n].id == edge->call_id) owned = true;
                 valid = owned && edge->call != NULL && edge->call->type == AST_CALL && edge->call_id != 0 &&
                     edge->call_id == ast_node_stable_id(edge->call) && edge->callee_id != 0 &&
                     callee != NULL && edge->callee_id == ast_node_stable_id(callee) &&
-                    semantic_param_publication_checked_argument(store->ctx, edge->call, edge->ordinal);
+                    semantic_param_publication_formal_for_actual(store->ctx, edge->call, edge->ordinal, &formal);
                 if (valid && !store->solving) {
                     size_t target = 0;
                     while (target < store->count && (store->entries[target].function_id != edge->callee_id ||
-                        store->entries[target].param_index != edge->ordinal)) target++;
+                        store->entries[target].param_index != formal)) target++;
                     if (target == store->count) { valid = false; break; }
                     FunctionParamFlowSummaryEntry *entry = &store->entries[target];
                     bool required;
                     valid = entry->function_decl == callee && entry->state == FUNCTION_PARAM_FLOW_COMPLETE &&
                         !entry->analysis_unsupported && !entry->returned_backing_pending &&
                         !entry->returned_backing_unproved &&
-                        function_param_flow_backing_required(store, callee, edge->ordinal, &required);
+                        function_param_flow_backing_required(store, callee, formal, &required);
                     if (valid && required && entry->output_producer != FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) valid = false;
                     if (valid && entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) {
                         FunctionParamFlowProgramPointIndex *callee_index;
                         if (!entry->output_dependencies_ready || entry->output_dependencies == NULL ||
                             entry->output_count != ast_func_param_count(callee) ||
                             !function_param_flow_program_point_index_build(store, callee, &callee_index) ||
-                            callee_index->backing_frames == NULL || edge->ordinal >= callee_index->backing_frame_count) { valid = false; break; }
-                        FunctionParamFlowBackingFact *callee_fact = callee_index->backing_frames[edge->ordinal];
+                            callee_index->backing_frames == NULL || formal >= callee_index->backing_frame_count) { valid = false; break; }
+                        FunctionParamFlowBackingFact *callee_fact = callee_index->backing_frames[formal];
                         valid = callee_fact != NULL && !callee_fact->analysis_unsupported &&
                             callee_fact->epoch != 0 && callee_fact->complete &&
-                            !callee_fact->pending && !callee_fact->building && callee_fact->input_ordinal == edge->ordinal &&
-                            callee_fact->input_id == ast_func_param_stable_id(ast_func_param(callee, edge->ordinal));
+                            !callee_fact->pending && !callee_fact->building && callee_fact->input_ordinal == formal &&
+                            callee_fact->input_id == ast_func_param_stable_id(ast_func_param(callee, formal));
                     }
                 }
             }
@@ -376,9 +380,12 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
                             if (semantic_param_publication_value_is_physical_scalar(store->ctx, arg))
                                 kind = FUNCTION_PARAM_FLOW_RESULT_ARGUMENT_PHYSICAL;
                             else if (callee != NULL && ast_node_stable_id(callee) == edge_callee_id) {
+                                size_t formal = 0;
+                                if (!semantic_param_publication_formal_for_actual(store->ctx,
+                                        edge_call, p, &formal)) { valid = false; break; }
                                 for (size_t s = 0; s < store->count; s++) {
                                     const FunctionParamFlowSummaryEntry *entry = &store->entries[s];
-                                    if (entry->function_id != edge_callee_id || entry->param_index != p) continue;
+                                    if (entry->function_id != edge_callee_id || entry->param_index != formal) continue;
                                     if (entry->function_decl == callee && !entry->analysis_unsupported &&
                                         !entry->returned_backing_unproved && !entry->returned_backing_pending &&
                                         entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME &&
@@ -388,12 +395,12 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
                                          (store->solving && entry->state == FUNCTION_PARAM_FLOW_EVALUATED))) {
                                         FunctionParamFlowProgramPointIndex *callee_index;
                                         if (!function_param_flow_program_point_index_build(store, callee, &callee_index) ||
-                                            callee_index->backing_frames == NULL || p >= callee_index->backing_frame_count) break;
-                                        FunctionParamFlowBackingFact *source = callee_index->backing_frames[p];
+                                            callee_index->backing_frames == NULL || formal >= callee_index->backing_frame_count) break;
+                                        FunctionParamFlowBackingFact *source = callee_index->backing_frames[formal];
                                         if (source == NULL || source->epoch == 0 || !source->complete ||
                                             source->building || source->pending || source->analysis_unsupported ||
-                                            source->claims != callee_index->claims || source->input_ordinal != p ||
-                                            source->input_id != ast_func_param_stable_id(ast_func_param(callee, p)) ||
+                                            source->claims != callee_index->claims || source->input_ordinal != formal ||
+                                            source->input_id != ast_func_param_stable_id(ast_func_param(callee, formal)) ||
                                             entry->output_count > SIZE_MAX - 63 ||
                                             source->destination_count != entry->output_count ||
                                             source->destination_words != (entry->output_count + 63) / 64 ||
@@ -441,11 +448,13 @@ bool function_param_flow_callee_relation_ready(const SlotFunctionLookup *lookup,
 {
     if (lookup == NULL || lookup->ctx == NULL) return false;
     ASTNode *decl = semantic_param_publication_callee(lookup->ctx, call, ordinal);
+    size_t formal = 0;
     FunctionParamFlowSummaryStore *store = lookup->ctx->function_param_flow_summaries;
-    if (decl == NULL || store == NULL || store->failed) return false;
+    if (decl == NULL || store == NULL || store->failed ||
+        !semantic_param_publication_formal_for_actual(lookup->ctx, call, ordinal, &formal)) return false;
     for (size_t i = 0; i < store->count; i++) {
         FunctionParamFlowSummaryEntry *row = &store->entries[i];
-        if (row->function_id == ast_node_stable_id(decl) && row->param_index == ordinal)
+        if (row->function_id == ast_node_stable_id(decl) && row->param_index == formal)
             return (row->state == FUNCTION_PARAM_FLOW_EVALUATED || row->state == FUNCTION_PARAM_FLOW_COMPLETE) &&
                 !row->returned_backing_unproved && !row->returned_backing_pending &&
                 (store->solving || function_param_flow_output_current(store, i, false));
@@ -456,11 +465,13 @@ bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *looku
 {
     if (lookup == NULL || lookup->ctx == NULL) return false;
     ASTNode *decl = semantic_param_publication_callee(lookup->ctx, call, ordinal);
+    size_t formal = 0;
     FunctionParamFlowSummaryStore *store = lookup->ctx->function_param_flow_summaries;
-    if (decl == NULL || store == NULL || store->failed) return false;
+    if (decl == NULL || store == NULL || store->failed ||
+        !semantic_param_publication_formal_for_actual(lookup->ctx, call, ordinal, &formal)) return false;
     for (size_t i = 0; i < store->count; i++) {
         FunctionParamFlowSummaryEntry *row = &store->entries[i];
-        if (row->function_id == ast_node_stable_id(decl) && row->param_index == ordinal)
+        if (row->function_id == ast_node_stable_id(decl) && row->param_index == formal)
             return row->state == FUNCTION_PARAM_FLOW_COMPUTING ||
                 (row->state != FUNCTION_PARAM_FLOW_COMPLETE && row->returned_backing_pending);
     }
@@ -526,9 +537,12 @@ bool function_param_flow_complete_pending_relations(FunctionParamFlowSummaryStor
             if (entry->output_dependencies[p] != ((fact->outputs[p / 64] & (UINT64_C(1) << (p % 64))) != 0)) return false;
         for (size_t e = 0; e < fact->pending_relation_count; e++) {
             FunctionParamFlowPendingRelation edge = fact->pending_relations[e];
+            size_t formal = 0;
+            if (!semantic_param_publication_formal_for_actual(store->ctx,
+                    edge.call, edge.ordinal, &formal)) return false;
             size_t target = 0;
             while (target < end && (store->entries[target].function_id != edge.callee_id ||
-                store->entries[target].param_index != edge.ordinal)) target++;
+                store->entries[target].param_index != formal)) target++;
             if (target == end) return false;
             if (target < store->active_start) {
                 if (store->entries[target].state != FUNCTION_PARAM_FLOW_COMPLETE ||
@@ -571,7 +585,7 @@ bool function_param_flow_unproved_current(FunctionParamFlowSummaryStore *store, 
     if (i >= store->count) return false;
     const FunctionParamFlowSummaryEntry *entry = &store->entries[i];
     bool required;
-    return entry->analysis_unsupported && entry->mask == SLOT_PARAM_SUMMARY_ALL && entry->array_storage_unproved &&
+    return entry->analysis_unsupported && entry->mask == SLOT_PARAM_SUMMARY_ALL && entry->array_storage_unproved && entry->array_elements_unproved &&
         entry->returned_backing_unproved && !entry->returned_backing_pending && !entry->output_dependencies_ready &&
         entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME && entry->output_dependencies != NULL &&
         entry->output_count == ast_func_param_count(entry->function_decl) &&

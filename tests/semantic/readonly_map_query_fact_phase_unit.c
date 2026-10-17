@@ -13,6 +13,7 @@
 #include "semantic/type_checker_flow_universe.h"
 #include "semantic/type_checker_flow_loop_summary.h"
 #include "semantic/array_storage_deferred_preservation_owner.h"
+#include "semantic/array_storage_element_lifetime_owner.h"
 #include "semantic/array_storage_release_owner.h"
 #include "semantic/type_system.h"
 #include "semantic/diag_codes.h"
@@ -56,6 +57,7 @@ static Fixture fixture(void)
     CHECK(ast_call_set_semantic_callee_builtin_kind(f.map_call, BUILTIN_NOT_BUILTIN));
     CHECK(ast_call_set_semantic_callee_is_stdlib(f.map_call, true));
     CHECK(ast_call_set_semantic_callee_decl_id(f.forward_call, ast_node_stable_id(f.reader)));
+    CHECK(ast_call_set_semantic_callee_declared_callable(f.forward_call, true));
     Type *args[] = {TYPE_STRING, TYPE_INT};
     f.map_type = type_create_constructed(TYPE_HASHMAP, args, 2);
     Type *parameters[] = {f.map_type};
@@ -86,6 +88,7 @@ static Fixture fixture(void)
     CHECK(semantic_param_publication_record_value(f.ctx, caller_argument, f.map_type, false));
     CHECK(semantic_param_publication_record_checked_call(f.ctx, f.map_call));
     CHECK(ast_call_set_semantic_callee_builtin_kind(f.forward_call, BUILTIN_NOT_BUILTIN));
+    CHECK(semantic_param_publication_record_selected_callable(f.ctx, f.forward_call, f.reader));
     CHECK(semantic_param_publication_record_checked_call(f.ctx, f.forward_call));
     return f;
 }
@@ -2240,7 +2243,10 @@ static void checked_typed_string_result_constructor_currency(void)
             CHECK(!semantic_param_publication_call_analysis_unmodelled(ctx, calls[i]));
             CHECK(function_param_flow_no_store_graph(store, ast_program_statement(program, i + 1)));
             SemanticPublishedValue value = semantic_param_publication_value(ctx, calls[i]);
-            CHECK(value.ok && !value.origin_ready && !value.copy_escape);
+            /* Substring's exact allocating-reader ABI now issues an
+             * independent String result; this is not Array element drop authority. */
+            if (i == 0) CHECK(value.ok && value.origin_ready && value.copy_escape);
+            else CHECK(value.ok && !value.origin_ready && !value.copy_escape);
         }
         CHECK(semantic_param_publication_argument_borrowed_for_call(ctx, calls[0], 0));
         for (size_t p = 0; p < 3; p++)
@@ -3705,8 +3711,23 @@ static void checked_declared_result_unclosed(void)
         CHECK(parsed);
         SemanticContext *ctx = semantic_context_create();
         bool typed = parsed && type_check_program(program, ctx);
-        CHECK(typed);
-        if (typed) {
+        if (kind < 4) {
+            bool refused = false;
+            CHECK(!typed && ctx->has_error);
+            for (size_t d = 0; d < ctx->diagnostic_count; d++) {
+                const Diagnostic *diagnostic = ctx->diagnostics[d];
+                if (diagnostic->level != DIAG_ERROR) continue;
+                bool exact = diagnostic->code != NULL && diagnostic->cause_ir != NULL &&
+                    strcmp(diagnostic->code, PGY_CODE_SEM_BORROW_ESCAPE) == 0 &&
+                    strcmp(diagnostic->cause_ir, PGY_CAUSE_BORROW_ESCAPE) == 0;
+                CHECK(exact);
+                refused |= exact;
+            }
+            CHECK(refused);
+        } else {
+            CHECK(typed);
+        }
+        if (kind >= 4 && typed) {
             ASTNode *main = ast_program_statement(program, 2);
             ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(main), 0));
             SlotFunctionLookup lookup = {ctx, program};
@@ -3723,7 +3744,7 @@ static void checked_declared_result_unclosed(void)
     }
 }
 
-static void checked_unclosed_output_graph(const char *source, size_t declaration)
+static void checked_output_graph(const char *source, size_t declaration, bool closed)
 {
     Lexer *lexer = lexer_create(source);
     Parser *parser = parser_create(lexer);
@@ -3734,7 +3755,7 @@ static void checked_unclosed_output_graph(const char *source, size_t declaration
     ASTNode *decl = ast_program_statement(program, declaration);
     SlotFunctionLookup lookup = {ctx, program};
     (void)function_param_flow_summary_demand(&lookup, decl, 0);
-    CHECK(!function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl));
+    CHECK(function_param_flow_no_store_graph(ctx->function_param_flow_summaries, decl) == closed);
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
@@ -4309,6 +4330,91 @@ cleanup:
         semantic_context_destroy(ctx);
         ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
     }
+}
+
+static void checked_tuple_literal_type_receipt(void)
+{
+    Lexer *lexer = lexer_create("func Main()->Void{let(first,second)=(1,2);Log(first);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    CHECK(program != NULL && !parser_has_error(parser));
+    CHECK(type_check_program(program, ctx));
+    if (program == NULL || ctx->has_error) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    ASTNode *binding = ast_block_statement(ast_func_body(decl), 0);
+    CHECK(binding != NULL && binding->type == AST_LET_DESTRUCTURE);
+    if (binding == NULL || binding->type != AST_LET_DESTRUCTURE) goto cleanup;
+    ASTNode *tuple = binding->data.let_destructure.initializer;
+    CHECK(tuple != NULL && tuple->type == AST_TUPLE_LITERAL);
+    if (tuple == NULL || tuple->type != AST_TUPLE_LITERAL) goto cleanup;
+    const char *issued = ast_tuple_literal_semantic_type_name(tuple);
+    CHECK(issued != NULL);
+    if (issued == NULL) goto cleanup;
+    size_t name_length = strlen(issued);
+    char *saved_name = malloc(name_length + 1);
+    CHECK(saved_name != NULL);
+    if (saved_name == NULL) goto cleanup;
+    memcpy(saved_name, issued, name_length + 1);
+    CHECK(ast_tuple_literal_set_semantic_type_name_copy(tuple, saved_name));
+    CHECK(!ast_tuple_literal_set_semantic_type_name_copy(tuple, "Void"));
+
+    ASTNode *clone = ast_clone(tuple);
+    CHECK(clone != NULL && clone->stable_id == 0);
+    if (clone != NULL) {
+        CHECK(ast_tuple_literal_semantic_type_name(clone) == NULL);
+        clone->stable_id = tuple->stable_id;
+        CHECK(ast_tuple_literal_semantic_type_name(clone) == NULL);
+        ast_destroy(clone);
+    }
+    uint32_t id = tuple->stable_id;
+    tuple->stable_id++;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    tuple->stable_id = id;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    tuple->data.tuple_literal.semantic_type_syntax_id++;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    tuple->data.tuple_literal.semantic_type_syntax_id = id;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+
+    ASTNode *child = tuple->data.tuple_literal.elements[0];
+    uint32_t child_id = child->stable_id;
+    child->stable_id++;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    child->stable_id = child_id;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    ASTNodeType child_shape = child->type;
+    child->type = AST_STRING;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    child->type = child_shape;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    ASTNode *same_id = ast_clone(child);
+    CHECK(same_id != NULL);
+    if (same_id != NULL) {
+        same_id->stable_id = child_id;
+        tuple->data.tuple_literal.elements[0] = same_id;
+        CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+        tuple->data.tuple_literal.elements[0] = child;
+        ast_destroy(same_id);
+        CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    }
+    size_t count = tuple->data.tuple_literal.count;
+    tuple->data.tuple_literal.count--;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    tuple->data.tuple_literal.count = count;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    tuple->data.tuple_literal.semantic_type_child_count--;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    tuple->data.tuple_literal.semantic_type_child_count = count;
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    CHECK(ast_tuple_literal_clear_semantic_type_name(tuple));
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) == NULL);
+    CHECK(ast_tuple_literal_set_semantic_type_name_copy(tuple, saved_name));
+    CHECK(ast_tuple_literal_semantic_type_name(tuple) != NULL);
+    free(saved_name);
+cleanup:
+    semantic_context_destroy(ctx);
+    ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
 static void checked_secure_view_call_tuple(void)
@@ -5848,9 +5954,13 @@ static void checked_builtin_string_concat_receipt(void)
         if (receipt == NULL) goto cleanup;
         if (overloaded) {
             CHECK(!receipt->builtin_string_concat && !value.origin_ready);
+            CHECK(!semantic_indexed_string_independent_result(binary, ctx));
             goto cleanup;
         }
         CHECK(receipt->builtin_string_concat && value.origin_ready && receipt->argument_count == 2);
+        uint32_t source_id = UINT32_MAX;
+        CHECK(semantic_indexed_string_independent_result(binary, ctx));
+        CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
         unsigned mask = function_param_flow_summary_for_param(ctx, decl, 0);
         CHECK((mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE |
             SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0);
@@ -5866,9 +5976,13 @@ static void checked_builtin_string_concat_receipt(void)
             if (fault == 4) receipt->argument_count = 1;
             SemanticPublishedValue current = semantic_param_publication_value(ctx, binary);
             CHECK(!current.ok || !current.origin_ready);
+            CHECK(!semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(!semantic_indexed_string_borrow_source_current(binary, ctx, &source_id));
             CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
             *receipt = saved; binary->data.binary.op.type = operation;
             CHECK(semantic_param_publication_value(ctx, binary).origin_ready);
+            CHECK(semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
             CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
         }
         for (size_t side = 0; side < 2; side++) {
@@ -5889,17 +6003,95 @@ static void checked_builtin_string_concat_receipt(void)
                 if (fault == 7) operands[side]->value_type = TYPE_INT;
                 if (fault == 8) receipt->arguments[side].type = TYPE_INT;
                 CHECK(!semantic_param_publication_value(ctx, binary).ok);
+                CHECK(!semantic_indexed_string_independent_result(binary, ctx));
+                CHECK(!semantic_indexed_string_borrow_source_current(binary, ctx, &source_id));
                 CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == SLOT_PARAM_SUMMARY_ALL);
                 *children[side] = original; *operands[side] = publication;
                 binary->data.binary.left = children[0]; binary->data.binary.right = children[1];
                 receipt->arguments[side] = argument;
                 CHECK(semantic_param_publication_value(ctx, binary).origin_ready);
+                CHECK(semantic_indexed_string_independent_result(binary, ctx));
+                CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
                 CHECK(function_param_flow_summary_for_param(ctx, decl, 0) == mask);
             }
+        }
+        for (size_t side = 0; side < 2; side++) {
+            ASTNode *child = children[side];
+            ASTNode *same_id = ast_clone(child);
+            CHECK(same_id != NULL);
+            if (same_id == NULL) continue;
+            same_id->stable_id = child->stable_id;
+            if (side == 0) binary->data.binary.left = same_id;
+            else binary->data.binary.right = same_id;
+            CHECK(!semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(!semantic_indexed_string_borrow_source_current(binary, ctx, &source_id));
+            if (side == 0) binary->data.binary.left = child;
+            else binary->data.binary.right = child;
+            ast_destroy(same_id);
+            CHECK(semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
+            if (side == 0) binary->data.binary.left = NULL;
+            else binary->data.binary.right = NULL;
+            CHECK(!semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(!semantic_indexed_string_borrow_source_current(binary, ctx, &source_id));
+            if (side == 0) binary->data.binary.left = child;
+            else binary->data.binary.right = child;
+            CHECK(semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
+            ASTNodeType shape = child->type;
+            child->type = AST_NUMBER;
+            CHECK(!semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(!semantic_indexed_string_borrow_source_current(binary, ctx, &source_id));
+            child->type = shape;
+            CHECK(semantic_indexed_string_independent_result(binary, ctx));
+            CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
         }
 cleanup:
         semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
     }
+}
+
+static void checked_indexed_string_concat_nested_call_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Probe(text:String)->String{return Concat(\"\",text)+\"suffix\";}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed);
+    if (!typed) goto cleanup;
+    ASTNode *decl = ast_program_statement(program, 0);
+    ASTNode *binary = ast_return_value(ast_block_statement(ast_func_body(decl), 0));
+    ASTNode *nested = ast_binary_left(binary);
+    ASTNode *target = ast_call_callee(nested);
+    PublishedNode *row = published_node_for(ctx, nested);
+    CHECK(binary != NULL && binary->type == AST_BINARY && nested != NULL &&
+        nested->type == AST_CALL && target != NULL && target->type == AST_IDENTIFIER && row != NULL);
+    if (binary == NULL || nested == NULL || target == NULL || row == NULL) goto cleanup;
+    uint32_t source_id = UINT32_MAX;
+    CHECK(semantic_indexed_string_independent_result(binary, ctx));
+    CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
+    ASTNode saved_call = *nested, saved_target = *target;
+    PublishedNode saved_row = *row;
+    for (unsigned fault = 0; fault < 7; fault++) {
+        if (fault == 0) CHECK(ast_call_set_semantic_callee_is_stdlib(nested, false));
+        if (fault == 1) CHECK(ast_call_set_semantic_callee_builtin_kind(nested, BUILTIN_STRING_LENGTH));
+        if (fault == 2) CHECK(ast_call_set_semantic_callee_decl_id(nested, ast_node_stable_id(decl)));
+        if (fault == 3) target->data.identifier.name = "Different";
+        if (fault == 4) target->stable_id++;
+        if (fault == 5) nested->stable_id++;
+        if (fault == 6) row->value_type = TYPE_INT;
+        CHECK(!semantic_indexed_string_independent_result(binary, ctx));
+        CHECK(!semantic_indexed_string_borrow_source_current(binary, ctx, &source_id));
+        *nested = saved_call; *target = saved_target; *row = saved_row;
+        CHECK(semantic_indexed_string_independent_result(binary, ctx));
+        CHECK(semantic_indexed_string_borrow_source_current(binary, ctx, &source_id) && source_id == 0);
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
 static void checked_conservative_callback_backing(void)
@@ -6923,7 +7115,8 @@ static void checked_selector_c_empty_currency(void)
         CHECK(function_param_flow_summary_for_param(ctx, decl, 1) == baseline);
     }
     for (size_t t = 0; t < 2; t++) for (unsigned mode = 0; mode < 3; mode++) {
-        uint64_t effects[2] = {0, 0}, outputs = 0;
+        unsigned effects[2] = {0, 0};
+        uint64_t outputs = 0;
         FunctionParamFlowBackingFact partial = {.origin_count = mode == 0 ? 2 : 1,
             .origin_words = mode == 1 ? 2 : 1, .destination_count = 1,
             .destination_words = 1, .effects = effects, .outputs = &outputs,
@@ -7600,8 +7793,11 @@ static void checked_private_local_array_push(void)
     bool parsed = program != NULL && !parser_has_error(parser);
     CHECK(parsed);
     bool admitted = parsed && type_check_program(program, ctx);
-    CHECK(admitted);
-    if (!admitted) {
+    CHECK(!admitted && ctx->has_error &&
+        context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
+    bool inputs_ready = parsed && semantic_param_publication_inputs_ready(ctx);
+    CHECK(inputs_ready);
+    if (!parsed || admitted || !inputs_ready) {
         semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
         return;
     }
@@ -7945,6 +8141,386 @@ static void checked_string_member_alias_birth(void)
         "func Main()->Void{let rows:Array<String> = [\"row\"];Log(Consume(rows));}", true);
 }
 
+static void checked_array_result_borrowed_formals(void)
+{
+    const char *rejected[] = {
+        "struct State{rows:Array<String>}func Extract(state:State)->Array<String>{return state.rows;}",
+        "struct State{rows:Array<String>}func Extract(inout state:State)->Array<String>{return state.rows;}",
+        "struct State{rows:Array<Int>}func Extract(state:State)->Array<Int>{return state.rows;}",
+        "struct State{rows:Array<Int>}func Extract(inout state:State)->Array<Int>{let rows=state.rows;return rows;}",
+        "struct State{rows:Array<String>}func Extract(state:State)->Array<String>{return state.rows;}"
+        "func Forward(state:State)->Array<String>{return Extract(state);}",
+        "struct State{rows:Array<Int>}func Extract(state:State,flag:Bool)->Array<Int>{"
+        "if flag{return [1];}return state.rows;}"
+    };
+    for (size_t path = 0; path < sizeof(rejected) / sizeof(rejected[0]); path++) {
+        Lexer *lexer = lexer_create(rejected[path]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        if (typed) fprintf(stderr, "Array result borrowed formal path=%zu still admitted\n", path);
+        CHECK(!typed && context_has_diagnostic(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    reached_producer_source(
+        "struct State{rows:Array<Int>}func Fresh(state:State)->Array<Int>{return [ArrayLength(state.rows)];}"
+        "func Main()->Void{let state=State([7]);let rows=Fresh(state);Log(ArrayLength(rows));}", true);
+    reached_producer_source(
+        "func Fresh(ref values:Array<Int>)->Array<Int>{return [values[0]];}"
+        "func Main()->Void{let values:Array<Int> = [7];let rows=Fresh(values);Log(ArrayLength(rows));}", true);
+    reached_producer_source(
+        "func Factory(flag:Bool)->Array<Int>{if flag{return [1];}return [2];}"
+        "func Main()->Void{let rows=Factory(true);ArrayDrop(rows);}", true);
+    reached_producer_source(
+        "func Relay(own rows:Array<Int>,flag:Bool)->Array<Int>{"
+        "if flag{return rows;}return rows;}"
+        "func Main()->Void{let rows:Array<Int> = [7];let moved=Relay(rows,true);ArrayDrop(moved);}", true);
+    reached_producer_source(
+        "func Build(count:Int)->Array<Int>{let rows:Array<Int> = [];"
+        "for i in 0..count{ArrayPush(rows,i);}return rows;}"
+        "func Main()->Void{let rows=Build(2);ArrayDrop(rows);}", true);
+    reached_producer_source(
+        "func Relay(own rows:Array<Int>,flag:Bool)->Array<Int>{"
+        "if flag{return rows;}return rows;}"
+        "func Main()->Void{let rows:Array<Int> = [7];let moved=Relay(rows,true);"
+        "Log(ArrayLength(rows));ArrayDrop(moved);}", false);
+    /* Genuine transfer is a required positive, not a reason to reclassify every
+     * CALL as exclusive. A missing return-storage receipt must remain visible. */
+    reached_producer_source(
+        "func Relay(own rows:Array<Int>)->Array<Int>{return rows;}"
+        "func Main()->Void{let rows:Array<Int> = [7];let moved=Relay(rows);ArrayDrop(moved);}", true);
+}
+
+static void checked_physical_hof_array_result_currency(void)
+{
+    const char *sources[] = {
+        "func Transform(value:Int)->Int{return value+1;}"
+        "func MakeRows(xs:Array<Int>)->Array<Int>{return ArrayMap(xs,Transform);}"
+        "func Main()->Void{let source:Array<Int> = [1,2];let rows=MakeRows(source);ArrayDrop(rows);}",
+        "func Keep(value:Int)->Bool{return value>0;}"
+        "func MakeRows(xs:Array<Int>)->Array<Int>{return ArrayFilter(xs,Keep);}"
+        "func Main()->Void{let source:Array<Int> = [1,2];let rows=MakeRows(source);ArrayDrop(rows);}"
+    };
+    for (size_t shape = 0; shape < sizeof(sources) / sizeof(sources[0]); shape++) {
+        Lexer *lexer = lexer_create(sources[shape]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool admitted = parsed && type_check_program(program, ctx);
+        CHECK(admitted && !ctx->has_error);
+        if (!admitted) goto cleanup;
+        ASTNode *factory = ast_program_statement(program, 1);
+        ASTNode *main_decl = ast_program_statement(program, 2);
+        ASTNode *hof = ast_return_value(ast_block_statement(ast_func_body(factory), 0));
+        ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(main_decl), 1));
+        ASTNode *target = ast_call_callee(hof);
+        ASTNode *first = ast_call_argument(hof, 0);
+        ASTNode *callback = ast_call_argument(hof, 1);
+        PublishedNode *row = published_node_for(ctx, hof);
+        const Type *result_type = NULL;
+        CHECK(hof != NULL && hof->type == AST_CALL && target != NULL &&
+            target->type == AST_IDENTIFIER && first != NULL && callback != NULL &&
+            row != NULL && row->arguments != NULL && row->argument_count == 2);
+        if (hof == NULL || target == NULL || first == NULL || callback == NULL ||
+            row == NULL || row->arguments == NULL || row->argument_count != 2) goto cleanup;
+        CHECK(semantic_array_storage_independent_physical_hof_result(hof, ctx));
+        CHECK(semantic_param_publication_declared_result(ctx, call, &result_type) == factory &&
+            result_type != NULL);
+        CHECK(semantic_array_storage_function_result_owned(ctx, factory, result_type));
+        CHECK(semantic_array_storage_owned_result_current(ctx, call));
+        PublishedNode saved_row = *row;
+        PublishedCallArgument saved_first = row->arguments[0], saved_callback = row->arguments[1];
+        ASTNode saved_hof = *hof, saved_target = *target;
+        uint32_t first_id = first->stable_id, callback_id = callback->stable_id;
+        for (unsigned fault = 0; fault < 12; fault++) {
+            if (fault == 0) row->value_present = false;
+            if (fault == 1) row->stdlib = false;
+            if (fault == 2) row->kind_present = false;
+            if (fault == 3) row->builtin = BUILTIN_CLONE;
+            if (fault == 4) target->data.identifier.name = "Other";
+            if (fault == 5) target->stable_id++;
+            if (fault == 6) hof->stable_id++;
+            if (fault == 7) first->stable_id++;
+            if (fault == 8) row->arguments[1].type = TYPE_INT;
+            if (fault == 9) hof->data.call.arg_count = 1;
+            if (fault == 10) row->arguments[0].type = TYPE_STRING;
+            if (fault == 11) callback->stable_id++;
+            CHECK(!semantic_array_storage_independent_physical_hof_result(hof, ctx));
+            CHECK(!semantic_array_storage_function_result_owned(ctx, factory, result_type));
+            CHECK(!semantic_array_storage_owned_result_current(ctx, call));
+            *row = saved_row;
+            row->arguments[0] = saved_first; row->arguments[1] = saved_callback;
+            *hof = saved_hof; *target = saved_target;
+            first->stable_id = first_id; callback->stable_id = callback_id;
+            CHECK(semantic_array_storage_independent_physical_hof_result(hof, ctx));
+            CHECK(semantic_array_storage_function_result_owned(ctx, factory, result_type));
+            CHECK(semantic_array_storage_owned_result_current(ctx, call));
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_owned_array_result_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func Factory(flag:Bool)->Array<Int>{if flag{return [1];}return [2];}"
+        "func Main()->Void{let rows=Factory(true);ArrayDrop(rows);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted && !ctx->has_error);
+    if (!admitted) goto cleanup;
+
+    ASTNode *factory = ast_program_statement(program, 0);
+    ASTNode *main_decl = ast_program_statement(program, 1);
+    ASTNode *branch = ast_block_statement(ast_func_body(factory), 0);
+    ASTNode *then_return = ast_block_statement(ast_if_then_branch(branch), 0);
+    ASTNode *else_return = ast_block_statement(ast_func_body(factory), 1);
+    ASTNode *then_value = ast_return_value(then_return);
+    ASTNode *else_value = ast_return_value(else_return);
+    ASTNode *header = ast_func_return_type(factory);
+    ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(main_decl), 0));
+    const Type *result_type = NULL;
+    CHECK(then_value != NULL && else_value != NULL && header != NULL && call != NULL);
+    if (then_value == NULL || else_value == NULL || header == NULL || call == NULL)
+        goto cleanup;
+    CHECK(semantic_param_publication_declared_result(ctx, call, &result_type) == factory
+        && result_type != NULL);
+    CHECK(semantic_array_storage_function_result_owned(ctx, factory, result_type));
+    CHECK(semantic_array_storage_owned_result_current(ctx, call));
+
+    PublishedNode *return_value = NULL;
+    for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++)
+        if (ctx->function_param_publications->nodes[i].node == then_value)
+            return_value = &ctx->function_param_publications->nodes[i];
+    CHECK(return_value != NULL && return_value->value_present);
+    if (return_value != NULL) {
+        PublishedNode saved = *return_value;
+        ASTNode saved_return = *then_return;
+        uint32_t selected_id = ast_call_semantic_callee_decl_id(call);
+        uint32_t child_id = ast_node_stable_id(then_value);
+        uint32_t header_id = ast_node_stable_id(header);
+        size_t call_arity = ast_call_arg_count(call);
+        for (unsigned fault = 0; fault < 8; fault++) {
+            if (fault == 0) ast_call_set_semantic_callee_decl_id(call, 0);
+            if (fault == 1) return_value->value_present = false;
+            if (fault == 2) return_value->meta = true;
+            if (fault == 3) return_value->value_type = TYPE_STRING;
+            if (fault == 4) then_value->stable_id++;
+            if (fault == 5) then_return->data.return_stmt.value = else_value;
+            if (fault == 6) header->stable_id++;
+            if (fault == 7) call->data.call.arg_count = 0;
+            bool current = semantic_array_storage_owned_result_current(ctx, call);
+            if (current)
+                fprintf(stderr, "owned Array result fault=%u unexpectedly current\n", fault);
+            CHECK(!current);
+            *return_value = saved;
+            *then_return = saved_return;
+            then_value->stable_id = child_id;
+            header->stable_id = header_id;
+            call->data.call.arg_count = call_arity;
+            CHECK(ast_call_set_semantic_callee_decl_id(call, selected_id));
+            CHECK(semantic_array_storage_owned_result_current(ctx, call));
+        }
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_owned_array_string_result_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func OwnedRows()->Array<String>{let rows:Array<String> = [];"
+        "ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));return rows;}"
+        "func Main()->Void{let rows=OwnedRows();ArrayDropOwnedStrings(rows);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted && !ctx->has_error);
+    if (!admitted) goto cleanup;
+    ASTNode *factory = ast_program_statement(program, 0);
+    ASTNode *main_decl = ast_program_statement(program, 1);
+    ASTNode *local = ast_block_statement(ast_func_body(factory), 0);
+    ASTNode *return_stmt = ast_block_statement(ast_func_body(factory), 2);
+    ASTNode *return_value = ast_return_value(return_stmt);
+    ASTNode *header = ast_func_return_type(factory);
+    ASTNode *call = ast_let_initializer(ast_block_statement(ast_func_body(main_decl), 0));
+    PgyCollectionOwnershipFact *fact = (PgyCollectionOwnershipFact *)
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(factory), ast_node_stable_id(local));
+    CHECK(fact != NULL && return_value != NULL && header != NULL && call != NULL);
+    if (fact == NULL || return_value == NULL || header == NULL || call == NULL) goto cleanup;
+    CHECK(fact->return_elements_owned);
+    CHECK(semantic_array_storage_owned_result_current(ctx, call));
+    CHECK(semantic_array_storage_owned_string_result_current(ctx, call));
+    PgyCollectionOwnershipFact saved = *fact;
+    uint32_t return_id = return_value->stable_id, header_id = header->stable_id;
+    uint32_t selected_id = ast_call_semantic_callee_decl_id(call);
+    for (unsigned fault = 0; fault < 7; fault++) {
+        if (fault == 0) fact->return_elements_owned = false;
+        if (fault == 1) fact->return_elements_source_id++;
+        if (fault == 2) fact->function_syntax_id++;
+        if (fault == 3) return_value->stable_id++;
+        if (fault == 4) header->stable_id++;
+        if (fault == 5) CHECK(ast_call_set_semantic_callee_decl_id(call, 0));
+        if (fault == 6) {
+            fact->return_elements_source = call;
+            fact->return_elements_source_id = ast_node_stable_id(call);
+        }
+        CHECK(!semantic_array_storage_owned_string_result_current(ctx, call));
+        if (fault == 0) CHECK(semantic_array_storage_owned_result_current(ctx, call));
+        *fact = saved;
+        return_value->stable_id = return_id;
+        header->stable_id = header_id;
+        CHECK(ast_call_set_semantic_callee_decl_id(call, selected_id));
+        CHECK(semantic_array_storage_owned_string_result_current(ctx, call));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+static void checked_owned_array_builtin_element_currency(void)
+{
+    const char *sources[] = {
+        "func Main()->Void{let source:Array<String> = [\"original\"];"
+        "let rows=Clone(source);ArrayDropOwnedStrings(rows);}",
+        "func Main()->Void{let map:HashMap<String,Int> = MapNew<String,Int>();"
+        "MapSet(map,\"key\",1);let rows=MapKeys(map);ArrayDropOwnedStrings(rows);}",
+    };
+    for (unsigned route = 0; route < 2; route++) {
+        Lexer *lexer = lexer_create(sources[route]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool admitted = parsed && type_check_program(program, ctx);
+        CHECK(admitted && !ctx->has_error);
+        if (!admitted) goto cleanup;
+        ASTNode *main_decl = ast_program_statement(program, 0);
+        ASTNode *local = ast_block_statement(ast_func_body(main_decl), route == 0 ? 1 : 2);
+        ASTNode *drop = ast_block_statement(ast_func_body(main_decl), route == 0 ? 2 : 3);
+        ASTNode *call = ast_let_initializer(local);
+        ASTNode *receiver = ast_call_argument(drop, 0);
+        ASTNode *target = ast_call_callee(call);
+        PgyCollectionOwnershipFact *fact = (PgyCollectionOwnershipFact *)
+            semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(main_decl), ast_node_stable_id(local));
+        CHECK(call != NULL && target != NULL && receiver != NULL && fact != NULL);
+        if (call == NULL || target == NULL || receiver == NULL || fact == NULL) goto cleanup;
+        ArrayStorageReturnElementReceipt receipt = {ast_node_stable_id(main_decl),
+            ast_node_stable_id(local), true, call, ast_node_stable_id(call)};
+        CHECK(fact->return_elements_owned && fact->return_elements_source == call
+            && fact->return_elements_source_id == ast_node_stable_id(call));
+        CHECK(semantic_array_storage_owned_result_current(ctx, call));
+        CHECK(semantic_array_storage_owned_string_result_current(ctx, call));
+        CHECK(semantic_array_storage_element_use_current(receiver, ctx, &receipt));
+        PgyCollectionOwnershipFact saved_fact = *fact;
+        for (unsigned fault = 0; fault < 2; fault++) {
+            if (fault == 0) fact->return_elements_owned = false;
+            else fact->return_elements_source_id++;
+            CHECK(!semantic_array_storage_element_use_current(receiver, ctx, &receipt));
+            *fact = saved_fact;
+            CHECK(semantic_array_storage_element_use_current(receiver, ctx, &receipt));
+        }
+        PublishedNode *row = NULL;
+        for (size_t i = 0; i < ctx->function_param_publications->node_capacity; i++)
+            if (ctx->function_param_publications->nodes[i].node == call)
+                row = &ctx->function_param_publications->nodes[i];
+        CHECK(row != NULL);
+        if (row != NULL) {
+            PublishedNode saved_row = *row;
+            ASTNode saved_call = *call;
+            char *target_name = target->data.identifier.name;
+            uint32_t target_id = target->stable_id;
+            for (unsigned fault = 0; fault < 10; fault++) {
+                if (fault == 0) CHECK(ast_call_set_semantic_callee_is_stdlib(call, false));
+                if (fault == 1) CHECK(ast_call_set_semantic_callee_builtin_kind(call,
+                    route == 0 ? BUILTIN_NOT_BUILTIN : BUILTIN_CLONE));
+                if (fault == 2) CHECK(ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(main_decl)));
+                if (fault == 3) CHECK(ast_call_set_semantic_callee_value_binding_id(call, 1));
+                if (fault == 4) target->data.identifier.name = "Impostor";
+                if (fault == 5) target->stable_id++;
+                if (fault == 6) call->stable_id++;
+                if (fault == 7) row->stdlib = false;
+                if (fault == 8) row->builtin = route == 0 ? BUILTIN_NOT_BUILTIN : BUILTIN_CLONE;
+                if (fault == 9) {
+                    CHECK(ast_call_set_semantic_callee_is_stdlib(call, false));
+                    CHECK(ast_call_set_semantic_callee_decl_id(call, ast_node_stable_id(main_decl)));
+                }
+                CHECK(!semantic_array_storage_owned_string_result_current(ctx, call));
+                *row = saved_row;
+                *call = saved_call;
+                target->data.identifier.name = target_name;
+                target->stable_id = target_id;
+                CHECK(semantic_array_storage_owned_string_result_current(ctx, call));
+            }
+        }
+cleanup:
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
+static void checked_owned_array_nested_return_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func OwnedRows()->Array<String>{let rows:Array<String> = [];"
+        "ArrayPushOwnedString(rows,Concat(\"owned\",\" value\"));return rows;}"
+        "func Forward()->Array<String>{return OwnedRows();}"
+        "func Main()->Void{let rows=Forward();ArrayDropOwnedStrings(rows);}");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool admitted = parsed && type_check_program(program, ctx);
+    CHECK(admitted && !ctx->has_error);
+    if (!admitted) goto cleanup;
+    ASTNode *owner = ast_program_statement(program, 0);
+    ASTNode *forward = ast_program_statement(program, 1);
+    ASTNode *main_decl = ast_program_statement(program, 2);
+    ASTNode *forward_return = ast_block_statement(ast_func_body(forward), 0);
+    ASTNode *inner = ast_return_value(forward_return);
+    ASTNode *outer = ast_let_initializer(ast_block_statement(ast_func_body(main_decl), 0));
+    ASTNode *forward_header = ast_func_return_type(forward);
+    ASTNode *owner_header = ast_func_return_type(owner);
+    CHECK(inner != NULL && outer != NULL && forward_header != NULL && owner_header != NULL);
+    if (inner == NULL || outer == NULL || forward_header == NULL || owner_header == NULL)
+        goto cleanup;
+    CHECK(semantic_array_storage_owned_string_result_current(ctx, inner));
+    CHECK(semantic_array_storage_owned_string_result_current(ctx, outer));
+    ASTNode saved_return = *forward_return;
+    uint32_t inner_id = inner->stable_id, forward_header_id = forward_header->stable_id;
+    uint32_t owner_header_id = owner_header->stable_id;
+    uint32_t callee_id = ast_call_semantic_callee_decl_id(inner);
+    for (unsigned fault = 0; fault < 5; fault++) {
+        if (fault == 0) inner->stable_id++;
+        if (fault == 1) CHECK(ast_call_set_semantic_callee_decl_id(inner, 0));
+        if (fault == 2) forward_return->data.return_stmt.value = outer;
+        if (fault == 3) forward_header->stable_id++;
+        if (fault == 4) owner_header->stable_id++;
+        CHECK(!semantic_array_storage_owned_string_result_current(ctx, outer));
+        *forward_return = saved_return;
+        inner->stable_id = inner_id;
+        forward_header->stable_id = forward_header_id;
+        owner_header->stable_id = owner_header_id;
+        CHECK(ast_call_set_semantic_callee_decl_id(inner, callee_id));
+        CHECK(semantic_array_storage_owned_string_result_current(ctx, outer));
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_array_birth_initializer_states(void)
 {
     const char *sources[] = {
@@ -7982,9 +8558,11 @@ static void checked_array_birth_initializer_states(void)
                     ctx->current_function_decl = decl;
                     semantic_array_storage_initialize(binding, initial, ctx);
                     CHECK(!binding->has_escaped_array_storage
-                        && binding->has_exclusive_array_storage == (route == 0)
+                        && binding->has_exclusive_array_storage
+                        && binding->has_pending_array_result == (route != 0)
                         && !binding->has_pending_inout_preservation);
-                    /* In particular an admitted CALL is not an exclusive birth. */
+                    if (route != 0)
+                        CHECK(semantic_array_storage_owned_result_current(ctx, initial));
                     ctx->current_function_decl = saved_function;
                     symbol_destroy(binding);
                 }
@@ -8362,15 +8940,16 @@ static void checked_array_storage_path_snapshots(void)
         goto cleanup;
     CHECK(resource_snapshots_equal(&base, &copy));
     CHECK(resource_snapshot_availability_equal(&base, &copy));
-    for (size_t bit = 0; bit < 3; bit++) {
+    for (size_t bit = 0; bit < 4; bit++) {
         copy.array_storage_states[0] = base.array_storage_states[0];
         if (bit == 0) copy.array_storage_states[0].exclusive = false;
         if (bit == 1) copy.array_storage_states[0].escaped = true;
         if (bit == 2) copy.array_storage_states[0].pending = true;
+        if (bit == 3) copy.array_storage_states[0].result_pending = true;
         CHECK(!resource_snapshots_equal(&base, &copy));
         CHECK(!resource_snapshot_availability_equal(&base, &copy));
     }
-    copy.array_storage_states[0] = (ArrayStoragePathState){false, true, true};
+    copy.array_storage_states[0] = (ArrayStoragePathState){false, true, true, true};
     ASTNode loop = {0};
     loop.type = AST_WHILE_LOOP;
     FlowFlags replayed = FLOW_NONE;
@@ -8379,12 +8958,14 @@ static void checked_array_storage_path_snapshots(void)
     CHECK(loop_flow_summary_try_apply(ctx, &loop, &base, 0, &replayed));
     CHECK(replayed == FLOW_FALLTHROUGH && !values[0].has_exclusive_array_storage
         && values[0].has_escaped_array_storage
-        && values[0].has_pending_inout_preservation);
-    for (size_t bit = 0; bit < 3; bit++) {
+        && values[0].has_pending_inout_preservation
+        && values[0].has_pending_array_result);
+    for (size_t bit = 0; bit < 4; bit++) {
         ArrayStoragePathState saved = base.array_storage_states[0];
         if (bit == 0) base.array_storage_states[0].exclusive = false;
         if (bit == 1) base.array_storage_states[0].escaped = true;
         if (bit == 2) base.array_storage_states[0].pending = true;
+        if (bit == 3) base.array_storage_states[0].result_pending = true;
         CHECK(!loop_flow_summary_try_apply(ctx, &loop, &base, 0, &replayed));
         base.array_storage_states[0] = saved;
     }
@@ -8395,25 +8976,30 @@ static void checked_array_storage_path_snapshots(void)
         else merge_resource_states_or(&joined, &copy);
         CHECK(joined.valid && !joined.array_storage_states[0].exclusive
             && joined.array_storage_states[0].escaped
-            && joined.array_storage_states[0].pending);
+            && joined.array_storage_states[0].pending
+            && joined.array_storage_states[0].result_pending);
         destroy_resource_snapshot(&joined);
     }
     values[0].has_exclusive_array_storage = false;
     values[0].has_escaped_array_storage = true;
     values[0].has_pending_inout_preservation = true;
+    values[0].has_pending_array_result = true;
     restore_resource_states(&base);
     CHECK(values[0].has_exclusive_array_storage
         && !values[0].has_escaped_array_storage
-        && !values[0].has_pending_inout_preservation);
+        && !values[0].has_pending_inout_preservation
+        && !values[0].has_pending_array_result);
     Symbol replacement = values[0];
     replacement.has_exclusive_array_storage = false;
     replacement.has_escaped_array_storage = true;
     replacement.has_pending_inout_preservation = true;
+    replacement.has_pending_array_result = true;
     bindings[0] = &replacement;
     restore_resource_states_for_context(&base, ctx);
     CHECK(replacement.has_exclusive_array_storage
         && !replacement.has_escaped_array_storage
-        && !replacement.has_pending_inout_preservation);
+        && !replacement.has_pending_inout_preservation
+        && !replacement.has_pending_array_result);
     CHECK(base.symbols[0] == &values[0]);
     CHECK(base.symbol_indices[0] != RESOURCE_FLOW_INDEX_NONE);
     ArrayStoragePathState *saved_column = copy.array_storage_states;
@@ -8434,11 +9020,13 @@ static void checked_array_storage_path_snapshots(void)
     restore_resource_states(&copy);
     CHECK(!values[0].has_exclusive_array_storage
         && values[0].has_escaped_array_storage
-        && values[0].has_pending_inout_preservation);
+        && values[0].has_pending_inout_preservation
+        && values[0].has_pending_array_result);
     restore_resource_states_for_context(&copy, ctx);
     CHECK(!replacement.has_exclusive_array_storage
         && replacement.has_escaped_array_storage
-        && replacement.has_pending_inout_preservation);
+        && replacement.has_pending_inout_preservation
+        && replacement.has_pending_array_result);
     CHECK(!values[9].has_exclusive_array_storage
         && values[9].has_escaped_array_storage
         && values[9].has_pending_inout_preservation);
@@ -9266,6 +9854,7 @@ int main(void)
     checked_recursive_alias_return_backing();
     checked_conservative_callback_backing();
     checked_builtin_string_concat_receipt();
+    checked_indexed_string_concat_nested_call_currency();
     checked_closed_scalar_return_receipt();
     /* A physical outer result does not erase retention of an inner loan. */
     checked_physical_return_retaining_effects("struct TextRecord{text:String} extern \"C\"{func Hold(text:String)->Void;} func Echo(ref text:String)->String{return text;} func Probe(ref record:TextRecord,ignored:String)->Int{Hold(Echo(record.text));return 1;}", 3, SLOT_PARAM_SUMMARY_CALL_ESCAPE, false);
@@ -9295,12 +9884,19 @@ int main(void)
     checked_array_birth_preserved_sources();
     checked_array_birth_initializer_states();
     checked_string_member_alias_birth();
+    checked_array_result_borrowed_formals();
+    checked_owned_array_result_currency();
+    checked_physical_hof_array_result_currency();
+    checked_owned_array_string_result_currency();
+    checked_owned_array_builtin_element_currency();
+    checked_owned_array_nested_return_currency();
     checked_array_storage_live_paths();
     checked_private_local_array_push();
     checked_private_physical_array_nested_result_currency();
     checked_empty_array_no_output();
     checked_static_string_backing();
     checked_nested_call_currentness();
+    checked_tuple_literal_type_receipt();
     checked_secure_view_call_tuple();
     checked_nominal_result_relations();
     checked_nominal_result_growth();
@@ -9335,13 +9931,14 @@ int main(void)
     checked_nonlocal_scalar_store("func Store(text:String)->Void{let local_slot:Slot<String> =ClaimSlot();local_slot=text;Release(local_slot);}", 0);
     checked_shared_backing_validation();
     checked_zero_argument_output_graph();
-    checked_unclosed_output_graph("func Probe(text:String)->Bool{let line=ReadLine();return StringLength(text)>0;}", 0);
-    checked_unclosed_output_graph("extern \"C\"{func Opaque()->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque();}", 1);
-    checked_unclosed_output_graph("func Probe(text:String)->Bool{let indirect:func()->Int=()=>1;return StringLength(text)>indirect();}", 0);
-    checked_unclosed_output_graph("extern \"C\"{func Opaque(value:Int)->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque(1);}", 1);
-    checked_unclosed_output_graph("func Probe(text:String)->Bool{let indirect:func(Int)->Int=(value:Int)=>value+StringLength(text);return StringLength(text)>indirect(1);}", 0);
-    checked_unclosed_output_graph("class Box{let amount:Int;func Add(self,value:Int)->Int{return self.amount+value;}} func Probe(text:String,box:Box)->Bool{return StringLength(text)>box.Add(1);}", 1);
-    checked_unclosed_output_graph("struct Cell{text:String} func Retain(inout output:Cell,text:String)->Int{output.text=text;return 1;} func Probe(inout output:Cell,text:String)->Bool{return StringLength(text)>Retain(output,text);}", 2);
+    checked_output_graph("func Probe(text:String)->Bool{let line=ReadLine();return StringLength(text)>0;}", 0, false);
+    checked_output_graph("extern \"C\"{func Opaque()->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque();}", 1, false);
+    checked_output_graph("func Probe(text:String)->Bool{let indirect:func()->Int=()=>1;return StringLength(text)>indirect();}", 0, false);
+    checked_output_graph("extern \"C\"{func Opaque(value:Int)->Int;} func Probe(text:String)->Bool{return StringLength(text)>Opaque(1);}", 1, false);
+    checked_output_graph("func Probe(text:String)->Bool{let indirect:func(Int)->Int=(value:Int)=>value+StringLength(text);return StringLength(text)>indirect(1);}", 0, false);
+    checked_output_graph("class Box{let amount:Int;func Add(self,value:Int)->Int{return self.amount+value;}} func Probe(text:String,box:Box)->Bool{return StringLength(text)>box.Add(1);}", 1, true);
+    checked_output_graph("class Box{let amount:Int;func Add(self,value:Int)->Int{return self.amount+value;}} extern \"C\"{func Opaque()->Int;} func Build()->Box{let n=Opaque();return Box(n);} func Probe(text:String)->Bool{return StringLength(text)>Build().Add(1);}", 3, false);
+    checked_output_graph("struct Cell{text:String} func Retain(inout output:Cell,text:String)->Int{output.text=text;return 1;} func Probe(inout output:Cell,text:String)->Bool{return StringLength(text)>Retain(output,text);}", 2, false);
     checked_nonlocal_scalar_store("struct Cell{text:String} func Store(cell:Cell,text:String)->Void{var alias=cell;alias.text=text;}", 1);
     checked_nonlocal_scalar_store("func SetNumber(inout destination:Int,value:Int)->Void{destination=value;}", 0);
     checked_nonlocal_scalar_store("struct Counter{count:Int} func Touch(ref text:String)->Bool{var cell=Counter(0);cell.count=StringLength(text);return cell.count>0;}", 1);

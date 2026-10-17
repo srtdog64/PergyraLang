@@ -26,6 +26,8 @@ restore_resource_states(const ResourceConsumeSnapshot *snap)
                     missing_array_state || snap->array_storage_states[i].escaped;
                 snap->symbols[i]->has_pending_inout_preservation =
                     missing_array_state || snap->array_storage_states[i].pending;
+                snap->symbols[i]->has_pending_array_result =
+                    missing_array_state || snap->array_storage_states[i].result_pending;
             }
         }
     }
@@ -61,6 +63,8 @@ restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                     missing_array_state || snap->array_storage_states[i].escaped;
                 symbol->has_pending_inout_preservation =
                     missing_array_state || snap->array_storage_states[i].pending;
+                symbol->has_pending_array_result =
+                    missing_array_state || snap->array_storage_states[i].result_pending;
             }
         }
     }

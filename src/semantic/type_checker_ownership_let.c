@@ -117,7 +117,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
      * initializers are covered by the hook in type_check_call. */
     if (init != NULL && init->type == AST_MEMBER_ACCESS)
         semantic_reject_world_zone_member_escape(init, ctx);
-        semantic_bound_party_note_value_use(ctx, init);
+    semantic_bound_party_note_value_use(ctx, init);
 
     /* Type inference: if no annotation, infer from initializer */
     if (ann != NULL) {
@@ -460,6 +460,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         const char *paired_token = NULL;
         Symbol *sym;
 
+        if (!ctx->has_error && init != NULL && type_equals(init_type, TYPE_STRING)
+            && type_equals(type_slot_inner_type(decl_type), TYPE_STRING))
+            semantic_indexed_string_borrow_call_argument(init, NULL, NULL, 0, false, ctx);
         if (type_slot_is_secure(decl_type))
             semantic_record_effect(ctx, EFFECT_SECURE);
         if (slot_transfer_compatible(init_type, decl_type)) {

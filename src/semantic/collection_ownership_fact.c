@@ -9,6 +9,8 @@
 #include "type_checker.h"
 #include "type_checker_internal.h"
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_release_owner.h"
+#include "array_storage_element_lifetime_owner.h"
 #include "../parser/ast_api.h"
 
 static bool
@@ -249,6 +251,7 @@ semantic_collection_ownership_initialize_binding(
             || source_fact->origin != fact.origin)
             return false;
     } else {
+        semantic_array_storage_initialize_return_elements(&fact, binding, initializer, ctx);
         if (!collection_ownership_fact_reserve(
                 ctx, ctx->collection_ownership_fact_count + 1))
             return false;
@@ -261,7 +264,9 @@ semantic_collection_ownership_initialize_binding(
             || initializer->type != AST_IDENTIFIER
             || source->decl_syntax_id != fact.source_binding_syntax_id)
             return false;
-        if (source->has_pending_inout_preservation &&
+        if ((semantic_array_storage_has_pending(source)
+                || source_fact->return_elements_source != NULL
+                || semantic_array_storage_has_pending_elements(ctx, source->decl_syntax_id)) &&
             !semantic_array_storage_record_pending_drop(ctx, (ASTNode *)initializer,
                 source, ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
@@ -317,7 +322,8 @@ semantic_collection_record_call_effect_from(
             || fact->origin == PGY_COLLECTION_ORIGIN_CLONE
             || fact->origin == PGY_COLLECTION_ORIGIN_BINDING);
     if (fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL && !owned_local_drop)
-        return !ast_call_semantic_collection_effect(call, NULL, NULL, NULL);
+        return semantic_array_storage_record_return_element_effect(receiver, kind,
+            !ast_call_semantic_collection_effect(call, NULL, NULL, NULL), ctx);
     if (fact->disposition != (owned_local_drop
             ? PGY_COLLECTION_DISPOSITION_RETIRED
             : PGY_COLLECTION_DISPOSITION_LIVE))
@@ -327,13 +333,12 @@ semantic_collection_record_call_effect_from(
         || binding->decl_syntax_id != binding_id)
         return false;
     /* The parser receipt stays write-once; only its exact recheck is valid. */
-    if (ast_call_set_semantic_collection_effect(
-            call, (uint32_t)kind, binding_id, source_syntax_id))
-        return true;
-    return ast_call_semantic_collection_effect(
+    return semantic_array_storage_record_return_element_effect(receiver, kind,
+        ast_call_set_semantic_collection_effect(call, (uint32_t)kind, binding_id,
+            source_syntax_id) || (ast_call_semantic_collection_effect(
         call, &issued_kind, &issued_binding, &issued_source)
         && issued_kind == (uint32_t)kind && issued_binding == binding_id
-        && issued_source == source_syntax_id;
+        && issued_source == source_syntax_id), ctx);
 }
 
 static bool
@@ -393,26 +398,6 @@ semantic_collection_reject_unsafe_owned_string_mutation(
     return true;
 }
 
-static bool
-collection_binding_is_current_parameter(const SemanticContext *ctx,
-                                        uint32_t binding_syntax_id)
-{
-    ASTNode *function_decl;
-
-    if (ctx == NULL || binding_syntax_id == 0)
-        return false;
-    function_decl = ctx->current_function_decl;
-    if (function_decl == NULL || function_decl->type != AST_FUNC_DECL)
-        return false;
-    for (size_t i = 0; i < ast_func_param_count(function_decl); i++) {
-        FuncParam *param = ast_func_param(function_decl, i);
-        if (param != NULL
-            && ast_func_param_stable_id(param) == binding_syntax_id)
-            return true;
-    }
-    return false;
-}
-
 bool
 semantic_collection_admit_owned_string_drop(
     ASTNode *receiver,
@@ -449,7 +434,10 @@ semantic_collection_admit_owned_string_drop(
             name);
         return false;
     }
-    if (binding != NULL && binding->has_pending_inout_preservation &&
+    if ((semantic_array_storage_has_pending(binding)
+            || (fact != NULL && fact->return_elements_source != NULL)
+            || (binding != NULL && semantic_array_storage_has_pending_elements(ctx,
+                binding->decl_syntax_id))) &&
         (ast_identifier_binding_syntax_id(receiver) != binding->decl_syntax_id ||
          !semantic_array_storage_record_pending_drop(ctx, receiver, binding,
              ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS))) {
@@ -501,6 +489,16 @@ semantic_collection_admit_owned_string_drop(
         return false;
     }
     if (fact->element_ownership == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN) {
+        if (fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+            && !fact->return_elements_owned) {
+            if (!ctx->has_error)
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, receiver,
+                    "ArrayDropOwnedStrings cannot release '%s': shallow mutation withdrew its owned String-element premise",
+                    name);
+            return false;
+        }
         if (fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE) {
             /* Aggregate-parameter element carriage is not owned by this
              * local-transition rung yet.  Preserve the pre-existing boundary
@@ -526,6 +524,9 @@ semantic_collection_admit_owned_string_drop(
             return false;
         }
         if (fact->origin == PGY_COLLECTION_ORIGIN_BINDING) {
+            if (fact->return_elements_owned && fact->return_elements_source != NULL
+                && binding != NULL && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE)
+                return true; /* The recorded deep-drop obligation checks the exact dependency. */
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BORROW_ESCAPE,
                 PGY_CAUSE_BORROW_ESCAPE,

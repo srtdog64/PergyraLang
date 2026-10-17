@@ -104,6 +104,8 @@ typedef struct {
     ASTNodeType shape;
     uint32_t binding;
     const Type *type;
+    size_t formal_ordinal;
+    uint32_t formal_id;
 } PublishedCallArgument;
 typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 typedef struct {
@@ -180,10 +182,16 @@ typedef struct {
     uint32_t category;
     ASTNodeType value_shape;
     bool origin_ready, string_value, physical_scalar, builtin_string_concat;
+    /* Indexed-String owner issues this source at the typed value's program
+     * point; zero is independent, UINT32_MAX is explicitly unproved. */
+    bool indexed_string_source_present;
+    uint32_t indexed_string_source_id;
     const Type *value_type;
     const ASTNode *unmodelled_constructor, *call_receiver;
     uint32_t unmodelled_constructor_id, call_receiver_id;
     const Type *unmodelled_constructor_type;
+    const ASTNode *selected_callable;
+    uint32_t selected_callable_id;
     /* Binary concat uses these same owned rows as typed operand snapshots. */
     PublishedCallArgument *arguments;
     ASTNodeType target_shape;
@@ -305,6 +313,8 @@ bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *valu
 bool semantic_param_publication_record_execution(SemanticContext *ctx,
     const ASTNode *statement, bool reachable);
 bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNode *call);
+bool semantic_param_publication_record_selected_callable(SemanticContext *ctx,
+    ASTNode *call, ASTNode *decl);
 bool semantic_param_publication_record_deferred_capture(SemanticContext *ctx, ASTNode *lambda,
     ASTNode *source, uint32_t binding_id, const Type *type, LambdaCaptureMode mode);
 bool semantic_param_publication_record_deferred_scan(SemanticContext *ctx, ASTNode *boundary);
@@ -330,6 +340,10 @@ bool semantic_param_publication_checked_finish_independent(const SemanticContext
 bool semantic_param_publication_checked_local_owner_constructor(
     const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_bodyless_selected_call_current(
+    const SemanticContext *ctx, const ASTNode *call);
+bool semantic_param_publication_instance_receiver(const SemanticContext *ctx,
+    const ASTNode *call, ASTNode **receiver_out);
 ASTNode *semantic_param_publication_declared_result(const SemanticContext *ctx,
     const ASTNode *call, const Type **result_type);
 bool semantic_param_publication_routine_result_current(const SemanticContext *ctx,
@@ -344,6 +358,10 @@ bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
     const ASTNode *call, const ASTNode *owner);
 ASTNode *semantic_param_publication_callee(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
+bool semantic_param_publication_formal_for_actual(const SemanticContext *ctx,
+    const ASTNode *call, size_t actual, size_t *formal);
+bool semantic_param_publication_selected_formal_for_actual(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *decl, size_t actual, size_t *formal);
 bool semantic_param_publication_finalize(SemanticContext *ctx);
 void semantic_param_publication_destroy(SemanticContext *ctx);
 #endif

@@ -76,7 +76,9 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
 
     if (semantic_param_publication_pending(ctx) && ast_node_stable_id(call) != 0 &&
         !semantic_param_publication_record_slot_token_operand(ctx, call, ordinal, slot_sym, token_sym, slot_type)) {
-        semantic_error(ctx, token_arg, "Checked secure token operand publication failed"); return false;
+        if (!ctx->has_error)
+            semantic_error(ctx, token_arg, "Checked secure token operand publication failed");
+        return false;
     }
     return true;
 }

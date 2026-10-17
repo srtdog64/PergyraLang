@@ -1,0 +1,17 @@
+func OwnedRows() -> Array<String>
+{
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Destroy(own rows: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(rows);
+}
+
+func Main() -> Void
+{
+    Destroy(OwnedRows());
+    Log(1);
+}

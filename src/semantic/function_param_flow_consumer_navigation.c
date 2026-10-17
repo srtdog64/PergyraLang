@@ -5,6 +5,84 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Frame creation and fixed-point execution share the control-root owner. */
+bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore *store,
+    ASTNode *decl, size_t ordinal, unsigned *effects, bool *outputs, size_t output_count, bool *pending,
+    bool private_stores_closed)
+{
+    if (store == NULL || store->failed || effects == NULL || pending == NULL || decl == NULL || outputs == NULL ||
+        output_count != ast_func_param_count(decl) || ordinal >= output_count ||
+        !semantic_param_publication_inputs_ready(store->ctx)) return false;
+    FunctionParamFlowProgramPointIndex *index;
+    if (!function_param_flow_program_point_index_build(store, decl, &index) ||
+        !function_param_flow_index_roots_current(index)) return false;
+    if (index->backing_frames == NULL) {
+        if (output_count > SIZE_MAX / sizeof(*index->backing_frames)) { function_param_flow_fail(store, decl, "backing frame vector size overflow"); return false; }
+        index->backing_frames = calloc(output_count, sizeof(*index->backing_frames));
+        if (index->backing_frames == NULL) { function_param_flow_fail(store, decl, "backing frame vector allocation failed"); return false; }
+        index->backing_frame_count = output_count;
+    }
+    if (index->backing_frame_count != output_count) return false;
+    if (index->backing_frames[ordinal] == NULL) {
+        if (output_count > SIZE_MAX - 63) { function_param_flow_fail(store, decl, "backing width overflow"); return false; }
+        size_t words = (output_count + 63) / 64;
+        if (words == 0 || words > SIZE_MAX / sizeof(uint64_t)) { function_param_flow_fail(store, decl, "backing matrix size overflow"); return false; }
+        FunctionParamFlowBackingFact *created = calloc(1, sizeof(*created));
+        if (created == NULL) { function_param_flow_fail(store, decl, "backing fact allocation failed"); return false; }
+        index->backing_frames[ordinal] = created;
+        created->origin_count = 1; created->origin_words = 1;
+        created->destination_count = output_count; created->destination_words = words;
+        created->input_ordinal = ordinal;
+        created->input_id = ast_func_param_stable_id(ast_func_param(decl, ordinal));
+        created->claims = index->claims;
+        created->effects = calloc(1, sizeof(unsigned));
+        created->outputs = calloc(words, sizeof(uint64_t));
+        if (created->effects == NULL || created->outputs == NULL) { function_param_flow_fail(store, decl, "backing matrix allocation failed"); return false; }
+        ReturnedBacking seed = {.store = store, .decl = decl, .fact = created};
+        for (size_t p = 0; p < output_count; p++) {
+            FuncParam *param = ast_func_param(decl, p);
+            FunctionParamFlowBackingBinding *row = backing_binding(&seed, ast_func_param_stable_id(param), true);
+            if (row == NULL) return false;
+            if (p == ordinal) row->origins[0] = 1;
+            if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_MUT_REF)
+                row->destinations[p / 64] |= UINT64_C(1) << (p % 64);
+        }
+    }
+    /* Heap-owned fact/root rows survive recursive index and entry growth. */
+    FunctionParamFlowBackingFact *fact = index->backing_frames[ordinal];
+    if (fact->input_ordinal != ordinal || fact->input_id == 0 ||
+        fact->input_id != ast_func_param_stable_id(ast_func_param(decl, ordinal)) ||
+        fact->origin_count != 1 || fact->origin_words != 1 || fact->destination_count != output_count ||
+        fact->destination_words != (output_count + 63) / 64) return false;
+    /* Effects are monotone within one admission mode. Never reuse a precise
+     * private-store evaluation for a query lacking its fresh graph witness,
+     * nor pretend a previously conservative CALL mask can be subtracted. */
+    if (fact->epoch != 0 && fact->private_stores_closed != private_stores_closed) return false;
+    fact->private_stores_closed = private_stores_closed;
+    FunctionParamFlowControlProjection *projection = index->control_projection;
+    ReturnedBacking state = {.store = store, .lookup = {store->ctx, store->program_root}, .decl = decl,
+        .fact = fact, .private_stores_closed = private_stores_closed};
+    if (!function_param_flow_backing_rows_current(store, decl)) return false;
+    if (fact->building) { *pending = true; return false; }
+    if (fact->epoch == 0 || (fact->pending && fact->evaluation_pass != store->fixed_point_passes + 1)) {
+        fact->building = true; fact->complete = true; fact->pending = false;
+        free(fact->pending_relations); fact->pending_relations = NULL; fact->pending_relation_count = 0;
+        fact->sealed_pending_relation_count = 0;
+        fact->evaluation_pass = store->fixed_point_passes + 1;
+        do {
+            if (fact->epoch == SIZE_MAX) { function_param_flow_fail(store, decl, "backing iteration identity overflow"); fact->complete = false; break; }
+            fact->epoch++; fact->changed = false;
+            function_param_flow_backing_control_roots(&state, projection);
+        } while (fact->changed && fact->complete);
+        fact->building = false;
+    }
+    *effects = fact->effects[0];
+    for (size_t p = 0; p < output_count; p++)
+        outputs[p] = (fact->outputs[p / 64] & (UINT64_C(1) << (p % 64))) != 0;
+    *pending = fact->pending && fact->complete;
+    return fact->complete && !fact->pending;
+}
+
 bool function_param_flow_control_append(SemanticContext *ctx,
     FunctionParamFlowControlProjection *projection, ASTNode *node, size_t claim, size_t root)
 {

@@ -1,0 +1,17 @@
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Reader(text: String) -> Int {
+    return StringLength(text);
+}
+
+func Main() -> Void {
+    if true {
+        let rows: Array<String> = OwnedRows();
+        defer { ArrayDropOwnedStrings(rows); };
+        Log(Reader(rows[0]));
+    }
+}

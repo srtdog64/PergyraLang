@@ -35,6 +35,7 @@ typedef struct
     unsigned mask;
     /* Independent descriptor-retention facet; Slot access bits do not prove it. */
     bool array_storage_unproved;
+    bool array_elements_unproved;
     bool returned_backing_unproved;
     bool returned_backing_pending;
     bool analysis_unsupported;
@@ -279,6 +280,7 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
 bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
     ASTNode *call, FunctionParamFlowBackingFact *consumer);
 bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index);
+uint32_t function_param_flow_backing_place(ReturnedBacking *state, ASTNode *node);
 bool function_param_flow_index_claim_record(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *node);
 bool function_param_flow_index_claims_snapshot(SemanticContext *ctx,
@@ -305,8 +307,10 @@ FunctionParamFlowSummaryStore *function_param_flow_store_get(const SlotFunctionL
 unsigned function_param_flow_summary_for_call(const SlotFunctionLookup *lookup,
     const ASTNode *call, size_t ordinal);
 
-bool function_param_array_storage_unproved_in_program_points(
+size_t function_param_flow_find(const FunctionParamFlowSummaryStore *store,
+    uint32_t function_id, size_t param_index);
+unsigned function_param_array_storage_unproved_in_program_points(
     ASTNode *const *roots, size_t count, const SlotSummaryOrigin *origin,
-    const SlotFunctionLookup *lookup);
+    const SlotFunctionLookup *lookup, bool *payload_read);
 
 #endif

@@ -25,6 +25,350 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ## Current active rung — fixed-input summary work (2026-10-17)
 
+### Current element-retention integration boundary
+
+#### Reached defer lifetime / final-consumer repair (2026-10-17)
+
+- Objective: retain the existing routine-exit LIFO defer behavior while making
+  Array/String lifetime admission and generated binding lifetime agree with it.
+  Priority: existing execution contract, exact binding/source identity, explicit
+  refusal, preserved safe readers/copies, then patch size. The July21 executable
+  delta in `docs/self_hosted/16_hard_substitution_velocity_process.md` explicitly
+  selected routine exit (`2,1`) over block exit (`1,2`); do not reverse that
+  choice from a code comment or change those runtime oracles to hide a failure.
+- Chain: checked defer body -> existing indexed deferred read/release ledger ->
+  later assignment/transfer/named-call consumer -> final parameter publication;
+  MIR defer registration -> C/LLVM routine-exit emission -> exact deferred local
+  binding. The ledger must survive an inner lexical block until routine exit.
+  Its rows contain stable AST/binding identities, not a dangling local Symbol.
+  C must not lose an admitted inner local merely because the return block has
+  a different transient SSA name map. Mutable bindings must observe their
+  value at execution, not a registration-time value snapshot.
+- Existing owners: indexed String borrow/defer scope and final Array call
+  preservation; existing MIR local/SSA binding and defer emission owners. No
+  new lexical-exit wire format, AST rescan, public syntax or extra semantic
+  owner is justified by this repair. Missing/currentness failures stay closed.
+- Falsifiers: inner defer read followed by outer drop must refuse with no MIR;
+  inner local plus deferred drop and non-retaining named reader must execute
+  correctly on C and LLVM; future deferred drop plus a retaining Array callee
+  must refuse. Preserve LIFO/same-body/mutable-rebind negatives and the existing
+  branch/loop `2,1` outputs. A verified ledger with no release reservation is
+  different from unknown source identity in the presence of a reservation.
+- Integration snapshot0NdW7o/nativea248ed4a: phase10653/0 PASS, strict RED
+  (an existing invalid move now has an additional call-preservation diagnostic).
+  Previous native690 runtime66 checks had62 successes and4 failures: two unsafe
+  inner-read-after-drop executions exposed early ledger expiry, and two C
+  compiles lost the deferred local name. Do not run the unsafe admissions again.
+- Edit boundaries: B existing indexed/defer semantic scope; A C MIR binding and
+  defer emission after surveying its owner/consumers; C fixtures/oracles only
+  after observed diagnostics. Root alone Linux/build/process/Git and integration.
+  Shared gate: currentness phase + full strict/admission census, safe C/LLVM
+  runtime controls and existing defer parity, then broad/canonical/bootstrap/CI.
+  These are dependencies of the active ownership rung, not new parallel tracks.
+
+- Objective: returned Array storage and its String payload lifetime reach
+  every existing move, mutation, retained-store and final deep-drop consumer.
+  Priority is current typed source identity, separate storage/element facts,
+  explicit refusal, preserved independent-copy positives, then patch size.
+- Existing owners: RETURN/birth/deferred storage receipts; native collection
+  element premise; indexed String source publication; demanded parameter
+  summary and its single two-facet indexed-root walk. No new semantic owner,
+  source annotation, whole-AST pass, cache or safety exception is introduced.
+- Reached sinks: named/opaque calls, constructors, shallow Array stores,
+  field/inout String stores, tuple and Option/Result payloads, Slot Write and
+  assignment sugar, callable-let String capture. A shallow store has no
+  non-retaining callee: exact indexed backing cannot cross it without copying.
+  List/Set/Queue/Map String insertion and String channels copy payloads at
+  runtime and must not inherit a blanket shallow-retention refusal.
+- An actual String copy (including checked Concat) is independent. A source
+  name, primitive String type, descriptor-only preservation or a matching
+  member identity is not independent payload evidence. Destructuring cannot
+  erase a retained tuple element's lifetime: its shallow store is checked
+  before the tuple is admitted, including intermediate and returned tuples.
+- Full paired admission census eukyHA on native a8d01daa:274 inputs,2
+  regressions, no unsafe execution. Both are genuine OwnedPush/inout positives
+  (recursive Grow and reader-then-Append); the other272 decisions match.
+  Scratch bd4MFa identifies raw CALL16 from INOUT as the cause of permanent
+  element failure; raw visitor facet0 became2 solely at the coarse mask join.
+  All four scratch source/object/binary paths restore byte-identically.
+  The bounded repair observes actual payload projection in the same walk,
+  retaining direct-formal/unsupported/unknown-call failure. It is not a
+  general CALL_ESCAPE exemption. Current compile/runtime gates still pending.
+- Independent falsifiers are analyze-only. C owns source/phase/behavioral
+  fixtures, A the final deep-drop and Slot consumers, B the summary facets,
+  root retained-store hooks/build/Git. No parallel WSL/build/process owners.
+  Shared acceptance remains full phase/strict C+LLVM positives and exact
+  BORROW/no-MIR negatives, broad/sanitizer gates, then unchanged canonical,
+  actual bootstrap/install and required CI on the same published main SHA.
+- Reached last-consumer dependency, not a new precision track: COzxKW on
+  7cb7f6b2 passed17/20 independent-copy C/LLVM runs. Both backends lacked
+  the intermediate tuple local `pair.1` type; LLVM also misidentified the
+  tuple-return aggregate layout. The typed tuple issuer, source-local MIR
+  consumer and exact C/LLVM destructure consumers are now independently
+  verified in tpPcdM: native10fc7542, phase10291/0, all20 runtime runs and
+  full strict gate PASS. The stage preserves the original input and budgets,
+  and checks clone/missing/stale tuple receipts. It does NOT include the
+  later method/defer/retirement integration, validate the current dirty tree,
+  establish canonical admission, or replace bootstrap/install/CI evidence.
+- Final same-lifetime sink map adds local String return, Slot/SecureSlot plain
+  initialization, DeviceWrite, deferred read vs retirement ordering and host
+  methods. Root owns return/init; A the existing DeviceWrite and typed method
+  actual-to-formal correspondence owners; B existing Scope/defer/indexed
+  lifetime and retirement consumers; C behavioral fixtures. Method formal
+  indices include self while actual indices do not: one ordinal must not
+  serve both. Known method readers require the same admitted correspondence,
+  not an opaque escape exemption. Deferred future reads survive typing's
+  resource snapshot but expire with their real lexical scope; LIFO order,
+  same-body read/drop and later String rebinds must not erase the obligation.
+- Fixed canonical V576EF on 7cb is RED20132 diagnostics (cascades included),
+  MIR0,30.45s/1256272KiB. Scratch T7UlqT identifies the first new source
+  refusal: ArraySet(values,slot,Substring(...)). Both runtime ABIs duplicate
+  Substring; existing checked-local-constructor owner already admits that
+  independence, but indexed String origin omitted it. Connect this known
+  identity/arity contract, not a fresh heap-free right. After a prior error,
+  missing value publication must not generate a second lifetime error for
+  every unrelated live String array. Keep compiler failure and the primary
+  diagnostic; re-enumerate on unchanged canonical after the focused chain.
+- A9Y1Pz on the unchanged7cb binary confirms the remaining sink obligations:
+  host-method retention, local String return, Slot initialization,
+  DeviceWrite, late deferred read, reversed cleanup order, mutable String
+  rebinding, and release followed by another release/use still emit MIR.
+  These are unsafe admission observations, NEVER executable runtime cases.
+  Safe reader/copy/defer controls are checked separately. SecureSlot Read
+  precision and an unrelated destination cleanup currently obscure two
+  copy controls; isolate those boundaries before adopting semantic oracles.
+  Method actual/formal mapping must include the implicit receiver in the
+  existing host-index owner. Deferred release is an affine reservation,
+  not immediate physical retirement or a grant from an AST/name match.
+
+### Current integration regression and selector-name review
+
+- Current source `f4279a13b`/native `fb533c58c050e3a808279bf7fa8d08c8812498eab4c21286e04812a2b45baf94`
+  is local/unpushed. c1a7 selector-name and de3 cast-error-boundary reviews
+  are SCOPED APPROVE. f427 direct MEMBER_MOVE permission revocation passes
+  OgzflW phase10060/0/full strict, Ftpl2Z broad and Dk2bjQ SAN(leak OFF),
+  but its family is NOT closed: FwMWnp admits both `Extract(State)->rows`
+  wrapper negatives through ordinary CALL UNKNOWN birth. Neither was executed.
+- Current full census 3QVIvA is RED1761 over unchanged4273 routines/3188 keys,
+  versus1047 on de3:797 new,83 resolved,291 changed causes. There are10
+  direct Pass2 errors across five field cleanup routines (3+1+3+1+2), then
+  1636 stale-return/125 stale-index failures. Restore is BYTE_IDENTICAL.
+  Lower wall time is early failure, not a performance or admission receipt.
+- Immediate bounded negative-boundary objective: reject an Array result's
+  borrowed parameter backing even when its formal is DEFAULT/INOUT, using
+  the existing typed function-param return-dependency owner and current
+  program-point facts. No new AST walk, owner, syntax or fresh-storage claim.
+  Last consumer is the existing final parameter-escape diagnostic. Forbidden
+  fallback: RETURN_ESCAPE from a non-own formal silently ignored because
+  only REF is checked, or no-store/no-dependency treated as uniqueness.
+  Required falsifiers: the two frozen wrapper probes, forwarded/local aliases,
+  mixed returns and descriptor growth; preserve fresh factory and owned-return
+  positives. This rejects a known borrowed route; it does NOT discharge the
+  full returned-storage/field ownership producer set below. Map all new
+  refusals before extending this boundary or claiming the canonical restored.
+- Return-storage implementation slice (same rung; no field permission):
+  the existing deferred Array-storage owner records typed RETURN events and
+  exact ordinary CALL births, then seals their ownership after publication.
+  Source premises are current literal/verified independent builtin storage or
+  an unescaped exclusive local/OWN formal, consumed at return. A result from
+  another call remains provisional and depends on that call's certificate.
+  Existing indexed/current program points supply the complete RETURN set;
+  no separate body traversal or no-store-as-freshness shortcut. Defer,
+  capture/worker, retained alias, unsupported source and recursive unproved
+  cycles cannot issue a certificate. Unknown is not exclusive.
+  Result-pending state has its own path-local flag, preserved by snapshots,
+  joins and loops; it is not an input-INOUT preservation receipt. Own, drop,
+  deep-drop, mutation and later calls record a final storage obligation.
+  Builtin physical allocation, String-element lifetime, and field-root
+  uniqueness remain distinct premises. No return certificate for a nominal
+  member is implemented in this slice.
+  Edit boundaries: A deferred owner/header + typed-return hook; B Symbol and
+  path-state snapshot/merge/equality; root birth/assignment/last consumers;
+  C tests only after interfaces freeze. Root alone builds and integrates.
+  Shared gate: phase including genuine fresh/OWN-relay cleanup positives,
+  strict C/LLVM positives and analyze-only aliases, before/after currentness
+  faults, then unchanged canonical. Any remaining failure stays OPEN.
+- Last-consumer extension, before further grants: bw6v84 built native
+  `fe9d580decec76b2388978891cffef38d3189298eba4d5b781012546fb8ac30c`;
+  phase10124/11 and strict are RED (test syntax, read-only unclosed births,
+  duplicate OwnedPush diagnostics). Review additionally identifies moved
+  result bindings, shallow element mutation after birth, and a CALL used
+  directly as an own actual. A producer-only element certificate is not
+  permission at those consumers. Capture the current local element premise
+  and exact dependency CALL at the existing pending-drop/actual snapshot,
+  before consumption; finalization checks that consumer identity and its
+  result dependency. Deep-drop own-formal requirements carry both storage
+  and element obligations. Move keeps the dependency, never converts UNKNOWN
+  into ownership. Call/retention effects must revoke local element permission.
+  The four unclosed Array-result phase probes must now refuse: a read also
+  consumes storage liveness, and there is no admitted borrowed-return
+  contract. Keep the birth rejection until read, iteration and implicit
+  cleanup consumers are all connected; do not erase it merely to preserve an
+  old unsafe positive oracle. No new owner/file,
+  field grant, source annotation, body rescan, timeout or memory allowance.
+  A owns deferred ledger/header and element-lifetime capture/currentness;
+  B owns owned-call requirements and collection deep-drop/move consumers;
+  root owns release/builtin hooks, call retention, integration and Git;
+  C owns phase/source falsifiers and gate registration. No WSL/build/process
+  or Git action is delegated. Shared gate is the same phase/strict matrix,
+  with borrowed/moved/shallow-mutated/direct-call negatives (no emitted MIR)
+  and actual owned cleanup positives, then canonical/bootstrap/install/CI.
+- Observed follow-up boundary: 21cc/fYXjmM is phase10221/1, not green.
+  The remaining positive is MapKeys -> DEFAULT read-only Inspect -> move ->
+  deep-drop. Blanket withdrawal at every named DEFAULT/INOUT call is too
+  coarse; descriptor preservation alone must not replace element evidence.
+  Extend the existing demanded parameter entry and its indexed-root transfer
+  to two monotone failure bits, descriptor and element, in one traversal.
+  Missing/unsupported facts fail both; exact typed ArrayLength and owned
+  String push preserve elements, shallow Push/Set/index assignment do not.
+  Named calls consume the same callee entry; final payload return/call/channel
+  retention remains a separate refusal. No extra root scan, entry family,
+  cache, syntax, source annotation, or validation-budget increase.
+  B owns existing summary/transfer/currentness/typed builtin facet files;
+  A owns existing deferred row and element-consumer integration; root restores
+  provisional local authority only for that recorded named-call obligation.
+  Existing Inspect/move and recursive inout OwnedPush positives must remain;
+  shallow mutation, retained payload and missing/currentness negatives must
+  still refuse. C owns behavioral gates. Root alone runs integration.
+  Root additionally observes local constructor retention PAzvoT as MIR-admitted
+  and connects generic/nongeneric constructor arguments to the existing
+  retention boundary. Local Log/StringLength/named-reader positive must pass.
+- Published39a CI38860052641 is RED. Codegen-bootstrap executed and failed;
+  seed publication and downstream self-host bootstrap/install were skipped.
+  No actual bootstrap/install receipt on f427 and no known-red push.
+
+The older checkpoint descriptions below are historical observations, not
+pending agent assignments or the current acceptance result.
+
+- Source follow-up `c1a7b43ed2e9cd62e5fab1f56adfdb5fa29bb017` is local,
+  unpushed. The selector-name P1 below is repaired, not still assigned:
+  QvwRpT before10032/10; uHvKV8 after10032/0+366 MIR/full strict runtime and
+  original4096/4097 PASS; VYiF4K366/3228/1012+Map24/58+4IR PASS; xxX5We
+  ASan/UBSan10032/0, live UAF oracle, leak OFF191376KiB. Native SHA05453f728b.
+  Independent exact-c1a7 review requested; canonical/bootstrap/CI not approved.
+- f3isNv oldc3 field-detach observation admits wrong-field, duplicate-local,
+  partial-branch and live-root-copy MIR; opaqueHold already refuses. Current
+  tTEPKF refuses all five, now locked in the strict source gate. The legitimate
+  two-field detach ALSO refuses and remains an unimplemented positive, not a
+  passing or expected-negative gate. No unsafe case was compiled or executed.
+
+- Source checkpoint `4e34e2fe5da5466cc65d7416a81b6aa43ddb3167` is local,
+  unpushed. APyEZo full4273/3188 is RED1047, versus616:501 new failures,
+  70 resolved,448 prior-success mask changes; this is NOT a cost improvement.
+  Source Pass2 has exactly3 errors: IndexedStringBorrowStateRetire293526
+  own calls at42:55/43:61 after field-to-local extraction and exact field `[]`
+  replacement; later MirIntentExecutionHashString has numeric-cast publication
+  failure. First two can poison later publication; establish zero Pass2 before
+  attributing the other647 stale-return/28 stale-index census failures.
+- The complete new dependency is generic field detachment, not a call-site
+  annotation or a permission to undo alias refusal. A/B survey the current
+  field/local/root identity, replacement, alias and flow ownership; C has one
+  source positive/four falsifiers. No detachment grant is approved yet: clearing
+  a field alone is not sole ownership, inout root alone is not physical
+  uniqueness, and String element facts cannot be silently widened to Int/Bool.
+- A separate independent4e34 P1 is missing ordinary MEMBER_ACCESS name currency.
+  Existing input claims snapshot/replay `syntax_name` omits member names; same
+  receiver/id/Bool type with `value` changed to `other` escapes both the local
+  getter and owner-wide replay. Fix the existing owned syntax snapshot, not a
+  parallel publication owner: input_claims capture/current and navigation local
+  currentness read the same stored member name. Existing String identity/name
+  destruction already owns its lifetime. A edits only these2 production files;
+  B adds a same-type name-withdrawal/restoration phase falsifier. C source files
+  remain frozen. Root alone runs the old-before/new-after and full integration.
+- Preserve8 unsafe alias refusals, all old negatives, exact ordinary member
+  behavior, unit-enum receipt, D/O/loan and original budgets. Before/after phase,
+  strict source/runtime and later canonical evidence are required. Cost gtYdUs
+  still hits4096 at117 entries/evaluations, E117/G148/C2287/O1035/D509, all3831
+  backing charges epoch1; it is telemetry only, not admission or cache authority.
+
+#### Field-ownership closure plan — surveyed, not an approved permission
+
+- Confirmed P1 in the retained String-only issuer, exact de3/native8f:
+  ltTYSD admits both a live aggregate copy and sibling fields sharing one
+  Array<String> descriptor (13375/14560 MIR bytes), without executing either.
+  Independent review confirms the missing ownership premise. Current
+  `array_storage_initialize` turns escaped=false solely from a LIVE
+  MEMBER_MOVE row's root/field IDs, which are identity, not alias absence.
+  Immediate bounded repair: revoke THIS implicit permission at the existing
+  Array initializer; keep the element/move identity facts for their legitimate
+  consumers, but they must not mint storage/own authority. No replacement
+  grant until the full producer chain below exists. Objective/priority:
+  refuse known unsafe transfers first, then restore genuine positive field
+  moves using actual proof, preserving the fixed canonical and all positive
+  oracles. Last consumer is own/drop; forbidden fallback is accepting a
+  syntax-only String move while plain arrays are refused. A edits only the
+  existing Array initializer, B adds phase-before/after falsifiers without
+  weakening any positive oracle, C adds two analyze-only source negatives.
+  Root enumerates all regressions on the fixed inputs and performs the same
+  strict/broad/canonical gate. A new failing positive is OPEN work, not success.
+
+- Separate bounded publication repair at parentc1a7: after an earlier error,
+  `type_check_expression` intentionally stops value/call publication, but its
+  CAST dispatch still tries to publish a checked cast using the unpublished
+  operand and emits a misleading internal error. Objective: keep that SAME
+  error boundary at the cast issuer, not synthesize missing operand facts.
+  Owner: typed expression publication; last consumer: normal diagnostic and
+  final program refusal. Forbidden: clearing has_error, publishing guessed
+  operands, swallowing the original ownership error or numeric type errors.
+  A changes the one guard in type_checker_expr.c; B phase fault cases; C one
+  source negative/exact diagnostic gate. Root observes before/after, runs the
+  shared strict gate, then rechecks fixed canonical Pass2 errors. This repair
+  is diagnostic containment, NOT proof or permission for field detachment.
+
+- Objective/priority: restore unchanged canonical admission without undoing
+  alias refusals; semantic identity/actual ownership, fail-closed evidence,
+  old-path deletion, negative behavior, then patch size. One executable rung,
+  no independent cache/optimization or language-feature track.
+- Existing identity owner: `SemanticNominalResultSnapshot/Field`, issued by
+  the constructor owner and current-checked by constructor fields/publication.
+  Reuse its field declaration IDs, field/argument mapping, types and original
+  call identity. This is not storage ownership; do not reinterpret it as one.
+- Current chain: ForLocals creates independent sources:Array<Int> and
+  invalidated:Array<Bool> literals, pushes scalar elements, and returns one
+  State constructor. The verdict caller stores one result, reads ok, and
+  passes it either to Retire on failure or to ScanIntoVerdict inout then
+  Retire. Reached Scan helpers perform Array element reads/writes, not Array
+  descriptor returns/stores/replacement. Other Map carrier operations are
+  reached too; a field-specific proof must not pretend the whole root is
+  mutation-free. This is a source observation, not an issued permission.
+- Missing producer set, in dependency order:
+  1. Constructor field transfer from current physical birth/independent Clone,
+     last-use or explicit-copy decision, and source retirement. Existing
+     constructor handling only revokes the Array local's exclusivity.
+  2. Field ownership through normal/handled-error returns to the actual caller
+     local. Generic declared-result backing dependence is not uniqueness.
+     Root copies, cross-field reuse and opaque retention must withdraw or
+     refuse the relevant field authority, even if types and layout match.
+  3. Inout field descriptor preservation/replacement/growth/retirement facts
+     across the reached call graph and every continuing exit; element-only
+     writes preserve storage, while a missing summary is not all-borrowed.
+  4. Exact routine/root/field/local/type/current-generation extraction, fresh
+     same-field replacement and ordered/all-path completion. Resource-flow
+     snapshots/joins must not mint permission from one branch or a deferred
+     future assignment. Keep any active view/loan or retained alias visible.
+  5. Own/drop/cleanup last consumer checks and consumes the actual ownership
+     evidence; MIR and C/LLVM must retain overwrite-before-single-retirement
+     behavior. Existing String element-lifetime rows are not plain Array
+     storage provenance, and instruction/wire facts are not optional fallback.
+- Every producer and consumer above must use an existing authoritative seam
+  or a deliberately registered successor, not a second AST query or parallel
+  truth. Do not start editing a local reset rule while these issuance and
+  lifetime obligations are unknown. Native nominal mapping alone, an inout
+  annotation, normal UNKNOWN CALL admission, or manually observed absence of
+  copies cannot discharge the list.
+- Integration owner/root owns all executable checks; the three agents' last
+  edit scopes were selector production, phase faults, and source negatives.
+  Those candidates are frozen/committed in c1a7. A new implementation split
+  requires the exact storage/result/flow owner interfaces and independent
+  scopes above to be fixed first; no implementation grant is delegated now.
+- Shared acceptance: preserve phase/currentness and all old positives and
+  negatives; admit the legitimate two-field source on C/LLVM while refusing
+  all five field negatives; add cross-field, deferred/partial/zero-loop and
+  stale-generation cases as their actual producer is implemented. Then zero
+  direct canonical Pass2 errors, unchanged full fixed-input census/admission,
+  actual bootstrap/fixed point/install and required exact-published-SHA CI.
+  Scratch census instrumentation remains observation, not acceptance.
+
 ### Blocking review follow-up — Array descriptor alias births
 
 - Independent bbf3 review found tuple destructuring creates Array symbols with

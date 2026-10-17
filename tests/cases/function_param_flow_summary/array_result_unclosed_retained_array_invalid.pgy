@@ -1,0 +1,14 @@
+extern "C" { func Keep(rows: Array<Int>) -> Void; }
+
+func Produce() -> Array<Int>
+{
+    let rows: Array<Int> = [];
+    Keep(rows);
+    return rows;
+}
+
+func Main() -> Void
+{
+    let rows = Produce();
+    Log(ArrayLength(rows));
+}

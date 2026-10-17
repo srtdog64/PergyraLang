@@ -451,8 +451,14 @@ hir_append_collection_ownership_fact(
         routine->collection_ownership_facts = grown;
         routine->collection_ownership_fact_capacity = next_capacity;
     }
+    HIRCollectionOwnershipFact projected = *fact;
+    /* Native RETURN premises borrow AST identity only during semantic
+     * admission; they are not a wire fact or an IR ownership grant. */
+    projected.return_elements_owned = false;
+    projected.return_elements_source = NULL;
+    projected.return_elements_source_id = 0;
     routine->collection_ownership_facts[
-        routine->collection_ownership_fact_count++] = *fact;
+        routine->collection_ownership_fact_count++] = projected;
     return true;
 }
 

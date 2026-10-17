@@ -8,6 +8,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "function_param_publication_owner.h"
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
 #include "array_storage_release_owner.h"
@@ -149,7 +150,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 display_name);
             return type_function_return_type(sym->type);
         }
-        if (!ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id)) {
+        if (!ast_call_set_semantic_callee_decl_id(expr, sym->decl_syntax_id) ||
+            (callable_decl->type == AST_FUNC_DECL &&
+                !ast_call_set_semantic_callee_declared_callable(expr, true))) {
             semantic_error(ctx, expr,
                 "Callable declaration identity requires an AST call site");
             return TYPE_UNKNOWN;
@@ -188,6 +191,12 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             "Adjust caller arguments to satisfy the declaration.",
             display_name, (unsigned long long) expected, (unsigned long long) provided, sig_buf);
         return type_function_return_type(sym->type);
+    }
+    if (callable_decl != NULL && callable_decl->type == AST_FUNC_DECL &&
+        semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_selected_callable(ctx, expr, callable_decl)) {
+        semantic_error(ctx, expr, "Selected function formal identity could not be published");
+        return TYPE_UNKNOWN;
     }
 
     Type **call_arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));

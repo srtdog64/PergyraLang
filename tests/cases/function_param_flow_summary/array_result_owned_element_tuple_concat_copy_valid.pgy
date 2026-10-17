@@ -1,0 +1,18 @@
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let first_rows: Array<String> = OwnedRows();
+    let (first, first_marker) = (Concat("", first_rows[0]), 0);
+    ArrayDropOwnedStrings(first_rows);
+    Log(first);
+
+    let second_rows: Array<String> = OwnedRows();
+    let pair = (Concat("", second_rows[0]), 0);
+    let (second, second_marker) = pair;
+    ArrayDropOwnedStrings(second_rows);
+    Log(second);
+}

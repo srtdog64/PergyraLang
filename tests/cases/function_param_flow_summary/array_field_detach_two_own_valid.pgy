@@ -1,0 +1,33 @@
+// OPEN legitimate source: native field ownership evidence is not produced yet.
+// Keep this as a failing positive, not as an expected-refusal gate.
+struct State { ids: Array<Int>; invalid: Array<Bool>; }
+
+func SinkIds(own ids: Array<Int>) -> Void
+{
+    Log(ArrayLength(ids));
+    ArrayDrop(ids);
+}
+
+func SinkInvalid(own invalid: Array<Bool>) -> Void
+{
+    Log(ArrayLength(invalid));
+    ArrayDrop(invalid);
+}
+
+func Retire(inout state: State) -> Void
+{
+    let ids: Array<Int> = state.ids;
+    let invalid: Array<Bool> = state.invalid;
+    state.ids = [];
+    state.invalid = [];
+    SinkIds(ids);
+    SinkInvalid(invalid);
+}
+
+func Main() -> Void
+{
+    let state: State = State([7], [true]);
+    Retire(state);
+    Log(ArrayLength(state.ids));
+    Log(ArrayLength(state.invalid));
+}

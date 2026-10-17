@@ -361,6 +361,10 @@ ASTNode *semantic_host_index_find_selected_callable(SemanticContext *ctx,
                                                      SymbolKind kind,
                                                      uint32_t declaration_id,
                                                      const char *source_name);
+bool semantic_host_index_selected_call_formal(SemanticContext *ctx,
+    const ASTNode *call, const ASTNode *decl, const Type *receiver_type,
+    const ASTNode *caller, size_t actual,
+    size_t *formal);
 ASTNode *semantic_host_index_find_top_level_decl_by_label(
     SemanticContext *ctx,
     const char *label,

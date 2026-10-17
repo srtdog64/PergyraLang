@@ -2,6 +2,7 @@
 #include "callable_capability_inference.h"
 #include "diag_codes.h"
 #include "function_param_publication_owner.h"
+#include "indexed_string_borrow_owner.h"
 
 static const char *
 semantic_event_expr_name(ASTNode *expr)
@@ -290,6 +291,10 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
                 type_name_or_unknown(expected),
                 type_name_or_unknown(actual));
             ok = false;
+        } else if (type_equals(actual, TYPE_STRING)) {
+            /* The dynamic subscriber set has no sealed non-retention proof. */
+            semantic_indexed_string_borrow_call_argument(
+                ast_event_invoke_argument(node, i), NULL, NULL, 0, false, ctx);
         }
     }
 

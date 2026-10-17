@@ -4,6 +4,8 @@
 #include "type_checker_assignment.h"
 #include "type_checker_builtins_internal.h"
 #include "collection_ownership_fact.h"
+#include "array_storage_release_owner.h"
+#include "array_storage_element_lifetime_owner.h"
 #include "indexed_string_borrow_owner.h"
 #include "function_param_publication_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
@@ -225,6 +227,13 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                     ctx)) {
                 return target_type;
             }
+            if (array_sym != NULL && type_is_constructed_named(array_sym->type, "Array")) {
+                if (!semantic_array_storage_admit_mutation(array_node, ctx)
+                    || semantic_collection_reject_unsafe_owned_string_mutation(
+                        array_node, "array index assignment", ctx)) return target_type;
+                if (type_equals(type_get_constructed_arg(array_sym->type, 0), TYPE_STRING))
+                    semantic_array_storage_revoke_return_elements(array_node, ctx);
+            }
             /* Slice<T> is a borrowed view: writing through a default value
              * parameter would mutate the caller's backing array invisibly.
              * Same contract as the collection mutator receivers -- caller-
@@ -257,6 +266,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         && type_slot_inner_type(target_type) != NULL
         && !type_is_resource_handle(value_type)
         && type_is_assignable(value_type, type_slot_inner_type(target_type))) {
+        if (!ctx->has_error && type_equals(type_slot_inner_type(target_type), TYPE_STRING))
+            semantic_indexed_string_borrow_call_argument(
+                value, NULL, NULL, 0, false, ctx);
         callable_capability_record_retained_value(ctx, expr, value, value_type);
         return target_type;
     }

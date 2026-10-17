@@ -1,0 +1,19 @@
+event Save(text: String);
+
+func Show(text: String) -> Void {
+    Log(text);
+}
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let rows: Array<String> = OwnedRows();
+    Save += Show;
+    Save(Concat("", rows[0]));
+    ArrayDropOwnedStrings(rows);
+    Log("after event");
+}

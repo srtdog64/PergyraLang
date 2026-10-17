@@ -12,6 +12,7 @@
 #include "callable_capability_inference.h"
 #include "region_retention_summary.h"
 #include "indexed_string_borrow_owner.h"
+#include "array_storage_release_owner.h"
 #include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +79,20 @@ bool semantic_param_publication_begin_value(SemanticContext *ctx, const ASTNode 
     semantic_param_publication_retire_value(row);
     return true;
 }
+bool semantic_param_publication_record_selected_callable(SemanticContext *ctx,
+    ASTNode *call, ASTNode *decl)
+{
+    if (!semantic_param_publication_pending(ctx) || call == NULL ||
+        call->type != AST_CALL || decl == NULL || decl->type != AST_FUNC_DECL ||
+        ast_node_stable_id(decl) == 0 ||
+        ast_call_semantic_callee_decl_id(call) != ast_node_stable_id(decl) ||
+        !ast_call_semantic_callee_declared_callable(call)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, call, true);
+    if (row == NULL || (row->selected_callable != NULL && row->selected_callable != decl)) return false;
+    row->selected_callable = decl;
+    row->selected_callable_id = ast_node_stable_id(decl);
+    return true;
+}
 bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *value,
     const Type *type, bool meta)
 {
@@ -107,7 +122,7 @@ bool semantic_param_publication_record_value(SemanticContext *ctx, ASTNode *valu
         semantic_indexed_string_independent_result(value, ctx))
         row->origin_ready = row->copy_escape = true;
     row->binding_id = value->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(value) : 0;
-    row->meta |= meta; return true;
+    row->meta |= meta; return semantic_indexed_string_borrow_publish_source(value, ctx);
 }
 bool semantic_param_publication_record_string_concat(SemanticContext *ctx, ASTNode *value)
 {
@@ -126,7 +141,7 @@ bool semantic_param_publication_record_string_concat(SemanticContext *ctx, ASTNo
             (nodes[i]->type == AST_IDENTIFIER && operand->binding_id != ast_identifier_binding_syntax_id(nodes[i])) ||
             (nodes[i]->type == AST_CALL && !publication_call_ready(operand))) return false;
         operands[i] = (PublishedCallArgument){nodes[i], operand->id, nodes[i]->type,
-            ast_identifier_binding_syntax_id(nodes[i]), type};
+            ast_identifier_binding_syntax_id(nodes[i]), type, 0, 0};
     }
     row->arguments = malloc(sizeof(operands));
     if (row->arguments == NULL) return false;
@@ -177,6 +192,16 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
     row->stdlib = ast_call_semantic_callee_is_stdlib(call); row->declared_callable = ast_call_semantic_callee_declared_callable(call);
     row->call_receiver = target->type == AST_MEMBER_ACCESS ? ast_member_object(target) : NULL;
     row->call_receiver_id = ast_node_stable_id(row->call_receiver);
+    PublishedNode *receiver = publication_node(ctx->function_param_publications, row->call_receiver, false);
+    const Type *receiver_type = receiver != NULL && receiver->value_present && !receiver->meta
+        ? receiver->value_type : NULL;
+    size_t formal_count = 0;
+    if (row->selected_callable != NULL &&
+        (!row->declared_callable || row->selected_callable_id != row->declaration ||
+         !semantic_host_index_selected_call_formal(ctx, call, row->selected_callable,
+             receiver_type, row->caller, count, &formal_count))) return false;
+    if (row->selected_callable != NULL &&
+        formal_count != ast_func_param_count(row->selected_callable)) return false;
     if (target->type == AST_IDENTIFIER && row->value_present && row->value_type != NULL) {
         Symbol *symbol = lookup_identifier_symbol((ASTNode *)target, ctx);
         ASTNode *decl = symbol != NULL && symbol->kind == SYMBOL_CLASS
@@ -198,8 +223,14 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
         const ASTNode *arg = ast_call_argument(call, i);
         if (arg == NULL || ast_node_stable_id(arg) == 0) return false;
         PublishedNode *value = publication_node(ctx->function_param_publications, arg, false);
+        size_t formal = i;
+        if (row->selected_callable != NULL &&
+            !semantic_host_index_selected_call_formal(ctx, call, row->selected_callable,
+                receiver_type, row->caller, i, &formal)) return false;
         row->arguments[i] = (PublishedCallArgument){arg, ast_node_stable_id(arg), arg->type,
-            ast_identifier_binding_syntax_id(arg), value != NULL && value->value_present ? value->value_type : NULL};
+            ast_identifier_binding_syntax_id(arg), value != NULL && value->value_present ? value->value_type : NULL,
+            formal, row->selected_callable == NULL ? 0 :
+                ast_func_param_stable_id(ast_func_param(row->selected_callable, formal))};
     }
     row->argument_count = count; row->call_present = true;
     bool checked_finish = publication_checked_intrinsic(ctx, call,
@@ -220,68 +251,9 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
         row->deferred_syntax = NULL;
     }
     row->private_array_push = false;
-    /* This is only the call-time private-store dependency premise. Element
-     * origins and their eventual cleanup remain with the collection owners. */
-    if (!ctx->has_error && count == 2 && row->stdlib && row->kind_present &&
-        row->builtin == BUILTIN_NOT_BUILTIN && row->declaration == 0 && row->value_binding == 0 &&
-        row->target_shape == AST_IDENTIFIER && row->target_binding == 0 &&
-        row->target_name != NULL && strcmp(row->target_name, "ArrayPush") == 0) {
-        ASTNode *receiver = ast_call_argument(call, 0);
-        Symbol *binding = receiver != NULL && receiver->type == AST_IDENTIFIER
-            ? lookup_identifier_symbol(receiver, ctx) : NULL;
-        /* String retains its specialized storage receipt; physical elements
-         * use the current Array value type, without acquiring drop authority. */
-        const Type *element = binding == NULL ? NULL : type_get_constructed_arg(binding->type, 0);
-        FunctionParamPublicationStore *store = ctx->function_param_publications;
-        uint32_t id = binding == NULL ? 0 : binding->decl_syntax_id;
-        size_t slot = (id * (size_t)2654435761u) & (store->node_capacity - 1);
-        while (store->nodes[slot].id != 0 && store->nodes[slot].id != id)
-            slot = (slot + 1) & (store->node_capacity - 1);
-        const ASTNode *local = id != 0 && store->nodes[slot].id == id ? store->nodes[slot].node : NULL;
-        const ASTNode *initializer = local != NULL && local->type == AST_LET_DECL ? ast_let_initializer(local) : NULL;
-        PublishedNode *initial_value = publication_node(store, initializer, false);
-        PublishedNode *receiver_value = publication_node(store, receiver, false);
-        PublishedNode *payload_value = publication_node(store, ast_call_argument(call, 1), false);
-        if (binding != NULL && !binding->is_parameter && !binding->is_host_field &&
-            binding->has_exclusive_array_storage && !binding->has_escaped_array_storage &&
-            !binding->has_pending_inout_preservation && id == ast_identifier_binding_syntax_id(receiver) &&
-            row->deferred_syntax == NULL && row->caller != NULL && row->value_present &&
-            row->value_type == TYPE_VOID && type_is_constructed_named(binding->type, "Array") &&
-            type_equals(row->arguments[0].type, binding->type) &&
-            (type_equals(element, TYPE_STRING) || publication_physical_scalar(element)) &&
-            local != NULL && !ast_let_is_alias(local) && initializer != NULL &&
-            ast_let_type(local) != NULL && ast_let_type(local)->type == AST_TYPE &&
-            ast_node_stable_id(ast_let_type(local)) != 0 &&
-            semantic_type_resolution_lookup_resolved_type(ctx, ast_let_type(local)) == binding->type &&
-            initializer->type == AST_ARRAY_LITERAL &&
-            initial_value != NULL && initial_value->value_present && !initial_value->meta &&
-            type_equals(initial_value->value_type, binding->type) &&
-            type_equals(initial_value->string_array_type, type_equals(element, TYPE_STRING) ? binding->type : NULL) &&
-            receiver_value != NULL && receiver_value->value_present && !receiver_value->meta &&
-            type_equals(receiver_value->string_array_type, type_equals(element, TYPE_STRING) ? binding->type : NULL) &&
-            payload_value != NULL && payload_value->value_present && !payload_value->meta &&
-            payload_value->value_type == (type_equals(element, TYPE_STRING) ? TYPE_STRING : element)) {
-            FunctionParamFlowIndexClaims *syntax = NULL;
-            if (!function_param_flow_syntax_claims_snapshot(ctx, &syntax, (ASTNode *)local) ||
-                !function_param_flow_syntax_claims_snapshot(ctx, &syntax, call)) {
-                function_param_flow_claims_destroy(syntax);
-                return false;
-            }
-            row = publication_node(store, call, false);
-            if (row == NULL) {
-                function_param_flow_claims_destroy(syntax);
-                return false;
-            }
-            row->deferred_syntax = syntax;
-            row->private_binding = local; row->private_binding_id = id;
-            row->private_binding_type_node = ast_let_type(local);
-            row->private_binding_type_id = ast_node_stable_id(row->private_binding_type_node);
-            row->private_initializer = initializer; row->private_initializer_id = ast_node_stable_id(initializer);
-            row->private_exclusive = true; row->private_escaped = false; row->private_pending = false;
-            row->private_array_push = true;
-        }
-    }
-    return true;
+    if (!publication_record_private_array_push(ctx, call, row)) return false;
+    row = publication_node(ctx->function_param_publications, call, false);
+    return row != NULL && (!row->string_value || semantic_indexed_string_borrow_publish_source(call, ctx));
 }
 bool publication_call_ready(const PublishedNode *row)
 {
@@ -291,17 +263,26 @@ bool publication_call_ready(const PublishedNode *row)
         row->caller_id != ast_node_stable_id(row->caller) ||
         row->target_id != ast_node_stable_id(row->target) ||
         row->target_shape != row->target->type || row->target_binding != ast_identifier_binding_syntax_id(row->target) ||
+        row->call_receiver != (row->target_shape == AST_MEMBER_ACCESS ? ast_member_object(row->target) : NULL) ||
+        row->call_receiver_id != ast_node_stable_id(row->call_receiver) ||
+        (row->target_shape == AST_MEMBER_ACCESS && row->call_receiver_id == 0) ||
         ast_call_semantic_callee_builtin_kind(row->node, &builtin) != row->kind_present ||
         (row->kind_present && builtin != row->builtin) ||
         row->declaration != ast_call_semantic_callee_decl_id(row->node) ||
         row->value_binding != ast_call_semantic_callee_value_binding_id(row->node) ||
         row->stdlib != ast_call_semantic_callee_is_stdlib(row->node) || row->declared_callable != ast_call_semantic_callee_declared_callable(row->node) ||
         row->argument_count != ast_call_arg_count(row->node) ||
+        (row->selected_callable != NULL && (row->selected_callable->type != AST_FUNC_DECL ||
+         row->selected_callable_id == 0 || row->selected_callable_id != row->declaration ||
+         row->selected_callable_id != ast_node_stable_id(row->selected_callable))) ||
         (row->argument_count != 0 && row->arguments == NULL)) return false;
     for (size_t i = 0; i < row->argument_count; i++) {
         const PublishedCallArgument *arg = &row->arguments[i];
         if (arg->node != ast_call_argument(row->node, i) || arg->node == NULL || arg->shape != arg->node->type ||
-            arg->id != ast_node_stable_id(arg->node) || arg->binding != ast_identifier_binding_syntax_id(arg->node)) return false;
+            arg->id != ast_node_stable_id(arg->node) || arg->binding != ast_identifier_binding_syntax_id(arg->node) ||
+            (row->selected_callable != NULL && (arg->formal_ordinal >= ast_func_param_count(row->selected_callable) ||
+             arg->formal_id == 0 || arg->formal_id != ast_func_param_stable_id(
+                 ast_func_param(row->selected_callable, arg->formal_ordinal))))) return false;
     }
     const char *name = row->target->type == AST_IDENTIFIER ? ast_identifier_name(row->target) :
         row->target->type == AST_MEMBER_ACCESS ? ast_member_name(row->target) : NULL;
@@ -370,6 +351,8 @@ bool semantic_param_publication_checked_local_owner_constructor(
         !row->kind_present || row->nominal_result != NULL || row->result_relation ||
         row->target == NULL || row->target->type != AST_IDENTIFIER || row->target_binding != 0 ||
         row->target_id == 0 || row->target_name == NULL || row->id == 0) return false;
+    if (semantic_array_storage_independent_physical_hof_result(value, (SemanticContext *)ctx))
+        return true;
     /* These constructor contracts prove no input retention and independent
      * result backing. They confer no copy, cleanup or Finish lifetime right. */
     if (row->empty_map_declaration != NULL) {

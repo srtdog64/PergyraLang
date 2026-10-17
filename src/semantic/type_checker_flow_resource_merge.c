@@ -101,6 +101,8 @@ merge_resource_states(ResourceConsumeSnapshot *dst,
             src->array_storage_states[src_index].escaped;
         dst->array_storage_states[i].pending |=
             src->array_storage_states[src_index].pending;
+        dst->array_storage_states[i].result_pending |=
+            src->array_storage_states[src_index].result_pending;
     }
 }
 

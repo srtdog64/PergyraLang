@@ -9,15 +9,28 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "function_param_publication_owner.h"
+#include "function_param_publication_internal.h"
 #include "slot_analyzer_internal.h"
 #include "function_param_flow_summary_internal.h"
 #include "typed_map_query_fact_owner.h"
+#include "diag_codes.h"
 #include <stdlib.h>
 #include <string.h>
 
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, ASTNode **escape_site);
+
+static bool array_result_borrowed_formal(Type *function_type, const Type *formal_type,
+    ParamMode mode, SemanticContext *ctx)
+{
+    const Type *result_type = function_type == NULL ? NULL : type_function_return_type(function_type);
+    return type_is_constructed_named(result_type, "Array") &&
+        (mode == PARAM_MODE_DEFAULT || mode == PARAM_MODE_MUT_REF) &&
+        formal_type != NULL && formal_type != TYPE_UNKNOWN &&
+        !publication_physical_scalar(formal_type) &&
+        semantic_classify_ownership_type(formal_type, ctx) == OWNERSHIP_TYPE_BORROW_TRACKED;
+}
 
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view)
 {
@@ -29,7 +42,8 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
         if (ast_func_body(row->decl) == NULL) continue;
         for (size_t p = 0; p < row->count; p++) {
             FuncParam *param = ast_func_param(row->decl, p);
-            if (param != NULL && param->mode == PARAM_MODE_REF)
+            if (param != NULL && (param->mode == PARAM_MODE_REF ||
+                array_result_borrowed_formal(row->function_type, row->types[p], param->mode, ctx)))
                 (void)function_param_flow_summary_for_param(ctx, row->decl, p);
         }
     }
@@ -70,7 +84,14 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
     if (changed) semantic_error(ctx, view->program, "Final MAY body summary closure did not converge");
     for (size_t c = 0; c < view->call_count; c++) {
         const PendingRefCall *row = &view->calls[c];
-        unsigned mask = semantic_callable_param_escape_summary(row->callee, row->ordinal, ctx);
+        size_t formal = 0;
+        if (!semantic_param_publication_formal_for_actual(ctx,
+                row->call, row->ordinal, &formal)) {
+            if (!ctx->has_error)
+                semantic_error(ctx, row->call, "Ref call has no current selected formal identity");
+            continue;
+        }
+        unsigned mask = semantic_callable_param_escape_summary(row->callee, formal, ctx);
         ctx->current_function_decl = row->caller;
         ctx->current_module_path = row->module;
         bool retaining = type_equals(row->type, TYPE_STRING)
@@ -142,6 +163,15 @@ semantic_check_param_summary_escapes(ASTNode *node,
 
         if (param == NULL || param->name == NULL || param->type == NULL)
             continue;
+        if (array_result_borrowed_formal(function_type, param_types[i], param->mode, ctx)) {
+            summary_mask = semantic_callable_param_escape_summary(node, i, ctx);
+            if (semantic_param_summary_has_return_escape(summary_mask))
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                    node, "Array return still carries backing or element lifetime from non-own parameter '%s'; inferred transfer proof is unavailable",
+                    param->name);
+            continue;
+        }
         if (param->mode != PARAM_MODE_REF)
             continue;
 
@@ -290,7 +320,9 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                     if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
                     ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
                     if (callee != NULL) {
-                        if (ast_func_param(callee, p)->mode == PARAM_MODE_MUT_REF ||
+                        size_t formal = 0;
+                        if (!semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal) ||
+                            ast_func_param(callee, formal)->mode == PARAM_MODE_MUT_REF ||
                             (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0) admitted = false;
                     } else admitted = false;
                 }
@@ -302,7 +334,10 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 const PendingRefCall *nested = &view->calls[c];
                 if (nested->call != value) continue;
                 if (!semantic_param_publication_ref_call_current(store->ctx, nested) || nested->caller != loan->caller) { admitted = false; break; }
-                unsigned mask = function_param_flow_summary_for_param(store->ctx, nested->callee, nested->ordinal);
+                size_t formal = 0;
+                if (!semantic_param_publication_formal_for_actual(store->ctx,
+                        nested->call, nested->ordinal, &formal)) { admitted = false; break; }
+                unsigned mask = function_param_flow_summary_for_param(store->ctx, nested->callee, formal);
                 if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0) continue;
                 found = true;
                 bool seen = false;

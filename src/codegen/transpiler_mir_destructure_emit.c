@@ -7,11 +7,13 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../compiler/mir_source_local_expr_binding_facts.h"
 #include "../semantic/diag_codes.h"
 
 #include "codegen_slot_type_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
@@ -184,15 +186,13 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         return true;
     }
 
-    init_type_name = infer_expression_type_name(ctx, init);
-    if ((init_type_name == NULL || strcmp(init_type_name, "Unknown") == 0)
-        && init != NULL
-        && init->type == AST_IDENTIFIER
-        && ast_identifier_name(init) != NULL) {
-        const char *resolved = lookup_typed_var(ctx, ast_identifier_name(init));
-        if (resolved != NULL)
-            init_type_name = resolved;
-    }
+    if (init != NULL && init->type == AST_IDENTIFIER)
+        init_type_name = mir_source_local_identifier_type_name(
+            transpiler_active_mir_identity(ctx), ctx->active_mir_routine, init);
+    else if (init != NULL && init->type == AST_TUPLE_LITERAL)
+        init_type_name = ast_tuple_literal_semantic_type_name(init);
+    else
+        init_type_name = infer_expression_type_name(ctx, init);
     if (transpiler_require_type_name_c_type_copy(ctx, init_type_name,
             "MIR destructuring initializer", c_init_type_buf,
             sizeof(c_init_type_buf))) {

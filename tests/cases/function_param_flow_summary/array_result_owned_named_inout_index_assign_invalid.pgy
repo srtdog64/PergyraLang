@@ -1,0 +1,18 @@
+func OwnedRows() -> Array<String>
+{
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Corrupt(inout rows: Array<String>) -> Void
+{
+    rows[0] = "borrowed";
+}
+
+func Main() -> Void
+{
+    let rows: Array<String> = OwnedRows();
+    Corrupt(rows);
+    ArrayDropOwnedStrings(rows);
+}

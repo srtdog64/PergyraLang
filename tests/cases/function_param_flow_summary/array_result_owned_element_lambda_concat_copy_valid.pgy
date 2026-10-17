@@ -1,0 +1,13 @@
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let rows: Array<String> = OwnedRows();
+    let copied: String = Concat("", rows[0]);
+    let delayed: func() -> Int = () => StringLength(copied);
+    ArrayDropOwnedStrings(rows);
+    Log(delayed());
+}

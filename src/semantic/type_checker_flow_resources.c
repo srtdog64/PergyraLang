@@ -204,7 +204,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
             snap.array_storage_states[snap.count] = (ArrayStoragePathState) {
                 .exclusive = sym->has_exclusive_array_storage,
                 .escaped = sym->has_escaped_array_storage,
-                .pending = sym->has_pending_inout_preservation
+                .pending = sym->has_pending_inout_preservation,
+                .result_pending = sym->has_pending_array_result
             };
             snap.count++;
         }

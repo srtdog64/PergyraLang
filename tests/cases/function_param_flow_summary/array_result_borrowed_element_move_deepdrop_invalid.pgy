@@ -1,0 +1,11 @@
+func BorrowedRows() -> Array<String>
+{
+    return ["literal"];
+}
+
+func Main() -> Void
+{
+    let rows: Array<String> = BorrowedRows();
+    let moved: Array<String> = rows;
+    ArrayDropOwnedStrings(moved);
+}

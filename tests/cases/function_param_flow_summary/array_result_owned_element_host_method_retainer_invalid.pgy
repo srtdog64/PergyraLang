@@ -1,0 +1,22 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+class Reader {
+    let marker: Int;
+
+    func Retain(self, text: String) -> Void {
+        Keep(text);
+    }
+}
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let reader: Reader = Reader(0);
+    let rows: Array<String> = OwnedRows();
+    reader.Retain(rows[0]);
+    ArrayDropOwnedStrings(rows);
+}

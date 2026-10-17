@@ -3,11 +3,180 @@
 Updated: 2026-10-17 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — unchanged canonical admission, then bootstrap/CI
+## Active self-host context — Array payload integration, then canonical/bootstrap/CI
 
-- Last committed source checkpoint: `bbf3fbffe34eecbed10ba5de22fee9b1fa4f28af`
-  on main, parent315e4d7b. Local and unpushed. Production/phase/source gates
-  are committed; current navigation edits describe the next bounded slice.
+- Source: main `f4279a13bd19e66ba0756579a975a396640f63e7` plus the
+  current dirty native ownership/codegen/test changes. Only main exists.
+  Root alone owns WSL/build/process/Git. Do not overwrite inherited work or
+  copy live source while the method/defer integration agent is editing it.
+  The current whole-chain map and edit boundaries are the first section of
+  `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
+- Linux `/root/pgy-main-20261016` is HEAD39a plus overlays, NOT D HEAD.
+  Its last built native is
+  `a248ed4abf89c1d82a850d6884a460214ab2e8b2777dbf94367f86aa0aaa6ef7`.
+  0NdW7o: build/cap PASS, phase10653/0 PASS; full strict RED because an
+  existing invalid move now also reports the earlier retaining call. AdxbgF
+  checks all342 unique inputs (305 paired decisions), decision regressions0.
+  The subsequent routine-lifetime receipt fix is not built in this binary.
+- Independently frozen tuple stage: `.tmp/p0-tuple-last-consumer.tpPcdM`
+  under that Linux checkout. Native
+  `10fc7542c72540e115b9a72609aeff3f181215e64a8503300f92e20bd93739f4`;
+  phase10291/0, all20 original copy-backend executions and full strict PASS.
+  Follow-up8efQOt verifies seven existing runtime-copy ABI controls on C and
+  LLVM, for34/34 total safe executions. No unsafe input was executed.
+  The stage includes only the frozen tuple issuer/MIR/C/LLVM consumer slice;
+  it is not acceptance for the later integration or the unchanged canonical.
+- In-flight integration: A owns exact host-method actual/formal identity and
+  C deferred local SSA binding; B has frozen String concat independence,
+  final payload-call/deferred-release linkage and routine-lifetime receipts;
+  C owns behavioral inputs and currentness probes. Root owns local String
+  return/Slot initializer/actual deep-drop consumption and integration.
+  Preserve the distinction between independent storage, String element
+  lifetime, future release reservation, and immediate physical retirement.
+  No member identity or reset syntax grants field storage ownership.
+- Actual runtime nHXsdi on previous native690:62/66 PASS. Two expected-safe
+  inner-defer/outer-drop runs instead exposed premature ledger expiry (panic);
+  both C named-reader controls failed to compile because the deferred local
+  name was lost. No unsafe admission is to be executed again. The current
+  beta contract is routine-exit LIFO (`2,1`), explicitly selected in document16
+  July21; do not change it to block exit or flip existing branch/loop oracles.
+  B now stores receipts in nearest function scope, bounds queries to that
+  function and keeps stable AST/binding IDs rather than popped Symbol pointers.
+  That fix and A's C binding repair need integrated validation. The mistaken
+  inner-defer/outer-drop positive is renamed to a no-MIR negative without
+  changing its program. Closure and safe runtime are still OPEN.
+- Next gate is a coherent source freeze -> native build -> phase/currentness
+  and original strict gate -> analyze-only new sink/retirement matrix ->
+  runtime of safe controls on both backends. Register new exact negative
+  oracles only after observing their semantic diagnostics/no MIR. Do not
+  execute unsafe admissions. Correct the bounded producer/consumer, not a
+  timeout, a fixture's required behavior, or the safety rule.
+- A9Y1Pz on7cb confirms old unsafe MIR admissions for host-method retention,
+  local String return, Slot initialization, DeviceWrite, delayed/bad-LIFO
+  reads, mutable deferred rebinds and release followed by use/re-release.
+  These observations explain the current repairs, not completed fixes.
+- Canonical remains OPEN. V576EF on7cb: unchanged4273 routines/3188 keys,
+  MIR0,20132 diagnostics including cascades,30.45s/1256272KiB. Scratch
+  T7UlqT found the first new failure at ArraySet(...,Substring(...)); both
+  runtime ABIs copy that value, and the existing checked constructor owns
+  the missing independence premise. String `+` uses its existing typed
+  concat receipt, not an AST/name-based freshness guess. Re-enumerate only
+  after focused integration passes. The five field-cleanup functions/ten
+  direct Pass2 failures below remain real obligations, not permission to
+  restore the removed field-identity grant.
+- Published main still39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe; last
+  observed CI38860052641 is RED. Current bootstrap/installed-driver checks
+  have NOT run. Completion still requires fixed DRV-2 zero + unchanged full
+  canonical + real gen2==gen3/install C+LLVM + required green CI on the same
+  published SHA. Windows installed bin is old. No known-red push and no V1,
+  all-SoT, whole-language safety or GUI-readiness claim is justified.
+
+## Historical archive — f427 field checkpoint, lookup only
+
+- Source checkpoint: `f4279a13bd19e66ba0756579a975a396640f63e7` on main,
+  local/unpushed, parent `de3dec12f`. Root owns WSL/build/process/Git; do not
+  create another branch/worktree or overwrite the current dirty work. At this
+  checkpoint the return-storage/element-lifetime repair and its tests/docs are
+  dirty; three agents have disjoint edit scopes in the integration directive.
+  The legitimate two-field detach fixture is untracked/unimplemented. Verify
+  live status before changing anything; do not discard the active WIP.
+- Native SHA256:
+  `fe9d580decec76b2388978891cffef38d3189298eba4d5b781012546fb8ac30c`
+  from bw6v84, BEFORE the current consumer/payload-retention follow-up.
+  Linux `/root/pgy-main-20261016` is Git HEAD39a plus verified overlays, not
+  this D commit. Windows installed bin is old and is not acceptance evidence.
+- Current bounded result: bw6v84 compiles, phase10124/11 and strict RED.
+  C is fixing new inline syntax and replacing four unsafe unclosed-Array
+  positive oracles with exact BORROW refusals; rear scalar/literal controls
+  stay positive. Root removes a duplicate OwnedPush mutation obligation,
+  not a refusal. oaBocd: eight non-own result negatives all BORROW/MIR0;
+  fresh scalar, OWN Int relay and ref scalar projection admit MIR. These are
+  admission observations, not runtime or canonical closure.
+- BnqKbk/NHDIiu confirm live element-lifetime P1s: shallow Push/Set after an
+  owned result and scalar element retention before RETURN/deepdrop still emit
+  MIR. Unsafe cases were NEVER compiled/linked/executed. Named move negative
+  already refuses; both safe and unsafe direct CALL-to-own already refuse
+  source_not_named. Keep that guard: allowing direct temporaries is not this
+  V1 soundness slice. A/B connect consumer snapshots and exact producer
+  dependencies, root connects indexed String origins to the same deferred
+  payload ledger, C adds behavioral/currentness gates. No field grant or
+  independent performance track is authorized by these observations.
+- Fixed independent P1: ordinary member names now use the existing owned
+  `claims.syntax_name` at capture, owner replay and local selector getter.
+  QvwRpT before:10032 checks/10 failures. uHvKV8 after:10032/0,366 MIR/0,
+  full strict source/runtime and original4096/4097 controls PASS.
+  VYiF4K broad:366 MIR/3228 semantic/1012 transpile,24 C/LLVM positives,
+  58 analyze-only negatives and4IR PASS. xxX5We ASan/UBSan:10032/0,
+  intentional UAF oracle live, leak detection OFF,191376KiB. No unsafe
+  program was executed. These receipts are not canonical admission.
+- Five field-detach negatives are now executable gate inputs with exact
+  BORROW/no-MIR diagnostics. f3isNv on frozen oldc3 admitted wrong-field,
+  duplicate-local, partial-branch and live-root-copy cases; opaqueHold was
+  already refused. tTEPKF current refuses all five. It ALSO refuses the
+  legitimate two-field case: `array_field_detach_two_own_valid.pgy` is not
+  registered as passing or as expected refusal. Preserve this falsifier.
+- de3 repairs numeric-cast publication after an earlier error; it does not
+  restore field permission. k8LjGx phase10053/0 and full strict PASS; fg4TuO
+  broad PASS; 7f8uxG SAN10053/0, leak OFF. Independent review SCOPED APPROVE.
+- f427 revokes a String MEMBER_MOVE identity row's implicit storage grant.
+  GE4Bjl before10060/2; OgzflW after10060/0+366 MIR/full strict PASS;
+  Ftpl2Z broad366/3228/1012+Map24/58+4IR PASS; Dk2bjQ SAN10060/0,
+  live UAF oracle, leak OFF192440KiB. Direct live-root/cross-field/growth
+  negatives now refuse; no unsafe program was linked or executed.
+- f427 is NOT approved as closure of the String alias family. FwMWnp on
+  frozen fb533c58 admits both `Extract(state: State)->state.rows` wrapper
+  probes (15392/21309 MIR bytes): normal CALL birth still has escaped=false
+  without returned-storage authority. The reviewer and root agree this is
+  OPEN P1; the narrow green gate does not include those failing probes.
+- Last full canonical census is 3QVIvA on f427, NOT admission:
+  all4273 routines/3188 keys,1761 failures versus1047 on de3,797 new/
+  83 resolved/291 changed causes. Exactly10 direct Pass2 errors in five
+  field cleanup routines: GenericParameterFactRowsDrop(3),
+  DestructurePatternBindingNameRowsDrop(1), ExpressionFunctionTableFactsRelease(3),
+  CodegenTypeEnvStateReleaseLocal(1), IndexedStringBorrowStateRetire(2).
+  The earlier spurious numeric-cast error is gone. The 0:10.94 census is
+  early failure, not a speed improvement; restore was BYTE_IDENTICAL.
+  Establish zero direct Pass2 errors before attributing the later1636 stale
+  return/125 stale index cascade as independent obligations.
+- Next producer obligation is NOT a reset exemption. `inout state` and
+  `state.field=[]` do not prove the old backing has no other live alias.
+  The legitimate canonical chain is ForLocals fresh arrays -> constructor
+  return -> one local -> ScanIntoVerdict inout(element reads/writes only on
+  the two arrays) -> Retire exact fields -> own storage retirement.
+  Existing nominal snapshots own field/argument identity and type, NOT
+  physical uniqueness, constructor source retirement or returned field
+  ownership. Ordinary aggregate copies are not linked in native storage
+  state, and inout summaries do not carry field descriptor generations.
+- Whole-chain plan is in the integration directive's current field section.
+  Reuse constructor identity and existing storage/result/flow owners, but
+  issue actual move/copy/return/preservation evidence before granting own.
+  Required falsifiers include live root copy, cross-field alias, duplicate
+  extraction, wrong root/field, partial branch, deferred replacement and
+  opaque retention. No name/ordinal/path special case, UNKNOWN-call freshness
+  assumption, hidden copy, annotation workaround or wider String fact grant.
+- Independent c1a7 and de3 reviews are SCOPED APPROVE, not V1 approval.
+  f427 direct permission revocation is correct but wrapper P1 blocks closure.
+  No new field permission is implemented. Do not reopen cost optimization
+  while attributing this canonical regression: gtYdUs still reaches4096 at
+  117 entries/evaluations; it is telemetry, not an admission certificate.
+- Published main remains39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe. Last
+  observed CI38860052641 is RED: codegen-bootstrap EXECUTED/FAILED, its seed
+  publication skipped, downstream self-host bootstrap/install skipped;
+  Windows/macOS build jobs also failed. No known-red push. Actual bootstrap/
+  installed-driver acceptance has NOT run on f427. Acceptance
+  remains zero fixed DRV-2 + unchanged canonical -> real gen0..3/gen2==gen3
+  -> installed C/LLVM/memory -> required green CI on the same published SHA.
+- OPEN exclusions remain real: ordinary CALL-return UNKNOWN admission can
+  affect own/deepdrop without physical freshness proof; serialized MIR does
+  not replay native AST birth identity. Neither is whole-language closure.
+
+## Historical archive — prior active card, lookup only
+
+### Previous active card — unchanged canonical admission, then bootstrap/CI
+
+- Last committed source checkpoint: `4e34e2fe5da5466cc65d7416a81b6aa43ddb3167`
+  on main, parentbbf3fbff. Local and unpushed. Verify current dirty state;
+  the new selector-name fix and detachment investigation are described below.
 - IN FLIGHT: the existing path-state/release/collection chain; read its current
   cards near the top of the integration directive, not earlier cost proposals.
   Committed-source Linux native was c3f75cf638ba967429194ebf0a1afe3ee7e4dbecd9db81f8559bac013238596c.
@@ -27,7 +196,7 @@ evidence override this card. Resume this card, not the archive below.
   lowering already fails Unknown initializer at baseline, not a runtime PASS.
   A/B/C are mapping the complete alias birth/store/own-consumer chain before
   production repair; cost work is paused for this soundness boundary.
-- Bounded repair is now implemented, not yet committed: c7279c85409bc1a534c2b46935f307748a89fe9657f77e058cf33be5dd5b07fb.
+- Bounded repair is committed in4e34: c7279c85409bc1a534c2b46935f307748a89fe9657f77e058cf33be5dd5b07fb.
   Array births default-deny except explicit existing issuers; tuple storage
   revokes the original; own rejects borrowed/host formals. UFRktc refuses all10
   negatives, including8 old unsafe admissions, no MIR/unsafe execution.
@@ -38,6 +207,22 @@ evidence override this card. Resume this card, not the archive below.
   and actual bootstrap remain pending on this candidate; no CI claim.
   Normal CALL-return UNKNOWN bootstrap admission explicitly remains OPEN and
   has real own/deepdrop consequences; it is not fresh/unique ownership proof.
+- CURRENT full APyEZo is RED1047 versus616:501 newly failed,70 resolved,
+  448 prior-success mask changes. All4273 routines/3188 keys executed,2:46.05,
+  1252312KiB, full restore BYTE_IDENTICAL. This is a regression, not progress.
+  Exactly3 direct Pass2 errors: StateRetire293526 field-detached locals at
+  own42:55/43:61; later numeric-cast publication in MirIntentExecutionHashString.
+  Fix the field-detachment producer and establish zero Pass2 before interpreting
+  downstream stale-index/return cascades. No source annotation/copy workaround.
+  Current owners lack sole-owner field/local replacement evidence; no detachment
+  grant is approved. A/B survey that chain; C has frozen source falsifiers.
+- Independent4e34 review also found ordinary member-name currentness missing
+  from the existing claim-owned syntax snapshot. A owns input_claims/navigation
+  only; B tests same-type name and owned-snapshot withdrawal/restoration. Fix
+  this without a new publication authority; preserve all prior alias negatives.
+- Current exact cold gtYdUs still hits4096 at117 entries/evaluations:
+  E117/G148/C2287/O1035/D509; all3831 backing charges epoch1, full restoration
+  BYTE_IDENTICAL. Actual bootstrap on4e34 has not run; CI remains unapproved.
 - Full unchanged4NcZFU on this native: all4273 routines/3188 cold keys, zero
   direct Pass2 errors,616 failed at the unchanged4096 cap; no new failures,
   changed causes or prior-success mask changes versus Ylpvi5.3:22.45 and

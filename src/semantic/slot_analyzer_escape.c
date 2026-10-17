@@ -315,14 +315,19 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                         ast_identifier_name(root), SLOT_ESCAPE_RETURN)) return false;
 
                 if (!handled && callee_decl != NULL) {
-                    FuncParam *param = ast_func_param(callee_decl, i);
+                    size_t formal = 0;
+                    if (!semantic_param_publication_formal_for_actual(ctx, node, i, &formal)) {
+                        if (failed_out != NULL) *failed_out = true;
+                        return false;
+                    }
+                    FuncParam *param = ast_func_param(callee_decl, formal);
                     if (param != NULL && param->name != NULL) {
                         if (param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_DEFAULT) {
                             bool direct_self_reborrow = origin != NULL
                                 && param->mode == PARAM_MODE_REF && arg == root
                                 && callee_decl == origin->function_decl
                                 && !callee_decl->is_async_decl
-                                && i == origin->param_index
+                                && formal == origin->param_index
                                 && origin->param_name != NULL
                                 && strcmp(ast_identifier_name(root),
                                           origin->param_name) == 0

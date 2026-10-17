@@ -4,6 +4,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
+#include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
 
@@ -199,7 +200,10 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     "%s requires exactly one payload argument", name);
                 return TYPE_UNKNOWN;
             }
-            (void)type_check_expression(ast_call_argument(expr, 0), ctx);
+            ASTNode *payload = ast_call_argument(expr, 0);
+            Type *payload_type = type_check_expression(payload, ctx);
+            if (type_equals(payload_type, TYPE_STRING))
+                semantic_indexed_string_borrow_call_argument(payload, NULL, NULL, 0, false, ctx);
             return TYPE_UNKNOWN;
         }
 

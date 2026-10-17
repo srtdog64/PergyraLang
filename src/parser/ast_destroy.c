@@ -313,6 +313,8 @@ void ast_destroy(ASTNode* node) {
             break;
 
         case AST_TUPLE_LITERAL:
+            free(node->data.tuple_literal.semantic_type_name);
+            free(node->data.tuple_literal.semantic_type_children);
             for (size_t i = 0; i < node->data.tuple_literal.count; i++)
                 ast_destroy(node->data.tuple_literal.elements[i]);
             free(node->data.tuple_literal.elements);

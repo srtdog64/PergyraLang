@@ -1,0 +1,12 @@
+extern "C" { func Foreign() -> Array<Int>; }
+
+func Produce() -> Array<Int>
+{
+    return Foreign();
+}
+
+func Main() -> Void
+{
+    let rows = Produce();
+    Log(ArrayLength(rows));
+}

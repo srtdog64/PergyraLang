@@ -1,0 +1,14 @@
+func ReadLength(text: String) -> Int
+{
+    return StringLength(text);
+}
+
+func Main() -> Void
+{
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    Log(rows[0]);
+    Log(ReadLength(rows[0]));
+    ArrayDropOwnedStrings(rows);
+    Log(1);
+}

@@ -40,6 +40,13 @@ unsigned function_param_flow_summary_for_param(SemanticContext *ctx,
                                                size_t param_index);
 
 /* Preserve existing caller authority; this never grants ownership to a borrow. */
+enum {
+    FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED = 1u,
+    FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED = 2u,
+    FUNCTION_PARAM_ARRAY_ALL_UNPROVED = 3u
+};
+unsigned function_param_flow_array_preservation_failures(SemanticContext *ctx,
+    ASTNode *function_decl, size_t param_index);
 bool function_param_flow_preserves_array_storage(SemanticContext *ctx,
                                                 ASTNode *function_decl,
                                                 size_t param_index);

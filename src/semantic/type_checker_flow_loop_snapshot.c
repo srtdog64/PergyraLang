@@ -59,7 +59,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
             return false;
         if (a->array_storage_states[i].exclusive != b->array_storage_states[i].exclusive
             || a->array_storage_states[i].escaped != b->array_storage_states[i].escaped
-            || a->array_storage_states[i].pending != b->array_storage_states[i].pending)
+            || a->array_storage_states[i].pending != b->array_storage_states[i].pending
+            || a->array_storage_states[i].result_pending != b->array_storage_states[i].result_pending)
             return false;
     }
     return true;
@@ -92,7 +93,8 @@ resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
             || a->pool_ids[i] != b->pool_ids[i]
             || a->array_storage_states[i].exclusive != b->array_storage_states[i].exclusive
             || a->array_storage_states[i].escaped != b->array_storage_states[i].escaped
-            || a->array_storage_states[i].pending != b->array_storage_states[i].pending) {
+            || a->array_storage_states[i].pending != b->array_storage_states[i].pending
+            || a->array_storage_states[i].result_pending != b->array_storage_states[i].result_pending) {
             return false;
         }
     }

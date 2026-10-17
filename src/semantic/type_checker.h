@@ -161,6 +161,10 @@ struct SemanticContext
                                     /* Static flow path excluded from joins */
     bool         in_parallel;    /* Inside parallel block          */
     bool         in_defer_cleanup; /* Deferred writes do not replace current storage. */
+    Scope       *indexed_string_defer_scope;
+    ASTNode     *indexed_string_defer_body;
+    size_t       indexed_string_defer_sequence, indexed_string_next_defer_sequence;
+    bool         indexed_string_nested_defer;
     bool         in_parallel_join_expr; /* Inside an expression-form
                                     * parallel join body (docs/181 R2):
                                     * the only scope where `give` is

@@ -17,14 +17,59 @@
 #include <stdint.h>
 
 #include "symbol_table.h"
+#include "array_storage_element_lifetime_owner.h"
 
 typedef struct SemanticContext SemanticContext;
 typedef struct ASTNode ASTNode;
+
+typedef struct ArrayStorageResultBirthReceipt {
+    ASTNode *caller, *call;
+    uint32_t caller_id, call_id, binding_id, callee_id;
+    const Type *type;
+    size_t sequence;
+} ArrayStorageResultBirthReceipt;
+
+typedef struct ArrayStoragePendingCallReceipt {
+    uint32_t binding_id;
+    ASTNode *call;
+    uint32_t call_id;
+    ASTNode *argument;
+    uint32_t argument_id;
+    ASTNode *callee_decl;
+    uint32_t callee_id;
+    const Type *binding_type;
+    size_t ordinal;
+    size_t formal_ordinal;
+    uint32_t formal_id;
+    size_t sequence;
+    bool payload;
+    uint32_t source_id;
+} ArrayStoragePendingCallReceipt;
+
+typedef enum {
+    ARRAY_RESULT_UNPROVED,
+    ARRAY_RESULT_LITERAL,
+    ARRAY_RESULT_INDEPENDENT_CALL,
+    ARRAY_RESULT_OWNED_BINDING,
+    ARRAY_RESULT_DECLARED_CALL
+} ArrayStorageReturnSource;
+
+/* An issued RETURN event is immutable evidence; the private deferred store
+ * alone owns its ordering and all-path completion. */
+typedef struct ArrayStorageOwnedReturnReceipt {
+    ASTNode *decl, *statement, *value;
+    uint32_t decl_id, statement_id, value_id, binding_id, callee_id;
+    ArrayStorageReturnElementReceipt elements;
+    const Type *type;
+    size_t sequence;
+    ArrayStorageReturnSource source;
+} ArrayStorageOwnedReturnReceipt;
 
 typedef enum {
     ARRAY_STORAGE_RELEASE_DROP_STORAGE,
     ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS,
     ARRAY_STORAGE_RELEASE_MOVE_OWNED_STRINGS,
+    ARRAY_STORAGE_MUTATE_STORAGE,
     ARRAY_STORAGE_MUTATE_OWNED_STRINGS,
     ARRAY_STORAGE_CALL_AFTER_PENDING
 } ArrayStorageReleaseOperation;
@@ -35,6 +80,27 @@ bool semantic_array_storage_deferral_active(const SemanticContext *ctx);
 /* Records one authority-bearing handoff of `binding` to `callee_decl`. */
 bool semantic_array_storage_record_pending_call(SemanticContext *ctx,
     Symbol *binding, ASTNode *call, ASTNode *callee_decl, size_t ordinal);
+bool semantic_array_storage_record_pending_payload(SemanticContext *ctx,
+    Symbol *binding, ASTNode *call, ASTNode *callee_decl, size_t ordinal);
+bool semantic_array_storage_record_pending_call_consumer(SemanticContext *ctx,
+    const Symbol *binding, ASTNode *call, size_t actual_ordinal);
+bool semantic_array_storage_has_pending_elements(SemanticContext *ctx,
+    uint32_t binding_id);
+
+/* A returned Array descriptor is separate from its elements' backing. A
+ * call-result birth stays provisional until every reachable return in the
+ * selected routine has a current storage certificate. */
+bool semantic_array_storage_record_pending_result(SemanticContext *ctx,
+    Symbol *binding, ASTNode *call);
+bool semantic_array_storage_record_owned_return(SemanticContext *ctx,
+    ASTNode *ret, ASTNode *value, const Type *type);
+bool semantic_array_storage_owned_result_current(SemanticContext *ctx,
+    const ASTNode *call);
+/* String-element lifetime is independent of the outer Array descriptor. */
+bool semantic_array_storage_owned_string_result_current(SemanticContext *ctx,
+    const ASTNode *call);
+bool semantic_array_storage_function_result_owned(SemanticContext *ctx,
+    ASTNode *decl, const Type *result);
 
 /* Records a storage-dependent use after prior handoffs;
  * a missing identity or record fails closed at the caller. */
@@ -47,6 +113,8 @@ size_t semantic_array_storage_pending_sequence(const SemanticContext *ctx);
 /* Valid after finalize: whether every handoff of `binding_id` recorded before
  * `sequence` preserved the descriptor. */
 bool semantic_array_storage_pending_preserved(SemanticContext *ctx,
+    uint32_t binding_id, size_t sequence);
+bool semantic_array_storage_pending_owned_elements(SemanticContext *ctx,
     uint32_t binding_id, size_t sequence);
 
 /* Decides every recorded handoff and refuses each release that relied on an

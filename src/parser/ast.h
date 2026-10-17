@@ -284,6 +284,14 @@ struct ASTNode
         struct {
             ASTNode** elements;
             size_t    count;
+            char *semantic_type_name;
+            uint32_t semantic_type_syntax_id;
+            size_t semantic_type_child_count;
+            struct {
+                const ASTNode *node;
+                uint32_t id;
+                ASTNodeType shape;
+            } *semantic_type_children;
         } tuple_literal;
 
         /* Map literal { key: value, ... } */

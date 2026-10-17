@@ -6,6 +6,7 @@
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
 #include "diag_codes.h"
+#include "function_param_publication_owner.h"
 
 
 typedef struct StdlibCollectionBuiltinSpec {
@@ -92,6 +93,29 @@ semantic_stdlib_array_argument_preserves_storage(const ASTNode *call, size_t ord
     default:
         return false;
     }
+}
+
+bool
+semantic_stdlib_array_argument_preserves_elements(const ASTNode *call,
+    size_t ordinal, SemanticContext *ctx)
+{
+    if (ordinal != 0 || !semantic_stdlib_array_argument_preserves_storage(call, ordinal)
+        || !semantic_param_publication_checked_call(ctx, call)
+        || !semantic_param_publication_checked_argument(ctx, call, ordinal)) return false;
+    ASTNode *callee = ast_call_callee(call);
+    StdlibCollectionBuiltinKind kind = stdlib_collection_builtin_kind(ast_identifier_name(callee));
+    bool length = kind == STDLIB_COLLECTION_ARRAY_LENGTH;
+    if (!length && kind != STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING) return false;
+    if (ast_call_arg_count(call) != (length ? 1u : 2u)) return false;
+    SemanticPublishedValue array = semantic_param_publication_value(ctx, ast_call_argument(call, 0));
+    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+    if (!array.ok || array.meta || !type_is_constructed_named(array.type, "Array")
+        || !result.ok || result.meta || !type_equals(result.type, length ? TYPE_INT : TYPE_VOID)) return false;
+    if (length) return true;
+    SemanticPublishedValue item = semantic_param_publication_value(ctx, ast_call_argument(call, 1));
+    return semantic_param_publication_checked_argument(ctx, call, 1)
+        && type_equals(type_get_constructed_arg(array.type, 0), TYPE_STRING)
+        && item.ok && !item.meta && type_equals(item.type, TYPE_STRING);
 }
 
 static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKind kind)

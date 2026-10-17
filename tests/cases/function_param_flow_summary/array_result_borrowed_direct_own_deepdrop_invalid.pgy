@@ -1,0 +1,14 @@
+func BorrowedRows() -> Array<String>
+{
+    return ["literal"];
+}
+
+func Destroy(own rows: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(rows);
+}
+
+func Main() -> Void
+{
+    Destroy(BorrowedRows());
+}

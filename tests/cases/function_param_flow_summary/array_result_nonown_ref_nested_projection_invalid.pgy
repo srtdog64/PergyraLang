@@ -1,0 +1,17 @@
+func Extract(ref values: Array<Array<Int>>) -> Array<Int>
+{
+    return values[0];
+}
+
+func Consume(own rows: Array<Int>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let values: Array<Array<Int>> = [[7]];
+    let rows: Array<Int> = Extract(values);
+    Log(Consume(rows));
+    Log(ArrayLength(values[0]));
+}

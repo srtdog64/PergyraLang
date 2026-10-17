@@ -109,6 +109,8 @@ struct Symbol
     bool       has_escaped_array_storage;
     /* An inout handoff whose preservation is decided after Pass 2. */
     bool       has_pending_inout_preservation;
+    /* Provisional Array-return storage authority, distinct from input preservation. */
+    bool       has_pending_array_result;
     /* Stable semantic identity for Array storage and String element borrows.
      * These are syntax identities, never Symbol pointers or runtime addresses. */
     uint32_t   collection_storage_source_syntax_id;
@@ -203,6 +205,14 @@ typedef enum
 /*
  * Scope - one level in the scope chain
  */
+typedef struct {
+    const ASTNode *function, *body, *use;
+    uint32_t function_id, body_id, use_id, use_kind;
+    uint32_t binding_id, source_id;
+    size_t sequence;
+    bool array_receiver, nested, invalidation_snapshot, prior_invalidated, owner_release;
+} IndexedStringDeferredRead;
+
 struct Scope
 {
     Scope*    parent;
@@ -226,6 +236,9 @@ struct Scope
     Symbol**  owned_slots;
     size_t    owned_slot_count;
     size_t    owned_slot_capacity;
+    /* Native lexical future-read obligations, retired with this scope. */
+    IndexedStringDeferredRead *indexed_string_deferred_reads;
+    size_t indexed_string_deferred_read_count, indexed_string_deferred_read_capacity;
 };
 
 /* -----------------------------------------------------------------

@@ -3,7 +3,7 @@
  * AST clone helpers
  */
 
-#include "ast.h"
+#include "ast_constructors_internal.h"
 #include "../common/string_compat.h"
 
 #include <stdlib.h>
@@ -111,6 +111,24 @@ ast_clone(ASTNode* node)
         case AST_BOOLEAN:
             clone = ast_clone_literal_node(node);
             break;
+        case AST_TUPLE_LITERAL: {
+            size_t count = node->data.tuple_literal.count;
+            if (count > SIZE_MAX / sizeof(ASTNode *)
+                || (count != 0 && node->data.tuple_literal.elements == NULL)) return NULL;
+            clone = ast_create_node(AST_TUPLE_LITERAL);
+            if (clone == NULL) return NULL;
+            if (count != 0) {
+                clone->data.tuple_literal.elements = calloc(count, sizeof(ASTNode *));
+                if (clone->data.tuple_literal.elements == NULL) { ast_destroy(clone); return NULL; }
+            }
+            clone->data.tuple_literal.count = count;
+            for (size_t i = 0; i < count; i++) {
+                clone->data.tuple_literal.elements[i] = ast_clone(node->data.tuple_literal.elements[i]);
+                if (clone->data.tuple_literal.elements[i] == NULL) { ast_destroy(clone); return NULL; }
+            }
+            /* A clone has fresh syntax identity and must be checked again. */
+            break;
+        }
         case AST_BINARY:
             clone = ast_create_binary(ast_clone(node->data.binary.left),
                 ast_clone_token(node->data.binary.op),

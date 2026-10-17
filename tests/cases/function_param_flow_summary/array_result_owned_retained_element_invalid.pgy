@@ -1,0 +1,15 @@
+extern "C" { func Keep(text: String) -> Void; }
+
+func OwnedRows() -> Array<String>
+{
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    Keep(rows[0]);
+    return rows;
+}
+
+func Main() -> Void
+{
+    let rows: Array<String> = OwnedRows();
+    ArrayDropOwnedStrings(rows);
+}

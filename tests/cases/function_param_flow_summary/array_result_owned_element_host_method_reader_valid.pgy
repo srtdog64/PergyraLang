@@ -1,0 +1,20 @@
+class Reader {
+    let marker: Int;
+
+    func Observe(self, text: String) -> Int {
+        return StringLength(text) + self.marker;
+    }
+}
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let reader: Reader = Reader(0);
+    let rows: Array<String> = OwnedRows();
+    Log(reader.Observe(rows[0]));
+    ArrayDropOwnedStrings(rows);
+}

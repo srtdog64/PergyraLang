@@ -1,0 +1,12 @@
+func Relay(own rows: Array<Int>) -> Array<Int>
+{
+    return rows;
+}
+
+func Main() -> Void
+{
+    let rows: Array<Int> = [7];
+    let returned: Array<Int> = Relay(rows);
+    Log(ArrayLength(returned));
+    ArrayDrop(returned);
+}

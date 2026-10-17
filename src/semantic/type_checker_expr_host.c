@@ -3,7 +3,9 @@
 #include <stdio.h>
 
 #include "type_checker_internal.h"
+#include "function_param_publication_owner.h"
 #include "callable_capability_inference.h"
+#include "array_storage_release_owner.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
 
@@ -188,13 +190,15 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
     ExprHostMethodGenericBindings generic_bindings;
     Type **param_types = NULL;
     Type **arg_types = NULL;
+    Type *resolved_ret;
 
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return TYPE_UNKNOWN;
 
     if (ast_node_stable_id(method) == 0
         || !ast_call_set_semantic_callee_decl_id(
-            expr, ast_node_stable_id(method))) {
+            expr, ast_node_stable_id(method)) ||
+        !ast_call_set_semantic_callee_declared_callable(expr, true)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_CALL_NOT_CALLABLE,
@@ -256,6 +260,11 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
             (unsigned long long) expected, (unsigned long long) provided);
         return TYPE_UNKNOWN;
     }
+    if (semantic_param_publication_pending(ctx) &&
+        !semantic_param_publication_record_selected_callable(ctx, expr, method)) {
+        semantic_error(ctx, expr, "Selected method formal identity could not be published");
+        return TYPE_UNKNOWN;
+    }
 
     if (!expr_host_method_generic_bindings_init(
             &generic_bindings, expr, method, ctx, method_display)) {
@@ -295,6 +304,9 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         expr_host_method_generic_bindings_destroy(&generic_bindings);
         return TYPE_UNKNOWN;
     }
+    resolved_ret = expr_host_method_generic_substitute(
+        expr_host_resolve_func_return_type(method, ctx), host_decl,
+        receiver_type, &generic_bindings);
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg = ast_call_argument(expr, i);
         Type *param_type = expr_host_method_generic_substitute(
@@ -312,11 +324,17 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
                 type_name_or_unknown(param_type),
                 type_name_or_unknown(arg_types[i]));
         }
+        size_t formal = 0;
+        if (!ctx->has_error && (!semantic_host_index_selected_call_formal(ctx,
+                expr, method, receiver_type, callable_capability_current_declaration(ctx),
+                i, &formal) || formal != i + implicit_self))
+            semantic_error(ctx, expr, "Selected method argument has no current formal identity");
+        if (!ctx->has_error)
+            semantic_array_storage_call_argument(arg, arg_types[i], resolved_ret,
+                ast_func_param(method, formal)->mode, false, expr, method, i, ctx);
     }
 
     {
-        Type *ret = expr_host_resolve_func_return_type(method, ctx);
-        Type *resolved_ret;
         expr_host_method_generic_validate_constraints(
             &generic_bindings, expr, method, ctx, method_display);
         /* MIR specializes the method from this binding; a failure is
@@ -325,8 +343,6 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
             (void)semantic_generic_call_seal_type_arguments(ctx, expr,
                 method_display, generic_bindings.params,
                 generic_bindings.types, generic_bindings.count);
-        resolved_ret = expr_host_method_generic_substitute(
-            ret, host_decl, receiver_type, &generic_bindings);
         callable_capability_record_method_call(ctx, expr, param_types, arg_types);
         free(param_types);
         free(arg_types);

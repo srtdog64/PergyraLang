@@ -197,7 +197,7 @@ collection_owned_string_expression_ready(ASTNode *body,
     receipt->sources = sources;
     sources[receipt->source_count++] = (PublishedCallArgument){expression,
         ast_node_stable_id(expression), expression->type,
-        ast_identifier_binding_syntax_id(expression), TYPE_STRING};
+        ast_identifier_binding_syntax_id(expression), TYPE_STRING, 0, 0};
     return true;
 }
 

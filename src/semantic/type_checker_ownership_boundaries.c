@@ -178,21 +178,25 @@ bool semantic_validate_ref_view_payload_escape(ASTNode *site, ASTNode *source_ex
 {
     SemanticParamPublicationView view;
     const Type *type = NULL;
-    if (ctx == NULL || decl == NULL || ordinal >= ast_func_param_count(decl) ||
+    size_t formal = ordinal;
+    if (ctx == NULL || decl == NULL ||
         !semantic_param_publication_admitted_view(ctx, &view) ||
         !semantic_param_publication_routine_inputs_current(ctx, decl, true)) goto missing;
-    FuncParam *param = ast_func_param(decl, ordinal);
+    if (site != decl && !semantic_param_publication_formal_for_actual(
+            ctx, site, ordinal, &formal)) goto missing;
+    if (formal >= ast_func_param_count(decl)) goto missing;
+    FuncParam *param = ast_func_param(decl, formal);
     if (param == NULL || param->mode != PARAM_MODE_REF || ast_func_param_stable_id(param) == 0) goto missing;
     for (size_t r = 0; r < view.routine_count; r++)
-        if (view.routines[r].decl == decl && ordinal < view.routines[r].count)
-            type = view.routines[r].types[ordinal];
+        if (view.routines[r].decl == decl && formal < view.routines[r].count)
+            type = view.routines[r].types[formal];
     if (!type_is_read_view(type) || borrowed_name == NULL) goto missing;
     if (site == decl && source_expr != decl) goto missing;
     if (site != decl && (site == NULL || site->type != AST_CALL ||
         ast_call_argument(site, ordinal) != source_expr ||
         !semantic_param_publication_checked_argument(ctx, site, ordinal) ||
         semantic_param_publication_callee(ctx, site, ordinal) != decl)) goto missing;
-    unsigned mask = semantic_callable_param_escape_summary(decl, ordinal, ctx);
+    unsigned mask = semantic_callable_param_escape_summary(decl, formal, ctx);
     unsigned effect = consumer_kind == OWNERSHIP_CONSUMER_RETURN ? SLOT_PARAM_SUMMARY_RETURN_ESCAPE :
         consumer_kind == OWNERSHIP_CONSUMER_CHANNEL_SEND ? SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE :
         consumer_kind == OWNERSHIP_CONSUMER_HELPER_CALL ?

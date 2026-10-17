@@ -1,0 +1,11 @@
+struct Held { text: String; }
+
+func Main() -> Void
+{
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    var held: Held = Held("initial");
+    held.text = rows[0];
+    ArrayDropOwnedStrings(rows);
+    Log(held.text);
+}

@@ -5,6 +5,34 @@
 #include <string.h>
 
 #include "codegen_slot_type_policy.h"
+#include "llvm_backend_type_map_internal.h"
+#include "llvm_mir_local_element_type.h"
+#include "llvm_type_projection_internal.h"
+#include "../compiler/mir_destructure_type_facts.h"
+#include "../compiler/mir_source_local_expr_binding_facts.h"
+
+static const char *
+llvm_destructure_initializer_type_name(LLVMGenCtx *ctx, ASTNode *init)
+{
+    if (ctx == NULL || ctx->mir == NULL || ctx->current_mir_routine == NULL
+        || init == NULL) return NULL;
+    if (init->type == AST_IDENTIFIER)
+        return mir_source_local_identifier_type_name(ctx->mir,
+            ctx->current_mir_routine, init);
+    if (init->type == AST_TUPLE_LITERAL)
+        return ast_tuple_literal_semantic_type_name(init);
+    if (init->type != AST_CALL || !ast_call_semantic_callee_declared_callable(init)
+        || ast_call_semantic_callee_is_stdlib(init)
+        || ast_call_semantic_callee_value_binding_id(init) != 0
+        || ast_call_semantic_callee_decl_id(init) == 0) return NULL;
+    MIRRoutineInventory inventory;
+    mir_routine_inventory_from_program(ctx->mir, &inventory);
+    MIRRoutineSourceLookup selected = mir_routine_inventory_find_unique_by_source_syntax_id(
+        &inventory, ast_call_semantic_callee_decl_id(init));
+    return selected.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        && selected.routine != NULL && mir_routine_has_signature(selected.routine)
+        ? mir_routine_return_type_name(selected.routine) : NULL;
+}
 
 static const char *
 llvm_destructure_binding_name(const MIRInstruction *inst,
@@ -277,15 +305,45 @@ llvm_emit_destructure_parts(ASTNode *init,
         return;
     }
 
-    /* Heuristic: tuple if struct field count equals the binding count
-     * AND the first field is not a pointer (array-like has pointer as
-     * the first field for `data`). */
-    unsigned field_count = LLVMCountStructElementTypes(rhs_ty);
-    bool is_tuple = false;
-    if (field_count == (unsigned)binding_count) {
-        LLVMTypeRef f0 = LLVMStructGetTypeAtIndex(rhs_ty, 0);
-        if (f0 != NULL && LLVMGetTypeKind(f0) != LLVMPointerTypeKind)
-            is_tuple = true;
+    /* An owned String makes a tuple's first LLVM field a pointer too. The
+     * admitted initializer type, never that physical field, selects layout. */
+    bool direct_array = init->type == AST_ARRAY_LITERAL && inst != NULL;
+    const char *raw_type_name = direct_array ? NULL
+        : llvm_destructure_initializer_type_name(ctx, init);
+    const char *type_name = llvm_type_name_resolve_aliases(ctx, raw_type_name);
+    const char *element_name = direct_array
+        ? inst->destructure_element_type_name : NULL;
+    if (direct_array && (element_name == NULL || element_name[0] == '\0'
+        || ctx->current_mir_routine == NULL)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM MIR array destructure requires its typed element fact");
+        return;
+    }
+    if (direct_array)
+        element_name = llvm_type_name_resolve_aliases(ctx, element_name);
+    bool is_tuple = type_name != NULL && type_name[0] == '(';
+    bool is_array = direct_array || (type_name != NULL
+        && pgy_classify_type(type_name) == PGY_TK_ARRAY);
+    bool is_slice = type_name != NULL
+        && pgy_classify_type(type_name) == PGY_TK_SLICE;
+    if (!is_tuple && !is_array && !is_slice) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM destructure initializer lacks a current tuple/Array/Slice type");
+        return;
+    }
+    LLVMTypeRef expected_type = direct_array
+        ? llvm_array_struct_type(ctx, element_name)
+        : pergyra_type_to_llvm(ctx, type_name);
+    if (ctx->has_error || expected_type == NULL) return;
+    if (expected_type != rhs_ty) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM destructure initializer type contradicts its admitted layout");
+        return;
+    }
+    if (is_tuple && LLVMCountStructElementTypes(rhs_ty) != (unsigned)binding_count) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM tuple destructure binding count contradicts its admitted type");
+        return;
     }
 
     if (is_tuple) {
@@ -310,11 +368,12 @@ llvm_emit_destructure_parts(ASTNode *init,
         return;
     }
 
-    /* Array-like path (unchanged) */
+    /* Array/Slice path: the typed aggregate, not a pointer-shaped tuple. */
     LLVMValueRef data_ptr = LLVMBuildExtractValue(ctx->builder,
         rhs_val, 0, llvm_tmp_name(ctx));
-    LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
-        ctx, init, data_ptr);
+    LLVMTypeRef elem_type = direct_array
+        ? pergyra_type_to_llvm(ctx, element_name)
+        : llvm_mir_local_elem_type_from_type_name(ctx, type_name);
     if (elem_type == NULL)
         return;
     for (size_t i = 0; i < binding_count; i++) {

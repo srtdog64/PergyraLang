@@ -234,6 +234,9 @@ type_check_stdlib_array_call(ASTNode *expr,
                 arg0, op_name, ctx))
             return TYPE_UNKNOWN;
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH
+            && !semantic_array_storage_admit_mutation(arg0, ctx))
+            return TYPE_UNKNOWN;
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH
             && semantic_collection_reject_unsafe_owned_string_mutation(
                 arg0, op_name, ctx))
             return TYPE_UNKNOWN;
@@ -242,6 +245,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING))
+            semantic_indexed_string_borrow_call_argument(arg1, expr, NULL, 1, false, ctx);
         reject_borrowed_boundary_container_store(
             arg1, val, "array", op_name, ctx);
         if (!type_is_constructed_named(arr, "Array")) {
@@ -305,7 +310,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, "ArrayDropOwnedStrings", ctx))
             return TYPE_UNKNOWN;
-        if (!semantic_collection_admit_owned_string_drop(arg0, ctx))
+        if (!semantic_indexed_string_borrow_owner_transfer_allowed(arg0, ctx)
+            || !semantic_collection_admit_owned_string_drop(arg0, ctx))
             return TYPE_UNKNOWN;
         inner = type_is_constructed_named(arr, "Array")
             ? type_get_constructed_arg(arr, 0) : NULL;
@@ -324,6 +330,8 @@ type_check_stdlib_array_call(ASTNode *expr,
                        expr, arg0, arr, ctx)) {
             return TYPE_UNKNOWN;
         } else {
+            if (!consume_array_storage_binding(arg0, ctx))
+                return TYPE_UNKNOWN;
             semantic_indexed_string_borrow_invalidate_deep_drop(arg0, ctx);
         }
         return TYPE_VOID;
@@ -378,6 +386,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_invalid_array_mutator_receiver(
                 arg0, arr, "ArraySet", ctx))
             return TYPE_UNKNOWN;
+        if (!semantic_array_storage_admit_mutation(arg0, ctx))
+            return TYPE_UNKNOWN;
         if (semantic_collection_reject_unsafe_owned_string_mutation(
                 arg0, "ArraySet", ctx))
             return TYPE_UNKNOWN;
@@ -386,6 +396,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             TYPE_INT, arg1, ctx);
         val = stdlib_array_normalize_type(
             type_check_expression(arg2, ctx));
+        if (type_equals(val, TYPE_STRING))
+            semantic_indexed_string_borrow_call_argument(arg2, expr, NULL, 2, false, ctx);
         reject_borrowed_boundary_container_store(
             arg2, val, "array", "ArraySet", ctx);
         if (!type_is_constructed_named(arr, "Array")) {
@@ -421,6 +433,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, "ArrayPop", ctx))
             return TYPE_UNKNOWN;
+        if (!semantic_array_storage_admit_mutation(arg0, ctx))
+            return TYPE_UNKNOWN;
         if (semantic_collection_reject_unsafe_owned_string_mutation(
                 arg0, "ArrayPop", ctx))
             return TYPE_UNKNOWN;
@@ -452,6 +466,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             type_check_expression(arg0, ctx));
         if (reject_invalid_array_mutator_receiver(
                 arg0, arr, name, ctx))
+            return TYPE_UNKNOWN;
+        if (!semantic_array_storage_admit_mutation(arg0, ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,

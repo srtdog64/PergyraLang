@@ -138,6 +138,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = constructor_call_normalize_type(
                             type_check_expression(arg, ctx));
+                        semantic_array_storage_call_argument(arg, arg_type, sym->type,
+                            PARAM_MODE_DEFAULT, true, expr, decl, i, ctx);
                         callable_capability_record_retained_value(ctx, expr, arg, arg_type);
                         if (semantic_reject_affine_aggregate_storage(
                                 arg, arg_type, ctx,
@@ -189,6 +191,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         arg_type = constructor_call_normalize_type(
                             type_check_expression_at_typed_site(
                                 arg, field_type, ctx));
+                        semantic_array_storage_call_argument(arg, arg_type, sym->type,
+                            PARAM_MODE_DEFAULT, true, expr, decl, i, ctx);
                         callable_capability_record_retained_value(ctx, expr, arg, arg_type);
                         if (field_type == NULL)
                         {
@@ -217,7 +221,6 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
                         if (arg != NULL) {
-                            semantic_array_storage_escape(arg, arg_type, ctx);
                             const char *borrowed_name =
                                 semantic_borrowed_boundary_root_name(
                                     arg, ctx);

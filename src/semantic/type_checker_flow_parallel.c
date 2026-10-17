@@ -5,6 +5,7 @@
 #include "type_checker_flow_internal.h"
 #include "../parser/ast_analysis.h"
 #include "parallel_capture_storage_reach.h"
+#include "indexed_string_borrow_owner.h"
 
 /* Writer analysis is owned by the AST layer (ast_statement_assigns_identifier)
  * so this checker and both backend capture emitters agree on who writes. */
@@ -346,15 +347,42 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
             return false;
         }
         bool prior_defer = ctx->in_defer_cleanup;
+        Scope *prior_read_scope = ctx->indexed_string_defer_scope;
+        ASTNode *prior_read_body = ctx->indexed_string_defer_body;
+        size_t prior_sequence = ctx->indexed_string_defer_sequence;
+        bool prior_nested = ctx->indexed_string_nested_defer;
+        if (ctx->indexed_string_next_defer_sequence == SIZE_MAX) {
+            semantic_error(ctx, body, "Deferred String-read sequence overflow");
+            destroy_resource_snapshot(&before_defer);
+            return false;
+        }
+        /* Cleanup runs at routine exit, including registrations in inner blocks. */
+        Scope *read_owner = ctx->scope;
+        while (read_owner != NULL && read_owner->kind != SCOPE_FUNCTION)
+            read_owner = read_owner->parent;
+        if (read_owner == NULL) {
+            semantic_error(ctx, body, "Deferred String-read routine scope is missing");
+            destroy_resource_snapshot(&before_defer);
+            return false;
+        }
+        ctx->indexed_string_defer_scope = read_owner;
+        ctx->indexed_string_defer_body = body;
+        ctx->indexed_string_defer_sequence = ++ctx->indexed_string_next_defer_sequence;
+        ctx->indexed_string_nested_defer = prior_defer;
         TransactionFlowContext *saved_transaction = ctx->transaction_flow;
         int saved_transaction_depth = ctx->transaction_depth;
         ctx->in_defer_cleanup = true;
         ctx->transaction_flow = NULL;
         ctx->transaction_depth = 0;
         (void)type_check_block_flow(body, ctx, NULL);
+        semantic_indexed_string_borrow_restore_defer(ctx);
         ctx->transaction_flow = saved_transaction;
         ctx->transaction_depth = saved_transaction_depth;
         ctx->in_defer_cleanup = prior_defer;
+        ctx->indexed_string_defer_scope = prior_read_scope;
+        ctx->indexed_string_defer_body = prior_read_body;
+        ctx->indexed_string_defer_sequence = prior_sequence;
+        ctx->indexed_string_nested_defer = prior_nested;
         restore_resource_states(&before_defer);
         destroy_resource_snapshot(&before_defer);
     }

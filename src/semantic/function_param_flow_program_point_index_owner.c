@@ -239,7 +239,7 @@ bool function_param_flow_no_store_call_append(SemanticContext *ctx,
     FunctionParamFlowProgramPointIndex *index, ASTNode *call)
 {
     ASTNode *callee = semantic_param_publication_direct_callee(ctx, call);
-    if (callee == NULL || ast_call_arg_count(call) != ast_func_param_count(callee) ||
+    if (callee == NULL ||
         !semantic_param_publication_routine_no_output_header_ready(ctx, callee)) return false;
     for (size_t p = 0; p < ast_call_arg_count(call); p++)
         if (!semantic_param_publication_value(ctx, ast_call_argument(call, p)).ok) return false;
@@ -283,7 +283,7 @@ static bool function_param_flow_no_store_admitted_current(FunctionParamFlowSumma
         for (size_t e = 0; e < index->no_store_call_count; e++) {
             ASTNode *call = index->no_store_calls[e];
             ASTNode *callee = semantic_param_publication_direct_callee(store->ctx, call);
-            if (callee == NULL || ast_call_arg_count(call) != ast_func_param_count(callee)) return false;
+            if (callee == NULL) return false;
             for (size_t p = 0; p < ast_call_arg_count(call); p++)
                 if (!semantic_param_publication_checked_argument(store->ctx, call, p) ||
                     !semantic_param_publication_value(store->ctx, ast_call_argument(call, p)).ok) return false;
@@ -340,7 +340,7 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
         for (size_t e = 0; e < index->no_store_call_count; e++) {
             ASTNode *call = index->no_store_calls[e];
             ASTNode *callee = semantic_param_publication_direct_callee(store->ctx, call);
-            if (callee == NULL || ast_call_arg_count(call) != ast_func_param_count(callee)) { closed = false; break; }
+            if (callee == NULL) { closed = false; break; }
             for (size_t p = 0; p < ast_call_arg_count(call); p++)
                 if (!semantic_param_publication_value(store->ctx, ast_call_argument(call, p)).ok) closed = false;
             if (!closed) break;
@@ -488,7 +488,13 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
         return !function_param_flow_local_record(index, node) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_let_initializer(node));
     case AST_RETURN: return function_param_flow_mutable_output_required(ctx, decl, index, ast_return_value(node));
-    case AST_CALL:
+    case AST_CALL: {
+        ASTNode *receiver = NULL;
+        ASTNode *direct = semantic_param_publication_direct_callee(ctx, node);
+        if ((direct == NULL && ast_call_semantic_callee_declared_callable(node) &&
+             !semantic_param_publication_bodyless_selected_call_current(ctx, node)) ||
+            (direct != NULL && !semantic_param_publication_instance_receiver(ctx, node, &receiver))) return true;
+        if (receiver != NULL && function_param_flow_mutable_output_required(ctx, decl, index, receiver)) return true;
         if (semantic_param_publication_checked_local_owner_constructor(ctx, node)) {
             for (size_t p = 0; p < ast_call_arg_count(node); p++)
                 if (!semantic_param_publication_checked_argument(ctx, node, p) ||
@@ -519,6 +525,7 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
             if (function_param_flow_mutable_output_required(ctx, decl, index, ast_call_argument(node, p))) return true;
         }
         return false;
+    }
     case AST_ASSIGNMENT:
         return !function_param_flow_local_replacement(ctx, index, node) ||
             function_param_flow_mutable_output_required(ctx, decl, index, ast_assignment_value(node));

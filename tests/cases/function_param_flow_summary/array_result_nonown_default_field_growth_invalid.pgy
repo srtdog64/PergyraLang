@@ -1,0 +1,24 @@
+struct State { rows: Array<String>; }
+
+func Extract(state: State) -> Array<String>
+{
+    return state.rows;
+}
+
+func Consume(own rows: Array<String>) -> Int
+{
+    let i: Int = 0;
+    while i < 64 {
+        ArrayPush(rows, "next");
+        i = i + 1;
+    }
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let state: State = State(["row"]);
+    let rows: Array<String> = Extract(state);
+    Log(Consume(rows));
+    Log(state.rows[0]);
+}

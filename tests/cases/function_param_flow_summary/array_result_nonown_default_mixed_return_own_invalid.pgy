@@ -1,0 +1,23 @@
+struct State { rows: Array<String>; }
+
+func Choose(state: State, fresh: Bool) -> Array<String>
+{
+    if fresh {
+        let rows: Array<String> = [];
+        return rows;
+    }
+    return state.rows;
+}
+
+func Consume(own rows: Array<String>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let state: State = State(["row"]);
+    let rows: Array<String> = Choose(state, false);
+    Log(Consume(rows));
+    Log(ArrayLength(state.rows));
+}

@@ -66,7 +66,7 @@ function_param_flow_rebuild_hash(FunctionParamFlowSummaryStore *store,
     return true;
 }
 
-static size_t
+size_t
 function_param_flow_find(const FunctionParamFlowSummaryStore *store,
                          uint32_t function_id,
                          size_t param_index)
@@ -249,7 +249,8 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     SlotFunctionLookup lookup;
     unsigned candidate;
     unsigned previous;
-    bool storage_unproved;
+    unsigned storage_unproved;
+    bool payload_read;
 
     if (store == NULL || index >= store->count)
         return SLOT_PARAM_SUMMARY_ALL;
@@ -317,7 +318,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
     storage_unproved = function_param_array_storage_unproved_in_program_points(
-        roots, root_count, &origin, &lookup);
+        roots, root_count, &origin, &lookup, &payload_read);
     bool scalar_return = (candidate & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
         semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, function_decl);
     bool anchored = false;
@@ -361,7 +362,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
             origin.param_index, &backing_effects, outputs, output_count, &pending, private_stores && graph_closed);
         bool unsupported = !complete && !pending && function_param_flow_backing_unsupported(store, function_decl, origin.param_index);
         store->entries[index].analysis_unsupported = unsupported;
-        if (unsupported) { candidate |= SLOT_PARAM_SUMMARY_ALL; storage_unproved = true; }
+        if (unsupported) { candidate |= SLOT_PARAM_SUMMARY_ALL; storage_unproved = FUNCTION_PARAM_ARRAY_ALL_UNPROVED; }
         if (!unsupported && (return_backing_required || (complete && scalar_return)))
             candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
         else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
@@ -414,12 +415,21 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
     candidate |= previous;
+    /* INOUT descriptor calls conservatively carry CALL even without an element
+     * read. Direct descriptor uses are proved by the two-bit transfer itself. */
+    if (payload_read && (candidate & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE
+        | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE | SLOT_PARAM_SUMMARY_RELEASE)))
+        storage_unproved |= FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
     if (candidate != previous) {
         store->entries[index].mask = candidate;
         store->changed = true;
     }
-    if (storage_unproved && !store->entries[index].array_storage_unproved) {
+    if ((storage_unproved & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) && !store->entries[index].array_storage_unproved) {
         store->entries[index].array_storage_unproved = true;
+        store->changed = true;
+    }
+    if ((storage_unproved & FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED) && !store->entries[index].array_elements_unproved) {
+        store->entries[index].array_elements_unproved = true;
         store->changed = true;
     }
     store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
@@ -553,8 +563,10 @@ unsigned function_param_flow_summary_for_call(const SlotFunctionLookup *lookup,
 {
     if (lookup == NULL) return SLOT_PARAM_SUMMARY_ALL;
     ASTNode *decl = semantic_param_publication_callee(lookup->ctx, call, ordinal);
-    return decl == NULL ? SLOT_PARAM_SUMMARY_ALL :
-        function_param_flow_summary_demand(lookup, decl, ordinal);
+    size_t formal = 0;
+    return decl == NULL || !semantic_param_publication_formal_for_actual(
+        lookup->ctx, call, ordinal, &formal) ? SLOT_PARAM_SUMMARY_ALL :
+        function_param_flow_summary_demand(lookup, decl, formal);
 }
 
 bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lookup,
@@ -565,7 +577,11 @@ bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lo
         !semantic_param_publication_value(lookup->ctx, ast_call_argument(call, source_ordinal)).ok ||
         !semantic_param_publication_value(lookup->ctx, ast_call_argument(call, output_ordinal)).ok) return false;
     ASTNode *decl = semantic_param_publication_callee(lookup->ctx, call, source_ordinal);
-    if (decl == NULL || output_ordinal >= ast_func_param_count(decl)) return false;
+    size_t source_formal = 0, output_formal = 0;
+    if (decl == NULL || !semantic_param_publication_formal_for_actual(lookup->ctx,
+            call, source_ordinal, &source_formal) ||
+        !semantic_param_publication_formal_for_actual(lookup->ctx,
+            call, output_ordinal, &output_formal)) return false;
     size_t ordinals[2] = {source_ordinal, output_ordinal};
     for (size_t i = 0; i < 2; i++) {
         ASTNode *root = ast_call_argument(call, ordinals[i]);
@@ -573,41 +589,14 @@ bool function_param_flow_output_dependency_for_call(const SlotFunctionLookup *lo
             root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
         if (root == NULL || !semantic_param_publication_value(lookup->ctx, root).ok) return false;
     }
-    (void)function_param_flow_summary_demand(lookup, decl, source_ordinal);
+    (void)function_param_flow_summary_demand(lookup, decl, source_formal);
     FunctionParamFlowSummaryStore *store = lookup->ctx->function_param_flow_summaries;
     if (store == NULL || store->failed) return false;
-    size_t index = function_param_flow_find(store, ast_node_stable_id(decl), source_ordinal);
+    size_t index = function_param_flow_find(store, ast_node_stable_id(decl), source_formal);
     if (index == SIZE_MAX || store->entries[index].state == FUNCTION_PARAM_FLOW_COMPUTING ||
         !store->entries[index].output_dependencies_ready ||
-        output_ordinal >= store->entries[index].output_count) return false;
+        output_formal >= store->entries[index].output_count) return false;
     if (!function_param_flow_output_current(store, index, false)) return false;
-    *dependent = store->entries[index].output_dependencies[output_ordinal];
+    *dependent = store->entries[index].output_dependencies[output_formal];
     return true;
-}
-
-bool
-function_param_flow_preserves_array_storage(SemanticContext *ctx,
-                                           ASTNode *function_decl,
-                                           size_t param_index)
-{
-    FunctionParamFlowSummaryStore *store;
-    size_t index;
-    FuncParam *param = ast_func_param(function_decl, param_index);
-
-    if (ctx == NULL || function_decl == NULL || param == NULL
-        || ast_func_body(function_decl) == NULL || function_decl->is_async_decl
-        || param->mode == PARAM_MODE_OWN || param->type == NULL
-        || ast_type_name(param->type) == NULL
-        || strcmp(ast_type_name(param->type), "Array") != 0)
-        return false;
-    (void)function_param_flow_summary_for_param(ctx, function_decl, param_index);
-    store = ctx->function_param_flow_summaries;
-    if (store == NULL || store->failed)
-        return false;
-    index = function_param_flow_find(store, ast_node_stable_id(function_decl), param_index);
-    if (index == SIZE_MAX || store->entries[index].function_decl != function_decl ||
-        (!store->solving && (store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE ||
-            store->entries[index].analysis_unsupported || !store->entries[index].output_dependencies_ready ||
-            !function_param_flow_output_current(store, index, false)))) return false;
-    return !store->entries[index].array_storage_unproved;
 }

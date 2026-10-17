@@ -1,0 +1,8 @@
+func Main() -> Void
+{
+    let map: HashMap<String, Int> = MapNew<String, Int>();
+    MapSet(map, "key", 1);
+    let rows: Array<String> = MapKeys(map);
+    ArrayDropOwnedStrings(rows);
+    Log(1);
+}
