@@ -211,6 +211,16 @@ bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *sto
         size_t parameter_count = index->param_count;
         FunctionParamFlowIndexClaims *claims = index->claims;
         FunctionParamFlowBackingFact *result = index->declared_result;
+        if (!store->solving)
+            for (size_t s = 0; s < store->count; s++) {
+                const FunctionParamFlowSummaryEntry *entry = &store->entries[s];
+                if (entry->function_decl != current || entry->function_id != ast_node_stable_id(current) ||
+                    entry->output_producer != FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME) continue;
+                if (frames == NULL || entry->param_index >= frame_count || frames[entry->param_index] == NULL) {
+                    valid = false; break;
+                }
+            }
+        if (!valid) break;
         if (frames == NULL && result == NULL) {
             if (frame_count != 0) valid = false;
             continue;

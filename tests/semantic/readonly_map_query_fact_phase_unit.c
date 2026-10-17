@@ -3112,6 +3112,33 @@ static void checked_witnessed_physical_call_alias_currency(void)
         CHECK(function_param_flow_backing_rows_current(store, probe));
         CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
     }
+    bool source_index_ready = function_param_flow_program_point_index_build(store, select, &select_index);
+    CHECK(source_index_ready);
+    if (!source_index_ready || select_index == NULL || select_index->backing_frames == NULL ||
+        select_index->backing_frames[0] != source_frame) goto cleanup;
+    size_t source_index_position = (size_t)(select_index - store->program_point_indexes);
+    FunctionParamFlowBackingFact **source_frames = select_index->backing_frames;
+    size_t source_frame_count = select_index->backing_frame_count;
+    source_frames[0] = NULL;
+    CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends));
+    CHECK(!function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+    source_frames[0] = source_frame;
+    CHECK(function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
+    select_index = &store->program_point_indexes[source_index_position];
+    CHECK(select_index->function_decl == select && select_index->backing_frames == source_frames &&
+        select_index->backing_frame_count == source_frame_count);
+    select_index->backing_frames = NULL;
+    select_index->backing_frame_count = 0;
+    CHECK(!function_param_flow_output_dependency_for_call(&lookup, call, 0, 2, &output_depends));
+    CHECK(!function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == SLOT_PARAM_SUMMARY_ALL);
+    select_index = &store->program_point_indexes[source_index_position];
+    select_index->backing_frames = source_frames;
+    select_index->backing_frame_count = source_frame_count;
+    CHECK(function_param_flow_backing_rows_current(store, probe));
+    CHECK(function_param_flow_summary_for_param(ctx, probe, 0) == baseline);
 cleanup:
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
