@@ -169,6 +169,11 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     semantic_future_require_function_retired(
         ctx->scope, node, ctx, "return");
 
+    if (!ctx->has_error && value != NULL
+        && type_is_constructed_named(ret_type, "Array")
+        && !semantic_indexed_string_borrow_owner_transfer_allowed(value, ctx))
+        return false;
+
     if (!ctx->has_error && semantic_array_storage_deferral_active(ctx)
         && value != NULL && type_is_constructed_named(ret_type, "Array")
         && !semantic_array_storage_record_owned_return(ctx, node, value, ret_type)) {

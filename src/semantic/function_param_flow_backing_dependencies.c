@@ -9,6 +9,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *call)
+{
+    ASTNode *decl = function_param_flow_receiver_readonly_current(state->store, call, true), *receiver = NULL;
+    if (decl == NULL || !semantic_param_publication_instance_receiver(state->store->ctx, call, &receiver)) return false;
+    SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, receiver);
+    size_t at = backing_node(state, call);
+    if (at == SIZE_MAX || !value.ok || value.meta) return false;
+    FunctionParamFlowBackingNode *row = &state->fact->nodes[at];
+    uint32_t id = ast_node_stable_id(receiver), formal = ast_func_param_stable_id(ast_func_param(decl, 0));
+    if (id == 0 || formal == 0 || (row->receiver != NULL
+        && (row->receiver != receiver || row->receiver_id != id || row->receiver_type != value.type
+            || row->receiver_callee_id != ast_node_stable_id(decl) || row->receiver_formal_id != formal))) return false;
+    row->receiver = receiver; row->receiver_id = id; row->receiver_type = value.type;
+    row->receiver_callee_id = ast_node_stable_id(decl); row->receiver_formal_id = formal;
+    return true;
+}
+
 static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
 {
     FunctionParamFlowBackingBinding *row = backing_binding(state,
@@ -63,9 +80,10 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
             uint64_t *received = calloc(state->fact->destination_words, sizeof(*received));
             if (received == NULL) { function_param_flow_fail(state->store, value, "receiver destination allocation failed"); state->fact->complete = false; return; }
             backing_destination_value(state, receiver, received);
-            for (size_t w = 0; w < state->fact->destination_words; w++)
-                if (received[w] != 0) state->fact->complete = false;
+            bool dependent = false;
+            for (size_t w = 0; w < state->fact->destination_words; w++) dependent |= received[w] != 0;
             free(received);
+            if (dependent && !function_param_flow_receiver_independent(state, value)) state->fact->complete = false;
             if (!state->fact->complete) return;
         }
     }
@@ -322,7 +340,8 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
         }
         if (receiver != NULL) {
             const uint64_t *bits = backing_origin(state, receiver);
-            if (bits == NULL || backing_any_origin(state, bits)) { fact->complete = false; return NULL; }
+            if (bits == NULL || (backing_any_origin(state, bits)
+                && !function_param_flow_receiver_independent(state, node))) { fact->complete = false; return NULL; }
         }
     }
     SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, node);
@@ -480,7 +499,8 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
             if (receiver != NULL) {
                 backing_consumers(state, receiver);
                 const uint64_t *bits = backing_origin(state, receiver);
-                if (bits == NULL || backing_any_origin(state, bits)) fact->complete = false;
+                if (bits == NULL || (backing_any_origin(state, bits)
+                    && !function_param_flow_receiver_independent(state, node))) fact->complete = false;
                 if (!fact->complete) break;
             }
         }

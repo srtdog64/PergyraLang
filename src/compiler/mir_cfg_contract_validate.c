@@ -1,6 +1,7 @@
 #include "mir_cfg_contract_validate.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
 #include "mir_base_helpers.h"
@@ -333,4 +334,105 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
 
     free(hir_block_seen);
     return true;
+}
+
+/* A deferred body is a routine-exit consumer only if its registration can
+ * have run on that exit. Non-dominating reachable registrations are not
+ * silently omitted: conditional defer requires its own admitted fact. */
+int
+mir_defer_registration_exit_relation(const MIRRoutine *routine,
+                                     const MIRInstruction *registration,
+                                     const MIRBasicBlock *exit_block)
+{
+    size_t registration_block = SIZE_MAX, registration_index = SIZE_MAX;
+    size_t exit_index;
+    bool *seen = NULL;
+    size_t *queue = NULL;
+    int result = -1;
+    if (routine == NULL || routine->blocks == NULL || registration == NULL
+        || exit_block == NULL || routine->entry_block >= routine->block_count
+        || exit_block->id >= routine->block_count
+        || &routine->blocks[exit_block->id] != exit_block
+        || !exit_block->is_reachable || exit_block->is_cleanup)
+        return -1;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return -1;
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            if (&block->instructions[i] == registration) {
+                if (registration_block != SIZE_MAX || !block->is_reachable
+                    || block->is_cleanup || !mir_instruction_source_is_defer_stmt(registration))
+                    return -1;
+                registration_block = b;
+                registration_index = i;
+            }
+        }
+    }
+    if (registration_block == SIZE_MAX)
+        return -1;
+    exit_index = exit_block->instruction_count;
+    for (size_t i = 0; i < exit_block->instruction_count; i++) {
+        if (exit_block->instructions[i].kind == MIR_INST_RETURN) {
+            exit_index = i;
+            break;
+        }
+    }
+    if (registration_block == exit_block->id)
+        return registration_index < exit_index ? 1 : 2;
+    if (routine->block_count > SIZE_MAX / sizeof(*queue))
+        return -1;
+    seen = calloc(routine->block_count, sizeof(*seen));
+    queue = malloc(routine->block_count * sizeof(*queue));
+    if (seen == NULL || queue == NULL)
+        goto done;
+    for (size_t pass = 0; pass < 2; pass++) {
+        size_t head = 0, tail = 0;
+        bool reached = false;
+        size_t start = pass == 0 ? registration_block : routine->entry_block;
+        memset(seen, 0, routine->block_count * sizeof(*seen));
+        seen[start] = true;
+        queue[tail++] = start;
+        while (head < tail) {
+            size_t b = queue[head++];
+            const MIRBasicBlock *block = &routine->blocks[b];
+            if (pass == 1 && b == registration_block)
+                continue;
+            if (b == exit_block->id) {
+                reached = true;
+                break;
+            }
+            bool terminal = false;
+            for (size_t i = 0; i < block->instruction_count; i++)
+                terminal |= block->instructions[i].kind == MIR_INST_RETURN;
+            if (terminal)
+                continue;
+            size_t next[2] = {block->succ_true, block->succ_false};
+            bool has_next[2] = {block->has_succ_true, block->has_succ_false};
+            for (size_t edge = 0; edge < 2; edge++) {
+                if (!has_next[edge])
+                    continue;
+                size_t successor = next[edge];
+                if (successor >= routine->block_count
+                    || !routine->blocks[successor].is_reachable) {
+                    result = -1;
+                    goto done;
+                }
+                if (!seen[successor]) {
+                    seen[successor] = true;
+                    queue[tail++] = successor;
+                }
+            }
+        }
+        if (pass == 0 && !reached) {
+            result = 2;
+            goto done;
+        }
+        if (pass == 1)
+            result = reached ? 0 : 1;
+    }
+done:
+    free(queue);
+    free(seen);
+    return result;
 }

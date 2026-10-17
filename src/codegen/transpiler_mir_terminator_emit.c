@@ -159,7 +159,14 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
         }
         return false;
     }
+    const MIRBasicBlock *saved_defer_exit = ctx->active_defer_exit_block;
+    ctx->active_defer_exit_block = block;
     transpiler_emit_defers_from(ctx, 0);
+    ctx->active_defer_exit_block = saved_defer_exit;
+    if (ctx->backend_error != NULL) {
+        free(ret_expr);
+        return false;
+    }
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
                                             block_reason,
                                             block_reason_cap)) {
@@ -256,7 +263,12 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
     }
 
     if (!block->has_succ_false) {
+        const MIRBasicBlock *saved_defer_exit = ctx->active_defer_exit_block;
+        ctx->active_defer_exit_block = block;
         transpiler_emit_defers_from(ctx, 0);
+        ctx->active_defer_exit_block = saved_defer_exit;
+        if (ctx->backend_error != NULL)
+            return false;
         if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
                                                 block_reason,
                                                 block_reason_cap)) {

@@ -3,9 +3,55 @@
 Updated: 2026-10-17 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — Array payload integration, then canonical/bootstrap/CI
+## Active self-host context — canonical String provenance, then bootstrap/CI
 
-- Source: main `f4279a13bd19e66ba0756579a975a396640f63e7` plus the
+- Source: main `cd5afc0a3e832e3a92370272b86a0ccbc0611797` plus the
+  checked deferred lifetime/host identity integration. Only main exists.
+  Root alone owns WSL/build/process/Git. The next local checkpoint preserves
+  this integration; it is not permission for a known-red push.
+- Existing whole-chain plan and edit boundaries are the first section of
+  `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
+  No manual Clone/drop or extra user annotation is the inference repair.
+- Linux `/root/pgy-main-20261016` is HEAD39a plus identified overlays, NOT
+  D HEAD. Current native SHA256 is
+  `c807569c165d9795470c5517ed9c1a15f8110ce564e406ead8fac85ea3efd912`.
+  Finalize-once110300: cap PASS, phase10942/0. BroadA8cuX0: original full
+  strict PASS, MIR370/0, semantic3230/0, transpile1012/0, read-only Map24
+  positive C/LLVM runs +58 analyze-only negatives +phase PASS, four IR-stage
+  param-flow gates PASS. No unsafe input was executed. Earlier dc974625
+  runtimeAB5FJp separately passed64/64 safe C/LLVM cases.
+- Cost repair: the same original4097 demand input previously exceeded30s
+  (diagnostic45.86s timeout); finalization repeated all prior call proofs for
+  each consumer. Reuse existing verdicts only inside its synchronous checked
+  consumer loop, then clear the scope. Current input completes in1.74s with
+ 4097 entries/evaluations; the unchanged oversized4096 negative also passes
+  the original strict gate. Post-finalization tamper tests still fail closed.
+- String/Array lifetime is separate from element cleanup authority. Host OWN
+  actuals and Array RETURN now use the same current lifetime consumers.
+  Defer remains routine-exit LIFO. Multi-part registration/exit SSA identity
+  is native-checked; installed JSON/driver evidence is still OPEN.
+- Next reached canonical failure: named String call-result backing has not
+  reached the indexed source owner. Fixed full input remains4273 routines/
+ 3188 keys at `.tmp/p0-fixed-canonical.nbPIex/.../codegen/main.pgy` in Linux.
+  Last full native012 run rmhqsL is RED/MIR0,19.54s/1286648KiB; its first
+  primary diagnostic is `SemanticConstructedTypeNameFactFrom`/135:13.
+  Latest c9 minimal named-String positive still refuses BORROW12:21/MIR0;
+  its owned-element retention negative refuses BORROW18:10/MIR0. Both are
+  unregistered falsifiers, not passing tests. UNKNOWN never means source0.
+- B prepared the bounded existing frame/summary ready getter and control-root
+  factoring; root owns indexed initializer lineage and final retention
+  consumers; C owns paired/currentness tests. Begin only from the now-green
+  integration, preserve no-grant/negative gates and the original full input.
+  Five field-cleanup routines/ten direct Pass2 obligations remain OPEN.
+- Current sanitizer, full canonical, real gen2==gen3 and installed-driver
+  checks have not yet passed. Published main remains39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe;
+  last observed CI38860052641 RED. Required bootstrap/install jobs must execute
+  and required CI must be green on the same published SHA. No V1/all-SoT/
+  whole-language memory-safety or GUI-readiness claim is justified.
+
+## Historical archive — earlier Array integration, lookup only
+
+- Source: main `cd5afc0a3e832e3a92370272b86a0ccbc0611797` plus the
   current dirty native ownership/codegen/test changes. Only main exists.
   Root alone owns WSL/build/process/Git. Do not overwrite inherited work or
   copy live source while the method/defer integration agent is editing it.
@@ -13,11 +59,15 @@ evidence override this card. Resume this card, not the archive below.
   `docs/agent_work_directives/main_takeover_integration_2026-10-16.md`.
 - Linux `/root/pgy-main-20261016` is HEAD39a plus overlays, NOT D HEAD.
   Its last built native is
-  `a248ed4abf89c1d82a850d6884a460214ab2e8b2777dbf94367f86aa0aaa6ef7`.
-  0NdW7o: build/cap PASS, phase10653/0 PASS; full strict RED because an
-  existing invalid move now also reports the earlier retaining call. AdxbgF
-  checks all342 unique inputs (305 paired decisions), decision regressions0.
-  The subsequent routine-lifetime receipt fix is not built in this binary.
+  `fc58a51b70237124cebf9ad270b3012d8117f557b7b2db2222392c34fe847dec`.
+  KGTpXy build/cap PASS; phase10805/14 RED. Six new host tests incorrectly
+  used a pending-only query after finalization; C corrected their setup.
+  Eight existing tests expose an overbroad local-error publication change:
+  keep prior same-routine/invalid-declaration failures from issuing facts.
+  Do not relax those oracles. A is investigating that publication lifetime.
+  Full strict is RED on restored additional caller diagnostics; 1I8ffm checks
+  all352 unique inputs (351 paired decisions), decision regressions0.
+  This binary is an identified overlay, not acceptance of the live D tree.
 - Independently frozen tuple stage: `.tmp/p0-tuple-last-consumer.tpPcdM`
   under that Linux checkout. Native
   `10fc7542c72540e115b9a72609aeff3f181215e64a8503300f92e20bd93739f4`;
@@ -26,11 +76,11 @@ evidence override this card. Resume this card, not the archive below.
   LLVM, for34/34 total safe executions. No unsafe input was executed.
   The stage includes only the frozen tuple issuer/MIR/C/LLVM consumer slice;
   it is not acceptance for the later integration or the unchanged canonical.
-- In-flight integration: A owns exact host-method actual/formal identity and
-  C deferred local SSA binding; B has frozen String concat independence,
-  final payload-call/deferred-release linkage and routine-lifetime receipts;
-  C owns behavioral inputs and currentness probes. Root owns local String
-  return/Slot initializer/actual deep-drop consumption and integration.
+- In-flight integration: A repaired all supported host-method actual/formal
+  producers and MIR multi-part defer identity, and now surveys the precise
+  publication error frontier. B froze read-only/return-independent receiver
+  backing proof and queue replay; C owns behavioral inputs/currentness probes.
+  Root owns common host OWN/Array RETURN consumers, integration and Git.
   Preserve the distinction between independent storage, String element
   lifetime, future release reservation, and immediate physical retirement.
   No member identity or reset syntax grants field storage ownership.
@@ -42,9 +92,12 @@ evidence override this card. Resume this card, not the archive below.
   July21; do not change it to block exit or flip existing branch/loop oracles.
   B now stores receipts in nearest function scope, bounds queries to that
   function and keeps stable AST/binding IDs rather than popped Symbol pointers.
-  That fix and A's C binding repair need integrated validation. The mistaken
+  Integrated012 runtimeuL5zfr now passes all64 safe C/LLVM runs. The mistaken
   inner-defer/outer-drop positive is renamed to a no-MIR negative without
-  changing its program. Closure and safe runtime are still OPEN.
+  changing its program. BroadWffqbq onfc58 passes semantic3230/0, MIR370/0
+  and transpile1012/0; phase/strict remain RED. Two-part mutable defer and a
+  read-only receiver wrapper also execute equally on C/LLVM. Their narrow
+  greens do not discharge currentness/canonical/bootstrap/installed evidence.
 - Next gate is a coherent source freeze -> native build -> phase/currentness
   and original strict gate -> analyze-only new sink/retirement matrix ->
   runtime of safe controls on both backends. Register new exact negative
@@ -55,15 +108,16 @@ evidence override this card. Resume this card, not the archive below.
   local String return, Slot initialization, DeviceWrite, delayed/bad-LIFO
   reads, mutable deferred rebinds and release followed by use/re-release.
   These observations explain the current repairs, not completed fixes.
-- Canonical remains OPEN. V576EF on7cb: unchanged4273 routines/3188 keys,
-  MIR0,20132 diagnostics including cascades,30.45s/1256272KiB. Scratch
-  T7UlqT found the first new failure at ArraySet(...,Substring(...)); both
-  runtime ABIs copy that value, and the existing checked constructor owns
-  the missing independence premise. String `+` uses its existing typed
-  concat receipt, not an AST/name-based freshness guess. Re-enumerate only
-  after focused integration passes. The five field-cleanup functions/ten
-  direct Pass2 failures below remain real obligations, not permission to
-  restore the removed field-identity grant.
+- Canonical remains OPEN. rmhqsL/native012: unchanged4273 routines/3188 keys,
+  MIR0,19.54s/1286648KiB. ScratchVRtJic identifies the first real failure at
+  SemanticConstructedTypeNameFactFrom/135:13: a named String return's backing
+  dependency has not reached the indexed source owner. UNKNOWN is not source0.
+  The earlier Substring/typed-concat omission is repaired; do not add source
+  Clone/annotations or a routine-name exemption. Resume this dependency only
+  after phase/strict integration passes. The five field-cleanup functions/ten
+  direct Pass2 failures below remain OPEN, not permission to restore the
+  removed field-identity grant. Do not count cascaded diagnostics as separate
+  defects or the native repairs as self-host substitution progress.
 - Published main still39a8fc1db0dc7162ba75ac7f9584f4cf096d8efe; last
   observed CI38860052641 is RED. Current bootstrap/installed-driver checks
   have NOT run. Completion still requires fixed DRV-2 zero + unchanged full

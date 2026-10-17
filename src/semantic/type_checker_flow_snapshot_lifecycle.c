@@ -3,6 +3,55 @@
 #include "type_checker_flow_resources.h"
 #include "type_checker_flow_universe.h"
 
+bool
+resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap, SemanticContext *ctx)
+{
+    if (snap == NULL || !snap->valid || ctx == NULL || snap->deferred_strings_captured
+        || snap->deferred_strings != NULL || snap->deferred_string_count != 0) return false;
+    size_t count = 0;
+    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent)
+        for (size_t i = 0; i < s->symbol_count; i++)
+            if (type_equals(s->symbols[i]->type, TYPE_STRING)) count++;
+    if (count > SIZE_MAX / sizeof(*snap->deferred_strings)) return false;
+    DeferredStringInvalidationState *rows = count != 0 ? calloc(count, sizeof(*rows)) : NULL;
+    if (count != 0 && rows == NULL) return false;
+    snap->deferred_strings = rows;
+    snap->deferred_string_capacity = count;
+    for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent)
+        for (size_t i = 0; i < s->symbol_count; i++) {
+            Symbol *symbol = s->symbols[i];
+            if (!type_equals(symbol->type, TYPE_STRING)) continue;
+            if (symbol->decl_syntax_id == 0) return false;
+            rows[snap->deferred_string_count++] = (DeferredStringInvalidationState){
+                symbol, symbol->decl_syntax_id, symbol->indexed_string_borrow_invalidated};
+        }
+    snap->deferred_strings_captured = true;
+    return true;
+}
+
+bool
+resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap, SemanticContext *ctx)
+{
+    if (snap == NULL || !snap->valid || ctx == NULL || !snap->deferred_strings_captured
+        || snap->deferred_string_count != snap->deferred_string_capacity
+        || (snap->deferred_string_count != 0 && snap->deferred_strings == NULL)) return false;
+    /* Validate every live identity before any restoration; these borrowed
+     * Symbols are used only across this synchronous cleanup-body check. */
+    for (size_t i = 0; i < snap->deferred_string_count; i++) {
+        const DeferredStringInvalidationState *row = &snap->deferred_strings[i];
+        bool found = false;
+        for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent)
+            for (size_t j = 0; j < s->symbol_count; j++)
+                if (s->symbols[j] == row->symbol && row->declaration_id != 0
+                    && s->symbols[j]->decl_syntax_id == row->declaration_id
+                    && type_equals(s->symbols[j]->type, TYPE_STRING)) found = true;
+        if (!found) return false;
+    }
+    for (size_t i = 0; i < snap->deferred_string_count; i++)
+        snap->deferred_strings[i].symbol->indexed_string_borrow_invalidated = snap->deferred_strings[i].invalidated;
+    return true;
+}
+
 void
 restore_resource_states(const ResourceConsumeSnapshot *snap)
 {
@@ -85,6 +134,7 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     free(snap->sem_states);
     free(snap->pool_ids);
     free(snap->array_storage_states);
+    free(snap->deferred_strings);
     snap->symbols = NULL;
     snap->symbol_indices = NULL;
     snap->states = NULL;
@@ -95,6 +145,10 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     snap->sem_states = NULL;
     snap->pool_ids = NULL;
     snap->array_storage_states = NULL;
+    snap->deferred_strings = NULL;
+    snap->deferred_string_count = 0;
+    snap->deferred_string_capacity = 0;
+    snap->deferred_strings_captured = false;
     snap->count = 0;
     snap->capacity = 0;
     snap->valid = false;

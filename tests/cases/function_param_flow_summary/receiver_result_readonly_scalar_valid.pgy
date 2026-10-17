@@ -1,0 +1,22 @@
+class Formatter {
+    let year: Int;
+
+    func Format(self) -> String {
+        return ToString(year) + "x";
+    }
+}
+
+func FormatWrapper(formatter: Formatter) -> String {
+    return formatter.Format();
+}
+
+func Inspect(ref label: String) -> Option<Int> {
+    let formatter = Formatter(7);
+    let formatted = FormatWrapper(formatter);
+    return Some(StringLength(formatted) + StringLength(label));
+}
+
+func Main() -> Void {
+    let label = Concat("q", "");
+    Log(UnwrapOption(Inspect(label)));
+}

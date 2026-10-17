@@ -261,54 +261,59 @@ bool semantic_param_publication_value_has_static_string_backing(const SemanticCo
      * transfer its cleanup responsibility. Only literals have static storage. */
     return row != NULL && row->string_value && row->value_shape == AST_STRING && row->copy_escape;
 }
-static bool publication_ref_call_tuple(const SemanticContext *ctx,
-    const ASTNode *call, const ASTNode *site,
-    const ASTNode *callee, size_t ordinal)
-{
-    size_t formal = 0;
-    return call != NULL && call->type == AST_CALL && site != NULL && callee != NULL &&
-        callee->type == AST_FUNC_DECL && ast_node_stable_id(call) != 0 &&
-        ast_node_stable_id(site) != 0 && ast_node_stable_id(callee) != 0 &&
-        ordinal < ast_call_arg_count(call) &&
-        ast_call_argument(call, ordinal) == site &&
-        ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee) &&
-        ast_call_semantic_callee_value_binding_id(call) == 0 &&
-        (semantic_param_publication_pending(ctx)
-            ? semantic_param_publication_selected_formal_for_actual((SemanticContext *)ctx,
-                call, callee, ordinal, &formal)
-            : semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal)) &&
-        ast_func_param(callee, formal) != NULL &&
-        ast_func_param(callee, formal)->mode == PARAM_MODE_REF;
-}
 bool semantic_param_publication_record_call(SemanticContext *ctx, ASTNode *call, ASTNode *site,
     ASTNode *callee, size_t ordinal, const Type *type, const char *borrowed,
     const char *destination, const char *fix)
 {
-    if (!semantic_param_publication_pending(ctx) || !publication_ref_call_tuple(ctx, call, site, callee, ordinal) ||
+    size_t formal = 0;
+    if (!semantic_param_publication_pending(ctx) ||
+        !publication_ref_call_tuple(ctx, call, site, callee, ordinal, &formal) ||
         (ctx->current_function_decl != NULL && ast_node_stable_id(ctx->current_function_decl) == 0) ||
         type == NULL || borrowed == NULL) return false;
     FunctionParamPublicationStore *store = ctx->function_param_publications;
     if (!semantic_param_publication_reserve_storage((void **)&store->calls, &store->call_capacity,
             store->call_count, sizeof(*store->calls))) return false;
-    PendingRefCall row = {call, site, callee, ctx->current_function_decl, ordinal, type,
-        pergyra_strdup(borrowed), pergyra_strdup(destination), pergyra_strdup(fix),
-        ast_node_stable_id(call), ast_node_stable_id(site), ast_node_stable_id(callee),
-        ctx->current_function_decl == NULL ? 0 : ast_node_stable_id(ctx->current_function_decl),
-        pergyra_strdup(ctx->current_module_path), ast_call_callee(call),
-        ast_node_stable_id(ast_call_callee(call)), ast_call_arg_count(call)};
+    PendingRefCall row = {.call = call, .site = site, .callee = callee,
+        .caller = ctx->current_function_decl, .ordinal = ordinal, .type = type,
+        .borrowed = pergyra_strdup(borrowed), .destination = pergyra_strdup(destination),
+        .fix = pergyra_strdup(fix), .call_id = ast_node_stable_id(call),
+        .site_id = ast_node_stable_id(site), .callee_id = ast_node_stable_id(callee),
+        .caller_id = ast_node_stable_id(ctx->current_function_decl),
+        .module = pergyra_strdup(ctx->current_module_path), .call_target = ast_call_callee(call),
+        .call_target_id = ast_node_stable_id(ast_call_callee(call)),
+        .argument_count = ast_call_arg_count(call)};
+    row.formal_ordinal = formal;
+    row.formal_id = ast_func_param_stable_id(ast_func_param(callee, formal));
+    row.site_shape = site->type;
+    row.site_binding_id = ast_identifier_binding_syntax_id(site);
+    row.target_shape = row.call_target == NULL ? 0 : row.call_target->type;
+    row.target_binding_id = ast_identifier_binding_syntax_id(row.call_target);
+    row.call_receiver = row.target_shape == AST_MEMBER_ACCESS ? ast_member_object(row.call_target) : NULL;
+    row.call_receiver_id = ast_node_stable_id(row.call_receiver);
+    PublishedNode *receiver = publication_node(store, row.call_receiver, false);
+    row.call_receiver_type = receiver != NULL && receiver->value_present &&
+        receiver->id == row.call_receiver_id && !receiver->meta ? receiver->value_type : NULL;
+    const char *target_name = row.target_shape == AST_IDENTIFIER ? ast_identifier_name(row.call_target) :
+        row.target_shape == AST_MEMBER_ACCESS ? ast_member_name(row.call_target) : NULL;
+    row.target_name = pergyra_strdup(target_name);
     if (row.call_target == NULL || row.call_target_id == 0 ||
         (row.call_target->type != AST_IDENTIFIER && row.call_target->type != AST_MEMBER_ACCESS) ||
+        row.formal_id == 0 || target_name == NULL || row.target_name == NULL ||
+        (row.call_receiver != NULL && row.call_receiver_id == 0) ||
         row.borrowed == NULL || (destination != NULL && row.destination == NULL) || (fix != NULL && row.fix == NULL) ||
         (ctx->current_module_path != NULL && row.module == NULL)) {
-        free(row.borrowed); free(row.destination); free(row.fix); free(row.module); return false;
+        free(row.borrowed); free(row.destination); free(row.fix); free(row.module); free(row.target_name); return false;
     }
     store->calls[store->call_count++] = row;
     return true;
 }
 bool semantic_param_publication_ref_call_current(const SemanticContext *ctx, const PendingRefCall *row)
 {
+    size_t formal = 0;
     if (row == NULL || !semantic_param_publication_inputs_ready(ctx) ||
-        !publication_ref_call_tuple(ctx, row->call, row->site, row->callee, row->ordinal) ||
+        !semantic_param_publication_ref_call_diagnostic_current(ctx, row, &formal) ||
+        !publication_ref_call_tuple(ctx, row->call, row->site, row->callee, row->ordinal, &formal) ||
+        formal != row->formal_ordinal || row->formal_id != ast_func_param_stable_id(ast_func_param(row->callee, formal)) ||
         row->call_id != ast_node_stable_id(row->call) || row->site_id != ast_node_stable_id(row->site) ||
         row->callee_id != ast_node_stable_id(row->callee) || row->caller == NULL ||
         row->caller_id != ast_node_stable_id(row->caller) || row->call_target != ast_call_callee(row->call) ||
@@ -319,8 +324,6 @@ bool semantic_param_publication_ref_call_current(const SemanticContext *ctx, con
     PublishedNode *actual = publication_current_value(ctx, row->site);
     PublishedNode *result = publication_current_value(ctx, row->call);
     const PendingRoutine *callee = publication_routine(ctx->function_param_publications, row->callee_id);
-    size_t formal = 0;
-    if (!semantic_param_publication_formal_for_actual(ctx, row->call, row->ordinal, &formal)) return false;
     return actual != NULL && actual->string_value && result != NULL && result->string_value &&
         callee != NULL && formal < callee->count && type_equals(callee->types[formal], TYPE_STRING) &&
         type_equals(callee->return_type, TYPE_STRING);
@@ -362,13 +365,6 @@ PendingRoutine *publication_routine(FunctionParamPublicationStore *store, uint32
     if (node->id != id || node->routine_index == 0 || node->routine_index > store->routine_count) return NULL;
     PendingRoutine *row = &store->routines[node->routine_index - 1];
     return row->id == id && row->decl == node->node && ast_node_stable_id(row->decl) == id ? row : NULL;
-}
-ASTNode *semantic_param_publication_callee(const SemanticContext *ctx, const ASTNode *call, size_t ordinal)
-{
-    size_t formal = 0;
-    if (!semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal)) return NULL;
-    ASTNode *decl = semantic_param_publication_direct_callee(ctx, call);
-    return decl != NULL && formal < ast_func_param_count(decl) ? decl : NULL;
 }
 bool semantic_param_publication_routine_result_current(const SemanticContext *ctx,
     const ASTNode *decl, const Type *result_type)
@@ -575,8 +571,10 @@ bool semantic_param_publication_finalize(SemanticContext *ctx)
     }
     for (size_t c = 0; c < store->call_count; c++) {
         PendingRefCall *row = &store->calls[c];
+        size_t formal = 0;
         if (row->call_id != ast_node_stable_id(row->call) || row->site_id != ast_node_stable_id(row->site) ||
-            !publication_ref_call_tuple(ctx, row->call, row->site, row->callee, row->ordinal) ||
+            !publication_ref_call_tuple(ctx, row->call, row->site, row->callee, row->ordinal, &formal) ||
+            row->formal_ordinal != formal || row->formal_id != ast_func_param_stable_id(ast_func_param(row->callee, formal)) ||
             row->call_target != ast_call_callee(row->call) ||
             row->call_target_id != ast_node_stable_id(row->call_target) ||
             row->argument_count != ast_call_arg_count(row->call) ||

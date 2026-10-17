@@ -293,6 +293,7 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     const Type *result_type, ParamMode mode, bool constructor,
     ASTNode *call, ASTNode *callee_decl, size_t ordinal, SemanticContext *ctx)
 {
+    if (ctx == NULL || ctx->has_error) return;
     if (type_equals(type, TYPE_STRING)) {
         semantic_indexed_string_borrow_call_argument(source, call, callee_decl,
             ordinal, constructor, ctx);

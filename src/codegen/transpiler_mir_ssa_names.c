@@ -198,6 +198,52 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
     return NULL;
 }
 
+/* A deferred body reads at the exit frontier, not at registration. The
+ * declaration ID selects the existing MIR SSA binding even under shadowing. */
+int
+transpiler_defer_exit_ssa_name(const TranspilerCtx *ctx,
+                               const ASTNode *identifier,
+                               char *out, size_t out_size)
+{
+    const MIRRoutine *routine = ctx != NULL ? ctx->active_mir_routine : NULL;
+    uint32_t id = ast_identifier_binding_syntax_id(identifier);
+    const char *name = ast_identifier_name(identifier);
+    bool spelling_seen = false;
+    bool formal = false;
+    size_t version = 0;
+    char base[128];
+
+    if (ctx == NULL || ctx->active_defer_exit_block == NULL
+        || routine == NULL || identifier == NULL || name == NULL
+        || (routine->ssa_binding_count > 0 && routine->ssa_bindings == NULL))
+        return 0;
+    if (ast_identifier_binding_is_host_field(identifier))
+        return 0;
+    for (size_t i = 0; i < routine->ssa_binding_count; i++) {
+        const MIRLocalBinding *binding = &routine->ssa_bindings[i];
+        if (binding->name == NULL || strcmp(binding->name, name) != 0)
+            continue;
+        spelling_seen = true;
+        if (id == 0 || binding->binding_syntax_id != id)
+            continue;
+        if (is_slot_var((TranspilerCtx *)ctx, name))
+            return 0; /* Slot storage keeps its established read/write route. */
+        for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
+            FuncParam *param = mir_routine_param(routine, p);
+            if (param != NULL && ast_func_param_stable_id(param) == id)
+                formal = true;
+        }
+        if (!mir_block_binding_exit_ssa_name(routine,
+                ctx->active_defer_exit_block, id, out, out_size)
+            || !transpiler_parse_versioned_name(out, base, sizeof(base),
+                                                 &version)
+            || strcmp(base, name) != 0 || (version == 0 && !formal))
+            return -1;
+        return 1;
+    }
+    return spelling_seen ? -1 : 0;
+}
+
 char *
 transpiler_make_c_ssa_name(TranspilerCtx *ctx, const char *versioned_name)
 {

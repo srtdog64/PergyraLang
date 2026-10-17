@@ -85,10 +85,8 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
     for (size_t c = 0; c < view->call_count; c++) {
         const PendingRefCall *row = &view->calls[c];
         size_t formal = 0;
-        if (!semantic_param_publication_formal_for_actual(ctx,
-                row->call, row->ordinal, &formal)) {
-            if (!ctx->has_error)
-                semantic_error(ctx, row->call, "Ref call has no current selected formal identity");
+        if (!semantic_param_publication_ref_call_diagnostic_current(ctx, row, &formal)) {
+            semantic_error(ctx, row->call, "Ref call diagnostic identity is incomplete or stale");
             continue;
         }
         unsigned mask = semantic_callable_param_escape_summary(row->callee, formal, ctx);
@@ -101,7 +99,7 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
             : semantic_param_summary_has_any_escape(mask);
         if (type_is_read_view(row->type)) {
             semantic_validate_ref_view_payload_escape(row->call, row->site, ctx,
-                row->callee, row->ordinal, row->borrowed, OWNERSHIP_CONSUMER_HELPER_CALL, row->destination, row->fix);
+                row->callee, formal, row->borrowed, OWNERSHIP_CONSUMER_HELPER_CALL, row->destination, row->fix);
             continue;
         }
         ASTNode *loan_escape = NULL;

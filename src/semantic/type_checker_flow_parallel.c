@@ -333,7 +333,7 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
 {
     if (body != NULL) {
         ResourceConsumeSnapshot before_defer = snapshot_resource_states(ctx);
-        if (!before_defer.valid) {
+        if (!before_defer.valid || !resource_snapshot_capture_deferred_strings(&before_defer, ctx)) {
             semantic_error(ctx, body,
                 "Resource snapshot allocation failed while checking defer cleanup");
             destroy_resource_snapshot(&before_defer);
@@ -360,11 +360,8 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
         Scope *read_owner = ctx->scope;
         while (read_owner != NULL && read_owner->kind != SCOPE_FUNCTION)
             read_owner = read_owner->parent;
-        if (read_owner == NULL) {
-            semantic_error(ctx, body, "Deferred String-read routine scope is missing");
-            destroy_resource_snapshot(&before_defer);
-            return false;
-        }
+        /* Low-level non-String body checks need no lifetime receipt. Actual
+         * String reads/releases still reject a missing routine owner at issue. */
         ctx->indexed_string_defer_scope = read_owner;
         ctx->indexed_string_defer_body = body;
         ctx->indexed_string_defer_sequence = ++ctx->indexed_string_next_defer_sequence;
@@ -375,7 +372,8 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
         ctx->transaction_flow = NULL;
         ctx->transaction_depth = 0;
         (void)type_check_block_flow(body, ctx, NULL);
-        semantic_indexed_string_borrow_restore_defer(ctx);
+        if (!resource_snapshot_restore_deferred_strings(&before_defer, ctx))
+            semantic_error(ctx, body, "Deferred String invalidation snapshot is stale");
         ctx->transaction_flow = saved_transaction;
         ctx->transaction_depth = saved_transaction_depth;
         ctx->in_defer_cleanup = prior_defer;

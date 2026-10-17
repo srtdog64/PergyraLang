@@ -36,16 +36,12 @@ typedef struct {
 } ArrayStoragePendingResult;
 
 struct ArrayStorageDeferredPreservationStore {
-    bool active;
-    bool finalized;
-    bool sealing;
+    bool active, finalized, sealing, consuming_checked_calls;
     size_t next_sequence;
     ArrayStoragePendingCall *calls;
-    size_t call_count;
-    size_t call_capacity;
+    size_t call_count, call_capacity;
     ArrayStoragePendingDrop *drops;
-    size_t drop_count;
-    size_t drop_capacity;
+    size_t drop_count, drop_capacity;
     ArrayStorageOwnedReturn *returns;
     size_t return_count, return_capacity;
     ArrayStoragePendingResult *results;
@@ -485,8 +481,9 @@ semantic_array_storage_pending_preserved(SemanticContext *ctx,
         const ArrayStoragePendingCall *pending = &store->calls[i];
         if (!pending->source.payload && pending->source.binding_id == binding_id
             && pending->source.sequence < sequence
-            && (!pending->preserved || (semantic_array_storage_pending_call_failures(ctx, &pending->source)
-                & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) != 0))
+            && (!pending->preserved || (!store->consuming_checked_calls &&
+                (semantic_array_storage_pending_call_failures(ctx, &pending->source)
+                 & FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED) != 0)))
             return false;
     }
     for (size_t i = 0; i < store->result_count; i++) {
@@ -509,8 +506,9 @@ semantic_array_storage_pending_owned_elements(SemanticContext *ctx,
         if (pending->source.binding_id == binding_id
             && pending->source.sequence < sequence
             && semantic_array_storage_pending_call_elements_required(&pending->source)
-            && (!pending->elements_preserved || (semantic_array_storage_pending_call_failures(ctx, &pending->source)
-                & FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED) != 0))
+            && (!pending->elements_preserved || (!store->consuming_checked_calls &&
+                (semantic_array_storage_pending_call_failures(ctx, &pending->source)
+                 & FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED) != 0)))
             return false;
     }
     for (size_t i = 0; i < store->result_count; i++) {
@@ -549,6 +547,10 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
                 result->birth.call, "Array call result storage has no current ownership transfer proof");
     }
     store->sealing = false;
+    /* Every call was checked above in this same typed generation. Recording
+     * is disabled, and this synchronous loop cannot mutate those inputs.
+     * Reuse its verdicts only here; later public queries must replay currency. */
+    store->consuming_checked_calls = true;
     for (size_t i = 0; i < store->drop_count; i++) {
         const ArrayStoragePendingDrop *drop = &store->drops[i];
         if (drop->operation == ARRAY_STORAGE_CALL_AFTER_PENDING &&
@@ -587,6 +589,7 @@ semantic_array_storage_deferral_finalize(SemanticContext *ctx)
                         : drop->operation == ARRAY_STORAGE_CALL_AFTER_PENDING
                             ? "Array argument call" : "ArrayDrop");
     }
+    store->consuming_checked_calls = false;
     return true;
 }
 

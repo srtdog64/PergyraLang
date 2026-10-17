@@ -1,0 +1,15 @@
+func Identity(value: String) -> String {
+    return value;
+}
+
+func AllocateAndForward() -> String {
+    let sliced = Substring("owned", 0, 5);
+    return Identity(sliced);
+}
+
+func Main() -> Void {
+    let rows: Array<String> = [];
+    ArrayPush(rows, AllocateAndForward());
+    Log(ArrayLength(rows));
+    Log(rows[0]);
+}

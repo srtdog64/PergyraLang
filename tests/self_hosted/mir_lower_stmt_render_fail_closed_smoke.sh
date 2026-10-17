@@ -50,6 +50,9 @@ emit_mir_json array_destructure "$BUILD_DIR/destructure.mirjson"
 emit_mir_json option_match "$BUILD_DIR/option_match.mirjson"
 emit_mir_json let_log "$BUILD_DIR/let_log.mirjson"
 emit_mir_json defer_direct_call "$BUILD_DIR/defer_direct_call.mirjson"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/tests/cases/function_param_flow_summary/defer_multipart_mutable_exit_valid.pgy")" \
+    >"$BUILD_DIR/defer_multipart.mirjson")
 # A user local named like the temporary (docs/205 F1, F2).
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/tests/self_hosted/fixtures/destructure_temporary_hygiene.pgy")" \
@@ -159,6 +162,42 @@ mutate("defer_direct_call", "defer.open-part", is_defer,
        set_field("arg1", "1/2"))
 mutate("defer_direct_call", "defer.malformed-part", is_defer,
        set_field("arg1", "one/2"))
+
+
+def mutate_defer_pair(output, apply):
+    document = copy.deepcopy(load("defer_multipart"))
+    selected = []
+    for routine in document.get("routines", []):
+        for block in routine.get("blocks", []):
+            rows = block.get("instructions", [])
+            for index in range(len(rows) - 1):
+                if (is_defer(rows[index]) and rows[index].get("arg1") == "1/2"
+                        and is_defer(rows[index + 1])
+                        and rows[index + 1].get("arg1") == "2/2"):
+                    selected.append((rows, index))
+    if len(selected) != 1:
+        raise SystemExit(f"multi-part defer fixture has {len(selected)} part pairs")
+    rows, index = selected[0]
+    apply(rows, index)
+    with open(build / f"{output}.mirjson", "w", encoding="utf-8",
+              newline="\n") as stream:
+        json.dump(document, stream, ensure_ascii=False, separators=(",", ":"))
+        stream.write("\n")
+
+
+def defer_gap(rows, index):
+    if index + 2 >= len(rows) or is_defer(rows[index + 2]):
+        raise SystemExit("multi-part defer fixture has no following ordinary row")
+    rows[index + 1], rows[index + 2] = rows[index + 2], rows[index + 1]
+
+
+mutate_defer_pair("defer_multipart.missing-first-registration",
+                  lambda rows, index: rows[index].update(arg1="2/2"))
+mutate_defer_pair("defer_multipart.wrong-second-index",
+                  lambda rows, index: rows[index + 1].update(arg1="1/2"))
+mutate_defer_pair("defer_multipart.wrong-count",
+                  lambda rows, index: rows[index + 1].update(arg1="2/3"))
+mutate_defer_pair("defer_multipart.nonconsecutive", defer_gap)
 mutate("let_log", "let_log.nameless-let", is_let_decl,
        set_field("arg0", ""))
 mutate("let_log", "let_log.cleanup-kind", is_log_stmt,
@@ -216,6 +255,10 @@ run_mir_lower "$BUILD_DIR/defer_direct_call.mirjson" \
     "$BUILD_DIR/defer_direct_call.reast" "$BUILD_DIR/defer_direct_call.err"
 expect_line "$BUILD_DIR/defer_direct_call.reast" \
     'Call: Cleanup("done")' "direct-call defer body"
+run_mir_lower "$BUILD_DIR/defer_multipart.mirjson" \
+    "$BUILD_DIR/defer_multipart.reast" "$BUILD_DIR/defer_multipart.err"
+expect_line "$BUILD_DIR/defer_multipart.reast" 'Log(2)' "first defer body part"
+expect_line "$BUILD_DIR/defer_multipart.reast" 'Log(current)' "second defer body part"
 
 # Each row: mutation name, required diagnostic fragment.
 negative_rows=(
@@ -231,6 +274,10 @@ negative_rows=(
     "defer.orphan-part|defer body part is out of order: 2/2"
     "defer.open-part|defer body part is missing: 2/2"
     "defer.malformed-part|defer body part fact is malformed: one/2"
+    "defer_multipart.missing-first-registration|defer body part is out of order: 2/2"
+    "defer_multipart.wrong-second-index|defer body part is out of order: 1/2"
+    "defer_multipart.wrong-count|defer body part is out of order: 2/3"
+    "defer_multipart.nonconsecutive|defer body part is missing: 2/2"
     "let_log.nameless-let|local declaration is missing its binding-name fact"
     "let_log.cleanup-kind|instruction kind has no statement rendering"
     # A present string array with a non-string element used to read as

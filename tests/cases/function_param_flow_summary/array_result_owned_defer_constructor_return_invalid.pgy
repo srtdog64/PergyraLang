@@ -1,0 +1,18 @@
+struct Held { rows: Array<String> }
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Bad() -> Held {
+    let rows: Array<String> = OwnedRows();
+    defer { ArrayDropOwnedStrings(rows); };
+    return Held(rows);
+}
+
+func Main() -> Void {
+    let held: Held = Bad();
+    Log(held.rows[0]);
+}

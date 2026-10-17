@@ -6,6 +6,8 @@
 #include "function_param_publication_owner.h"
 #include "callable_capability_inference.h"
 #include "array_storage_release_owner.h"
+#include "collection_owned_element_requirement_owner.h"
+#include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
 
@@ -332,6 +334,16 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         if (!ctx->has_error)
             semantic_array_storage_call_argument(arg, arg_types[i], resolved_ret,
                 ast_func_param(method, formal)->mode, false, expr, method, i, ctx);
+        if (!ctx->has_error
+            && semantic_collection_owned_element_requirement_record_argument(
+                expr, method, i, formal, arg, arg_types[i],
+                ast_func_param(method, formal)->mode, ctx)) {
+            bool handled = false;
+            semantic_check_function_call_ownership_argument(arg, expr, ctx, method,
+                ast_func_param(method, formal)->mode, method_display, i, formal,
+                param_type, arg_types[i], semantic_classify_ownership_type(param_type, ctx),
+                semantic_classify_ownership_type(arg_types[i], ctx), &handled);
+        }
     }
 
     {

@@ -7,8 +7,81 @@
 #include <string.h>
 #include "typed_map_query_fact_owner.h"
 
-/* Compilation-owned fact storage and its exported snapshot share one lifetime.
- * Admission and currentness remain with their existing semantic owners. */
+/* Compilation-owned storage, bitset accumulation and epoch charging share
+ * their exported snapshot lifetime. Effect selection, admission and currentness
+ * remain with the backing dependency and relation owners. */
+
+/* One shallow-edge vocabulary serves the initial syntax snapshot and its
+ * current replay. Execution policy is carried separately by promotion. */
+/* Only growth after a binding input was read needs another traversal. Forward
+ * readers see the merged bits directly; earlier readers and expression caches
+ * are replayed on the next epoch, including dependencies on an empty input. */
+bool backing_merge(size_t words, uint64_t *into, const uint64_t *from)
+{
+    bool grew = false;
+    for (size_t w = 0; w < words; w++) {
+        uint64_t next = into[w] | from[w];
+        grew |= next != into[w]; into[w] = next;
+    }
+    return grew;
+}
+void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect)
+{
+    if (state->loan_seed != NULL && origins[0] != 0 && effect != 0 && state->escape_site == NULL)
+        state->escape_site = state->consumer;
+    for (size_t p = 0; p < state->fact->origin_count; p++)
+        if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0) state->fact->effects[p] |= effect;
+}
+bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins)
+{
+    for (size_t w = 0; w < state->fact->origin_words; w++) if (origins[w] != 0) return true;
+    return false;
+}
+bool backing_work(ReturnedBacking *state, size_t at)
+{
+    FunctionParamFlowBackingNode *row = &state->fact->nodes[at];
+    if (row->work_epoch == state->fact->epoch) return true;
+    size_t *work = state->loan_seed != NULL ? &state->loan_work : &state->store->work_units;
+    if (*work >= state->store->work_budget) { function_param_flow_fail(state->store, state->decl, "recursive summary work budget exceeded"); state->fact->complete = false; return false; }
+    (*work)++; row->work_epoch = state->fact->epoch; return true;
+}
+
+
+FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert)
+{
+    FunctionParamFlowBackingFact *fact = state->fact;
+    if (id == 0) { fact->complete = false; return NULL; }
+    for (size_t i = 0; i < fact->binding_count; i++) if (fact->bindings[i].binding == id) return &fact->bindings[i];
+    if (!insert) return NULL;
+    if (fact->binding_count == SIZE_MAX / sizeof(*fact->bindings)) { function_param_flow_fail(state->store, state->decl, "backing binding size overflow"); fact->complete = false; return NULL; }
+    FunctionParamFlowBackingBinding *rows = realloc(fact->bindings, (fact->binding_count + 1) * sizeof(*rows));
+    if (rows == NULL) { function_param_flow_fail(state->store, state->decl, "backing binding allocation failed"); fact->complete = false; return NULL; }
+    fact->bindings = rows;
+    FunctionParamFlowBackingBinding *row = &rows[fact->binding_count];
+    *row = (FunctionParamFlowBackingBinding){.binding = id};
+    row->origins = calloc(fact->origin_words, sizeof(uint64_t));
+    row->destinations = calloc(fact->destination_words, sizeof(uint64_t));
+    fact->binding_count++;
+    if (row->origins == NULL || row->destinations == NULL) { function_param_flow_fail(state->store, state->decl, "backing binding bitset allocation failed"); fact->complete = false; return NULL; }
+    return row;
+}
+size_t backing_node(ReturnedBacking *state, ASTNode *node)
+{
+    FunctionParamFlowBackingFact *fact = state->fact;
+    if (node == NULL || ast_node_stable_id(node) == 0) { fact->complete = false; return SIZE_MAX; }
+    if (!function_param_flow_claim_record(state->store->ctx, fact->claims, node)) { fact->complete = false; return SIZE_MAX; }
+    for (size_t i = 0; i < fact->node_count; i++) if (fact->nodes[i].node == node) return i;
+    if (fact->node_count == SIZE_MAX / sizeof(*fact->nodes)) { function_param_flow_fail(state->store, state->decl, "backing node size overflow"); fact->complete = false; return SIZE_MAX; }
+    FunctionParamFlowBackingNode *rows = realloc(fact->nodes, (fact->node_count + 1) * sizeof(*rows));
+    if (rows == NULL) { function_param_flow_fail(state->store, state->decl, "backing node allocation failed"); fact->complete = false; return SIZE_MAX; }
+    fact->nodes = rows;
+    size_t at = fact->node_count++;
+    rows[at] = (FunctionParamFlowBackingNode){.node = node, .id = ast_node_stable_id(node), .shape = node->type};
+    rows[at].origins = calloc(fact->origin_words, sizeof(uint64_t));
+    if (rows[at].origins == NULL) { function_param_flow_fail(state->store, state->decl, "backing origin allocation failed"); fact->complete = false; return SIZE_MAX; }
+    return at;
+}
+
 
 void
 pgy_function_param_flow_facts_destroy(PgyFunctionParamFlowFact *facts)
@@ -122,6 +195,7 @@ void semantic_param_publication_destroy(SemanticContext *ctx)
     }
     for (size_t i = 0; i < store->call_count; i++) {
         free(store->calls[i].borrowed); free(store->calls[i].destination); free(store->calls[i].fix); free(store->calls[i].module);
+        free(store->calls[i].target_name);
     }
     for (size_t n = 0; n < store->node_capacity; n++) semantic_param_publication_retire_value(&store->nodes[n]);
     for (size_t i = 0; i < store->read_loan_count; i++) free(store->read_loans[i].module);

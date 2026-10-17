@@ -16,6 +16,8 @@ bool semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     SemanticContext *ctx);
 bool semantic_indexed_string_borrow_source_current(ASTNode *expression,
     SemanticContext *ctx, uint32_t *source_id);
+bool semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
+    SemanticContext *ctx, uint32_t *source_id);
 /* A NULL call and callee denote an actual shallow store, not an unknown
  * function call. Only independent String payloads may cross that boundary. */
 void semantic_indexed_string_borrow_call_argument(ASTNode *expression,
@@ -33,7 +35,6 @@ bool semantic_indexed_string_borrow_validate_use(
     Symbol *binding, ASTNode *use, SemanticContext *ctx);
 bool semantic_indexed_string_borrow_owner_transfer_allowed(
     ASTNode *receiver, SemanticContext *ctx);
-void semantic_indexed_string_borrow_restore_defer(SemanticContext *ctx);
 bool semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,
     uint32_t binding_id, uint32_t source_id, bool *reserved);
 

@@ -11,6 +11,9 @@
 const char *transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
                                                const char *base_name);
 char *transpiler_make_c_ssa_name(TranspilerCtx *ctx, const char *versioned_name);
+int transpiler_defer_exit_ssa_name(const TranspilerCtx *ctx,
+                                   const ASTNode *identifier,
+                                   char *out, size_t out_size);
 bool transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name);
 char *transpiler_render_ssa_name(TranspilerCtx *ctx, const char *versioned_name);
 

@@ -20,6 +20,10 @@ PublishedNode *publication_result_current(const SemanticContext *ctx,
     const ASTNode *call);
 PublishedNode *publication_current_value(const SemanticContext *ctx,
     const ASTNode *value);
+bool publication_ref_call_tuple(const SemanticContext *ctx, const ASTNode *call,
+    const ASTNode *site, const ASTNode *callee, size_t ordinal, size_t *formal);
+bool semantic_param_publication_ref_call_diagnostic_current(
+    const SemanticContext *ctx, const PendingRefCall *row, size_t *formal);
 void semantic_published_unit_enum_selection_destroy(
     SemanticPublishedUnitEnumSelection *selection);
 

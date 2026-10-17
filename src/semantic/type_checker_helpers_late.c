@@ -355,7 +355,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         bool ownership_handled = false;
 
         if (!semantic_collection_owned_element_requirement_record_argument(
-                expr, callable_decl, i, arg_expr, arg_type,
+                expr, callable_decl, i, i, arg_expr, arg_type,
                 type_function_param_mode(sym->type, i), ctx))
             continue;
 
@@ -366,6 +366,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             callable_decl,
             type_function_param_mode(sym->type, i),
             display_name,
+            i,
             i,
             param_type,
             arg_type,

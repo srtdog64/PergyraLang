@@ -64,6 +64,30 @@ test_misc_grammar_edges(void)
         ast_destroy(defer_stmt);
     }
 
+    TEST("deferred String read without a routine owner refuses missing lexical evidence");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        Symbol *text = symbol_create_variable("text", TYPE_STRING, 1, 1);
+        text->decl_syntax_id = 11;
+        scope_declare(ctx->scope, text);
+
+        ASTNode *body = ast_create_block();
+        ASTNode *read = make_identifier("text", 2);
+        ast_identifier_set_binding_syntax_id(read, text->decl_syntax_id);
+        ASTNode *args[1] = {read};
+        ast_add_statement(body, make_call("Log", args, 1, 2));
+        ASTNode *defer_stmt = ast_create_defer_statement(body);
+        defer_stmt->line = 1; defer_stmt->column = 1;
+        EXPECT(ast_assign_stable_ids(defer_stmt));
+
+        type_check_statement(defer_stmt, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(defer_stmt);
+    }
+
     TEST("defer statement fallback restores QubitSlot resource state");
     {
         SemanticContext *ctx = semantic_context_create();

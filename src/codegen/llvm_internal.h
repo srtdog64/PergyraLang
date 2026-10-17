@@ -331,6 +331,7 @@ typedef struct LLVMGenCtx
     ASTNode        *current_func_decl;
     const MIRRoutine *current_mir_routine;
     const MIRInstruction *current_mir_instruction;
+    const MIRBasicBlock *current_defer_exit_block;
     ASTNode        *current_host_decl;
     const char     *current_class_name;
     bool            uses_intent_observability;

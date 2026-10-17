@@ -27,6 +27,116 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
 
 ### Current element-retention integration boundary
 
+#### Broad integration failures before canonical continuation
+
+- Current integration native is
+  `dc9746258aa7810211d3e4eeea6fcbd309715f08f402fafd409255c27f36824d`.
+  Diagnostic-only ref-call identity and ownership permission are now separate:
+  phase10942/0 and safe C/LLVM64/64 PASS. The full strict gate passes its
+  diagnostic/admission/runtime groups but is RED at its original4097 independent
+  demand control (30-second limit). A diagnostic-only run of the same362471-byte
+  input also times out after45.86s/203028KiB; this is not an enlarged acceptance
+  budget. Source and binary are frozen while the reached operation is sampled.
+- Cost-blocker objective: make that unchanged control complete within its
+  existing30-second gate. Priority: unchanged summary episode/work semantics,
+  checked identity and currentness, negative oversized-closure control, then
+  cost. Existing publication/host/summary owners remain authoritative; root
+  owns measurement and integration, A surveys only the reached repeated work.
+  Do not add a general cache, assume a missing fact, shrink4097/4096 inputs,
+  raise limits, or start the named-String repair while this boundary is RED.
+  A sampled stack is localization evidence, never compiler acceptance.
+- Same-input diagnostic sampling3VSYze finds58/59 CPU samples in final
+  Array preservation consumers,50 in array-preservation failures and35 in
+  output-current replay. Each consumer rechecks all preceding calls although
+  this synchronous finalizer has just checked every call against the same
+  typed generation. Repair only this repeated owned operation: reuse the
+  existing per-call verdicts during the finalizer's closed consumer loop.
+  Pending recording is already disabled there; no user code or external edit
+  executes in that loop. Clear the private scope before return. Public queries
+  after finalization must still replay their current facts, including all
+  existing AST/call/formal/frame tamper negatives. Owner: deferred preservation;
+  last consumer: its call/drop loop; forbidden: persistent unchecked verdicts.
+- Same-input result after that scoped reuse: native
+  `c807569c165d9795470c5517ed9c1a15f8110ce564e406ead8fac85ea3efd912`,
+  original30-second control rc0 in1.74s/203136KiB,4097 entries/evaluations,
+  zero recursion hits, unchanged4096 episode budget. Phase10942/0 PASS,
+  including post-finalization currentness tampering. Full strict/broad replay
+  is in progress; the timing alone is not an integration PASS.
+- Once this integration gate is green, the next already reached canonical
+  dependency is named String result provenance. The same declared-result
+  frame/control-root owner must prove complete returns and free-variable
+  closure, then current formal RETURN dependencies determine actual backing.
+  Non-dependent aggregate arguments do not confer backing; dependent aggregate
+  arguments remain unproved. Existing indexed source publication carries only
+  the exact initializer lineage; a final shallow-store obligation requires
+  current source0. UNKNOWN, owned-String-result flags and member IDs do not
+  grant independence or element cleanup rights. B owns existing flow store,
+  internal declarations and frame/control-root factoring; root owns existing
+  indexed/LET/deferred consumers. C supplies paired and currentness falsifiers.
+
+- Frozen native01286244423dd67cbd85a36eed806d2328466cf34fe6f9b34593fc9119660e97:
+  safe C/LLVM runtime64/64, phase10747/0 and paired348/unique349 decisions
+  PASS. BroadW2x5sx is RED: MIR363/3, semantic3190/38, transpile997/11.
+  The whole failure lists are retained in that lab; narrow greens do not
+  discharge them. Source units sampled between D and Linux are byte-equal.
+- Objective: restore the unchanged successful programs and owned diagnostic
+  paths without granting any missing ownership fact. Priority: exact selected
+  callable/receiver/formal identity, typed publication lifetime, explicit
+  failure, unchanged negatives, then patch size. Existing host-index and
+  publication owners remain authoritative; no per-program route or fallback.
+- Shared host dependency: the selected nested-callable index covers class/enum
+  but not every already-supported host/ability owner. A checks the complete
+  producer set and carries its identity to the existing formal mapping. The
+  observed world `Pick(4)` refusal is `Selected method argument has no current
+  formal identity`, before MIR; fourteen MIR/C checks share host inputs.
+  Missing identity must still refuse, and dynamic ability dispatch must not
+  choose a convenient implementation to make a header appear complete.
+- Defer dependency: the low-level statement checker also accepts non-String
+  cleanup outside a routine. B preserves that body/resource-state contract;
+  issuing a String future-read or release still requires its real routine
+  identity. No fabricated function owner or lifetime receipt is permitted.
+- Root checks the remaining transitive ref diagnostics as a single publication
+  chain and the datetime/domain-kit return-backing failures. A previous error
+  is not permission to emit MIR, infer no effects, or replace a missing fact
+  with a default. Do not change the negative oracles to a weaker refusal.
+- Isolated local-error publication stageXW3fWk/native4daddcf5 restores27 of
+  those38 semantic checks unchanged (3217/11): an unrelated earlier error
+  does not erase a subsequently checked expression's identity. A local error
+  still prevents that expression's publication; the whole program remains
+  rejected and no MIR is emitted. This is not a current integration receipt.
+- Remaining datetime/domain-kit wrappers reach an implicit receiver carrying
+  input backing. B connects a current, completed, non-mutating and
+  return-independent self summary to that exact receiver, the existing
+  declared-result edge and final backing replay. Receiver evaluation remains;
+  dependent/mutating/opaque receivers remain refused. No argc+1 guess or
+  no-store-as-independence is permitted. Reuse the current validation queue,
+  not recursively restart the whole backing validator. Existing binding/node
+  storage and bitset/epoch charging primitives move unchanged to the existing
+  fact-storage owner; semantic policy stays with backing/currentness owners.
+- Shared gate: exact full strict + phase mutation groups, all existing
+  MIR/semantic/transpile units, safe C/LLVM and defer parity, then unchanged
+  full canonical admission. Named-String result-source repair is deferred
+  until these integration failures are classified and repaired.
+- Integrated KGTpXy/nativefc58a51b builds within caps; Wffqbq observes
+  semantic3230/0, MIR370/0 and transpile1012/0. Paired1I8ffm has351 rows,
+  352 unique inputs, no admission decision regressions. Phase10805/14 is
+  still RED: six new host tests used a pending query after finalization
+  (test setup corrected), and eight invalid-program publication controls
+  expose the root expression-local error frontier's overreach. Preserve the
+  same-routine/invalid-declaration no-grant tests; repair the publication
+  boundary, not the oracles. Strict needs the observed extra caller-error
+  sites after that boundary is stable. No acceptance or known-red push.
+- Publication decision: discard the broad expression-local publication
+  experiment and restore the sticky-error no-grant gate unchanged. The
+  existing PendingRefCall already issues a typed call/actual/formal tuple;
+  carry its exact formal/site identity to its diagnostic-only last consumer.
+  That consumer must replay the receipt rather than silently drop a diagnostic
+  when the whole-call value was deliberately not published. Actual String
+  return-loan/ownership admission retains the stronger current value/call,
+  routine and completed summary requirements. A owns this single receipt
+  migration. Missing diagnostic identity stays explicit; there is no fallback
+  that supplies an ownership fact from a diagnostic snapshot.
+
 #### Reached defer lifetime / final-consumer repair (2026-10-17)
 
 - Objective: retain the existing routine-exit LIFO defer behavior while making
@@ -65,6 +175,37 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   Shared gate: currentness phase + full strict/admission census, safe C/LLVM
   runtime controls and existing defer parity, then broad/canonical/bootstrap/CI.
   These are dependencies of the active ownership rung, not new parallel tracks.
+- Binding repair decision after surveying the actual MIR: do not add a second
+  C mutable-binding store/live-reference cell at every write. The existing SSA
+  owner must carry deferred exact-ID reads to routine exits and feed the normal
+  backend SSA consumers. The reached prerequisite is HIR's infeasible edge for
+  a literal Boolean: semantic already distinguishes that same literal, whereas
+  HIR currently leaves both edges and makes an inner local fail to dominate its
+  deferred exit use. Remove only the literal's impossible edge at the existing
+  CFG producer; do not fold effectful or inferred expressions. Retain routine
+  LIFO and dynamic-defer refusal. Carry/validate local identities using existing
+  MIR graph/local-ref fields through native and installed consumers; no guessed
+  spelling, registration-time value snapshot or additional wire format. Missing
+  binding/use facts stay closed. A owns this one producer-to-consumer chain;
+  root validates existing HIR/MIR/JSON/installed gates and backend runtime parity.
+- Independent review reaches the same call/retirement chain at two additional
+  last consumers: host-method OWN actuals and Array RETURN. Root connects the
+  existing owned-element and generic ownership consumers to the host route,
+  keeping actual ordinal separate from mapped formal ordinal through capture
+  and final validation. The selected typed callee/mode is authoritative; do not
+  resolve ownership again from a display name. Returning a descriptor with a
+  live deferred read/release must consume the same existing lifetime guard as
+  an OWN call. Required negatives include use after method OWN, method OWN
+  after a reserved release, and an unused/public dangling-return function.
+  Test the future-release -> shallow alias -> retaining-call variants too;
+  an escaped flag must not erase an already issued release obligation.
+- Fixed canonical36G7t5/native0b39 remains RED12512 diagnostics, MIR0,
+  22.05s/1277232KiB; many are cascades after the first source failure. Isolated
+  diagnostic observerVRtJic (not an acceptance binary) identifies that first
+  failure at `SemanticConstructedTypeNameFactFrom`/135:13, an ArrayPush of a
+  String returned by a normal canonicalization call. Its input/result backing
+  relation is not yet connected to indexed source provenance. Do not mark an
+  unknown String result independent or insert a manual source Clone to hide it.
 
 - Objective: returned Array storage and its String payload lifetime reach
   every existing move, mutation, retained-store and final deep-drop consumer.
@@ -118,7 +259,7 @@ Date: 2026-10-16 KST. Integration owner: GPT in the main checkout.
   indices include self while actual indices do not: one ordinal must not
   serve both. Known method readers require the same admitted correspondence,
   not an opaque escape exemption. Deferred future reads survive typing's
-  resource snapshot but expire with their real lexical scope; LIFO order,
+  resource snapshot and remain until the routine exit; LIFO order,
   same-body read/drop and later String rebinds must not erase the obligation.
 - Fixed canonical V576EF on 7cb is RED20132 diagnostics (cascades included),
   MIR0,30.45s/1256272KiB. Scratch T7UlqT identifies the first new source

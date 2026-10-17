@@ -63,11 +63,24 @@ llvm_emit_defers_from(LLVMGenCtx *ctx, int start_depth)
     for (int depth = ctx->defer_scope_depth - 1; depth >= start_depth; depth--) {
         for (int i = ctx->defer_body_counts[depth] - 1; i >= 0; i--) {
             ASTNode *body = ctx->defer_bodies[depth][i];
+            const MIRInstruction *registration =
+                ctx->defer_mir_instructions[depth][i];
             const MIRInstruction *saved_mir_instruction =
                 ctx->current_mir_instruction;
             if (body != NULL) {
-                ctx->current_mir_instruction =
-                    ctx->defer_mir_instructions[depth][i];
+                if (ctx->current_defer_exit_block != NULL) {
+                    int relation = mir_defer_registration_exit_relation(
+                        ctx->current_mir_routine, registration,
+                        ctx->current_defer_exit_block);
+                    if (relation == 2)
+                        continue;
+                    if (relation != 1) {
+                        llvm_set_mir_topology_invalid(ctx,
+                            "LLVM MIR defer registration may not execute before its exit");
+                        return;
+                    }
+                }
+                ctx->current_mir_instruction = registration;
                 llvm_emit_statement(body, ctx);
                 ctx->current_mir_instruction = saved_mir_instruction;
             }

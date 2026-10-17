@@ -1,0 +1,20 @@
+extern "C" {
+    func Keep(text: String) -> Void;
+}
+
+func Identity(value: String) -> String {
+    return value;
+}
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let rows: Array<String> = OwnedRows();
+    let observed = Identity(rows[0]);
+    Keep(observed);
+    ArrayDropOwnedStrings(rows);
+}

@@ -37,6 +37,7 @@ typedef struct
     ASTNode *callee_decl;
     uint32_t callee_id;
     size_t ordinal;
+    size_t formal_ordinal;
     FuncParam *formal;
     uint32_t formal_id;
     ASTNode *formal_type;
@@ -246,7 +247,7 @@ semantic_collection_owned_element_requirement_record_storage_drop(
 
 bool
 semantic_collection_owned_element_requirement_record_argument(
-    ASTNode *call, ASTNode *callee_decl, size_t argument_index,
+    ASTNode *call, ASTNode *callee_decl, size_t argument_index, size_t formal_index,
     ASTNode *argument, const Type *argument_type, ParamMode parameter_mode,
     SemanticContext *ctx)
 {
@@ -277,12 +278,12 @@ semantic_collection_owned_element_requirement_record_argument(
         || !ast_call_semantic_callee_declared_callable(call)
         || ast_call_semantic_callee_value_binding_id(call) != 0
         || ast_call_semantic_callee_is_stdlib(call)
-        || argument_index >= ast_func_param_count(callee_decl)
+        || formal_index >= ast_func_param_count(callee_decl)
         || argument_index >= ast_call_arg_count(call)
         || ast_call_argument(call, argument_index) != argument
         || ast_node_stable_id(argument) == 0)
         return requirement_failure(ctx, call, "missing owned-call declaration identity");
-    target_parameter = ast_func_param(callee_decl, argument_index);
+    target_parameter = ast_func_param(callee_decl, formal_index);
     if (target_parameter == NULL || target_parameter->mode != PARAM_MODE_OWN
         || ast_func_param_stable_id(target_parameter) == 0
         || target_parameter->type == NULL
@@ -364,7 +365,7 @@ semantic_collection_owned_element_requirement_record_argument(
     store->actuals[store->actual_count++] = (OwnedElementActualSnapshot){
         .call = call, .call_id = ast_node_stable_id(call),
         .callee_decl = callee_decl, .callee_id = function_id,
-        .ordinal = argument_index, .formal = target_parameter,
+        .ordinal = argument_index, .formal_ordinal = formal_index, .formal = target_parameter,
         .formal_id = ast_func_param_stable_id(target_parameter),
         .formal_type = target_parameter->type,
         .formal_type_id = ast_node_stable_id(target_parameter->type),
@@ -411,6 +412,7 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
     for (size_t i = 0; i < store->actual_count; i++) {
         OwnedElementActualSnapshot actual = store->actuals[i];
         SemanticPublishedValue current;
+        size_t mapped_formal = 0;
         if (actual.target >= store->parameter_count || actual.call == NULL
             || actual.call->type != AST_CALL || actual.call_id == 0
             || ast_node_stable_id(actual.call) != actual.call_id
@@ -425,8 +427,10 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
             || !ast_call_semantic_callee_declared_callable(actual.call)
             || ast_call_semantic_callee_value_binding_id(actual.call) != 0
             || ast_call_semantic_callee_is_stdlib(actual.call)
-            || actual.ordinal >= ast_func_param_count(actual.callee_decl)
-            || ast_func_param(actual.callee_decl, actual.ordinal) != actual.formal
+            || !semantic_param_publication_formal_for_actual(ctx, actual.call,
+                actual.ordinal, &mapped_formal) || mapped_formal != actual.formal_ordinal
+            || actual.formal_ordinal >= ast_func_param_count(actual.callee_decl)
+            || ast_func_param(actual.callee_decl, actual.formal_ordinal) != actual.formal
             || actual.formal == NULL || actual.formal_id == 0
             || ast_func_param_stable_id(actual.formal) != actual.formal_id
             || actual.formal->mode != PARAM_MODE_OWN

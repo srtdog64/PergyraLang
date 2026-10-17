@@ -1,0 +1,13 @@
+func Finish() -> Void {
+    var current: Int = 1;
+    defer {
+        Log(2);
+        Log(current);
+    };
+    current = 3;
+}
+
+func Main() -> Void {
+    Finish();
+    Log(7);
+}

@@ -259,6 +259,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
 
         case AST_IF_STMT: {
             HIRBasicBlock *block = &(*blocks)[(size_t)current_block];
+            ASTNode *condition = ast_if_condition(node);
             if (!hir_cfg_append_block_stmt(block, node))
                 return -1;
             ssize_t then_block = hir_cfg_new_region_block(blocks, block_count, block_capacity, pin);
@@ -271,10 +272,12 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                 if (else_block < 0)
                     return -1;
                 block = &(*blocks)[(size_t)current_block];
-                hir_cfg_set_branch(block,
-                               ast_if_condition(node),
-                               (size_t)then_block,
-                               (size_t)else_block);
+                if (condition != NULL && condition->type == AST_BOOLEAN)
+                    hir_cfg_set_goto(block, ast_boolean_value(condition)
+                        ? (size_t)then_block : (size_t)else_block);
+                else
+                    hir_cfg_set_branch(block, condition,
+                                       (size_t)then_block, (size_t)else_block);
 
                 ssize_t then_open = hir_lower_block_body_to_cfg(ast_if_then_branch(node),
                                                                 blocks,
@@ -297,10 +300,12 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                     hir_cfg_set_goto(&(*blocks)[(size_t)else_open], (size_t)join_block);
             } else {
                 block = &(*blocks)[(size_t)current_block];
-                hir_cfg_set_branch(block,
-                               ast_if_condition(node),
-                               (size_t)then_block,
-                               (size_t)join_block);
+                if (condition != NULL && condition->type == AST_BOOLEAN)
+                    hir_cfg_set_goto(block, ast_boolean_value(condition)
+                        ? (size_t)then_block : (size_t)join_block);
+                else
+                    hir_cfg_set_branch(block, condition,
+                                       (size_t)then_block, (size_t)join_block);
 
                 ssize_t then_open = hir_lower_block_body_to_cfg(ast_if_then_branch(node),
                                                                 blocks,

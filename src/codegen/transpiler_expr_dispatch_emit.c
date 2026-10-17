@@ -66,12 +66,21 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_IDENTIFIER: {
         const char *id_name = ast_identifier_name(node);
+        char defer_ssa_name[128];
+        int defer_ssa = transpiler_defer_exit_ssa_name(
+            ctx, node, defer_ssa_name, sizeof(defer_ssa_name));
         if (id_name == NULL) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: identifier expression is missing a name");
+            return NULL;
+        }
+        if (defer_ssa < 0) {
+            transpiler_set_mir_topology_invalid(ctx,
+                "Deferred read has no current exact MIR SSA binding for '%s'",
+                id_name);
             return NULL;
         }
         /* None is target-typed; without contextual Option<T> semantic should
@@ -99,7 +108,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 }
             }
         }
-        if (transpiler_current_function_has_self_receiver(ctx)
+        if (defer_ssa == 0 && transpiler_current_function_has_self_receiver(ctx)
             && transpiler_is_implicit_field(ctx, id_name)) {
             char *field_expr =
                 transpiler_emit_current_host_field_identifier(ctx, id_name);
@@ -114,10 +123,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
          * `_pgy_ssa_heated_N` local goes unused, breaking the C build
          * with "heated undeclared". Skip every implicit-field promotion
          * branch when the SSA resolver has a binding for this name. */
-        bool ident_has_active_ssa =
+        bool ident_has_active_ssa = defer_ssa == 1 ||
             transpiler_resolve_active_ssa_name(ctx, id_name) != NULL;
         bool ident_is_stale_host_field_snapshot = false;
-        if (ident_has_active_ssa) {
+        if (ident_has_active_ssa && defer_ssa == 0) {
             ident_is_stale_host_field_snapshot =
                 transpiler_identifier_is_stale_host_field_snapshot(ctx,
                     id_name);
@@ -147,7 +156,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return field_expr;
             }
         }
-        const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
+        const char *ssa_name = defer_ssa == 1 ? defer_ssa_name
+            : transpiler_resolve_active_ssa_name(ctx, id_name);
         if (ssa_name != NULL) {
             char *c_ssa_name = transpiler_make_c_ssa_name(ctx, ssa_name);
             const char *slot_type = lookup_typed_var(ctx, id_name);

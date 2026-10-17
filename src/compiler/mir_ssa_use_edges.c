@@ -8,6 +8,96 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "mir_base_helpers.h"
+#include "mir_call_fact.h"
+
+typedef struct {
+    size_t block_id;
+    size_t instruction_index;
+    MIRLocalBinding *bindings;
+    size_t count;
+} MIRDeferredRead;
+
+static void
+mir_free_deferred_reads(MIRDeferredRead *rows, size_t count)
+{
+    for (size_t i = 0; i < count; i++)
+        free(rows[i].bindings);
+    free(rows);
+}
+
+static bool
+mir_collect_deferred_reads(const MIRRoutine *routine,
+                           MIRDeferredRead **rows_out, size_t *count_out)
+{
+    MIRDeferredRead *rows = NULL;
+    size_t count = 0, capacity = 0;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        if (!block->is_reachable)
+            continue;
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *inst = &block->instructions[i];
+            if (!mir_instruction_source_is_defer_stmt(inst))
+                continue;
+            size_t parts = inst->defer_part_count;
+            if (inst->defer_part_index != 0 || parts == 0
+                || parts > block->instruction_count - i
+                || inst->ast == NULL || inst->ast->type != AST_DEFER_STMT
+                || inst->expr0 != ast_defer_body(inst->ast)
+                || ast_block_statement_count(inst->expr0) != parts)
+                goto fail;
+            /* Only part zero registers the body in both backends. Every
+             * part's reads must therefore use that same exit-time receipt. */
+            for (size_t part_index = 0; part_index < parts; part_index++) {
+                const MIRInstruction *part_inst =
+                    &block->instructions[i + part_index];
+                ASTNode *part = mir_defer_part_statement(part_inst);
+                const char *routing = mir_defer_statement_routing(part);
+                if (!mir_instruction_source_is_defer_stmt(part_inst)
+                    || part_inst->kind != MIR_INST_STMT
+                    || part_inst->defer_part_index != part_index
+                    || part_inst->defer_part_count != parts
+                    || part_inst->ast != inst->ast
+                    || part_inst->expr0 != inst->expr0
+                    || part_inst->source_stable_id != inst->source_stable_id
+                    || part_inst->has_source_statement_index
+                        != inst->has_source_statement_index
+                    || (inst->has_source_statement_index
+                        && part_inst->source_statement_index
+                            != inst->source_statement_index)
+                    || routing == NULL || part_inst->arg0 == NULL
+                    || strcmp(part_inst->arg0, routing) != 0)
+                    goto fail;
+                if (count == capacity) {
+                    size_t next_capacity = capacity == 0 ? 4 : capacity * 2;
+                    if (next_capacity < capacity
+                        || next_capacity > SIZE_MAX / sizeof(*rows))
+                        goto fail;
+                    MIRDeferredRead *next = realloc(rows,
+                        next_capacity * sizeof(*rows));
+                    if (next == NULL)
+                        goto fail;
+                    rows = next;
+                    capacity = next_capacity;
+                }
+                MIRDeferredRead *row = &rows[count++];
+                *row = (MIRDeferredRead){.block_id = b,
+                    .instruction_index = i};
+                size_t use_capacity = 0;
+                if (!mir_collect_expr_identifier_uses(part, &row->bindings,
+                        &row->count, &use_capacity))
+                    goto fail;
+            }
+            i += parts - 1;
+        }
+    }
+    *rows_out = rows;
+    *count_out = count;
+    return true;
+fail:
+    mir_free_deferred_reads(rows, count);
+    return false;
+}
 
 static bool
 mir_append_versioned_use(MIRInstruction *inst, const char *base, size_t version)
@@ -109,6 +199,9 @@ mir_resource_use_index(const MIRLocalBinding *names, size_t count,
 static bool
 mir_record_instruction_expr_uses(MIRRoutine *routine,
                                  MIRInstruction *inst,
+                                 const MIRBasicBlock *block,
+                                 const MIRDeferredRead *deferred_reads,
+                                 size_t deferred_read_count,
                                  const MIRLocalBinding *ssa_names,
                                  size_t ssa_name_count,
                                  const size_t *current_versions,
@@ -172,6 +265,33 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
                         ast_func_param_stable_id(param)})) {
                 free(raw_uses);
                 return false;
+            }
+        }
+        /* Registration owns the deferred AST; the exit reads its current
+         * SSA version. A registration-time use would freeze mutable locals. */
+        for (size_t d = 0; d < deferred_read_count; d++) {
+            const MIRDeferredRead *row = &deferred_reads[d];
+            const MIRInstruction *registration =
+                &routine->blocks[row->block_id].instructions[row->instruction_index];
+            int relation = mir_defer_registration_exit_relation(routine,
+                registration, block);
+            if (relation == 2)
+                continue;
+            if (relation != 1) {
+                if (error_message != NULL && *error_message == NULL)
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' defer registration does not dominate return instruction[%zu]",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        inst->id);
+                free(raw_uses);
+                return false;
+            }
+            for (size_t u = 0; u < row->count; u++) {
+                if (!mir_append_ssa_binding(&raw_uses, &raw_use_count,
+                        &raw_use_capacity, row->bindings[u])) {
+                    free(raw_uses);
+                    return false;
+                }
             }
         }
     }
@@ -321,6 +441,8 @@ mir_record_phi_uses(MIRRoutine *routine,
 static bool
 mir_populate_block_use_edges(MIRRoutine *routine,
                              MIRBasicBlock *block,
+                             const MIRDeferredRead *deferred_reads,
+                             size_t deferred_read_count,
                              const MIRLocalBinding *ssa_names,
                              size_t ssa_name_count,
                              char **error_message)
@@ -366,7 +488,8 @@ mir_populate_block_use_edges(MIRRoutine *routine,
             || inst->kind == MIR_INST_DESTRUCTURE
             || inst->kind == MIR_INST_RESOURCE_OP
             || inst->kind == MIR_INST_CLEANUP_EDGE) {
-            if (!mir_record_instruction_expr_uses(routine, inst, ssa_names,
+            if (!mir_record_instruction_expr_uses(routine, inst, block,
+                    deferred_reads, deferred_read_count, ssa_names,
                     ssa_name_count, current_versions, error_message))
                 goto fail;
         }
@@ -427,6 +550,8 @@ fail:
 bool
 mir_populate_use_edges(MIRRoutine *routine, char **error_message)
 {
+    MIRDeferredRead *deferred_reads = NULL;
+    size_t deferred_read_count = 0;
     if (routine == NULL || routine->hir_routine == NULL)
         return false;
     if (!routine->hir_routine->has_cfg)
@@ -438,13 +563,25 @@ mir_populate_use_edges(MIRRoutine *routine, char **error_message)
     if (ssa_names == NULL || ssa_name_count > SIZE_MAX / sizeof(size_t))
         return false;
 
+    if (!mir_collect_deferred_reads(routine, &deferred_reads,
+            &deferred_read_count)) {
+        if (error_message != NULL && *error_message == NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' has a malformed deferred part group",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         if (!mir_populate_block_use_edges(routine,
                                           &routine->blocks[block_id],
+                                          deferred_reads, deferred_read_count,
                                           ssa_names,
                                           ssa_name_count, error_message)) {
+            mir_free_deferred_reads(deferred_reads, deferred_read_count);
             return false;
         }
     }
+    mir_free_deferred_reads(deferred_reads, deferred_read_count);
     return true;
 }

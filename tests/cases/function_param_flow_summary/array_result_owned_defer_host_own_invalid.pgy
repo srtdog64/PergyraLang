@@ -1,0 +1,20 @@
+class Sink {
+    let marker: Int;
+
+    func Consume(self, own rows: Array<String>) -> Int {
+        return ArrayLength(rows) + self.marker;
+    }
+}
+
+func OwnedRows() -> Array<String> {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    return rows;
+}
+
+func Main() -> Void {
+    let sink: Sink = Sink(0);
+    let rows: Array<String> = OwnedRows();
+    defer { ArrayDropOwnedStrings(rows); };
+    Log(Sink_Consume(sink, rows));
+}

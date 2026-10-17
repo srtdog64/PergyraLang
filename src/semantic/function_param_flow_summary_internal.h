@@ -57,6 +57,9 @@ typedef struct {
     const Type *result_type;
     size_t result_argument_count;
     unsigned char *result_argument_kinds;
+    const ASTNode *receiver;
+    const Type *receiver_type;
+    uint32_t receiver_id, receiver_callee_id, receiver_formal_id;
 } FunctionParamFlowBackingNode;
 typedef struct {
     uint32_t binding;
@@ -279,6 +282,9 @@ bool function_param_flow_no_store_graph(FunctionParamFlowSummaryStore *store, AS
 bool function_param_flow_backing_rows_current(FunctionParamFlowSummaryStore *store, ASTNode *decl);
 bool function_param_flow_declared_result_closed(FunctionParamFlowSummaryStore *store,
     ASTNode *call, FunctionParamFlowBackingFact *consumer);
+bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *call);
+ASTNode *function_param_flow_receiver_readonly_current(FunctionParamFlowSummaryStore *store,
+    ASTNode *call, bool demand);
 bool function_param_flow_index_roots_current(const FunctionParamFlowProgramPointIndex *index);
 uint32_t function_param_flow_backing_place(ReturnedBacking *state, ASTNode *node);
 bool function_param_flow_index_claim_record(SemanticContext *ctx,

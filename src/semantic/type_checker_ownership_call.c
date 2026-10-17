@@ -58,13 +58,13 @@ semantic_call_arg_is_named_move_source(ASTNode *arg_expr,
 static bool
 semantic_check_movable_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                      SemanticContext *ctx,
+                                     ASTNode *callee_decl, ParamMode pmode,
                                      const char *display_name,
                                      size_t arg_index,
+                                     size_t formal_index,
                                      Type *param_type,
                                      Type *arg_type)
 {
-    ParamMode pmode = PARAM_MODE_DEFAULT;
-    ASTNode *callee_decl = NULL;
     const char *borrowed_name;
 
     if (!semantic_call_arg_is_named_move_source(arg_expr, ctx)) {
@@ -77,13 +77,11 @@ semantic_check_movable_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
         return true;
     }
 
-    callee_decl = semantic_lookup_function_param_contract(
-        ctx, display_name, arg_index, &pmode);
     if (pmode == PARAM_MODE_REF
         && callee_decl != NULL
         && ast_func_body(callee_decl) != NULL
         && !semantic_call_is_direct_sync_self_ref_reborrow(
-            ctx, callee_decl, arg_expr, arg_index, pmode)) {
+            ctx, callee_decl, arg_expr, formal_index, pmode)) {
         unsigned callee_mask;
         borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
         if (semantic_param_publication_pending(ctx)) {
@@ -93,7 +91,7 @@ semantic_check_movable_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
             return true;
         }
         callee_mask = semantic_callable_param_escape_summary(
-            callee_decl, arg_index, ctx);
+            callee_decl, formal_index, ctx);
         if (borrowed_name != NULL
             && semantic_param_summary_has_any_escape(callee_mask)) {
             semantic_validate_borrowed_escape(
@@ -139,20 +137,19 @@ semantic_check_movable_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
 static bool
 semantic_check_subject_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                      SemanticContext *ctx,
+                                     ASTNode *callee_decl, ParamMode pmode,
                                      const char *display_name,
                                      size_t arg_index,
+                                     size_t formal_index,
                                      Type *arg_type)
 {
-    ParamMode pmode = PARAM_MODE_DEFAULT;
-    ASTNode *callee_decl = semantic_lookup_function_param_contract(
-        ctx, display_name, arg_index, &pmode);
-
     if (!semantic_validate_borrowed_boundary_call_argument(
             arg_expr, call_expr,
             ctx,
             callee_decl,
             display_name,
             arg_index,
+            formal_index,
             pmode,
             arg_type,
             "subject",
@@ -169,20 +166,19 @@ semantic_check_subject_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
 static bool
 semantic_check_value_boundary_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                             SemanticContext *ctx,
+                                            ASTNode *callee_decl, ParamMode pmode,
                                             const char *display_name,
                                             size_t arg_index,
+                                            size_t formal_index,
                                             Type *arg_type)
 {
-    ParamMode pmode = PARAM_MODE_DEFAULT;
-    ASTNode *callee_decl = semantic_lookup_function_param_contract(
-        ctx, display_name, arg_index, &pmode);
-
     if (!semantic_validate_borrowed_boundary_call_argument(
             arg_expr, call_expr,
             ctx,
             callee_decl,
             display_name,
             arg_index,
+            formal_index,
             pmode,
             arg_type,
             "value",
@@ -291,14 +287,12 @@ semantic_check_anchored_live_view_conflict(ASTNode *arg_expr,
 static bool
 semantic_check_anchored_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
                                       SemanticContext *ctx,
+                                      ASTNode *callee_decl, ParamMode pmode,
                                       const char *display_name,
                                       size_t arg_index,
+                                      size_t formal_index,
                                       Type *arg_type)
 {
-    ParamMode pmode = PARAM_MODE_DEFAULT;
-    ASTNode *callee_decl = semantic_lookup_function_param_contract(
-        ctx, display_name, arg_index, &pmode);
-
     if (pmode == PARAM_MODE_DEFAULT) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
@@ -324,6 +318,7 @@ semantic_check_anchored_call_argument(ASTNode *arg_expr, ASTNode *call_expr,
             callee_decl,
             display_name,
             arg_index,
+            formal_index,
             pmode,
             arg_type,
             "slot handle (anchored)",
@@ -341,6 +336,7 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
                                                 ParamMode typed_param_mode,
                                                 const char *display_name,
                                                 size_t arg_index,
+                                                size_t formal_index,
                                                 Type *param_type,
                                                 Type *arg_type,
                                                 OwnershipTypeClass param_ownership,
@@ -365,7 +361,7 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
                 return false;
             }
             return semantic_validate_borrowed_boundary_call_argument(
-                arg_expr, call_expr, ctx, typed_callee_decl, display_name, arg_index,
+                arg_expr, call_expr, ctx, typed_callee_decl, display_name, arg_index, formal_index,
                 typed_param_mode, arg_type, "value", true);
         }
     }
@@ -386,7 +382,8 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
             return true;
         }
         return semantic_check_movable_call_argument(
-            arg_expr, call_expr, ctx, display_name, arg_index, param_type, arg_type);
+            arg_expr, call_expr, ctx, typed_callee_decl, typed_param_mode,
+            display_name, arg_index, formal_index, param_type, arg_type);
     }
 
     if (param_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
@@ -411,7 +408,8 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
             return true;
         }
         return semantic_check_subject_call_argument(
-            arg_expr, call_expr, ctx, display_name, arg_index, arg_type);
+            arg_expr, call_expr, ctx, typed_callee_decl, typed_param_mode,
+            display_name, arg_index, formal_index, arg_type);
     }
 
     if (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
@@ -449,7 +447,8 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
             return true;
         }
         return semantic_check_value_boundary_call_argument(
-            arg_expr, call_expr, ctx, display_name, arg_index, arg_type);
+            arg_expr, call_expr, ctx, typed_callee_decl, typed_param_mode,
+            display_name, arg_index, formal_index, arg_type);
     }
 
     if (param_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE
@@ -468,7 +467,8 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr, ASTNode *call
             return true;
         }
         return semantic_check_anchored_call_argument(
-            arg_expr, call_expr, ctx, display_name, arg_index, arg_type);
+            arg_expr, call_expr, ctx, typed_callee_decl, typed_param_mode,
+            display_name, arg_index, formal_index, arg_type);
     }
 
     return true;
@@ -480,6 +480,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
                                                   ASTNode *callee_decl,
                                                   const char *display_name,
                                                   size_t arg_index,
+                                                  size_t formal_index,
                                                   ParamMode pmode,
                                                   Type *arg_type,
                                                   const char *local_fix_label,
@@ -552,7 +553,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
         borrowed_name = "<temporary read view>";
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
         if (!semantic_call_is_direct_sync_self_ref_reborrow(
-                ctx, callee_decl, arg_expr, arg_index, pmode)) {
+                ctx, callee_decl, arg_expr, formal_index, pmode)) {
             if (semantic_param_publication_pending(ctx)) {
                 if (borrowed_name != NULL && !semantic_param_publication_record_call(ctx, call_expr, arg_expr, callee_decl, arg_index,
                         arg_type, borrowed_name, display_name, local_fix_label)) {
@@ -562,10 +563,10 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr, ASTNode *ca
             } else {
             unsigned callee_mask =
                 semantic_callable_param_escape_summary(
-                    callee_decl, arg_index, ctx);
+                    callee_decl, formal_index, ctx);
             if (view_ref)
                 return !semantic_validate_ref_view_payload_escape(call_expr, arg_expr, ctx, callee_decl,
-                    arg_index, borrowed_name, OWNERSHIP_CONSUMER_HELPER_CALL, display_name, local_fix_label);
+                    formal_index, borrowed_name, OWNERSHIP_CONSUMER_HELPER_CALL, display_name, local_fix_label);
             if ((string_ref
                     ? callee_decl == NULL || ast_func_body(callee_decl) == NULL
                         || ((semantic_param_summary_has_call_escape(callee_mask)

@@ -311,6 +311,7 @@ typedef struct
     const void *active_ssa_map;
     const MIRRoutine *active_mir_routine;
     const MIRInstruction *active_mir_instruction;
+    const MIRBasicBlock *active_defer_exit_block;
     /* Persistent alias map for match-case bindings, valid for the whole
      * function emission. Each entry maps source binding name (e.g. "v") to
      * the SSA-renamed unique C variable name (e.g. "_pgy_match_v_42").

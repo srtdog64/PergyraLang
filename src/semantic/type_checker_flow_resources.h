@@ -15,6 +15,12 @@ typedef struct
     bool result_pending;
 } ArrayStoragePathState;
 
+typedef struct {
+    Symbol *symbol;
+    uint32_t declaration_id;
+    bool invalidated;
+} DeferredStringInvalidationState;
+
 typedef struct
 {
     Symbol              **symbols;
@@ -30,11 +36,18 @@ typedef struct
     size_t                count;
     size_t                capacity;
     bool                  valid;
+    DeferredStringInvalidationState *deferred_strings;
+    size_t deferred_string_count, deferred_string_capacity;
+    bool deferred_strings_captured;
 } ResourceConsumeSnapshot;
 
 ResourceConsumeSnapshot snapshot_resource_states_from_scope(Scope *scope,
                                                             SemanticContext *ctx);
 ResourceConsumeSnapshot snapshot_resource_states(SemanticContext *ctx);
+bool resource_snapshot_capture_deferred_strings(ResourceConsumeSnapshot *snap,
+    SemanticContext *ctx);
+bool resource_snapshot_restore_deferred_strings(const ResourceConsumeSnapshot *snap,
+    SemanticContext *ctx);
 void restore_resource_states(const ResourceConsumeSnapshot *snap);
 void restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                                          SemanticContext *ctx);

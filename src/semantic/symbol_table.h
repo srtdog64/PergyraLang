@@ -206,11 +206,19 @@ typedef enum
  * Scope - one level in the scope chain
  */
 typedef struct {
-    const ASTNode *function, *body, *use;
-    uint32_t function_id, body_id, use_id, use_kind;
-    uint32_t binding_id, source_id;
+    const ASTNode *assignment, *value, *target;
+    uint32_t assignment_id, value_id, target_id, binding_id, source_id;
+    size_t ordinal, receipt_sequence;
+} IndexedStringDeferredAssignment;
+
+typedef struct IndexedStringDeferredRead {
+    const ASTNode *function, *body, *use, *bound;
+    uint32_t function_id, body_id, use_id, use_kind, bound_id;
+    uint32_t binding_id, source_id, issued_source_id;
     size_t sequence;
-    bool array_receiver, nested, invalidation_snapshot, prior_invalidated, owner_release;
+    bool array_receiver, nested, owner_release;
+    IndexedStringDeferredAssignment *assignments;
+    size_t assignment_count, assignment_capacity;
 } IndexedStringDeferredRead;
 
 struct Scope
@@ -236,7 +244,7 @@ struct Scope
     Symbol**  owned_slots;
     size_t    owned_slot_count;
     size_t    owned_slot_capacity;
-    /* Native lexical future-read obligations, retired with this scope. */
+    /* Native routine-exit obligations, held by the nearest function scope. */
     IndexedStringDeferredRead *indexed_string_deferred_reads;
     size_t indexed_string_deferred_read_count, indexed_string_deferred_read_capacity;
 };

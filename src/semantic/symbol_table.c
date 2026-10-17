@@ -220,6 +220,8 @@ scope_destroy(Scope *scope)
     free(scope->symbols);
     free(scope->symbol_index);
     free(scope->owned_slots); /* Symbols already freed above */
+    for (size_t i = 0; i < scope->indexed_string_deferred_read_count; i++)
+        free(scope->indexed_string_deferred_reads[i].assignments);
     free(scope->indexed_string_deferred_reads);
     free(scope);
 }

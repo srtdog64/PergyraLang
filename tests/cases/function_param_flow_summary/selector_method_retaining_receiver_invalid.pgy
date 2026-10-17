@@ -1,0 +1,21 @@
+extern "C" { func Keep(ids: Array<Int>) -> Void; }
+
+class Reader {
+    let count: Int;
+
+    func Observe(self, text: String) -> Int {
+        return self.count + StringLength(text);
+    }
+}
+
+func RetainingReader(ids: Array<Int>) -> Reader {
+    Keep(ids);
+    return Reader(ArrayLength(ids));
+}
+
+func Main() -> Void {
+    let ids: Array<Int> = [7];
+    let observed: Int = RetainingReader(ids).Observe("safe");
+    ArrayDrop(ids);
+    Log(observed);
+}

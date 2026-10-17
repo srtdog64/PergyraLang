@@ -190,7 +190,7 @@ deferred_string_read_failure(ASTNode *site, SemanticContext *ctx, const char *re
 
 static bool
 record_deferred_string_read(ASTNode *use, uint32_t source_id, Symbol *binding,
-    bool array_receiver, bool invalidation_snapshot, bool owner_release, SemanticContext *ctx)
+    bool array_receiver, bool owner_release, SemanticContext *ctx)
 {
     if (ctx == NULL || !ctx->in_defer_cleanup || ctx->future_lifecycle_unreachable_depth != 0)
         return true;
@@ -208,24 +208,18 @@ record_deferred_string_read(ASTNode *use, uint32_t source_id, Symbol *binding,
         return deferred_string_read_failure(use, ctx, "missing lexical receipt identity");
     uint32_t binding_id = binding != NULL ? binding->decl_syntax_id : 0;
     const ASTNode *bound = array_receiver ? ast_array_access_array(use) : use;
-    if (binding != NULL && (binding_id == 0 || (!invalidation_snapshot
-        && (bound == NULL || bound->type != AST_IDENTIFIER
-            || ast_identifier_binding_syntax_id(bound) != binding_id))))
+    if (binding != NULL && (binding_id == 0 || bound == NULL || bound->type != AST_IDENTIFIER
+        || ast_identifier_binding_syntax_id(bound) != binding_id))
         return deferred_string_read_failure(use, ctx, "missing deferred binding identity");
     for (size_t i = 0; i < owner->indexed_string_deferred_read_count; i++) {
         IndexedStringDeferredRead *row = &owner->indexed_string_deferred_reads[i];
         if (row->function_id != function_id || row->body_id != body_id || row->use_id != use_id
-            || row->invalidation_snapshot != invalidation_snapshot
-            || row->owner_release != owner_release
-            || (invalidation_snapshot && row->binding_id != binding_id)) continue;
+            || row->owner_release != owner_release) continue;
         if (row->use != use || row->binding_id != binding_id || row->array_receiver != array_receiver)
             return deferred_string_read_failure(use, ctx, "changed deferred read identity");
-        row->source_id = borrow_source_join(row->source_id, source_id);
-        if (invalidation_snapshot && row->sequence != ctx->indexed_string_defer_sequence) {
-            row->prior_invalidated = binding->indexed_string_borrow_invalidated;
-            row->sequence = ctx->indexed_string_defer_sequence;
-        }
-        return true;
+        if (row->issued_source_id != source_id)
+            return deferred_string_read_failure(use, ctx, "changed issued read source");
+        return semantic_array_storage_deferred_read_current(row, ctx);
     }
     if (owner->indexed_string_deferred_read_count == owner->indexed_string_deferred_read_capacity) {
         size_t capacity = owner->indexed_string_deferred_read_capacity;
@@ -240,61 +234,37 @@ record_deferred_string_read(ASTNode *use, uint32_t source_id, Symbol *binding,
     }
     owner->indexed_string_deferred_reads[owner->indexed_string_deferred_read_count++] =
         (IndexedStringDeferredRead){.function = ctx->current_function_decl,
-            .body = ctx->indexed_string_defer_body, .use = use,
+            .body = ctx->indexed_string_defer_body, .use = use, .bound = bound,
             .function_id = function_id, .body_id = body_id, .use_id = use_id,
-            .use_kind = (uint32_t)use->type, .binding_id = binding_id, .source_id = source_id,
+            .use_kind = (uint32_t)use->type, .bound_id = ast_node_stable_id(bound),
+            .binding_id = binding_id, .source_id = source_id,
+            .issued_source_id = source_id,
             .sequence = ctx->indexed_string_defer_sequence,
             .array_receiver = array_receiver, .nested = ctx->indexed_string_nested_defer,
-            .invalidation_snapshot = invalidation_snapshot,
-            .owner_release = owner_release,
-            .prior_invalidated = binding != NULL && binding->indexed_string_borrow_invalidated};
+            .owner_release = owner_release};
     return true;
 }
 
 static void
 deferred_string_read_assignment(Symbol *binding, uint32_t source_id,
-    bool array_receiver, SemanticContext *ctx)
+    bool array_receiver, ASTNode *assignment, ASTNode *value, SemanticContext *ctx)
 {
     for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent) {
         if (s->indexed_string_deferred_read_count > s->indexed_string_deferred_read_capacity
             || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL)) {
-            (void)deferred_string_read_failure(NULL, ctx, "missing assignment read storage");
+            (void)deferred_string_read_failure(assignment, ctx, "missing assignment read storage");
             return;
         }
         for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
             IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
-            if (!row->invalidation_snapshot && row->binding_id == binding->decl_syntax_id
-                && (row->array_receiver || row->owner_release) == array_receiver)
-                row->source_id = borrow_source_join(row->source_id, source_id);
+            if (row->binding_id == binding->decl_syntax_id
+                && (row->array_receiver || row->owner_release) == array_receiver
+                && !semantic_array_storage_deferred_read_assignment(row, assignment, value, source_id, ctx)) {
+                (void)deferred_string_read_failure(assignment, ctx, "stale assignment lineage");
+                return;
+            }
         }
     }
-}
-
-static bool
-deferred_string_receipt_current(const IndexedStringDeferredRead *row, SemanticContext *ctx)
-{
-    if (row->function != ctx->current_function_decl || row->function_id == 0 || row->body_id == 0 || row->use_id == 0 || row->sequence == 0
-        || ast_node_stable_id(row->function) != row->function_id
-        || ast_node_stable_id(row->body) != row->body_id
-        || ast_node_stable_id(row->use) != row->use_id || (uint32_t)row->use->type != row->use_kind)
-        return false;
-    const ASTNode *bound = row->array_receiver ? ast_array_access_array(row->use) : row->use;
-    if (!row->invalidation_snapshot && row->binding_id != 0 && (bound == NULL || bound->type != AST_IDENTIFIER
-        || ast_identifier_binding_syntax_id(bound) != row->binding_id)) return false;
-    if (!row->owner_release && !row->invalidation_snapshot) {
-        uint32_t issued_source;
-        return semantic_indexed_string_borrow_source_current((ASTNode *)row->use, ctx, &issued_source);
-    }
-    if (row->invalidation_snapshot && (row->owner_release || row->array_receiver
-        || row->binding_id == 0 || row->binding_id == ast_identifier_binding_syntax_id(row->use))) return false;
-    PublishedNode *value = ctx->function_param_publications != NULL
-        ? publication_node(ctx->function_param_publications, (ASTNode *)row->use, false) : NULL;
-    return publication_generation_ready(ctx) && value != NULL && value->value_present
-        && value->id == row->use_id && value->value_shape == AST_IDENTIFIER && !value->meta
-        && value->binding_id == ast_identifier_binding_syntax_id(row->use)
-        && type_is_constructed_named(value->value_type, "Array")
-        && type_equals(type_get_constructed_arg(value->value_type, 0), TYPE_STRING)
-        && (!semantic_param_publication_inputs_ready(ctx) || semantic_param_publication_value(ctx, row->use).ok);
 }
 
 bool
@@ -315,7 +285,7 @@ semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,
             || (s->indexed_string_deferred_read_count != 0 && s->indexed_string_deferred_reads == NULL)) return false;
         for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
             const IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
-            if (!deferred_string_receipt_current(row, ctx)) return false;
+            if (!semantic_array_storage_deferred_read_current(row, ctx)) return false;
             if (!row->owner_release) continue;
             if (source_id == 0 || source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                 || row->source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE) return false;
@@ -323,34 +293,6 @@ semantic_indexed_string_borrow_deferred_release_current(SemanticContext *ctx,
         }
     }
     return current_binding;
-}
-
-void
-semantic_indexed_string_borrow_restore_defer(SemanticContext *ctx)
-{
-    if (ctx == NULL) return;
-    Scope *owner = ctx->indexed_string_defer_scope;
-    if (owner == NULL) return;
-    if (owner->indexed_string_deferred_read_count > owner->indexed_string_deferred_read_capacity
-        || (owner->indexed_string_deferred_read_count != 0 && owner->indexed_string_deferred_reads == NULL)) {
-        (void)deferred_string_read_failure(ctx->indexed_string_defer_body, ctx, "missing cleanup restore storage");
-        return;
-    }
-    for (size_t i = owner->indexed_string_deferred_read_count; i > 0; i--) {
-        const IndexedStringDeferredRead *row = &owner->indexed_string_deferred_reads[i - 1];
-        if (!row->invalidation_snapshot || row->body != ctx->indexed_string_defer_body
-            || row->sequence != ctx->indexed_string_defer_sequence) continue;
-        if (!deferred_string_receipt_current(row, ctx)) {
-            (void)deferred_string_read_failure(ctx->indexed_string_defer_body, ctx, "stale cleanup restore receipt");
-            return;
-        }
-        for (Scope *s = ctx->scope; s != NULL; s = s->kind == SCOPE_FUNCTION ? NULL : s->parent)
-            for (size_t j = 0; j < s->symbol_count; j++) {
-                Symbol *binding = s->symbols[j];
-                if (binding != NULL && binding->decl_syntax_id == row->binding_id)
-                    binding->indexed_string_borrow_invalidated = row->prior_invalidated;
-            }
-    }
 }
 
 bool
@@ -366,9 +308,8 @@ semantic_indexed_string_borrow_owner_transfer_allowed(ASTNode *receiver, Semanti
             return deferred_string_read_failure(receiver, ctx, "missing active read storage");
         for (size_t i = 0; i < s->indexed_string_deferred_read_count; i++) {
             const IndexedStringDeferredRead *row = &s->indexed_string_deferred_reads[i];
-            if (!deferred_string_receipt_current(row, ctx))
+            if (!semantic_array_storage_deferred_read_current(row, ctx))
                 return deferred_string_read_failure(receiver, ctx, "stale deferred read identity");
-            if (row->invalidation_snapshot) continue;
             if (row->source_id == 0) continue;
             if (!row->owner_release && !row->nested && ctx->in_defer_cleanup
                 && row->body == ctx->indexed_string_defer_body)
@@ -388,6 +329,10 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     PublishedNode *row = ctx != NULL && ctx->function_param_publications != NULL
         ? publication_node(ctx->function_param_publications, expression, false) : NULL;
     if (row == NULL || !row->value_present) return false;
+    Symbol *array = identifier_symbol(expression, ctx);
+    row->indexed_array_source_present = symbol_is_string_array(array);
+    row->indexed_array_source_id = row->indexed_array_source_present
+        ? collection_storage_source_id(array) : 0;
     row->indexed_string_source_present = row->string_value;
     row->indexed_string_source_id = row->string_value
         ? borrow_source_for_expression(expression, ctx) : 0;
@@ -395,8 +340,27 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
         bool array_receiver = expression->type == AST_ARRAY_ACCESS;
         Symbol *binding = identifier_symbol(array_receiver ? ast_array_access_array(expression) : expression, ctx);
         if (!record_deferred_string_read(expression, row->indexed_string_source_id,
-                binding, array_receiver, false, false, ctx)) return false;
+                binding, array_receiver, false, ctx)) return false;
     }
+    return true;
+}
+
+bool
+semantic_indexed_string_borrow_storage_source_current(ASTNode *expression,
+    SemanticContext *ctx, uint32_t *source_id)
+{
+    if (expression == NULL || expression->type != AST_IDENTIFIER || source_id == NULL
+        || !publication_generation_ready(ctx)) return false;
+    PublishedNode *row = publication_node(ctx->function_param_publications, expression, false);
+    if (row == NULL || row->id == 0 || row->id != ast_node_stable_id(expression)
+        || !row->value_present || row->meta || row->value_shape != AST_IDENTIFIER
+        || row->binding_id == 0 || row->binding_id != ast_identifier_binding_syntax_id(expression)
+        || !type_is_constructed_named(row->value_type, "Array")
+        || !type_equals(type_get_constructed_arg(row->value_type, 0), TYPE_STRING)
+        || !row->indexed_array_source_present || row->indexed_array_source_id == 0
+        || (semantic_param_publication_inputs_ready(ctx)
+            && !semantic_param_publication_value(ctx, expression).ok)) return false;
+    *source_id = row->indexed_array_source_id;
     return true;
 }
 
@@ -533,14 +497,14 @@ semantic_indexed_string_borrow_record_assignment(
             source_id = collection_storage_source_id(source);
         binding->collection_storage_source_syntax_id =
             borrow_source_join(current_id, source_id);
-        deferred_string_read_assignment(binding, source_id, true, ctx);
+        deferred_string_read_assignment(binding, source_id, true, assignment, value, ctx);
         return;
     }
     if (type_equals(binding->type, TYPE_STRING)) {
         uint32_t incoming = borrow_source_for_expression(value, ctx);
         binding->indexed_string_borrow_source_syntax_id = borrow_source_join(
             binding->indexed_string_borrow_source_syntax_id, incoming);
-        deferred_string_read_assignment(binding, incoming, false, ctx);
+        deferred_string_read_assignment(binding, incoming, false, assignment, value, ctx);
     }
 }
 
@@ -556,7 +520,7 @@ semantic_indexed_string_borrow_invalidate_deep_drop(
     if (source_id == 0)
         return;
     if (ctx->in_defer_cleanup && !record_deferred_string_read(receiver, source_id,
-            owner, false, false, true, ctx)) return;
+            owner, false, true, ctx)) return;
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
             Symbol *candidate = scope->symbols[i];
@@ -566,8 +530,6 @@ semantic_indexed_string_borrow_invalidate_deep_drop(
                         INDEXED_STRING_BORROW_UNKNOWN_SOURCE
                  || candidate->indexed_string_borrow_source_syntax_id ==
                         source_id)) {
-                if (ctx->in_defer_cleanup && !record_deferred_string_read(receiver,
-                        candidate->indexed_string_borrow_source_syntax_id, candidate, false, true, false, ctx)) return;
                 candidate->indexed_string_borrow_invalidated = true;
             }
         }
@@ -580,7 +542,7 @@ semantic_indexed_string_borrow_validate_use(
 {
     if (binding != NULL && type_equals(binding->type, TYPE_STRING)
         && !record_deferred_string_read(use, binding->indexed_string_borrow_source_syntax_id,
-            binding, false, false, false, ctx)) return false;
+            binding, false, false, ctx)) return false;
     if (binding == NULL ||
         binding->indexed_string_borrow_source_syntax_id == 0 ||
         !binding->indexed_string_borrow_invalidated)

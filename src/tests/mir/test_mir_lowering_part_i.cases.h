@@ -496,6 +496,71 @@ test_mir_lowering_part_i(void)
         }
     }
 
+    {
+        const char *labels[] = {
+            "defer SSA use projection rejects a missing first part",
+            "defer SSA use projection rejects a changed part count",
+            "defer SSA use projection rejects a foreign body pointer",
+            "defer SSA use projection rejects nonconsecutive parts"
+        };
+        const char *src =
+            "func DeferParts() -> Void { var current: Int = 1;"
+            " defer { Log(2); Log(current); }; current = 3; Log(7); }";
+        for (size_t fault = 0; fault < 4; fault++) {
+            HIRProgram *hir = NULL;
+            RIRProgram *rir = NULL;
+            MIRProgram *mir = NULL;
+            MIRRoutine *routine = NULL;
+            MIRBasicBlock *owner = NULL;
+            size_t first_index = 0;
+            char *use_error = NULL;
+            bool found = false, rejected = false;
+            bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+            TEST(labels[fault]);
+            if (ok)
+                routine = find_mir_routine_mut(mir, "DeferParts", MIR_SCOPE_FUNCTION);
+            if (routine != NULL) {
+                for (size_t bi = 0; bi < routine->block_count && !found; bi++) {
+                    MIRBasicBlock *block = &routine->blocks[bi];
+                    for (size_t ii = 0; ii + 2 < block->instruction_count; ii++) {
+                        MIRInstruction *first = &block->instructions[ii];
+                        MIRInstruction *second = &block->instructions[ii + 1];
+                        if (first->has_source_location
+                            && first->source_node_type == AST_DEFER_STMT
+                            && first->defer_part_index == 0
+                            && first->defer_part_count == 2
+                            && second->has_source_location
+                            && second->source_node_type == AST_DEFER_STMT
+                            && second->defer_part_index == 1
+                            && second->defer_part_count == 2) {
+                            owner = block;
+                            first_index = ii;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (found) {
+                MIRInstruction *parts = &owner->instructions[first_index];
+                MIRInstruction saved[3] = {parts[0], parts[1], parts[2]};
+                if (fault == 0) parts[0].has_source_location = false;
+                if (fault == 1) parts[0].defer_part_count = 3;
+                if (fault == 2) parts[1].expr0 = NULL;
+                if (fault == 3) { parts[1] = saved[2]; parts[2] = saved[1]; }
+                rejected = !mir_populate_use_edges(routine, &use_error)
+                    && use_error != NULL
+                    && strstr(use_error, "malformed deferred part group") != NULL;
+                for (size_t i = 0; i < 3; i++) parts[i] = saved[i];
+            }
+            EXPECT(ok && routine != NULL && found && rejected);
+            free(use_error);
+            mir_destroy(mir);
+            rir_destroy(rir);
+            hir_destroy(hir);
+        }
+    }
+
     TEST("MIR validator rejects lifecycle guard without receiver fact");
     {
         const char *src =

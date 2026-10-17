@@ -6,6 +6,11 @@
 typedef struct SemanticContext SemanticContext;
 typedef struct ASTNode ASTNode;
 typedef struct Symbol Symbol;
+typedef struct IndexedStringDeferredRead IndexedStringDeferredRead;
+bool semantic_array_storage_deferred_read_current(
+    const IndexedStringDeferredRead *row, SemanticContext *ctx);
+bool semantic_array_storage_deferred_read_assignment(IndexedStringDeferredRead *row,
+    ASTNode *assignment, ASTNode *value, uint32_t source_id, SemanticContext *ctx);
 typedef struct PgyCollectionOwnershipFact PgyCollectionOwnershipFact;
 
 /* Recursively plain value elements need no destructor or borrowed lifetime. */

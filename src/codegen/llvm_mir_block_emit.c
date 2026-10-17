@@ -67,6 +67,16 @@ llvm_mir_return_callable_type(LLVMGenCtx *ctx, const MIRRoutine *routine)
     return llvm_stmt_current_return_callable_type(ctx);
 }
 
+static bool
+llvm_mir_emit_exit_defers(LLVMGenCtx *ctx, const MIRBasicBlock *block)
+{
+    const MIRBasicBlock *saved = ctx->current_defer_exit_block;
+    ctx->current_defer_exit_block = block;
+    llvm_emit_defers_from(ctx, 0);
+    ctx->current_defer_exit_block = saved;
+    return !ctx->has_error;
+}
+
 void
 llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                const MIRRoutine *routine,
@@ -445,7 +455,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     llvm_mir_return_callable_type(ctx, routine);
                 LLVMValueRef val;
                 if (function_ret_type == ctx->type_void) {
-                    llvm_emit_defers_from(ctx, 0);
+                    if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                        return;
                     llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                     llvm_set_error_at_with_hints(ctx, return_expr,
                         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -466,7 +477,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         "LLVM MIR return cannot consume a Void expression value")) {
                     ctx->expected_callable_type = saved_expected_callable_type;
                     ctx->expected_type_name = saved_expected_type_name;
-                    llvm_emit_defers_from(ctx, 0);
+                    if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                        return;
                     llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                     return;
                 }
@@ -483,7 +495,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     val = llvm_mir_coerce_value_for_store(
                         ctx, val, function_ret_type);
                 }
-                llvm_emit_defers_from(ctx, 0);
+                if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                    return;
                 llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                 if (val != NULL) {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
@@ -511,7 +524,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     return;
                 }
             } else {
-                llvm_emit_defers_from(ctx, 0);
+                if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                    return;
                 llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
@@ -628,7 +642,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 LLVMGetInsertBlock(ctx->builder);
             LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
         } else {
-            llvm_emit_defers_from(ctx, 0);
+            if (!llvm_mir_emit_exit_defers(ctx, mir_block))
+                return;
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;

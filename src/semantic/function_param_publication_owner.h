@@ -39,6 +39,13 @@ typedef struct {
     const ASTNode *call_target;
     uint32_t call_target_id;
     size_t argument_count;
+    size_t formal_ordinal;
+    uint32_t formal_id, site_binding_id, target_binding_id;
+    ASTNodeType site_shape, target_shape;
+    char *target_name;
+    const ASTNode *call_receiver;
+    uint32_t call_receiver_id;
+    const Type *call_receiver_type;
 } PendingRefCall;
 typedef struct {
     const ASTNode *call, *caller;
@@ -186,6 +193,8 @@ typedef struct {
      * point; zero is independent, UINT32_MAX is explicitly unproved. */
     bool indexed_string_source_present;
     uint32_t indexed_string_source_id;
+    bool indexed_array_source_present;
+    uint32_t indexed_array_source_id;
     const Type *value_type;
     const ASTNode *unmodelled_constructor, *call_receiver;
     uint32_t unmodelled_constructor_id, call_receiver_id;

@@ -209,6 +209,11 @@ bool mir_block_binding_exit_ssa_name(const MIRRoutine *routine,
                                       const MIRBasicBlock *block,
                                       uint32_t binding_syntax_id,
                                       char *out, size_t out_size);
+/* -1: stale CFG, 0: conditional registration, 1: every exit path registered,
+ * 2: registration cannot run before this exit. */
+int mir_defer_registration_exit_relation(const MIRRoutine *routine,
+                                        const MIRInstruction *registration,
+                                        const MIRBasicBlock *exit_block);
 MIRParamResourceKind mir_routine_param_resource_kind(
     const MIRRoutine *routine,
     size_t index);

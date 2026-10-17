@@ -20,6 +20,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 
 root = pathlib.Path(sys.argv[1])
 pgy = sys.argv[2]
@@ -65,6 +66,61 @@ selected_call_targets = {
     "source_callable_enum_method_alias_valid": ("Route_Value", "method", "Route", "declared_callable"),
     "source_callable_enum_payload_method_alias_valid": ("Packet_Value", "method", "Packet", "declared_callable"),
 }
+borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
+released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
+builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch")
+# Exact emitted diagnostics for the reached release/retention cases. In
+# particular, a stale read can also trigger a checked builtin-arity cascade;
+# it must not be mistaken for a fresh BORROW-only refusal or a MIR artifact.
+release_lifetime_refusals = {
+    "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
+    "array_local_owned_push_use_after_drop_invalid": [
+        (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
+    "array_result_owned_double_drop_invalid": [(*released_refusal, 10, 27)],
+    "array_result_owned_use_after_drop_invalid": [
+        (*released_refusal, 10, 21), (*builtin_refusal, 10, 21)],
+    "array_result_owned_defer_drop_then_direct_drop_invalid": [(*borrow_refusal, 10, 27)],
+    "array_result_owned_defer_drop_then_own_invalid": [(*borrow_refusal, 14, 17)],
+    "array_result_owned_defer_late_array_alias_invalid": [(*borrow_refusal, 12, 16)],
+    "array_result_owned_defer_late_scalar_retention_invalid": [(*borrow_refusal, 17, 9)],
+    "array_result_owned_defer_named_array_retainer_invalid": [(*borrow_refusal, 19, 9)],
+    "array_result_owned_element_array_assign_invalid": [(*borrow_refusal, 10, 28)],
+    "array_result_owned_element_defer_after_drop_invalid": [(*borrow_refusal, 10, 27)],
+    "array_result_owned_element_defer_lifo_drop_then_read_invalid": [(*borrow_refusal, 10, 35)],
+    "array_result_owned_element_defer_mutable_reassign_invalid": [(*borrow_refusal, 12, 27)],
+    "array_result_owned_element_device_write_invalid": [(*borrow_refusal, 10, 29)],
+    "array_result_owned_element_host_method_retainer_invalid": [
+        (*borrow_refusal, 20, 12), (*borrow_refusal, 21, 27)],
+    "array_result_owned_element_inner_defer_then_drop_invalid": [(*borrow_refusal, 12, 27)],
+    "array_result_owned_element_local_return_invalid": [(*borrow_refusal, 9, 16)],
+    "array_result_owned_element_secure_slot_initializer_invalid": [(*borrow_refusal, 9, 42)],
+    "array_result_owned_element_secure_slot_write_invalid": [(*borrow_refusal, 10, 23)],
+    "array_result_owned_element_slot_initializer_invalid": [(*borrow_refusal, 9, 36)],
+    "array_result_owned_element_spawn_invalid": [(*borrow_refusal, 13, 52)],
+    "array_result_owned_element_write_view_invalid": [(*borrow_refusal, 11, 25)],
+    "array_result_owned_defer_alias_retainer_invalid": [(*borrow_refusal, 17, 5)],
+    "array_result_owned_defer_direct_retainer_invalid": [(*borrow_refusal, 16, 5)],
+    "array_result_owned_defer_host_own_invalid": [(*borrow_refusal, 19, 28)],
+    "array_result_owned_defer_return_invalid": [(*borrow_refusal, 10, 12)],
+    "array_result_owned_defer_direct_opaque_invalid": [(*borrow_refusal, 11, 35)],
+    "array_result_owned_defer_constructor_return_invalid": [(*borrow_refusal, 11, 35)],
+    "array_release_host_own_reuse_invalid": [
+        (*released_refusal, 19, 21), (*builtin_refusal, 19, 21)],
+    "physical_return_opaque_invalid": [
+        (*borrow_refusal, 4, 6), (*borrow_refusal, 5, 14),
+        (*borrow_refusal, 10, 20)],
+    "selector_method_retaining_receiver_invalid": [(*borrow_refusal, 19, 15)],
+    # The String-field getter is not receiver-independent. The first error is
+    # the summary's unproved backing relation; eight concrete borrow paths
+    # must also refuse it. Do not treat this as a physical-storage grant.
+    "receiver_result_string_field_escape_invalid": [
+        (None, None, 9, 6),
+        (*borrow_refusal, 9, 6), (*borrow_refusal, 9, 6),
+        (*borrow_refusal, 9, 6),
+        (*borrow_refusal, 13, 6), (*borrow_refusal, 13, 6),
+        (*borrow_refusal, 13, 6),
+        (*borrow_refusal, 14, 30), (*borrow_refusal, 20, 30)],
+}
 paired = (
     ("unit_enum_qualified_result_valid", True),
     ("secure_implicit_token_safe", True),
@@ -95,6 +151,9 @@ paired = (
     ("array_release_forward_own_unseeded_invalid", False),
     ("array_release_owned_strings_move_invalid", False),
     ("array_result_owned_element_inner_defer_then_drop_invalid", False),
+    ("defer_multipart_mutable_exit_valid", True),
+    ("receiver_result_readonly_scalar_valid", True),
+    ("receiver_result_string_field_escape_invalid", False),
     ("array_release_named_reader_own_unseeded_valid", True),
     ("array_release_owned_strings_move_valid", True),
     ("array_release_recursive_inout_owned_strings_valid", True),
@@ -178,6 +237,39 @@ paired = (
     ("array_result_owned_element_slot_write_invalid", False),
     ("array_result_owned_element_lambda_capture_invalid", False),
     ("array_result_owned_element_event_retaining_handler_invalid", False),
+    # A released Array or its String payload cannot be reused, retained in a
+    # deferred body, or stored shallowly before the final deep-drop.
+    ("array_local_owned_push_double_drop_invalid", False),
+    ("array_local_owned_push_use_after_drop_invalid", False),
+    ("array_result_owned_double_drop_invalid", False),
+    ("array_result_owned_use_after_drop_invalid", False),
+    ("array_result_owned_defer_drop_then_direct_drop_invalid", False),
+    ("array_result_owned_defer_drop_then_own_invalid", False),
+    ("array_result_owned_defer_late_array_alias_invalid", False),
+    ("array_result_owned_defer_late_scalar_retention_invalid", False),
+    ("array_result_owned_defer_named_array_retainer_invalid", False),
+    ("array_result_owned_element_array_assign_invalid", False),
+    ("array_result_owned_element_defer_after_drop_invalid", False),
+    ("array_result_owned_element_defer_lifo_drop_then_read_invalid", False),
+    ("array_result_owned_element_defer_mutable_reassign_invalid", False),
+    ("array_result_owned_element_device_write_invalid", False),
+    ("array_result_owned_element_host_method_retainer_invalid", False),
+    ("array_result_owned_element_local_return_invalid", False),
+    ("array_result_owned_element_secure_slot_initializer_invalid", False),
+    ("array_result_owned_element_secure_slot_write_invalid", False),
+    ("array_result_owned_element_slot_initializer_invalid", False),
+    ("array_result_owned_element_spawn_invalid", False),
+    ("array_result_owned_element_write_view_invalid", False),
+    # The two return/own call paths were unsafe admissions in native 0b39.
+    # Keep these analyze-only until the existing last consumers reject them.
+    ("array_result_owned_defer_alias_retainer_invalid", False),
+    ("array_result_owned_defer_direct_retainer_invalid", False),
+    ("array_result_owned_defer_direct_opaque_invalid", False),
+    ("array_result_owned_defer_constructor_return_invalid", False),
+    ("array_result_owned_defer_return_invalid", False),
+    ("array_result_owned_defer_host_own_invalid", False),
+    ("array_release_host_own_reuse_invalid", False),
+    ("selector_method_retaining_receiver_invalid", False),
     ("array_result_owned_element_inout_concat_copy_valid", True),
     ("array_result_owned_element_tuple_concat_copy_valid", True),
     ("array_result_owned_element_tuple_return_concat_copy_valid", True),
@@ -195,6 +287,23 @@ paired = (
     ("array_result_owned_element_set_add_copy_valid", True),
     ("array_result_owned_element_map_key_copy_valid", True),
     ("array_result_owned_element_map_value_copy_valid", True),
+    # These are independent copies/readers, not String ownership grants from
+    # the source element. Their C/LLVM outputs are checked below.
+    ("array_result_owned_element_array_assign_concat_copy_valid", True),
+    ("array_result_owned_element_defer_concat_copy_valid", True),
+    ("array_result_owned_element_defer_lifo_read_then_drop_valid", True),
+    ("array_result_owned_element_defer_mutable_concat_copy_valid", True),
+    ("array_result_owned_element_defer_same_body_read_then_drop_valid", True),
+    ("array_result_owned_element_defer_without_drop_valid", True),
+    ("array_result_owned_element_device_write_concat_copy_valid", True),
+    ("array_result_owned_element_host_method_reader_valid", True),
+    ("array_result_owned_element_local_return_concat_copy_valid", True),
+    ("array_result_owned_element_secure_slot_initializer_concat_copy_valid", True),
+    ("array_result_owned_element_slot_initializer_concat_copy_valid", True),
+    ("array_result_owned_element_string_plus_copy_probe", True),
+    ("array_result_owned_element_substring_copy_valid", True),
+    ("array_result_owned_defer_named_reader_valid", True),
+    ("array_result_owned_defer_named_array_reader_valid", True),
     # Semantic MIR admission only: native C still reports "Unknown destructuring
     # initializer" for this fresh tuple. It is not a C/LLVM runtime control.
     ("array_literal_tuple_destructure_own_valid", True),
@@ -438,6 +547,19 @@ for name, valid in paired:
         except json.JSONDecodeError:
             raise SystemExit(f"physical-return negative {name} lost structured diagnostics: {output}")
         errors = [row for row in diagnostics if isinstance(row, dict) and row.get("severity") == "error"] if isinstance(diagnostics, list) else []
+        if any(not isinstance(row.get("location"), dict) for row in errors):
+            raise SystemExit(f"physical-return negative {name} emitted an error without a source location")
+        if name in release_lifetime_refusals:
+            actual = Counter((row.get("code"), row.get("cause_ir"),
+                              row.get("location", {}).get("line"),
+                              row.get("location", {}).get("column")) for row in errors)
+            if (checked.returncode != 1 or checked.stdout or
+                    '"pgy.mir.v1"' in output or
+                    any(row.get("stage") != "semantic" for row in errors) or
+                    actual != Counter(release_lifetime_refusals[name])):
+                sys.stderr.buffer.write(checked.stderr)
+                raise SystemExit(f"release-lifetime negative {name} lost its exact refusal")
+            continue
         direct_own_named_sites = {
             "array_result_borrowed_direct_own_deepdrop_invalid": (13, 13),
             "array_result_owned_direct_own_named_required_invalid": (15, 13),
@@ -458,32 +580,32 @@ for name, valid in paired:
         retained_sites = {
             # These sites are the outer consumer of Make's retained result,
             # not evidence of a refusal directly on the MapSet statement.
-            "mapnew_ref_string_value_copy_unready": (14, 15),
-            "mapnew_ref_box_value_storage_invalid": (18, 15),
-            "direct_ref_string_local_retain_invalid": (8, 20),
-            "direct_ref_string_slot_invalid": (7, 30),
-            "direct_ref_string_channel_invalid": (9, 25),
-            "direct_ref_string_retaining_concat_invalid": (4, 16),
-            "direct_ref_string_opaque_literal_invalid": (3, 5),
-            "direct_ref_string_opaque_concat_invalid": (3, 14),
-            "direct_ref_string_alias_literal_invalid": (4, 5),
-            "direct_ref_string_alias_concat_invalid": (4, 14),
-            "direct_ref_string_alias_named_invalid": (5, 14),
-            "recursive_record_wrapper_control_invalid": (11, 6),
-            "nested_call_retaining_input_invalid": (8, 24),
+            "mapnew_ref_string_value_copy_unready": [(14, 15), (20, 17)],
+            "mapnew_ref_box_value_storage_invalid": [(18, 15), (24, 17)],
+            "direct_ref_string_local_retain_invalid": [(8, 20)],
+            "direct_ref_string_slot_invalid": [(7, 30)],
+            "direct_ref_string_channel_invalid": [(9, 25)],
+            "direct_ref_string_retaining_concat_invalid": [(4, 16)],
+            "direct_ref_string_opaque_literal_invalid": [(3, 5)],
+            "direct_ref_string_opaque_concat_invalid": [(3, 14)],
+            "direct_ref_string_alias_literal_invalid": [(4, 5)],
+            "direct_ref_string_alias_concat_invalid": [(4, 14)],
+            "direct_ref_string_alias_named_invalid": [(5, 14)],
+            "recursive_record_wrapper_control_invalid": [(11, 6), (17, 23)],
+            "nested_call_retaining_input_invalid": [(7, 6), (8, 24), (13, 17)],
             # The returned formal is refused in the callee before any unsafe
             # caller artifact is emitted or executed.
-            "result_frame_formal_return_invalid": (7, 6),
-            "result_frame_formal_some_invalid": (7, 6),
-            "result_frame_formal_nominal_invalid": (8, 6),
-            "result_frame_formal_array_push_invalid": (9, 6),
-            "physical_call_alias_nested_retain_invalid": (16, 52),
-            "physical_call_alias_scalar_opaque_invalid": (23, 28),
-            "physical_call_alias_descriptor_retain_invalid": (11, 27),
+            "result_frame_formal_return_invalid": [(7, 6), (13, 27)],
+            "result_frame_formal_some_invalid": [(7, 6), (8, 12), (13, 23)],
+            "result_frame_formal_nominal_invalid": [(8, 6), (9, 12), (14, 23)],
+            "result_frame_formal_array_push_invalid": [(9, 6), (10, 12), (15, 23)],
+            "physical_call_alias_nested_retain_invalid": [(16, 52), (22, 28)],
+            "physical_call_alias_scalar_opaque_invalid": [(23, 28)],
+            "physical_call_alias_descriptor_retain_invalid": [(11, 27), (17, 28)],
         }
-        if name in retained_sites and not any(
-                (row.get("location", {}).get("line"), row.get("location", {}).get("column"))
-                == retained_sites[name] for row in errors):
+        if name in retained_sites and (checked.stdout or
+                Counter((row.get("location", {}).get("line"), row.get("location", {}).get("column"))
+                        for row in errors) != Counter(retained_sites[name])):
             sys.stderr.buffer.write(checked.stderr)
             raise SystemExit(f"ref-retaining negative {name} lost its owned refusal site")
         array_path_state_sites = {
@@ -494,9 +616,6 @@ for name, valid in paired:
             "array_release_forward_foreign_invalid": (10, 15),
             "array_release_owned_strings_foreign_invalid": (8, 27),
             "array_release_forward_own_unseeded_invalid": (17, 17),
-            "array_release_inout_foreign_owned_strings_invalid": (15, 26),
-            "array_release_prefix_foreign_inout_invalid": (20, 14),
-            "array_release_factory_retaining_reader_invalid": (27, 27),
             "array_release_alias_before_pending_own_invalid": (21, 17),
             "array_release_alias_after_pending_own_invalid": (21, 17),
             "array_alias_tuple_destructure_own_invalid": (10, 17),
@@ -524,12 +643,8 @@ for name, valid in paired:
             "array_result_owned_shallow_push_deepdrop_invalid": (12, 27),
             "array_result_owned_shallow_set_deepdrop_invalid": (12, 27),
             "array_result_owned_retained_element_invalid": (7, 14),
-            "array_result_owned_retain_before_deepdrop_invalid": (19, 27),
             "array_result_local_owned_element_external_keep_invalid": (7, 14),
             "array_result_local_owned_element_constructor_invalid": (7, 31),
-            "array_result_owned_named_inout_shallow_push_invalid": (17, 27),
-            "array_result_owned_named_inout_shallow_set_invalid": (17, 27),
-            "array_result_owned_named_inout_index_assign_invalid": (17, 27),
             "array_result_local_owned_element_container_retention_invalid": (6, 27),
             "selector_member_effectful_receiver_invalid": (21, 15),
             "selector_array_effectful_index_invalid": (16, 15),
@@ -543,18 +658,25 @@ for name, valid in paired:
             raise SystemExit(f"array path-state negative {name} lost its exact refusal")
         array_release_multi_sites = {
             "array_release_owned_strings_move_invalid": {(13, 5), (14, 17)},
-            "array_release_loop_second_iteration_escape_invalid": {(20, 30), (24, 27)},
-            "array_release_inout_retaining_reader_invalid": {(12, 26), (22, 27)},
+            "array_release_inout_foreign_owned_strings_invalid": {(14, 22), (15, 26)},
+            "array_release_prefix_foreign_inout_invalid": {(19, 5), (20, 9)},
+            "array_release_factory_retaining_reader_invalid": {(25, 24), (27, 27)},
+            "array_release_loop_second_iteration_escape_invalid": {(20, 30)},
+            "array_release_inout_retaining_reader_invalid": {(12, 26), (21, 9), (22, 27)},
+            "array_result_owned_retain_before_deepdrop_invalid": {(18, 24), (19, 27)},
+            "array_result_owned_named_inout_shallow_push_invalid": {(16, 5), (17, 27)},
+            "array_result_owned_named_inout_shallow_set_invalid": {(16, 5), (17, 27)},
+            "array_result_owned_named_inout_index_assign_invalid": {(16, 5), (17, 27)},
             "array_field_detach_duplicate_alias_own_invalid": {(13, 20), (13, 35)},
             "array_result_borrowed_element_move_deepdrop_invalid": {(9, 32), (10, 27)},
         }
         if name in array_release_multi_sites and (
-                checked.stdout or len(errors) != 2 or
+                checked.stdout or len(errors) != len(array_release_multi_sites[name]) or
                 any(row.get("stage") != "semantic" for row in errors) or
                 {(row.get("location", {}).get("line"), row.get("location", {}).get("column"))
                  for row in errors} != array_release_multi_sites[name]):
             sys.stderr.buffer.write(checked.stderr)
-            raise SystemExit(f"array release negative {name} lost its two owned refusal sites")
+            raise SystemExit(f"array release negative {name} lost its exact owned refusal sites")
         array_result_refusal_sites = {
             "array_result_nonown_default_field_own_invalid": [(3, 6)],
             "array_result_nonown_default_field_growth_invalid": [(3, 6)],
@@ -567,7 +689,7 @@ for name, valid in paired:
             "array_result_local_owned_element_index_assign_invalid": [(6, 27)],
             "array_result_local_owned_element_field_retention_invalid": [(8, 21)],
             "array_result_owned_element_inout_escape_invalid": [(10, 18), (8, 6), (17, 21)],
-            "array_result_owned_element_direct_return_invalid": [(18, 9), (8, 6), (16, 40)],
+            "array_result_owned_element_direct_return_invalid": [(10, 16), (8, 6), (16, 40)],
             "array_result_owned_element_tuple_direct_invalid": [(9, 33)],
             "array_result_owned_element_tuple_binding_invalid": [(9, 21)],
             "array_result_owned_element_tuple_return_invalid": [(8, 17), (7, 6), (13, 33)],
@@ -865,6 +987,23 @@ for name, expected in (
     ("array_result_owned_element_set_add_copy_valid", "true\n"),
     ("array_result_owned_element_map_key_copy_valid", "7\n"),
     ("array_result_owned_element_map_value_copy_valid", "owned value\n"),
+    ("array_result_owned_element_array_assign_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_defer_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_defer_lifo_read_then_drop_valid", "owned value\n"),
+    ("array_result_owned_element_defer_mutable_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_defer_same_body_read_then_drop_valid", "owned value\n"),
+    ("array_result_owned_element_defer_without_drop_valid", "owned value\n"),
+    ("defer_multipart_mutable_exit_valid", "2\n3\n7\n"),
+    ("receiver_result_readonly_scalar_valid", "3\n"),
+    ("array_result_owned_element_device_write_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_host_method_reader_valid", "11\n"),
+    ("array_result_owned_element_local_return_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_secure_slot_initializer_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_slot_initializer_concat_copy_valid", "owned value\n"),
+    ("array_result_owned_element_string_plus_copy_probe", "owned value\n"),
+    ("array_result_owned_element_substring_copy_valid", "owned\n"),
+    ("array_result_owned_defer_named_reader_valid", "11\n"),
+    ("array_result_owned_defer_named_array_reader_valid", "1\n"),
     ("early_return_array_drop_valid", "0\n1\n"),
     ("early_return_array_drop_mixed_inputs_valid", "6\n6\n"),
     ("early_return_private_array_push_nested_valid", "4\n"),
