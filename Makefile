@@ -570,10 +570,13 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_result_inputs.c \
                    $(SEMANTIC_DIR)/indexed_string_option_payload.c \
                    $(SEMANTIC_DIR)/indexed_string_option_roles.c \
+                   $(SEMANTIC_DIR)/indexed_string_permanent_element.c \
+                   $(SEMANTIC_DIR)/indexed_string_permanent_roles.c \
                    $(SEMANTIC_DIR)/indexed_string_definition_recipe.c \
                    $(SEMANTIC_DIR)/indexed_string_definition_flow.c \
                    $(SEMANTIC_DIR)/indexed_string_nonowner_risk.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact_snapshot.c \
+                   $(SEMANTIC_DIR)/collection_ownership_effect_capture.c \
                    $(SEMANTIC_DIR)/collection_ownership_source_snapshot.c \
                    $(SEMANTIC_DIR)/string_window_extent.c \
                    $(SEMANTIC_DIR)/string_window_extent_relations.c \
@@ -581,6 +584,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/array_storage_deferred_preservation_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_result_owner.c \
                    $(SEMANTIC_DIR)/array_storage_element_lifetime_owner.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \

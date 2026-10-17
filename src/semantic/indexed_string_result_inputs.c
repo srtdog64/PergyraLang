@@ -2,6 +2,7 @@
 #include "function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
 #include "indexed_string_option_payload.h"
+#include "indexed_string_permanent_element.h"
 #include "type_checker_internal.h"
 #include <stdlib.h>
 #include <string.h>
@@ -352,13 +353,38 @@ bool indexed_string_result_capture_call(SemanticContext *ctx, const ASTNode *cal
     return result_input_capture(ctx, NULL, NULL, call, &capture);
 }
 
+bool indexed_string_result_capture_permanent(SemanticContext *ctx,
+    const IndexedStringPermanentElementRecipe *recipe, IndexedStringResultInputs *inputs, bool prepare)
+{
+    if (!semantic_indexed_string_permanent_current(ctx, recipe)) return false;
+    size_t count = 0;
+    const IndexedStringFieldDependency *dependencies = semantic_indexed_string_permanent_dependencies(recipe, &count);
+    if (dependencies == NULL || count == 0) return false;
+    for (size_t d = 0; d < count; d++) if (!indexed_string_result_capture_dependency(ctx,
+        (ASTNode *)dependencies[d].decl, dependencies[d].claims, inputs, prepare)) return false;
+    for (size_t p = 0; p < inputs->permanent_count; p++) if (inputs->permanents[p] == recipe) return true;
+    if (!prepare || inputs->permanent_count >= SIZE_MAX / sizeof(*inputs->permanents)) return false;
+    const IndexedStringPermanentElementRecipe **grown = realloc(inputs->permanents,
+        (inputs->permanent_count + 1) * sizeof(*grown));
+    if (grown == NULL) return false;
+    inputs->permanents = grown; grown[inputs->permanent_count++] = recipe;
+    inputs->permanent_capacity = inputs->permanent_count;
+    return true;
+}
+
 bool semantic_indexed_string_result_inputs_syntax_current(const IndexedStringResultInputs *inputs)
 {
     if (inputs == NULL || !inputs->prepared || inputs->call_count != inputs->sealed_calls ||
         inputs->dependency_count != inputs->sealed_dependencies || inputs->call_count > inputs->call_capacity ||
         inputs->dependency_count > inputs->dependency_capacity ||
         (inputs->call_count != 0 && inputs->calls == NULL) ||
-        (inputs->dependency_count != 0 && inputs->dependencies == NULL)) return false;
+        (inputs->dependency_count != 0 && inputs->dependencies == NULL) ||
+        inputs->permanent_count != inputs->sealed_permanents || inputs->permanent_count > inputs->permanent_capacity ||
+        (inputs->permanent_count != 0 && inputs->permanents == NULL)) return false;
+    for (size_t p = 0; p < inputs->permanent_count; p++) {
+        if (!semantic_indexed_string_permanent_syntax_current(inputs->permanents[p])) return false;
+        for (size_t q = 0; q < p; q++) if (inputs->permanents[q] == inputs->permanents[p]) return false;
+    }
     for (size_t c = 0; c < inputs->call_count; c++) {
         const IndexedStringFieldCall *row = &inputs->calls[c];
         if (!indexed_string_field_call_syntax(row) || ast_call_generic_arg_count(row->call) != 0 ||
@@ -387,6 +413,7 @@ void semantic_indexed_string_result_inputs_destroy(IndexedStringResultInputs *in
     for (size_t c = 0; c < inputs->call_count; c++) indexed_string_field_call_destroy(&inputs->calls[c]);
     free(inputs->calls);
     free(inputs->dependencies);
+    free(inputs->permanents);
     indexed_string_option_destroy(inputs->option);
     *inputs = (IndexedStringResultInputs){0};
 }
@@ -401,6 +428,27 @@ const IndexedStringFieldDependency *semantic_indexed_string_result_inputs_depend
     return inputs->dependencies;
 }
 
+bool semantic_indexed_string_result_inputs_permanent_count(const IndexedStringResultInputs *inputs, size_t *count)
+{
+    if (count == NULL) return false;
+    *count = 0;
+    if (inputs == NULL) return true;
+    if (!inputs->prepared) return inputs->calls == NULL && inputs->dependencies == NULL && inputs->option == NULL &&
+        inputs->call_count == 0 && inputs->call_capacity == 0 && inputs->sealed_calls == 0 &&
+        inputs->dependency_count == 0 && inputs->dependency_capacity == 0 && inputs->sealed_dependencies == 0 &&
+        inputs->permanent_count == 0 && inputs->permanent_capacity == 0 && inputs->sealed_permanents == 0 && inputs->permanents == NULL;
+    if (!semantic_indexed_string_result_inputs_syntax_current(inputs)) return false;
+    *count = inputs->permanent_count;
+    return true;
+}
+
+const IndexedStringPermanentElementRecipe *semantic_indexed_string_result_inputs_permanent_at(
+    const IndexedStringResultInputs *inputs, size_t ordinal)
+{
+    return semantic_indexed_string_result_inputs_syntax_current(inputs) && ordinal < inputs->permanent_count ?
+        inputs->permanents[ordinal] : NULL;
+}
+
 bool semantic_indexed_string_result_source_prepare(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source, IndexedStringResultInputs *inputs)
 {
@@ -408,7 +456,9 @@ bool semantic_indexed_string_result_source_prepare(SemanticContext *ctx,
     if (inputs->prepared || inputs->call_count != 0 || inputs->dependency_count != 0 ||
         inputs->calls != NULL || inputs->dependencies != NULL || inputs->call_capacity != 0 ||
         inputs->dependency_capacity != 0 || inputs->sealed_calls != 0 || inputs->sealed_dependencies != 0 ||
-        inputs->option != NULL || ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
+        inputs->option != NULL || inputs->permanents != NULL || inputs->permanent_count != 0 ||
+        inputs->permanent_capacity != 0 || inputs->sealed_permanents != 0 ||
+        ctx == NULL || ctx->has_error || (ctx->function_param_flow_summaries != NULL &&
         ctx->function_param_flow_summaries->validating_current)) return false;
     if (function_param_flow_store_get(&(SlotFunctionLookup){ctx, ctx->program_root}) == NULL ||
         !(semantic_indexed_string_option_unwrap_candidate(ctx, call) ?
@@ -416,6 +466,7 @@ bool semantic_indexed_string_result_source_prepare(SemanticContext *ctx,
           indexed_string_result_derive(ctx, call, source, true, false, inputs))) return false;
     inputs->sealed_calls = inputs->call_count;
     inputs->sealed_dependencies = inputs->dependency_count;
+    inputs->sealed_permanents = inputs->permanent_count;
     inputs->prepared = true;
     return semantic_indexed_string_result_inputs_syntax_current(inputs);
 }

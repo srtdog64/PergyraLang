@@ -3,6 +3,7 @@
 #include "type_checker.h"
 /* Private snapshots owned by publication.c. Escape diagnostics borrow only
  * its checked admitted view; other consumers use the checked queries. */
+typedef struct IndexedStringPermanentElementRecipe IndexedStringPermanentElementRecipe;
 typedef struct {
     uint32_t id;
     ParamMode mode;
@@ -237,6 +238,7 @@ typedef struct {
     IndexedStringFieldRecipe *indexed_string_field;
     IndexedStringNonownerRisk *indexed_string_nonowner;
     IndexedStringDefinitionRecipe *indexed_string_definition;
+    IndexedStringPermanentElementRecipe *indexed_string_permanent;
     /* Borrowed exact-use expectation; only the declaration row owns payload. */
     const IndexedStringDefinitionRecipe *indexed_string_definition_use;
     bool indexed_array_source_present;
@@ -278,6 +280,7 @@ struct FunctionParamPublicationStore {
     size_t indexed_string_field_count;
     size_t indexed_string_nonowner_count;
     size_t indexed_string_definition_count;
+    size_t indexed_string_permanent_count;
 };
 typedef struct {
     const ASTNode *program;

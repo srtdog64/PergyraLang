@@ -21,6 +21,7 @@
 
 typedef struct SemanticContext SemanticContext;
 typedef struct ASTNode ASTNode;
+typedef struct FunctionParamFlowIndexClaims FunctionParamFlowIndexClaims;
 
 typedef struct ArrayStorageResultBirthReceipt {
     ASTNode *caller, *call;
@@ -65,6 +66,14 @@ typedef struct ArrayStorageOwnedReturnReceipt {
     ArrayStorageReturnSource source;
 } ArrayStorageOwnedReturnReceipt;
 
+/* The original RETURN row is borrowed only for this synchronous callback.
+ * The observer must copy stable identities before it returns. */
+typedef bool (*ArrayStorageLiteralResultObserver)(SemanticContext *ctx,
+    ASTNode *decl, const FunctionParamFlowIndexClaims *claims,
+    const ArrayStorageOwnedReturnReceipt *event,
+    const ASTNode *literal_declaration_or_null, const ASTNode *literal,
+    void *user);
+
 typedef enum {
     ARRAY_STORAGE_RELEASE_DROP_STORAGE,
     ARRAY_STORAGE_RELEASE_DROP_OWNED_STRINGS,
@@ -101,6 +110,12 @@ bool semantic_array_storage_owned_string_result_current(SemanticContext *ctx,
     const ASTNode *call);
 bool semantic_array_storage_function_result_owned(SemanticContext *ctx,
     ASTNode *decl, const Type *result);
+bool semantic_array_storage_literal_result_prepare(SemanticContext *ctx,
+    const ASTNode *result_call, ArrayStorageLiteralResultObserver observer,
+    void *user);
+bool semantic_array_storage_literal_result_current(SemanticContext *ctx,
+    const ASTNode *result_call, ArrayStorageLiteralResultObserver observer,
+    void *user);
 
 /* Records a storage-dependent use after prior handoffs;
  * a missing identity or record fails closed at the caller. */

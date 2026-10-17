@@ -28,6 +28,7 @@ typedef struct {
     size_t nonowner_risk_count;
     size_t string_definition_count;
     size_t string_write_count;
+    size_t permanent_element_count;
 } PgyCollectionEffectView;
 /* Moves existing caller claims after the last semantic consumer. No further
  * semantic queries may run after a successful take. This grants no permission. */

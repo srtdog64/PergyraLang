@@ -1,0 +1,30 @@
+func LiteralCodes() -> Array<String> {
+    let codes: Array<String> = ["alpha", "beta"];
+    return codes;
+}
+
+func FindCode(message: String) -> Option<String> {
+    let codes: Array<String> = LiteralCodes();
+    var i: Int = 0;
+    while i < ArrayLength(codes) {
+        if StringContains(message, codes[i]) {
+            return Some(codes[i]);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("he", "ap")];
+    let found: Option<String> = FindCode("alpha");
+    let rows: Array<String> = [];
+    if IsSome(found) {
+        let text: String = UnwrapOption(found);
+        ArrayPush(rows, text);
+        Log(rows[0]);
+    }
+    let absent: Option<String> = FindCode("missing");
+    Log(IsSome(absent));
+    Log(risk[0]);
+}

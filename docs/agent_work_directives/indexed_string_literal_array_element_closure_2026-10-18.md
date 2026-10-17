@@ -1,6 +1,6 @@
 # Indexed String: permanent literal elements across an Array result
 
-Status: IMPLEMENTATION PLAN, not admission/CI closure.
+Status: APPROVED for bounded integration/commit; canonical and CI remain RED.
 Base: main `fb54aed078a62f586bf1ac6bedae13e32fdc139f`.
 Navigation only; existing typed array-return, collection and String-source
 owners remain semantic authority. No new word, cleanup policy or SoT family.
@@ -129,3 +129,47 @@ Static60s, focused5min, integration shard30min. First narrow source proof,
 then strict C/LLVM, sanitizers and full unchanged fixed canonical. Actual
 bootstrap/gen2==gen3, installed-driver parity and exact-published-SHA CI still
 remain the endpoint. The current18k diagnostic cascade is not a defect count.
+
+## Integration receipts (2026-10-18 KST)
+
+Native47ecd2f7f733aae04fb3ca98f602074d68b16dcc4bd47ebad05ea0c232081f4e
+in the identified non-Git validation copy passes umRhDl static/build,
+phase12312/0 and MIR534/0. StrictKmCJB8 includes the nine observed source
+fixtures. Source6ig7dd admits the literal positive and refuses eight negative
+controls with MIR0; runtimeVdUboE confirms C/LLVM stdout `alpha\nfalse\nheap\n`,
+stderr0 and byte equality. Source-pairs3dXy9J checks134 raw D/Linux pairs.
+BroadHTE93e passes six currency controls, semantic3230, transpile1012, AIR156,
+Map24+58, four IR flow gates and separate ASan/UBSan phase12312/MIR534
+(leaks OFF). Receipt paths live under the validation copy's `.tmp/` directory.
+
+The initially duplicated literal RETURN loop was removed before freezing:
+the existing all-return core is unique, with an optional observer. The original
+result traversal and snapshot capture were moved cohesively to physical TUs
+under their unchanged owners to keep the existing599-line cap.
+
+Initial4amrJ5 had32 phase test failures, not a green receipt. The old fault
+loop was accidentally expanded10->17, and the new test incorrectly required
+raw source0. Restoring that old loop and separately checking raw nonzero
+identity versus actual Option/Unwrap-derived0 produces passing umRhDl without
+relaxing production. All17 new evidence-withdrawal controls now run.
+
+Unchanged full fixed/current wvdpM2 is still RED18435 errors/16 warnings/MIR0.
+ObserverdXIVDK now first refuses ReadFile(path) at diagnostic_owner.pgy570:79.
+The earlier Some(codes[i]) no longer fails immediately; final canonical
+deferred admission is still unproved. This candidate is not V1, bootstrap,
+installed-driver, self-host substitution or CI closure. No next production
+scope is open before this bounded integration is reviewed and committed.
+
+Independent frozen review APPROVED this bounded candidate. Bundle
+`E:\PergyraValidation\literal-array-option-20261018-v1` source manifest
+`A3502E1DD4B393B78734853F145C3A6420F57D65C84529BB843D03C4B9B602BA`
+matches147 source/context files; evidence manifest
+`D9E1A2618333325E567495614F691426A078D0118CEDDF5D1C32EB4C5355BA18`
+matches153 artifacts. The reviewer independently checked134 source-pair hashes
+and source/role/currency/ownership boundaries, but did not rerun the shared WSL
+executables. Root rehashed the current tree against the freeze: production and
+tests are unchanged; the handoff alone corrects the next diagnostic location.
+570:79 is the ReadFile result, not its path argument at88. That next result-source
+repair is separate from this approval. AIR is adjacent regression evidence;
+leak checking, canonical, bootstrap, installed driver and required CI are not
+closed by this bounded result.

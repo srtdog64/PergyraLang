@@ -1183,6 +1183,190 @@ test_mir_collection_ownership_validation(void)
         mir_destroy(option_mir); rir_destroy(option_rir); hir_destroy(option_hir);
     }
     {
+        HIRProgram *literal_hir = NULL;
+        RIRProgram *literal_rir = NULL;
+        MIRProgram *literal_mir = NULL;
+        const char *source =
+            "func LiteralCodes()->Array<String>{let codes:Array<String> = [\"alpha\",\"beta\"];return codes;}"
+            "func FindCode(message:String)->Option<String>{let codes:Array<String> = LiteralCodes();"
+            "var i:Int=0;while i<ArrayLength(codes){if StringContains(message,codes[i]){"
+            "return Some(codes[i]);}i=i+1;}return None;}"
+            "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "let found:Option<String> = FindCode(\"alpha\");let rows:Array<String> = [];"
+            "if IsSome(found){let text:String=UnwrapOption(found);ArrayPush(rows,text);"
+            "Log(rows[0]);}Log(risk[0]);}";
+        bool lowered = lower_mir_from_source(source, &literal_hir, &literal_rir, &literal_mir);
+        MIRRoutine *producer_routine = lowered ? find_mir_routine_mut(literal_mir,
+            "LiteralCodes", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *finder_routine = lowered ? find_mir_routine_mut(literal_mir,
+            "FindCode", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *main_routine = lowered ? find_mir_routine_mut(literal_mir,
+            "Main", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = literal_mir == NULL ? NULL :
+            literal_mir->collection_effect_source_program;
+        ASTNode *producer_ast = program == NULL ? NULL : ast_program_statement(program, 0);
+        ASTNode *producer_body = producer_ast == NULL ? NULL : ast_func_body(producer_ast);
+        ASTNode *producer_birth = producer_body == NULL ? NULL : ast_block_statement(producer_body, 0);
+        ASTNode *producer_return = producer_body == NULL ? NULL : ast_block_statement(producer_body, 1);
+        ASTNode *finder_ast = program == NULL ? NULL : ast_program_statement(program, 1);
+        ASTNode *finder_body = finder_ast == NULL ? NULL : ast_func_body(finder_ast);
+        ASTNode *carrier = finder_body == NULL ? NULL : ast_block_statement(finder_body, 0);
+        ASTNode *loop = finder_body == NULL ? NULL : ast_block_statement(finder_body, 2);
+        ASTNode *branch = loop == NULL ? NULL : ast_block_statement(ast_while_body(loop), 0);
+        ASTNode *condition = branch == NULL ? NULL : ast_if_condition(branch);
+        ASTNode *other_string = condition == NULL ? NULL : ast_call_argument(condition, 0);
+        ASTNode *some_statement = branch == NULL ? NULL :
+            ast_block_statement(ast_if_then_branch(branch), 0);
+        ASTNode *some = some_statement == NULL ? NULL : ast_return_value(some_statement);
+        ASTNode *element = some == NULL ? NULL : ast_call_argument(some, 0);
+        ASTNode *main_ast = program == NULL ? NULL : ast_program_statement(program, 2);
+        ASTNode *main_body = main_ast == NULL ? NULL : ast_func_body(main_ast);
+        ASTNode *risk = main_body == NULL ? NULL : ast_block_statement(main_body, 0);
+        ASTNode *main_branch = main_body == NULL ? NULL : ast_block_statement(main_body, 3);
+        ASTNode *inside = main_branch == NULL ? NULL : ast_if_then_branch(main_branch);
+        ASTNode *push = inside == NULL ? NULL : ast_block_statement(inside, 1);
+        MIRInstruction *producer_birth_inst = NULL, *producer_return_inst = NULL;
+        MIRInstruction *carrier_inst = NULL, *some_return_inst = NULL, *push_inst = NULL;
+        MIRBasicBlock *carrier_block = NULL;
+        size_t carrier_index = 0;
+        for (size_t b = 0; producer_routine != NULL && b < producer_routine->block_count; b++)
+            for (size_t i = 0; i < producer_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &producer_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == producer_birth) producer_birth_inst = inst;
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 == ast_return_value(producer_return))
+                    producer_return_inst = inst;
+            }
+        for (size_t b = 0; finder_routine != NULL && b < finder_routine->block_count; b++)
+            for (size_t i = 0; i < finder_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &finder_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == carrier) {
+                    carrier_inst = inst;
+                    carrier_block = &finder_routine->blocks[b];
+                    carrier_index = i;
+                }
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 == some) some_return_inst = inst;
+            }
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++)
+                if (main_routine->blocks[b].instructions[i].kind == MIR_INST_STMT &&
+                    main_routine->blocks[b].instructions[i].expr0 == push)
+                    push_inst = &main_routine->blocks[b].instructions[i];
+        PgyCollectionEffectView view = {0};
+        bool control = lowered && producer_routine != NULL && finder_routine != NULL &&
+            main_routine != NULL && producer_birth != NULL && producer_return != NULL &&
+            carrier != NULL && some != NULL && element != NULL && other_string != NULL &&
+            risk != NULL && push != NULL && producer_birth_inst != NULL &&
+            producer_return_inst != NULL && carrier_inst != NULL && carrier_block != NULL &&
+            some_return_inst != NULL && push_inst != NULL &&
+            semantic_collection_effect_snapshot_current(literal_mir->collection_effect_snapshot,
+                program, &view) && view.permanent_element_count != 0 &&
+            mir_validate_collection_effect_evidence(literal_mir, NULL, NULL) &&
+            mir_validate(literal_mir, NULL) &&
+            mir_validate_emission_contract(producer_routine,
+                producer_routine->has_cleanup_block, false, NULL) &&
+            mir_validate_emission_contract(finder_routine,
+                finder_routine->has_cleanup_block, false, NULL);
+        TEST("MIR permanent literal Array element has an admitted Some source receipt");
+        EXPECT(control);
+        if (control) {
+            const PgyCollectionEffectSnapshot *snapshot = literal_mir->collection_effect_snapshot;
+            uint32_t caller_id = finder_routine->source_syntax_id;
+            bool exact_use = semantic_collection_effect_snapshot_source_use(snapshot,
+                caller_id, some, 0, element);
+            bool reused_use = semantic_collection_effect_snapshot_source_use(snapshot,
+                caller_id, some, 0, element);
+            bool foreign_use = !semantic_collection_effect_snapshot_source_use(snapshot,
+                caller_id, some, 0, other_string);
+            bool exact_return = semantic_collection_effect_snapshot_source_return(snapshot,
+                producer_routine->source_syntax_id, producer_return,
+                ast_return_value(producer_return));
+            bool crosswired_return = !semantic_collection_effect_snapshot_source_return(snapshot,
+                producer_routine->source_syntax_id, producer_return, ast_let_initializer(risk));
+            TEST("MIR literal element proof is reusable only at the exact Some slot and producer RETURN");
+            EXPECT(exact_use && reused_use && foreign_use && exact_return && crosswired_return);
+
+            ASTNode *saved_carrier = carrier_inst->expr0;
+            carrier_inst->expr0 = ast_let_initializer(risk);
+            bool carrier_evidence = !mir_validate_collection_effect_evidence(literal_mir,
+                finder_routine, NULL);
+            bool carrier_full = !mir_validate(literal_mir, NULL);
+            bool carrier_emit = !mir_validate_emission_contract(finder_routine,
+                finder_routine->has_cleanup_block, false, NULL);
+            carrier_inst->expr0 = saved_carrier;
+            TEST("MIR permanent literal carrier DEF rejects a foreign Array result");
+            EXPECT(carrier_evidence && carrier_full && carrier_emit &&
+                mir_validate_collection_effect_evidence(literal_mir, finder_routine, NULL));
+
+            ASTNode *saved_birth = producer_birth_inst->expr0;
+            producer_birth_inst->expr0 = ast_let_initializer(risk);
+            bool birth_evidence = !mir_validate_collection_effect_evidence(literal_mir,
+                producer_routine, NULL);
+            bool birth_full = !mir_validate(literal_mir, NULL);
+            bool birth_emit = !mir_validate_emission_contract(producer_routine,
+                producer_routine->has_cleanup_block, false, NULL);
+            producer_birth_inst->expr0 = saved_birth;
+            TEST("MIR literal producer DEF cannot adopt a mixed String Array");
+            EXPECT(birth_evidence && birth_full && birth_emit &&
+                mir_validate_collection_effect_evidence(literal_mir, producer_routine, NULL));
+
+            ASTNode *saved_producer_return = producer_return_inst->expr0;
+            producer_return_inst->expr0 = ast_let_initializer(risk);
+            bool return_evidence = !mir_validate_collection_effect_evidence(literal_mir,
+                producer_routine, NULL);
+            bool return_full = !mir_validate(literal_mir, NULL);
+            bool return_emit = !mir_validate_emission_contract(producer_routine,
+                producer_routine->has_cleanup_block, false, NULL);
+            producer_return_inst->expr0 = saved_producer_return;
+            TEST("MIR literal producer RETURN cannot change its selected Array source");
+            EXPECT(return_evidence && return_full && return_emit &&
+                mir_validate_collection_effect_evidence(literal_mir, producer_routine, NULL));
+
+            ASTNode changed_some = *some;
+            ASTNode *changed_arguments[1] = {other_string};
+            changed_some.data.call.arguments = changed_arguments;
+            ASTNode *saved_some = some_return_inst->expr0;
+            some_return_inst->expr0 = &changed_some;
+            bool some_evidence = !mir_validate_collection_effect_evidence(literal_mir,
+                finder_routine, NULL);
+            bool some_full = !mir_validate(literal_mir, NULL);
+            bool some_emit = !mir_validate_emission_contract(finder_routine,
+                finder_routine->has_cleanup_block, false, NULL);
+            some_return_inst->expr0 = saved_some;
+            TEST("MIR Some RETURN cannot substitute another payload actual");
+            EXPECT(some_evidence && some_full && some_emit &&
+                mir_validate_collection_effect_evidence(literal_mir, finder_routine, NULL));
+
+            MIRBasicBlock saved_block = *carrier_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *duplicated = calloc(count + 1, sizeof(*duplicated));
+            TEST("MIR literal Array carrier duplicate has isolated instruction storage");
+            EXPECT(duplicated != NULL);
+            if (duplicated != NULL) {
+                memcpy(duplicated, saved_block.instructions,
+                    (carrier_index + 1) * sizeof(*duplicated));
+                duplicated[carrier_index + 1] = *carrier_inst;
+                memcpy(&duplicated[carrier_index + 2],
+                    &saved_block.instructions[carrier_index + 1],
+                    (count - carrier_index - 1) * sizeof(*duplicated));
+                carrier_block->instructions = duplicated;
+                carrier_block->instruction_count = count + 1;
+                carrier_block->instruction_capacity = count + 1;
+                bool duplicate_evidence = !mir_validate_collection_effect_evidence(literal_mir,
+                    finder_routine, NULL);
+                bool duplicate_full = !mir_validate(literal_mir, NULL);
+                bool duplicate_emit = !mir_validate_emission_contract(finder_routine,
+                    finder_routine->has_cleanup_block, false, NULL);
+                *carrier_block = saved_block;
+                free(duplicated);
+                TEST("MIR permanent literal Array carrier cannot be born twice");
+                EXPECT(duplicate_evidence && duplicate_full && duplicate_emit &&
+                    mir_validate_collection_effect_evidence(literal_mir, finder_routine, NULL) &&
+                    mir_validate(literal_mir, NULL));
+            }
+        }
+        mir_destroy(literal_mir); rir_destroy(literal_rir); hir_destroy(literal_hir);
+    }
+    {
         HIRProgram *alias_hir = NULL;
         RIRProgram *alias_rir = NULL;
         MIRProgram *alias_mir = NULL;

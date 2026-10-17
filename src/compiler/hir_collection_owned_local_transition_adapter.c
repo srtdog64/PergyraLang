@@ -309,7 +309,7 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
     for (size_t e = 0; valid && e < view.effect_count; e++)
         valid = seen[e];
     for (size_t r = 0; valid && (view.source_use_count != 0 || view.nonowner_risk_count != 0 ||
-            view.string_definition_count != 0) &&
+            view.string_definition_count != 0 || view.permanent_element_count != 0) &&
             r < hir->routine_count; r++) {
         const HIRRoutine *routine = &hir->routines[r];
         if (!routine->has_cfg) continue;

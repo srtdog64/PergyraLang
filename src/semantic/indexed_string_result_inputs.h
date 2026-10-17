@@ -5,6 +5,7 @@
 #include "indexed_string_field_lineage_internal.h"
 
 typedef struct IndexedStringOptionInputs IndexedStringOptionInputs;
+typedef struct IndexedStringPermanentElementRecipe IndexedStringPermanentElementRecipe;
 typedef struct {
     IndexedStringFieldCall *calls;
     IndexedStringFieldDependency *dependencies;
@@ -12,13 +13,16 @@ typedef struct {
     size_t dependency_count, dependency_capacity, sealed_dependencies;
     bool prepared;
     IndexedStringOptionInputs *option;
+    const IndexedStringPermanentElementRecipe **permanents;
+    size_t permanent_count, permanent_capacity, sealed_permanents;
 } IndexedStringResultInputs;
 
 /* Prepare accepts a zero object and may leave partial storage on failure;
  * destroy it before retry. Current never appends or demands. NULL inputs
  * preserves the existing b53 API. An issued source is not a cleanup right.
  * The consumer must separately join the top call/actual/identifier lineage
- * to its original caller claims; these inputs own only the reached callees. */
+ * to its original caller claims. Option/permanent derivations additionally
+ * include their exact local carrier caller in the same dependency union. */
 bool semantic_indexed_string_result_source_prepare(SemanticContext *ctx,
     const ASTNode *call, uint32_t *source, IndexedStringResultInputs *inputs);
 bool semantic_indexed_string_result_source_current(SemanticContext *ctx,
@@ -27,6 +31,9 @@ bool semantic_indexed_string_result_inputs_syntax_current(const IndexedStringRes
 void semantic_indexed_string_result_inputs_destroy(IndexedStringResultInputs *inputs);
 const IndexedStringFieldDependency *semantic_indexed_string_result_inputs_dependencies(
     const IndexedStringResultInputs *inputs, size_t *count);
+bool semantic_indexed_string_result_inputs_permanent_count(const IndexedStringResultInputs *inputs, size_t *count);
+const IndexedStringPermanentElementRecipe *semantic_indexed_string_result_inputs_permanent_at(
+    const IndexedStringResultInputs *inputs, size_t ordinal);
 
 /* Candidate only: an issued checked Option ABI is not a String source proof. */
 bool semantic_indexed_string_option_unwrap_candidate(SemanticContext *ctx, const ASTNode *call);
@@ -49,4 +56,10 @@ bool indexed_string_field_call_capture(SemanticContext *ctx, ASTNode *call,
 bool indexed_string_field_call_syntax(const IndexedStringFieldCall *row);
 bool indexed_string_field_call_current(SemanticContext *ctx, const IndexedStringFieldCall *row);
 void indexed_string_field_call_destroy(IndexedStringFieldCall *row);
+bool indexed_string_result_capture_dependency(SemanticContext *ctx, ASTNode *decl,
+    FunctionParamFlowIndexClaims *claims, IndexedStringResultInputs *inputs, bool prepare);
+bool indexed_string_result_capture_call(SemanticContext *ctx, const ASTNode *call,
+    IndexedStringResultInputs *inputs, bool prepare);
+bool indexed_string_result_capture_permanent(SemanticContext *ctx,
+    const IndexedStringPermanentElementRecipe *recipe, IndexedStringResultInputs *inputs, bool prepare);
 #endif

@@ -26,6 +26,8 @@
 #include "semantic/function_param_flow_summary_internal.h"
 #include "semantic/indexed_string_borrow_owner.h"
 #include "semantic/indexed_string_definition_recipe.h"
+#include "semantic/indexed_string_permanent_internal.h"
+#include "semantic/array_storage_deferred_preservation_internal.h"
 #include "semantic/indexed_string_field_lineage_internal.h"
 #include "semantic/indexed_string_nonowner_risk_internal.h"
 #include "semantic/diag_payload.h"
@@ -5994,6 +5996,215 @@ static void checked_nominal_result_growth(void)
 cleanup:
     semantic_context_destroy(ctx);
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
+typedef struct {
+    const ASTNode *declaration, *statement, *literal_declaration, *literal;
+    size_t visits;
+} LiteralArrayReturnWitness;
+
+static bool checked_literal_array_return_observer(SemanticContext *ctx, ASTNode *decl,
+    const FunctionParamFlowIndexClaims *claims, const ArrayStorageOwnedReturnReceipt *event,
+    const ASTNode *literal_declaration, const ASTNode *literal, void *user)
+{
+    (void)ctx;
+    LiteralArrayReturnWitness *witness = user;
+    if (witness == NULL || claims == NULL || event == NULL ||
+        decl != witness->declaration || event->statement != witness->statement ||
+        literal_declaration != witness->literal_declaration ||
+        literal != witness->literal || event->elements.owned ||
+        event->source != ARRAY_RESULT_OWNED_BINDING) return false;
+    witness->visits++;
+    return true;
+}
+
+static void checked_literal_array_option_payload_currency(void)
+{
+    Lexer *lexer = lexer_create(
+        "func LiteralCodes()->Array<String>{let codes:Array<String> = [\"alpha\",\"beta\"];return codes;}"
+        "func FindCode(message:String)->Option<String>{let codes:Array<String> = LiteralCodes();"
+        "var i:Int=0;while i<ArrayLength(codes){if StringContains(message,codes[i]){"
+        "return Some(codes[i]);}i=i+1;}return None;}"
+        "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "let found:Option<String> = FindCode(\"alpha\");let rows:Array<String> = [];"
+        "if IsSome(found){let text:String=UnwrapOption(found);ArrayPush(rows,text);"
+        "Log(rows[0]);}Log(risk[0]);}"
+    );
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed);
+    bool typed = parsed && type_check_program(program, ctx);
+    CHECK(typed && !ctx->has_error);
+    if (!typed) goto cleanup;
+    ASTNode *codes_func = ast_program_statement(program, 0);
+    ASTNode *finder = ast_program_statement(program, 1);
+    ASTNode *codes_body = codes_func == NULL ? NULL : ast_func_body(codes_func);
+    ASTNode *codes_decl = codes_body == NULL ? NULL : ast_block_statement(codes_body, 0);
+    ASTNode *literal = codes_decl == NULL ? NULL : ast_let_initializer(codes_decl);
+    ASTNode *literal_child = literal == NULL ? NULL : ast_array_literal_element(literal, 0);
+    ASTNode *codes_return = codes_body == NULL ? NULL : ast_block_statement(codes_body, 1);
+    ASTNode *finder_body = finder == NULL ? NULL : ast_func_body(finder);
+    ASTNode *finder_codes = finder_body == NULL ? NULL : ast_block_statement(finder_body, 0);
+    ASTNode *producer = finder_codes == NULL ? NULL : ast_let_initializer(finder_codes);
+    ASTNode *loop = finder_body == NULL ? NULL : ast_block_statement(finder_body, 2);
+    ASTNode *branch = loop == NULL ? NULL : ast_block_statement(ast_while_body(loop), 0);
+    ASTNode *selected_return = branch == NULL ? NULL :
+        ast_block_statement(ast_if_then_branch(branch), 0);
+    ASTNode *some = selected_return == NULL ? NULL : ast_return_value(selected_return);
+    ASTNode *access = some == NULL ? NULL : ast_call_argument(some, 0);
+    ASTNode *receiver = access == NULL ? NULL : ast_array_access_array(access);
+    ASTNode *index = access == NULL ? NULL : ast_array_access_index(access);
+    ASTNode *main_decl = ast_program_statement(program, 2);
+    ASTNode *main_body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+    ASTNode *main_branch = main_body == NULL ? NULL : ast_block_statement(main_body, 3);
+    ASTNode *main_inside = main_branch == NULL ? NULL : ast_if_then_branch(main_branch);
+    ASTNode *definition = main_inside == NULL ? NULL : ast_block_statement(main_inside, 0);
+    ASTNode *unwrap = definition == NULL ? NULL : ast_let_initializer(definition);
+    ASTNode *push = main_inside == NULL ? NULL : ast_block_statement(main_inside, 1);
+    ASTNode *use = push == NULL ? NULL : ast_call_argument(push, 1);
+    FunctionParamPublicationStore *publication = ctx->function_param_publications;
+    PublishedNode *some_row = some == NULL ? NULL : publication_node(publication, some, false);
+    PublishedNode *access_row = access == NULL ? NULL : publication_node(publication, access, false);
+    PublishedNode *definition_row = definition == NULL ? NULL :
+        publication_node_by_id(publication, ast_node_stable_id(definition));
+    IndexedStringDefinitionRecipe *definition_recipe = definition_row == NULL ? NULL :
+        definition_row->indexed_string_definition;
+    IndexedStringPermanentElementRecipe *recipe = some_row == NULL ? NULL : some_row->indexed_string_permanent;
+    ArrayStorageDeferredPreservationStore *storage = ctx->array_storage_deferred_preservations;
+    ArrayStorageOwnedReturn *event = NULL;
+    if (storage != NULL) for (size_t i = 0; i < storage->return_count; i++) {
+        if (storage->returns[i].decl != codes_func) continue;
+        if (event != NULL) { event = NULL; break; }
+        event = &storage->returns[i];
+    }
+    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    CHECK(codes_func != NULL && finder != NULL && codes_decl != NULL &&
+        literal != NULL && literal_child != NULL && codes_return != NULL &&
+        finder_codes != NULL && producer != NULL && some != NULL && access != NULL &&
+        receiver != NULL && index != NULL && unwrap != NULL && use != NULL &&
+        some_row != NULL && access_row != NULL && definition_recipe != NULL &&
+        definition_recipe->selected && definition_recipe->prepared &&
+        definition_recipe->option_unwrap_candidate &&
+        definition_recipe->birth.named_call == unwrap &&
+        semantic_indexed_string_result_inputs_has_option(
+            &definition_recipe->birth.named_inputs) &&
+        recipe != NULL && event != NULL && flow != NULL &&
+        publication->indexed_string_permanent_count == 1 && recipe->prepared &&
+        recipe->birth_count == 2 && recipe->sealed_births == recipe->birth_count &&
+        recipe->return_count == 1 && recipe->sealed_returns == 1 &&
+        recipe->source_id != 0 && recipe->source_id != UINT32_MAX &&
+        access_row->indexed_string_source_present &&
+        access_row->indexed_string_source_id == recipe->source_id);
+    if (recipe == NULL || event == NULL || flow == NULL || literal_child == NULL ||
+        access_row == NULL || producer == NULL || some == NULL || receiver == NULL ||
+        index == NULL || definition_recipe == NULL || use == NULL ||
+        recipe->birth_count == 0 || recipe->return_count == 0 ||
+        recipe->births[0].claims == NULL || recipe->births[0].claims->count == 0)
+        goto cleanup;
+    LiteralArrayReturnWitness witness = {codes_func, codes_return, codes_decl, literal, 0};
+    CHECK(semantic_array_storage_literal_result_current(ctx, producer,
+        checked_literal_array_return_observer, &witness) && witness.visits == 1);
+    uint32_t source = UINT32_MAX;
+    CHECK(semantic_indexed_string_permanent_current(ctx, recipe) &&
+        semantic_indexed_string_permanent_for_use(ctx, some, 0, access) == recipe &&
+        semantic_indexed_string_borrow_source_current(access, ctx, &source) &&
+        source == recipe->source_id);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_result_source_current(ctx, unwrap, &source,
+        &definition_recipe->birth.named_inputs) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_definition_source_current(ctx, use, &source) && source == 0);
+    source = UINT32_MAX;
+    CHECK(semantic_indexed_string_borrow_source_current(use, ctx, &source) && source == 0);
+    const PgyCollectionOwnershipFact *literal_fact =
+        semantic_collection_ownership_fact_find(ctx, ast_node_stable_id(codes_func),
+            ast_node_stable_id(codes_decl));
+    CHECK(literal_fact != NULL &&
+        literal_fact->element_ownership == PGY_STRING_ARRAY_BORROWED_ELEMENTS &&
+        !literal_fact->return_elements_owned);
+    size_t ready_count = flow->count, ready_indexes = flow->program_point_index_count;
+    size_t ready_epoch = flow->demand_epoch, ready_evaluations = flow->body_evaluations;
+    size_t ready_issued = publication->indexed_string_permanent_count;
+    for (unsigned fault = 0; fault < 17; fault++) {
+        IndexedStringPermanentElementRecipe *saved_owner = some_row->indexed_string_permanent;
+        uint32_t saved_some_id = recipe->some_id, saved_source_id = recipe->source_id;
+        uint32_t saved_access_id = access->stable_id, saved_literal_id = literal_child->stable_id;
+        uint32_t saved_event_id = event->statement_id, saved_return_id = recipe->returns[0].value_id;
+        uint32_t saved_birth_id = recipe->births[0].initializer_id;
+        uint32_t saved_claim_id = recipe->births[0].claims->rows[0].id;
+        uint32_t saved_raw_source = access_row->indexed_string_source_id;
+        uint32_t saved_binding = ast_identifier_binding_syntax_id(receiver);
+        ArrayStorageReturnSource saved_event_source = event->source;
+        uint32_t saved_event_binding = event->binding_id;
+        uint32_t saved_event_callee = event->callee_id;
+        bool saved_elements_owned = event->elements.owned;
+        ASTNodeType saved_child_shape = literal_child->type;
+        uint32_t saved_selected_callee = producer->data.call.semantic_callee_decl_id;
+        if (fault == 0) some_row->indexed_string_permanent = NULL;
+        if (fault == 1) recipe->some_id++;
+        if (fault == 2) recipe->source_id++;
+        if (fault == 3) access->stable_id++;
+        if (fault == 4) literal_child->stable_id++;
+        if (fault == 5) event->statement_id++;
+        if (fault == 6) recipe->returns[0].value_id++;
+        if (fault == 7) recipe->births[0].initializer_id++;
+        if (fault == 8) recipe->births[0].claims->rows[0].id = 0;
+        if (fault == 9) ast_identifier_set_binding_syntax_id(receiver, saved_binding + 1);
+        if (fault == 10) access_row->indexed_string_source_id++;
+        if (fault == 11) event->source = ARRAY_RESULT_INDEPENDENT_CALL;
+        if (fault == 12) event->binding_id++;
+        if (fault == 13) event->callee_id++;
+        if (fault == 14) event->elements.owned = true;
+        if (fault == 15) literal_child->type = AST_CALL;
+        if (fault == 16) producer->data.call.semantic_callee_decl_id++;
+        source = UINT32_MAX;
+        bool raw_current = semantic_indexed_string_borrow_source_current(access, ctx, &source);
+        uint32_t derived_source = UINT32_MAX;
+        bool derived_current = semantic_indexed_string_definition_source_current(
+            ctx, use, &derived_source);
+        CHECK(!semantic_indexed_string_permanent_current(ctx, recipe) &&
+            semantic_indexed_string_permanent_for_use(ctx, some, 0, access) == NULL &&
+            (!raw_current || source != 0) && source != 0 &&
+            (!derived_current || derived_source != 0) && derived_source != 0 &&
+            !ctx->has_error &&
+            flow->count == ready_count && flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_epoch && flow->body_evaluations == ready_evaluations &&
+            publication->indexed_string_permanent_count == ready_issued &&
+            !flow->validating_current);
+        some_row->indexed_string_permanent = saved_owner;
+        recipe->some_id = saved_some_id;
+        recipe->source_id = saved_source_id;
+        access->stable_id = saved_access_id;
+        literal_child->stable_id = saved_literal_id;
+        event->statement_id = saved_event_id;
+        recipe->returns[0].value_id = saved_return_id;
+        recipe->births[0].initializer_id = saved_birth_id;
+        recipe->births[0].claims->rows[0].id = saved_claim_id;
+        access_row->indexed_string_source_id = saved_raw_source;
+        ast_identifier_set_binding_syntax_id(receiver, saved_binding);
+        event->source = saved_event_source;
+        event->binding_id = saved_event_binding;
+        event->callee_id = saved_event_callee;
+        event->elements.owned = saved_elements_owned;
+        literal_child->type = saved_child_shape;
+        producer->data.call.semantic_callee_decl_id = saved_selected_callee;
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_permanent_current(ctx, recipe) &&
+            semantic_indexed_string_permanent_for_use(ctx, some, 0, access) == recipe &&
+            semantic_indexed_string_borrow_source_current(access, ctx, &source) &&
+            source == recipe->source_id &&
+            !ctx->has_error && flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes &&
+            flow->demand_epoch == ready_epoch && flow->body_evaluations == ready_evaluations &&
+            publication->indexed_string_permanent_count == ready_issued &&
+            !flow->validating_current);
+        source = UINT32_MAX;
+        CHECK(semantic_indexed_string_definition_source_current(ctx, use, &source) && source == 0);
+    }
+cleanup:
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
 static void checked_option_payload_source_currency(void)
@@ -13034,6 +13245,7 @@ int main(void)
     checked_nominal_unsupported_producers();
     checked_unmodelled_map_class_result();
     type_system_init();
+    checked_literal_array_option_payload_currency();
     checked_option_payload_source_currency();
     checked_option_payload_local_alias_currency();
     checked_some_unwrap_result_relations();

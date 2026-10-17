@@ -1,6 +1,7 @@
 /* Order-independent descriptor preservation for public array release.
  * See array_storage_deferred_preservation_owner.h for the contract. */
 #include "array_storage_deferred_preservation_owner.h"
+#include "array_storage_deferred_preservation_internal.h"
 #include "type_checker_internal.h"
 #include "slot_analyzer_internal.h"
 #include "slot_summary.h"
@@ -11,42 +12,6 @@
 #include "array_storage_element_lifetime_owner.h"
 
 #include <stdlib.h>
-
-typedef struct {
-    ArrayStoragePendingCallReceipt source;
-    bool preserved;
-    bool elements_preserved;
-} ArrayStoragePendingCall;
-
-typedef struct {
-    ASTNode *receiver;
-    uint32_t receiver_id;
-    uint32_t binding_id;
-    size_t sequence;
-    ArrayStorageReleaseOperation operation;
-    ArrayStorageReturnElementReceipt elements;
-    size_t call_index;
-} ArrayStoragePendingDrop;
-
-typedef ArrayStorageOwnedReturnReceipt ArrayStorageOwnedReturn;
-
-typedef struct {
-    ArrayStorageResultBirthReceipt birth;
-    bool proved, checking;
-} ArrayStoragePendingResult;
-
-struct ArrayStorageDeferredPreservationStore {
-    bool active, finalized, sealing, consuming_checked_calls;
-    size_t next_sequence;
-    ArrayStoragePendingCall *calls;
-    size_t call_count, call_capacity;
-    ArrayStoragePendingDrop *drops;
-    size_t drop_count, drop_capacity;
-    ArrayStorageOwnedReturn *returns;
-    size_t return_count, return_capacity;
-    ArrayStoragePendingResult *results;
-    size_t result_count, result_capacity;
-};
 
 static bool
 deferred_reserve(void **rows, size_t *capacity, size_t needed, size_t row_size)
@@ -330,135 +295,6 @@ pending_result_proof(SemanticContext *ctx, ArrayStoragePendingResult *row)
     row->checking = false;
     if (store->sealing && current) row->proved = true;
     return current;
-}
-
-typedef struct ArrayStorageResultVisit {
-    const ASTNode *decl;
-    const struct ArrayStorageResultVisit *parent;
-} ArrayStorageResultVisit;
-
-static bool
-owned_function_result_current(SemanticContext *ctx, ASTNode *decl,
-    const Type *result, const ArrayStorageResultVisit *parent, bool elements);
-
-static bool
-owned_string_call_current(SemanticContext *ctx, const ASTNode *call,
-    const ArrayStorageResultVisit *visit)
-{
-    if (call == NULL || call->type != AST_CALL) return false;
-    const ASTNode *source = NULL;
-    if (semantic_array_storage_independent_call_result(call, ctx))
-        return semantic_array_storage_return_elements_owned((ASTNode *)call, ctx, &source)
-            && source == NULL;
-    const Type *result = NULL;
-    ASTNode *callee = semantic_param_publication_declared_result(ctx, call, &result);
-    return callee != NULL && type_is_constructed_named(result, "Array")
-        && type_equals(type_get_constructed_arg(result, 0), TYPE_STRING)
-        && owned_function_result_current(ctx, callee, result, visit, true);
-}
-
-static bool
-owned_return_elements_current(SemanticContext *ctx, const ArrayStorageOwnedReturn *row,
-    const ArrayStorageResultVisit *visit)
-{
-    const ASTNode *source = NULL;
-    if (!semantic_array_storage_return_elements_current(row->value, ctx,
-            &row->elements, &source))
-        return false;
-    if (row->source == ARRAY_RESULT_OWNED_BINDING
-        && !semantic_array_storage_pending_owned_elements(ctx,
-            row->binding_id, row->sequence)) return false;
-    if (source == NULL || (source == row->value && row->source == ARRAY_RESULT_DECLARED_CALL))
-        return true;
-    return owned_string_call_current(ctx, source, visit);
-}
-
-static bool
-owned_function_result_current(SemanticContext *ctx, ASTNode *decl,
-    const Type *result, const ArrayStorageResultVisit *parent, bool elements)
-{
-    ArrayStorageDeferredPreservationStore *storage =
-        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
-    if (storage == NULL || !storage->finalized || decl == NULL || decl->type != AST_FUNC_DECL
-        || !type_is_constructed_named(result, "Array")
-        || !semantic_param_publication_routine_result_current(ctx, decl, result)) return false;
-    for (const ArrayStorageResultVisit *at = parent; at != NULL; at = at->parent)
-        if (at->decl == decl) return false;
-    SlotFunctionLookup lookup = {ctx, ctx->program_root};
-    FunctionParamFlowSummaryStore *flow = function_param_flow_store_get(&lookup);
-    FunctionParamFlowProgramPointIndex *index;
-    if (flow == NULL || !function_param_flow_program_point_index_build(flow, decl, &index)
-        || !function_param_flow_index_claims_current(ctx, index)) return false;
-    /* Claims and projection are heap-owned; recursive callee index growth may
-     * relocate the enclosing index vector, never these captured claim rows. */
-    const FunctionParamFlowIndexClaims *claims = index->claims;
-    if (claims == NULL) return false;
-    const ArrayStorageResultVisit visit = {decl, parent};
-    size_t reached = 0;
-    for (size_t i = 0; i < claims->count; i++) {
-        const FunctionParamFlowIndexClaim *claim = &claims->rows[i];
-        if (claim->shape == AST_DEFER_STMT || claim->shape == AST_LAMBDA_EXPR ||
-            claim->shape == AST_ASYNC_BLOCK || claim->shape == AST_PARALLEL_BLOCK ||
-            claim->shape == AST_SPAWN_EXPR || claim->shape == AST_CHANNEL_SEND ||
-            claim->shape == AST_TRANSACTION_BLOCK || claim->shape == AST_UNSAFE_BLOCK)
-            return false;
-        if (claim->shape != AST_RETURN) continue;
-        bool reachable = false;
-        if (!claim->semantic_promoted || !claim->snapshot_semantic_complete ||
-            !claim->execution_present ||
-            !semantic_param_publication_execution(ctx, claim->node, &reachable) ||
-            claim->reachable != reachable) return false;
-        if (!reachable) continue;
-        const ArrayStorageOwnedReturn *event = NULL;
-        for (size_t r = 0; r < storage->return_count; r++) {
-            const ArrayStorageOwnedReturn *candidate = &storage->returns[r];
-            if (candidate->decl != decl || candidate->statement != claim->node) continue;
-            if (event != NULL) return false;
-            event = candidate;
-        }
-        ASTNode *callee = NULL;
-        const Type *callee_result = NULL;
-        if (event == NULL || event->decl_id != ast_node_stable_id(decl) ||
-            event->elements.function_id != event->decl_id ||
-            event->statement_id != claim->id || !type_equals(event->type, result) ||
-            !semantic_array_storage_return_source_current(ctx, event, &callee, &callee_result) ||
-            (callee != NULL && !owned_function_result_current(ctx, callee,
-                callee_result, &visit, elements)) ||
-            (elements && !owned_return_elements_current(ctx, event, &visit))) return false;
-        reached++;
-    }
-    if (reached == 0) return false;
-    size_t recorded = 0;
-    for (size_t r = 0; r < storage->return_count; r++)
-        if (storage->returns[r].decl == decl) recorded++;
-    return recorded == reached;
-}
-
-bool
-semantic_array_storage_function_result_owned(SemanticContext *ctx,
-    ASTNode *decl, const Type *result)
-{
-    return owned_function_result_current(ctx, decl, result, NULL, false);
-}
-
-bool
-semantic_array_storage_owned_result_current(SemanticContext *ctx, const ASTNode *call)
-{
-    ArrayStorageDeferredPreservationStore *storage =
-        ctx != NULL ? ctx->array_storage_deferred_preservations : NULL;
-    if (storage == NULL || !storage->finalized || call == NULL || call->type != AST_CALL)
-        return false;
-    if (semantic_array_storage_independent_call_result(call, ctx)) return true;
-    const Type *result = NULL;
-    ASTNode *callee = semantic_param_publication_declared_result(ctx, call, &result);
-    return callee != NULL && owned_function_result_current(ctx, callee, result, NULL, false);
-}
-
-bool
-semantic_array_storage_owned_string_result_current(SemanticContext *ctx,
-    const ASTNode *call)
-{
-    return owned_string_call_current(ctx, call, NULL);
 }
 
 size_t

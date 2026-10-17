@@ -1,0 +1,29 @@
+func LiteralCodes() -> Array<String> {
+    let codes: Array<String> = ["alpha", "beta"];
+    return codes;
+}
+
+func ObserveCodes(rows: Array<String>) -> Int {
+    return ArrayLength(rows);
+}
+
+func FindCode() -> Option<String> {
+    let codes: Array<String> = LiteralCodes();
+    let count: Int = ObserveCodes(codes);
+    if count > 0 {
+        return Some(codes[0]);
+    }
+    return None;
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("li", "ve")];
+    let found: Option<String> = FindCode();
+    let rows: Array<String> = [];
+    if IsSome(found) {
+        let text: String = UnwrapOption(found);
+        ArrayPush(rows, text);
+        Log(rows[0]);
+    }
+    Log(risk[0]);
+}

@@ -9,10 +9,13 @@ bool semantic_collection_effect_snapshot_source_root(const PgyCollectionEffectSn
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
-        s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
+        s->nonowner_risk_count != s->sealed_nonowner_risks ||
+        s->permanent_element_count != s->sealed_permanent_elements) return false;
     if ((s->source_use_count == 0 && s->nonowner_risk_count == 0 &&
-            s->string_definition_count == 0) || root == NULL) return true;
+            s->string_definition_count == 0 && s->permanent_element_count == 0) || root == NULL) return true;
     if (caller_id == 0 || ast_node_stable_id(root) == 0) return false;
+    for (size_t p = 0; p < s->permanent_element_count; p++)
+        if (!semantic_indexed_string_permanent_source_root(s->permanent_elements[p], caller_id, root)) return false;
     for (size_t c = 0; c < s->caller_count; c++) {
         if (s->callers[c].decl_id != caller_id) continue;
         const FunctionParamFlowIndexClaims *claims = s->claims[c];
@@ -35,7 +38,11 @@ bool semantic_collection_effect_snapshot_source_use(const PgyCollectionEffectSna
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks ||
+        s->permanent_element_count != s->sealed_permanent_elements ||
         sink == NULL || sink->type != AST_CALL || value == NULL) return false;
+    for (size_t p = 0; p < s->permanent_element_count; p++)
+        if (!semantic_indexed_string_permanent_source_use(s->permanent_elements[p],
+                caller_id, sink, ordinal, value)) return false;
     uint32_t binding = 0;
     if (!collection_source_place_binding(value, &binding)) return false;
     for (size_t n = 0; n < s->string_definition_count; n++) {
@@ -119,7 +126,10 @@ bool semantic_collection_effect_snapshot_source_value(const PgyCollectionEffectS
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
-        s->nonowner_risk_count != s->sealed_nonowner_risks || value == NULL) return false;
+        s->nonowner_risk_count != s->sealed_nonowner_risks ||
+        s->permanent_element_count != s->sealed_permanent_elements || value == NULL) return false;
+    for (size_t p = 0; p < s->permanent_element_count; p++)
+        if (!semantic_indexed_string_permanent_source_value(s->permanent_elements[p], caller_id, value)) return false;
     for (size_t u = 0; u < s->string_definition_count; u++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
         if (r == NULL || r->claims == NULL || r->assignment_count == SIZE_MAX ||
@@ -204,7 +214,10 @@ static bool collection_source_evaluation_current(const PgyCollectionEffectSnapsh
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
-        s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
+        s->nonowner_risk_count != s->sealed_nonowner_risks ||
+        s->permanent_element_count != s->sealed_permanent_elements) return false;
+    for (size_t p = 0; standalone && p < s->permanent_element_count; p++)
+        if (!semantic_indexed_string_permanent_source_evaluation(s->permanent_elements[p], caller_id, value)) return false;
     for (size_t u = 0; u < s->string_definition_count; u++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
         if (r == NULL || r->assignment_count == SIZE_MAX ||
@@ -252,10 +265,11 @@ bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEf
     if (write_ordinal != NULL) *write_ordinal = SIZE_MAX;
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
-        s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
+        s->nonowner_risk_count != s->sealed_nonowner_risks ||
+        s->permanent_element_count != s->sealed_permanent_elements) return false;
     if (!collection_source_evaluation_current(s, caller_id, value, false)) return false;
     if (s->source_use_count == 0 && s->nonowner_risk_count == 0 &&
-        s->string_definition_count == 0) return true;
+        s->string_definition_count == 0 && s->permanent_element_count == 0) return true;
     uint32_t actual_binding = 0;
     if (!collection_source_place_binding(place, &actual_binding)) return false;
     size_t offset = 0, matched_write = SIZE_MAX;
@@ -318,6 +332,19 @@ bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEf
             offset += count;
         }
     }
+    for (size_t p = 0; p < s->permanent_element_count; p++) {
+        const IndexedStringPermanentElementRecipe *recipe = s->permanent_elements[p];
+        size_t count = 0, local = SIZE_MAX;
+        if (!semantic_indexed_string_permanent_source_write_count(recipe, &count) ||
+            count > SIZE_MAX - offset ||
+            !semantic_indexed_string_permanent_source_definition(recipe,
+                caller_id, binding_id, initialization, statement, place, value, &local)) return false;
+        if (local != SIZE_MAX) {
+            if (local >= count) return false;
+            if (matched_write == SIZE_MAX) matched_write = offset + local;
+        }
+        offset += count;
+    }
     for (size_t u = 0; u < s->nonowner_risk_count; u++) {
         const IndexedStringNonownerRisk *r = s->nonowner_risks[u];
         if (r == NULL) return false;
@@ -354,7 +381,11 @@ bool semantic_collection_effect_snapshot_source_return(const PgyCollectionEffect
 {
     if (s == NULL || s->refs == 0 || s->source_use_count != s->sealed_source_uses ||
         s->string_definition_count != s->sealed_string_definitions ||
-        s->nonowner_risk_count != s->sealed_nonowner_risks) return false;
+        s->nonowner_risk_count != s->sealed_nonowner_risks ||
+        s->permanent_element_count != s->sealed_permanent_elements) return false;
+    for (size_t p = 0; p < s->permanent_element_count; p++)
+        if (!semantic_indexed_string_permanent_source_return(s->permanent_elements[p],
+                caller_id, statement, value)) return false;
     for (size_t u = 0; u < s->string_definition_count; u++) {
         const IndexedStringDefinitionRecipe *r = s->string_definitions[u];
         if (r == NULL || r->assignment_count == SIZE_MAX ||

@@ -43,7 +43,8 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
     const MIRBasicBlock *block, const MIRInstruction *inst,
     const PgyCollectionEffectView *view, size_t caller, bool *seen, bool *write_seen)
 {
-    if (view->source_use_count != 0 || view->nonowner_risk_count != 0 || view->string_definition_count != 0) {
+    if (view->source_use_count != 0 || view->nonowner_risk_count != 0 ||
+        view->string_definition_count != 0 || view->permanent_element_count != 0) {
         const ASTNode *place = NULL, *value = NULL;
         bool initialization = inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_LET_DECL;
         if (initialization) { place = inst->ast; value = inst->expr0; }

@@ -1,6 +1,7 @@
 #include "indexed_string_option_payload.h"
 #include "function_param_publication_internal.h"
 #include "indexed_string_borrow_owner.h"
+#include "indexed_string_permanent_element.h"
 #include "type_checker_internal.h"
 #include "../common/match_variant_policy.h"
 #include <stdlib.h>
@@ -142,7 +143,7 @@ typedef struct OptionPayloadVisit {
 } OptionPayloadVisit;
 
 static bool payload_source(SemanticContext *ctx, IndexedStringResultInputs *inputs,
-    const ASTNode *caller, const ASTNode *value, bool prepare, const OptionPayloadVisit *parent)
+    const ASTNode *caller, const ASTNode *value, const ASTNode *some, bool prepare, const OptionPayloadVisit *parent)
 {
     for (const OptionPayloadVisit *p = parent; p != NULL; p = p->parent)
         if (p->value == value) return false;
@@ -150,6 +151,10 @@ static bool payload_source(SemanticContext *ctx, IndexedStringResultInputs *inpu
     if (!typed.ok || typed.meta || typed.type != TYPE_STRING) return false;
     OptionPayloadVisit visit = {value, parent};
     uint32_t source = UINT32_MAX;
+    if (value->type == AST_ARRAY_ACCESS) {
+        const IndexedStringPermanentElementRecipe *recipe = semantic_indexed_string_permanent_for_use(ctx, some, 0, value);
+        return recipe != NULL && indexed_string_result_capture_permanent(ctx, recipe, inputs, prepare);
+    }
     if (value->type == AST_IDENTIFIER) {
         uint32_t binding = ast_identifier_binding_syntax_id(value);
         FunctionParamFlowIndexClaims *claims = option_claims(ctx, caller);
@@ -162,7 +167,7 @@ static bool payload_source(SemanticContext *ctx, IndexedStringResultInputs *inpu
         }
         if (declaration != NULL)
             return birth_record(ctx, inputs, caller, declaration, false, prepare) &&
-                payload_source(ctx, inputs, caller, ast_let_initializer(declaration), prepare, &visit);
+                payload_source(ctx, inputs, caller, ast_let_initializer(declaration), some, prepare, &visit);
         bool formal = false;
         for (size_t p = 0; p < ast_func_param_count(caller); p++)
             if (ast_func_param_stable_id(ast_func_param(caller, p)) == binding) formal = true;
@@ -203,7 +208,7 @@ static bool returns_current(SemanticContext *ctx, IndexedStringResultInputs *inp
             if (typed.meta) return false;
             if (!indexed_string_option_relation_record(ctx, inputs, value, false, prepare)) return false;
             payload = ast_call_argument(value, 0);
-            if (!payload_source(ctx, inputs, producer, payload, prepare, NULL)) return false;
+            if (!payload_source(ctx, inputs, producer, payload, value, prepare, NULL)) return false;
         }
         IndexedStringOptionReturn saved = {producer, row->node, value, payload, ast_node_stable_id(producer),
             row->id, ast_node_stable_id(value), ast_node_stable_id(payload), none};

@@ -3,70 +3,66 @@
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — permanent literal Array element source connection
+## Active self-host context — approved permanent-literal receipt integration
 
-- Implementation checkpoint main `fb54aed078a62f586bf1ac6bedae13e32fdc139f`
-  commits the independently approved Option source/issuer/actual-role repair.
-  This navigation card and next plan are documentation-only descendants.
-  No production WIP at this update. Preserve `docs/01_intent_first_design.md`,
-  another lane's sole unrelated dirty file after this navigation commit.
+- HEAD main `e787bbe020faa889fca940299843429af292b17a`; implementation base
+  `fb54aed078a62f586bf1ac6bedae13e32fdc139f` remains the approved Option
+  checkpoint. Current literal-element code/tests have independent bounded
+  approval and are being committed. Preserve the unrelated dirty
+  `docs/01_intent_first_design.md`.
 - Active whole-chain plan:
   `docs/agent_work_directives/indexed_string_literal_array_element_closure_2026-10-18.md`.
-  A existing array-return closure, B same indexed String source/Option inputs,
-  C phase/MIR falsifiers; root snapshot/actual joins, commands/WSL/process/Git. One
-  chain, no worktree/branch. WSL is `Ubuntu-E-WSL -u root`, not the default.
-- Approved baseline native SHA256
-  `9dddcd887cbc5c1e783ad4ee20c6439b027d2054b858ee5def2da1a3ec5f351f`.
-  Current native6a03162d26ae8bbccd8f2f36d0ac18b8fe59b0aedfe01ad4fcd66081845ab06c
-  in `/root/pgy-nonowner-20261018.5t1W96`. Option uses the same immutable
-  String source family; raw UNKNOWN and cleanup rights are unchanged.
-- Approved eks1ct passes size/build, phase12251/0 and MIR526/0. dzQDql passes
-  unchanged strict C/LLVM; registered strict N2ANBX also passes.
-  KTj5rq admits3 positives and preserves mixed borrowed refusal5:24/MIR0.
-  Runtime43lZmR confirms3 safe C/LLVM stdout pairs/stderr0. Broad tiz7k8 passes
-  six currency controls, semantic3230, transpile1012, AIR156, Map24+58, four IR
-  flow gates and separate ASan/UBSan phase/MIR (leaks OFF).
-- Scratch xtlWWR found a missing child CALL type receipt in Some(Substring).
-  The pending checked-relation issuer now seals that exact typed receipt;
-  ready queries still refuse missing/wrong receipts. An attempted ready-only
-  getter in pending caused97 phase failures (82wXDD), then was corrected to
-  the original raw issuance validator. No failed candidate is approved.
-  Portable review-only replay also passes phase/MIR with19 hashed inputs;
-  missing inputs refuse and restoration passes. Bounded independent review
-  APPROVED source/evidence freeze118/152 and supplemental retention v4 56items.
-  Its initial source0=cleanup-right assumption was withdrawn after actual
-  analysis/artifact checks. Multiple shallow Some uses were not made affine.
-  Added no-deep-drop-grant fixture11:31 and phase fact check pass in iQEzRz:
-  phase12252/0, MIR526/0, same6a native. Final strict c6qosH and ASan/UBSan
-  qP1qLG pass; nBnGGz verifies115 D/Linux source pairs. Independent review
-  covered the original12251 phase assertions; the additional assertion and
-  no-deep-drop fixture were then run by root without production changes.
-- Full unchanged fixed/current zyPWRq remains RED18435 errors/16 warnings/MIR0,
-  30.48s/1719444KiB and30.57s/1717180KiB. Observer1PR0kz now first refuses
-  `SemanticDiagnosticCodeFromMessage`, diagnostic_owner.pgy506:30,
-  `Some(codes[i])`. Prior450:87 passes. Inspect the exact SemanticDiagnosticCodes
-  producer and element storage/cleanup/return chain before choosing a repair;
-  do not make arbitrary Array<String> elements independent. No source copies
-  or manual drops. HrTPcQ on6a refuses minimal literal-return and mixed/heap
-  controls at10:30/MIR0; both are analyze-only. Existing literal typed origins
-  and original all-return events must supply the permanence facet; a borrowed
-  element enum or source0 alone is insufficient. See the new complete plan.
-  Cascades are not distinct defects. fb54 is committed locally, not pushed.
-- Prior approved evidence: oLnQ0O phase12112/MIR511, strict OyNcZg unchanged
-  C/LLVM, broader Uqib4J6currency/semantic3230/transpile1012/AIR156/Map24+58/
-  4IRflow and separate ASan/UBSan phase/MIR (leaks OFF). OaeVgN105 source
-  pairs and IBRCyu3 safe C/LLVM outputs match. Not self-host substitution.
-- v3 freeze source manifest00675C2E...110paths, evidence1BA29C3E...125items:
-  independent read-only review APPROVED the prior bounded repair, not canonical or
-  V1. Old reverse-role f32937 MIR491/6 and duplicate H8PYrx MIR501/3 retained.
-  Portable review-only binaries c73090b0/332245e5 plus19 hashed inputs replay
-  phase12112/MIR511; input removal fails and restore passes. Root's verified
-  frozen replay is pgy-frozen-v3-replay-verified.O6m5tr; a prior inline quoting
-  failure is separately retained, not a successful fresh-directory receipt.
-- Required endpoint remains unchanged: actual canonical admission, bootstrap
-  gen2==gen3, installed C/LLVM driver and same-published-SHA CI. Latest remote
- 39a8fc1d/run38860052641 is still failure (refreshed this session). No known-red
-  push or safety weakening. Last approved plan is retained below for lookup.
+  Three implementation scopes are frozen. Root integrated snapshot capture/MOVE,
+  reference membership, derived write ordinals and actual HIR/MIR consumers.
+  Root alone runs commands/builds/WSL/process/Git. One chain, main only, no
+  worktree. WSL is `Ubuntu-E-WSL -u root`, not the default distribution.
+- Current native SHA256
+  `47ecd2f7f733aae04fb3ca98f602074d68b16dcc4bd47ebad05ea0c232081f4e`
+  in `/root/pgy-nonowner-20261018.5t1W96`. Its identified predecessor is6a0316
+  below. The returned literal bytes are permanent; descriptor/element ownership,
+  raw source IDs and deep-release rights are unchanged. The same all-return
+  core now serves the original ownership checks and the literal observer.
+  Current lookup cannot build/demand evidence.
+- umRhDl passes static/build, phase12312/0 and MIR534/0. KmCJB8 passes the
+  complete strict C/LLVM gate, including the nine new registered inputs.
+  Source6ig7dd admits the literal positive (MIR39035) and rejects eight
+  mixed/mutated/aliased/unproved-handoff controls (MIR0); no unsafe execution.
+  RuntimeVdUboE confirms C/LLVM stdout `alpha\\nfalse\\nheap\\n`, stderr0,
+  byte-equal. Source-pairs3dXy9J verifies134 raw D/Linux pairs.
+- Expanded HTE93e passes six currency controls, semantic3230/0,
+  transpile1012/0, AIR156/0, Map24 positives+58 analysis-only negatives and
+  HIR/RIR/MIR/AIR flow gates. Separate ASan/UBSan phase12312/0 and MIR534/0
+  also pass; leak detection is OFF. No whole-language safety claim.
+- Initial4amrJ5 compiled the same native47 but phase12516/32 failed: an
+  accidental old fault-loop10->17 edit contributed21 failures; the remaining
+  eleven expected raw element source0 contrary to the plan. The old loop was
+  restored, raw nonzero identity checked, and actual Unwrap/String-use derived0
+  checked separately. The production code was not relaxed; final umRhDl is
+  the passing receipt. Retain the failed receipt for review.
+- Full unchanged fixed/current wvdpM2 remains RED:18435 errors/16 warnings,
+  MIR0,30.97s/1729628KiB and32.26s/1728144KiB. These cascades are not distinct
+  defects. ObserverdXIVDK now first refuses
+  `SemanticSourceDiagnosticCallCodes`, diagnostic_owner.pgy570:79,
+  the result of `ReadFile(path)` handed to
+  `SemanticDiagnosticCallCodesFromContent`, before global failure. The path
+  argument is at88, not79. Do not add an input-retention row for this failure.
+  Previous506:30 no longer fails immediately; that does not prove the full
+  program's final deferred receipts. Survey the existing independent String
+  result/typed-call publication/backing-flow/runtime/immutable consumer chain
+  before a next repair. No new production scope is open yet.
+- Next falsifier: ezkPLF on47 admits a borrowed path passed to ReadFile
+  (MIR9374) and a ReadFile result without a live Array risk (MIR6994), but
+  refuses a literal-path ReadFile result forwarded to a named String reader
+  with an unrelated live Array risk at6:17/MIR0. Wrong arity refuses6:17;
+  declaring a top-level ReadFile shadow is already reserved, so that probe
+  is not a new result-identity falsifier. All five are analysis-only. Missing
+  or changed selected identity/result/arguments must not manufacture source0.
+  An input borrow is not an independent result or a cleanup grant.
+- Required endpoint remains the unchanged canonical program with zero ownership
+  refusals, actual bootstrap/gen2==gen3, installed C/LLVM driver and same
+  published-SHA required CI. Latest observed remote39a8fc1d/run38860052641 was
+  RED; no known-red push. Prior approved checkpoints and receipts are lookup
+  evidence below, not another active work queue.
 
 ## Previous bounded checkpoint — indexed String non-owning risk exclusion
 

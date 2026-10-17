@@ -1,0 +1,22 @@
+func ReboundCodes() -> Array<String> {
+    var codes: Array<String> = ["alpha"];
+    codes = [Concat("he", "ap")];
+    return codes;
+}
+
+func FindCode() -> Option<String> {
+    let codes: Array<String> = ReboundCodes();
+    return Some(codes[0]);
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("li", "ve")];
+    let found: Option<String> = FindCode();
+    let rows: Array<String> = [];
+    if IsSome(found) {
+        let text: String = UnwrapOption(found);
+        ArrayPush(rows, text);
+        Log(rows[0]);
+    }
+    Log(risk[0]);
+}

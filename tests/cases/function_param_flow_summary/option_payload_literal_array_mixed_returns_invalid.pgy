@@ -1,0 +1,25 @@
+func ChosenCodes(first: Bool) -> Array<String> {
+    if first {
+        let codes: Array<String> = ["alpha"];
+        return codes;
+    }
+    let codes: Array<String> = ["beta", Concat("he", "ap")];
+    return codes;
+}
+
+func FindCode() -> Option<String> {
+    let codes: Array<String> = ChosenCodes(true);
+    return Some(codes[0]);
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("li", "ve")];
+    let found: Option<String> = FindCode();
+    let rows: Array<String> = [];
+    if IsSome(found) {
+        let text: String = UnwrapOption(found);
+        ArrayPush(rows, text);
+        Log(rows[0]);
+    }
+    Log(risk[0]);
+}

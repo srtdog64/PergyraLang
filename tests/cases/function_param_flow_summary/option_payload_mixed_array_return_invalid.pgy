@@ -1,0 +1,23 @@
+func MixedCodes() -> Array<String> {
+    let codes: Array<String> = ["alpha", Concat("he", "ap")];
+    return codes;
+}
+
+func FindCode(message: String) -> Option<String> {
+    let codes: Array<String> = MixedCodes();
+    var i: Int = 0;
+    while i < ArrayLength(codes) {
+        if StringContains(message, codes[i]) {
+            return Some(codes[i]);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func Main() -> Void {
+    let found: Option<String> = FindCode("heap");
+    if IsSome(found) {
+        Log(UnwrapOption(found));
+    }
+}

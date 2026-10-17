@@ -44,10 +44,6 @@ struct IndexedStringOptionInputs {
  * result-source checker. The Option mode still checks formal->actual returns. */
 bool indexed_string_result_derive(SemanticContext *ctx, const ASTNode *call,
     uint32_t *source, bool prepare, bool option_result, IndexedStringResultInputs *inputs);
-bool indexed_string_result_capture_dependency(SemanticContext *ctx, ASTNode *decl,
-    FunctionParamFlowIndexClaims *claims, IndexedStringResultInputs *inputs, bool prepare);
-bool indexed_string_result_capture_call(SemanticContext *ctx, const ASTNode *call,
-    IndexedStringResultInputs *inputs, bool prepare);
 bool indexed_string_option_source(SemanticContext *ctx, const ASTNode *call,
     uint32_t *source, IndexedStringResultInputs *inputs, bool prepare);
 bool indexed_string_option_relation_record(SemanticContext *ctx, IndexedStringResultInputs *inputs,
