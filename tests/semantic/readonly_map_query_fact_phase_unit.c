@@ -3982,6 +3982,82 @@ static void storage_root_faults(void)
     dispose(&f);
 }
 
+static void checked_cast_after_prior_ownership_error(void)
+{
+    const char *prior =
+        "func Consume(own rows:Array<Int>)->Int{return ArrayLength(rows);}"
+        "func Refuse()->Void{let rows:Array<Int> = [1];let alias=rows;Consume(alias);}";
+    for (unsigned route = 0; route < 3; route++) {
+        char source[512];
+        if (route == 0)
+            snprintf(source, sizeof(source), "%sfunc CastRead(hash:Long,value:String)->Long{"
+                "let modulus:Long=268435456L;let out:Long=(hash*131L+(StringLength(value) as Long))%%modulus;"
+                "let i:Int=0;while i<StringLength(value){out=(out*131L+"
+                "(CharCode(value,StringLength(value),i) as Long))%%modulus;i=i+1;}return out;}", prior);
+        else
+            snprintf(source, sizeof(source), "%sfunc CastRead(value:Int)->Long{return %s as Long;}",
+                route == 1 ? prior : "", route == 1 ? "\"invalid\"" : "value");
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed == (route == 2));
+        bool spurious = false;
+        for (size_t d = 0; d < ctx->diagnostic_count; d++) {
+            const Diagnostic *diagnostic = ctx->diagnostics[d];
+            if (diagnostic != NULL && diagnostic->message != NULL)
+                spurious |= strstr(diagnostic->message, "Checked numeric cast publication failed") != NULL;
+        }
+        if (spurious) fprintf(stderr, "Numeric cast publication cascaded after ownership error route=%u\n", route);
+        CHECK(!spurious);
+        if (route < 2) {
+            CHECK(ctx->has_error && context_has_diagnostic(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE));
+            if (route == 1) CHECK(context_has_diagnostic(ctx,
+                PGY_CODE_SEM_TYPE_MISMATCH, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH));
+        } else if (typed) {
+            ASTNode *decl = ast_program_statement(program, 0);
+            ASTNode *cast = ast_return_value(ast_block_statement(ast_func_body(decl), 0));
+            CHECK(semantic_param_publication_checked_numeric_cast(ctx, cast));
+            CHECK(semantic_param_publication_value(ctx, cast).ok);
+            CHECK(function_param_flow_summary_for_param(ctx, decl, 0) != SLOT_PARAM_SUMMARY_ALL);
+            CHECK(semantic_param_publication_checked_numeric_cast(ctx, cast));
+        }
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    /* A pending owner protocol probe, not reopening a finalized program. No
+     * operand value was published before the independent error was raised. */
+    Lexer *lexer = lexer_create("func CastRead()->Long{return StringLength(\"value\") as Long;}");
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *program = parser != NULL ? parser_parse_program(parser) : NULL;
+    SemanticContext *ctx = semantic_context_create();
+    bool parsed = program != NULL && !parser_has_error(parser);
+    CHECK(parsed && ast_assign_stable_ids(program));
+    CHECK(lexer != NULL && parser != NULL && ctx != NULL);
+    if (parsed && ctx != NULL) {
+        ASTNode *cast = ast_return_value(ast_block_statement(ast_func_body(ast_program_statement(program, 0)), 0));
+        ctx->program_root = program;
+        bool begun = semantic_param_publication_begin(ctx);
+        CHECK(begun);
+        if (begun) {
+            semantic_error(ctx, cast, "Earlier independent semantic error for numeric-cast publication probe");
+            CHECK(type_equals(type_check_expression(cast, ctx), TYPE_LONG));
+            bool spurious = false;
+            for (size_t d = 0; d < ctx->diagnostic_count; d++) {
+                const Diagnostic *diagnostic = ctx->diagnostics[d];
+                if (diagnostic != NULL && diagnostic->message != NULL)
+                    spurious |= strstr(diagnostic->message, "Checked numeric cast publication failed") != NULL;
+            }
+            if (spurious) fprintf(stderr, "Numeric cast unpublished CALL operand cascaded after prior error\n");
+            CHECK(!spurious && ctx->has_error);
+        }
+    }
+    semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+}
+
 static void checked_cast_and_consumed_edges(void)
 {
     Lexer *lexer = lexer_create("func CastRead(value:Int)->Long{let other:Int=value;return value as Long;}");
@@ -9208,6 +9284,7 @@ int main(void)
     checked_string_map_get_payload_source();
     checked_callable_flow_projection_authority();
     checked_cast_and_consumed_edges();
+    checked_cast_after_prior_ownership_error();
     reached_producer_source("struct TextRecord{text:String;} extern \"C\"{func Keep(text:String)->Void;} func RetainingNumber(ref text:String)->Int{Keep(text);return 1;} func ReadRecord(ref record:TextRecord)->Bool{let observed=RetainingNumber(record.text) as Long;return observed>(0 as Long);} func Main()->Void{let record=TextRecord(Concat(\"heap\",\" text\"));Log(ReadRecord(record));}", false);
     fact_faults();
     phase_faults();

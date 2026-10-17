@@ -242,7 +242,7 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         else if (target != NULL && strcmp(target, "Float") == 0)
             numeric_target = TYPE_FLOAT;
         if (numeric_target != NULL) {
-            if (source_numeric && semantic_param_publication_pending(ctx) &&
+            if (source_numeric && semantic_param_publication_pending(ctx) && !ctx->has_error &&
                 !semantic_param_publication_record_checked_numeric_cast(ctx, expr))
                 semantic_error(ctx, expr, "Checked numeric cast publication failed");
             if (!source_numeric)

@@ -125,6 +125,7 @@ paired = (
     ("array_field_detach_partial_branch_own_invalid", False),
     ("array_field_detach_opaque_hold_own_invalid", False),
     ("array_field_detach_live_root_alias_own_invalid", False),
+    ("array_alias_then_numeric_cast_invalid", False),
     # Semantic MIR admission only: native C still reports "Unknown destructuring
     # initializer" for this fresh tuple. It is not a C/LLVM runtime control.
     ("array_literal_tuple_destructure_own_valid", True),
@@ -432,6 +433,7 @@ for name, valid in paired:
             "array_field_detach_partial_branch_own_invalid": (14, 20),
             "array_field_detach_opaque_hold_own_invalid": (15, 20),
             "array_field_detach_live_root_alias_own_invalid": (13, 20),
+            "array_alias_then_numeric_cast_invalid": (12, 17),
             "selector_member_effectful_receiver_invalid": (21, 15),
             "selector_array_effectful_index_invalid": (16, 15),
         }

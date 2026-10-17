@@ -1,0 +1,25 @@
+struct Box { rows: Array<Int>; }
+
+func Consume(own rows: Array<Int>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let box: Box = Box([7]);
+    let alias = box.rows;
+    Log(Consume(alias));
+    Log(ArrayLength(box.rows));
+}
+
+func Later(value: String) -> Long
+{
+    let out: Long = StringLength(value) as Long;
+    let i: Int = 0;
+    while i < StringLength(value) {
+        out = out + (CharCode(value, StringLength(value), i) as Long);
+        i = i + 1;
+    }
+    return out;
+}
