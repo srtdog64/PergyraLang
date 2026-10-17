@@ -267,7 +267,10 @@ manifest00675C2E7175CF71ED74664DF1337F2E90A95BC6858E0DB26B90EC681DF4F4CD
 1BA29C3E65E44162B67649976D6B0B2BEDEABE6FA522AC8EF8384079AA6EE4C7
 (125 artifacts) matched without drift. The reviewer independently replayed
 portable phase12112/MIR511, input-withdrawal failures and restoration. Root
-also replayed the frozen closure in pgy-frozen-v3-replay.1J70X8 and confirmed
+also replayed the frozen closure in pgy-frozen-v3-replay-verified.O6m5tr and confirmed
 all110 current source/context paths still matched before local commit.
 This approval is not full canonical admission, V1 closure or permission to
 publish known-red main. The next reached boundary remains450:87.
+The earlier inline replay command had a quoting/redirection failure; its
+42-byte failure log is preserved in scratch. O6m5tr is the subsequent real
+fresh-directory replay, with its own log/hash, not that failed invocation.

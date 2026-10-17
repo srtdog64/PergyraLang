@@ -3,7 +3,44 @@
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — indexed String non-owning risk exclusion
+## Active self-host context — connect typed Option payload source evidence
+
+- Implementation checkpoint main `573dec99fbdb6980ce0fbfd030a202f2f274be07`
+  commits the independently APPROVED all-definitions repair. Native9ddd below
+  is unchanged at this update; new Option source edits are unbuilt candidates.
+  Preserve `docs/01_intent_first_design.md`, another lane's change.
+- Active whole-chain plan:
+  `docs/agent_work_directives/indexed_string_option_payload_closure_2026-10-18.md`.
+  A definition selection/birth, B same result owner/Option proof, C phase/MIR
+  falsifiers; root snapshot/actual joins, all commands/WSL/process/Git. One
+  chain, no worktree/branch. WSL is `Ubuntu-E-WSL -u root`, not the default.
+- Baseline native SHA256
+  `9dddcd887cbc5c1e783ad4ee20c6439b027d2054b858ee5def2da1a3ec5f351f`.
+  Full fixed/current canonical9Swov2 stays RED18435 errors/16 warnings/MIR0,
+  first actual observer6Pvzm0: `SemanticVerdictPayloadFixtureManifestRows`,
+  diagnostic_owner.pgy450:87. Cascades are not a defect census. No publication.
+- Next falsifier xV1B03 on exact9ddd: fresh/literal Option payload controls
+  refuse at18:39/19:39; mixed Array payload negative refuses at5:24. Allrc1,
+  MIR0, unsafe execution0. Connect original typed Some/None return, immutable
+  carrier and Unwrap evidence through the existing String result/definition
+  input union. Source0 is not a cleanup right. Raw UNKNOWN stays unchanged.
+- Prior approved evidence: oLnQ0O phase12112/MIR511, strict OyNcZg unchanged
+  C/LLVM, broader Uqib4J6currency/semantic3230/transpile1012/AIR156/Map24+58/
+  4IRflow and separate ASan/UBSan phase/MIR (leaks OFF). OaeVgN105 source
+  pairs and IBRCyu3 safe C/LLVM outputs match. Not self-host substitution.
+- v3 freeze source manifest00675C2E...110paths, evidence1BA29C3E...125items:
+  independent read-only review APPROVED this bounded repair, not canonical or
+  V1. Old reverse-role f32937 MIR491/6 and duplicate H8PYrx MIR501/3 retained.
+  Portable review-only binaries c73090b0/332245e5 plus19 hashed inputs replay
+  phase12112/MIR511; input removal fails and restore passes. Root's verified
+  frozen replay is pgy-frozen-v3-replay-verified.O6m5tr; a prior inline quoting
+  failure is separately retained, not a successful fresh-directory receipt.
+- Required endpoint remains unchanged: actual canonical admission, bootstrap
+  gen2==gen3, installed C/LLVM driver and same-published-SHA CI. Latest remote
+ 39a8fc1d/run38860052641 is still failure (refreshed this session). No known-red
+  push or safety weakening. Last approved plan is retained below for lookup.
+
+## Previous bounded checkpoint — indexed String non-owning risk exclusion
 
 - Implementation checkpoint main
   `ac599dd76385cbe1929944923bb5360a8a384d25`, parent
