@@ -1,0 +1,20 @@
+struct State { rows: Array<String>; }
+
+func Consume(own rows: Array<String>) -> Int
+{
+    let i: Int = 0;
+    while i < 64 {
+        ArrayPush(rows, "next");
+        i = i + 1;
+    }
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let state: State = State(["row"]);
+    let otherRoot: State = state;
+    let rows: Array<String> = state.rows;
+    Log(Consume(rows));
+    Log(otherRoot.rows[0]);
+}

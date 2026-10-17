@@ -7916,6 +7916,35 @@ static void checked_array_alias_birth_before(void)
     }
 }
 
+static void checked_string_member_alias_birth(void)
+{
+    const char *sources[] = {
+        "struct State{rows:Array<String>}"
+        "func Consume(own rows:Array<String>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let state:State=State([\"row\"]);let otherRoot:State=state;"
+        "let rows:Array<String> = state.rows;Log(Consume(rows));Log(ArrayLength(otherRoot.rows));}",
+        "struct State{rows:Array<String>;other:Array<String>}"
+        "func Consume(own rows:Array<String>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let source:Array<String> = [\"row\"];let state:State=State(source,source);"
+        "let rows:Array<String> = state.rows;Log(Consume(rows));Log(ArrayLength(state.other));}"
+    };
+    for (size_t path = 0; path < 2; path++) {
+        Lexer *lexer = lexer_create(sources[path]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool admitted = parsed && type_check_program(program, ctx);
+        if (admitted) fprintf(stderr, "String member alias birth unsafe source path=%zu still admitted\n", path);
+        CHECK(!admitted && ctx->has_error && ctx->diagnostic_count != 0);
+        semantic_context_destroy(ctx); ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    reached_producer_source(
+        "func Consume(own rows:Array<String>)->Int{return ArrayLength(rows);}"
+        "func Main()->Void{let rows:Array<String> = [\"row\"];Log(Consume(rows));}", true);
+}
+
 static void checked_array_birth_initializer_states(void)
 {
     const char *sources[] = {
@@ -9265,6 +9294,7 @@ int main(void)
     checked_array_alias_birth_before();
     checked_array_birth_preserved_sources();
     checked_array_birth_initializer_states();
+    checked_string_member_alias_birth();
     checked_array_storage_live_paths();
     checked_private_local_array_push();
     checked_private_physical_array_nested_result_currency();

@@ -119,14 +119,6 @@ semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializer,
         binding->has_escaped_array_storage = source == NULL
             || ast_identifier_binding_syntax_id(initializer) != source->decl_syntax_id
             || source->has_escaped_array_storage || !source->is_consumed;
-    } else if (initializer != NULL && initializer->type == AST_MEMBER_ACCESS
-               && ctx != NULL && ctx->current_function_decl != NULL) {
-        const PgyCollectionOwnershipFact *fact = semantic_collection_ownership_fact_find(
-            ctx, ast_node_stable_id(ctx->current_function_decl), binding->decl_syntax_id);
-        if (fact != NULL && fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE
-            && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
-            && fact->source_binding_syntax_id != 0 && fact->origin_syntax_id != 0)
-            binding->has_escaped_array_storage = false;
     }
     semantic_array_storage_escape((ASTNode *)initializer, binding->type, ctx);
 }

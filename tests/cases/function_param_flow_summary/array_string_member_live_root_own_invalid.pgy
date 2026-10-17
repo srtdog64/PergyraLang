@@ -1,0 +1,15 @@
+struct State { rows: Array<String>; }
+
+func Consume(own rows: Array<String>) -> Int
+{
+    return ArrayLength(rows);
+}
+
+func Main() -> Void
+{
+    let state: State = State(["row"]);
+    let otherRoot: State = state;
+    let rows: Array<String> = state.rows;
+    Log(Consume(rows));
+    Log(ArrayLength(otherRoot.rows));
+}
