@@ -2,38 +2,47 @@
 
 Owner: Claude lane (main-line work since 2026-10-18,
 [decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-18 KST at `b336f4ce7` on branch `claude/p0-native-checker`.
+2026-10-19 KST at `9b9b1ba0f` on branch `claude/p0-native-checker`.
 
 The native checker still refuses the unchanged canonical driver input
-`src/self_hosted/compiler/driver_bootstrap_main.pgy`. Method and counts:
-[first census](../evidence/2026-10-18_native_refusal_census.md),
+`src/self_hosted/compiler/driver_bootstrap_main.pgy`, and the first CI
+step's manifest program (`compiler/test_harness_manifest.pgy`). Method and
+counts: [first census](../evidence/2026-10-18_native_refusal_census.md),
 [flow progress](../evidence/2026-10-18_native_census_flow_progress.md).
 
 ## Open fronts, in order
 
-1. **Flow engine completion.** The analysis now reaches 8390 flow entries
-   and fails closed at
-   `DirectMirScalarProgramIndexedAssignmentRouteFromOwners#1`
-   (`compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy:168`):
-   a store of that input's backing into a non-local binding with no
-   output destination. An import wrapper of the owner passes; only the
-   full program demands this relation. Next: the store target, from a
-   full-program store trace.
-2. **String element precision (proof route, user choice).** 767
-   opaque-boundary sites, mostly `ArrayPush(dst, src[i])` between local
-   owned arrays. GPT's untracked 2026-10-18 directive
-   (`indexed_string_array_push_ownership_chain`) lays out the copy-or-move
-   decision and its MIR/ABI and cleanup chain.
-3. **Deferred Array storage refusals.** 1475 "Array argument call
-   requires preserved array storage"; re-count once front 1 is closed.
+1. **World member storage.** The flow analysis reaches 10938 entries and
+   fails closed at `CompileSourceToC` (`compiler/world.pgy:333`):
+   `Clone(source_c)` names a world member (a host field of `self`) that no
+   frame row holds. Mapping a host field to the `self` parameter is not
+   enough: a `ref self` method returning a member that holds an Array is
+   then admitted, because no borrow-escape report covers `self`. Needs a
+   design for `self` and world-member lifetime (and whether `Clone` of a
+   zone member is a deep, declared copy at runtime).
+2. **String the proof route cannot alias.**
+   [OPEN decision](../decisions/2026-10-18_open_string_push_landing.md):
+   copy or move landing. 438 opaque-boundary sites remain (249 push, 124
+   constructor field, 46 plain store, 19 set); the manifest program needs
+   two, a push and a retained call argument.
+3. **Allocator births.** A pool or builder created from Int arguments has
+   no checked relation, and that gap is what refuses returning a String
+   from a destroyed pool (`pool_builder_birth_invalid`). Modelling it means
+   modelling allocator destruction.
+4. **Deferred Array storage refusals.** 1475; re-count once front 1 is
+   closed.
 
-The flow work cap is settled:
-[decision](../decisions/2026-10-18_flow_budget_counts_closure_entries.md).
+## Lesson on the record
+
+An incomplete frame can be the only guard for an unmodelled hazard. Two
+completeness changes this session (a scalar-argument skip and the host
+field mapping) each admitted an unsafe program and were reverted before
+commit. Every completeness change needs an adversarial negative for the
+hazard the old incompleteness covered.
 
 ## Known red at base, unchanged on the branch
 
 `aggregate_storage_transfer_smoke` (12 C/LLVM checks) and
 `hashmap_owned_string_provenance_smoke` (`map_keys_double_drop`) fail the
-same way at `7cd004fab`. The broader backend and parity failures in
-[gates](gates.md) are not re-measured here. Bootstrap, installed driver,
-gen2 == gen3 and required CI are not established on this branch.
+same way at `7cd004fab`. Bootstrap, installed driver, gen2 == gen3 and
+required CI are not established on this branch.
