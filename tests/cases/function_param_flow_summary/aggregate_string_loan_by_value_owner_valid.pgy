@@ -1,0 +1,28 @@
+// The getter lends a String of a field of Matches' by-value view. Matches
+// only compares that loan and never changes the view, so the loan's owner
+// outlives it.
+struct Facts {
+    names: Array<String>;
+}
+
+struct View {
+    facts: Facts;
+    index: Int;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> String {
+    return facts.names[index];
+}
+
+func Matches(view: View, name: String) -> Bool {
+    let text: String = NameAt(view.facts, view.index);
+    return text == name;
+}
+
+func Main() -> Int {
+    let view: View = View(Facts([StringConcat("ab", ToString(7))]), 0);
+    if Matches(view, "ab7") {
+        Print("match");
+    }
+    return 0;
+}

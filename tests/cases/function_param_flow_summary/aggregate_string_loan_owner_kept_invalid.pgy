@@ -1,0 +1,26 @@
+// Keep's by-value formal keeps its argument, so passing the aggregate moves
+// it while the getter's loan of it is still to be printed.
+struct Facts {
+    names: Array<String>;
+}
+
+struct Keeper {
+    facts: Facts;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> String {
+    return facts.names[index];
+}
+
+func Keep(facts: Facts) -> Keeper {
+    return Keeper(facts);
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts([StringConcat("ab", ToString(7))]);
+    let name: String = NameAt(facts, 0);
+    let keeper: Keeper = Keep(facts);
+    Print(name);
+    Print(keeper.facts.names[0]);
+    return 0;
+}

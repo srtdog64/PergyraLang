@@ -1,0 +1,23 @@
+// The getter's String is storage of the aggregate Main owns. Main moves that
+// aggregate into an `own` formal while the loan is still to be printed, so
+// the loan is refused.
+struct Facts {
+    names: Array<String>;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> String {
+    return facts.names[index];
+}
+
+func Discard(own facts: Facts) -> Int {
+    return ArrayLength(facts.names);
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts([StringConcat("ab", ToString(7))]);
+    let name: String = NameAt(facts, 0);
+    let count: Int = Discard(facts);
+    Print(name);
+    Print(ToString(count));
+    return 0;
+}

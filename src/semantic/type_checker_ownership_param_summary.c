@@ -311,19 +311,22 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
         else if (value->type == AST_ARRAY_ACCESS) dependency = ast_array_access_array(value);
         else if (value->type == AST_IDENTIFIER) {
             uint32_t binding = semantic_param_publication_binding(store->ctx, value);
-            bool formal = false;
+            bool formal = false, by_value_formal = false;
             for (size_t p = 0; p < ast_func_param_count(loan->caller); p++) {
                 FuncParam *param = ast_func_param(loan->caller, p);
                 if (param == NULL || binding == 0 || binding != ast_func_param_stable_id(param)) continue;
                 unsigned mask = function_param_flow_summary_for_param(store->ctx, loan->caller, p);
                 formal = true;
-                if (param->mode != PARAM_MODE_REF || (mask & effects) != effects || store->failed) admitted = false;
+                /* A loan that stays here may borrow a by-value input this
+                 * routine leaves unchanged, checked below as a local is. */
+                if (param->mode == PARAM_MODE_DEFAULT && effects == 0 && !store->failed) by_value_formal = true;
+                else if (param->mode != PARAM_MODE_REF || (mask & effects) != effects || store->failed) admitted = false;
             }
-            if (formal) continue;
-            for (size_t i = 0; i < local_count; i++) {
+            if (formal && !by_value_formal) continue;
+            for (size_t i = 0; !formal && i < local_count; i++) {
                 if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
             }
-            for (size_t c = 0; dependency != NULL && c < claims->count; c++) {
+            for (size_t c = 0; (dependency != NULL || by_value_formal) && c < claims->count; c++) {
                 ASTNode *node = claims->rows[c].node;
                 if (node->type == AST_ASSIGNMENT) {
                     const ASTNode *target = NULL;
@@ -340,15 +343,22 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                     if (!returned_loan_storage_root(store, claims, loan->caller, ast_call_argument(node, p), &root)) { admitted = false; break; }
                     if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
                     ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
-                    if (callee != NULL) {
-                        size_t formal = 0;
-                        if (!semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal) ||
-                            ast_func_param(callee, formal)->mode == PARAM_MODE_MUT_REF ||
-                            (function_param_flow_summary_for_call(&(SlotFunctionLookup){store->ctx, store->program_root}, node, p) & SLOT_PARAM_SUMMARY_WRITE) != 0) admitted = false;
-                    } else admitted = false;
+                    size_t formal = 0;
+                    if (callee == NULL || !semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal)) {
+                        admitted = false; continue;
+                    }
+                    /* The owner may be lent on. A write changes it under the
+                     * loan; so does a move into an `own` formal or into a
+                     * by-value formal that keeps or releases it. */
+                    ParamMode mode = ast_func_param(callee, formal)->mode;
+                    unsigned summary = function_param_flow_summary_for_call(
+                        &(SlotFunctionLookup){store->ctx, store->program_root}, node, p);
+                    if (mode == PARAM_MODE_MUT_REF || mode == PARAM_MODE_OWN || (summary & SLOT_PARAM_SUMMARY_WRITE) != 0 ||
+                        (mode != PARAM_MODE_REF && (summary & (SLOT_PARAM_SUMMARY_RELEASE | SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+                            SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) != 0)) admitted = false;
                 }
             }
-            if (dependency == NULL) admitted = false;
+            if (dependency == NULL && !by_value_formal) admitted = false;
             /* A loan that stays here needs only an owner no write reaches. */
             if (effects == 0) continue;
         } else if (value->type == AST_CALL) {

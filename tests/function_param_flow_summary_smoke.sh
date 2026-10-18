@@ -211,8 +211,11 @@ release_lifetime_refusals = {
     "aggregate_string_loan_struct_escape_invalid": [(*borrow_refusal, 18, 6), (*borrow_refusal, 28, 32)],
     # The loan's owner is Make's own aggregate, so its return is refused.
     "aggregate_string_loan_local_owner_invalid": [(*borrow_refusal, 13, 5)],
-    # A loan used only in Main still needs an owner Main does not change.
+    # A loan used only in Main still needs an owner Main does not change:
+    # not replaced, not moved into an `own` formal, not kept by a by-value one.
     "aggregate_string_loan_owner_mutated_invalid": [(*borrow_refusal, 14, 24)],
+    "aggregate_string_loan_owner_moved_invalid": [(*borrow_refusal, 18, 24)],
+    "aggregate_string_loan_owner_kept_invalid": [(*borrow_refusal, 21, 24)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -700,6 +703,9 @@ paired = (
     ("aggregate_string_loan_struct_escape_invalid", False),
     ("aggregate_string_loan_local_owner_invalid", False),
     ("aggregate_string_loan_owner_mutated_invalid", False),
+    ("aggregate_string_loan_owner_moved_invalid", False),
+    ("aggregate_string_loan_owner_kept_invalid", False),
+    ("aggregate_string_loan_by_value_owner_valid", True),
     ("ref_string_option_loan_forward_valid", True),
     ("tostring_interpolation_ref_valid", True),
     ("enum_payload_constructor_ref_field_return_invalid", False),
