@@ -321,6 +321,17 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
                     state->fact->sealed_pending_relation_count = state->fact->pending_relation_count;
                 continue;
             }
+            if (callee == NULL && type_equals(published.type, TYPE_STRING) &&
+                semantic_param_publication_value_is_physical_scalar(state->store->ctx, arg)) {
+                /* A physical scalar actual of a String builtin has no
+                 * destination. A builtin that births an allocator or a
+                 * builder from scalars stays unmodelled: its storage
+                 * lifetime has no relation here. */
+                if (!function_param_flow_claim_record(state->store->ctx, state->fact->claims, arg)) {
+                    state->fact->complete = false; break;
+                }
+                continue;
+            }
             bool depends = false, retains = true;
             bool ready = false, pending_edge = false;
             if (callee != NULL) {
@@ -339,7 +350,13 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
                 }
                 depends = (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
             } else if (!semantic_param_publication_checked_backing_relation(state->store->ctx, value, p, &depends, &retains)) {
-                state->fact->complete = false; break;
+                /* An argument borrowed only for the call is kept by nothing
+                 * after it; with no relation for the result, the result is
+                 * taken to depend on it, as the origin walk does. */
+                if (!semantic_param_publication_argument_borrowed_for_call(state->store->ctx, value, p)) {
+                    state->fact->complete = false; break;
+                }
+                depends = true;
             }
             if (depends) backing_destination_value(state, arg, destinations);
             if (state->fact->complete && callee != NULL && (ready || pending_edge)) {
