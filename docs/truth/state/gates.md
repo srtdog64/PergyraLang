@@ -1,13 +1,13 @@
 # Gates
 
-Owner: GPT root lane. Observed 2026-10-18 KST on an uncommitted V10 candidate
-based on `8404061d78f2d2bf9f2c325be1a67f83ab9904bf`.
+Owner: GPT root lane. Observed 2026-10-18 KST on an uncommitted post-gap V10
+candidate atop `4a5372b0c8dfbf30ed6891b03c4bf6c7fb37a613`.
 
 ## Finish line (OPEN)
 
 | Gate | Last result |
 |---|---|
-| Full unchanged fixed/current canonical | RED:18435 errors/16 warnings/MIR0 (YSfo5x) |
+| Full unchanged fixed/current canonical | RED:18,435 errors/16 warnings/MIR0 on final V10; first refusal at `diagnostic_owner.pgy:573:39` |
 | Current bootstrap and gen2 == gen3 | not established on current main |
 | Installed current C/LLVM driver | not established on current main |
 | Required CI, all required jobs executed at one published SHA | see [main](main.md) |
@@ -18,15 +18,18 @@ The earlier `b8e66a387` driver/fixed point is branch-specific
 ## Scoped regression evidence, not closure
 
 Build copy: `/root/pgy-nonowner-20261018.5t1W96`.
-Full receipt: [V10 capture allocation bounds](../evidence/2026-10-18_v10_capture_allocation_bounds.md).
+Full receipts: [post-gap V10](../evidence/2026-10-18_v10_capture_allocation_bounds_post_gap.md),
+[root replay](../evidence/2026-10-18_v10_root_replay.md).
 
 | Receipt | Observed result |
 |---|---|
-| Candidate binaries | pgy `0779ca03...afb2c`; AIR `6a8560de...7a5a`; MIR `2d57e8b...7a5a` |
-| Unit families | phase13422/0, MIR682/0, AIR161/0, semantic3230/0, transpile1014/0, RIR44/0, DIR15/0 |
+| Candidate binaries | pgy `6b5b00ba...56d0`; AIR `d014758f...c2b1`; MIR `2f1d170f...b720` |
+| Root final rerun | phase13422/0, MIR683/0, AIR161/0, RIR44/0, DIR15/0, semantic3230/0, transpile1014/0 |
 | Four representative post-certificate mutations | instruction identity, observability flag, boundary count and row count all refuse and restore |
-| Focused runtime/parity | ReadFile C/LLVM, capture projection C/LLVM, binding and four IR-flow gates PASS |
-| Sanitizers | AIR, MIR and 40-source compile corpus PASS under ASan+UBSan; leaks OFF |
+| Allocation lifecycle | missing storage, empty reimport, partial allocation rollback and capacity-tail release PASS; focused leaks ON |
+| Current sanitizers | AIR161/0 and MIR683/0 under ASan+UBSan; unit-suite leaks OFF |
+| Root strict/portable/sanitized | C/LLVM function-flow PASS; fresh five-unit replay and missing-input restoration PASS; separate ASan+UBSan unit gates PASS |
+| Prior context, not rerun post-gap | 40-source sanitizer corpus and broad backend observations |
 
 ## Broader current-branch gates
 
@@ -35,7 +38,9 @@ Full receipt: [V10 capture allocation bounds](../evidence/2026-10-18_v10_capture
 | Default strict backend compare | RED: ABI precheck 186 passed/4 failed across two LLVM fixtures |
 | Explicit all discovered backend cases | RED: 895/975 passed; default registry also omits three fixture directories |
 | Production-header gate | size/header portions PASS; self-host parity manifest RED on opaque String boundary |
-| Fresh portable V10 replay and independent immutable review | not run |
+| Fresh portable post-gap V10 replay | PASS on 20 inputs with two missing-input refusals and restoration |
+| Immutable V10 export | 270 source/context files and 135 evidence files frozen; [export receipt](../evidence/2026-10-18_v10_frozen_review_export.md) |
+| Independent review | [APPROVE, V10 bounds only](../evidence/2026-10-18_v10_independent_review.md); no new reviewer execution |
 
 The previous V9 size-mismatch sanitizer failures are repaired in this
 candidate. The broader failures above are not attributed wholesale to V10.

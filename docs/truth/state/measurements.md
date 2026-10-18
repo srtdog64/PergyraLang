@@ -12,13 +12,13 @@ Owner: GPT root lane. Checked 2026-10-18 KST; no inferred performance claim.
 
 ## Current unchanged canonical observations
 
-V9 source/executable identification is in [gates](gates.md).
-YSfo5x: full fixed33.64 s/1730224 KiB; current31.75 s/1728480 KiB.
+Final V10 source/executable identification and raw receipts are in the
+[root replay](../evidence/2026-10-18_v10_root_replay.md).
+Full fixed: 33.67 s / 1,730,056 KiB; full current: 33.92 s / 1,728,048 KiB.
 The fixed program remains4273 routines/3188 keys, not reduced or replaced.
-Scratch observert9AMcV:35.84 s/1729804 KiB; first prior-error=0 is in
-[blocker](blocker.md). Later prior-error=1 diagnostics are cascades, not an
-authoritative count of distinct defects. Refusal precedes HIR allocation;
-this is not compiler-scale HIR-census cost or speedup evidence.
+The first refusal precedes HIR allocation; later diagnostics are cascades,
+not an authoritative count of distinct defects. These timings are not a
+compiler-scale HIR-census cost or speedup measurement.
 
 ## Historical, not current-main evidence
 
