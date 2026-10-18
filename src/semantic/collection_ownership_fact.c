@@ -234,9 +234,12 @@ semantic_collection_ownership_initialize_binding(
          * the source rather than forbidding valid mutation through the owner. */
         if (collection_member_move_identity(initializer, ctx,
                 &root_binding_id, &field_syntax_id)) {
+            Symbol *root = scope_lookup(ctx->scope,
+                ast_identifier_name(ast_member_object(initializer)));
             fact.origin = PGY_COLLECTION_ORIGIN_MEMBER_MOVE;
             fact.source_binding_syntax_id = root_binding_id;
             fact.origin_syntax_id = field_syntax_id;
+            fact.source_birth_serial = root != NULL ? root->birth_serial : 0;
         }
     } else if (initializer != NULL
                && initializer->type == AST_IDENTIFIER && ctx != NULL) {
@@ -294,6 +297,9 @@ semantic_collection_ownership_initialize_binding(
             || source_fact->element_ownership != fact.element_ownership
             || source_fact->origin != fact.origin)
             return false;
+        /* The rechecked birth moved the field of the source's current
+         * incarnation. */
+        source_fact->source_birth_serial = fact.source_birth_serial;
     } else {
         semantic_array_storage_initialize_return_elements(&fact, binding, initializer, ctx);
         if (!collection_ownership_fact_reserve(

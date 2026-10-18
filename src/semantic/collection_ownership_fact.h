@@ -132,6 +132,9 @@ typedef struct PgyCollectionOwnershipFact
     bool return_elements_owned;
     const ASTNode *return_elements_source;
     uint32_t return_elements_source_id;
+    /* MEMBER_MOVE only, and only while type checking: the source Symbol's
+     * birth_serial when the field moved (0 when unknown). HIR/MIR ignore it. */
+    uint64_t source_birth_serial;
 } PgyCollectionOwnershipFact;
 
 bool collection_binding_is_current_parameter(const SemanticContext *ctx,

@@ -1,0 +1,34 @@
+// A loop that moves a field out of a struct declared before the loop moves
+// the same field again on its second iteration.
+struct Row {
+    ok: Bool;
+    values: Array<String>;
+}
+
+func MakeRow(n: Int) -> Row {
+    let values: Array<String> = [];
+    ArrayPush(values, ToString(n));
+    return Row(true, values);
+}
+
+func AppendAll(inout names: Array<String>, parts: Array<String>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(parts) {
+        ArrayPush(names, Concat("", parts[i]));
+        i = i + 1;
+    }
+    return true;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    let row: Row = MakeRow(1);
+    let i: Int = 0;
+    while i < 3 {
+        let values: Array<String> = row.values;
+        let added: Bool = AppendAll(names, values);
+        i = i + 1;
+    }
+    Print(ToString(ArrayLength(names)));
+    return 0;
+}

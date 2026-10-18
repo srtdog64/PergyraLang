@@ -79,6 +79,8 @@ release_lifetime_refusals = {
     "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     # Returning a field's storage shares it with the result, which also moves.
     "default_aggregate_move_shared_field_return_invalid": [(*released_refusal, 17, 28)],
+    # A field of a struct declared before the loop moves again next iteration.
+    "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -620,6 +622,8 @@ paired = (
     ("default_aggregate_move_shared_field_return_invalid", False),
     ("recursive_ref_read_only_walk_valid", True),
     ("recursive_ref_returned_input_invalid", False),
+    ("collection_member_move_loop_local_source_valid", True),
+    ("collection_member_move_loop_outer_source_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

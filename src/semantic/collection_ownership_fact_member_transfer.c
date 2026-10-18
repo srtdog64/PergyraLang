@@ -523,6 +523,9 @@ semantic_collection_reject_moved_member_use(ASTNode *member_access,
     if (!collection_member_move_identity(member_access, ctx,
             &root_binding_id, &field_syntax_id))
         return false;
+    Symbol *root = scope_lookup(ctx->scope,
+        ast_identifier_name(ast_member_object(member_access)));
+    uint64_t root_birth = root != NULL ? root->birth_serial : 0;
     for (size_t i = 0; i < ctx->collection_ownership_fact_count; i++) {
         const PgyCollectionOwnershipFact *fact =
             &ctx->collection_ownership_facts[i];
@@ -531,6 +534,12 @@ semantic_collection_reject_moved_member_use(ASTNode *member_access,
             || fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
             || fact->source_binding_syntax_id != root_binding_id
             || fact->origin_syntax_id != field_syntax_id)
+            continue;
+        /* A loop recheck declares the source again: a move from an earlier
+         * incarnation of it is not a move from this one. Unknown serials
+         * keep the refusal. */
+        if (fact->source_birth_serial != 0 && root_birth != 0 &&
+            fact->source_birth_serial != root_birth)
             continue;
         field_name = ast_member_name(member_access);
         semantic_error_with_hints(ctx,

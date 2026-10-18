@@ -100,6 +100,9 @@ struct Symbol
     uint32_t   decl_line;
     uint32_t   decl_col;
     uint32_t   decl_syntax_id;
+    /* Distinct for every Symbol created, so a binding a loop recheck
+     * declares again is a new incarnation of the same syntax. */
+    uint64_t   birth_serial;
     bool       is_forward_placeholder;
     bool       is_used;
     bool       is_consumed;

@@ -1,0 +1,38 @@
+// A loop that declares its source struct in the body moves a field out of a
+// fresh value on every iteration. Appending to an inout Array makes the checker
+// revisit the body; the second visit is a new source, not a reuse.
+struct Row {
+    ok: Bool;
+    values: Array<String>;
+}
+
+func MakeRow(n: Int) -> Row {
+    let values: Array<String> = [];
+    ArrayPush(values, ToString(n));
+    return Row(true, values);
+}
+
+func AppendAll(inout names: Array<String>, parts: Array<String>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(parts) {
+        ArrayPush(names, Concat("", parts[i]));
+        i = i + 1;
+    }
+    return true;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < 3 {
+        let row: Row = MakeRow(i);
+        if !row.ok {
+            return 1;
+        }
+        let values: Array<String> = row.values;
+        let added: Bool = AppendAll(names, values);
+        i = i + 1;
+    }
+    Print(ToString(ArrayLength(names)));
+    return 0;
+}
