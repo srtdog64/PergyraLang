@@ -11,6 +11,7 @@
 #include "capability_analyze.h"
 #include "callable_capability_inference.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "default_aggregate_move_owner.h"
 #include "string_window_extent.h"
 #include "diag_codes.h"
 
@@ -586,7 +587,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
     if (!semantic_array_storage_deferral_finalize(ctx)
         || !semantic_collection_owned_element_requirements_finalize(ctx)
-        || !semantic_string_window_extent_finalize(ctx)) {
+        || !semantic_string_window_extent_finalize(ctx)
+        || !semantic_default_aggregate_move_finalize(ctx)) {
         free(topo_order);
         return false;
     }

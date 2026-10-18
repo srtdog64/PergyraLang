@@ -1,0 +1,22 @@
+// One branch moves the argument; the use after the branches may see it moved.
+struct Rows {
+    ids: Array<Int>;
+}
+
+func AddBlock(rows: Rows) -> Rows {
+    let ids: Array<Int> = rows.ids;
+    ArrayPush(ids, ArrayLength(ids));
+    return Rows(ids);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let a: Rows = Rows(ids);
+    let size: Int = 0;
+    if ArrayLength(a.ids) > 0 {
+        let b: Rows = AddBlock(a);
+        size = ArrayLength(b.ids);
+    }
+    Print(ToString(size + ArrayLength(a.ids)));
+    return 0;
+}

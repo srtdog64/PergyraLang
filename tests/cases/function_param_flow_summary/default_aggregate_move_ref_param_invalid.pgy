@@ -1,0 +1,23 @@
+// A ref parameter is borrowed from the caller; it cannot be moved into a
+// callee that grows it in place.
+struct Rows {
+    ids: Array<Int>;
+}
+
+func AddBlock(rows: Rows) -> Rows {
+    let ids: Array<Int> = rows.ids;
+    ArrayPush(ids, ArrayLength(ids));
+    return Rows(ids);
+}
+
+func Peek(ref rows: Rows) -> Int {
+    let grown: Rows = AddBlock(rows);
+    return ArrayLength(grown.ids);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let a: Rows = Rows(ids);
+    Print(ToString(Peek(a) + ArrayLength(a.ids)));
+    return 0;
+}

@@ -1,0 +1,40 @@
+// A callee that grows its default-mode struct argument in place moves it.
+// Passing a fresh value or reassigning the binding from the result is fine.
+struct Rows {
+    ids: Array<Int>;
+    names: Array<String>;
+}
+
+func RowsEmpty() -> Rows {
+    let ids: Array<Int> = [];
+    let names: Array<String> = [];
+    return Rows(ids, names);
+}
+
+func AddBlock(rows: Rows) -> Rows {
+    let ids: Array<Int> = rows.ids;
+    let names: Array<String> = rows.names;
+    ArrayPush(ids, ArrayLength(ids));
+    ArrayPush(names, "block");
+    return Rows(ids, names);
+}
+
+func Grow(rows: Rows, count: Int) -> Rows {
+    let i: Int = 0;
+    while i < count {
+        rows = AddBlock(rows);
+        i = i + 1;
+    }
+    return rows;
+}
+
+func Main() -> Int {
+    let rows: Rows = AddBlock(RowsEmpty());
+    rows = AddBlock(rows);
+    if ArrayLength(rows.ids) > 1 {
+        rows = Grow(rows, 2);
+    }
+    Print(ToString(ArrayLength(rows.ids)));
+    Print(rows.names[3]);
+    return 0;
+}

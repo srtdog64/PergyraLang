@@ -519,9 +519,12 @@ bool function_param_flow_mutable_output_required(SemanticContext *ctx, ASTNode *
             if (!semantic_param_publication_checked_argument(ctx, node, p)) return true;
             bool depends = false, retains = true;
             bool relation = semantic_param_publication_checked_result_relation(ctx, node, p, &depends, &retains);
-            /* Physical scalars carry no backing into an output. Their argument
+            /* Physical scalars and String literals (static text, published as
+             * copy-escaping) carry no backing into an output. Element ownership
+             * of the receiving Array is checked by its own owner. Argument
              * evaluation is still traversed below, including nested stores. */
             if (!semantic_param_publication_value_is_physical_scalar(ctx, ast_call_argument(node, p)) &&
+                ast_call_argument(node, p)->type != AST_STRING &&
                 !(relation && !retains) && !semantic_param_publication_argument_borrowed_for_call(ctx, node, p) &&
                 !semantic_typed_map_query_receiver_read(ctx, node, p) &&
                 !function_param_flow_no_store_call_append(ctx, index, node)) return true;

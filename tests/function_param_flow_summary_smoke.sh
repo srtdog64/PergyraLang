@@ -73,6 +73,10 @@ builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_m
 # particular, a stale read can also trigger a checked builtin-arity cascade;
 # it must not be mistaken for a fresh BORROW-only refusal or a MIR artifact.
 release_lifetime_refusals = {
+    # A call that grows its default-mode aggregate argument in place moves it.
+    "default_aggregate_move_reuse_invalid": [(*released_refusal, 21, 28), (*released_refusal, 22, 34)],
+    "default_aggregate_move_loop_reuse_invalid": [(*released_refusal, 18, 32)],
+    "default_aggregate_move_branch_use_invalid": [(*released_refusal, 20, 41)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -601,6 +605,11 @@ paired = (
     ("string_inout_helper_repeat_call_valid", True),
     ("string_inout_helper_then_own_release_invalid", False),
     ("string_inout_helper_then_escape_call_invalid", False),
+    ("default_aggregate_move_reassign_valid", True),
+    ("default_aggregate_move_reuse_invalid", False),
+    ("default_aggregate_move_loop_reuse_invalid", False),
+    ("default_aggregate_move_branch_use_invalid", False),
+    ("default_aggregate_move_ref_param_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
