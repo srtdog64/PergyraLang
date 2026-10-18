@@ -1,0 +1,24 @@
+// Clone of an Array of Strings or Ints allocates new storage and copies
+// every String, so a result built from Clones of a borrowed input carries
+// none of the input's storage.
+struct Holder {
+    names: Array<String>;
+    ids: Array<Int>;
+}
+
+func Copy(ref input: Holder) -> Holder {
+    return Holder(Clone(input.names), Clone(input.ids));
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a", "b"];
+    let ids: Array<Int> = [1, 2];
+    let input: Holder = Holder(names, ids);
+    let copy: Holder = Copy(input);
+    ArrayPush(copy.names, "c");
+    copy.ids[0] = 7;
+    Print(ToString(ArrayLength(copy.names) + copy.ids[0]));
+    Print(input.names[0]);
+    Print(ToString(input.ids[0]));
+    return 0;
+}

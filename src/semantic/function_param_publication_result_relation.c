@@ -14,6 +14,25 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
     if (row->nominal_result != NULL) {
         *result_depends = true; *external_retains = false; return true;
     }
+    if (row->builtin == BUILTIN_CLONE) {
+        /* C and LLVM lower Clone of an Array of physical scalars or Strings
+         * to the runtime pgy_array_clone_<T>: new storage, every String
+         * copied. Any other Clone copies a value shallowly, so its result
+         * shares the argument's storage. Clone keeps nothing itself. */
+        PublishedNode *input = row->argument_count == 1 ?
+            publication_current_value(ctx, row->arguments[0].node) : NULL;
+        if (!row->stdlib || !row->kind_present || row->declaration != 0 || row->value_binding != 0 ||
+            row->target_shape != AST_IDENTIFIER || row->target_binding != 0 ||
+            row->target_name == NULL || strcmp(row->target_name, "Clone") != 0 ||
+            input == NULL || input->node != ast_call_argument(call, 0) ||
+            !type_equals(input->value_type, row->value_type)) return false;
+        const Type *element = type_is_constructed_named(input->value_type, "Array") ?
+            type_get_constructed_arg(input->value_type, 0) : NULL;
+        *result_depends = element == NULL ||
+            (!type_equals(element, TYPE_STRING) && !publication_physical_scalar(element));
+        *external_retains = false;
+        return true;
+    }
     PublishedNode *arg = publication_current_value(ctx, ast_call_argument(call, 0));
     const char *result = ast_call_semantic_value_type_name(call);
     if (arg == NULL || !row->result_relation || !row->kind_present ||

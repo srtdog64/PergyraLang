@@ -176,11 +176,13 @@ static bool aggregate_type(const Type *type)
     return type->kind == TYPE_KIND_TUPLE || type->kind == TYPE_KIND_CONSTRUCTED;
 }
 
-/* The callee changes, keeps or returns this default-mode parameter's Array
- * storage itself: its descriptor is not proved preserved, or it is released.
- * Element values that escape (Strings are immutable) are the String owners'
- * concern, not a move. A summary that is missing or not final counts as a
- * change. */
+/* The callee changes, keeps, returns or releases storage it receives through
+ * this default-mode parameter. For an Array formal the descriptor-transfer
+ * owner answers exactly: element values that escape (Strings are immutable)
+ * are the String owners' concern, not a move. That owner proves nothing for
+ * any other aggregate, so a struct, tuple or other constructed formal moves
+ * unless its summary only reads it. A summary that is missing or not final
+ * counts as a change. */
 static bool formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal)
 {
     FuncParam *param = ast_func_param(callee, formal);
@@ -190,7 +192,11 @@ static bool formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal)
     if (store == NULL || store->failed) return true;
     size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
     if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE) return true;
-    return store->entries[index].array_storage_unproved || (mask & SLOT_PARAM_SUMMARY_RELEASE) != 0;
+    if ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0) return true;
+    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
+    if (type_name != NULL && strcmp(type_name, "Array") == 0)
+        return store->entries[index].array_storage_unproved;
+    return (mask & ~SLOT_PARAM_SUMMARY_READ) != 0;
 }
 
 static ParamMode routine_param_mode(const ASTNode *routine, uint32_t binding, bool *found)

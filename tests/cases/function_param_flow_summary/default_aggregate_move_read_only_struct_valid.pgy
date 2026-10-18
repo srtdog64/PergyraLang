@@ -1,0 +1,34 @@
+// A struct passed by value to a callee that only reads it is not moved:
+// the result is built from fresh and cloned storage, so the caller may
+// keep using the argument.
+struct Rows {
+    ok: Bool;
+    roots: Array<Int>;
+    kinds: Array<Int>;
+}
+
+struct Facts {
+    ok: Bool;
+    roots: Array<Int>;
+    kinds: Array<Int>;
+}
+
+func FactsFromRows(rows: Rows, expected: Int) -> Facts {
+    let roots: Array<Int> = [];
+    let i: Int = 0;
+    while i < expected && i < ArrayLength(rows.roots) {
+        ArrayPush(roots, rows.roots[i]);
+        i = i + 1;
+    }
+    return Facts(rows.ok, roots, Clone(rows.kinds));
+}
+
+func Main() -> Int {
+    let rows: Rows = Rows(true, [0, 1], [5, 6]);
+    let facts: Facts = FactsFromRows(rows, 1);
+    ArrayPush(facts.kinds, 7);
+    facts.roots[0] = 9;
+    Print(ToString(ArrayLength(facts.kinds) + facts.roots[0]));
+    Print(ToString(rows.roots[0] + rows.kinds[0]));
+    return 0;
+}

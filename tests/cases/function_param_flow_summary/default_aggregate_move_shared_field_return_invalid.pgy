@@ -1,0 +1,19 @@
+// A struct passed by value to a callee that returns one of its Array fields
+// is moved: the result shares that field's storage, so growing the result
+// can free the storage the argument still names.
+struct Rows {
+    ids: Array<Int>;
+}
+
+func Keep(rows: Rows) -> Rows {
+    return Rows(rows.ids);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let rows: Rows = Rows(ids);
+    let kept: Rows = Keep(rows);
+    ArrayPush(kept.ids, 2);
+    Print(ToString(rows.ids[0]));
+    return 0;
+}

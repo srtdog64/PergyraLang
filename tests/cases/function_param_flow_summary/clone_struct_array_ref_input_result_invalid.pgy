@@ -1,0 +1,22 @@
+// Clone of an Array of structs copies each struct by value, so the clone's
+// elements share the borrowed input's inner Array storage.
+struct Inner {
+    ids: Array<Int>;
+}
+
+struct Holder {
+    items: Array<Inner>;
+}
+
+func Copy(ref input: Holder) -> Array<Inner> {
+    return Clone(input.items);
+}
+
+func Main() -> Int {
+    let ids: Array<Int> = [1];
+    let items: Array<Inner> = [Inner(ids)];
+    let input: Holder = Holder(items);
+    let copy: Array<Inner> = Copy(input);
+    Print(ToString(ArrayLength(copy) + input.items[0].ids[0]));
+    return 0;
+}
