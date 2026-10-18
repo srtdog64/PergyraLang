@@ -1,0 +1,27 @@
+// An own parameter's storage belongs to this call. Its element is retained
+// by a callee and then released here, so the retainer would dangle.
+struct Facts {
+    names: Array<String>,
+    title: String
+}
+
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Collect(own facts: Facts) -> Array<String> {
+    let out: Array<String> = [];
+    Keep(out, facts.names[0]);
+    let names: Array<String> = facts.names;
+    ArrayDropOwnedStrings(names);
+    return out;
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "x");
+    let facts: Facts = Facts { names: names, title: "t" };
+    let kept: Array<String> = Collect(facts);
+    Print(kept[0]);
+    return 0;
+}

@@ -223,6 +223,24 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
         && ast_call_semantic_callee_declared_callable(call)
         && ast_call_semantic_callee_decl_id(call) == ast_node_stable_id(callee)
         && ast_call_semantic_callee_value_binding_id(call) == 0;
+    /* A field or element path rooted at a default or ref parameter is caller
+     * storage: no local owner holds it and this call cannot release it, as
+     * with a String parameter. A declared callee's own checks govern what it
+     * retains. Builtin stores still prove their element source below. */
+    if (named && source_id == INDEXED_STRING_BORROW_UNKNOWN_SOURCE &&
+        (expression->type == AST_MEMBER_ACCESS || expression->type == AST_ARRAY_ACCESS)) {
+        ASTNode *root = expression;
+        while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
+            root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
+        Symbol *root_binding = identifier_symbol(root, ctx);
+        ASTNode *decl = ctx->current_function_decl;
+        if (root_binding != NULL && root_binding->is_parameter && decl->type == AST_FUNC_DECL)
+            for (size_t p = 0; p < ast_func_param_count(decl); p++) {
+                FuncParam *param = ast_func_param(decl, p);
+                if (param != NULL && ast_func_param_stable_id(param) == root_binding->decl_syntax_id &&
+                    (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF)) return;
+            }
+    }
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->kind == SCOPE_FUNCTION ? NULL : scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
             Symbol *owner = scope->symbols[i];

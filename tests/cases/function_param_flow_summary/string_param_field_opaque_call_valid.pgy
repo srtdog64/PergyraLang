@@ -1,0 +1,34 @@
+// Fields and elements reached from a default-mode parameter are caller
+// storage, as a String parameter is. Passing them to a retaining callee does
+// not borrow from the owned array this call releases.
+struct Facts {
+    names: Array<String>,
+    title: String
+}
+
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Names() -> Array<String> {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "a");
+    return names;
+}
+
+func Collect(facts: Facts) -> Int {
+    let owned: Array<String> = Names();
+    let out: Array<String> = [];
+    Keep(out, facts.title);
+    Keep(out, facts.names[0]);
+    ArrayDropOwnedStrings(owned);
+    return ArrayLength(out);
+}
+
+func Main() -> Int {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "x");
+    let facts: Facts = Facts { names: names, title: "t" };
+    Print(ToString(Collect(facts)));
+    return 0;
+}

@@ -1,0 +1,14 @@
+// Calling an in-place String-array helper twice on the same inout array.
+// The helper only writes the array and takes no element ownership, so the
+// second call needs no proof that the first left owned elements.
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Main() -> Int {
+    let out: Array<String> = [];
+    Keep(out, "a");
+    Keep(out, "b");
+    Print(ToString(ArrayLength(out)));
+    return 0;
+}

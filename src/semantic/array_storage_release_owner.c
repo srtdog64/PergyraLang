@@ -168,15 +168,27 @@ semantic_array_storage_pending_call_consumer_current(SemanticContext *ctx,
     const ArrayStoragePendingCallReceipt *source, const ASTNode *consumer,
     uint32_t consumer_id, uint32_t binding_id, size_t sequence)
 {
-    return source != NULL && consumer != NULL && consumer->type == AST_CALL
-        && source->call == consumer && source->call_id == consumer_id
-        && source->binding_id == binding_id && source->sequence < sequence
-        && source->ordinal < ast_call_arg_count(source->call)
-        && source->argument == ast_call_argument(source->call, source->ordinal)
-        && semantic_array_storage_pending_call_current(ctx, source)
-        && semantic_array_storage_pending_preserved(ctx, binding_id, sequence)
-        && (!semantic_array_storage_pending_call_elements_required(source)
-            || semantic_array_storage_pending_owned_elements(ctx, binding_id, sequence));
+    if (source == NULL || consumer == NULL || consumer->type != AST_CALL
+        || source->call != consumer || source->call_id != consumer_id
+        || source->binding_id != binding_id || source->sequence >= sequence
+        || source->ordinal >= ast_call_arg_count(source->call)
+        || source->argument != ast_call_argument(source->call, source->ordinal)
+        || !semantic_array_storage_pending_call_current(ctx, source)
+        || !semantic_array_storage_pending_preserved(ctx, binding_id, sequence))
+        return false;
+    if (!semantic_array_storage_pending_call_elements_required(source))
+        return true;
+    /* Earlier calls may have left borrowed elements in the array. A callee
+     * that only reads or writes it in place takes no element ownership, so
+     * it needs no owned-element proof; release or escape does. */
+    if (!source->payload && source->callee_decl != NULL) {
+        unsigned effects = function_param_flow_summary_for_param(ctx,
+            source->callee_decl, source->formal_ordinal);
+        if ((effects & (SLOT_PARAM_SUMMARY_RELEASE | SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0)
+            return true;
+    }
+    return semantic_array_storage_pending_owned_elements(ctx, binding_id, sequence);
 }
 
 bool

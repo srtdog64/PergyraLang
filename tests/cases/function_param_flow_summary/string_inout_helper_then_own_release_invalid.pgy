@@ -1,0 +1,16 @@
+// The helper stores a borrowed String literal into the array. Handing the
+// array to an owning callee that releases its elements would free the literal.
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Drain(own out: Array<String>) -> Void {
+    ArrayDropOwnedStrings(out);
+}
+
+func Main() -> Int {
+    let out: Array<String> = [];
+    Keep(out, "a");
+    Drain(out);
+    return 0;
+}

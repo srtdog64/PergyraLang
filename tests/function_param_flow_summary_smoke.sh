@@ -133,7 +133,9 @@ release_lifetime_refusals = {
     "option_payload_literal_array_owned_push_invalid": [(*borrow_refusal, 3, 26)],
     "option_payload_literal_array_alias_invalid": [(*borrow_refusal, 9, 22)],
     "option_payload_literal_array_rebind_invalid": [(*borrow_refusal, 8, 32)],
-    "option_payload_literal_array_helper_handoff_invalid": [(*borrow_refusal, 12, 22)],
+    # The read-only helper takes no element ownership; the Some payload is
+    # the retention that lacks a permanent-literal proof after the handoff.
+    "option_payload_literal_array_helper_handoff_invalid": [(*borrow_refusal, 14, 26)],
     "option_payload_mixed_array_return_invalid": [(*borrow_refusal, 11, 30)],
     "readfile_result_borrowed_identity_invalid": [
         (*borrow_refusal, 10, 25), (*borrow_refusal, 11, 27)],
@@ -594,6 +596,11 @@ paired = (
     ("slot_wrapper_destructure_ref_valid", True),
     ("string_scalar_tostring_opaque_call_valid", True),
     ("string_element_tostring_opaque_call_invalid", False),
+    ("string_param_field_opaque_call_valid", True),
+    ("string_own_param_field_opaque_call_invalid", False),
+    ("string_inout_helper_repeat_call_valid", True),
+    ("string_inout_helper_then_own_release_invalid", False),
+    ("string_inout_helper_then_escape_call_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
@@ -768,9 +775,11 @@ for name, valid in paired:
             "array_release_loop_second_iteration_escape_invalid": {(20, 30)},
             "array_release_inout_retaining_reader_invalid": {(12, 26), (21, 9), (22, 27)},
             "array_result_owned_retain_before_deepdrop_invalid": {(18, 24), (19, 27)},
-            "array_result_owned_named_inout_shallow_push_invalid": {(16, 5), (17, 27)},
-            "array_result_owned_named_inout_shallow_set_invalid": {(16, 5), (17, 27)},
-            "array_result_owned_named_inout_index_assign_invalid": {(16, 5), (17, 27)},
+            # The in-place helper call takes no element ownership; the deep
+            # drop of the array it left with a borrowed String is the refusal.
+            "array_result_owned_named_inout_shallow_push_invalid": {(17, 27)},
+            "array_result_owned_named_inout_shallow_set_invalid": {(17, 27)},
+            "array_result_owned_named_inout_index_assign_invalid": {(17, 27)},
             "array_field_detach_duplicate_alias_own_invalid": {(13, 20), (13, 35)},
             "array_result_borrowed_element_move_deepdrop_invalid": {(9, 32), (10, 27)},
         }

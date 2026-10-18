@@ -1,0 +1,18 @@
+// After a helper leaves a borrowed String in the array, a second callee that
+// lets the array escape into longer-lived storage still needs owned elements.
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Stash(inout out: Array<String>, inout shelf: Array<Array<String>>) -> Void {
+    ArrayPush(shelf, out);
+}
+
+func Main() -> Int {
+    let out: Array<String> = [];
+    let shelf: Array<Array<String>> = [];
+    Keep(out, "a");
+    Stash(out, shelf);
+    Print(ToString(ArrayLength(shelf)));
+    return 0;
+}
