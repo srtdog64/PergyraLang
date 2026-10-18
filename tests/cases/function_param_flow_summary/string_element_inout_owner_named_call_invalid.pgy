@@ -1,0 +1,23 @@
+// A callee that also takes the element's Array inout can replace and free
+// the element while it reads the borrowed String.
+func Names(n: Int) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(out, ToString(i));
+        i = i + 1;
+    }
+    return out;
+}
+
+func Replaced(inout list: Array<String>, text: String) -> Bool {
+    ArraySet(list, 0, "x");
+    return text == "x";
+}
+
+func Main() -> Int {
+    let names: Array<String> = Names(3);
+    let same: Bool = Replaced(names, names[0]);
+    Print(ToString(ArrayLength(names)));
+    return 0;
+}

@@ -13,6 +13,7 @@
 #include "array_storage_element_lifetime_owner.h"
 #include "collection_ownership_fact.h"
 #include "indexed_string_definition_recipe.h"
+#include "indexed_string_named_call_owner.h"
 #include "type_checker_internal.h"
 
 #define INDEXED_STRING_BORROW_UNKNOWN_SOURCE UINT32_MAX
@@ -373,6 +374,16 @@ semantic_indexed_string_borrow_call_argument(ASTNode *expression,
                     fact->return_elements_owned = false;
                 }
             } else {
+                /* A declared callee's final summary decides whether it keeps
+                 * the String; that owner refuses it after Pass 2 if not. */
+                if (named && semantic_param_publication_pending(ctx)) {
+                    if (semantic_indexed_string_named_call_record(ctx, expression, call, callee, ordinal))
+                        continue;
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                        expression, "A String argument has no current named-call receipt");
+                    return;
+                }
                 /* A retained scalar element invalidates the String lifetime,
                  * even though the Array descriptor itself never escaped. */
                 fact->return_elements_owned = false;

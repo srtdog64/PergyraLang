@@ -6,6 +6,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "indexed_string_named_call_owner.h"
 #include "builtin_kind.h"
 #include "diag_codes.h"
 #include "slot_summary.h"
@@ -188,6 +189,12 @@ semantic_array_storage_pending_call_consumer_current(SemanticContext *ctx,
                 | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) == 0)
             return true;
     }
+    /* A String element read by a callee that keeps nothing and cannot touch
+     * the Array is borrowed for the call only, whoever owns the element. */
+    if (source->payload && source->callee_decl != NULL &&
+        semantic_indexed_string_named_call_reads_only(ctx, source->call,
+            source->callee_decl, source->ordinal))
+        return true;
     return semantic_array_storage_pending_owned_elements(ctx, binding_id, sequence);
 }
 

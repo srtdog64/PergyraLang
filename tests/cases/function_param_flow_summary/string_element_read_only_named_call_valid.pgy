@@ -1,0 +1,30 @@
+// A String element of a local owned Array passed to a declared callee that
+// only reads it is borrowed for the call: the callee keeps nothing and no
+// other argument can change the Array.
+func Names(n: Int) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(out, ToString(i));
+        i = i + 1;
+    }
+    return out;
+}
+
+func Marked(text: String) -> Bool {
+    return text == "1";
+}
+
+func Main() -> Int {
+    let names: Array<String> = Names(3);
+    let hits: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if Marked(names[i]) {
+            hits = hits + 1;
+        }
+        i = i + 1;
+    }
+    Print(ToString(hits));
+    return 0;
+}

@@ -56,6 +56,7 @@ typedef struct TypedMapQueryFactStore TypedMapQueryFactStore;
 typedef struct CollectionOwnedElementRequirementStore CollectionOwnedElementRequirementStore;
 typedef struct ArrayStorageDeferredPreservationStore ArrayStorageDeferredPreservationStore;
 typedef struct StringWindowExtentStore StringWindowExtentStore;
+typedef struct IndexedStringNamedCallStore IndexedStringNamedCallStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -215,6 +216,8 @@ struct SemanticContext
     ArrayStorageDeferredPreservationStore *array_storage_deferred_preservations;
     /* Pass 2 string-window extent records, decided once after Pass 2. */
     StringWindowExtentStore *string_window_extents;
+    /* Pass 2 String arguments to declared callees, decided once after Pass 2. */
+    IndexedStringNamedCallStore *indexed_string_named_calls;
 
     /* Semantic-owned domain runtime identities.  Later stages may carry these
      * rows losslessly, but must not reconstruct participant roles or member
