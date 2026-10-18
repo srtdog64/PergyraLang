@@ -1,0 +1,30 @@
+// A match binding names part of the matched value, so returning the
+// payload of a by-value enum parameter has a complete return relation.
+struct Decl {
+    names: Array<String>;
+}
+
+enum Request {
+    Default(Bool),
+    Verified(Decl, Bool),
+}
+
+func RequestDecl(request: Request) -> Decl {
+    match request {
+        case Default(emit):
+            let empty: Array<String> = [];
+            return Decl(empty);
+        case Verified(decl, emit): return decl;
+    }
+}
+
+func Keep(request: Request) -> Decl {
+    return RequestDecl(request);
+}
+
+func Main() -> Int {
+    let request: Request = Verified(Decl(["a"]), true);
+    let decl: Decl = Keep(request);
+    Print(decl.names[0]);
+    return 0;
+}

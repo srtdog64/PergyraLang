@@ -23,6 +23,7 @@
 #include "function_param_publication_owner.h"
 #include "slot_summary.h"
 #include "type_checker_internal.h"
+#include "type_checker_ownership_internal.h"
 
 typedef struct {
     uint32_t binding;
@@ -169,10 +170,14 @@ static void check_use(MoveWalk *walk, const MoveState *state, const ASTNode *nod
     }
 }
 
-static bool aggregate_type(const Type *type)
+/* An enum value is copied with its payloads, so one whose payloads hold
+ * storage shares it as a struct does. */
+static bool aggregate_type(SemanticContext *ctx, const Type *type)
 {
     if (type == NULL || type == TYPE_UNKNOWN) return false;
     if (type->kind == TYPE_KIND_CLASS) return type->nominal_flavor == TYPE_NOMINAL_STRUCT;
+    if (type->kind == TYPE_KIND_ENUM)
+        return semantic_classify_ownership_type(type, ctx) == OWNERSHIP_TYPE_BORROW_TRACKED;
     return type->kind == TYPE_KIND_TUPLE || type->kind == TYPE_KIND_CONSTRUCTED;
 }
 
@@ -222,7 +227,7 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         size_t formal = 0;
         if (callee == NULL || !semantic_param_publication_formal_for_actual(walk->ctx, call, p, &formal)) continue;
         SemanticPublishedValue value = semantic_param_publication_value(walk->ctx, arg);
-        if (!value.ok || value.meta || !aggregate_type(value.type) ||
+        if (!value.ok || value.meta || !aggregate_type(walk->ctx, value.type) ||
             !formal_moves(walk->ctx, callee, formal)) continue;
         FuncParam *param = ast_func_param(callee, formal);
         const char *callee_name = ast_declaration_name(callee) != NULL ? ast_declaration_name(callee) : "callee";

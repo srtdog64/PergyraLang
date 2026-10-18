@@ -343,9 +343,13 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 bool declaration = false;
                 for (size_t c = 0; c < claims->count; c++) {
                     FunctionParamFlowIndexClaim *claim = &claims->rows[c];
-                    if (claim->id == binding->binding && claim->shape == AST_LET_DECL &&
-                        claim->node != NULL && claim->node->type == AST_LET_DECL &&
-                        ast_node_stable_id(claim->node) == binding->binding) declaration = true;
+                    if (claim->id != binding->binding || claim->node == NULL ||
+                        ast_node_stable_id(claim->node) != binding->binding) continue;
+                    /* A local is a let declaration or a match binding, the
+                     * one identifier whose binding is itself. */
+                    if ((claim->shape == AST_LET_DECL && claim->node->type == AST_LET_DECL) ||
+                        (claim->shape == AST_IDENTIFIER && claim->node->type == AST_IDENTIFIER &&
+                         ast_identifier_binding_syntax_id(claim->node) == binding->binding)) declaration = true;
                 }
                 if (!declaration) valid = false;
             }

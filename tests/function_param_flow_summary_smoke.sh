@@ -193,6 +193,9 @@ release_lifetime_refusals = {
     # refused once the intent call's frame completes.
     "intent_action_stores_by_value_moves_invalid": [(*released_refusal, 42, 15)],
     "intent_subject_keeps_string_invalid": [(*borrow_refusal, 42, 24), (*borrow_refusal, 43, 27)],
+    # A match binding carries the matched enum's storage; returning it moves
+    # the by-value enum argument.
+    "match_payload_return_moves_invalid": [(*released_refusal, 29, 28)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -666,6 +669,8 @@ paired = (
     ("intent_step_action_route_valid", True),
     ("intent_action_stores_by_value_moves_invalid", False),
     ("intent_subject_keeps_string_invalid", False),
+    ("match_payload_return_valid", True),
+    ("match_payload_return_moves_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

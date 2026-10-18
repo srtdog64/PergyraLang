@@ -427,6 +427,33 @@ const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     }
     return origins;
 }
+/* A match binding names a part of the matched value, so it is a local that
+ * carries the value's storage. A unit variant or literal pattern binds
+ * nothing; any other pattern shape is not followed. */
+static void backing_match_bindings(ReturnedBacking *state, ASTNode *pattern, ASTNode *subject, const uint64_t *bits)
+{
+    size_t count = 0;
+    if (pattern == NULL) return;
+    if (pattern->type == AST_CALL) count = ast_call_arg_count(pattern);
+    else if (pattern->type == AST_IDENTIFIER) count = 1;
+    else if (pattern->type != AST_MEMBER_ACCESS && pattern->type != AST_NUMBER &&
+             pattern->type != AST_STRING && pattern->type != AST_BOOLEAN) { state->fact->complete = false; return; }
+    for (size_t a = 0; a < count; a++) {
+        ASTNode *binding = pattern->type == AST_CALL ? ast_call_argument(pattern, a) : pattern;
+        uint32_t id = binding != NULL && binding->type == AST_IDENTIFIER ? ast_node_stable_id(binding) : 0;
+        if (pattern->type == AST_IDENTIFIER && ast_identifier_binding_syntax_id(binding) != id) return;
+        if (id == 0 || ast_identifier_binding_syntax_id(binding) != id) { state->fact->complete = false; return; }
+        FunctionParamFlowBackingBinding *row = backing_binding(state, id, true);
+        if (row == NULL) { state->fact->complete = false; return; }
+        row->local = true;
+        backing_destination_alias(state, subject, id);
+        row = backing_binding(state, id, false);
+        if (row != NULL && bits != NULL) {
+            bool grew = backing_merge(state->fact->origin_words, row->origins, bits);
+            state->fact->changed |= grew && row->origin_read_epoch == state->fact->epoch;
+        }
+    }
+}
 void backing_consumers(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL || state->fact->analysis_unsupported) return;
@@ -629,6 +656,22 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
     case AST_IF_STMT:
         backing_consumers(state, ast_if_condition(node)); backing_consumers(state, ast_if_then_branch(node));
         backing_consumers(state, ast_if_else_branch(node)); break;
+    case AST_MATCH_STMT: {
+        ASTNode *subject = ast_match_subject(node);
+        backing_consumers(state, subject);
+        const uint64_t *bits = backing_origin(state, subject);
+        if (bits == NULL) { fact->complete = false; break; }
+        for (size_t c = 0; c < ast_match_case_count(node) && fact->complete; c++) {
+            ASTNode *arm = ast_match_case_at(node, c);
+            if (arm == NULL || arm->type != AST_MATCH_CASE) { fact->complete = false; break; }
+            for (size_t p = 0; p < ast_match_case_pattern_count(arm); p++)
+                backing_match_bindings(state, ast_match_case_pattern_at(arm, p), subject, bits);
+            backing_consumers(state, ast_match_case_guard(arm));
+            backing_consumers(state, ast_match_case_body(arm));
+        }
+        backing_consumers(state, ast_match_default_body(node));
+        break;
+    }
     case AST_BINARY: backing_consumers(state, ast_binary_left(node)); backing_consumers(state, ast_binary_right(node)); break;
     case AST_UNARY: backing_consumers(state, ast_unary_operand(node)); break;
     case AST_CAST:
