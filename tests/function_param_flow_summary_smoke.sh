@@ -189,6 +189,10 @@ release_lifetime_refusals = {
     # `self` escapes, not by an incomplete frame.
     "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
     "method_self_array_field_return_invalid": [(*borrow_refusal, 7, 10)],
+    # Storage passed through an intent's step action to its subject stays
+    # refused once the intent call's frame completes.
+    "intent_action_stores_by_value_moves_invalid": [(*released_refusal, 42, 15)],
+    "intent_subject_keeps_string_invalid": [(*borrow_refusal, 42, 24), (*borrow_refusal, 43, 27)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -659,6 +663,9 @@ paired = (
     ("method_self_array_field_length_valid", True),
     ("method_self_array_field_return_invalid", False),
     ("world_member_host_field_clone_valid", True),
+    ("intent_step_action_route_valid", True),
+    ("intent_action_stores_by_value_moves_invalid", False),
+    ("intent_subject_keeps_string_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

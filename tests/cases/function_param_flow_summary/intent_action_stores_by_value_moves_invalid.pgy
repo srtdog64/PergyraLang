@@ -1,0 +1,45 @@
+// An intent whose step action stores a by-value argument in its subject
+// shares that argument's storage with the subject, so the caller's Array is
+// moved into the call and cannot be grown afterwards.
+struct Taken {
+    names: Array<String>;
+}
+
+subject Holder {
+    var outcome: Option<Taken>;
+    action Take(self, names: Array<String>) -> Bool {
+        self.outcome = Some(Taken(names));
+        return true;
+    }
+}
+
+zone HoldZone {
+    subject slot holder: Holder
+    authority holder
+}
+
+intent TakeNames(hold_zone: HoldZone, holder: Holder, names: Array<String>) {
+    exclusive;
+    step Take {
+        using: hold_zone;
+        on taken: holder.Take(names);
+        expect: taken;
+    }
+    success: true;
+    failure: false;
+}
+
+func Keep(zone: HoldZone, holder: Holder, names: Array<String>) -> Taken {
+    let done: Bool = TakeNames(zone, holder, names);
+    return UnwrapOption(holder.outcome);
+}
+
+func Main() -> Int {
+    let zone: HoldZone = HoldZone(Holder(None));
+    let holder: Holder = Holder(None);
+    let names: Array<String> = ["a"];
+    let taken: Taken = Keep(zone, holder, names);
+    ArrayPush(names, "b");
+    Print(taken.names[0]);
+    return 0;
+}

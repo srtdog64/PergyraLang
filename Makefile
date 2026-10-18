@@ -706,6 +706,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_publication_deferred.c \
                    $(SEMANTIC_DIR)/typed_map_query_fact_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \
+                   $(SEMANTIC_DIR)/function_param_flow_intent_call.c \
                    $(SEMANTIC_DIR)/function_param_flow_input_claims.c \
                    $(SEMANTIC_DIR)/iteration_type_fact.c \
                    $(SEMANTIC_DIR)/destructure_type_fact.c \

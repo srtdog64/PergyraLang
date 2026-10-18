@@ -116,6 +116,11 @@ FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_
 size_t backing_node(ReturnedBacking *state, ASTNode *node);
 bool backing_work(ReturnedBacking *state, size_t at);
 void backing_consumers(ReturnedBacking *state, ASTNode *node);
+const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node);
+void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement);
+/* Applies an intent call's effect on its arguments' storage; false when the
+ * call selects no intent. */
+bool function_param_flow_intent_call(ReturnedBacking *state, ASTNode *call);
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row,
     ASTNode **escape_site);

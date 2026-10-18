@@ -1,0 +1,46 @@
+// An action called on a subject may keep the String it is given in the
+// subject. Through the intent, the caller's result then holds the owned
+// element, which is freed before the result is read.
+struct Taken {
+    path: String;
+}
+
+subject Holder {
+    var outcome: Option<Taken>;
+    action Take(self, path: String) -> Bool {
+        self.outcome = Some(Taken(path));
+        return true;
+    }
+}
+
+zone HoldZone {
+    subject slot holder: Holder
+    authority holder
+}
+
+intent TakePath(hold_zone: HoldZone, holder: Holder, path: String) {
+    exclusive;
+    step Take {
+        using: hold_zone;
+        on taken: holder.Take(path);
+        expect: taken;
+    }
+    success: true;
+    failure: false;
+}
+
+func Keep(zone: HoldZone, holder: Holder, path: String) -> Taken {
+    let done: Bool = TakePath(zone, holder, path);
+    return UnwrapOption(holder.outcome);
+}
+
+func Main() -> Int {
+    let zone: HoldZone = HoldZone(Holder(None));
+    let holder: Holder = Holder(None);
+    let paths: Array<String> = [];
+    ArrayPushOwnedString(paths, Concat("a", "b"));
+    let taken: Taken = Keep(zone, holder, paths[0]);
+    ArrayDropOwnedStrings(paths);
+    Print(taken.path);
+    return 0;
+}

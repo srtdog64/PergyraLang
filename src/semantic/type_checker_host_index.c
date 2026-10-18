@@ -375,6 +375,17 @@ ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, co
         !semantic_param_publication_routine_inputs_current(ctx, row->decl, true)) return NULL;
     return row->decl;
 }
+/* The intent a checked call selects; NULL for every other call. */
+ASTNode *semantic_param_publication_intent_callee(const SemanticContext *ctx, const ASTNode *call)
+{
+    if (!semantic_param_publication_checked_call(ctx, call)) return NULL;
+    PublishedNode *node = publication_node(ctx->function_param_publications, call, false);
+    if (node == NULL || !node->declared_callable || node->declaration == 0 || node->value_binding != 0 ||
+        node->selected_callable != NULL || node->call_receiver != NULL || node->target_name == NULL) return NULL;
+    ASTNode *decl = semantic_host_index_find_selected_callable((SemanticContext *)ctx, SYMBOL_INTENT,
+        node->declaration, node->target_name);
+    return decl != NULL && decl->type == AST_INTENT_DECL ? decl : NULL;
+}
 bool semantic_param_publication_bodyless_selected_call_current(
     const SemanticContext *ctx, const ASTNode *call)
 {

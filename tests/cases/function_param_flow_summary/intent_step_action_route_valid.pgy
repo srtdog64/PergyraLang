@@ -1,0 +1,61 @@
+// A world member passes a path to an intent whose one step action stores it
+// in the subject the member cloned. The intent call's effect is its action's,
+// so the path's return relation is complete and the route is admitted.
+struct Taken {
+    path: String;
+    count: Int;
+}
+
+subject Runner {
+    var outcome: Option<Taken>;
+    action Run(self, path: String) -> Bool {
+        self.outcome = Some(Taken(path, 1));
+        return true;
+    }
+}
+
+zone RunZone {
+    subject slot runner: Runner
+    authority runner
+}
+
+intent RunPath(
+    run_zone: RunZone,
+    run_execution: Runner,
+    path: String
+) {
+    exclusive;
+    step Run {
+        using: run_zone;
+        on action_succeeded: run_execution.Run(path);
+        expect: action_succeeded;
+    }
+    success: true;
+    failure: false;
+}
+
+world RunWorld {
+    zone running: RunZone
+    activate running
+
+    func Execute(self, path: String) -> Taken {
+        let run_zone: RunZone = Clone(running);
+        let run_execution: Runner = Clone(running.runner);
+        let completed: Bool = RunPath(run_zone, run_execution, path);
+        if !completed || !IsSome(run_execution.outcome) {
+            return Taken(path, 0);
+        }
+        return UnwrapOption(run_execution.outcome);
+    }
+}
+
+func ExecuteThroughWorld(inout world: RunWorld, path: String) -> Taken {
+    return world.Execute(path);
+}
+
+func Main() -> Int {
+    var world: RunWorld = RunWorld(RunZone(Runner(None)));
+    let taken: Taken = ExecuteThroughWorld(world, "input.pgy");
+    Print(taken.path);
+    return 0;
+}

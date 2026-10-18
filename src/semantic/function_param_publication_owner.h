@@ -421,6 +421,7 @@ bool semantic_param_publication_checked_readfile_independent(const SemanticConte
 bool semantic_param_publication_checked_local_owner_constructor(
     const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
+ASTNode *semantic_param_publication_intent_callee(const SemanticContext *ctx, const ASTNode *call);
 bool semantic_param_publication_bodyless_selected_call_current(
     const SemanticContext *ctx, const ASTNode *call);
 bool semantic_param_publication_instance_receiver(const SemanticContext *ctx,

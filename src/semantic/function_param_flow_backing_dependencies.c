@@ -40,7 +40,7 @@ static FunctionParamFlowBackingBinding *backing_identifier_row(ReturnedBacking *
     }
     return NULL;
 }
-static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
+void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
 {
     /* A stored value that carries none of this frame's origins moves none
      * of its backing, wherever it is stored. */
@@ -98,6 +98,11 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
     if (value->type == AST_CALL) {
         ASTNode *receiver = NULL;
         ASTNode *direct = semantic_param_publication_direct_callee(state->store->ctx, value);
+        /* An intent's value is its Bool verdict and carries no storage. */
+        if (direct == NULL && semantic_param_publication_intent_callee(state->store->ctx, value) != NULL) {
+            if (!semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) state->fact->complete = false;
+            return;
+        }
         if ((direct == NULL && ast_call_semantic_callee_declared_callable(value) &&
              !semantic_param_publication_bodyless_selected_call_current(state->store->ctx, value)) ||
             (direct != NULL && !semantic_param_publication_instance_receiver(state->store->ctx, value, &receiver))) {
@@ -303,7 +308,7 @@ static void backing_destination_alias(ReturnedBacking *state, ASTNode *value, ui
     }
     free(destinations);
 }
-static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
+const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
     if (node == NULL || state->fact->analysis_unsupported) return NULL;
     if (state->checking_declared_result) {
@@ -360,6 +365,12 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     if (node->type == AST_CALL) {
         ASTNode *receiver = NULL;
         ASTNode *direct = semantic_param_publication_direct_callee(state->store->ctx, node);
+        /* An intent's value is its Bool verdict; the consumer walk applies
+         * its effect on the arguments. */
+        if (direct == NULL && semantic_param_publication_intent_callee(state->store->ctx, node) != NULL) {
+            if (semantic_param_publication_value_is_physical_scalar(state->store->ctx, node)) return origins;
+            fact->complete = false; return NULL;
+        }
         if ((direct == NULL && ast_call_semantic_callee_declared_callable(node) &&
              !semantic_param_publication_bodyless_selected_call_current(state->store->ctx, node)) ||
             (direct != NULL && !semantic_param_publication_instance_receiver(state->store->ctx, node, &receiver))) {
@@ -508,6 +519,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
     }
     case AST_CALL:
         ASTNode *direct = semantic_param_publication_direct_callee(state->store->ctx, node);
+        if (direct == NULL && function_param_flow_intent_call(state, node)) break;
         if (direct == NULL && ast_call_semantic_callee_declared_callable(node) &&
             !semantic_param_publication_bodyless_selected_call_current(state->store->ctx, node)) {
             fact->complete = false; break;
