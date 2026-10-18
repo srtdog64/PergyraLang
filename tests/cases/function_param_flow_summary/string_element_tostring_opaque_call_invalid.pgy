@@ -1,0 +1,20 @@
+// ToString(String) returns its input. The retained text is an element of the
+// owned array that is dropped before the retainer reads it.
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Names() -> Array<String> {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "a");
+    return names;
+}
+
+func Main() -> Int {
+    let owned: Array<String> = Names();
+    let out: Array<String> = [];
+    Keep(out, ToString(owned[0]));
+    ArrayDropOwnedStrings(owned);
+    Print(out[0]);
+    return 0;
+}

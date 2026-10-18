@@ -203,6 +203,18 @@ semantic_indexed_string_independent_result(const ASTNode *expression,
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
     name = ast_identifier_name(callee);
+    /* A scalar ToString reads no String storage, so its result is no element
+     * of any Array<String>. ToString(String) returns its input and stays out. */
+    if (name != NULL && strcmp(name, "ToString") == 0) {
+        if (builtin_kind != BUILTIN_NOT_BUILTIN || ast_call_arg_count(expression) != 1 ||
+            !publication_generation_ready(ctx)) return false;
+        PublishedNode *row = publication_node(ctx->function_param_publications, expression, false);
+        return row != NULL && row->node == expression && row->id != 0 &&
+            row->id == ast_node_stable_id(expression) && row->call_present &&
+            row->value_present && row->value_type == TYPE_STRING &&
+            row->argument_count == 1 && row->arguments != NULL &&
+            publication_physical_scalar(row->arguments[0].type);
+    }
     /* Consumed only after successful String typing (publication or binding).
      * These checked allocating readers do not inherit freshness from their
      * input-retention classification. Empty/NULL failure results are not an

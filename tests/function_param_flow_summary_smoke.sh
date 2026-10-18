@@ -592,6 +592,8 @@ paired = (
     ("slot_wrapper_match_guard_ref_valid", True),
     ("slot_wrapper_destructure_own_invalid", False),
     ("slot_wrapper_destructure_ref_valid", True),
+    ("string_scalar_tostring_opaque_call_valid", True),
+    ("string_element_tostring_opaque_call_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

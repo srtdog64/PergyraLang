@@ -1,0 +1,20 @@
+// ToString of a scalar reads no String storage. Passing it to a retaining
+// callee while an owned String array is live borrows nothing from that array.
+func Keep(inout out: Array<String>, text: String) -> Void {
+    ArrayPush(out, text);
+}
+
+func Names() -> Array<String> {
+    let names: Array<String> = [];
+    ArrayPushOwnedString(names, "a");
+    return names;
+}
+
+func Main() -> Int {
+    let owned: Array<String> = Names();
+    let out: Array<String> = [];
+    Keep(out, ToString(42));
+    Print(out[0]);
+    ArrayDropOwnedStrings(owned);
+    return 0;
+}
