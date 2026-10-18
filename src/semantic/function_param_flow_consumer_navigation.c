@@ -276,8 +276,13 @@ FunctionParamFlowBackingFact *function_param_flow_declared_result_frame_current(
         fact->evaluation_pass = store->fixed_point_passes + 1;
         ReturnedBacking state = {.store = store, .lookup = {store->ctx, store->program_root},
             .decl = decl, .fact = fact, .private_stores_closed = true, .checking_declared_result = true};
+        size_t rounds = 0;
         do {
             if (fact->epoch == SIZE_MAX) { function_param_flow_fail(store, decl, "declared result iteration identity overflow"); fact->complete = false; break; }
+            /* Same monotone growth bound as an input frame. */
+            if (rounds++ > fact->binding_count * (fact->origin_count + fact->destination_count)) {
+                function_param_flow_fail(store, decl, "backing frame rounds exceeded its growth bound"); fact->complete = false; break;
+            }
             fact->epoch++; fact->changed = false; state.result_return_seen = false;
             function_param_flow_backing_control_roots(&state, projection);
             if (!state.result_return_seen) fact->complete = false;
@@ -375,8 +380,14 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
         free(fact->pending_relations); fact->pending_relations = NULL; fact->pending_relation_count = 0;
         fact->sealed_pending_relation_count = 0;
         fact->evaluation_pass = store->fixed_point_passes + 1;
+        size_t rounds = 0;
         do {
             if (fact->epoch == SIZE_MAX) { function_param_flow_fail(store, decl, "backing iteration identity overflow"); fact->complete = false; break; }
+            /* A round repeats only after a binding's origin or destination
+             * bit grew, so a monotone frame stops within this many rounds. */
+            if (rounds++ > fact->binding_count * (fact->origin_count + fact->destination_count)) {
+                function_param_flow_fail(store, decl, "backing frame rounds exceeded its growth bound"); fact->complete = false; break;
+            }
             fact->epoch++; fact->changed = false;
             function_param_flow_backing_control_roots(&state, projection);
         } while (fact->changed && fact->complete);

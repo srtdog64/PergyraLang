@@ -187,9 +187,14 @@ bool backing_work(ReturnedBacking *state, size_t at)
 {
     FunctionParamFlowBackingNode *row = &state->fact->nodes[at];
     if (row->work_epoch == state->fact->epoch) return true;
-    size_t *work = state->loan_seed != NULL ? &state->loan_work : &state->store->work_units;
-    if (*work >= state->store->work_budget) { function_param_flow_fail(state->store, state->decl, "recursive summary work budget exceeded"); state->fact->complete = false; return false; }
-    (*work)++; row->work_epoch = state->fact->epoch; return true;
+    /* A loan-seed walk charges its own budget. A frame round visits each node
+     * once and its rounds are bounded by the frame's growth, so the demand
+     * closure is charged for its entry evaluations, not for frame nodes. */
+    if (state->loan_seed != NULL) {
+        if (state->loan_work >= state->store->work_budget) { function_param_flow_fail(state->store, state->decl, "recursive summary work budget exceeded"); state->fact->complete = false; return false; }
+        state->loan_work++;
+    } else state->store->closure_frame_node_visits++;
+    row->work_epoch = state->fact->epoch; return true;
 }
 
 
@@ -470,8 +475,9 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
             " cache_hits=%zu recursion_hits=%zu fixed_point_passes=%zu\n",
             store->count, store->body_evaluations, store->cache_hits,
             store->recursion_hits, store->fixed_point_passes);
-        fprintf(stderr, "pgy: function-param-flow-work work_units=%zu work_budget=%zu\n",
-            store->work_units, store->work_budget);
+        fprintf(stderr, "pgy: function-param-flow-work work_units=%zu work_budget=%zu"
+            " max_closure_frame_node_visits=%zu\n",
+            store->work_units, store->work_budget, store->max_closure_frame_node_visits);
         fprintf(stderr,
             "pgy: function-param-flow-sparse functions=%zu"
             " statement_visits=%zu program_points=%zu\n",

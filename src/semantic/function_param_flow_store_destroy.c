@@ -155,6 +155,50 @@ bool function_param_flow_no_store_admitted_current(FunctionParamFlowSummaryStore
     }
     return true;
 }
+/* Indexes one rows capture already found current. The capture only reads, so
+ * an index stays current until it returns; positions survive index growth. */
+typedef struct {
+    ASTNode **decls;
+    size_t *positions;
+    size_t count, capacity;
+    bool verify;
+} RowsCaptureIndexes;
+
+/* With PGY_VERIFY_FLOW_CURRENCY_MEMO set, every lookup is checked in full
+ * and a reuse the full check refuses fails the store. */
+static bool rows_capture_index(FunctionParamFlowSummaryStore *store, RowsCaptureIndexes *seen,
+    ASTNode *decl, FunctionParamFlowProgramPointIndex **index)
+{
+    size_t reused = SIZE_MAX;
+    for (size_t i = 0; i < seen->count && reused == SIZE_MAX; i++)
+        if (seen->decls[i] == decl) reused = seen->positions[i];
+    if (reused != SIZE_MAX && reused < store->program_point_index_count &&
+        store->program_point_indexes[reused].function_decl == decl) {
+        *index = &store->program_point_indexes[reused];
+        if (!seen->verify) return true;
+        if (!function_param_flow_program_point_index_build(store, decl, index)) {
+            function_param_flow_fail(store, decl, "rows capture index reuse diverged from its full check");
+            return false;
+        }
+        return true;
+    }
+    if (!function_param_flow_program_point_index_build(store, decl, index)) return false;
+    if (seen->count == seen->capacity) {
+        size_t next = seen->capacity == 0 ? 8 : seen->capacity * 2;
+        if (next < seen->capacity || next > SIZE_MAX / sizeof(*seen->positions)) return true;
+        ASTNode **decls = realloc(seen->decls, next * sizeof(*decls));
+        if (decls == NULL) return true;
+        seen->decls = decls;
+        size_t *positions = realloc(seen->positions, next * sizeof(*positions));
+        if (positions == NULL) return true;
+        seen->positions = positions;
+        seen->capacity = next;
+    }
+    seen->decls[seen->count] = decl;
+    seen->positions[seen->count++] = (size_t)(*index - store->program_point_indexes);
+    return true;
+}
+
 bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *store, ASTNode *decl,
     FunctionParamFlowInputCapture capture, void *user)
 {
@@ -163,11 +207,12 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
     ASTNode **queue = malloc(capacity * sizeof(*queue));
     if (queue == NULL) { function_param_flow_fail(store, decl, "backing validation queue allocation failed"); return false; }
     queue[0] = decl;
+    RowsCaptureIndexes seen = {.verify = getenv("PGY_VERIFY_FLOW_CURRENCY_MEMO") != NULL};
     bool valid = true;
     for (size_t at = 0; at < count && valid; at++) {
         ASTNode *current = queue[at];
         FunctionParamFlowProgramPointIndex *index;
-        if (!function_param_flow_program_point_index_build(store, current, &index) ||
+        if (!rows_capture_index(store, &seen, current, &index) ||
             !function_param_flow_index_roots_current(index) ||
             !semantic_param_publication_routine_relation_header_ready(store->ctx, current)) { valid = false; break; }
         if (index->declared_result != NULL &&
@@ -253,7 +298,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                         FunctionParamFlowProgramPointIndex *callee_index;
                         if (!entry->output_dependencies_ready || entry->output_dependencies == NULL ||
                             entry->output_count != ast_func_param_count(callee) ||
-                            !function_param_flow_program_point_index_build(store, callee, &callee_index) ||
+                            !rows_capture_index(store, &seen, callee, &callee_index) ||
                             callee_index->backing_frames == NULL || formal >= callee_index->backing_frame_count) { valid = false; break; }
                         FunctionParamFlowBackingFact *callee_fact = callee_index->backing_frames[formal];
                         valid = callee_fact != NULL && !callee_fact->analysis_unsupported &&
@@ -346,7 +391,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                         FunctionParamFlowProgramPointIndex *callee_index;
                         if (callee == NULL || ast_node_stable_id(callee) != edge_callee_id ||
                             type != edge_type || edge_arity + receiver_edge != ast_func_param_count(callee) ||
-                            !function_param_flow_program_point_index_build(store, callee, &callee_index) ||
+                            !rows_capture_index(store, &seen, callee, &callee_index) ||
                             callee_index->declared_result == NULL ||
                             callee_index->declared_result->declared_result_type != type) { valid = false; break; }
                     } else {
@@ -373,7 +418,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                                         (entry->state == FUNCTION_PARAM_FLOW_COMPLETE ||
                                          (store->solving && entry->state == FUNCTION_PARAM_FLOW_EVALUATED))) {
                                         FunctionParamFlowProgramPointIndex *callee_index;
-                                        if (!function_param_flow_program_point_index_build(store, callee, &callee_index) ||
+                                        if (!rows_capture_index(store, &seen, callee, &callee_index) ||
                                             callee_index->backing_frames == NULL || formal >= callee_index->backing_frame_count) break;
                                         FunctionParamFlowBackingFact *source = callee_index->backing_frames[formal];
                                         if (source == NULL || source->epoch == 0 || !source->complete ||
@@ -420,6 +465,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
         }
     }
     free(queue);
+    free(seen.decls); free(seen.positions);
     return valid;
 }
 

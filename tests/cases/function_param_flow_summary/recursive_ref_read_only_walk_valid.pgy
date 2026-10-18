@@ -1,0 +1,18 @@
+// A recursive walk that only reads its ref input and returns fresh storage.
+// Its backing frame waits on its own recursive call, which the closure
+// proves when it converges.
+func Walk(ref a: Array<Int>, n: Int) -> Array<Int> {
+    let out: Array<Int> = [];
+    if n > 0 {
+        let rest: Array<Int> = Walk(a, n - 1);
+        ArrayPush(out, rest[0]);
+    }
+    ArrayPush(out, a[0]);
+    return out;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [1];
+    let r: Array<Int> = Walk(v, 2);
+    Print(ToString(r[0] + ArrayLength(r)));
+}

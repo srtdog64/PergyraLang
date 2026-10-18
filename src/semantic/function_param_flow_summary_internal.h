@@ -247,6 +247,10 @@ struct FunctionParamFlowSummaryStore
     size_t fixed_point_passes;
     size_t work_units;
     size_t work_budget;
+    /* Frame node visits of the current demand closure, and the largest such
+     * count of any closure. Telemetry only: frame rounds are bounded by each
+     * frame's growth, not by work_budget. */
+    size_t closure_frame_node_visits, max_closure_frame_node_visits;
     size_t demand_epoch;
     size_t *admitted_no_store_indexes;
     size_t admitted_no_store_count;

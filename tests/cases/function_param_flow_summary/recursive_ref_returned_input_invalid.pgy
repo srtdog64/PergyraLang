@@ -1,0 +1,15 @@
+// A recursive walk whose base case returns its ref input lets the borrowed
+// storage escape through every level of the recursion.
+func Walk(ref a: Array<Int>, n: Int) -> Array<Int> {
+    if n <= 0 {
+        return a;
+    }
+    let rest: Array<Int> = Walk(a, n - 1);
+    return rest;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [1];
+    let r: Array<Int> = Walk(v, 2);
+    Print(ToString(r[0]));
+}

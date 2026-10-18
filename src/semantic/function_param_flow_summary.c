@@ -393,7 +393,9 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         if (!unsupported && (return_backing_required || (complete && scalar_return)))
             candidate = (candidate & ~SLOT_PARAM_SUMMARY_RETURN_ESCAPE) | backing_effects;
         else candidate |= backing_effects & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE);
-        if (!complete && private_stores && graph_closed) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+        /* A pending frame is proved or failed when its recursive closure
+         * converges; a conservative CALL here would outlive that proof. */
+        if (!complete && !pending && private_stores && graph_closed) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
         if (!complete && mutable_output && !pending) candidate |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
         if (store->entries[index].output_dependencies_ready != complete ||
             store->entries[index].returned_backing_pending != pending) store->changed = true;
@@ -546,6 +548,7 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
      * unrelated summaries remain cached; recursive revisits in this episode
      * still share the same cap. Body-evaluation telemetry stays cumulative. */
     store->work_units = 0;
+    store->closure_frame_node_visits = 0;
 
     do {
         store->changed = false;
@@ -570,6 +573,8 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     } while (store->active_had_recursion && store->changed);
 
     function_param_flow_complete_return_relations(store);
+    if (store->closure_frame_node_visits > store->max_closure_frame_node_visits)
+        store->max_closure_frame_node_visits = store->closure_frame_node_visits;
     if (store->failed) {
         for (size_t i = store->active_start; i < store->count; i++)
             store->entries[i].mask = SLOT_PARAM_SUMMARY_ALL;

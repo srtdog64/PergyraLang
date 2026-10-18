@@ -618,6 +618,8 @@ paired = (
     ("clone_struct_array_ref_input_result_invalid", False),
     ("default_aggregate_move_read_only_struct_valid", True),
     ("default_aggregate_move_shared_field_return_invalid", False),
+    ("recursive_ref_read_only_walk_valid", True),
+    ("recursive_ref_returned_input_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")
@@ -1344,6 +1346,36 @@ for shape, count in (("independent", 4097), ("single-closure", 4096)):
         b"recursive summary work budget exceeded" not in pressure.stderr
     ):
         raise SystemExit("one oversized demand closure escaped the unchanged work cap")
+# The cap counts a closure's entry evaluations, not its frame node visits: a
+# recursive pair with six Array inputs and a long body is a small closure
+# whose frames walk more nodes than the cap, and it must still be admitted.
+wide_inputs = 6
+wide_formals = ", ".join(f"ref a{i}: Array<Int>" for i in range(wide_inputs)) + ", n: Int"
+wide_actuals = ", ".join(f"a{i}" for i in range(wide_inputs))
+def wide_body(other):
+    rows = ["    let out: Array<Int> = [];", "    let s: Int = 0;"]
+    rows += ["    s = s + " + " + ".join(f"a{(i + k) % wide_inputs}[0]" for i in range(wide_inputs)) + ";"
+             for k in range(100)]
+    rows += ["    if n > 0 {", f"        let rest: Array<Int> = {other}({wide_actuals}, n - 1);",
+             "        s = s + rest[0];", "    }", "    ArrayPush(out, s);", "    return out;"]
+    return "\n".join(rows)
+wide_path = pressure_dir / "wide-frames.pgy"
+wide_path.write_text(
+    f"func WideA({wide_formals}) -> Array<Int> {{\n{wide_body('WideB')}\n}}\n"
+    f"func WideB({wide_formals}) -> Array<Int> {{\n{wide_body('WideA')}\n}}\n"
+    "func Main() -> Void {\n    let v: Array<Int> = [1];\n"
+    f"    let r: Array<Int> = WideA({', '.join('v' for _ in range(wide_inputs))}, 2);\n"
+    "    Print(ToString(r[0]));\n}\n", encoding="utf-8")
+wide = subprocess.run([pgy, "--native-pipeline", "--hir", str(wide_path)],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                      env=pressure_env, timeout=30.0, check=False)
+(pressure_dir / "wide-frames.err").write_bytes(wide.stderr)
+wide_work = re.search(rb"function-param-flow-work work_units=(\d+) work_budget=(\d+)"
+                      rb" max_closure_frame_node_visits=(\d+)", wide.stderr)
+if (wide.returncode != 0 or wide_work is None or int(wide_work[2]) != 4096 or
+        int(wide_work[1]) > int(wide_work[2]) or int(wide_work[3]) <= int(wide_work[2])):
+    sys.stderr.buffer.write(wide.stderr)
+    raise SystemExit("a small closure with wide frames was charged for its frame node visits")
 print(f"[function-param-flow-summary] independent/oversized demand controls: PASS; {pressure_dir}")
 PY
 
