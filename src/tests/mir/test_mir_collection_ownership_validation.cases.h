@@ -978,6 +978,1443 @@ test_mir_collection_ownership_validation(void)
         mir_destroy(return_mir); rir_destroy(return_rir); hir_destroy(return_hir);
     }
     {
+        const struct {
+            const char *label;
+            const char *source_a;
+            const char *source_b;
+            bool same_name_rir;
+        } pairs[] = {
+            { "ReadFile Main/empty", "func Main()->Void{Log(ReadFile(\"tests/cases/backend_compare/string_io/io.txt\"));}", "", false },
+            { "empty/empty", "", "", false },
+            { "intent/foreign intent",
+              "func Main()->Void{}intent ToString(value:Int){success:value==7;failure:false;}",
+              "func Main()->Void{}intent Other(value:Int){success:value==9;failure:false;}", false },
+            { "same-name Main/foreign Main",
+              "func Main()->Void{Log(ReadFile(\"tests/cases/backend_compare/string_io/io.txt\"));}",
+              "func Main()->Void{Log(ReadFile(\"foreign-input.txt\"));}", true },
+        };
+        for (size_t p = 0; p < sizeof(pairs) / sizeof(pairs[0]); p++) {
+            const char *sources[] = { pairs[p].source_a, pairs[p].source_b };
+            Lexer *lexers[2] = { NULL, NULL };
+            Parser *parsers[2] = { NULL, NULL };
+            ASTNode *programs[2] = { NULL, NULL };
+            SemanticResult *semantics[2] = { NULL, NULL };
+            HIRProgram *hirs[2] = { NULL, NULL };
+            DIRProgram *dirs[2] = { NULL, NULL };
+            RIRProgram *rirs[2] = { NULL, NULL };
+            MIRLowerRequest requests[2];
+            bool baselines[2] = { false, false };
+            bool issued = false, denied = false, restored = false;
+            char *error = NULL;
+            for (size_t i = 0; i < 2; i++) {
+                lexers[i] = lexer_create(sources[i]);
+                parsers[i] = parser_create(lexers[i]);
+                programs[i] = parser_parse_program(parsers[i]);
+                if (programs[i] == NULL || parser_has_error(parsers[i]))
+                    continue;
+                semantics[i] = semantic_analyze(programs[i]);
+                if (semantics[i] == NULL || !semantics[i]->success)
+                    continue;
+                hirs[i] = hir_lower_with_semantic_facts(semantics[i], NULL, &error);
+                free(error); error = NULL;
+                if (hirs[i] != NULL)
+                    dirs[i] = dir_lower_with_hir_facts(semantics[i]->annotated_ast,
+                        hirs[i], &error);
+                free(error); error = NULL;
+                rirs[i] = rir_lower(semantics[i]->annotated_ast, &error);
+                free(error); error = NULL;
+                if (hirs[i] == NULL || dirs[i] == NULL || rirs[i] == NULL ||
+                    !rir_enrich_with_hir_flow(rirs[i], hirs[i], &error))
+                    continue;
+                free(error); error = NULL;
+                mir_lower_request_init(&requests[i], hirs[i], rirs[i], semantics[i]);
+                mir_lower_request_bind_dir(&requests[i], dirs[i]);
+                MIRProgram *probe = mir_lower(&requests[i], &error);
+                baselines[i] = probe != NULL && mir_validate(probe, NULL);
+                mir_destroy(probe);
+                free(error); error = NULL;
+            }
+            if (baselines[0] && baselines[1]) {
+                issued = programs[0] != programs[1] &&
+                    programs[0]->stable_id != 0 &&
+                    programs[0]->stable_id == programs[1]->stable_id &&
+                    dirs[0]->source_program_syntax_id == dirs[1]->source_program_syntax_id;
+                mir_lower_request_bind_dir(&requests[0], dirs[1]);
+                MIRProgram *probe = mir_lower(&requests[0], &error);
+                denied = probe == NULL;
+                mir_destroy(probe);
+                free(error); error = NULL;
+                mir_lower_request_bind_dir(&requests[0], dirs[0]);
+                probe = mir_lower(&requests[0], &error);
+                restored = probe != NULL && mir_validate(probe, NULL);
+                mir_destroy(probe);
+                free(error); error = NULL;
+            }
+            printf("\n  MIR foreign DIR %s: baseline-A=%d baseline-B=%d issued=%d denied=%d restore=%d\n",
+                pairs[p].label, (int)baselines[0], (int)baselines[1],
+                (int)issued, (int)denied, (int)restored);
+            TEST("MIR source admission rejects foreign same-ID DIR and restores the original");
+            EXPECT(baselines[0] && baselines[1] && issued && denied && restored);
+            if (baselines[0] && baselines[1] && issued && restored) {
+                const ASTNode *original_root = dirs[0]->program_root;
+                DIRSourceOriginWitness *original_origin = dirs[0]->source_origin;
+                uint32_t original_id = dirs[0]->source_program_syntax_id;
+                const char *mutations[] = {
+                    "missing root", "same-ID foreign root", "missing witness",
+                    "foreign witness", "detached DIR owner", "missing source ID",
+                };
+                for (size_t m = 0; m < sizeof(mutations) / sizeof(mutations[0]); m++) {
+                    DIRProgram detached = *dirs[0];
+                    DIRProgram *target = m == 4 ? &detached : dirs[0];
+                    if (m == 0) target->program_root = NULL;
+                    if (m == 1) target->program_root = programs[1];
+                    if (m == 2) target->source_origin = NULL;
+                    if (m == 3) target->source_origin = dirs[1]->source_origin;
+                    if (m == 5) target->source_program_syntax_id = 0;
+                    const ASTNode *mutated_root = target->program_root;
+                    DIRSourceOriginWitness *mutated_origin = target->source_origin;
+                    uint32_t mutated_id = target->source_program_syntax_id;
+                    bool origin_denied = !dir_source_program_current(target, programs[0]);
+                    bool validation_denied = !dir_validate(target, NULL);
+                    mir_lower_request_bind_dir(&requests[0], target);
+                    MIRProgram *probe = mir_lower(&requests[0], &error);
+                    bool entry_denied = probe == NULL;
+                    mir_destroy(probe);
+                    free(error); error = NULL;
+                    bool no_regeneration = target->program_root == mutated_root &&
+                        target->source_origin == mutated_origin &&
+                        target->source_program_syntax_id == mutated_id;
+                    dirs[0]->program_root = original_root;
+                    dirs[0]->source_origin = original_origin;
+                    dirs[0]->source_program_syntax_id = original_id;
+                    mir_lower_request_bind_dir(&requests[0], dirs[0]);
+                    probe = mir_lower(&requests[0], &error);
+                    bool exact_restore = probe != NULL && mir_validate(probe, NULL) &&
+                        dir_source_program_current(dirs[0], programs[0]) &&
+                        dirs[0]->source_origin == original_origin;
+                    mir_destroy(probe);
+                    free(error); error = NULL;
+                    printf("\n  MIR DIR origin %s/%s: query-deny=%d validate-deny=%d entry-deny=%d no-regeneration=%d restore=%d\n",
+                        pairs[p].label, mutations[m], (int)origin_denied,
+                        (int)validation_denied, (int)entry_denied,
+                        (int)no_regeneration, (int)exact_restore);
+                    TEST("MIR DIR origin mutation refuses without reissuing and restores exactly");
+                    EXPECT(origin_denied && validation_denied && entry_denied &&
+                        no_regeneration && exact_restore);
+                }
+                DIRProgram *foreign_hir = dir_lower_with_hir_facts(
+                    programs[0], hirs[1], &error);
+                bool foreign_hir_denied = foreign_hir == NULL;
+                dir_destroy(foreign_hir);
+                free(error); error = NULL;
+                DIRProgram *same_hir = dir_lower_with_hir_facts(
+                    programs[0], hirs[0], &error);
+                bool same_hir_admitted = same_hir != NULL &&
+                    dir_source_program_current(same_hir, programs[0]);
+                dir_destroy(same_hir);
+                free(error); error = NULL;
+                TEST("DIR issuer rejects foreign same-ID HIR and accepts original HIR");
+                EXPECT(foreign_hir_denied && same_hir_admitted);
+
+                if (pairs[p].same_name_rir && rirs[0]->scope_count == 1 &&
+                    rirs[1]->scope_count == 1) {
+                    const char *rir_mutations[] = {
+                        "whole foreign RIR", "missing root", "relabeled root",
+                        "relabeled root and scope", "foreign scope under original RIR",
+                        "missing scope", "duplicate original scope",
+                    };
+                    for (size_t m = 0; m < sizeof(rir_mutations) / sizeof(rir_mutations[0]); m++) {
+                        RIRProgram *selected = m >= 4 ? rirs[0] : rirs[1];
+                        ASTNode *saved_root = selected->program_root;
+                        RIRScope *saved_scopes = selected->scopes;
+                        RIRScope saved_scope = saved_scopes[0];
+                        size_t saved_count = selected->scope_count;
+                        RIRScope duplicate_scopes[2] = { saved_scope, saved_scope };
+                        if (m == 1) selected->program_root = NULL;
+                        if (m == 2 || m == 3) selected->program_root = programs[0];
+                        if (m == 3) selected->scopes[0].program_root = programs[0];
+                        if (m == 4) {
+                            selected->scopes[0] = rirs[1]->scopes[0];
+                            selected->scopes[0].program_root = programs[0];
+                        }
+                        if (m == 5) selected->scope_count = 0;
+                        if (m == 6) {
+                            selected->scopes = duplicate_scopes;
+                            selected->scope_count = 2;
+                        }
+                        ASTNode *mutated_root = selected->program_root;
+                        RIRScope *mutated_scopes = selected->scopes;
+                        size_t mutated_count = selected->scope_count;
+                        ASTNode *mutated_ast = selected->scopes[0].ast;
+                        uint32_t mutated_id = selected->scopes[0].source_syntax_id;
+                        requests[0].rir = selected;
+                        MIRProgram *probe = mir_lower(&requests[0], &error);
+                        bool entry_denied = probe == NULL;
+                        mir_destroy(probe);
+                        free(error); error = NULL;
+                        bool no_regeneration = selected->program_root == mutated_root &&
+                            selected->scopes == mutated_scopes &&
+                            selected->scope_count == mutated_count &&
+                            selected->scopes[0].ast == mutated_ast &&
+                            selected->scopes[0].source_syntax_id == mutated_id;
+                        selected->program_root = saved_root;
+                        selected->scopes = saved_scopes;
+                        selected->scopes[0] = saved_scope;
+                        selected->scope_count = saved_count;
+                        requests[0].rir = rirs[0];
+                        probe = mir_lower(&requests[0], &error);
+                        bool exact_restore = probe != NULL && mir_validate(probe, NULL);
+                        mir_destroy(probe);
+                        free(error); error = NULL;
+                        printf("\n  MIR RIR origin %s: entry-deny=%d no-regeneration=%d restore=%d\n",
+                            rir_mutations[m], (int)entry_denied,
+                            (int)no_regeneration, (int)exact_restore);
+                        TEST("MIR consumes unique original RIR scope identity, never name-only facts");
+                        EXPECT(entry_denied && no_regeneration && exact_restore);
+                    }
+                }
+            }
+            free(error);
+            for (size_t i = 0; i < 2; i++) {
+                rir_destroy(rirs[i]); dir_destroy(dirs[i]); hir_destroy(hirs[i]);
+                semantic_result_destroy(semantics[i]); ast_destroy(programs[i]);
+                parser_destroy(parsers[i]); lexer_destroy(lexers[i]);
+            }
+        }
+    }
+    {
+        const char *source =
+            "func Load(path:String)->String{return ReadFile(path);}"
+            "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "let rows:Array<String> = [];let alternate:String = \"missing-result-source-probe.txt\";"
+            "let loaded:String = ReadFile(\"tests/cases/backend_compare/string_io/io.txt\");"
+            "ArrayPush(rows,loaded);Log(rows[0]);Log(risk[0]);}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = ast != NULL && !parser_has_error(parser) ? semantic_analyze(ast) : NULL;
+        HIRProgram *readfile_hir = NULL;
+        DIRProgram *readfile_dir = NULL;
+        RIRProgram *readfile_rir = NULL;
+        MIRProgram *readfile_mir = NULL;
+        char *error = NULL;
+        if (sem != NULL && sem->success) {
+            readfile_hir = hir_lower_with_semantic_facts(sem, NULL, &error);
+            if (readfile_hir != NULL)
+                readfile_dir = dir_lower_with_hir_facts(sem->annotated_ast,
+                    readfile_hir, &error);
+            readfile_rir = rir_lower(sem->annotated_ast, &error);
+            if (readfile_hir != NULL && readfile_rir != NULL &&
+                rir_enrich_with_hir_flow(readfile_rir, readfile_hir, &error) &&
+                readfile_dir != NULL && dir_validate(readfile_dir, &error)) {
+                MIRLowerRequest request;
+                mir_lower_request_init(&request, readfile_hir, readfile_rir, sem);
+                mir_lower_request_bind_dir(&request, readfile_dir);
+                readfile_mir = mir_lower(&request, &error);
+            }
+        }
+        bool lowered = readfile_mir != NULL;
+        MIRRoutine *main_routine = lowered ? find_mir_routine_mut(readfile_mir,
+            "Main", MIR_SCOPE_FUNCTION) : NULL;
+        MIRRoutine *load_routine = lowered ? find_mir_routine_mut(readfile_mir,
+            "Load", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = readfile_mir == NULL ? NULL :
+            readfile_mir->collection_effect_source_program;
+        ASTNode *load_ast = program == NULL ? NULL : ast_program_statement(program, 0);
+        ASTNode *main_ast = program == NULL ? NULL : ast_program_statement(program, 1);
+        ASTNode *load_return = load_ast == NULL ? NULL :
+            ast_block_statement(ast_func_body(load_ast), 0);
+        ASTNode *load_call = load_return == NULL ? NULL : ast_return_value(load_return);
+        ASTNode *body = main_ast == NULL ? NULL : ast_func_body(main_ast);
+        ASTNode *alternate = body == NULL ? NULL : ast_block_statement(body, 2);
+        ASTNode *alternate_value = alternate == NULL ? NULL : ast_let_initializer(alternate);
+        ASTNode *birth = body == NULL ? NULL : ast_block_statement(body, 3);
+        ASTNode *call = birth == NULL ? NULL : ast_let_initializer(birth);
+        MIRInstruction *birth_inst = NULL, *load_return_inst = NULL;
+        MIRBasicBlock *birth_block = NULL;
+        size_t birth_index = 0;
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &main_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == birth) {
+                    birth_inst = inst;
+                    birth_block = &main_routine->blocks[b];
+                    birth_index = i;
+                }
+            }
+        for (size_t b = 0; load_routine != NULL && b < load_routine->block_count; b++)
+            for (size_t i = 0; i < load_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &load_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 == load_call)
+                    load_return_inst = inst;
+            }
+        PgyCollectionEffectView view = {0};
+        bool control = lowered && main_routine != NULL && load_routine != NULL &&
+            call != NULL && call->type == AST_CALL && alternate_value != NULL &&
+            load_call != NULL && load_call->type == AST_CALL &&
+            birth_inst != NULL && birth_inst->expr0 == call && birth_block != NULL &&
+            load_return_inst != NULL &&
+            semantic_collection_effect_snapshot_current(readfile_mir->collection_effect_snapshot,
+                program, &view) && view.independent_string_result_count == 2 &&
+            mir_validate_collection_effect_evidence(readfile_mir, NULL, NULL) &&
+            mir_validate(readfile_mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL) &&
+            mir_validate_emission_contract(load_routine,
+                load_routine->has_cleanup_block, false, NULL);
+        TEST("MIR ReadFile direct and RETURN results have an admitted independent source ledger");
+        EXPECT(control);
+        if (control) {
+            const PgyCollectionEffectSnapshot *snapshot = readfile_mir->collection_effect_snapshot;
+            bool original_evaluation = semantic_collection_effect_snapshot_source_evaluation(
+                snapshot, main_routine->source_syntax_id, call);
+            bool original_return = semantic_collection_effect_snapshot_source_return(
+                snapshot, load_routine->source_syntax_id, load_return, load_call);
+            TEST("MIR ReadFile original actual and RETURN roles are current");
+            EXPECT(original_evaluation && original_return);
+
+            size_t saved_hir_routines = readfile_hir->routine_count;
+            size_t saved_hir_functions = readfile_hir->function_count;
+            readfile_hir->routine_count = 0;
+            readfile_hir->function_count = 0;
+            bool missing_hir_caller = !hir_collection_effect_snapshot_current(
+                sem, readfile_hir, NULL);
+            MIRLowerRequest missing_request;
+            mir_lower_request_init(&missing_request, readfile_hir, readfile_rir, sem);
+            mir_lower_request_bind_dir(&missing_request, readfile_dir);
+            MIRProgram *missing_projection = mir_lower(&missing_request, NULL);
+            bool missing_hir_lowering = missing_projection == NULL;
+            mir_destroy(missing_projection);
+            readfile_hir->routine_count = saved_hir_routines;
+            readfile_hir->function_count = saved_hir_functions;
+            TEST("ReadFile original caller ledger rejects whole HIR callable erasure");
+            EXPECT(missing_hir_caller && missing_hir_lowering);
+            TEST("ReadFile exact HIR callable inventory restores its original ledger");
+            EXPECT(hir_collection_effect_snapshot_current(sem, readfile_hir, NULL));
+
+            size_t saved_mir_routines = readfile_mir->routine_count;
+            size_t saved_mir_functions = readfile_mir->function_count;
+            readfile_mir->routine_count = 0;
+            readfile_mir->function_count = 0;
+            bool missing_mir_ledger = !mir_validate_collection_effect_evidence(
+                readfile_mir, NULL, NULL);
+            bool missing_mir_full = !mir_validate(readfile_mir, NULL);
+            bool missing_mir_scoped = !mir_validate_collection_effect_evidence(
+                readfile_mir, main_routine, NULL);
+            bool missing_mir_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            readfile_mir->routine_count = saved_mir_routines;
+            readfile_mir->function_count = saved_mir_functions;
+            TEST("ReadFile retained caller ledger rejects whole MIR callable erasure");
+            EXPECT(missing_mir_ledger);
+            TEST("ReadFile whole MIR callable erasure rejects full program validation");
+            EXPECT(missing_mir_full);
+            TEST("ReadFile erased caller cannot pass scoped or emission validation");
+            EXPECT(missing_mir_scoped && missing_mir_emit);
+            TEST("ReadFile exact MIR callable inventory restores every boundary");
+            EXPECT(mir_validate_collection_effect_evidence(readfile_mir, NULL, NULL) &&
+                mir_validate(readfile_mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL));
+
+            ASTNode *saved_actual = call->data.call.arguments[0];
+            call->data.call.arguments[0] = alternate_value;
+            bool slot_evidence = !mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL);
+            bool slot_full = !mir_validate(readfile_mir, NULL);
+            bool slot_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            call->data.call.arguments[0] = saved_actual;
+            TEST("MIR ReadFile original AST and executable call-slot crosswire is rejected");
+            EXPECT(slot_evidence && slot_full && slot_emit &&
+                mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL));
+
+            ASTNode detached = *call;
+            ASTNode *detached_actuals[1] = {alternate_value};
+            detached.data.call.arguments = detached_actuals;
+            ASTNode *saved_birth = birth_inst->expr0;
+            birth_inst->expr0 = &detached;
+            bool root_evidence = !mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL);
+            bool root_full = !mir_validate(readfile_mir, NULL);
+            bool root_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            birth_inst->expr0 = saved_birth;
+            TEST("MIR ReadFile DEF cannot substitute a detached same-ID actual root");
+            EXPECT(root_evidence && root_full && root_emit &&
+                mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL));
+
+            ASTNode *saved_return = load_return_inst->expr0;
+            load_return_inst->expr0 = call;
+            bool return_evidence = !mir_validate_collection_effect_evidence(readfile_mir, load_routine, NULL);
+            bool return_full = !mir_validate(readfile_mir, NULL);
+            bool return_emit = !mir_validate_emission_contract(load_routine,
+                load_routine->has_cleanup_block, false, NULL);
+            load_return_inst->expr0 = saved_return;
+            TEST("MIR ReadFile RETURN cannot adopt another caller's result");
+            EXPECT(return_evidence && return_full && return_emit &&
+                mir_validate_collection_effect_evidence(readfile_mir, load_routine, NULL));
+
+            uint32_t caller_id = main_routine->source_syntax_id;
+            main_routine->source_syntax_id = load_routine->source_syntax_id;
+            bool caller_evidence = !mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL);
+            bool caller_full = !mir_validate(readfile_mir, NULL);
+            bool caller_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            main_routine->source_syntax_id = caller_id;
+            TEST("MIR ReadFile result claim cannot be replayed under another caller");
+            EXPECT(caller_evidence && caller_full && caller_emit &&
+                mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL));
+
+            PgyCollectionEffectSnapshot *saved_snapshot = readfile_mir->collection_effect_snapshot;
+            readfile_mir->collection_effect_snapshot = NULL;
+            bool missing_evidence = !mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL);
+            bool missing_full = !mir_validate(readfile_mir, NULL);
+            bool missing_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            readfile_mir->collection_effect_snapshot = saved_snapshot;
+            TEST("MIR ReadFile active independent result cannot lose its snapshot witness");
+            EXPECT(missing_evidence && missing_full && missing_emit &&
+                mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL));
+
+            MIRBasicBlock saved_block = *birth_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *duplicated = calloc(count + 1, sizeof(*duplicated));
+            TEST("MIR ReadFile duplicate birth has isolated instruction storage");
+            EXPECT(duplicated != NULL);
+            if (duplicated != NULL) {
+                memcpy(duplicated, saved_block.instructions,
+                    (birth_index + 1) * sizeof(*duplicated));
+                duplicated[birth_index + 1] = *birth_inst;
+                memcpy(&duplicated[birth_index + 2],
+                    &saved_block.instructions[birth_index + 1],
+                    (count - birth_index - 1) * sizeof(*duplicated));
+                birth_block->instructions = duplicated;
+                birth_block->instruction_count = count + 1;
+                birth_block->instruction_capacity = count + 1;
+                bool duplicate_evidence = !mir_validate_collection_effect_evidence(
+                    readfile_mir, main_routine, NULL);
+                bool duplicate_full = !mir_validate(readfile_mir, NULL);
+                bool duplicate_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *birth_block = saved_block;
+                free(duplicated);
+                TEST("MIR ReadFile static result DEF cannot occur twice");
+                EXPECT(duplicate_evidence && duplicate_full && duplicate_emit &&
+                    mir_validate_collection_effect_evidence(readfile_mir, main_routine, NULL) &&
+                    mir_validate(readfile_mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL));
+            }
+        }
+        free(error);
+        mir_destroy(readfile_mir); rir_destroy(readfile_rir); dir_destroy(readfile_dir);
+        hir_destroy(readfile_hir); semantic_result_destroy(sem); ast_destroy(ast);
+        parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
+        const char *source =
+            "func Load(path:String)->String{return ReadFile(path);}"
+            "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "Log(Load(\"tests/cases/backend_compare/string_io/io.txt\"));Log(risk[0]);}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = ast != NULL && !parser_has_error(parser) ? semantic_analyze(ast) : NULL;
+        HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *error = NULL;
+        if (sem != NULL && sem->success) {
+            hir = hir_lower_with_semantic_facts(sem, NULL, &error);
+            if (hir != NULL) dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &error);
+            rir = rir_lower(sem->annotated_ast, &error);
+            if (hir != NULL && rir != NULL && rir_enrich_with_hir_flow(rir, hir, &error) &&
+                dir != NULL && dir_validate(dir, &error)) {
+                MIRLowerRequest request;
+                mir_lower_request_init(&request, hir, rir, sem);
+                mir_lower_request_bind_dir(&request, dir);
+                mir = mir_lower(&request, &error);
+            }
+        }
+        MIRRoutine *load = mir == NULL ? NULL : find_mir_routine_mut(mir, "Load", MIR_SCOPE_FUNCTION);
+        ASTNode *load_decl = sem == NULL ? NULL : ast_program_statement(sem->annotated_ast, 0);
+        ASTNode *return_stmt = load_decl == NULL ? NULL :
+            ast_block_statement(ast_func_body(load_decl), 0);
+        ASTNode *read_call = return_stmt == NULL ? NULL : ast_return_value(return_stmt);
+        HIRRoutine *load_hir = NULL;
+        for (size_t i = 0; hir != NULL && load != NULL && i < hir->routine_count; i++)
+            if (&hir->routines[i] == load->hir_routine) load_hir = &hir->routines[i];
+        MIRBasicBlock *return_block = NULL;
+        MIRInstruction *return_inst = NULL;
+        for (size_t b = 0; load != NULL && b < load->block_count; b++)
+            for (size_t i = 0; i < load->blocks[b].instruction_count; i++)
+                if (load->blocks[b].instructions[i].kind == MIR_INST_RETURN &&
+                    load->blocks[b].instructions[i].expr0 == read_call) {
+                    return_block = &load->blocks[b];
+                    return_inst = &load->blocks[b].instructions[i];
+                }
+        HIRBasicBlock *source_block = return_block != NULL && load_hir != NULL &&
+            return_block->source_hir_block_id < load_hir->cfg.block_count ?
+            &load_hir->cfg.blocks[return_block->source_hir_block_id] : NULL;
+        size_t last = source_block == NULL || source_block->statement_count == 0 ?
+            0 : source_block->statement_count - 1;
+        bool control = mir != NULL && load != NULL && read_call != NULL &&
+            read_call->type == AST_CALL && return_inst != NULL && source_block != NULL &&
+            source_block->statement_count > 0 &&
+            source_block->statements != NULL && source_block->statements[last] == return_stmt &&
+            source_block->terminator_kind == HIR_BLOCK_RETURN &&
+            source_block->terminator_value == read_call &&
+            return_block->source_statement_inventory.items != NULL &&
+            return_block->source_statement_inventory.count == source_block->statement_count &&
+            return_block->source_statement_inventory.items[last] == return_stmt &&
+            hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+            mir_validate_collection_effect_evidence(mir, load, NULL) &&
+            mir_validate(mir, NULL) &&
+            mir_validate_emission_contract(load, load->has_cleanup_block, false, NULL);
+        TEST("ReadFile original RETURN parent is present in HIR and MIR source inventories");
+        EXPECT(control);
+        if (control) {
+            source_block->statements[last] = read_call;
+            return_block->source_statement_inventory.items[last] = read_call;
+            bool hir_refused = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            bool evidence_refused = !mir_validate_collection_effect_evidence(mir, load, NULL);
+            bool full_refused = !mir_validate(mir, NULL);
+            bool emission_refused = !mir_validate_emission_contract(load,
+                load->has_cleanup_block, false, NULL);
+            source_block->statements[last] = return_stmt;
+            return_block->source_statement_inventory.items[last] = return_stmt;
+            bool restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, load, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(load, load->has_cleanup_block, false, NULL);
+            if (!hir_refused || !evidence_refused || !full_refused || !emission_refused || !restored)
+                printf("\n  ReadFile RETURN parent erasure: HIR=%d evidence=%d full=%d emission=%d restore=%d\n",
+                    (int)hir_refused, (int)evidence_refused, (int)full_refused,
+                    (int)emission_refused, (int)restored);
+            TEST("ReadFile RETURN parent erasure rejects HIR collection snapshot");
+            EXPECT(hir_refused);
+            TEST("ReadFile RETURN parent erasure rejects MIR collection evidence");
+            EXPECT(evidence_refused);
+            TEST("ReadFile RETURN parent erasure rejects full MIR validation");
+            EXPECT(full_refused);
+            TEST("ReadFile RETURN parent erasure rejects MIR emission");
+            EXPECT(emission_refused);
+            TEST("ReadFile RETURN parent restoration preserves all four boundaries");
+            EXPECT(restored);
+        }
+        free(error);
+        mir_destroy(mir); rir_destroy(rir); dir_destroy(dir); hir_destroy(hir);
+        semantic_result_destroy(sem); ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
+        const char *source =
+            "func Consume(text:String)->Int{return StringLength(text);}"
+            "func Main()->Int{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "let path:String=\"tests/cases/backend_compare/string_io/io.txt\";"
+            "if StringLength(path)>0{Log(Consume(ReadFile(path)));Log(risk[0]);return 1;}"
+            "else{Log(0);return 0;}}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = ast != NULL && !parser_has_error(parser) ? semantic_analyze(ast) : NULL;
+        HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *error = NULL;
+        if (sem != NULL && sem->success) {
+            hir = hir_lower_with_semantic_facts(sem, NULL, &error);
+            if (hir != NULL) dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &error);
+            rir = rir_lower(sem->annotated_ast, &error);
+            if (hir != NULL && rir != NULL && rir_enrich_with_hir_flow(rir, hir, &error) &&
+                dir != NULL && dir_validate(dir, &error)) {
+                MIRLowerRequest request;
+                mir_lower_request_init(&request, hir, rir, sem);
+                mir_lower_request_bind_dir(&request, dir);
+                mir = mir_lower(&request, &error);
+            }
+        }
+        MIRRoutine *main_routine = mir == NULL ? NULL :
+            find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION);
+        HIRRoutine *main_hir = NULL;
+        for (size_t i = 0; hir != NULL && main_routine != NULL && i < hir->routine_count; i++)
+            if (&hir->routines[i] == main_routine->hir_routine)
+                main_hir = &hir->routines[i];
+        ASTNode *main_decl = sem == NULL ? NULL :
+            ast_program_statement(sem->annotated_ast, 1);
+        ASTNode *branch = main_decl == NULL ? NULL :
+            ast_block_statement(ast_func_body(main_decl), 2);
+        ASTNode *log = branch == NULL ? NULL :
+            ast_block_statement(ast_if_then_branch(branch), 0);
+        ASTNode *else_log = branch == NULL ? NULL :
+            ast_block_statement(ast_if_else_branch(branch), 0);
+        ASTNode *consume = log == NULL ? NULL : ast_call_argument(log, 0);
+        ASTNode *read_call = consume == NULL ? NULL : ast_call_argument(consume, 0);
+        HIRBasicBlock *read_block = NULL, *else_block = NULL;
+        HIRBasicBlock *branch_block = NULL, *unreachable_block = NULL;
+        size_t read_index = SIZE_MAX, else_index = SIZE_MAX;
+        for (size_t b = 0; main_hir != NULL && b < main_hir->cfg.block_count; b++) {
+            HIRBasicBlock *block = &main_hir->cfg.blocks[b];
+            if (!block->is_reachable && block->statement_count == 0 &&
+                unreachable_block == NULL) unreachable_block = block;
+            if (block->terminator_kind == HIR_BLOCK_BRANCH &&
+                block->terminator_condition == ast_if_condition(branch))
+                branch_block = block;
+            for (size_t i = 0; block->statements != NULL && i < block->statement_count; i++)
+                if (block->statements[i] == log) {
+                    read_block = block;
+                    read_index = i;
+                } else if (block->statements[i] == else_log) {
+                    else_block = block;
+                    else_index = i;
+                }
+        }
+        bool control = mir != NULL && main_routine != NULL && main_hir != NULL &&
+            read_call != NULL && read_call->type == AST_CALL && read_block != NULL &&
+            read_block->is_reachable && read_index != SIZE_MAX &&
+            else_log != NULL && else_block != NULL && else_block->is_reachable &&
+            else_block != read_block && else_index != SIZE_MAX &&
+            branch_block != NULL && branch_block->has_succ_true &&
+            branch_block->has_succ_false &&
+            branch_block->succ_true == read_block->id &&
+            branch_block->succ_false == else_block->id &&
+            unreachable_block != NULL && unreachable_block != read_block &&
+            hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+            mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+            mir_validate(mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+        TEST("ReadFile reachable branch has a naturally unreachable empty join control");
+        EXPECT(control);
+        if (control) {
+            void *saved_execution_layout = main_hir->execution_layout;
+            TEST("ReadFile reachable HIR routine has an issued execution layout");
+            EXPECT(saved_execution_layout != NULL);
+            main_hir->execution_layout = NULL;
+            bool missing_layout_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            bool missing_layout_evidence = !mir_validate_collection_effect_evidence(
+                mir, main_routine, NULL);
+            bool missing_layout_full = !mir_validate(mir, NULL);
+            bool missing_layout_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            bool missing_layout_not_regenerated = main_hir->execution_layout == NULL;
+            main_hir->execution_layout = saved_execution_layout;
+            bool missing_layout_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            if (!missing_layout_hir || !missing_layout_evidence || !missing_layout_full ||
+                !missing_layout_emit || !missing_layout_not_regenerated ||
+                !missing_layout_restored)
+                printf("\n  ReadFile execution-layout withdrawal: HIR=%d evidence=%d full=%d emit=%d no_regen=%d restore=%d\n",
+                    (int)missing_layout_hir, (int)missing_layout_evidence,
+                    (int)missing_layout_full, (int)missing_layout_emit,
+                    (int)missing_layout_not_regenerated, (int)missing_layout_restored);
+            TEST("ReadFile missing HIR execution layout rejects source validation");
+            EXPECT(missing_layout_hir);
+            TEST("ReadFile missing HIR execution layout rejects MIR evidence");
+            EXPECT(missing_layout_evidence);
+            TEST("ReadFile missing HIR execution layout rejects full MIR validation");
+            EXPECT(missing_layout_full);
+            TEST("ReadFile missing HIR execution layout rejects MIR emission");
+            EXPECT(missing_layout_emit);
+            TEST("ReadFile execution layout withdrawal does not regenerate its owner fact");
+            EXPECT(missing_layout_not_regenerated);
+            TEST("ReadFile original HIR execution layout restores all validators");
+            EXPECT(missing_layout_restored);
+
+            HIRBasicBlock saved_read = *read_block;
+            HIRBasicBlock saved_unreachable = *unreachable_block;
+            ASTNode **without_read = calloc(saved_read.statement_count,
+                sizeof(*without_read));
+            ASTNode **moved_read = calloc(1, sizeof(*moved_read));
+            bool isolated = without_read != NULL && moved_read != NULL;
+            TEST("ReadFile reachable-to-unreachable statement move has isolated HIR storage");
+            EXPECT(isolated);
+            if (isolated) {
+                for (size_t i = 0, j = 0; i < saved_read.statement_count; i++)
+                    if (i != read_index) without_read[j++] = saved_read.statements[i];
+                moved_read[0] = log;
+                read_block->statements = without_read;
+                read_block->statement_count = saved_read.statement_count - 1;
+                read_block->statement_capacity = saved_read.statement_count - 1;
+                unreachable_block->statements = moved_read;
+                unreachable_block->statement_count = 1;
+                unreachable_block->statement_capacity = 1;
+                bool move_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                bool move_evidence = !mir_validate_collection_effect_evidence(
+                    mir, main_routine, NULL);
+                bool move_full = !mir_validate(mir, NULL);
+                bool move_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *read_block = saved_read;
+                *unreachable_block = saved_unreachable;
+                bool move_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                    mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (!move_hir || !move_evidence || !move_full || !move_emit || !move_restored)
+                    printf("\n  ReadFile unreachable move: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                        (int)move_hir, (int)move_evidence, (int)move_full,
+                        (int)move_emit, (int)move_restored);
+                TEST("ReadFile execution statement moved to unreachable join rejects HIR snapshot");
+                EXPECT(move_hir);
+                TEST("ReadFile execution statement moved to unreachable join rejects MIR evidence");
+                EXPECT(move_evidence);
+                TEST("ReadFile execution statement moved to unreachable join rejects full MIR validation");
+                EXPECT(move_full);
+                TEST("ReadFile execution statement moved to unreachable join rejects MIR emission");
+                EXPECT(move_emit);
+                TEST("ReadFile execution statement move restoration preserves all validators");
+                EXPECT(move_restored);
+            }
+            free(without_read);
+            free(moved_read);
+
+            read_block->is_reachable = false;
+            bool flag_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            bool flag_evidence = !mir_validate_collection_effect_evidence(mir, main_routine, NULL);
+            bool flag_full = !mir_validate(mir, NULL);
+            bool flag_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            read_block->is_reachable = saved_read.is_reachable;
+            bool flag_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            if (!flag_hir || !flag_evidence || !flag_full || !flag_emit || !flag_restored)
+                printf("\n  ReadFile reachable flag withdrawal: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                    (int)flag_hir, (int)flag_evidence, (int)flag_full,
+                    (int)flag_emit, (int)flag_restored);
+            TEST("ReadFile reachable execution block cannot withdraw its HIR reachability");
+            EXPECT(flag_hir);
+            TEST("ReadFile reachable HIR flag withdrawal rejects MIR evidence");
+            EXPECT(flag_evidence);
+            TEST("ReadFile reachable HIR flag withdrawal rejects full MIR validation");
+            EXPECT(flag_full);
+            TEST("ReadFile reachable HIR flag withdrawal rejects MIR emission");
+            EXPECT(flag_emit);
+            TEST("ReadFile reachable HIR flag restoration preserves all validators");
+            EXPECT(flag_restored);
+
+            /* Both arms execute; changing the ReadFile statement's arm is
+               different from withdrawing a block's reachability. */
+            ASTNode *saved_then_statement = read_block->statements[read_index];
+            ASTNode *saved_else_statement = else_block->statements[else_index];
+            read_block->statements[read_index] = saved_else_statement;
+            else_block->statements[else_index] = saved_then_statement;
+            bool arm_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            bool arm_evidence = !mir_validate_collection_effect_evidence(
+                mir, main_routine, NULL);
+            bool arm_full = !mir_validate(mir, NULL);
+            bool arm_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            read_block->statements[read_index] = saved_then_statement;
+            else_block->statements[else_index] = saved_else_statement;
+            bool arm_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            if (!arm_hir || !arm_evidence || !arm_full || !arm_emit || !arm_restored)
+                printf("\n  ReadFile reachable-arm statement swap: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                    (int)arm_hir, (int)arm_evidence, (int)arm_full,
+                    (int)arm_emit, (int)arm_restored);
+            TEST("ReadFile reachable-arm statement swap rejects original HIR placement");
+            EXPECT(arm_hir);
+            TEST("ReadFile reachable-arm statement swap rejects MIR collection evidence");
+            EXPECT(arm_evidence);
+            TEST("ReadFile reachable-arm statement swap rejects full MIR validation");
+            EXPECT(arm_full);
+            TEST("ReadFile reachable-arm statement swap rejects MIR emission");
+            EXPECT(arm_emit);
+            TEST("ReadFile reachable-arm statement swap restores all validators");
+            EXPECT(arm_restored);
+
+            MIRBasicBlock *then_mir = NULL, *else_mir = NULL, *branch_mir = NULL;
+            MIRInstruction *then_inst = NULL, *else_inst = NULL;
+            size_t then_inventory = SIZE_MAX, else_inventory = SIZE_MAX;
+            for (size_t b = 0; b < main_routine->block_count; b++) {
+                MIRBasicBlock *block = &main_routine->blocks[b];
+                if (block->source_hir_block_id == branch_block->id &&
+                    block->has_succ_true && block->has_succ_false)
+                    branch_mir = block;
+                for (size_t i = 0; i < block->instruction_count; i++) {
+                    MIRInstruction *inst = &block->instructions[i];
+                    if (inst->kind != MIR_INST_STMT) continue;
+                    if (inst->ast == log && inst->expr0 == log) {
+                        then_mir = block;
+                        then_inst = inst;
+                    }
+                    if (inst->ast == else_log && inst->expr0 == else_log) {
+                        else_mir = block;
+                        else_inst = inst;
+                    }
+                }
+                for (size_t i = 0; block->source_statement_inventory.items != NULL &&
+                    i < block->source_statement_inventory.count; i++) {
+                    if (block->source_statement_inventory.items[i] == log)
+                        then_inventory = i;
+                    if (block->source_statement_inventory.items[i] == else_log)
+                        else_inventory = i;
+                }
+            }
+            bool arm_mir_control = then_mir != NULL && else_mir != NULL &&
+                then_mir != else_mir && then_inst != NULL && else_inst != NULL &&
+                then_inventory != SIZE_MAX && else_inventory != SIZE_MAX &&
+                branch_mir != NULL && branch_mir->succ_true == then_mir->id &&
+                branch_mir->succ_false == else_mir->id;
+            TEST("ReadFile two reachable MIR arms and source inventories are distinct");
+            EXPECT(arm_mir_control);
+            if (arm_mir_control) {
+                MIRInstruction saved_then_inst = *then_inst;
+                MIRInstruction saved_else_inst = *else_inst;
+                ASTNode *saved_then_inventory =
+                    then_mir->source_statement_inventory.items[then_inventory];
+                ASTNode *saved_else_inventory =
+                    else_mir->source_statement_inventory.items[else_inventory];
+                *then_inst = saved_else_inst;
+                *else_inst = saved_then_inst;
+                then_mir->source_statement_inventory.items[then_inventory] = saved_else_inventory;
+                else_mir->source_statement_inventory.items[else_inventory] = saved_then_inventory;
+                bool mir_arm_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                bool mir_arm_evidence = !mir_validate_collection_effect_evidence(
+                    mir, main_routine, NULL);
+                bool mir_arm_full = !mir_validate(mir, NULL);
+                bool mir_arm_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                then_mir->source_statement_inventory.items[then_inventory] = saved_then_inventory;
+                else_mir->source_statement_inventory.items[else_inventory] = saved_else_inventory;
+                *then_inst = saved_then_inst;
+                *else_inst = saved_else_inst;
+                bool mir_arm_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                    mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (mir_arm_hir || !mir_arm_evidence || !mir_arm_full ||
+                    !mir_arm_emit || !mir_arm_restored)
+                    printf("\n  ReadFile MIR-only reachable-arm swap: HIRrefused=%d evidence=%d full=%d emit=%d restore=%d\n",
+                        (int)mir_arm_hir, (int)mir_arm_evidence,
+                        (int)mir_arm_full, (int)mir_arm_emit, (int)mir_arm_restored);
+                TEST("ReadFile MIR-only arm swap leaves original HIR owner current");
+                EXPECT(!mir_arm_hir);
+                TEST("ReadFile MIR-only arm swap rejects collection evidence");
+                EXPECT(mir_arm_evidence);
+                TEST("ReadFile MIR-only arm swap rejects full validation");
+                EXPECT(mir_arm_full);
+                TEST("ReadFile MIR-only arm swap rejects emission");
+                EXPECT(mir_arm_emit);
+                TEST("ReadFile MIR-only arm swap restores all validators");
+                EXPECT(mir_arm_restored);
+
+                read_block->statements[read_index] = saved_else_statement;
+                else_block->statements[else_index] = saved_then_statement;
+                *then_inst = saved_else_inst;
+                *else_inst = saved_then_inst;
+                then_mir->source_statement_inventory.items[then_inventory] = saved_else_inventory;
+                else_mir->source_statement_inventory.items[else_inventory] = saved_then_inventory;
+                bool coherent_arm_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                bool coherent_arm_evidence = !mir_validate_collection_effect_evidence(
+                    mir, main_routine, NULL);
+                bool coherent_arm_full = !mir_validate(mir, NULL);
+                bool coherent_arm_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                then_mir->source_statement_inventory.items[then_inventory] = saved_then_inventory;
+                else_mir->source_statement_inventory.items[else_inventory] = saved_else_inventory;
+                *then_inst = saved_then_inst;
+                *else_inst = saved_else_inst;
+                read_block->statements[read_index] = saved_then_statement;
+                else_block->statements[else_index] = saved_else_statement;
+                bool coherent_arm_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                    mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (!coherent_arm_hir || !coherent_arm_evidence || !coherent_arm_full ||
+                    !coherent_arm_emit || !coherent_arm_restored)
+                    printf("\n  ReadFile coherent reachable-arm swap: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                        (int)coherent_arm_hir, (int)coherent_arm_evidence,
+                        (int)coherent_arm_full, (int)coherent_arm_emit,
+                        (int)coherent_arm_restored);
+                TEST("ReadFile coherent reachable-arm swap rejects original HIR placement");
+                EXPECT(coherent_arm_hir);
+                TEST("ReadFile coherent reachable-arm swap rejects MIR collection evidence");
+                EXPECT(coherent_arm_evidence);
+                TEST("ReadFile coherent reachable-arm swap rejects full MIR validation");
+                EXPECT(coherent_arm_full);
+                TEST("ReadFile coherent reachable-arm swap rejects MIR emission");
+                EXPECT(coherent_arm_emit);
+                TEST("ReadFile coherent reachable-arm swap restores all validators");
+                EXPECT(coherent_arm_restored);
+            }
+
+            size_t saved_hir_true = branch_block->succ_true;
+            size_t saved_hir_false = branch_block->succ_false;
+            branch_block->succ_true = saved_hir_false;
+            branch_block->succ_false = saved_hir_true;
+            bool edge_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            bool edge_evidence = !mir_validate_collection_effect_evidence(mir, main_routine, NULL);
+            bool edge_full = !mir_validate(mir, NULL);
+            bool edge_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            branch_block->succ_true = saved_hir_true;
+            branch_block->succ_false = saved_hir_false;
+            bool edge_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            if (!edge_hir || !edge_evidence || !edge_full || !edge_emit || !edge_restored)
+                printf("\n  ReadFile branch successor swap: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                    (int)edge_hir, (int)edge_evidence, (int)edge_full,
+                    (int)edge_emit, (int)edge_restored);
+            TEST("ReadFile true/false successor swap rejects original HIR execution edge");
+            EXPECT(edge_hir);
+            TEST("ReadFile HIR successor swap rejects MIR collection evidence");
+            EXPECT(edge_evidence);
+            TEST("ReadFile HIR successor swap rejects full MIR validation");
+            EXPECT(edge_full);
+            TEST("ReadFile HIR successor swap rejects MIR emission");
+            EXPECT(edge_emit);
+            TEST("ReadFile HIR successor swap restores all validators");
+            EXPECT(edge_restored);
+
+            if (arm_mir_control) {
+                size_t saved_mir_true = branch_mir->succ_true;
+                size_t saved_mir_false = branch_mir->succ_false;
+                branch_mir->succ_true = saved_mir_false;
+                branch_mir->succ_false = saved_mir_true;
+                bool mir_edge_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                bool mir_edge_evidence = !mir_validate_collection_effect_evidence(
+                    mir, main_routine, NULL);
+                bool mir_edge_full = !mir_validate(mir, NULL);
+                bool mir_edge_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                branch_mir->succ_true = saved_mir_true;
+                branch_mir->succ_false = saved_mir_false;
+                bool mir_edge_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                    mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (mir_edge_hir || !mir_edge_evidence || !mir_edge_full ||
+                    !mir_edge_emit || !mir_edge_restored)
+                    printf("\n  ReadFile MIR-only branch successor swap: HIRrefused=%d evidence=%d full=%d emit=%d restore=%d\n",
+                        (int)mir_edge_hir, (int)mir_edge_evidence,
+                        (int)mir_edge_full, (int)mir_edge_emit,
+                        (int)mir_edge_restored);
+                TEST("ReadFile MIR-only successor swap leaves original HIR owner current");
+                EXPECT(!mir_edge_hir);
+                TEST("ReadFile MIR-only successor swap rejects collection evidence");
+                EXPECT(mir_edge_evidence);
+                TEST("ReadFile MIR-only successor swap rejects full validation");
+                EXPECT(mir_edge_full);
+                TEST("ReadFile MIR-only successor swap rejects emission");
+                EXPECT(mir_edge_emit);
+                TEST("ReadFile MIR-only successor swap restores all validators");
+                EXPECT(mir_edge_restored);
+
+                branch_block->succ_true = saved_hir_false;
+                branch_block->succ_false = saved_hir_true;
+                branch_mir->succ_true = saved_mir_false;
+                branch_mir->succ_false = saved_mir_true;
+                bool coherent_edge_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                bool coherent_edge_evidence = !mir_validate_collection_effect_evidence(
+                    mir, main_routine, NULL);
+                bool coherent_edge_full = !mir_validate(mir, NULL);
+                bool coherent_edge_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                branch_mir->succ_true = saved_mir_true;
+                branch_mir->succ_false = saved_mir_false;
+                branch_block->succ_true = saved_hir_true;
+                branch_block->succ_false = saved_hir_false;
+                bool coherent_edge_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                    mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (!coherent_edge_hir || !coherent_edge_evidence || !coherent_edge_full ||
+                    !coherent_edge_emit || !coherent_edge_restored)
+                    printf("\n  ReadFile coherent branch successor swap: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                        (int)coherent_edge_hir, (int)coherent_edge_evidence,
+                        (int)coherent_edge_full, (int)coherent_edge_emit,
+                        (int)coherent_edge_restored);
+                TEST("ReadFile coherent true/false successor swap rejects original HIR edge");
+                EXPECT(coherent_edge_hir);
+                TEST("ReadFile coherent successor swap rejects MIR collection evidence");
+                EXPECT(coherent_edge_evidence);
+                TEST("ReadFile coherent successor swap rejects full MIR validation");
+                EXPECT(coherent_edge_full);
+                TEST("ReadFile coherent successor swap rejects MIR emission");
+                EXPECT(coherent_edge_emit);
+                TEST("ReadFile coherent successor swap restores all validators");
+                EXPECT(coherent_edge_restored);
+            }
+        }
+        free(error);
+        mir_destroy(mir); rir_destroy(rir); dir_destroy(dir); hir_destroy(hir);
+        semantic_result_destroy(sem); ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
+        const char *source =
+            "func Consume(text:String)->Int{return StringLength(text);}"
+            "func Main()->Int{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "let path:String=\"tests/cases/backend_compare/string_io/io.txt\";"
+            "Log(Consume(ReadFile(path)));Log(risk[0]);return 0;}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = ast != NULL && !parser_has_error(parser) ? semantic_analyze(ast) : NULL;
+        HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *error = NULL;
+        if (sem != NULL && sem->success) {
+            hir = hir_lower_with_semantic_facts(sem, NULL, &error);
+            if (hir != NULL) dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &error);
+            rir = rir_lower(sem->annotated_ast, &error);
+            if (hir != NULL && rir != NULL && rir_enrich_with_hir_flow(rir, hir, &error) &&
+                dir != NULL && dir_validate(dir, &error)) {
+                MIRLowerRequest request;
+                mir_lower_request_init(&request, hir, rir, sem);
+                mir_lower_request_bind_dir(&request, dir);
+                mir = mir_lower(&request, &error);
+            }
+        }
+        bool lowered = mir != NULL;
+        MIRRoutine *main_routine = lowered ? find_mir_routine_mut(mir,
+            "Main", MIR_SCOPE_FUNCTION) : NULL;
+        const ASTNode *program = mir == NULL ? NULL : mir->collection_effect_source_program;
+        ASTNode *main_decl = program == NULL ? NULL : ast_program_statement(program, 1);
+        ASTNode *log = main_decl == NULL ? NULL :
+            ast_block_statement(ast_func_body(main_decl), 2);
+        ASTNode *consume = log == NULL ? NULL : ast_call_argument(log, 0);
+        ASTNode *read_call = consume == NULL ? NULL : ast_call_argument(consume, 0);
+        MIRBasicBlock *statement_block = NULL;
+        MIRInstruction *statement_inst = NULL;
+        size_t statement_index = 0;
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &main_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_STMT && inst->ast == log && inst->expr0 == log) {
+                    statement_block = &main_routine->blocks[b];
+                    statement_inst = inst;
+                    statement_index = i;
+                }
+            }
+        PgyCollectionEffectView view = {0};
+        bool control = lowered && main_routine != NULL && log != NULL &&
+            read_call != NULL && read_call->type == AST_CALL && statement_inst != NULL &&
+            statement_block != NULL &&
+            semantic_collection_effect_snapshot_current(mir->collection_effect_snapshot,
+                program, &view) && view.independent_string_result_count == 1 &&
+            mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+            mir_validate(mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+        TEST("MIR nested ReadFile STMT has an original static execution occurrence");
+        EXPECT(control);
+        if (control) {
+            MIRBasicBlock saved_block = *statement_block;
+            size_t count = saved_block.instruction_count;
+            MIRInstruction *duplicated = calloc(count + 1, sizeof(*duplicated));
+            TEST("MIR nested ReadFile STMT duplicate has isolated instruction storage");
+            EXPECT(duplicated != NULL);
+            if (duplicated != NULL) {
+                memcpy(duplicated, saved_block.instructions,
+                    (statement_index + 1) * sizeof(*duplicated));
+                duplicated[statement_index + 1] = *statement_inst;
+                memcpy(&duplicated[statement_index + 2],
+                    &saved_block.instructions[statement_index + 1],
+                    (count - statement_index - 1) * sizeof(*duplicated));
+                statement_block->instructions = duplicated;
+                statement_block->instruction_count = count + 1;
+                statement_block->instruction_capacity = count + 1;
+                bool evidence_refused = !mir_validate_collection_effect_evidence(mir, main_routine, NULL);
+                bool full_refused = !mir_validate(mir, NULL);
+                bool emission_refused = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *statement_block = saved_block;
+                free(duplicated);
+                bool restored = mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (!evidence_refused || !full_refused || !emission_refused || !restored)
+                    printf("\n  ReadFile nested STMT duplicate: evidence=%d full=%d emission=%d restore=%d\n",
+                        (int)evidence_refused, (int)full_refused,
+                        (int)emission_refused, (int)restored);
+                TEST("MIR nested ReadFile static STMT duplicate rejects collection evidence");
+                EXPECT(evidence_refused);
+                TEST("MIR nested ReadFile static STMT duplicate rejects full validation");
+                EXPECT(full_refused);
+                TEST("MIR nested ReadFile static STMT duplicate rejects emission");
+                EXPECT(emission_refused);
+                TEST("MIR nested ReadFile static STMT restoration remains admitted");
+                EXPECT(restored);
+            }
+
+            HIRRoutine *main_hir = NULL;
+            for (size_t i = 0; i < hir->routine_count; i++)
+                if (&hir->routines[i] == main_routine->hir_routine)
+                    main_hir = &hir->routines[i];
+            HIRBasicBlock *source_block = main_hir != NULL &&
+                statement_block->source_hir_block_id < main_hir->cfg.block_count ?
+                &main_hir->cfg.blocks[statement_block->source_hir_block_id] : NULL;
+            size_t hir_index = SIZE_MAX, inventory_index = SIZE_MAX;
+            for (size_t i = 0; source_block != NULL && source_block->statements != NULL &&
+                i < source_block->statement_count; i++)
+                if (source_block->statements[i] == log) hir_index = i;
+            for (size_t i = 0; statement_block->source_statement_inventory.items != NULL &&
+                i < statement_block->source_statement_inventory.count; i++)
+                if (statement_block->source_statement_inventory.items[i] == log)
+                    inventory_index = i;
+            bool erasure_control = source_block != NULL && hir_index != SIZE_MAX &&
+                inventory_index != SIZE_MAX && statement_block->instruction_count > 0 &&
+                source_block->statement_count > 0 &&
+                statement_block->source_statement_inventory.count > 0 &&
+                hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            TEST("MIR nested ReadFile erasure control has original HIR, MIR and inventory roots");
+            EXPECT(erasure_control);
+            if (erasure_control) {
+                HIRBasicBlock saved_source = *source_block;
+                MIRBasicBlock saved_statement = *statement_block;
+                size_t hir_count = saved_source.statement_count;
+                size_t inventory_count = saved_statement.source_statement_inventory.count;
+                size_t instruction_count = saved_statement.instruction_count;
+                ASTNode **without_hir = calloc(hir_count, sizeof(*without_hir));
+                ASTNode **without_inventory = calloc(inventory_count, sizeof(*without_inventory));
+                MIRInstruction *without_stmt = calloc(instruction_count, sizeof(*without_stmt));
+                bool isolated = without_hir != NULL && without_inventory != NULL &&
+                    without_stmt != NULL;
+                TEST("MIR nested ReadFile erasure has isolated HIR, inventory and instruction storage");
+                EXPECT(isolated);
+                if (isolated) {
+                    for (size_t i = 0, j = 0; i < hir_count; i++)
+                        if (i != hir_index) without_hir[j++] = saved_source.statements[i];
+                    for (size_t i = 0, j = 0; i < inventory_count; i++)
+                        if (i != inventory_index)
+                            without_inventory[j++] = saved_statement.source_statement_inventory.items[i];
+                    for (size_t i = 0, j = 0; i < instruction_count; i++)
+                        if (i != statement_index) without_stmt[j++] = saved_statement.instructions[i];
+
+                    source_block->statements = without_hir;
+                    source_block->statement_count = hir_count - 1;
+                    source_block->statement_capacity = hir_count - 1;
+                    bool hir_only_refused = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                    *source_block = saved_source;
+                    bool hir_only_restored = hir_collection_effect_snapshot_current(sem, hir, NULL);
+                    if (!hir_only_refused || !hir_only_restored)
+                        printf("\n  ReadFile HIR STMT erasure: refused=%d restore=%d\n",
+                            (int)hir_only_refused, (int)hir_only_restored);
+                    TEST("ReadFile HIR execution STMT deletion rejects source validation");
+                    EXPECT(hir_only_refused);
+                    TEST("ReadFile HIR execution STMT deletion restores source validation");
+                    EXPECT(hir_only_restored);
+
+                    statement_block->instructions = without_stmt;
+                    statement_block->instruction_count = instruction_count - 1;
+                    statement_block->instruction_capacity = instruction_count - 1;
+                    bool mir_only_evidence = !mir_validate_collection_effect_evidence(
+                        mir, main_routine, NULL);
+                    bool mir_only_full = !mir_validate(mir, NULL);
+                    bool mir_only_emit = !mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                    *statement_block = saved_statement;
+                    bool mir_only_restored = mir_validate_collection_effect_evidence(
+                        mir, main_routine, NULL) && mir_validate(mir, NULL) &&
+                        mir_validate_emission_contract(main_routine,
+                            main_routine->has_cleanup_block, false, NULL);
+                    if (!mir_only_evidence || !mir_only_full || !mir_only_emit || !mir_only_restored)
+                        printf("\n  ReadFile MIR STMT erasure: evidence=%d full=%d emit=%d restore=%d\n",
+                            (int)mir_only_evidence, (int)mir_only_full,
+                            (int)mir_only_emit, (int)mir_only_restored);
+                    TEST("ReadFile MIR-only execution STMT deletion rejects collection evidence");
+                    EXPECT(mir_only_evidence);
+                    TEST("ReadFile MIR-only execution STMT deletion rejects full validation");
+                    EXPECT(mir_only_full);
+                    TEST("ReadFile MIR-only execution STMT deletion rejects emission");
+                    EXPECT(mir_only_emit);
+                    TEST("ReadFile MIR-only execution STMT deletion restores all MIR validators");
+                    EXPECT(mir_only_restored);
+
+                    source_block->statements = without_hir;
+                    source_block->statement_count = hir_count - 1;
+                    source_block->statement_capacity = hir_count - 1;
+                    statement_block->source_statement_inventory.items = without_inventory;
+                    statement_block->source_statement_inventory.count = inventory_count - 1;
+                    statement_block->instructions = without_stmt;
+                    statement_block->instruction_count = instruction_count - 1;
+                    statement_block->instruction_capacity = instruction_count - 1;
+                    bool coherent_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                    bool coherent_evidence = !mir_validate_collection_effect_evidence(
+                        mir, main_routine, NULL);
+                    bool coherent_full = !mir_validate(mir, NULL);
+                    bool coherent_emit = !mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                    *source_block = saved_source;
+                    *statement_block = saved_statement;
+                    bool coherent_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                        mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                        mir_validate(mir, NULL) &&
+                        mir_validate_emission_contract(main_routine,
+                            main_routine->has_cleanup_block, false, NULL);
+                    if (!coherent_hir || !coherent_evidence || !coherent_full ||
+                        !coherent_emit || !coherent_restored)
+                        printf("\n  ReadFile coherent STMT erasure: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                            (int)coherent_hir, (int)coherent_evidence,
+                            (int)coherent_full, (int)coherent_emit, (int)coherent_restored);
+                    TEST("ReadFile coherent execution erasure rejects HIR source validation");
+                    EXPECT(coherent_hir);
+                    TEST("ReadFile coherent execution erasure rejects collection evidence");
+                    EXPECT(coherent_evidence);
+                    TEST("ReadFile coherent execution erasure rejects full MIR validation");
+                    EXPECT(coherent_full);
+                    TEST("ReadFile coherent execution erasure rejects MIR emission");
+                    EXPECT(coherent_emit);
+                    TEST("ReadFile coherent execution erasure restores all four validators");
+                    EXPECT(coherent_restored);
+                }
+                free(without_hir);
+                free(without_inventory);
+                free(without_stmt);
+
+                ASTNode **repeated_hir = calloc(hir_count + 1, sizeof(*repeated_hir));
+                TEST("ReadFile HIR duplicate has isolated source statement storage");
+                EXPECT(repeated_hir != NULL);
+                if (repeated_hir != NULL) {
+                    for (size_t i = 0; i <= hir_index; i++)
+                        repeated_hir[i] = saved_source.statements[i];
+                    repeated_hir[hir_index + 1] = log;
+                    for (size_t i = hir_index + 1; i < hir_count; i++)
+                        repeated_hir[i + 1] = saved_source.statements[i];
+                    source_block->statements = repeated_hir;
+                    source_block->statement_count = hir_count + 1;
+                    source_block->statement_capacity = hir_count + 1;
+                    bool duplicate_hir_refused = !hir_collection_effect_snapshot_current(
+                        sem, hir, NULL);
+                    *source_block = saved_source;
+                    bool duplicate_hir_restored = hir_collection_effect_snapshot_current(
+                        sem, hir, NULL);
+                    if (!duplicate_hir_refused || !duplicate_hir_restored)
+                        printf("\n  ReadFile HIR static duplicate: refused=%d restore=%d\n",
+                            (int)duplicate_hir_refused, (int)duplicate_hir_restored);
+                    TEST("ReadFile duplicate original HIR execution STMT rejects source validation");
+                    EXPECT(duplicate_hir_refused);
+                    TEST("ReadFile duplicate original HIR execution STMT restores source validation");
+                    EXPECT(duplicate_hir_restored);
+                    free(repeated_hir);
+                }
+
+                ASTNode *saved_hir_root = source_block->statements[hir_index];
+                source_block->statements[hir_index] = read_call;
+                bool promoted_hir_refused = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                source_block->statements[hir_index] = saved_hir_root;
+                bool promoted_hir_restored = hir_collection_effect_snapshot_current(sem, hir, NULL);
+                if (!promoted_hir_refused || !promoted_hir_restored)
+                    printf("\n  ReadFile HIR wrapper promotion: refused=%d restore=%d\n",
+                        (int)promoted_hir_refused, (int)promoted_hir_restored);
+                TEST("ReadFile inner CALL cannot replace the original HIR wrapper STMT");
+                EXPECT(promoted_hir_refused);
+                TEST("ReadFile HIR wrapper STMT restoration remains admitted");
+                EXPECT(promoted_hir_restored);
+
+                MIRInstruction saved_wrapper = *statement_inst;
+                ASTNode *saved_inventory_root =
+                    statement_block->source_statement_inventory.items[inventory_index];
+                source_block->statements[hir_index] = read_call;
+                statement_block->source_statement_inventory.items[inventory_index] = read_call;
+                statement_inst->ast = read_call;
+                statement_inst->expr0 = read_call;
+                bool promoted_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+                bool promoted_evidence = !mir_validate_collection_effect_evidence(
+                    mir, main_routine, NULL);
+                bool promoted_full = !mir_validate(mir, NULL);
+                bool promoted_emit = !mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+                *statement_inst = saved_wrapper;
+                statement_block->source_statement_inventory.items[inventory_index] =
+                    saved_inventory_root;
+                source_block->statements[hir_index] = saved_hir_root;
+                bool promoted_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                    mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                    mir_validate(mir, NULL) &&
+                    mir_validate_emission_contract(main_routine,
+                        main_routine->has_cleanup_block, false, NULL);
+                if (!promoted_hir || !promoted_evidence || !promoted_full ||
+                    !promoted_emit || !promoted_restored)
+                    printf("\n  ReadFile coherent wrapper promotion: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                        (int)promoted_hir, (int)promoted_evidence,
+                        (int)promoted_full, (int)promoted_emit, (int)promoted_restored);
+                TEST("ReadFile coherent inner CALL promotion rejects HIR source validation");
+                EXPECT(promoted_hir);
+                TEST("ReadFile coherent inner CALL promotion rejects collection evidence");
+                EXPECT(promoted_evidence);
+                TEST("ReadFile coherent inner CALL promotion rejects full MIR validation");
+                EXPECT(promoted_full);
+                TEST("ReadFile coherent inner CALL promotion rejects MIR emission");
+                EXPECT(promoted_emit);
+                TEST("ReadFile coherent inner CALL promotion restores original wrapper");
+                EXPECT(promoted_restored);
+            }
+        }
+        free(error);
+        mir_destroy(mir); rir_destroy(rir); dir_destroy(dir); hir_destroy(hir);
+        semantic_result_destroy(sem); ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
+        const char *source =
+            "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+            "let loaded:String=ReadFile(\"tests/cases/backend_compare/string_io/io.txt\");"
+            "Log(0);Log(risk[0]);}";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = ast != NULL && !parser_has_error(parser) ? semantic_analyze(ast) : NULL;
+        HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *error = NULL;
+        if (sem != NULL && sem->success) {
+            hir = hir_lower_with_semantic_facts(sem, NULL, &error);
+            if (hir != NULL) dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &error);
+            rir = rir_lower(sem->annotated_ast, &error);
+            if (hir != NULL && rir != NULL && rir_enrich_with_hir_flow(rir, hir, &error) &&
+                dir != NULL && dir_validate(dir, &error)) {
+                MIRLowerRequest request;
+                mir_lower_request_init(&request, hir, rir, sem);
+                mir_lower_request_bind_dir(&request, dir);
+                mir = mir_lower(&request, &error);
+            }
+        }
+        MIRRoutine *main_routine = mir == NULL ? NULL :
+            find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION);
+        const ASTNode *program = mir == NULL ? NULL : mir->collection_effect_source_program;
+        ASTNode *main_decl = program == NULL ? NULL : ast_program_statement(program, 0);
+        ASTNode *body = main_decl == NULL ? NULL : ast_func_body(main_decl);
+        ASTNode *birth = body == NULL ? NULL : ast_block_statement(body, 1);
+        ASTNode *read_call = birth == NULL ? NULL : ast_let_initializer(birth);
+        ASTNode *log_zero = body == NULL ? NULL : ast_block_statement(body, 2);
+        MIRBasicBlock *birth_block = NULL;
+        MIRInstruction *birth_inst = NULL, *stmt_template = NULL;
+        for (size_t b = 0; main_routine != NULL && b < main_routine->block_count; b++)
+            for (size_t i = 0; i < main_routine->blocks[b].instruction_count; i++) {
+                MIRInstruction *inst = &main_routine->blocks[b].instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->ast == birth && inst->expr0 == read_call) {
+                    birth_block = &main_routine->blocks[b];
+                    birth_inst = inst;
+                }
+                if (inst->kind == MIR_INST_STMT && inst->ast == log_zero &&
+                    inst->expr0 == log_zero) stmt_template = inst;
+            }
+        HIRRoutine *main_hir = NULL;
+        for (size_t i = 0; hir != NULL && main_routine != NULL && i < hir->routine_count; i++)
+            if (&hir->routines[i] == main_routine->hir_routine)
+                main_hir = &hir->routines[i];
+        HIRBasicBlock *source_block = main_hir != NULL && birth_block != NULL &&
+            birth_block->source_hir_block_id < main_hir->cfg.block_count ?
+            &main_hir->cfg.blocks[birth_block->source_hir_block_id] : NULL;
+        size_t hir_index = SIZE_MAX, inventory_index = SIZE_MAX;
+        for (size_t i = 0; source_block != NULL && source_block->statements != NULL &&
+            i < source_block->statement_count; i++)
+            if (source_block->statements[i] == birth) hir_index = i;
+        for (size_t i = 0; birth_block != NULL &&
+            birth_block->source_statement_inventory.items != NULL &&
+            i < birth_block->source_statement_inventory.count; i++)
+            if (birth_block->source_statement_inventory.items[i] == birth)
+                inventory_index = i;
+        PgyCollectionEffectView view = {0};
+        bool control = mir != NULL && main_routine != NULL && birth != NULL &&
+            read_call != NULL && read_call->type == AST_CALL && birth_inst != NULL &&
+            stmt_template != NULL && source_block != NULL && hir_index != SIZE_MAX &&
+            inventory_index != SIZE_MAX &&
+            semantic_collection_effect_snapshot_current(mir->collection_effect_snapshot,
+                program, &view) && view.independent_string_result_count == 1 &&
+            hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+            mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+            mir_validate(mir, NULL) &&
+            mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+        TEST("ReadFile original unused LET birth and independent result are admitted");
+        EXPECT(control);
+        if (control) {
+            ASTNode *saved_hir = source_block->statements[hir_index];
+            source_block->statements[hir_index] = read_call;
+            bool hir_role_refused = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            source_block->statements[hir_index] = saved_hir;
+            bool hir_restored = hir_collection_effect_snapshot_current(sem, hir, NULL);
+            if (!hir_role_refused || !hir_restored)
+                printf("\n  ReadFile LET-to-CALL HIR role erasure: refused=%d restore=%d\n",
+                    (int)hir_role_refused, (int)hir_restored);
+            TEST("ReadFile HIR LET-to-CALL role erasure rejects source validation");
+            EXPECT(hir_role_refused);
+            TEST("ReadFile HIR LET-to-CALL role restoration remains admitted");
+            EXPECT(hir_restored);
+
+            MIRInstruction saved_birth = *birth_inst;
+            ASTNode *saved_inventory =
+                birth_block->source_statement_inventory.items[inventory_index];
+            MIRInstruction promoted = *stmt_template;
+            promoted.id = saved_birth.id;
+            promoted.ast = read_call;
+            promoted.expr0 = read_call;
+            promoted.expr1 = NULL;
+            promoted.source_line = read_call->line;
+            promoted.source_column = read_call->column;
+            promoted.source_stable_id = ast_node_stable_id(read_call);
+            promoted.source_node_type = AST_CALL;
+            promoted.source_statement_stable_id = ast_node_stable_id(read_call);
+            promoted.has_source_statement_stable_id = true;
+            promoted.source_statement_index = hir_index;
+            promoted.has_source_statement_index = true;
+            source_block->statements[hir_index] = read_call;
+            birth_block->source_statement_inventory.items[inventory_index] = read_call;
+            *birth_inst = promoted;
+            bool coherent_hir = !hir_collection_effect_snapshot_current(sem, hir, NULL);
+            bool coherent_evidence = !mir_validate_collection_effect_evidence(
+                mir, main_routine, NULL);
+            bool coherent_full = !mir_validate(mir, NULL);
+            bool coherent_emit = !mir_validate_emission_contract(main_routine,
+                main_routine->has_cleanup_block, false, NULL);
+            *birth_inst = saved_birth;
+            birth_block->source_statement_inventory.items[inventory_index] = saved_inventory;
+            source_block->statements[hir_index] = saved_hir;
+            bool coherent_restored = hir_collection_effect_snapshot_current(sem, hir, NULL) &&
+                mir_validate_collection_effect_evidence(mir, main_routine, NULL) &&
+                mir_validate(mir, NULL) &&
+                mir_validate_emission_contract(main_routine,
+                    main_routine->has_cleanup_block, false, NULL);
+            if (!coherent_hir || !coherent_evidence || !coherent_full ||
+                !coherent_emit || !coherent_restored)
+                printf("\n  ReadFile DEF-to-STMT role erasure: HIR=%d evidence=%d full=%d emit=%d restore=%d\n",
+                    (int)coherent_hir, (int)coherent_evidence,
+                    (int)coherent_full, (int)coherent_emit, (int)coherent_restored);
+            TEST("ReadFile coherent DEF-to-STMT role erasure rejects HIR source validation");
+            EXPECT(coherent_hir);
+            TEST("ReadFile coherent DEF-to-STMT role erasure rejects collection evidence");
+            EXPECT(coherent_evidence);
+            TEST("ReadFile coherent DEF-to-STMT role erasure rejects full MIR validation");
+            EXPECT(coherent_full);
+            TEST("ReadFile coherent DEF-to-STMT role erasure rejects MIR emission");
+            EXPECT(coherent_emit);
+            TEST("ReadFile coherent DEF-to-STMT role restoration preserves the original LET");
+            EXPECT(coherent_restored);
+        }
+        free(error);
+        mir_destroy(mir); rir_destroy(rir); dir_destroy(dir); hir_destroy(hir);
+        semantic_result_destroy(sem); ast_destroy(ast); parser_destroy(parser); lexer_destroy(lexer);
+    }
+    {
         HIRProgram *option_hir = NULL;
         RIRProgram *option_rir = NULL;
         MIRProgram *option_mir = NULL;

@@ -1,3 +1,116 @@
+    TEST("RIR enrichment binds original parsed program and callable scope identities");
+    {
+        const char *sources[2] = {
+            "func Main() -> Void { Log(1); }\n",
+            "func Main() -> Void { Log(2); }\n"
+        };
+        Lexer *lexers[2] = {NULL, NULL};
+        Parser *parsers[2] = {NULL, NULL};
+        ASTNode *asts[2] = {NULL, NULL};
+        SemanticResult *sems[2] = {NULL, NULL};
+        HIRProgram *hirs[2] = {NULL, NULL};
+        RIRProgram *rirs[2] = {NULL, NULL};
+        bool ready = true;
+        for (size_t i = 0; i < 2; i++) {
+            lexers[i] = lexer_create(sources[i]);
+            parsers[i] = parser_create(lexers[i]);
+            asts[i] = parser_parse_program(parsers[i]);
+            sems[i] = semantic_analyze(asts[i]);
+            if (parser_has_error(parsers[i]) || sems[i] == NULL || !sems[i]->success) {
+                ready = false;
+                continue;
+            }
+            hirs[i] = hir_lower(asts[i], NULL);
+            rirs[i] = rir_lower(asts[i], NULL);
+            if (hirs[i] == NULL || rirs[i] == NULL || hirs[i]->routine_count != 1 ||
+                rirs[i]->scope_count != 1 || !rir_enrich_with_hir_flow(rirs[i], hirs[i], NULL))
+                ready = false;
+        }
+        EXPECT(ready);
+        if (ready) {
+            HIRRoutine *a = &hirs[0]->routines[0];
+            HIRRoutine *b = &hirs[1]->routines[0];
+            RIRScope *scope = &rirs[0]->scopes[0];
+            ASTNode *root = rirs[0]->program_root;
+            ASTNode *scope_root = scope->program_root;
+            ASTNode *scope_ast = scope->ast;
+            uint32_t source_id = scope->source_syntax_id;
+            EXPECT(asts[0] != asts[1] && ast_node_stable_id(asts[0]) == ast_node_stable_id(asts[1]) &&
+                a->ast != b->ast && a->source_syntax_id == b->source_syntax_id);
+            EXPECT(rir_validate(rirs[0], NULL) && rir_validate(rirs[1], NULL) &&
+                rir_scope_for_hir_routine(rirs[0], a) == scope &&
+                rir_scope_for_hir_routine(rirs[1], b) == &rirs[1]->scopes[0]);
+            EXPECT(!rir_enrich_with_hir_flow(rirs[0], hirs[1], NULL) &&
+                !rir_enrich_with_hir_flow(rirs[1], hirs[0], NULL) &&
+                rir_scope_for_hir_routine(rirs[0], b) == NULL &&
+                rirs[0]->program_root == root && scope->ast == scope_ast &&
+                scope->source_syntax_id == source_id);
+            EXPECT(rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                rir_enrich_with_hir_flow(rirs[1], hirs[1], NULL));
+            rirs[0]->program_root = NULL;
+            EXPECT(!rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                rir_scope_for_hir_routine(rirs[0], a) == NULL &&
+                rirs[0]->program_root == NULL && scope->ast == scope_ast);
+            rirs[0]->program_root = root;
+            EXPECT(rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL));
+            ASTNode *foreign_root = rirs[1]->program_root;
+            ASTNode *foreign_scope_root = rirs[1]->scopes[0].program_root;
+            rirs[1]->program_root = root;
+            rirs[1]->scopes[0].program_root = root;
+            EXPECT(!rir_enrich_with_hir_flow(rirs[1], hirs[0], NULL) &&
+                rir_scope_for_hir_routine(rirs[1], a) == NULL &&
+                rirs[1]->program_root == root && rirs[1]->scopes[0].ast == b->ast);
+            rirs[1]->program_root = foreign_root;
+            rirs[1]->scopes[0].program_root = foreign_scope_root;
+            EXPECT(rir_enrich_with_hir_flow(rirs[1], hirs[1], NULL));
+            scope->ast = b->ast;
+            EXPECT(!rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                rir_scope_for_hir_routine(rirs[0], a) == NULL &&
+                scope->ast == b->ast && scope->source_syntax_id == source_id);
+            scope->ast = scope_ast;
+            EXPECT(rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL));
+            scope->program_root = NULL;
+            EXPECT(!rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                rir_scope_for_hir_routine(rirs[0], a) == NULL && scope->program_root == NULL);
+            scope->program_root = scope_root;
+            EXPECT(rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL));
+            rirs[0]->scope_count = 0;
+            EXPECT(!rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                rir_scope_for_hir_routine(rirs[0], a) == NULL && rirs[0]->scope_count == 0);
+            rirs[0]->scope_count = 1;
+            EXPECT(rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL));
+            RIRScope *duplicates = malloc(2 * sizeof(*duplicates));
+            EXPECT(duplicates != NULL);
+            if (duplicates != NULL) {
+                duplicates[0] = *scope;
+                duplicates[1] = *scope;
+                RIRScope *original_scopes = rirs[0]->scopes;
+                size_t original_capacity = rirs[0]->scope_capacity;
+                rirs[0]->scopes = duplicates;
+                rirs[0]->scope_count = rirs[0]->scope_capacity = 2;
+                EXPECT(!rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                    rir_scope_for_hir_routine(rirs[0], a) == NULL &&
+                    rirs[0]->scope_count == 2 && duplicates[1].ast == scope_ast);
+                rirs[0]->scopes = original_scopes;
+                rirs[0]->scope_count = 1;
+                rirs[0]->scope_capacity = original_capacity;
+                free(duplicates);
+            }
+            EXPECT(rir_enrich_with_hir_flow(rirs[0], hirs[0], NULL) &&
+                rir_validate(rirs[0], NULL) && rir_validate(rirs[1], NULL) &&
+                rirs[0]->program_root == root && scope->program_root == scope_root &&
+                scope->ast == scope_ast && scope->source_syntax_id == source_id);
+        }
+        for (size_t i = 0; i < 2; i++) {
+            rir_destroy(rirs[i]);
+            hir_destroy(hirs[i]);
+            semantic_result_destroy(sems[i]);
+            ast_destroy(asts[i]);
+            parser_destroy(parsers[i]);
+            lexer_destroy(lexers[i]);
+        }
+    }
+
     TEST("RIR marks loop-header joins as widened flow states");
     {
         HIRProgram *hir = NULL;

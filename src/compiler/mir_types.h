@@ -36,6 +36,7 @@ typedef struct
     bool sealed;
     MIRParallelCaptureDispositionRow *rows;
     size_t row_count;
+    size_t row_capacity;
 } MIRParallelCaptureBoundaryFact;
 
 typedef struct

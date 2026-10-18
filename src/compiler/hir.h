@@ -21,6 +21,8 @@
 typedef struct HIRProgram HIRProgram;
 typedef struct HIRBasicBlock HIRBasicBlock;
 typedef struct HIRPhiNode HIRPhiNode;
+typedef struct HIRCFGExecutionWitness HIRCFGExecutionWitness;
+typedef struct HIRProgramExecutionWitness HIRProgramExecutionWitness;
 struct SemanticResult;
 
 typedef enum
@@ -113,6 +115,7 @@ typedef struct
     uint32_t         routine_id;
     uint32_t         source_syntax_id;
     size_t           decl_id;
+    ASTNode         *declaration_ast;
     HIRTopLevelKind  kind;
     const char      *name;
     const char      *owner_name;
@@ -174,6 +177,8 @@ typedef struct
         size_t                entry_block;
     } cfg;
     bool             has_cfg;
+    /* Issued once by the CFG finishing owner; borrows the original source AST. */
+    HIRCFGExecutionWitness *execution_layout;
     /* Pass-local scratch arena: reused across HIR analysis passes
      * (dominance, natural-loop walk, future CFG transforms).  Lifetime
      * binds to the enclosing HIRRoutine — initialised at construction,
@@ -325,6 +330,7 @@ typedef struct
 
 struct HIRProgram
 {
+    HIRProgramExecutionWitness *execution_census;
     HIRTopLevelItem  *items;
     size_t            item_count;
     size_t            item_capacity;

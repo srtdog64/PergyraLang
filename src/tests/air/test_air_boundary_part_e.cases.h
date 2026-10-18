@@ -1,18 +1,18 @@
 ﻿static bool
 test_air_hir_evidence_accepts_loop_condition_boundary_ast(void)
 {
-    ASTNode intent_ast = { .line = 42, .column = 1 };
+    ASTNode *intent_ast = ast_create_intent_declaration("LoopIO");
     ASTNode *step_ast = ast_create_intent_step("poll");
     ASTNode *while_stmt = ast_create_while_loop();
     ASTNode *read_call = ast_create_call(ast_create_identifier("ReadFile"));
     DIRNode nodes[] = {
-        { .id = 1, .kind = DIR_NODE_INTENT, .name = "LoopIO", .ast = &intent_ast },
+        { .id = 0, .kind = DIR_NODE_INTENT, .name = "LoopIO", .ast = intent_ast },
     };
     DIRIntentStep steps[] = {
         { .index = 0, .name = "poll", .ast = step_ast },
     };
     DIRIntentInfo intents[] = {
-        { .node_id = 1, .steps = steps, .step_count = 1 },
+        { .node_id = 0, .steps = steps, .step_count = 1 },
     };
     DIRProgram dir = {
         .nodes = nodes,
@@ -68,7 +68,8 @@ test_air_hir_evidence_accepts_loop_condition_boundary_ast(void)
     bool found_evidence_drift = false;
     bool ok;
 
-    if (step_ast == NULL || while_stmt == NULL || read_call == NULL) {
+    if (intent_ast == NULL || step_ast == NULL || while_stmt == NULL || read_call == NULL) {
+        ast_destroy(intent_ast);
         ast_destroy(step_ast);
         ast_destroy(while_stmt);
         ast_destroy(read_call);
@@ -81,6 +82,7 @@ test_air_hir_evidence_accepts_loop_condition_boundary_ast(void)
     while_stmt->data.while_loop.condition = read_call;
     while_stmt->data.while_loop.body = ast_create_block();
     if (while_stmt->data.while_loop.body == NULL) {
+        ast_destroy(intent_ast);
         ast_destroy(step_ast);
         ast_destroy(while_stmt);
         return false;
@@ -88,12 +90,32 @@ test_air_hir_evidence_accepts_loop_condition_boundary_ast(void)
     read_call = NULL;
     step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
     if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(intent_ast);
         ast_destroy(step_ast);
         ast_destroy(while_stmt);
         return false;
     }
     step_ast->data.intent_step.on_exprs[0] = while_stmt;
     step_ast->data.intent_step.on_expr_count = 1;
+    intent_ast->line = 42;
+    intent_ast->column = 1;
+    intent_ast->data.intent_decl.steps = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (intent_ast->data.intent_decl.steps == NULL) {
+        ast_destroy(intent_ast);
+        ast_destroy(step_ast);
+        return false;
+    }
+    intent_ast->data.intent_decl.steps[0] = step_ast;
+    intent_ast->data.intent_decl.step_count = 1;
+    intent_ast->data.intent_decl.step_capacity = 1;
+    if (!ast_assign_stable_ids(intent_ast) || ast_node_stable_id(intent_ast) == 0) {
+        ast_destroy(intent_ast);
+        return false;
+    }
+    nodes[0].source_syntax_id = ast_node_stable_id(intent_ast);
+    intents[0].ast = intent_ast;
+    scopes[0].ast = intent_ast;
+    scopes[0].source_syntax_id = ast_node_stable_id(intent_ast);
 
     air = air_synthesize(&hir, &dir, &rir, &error);
     if (air != NULL) {
@@ -118,6 +140,6 @@ test_air_hir_evidence_accepts_loop_condition_boundary_ast(void)
         && !found_evidence_drift;
     air_destroy(air);
     free(error);
-    ast_destroy(step_ast);
+    ast_destroy(intent_ast);
     return ok;
 }

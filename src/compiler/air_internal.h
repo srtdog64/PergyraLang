@@ -82,6 +82,7 @@ bool        air_append_step_expr_boundaries(AIRProgram *air,
                                             size_t *boundary_index,
                                             size_t intent_index,
                                             const char *owner,
+                                            const ASTNode *owner_ast,
                                             const DIRIntentStep *step);
 size_t      air_count_routine_expr_boundaries(const ASTNode *routine);
 bool        air_append_routine_expr_boundaries(AIRProgram *air,
@@ -94,7 +95,18 @@ bool        air_collect_hir_evidence(AIRProgram *air,
                                      char **error_message);
 bool        air_collect_rir_evidence(AIRProgram *air,
                                      const RIRProgram *rir,
+                                     const HIRProgram *hir,
+                                     const DIRProgram *dir,
                                      char **error_message);
+bool        air_rir_io_owner_projected(const ASTNode *owner,
+                                       uint32_t owner_id,
+                                        const RIRScope *scope,
+                                       const HIRProgram *hir,
+                                       const DIRProgram *dir,
+                                       bool *projected);
+bool        air_rir_io_tuple_matches(const RIRScope *scope,
+                                     const RIROp *op,
+                                     const AIRBoundaryNode *boundary);
 bool        air_collect_observability_schema_evidence(AIRProgram *air,
                                                       char **error_message);
 bool        air_collect_runtime_frontier_policy_evidence(AIRProgram *air,

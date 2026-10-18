@@ -73,6 +73,107 @@ static MIRProgram *g_last_mir = NULL;
                && strstr(_pgy_haystack, _pgy_needle) == NULL); \
     } while (0)
 
+typedef struct TestProjectionEvidence {
+    const MIRProgram *mir;
+    const ASTNode *source_program;
+    const PgyCollectionEffectSnapshot *source_snapshot;
+    bool ready;
+    PgyVerifiedProjectionPlanRow c_plan;
+    PgyVerifiedProjectionPlanRow llvm_plan;
+    PgyVerifiedParallelCapturePlan parallel_plan;
+    PgySpawnLanePlan spawn_plan;
+} TestProjectionEvidence;
+
+static void
+dispose_test_projection_evidence(TestProjectionEvidence *evidence)
+{
+    if (evidence == NULL)
+        return;
+    pgy_verified_parallel_capture_plan_dispose(&evidence->parallel_plan);
+    pgy_verified_spawn_lane_plan_dispose(&evidence->spawn_plan);
+    memset(evidence, 0, sizeof(*evidence));
+}
+
+static bool
+issue_test_native_projection_evidence(const SemanticResult *sem,
+                                      const HIRProgram *hir,
+                                      const DIRProgram *dir,
+                                      const RIRProgram *rir,
+                                      const MIRProgram *mir,
+                                      TestProjectionEvidence *evidence)
+{
+    AIRProgram *air = NULL;
+    char *stage_error = NULL;
+    const char *plan_error = NULL;
+    const char *failed_stage = NULL;
+    bool ok = false;
+
+    if (evidence == NULL || sem == NULL || !sem->success
+        || hir == NULL || dir == NULL || rir == NULL || mir == NULL
+        || sem->annotated_ast == NULL || sem->collection_effect_snapshot == NULL
+        || mir->collection_effect_source_program != sem->annotated_ast
+        || mir->collection_effect_snapshot != sem->collection_effect_snapshot) {
+        fprintf(stderr, "native test evidence: missing exact semantic/MIR source\n");
+        return false;
+    }
+    memset(evidence, 0, sizeof(*evidence));
+    failed_stage = "RIR validation";
+    if (!rir_validate(rir, &stage_error)
+        || !rir_validate_against_dir(rir, dir, &stage_error))
+        goto done;
+    failed_stage = "MIR validation";
+    if (!mir_validate(mir, &stage_error))
+        goto done;
+    failed_stage = "AIR synthesis";
+    air = air_synthesize(hir, dir, rir, &stage_error);
+    if (air == NULL)
+        goto done;
+    failed_stage = "AIR DAG evidence";
+    if (!air_collect_dag_evidence(air, sem, &stage_error)
+        || !air_verify(air, &stage_error) || air_drift_count(air) != 0)
+        goto done;
+    failed_stage = "AIR MIR evidence";
+    if (!air_collect_mir_evidence(air, mir, &stage_error)
+        || !air_verify(air, &stage_error) || air_drift_count(air) != 0)
+        goto done;
+    failed_stage = "C projection plan";
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            air, mir, PGY_PROJECTION_TARGET_C, &evidence->c_plan, &plan_error))
+        goto done;
+#ifdef PGY_LLVM_ENABLED
+    failed_stage = "LLVM projection plan";
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            air, mir, PGY_PROJECTION_TARGET_LLVM, &evidence->llvm_plan,
+            &plan_error))
+        goto done;
+#endif
+    failed_stage = "parallel capture plan";
+    if (!pgy_verified_parallel_capture_plan_from_air(
+            air, mir, &evidence->parallel_plan, &plan_error))
+        goto done;
+    failed_stage = "spawn lane plan";
+    if (!pgy_verified_spawn_lane_plan_from_air(
+            air, &evidence->spawn_plan, &plan_error))
+        goto done;
+    evidence->mir = mir;
+    evidence->source_program = sem->annotated_ast;
+    evidence->source_snapshot = sem->collection_effect_snapshot;
+    evidence->ready = true;
+    ok = true;
+
+done:
+    if (!ok) {
+        fprintf(stderr, "native test evidence %s failed: %s\n",
+                failed_stage != NULL ? failed_stage : "issuance",
+                stage_error != NULL ? stage_error
+                    : (plan_error != NULL ? plan_error : "missing evidence"));
+        dispose_test_projection_evidence(evidence);
+    }
+    air_destroy(air);
+    free(stage_error);
+    return ok;
+}
+
 
 #include "tests/transpile/test_transpile_helpers_1.cases.h"
 #include "tests/transpile/test_transpile_helpers_2.cases.h"

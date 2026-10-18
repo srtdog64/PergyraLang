@@ -4,6 +4,7 @@
  */
 
 #include "air_internal.h"
+#include "../parser/ast_api.h"
 
 static bool
 air_program_requires_summary_flag_for_evidence(const AIRProgram *air,
@@ -328,6 +329,24 @@ air_validate_boundary_rir_boundary_evidence(const AIRProgram *air,
                                 evidence_index,
                                 boundary_index);
         return false;
+    }
+    if (boundary->kind == AIR_BOUNDARY_IO) {
+        const ASTNode *owner = boundary->io_owner_ast;
+        const char *expected = owner != NULL && owner->type == AST_FUNC_DECL ?
+            ast_declaration_name(owner) : owner != NULL && owner->type == AST_INTENT_DECL ?
+            ast_intent_decl_name(owner) : NULL;
+        const char *provider = air_evidence_node_provider_name_or(evidence, NULL);
+        if (owner == NULL || boundary->io_owner_syntax_id == 0 ||
+            ast_node_stable_id(owner) != boundary->io_owner_syntax_id ||
+            !air_name_matches(provider, expected) ||
+            !air_name_matches(provider, boundary->rir_boundary_evidence_scope) ||
+            (owner->type == AST_FUNC_DECL && boundary->has_hir_routine_evidence &&
+                !air_name_matches(provider, boundary->hir_routine_evidence_name))) {
+            air_set_invariant_error(error_message,
+                "AIR IO evidence node %zu has crosswired original owner/provider for boundary %zu",
+                evidence_index, boundary_index);
+            return false;
+        }
     }
     return true;
 }

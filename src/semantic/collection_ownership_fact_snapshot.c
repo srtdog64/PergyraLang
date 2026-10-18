@@ -114,6 +114,7 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         s->string_definition_count != s->sealed_string_definitions ||
         s->nonowner_risk_count != s->sealed_nonowner_risks ||
         s->permanent_element_count != s->sealed_permanent_elements ||
+        s->independent_string_result_count != s->sealed_independent_string_results ||
         (s->caller_count != 0 && (s->callers == NULL || s->claims == NULL)) ||
         (s->effect_count != 0 && s->effects == NULL) ||
         (s->source_use_count != 0 && s->source_uses == NULL) ||
@@ -202,7 +203,8 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
             if (matches != 1) return false;
         }
     }
-    /* Identity is global; only the selected routine replays its full claims. */
+    /* Identity and sealed totals are global; only reached routines replay claims. */
+    size_t independent_results = 0;
     for (size_t i = 0; i < s->caller_count; i++) {
         const PgyCollectionEffectCaller *c = &s->callers[i];
         for (size_t j = 0; j < i; j++)
@@ -212,14 +214,32 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
             c->decl_id != ast_node_stable_id(c->decl) || c->body == NULL ||
             c->body != ast_func_body(c->decl) || c->body_id == 0 ||
             c->body_id != ast_node_stable_id(c->body) || s->claims[i] == NULL) return false;
+        if (c->independent_string_result_count > SIZE_MAX - independent_results) return false;
+        independent_results += c->independent_string_result_count;
+        if (c->independent_string_write_count > SIZE_MAX - string_write_count ||
+            c->independent_string_execution_count > c->independent_string_result_count ||
+            c->independent_string_write_execution_count > c->independent_string_write_count ||
+            (c->independent_string_result_count == 0 && c->independent_string_write_count != 0)) return false;
+        string_write_count += c->independent_string_write_count;
         if (!collection_snapshot_claim_required(s, i, routine_id)) continue;
         if (!function_param_flow_syntax_claims_current(NULL, s->claims[i])) return false;
+        size_t current_independent_results = 0, current_independent_writes = 0;
+        size_t current_required_results = 0, current_required_writes = 0;
+        if (!function_param_flow_readfile_claim_count(s->claims[i], &current_independent_results) ||
+            current_independent_results != c->independent_string_result_count ||
+            !function_param_flow_readfile_write_count(s->claims[i], &current_independent_writes) ||
+            current_independent_writes != c->independent_string_write_count ||
+            !function_param_flow_readfile_execution_counts(s->claims[i],
+                &current_required_results, &current_required_writes) ||
+            current_required_results != c->independent_string_execution_count ||
+            current_required_writes != c->independent_string_write_execution_count) return false;
         bool root = false;
         for (size_t r = 0; r < s->claims[i]->count; r++)
             if (s->claims[i]->rows[r].node == c->body &&
                 s->claims[i]->rows[r].id == c->body_id) root = true;
         if (!root) return false;
     }
+    if (independent_results != s->independent_string_result_count) return false;
     for (size_t i = 0; i < s->effect_count; i++) {
         const PgyCollectionExpectedEffect *e = &s->effects[i];
         uint32_t kind = 0, receiver = 0, source = 0;
@@ -240,7 +260,8 @@ static bool collection_effect_snapshot_current_at(const PgyCollectionEffectSnaps
         .caller_count = s->caller_count, .effects = s->effects, .effect_count = s->effect_count,
         .source_use_count = s->source_use_count, .nonowner_risk_count = s->nonowner_risk_count,
         .string_definition_count = s->string_definition_count, .string_write_count = string_write_count,
-        .permanent_element_count = s->permanent_element_count};
+        .permanent_element_count = s->permanent_element_count,
+        .independent_string_result_count = s->independent_string_result_count};
     return true;
 }
 
@@ -258,6 +279,71 @@ bool semantic_collection_effect_snapshot_routine_current(const PgyCollectionEffe
         return false;
     }
     return collection_effect_snapshot_current_at(s, program, routine_id, out);
+}
+
+/* The executable visitor owns its seen bits. The original claims own which
+ * selected static occurrences are required, including direct definitions. */
+bool semantic_collection_effect_snapshot_source_execution_complete(
+    const PgyCollectionEffectSnapshot *s, uint32_t caller_id,
+    const bool *occurrences, size_t occurrence_count, const bool *writes, size_t write_count)
+{
+    if (s == NULL || s->refs == 0 || caller_id == 0 ||
+        s->caller_count != s->sealed_callers ||
+        s->independent_string_result_count != s->sealed_independent_string_results ||
+        occurrence_count != s->independent_string_result_count ||
+        (s->caller_count != 0 && (s->callers == NULL || s->claims == NULL)) ||
+        (occurrence_count != 0 && occurrences == NULL) ||
+        (write_count != 0 && writes == NULL)) return false;
+    size_t all_writes = 0, all_calls = 0;
+    for (size_t c = 0; c < s->caller_count; c++) {
+        const PgyCollectionEffectCaller *caller = &s->callers[c];
+        if (caller->decl == NULL || caller->decl->type != AST_FUNC_DECL ||
+            caller->decl_id == 0 || caller->decl_id != ast_node_stable_id(caller->decl) ||
+            caller->body == NULL || caller->body != ast_func_body(caller->decl) ||
+            caller->body_id == 0 || caller->body_id != ast_node_stable_id(caller->body) ||
+            s->claims[c] == NULL ||
+            caller->independent_string_result_count > SIZE_MAX - all_calls ||
+            caller->independent_string_write_count > SIZE_MAX - all_writes ||
+            caller->independent_string_execution_count > caller->independent_string_result_count ||
+            caller->independent_string_write_execution_count > caller->independent_string_write_count ||
+            (caller->independent_string_result_count == 0 && caller->independent_string_write_count != 0))
+            return false;
+        all_calls += caller->independent_string_result_count;
+        all_writes += caller->independent_string_write_count;
+    }
+    if (all_calls != occurrence_count || all_writes > write_count) return false;
+    size_t call_offset = 0, write_offset = write_count - all_writes;
+    bool found = false;
+    for (size_t c = 0; c < s->caller_count; c++) {
+        const PgyCollectionEffectCaller *caller = &s->callers[c];
+        size_t calls = caller->independent_string_result_count;
+        size_t direct_writes = caller->independent_string_write_count;
+        if (calls > occurrence_count - call_offset || direct_writes > write_count - write_offset)
+            return false;
+        if (caller->decl_id == caller_id) {
+            size_t required_calls = 0, required_writes = 0;
+            if (found || s->claims[c] == NULL ||
+                !function_param_flow_readfile_execution_counts(s->claims[c],
+                    &required_calls, &required_writes) ||
+                required_calls != caller->independent_string_execution_count ||
+                required_writes != caller->independent_string_write_execution_count)
+                return false;
+            found = true;
+            for (size_t i = 0; i < calls; i++) {
+                bool required = false;
+                if (!function_param_flow_readfile_occurrence_required(s->claims[c], i, &required) ||
+                    occurrences[call_offset + i] != required) return false;
+            }
+            for (size_t i = 0; i < direct_writes; i++) {
+                bool required = false;
+                if (!function_param_flow_readfile_write_required(s->claims[c], i, &required) ||
+                    writes[write_offset + i] != required) return false;
+            }
+        }
+        call_offset += calls;
+        write_offset += direct_writes;
+    }
+    return call_offset == occurrence_count && write_offset == write_count;
 }
 
 bool semantic_collection_effect_snapshot_call(const PgyCollectionEffectSnapshot *s,

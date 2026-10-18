@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "mir_call_fact.h"
-#include "mir_cfg_contract_control.h"
+#include "hir_lower_cfg.h"
 #include "mir_stmt_population_internal.h"
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
@@ -104,11 +104,11 @@ mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
     if (stmt == NULL)
         return true;
     if (mir_block == NULL)
-        return mir_stmt_ast_is_cfg_owned_control(stmt);
-    if (mir_stmt_ast_is_unconditional_cfg_owned_control(stmt))
+        return hir_stmt_ast_is_cfg_owned_control(stmt);
+    if (hir_stmt_ast_is_unconditional_cfg_owned_control(stmt))
         return true;
     if (mir_block->has_succ_true || mir_block->has_succ_false) {
-        if (mir_stmt_ast_is_cfg_owned_control(stmt))
+        if (hir_stmt_ast_is_cfg_owned_control(stmt))
             return true;
     }
     return false;

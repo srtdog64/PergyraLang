@@ -4,6 +4,7 @@
  */
 
 #include "hir.h"
+#include "hir_cfg.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -454,6 +455,12 @@ hir_validate(const HIRProgram *hir, char **error_message)
     }
 
     HIRRoutineInventory inventory;
+    if ((hir->source_program_syntax_id != 0 || hir->execution_census != NULL) &&
+        !hir_cfg_program_execution_current(hir, NULL)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("HIR original execution inventory is missing or stale");
+        return false;
+    }
     hir_routine_inventory_from_program(hir, &inventory);
 
     if (!hir_validate_region_escape_facts(hir, &inventory, error_message))

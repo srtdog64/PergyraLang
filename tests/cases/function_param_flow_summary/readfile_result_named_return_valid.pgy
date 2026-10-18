@@ -1,0 +1,13 @@
+func Load(path: String) -> String {
+    return ReadFile(path);
+}
+
+func Consume(text: String) -> Int {
+    return StringLength(text);
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("he", "ap")];
+    Log(Consume(Load("tests/cases/backend_compare/string_io/io.txt")));
+    Log(risk[0]);
+}

@@ -8,7 +8,7 @@ static void test_mir_phi_type_projection(void)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     bool lowered = source != NULL && lower_pipeline_from_source(
-        source, &program, &hir, &rir, &mir);
+        source, &program, &hir, &rir, &mir, NULL);
     size_t assignments = 0;
     bool exact_type = true;
     if (lowered) {
@@ -107,14 +107,15 @@ static void test_mir_value_result_entry_storage(void)
     ASTNode *program = NULL;
     HIRProgram *hir = NULL;
     RIRProgram *rir = NULL;
+    TestProjectionEvidence evidence = {0};
     MIRProgram *mir = NULL;
     TranspilerCtx *ctx = NULL;
     bool ok = source != NULL && lower_pipeline_from_source(
-        source, &program, &hir, &rir, &mir);
+        source, &program, &hir, &rir, &mir, &evidence);
     if (ok) {
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
-        ok = bind_test_c_projection_plan(ctx, mir);
+        ok = bind_test_c_projection_plan(ctx, mir, &evidence);
         if (ok)
             emit_program(ctx);
     }
@@ -139,7 +140,7 @@ static void test_mir_value_result_entry_storage(void)
     }
     ctx = transpiler_ctx_create();
     ctx->mir = mir;
-    if (routine != NULL && bind_test_c_projection_plan(ctx, mir)) {
+    if (routine != NULL && bind_test_c_projection_plan(ctx, mir, &evidence)) {
         /* Present an exact formal entry use with its physical registry absent.
          * No malformed program is emitted or executed by this negative case. */
         const char *entry_names[] = {"compiler_world.0"};
@@ -160,6 +161,7 @@ static void test_mir_value_result_entry_storage(void)
         EXPECT(false);
     }
     transpiler_ctx_destroy(ctx);
+    dispose_test_projection_evidence(&evidence);
     mir_destroy(mir);
     rir_destroy(rir);
     hir_destroy(hir);

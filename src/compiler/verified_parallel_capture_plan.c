@@ -148,7 +148,6 @@ pgy_verified_parallel_capture_plan_from_air(
             *error_out = "parallel capture plan: missing output plan";
         return false;
     }
-    memset(plan_out, 0, sizeof(*plan_out));
     if (!pgy_air_evidence_certificate_ready(air, &certificate_error)) {
         if (error_out != NULL)
             *error_out = certificate_error != NULL
@@ -161,6 +160,12 @@ pgy_verified_parallel_capture_plan_from_air(
             *error_out = "parallel capture plan: missing MIR program";
         return false;
     }
+    if (!air_mir_evidence_binding_current(air, mir)) {
+        if (error_out != NULL)
+            *error_out = "parallel capture plan: AIR/MIR source or evidence binding is stale";
+        return false;
+    }
+    memset(plan_out, 0, sizeof(*plan_out));
     if (!mir_validate_parallel_capture_facts(mir, &mir_error)) {
         free(mir_error);
         if (error_out != NULL)

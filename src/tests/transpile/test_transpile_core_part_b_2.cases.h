@@ -10,7 +10,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -46,7 +46,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -81,7 +81,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -119,7 +119,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -155,7 +155,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 

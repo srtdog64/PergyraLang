@@ -1,0 +1,14 @@
+func Consume(text: String) -> Int {
+    return StringLength(text);
+}
+
+func Main() -> Void {
+    let path: String = "defer-read-late.txt";
+    WriteFile(path, "a");
+    let risk: Array<String> = [Concat("he", "ap")];
+    defer {
+        Log(Consume(ReadFile(path)));
+    };
+    WriteFile(path, "ab");
+    Log(risk[0]);
+}

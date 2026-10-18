@@ -19,7 +19,9 @@ test_mir_select_dispatch_emit(void)
             "}\n";
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         Lexer *lexer = NULL;
         Parser *parser = NULL;
@@ -40,24 +42,30 @@ test_mir_select_dispatch_emit(void)
             sem = semantic_analyze(program);
         if (ok)
             ok = sem != NULL && sem->success;
-        if (ok)
-            hir = hir_lower(sem->annotated_ast, &hir_error);
+        if (ok) {
+            HIRSemanticProjectionFailure failure = HIR_SEMANTIC_PROJECTION_NONE;
+            hir = hir_lower_with_semantic_facts(sem, &failure, &hir_error);
+        }
+        if (ok && hir != NULL)
+            dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &hir_error);
         if (ok && hir != NULL)
             rir = rir_lower(sem->annotated_ast, &rir_error);
         if (ok && hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
-        if (ok && hir != NULL && rir != NULL) {
+        if (ok && hir != NULL && dir != NULL && rir != NULL) {
             MIRLowerRequest mir_request;
             mir_lower_request_init(&mir_request, hir, rir, sem);
+            mir_lower_request_bind_dir(&mir_request, dir);
             mir = mir_lower(&mir_request, &mir_error);
         }
-        ok = (ok && hir != NULL && rir != NULL && mir != NULL);
+        ok = (ok && hir != NULL && dir != NULL && rir != NULL && mir != NULL) &&
+            issue_test_native_projection_evidence(sem, hir, dir, rir, mir, &evidence);
         if (ok)
             mir_emit_ok = check_function_mir_emitability(hir, mir, "SelectEdges");
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_select_dispatch.c");
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -79,8 +87,10 @@ test_mir_select_dispatch_emit(void)
         free(hir_error);
         free(rir_error);
         free(mir_error);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
+        dir_destroy(dir);
         hir_destroy(hir);
         semantic_result_destroy(sem);
         ast_destroy(program);
@@ -104,7 +114,9 @@ test_mir_select_dispatch_emit(void)
             "}\n";
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         Lexer *lexer = NULL;
         Parser *parser = NULL;
@@ -125,24 +137,30 @@ test_mir_select_dispatch_emit(void)
             sem = semantic_analyze(program);
         if (ok)
             ok = sem != NULL && sem->success;
-        if (ok)
-            hir = hir_lower(sem->annotated_ast, &hir_error);
+        if (ok) {
+            HIRSemanticProjectionFailure failure = HIR_SEMANTIC_PROJECTION_NONE;
+            hir = hir_lower_with_semantic_facts(sem, &failure, &hir_error);
+        }
+        if (ok && hir != NULL)
+            dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &hir_error);
         if (ok && hir != NULL)
             rir = rir_lower(sem->annotated_ast, &rir_error);
         if (ok && hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
-        if (ok && hir != NULL && rir != NULL) {
+        if (ok && hir != NULL && dir != NULL && rir != NULL) {
             MIRLowerRequest mir_request;
             mir_lower_request_init(&mir_request, hir, rir, sem);
+            mir_lower_request_bind_dir(&mir_request, dir);
             mir = mir_lower(&mir_request, &mir_error);
         }
-        ok = (ok && hir != NULL && rir != NULL && mir != NULL);
+        ok = (ok && hir != NULL && dir != NULL && rir != NULL && mir != NULL) &&
+            issue_test_native_projection_evidence(sem, hir, dir, rir, mir, &evidence);
         if (ok)
             mir_emit_ok = check_function_mir_emitability(hir, mir, "SelectBound");
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_select_bound.c");
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -168,8 +186,10 @@ test_mir_select_dispatch_emit(void)
         free(hir_error);
         free(rir_error);
         free(mir_error);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
+        dir_destroy(dir);
         hir_destroy(hir);
         semantic_result_destroy(sem);
         ast_destroy(program);
@@ -196,7 +216,9 @@ test_mir_select_dispatch_emit(void)
             "}\n";
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
+        DIRProgram *dir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         Lexer *lexer = NULL;
         Parser *parser = NULL;
@@ -217,24 +239,30 @@ test_mir_select_dispatch_emit(void)
             sem = semantic_analyze(program);
         if (ok)
             ok = sem != NULL && sem->success;
-        if (ok)
-            hir = hir_lower(sem->annotated_ast, &hir_error);
+        if (ok) {
+            HIRSemanticProjectionFailure failure = HIR_SEMANTIC_PROJECTION_NONE;
+            hir = hir_lower_with_semantic_facts(sem, &failure, &hir_error);
+        }
+        if (ok && hir != NULL)
+            dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &hir_error);
         if (ok && hir != NULL)
             rir = rir_lower(sem->annotated_ast, &rir_error);
         if (ok && hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
-        if (ok && hir != NULL && rir != NULL) {
+        if (ok && hir != NULL && dir != NULL && rir != NULL) {
             MIRLowerRequest mir_request;
             mir_lower_request_init(&mir_request, hir, rir, sem);
+            mir_lower_request_bind_dir(&mir_request, dir);
             mir = mir_lower(&mir_request, &mir_error);
         }
-        ok = (ok && hir != NULL && rir != NULL && mir != NULL);
+        ok = (ok && hir != NULL && dir != NULL && rir != NULL && mir != NULL) &&
+            issue_test_native_projection_evidence(sem, hir, dir, rir, mir, &evidence);
         if (ok)
             mir_emit_ok = find_mir_routine_by_name(mir, "Pull") != NULL;
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_select_field_channel.c");
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -257,8 +285,10 @@ test_mir_select_dispatch_emit(void)
         free(hir_error);
         free(rir_error);
         free(mir_error);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
+        dir_destroy(dir);
         hir_destroy(hir);
         semantic_result_destroy(sem);
         ast_destroy(program);
@@ -282,9 +312,10 @@ test_mir_select_dispatch_emit(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
         bool ok = lower_pipeline_from_source_quiet(
-            source, &program, &hir, &rir, &mir);
+            source, &program, &hir, &rir, &mir, NULL);
 
         EXPECT(!ok);
+
 
         mir_destroy(mir);
         rir_destroy(rir);
@@ -309,9 +340,10 @@ test_mir_select_dispatch_emit(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
         bool ok = lower_pipeline_from_source_quiet(
-            source, &program, &hir, &rir, &mir);
+            source, &program, &hir, &rir, &mir, NULL);
 
         EXPECT(!ok);
+
 
         mir_destroy(mir);
         rir_destroy(rir);
@@ -335,9 +367,10 @@ test_mir_select_dispatch_emit(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
         bool ok = lower_pipeline_from_source_quiet(
-            source, &program, &hir, &rir, &mir);
+            source, &program, &hir, &rir, &mir, NULL);
 
         EXPECT(!ok);
+
 
         mir_destroy(mir);
         rir_destroy(rir);

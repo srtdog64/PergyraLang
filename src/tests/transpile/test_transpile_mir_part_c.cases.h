@@ -29,17 +29,18 @@ test_intent_observability_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         const char *path = NULL;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         TranspileResult *res = NULL;
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_no_trace_fast_path.c");
         path = path_buf;
         if (ok) {
-            res = transpile_mir_with_test_evidence(mir, path);
+            res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
         }
         if (ok)
@@ -58,6 +59,7 @@ test_intent_observability_emit(void)
         transpile_result_destroy(res);
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -93,17 +95,18 @@ test_intent_observability_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         const char *path = NULL;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         TranspileResult *res = NULL;
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_trace_prescan.c");
         path = path_buf;
         if (ok) {
-            res = transpile_mir_with_test_evidence(mir, path);
+            res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
         }
         if (ok)
@@ -122,6 +125,7 @@ test_intent_observability_emit(void)
         transpile_result_destroy(res);
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -138,17 +142,18 @@ test_intent_observability_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         const char *path = NULL;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         TranspileResult *res = NULL;
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_trace_init_fact.c");
         path = path_buf;
         if (ok) {
-            res = transpile_mir_with_test_evidence(mir, path);
+            res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
         }
         if (ok)
@@ -164,6 +169,7 @@ test_intent_observability_emit(void)
         transpile_result_destroy(res);
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -198,16 +204,16 @@ test_intent_observability_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        TestProjectionEvidence evidence = {0};
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, &evidence);
         TranspilerCtx *ctx = NULL;
         ctx = transpiler_ctx_create();
 
-        /* emit_program skips the entrypoint, so the test sets the
-         * disposition the verified projection plan gives a program with an
-         * observability surface. The emitter never turns it on itself. */
         ctx->mir = mir;
-        ctx->uses_intent_observability = true;
-        emit_program(ctx);
+        bool bound = bind_test_c_projection_plan(ctx, mir, &evidence);
+        EXPECT(bound);
+        if (bound)
+            emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_current_handle_export(");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_recent_handle_export(");
@@ -228,8 +234,11 @@ test_intent_observability_emit(void)
         transpiler_ctx_destroy(ctx);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
+        bound = bind_test_c_projection_plan(ctx, mir, &evidence);
+        EXPECT(bound);
         ctx->uses_intent_observability = false;
-        emit_program(ctx);
+        if (bound)
+            emit_program(ctx);
         EXPECT(ctx->backend_error != NULL);
         if (ctx->backend_error != NULL)
             EXPECT_STR_CONTAINS(ctx->backend_error,
@@ -237,6 +246,7 @@ test_intent_observability_emit(void)
         EXPECT(!ctx->uses_intent_observability);
 
         transpiler_ctx_destroy(ctx);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

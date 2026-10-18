@@ -1,0 +1,11 @@
+func Consume(text: String) -> Int {
+    return StringLength(text);
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("he", "ap")];
+    defer {
+        Log(Consume(ReadFile("tests/cases/backend_compare/string_io/io.txt")));
+    };
+    Log(risk[0]);
+}

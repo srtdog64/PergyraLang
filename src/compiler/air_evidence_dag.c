@@ -122,6 +122,25 @@ bool
 air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem,
                          char **error_message)
 {
+    if (air == NULL)
+        return true;
+
+    /* A native AIR may import only facts from its issued program.  A source-
+       less hand-built AIR retains the existing partial collector contract. */
+    bool native_source = air->source_program_syntax_id != 0 ||
+        air->source_origin != NULL ||
+        (sem != NULL && (sem->annotated_ast != NULL ||
+                         sem->collection_effect_snapshot != NULL));
+    if (native_source &&
+        (sem == NULL || sem->annotated_ast == NULL ||
+         !air_source_program_current(air, sem->annotated_ast) ||
+         !semantic_collection_effect_snapshot_current(
+             sem->collection_effect_snapshot, sem->annotated_ast, NULL))) {
+        air_set_error(error_message,
+                      "AIR DAG evidence has a missing or foreign source program");
+        return false;
+    }
+
     const size_t dead_end_count =
         semantic_result_type_resolution_metadata_dead_ends(sem);
     const size_t metadata_fact_count =
@@ -133,7 +152,7 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem,
     const size_t ability_fact_count =
         semantic_result_dag_ability_consumer_evidence_count(sem);
 
-    if (air == NULL || sem == NULL)
+    if (sem == NULL)
         return true;
 
     /* Capture the program-wide capability mask so AIR owns the capability fact

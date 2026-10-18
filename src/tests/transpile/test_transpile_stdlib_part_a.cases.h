@@ -11,7 +11,7 @@ slot_sugar_c_from_source(const char *source)
     char *out = NULL;
     TranspilerCtx *ctx;
 
-    if (lower_pipeline_from_source(source, &program, &hir, &rir, &mir)) {
+    if (lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL)) {
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
         emit_program(ctx);

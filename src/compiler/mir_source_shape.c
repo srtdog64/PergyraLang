@@ -1,6 +1,6 @@
 #include "mir.h"
 
-#include "mir_cfg_contract_control.h"
+#include "hir_lower_cfg.h"
 
 #include "../parser/ast_api.h"
 
@@ -286,7 +286,7 @@ mir_instruction_source_is_intent_step(const MIRInstruction *inst)
 bool
 mir_source_node_type_is_cfg_container(ASTNodeType type)
 {
-    return mir_stmt_ast_type_is_cfg_container(type);
+    return hir_stmt_ast_type_is_cfg_container(type);
 }
 
 bool
@@ -307,7 +307,7 @@ mir_instruction_source_is_cfg_owned_control(const MIRInstruction *inst)
         return false;
     source_type = mir_instruction_source_node_type_or(inst, -1);
     if (source_type >= 0)
-        return mir_stmt_ast_type_is_cfg_owned_control(
+        return hir_stmt_ast_type_is_cfg_owned_control(
             (ASTNodeType)source_type);
     return false;
 }
@@ -355,7 +355,7 @@ bool
 mir_source_node_type_stmt_has_side_effect_hint(ASTNodeType type,
                                               const char *callee_name)
 {
-    if (mir_stmt_ast_type_is_cfg_owned_control(type))
+    if (hir_stmt_ast_type_is_cfg_owned_control(type))
         return true;
     switch (type) {
     case AST_PARALLEL_BLOCK:

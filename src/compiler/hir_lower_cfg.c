@@ -4,6 +4,43 @@
 #include <string.h>
 #include <sys/types.h>
 
+/* This lowering owner, not each downstream source consumer, decides which
+ * statement containers are represented by their CFG rather than a STMT. */
+bool hir_stmt_ast_type_is_unconditional_cfg_owned_control(ASTNodeType type)
+{
+    switch (type) {
+    case AST_WITH_STMT: case AST_UNSAFE_BLOCK: case AST_TRANSACTION_BLOCK:
+    case AST_RETURN: return true;
+    default: return false;
+    }
+}
+
+bool hir_stmt_ast_type_is_cfg_owned_control(ASTNodeType type)
+{
+    if (hir_stmt_ast_type_is_unconditional_cfg_owned_control(type)) return true;
+    switch (type) {
+    case AST_IF_STMT: case AST_WHILE_LOOP: case AST_FOR_LOOP:
+    case AST_SELECT_STMT: case AST_MATCH_STMT: case AST_BREAK: case AST_CONTINUE:
+        return true;
+    default: return false;
+    }
+}
+
+bool hir_stmt_ast_type_is_cfg_container(ASTNodeType type)
+{
+    return type == AST_DEFER_STMT || hir_stmt_ast_type_is_cfg_owned_control(type);
+}
+
+bool hir_stmt_ast_is_unconditional_cfg_owned_control(const ASTNode *ast)
+{
+    return ast != NULL && hir_stmt_ast_type_is_unconditional_cfg_owned_control(ast->type);
+}
+
+bool hir_stmt_ast_is_cfg_owned_control(const ASTNode *ast)
+{
+    return ast != NULL && hir_stmt_ast_type_is_cfg_owned_control(ast->type);
+}
+
 static ssize_t
 hir_lower_stmt_node_to_cfg(ASTNode *node,
                            HIRBasicBlock **blocks,

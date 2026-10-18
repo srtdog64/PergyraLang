@@ -1,0 +1,19 @@
+func Consume(text: String) -> Int {
+    return StringLength(text);
+}
+
+func Main() -> Void {
+    let risk: Array<String> = [Concat("he", "ap")];
+    let path: String = "tests/cases/backend_compare/string_io/io.txt";
+    let first: String = ReadFile(path);
+    let second: String = ReadFile("missing-result-source-probe.txt");
+    Log(Consume(first));
+    Log(Consume(first));
+    Log(Consume(second));
+    var iteration: Int = 0;
+    while iteration < 3 {
+        Log(Consume(ReadFile(path)));
+        iteration = iteration + 1;
+    }
+    Log(risk[0]);
+}

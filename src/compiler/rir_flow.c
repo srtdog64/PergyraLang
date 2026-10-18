@@ -5,7 +5,9 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 #include "hir.h"
+#include "hir_cfg.h"
 #include "rir_flow_state.h"
 #include "rir_resource_flow_symbols.h"
 
@@ -194,38 +196,68 @@ rir_normalize_scope_shared(RIRScope *scope)
 }
 
 static RIRScopeKind
-rir_scope_kind_from_hir(const HIRRoutine *routine)
+rir_scope_kind_from_hir(const HIRRoutine *routine, bool source_backed)
 {
     if (routine == NULL)
         return RIR_SCOPE_FUNCTION;
     if (routine->kind == HIR_TOPLEVEL_INTENT)
         return RIR_SCOPE_INTENT;
-    if (routine->is_hosted || routine->is_action_like)
+    if ((source_backed ? routine->owner_name != NULL : routine->is_hosted)
+        || routine->is_action_like)
         return RIR_SCOPE_METHOD;
     return RIR_SCOPE_FUNCTION;
 }
 
-static RIRScope *
-rir_find_matching_scope(const RIRMutableScopeInventory *inventory,
-                        const HIRRoutine *routine)
+const RIRScope *
+rir_scope_for_hir_routine(const RIRProgram *rir,
+                          const HIRRoutine *routine)
 {
     RIRScopeKind wanted_kind;
-    if (inventory == NULL || routine == NULL || routine->name == NULL)
+    RIRScopeInventory inventory;
+    const RIRScope *match = NULL;
+    bool source_backed;
+    if (rir == NULL || routine == NULL || routine->name == NULL)
         return NULL;
-    wanted_kind = rir_scope_kind_from_hir(routine);
-    if (routine->source_syntax_id != 0) {
-        for (size_t i = 0; i < inventory->count; i++) {
-            RIRScope *scope = rir_mutable_scope_inventory_get(inventory, i);
-            if (scope == NULL || scope->kind != wanted_kind)
+    source_backed = rir->program_root != NULL
+        || routine->source_syntax_id != 0;
+    wanted_kind = rir_scope_kind_from_hir(routine, source_backed);
+    if (source_backed
+        && (rir->program_root == NULL || routine->ast == NULL
+            || routine->source_syntax_id == 0
+            || ast_node_stable_id(routine->ast) != routine->source_syntax_id
+            || rir->scope_count > rir->scope_capacity
+            || !hir_cfg_execution_owner_current(routine)))
+        return NULL;
+    if (rir->scope_count != 0 && rir->scopes == NULL)
+        return NULL;
+    rir_scope_inventory_from_program(rir, &inventory);
+    if (source_backed) {
+        for (size_t i = 0; i < inventory.count; i++) {
+            const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
+            if (scope == NULL)
+                return NULL;
+            if (scope->ast != routine->ast
+                && scope->source_syntax_id != routine->source_syntax_id)
                 continue;
-            if (scope->source_syntax_id == routine->source_syntax_id)
-                return scope;
+            if (scope->ast != routine->ast
+                || scope->source_syntax_id != routine->source_syntax_id
+                || scope->program_root != rir->program_root
+                || scope->kind != wanted_kind
+                || scope->name == NULL
+                || strcmp(scope->name, routine->name) != 0
+                || (scope->owner_name == NULL)
+                    != (routine->owner_name == NULL)
+                || (scope->owner_name != NULL
+                    && strcmp(scope->owner_name, routine->owner_name) != 0)
+                || scope->parameter_count != routine->parameter_count
+                || match != NULL)
+                return NULL;
+            match = scope;
         }
-        /* Source-backed HIR routines must not fall back to a name join. */
-        return NULL;
+        return match;
     }
-    for (size_t i = 0; i < inventory->count; i++) {
-        RIRScope *scope = rir_mutable_scope_inventory_get(inventory, i);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
         if (scope == NULL)
             continue;
         if (scope->kind == wanted_kind
@@ -614,11 +646,19 @@ rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_me
         *error_message = NULL;
     if (rir == NULL || hir == NULL)
         return true;
+    if ((rir->program_root != NULL
+         || hir->source_program_syntax_id != 0
+         || hir->execution_census != NULL)
+        && (rir->program_root == NULL
+            || !hir_cfg_program_execution_current(hir, rir->program_root))) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "RIR and HIR have no current source-program identity");
+        return false;
+    }
 
     HIRRoutineInventory hir_inventory;
-    RIRMutableScopeInventory rir_inventory;
     hir_routine_inventory_from_program(hir, &hir_inventory);
-    rir_mutable_scope_inventory_from_program(rir, &rir_inventory);
     for (size_t i = 0; i < hir_inventory.count; i++) {
         const HIRRoutine *hir_routine =
             hir_routine_inventory_get(&hir_inventory, i);
@@ -629,9 +669,10 @@ rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_me
                     pergyra_strdup("invalid HIR routine inventory");
             return false;
         }
-        scope = rir_find_matching_scope(&rir_inventory, hir_routine);
+        scope = (RIRScope *)rir_scope_for_hir_routine(rir, hir_routine);
         if (scope == NULL) {
-            if (hir_routine->source_syntax_id != 0) {
+            if (hir_routine->source_syntax_id != 0
+                || rir->program_root != NULL) {
                 if (error_message != NULL)
                     *error_message = pergyra_strdup(
                         "RIR has no source-identity scope for HIR routine");

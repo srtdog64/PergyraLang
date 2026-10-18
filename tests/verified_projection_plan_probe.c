@@ -12,11 +12,81 @@
 
 /* The probe links the certificate owner as a small standalone unit.  Keep
  * these owner accessors local so the probe does not accidentally link the
- * whole AIR synthesis object graph. */
+ * whole AIR synthesis object graph. These fixtures have no native origin;
+ * only the real AIR integration suite may establish native source binding. */
+bool
+air_source_program_current(const AIRProgram *air, const ASTNode *expected)
+{
+    (void)air;
+    (void)expected;
+    return false;
+}
+
+bool
+air_mir_source_current(const AIRProgram *air, const MIRProgram *mir)
+{
+    return air != NULL && mir != NULL &&
+        air->source_program_syntax_id == 0 && air->source_origin == NULL &&
+        mir->collection_effect_source_program == NULL &&
+        mir->collection_effect_snapshot == NULL;
+}
+
+/* This standalone row/ABI unit supplies a test double for an empty MIR only.
+ * It does not issue native evidence or duplicate the production fingerprint.
+ * Real post-certificate inventory mutation is tested with the actual issuer
+ * and planners in test_air. Each surface change here starts a new fixture. */
+static uint64_t
+probe_empty_mir_identity(const MIRProgram *mir)
+{
+    if (mir == NULL || mir->routine_count != 0 || mir->routines != NULL
+        || mir->parallel_capture_boundary_count != 0
+        || mir->parallel_capture_boundaries != NULL
+        || mir->collection_effect_source_program != NULL
+        || mir->collection_effect_snapshot != NULL)
+        return 0;
+    return UINT64_C(0x70726f6265000000)
+        | (mir->has_inventory_surface_usage_facts ? UINT64_C(1) : 0)
+        | (mir->inventory_uses_thread_pool_surface ? UINT64_C(2) : 0)
+        | (mir->inventory_uses_intent_observability_surface ? UINT64_C(4) : 0);
+}
+
+bool
+air_mir_evidence_binding_current(const AIRProgram *air, const MIRProgram *mir)
+{
+    uint64_t token = probe_empty_mir_identity(mir);
+    return token != 0 && air_mir_source_current(air, mir)
+        && air->mir_evidence_collection_started && air->mir_evidence_bound
+        && air->mir_evidence_binding_fingerprint == token;
+}
+
+static bool
+probe_new_empty_mir_fixture(AIRProgram *air, const MIRProgram *mir,
+                            const char **error)
+{
+    *air = (AIRProgram){0};
+    air->has_hir_input = true;
+    air->has_rir_input = true;
+    air->has_mir_input = true;
+    air->mir_evidence_collection_started = true;
+    air->mir_evidence_bound = true;
+    air->mir_evidence_binding_fingerprint = probe_empty_mir_identity(mir);
+    return air->mir_evidence_binding_fingerprint != 0
+        && pgy_air_evidence_certificate_issue(air, error);
+}
+
 bool
 air_requires_strict_evidence(const AIRProgram *air)
 {
     return air != NULL && air->strict_evidence;
+}
+
+const AIRFunctionParamFlowSummary *
+air_function_param_flow_summary_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || air->function_param_flow_summaries == NULL ||
+        index >= air->function_param_flow_summary_count)
+        return NULL;
+    return &air->function_param_flow_summaries[index];
 }
 
 bool
@@ -256,10 +326,7 @@ main(void)
     const char *previous = NULL;
     size_t count = pgy_intent_observability_abi_row_count();
 
-    air.has_hir_input = true;
-    air.has_rir_input = true;
-    air.has_mir_input = true;
-    if (!pgy_air_evidence_certificate_issue(&air, &error))
+    if (!probe_new_empty_mir_fixture(&air, &mir, &error))
         return 12;
     if (pgy_verified_projection_plan_intent_observability_with_air(
             &air, &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
@@ -271,6 +338,10 @@ main(void)
     }
 
     mir.has_inventory_surface_usage_facts = true;
+    if (pgy_verified_projection_plan_intent_observability_with_air(
+            &air, &mir, PGY_PROJECTION_TARGET_C, &plan, &error)
+        || !probe_new_empty_mir_fixture(&air, &mir, &error))
+        return 22;
     if (!pgy_verified_projection_plan_intent_observability_with_air(
             &air, &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
         return 3;
@@ -329,6 +400,10 @@ main(void)
         return 17;
 
     mir.inventory_uses_intent_observability_surface = true;
+    if (pgy_verified_projection_plan_intent_observability_with_air(
+            &air, &mir, PGY_PROJECTION_TARGET_LLVM, &plan, &error)
+        || !probe_new_empty_mir_fixture(&air, &mir, &error))
+        return 23;
     if (!pgy_verified_projection_plan_intent_observability_with_air(
             &air, &mir, PGY_PROJECTION_TARGET_LLVM, &plan, &error)) {
         return 5;

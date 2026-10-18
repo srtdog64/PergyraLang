@@ -1,0 +1,14 @@
+func Identity(text: String) -> String {
+    return text;
+}
+
+func Main() -> Void {
+    let independent: String = ReadFile("missing-result-source-probe.txt");
+    let source: Array<String> = [];
+    ArrayPushOwnedString(source, Concat("he", "ap"));
+    let retained: Array<String> = [];
+    ArrayPush(retained, Identity(source[0]));
+    ArrayDropOwnedStrings(source);
+    Log(retained[0]);
+    Log(independent);
+}

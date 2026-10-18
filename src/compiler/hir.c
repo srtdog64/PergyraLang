@@ -245,6 +245,8 @@ hir_node_name(ASTNode *node)
             return ast_declaration_name(node);
         case AST_CLASS_DECL:
             return ast_class_name(node);
+        case AST_ENUM_DECL:
+            return ast_enum_name(node);
         case AST_TYPE_ALIAS:
             return ast_type_alias_name(node);
         case AST_EXTERN_BLOCK:
@@ -615,6 +617,13 @@ hir_lower_with_resource_and_param_flow_facts(
     }
     if (!hir_attach_function_param_flow_facts(
             hir, param_facts, param_fact_count, error_message)) {
+        hir_destroy(hir);
+        return NULL;
+    }
+
+    if (!hir_cfg_program_execution_seal(hir, annotated_ast)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("HIR original execution inventory could not be sealed");
         hir_destroy(hir);
         return NULL;
     }

@@ -524,6 +524,7 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
             if ((target == NULL) != (row->cast_target == NULL) ||
                 (target != NULL && strcmp(target, row->cast_target) != 0)) return false;
         }
+        if (row->readfile_result && !function_param_flow_readfile_claim_current(NULL, claims, row)) return false;
         if (!semantic || !row->semantic_promoted) continue;
         bool reachable = false;
         bool execution_present = semantic_param_publication_execution(ctx, row->node, &reachable);
@@ -549,6 +550,8 @@ bool function_param_flow_claims_current(const SemanticContext *ctx,
             if (!value.ok || value.meta) return false;
         }
         if (row->shape == AST_CALL) {
+            if (row->readfile_result != semantic_param_publication_checked_readfile_independent(ctx, row->node) ||
+                (row->readfile_result && !function_param_flow_readfile_claim_current(ctx, claims, row))) return false;
             uint32_t kind = 0, receiver = 0, source = 0;
             bool present = ast_call_semantic_collection_effect(row->node, &kind, &receiver, &source);
             if (present != row->collection_effect_present || kind != row->collection_effect_kind ||

@@ -346,39 +346,3 @@ mir_scope_kind_from_hir(const HIRRoutine *routine)
         return MIR_SCOPE_METHOD;
     return MIR_SCOPE_FUNCTION;
 }
-
-const RIRScope *
-mir_find_matching_rir_scope(const RIRProgram *rir, const HIRRoutine *routine)
-{
-    RIRScopeKind wanted_kind;
-    if (rir == NULL || routine == NULL || routine->name == NULL)
-        return NULL;
-
-    if (routine->kind == HIR_TOPLEVEL_INTENT) {
-        wanted_kind = RIR_SCOPE_INTENT;
-    } else if (routine->is_hosted || routine->is_action_like) {
-        wanted_kind = RIR_SCOPE_METHOD;
-    } else {
-        wanted_kind = RIR_SCOPE_FUNCTION;
-    }
-
-    RIRScopeInventory inventory;
-    rir_scope_inventory_from_program(rir, &inventory);
-    for (size_t i = 0; i < inventory.count; i++) {
-        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
-        if (scope == NULL)
-            continue;
-        if (scope->kind == wanted_kind
-            && scope->name != NULL
-            && strcmp(scope->name, routine->name) == 0) {
-            if (routine->owner_name != NULL) {
-                if (scope->owner_name == NULL
-                    || strcmp(scope->owner_name, routine->owner_name) != 0) {
-                    continue;
-                }
-            }
-            return scope;
-        }
-    }
-    return NULL;
-}

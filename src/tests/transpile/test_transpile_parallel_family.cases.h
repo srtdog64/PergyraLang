@@ -28,7 +28,7 @@ test_parallel_family_emit(void)
         ASTNode *prog = make_program(stmts, 2);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(prog, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(prog, &hir, &rir, NULL);
         EXPECT(mir != NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;

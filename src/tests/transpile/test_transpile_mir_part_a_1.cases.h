@@ -28,12 +28,14 @@ test_transpiler_reentry_stability(void)
             ASTNode *program = NULL;
             HIRProgram *hir = NULL;
             RIRProgram *rir = NULL;
+            TestProjectionEvidence evidence = {0};
             MIRProgram *mir = NULL;
             TranspilerCtx *ctx = transpiler_ctx_create();
-            bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+            bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
             ctx->mir = mir;
-
-            emit_program(ctx);
+            ok = ok && bind_test_c_projection_plan(ctx, mir, &evidence);
+            if (ok)
+                emit_program(ctx);
 
             if (!ok
                 || mir == NULL
@@ -45,6 +47,7 @@ test_transpiler_reentry_stability(void)
             }
 
             transpiler_ctx_destroy(ctx);
+            dispose_test_projection_evidence(&evidence);
             mir_destroy(mir);
             rir_destroy(rir);
             hir_destroy(hir);
@@ -75,16 +78,17 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_vertical_slice.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score: pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -113,6 +117,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -134,16 +139,17 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_phi_slice.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score(phi): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -164,6 +170,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -186,14 +193,15 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_late_let_slice.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -209,6 +217,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -229,14 +238,15 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_local_shadows_field.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -254,6 +264,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -278,16 +289,17 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_stmt_slice.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score(stmt): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -309,6 +321,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -334,16 +347,17 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_destructure_cfg_slice.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score(destructure-cfg): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             if (res != NULL && !res->success && res->error_message != NULL)
                 fprintf(stderr, "  -> destructure-cfg transpile error: %s\n", res->error_message);
@@ -365,6 +379,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -402,16 +417,17 @@ test_mir_vertical_slice_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_intent_cleanup.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Purchase"))
                 fprintf(stderr, "  -> MIR emitability warning for Purchase(intent): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -431,6 +447,7 @@ test_mir_vertical_slice_emit(void)
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

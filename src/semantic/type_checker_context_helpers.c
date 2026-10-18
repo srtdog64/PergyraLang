@@ -273,7 +273,7 @@ semantic_context_destroy(SemanticContext *ctx)
     free(ctx->host_decl_index.nested_callables);
     semantic_parallel_capture_facts_clear(
         ctx->parallel_capture_boundaries,
-        ctx->parallel_capture_boundary_count);
+        ctx->parallel_capture_boundary_capacity);
     free(ctx->diagnostics);
     pgy_arena_set_last_consumer(&ctx->scratch_arena, "semantic-type-checker");
     pgy_arena_set_release_point(&ctx->scratch_arena,

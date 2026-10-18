@@ -44,6 +44,8 @@ struct MIRProgram
     size_t      domain_projection_member_assignment_fact_count;
     MIRParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t      parallel_capture_boundary_count;
+    size_t      parallel_capture_boundary_capacity;
+    bool        parallel_capture_facts_imported;
     /* HIR-projected semantic region rows retained as MIR-owned facts. */
     bool        has_region_escape_facts;
     PgyRegionEscapeFact *region_escape_facts;

@@ -359,6 +359,8 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
         ctx->parallel_capture_boundaries;
     result->parallel_capture_boundary_count =
         ctx->parallel_capture_boundary_count;
+    result->parallel_capture_boundary_capacity =
+        ctx->parallel_capture_boundary_capacity;
     result->resource_flow_facts = ctx->resource_flow_facts;
     result->resource_flow_fact_count = ctx->resource_flow_fact_count;
     result->function_param_flow_facts = ctx->function_param_flow_facts;
@@ -468,7 +470,7 @@ semantic_result_destroy(SemanticResult *result)
     free(result->lifecycle_state_spaces);
     semantic_parallel_capture_facts_clear(
         result->parallel_capture_boundaries,
-        result->parallel_capture_boundary_count);
+        result->parallel_capture_boundary_capacity);
     pgy_resource_flow_facts_destroy(
         result->resource_flow_facts,
         result->resource_flow_fact_count);
@@ -566,9 +568,20 @@ const SemanticParallelCaptureBoundaryFact *
 semantic_result_parallel_capture_boundary_at(const SemanticResult *result,
                                              size_t index)
 {
-    if (result == NULL || index >= result->parallel_capture_boundary_count)
+    if (result == NULL || result->parallel_capture_boundary_count >
+            result->parallel_capture_boundary_capacity ||
+        (result->parallel_capture_boundary_capacity != 0 &&
+            result->parallel_capture_boundaries == NULL) ||
+        (result->parallel_capture_boundary_capacity == 0 &&
+            result->parallel_capture_boundaries != NULL) ||
+        index >= result->parallel_capture_boundary_count)
         return NULL;
-    return &result->parallel_capture_boundaries[index];
+    const SemanticParallelCaptureBoundaryFact *boundary =
+        &result->parallel_capture_boundaries[index];
+    if (boundary->row_count > boundary->row_capacity ||
+        (boundary->rows == NULL) != (boundary->row_capacity == 0))
+        return NULL;
+    return boundary;
 }
 
 void

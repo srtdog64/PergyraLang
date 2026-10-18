@@ -10,6 +10,7 @@ test_source_order_mir_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         TranspilerCtx *ctx = NULL;
         const char *log_pos = NULL;
@@ -18,11 +19,11 @@ test_source_order_mir_emit(void)
         bool ok = false;
 
         if (source != NULL)
-            ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+            ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             ctx = transpiler_ctx_create();
             ctx->mir = mir;
-            ok = bind_test_c_projection_plan(ctx, mir);
+            ok = bind_test_c_projection_plan(ctx, mir, &evidence);
             if (ok)
                 emit_program(ctx);
         }
@@ -45,6 +46,7 @@ test_source_order_mir_emit(void)
             EXPECT(await_pos < recv_pos);
 
         transpiler_ctx_destroy(ctx);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -68,18 +70,19 @@ test_source_order_mir_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         TranspilerCtx *ctx = NULL;
         const char *claim_pos = NULL;
         const char *write_pos = NULL;
         const char *read_pos = NULL;
         const char *release_pos = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
 
         if (ok) {
             ctx = transpiler_ctx_create();
             ctx->mir = mir;
-            ok = bind_test_c_projection_plan(ctx, mir);
+            ok = bind_test_c_projection_plan(ctx, mir, &evidence);
             if (ok)
                 emit_program(ctx);
         }
@@ -108,6 +111,7 @@ test_source_order_mir_emit(void)
                    == NULL);
 
         transpiler_ctx_destroy(ctx);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -135,6 +139,7 @@ test_source_order_mir_emit(void)
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         TranspilerCtx *ctx = NULL;
         const char *base_pos = NULL;
@@ -142,12 +147,12 @@ test_source_order_mir_emit(void)
         const char *first_write_pos = NULL;
         const char *second_claim_pos = NULL;
         const char *second_write_pos = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
 
         if (ok) {
             ctx = transpiler_ctx_create();
             ctx->mir = mir;
-            ok = bind_test_c_projection_plan(ctx, mir);
+            ok = bind_test_c_projection_plan(ctx, mir, &evidence);
             if (ok)
                 emit_program(ctx);
         }
@@ -178,6 +183,7 @@ test_source_order_mir_emit(void)
             EXPECT(first_write_pos < second_claim_pos);
 
         transpiler_ctx_destroy(ctx);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

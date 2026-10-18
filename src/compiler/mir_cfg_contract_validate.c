@@ -5,7 +5,7 @@
 
 #include "../common/string_compat.h"
 #include "mir_base_helpers.h"
-#include "mir_cfg_contract_control.h"
+#include "hir_lower_cfg.h"
 #include "mir_cfg_contract_roots.h"
 #include "mir_cfg_contract_cleanup_roots.h"
 #include "mir_cfg_contract_edges.h"

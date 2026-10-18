@@ -696,7 +696,9 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_flow_backing_dependencies.c \
                    $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
+                   $(SEMANTIC_DIR)/function_param_flow_claim_publication.c \
                    $(SEMANTIC_DIR)/function_param_publication_owner.c \
+                   $(SEMANTIC_DIR)/function_param_publication_values.c \
                    $(SEMANTIC_DIR)/function_param_publication_routines.c \
                    $(SEMANTIC_DIR)/function_param_publication_result_relation.c \
                    $(SEMANTIC_DIR)/function_param_publication_deferred.c \
@@ -1084,7 +1086,6 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_validation.c \
                    $(COMPILER_DIR)/mir_cleanup_fact_names.c \
                    $(COMPILER_DIR)/mir_cfg_contract_pin.c \
-                   $(COMPILER_DIR)/mir_cfg_contract_control.c \
                    $(COMPILER_DIR)/mir_cfg_contract_cleanup_fact.c \
                    $(COMPILER_DIR)/mir_cfg_contract_roots.c \
                    $(COMPILER_DIR)/mir_cfg_contract_cleanup_roots.c \
@@ -1704,7 +1705,6 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
                    $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_pin.o \
-                   $(BUILD_DIR)/compiler/mir_cfg_contract_control.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_fact.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_roots.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_roots.o \
@@ -2075,8 +2075,12 @@ $(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
-# AIR synthesis and drift test
-$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(AIR_CORE_OBJECTS) $(TEST_AIR_OBJ) | $(BIN_DIR)
+# AIR synthesis, drift and certified MIR projection test
+$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(AIR_CORE_OBJECTS) \
+             $(BUILD_DIR)/compiler/verified_projection_plan.o \
+             $(BUILD_DIR)/compiler/verified_parallel_capture_plan.o \
+             $(BUILD_DIR)/compiler/target_capability_contract.o \
+             $(TEST_AIR_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
@@ -2553,7 +2557,10 @@ c-backend-tmpfile-test-smoke: $(PGY)
 asan-uaf-witness-test-smoke:
 	CC="$(CC)" "$(BASH)" tests/asan_uaf_witness_smoke.sh
 
-test-asan: asan-uaf-witness-test-smoke
+mir-parallel-capture-allocation-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/mir_parallel_capture_allocation_smoke.sh
+
+test-asan: asan-uaf-witness-test-smoke mir-parallel-capture-allocation-test-smoke
 	@echo "=== Sanitizer gate: ASan + UBSan ($(PGY_SANITIZERS)) ==="
 	$(MAKE) SANITIZE=1 \
 	        LLVM_ENABLED=0 \
@@ -5478,7 +5485,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: lexer-token-stream-anchor-test-smoke source-module-graph-test-smoke iteration-type-fact-test-smoke compatibility-evolution-native-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-falsification-test-smoke parallel-capture-reach-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
-.PHONY: test-asan asan-uaf-witness-test-smoke test-tsan tsan-race-witness-test-smoke emitted-c-sanitizer-test-smoke
+.PHONY: test-asan asan-uaf-witness-test-smoke mir-parallel-capture-allocation-test-smoke test-tsan tsan-race-witness-test-smoke emitted-c-sanitizer-test-smoke
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
 # Explicit empty rule for the generated .d files. Without it GNU make runs

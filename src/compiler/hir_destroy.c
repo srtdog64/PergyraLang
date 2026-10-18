@@ -1,4 +1,5 @@
 #include "hir.h"
+#include "hir_cfg.h"
 
 #include <stdlib.h>
 
@@ -25,10 +26,12 @@ hir_destroy(HIRProgram *hir)
     if (hir == NULL)
         return;
 
+    hir_cfg_program_execution_release(hir);
     free(hir->items);
     free(hir->decls);
     if (hir->routines != NULL) {
         for (size_t i = 0; i < hir->routine_count; i++) {
+            hir_cfg_execution_release(&hir->routines[i]);
             if (hir->routines[i].cfg.blocks != NULL) {
                 for (size_t j = 0; j < hir->routines[i].cfg.block_count; j++) {
                     free(hir->routines[i].cfg.blocks[j].statements);

@@ -50,6 +50,6 @@ bool semantic_parallel_capture_facts_seal(SemanticContext *ctx,
                                           const ASTNode *boundary);
 void semantic_parallel_capture_facts_clear(
     SemanticParallelCaptureBoundaryFact *facts,
-    size_t count);
+    size_t capacity);
 
 #endif

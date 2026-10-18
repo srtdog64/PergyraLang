@@ -60,6 +60,7 @@ typedef struct SemanticResult
      * projection of this table, never checker annotations on AST nodes. */
     SemanticParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t       parallel_capture_boundary_count;
+    size_t       parallel_capture_boundary_capacity;
     /* Function-local ResourceFlowUniverse rows copied before semantic scope
      * teardown. HIR consumes these stable identities instead of rebuilding
      * them from Symbol pointers. */

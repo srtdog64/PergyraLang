@@ -364,6 +364,12 @@ air_validate(const AIRProgram *air, char **error_message)
         air_set_invariant_error(error_message, "AIR validation requires a program");
         return false;
     }
+    if ((air->source_program_syntax_id != 0 || air->source_origin != NULL)
+        && !air_source_program_current(air, NULL)) {
+        air_set_invariant_error(error_message,
+                                "AIR original source identity is missing or stale");
+        return false;
+    }
     if (air->mir_evidence_bound
         && (!air->mir_evidence_collection_started
             || !air_has_mir_input(air)

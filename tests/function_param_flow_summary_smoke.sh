@@ -135,6 +135,9 @@ release_lifetime_refusals = {
     "option_payload_literal_array_rebind_invalid": [(*borrow_refusal, 8, 32)],
     "option_payload_literal_array_helper_handoff_invalid": [(*borrow_refusal, 12, 22)],
     "option_payload_mixed_array_return_invalid": [(*borrow_refusal, 11, 30)],
+    "readfile_result_borrowed_identity_invalid": [
+        (*borrow_refusal, 10, 25), (*borrow_refusal, 11, 27)],
+    "readfile_result_defer_released_path_invalid": [(*borrow_refusal, 12, 27)],
     "nonowner_risk_alias_owned_insert_invalid": [
         (*borrow_refusal, 16, 21), (*borrow_refusal, 18, 30)],
     "nonowner_risk_rebind_clone_invalid": [(*borrow_refusal, 16, 26)],
@@ -172,6 +175,16 @@ paired = (
     ("option_payload_literal_array_rebind_invalid", False),
     ("option_payload_literal_array_mixed_returns_invalid", False),
     ("option_payload_literal_array_helper_handoff_invalid", False),
+    ("readfile_result_direct_valid", True),
+    ("readfile_result_borrowed_path_valid", True),
+    ("readfile_result_named_return_valid", True),
+    ("readfile_result_defer_valid", True),
+    ("readfile_result_defer_late_valid", True),
+    ("readfile_result_distinct_loop_valid", True),
+    ("readfile_result_multipart_defer_valid", True),
+    ("readfile_result_control_flow_valid", True),
+    ("readfile_result_borrowed_identity_invalid", False),
+    ("readfile_result_defer_released_path_invalid", False),
     ("nonowner_risk_option_reader_valid", True),
     ("nonowner_risk_shallow_loop_valid", True),
     ("nonowner_risk_alias_owned_insert_invalid", False),
@@ -1129,6 +1142,14 @@ for name, expected in (
     ("option_payload_local_alias_valid", "ready\nheap\n"),
     ("option_payload_shared_carrier_valid", "shared\nshared\nheap\n"),
     ("option_payload_literal_array_return_valid", "alpha\nfalse\nheap\n"),
+    ("readfile_result_direct_valid", "9\n0\nheap\n"),
+    ("readfile_result_borrowed_path_valid", "9\nheap\n"),
+    ("readfile_result_named_return_valid", "9\nheap\n"),
+    ("readfile_result_defer_valid", "heap\n9\n"),
+    ("readfile_result_defer_late_valid", "heap\n2\n"),
+    ("readfile_result_distinct_loop_valid", "9\n9\n0\n9\n9\n9\nheap\n"),
+    ("readfile_result_multipart_defer_valid", "heap\n9\n0\n"),
+    ("readfile_result_control_flow_valid", "while\n9\nfor-start\n3\nfor-end\n9\nnested-if\nmatched\nshort-circuit\ntaken\nheap\n"),
     ("nonowner_risk_option_reader_valid", "9\n0\n"),
     ("nonowner_risk_shallow_loop_valid", "8\n8\n2\n"),
     ("private_array_push_local_read_valid", "1\n"),
@@ -1145,8 +1166,13 @@ for name, expected in (
         if compiled.returncode != 0:
             sys.stderr.buffer.write(compiled.stderr)
             raise SystemExit(f"stdlib input reader {name} failed to compile for {backend}")
+        case_cwd = root if name.startswith("readfile_result_") else None
+        if name == "readfile_result_defer_late_valid":
+            case_cwd = runtime_dir / (name + "-" + backend + "-cwd")
+            case_cwd.mkdir()
         observed = subprocess.run([str(executable)], stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE, timeout=10.0, check=False)
+                                  stderr=subprocess.PIPE, timeout=10.0, check=False,
+                                  cwd=case_cwd)
         if observed.returncode != 0 or observed.stderr or observed.stdout.decode().replace("\r\n", "\n") != expected:
             raise SystemExit(f"stdlib input reader {name} runtime mismatch for {backend}: {observed.stdout!r}")
 print("[function-param-flow-summary] stdlib input retention C/LLVM and identity/arity controls: PASS")

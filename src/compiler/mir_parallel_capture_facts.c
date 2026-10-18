@@ -11,15 +11,24 @@ static bool
 semantic_parallel_capture_facts_validate(const SemanticResult *semantic,
                                          char **error_message)
 {
-    size_t count =
-        semantic_result_parallel_capture_boundary_count(semantic);
+    if (semantic == NULL || semantic->parallel_capture_boundary_count
+            > semantic->parallel_capture_boundary_capacity
+        || (semantic->parallel_capture_boundaries == NULL)
+            != (semantic->parallel_capture_boundary_capacity == 0)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "semantic parallel capture boundary inventory has invalid storage");
+        return false;
+    }
+    size_t count = semantic->parallel_capture_boundary_count;
 
     for (size_t i = 0; i < count; i++) {
         const SemanticParallelCaptureBoundaryFact *boundary =
             semantic_result_parallel_capture_boundary_at(semantic, i);
         if (boundary == NULL || boundary->source_stable_id == 0
             || !boundary->sealed
-            || (boundary->row_count > 0 && boundary->rows == NULL)) {
+            || boundary->row_count > boundary->row_capacity
+            || (boundary->rows == NULL) != (boundary->row_capacity == 0)) {
             if (error_message != NULL)
                 *error_message = mir_strdup_fmt(
                     "semantic parallel capture boundary[%zu] has invalid shape",
@@ -75,16 +84,20 @@ mir_parallel_capture_facts_clear(MIRProgram *mir)
 {
     if (mir == NULL)
         return;
-    for (size_t i = 0; i < mir->parallel_capture_boundary_count; i++) {
-        MIRParallelCaptureBoundaryFact *boundary =
-            &mir->parallel_capture_boundaries[i];
-        for (size_t j = 0; j < boundary->row_count; j++)
-            free(boundary->rows[j].name);
-        free(boundary->rows);
-    }
+    if (mir->parallel_capture_boundaries != NULL)
+        for (size_t i = 0; i < mir->parallel_capture_boundary_capacity; i++) {
+            MIRParallelCaptureBoundaryFact *boundary =
+                &mir->parallel_capture_boundaries[i];
+            if (boundary->rows != NULL)
+                for (size_t j = 0; j < boundary->row_capacity; j++)
+                    free(boundary->rows[j].name);
+            free(boundary->rows);
+        }
     free(mir->parallel_capture_boundaries);
     mir->parallel_capture_boundaries = NULL;
     mir->parallel_capture_boundary_count = 0;
+    mir->parallel_capture_boundary_capacity = 0;
+    mir->parallel_capture_facts_imported = false;
 }
 
 bool
@@ -100,11 +113,22 @@ mir_import_parallel_capture_facts(MIRProgram *mir,
                 "MIR parallel capture import requires semantic facts");
         return false;
     }
-    count = semantic_result_parallel_capture_boundary_count(semantic);
-    if (count == 0)
-        return true;
+    if (mir->parallel_capture_facts_imported
+        || mir->parallel_capture_boundaries != NULL
+        || mir->parallel_capture_boundary_count != 0
+        || mir->parallel_capture_boundary_capacity != 0) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR parallel capture facts were already imported");
+        return false;
+    }
     if (!semantic_parallel_capture_facts_validate(semantic, error_message))
         return false;
+    count = semantic_result_parallel_capture_boundary_count(semantic);
+    if (count == 0) {
+        mir->parallel_capture_facts_imported = true;
+        return true;
+    }
     if (count > SIZE_MAX / sizeof(*mir->parallel_capture_boundaries)) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
@@ -116,9 +140,10 @@ mir_import_parallel_capture_facts(MIRProgram *mir,
     if (mir->parallel_capture_boundaries == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("out of memory");
-        return false;
+        goto fail;
     }
     mir->parallel_capture_boundary_count = count;
+    mir->parallel_capture_boundary_capacity = count;
 
     for (size_t i = 0; i < count; i++) {
         const SemanticParallelCaptureBoundaryFact *source =
@@ -129,12 +154,11 @@ mir_import_parallel_capture_facts(MIRProgram *mir,
             if (error_message != NULL)
                 *error_message = mir_strdup_fmt(
                     "semantic parallel capture boundary[%zu] is missing", i);
-            return false;
+            goto fail;
         }
         target->source_stable_id = source->source_stable_id;
         target->task_count = source->task_count;
         target->sealed = source->sealed;
-        target->row_count = source->row_count;
         if (source->row_count == 0)
             continue;
         if (source->row_count > SIZE_MAX / sizeof(*target->rows)) {
@@ -142,20 +166,22 @@ mir_import_parallel_capture_facts(MIRProgram *mir,
                 *error_message = mir_strdup_fmt(
                     "semantic parallel capture boundary[%zu] row inventory overflow",
                     i);
-            return false;
+            goto fail;
         }
         target->rows = calloc(source->row_count, sizeof(*target->rows));
         if (target->rows == NULL) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");
-            return false;
+            goto fail;
         }
+        target->row_count = source->row_count;
+        target->row_capacity = source->row_count;
         for (size_t j = 0; j < source->row_count; j++) {
             target->rows[j].name = pergyra_strdup(source->rows[j].name);
             if (target->rows[j].name == NULL) {
                 if (error_message != NULL)
                     *error_message = pergyra_strdup("out of memory");
-                return false;
+                goto fail;
             }
             switch (source->rows[j].kind) {
             case SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY:
@@ -172,7 +198,14 @@ mir_import_parallel_capture_facts(MIRProgram *mir,
             target->rows[j].writer_task = source->rows[j].writer_task;
         }
     }
-    return mir_validate_parallel_capture_facts(mir, error_message);
+    if (!mir_validate_parallel_capture_facts(mir, error_message))
+        goto fail;
+    mir->parallel_capture_facts_imported = true;
+    return true;
+
+fail:
+    mir_parallel_capture_facts_clear(mir);
+    return false;
 }
 
 size_t
@@ -184,22 +217,40 @@ mir_parallel_capture_boundary_count(const MIRProgram *mir)
 const MIRParallelCaptureBoundaryFact *
 mir_parallel_capture_boundary_at(const MIRProgram *mir, size_t index)
 {
-    if (mir == NULL || index >= mir->parallel_capture_boundary_count)
+    if (mir == NULL || mir->parallel_capture_boundary_count
+            > mir->parallel_capture_boundary_capacity
+        || (mir->parallel_capture_boundaries == NULL)
+            != (mir->parallel_capture_boundary_capacity == 0)
+        || index >= mir->parallel_capture_boundary_count)
         return NULL;
-    return &mir->parallel_capture_boundaries[index];
+    const MIRParallelCaptureBoundaryFact *boundary =
+        &mir->parallel_capture_boundaries[index];
+    if (boundary->row_count > boundary->row_capacity
+        || (boundary->rows == NULL) != (boundary->row_capacity == 0))
+        return NULL;
+    return boundary;
 }
 
 const MIRParallelCaptureBoundaryFact *
 mir_parallel_capture_boundary_find(const MIRProgram *mir,
                                    uint32_t source_stable_id)
 {
-    if (mir == NULL || source_stable_id == 0)
+    if (mir == NULL || source_stable_id == 0
+        || mir->parallel_capture_boundary_count
+            > mir->parallel_capture_boundary_capacity
+        || (mir->parallel_capture_boundaries == NULL)
+            != (mir->parallel_capture_boundary_capacity == 0))
         return NULL;
     for (size_t i = 0; i < mir->parallel_capture_boundary_count; i++) {
         const MIRParallelCaptureBoundaryFact *boundary =
             &mir->parallel_capture_boundaries[i];
-        if (boundary->source_stable_id == source_stable_id)
+        if (boundary->source_stable_id == source_stable_id) {
+            if (boundary->row_count > boundary->row_capacity
+                || (boundary->rows == NULL)
+                    != (boundary->row_capacity == 0))
+                return NULL;
             return boundary;
+        }
     }
     return NULL;
 }
@@ -210,7 +261,9 @@ mir_parallel_capture_disposition_find(
     const char *name,
     MIRParallelCaptureDispositionKind kind)
 {
-    if (boundary == NULL || name == NULL)
+    if (boundary == NULL || name == NULL
+        || boundary->row_count > boundary->row_capacity
+        || (boundary->rows == NULL) != (boundary->row_capacity == 0))
         return NULL;
     for (size_t i = 0; i < boundary->row_count; i++) {
         const MIRParallelCaptureDispositionRow *row = &boundary->rows[i];
@@ -227,8 +280,10 @@ mir_validate_parallel_capture_facts(const MIRProgram *mir,
 {
     if (mir == NULL)
         return false;
-    if (mir->parallel_capture_boundary_count > 0
-        && mir->parallel_capture_boundaries == NULL) {
+    if (mir->parallel_capture_boundary_count
+            > mir->parallel_capture_boundary_capacity
+        || (mir->parallel_capture_boundaries == NULL)
+            != (mir->parallel_capture_boundary_capacity == 0)) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
                 "MIR parallel capture boundary inventory is missing");
@@ -238,7 +293,8 @@ mir_validate_parallel_capture_facts(const MIRProgram *mir,
         const MIRParallelCaptureBoundaryFact *boundary =
             &mir->parallel_capture_boundaries[i];
         if (boundary->source_stable_id == 0 || !boundary->sealed
-            || (boundary->row_count > 0 && boundary->rows == NULL)) {
+            || boundary->row_count > boundary->row_capacity
+            || (boundary->rows == NULL) != (boundary->row_capacity == 0)) {
             if (error_message != NULL)
                 *error_message = mir_strdup_fmt(
                     "MIR parallel capture boundary[%zu] has invalid shape", i);

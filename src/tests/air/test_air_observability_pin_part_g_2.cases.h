@@ -108,6 +108,7 @@ test_air_collects_mir_pin_cleanup_evidence(void)
     blocks[0].cleanup_succ = 1;
     blocks[0].instructions = insts;
     blocks[0].instruction_count = 2;
+    blocks[0].instruction_capacity = 2;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
     blocks[1].is_reachable = true;
@@ -116,12 +117,14 @@ test_air_collects_mir_pin_cleanup_evidence(void)
     routine.name = "pin_scores";
     routine.blocks = blocks;
     routine.block_count = 2;
+    routine.block_capacity = 2;
     routine.has_cleanup_block = true;
     routine.cleanup_block = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -198,6 +201,7 @@ test_air_requires_pin_cleanup_ast_provenance(void)
     blocks[0].cleanup_succ = 1;
     blocks[0].instructions = insts;
     blocks[0].instruction_count = 2;
+    blocks[0].instruction_capacity = 2;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
     blocks[1].is_reachable = true;
@@ -206,12 +210,14 @@ test_air_requires_pin_cleanup_ast_provenance(void)
     routine.name = "pin_scores";
     routine.blocks = blocks;
     routine.block_count = 2;
+    routine.block_capacity = 2;
     routine.has_cleanup_block = true;
     routine.cleanup_block = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -276,15 +282,18 @@ test_air_rejects_orphan_mir_pin_cleanup_evidence(void)
     block.pin_block_ast = &pin_ast;
     block.instructions = &inst;
     block.instruction_count = 1;
+    block.instruction_capacity = 1;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "pin_scores";
     routine.blocks = &block;
     routine.block_count = 1;
+    routine.block_capacity = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -354,16 +363,19 @@ test_air_strict_rejects_pin_cleanup_without_cleanup_root(void)
     block.pin_block_ast = &pin_ast;
     block.instructions = &inst;
     block.instruction_count = 1;
+    block.instruction_capacity = 1;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "pin_scores";
     routine.blocks = &block;
     routine.block_count = 1;
+    routine.block_capacity = 1;
     routine.has_cleanup_block = false;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air->has_mir_input
@@ -443,6 +455,7 @@ test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
     blocks[0].cleanup_succ = 1;
     blocks[0].instructions = insts;
     blocks[0].instruction_count = 2;
+    blocks[0].instruction_capacity = 2;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
     blocks[1].is_reachable = true;
@@ -451,12 +464,14 @@ test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
     routine.name = "pin_scores";
     routine.blocks = blocks;
     routine.block_count = 2;
+    routine.block_capacity = 2;
     routine.has_cleanup_block = true;
     routine.cleanup_block = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)

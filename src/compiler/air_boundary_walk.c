@@ -13,6 +13,8 @@ typedef struct
     size_t              intent_index;
     const char         *owner;
     const DIRIntentStep *step;
+    const ASTNode      *io_owner;
+    uint32_t            io_defer_registration;
     size_t              count;
     bool                append;
 } AIRBoundaryWalkCtx;
@@ -64,6 +66,11 @@ air_append_current_boundary(AIRBoundaryWalkCtx *ctx,
         ? node
         : ctx->step->ast;
     boundary->source_stable_id = ast_node_stable_id(boundary->ast);
+    if (kind == AIR_BOUNDARY_IO) {
+        boundary->io_owner_ast = ctx->io_owner;
+        boundary->io_owner_syntax_id = ast_node_stable_id(ctx->io_owner);
+        boundary->io_defer_registration_syntax_id = ctx->io_defer_registration;
+    }
     boundary->sync_class = air_boundary_sync_from_kind(kind);
     /* The `spawn blocking` marker is boundary-local declared evidence: read it
        from the spawn node itself at discovery so the classifier sees it. */
@@ -259,8 +266,13 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
         return air_walk_child(ctx, ast_unsafe_block_body(node));
     case AST_TRANSACTION_BLOCK:
         return air_walk_child(ctx, ast_transaction_block_body(node));
-    case AST_DEFER_STMT:
-        return air_walk_child(ctx, ast_defer_body(node));
+    case AST_DEFER_STMT: {
+        uint32_t outer = ctx->io_defer_registration;
+        if (outer == 0) ctx->io_defer_registration = ast_node_stable_id(node);
+        bool ok = air_walk_child(ctx, ast_defer_body(node));
+        ctx->io_defer_registration = outer;
+        return ok;
+    }
     case AST_BIND_STMT:
         return air_walk_child(ctx, ast_bind_statement_subject(node));
     default:
@@ -321,6 +333,7 @@ air_append_step_expr_boundaries(AIRProgram *air,
                                 size_t *boundary_index,
                                 size_t intent_index,
                                 const char *owner,
+                                const ASTNode *owner_ast,
                                 const DIRIntentStep *step)
 {
     AIRBoundaryWalkCtx ctx;
@@ -331,6 +344,7 @@ air_append_step_expr_boundaries(AIRProgram *air,
     ctx.boundary_index = boundary_index;
     ctx.intent_index = intent_index;
     ctx.owner = owner;
+    ctx.io_owner = owner_ast;
     ctx.step = step;
     ctx.append = true;
     return air_walk_step_expr_boundaries(&ctx, step);
@@ -363,6 +377,7 @@ air_append_routine_expr_boundaries(AIRProgram *air,
     ctx.intent_index = SIZE_MAX;
     ctx.owner = owner;
     ctx.step = NULL;
+    ctx.io_owner = routine;
     ctx.append = true;
     return air_walk_routine_expr_boundaries(&ctx, routine);
 }

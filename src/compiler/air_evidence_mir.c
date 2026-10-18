@@ -3,12 +3,12 @@
 
 #include "air_internal.h"
 #include "../semantic/slot_summary.h"
+#include "../semantic/collection_ownership_fact.h"
 
-/* This fingerprint is an AIR/MIR binding token, not a cryptographic digest.
- * It covers the stable routine and instruction identity plus every MIR fact
- * that the AIR evidence pass currently consumes.  AIR copies the resulting
- * evidence and retains the token so a later planner cannot silently pair it
- * with a different MIR inventory. */
+/* This fingerprint binds the collected routine/instruction facts and the MIR
+ * surface and parallel-capture fields read by the final plans. It is a
+ * mutation guard for that inventory, not a cryptographic digest or a proof
+ * that every MIR fact is valid. */
 #define AIR_MIR_BINDING_FNV_OFFSET UINT64_C(1469598103934665603)
 #define AIR_MIR_BINDING_FNV_PRIME  UINT64_C(1099511628211)
 
@@ -55,19 +55,29 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
 
     if (mir == NULL)
         return 0;
+    if (mir->routine_count > mir->routine_capacity
+        || (mir->routine_count > 0 && mir->routines == NULL)
+        || mir->parallel_capture_boundary_count > mir->parallel_capture_boundary_capacity
+        || (mir->parallel_capture_boundary_count > 0
+            && mir->parallel_capture_boundaries == NULL))
+        return 0;
 
     mir_routine_inventory_from_program(mir, &inventory);
-    air_mir_binding_mix_text(&hash, "pgy.air.mir-binding.v1");
+    air_mir_binding_mix_text(&hash, "pgy.air.mir-binding.v2");
     air_mir_binding_mix_u64(&hash, inventory.count);
     air_mir_binding_mix_bool(&hash, mir->has_resource_flow_facts);
     air_mir_binding_mix_bool(&hash, mir->has_function_param_flow_facts);
     air_mir_binding_mix_bool(&hash, mir->has_loop_flow_facts);
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
-        if (routine == NULL) {
-            air_mir_binding_mix_byte(&hash, 0xffu);
-            continue;
-        }
+        if (routine == NULL
+            || routine->function_param_flow_summary_count
+                > routine->function_param_flow_summary_capacity
+            || (routine->function_param_flow_summary_count > 0
+                && routine->function_param_flow_summaries == NULL)
+            || routine->block_count > routine->block_capacity
+            || (routine->block_count > 0 && routine->blocks == NULL))
+            return 0;
         air_mir_binding_mix_text(&hash, routine->name);
         air_mir_binding_mix_text(&hash, routine->owner_name);
         air_mir_binding_mix_u64(&hash, routine->source_syntax_id);
@@ -76,13 +86,8 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
         air_mir_binding_mix_u64(&hash, routine->param_count);
         air_mir_binding_mix_u64(&hash,
                                 routine->function_param_flow_summary_count);
-        if (routine->function_param_flow_summary_count > 0
-            && routine->function_param_flow_summaries == NULL) {
-            air_mir_binding_mix_byte(&hash, 0xfeu);
-        }
         for (size_t j = 0;
-             routine->function_param_flow_summaries != NULL
-             && j < routine->function_param_flow_summary_count;
+             j < routine->function_param_flow_summary_count;
              j++) {
             const MIRFunctionParamFlowSummary *row =
                 &routine->function_param_flow_summaries[j];
@@ -90,25 +95,16 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
             air_mir_binding_mix_u64(&hash, row->mask);
         }
         air_mir_binding_mix_u64(&hash, routine->block_count);
-        if (routine->block_count > 0 && routine->blocks == NULL) {
-            air_mir_binding_mix_byte(&hash, 0xfdu);
-            continue;
-        }
         for (size_t j = 0; j < routine->block_count; j++) {
             const MIRBasicBlock *block = &routine->blocks[j];
-            if (block == NULL) {
-                air_mir_binding_mix_byte(&hash, 0xfcu);
-                continue;
-            }
+            if (block->instruction_count > block->instruction_capacity
+                || (block->instruction_count > 0
+                    && block->instructions == NULL))
+                return 0;
             air_mir_binding_mix_u64(&hash, block->id);
             air_mir_binding_mix_bool(&hash, block->is_cleanup);
             air_mir_binding_mix_bool(&hash, block->is_pin_region);
             air_mir_binding_mix_u64(&hash, block->instruction_count);
-            if (block->instruction_count > 0
-                && block->instructions == NULL) {
-                air_mir_binding_mix_byte(&hash, 0xfbu);
-                continue;
-            }
             for (size_t k = 0; k < block->instruction_count; k++) {
                 const MIRInstruction *instruction = &block->instructions[k];
                 air_mir_binding_mix_u64(&hash, instruction->id);
@@ -145,6 +141,31 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
                 air_mir_binding_mix_text(&hash, instruction->lifecycle_op);
                 air_mir_binding_mix_text(&hash, instruction->lifecycle_subject);
             }
+        }
+    }
+    air_mir_binding_mix_bool(&hash, mir->has_inventory_surface_usage_facts);
+    air_mir_binding_mix_bool(&hash,
+                             mir->inventory_uses_thread_pool_surface);
+    air_mir_binding_mix_bool(&hash,
+                             mir->inventory_uses_intent_observability_surface);
+    air_mir_binding_mix_u64(&hash, mir->parallel_capture_boundary_count);
+    for (size_t i = 0; i < mir->parallel_capture_boundary_count; i++) {
+        const MIRParallelCaptureBoundaryFact *boundary =
+            &mir->parallel_capture_boundaries[i];
+        if (boundary->row_count > boundary->row_capacity
+            || (boundary->row_count > 0 && boundary->rows == NULL))
+            return 0;
+        air_mir_binding_mix_u64(&hash, boundary->source_stable_id);
+        air_mir_binding_mix_u64(&hash, boundary->task_count);
+        air_mir_binding_mix_bool(&hash, boundary->sealed);
+        air_mir_binding_mix_u64(&hash, boundary->row_count);
+        for (size_t j = 0; j < boundary->row_count; j++) {
+            const MIRParallelCaptureDispositionRow *row = &boundary->rows[j];
+            if (row->name == NULL)
+                return 0;
+            air_mir_binding_mix_text(&hash, row->name);
+            air_mir_binding_mix_u64(&hash, row->kind);
+            air_mir_binding_mix_u64(&hash, row->writer_task);
         }
     }
     return hash != 0 ? hash : UINT64_C(1);
@@ -330,14 +351,65 @@ air_collect_mir_value_capture_evidence(AIRProgram *air)
 }
 
 bool
+air_mir_source_current(const AIRProgram *air, const MIRProgram *mir)
+{
+    if (air == NULL || mir == NULL)
+        return false;
+
+    bool native_source = air->source_program_syntax_id != 0 ||
+        air->source_origin != NULL ||
+        mir->collection_effect_source_program != NULL ||
+        mir->collection_effect_snapshot != NULL;
+    if (!native_source)
+        return true;
+
+    const ASTNode *source = mir->collection_effect_source_program;
+    return source != NULL && mir->collection_effect_snapshot != NULL &&
+        air_source_program_current(air, source) &&
+        semantic_collection_effect_snapshot_current(
+            mir->collection_effect_snapshot, source, NULL);
+}
+
+bool
+air_mir_evidence_binding_current(const AIRProgram *air,
+                                 const MIRProgram *mir)
+{
+    uint64_t current;
+
+    if (!air_mir_source_current(air, mir)
+        || !air_has_mir_input(air)
+        || !air->mir_evidence_collection_started
+        || !air->mir_evidence_bound
+        || air->mir_evidence_binding_fingerprint == 0)
+        return false;
+    current = air_mir_evidence_binding_fingerprint(mir);
+    return current != 0
+        && current == air->mir_evidence_binding_fingerprint;
+}
+
+bool
 air_collect_mir_evidence(AIRProgram *air,
                          const MIRProgram *mir,
                          char **error_message)
 {
     uint64_t binding_fingerprint;
 
-    if (air == NULL || mir == NULL)
+    if (air == NULL)
         return true;
+
+    if (mir == NULL) {
+        if (air->source_program_syntax_id != 0 || air->source_origin != NULL) {
+            air_set_error(error_message,
+                          "AIR MIR evidence is missing its native source program");
+            return false;
+        }
+        return true;
+    }
+    if (!air_mir_source_current(air, mir)) {
+        air_set_error(error_message,
+                      "AIR MIR evidence has a missing or foreign source program");
+        return false;
+    }
 
     if (air->mir_evidence_collection_started) {
         air_set_error(error_message,

@@ -6,4 +6,8 @@ bool hir_collection_owned_local_transitions_validate(const HIRRoutine *routine,
 /* Reuses the owned-expression vocabulary, without mutation cardinality rules. */
 bool hir_collection_source_expression_current(const PgyCollectionEffectSnapshot *snapshot,
     const HIRRoutine *routine, ASTNode *root);
+/* Invocation-local static execution ledger; value/current queries stay reusable. */
+bool hir_collection_source_execution_current(const PgyCollectionEffectSnapshot *snapshot,
+    const HIRRoutine *routine, ASTNode *root, const ASTNode *execution_root,
+    bool *occurrences, size_t count, bool *writes, size_t write_count);
 #endif

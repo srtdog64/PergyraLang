@@ -44,6 +44,20 @@ rir_validate_against_dir(const RIRProgram *rir,
         return false;
     }
 
+    /* Source-backed DIR facts must originate from this RIR's exact program,
+     * even when no domain slot row happens to need validation below. */
+    bool native_source = dir->source_program_syntax_id != 0 ||
+        dir->program_root != NULL || dir->source_origin != NULL ||
+        rir->program_root != NULL;
+    if (native_source &&
+        (rir->program_root == NULL ||
+         !dir_source_program_current(dir, rir->program_root))) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "RIR/DIR validation lacks one original source program");
+        return false;
+    }
+
     for (size_t i = 0; i < dir->node_count; i++) {
         const DIRNode *node = &dir->nodes[i];
         const char *local_name = NULL;

@@ -53,7 +53,7 @@ test_statement_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -122,7 +122,7 @@ test_statement_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -156,7 +156,7 @@ test_statement_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -250,7 +250,7 @@ test_statement_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -285,7 +285,7 @@ test_statement_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -321,7 +321,7 @@ test_statement_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -364,7 +364,7 @@ test_statement_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 

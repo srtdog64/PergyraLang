@@ -1,0 +1,44 @@
+func Main() -> Void {
+    let risk: Array<String> = [Concat("he", "ap")];
+    let path: String = "tests/cases/backend_compare/string_io/io.txt";
+
+    var guard: Int = 0;
+    while guard < StringLength(ReadFile(path)) {
+        guard = guard + 1;
+    }
+    Log("while");
+    Log(guard);
+
+    var fromStart: Int = 0;
+    for index in StringLength(ReadFile("missing-result-source-probe.txt"))..3 {
+        fromStart = fromStart + index;
+    }
+    Log("for-start");
+    Log(fromStart);
+
+    var toEnd: Int = 0;
+    for index in 0..StringLength(ReadFile(path)) {
+        toEnd = toEnd + 1;
+    }
+    Log("for-end");
+    Log(toEnd);
+
+    Log("nested-if");
+    if StringLength(ReadFile(path)) > 0 {
+        if StringLength(ReadFile(path)) == 9 {
+            Log("matched");
+        } else {
+            Log("missed");
+        }
+    } else {
+        Log("empty");
+    }
+
+    Log("short-circuit");
+    if StringLength(path) > 0 && StringLength(ReadFile(path)) > 0 {
+        Log("taken");
+    } else {
+        Log("skipped");
+    }
+    Log(risk[0]);
+}

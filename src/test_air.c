@@ -10,7 +10,10 @@
 #include "compiler/air.h"
 #include "compiler/air_erasure_squiggle.h"
 #include "compiler/air_internal.h"
+#include "compiler/hir_cfg.h"
 #include "compiler/air_evidence_certificate.h"
+#include "compiler/verified_projection_plan.h"
+#include "compiler/mir_parallel_capture_facts.h"
 #include "compiler/mir_program_fact_validate.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -67,7 +70,8 @@ test_air_rejects_function_param_flow_without_routine_identity(void)
     MIRProgram mir;
     MIRRoutine mir_routine;
     MIRFunctionParamFlowSummary mir_flow_row;
-    AIRProgram *air = lower_air_from_source("func Main() -> Void { }\n");
+    /* This is a source-less row validator fixture, not native evidence. */
+    AIRProgram *air = calloc(1, sizeof(*air));
     char *error = NULL;
     bool mir_rejected;
     bool air_rejected = false;
@@ -87,6 +91,7 @@ test_air_rejects_function_param_flow_without_routine_identity(void)
     mir_routine.function_param_flow_summary_capacity = 1;
     mir.routines = &mir_routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
     mir.has_function_param_flow_facts = true;
 
     mir_rejected = !mir_validate_function_param_flow_summaries(
@@ -129,48 +134,41 @@ test_air_carries_function_param_flow_summary(void)
     HIRProgram *hir = NULL;
     DIRProgram *dir = NULL;
     RIRProgram *rir = NULL;
-    MIRProgram mir;
-    MIRRoutine mir_routine;
-    MIRFunctionParamFlowSummary mir_flow_row;
+    MIRProgram *mir = NULL;
+    MIRRoutine *mir_routine = NULL;
+    MIRFunctionParamFlowSummary *mir_flow_row = NULL;
     AIRProgram *air = NULL;
     char *error = NULL;
     bool carried = false;
     bool validated = false;
     bool negative_rejected = false;
 
-    memset(&mir, 0, sizeof(mir));
-    memset(&mir_routine, 0, sizeof(mir_routine));
-    memset(&mir_flow_row, 0, sizeof(mir_flow_row));
-    mir_flow_row.parameter_index = 0;
-    mir_flow_row.mask = 0x5u;
-    mir_routine.name = "Recur";
-    mir_routine.owner_ast_type = AST_FUNC_DECL;
-    mir_routine.has_signature = true;
-    mir_routine.param_count = 1;
-    mir_routine.source_syntax_id = 42u;
-    mir_routine.function_param_flow_summaries = &mir_flow_row;
-    mir_routine.function_param_flow_summary_count = 1;
-    mir_routine.function_param_flow_summary_capacity = 1;
-    mir.routines = &mir_routine;
-    mir.routine_count = 1;
-    mir.has_function_param_flow_facts = true;
-
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
-        hir = hir_lower_with_resource_and_param_flow_facts(
-            sem->annotated_ast,
-            sem->resource_flow_facts,
-            sem->resource_flow_fact_count,
-            sem->function_param_flow_facts,
-            sem->function_param_flow_fact_count,
-            &error);
-        dir = dir_lower(sem->annotated_ast, &error);
+        HIRSemanticProjectionFailure failure = HIR_SEMANTIC_PROJECTION_NONE;
+        hir = hir_lower_with_semantic_facts(sem, &failure, &error);
+        if (hir != NULL)
+            dir = dir_lower_with_hir_facts(sem->annotated_ast, hir, &error);
         rir = rir_lower(sem->annotated_ast, &error);
         if (hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &error);
-        if (hir != NULL && dir != NULL && rir != NULL)
+        if (hir != NULL && dir != NULL && rir != NULL) {
+            MIRLowerRequest request;
+            mir_lower_request_init(&request, hir, rir, sem);
+            mir_lower_request_bind_dir(&request, dir);
+            mir = mir_lower(&request, &error);
             air = air_synthesize(hir, dir, rir, &error);
-        if (air != NULL)
-            carried = air_collect_mir_evidence(air, &mir, &error);
+        }
+        if (mir != NULL) {
+            ASTNode *declaration = ast_program_statement(sem->annotated_ast, 1);
+            for (size_t i = 0; i < mir->routine_count; i++)
+                if (mir->routines[i].ast == declaration)
+                    mir_routine = &mir->routines[i];
+            if (mir_routine != NULL && mir_routine->function_param_flow_summary_count != 0)
+                mir_flow_row = &mir_routine->function_param_flow_summaries[0];
+        }
+        if (air != NULL && mir_flow_row != NULL)
+            carried = air_collect_dag_evidence(air, sem, &error) &&
+                air_collect_mir_evidence(air, mir, &error);
         if (carried)
             validated = air_verify(air, &error);
     }
@@ -237,23 +235,23 @@ test_air_carries_function_param_flow_summary(void)
             TEST("AIR validator rejects unknown parameter-flow mask bits");
             EXPECT(unknown_air_mask && air_verify(air, &error));
             free(error); error = NULL;
-            mir_routine.ast = ast_program_statement(sem->annotated_ast, 1);
-            bool valid_mir_row = mir_validate_function_param_flow_summaries(&mir_routine, &error);
+            const uint32_t original_mir_mask = mir_flow_row->mask;
+            bool valid_mir_row = mir_validate_function_param_flow_summaries(mir_routine, &error);
             free(error); error = NULL;
-            mir_flow_row.mask = (unsigned)SLOT_PARAM_SUMMARY_ALL + 1u;
-            bool unknown_mir_mask = !mir_validate_function_param_flow_summaries(&mir_routine, &error)
+            mir_flow_row->mask = (unsigned)SLOT_PARAM_SUMMARY_ALL + 1u;
+            bool unknown_mir_mask = !mir_validate_function_param_flow_summaries(mir_routine, &error)
                 && error != NULL && strstr(error, "mask") != NULL;
             free(error); error = NULL;
             TEST("MIR validator rejects unknown parameter-flow mask bits");
             EXPECT(valid_mir_row && unknown_mir_mask);
-            AIRProgram *invalid_copy = calloc(1, sizeof(*invalid_copy));
+            AIRProgram *invalid_copy = air_synthesize(hir, dir, rir, &error);
             bool unknown_copy_mask = invalid_copy != NULL
-                && !air_collect_mir_evidence(invalid_copy, &mir, &error)
+                && !air_collect_mir_evidence(invalid_copy, mir, &error)
                 && error != NULL && strstr(error, "mask") != NULL;
             TEST("AIR collector rejects MIR unknown parameter-flow mask bits");
             EXPECT(unknown_copy_mask);
             air_destroy(invalid_copy);
-            mir_flow_row.mask = saved.mask;
+            mir_flow_row->mask = original_mir_mask;
             free(error); error = NULL;
             const size_t original_index = row->parameter_index;
             row->parameter_index = row->parameter_count;
@@ -269,10 +267,12 @@ test_air_carries_function_param_flow_summary(void)
     EXPECT(carried && validated && negative_rejected);
     free(error);
     air_destroy(air);
+    mir_destroy(mir);
     rir_destroy(rir);
     dir_destroy(dir);
     hir_destroy(hir);
     semantic_result_destroy(sem);
+    ast_destroy(ast);
     parser_destroy(parser);
     lexer_destroy(lexer);
 }
@@ -825,6 +825,21 @@ main(void)
 
     TEST("AIR HIR evidence accepts nested execution boundary AST");
     EXPECT(test_air_hir_evidence_accepts_nested_execution_boundary_ast());
+
+    TEST("AIR deferred ReadFile requires original RIR IO without early resource transition");
+    EXPECT(test_air_deferred_readfile_requires_original_rir_io());
+
+    TEST("AIR original callable inventory cannot disappear with its parent declaration intact");
+    EXPECT(test_air_original_callable_inventory_cannot_disappear());
+
+    TEST("AIR refuses a foreign DIR program despite matching numeric root IDs");
+    EXPECT(test_air_rejects_foreign_dir_program_with_matching_numeric_root_id());
+
+    TEST("AIR late semantic and MIR evidence require the original sealed program");
+    EXPECT(test_air_late_evidence_keeps_original_program_identity());
+
+    TEST("AIR post-certificate MIR inventory remains current for both planners");
+    EXPECT(test_air_post_certificate_mir_inventory_remains_current());
 
     TEST("AIR HIR evidence accepts loop condition boundary AST");
     EXPECT(test_air_hir_evidence_accepts_loop_condition_boundary_ast());

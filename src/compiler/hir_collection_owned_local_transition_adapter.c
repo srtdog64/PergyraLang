@@ -1,4 +1,6 @@
 #include "hir_collection_owned_local_transition_adapter.h"
+#include "hir_cfg.h"
+#include "hir_lower_cfg.h"
 #include "collection_owned_local_transition_owner.h"
 #include "../common/string_compat.h"
 #include "../semantic/builtin_kind.h"
@@ -19,6 +21,12 @@ typedef struct {
     size_t caller, effect_count;
     bool source_only;
     const HIRSourceExpressionVisit *source_active;
+    bool track_execution;
+    bool *source_occurrences;
+    size_t source_occurrence_count;
+    const ASTNode *execution_root;
+    bool *write_seen;
+    size_t write_count;
 } HIRCollectionOperations;
 
 static const PgyCollectionOwnershipFact *
@@ -70,19 +78,58 @@ hir_owned_canonical_call(const ASTNode *call, const char *name)
 /* Visit evaluated expressions in an already-owned CFG statement, not a
  * program root. Function/lambda bodies are separate routine authority. */
 static bool hir_owned_expression(HIRCollectionOperations *operations, ASTNode *node);
+static bool hir_owned_source_definition(HIRCollectionOperations *operations,
+    ASTNode *statement, ASTNode *place, ASTNode *value, bool initialization)
+{
+    if (!operations->source_only) return true;
+    size_t ordinal = SIZE_MAX;
+    uint32_t binding = initialization ? ast_node_stable_id(statement) :
+        place != NULL && place->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(place) : 0;
+    if (!semantic_collection_effect_snapshot_source_definition(operations->snapshot,
+            operations->routine->source_syntax_id, binding, initialization,
+            statement, place, value, &ordinal)) return false;
+    if (!operations->track_execution || ordinal == SIZE_MAX) return true;
+    if (ordinal >= operations->write_count || operations->write_seen == NULL ||
+        operations->write_seen[ordinal]) return false;
+    operations->write_seen[ordinal] = true;
+    return true;
+}
 static bool
 hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
 {
     if (node == NULL) return true;
     if (operations->source_only && !semantic_collection_effect_snapshot_source_value(
             operations->snapshot, operations->routine->source_syntax_id, node)) return false;
+    if (operations->source_only && operations->track_execution &&
+        operations->source_occurrence_count != 0 && node->type == AST_CALL) {
+        size_t ordinal = SIZE_MAX;
+        if (!semantic_collection_effect_snapshot_source_occurrence(operations->snapshot,
+                operations->routine->source_syntax_id, node, operations->execution_root, &ordinal)) return false;
+        if (ordinal != SIZE_MAX) {
+            if (ordinal >= operations->source_occurrence_count ||
+                operations->source_occurrences == NULL || operations->source_occurrences[ordinal]) return false;
+            operations->source_occurrences[ordinal] = true;
+        }
+    }
     if (operations->source_only && node->type == AST_BLOCK) {
         for (size_t s = 0; s < ast_block_statement_count(node); s++)
             if (!hir_owned_expression(operations, ast_block_statement(node, s))) return false;
         return true;
     }
-    if (operations->source_only && node->type == AST_DEFER_STMT)
-        return hir_owned_expression(operations, ast_defer_body(node));
+    if (operations->source_only && node->type == AST_DEFER_STMT) {
+        ASTNode *body = ast_defer_body(node);
+        if (!operations->track_execution) return hir_owned_expression(operations, body);
+        if (body == NULL || body->type != AST_BLOCK) return false;
+        const ASTNode *previous_root = operations->execution_root;
+        for (size_t p = 0; p < ast_block_statement_count(body); p++) {
+            ASTNode *part = ast_block_statement(body, p);
+            operations->execution_root = part;
+            bool valid = part != NULL && hir_owned_expression(operations, part);
+            operations->execution_root = previous_root;
+            if (!valid) return false;
+        }
+        return true;
+    }
     if (operations->source_only && node->type == AST_IF_STMT)
         return hir_owned_expression(operations, ast_if_condition(node)) &&
             hir_owned_expression(operations, ast_if_then_branch(node)) &&
@@ -111,9 +158,7 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         return hir_owned_expression(operations, ast_with_body(node));
     if (node->type == AST_LET_DECL) {
         ASTNode *value = ast_let_initializer(node);
-        if (operations->source_only && !semantic_collection_effect_snapshot_source_definition(
-                operations->snapshot, operations->routine->source_syntax_id,
-                ast_node_stable_id(node), true, node, node, value, NULL)) return false;
+        if (!hir_owned_source_definition(operations, node, node, value, true)) return false;
         if (!hir_owned_expression(operations, value)) return false;
         if (operations->snapshot != NULL) return true;
         const PgyCollectionOwnershipFact *fact = hir_owned_local_fact(
@@ -222,10 +267,7 @@ hir_owned_expression_body(HIRCollectionOperations *operations, ASTNode *node)
         return hir_owned_expression(operations, ast_return_value(node));
     } else if (node->type == AST_ASSIGNMENT) {
         ASTNode *place = ast_assignment_target(node);
-        if (operations->source_only && !semantic_collection_effect_snapshot_source_definition(
-                operations->snapshot, operations->routine->source_syntax_id,
-                place != NULL && place->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(place) : 0,
-                false, node, place, ast_assignment_value(node), NULL)) return false;
+        if (!hir_owned_source_definition(operations, node, place, ast_assignment_value(node), false)) return false;
         return hir_owned_expression(operations, ast_assignment_target(node))
             && hir_owned_expression(operations, ast_assignment_value(node));
     }
@@ -260,6 +302,46 @@ bool hir_collection_source_expression_current(const PgyCollectionEffectSnapshot 
     return hir_owned_expression(&operations, root);
 }
 
+bool hir_collection_source_execution_current(const PgyCollectionEffectSnapshot *snapshot,
+    const HIRRoutine *routine, ASTNode *root, const ASTNode *execution_root,
+    bool *occurrences, size_t count, bool *writes, size_t write_count)
+{
+    if (snapshot == NULL || routine == NULL || routine->source_syntax_id == 0 || root == NULL ||
+        (count != 0 && occurrences == NULL) || (write_count != 0 && writes == NULL) ||
+        !semantic_collection_effect_snapshot_source_root(snapshot, routine->source_syntax_id, root)) return false;
+    HIRCollectionOperations operations = {.routine = routine, .snapshot = snapshot, .source_only = true,
+        .track_execution = true, .source_occurrences = occurrences, .source_occurrence_count = count,
+        .execution_root = execution_root, .write_seen = writes, .write_count = write_count};
+    return hir_owned_expression(&operations, root);
+}
+
+/* Retained control-container ASTs are source inventory. Their body blocks and
+ * terminators, not recursive replay of that inventory, own actual evaluation. */
+static bool hir_collection_block_execution_current(const PgyCollectionEffectSnapshot *snapshot,
+    const HIRRoutine *routine, const HIRBasicBlock *block, bool *occurrences,
+    const PgyCollectionEffectView *view, bool *writes)
+{
+    if (!block->is_reachable) return true;
+    for (size_t s = 0; s < block->statement_count; s++) {
+        ASTNode *root = block->statements[s];
+        if (root->type == AST_FOR_LOOP)
+            root = ast_for_iterable(root) != NULL ? ast_for_iterable(root) : ast_for_range_start(root);
+        else if (root->type != AST_RETURN && hir_stmt_ast_is_cfg_owned_control(root)) continue;
+        if (root != NULL && !hir_collection_source_execution_current(snapshot, routine, root, root,
+                occurrences, view->independent_string_result_count, writes, view->string_write_count)) return false;
+    }
+    ASTNode *condition = block->terminator_condition;
+    if (condition != NULL && condition->type == AST_FOR_LOOP)
+        condition = ast_for_iterable(condition) == NULL ? ast_for_range_end(condition) : NULL;
+    else if (condition != NULL && condition->type == AST_MATCH_CASE)
+        condition = ast_match_case_guard(condition);
+    if (condition != NULL && !hir_collection_source_execution_current(snapshot, routine, condition, condition,
+            occurrences, view->independent_string_result_count, writes, view->string_write_count)) return false;
+    ASTNode *value = block->terminator_kind == HIR_BLOCK_RETURN ? NULL : block->terminator_value;
+    return value == NULL || hir_collection_source_execution_current(snapshot, routine, value, value,
+        occurrences, view->independent_string_result_count, writes, view->string_write_count);
+}
+
 /* Replay cached source claims once, then join expected calls to the actual
  * CFG. Source membership alone cannot witness an erased or duplicated call. */
 bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
@@ -267,6 +349,7 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
 {
     PgyCollectionEffectView view = {0};
     bool valid = semantic != NULL && hir != NULL &&
+        hir_cfg_program_execution_current(hir, semantic->annotated_ast) &&
         hir->source_program_syntax_id == ast_node_stable_id(semantic->annotated_ast) &&
         hir->routine_count <= hir->routine_capacity &&
         (hir->routine_count == 0 || hir->routines != NULL) &&
@@ -274,6 +357,11 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
             semantic->annotated_ast, &view);
     bool *seen = !valid || view.effect_count == 0 ? NULL : calloc(view.effect_count, sizeof(*seen));
     if (valid && view.effect_count != 0 && seen == NULL) valid = false;
+    bool *occurrences = !valid || view.independent_string_result_count == 0 ? NULL :
+        calloc(view.independent_string_result_count, sizeof(*occurrences));
+    bool *writes = !valid || view.string_write_count == 0 ? NULL : calloc(view.string_write_count, sizeof(*writes));
+    if (valid && ((view.independent_string_result_count != 0 && occurrences == NULL) ||
+            (view.string_write_count != 0 && writes == NULL))) valid = false;
     for (size_t c = 0; valid && c < view.caller_count; c++) {
         const PgyCollectionEffectCaller *caller = &view.callers[c];
         const HIRRoutine *actual = NULL;
@@ -309,10 +397,17 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
     for (size_t e = 0; valid && e < view.effect_count; e++)
         valid = seen[e];
     for (size_t r = 0; valid && (view.source_use_count != 0 || view.nonowner_risk_count != 0 ||
-            view.string_definition_count != 0 || view.permanent_element_count != 0) &&
+            view.string_definition_count != 0 || view.permanent_element_count != 0 ||
+            view.independent_string_result_count != 0) &&
             r < hir->routine_count; r++) {
         const HIRRoutine *routine = &hir->routines[r];
         if (!routine->has_cfg) continue;
+        for (size_t c = 0; valid && c < view.caller_count; c++)
+            if (view.callers[c].decl_id == routine->source_syntax_id &&
+                view.callers[c].independent_string_result_count != 0)
+                valid = hir_cfg_execution_current(routine) &&
+                    hir_cfg_reachability_current(routine);
+        if (!valid) break;
         if (routine->cfg.block_count > routine->cfg.block_capacity ||
             (routine->cfg.block_count != 0 && routine->cfg.blocks == NULL)) { valid = false; break; }
         for (size_t b = 0; valid && b < routine->cfg.block_count; b++) {
@@ -352,9 +447,18 @@ bool hir_collection_effect_snapshot_current(const SemanticResult *semantic,
                     hir_collection_source_expression_current(semantic->collection_effect_snapshot,
                         routine, block->terminator_value);
             }
+            if (valid && view.independent_string_result_count != 0)
+                valid = hir_collection_block_execution_current(semantic->collection_effect_snapshot,
+                    routine, block, occurrences, &view, writes);
         }
+        if (valid && view.independent_string_result_count != 0)
+            valid = semantic_collection_effect_snapshot_source_execution_complete(
+                semantic->collection_effect_snapshot, routine->source_syntax_id,
+                occurrences, view.independent_string_result_count, writes, view.string_write_count);
     }
     free(seen);
+    free(occurrences);
+    free(writes);
     if (!valid && error_message != NULL)
         *error_message = pergyra_strdup("HIR collection effect snapshot is missing, stale or crosswired");
     return valid;

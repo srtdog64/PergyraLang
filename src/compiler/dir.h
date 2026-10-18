@@ -9,6 +9,7 @@
 #include "../semantic/domain_runtime_fact.h"
 
 typedef struct DIRProgram DIRProgram;
+typedef struct DIRSourceOriginWitness DIRSourceOriginWitness;
 typedef struct HIRProgram HIRProgram;
 
 typedef enum
@@ -217,8 +218,10 @@ typedef struct
 
 struct DIRProgram
 {
-    /* Domain graph anchor: all DIR nodes/edges are a projection of this
-     * source program identity, not a name-only reconstruction. */
+    /* Borrowed projection; source_origin is the immutable issuance authority. */
+    const ASTNode *program_root;
+    DIRSourceOriginWitness *source_origin;
+    /* Numeric graph consistency only; original source authority is above. */
     uint32_t source_program_syntax_id;
     uint64_t domain_graph_id;
     DIRNode       *nodes;
@@ -257,6 +260,10 @@ DIRProgram *dir_lower_with_hir_facts(
         const HIRProgram *hir,
         char **error_message);
 bool        dir_validate(const DIRProgram *dir, char **error_message);
+/* Pure replay of the issued origin. NULL checks that origin alone; a non-NULL
+ * expected root must be the exact borrowed AST, which must remain alive. */
+bool        dir_source_program_current(const DIRProgram *dir,
+                                       const ASTNode *expected_program);
 void        dir_destroy(DIRProgram *dir);
 void        dir_dump(const DIRProgram *dir, FILE *out);
 const char *dir_node_kind_name(DIRNodeKind kind);

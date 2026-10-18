@@ -7,9 +7,9 @@
 #include <stdint.h>
 
 #include "../parser/ast.h"
+#include "hir.h"
 
 typedef struct RIRProgram RIRProgram;
-typedef struct HIRProgram HIRProgram;
 typedef struct DIRProgram DIRProgram;
 
 typedef enum
@@ -303,6 +303,8 @@ void        rir_mutable_scope_inventory_from_program(
 RIRScope   *rir_mutable_scope_inventory_get(
                 const RIRMutableScopeInventory *inventory,
                 size_t index);
+const RIRScope *rir_scope_for_hir_routine(const RIRProgram *rir,
+                                         const HIRRoutine *routine);
 RIRScopeKind rir_scope_kind(const RIRScope *scope);
 const char *rir_scope_name(const RIRScope *scope);
 const char *rir_scope_owner_name(const RIRScope *scope);

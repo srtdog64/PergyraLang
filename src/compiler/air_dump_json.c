@@ -380,6 +380,11 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
         air_json_string(out, boundary->owner_name);
         fputs(",\"source\":", out);
         air_json_string(out, boundary->source_name);
+        if (boundary->kind == AIR_BOUNDARY_IO) {
+            fprintf(out, ",\"io_owner_syntax_id\":%u,\"io_defer_registration_syntax_id\":%u",
+                (unsigned)boundary->io_owner_syntax_id,
+                (unsigned)boundary->io_defer_registration_syntax_id);
+        }
         fputs(",\"intent\":", out);
         if (boundary->intent_index == SIZE_MAX)
             fputs("null", out);

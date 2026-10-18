@@ -78,7 +78,7 @@ test_air_rejects_rir_evidence_without_scope_provider(void)
     rir.scopes = &scope;
     rir.scope_count = 1;
 
-    ok = !air_collect_rir_evidence(air, &rir, &error)
+    ok = !air_collect_rir_evidence(air, &rir, NULL, NULL, &error)
         && error != NULL
         && strstr(error,
                   "AIR RIR evidence requires scope name or owner provenance") != NULL

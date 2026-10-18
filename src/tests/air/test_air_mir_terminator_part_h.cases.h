@@ -24,19 +24,23 @@ test_air_collects_mir_terminator_evidence(void)
     blocks[0].is_reachable = true;
     blocks[0].instructions = &insts[0];
     blocks[0].instruction_count = 1;
+    blocks[0].instruction_capacity = 1;
     blocks[1].id = 1;
     blocks[1].is_reachable = true;
     blocks[1].instructions = &insts[1];
     blocks[1].instruction_count = 1;
+    blocks[1].instruction_capacity = 1;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "cfg_owner";
     routine.blocks = blocks;
     routine.block_count = 2;
+    routine.block_capacity = 2;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -114,6 +118,7 @@ test_air_collects_mir_value_capture_lane_evidence(void)
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(movable_air, &mir, &error)
         && movable_air->has_mir_input
@@ -188,14 +193,17 @@ test_air_rejects_mir_evidence_without_routine_provider(void)
     block.is_reachable = true;
     block.instructions = &inst;
     block.instruction_count = 1;
+    block.instruction_capacity = 1;
 
     memset(&routine, 0, sizeof(routine));
     routine.blocks = &block;
     routine.block_count = 1;
+    routine.block_capacity = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = !air_collect_mir_evidence(air, &mir, &error)
         && error != NULL
@@ -216,9 +224,14 @@ test_air_rejects_malformed_mir_routine_inventory(void)
         (AIRProgram *)calloc(1, sizeof(AIRProgram));
     MIRProgram missing_routines_mir;
     MIRProgram missing_blocks_mir;
+    MIRRoutine restored_routine;
     MIRRoutine routine;
+    MIRBasicBlock restored_block;
     char *error = NULL;
-    bool ok;
+    bool missing_routines_rejected;
+    bool missing_routines_restored;
+    bool missing_blocks_rejected;
+    bool missing_blocks_restored;
 
     if (missing_routines_air == NULL || missing_blocks_air == NULL) {
         air_destroy(missing_routines_air);
@@ -228,38 +241,78 @@ test_air_rejects_malformed_mir_routine_inventory(void)
 
     memset(&missing_routines_mir, 0, sizeof(missing_routines_mir));
     missing_routines_mir.routine_count = 1;
+    missing_routines_mir.routine_capacity = 1;
 
-    ok = !air_collect_mir_evidence(missing_routines_air,
-                                   &missing_routines_mir,
-                                   &error)
+    missing_routines_rejected =
+        !air_collect_mir_evidence(missing_routines_air,
+                                  &missing_routines_mir,
+                                  &error)
         && error != NULL
         && strstr(error,
-                  "AIR MIR evidence has invalid routine inventory row[0]") != NULL
-        && missing_routines_air->has_mir_input
+                  "AIR MIR evidence binding fingerprint could not be issued") != NULL
+        && !missing_routines_air->has_mir_input
+        && !missing_routines_air->mir_evidence_collection_started
+        && !missing_routines_air->mir_evidence_bound
+        && missing_routines_air->mir_evidence_binding_fingerprint == 0
         && missing_routines_air->evidence_count == 0;
+    free(error);
+    error = NULL;
+
+    memset(&restored_routine, 0, sizeof(restored_routine));
+    restored_routine.name = "restored_routines";
+    missing_routines_mir.routines = &restored_routine;
+    missing_routines_restored =
+        air_collect_mir_evidence(missing_routines_air,
+                                 &missing_routines_mir,
+                                 &error)
+        && missing_routines_air->has_mir_input
+        && missing_routines_air->mir_evidence_collection_started
+        && missing_routines_air->mir_evidence_bound
+        && air_mir_evidence_binding_current(missing_routines_air,
+                                            &missing_routines_mir);
     free(error);
     error = NULL;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "missing_blocks";
     routine.block_count = 1;
+    routine.block_capacity = 1;
     memset(&missing_blocks_mir, 0, sizeof(missing_blocks_mir));
     missing_blocks_mir.routines = &routine;
     missing_blocks_mir.routine_count = 1;
+    missing_blocks_mir.routine_capacity = 1;
 
-    ok = ok
-        && !air_collect_mir_evidence(missing_blocks_air,
-                                     &missing_blocks_mir,
-                                     &error)
+    missing_blocks_rejected =
+        !air_collect_mir_evidence(missing_blocks_air,
+                                  &missing_blocks_mir,
+                                  &error)
         && error != NULL
         && strstr(error,
-                  "AIR MIR evidence requires block inventory for routine 'missing_blocks'") != NULL
-        && missing_blocks_air->has_mir_input
+                  "AIR MIR evidence binding fingerprint could not be issued") != NULL
+        && !missing_blocks_air->has_mir_input
+        && !missing_blocks_air->mir_evidence_collection_started
+        && !missing_blocks_air->mir_evidence_bound
+        && missing_blocks_air->mir_evidence_binding_fingerprint == 0
         && missing_blocks_air->evidence_count == 0;
+    free(error);
+    error = NULL;
+
+    memset(&restored_block, 0, sizeof(restored_block));
+    routine.blocks = &restored_block;
+    missing_blocks_restored =
+        air_collect_mir_evidence(missing_blocks_air,
+                                 &missing_blocks_mir,
+                                 &error)
+        && missing_blocks_air->has_mir_input
+        && missing_blocks_air->mir_evidence_collection_started
+        && missing_blocks_air->mir_evidence_bound
+        && air_mir_evidence_binding_current(missing_blocks_air,
+                                            &missing_blocks_mir);
     free(error);
     air_destroy(missing_routines_air);
     air_destroy(missing_blocks_air);
-    return ok;
+    return missing_routines_rejected && missing_routines_restored
+        && missing_blocks_rejected && missing_blocks_restored;
 }
 
 static bool
@@ -300,15 +353,18 @@ test_air_collects_mir_select_receive_evidence(void)
     block.is_select_case_body = true;
     block.instructions = &inst;
     block.instruction_count = 1;
+    block.instruction_capacity = 1;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "select_owner";
     routine.blocks = &block;
     routine.block_count = 1;
+    routine.block_capacity = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -491,10 +547,12 @@ test_air_collects_void_fallthrough_terminator_evidence(void)
     routine.hir_routine = &hir_routine;
     routine.blocks = &block;
     routine.block_count = 1;
+    routine.block_capacity = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)

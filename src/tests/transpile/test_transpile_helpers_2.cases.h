@@ -4,7 +4,8 @@ lower_pipeline_from_source_ex(const char *source,
                               HIRProgram **hir_out,
                               RIRProgram **rir_out,
                               MIRProgram **mir_out,
-                              bool report_failure)
+                              bool report_failure,
+                              TestProjectionEvidence *evidence_out)
 {
     bool ok = false;
     Lexer *lexer = lexer_create(source);
@@ -21,6 +22,8 @@ lower_pipeline_from_source_ex(const char *source,
     *hir_out = NULL;
     *rir_out = NULL;
     *mir_out = NULL;
+    if (evidence_out != NULL)
+        memset(evidence_out, 0, sizeof(*evidence_out));
 
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
         *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
@@ -38,6 +41,13 @@ lower_pipeline_from_source_ex(const char *source,
             mir_lower_request_bind_dir(&mir_request, dir);
             *mir_out = mir_lower(&mir_request, &mir_error);
         }
+    }
+
+    if (*mir_out != NULL && evidence_out != NULL
+        && !issue_test_native_projection_evidence(sem, *hir_out, dir,
+            *rir_out, *mir_out, evidence_out)) {
+        mir_destroy(*mir_out);
+        *mir_out = NULL;
     }
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);
@@ -70,10 +80,11 @@ lower_pipeline_from_source(const char *source,
                            ASTNode **program_out,
                            HIRProgram **hir_out,
                            RIRProgram **rir_out,
-                           MIRProgram **mir_out)
+                           MIRProgram **mir_out,
+                           TestProjectionEvidence *evidence_out)
 {
     return lower_pipeline_from_source_ex(source, program_out, hir_out, rir_out,
-        mir_out, true);
+        mir_out, true, evidence_out);
 }
 
 static bool
@@ -81,43 +92,48 @@ lower_pipeline_from_source_quiet(const char *source,
                                  ASTNode **program_out,
                                  HIRProgram **hir_out,
                                  RIRProgram **rir_out,
-                                 MIRProgram **mir_out)
+                                 MIRProgram **mir_out,
+                                 TestProjectionEvidence *evidence_out)
 {
     return lower_pipeline_from_source_ex(source, program_out, hir_out, rir_out,
-        mir_out, false);
+        mir_out, false, evidence_out);
 }
 
-/* Backend emission tests must cross the same verified projection boundary as
- * production. The test owns a minimal AIR verification handle because these
- * cases exercise MIR-to-C shape, not AIR synthesis; target and machine facts
- * are still supplied by the real projection-plan owner. */
+/* Source-less hand-built MIR tests retain the existing partial AIR contract.
+ * Native MIR must instead consume the evidence issued with its original
+ * semantic, HIR, DIR, and RIR owners. */
 static PgyVerifiedParallelCapturePlan test_empty_parallel_capture_plan;
+static PgyVerifiedProjectionPlanRow test_partial_c_projection_plan;
 
 static bool
-issue_test_c_projection_plan(const MIRProgram *mir,
-                             PgyVerifiedProjectionPlanRow *plan,
-                             const char **error)
+issue_test_partial_c_projection_plan(const MIRProgram *mir,
+                                     const char **error)
 {
-    AIRProgram air = {0};
+    AIRProgram *air = calloc(1, sizeof(*air));
+    char *stage_error = NULL;
+    bool ok = false;
 
-    air.has_hir_input = true;
-    air.has_rir_input = true;
-    air.has_mir_input = true;
-    if (!pgy_air_evidence_certificate_issue(&air, error)
-        || !pgy_verified_projection_plan_intent_observability_with_air(
-            &air, mir, PGY_PROJECTION_TARGET_C, plan, error))
-        return false;
-    memset(&test_empty_parallel_capture_plan, 0,
-        sizeof(test_empty_parallel_capture_plan));
-    test_empty_parallel_capture_plan.revision =
-        PGY_VERIFIED_PARALLEL_CAPTURE_PLAN_REVISION;
-    test_empty_parallel_capture_plan.air_certificate_fingerprint =
-        air.verification_certificate_fingerprint;
-    test_empty_parallel_capture_plan.verified = true;
-    test_empty_parallel_capture_plan.digest =
-        pgy_verified_parallel_capture_plan_digest(
-            &test_empty_parallel_capture_plan);
-    return true;
+    pgy_verified_parallel_capture_plan_dispose(&test_empty_parallel_capture_plan);
+    if (air != NULL) {
+        air->has_hir_input = true;
+        air->has_rir_input = true;
+        ok = air_collect_mir_evidence(air, mir, &stage_error)
+            && air_verify(air, &stage_error) && air_drift_count(air) == 0
+            && pgy_verified_projection_plan_intent_observability_with_air(
+                air, mir, PGY_PROJECTION_TARGET_C,
+                &test_partial_c_projection_plan, error)
+            && pgy_verified_parallel_capture_plan_from_air(
+                air, mir, &test_empty_parallel_capture_plan, error);
+    }
+    if (!ok) {
+        if (stage_error != NULL)
+            fprintf(stderr, "partial MIR test evidence failed: %s\n", stage_error);
+        if (error != NULL && *error == NULL)
+            *error = "source-less test MIR has no collected current evidence";
+    }
+    free(stage_error);
+    air_destroy(air);
+    return ok;
 }
 
 /* Tests that never reach a spawn site cross the verified spawn-lane boundary
@@ -127,14 +143,53 @@ static const PgySpawnLanePlan test_empty_spawn_lane_plan = {
     PGY_SPAWN_LANE_PLAN_REVISION, NULL, 0, true
 };
 
+static bool
+test_projection_plans(const MIRProgram *mir,
+                      const TestProjectionEvidence *evidence,
+                      const PgyVerifiedProjectionPlanRow **c_plan,
+                      const PgyVerifiedParallelCapturePlan **parallel_plan,
+                      const PgySpawnLanePlan **spawn_plan,
+                      const char **error)
+{
+    if (mir == NULL)
+        return false;
+    if (evidence != NULL
+        || mir->collection_effect_source_program != NULL
+        || mir->collection_effect_snapshot != NULL) {
+        if (evidence == NULL || !evidence->ready || evidence->mir != mir
+            || evidence->source_program == NULL
+            || evidence->source_snapshot == NULL
+            || mir->collection_effect_source_program != evidence->source_program
+            || mir->collection_effect_snapshot != evidence->source_snapshot) {
+            if (error != NULL)
+                *error = "native MIR has no current original projection evidence";
+            return false;
+        }
+        *c_plan = &evidence->c_plan;
+        *parallel_plan = &evidence->parallel_plan;
+        *spawn_plan = &evidence->spawn_plan;
+        return true;
+    }
+    if (!issue_test_partial_c_projection_plan(mir, error))
+        return false;
+    *c_plan = &test_partial_c_projection_plan;
+    *parallel_plan = &test_empty_parallel_capture_plan;
+    *spawn_plan = &test_empty_spawn_lane_plan;
+    return true;
+}
+
 static TranspileResult *
 transpile_mir_with_test_evidence(const MIRProgram *mir,
-                                 const char *output_path)
+                                 const char *output_path,
+                                 const TestProjectionEvidence *evidence)
 {
-    PgyVerifiedProjectionPlanRow plan = {0};
+    const PgyVerifiedProjectionPlanRow *c_plan = NULL;
+    const PgyVerifiedParallelCapturePlan *parallel_plan = NULL;
+    const PgySpawnLanePlan *spawn_plan = NULL;
     const char *error = NULL;
 
-    if (!issue_test_c_projection_plan(mir, &plan, &error)) {
+    if (!test_projection_plans(mir, evidence, &c_plan, &parallel_plan,
+            &spawn_plan, &error)) {
         TranspileResult *result = calloc(1, sizeof(*result));
         if (result != NULL) {
             result->success = false;
@@ -143,28 +198,33 @@ transpile_mir_with_test_evidence(const MIRProgram *mir,
         }
         return result;
     }
-    return transpile_from_mir_with_projection_plans(mir, &plan,
-        &test_empty_parallel_capture_plan, &test_empty_spawn_lane_plan,
-        NULL, output_path);
+    return transpile_from_mir_with_projection_plans(mir, c_plan,
+        parallel_plan, spawn_plan, NULL, output_path);
 }
 
 static bool
-bind_test_c_projection_plan(TranspilerCtx *ctx, const MIRProgram *mir)
+bind_test_c_projection_plan(TranspilerCtx *ctx, const MIRProgram *mir,
+                            const TestProjectionEvidence *evidence)
 {
-    static PgyVerifiedProjectionPlanRow plan;
+    const PgyVerifiedProjectionPlanRow *c_plan = NULL;
+    const PgyVerifiedParallelCapturePlan *parallel_plan = NULL;
+    const PgySpawnLanePlan *spawn_plan = NULL;
     const char *error = NULL;
 
     if (ctx == NULL || mir == NULL)
         return false;
-    if (!issue_test_c_projection_plan(mir, &plan, &error)) {
+    if (!test_projection_plans(mir, evidence, &c_plan, &parallel_plan,
+            &spawn_plan, &error)) {
         free(ctx->backend_error);
         ctx->backend_error = pergyra_strdup(
             error != NULL ? error : "test projection plan failed");
         return false;
     }
-    ctx->projection_plan = &plan;
-    ctx->parallel_capture_plan = &test_empty_parallel_capture_plan;
-    ctx->spawn_lane_plan = &test_empty_spawn_lane_plan;
+    ctx->projection_plan = c_plan;
+    ctx->parallel_capture_plan = parallel_plan;
+    ctx->spawn_lane_plan = spawn_plan;
+    ctx->uses_intent_observability =
+        c_plan->disposition == PGY_PROJECTION_MATERIALIZE;
     return true;
 }
 

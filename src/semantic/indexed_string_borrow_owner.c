@@ -72,96 +72,6 @@ bool semantic_indexed_string_borrow_array_receiver_source(ASTNode *receiver,
     return !*tracked || semantic_indexed_string_borrow_array_binding_source(binding, source_id);
 }
 
-typedef struct IndexedConcatVisit {
-    const ASTNode *node;
-    const struct IndexedConcatVisit *parent;
-} IndexedConcatVisit;
-
-static bool
-pending_string_concat_current(const ASTNode *value, const SemanticContext *ctx,
-    const IndexedConcatVisit *parent)
-{
-    if (value == NULL || value->type != AST_BINARY || !publication_generation_ready(ctx)
-        || ast_binary_operator(value).type != TOKEN_PLUS) return false;
-    for (const IndexedConcatVisit *p = parent; p != NULL; p = p->parent)
-        if (p->node == value) return false;
-    PublishedNode *row = publication_node(ctx->function_param_publications, value, false);
-    if (row == NULL || row->node != value || row->id == 0 || row->id != ast_node_stable_id(value)
-        || !row->value_present || row->value_shape != AST_BINARY || row->meta
-        || row->value_type != TYPE_STRING || row->value_type->kind != TYPE_KIND_PRIMITIVE
-        || !row->string_value || !row->origin_ready || !row->builtin_string_concat
-        || row->argument_count != 2 || row->arguments == NULL) return false;
-    IndexedConcatVisit visit = {value, parent};
-    const ASTNode *nodes[2] = {ast_binary_left(value), ast_binary_right(value)};
-    for (size_t i = 0; i < 2; i++) {
-        const PublishedCallArgument *snapshot = &row->arguments[i];
-        if (nodes[i] == NULL || snapshot->node != nodes[i] || snapshot->id == 0
-            || snapshot->id != ast_node_stable_id(nodes[i]) || snapshot->shape != nodes[i]->type
-            || snapshot->binding != ast_identifier_binding_syntax_id(nodes[i])) return false;
-        PublishedNode *operand = publication_node(ctx->function_param_publications, nodes[i], false);
-        const Type *type = operand == NULL ? NULL : operand->value_type;
-        const Type *effective = type_is_slot_handle(type) ? type_slot_inner_type(type) : type;
-        if (operand == NULL || operand->node != nodes[i] || operand->id != snapshot->id
-            || !operand->value_present || operand->value_shape != snapshot->shape || type != snapshot->type
-            || effective != TYPE_STRING || effective->kind != TYPE_KIND_PRIMITIVE
-            || (nodes[i]->type == AST_IDENTIFIER && operand->binding_id != snapshot->binding)
-            || (nodes[i]->type == AST_CALL && !publication_call_ready(operand))) return false;
-        if (nodes[i]->type == AST_BINARY && !pending_string_concat_current(nodes[i], ctx, &visit)) return false;
-    }
-    return true;
-}
-
-bool
-semantic_indexed_string_independent_result(const ASTNode *expression,
-                                          const SemanticContext *ctx)
-{
-    const ASTNode *callee;
-    const char *name;
-    uint32_t builtin_kind = 0;
-
-    if (expression == NULL)
-        return false;
-    if (expression->type == AST_STRING)
-        return true;
-    if (expression->type == AST_BINARY) {
-        if (!publication_generation_ready(ctx)) return false;
-        PublishedNode *concat = publication_node(ctx->function_param_publications, expression, false);
-        if (concat == NULL || concat->node != expression || concat->id == 0
-            || concat->id != ast_node_stable_id(expression)) return false;
-        return semantic_param_publication_inputs_ready(ctx)
-            ? semantic_param_publication_checked_local_owner_constructor(ctx, expression)
-            : pending_string_concat_current(expression, ctx, NULL);
-    }
-    if (expression->type != AST_CALL)
-        return false;
-    if (ast_call_semantic_callee_decl_id(expression) != 0 ||
-        ast_call_semantic_callee_value_binding_id(expression) != 0 ||
-        !ast_call_semantic_callee_builtin_kind(expression, &builtin_kind))
-        return false;
-    if (builtin_kind == BUILTIN_TEXT_BUILDER_FINISH)
-        return semantic_param_publication_checked_finish_independent(ctx, expression);
-    if (!ast_call_semantic_callee_is_stdlib(expression))
-        return false;
-    callee = ast_call_callee(expression);
-    if (callee == NULL || callee->type != AST_IDENTIFIER)
-        return false;
-    name = ast_identifier_name(callee);
-    /* Consumed only after successful String typing (publication or binding).
-     * These checked allocating readers do not inherit freshness from their
-     * input-retention classification. Empty/NULL failure results are not an
-     * exact-copy or successful-allocation certificate. */
-    if (name != NULL && builtin_kind == BUILTIN_NOT_BUILTIN &&
-        ast_node_stable_id(expression) != 0 && ast_node_stable_id(callee) != 0 &&
-        ((strcmp(name, "StringTrim") == 0 && ast_call_arg_count(expression) == 1) ||
-         (strcmp(name, "CharAtN") == 0 && ast_call_arg_count(expression) == 3) ||
-         (strcmp(name, "Substring") == 0 && ast_call_arg_count(expression) == 3) ||
-         (strcmp(name, "SubstringWithLen") == 0 && ast_call_arg_count(expression) == 4)))
-        return true;
-    return name != NULL && (strcmp(name, "Concat") == 0
-        || strcmp(name, "StringConcat") == 0
-        || strcmp(name, "StringJoin") == 0);
-}
-
 static uint32_t
 borrow_source_for_expression(ASTNode *expression, SemanticContext *ctx)
 {
@@ -208,6 +118,8 @@ semantic_indexed_string_borrow_publish_source(ASTNode *expression,
     PublishedNode *row = ctx != NULL && ctx->function_param_publications != NULL
         ? publication_node(ctx->function_param_publications, expression, false) : NULL;
     if (row == NULL || !row->value_present) return false;
+    if (row->string_value && expression->type == AST_CALL && !publication_call_ready(row))
+        return !row->indexed_string_source_present;
     Symbol *array = identifier_symbol(expression, ctx);
     row->indexed_array_source_present = symbol_is_string_array(array);
     row->indexed_array_source_id = row->indexed_array_source_present

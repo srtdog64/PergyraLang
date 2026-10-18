@@ -123,6 +123,12 @@ dir_validate(const DIRProgram *dir, char **error_message)
         return false;
     }
 
+    if (!dir_source_program_current(dir, NULL)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("DIR original source identity is missing or stale");
+        return false;
+    }
+
     for (size_t i = 0; i < dir->node_count; i++) {
         const DIRNode *node = &dir->nodes[i];
         const bool is_domain_owner =

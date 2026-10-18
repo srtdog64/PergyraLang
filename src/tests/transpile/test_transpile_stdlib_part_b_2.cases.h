@@ -14,7 +14,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -52,7 +52,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -90,7 +90,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -124,7 +124,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -154,7 +154,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -190,7 +190,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -234,7 +234,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -272,7 +272,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
 
         ctx->mir = mir;
@@ -310,7 +310,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
         char *map_define_pos;
         char *build_decl_pos;
@@ -372,7 +372,7 @@
         ASTNode *prog = make_program(stmts, 2);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir, NULL);
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
         emit_program(ctx);
@@ -419,7 +419,7 @@
         ASTNode *prog = make_program(stmts, 2);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(prog, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(prog, &hir, &rir, NULL);
         EXPECT(mir == NULL);
         mir_destroy(mir);
         rir_destroy(rir);
@@ -437,7 +437,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &prog, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &prog, &hir, &rir, &mir, NULL);
         EXPECT(ok && mir != NULL);
         if (ok && mir != NULL) {
             ctx = transpiler_ctx_create();
@@ -464,7 +464,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &prog, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &prog, &hir, &rir, &mir, NULL);
 
         EXPECT(ok);
         ctx = transpiler_ctx_create();
@@ -495,7 +495,7 @@
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         ctx = transpiler_ctx_create();
 
         EXPECT(ok);

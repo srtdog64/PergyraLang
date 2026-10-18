@@ -191,6 +191,11 @@ pgy_verified_projection_plan_intent_observability_with_air(
                 : "verified projection plan: AIR evidence certificate is missing";
         return false;
     }
+    if (!air_mir_evidence_binding_current(air, mir)) {
+        if (error_out != NULL)
+            *error_out = "verified projection plan: AIR/MIR source or evidence binding is stale";
+        return false;
+    }
     if (!pgy_target_capability_ready_for_projection(
             target == PGY_PROJECTION_TARGET_C ? "cpu-c" : "cpu-llvm",
             &target_capability_fingerprint, &target_error)) {

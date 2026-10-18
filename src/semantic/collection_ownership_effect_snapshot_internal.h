@@ -23,6 +23,7 @@ struct PgyCollectionEffectSnapshot {
     size_t nonowner_risk_count, sealed_nonowner_risks;
     size_t string_definition_count, sealed_string_definitions;
     size_t permanent_element_count, sealed_permanent_elements;
+    size_t independent_string_result_count, sealed_independent_string_results;
     size_t refs;
     bool owns_source_payloads;
 };

@@ -421,6 +421,24 @@ rir_walk_node_in_statement(RIRScope *scope,
         case AST_CALL:
             return rir_walk_call(scope, node, source_statement_syntax_id);
 
+        case AST_DEFER_STMT: {
+            RIRScope deferred = {0};
+            uint32_t registration_id = ast_node_stable_id(node);
+            bool ok = registration_id != 0;
+            deferred.program_root = scope->program_root;
+            if (ok)
+                ok = rir_walk_node(&deferred, ast_defer_body(node));
+            for (size_t i = 0; ok && i < deferred.op_count; i++) {
+                const RIROp *op = &deferred.ops[i];
+                if (op->kind == RIR_OP_IO)
+                    ok = add_op_with_source_statement(
+                        scope, op->kind, op->subject, op->arg0, op->arg1,
+                        op->ast, registration_id);
+            }
+            rir_scope_discard_storage(&deferred);
+            return ok;
+        }
+
         case AST_IF_STMT:
             if (!rir_walk_node_in_statement(
                     scope, ast_if_condition(node),

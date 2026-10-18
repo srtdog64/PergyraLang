@@ -10,6 +10,7 @@
 #include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
 #include "../parser/ast_api.h"
+#include "../semantic/semantic.h"
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
 #include "mir_resource_runtime_population.h"
@@ -95,11 +96,17 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         return NULL;
     }
     if (dir != NULL
-        && dir->source_program_syntax_id
-            != hir->source_program_syntax_id) {
+        && !dir_source_program_current(dir, semantic->annotated_ast)) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
                 "MIR lowering received DIR facts from a different source program");
+        return NULL;
+    }
+    if (rir != NULL && (rir->program_root == NULL ||
+                       rir->program_root != semantic->annotated_ast)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR lowering received RIR facts from a different source program");
         return NULL;
     }
 
@@ -321,12 +328,18 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         routine.source_syntax_id = hir_routine->source_syntax_id;
         {
             double t0 = mir_timing_now();
-            routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
+            routine.rir_scope = rir_scope_for_hir_routine(rir, hir_routine);
             mir_timing_add(MIR_TIMING_RIR_MATCH, mir_timing_now() - t0);
         }
-        routine.owner_name = routine.rir_scope != NULL
-            ? routine.rir_scope->owner_name
-            : hir_routine->owner_name;
+        if (rir != NULL && routine.rir_scope == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "MIR lowering has no unique original RIR scope for HIR routine");
+            pgy_arena_destroy(&routine.scratch);
+            mir_destroy(mir);
+            return NULL;
+        }
+        routine.owner_name = hir_routine->owner_name;
         routine.owner_ast_type = hir_routine->owner_ast_type;
         if (!mir_routine_receiver_carriage_capture(mir, &routine, error_message)) {
             pgy_arena_destroy(&routine.scratch);

@@ -26,16 +26,17 @@
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_subintent.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Checkout"))
                 fprintf(stderr, "  -> MIR emitability warning for Checkout(intent): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -54,6 +55,7 @@
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -90,15 +92,16 @@
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf),
             "pgy_test_intent_call_pointer_self.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -113,6 +116,7 @@
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -147,16 +151,17 @@
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_value_params.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Checkout"))
                 fprintf(stderr, "  -> MIR emitability warning for Checkout(intent-value): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -175,6 +180,7 @@
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -209,16 +215,17 @@
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_interleaved_value_params.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Checkout"))
                 fprintf(stderr, "  -> MIR emitability warning for Checkout(intent-interleaved): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -270,6 +277,7 @@
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -289,14 +297,15 @@
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_pin_block.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -317,6 +326,7 @@
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -336,14 +346,15 @@
         ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
+        TestProjectionEvidence evidence = {0};
         MIRProgram *mir = NULL;
         char path_buf[512];
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_pin_write_view.c");
         const char *path = path_buf;
         char *output = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
         if (ok) {
-            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path, &evidence);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -361,6 +372,7 @@
 
         free(output);
         remove(path);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

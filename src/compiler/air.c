@@ -5,10 +5,31 @@
 
 #include "air.h"
 #include "air_internal.h"
+#include "hir_cfg.h"
 #include "../common/env_flags.h"
+#include "../parser/ast_api.h"
 
 #include <stdint.h>
 #include <stdlib.h>
+
+struct AIRSourceOriginWitness {
+    const AIRProgram *owner;
+    const ASTNode *program;
+    uint32_t program_id;
+};
+
+bool
+air_source_program_current(const AIRProgram *air,
+                           const ASTNode *expected_program)
+{
+    const AIRSourceOriginWitness *w = air == NULL ? NULL : air->source_origin;
+    return w != NULL && w->owner == air && w->program != NULL &&
+        w->program->type == AST_PROGRAM && w->program_id != 0 &&
+        air->source_program_syntax_id == w->program_id &&
+        ast_node_stable_id(w->program) == w->program_id &&
+        (expected_program == NULL || (expected_program == w->program &&
+            ast_node_stable_id(expected_program) == w->program_id));
+}
 
 static const char *
 air_routine_boundary_owner_name(const ASTNode *routine)
@@ -382,6 +403,27 @@ air_synthesize(const HIRProgram *hir,
         return NULL;
     }
 
+    /* A source-backed input must join the original DIR root before any DIR
+     * row is projected.  Source-less hand-built fragments retain their
+     * existing partial contract, not native provenance authority. */
+    bool native_source = dir->source_program_syntax_id != 0 ||
+        dir->source_origin != NULL ||
+        dir->program_root != NULL ||
+        (hir != NULL && (hir->source_program_syntax_id != 0 ||
+                         hir->execution_census != NULL)) ||
+        (rir != NULL && rir->program_root != NULL);
+    if (native_source &&
+        (!dir_source_program_current(dir, NULL) ||
+         (hir != NULL &&
+          !hir_cfg_program_execution_current(hir, dir->program_root)) ||
+         (rir != NULL &&
+          (rir->program_root == NULL ||
+           !dir_source_program_current(dir, rir->program_root))))) {
+        air_set_error(error_message,
+                      "AIR inputs lack one original source program identity");
+        return NULL;
+    }
+
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
     if (air == NULL) {
         air_set_error(error_message, "AIR program allocation failed");
@@ -579,6 +621,7 @@ air_synthesize(const HIRProgram *hir,
                                                 &boundary_index,
                                                 intent_index,
                                                 owner,
+                                                owner_ast,
                                                 step)) {
                 air_destroy(air);
                 air_set_error(error_message, "AIR boundary synthesis failed for intent step %s", step->name);
@@ -626,11 +669,26 @@ air_synthesize(const HIRProgram *hir,
         return NULL;
     }
     if (!air_collect_hir_evidence(air, hir, error_message)
-        || !air_collect_rir_evidence(air, rir, error_message)
+        || !air_collect_rir_evidence(air, rir, hir, dir, error_message)
         || !air_collect_observability_schema_evidence(air, error_message)
         || !air_collect_runtime_frontier_policy_evidence(air, error_message)) {
         air_destroy(air);
         return NULL;
+    }
+
+    if (native_source) {
+        AIRSourceOriginWitness *origin = calloc(1, sizeof(*origin));
+        if (origin == NULL) {
+            air_destroy(air);
+            air_set_error(error_message,
+                          "AIR source identity allocation failed");
+            return NULL;
+        }
+        origin->owner = air;
+        origin->program = dir->program_root;
+        origin->program_id = dir->source_program_syntax_id;
+        air->source_program_syntax_id = origin->program_id;
+        air->source_origin = origin;
     }
 
     if (!air_verify(air, error_message)) {
@@ -653,6 +711,7 @@ air_destroy(AIRProgram *air)
     if (air == NULL)
         return;
     air_clear_drifts(air);
+    free(air->source_origin);
     for (size_t i = 0; i < air->boundary_count; i++) {
         free((void *)air->boundaries[i].authority_names);
         free((void *)air->boundaries[i].required_abilities);

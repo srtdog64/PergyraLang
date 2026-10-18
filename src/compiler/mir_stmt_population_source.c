@@ -10,7 +10,7 @@
 
 #include "mir_base_helpers.h"
 #include "mir_call_fact.h"
-#include "mir_cfg_contract_control.h"
+#include "hir_lower_cfg.h"
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"

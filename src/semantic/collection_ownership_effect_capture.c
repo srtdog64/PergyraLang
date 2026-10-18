@@ -35,8 +35,18 @@ static bool collection_snapshot_add_caller(PgyCollectionEffectSnapshot *s,
         index->dependency_body_id != ast_node_stable_id(index->dependency_body) ||
         (expected != NULL && index->claims != expected) ||
         !function_param_flow_syntax_claims_current(NULL, index->claims)) return false;
-    s->callers[c] = (PgyCollectionEffectCaller){decl, index->dependency_body,
-        index->function_id, index->dependency_body_id};
+    size_t independent_results = 0, independent_writes = 0;
+    size_t required_results = 0, required_writes = 0;
+    if (!function_param_flow_readfile_claim_count(index->claims, &independent_results) ||
+        !function_param_flow_readfile_write_count(index->claims, &independent_writes) ||
+        !function_param_flow_readfile_execution_counts(index->claims, &required_results, &required_writes) ||
+        (independent_results != 0 && !function_param_flow_index_claims_current(flow->ctx, index))) return false;
+    s->callers[c] = (PgyCollectionEffectCaller){.decl = decl, .body = index->dependency_body,
+        .decl_id = index->function_id, .body_id = index->dependency_body_id,
+        .independent_string_result_count = independent_results,
+        .independent_string_write_count = independent_writes,
+        .independent_string_execution_count = required_results,
+        .independent_string_write_execution_count = required_writes};
     s->claims[c] = index->claims;
     s->caller_count++;
     if (out != NULL) *out = c;
@@ -69,11 +79,24 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     size_t risks = pub->indexed_string_nonowner_count;
     size_t definitions = pub->indexed_string_definition_count, definition_seen = 0;
     size_t permanents = pub->indexed_string_permanent_count, permanent_seen = 0;
+    size_t independent_results = 0;
     if (risks > SIZE_MAX - count) return false;
     size_t caller_capacity = count + risks, nominal_capacity = 0, field_seen = 0, risk_seen = 0;
     if (definitions > SIZE_MAX - caller_capacity) return false;
     caller_capacity += definitions;
     for (size_t n = 0; n < pub->node_capacity; n++) {
+        const PublishedNode *value = &pub->nodes[n];
+        /* Only function-owned indexed-String admission consumes this facet.
+         * Intent boundary calls have their own owner, not a function index. */
+        if (value->caller != NULL && value->caller->type == AST_FUNC_DECL &&
+            semantic_param_publication_checked_readfile_independent(ctx, value->node)) {
+            uint32_t source = UINT32_MAX;
+            if (independent_results == SIZE_MAX || caller_capacity == SIZE_MAX ||
+                !semantic_indexed_string_borrow_source_current(value->node, ctx, &source) ||
+                source != 0) return false;
+            independent_results++;
+            caller_capacity++;
+        }
         IndexedStringPermanentElementRecipe *permanent = pub->nodes[n].indexed_string_permanent;
         if (permanent != NULL) {
             size_t dependencies = 0;
@@ -190,7 +213,30 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     if (pub->private_string_push_count != count || pub->indexed_string_field_count != fields ||
         pub->indexed_string_nonowner_count != risks || pub->indexed_string_definition_count != definitions ||
         pub->indexed_string_permanent_count != permanents) goto fail;
-    FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+    SlotFunctionLookup lookup = {ctx, ctx->program_root};
+    FunctionParamFlowSummaryStore *flow = independent_results == 0
+        ? ctx->function_param_flow_summaries : function_param_flow_store_get(&lookup);
+    for (size_t n = 0; n < pub->node_capacity; n++) {
+        const PublishedNode *value = &pub->nodes[n];
+        if (value->caller == NULL || value->caller->type != AST_FUNC_DECL ||
+            !semantic_param_publication_checked_readfile_independent(ctx, value->node)) continue;
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        if (!function_param_flow_program_point_index_build(flow, value->caller, &index) ||
+            index == NULL || index->function_decl != value->caller) goto fail;
+        size_t caller = SIZE_MAX, matched = 0;
+        if (!collection_snapshot_add_caller(s, flow, value->caller, NULL,
+                caller_capacity, &caller)) goto fail;
+        FunctionParamFlowIndexClaims *claims = s->claims[caller];
+        for (size_t r = 0; r < claims->count; r++) {
+            const FunctionParamFlowIndexClaim *claim = &claims->rows[r];
+            if (claim->node != value->node) continue;
+            if (++matched != 1 || !claim->readfile_result || claim->id != value->id ||
+                !function_param_flow_readfile_claim_current(ctx, claims, claim)) goto fail;
+        }
+        if (matched != 1 || s->independent_string_result_count == SIZE_MAX) goto fail;
+        s->independent_string_result_count++;
+    }
+    if (s->independent_string_result_count != independent_results) goto fail;
     for (size_t u = 0; u < permanents; u++) {
         size_t dependencies = 0;
         const IndexedStringFieldDependency *deps =
@@ -249,6 +295,7 @@ bool semantic_collection_effect_snapshot_take(SemanticContext *ctx,
     s->sealed_nonowner_risks = s->nonowner_risk_count;
     s->sealed_string_definitions = s->string_definition_count;
     s->sealed_permanent_elements = s->permanent_element_count;
+    s->sealed_independent_string_results = s->independent_string_result_count;
     if (!semantic_collection_effect_snapshot_current(s, ctx->program_root, NULL)) goto fail;
     /* All fallible validation/allocation precedes this single ownership handoff. */
     for (size_t c = 0; c < s->caller_count; c++)

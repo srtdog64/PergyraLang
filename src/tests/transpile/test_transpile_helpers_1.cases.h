@@ -263,7 +263,8 @@ static MIRProgram *
 lower_program_to_mir_ex(ASTNode *program,
                         HIRProgram **hir_out,
                         RIRProgram **rir_out,
-                        bool allow_synthetic_fallback)
+                        bool allow_synthetic_fallback,
+                        TestProjectionEvidence *evidence_out)
 {
     SemanticResult *sem = semantic_analyze(program);
     char *hir_error = NULL;
@@ -277,6 +278,8 @@ lower_program_to_mir_ex(ASTNode *program,
         *hir_out = NULL;
     if (rir_out != NULL)
         *rir_out = NULL;
+    if (evidence_out != NULL)
+        memset(evidence_out, 0, sizeof(*evidence_out));
 
     if (sem != NULL && sem->success) {
         if (hir_out != NULL)
@@ -301,7 +304,14 @@ lower_program_to_mir_ex(ASTNode *program,
         }
     }
 
-    if (mir == NULL && allow_synthetic_fallback) {
+    if (mir != NULL && evidence_out != NULL
+        && !issue_test_native_projection_evidence(sem, *hir_out, dir,
+            *rir_out, mir, evidence_out)) {
+        mir_destroy(mir);
+        mir = NULL;
+    }
+
+    if (mir == NULL && allow_synthetic_fallback && evidence_out == NULL) {
         /* Some inventory-driven transpile tests only need a synthetic MIR view
          * of the declarations. Keep the fallback, but do not leak debug stderr
          * into otherwise successful regression output. */
@@ -318,17 +328,21 @@ lower_program_to_mir_ex(ASTNode *program,
 }
 
 static MIRProgram *
-lower_program_to_mir(ASTNode *program, HIRProgram **hir_out, RIRProgram **rir_out)
+lower_program_to_mir(ASTNode *program, HIRProgram **hir_out,
+                     RIRProgram **rir_out, TestProjectionEvidence *evidence_out)
 {
-    return lower_program_to_mir_ex(program, hir_out, rir_out, true);
+    return lower_program_to_mir_ex(program, hir_out, rir_out, true,
+        evidence_out);
 }
 
 static MIRProgram *
 lower_program_to_mir_strict(ASTNode *program,
                             HIRProgram **hir_out,
-                            RIRProgram **rir_out)
+                            RIRProgram **rir_out,
+                            TestProjectionEvidence *evidence_out)
 {
-    return lower_program_to_mir_ex(program, hir_out, rir_out, false);
+    return lower_program_to_mir_ex(program, hir_out, rir_out, false,
+        evidence_out);
 }
 
 static MIRProgram *

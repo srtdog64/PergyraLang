@@ -12,7 +12,7 @@ test_ability_role_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
         EXPECT(ok);
@@ -43,7 +43,7 @@ test_ability_role_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
         EXPECT(ok);
@@ -225,7 +225,7 @@ test_ability_role_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
         EXPECT(ok);

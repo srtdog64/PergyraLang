@@ -41,7 +41,5 @@ bool mir_store_block_versions(MIRBasicBlock *block,
                               const size_t *versions,
                               size_t count);
 MIRScopeKind mir_scope_kind_from_hir(const HIRRoutine *routine);
-const RIRScope *mir_find_matching_rir_scope(const RIRProgram *rir,
-                                            const HIRRoutine *routine);
 
 #endif

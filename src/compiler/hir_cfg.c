@@ -119,6 +119,40 @@ hir_cfg_mark_reachable(HIRRoutine *routine, size_t block_id)
         hir_cfg_mark_reachable(routine, block->succ_false);
 }
 
+/* A derived reachability bit is not authority for deleting a source receipt.
+ * Replay the same CFG edges read-only before consumers use those bits. */
+bool hir_cfg_reachability_current(const HIRRoutine *routine)
+{
+    if (routine == NULL || !routine->has_cfg || routine->cfg.block_count == 0 ||
+        routine->cfg.block_count > routine->cfg.block_capacity || routine->cfg.blocks == NULL ||
+        routine->cfg.entry_block >= routine->cfg.block_count ||
+        routine->cfg.block_count > SIZE_MAX / sizeof(size_t)) return false;
+    size_t count = routine->cfg.block_count, pending = 0;
+    bool *seen = calloc(count, sizeof(*seen));
+    size_t *work = malloc(count * sizeof(*work));
+    if (seen == NULL || work == NULL) { free(seen); free(work); return false; }
+    seen[routine->cfg.entry_block] = true;
+    work[pending++] = routine->cfg.entry_block;
+    bool valid = true;
+    while (pending != 0 && valid) {
+        const HIRBasicBlock *block = &routine->cfg.blocks[work[--pending]];
+        size_t targets[2] = {block->succ_true, block->succ_false};
+        bool present[2] = {block->has_succ_true, block->has_succ_false};
+        for (size_t e = 0; e < 2; e++) {
+            if (!present[e]) continue;
+            if (targets[e] >= count) { valid = false; break; }
+            if (!seen[targets[e]]) {
+                seen[targets[e]] = true;
+                work[pending++] = targets[e];
+            }
+        }
+    }
+    for (size_t b = 0; b < count && valid; b++)
+        valid = routine->cfg.blocks[b].id == b && routine->cfg.blocks[b].is_reachable == seen[b];
+    free(seen); free(work);
+    return valid;
+}
+
 static void
 hir_cfg_collect_rpo_postorder(const HIRRoutine *routine,
                               size_t block_id,

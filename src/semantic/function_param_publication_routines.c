@@ -338,6 +338,22 @@ PublishedNode *publication_checked_intrinsic(const SemanticContext *ctx,
     }
     return row;
 }
+bool semantic_param_publication_checked_readfile_independent(
+    const SemanticContext *ctx, const ASTNode *call)
+{
+    PublishedNode *row = publication_checked_intrinsic(ctx, call,
+        BUILTIN_READ_FILE, TYPE_STRING, 1);
+    if (row == NULL || row->declared_callable || row->selected_callable != NULL ||
+        row->selected_callable_id != 0 || row->result_relation ||
+        strcmp(row->target_name, "ReadFile") != 0 ||
+        row->arguments[0].type != TYPE_STRING) return false;
+    const char *result_name = ast_call_semantic_value_type_name(call);
+    const ASTNode *argument = row->arguments[0].node;
+    const char *argument_name = argument->type == AST_CALL
+        ? ast_call_semantic_value_type_name(argument) : NULL;
+    return (result_name == NULL || strcmp(result_name, TYPE_STRING->name) == 0) &&
+        (argument_name == NULL || strcmp(argument_name, TYPE_STRING->name) == 0);
+}
 static PublishedNode *publication_allocator_binding(const SemanticContext *ctx, uint32_t id)
 {
     FunctionParamPublicationStore *store = ctx->function_param_publications;

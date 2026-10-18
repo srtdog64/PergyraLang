@@ -2,7 +2,9 @@
 
 #include "mir.h"
 #include "mir_call_fact.h"
+#include "mir_branch_source_facts.h"
 #include "hir_collection_owned_local_transition_adapter.h"
+#include "hir_cfg.h"
 
 #include "../common/string_compat.h"
 #include "../semantic/semantic.h"
@@ -41,10 +43,12 @@ void mir_free_collection_effect_evidence(MIRProgram *mir)
 
 static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRRoutine *routine,
     const MIRBasicBlock *block, const MIRInstruction *inst,
-    const PgyCollectionEffectView *view, size_t caller, bool *seen, bool *write_seen)
+    const PgyCollectionEffectView *view, size_t caller, bool *seen, bool *write_seen,
+    bool *source_occurrences)
 {
     if (view->source_use_count != 0 || view->nonowner_risk_count != 0 ||
-        view->string_definition_count != 0 || view->permanent_element_count != 0) {
+        view->string_definition_count != 0 || view->permanent_element_count != 0 ||
+        view->independent_string_result_count != 0) {
         const ASTNode *place = NULL, *value = NULL;
         bool initialization = inst->kind == MIR_INST_DEF && inst->ast != NULL && inst->ast->type == AST_LET_DECL;
         if (initialization) { place = inst->ast; value = inst->expr0; }
@@ -61,12 +65,12 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
                 initialization ? ast_node_stable_id(place) : place != NULL && place->type == AST_IDENTIFIER
                     ? ast_identifier_binding_syntax_id(place) : inst->binding_syntax_id,
                 initialization, inst->ast, place, value, &write_ordinal)) return false;
-        if (write_ordinal != SIZE_MAX) {
+        if (write_ordinal != SIZE_MAX && block->is_reachable) {
             if (write_ordinal >= view->string_write_count || write_seen == NULL || write_seen[write_ordinal]) return false;
             write_seen[write_ordinal] = true;
         }
+        const ASTNode *return_statement = NULL;
         if (inst->kind == MIR_INST_RETURN) {
-            const ASTNode *statement = NULL;
             if (block->source_hir_block_id != SIZE_MAX) {
                 if (block->source_hir_block_id >= routine->hir_routine->cfg.block_count ||
                     routine->hir_routine->cfg.blocks == NULL) return false;
@@ -85,17 +89,17 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
                         if (candidate != block->source_statement_inventory.items[last]) return false;
                         if (candidate != NULL && candidate->type == AST_RETURN) {
                             if (ast_return_value(candidate) != inst->expr0) return false;
-                            statement = candidate;
+                            return_statement = candidate;
                         }
                     }
                 }
             }
             if (!semantic_collection_effect_snapshot_source_return(
                     mir->collection_effect_snapshot, routine->source_syntax_id,
-                    statement, inst->expr0)) return false;
+                    return_statement, inst->expr0)) return false;
         }
         ASTNode *roots[2];
-        if (!mir_instruction_executable_roots(routine, inst, roots, NULL, NULL)) return false;
+        if (!mir_instruction_evaluation_roots(routine, inst, roots)) return false;
         for (size_t r = 0; r < 2; r++) {
             if (roots[r] == NULL) continue;
             /* A definition exposes target/RHS roots whose exact roles were
@@ -104,8 +108,14 @@ static bool mir_collection_instruction_current(const MIRProgram *mir, const MIRR
             if (!definition_role && (inst->kind != MIR_INST_RETURN || roots[r] != inst->expr0) &&
                 !semantic_collection_effect_snapshot_source_evaluation(
                     mir->collection_effect_snapshot, routine->source_syntax_id, roots[r])) return false;
-            if (!hir_collection_source_expression_current(
-                    mir->collection_effect_snapshot, routine->hir_routine, roots[r])) return false;
+            const ASTNode *execution_root = definition ? inst->ast :
+                inst->kind == MIR_INST_RETURN ? return_statement : roots[r];
+            if (block->source_hir_block_id == SIZE_MAX) execution_root = NULL;
+            if (block->is_reachable ? !hir_collection_source_execution_current(
+                    mir->collection_effect_snapshot, routine->hir_routine, roots[r], execution_root,
+                    source_occurrences, view->independent_string_result_count, write_seen, view->string_write_count) :
+                !hir_collection_source_expression_current(mir->collection_effect_snapshot,
+                    routine->hir_routine, roots[r])) return false;
         }
     }
     const ASTNode *call = inst->expr0;
@@ -171,6 +181,91 @@ static bool mir_collection_body_borrow_current(const MIRRoutine *view, const MIR
         view->return_type == source->return_type;
 }
 
+/* Source membership and reachability do not preserve the branch on which an
+ * evaluation runs. Join the ordered MIR carriers to their original HIR block;
+ * HIR's private issuance witness, checked once per routine, owns that layout. */
+static bool mir_collection_block_placement_current(const MIRRoutine *routine,
+    const MIRBasicBlock *block, size_t block_index)
+{
+    const HIRRoutine *hir = routine->hir_routine;
+    if (block->id != block_index) return false;
+    if (block_index >= hir->cfg.block_count)
+        return block->source_hir_block_id == SIZE_MAX && block->is_cleanup;
+    if (block->source_hir_block_id != block_index || block->is_cleanup) return false;
+    const HIRBasicBlock *source = &hir->cfg.blocks[block_index];
+    if (block->is_reachable != source->is_reachable ||
+        block->has_succ_true != source->has_succ_true ||
+        block->has_succ_false != source->has_succ_false ||
+        (source->has_succ_true && block->succ_true != source->succ_true) ||
+        (source->has_succ_false && block->succ_false != source->succ_false) ||
+        block->source_statement_inventory.count != source->statement_count ||
+        (source->statement_count != 0 && block->source_statement_inventory.items == NULL)) return false;
+    for (size_t s = 0; s < source->statement_count; s++)
+        if (block->source_statement_inventory.items[s] != source->statements[s]) return false;
+    size_t previous = 0, terminators = 0;
+    bool have_previous = false;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        bool statement = inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_ASSIGN ||
+            inst->kind == MIR_INST_STMT || inst->kind == MIR_INST_DESTRUCTURE ||
+            inst->kind == MIR_INST_LOOP_INIT;
+        if (statement) {
+            if (terminators != 0 || !inst->has_source_statement_index ||
+                inst->source_statement_index >= source->statement_count ||
+                (have_previous && inst->source_statement_index < previous)) return false;
+            const ASTNode *original = source->statements[inst->source_statement_index];
+            if (inst->ast != original || !inst->has_source_statement_stable_id ||
+                inst->source_statement_stable_id != ast_node_stable_id(original)) return false;
+            previous = inst->source_statement_index;
+            have_previous = true;
+        }
+        if (inst->kind != MIR_INST_BRANCH && inst->kind != MIR_INST_RETURN) continue;
+        if (++terminators > 1 || !inst->has_source_terminator_kind ||
+            inst->source_terminator_kind != source->terminator_kind ||
+            inst->source_terminator_has_value != (source->terminator_value != NULL)) return false;
+        if (inst->kind == MIR_INST_RETURN) {
+            if (source->terminator_kind != HIR_BLOCK_RETURN ||
+                inst->ast != source->terminator_value || inst->expr0 != source->terminator_value ||
+                inst->expr1 != NULL) return false;
+            continue;
+        }
+        const ASTNode *condition = source->terminator_condition;
+        if (source->terminator_kind != HIR_BLOCK_BRANCH || inst->ast != condition ||
+            condition == NULL || inst->branch_shape != mir_branch_shape_from_ast(condition)) return false;
+        switch (inst->branch_shape) {
+        case MIR_BRANCH_EXPR:
+            if (inst->expr0 != condition || inst->expr1 != NULL) return false;
+            break;
+        case MIR_BRANCH_FOR_RANGE:
+        case MIR_BRANCH_FOR_IN:
+            if (inst->expr0 != (ast_for_iterable(condition) != NULL ?
+                    ast_for_iterable(condition) : ast_for_range_start(condition)) ||
+                inst->expr1 != (ast_for_iterable(condition) != NULL ?
+                    ast_for_iterable(condition) : ast_for_range_end(condition))) return false;
+            break;
+        case MIR_BRANCH_MATCH_CASE: {
+            size_t count = 0;
+            ASTNode **patterns = ast_match_case_patterns(condition, &count);
+            if (inst->expr0 != source->terminator_value || inst->expr1 != NULL ||
+                inst->match_case_guard != ast_match_case_guard(condition) ||
+                inst->match_case_pattern != ast_match_case_pattern(condition) ||
+                inst->match_case_pattern_count != count ||
+                (count != 0 && (patterns == NULL || inst->match_case_patterns == NULL))) return false;
+            for (size_t p = 0; p < count; p++)
+                if (inst->match_case_patterns[p] != patterns[p]) return false;
+            break;
+        }
+        case MIR_BRANCH_SELECT_DISPATCH:
+            if (inst->expr0 != mir_select_case_channel((ASTNode *)condition) ||
+                inst->expr1 != NULL) return false;
+            break;
+        default: return false;
+        }
+    }
+    return terminators == (source->terminator_kind == HIR_BLOCK_BRANCH ||
+        source->terminator_kind == HIR_BLOCK_RETURN ? 1u : 0u);
+}
+
 bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
     const MIRRoutine *only, char **error)
 {
@@ -204,6 +299,14 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
     if (view.string_write_count > SIZE_MAX / sizeof(bool)) { free(seen); return mir_collection_evidence_error(error); }
     bool *write_seen = view.string_write_count == 0 ? NULL : calloc(view.string_write_count, sizeof(*write_seen));
     if (view.string_write_count != 0 && write_seen == NULL) { free(seen); return mir_collection_evidence_error(error); }
+    if (view.independent_string_result_count > SIZE_MAX / sizeof(bool)) {
+        free(seen); free(write_seen); return mir_collection_evidence_error(error);
+    }
+    bool *source_occurrences = view.independent_string_result_count == 0 ? NULL :
+        calloc(view.independent_string_result_count, sizeof(*source_occurrences));
+    if (view.independent_string_result_count != 0 && source_occurrences == NULL) {
+        free(seen); free(write_seen); return mir_collection_evidence_error(error);
+    }
     bool valid = true;
     for (size_t c = 0; c < view.caller_count && valid; c++) {
         if (only != NULL && view.callers[c].decl_id != only->source_syntax_id) continue;
@@ -232,16 +335,32 @@ bool mir_validate_collection_effect_evidence(const MIRProgram *mir,
         size_t caller = SIZE_MAX;
         for (size_t c = 0; c < view.caller_count; c++)
             if (view.callers[c].decl_id == routine->source_syntax_id) caller = c;
-        for (size_t b = 0; b < routine->block_count && valid; b++)
+        bool independent = caller != SIZE_MAX && view.callers[caller].independent_string_result_count != 0;
+        if (independent && (!hir_cfg_execution_current(routine->hir_routine) ||
+                !hir_cfg_reachability_current(routine->hir_routine) ||
+                routine->entry_block != routine->hir_routine->cfg.entry_block ||
+                routine->block_count < routine->hir_routine->cfg.block_count)) { valid = false; break; }
+        for (size_t b = 0; b < routine->block_count && valid; b++) {
+            const MIRBasicBlock *block = &routine->blocks[b];
+            if (independent && !mir_collection_block_placement_current(routine, block, b)) {
+                valid = false; break;
+            }
             for (size_t i = 0; i < routine->blocks[b].instruction_count; i++)
                 if (!mir_collection_instruction_current(mir, routine, &routine->blocks[b],
-                    &routine->blocks[b].instructions[i], &view, caller, seen, write_seen)) { valid = false; break; }
+                    &routine->blocks[b].instructions[i], &view, caller, seen, write_seen,
+                    source_occurrences)) { valid = false; break; }
+        }
+        if (valid && view.independent_string_result_count != 0)
+            valid = semantic_collection_effect_snapshot_source_execution_complete(
+                mir->collection_effect_snapshot, routine->source_syntax_id, source_occurrences,
+                view.independent_string_result_count, write_seen, view.string_write_count);
     }
     for (size_t e = 0; e < view.effect_count && valid; e++)
         if ((only == NULL || view.callers[view.effects[e].caller].decl_id == only->source_syntax_id) && !seen[e])
             valid = false;
     free(seen);
     free(write_seen);
+    free(source_occurrences);
     return valid || mir_collection_evidence_error(error);
 }
 

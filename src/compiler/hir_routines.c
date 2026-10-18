@@ -9,6 +9,7 @@
 
 #include "hir_analysis.h"
 #include "hir_lower_cfg.h"
+#include "hir_cfg.h"
 
 static bool
 hir_routines_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
@@ -133,6 +134,7 @@ hir_discard_routine(HIRRoutine *routine)
 {
     if (routine == NULL)
         return;
+    hir_cfg_execution_release(routine);
     free((void *)routine->signature_type_refs);
     free((void *)routine->direct_calls);
     free(routine->direct_call_decl_ids);
@@ -157,10 +159,13 @@ hir_append_hidden_method_routine(HIRProgram *hir,
 
     if (hir == NULL || owner_name == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return true;
+    if (decl_id >= hir->decl_count || hir->decls[decl_id].id != decl_id ||
+        hir->decls[decl_id].ast == NULL) return false;
 
     memset(&routine, 0, sizeof(routine));
     pgy_arena_init_named(&routine.scratch, 0, "hir-hidden-method-scratch");
     routine.decl_id = decl_id;
+    routine.declaration_ast = hir->decls[decl_id].ast;
     routine.source_syntax_id = ast_node_stable_id(method);
     routine.kind = HIR_TOPLEVEL_FUNCTION;
     routine.name = ast_declaration_name(method);
@@ -415,6 +420,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
         memset(&routine, 0, sizeof(routine));
         pgy_arena_init_named(&routine.scratch, 0, "hir-routine-scratch");
         routine.decl_id = decl.id;
+        routine.declaration_ast = decl.ast;
         routine.source_syntax_id = ast_node_stable_id(item.ast);
         routine.kind = item.kind;
         routine.name = item.name;

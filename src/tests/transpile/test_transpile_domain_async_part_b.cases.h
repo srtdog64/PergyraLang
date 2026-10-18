@@ -26,7 +26,7 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -78,7 +78,7 @@ test_parallel_execution_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -114,7 +114,7 @@ test_parallel_execution_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir, NULL);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -384,8 +384,9 @@ test_parallel_execution_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
+        TestProjectionEvidence evidence = {0};
         bool lowered = lower_pipeline_from_source(source, &program, &hir,
-            &rir, &mir);
+            &rir, &mir, &evidence);
         ASTNode *main_decl = lowered ? ast_program_statement(program, 1) : NULL;
         ASTNode *body = main_decl != NULL ? ast_func_body(main_decl) : NULL;
         ASTNode *request = body != NULL ? ast_block_statement(body, 1) : NULL;
@@ -395,7 +396,7 @@ test_parallel_execution_emit(void)
         if (ctx != NULL)
             ctx->mir = mir;
         bool projected = ctx != NULL && mir != NULL
-            && bind_test_c_projection_plan(ctx, mir);
+            && bind_test_c_projection_plan(ctx, mir, &evidence);
         char *result = lowered && projected && call != NULL
             ? emit_expression(call, ctx) : NULL;
 
@@ -406,6 +407,7 @@ test_parallel_execution_emit(void)
 
         free(result);
         transpiler_ctx_destroy(ctx);
+        dispose_test_projection_evidence(&evidence);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

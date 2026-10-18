@@ -159,11 +159,17 @@ typedef struct {
     char *cast_target;
     bool result_relation, result_depends, external_retains;
     bool backing_relation, backing_depends, backing_external_retains;
+    /* Selected intrinsic String independence, not element ownership. Child
+     * identities/ordinals remain owned by this original claim. */
+    bool readfile_result, readfile_result_projection, readfile_argument_projection;
+    bool readfile_execution_required;
+    size_t readfile_next_plus_one;
     char *result_type_name;
 } FunctionParamFlowIndexClaim;
 struct FunctionParamFlowIndexClaims {
     FunctionParamFlowIndexClaim *rows;
     size_t count;
+    size_t readfile_first_plus_one;
     bool failed;
 };
 
@@ -318,6 +324,22 @@ bool function_param_flow_private_string_receiver_current(SemanticContext *ctx,
 bool function_param_flow_string_result_independent_current(SemanticContext *ctx, const ASTNode *call);
 bool function_param_flow_claim_capture(SemanticContext *ctx,
     FunctionParamFlowIndexClaims *claims, ASTNode *node, bool semantic);
+bool function_param_flow_readfile_claim_current(const SemanticContext *ctx,
+    const FunctionParamFlowIndexClaims *claims, const FunctionParamFlowIndexClaim *row);
+bool function_param_flow_readfile_claim_count(const FunctionParamFlowIndexClaims *claims,
+    size_t *count);
+bool function_param_flow_readfile_occurrence_ordinal(const FunctionParamFlowIndexClaims *claims,
+    const ASTNode *call, const ASTNode *execution_root, size_t *ordinal);
+bool function_param_flow_readfile_execution_counts(const FunctionParamFlowIndexClaims *claims,
+    size_t *required_calls, size_t *required_writes);
+bool function_param_flow_readfile_occurrence_required(const FunctionParamFlowIndexClaims *claims,
+    size_t ordinal, bool *required);
+bool function_param_flow_readfile_write_required(const FunctionParamFlowIndexClaims *claims,
+    size_t ordinal, bool *required);
+bool function_param_flow_readfile_write_count(const FunctionParamFlowIndexClaims *claims,
+    size_t *count);
+bool function_param_flow_readfile_write_ordinal(const FunctionParamFlowIndexClaims *claims,
+    const ASTNode *statement, size_t *ordinal);
 /* Navigation result shape only: String acceptance is no nonlocal-source or
  * independence proof. The optional Array output requires its owned receipt. */
 bool function_param_flow_navigation_result_shape(SemanticContext *ctx, ASTNode *call,

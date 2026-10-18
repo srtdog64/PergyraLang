@@ -16,6 +16,7 @@ test_generic_method_specialization_fact(void)
     ASTNode *program = NULL;
     HIRProgram *hir = NULL;
     RIRProgram *rir = NULL;
+    TestProjectionEvidence evidence = {0};
     MIRProgram *mir = NULL;
     char output_path[1024];
 
@@ -25,13 +26,13 @@ test_generic_method_specialization_fact(void)
     printf("\n[generic_method_specialization]\n");
 
     TEST("MIR generic method specialization row drives C symbol and body");
-    if (!lower_pipeline_from_source(source, &program, &hir, &rir, &mir)) {
+    if (!lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence)) {
         EXPECT(false);
     } else {
         const MIRGenericMethodSpecializationFact *fact =
             mir_generic_method_specialization_at(mir, 0);
         TranspileResult *result =
-            transpile_mir_with_test_evidence(mir, output_path);
+            transpile_mir_with_test_evidence(mir, output_path, &evidence);
         char *generated = read_file_text(output_path);
         bool specialization_ok =
             mir_generic_method_specialization_count(mir) == 1
@@ -95,7 +96,7 @@ test_generic_method_specialization_fact(void)
         TranspileResult *result;
 
         mir->generic_method_specialization_count = 0;
-        result = transpile_mir_with_test_evidence(mir, output_path);
+        result = transpile_mir_with_test_evidence(mir, output_path, &evidence);
         EXPECT(result != NULL && !result->success
             && result->error_message != NULL
             && strstr(result->error_message,
@@ -104,6 +105,8 @@ test_generic_method_specialization_fact(void)
         transpile_result_destroy(result);
         remove(output_path);
     }
+
+    dispose_test_projection_evidence(&evidence);
 
     mir_destroy(mir);
     rir_destroy(rir);
@@ -136,7 +139,7 @@ test_generic_sealed_binding_fact(void)
 
     printf("\n[generic_sealed_binding]\n");
     TEST("Checker seals a nested generic call's type argument; MIR copies it");
-    lowered = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+    lowered = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, NULL);
     for (size_t i = 0; lowered && i < ast_program_statement_count(program); i++) {
         ASTNode *decl = ast_program_statement(program, i);
         const char *name = decl != NULL && decl->type == AST_FUNC_DECL
@@ -193,6 +196,7 @@ test_generic_sealed_binding_fact(void)
         EXPECT(false);
     }
 
+
     mir_destroy(mir);
     rir_destroy(rir);
     hir_destroy(hir);
@@ -213,9 +217,10 @@ test_generic_direct_specialization_fact(void)
     ASTNode *program = NULL;
     HIRProgram *hir = NULL;
     RIRProgram *rir = NULL;
+    TestProjectionEvidence evidence = {0};
     MIRProgram *mir = NULL;
     TEST("MIR direct generic bindings retain nominal and caller-formal identity");
-    bool lowered = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+    bool lowered = lower_pipeline_from_source(source, &program, &hir, &rir, &mir, &evidence);
     EXPECT(lowered && mir_generic_method_specialization_count(mir) == 3);
     if (lowered) {
         size_t nominal = 0, deferred = 0;
@@ -243,7 +248,7 @@ test_generic_direct_specialization_fact(void)
         char output_path[1024];
         make_tmp_path(output_path, sizeof(output_path), "pgy_generic_direct_specialization.c");
         TEST("C nominal/forward generic execution consumes MIR bindings");
-        TranspileResult *c_result = transpile_mir_with_test_evidence(mir, output_path);
+        TranspileResult *c_result = transpile_mir_with_test_evidence(mir, output_path, &evidence);
         char *generated = read_file_text(output_path);
         EXPECT(c_result != NULL && c_result->success && generated != NULL
             && strstr(generated, "Rank_Card(Card *value)") != NULL
@@ -256,7 +261,7 @@ test_generic_direct_specialization_fact(void)
         TEST("C direct generic call refuses erased specialization rows");
         size_t c_saved_count = mir->generic_method_specialization_count;
         mir->generic_method_specialization_count = 0;
-        c_result = transpile_mir_with_test_evidence(mir, output_path);
+        c_result = transpile_mir_with_test_evidence(mir, output_path, &evidence);
         EXPECT(c_result != NULL && !c_result->success && c_result->error_message != NULL
             && strstr(c_result->error_message, "MIR") != NULL
             && strstr(c_result->error_message, "specialization") != NULL);
@@ -264,18 +269,10 @@ test_generic_direct_specialization_fact(void)
         transpile_result_destroy(c_result);
         remove(output_path);
 #ifdef PGY_LLVM_ENABLED
-        AIRProgram air = {0};
-        air.has_hir_input = true;
-        air.has_rir_input = true;
-        air.has_mir_input = true;
-        PgyVerifiedProjectionPlanRow plan = {0};
-        const char *plan_error = NULL;
-        bool ready = pgy_air_evidence_certificate_issue(&air, &plan_error)
-            && pgy_verified_projection_plan_intent_observability_with_air(
-                &air, mir, PGY_PROJECTION_TARGET_LLVM, &plan, &plan_error);
+        bool ready = evidence.ready;
         TEST("LLVM nominal/forward generic execution consumes MIR bindings");
         LLVMGenResult *result = ready ? llvm_codegen_from_mir_with_projection_plans(
-            mir, &plan, &test_empty_parallel_capture_plan, &test_empty_spawn_lane_plan,
+            mir, &evidence.llvm_plan, &evidence.parallel_plan, &evidence.spawn_plan,
             NULL, "generic_direct_fact") : NULL;
         if (result != NULL && !result->success)
             fprintf(stderr, "[generic-direct] %s\n", result->error_message);
@@ -287,7 +284,7 @@ test_generic_direct_specialization_fact(void)
         size_t saved_count = mir->generic_method_specialization_count;
         mir->generic_method_specialization_count = 0;
         result = ready ? llvm_codegen_from_mir_with_projection_plans(
-            mir, &plan, &test_empty_parallel_capture_plan, &test_empty_spawn_lane_plan,
+            mir, &evidence.llvm_plan, &evidence.parallel_plan, &evidence.spawn_plan,
             NULL, "generic_direct_missing") : NULL;
         EXPECT(result != NULL && !result->success && result->error_message != NULL
             && strstr(result->error_message, "missing generic call specialization fact") != NULL);
@@ -295,6 +292,7 @@ test_generic_direct_specialization_fact(void)
         llvm_gen_result_destroy(result);
 #endif
     }
+    dispose_test_projection_evidence(&evidence);
     mir_destroy(mir);
     rir_destroy(rir);
     hir_destroy(hir);

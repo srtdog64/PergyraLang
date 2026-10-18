@@ -200,6 +200,28 @@ bool mir_instruction_executable_roots(const MIRRoutine *routine,
     return true;
 }
 
+bool mir_instruction_evaluation_roots(const MIRRoutine *routine,
+    const MIRInstruction *inst, ASTNode *roots[2])
+{
+    if (!mir_instruction_executable_roots(routine, inst, roots, NULL, NULL)) return false;
+    if (inst->kind == MIR_INST_LOOP_INIT) roots[1] = NULL;
+    if (inst->kind == MIR_INST_BRANCH && inst->branch_shape == MIR_BRANCH_FOR_IN)
+        roots[0] = roots[1] = NULL;
+    if (inst->kind == MIR_INST_BRANCH && inst->branch_shape == MIR_BRANCH_MATCH_CASE)
+        roots[1] = inst->match_case_guard;
+    if (mir_instruction_source_is_defer_stmt(inst)) {
+        if (inst->kind != MIR_INST_STMT || inst->ast == NULL || inst->ast->type != AST_DEFER_STMT ||
+            inst->expr0 != ast_defer_body(inst->ast) || inst->expr0 == NULL ||
+            inst->expr0->type != AST_BLOCK || inst->defer_part_count == 0 ||
+            inst->defer_part_count != ast_block_statement_count(inst->expr0) ||
+            inst->defer_part_index >= inst->defer_part_count) return false;
+        roots[0] = mir_defer_part_statement(inst);
+        roots[1] = NULL;
+        if (roots[0] == NULL) return false;
+    }
+    return true;
+}
+
 void
 mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
 {

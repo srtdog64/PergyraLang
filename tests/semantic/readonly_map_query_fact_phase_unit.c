@@ -2806,6 +2806,323 @@ static void checked_finish_independence_currency(void)
     ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
 }
 
+static void checked_readfile_independence_currency(void)
+{
+    const char *sources[] = {
+        "func Consume(text:String)->Int{return StringLength(text);}"
+        "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "Log(Consume(ReadFile(\"tests/cases/backend_compare/string_io/io.txt\")));Log(risk[0]);}",
+        "func Consume(text:String)->Int{return StringLength(text);}"
+        "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "defer{Log(Consume(ReadFile(\"tests/cases/backend_compare/string_io/io.txt\")));};"
+        "Log(risk[0]);}",
+        "func Consume(text:String)->Int{return StringLength(text);}"
+        "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "let path:String=\"tests/cases/backend_compare/string_io/io.txt\";"
+        "Log(Consume(ReadFile(path)));Log(risk[0]);}",
+        "func Consume(text:String)->Int{return StringLength(text);}"
+        "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "Log(Consume(ReadFile(Concat(\"tests/cases/backend_compare/string_io/\",\"io.txt\"))));"
+        "Log(risk[0]);}",
+        "func Consume(text:String)->Int{return StringLength(text);}"
+        "func Main()->Void{let risk:Array<String> = [Concat(\"he\",\"ap\")];"
+        "let text:String=ReadFile(\"tests/cases/backend_compare/string_io/io.txt\");"
+        "Log(Consume(text));Log(risk[0]);}"
+    };
+    for (size_t route = 0; route < sizeof(sources) / sizeof(sources[0]); route++) {
+        Lexer *lexer = lexer_create(sources[route]);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        bool parsed = program != NULL && !parser_has_error(parser);
+        CHECK(parsed);
+        bool typed = parsed && type_check_program(program, ctx);
+        CHECK(typed && !ctx->has_error);
+        if (!typed) goto cleanup;
+        ASTNode *main_decl = ast_program_statement(program, 1);
+        ASTNode *statement = ast_block_statement(ast_func_body(main_decl), route == 2 ? 2 : 1);
+        ASTNode *log = route == 1 ? ast_block_statement(ast_defer_body(statement), 0) :
+            route == 4 ? ast_block_statement(ast_func_body(main_decl), 2) : statement;
+        ASTNode *consume = log == NULL ? NULL : ast_call_argument(log, 0);
+        ASTNode *call = route == 4 ? ast_let_initializer(statement) :
+            consume == NULL ? NULL : ast_call_argument(consume, 0);
+        ASTNode *path = call == NULL ? NULL : ast_call_argument(call, 0);
+        ASTNode *target = call == NULL ? NULL : ast_call_callee(call);
+        PublishedNode *row = published_node_for(ctx, call);
+        PublishedNode *path_row = published_node_for(ctx, path);
+        FunctionParamPublicationStore *publication = ctx->function_param_publications;
+        FunctionParamFlowSummaryStore *flow = ctx->function_param_flow_summaries;
+        CHECK(call != NULL && call->type == AST_CALL && path != NULL && target != NULL &&
+            row != NULL && row->arguments != NULL && row->argument_count == 1 &&
+            path_row != NULL && publication != NULL);
+        if (row == NULL || row->arguments == NULL || row->argument_count != 1 ||
+            path_row == NULL || target == NULL) goto cleanup;
+        uint32_t source = UINT32_MAX;
+        CHECK(semantic_param_publication_checked_readfile_independent(ctx, call));
+        CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        CHECK(row->indexed_string_source_present && row->indexed_string_source_id == 0);
+        /* The independent intrinsic does not demand parameter-flow analysis.
+         * Produce this index explicitly before testing the subordinate claim. */
+        SlotFunctionLookup lookup = {ctx, program};
+        flow = function_param_flow_store_get(&lookup);
+        CHECK(flow != NULL);
+        if (flow == NULL) goto cleanup;
+        FunctionParamFlowProgramPointIndex *index = NULL;
+        CHECK(function_param_flow_program_point_index_build(flow, main_decl, &index));
+        FunctionParamFlowIndexClaims *claims = index == NULL ? NULL : index->claims;
+        FunctionParamFlowIndexClaim *read_claim = NULL;
+        for (size_t i = 0; claims != NULL && i < claims->count; i++)
+            if (claims->rows[i].node == call) read_claim = &claims->rows[i];
+        size_t read_count = 0;
+        CHECK(read_claim != NULL && read_claim->readfile_result &&
+            function_param_flow_readfile_claim_current(ctx, claims, read_claim) &&
+            function_param_flow_readfile_claim_current(NULL, claims, read_claim) &&
+            function_param_flow_readfile_claim_count(claims, &read_count) && read_count == 1);
+        if (read_claim == NULL || read_claim->children == NULL ||
+            read_claim->child_ids == NULL || read_claim->child_claim_ordinals == NULL ||
+            read_claim->child_count != 2) goto cleanup;
+        CHECK(read_claim->child_claim_ordinals[1] < claims->count);
+        if (read_claim->child_claim_ordinals[1] >= claims->count) goto cleanup;
+        size_t ready_nodes = publication->node_count, ready_indexes = flow->program_point_index_count;
+        size_t ready_count = flow->count, ready_epoch = flow->demand_epoch;
+        size_t ready_evaluations = flow->body_evaluations;
+        for (unsigned fault = 0; fault < 11; fault++) {
+            PublishedNode saved_row = *row, saved_path_row = *path_row;
+            PublishedCallArgument saved_argument = row->arguments[0];
+            uint32_t call_id = call->stable_id, target_id = target->stable_id;
+            if (fault == 0) row->value_present = false;
+            if (fault == 1) row->call_present = false;
+            if (fault == 2) row->kind_present = false;
+            if (fault == 3) row->builtin = BUILTIN_TEXT_BUILDER_FINISH;
+            if (fault == 4) row->arguments[0].type = TYPE_INT;
+            if (fault == 5) target->stable_id++;
+            if (fault == 6) call->stable_id++;
+            if (fault == 7) row->arguments[0].id++;
+            if (fault == 8) path_row->value_present = false;
+            if (fault == 9) row->value_type = TYPE_INT;
+            if (fault == 10) row->target_id++;
+            source = UINT32_MAX;
+            CHECK(!semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(!semantic_indexed_string_borrow_source_current(call, ctx, &source));
+            CHECK(publication->node_count == ready_nodes && flow->count == ready_count &&
+                flow->program_point_index_count == ready_indexes && flow->demand_epoch == ready_epoch &&
+                flow->body_evaluations == ready_evaluations);
+            call->stable_id = call_id; target->stable_id = target_id;
+            *row = saved_row; *path_row = saved_path_row;
+            row->arguments[0] = saved_argument;
+            source = UINT32_MAX;
+            CHECK(semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        }
+        for (unsigned fault = 0; fault < 10; fault++) {
+            PublishedNode saved_row = *row;
+            if (fault == 0) row->stdlib = true;
+            if (fault == 1) row->declared_callable = true;
+            if (fault == 2) row->declaration = ast_node_stable_id(main_decl);
+            if (fault == 3) row->value_binding = ast_node_stable_id(main_decl);
+            if (fault == 4) row->argument_count = 0;
+            if (fault == 5) row->target_binding = ast_node_stable_id(main_decl);
+            if (fault == 6) {
+                row->selected_callable = main_decl;
+                row->selected_callable_id = ast_node_stable_id(main_decl);
+            }
+            if (fault == 7) row->selected_callable_id = ast_node_stable_id(main_decl);
+            if (fault == 8) row->result_relation = true;
+            if (fault == 9) row->target_name = "FileRead";
+            source = UINT32_MAX;
+            CHECK(!semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(!semantic_indexed_string_borrow_source_current(call, ctx, &source));
+            CHECK(publication->node_count == ready_nodes && flow->count == ready_count &&
+                flow->program_point_index_count == ready_indexes && flow->demand_epoch == ready_epoch &&
+                flow->body_evaluations == ready_evaluations);
+            *row = saved_row;
+            source = UINT32_MAX;
+            CHECK(semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        }
+        {
+            char wrong_type[] = "Int";
+            char *original_type = call->data.call.semantic_value_type_name;
+            call->data.call.semantic_value_type_name = wrong_type;
+            source = UINT32_MAX;
+            CHECK(!semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(!semantic_indexed_string_borrow_source_current(call, ctx, &source));
+            call->data.call.semantic_value_type_name = original_type;
+            source = UINT32_MAX;
+            CHECK(semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        }
+        if (route == 2) {
+            uint32_t binding = ast_identifier_binding_syntax_id(path);
+            CHECK(binding != 0);
+            ast_identifier_set_binding_syntax_id(path, binding + 1);
+            source = UINT32_MAX;
+            CHECK(!semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(!semantic_indexed_string_borrow_source_current(call, ctx, &source));
+            ast_identifier_set_binding_syntax_id(path, binding);
+            source = UINT32_MAX;
+            CHECK(semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        }
+        if (route == 3) {
+            char wrong_type[] = "Int";
+            char *original_type = path->data.call.semantic_value_type_name;
+            path->data.call.semantic_value_type_name = wrong_type;
+            source = UINT32_MAX;
+            CHECK(!semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(!semantic_indexed_string_borrow_source_current(call, ctx, &source));
+            path->data.call.semantic_value_type_name = original_type;
+            source = UINT32_MAX;
+            CHECK(semantic_param_publication_checked_readfile_independent(ctx, call));
+            CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        }
+        for (unsigned fault = 0; fault < 2; fault++) {
+            bool present = row->indexed_string_source_present;
+            uint32_t id = row->indexed_string_source_id;
+            if (fault == 0) row->indexed_string_source_present = false;
+            if (fault == 1) row->indexed_string_source_id = UINT32_MAX;
+            source = UINT32_MAX;
+            bool current = semantic_indexed_string_borrow_source_current(call, ctx, &source);
+            /* UNKNOWN may be a current raw source, but never source-zero authority. */
+            CHECK(fault == 0 ? !current : !(current && source == 0));
+            row->indexed_string_source_present = present;
+            row->indexed_string_source_id = id;
+            source = UINT32_MAX;
+            CHECK(semantic_indexed_string_borrow_source_current(call, ctx, &source) && source == 0);
+        }
+        for (unsigned fault = 0; fault < 8; fault++) {
+            FunctionParamFlowIndexClaim saved_claim = *read_claim;
+            size_t argument_at = read_claim->child_claim_ordinals[1];
+            FunctionParamFlowIndexClaim *argument_claim = argument_at < claims->count ?
+                &claims->rows[argument_at] : NULL;
+            bool argument_ready = argument_claim != NULL && argument_claim->value_ready;
+            uint32_t argument_id = read_claim->child_ids[1];
+            if (fault == 0) read_claim->readfile_result = false;
+            if (fault == 1) read_claim->readfile_result_projection = !read_claim->readfile_result_projection;
+            if (fault == 2) read_claim->readfile_argument_projection = !read_claim->readfile_argument_projection;
+            if (fault == 3) read_claim->result_type_name = "Int";
+            if (fault == 4) read_claim->child_ids[1]++;
+            if (fault == 5 && argument_claim != NULL) argument_claim->value_ready = false;
+            if (fault == 6) read_claim->semantic_promoted = false;
+            if (fault == 7) read_claim->snapshot_complete = false;
+            CHECK(!function_param_flow_readfile_claim_current(ctx, claims, read_claim));
+            CHECK(!function_param_flow_readfile_claim_current(NULL, claims, read_claim));
+            read_count = SIZE_MAX;
+            CHECK(!function_param_flow_readfile_claim_count(claims, &read_count));
+            *read_claim = saved_claim;
+            read_claim->child_ids[1] = argument_id;
+            if (argument_claim != NULL) argument_claim->value_ready = argument_ready;
+            CHECK(function_param_flow_readfile_claim_current(ctx, claims, read_claim));
+            CHECK(function_param_flow_readfile_claim_current(NULL, claims, read_claim));
+            CHECK(function_param_flow_readfile_claim_count(claims, &read_count) && read_count == 1);
+        }
+        for (unsigned fault = 0; fault < 2; fault++) {
+            size_t first = claims->readfile_first_plus_one;
+            size_t next = read_claim->readfile_next_plus_one;
+            if (fault == 0) claims->readfile_first_plus_one = 0;
+            if (fault == 1) read_claim->readfile_next_plus_one = first;
+            read_count = SIZE_MAX;
+            CHECK(!function_param_flow_readfile_claim_count(claims, &read_count));
+            claims->readfile_first_plus_one = first;
+            read_claim->readfile_next_plus_one = next;
+            CHECK(function_param_flow_readfile_claim_count(claims, &read_count) && read_count == 1);
+        }
+        CHECK(publication->node_count == ready_nodes && flow->count == ready_count &&
+            flow->program_point_index_count == ready_indexes && flow->demand_epoch == ready_epoch &&
+            flow->body_evaluations == ready_evaluations);
+        {
+            PgyCollectionEffectSnapshot *snapshot = NULL;
+            PgyCollectionEffectView view = {0};
+            bool taken = semantic_collection_effect_snapshot_take(ctx, &snapshot);
+            CHECK(taken && snapshot != NULL);
+            if (taken && snapshot != NULL) {
+                /* Original claims are now snapshot-owned. No retired Type or
+                 * live publication owner participates in the following queries. */
+                semantic_context_destroy(ctx); ctx = NULL;
+                bool current = semantic_collection_effect_snapshot_current(snapshot, program, &view);
+                CHECK(current && view.independent_string_result_count == 1);
+                ASTNode *execution_root = route == 4 ? statement : log;
+                FunctionParamFlowIndexClaim *root_claim = NULL;
+                PgyCollectionEffectCaller *caller = NULL;
+                for (size_t r = 0; r < claims->count; r++)
+                    if (claims->rows[r].node == execution_root) root_claim = &claims->rows[r];
+                for (size_t c = 0; current && c < view.caller_count; c++)
+                    if (view.callers[c].decl == main_decl)
+                        caller = (PgyCollectionEffectCaller *)&view.callers[c];
+                CHECK(caller != NULL && root_claim != NULL && read_claim->execution_present &&
+                    read_claim->reachable && read_claim->readfile_execution_required);
+                bool *seen = calloc(view.independent_string_result_count, sizeof(*seen));
+                bool *writes = calloc(view.string_write_count == 0 ? 1 : view.string_write_count, sizeof(*writes));
+                CHECK(seen != NULL && writes != NULL);
+                if (current && caller != NULL && root_claim != NULL && seen != NULL && writes != NULL) {
+                    uint32_t caller_id = ast_node_stable_id(main_decl);
+                    size_t occurrence = SIZE_MAX, write = SIZE_MAX;
+                    CHECK(semantic_collection_effect_snapshot_source_occurrence(snapshot, caller_id,
+                        call, execution_root, &occurrence) && occurrence < view.independent_string_result_count);
+                    if (occurrence < view.independent_string_result_count) seen[occurrence] = true;
+                    if (route == 4) {
+                        CHECK(semantic_collection_effect_snapshot_source_definition(snapshot, caller_id,
+                            ast_node_stable_id(statement), true, statement, statement, call, &write) &&
+                            write < view.string_write_count);
+                        if (write < view.string_write_count) writes[write] = true;
+                    }
+                    CHECK(caller->independent_string_execution_count == 1 &&
+                        caller->independent_string_write_execution_count == (route == 4 ? 1u : 0u));
+                    CHECK(semantic_collection_effect_snapshot_source_execution_complete(snapshot,
+                        caller_id, seen, view.independent_string_result_count, writes, view.string_write_count));
+                    for (unsigned fault = 0; fault < 3; fault++) {
+                        FunctionParamFlowIndexClaim saved = *read_claim;
+                        if (fault == 0) read_claim->execution_present = false;
+                        if (fault == 1) read_claim->reachable = false;
+                        if (fault == 2) read_claim->readfile_execution_required = false;
+                        size_t calls = 0, required_writes = 0;
+                        CHECK(!function_param_flow_readfile_claim_current(NULL, claims, read_claim));
+                        CHECK(!function_param_flow_readfile_execution_counts(claims, &calls, &required_writes));
+                        CHECK(!semantic_collection_effect_snapshot_current(snapshot, program, NULL));
+                        CHECK(!semantic_collection_effect_snapshot_routine_current(snapshot, program, caller_id, NULL));
+                        CHECK(!semantic_collection_effect_snapshot_source_occurrence(snapshot, caller_id,
+                            call, execution_root, &occurrence));
+                        *read_claim = saved;
+                        CHECK(semantic_collection_effect_snapshot_current(snapshot, program, NULL));
+                        CHECK(semantic_collection_effect_snapshot_source_occurrence(snapshot, caller_id,
+                            call, execution_root, &occurrence));
+                    }
+                    for (unsigned fault = 0; fault < 2; fault++) {
+                        PgyCollectionEffectCaller saved = *caller;
+                        if (fault == 0) caller->independent_string_execution_count = 0;
+                        if (fault == 1) caller->independent_string_write_execution_count =
+                            route == 4 ? 0 : 1;
+                        CHECK(!semantic_collection_effect_snapshot_current(snapshot, program, NULL));
+                        CHECK(!semantic_collection_effect_snapshot_routine_current(snapshot, program, caller_id, NULL));
+                        *caller = saved;
+                        CHECK(semantic_collection_effect_snapshot_current(snapshot, program, NULL));
+                    }
+                    for (unsigned fault = 0; fault < 3; fault++) {
+                        FunctionParamFlowIndexClaim saved = *root_claim;
+                        uint32_t id = execution_root->stable_id;
+                        if (fault == 0) root_claim->control_projected = false;
+                        if (fault == 1) root_claim->control_step_ordinal = SIZE_MAX;
+                        if (fault == 2) execution_root->stable_id++;
+                        CHECK(!semantic_collection_effect_snapshot_source_occurrence(snapshot, caller_id,
+                            call, execution_root, &occurrence));
+                        *root_claim = saved; execution_root->stable_id = id;
+                        CHECK(semantic_collection_effect_snapshot_current(snapshot, program, NULL));
+                        CHECK(semantic_collection_effect_snapshot_source_occurrence(snapshot, caller_id,
+                            call, execution_root, &occurrence));
+                    }
+                    CHECK(semantic_collection_effect_snapshot_source_execution_complete(snapshot,
+                        caller_id, seen, view.independent_string_result_count, writes, view.string_write_count));
+                }
+                free(seen); free(writes);
+                semantic_collection_effect_snapshot_destroy(snapshot);
+            }
+        }
+cleanup:
+        semantic_context_destroy(ctx);
+        ast_destroy(program); parser_destroy(parser); lexer_destroy(lexer);
+    }
+}
+
 static void checked_local_owner_constructor_nested_effect(void)
 {
     const char *source =
@@ -13140,6 +13457,7 @@ int main(void)
     checked_selected_host_method_formal_currency();
     checked_readonly_receiver_result_currency();
     checked_finish_independence_currency();
+    checked_readfile_independence_currency();
     checked_local_owner_constructor_nested_effect();
     checked_local_owner_map_constructor_currency();
     checked_declared_result_currency();

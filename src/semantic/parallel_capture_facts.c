@@ -8,10 +8,26 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 
+static bool
+parallel_capture_boundary_storage_current(const SemanticContext *ctx)
+{
+    return ctx != NULL && ctx->parallel_capture_boundary_count <=
+        ctx->parallel_capture_boundary_capacity &&
+        (ctx->parallel_capture_boundaries == NULL) ==
+            (ctx->parallel_capture_boundary_capacity == 0);
+}
+
+static bool
+parallel_capture_row_storage_current(const SemanticParallelCaptureBoundaryFact *fact)
+{
+    return fact != NULL && fact->row_count <= fact->row_capacity &&
+        (fact->rows == NULL) == (fact->row_capacity == 0);
+}
+
 static SemanticParallelCaptureBoundaryFact *
 parallel_capture_boundary_find(SemanticContext *ctx, uint32_t stable_id)
 {
-    if (ctx == NULL || stable_id == 0)
+    if (!parallel_capture_boundary_storage_current(ctx) || stable_id == 0)
         return NULL;
     for (size_t i = 0; i < ctx->parallel_capture_boundary_count; i++) {
         SemanticParallelCaptureBoundaryFact *fact =
@@ -28,8 +44,9 @@ parallel_capture_boundary_rows_clear(
 {
     if (fact == NULL)
         return;
-    for (size_t i = 0; i < fact->row_count; i++)
-        free(fact->rows[i].name);
+    if (fact->rows != NULL)
+        for (size_t i = 0; i < fact->row_capacity; i++)
+            free(fact->rows[i].name);
     free(fact->rows);
     fact->rows = NULL;
     fact->row_count = 0;
@@ -44,7 +61,7 @@ semantic_parallel_capture_facts_reset(SemanticContext *ctx,
     SemanticParallelCaptureBoundaryFact *fact;
     uint32_t stable_id;
 
-    if (ctx == NULL || boundary == NULL
+    if (!parallel_capture_boundary_storage_current(ctx) || boundary == NULL
         || boundary->type != AST_PARALLEL_BLOCK)
         return false;
     stable_id = ast_node_stable_id(boundary);
@@ -54,9 +71,9 @@ semantic_parallel_capture_facts_reset(SemanticContext *ctx,
     if (fact == NULL) {
         if (ctx->parallel_capture_boundary_count
             == ctx->parallel_capture_boundary_capacity) {
-            size_t next = ctx->parallel_capture_boundary_capacity == 0
-                ? 8 : ctx->parallel_capture_boundary_capacity * 2;
-            if (next < ctx->parallel_capture_boundary_capacity
+            size_t previous = ctx->parallel_capture_boundary_capacity;
+            size_t next = previous == 0 ? 8 : previous * 2;
+            if (next < previous
                 || next > SIZE_MAX / sizeof(*ctx->parallel_capture_boundaries))
                 return false;
             SemanticParallelCaptureBoundaryFact *grown = realloc(
@@ -64,6 +81,8 @@ semantic_parallel_capture_facts_reset(SemanticContext *ctx,
                 next * sizeof(*ctx->parallel_capture_boundaries));
             if (grown == NULL)
                 return false;
+            memset(grown + previous, 0,
+                (next - previous) * sizeof(*grown));
             ctx->parallel_capture_boundaries = grown;
             ctx->parallel_capture_boundary_capacity = next;
         }
@@ -72,6 +91,8 @@ semantic_parallel_capture_facts_reset(SemanticContext *ctx,
         memset(fact, 0, sizeof(*fact));
         fact->source_stable_id = stable_id;
     } else {
+        if (!parallel_capture_row_storage_current(fact))
+            return false;
         parallel_capture_boundary_rows_clear(fact);
     }
     fact->task_count = ast_parallel_task_count(boundary);
@@ -87,7 +108,8 @@ semantic_parallel_capture_disposition_find(
 {
     uint32_t stable_id;
 
-    if (ctx == NULL || boundary == NULL || name == NULL)
+    if (!parallel_capture_boundary_storage_current(ctx) ||
+        boundary == NULL || name == NULL)
         return NULL;
     stable_id = ast_node_stable_id(boundary);
     for (size_t i = 0; i < ctx->parallel_capture_boundary_count; i++) {
@@ -95,9 +117,13 @@ semantic_parallel_capture_disposition_find(
             &ctx->parallel_capture_boundaries[i];
         if (fact->source_stable_id != stable_id)
             continue;
+        if (!parallel_capture_row_storage_current(fact))
+            return NULL;
         for (size_t j = 0; j < fact->row_count; j++) {
             const SemanticParallelCaptureDispositionRow *row =
                 &fact->rows[j];
+            if (row->name == NULL)
+                return NULL;
             if (row->kind == kind && row->name != NULL
                 && strcmp(row->name, name) == 0)
                 return row;
@@ -119,7 +145,7 @@ semantic_parallel_capture_disposition_add(
     if (ctx == NULL || boundary == NULL || name == NULL)
         return false;
     fact = parallel_capture_boundary_find(ctx, ast_node_stable_id(boundary));
-    if (fact == NULL)
+    if (!parallel_capture_row_storage_current(fact))
         return false;
     if (kind == SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY) {
         if (writer_task >= fact->task_count)
@@ -130,6 +156,8 @@ semantic_parallel_capture_disposition_add(
         return false;
     }
     for (size_t i = 0; i < fact->row_count; i++) {
+        if (fact->rows[i].name == NULL)
+            return false;
         if (strcmp(fact->rows[i].name, name) == 0) {
             return fact->rows[i].kind == kind
                 && fact->rows[i].writer_task == writer_task;
@@ -138,14 +166,17 @@ semantic_parallel_capture_disposition_add(
     if (fact->sealed)
         return false;
     if (fact->row_count == fact->row_capacity) {
-        size_t next = fact->row_capacity == 0 ? 4 : fact->row_capacity * 2;
-        if (next < fact->row_capacity
+        size_t previous = fact->row_capacity;
+        size_t next = previous == 0 ? 4 : previous * 2;
+        if (next < previous
             || next > SIZE_MAX / sizeof(*fact->rows))
             return false;
         SemanticParallelCaptureDispositionRow *grown = realloc(
             fact->rows, next * sizeof(*fact->rows));
         if (grown == NULL)
             return false;
+        memset(grown + previous, 0,
+            (next - previous) * sizeof(*grown));
         fact->rows = grown;
         fact->row_capacity = next;
     }
@@ -167,9 +198,12 @@ semantic_parallel_capture_facts_seal(SemanticContext *ctx,
         return false;
     SemanticParallelCaptureBoundaryFact *fact =
         parallel_capture_boundary_find(ctx, ast_node_stable_id(boundary));
-    if (fact == NULL || fact->sealed
+    if (!parallel_capture_row_storage_current(fact) || fact->sealed
         || fact->task_count != ast_parallel_task_count(boundary))
         return false;
+    for (size_t i = 0; i < fact->row_count; i++)
+        if (fact->rows[i].name == NULL)
+            return false;
     fact->sealed = true;
     return true;
 }
@@ -177,11 +211,11 @@ semantic_parallel_capture_facts_seal(SemanticContext *ctx,
 void
 semantic_parallel_capture_facts_clear(
     SemanticParallelCaptureBoundaryFact *facts,
-    size_t count)
+    size_t capacity)
 {
     if (facts == NULL)
         return;
-    for (size_t i = 0; i < count; i++)
+    for (size_t i = 0; i < capacity; i++)
         parallel_capture_boundary_rows_clear(&facts[i]);
     free(facts);
 }

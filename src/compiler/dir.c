@@ -1,5 +1,6 @@
 #include "dir_internal.h"
 #include "hir.h"
+#include "hir_cfg.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -8,6 +9,25 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+
+struct DIRSourceOriginWitness {
+    const DIRProgram *owner;
+    const ASTNode *program;
+    uint32_t program_id;
+};
+
+bool
+dir_source_program_current(const DIRProgram *dir, const ASTNode *expected_program)
+{
+    const DIRSourceOriginWitness *w = dir == NULL ? NULL : dir->source_origin;
+    return w != NULL && w->owner == dir && w->program != NULL &&
+        w->program->type == AST_PROGRAM && w->program_id != 0 &&
+        dir->program_root == w->program &&
+        dir->source_program_syntax_id == w->program_id &&
+        ast_node_stable_id(w->program) == w->program_id &&
+        (expected_program == NULL || (expected_program == w->program &&
+            ast_node_stable_id(expected_program) == w->program_id));
+}
 
 static void
 dir_clear_error_message(DIRProgram *dir)
@@ -472,7 +492,7 @@ dir_lower_internal(
         return NULL;
     }
     if (hir != NULL
-        && hir->source_program_syntax_id != dir->source_program_syntax_id) {
+        && !hir_cfg_program_execution_current(hir, annotated_ast)) {
         if (error_message != NULL)
             *error_message = pergyra_strdup(
                 "DIR lowering rejected HIR domain facts from a different source program");
@@ -509,6 +529,18 @@ dir_lower_internal(
         dir->source_program_syntax_id, dir->node_count, dir->edge_count);
 
     dir_clear_error_message(dir);
+    DIRSourceOriginWitness *origin = calloc(1, sizeof(*origin));
+    if (origin == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("Out of memory while sealing DIR source identity");
+        dir_destroy(dir);
+        return NULL;
+    }
+    origin->owner = dir;
+    origin->program = annotated_ast;
+    origin->program_id = dir->source_program_syntax_id;
+    dir->program_root = annotated_ast;
+    dir->source_origin = origin;
     return dir;
 }
 
@@ -567,5 +599,6 @@ dir_destroy(DIRProgram *dir)
         dir->domain_projection_member_assignment_fact_count);
     free(dir->owned_names);
     free(dir->error_message);
+    free(dir->source_origin);
     free(dir);
 }

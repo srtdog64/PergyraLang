@@ -83,6 +83,9 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         || !air_boundary_storage_valid(air)
         || !air_drift_storage_valid(air)
         || !air_evidence_inventory_storage_valid(air)
+        || ((air->source_program_syntax_id != 0
+             || air->source_origin != NULL)
+            && !air_source_program_current(air, NULL))
         || air->function_param_flow_summary_count > air->function_param_flow_summary_capacity
         || (air->function_param_flow_summary_count > 0 && air->function_param_flow_summaries == NULL)
         || air->has_function_param_flow_facts != (air->function_param_flow_summary_count > 0)) {
@@ -96,6 +99,7 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
     machine_layer_site_count = air_machine_layer_site_count(air);
 
     mix_text(&hash, PGY_AIR_EVIDENCE_CERTIFICATE_SCHEMA);
+    mix_u64(&hash, air->source_program_syntax_id);
     mix_bool(&hash, air_requires_strict_evidence(air));
     mix_bool(&hash, air_has_hir_input(air));
     mix_bool(&hash, air_has_rir_input(air));

@@ -59,6 +59,7 @@ test_air_rejects_mismatched_mir_pin_cleanup_evidence(void)
     blocks[0].cleanup_succ = 1;
     blocks[0].instructions = insts;
     blocks[0].instruction_count = 2;
+    blocks[0].instruction_capacity = 2;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
     blocks[1].is_reachable = true;
@@ -67,12 +68,14 @@ test_air_rejects_mismatched_mir_pin_cleanup_evidence(void)
     routine.name = "pin_scores";
     routine.blocks = blocks;
     routine.block_count = 2;
+    routine.block_capacity = 2;
     routine.has_cleanup_block = true;
     routine.cleanup_block = 1;
 
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -382,6 +385,7 @@ test_air_collects_mir_cleanup_block_evidence(void)
     blocks[0].cleanup_succ = 1;
     blocks[0].instructions = &inst;
     blocks[0].instruction_count = 1;
+    blocks[0].instruction_capacity = 1;
     blocks[1].id = 1;
     blocks[1].is_reachable = true;
     blocks[1].is_cleanup = true;
@@ -390,6 +394,7 @@ test_air_collects_mir_cleanup_block_evidence(void)
     routine.name = "cleanup_owner";
     routine.blocks = blocks;
     routine.block_count = 2;
+    routine.block_capacity = 2;
     routine.has_cleanup_block = true;
     routine.cleanup_block = 1;
     routine.cleanup_instruction_count = 1;
@@ -398,6 +403,7 @@ test_air_collects_mir_cleanup_block_evidence(void)
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)
@@ -445,6 +451,7 @@ test_air_ignores_orphan_mir_cleanup_root_evidence(void)
     blocks[0].cleanup_succ = 1;
     blocks[0].instructions = &insts[0];
     blocks[0].instruction_count = 1;
+    blocks[0].instruction_capacity = 1;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
     blocks[1].is_reachable = true;
@@ -453,11 +460,13 @@ test_air_ignores_orphan_mir_cleanup_root_evidence(void)
     blocks[2].is_reachable = true;
     blocks[2].instructions = &insts[1];
     blocks[2].instruction_count = 1;
+    blocks[2].instruction_capacity = 1;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "cleanup_owner";
     routine.blocks = blocks;
     routine.block_count = 3;
+    routine.block_capacity = 3;
     routine.has_cleanup_block = true;
     routine.cleanup_block = 1;
     routine.cleanup_instruction_count = 2;
@@ -466,6 +475,7 @@ test_air_ignores_orphan_mir_cleanup_root_evidence(void)
     memset(&mir, 0, sizeof(mir));
     mir.routines = &routine;
     mir.routine_count = 1;
+    mir.routine_capacity = 1;
 
     ok = air_collect_mir_evidence(air, &mir, &error)
         && air_validate(air, &error)

@@ -14,6 +14,7 @@
 #include "execution_lane.h"
 
 typedef struct SemanticResult SemanticResult;
+typedef struct AIRSourceOriginWitness AIRSourceOriginWitness;
 
 typedef enum
 {
@@ -166,6 +167,11 @@ typedef struct
     size_t          step_index;
     ASTNode        *ast;
     uint32_t        source_stable_id;
+    /* IO evidence joins the original routine/intent owner, not a name-only
+       foreign scope. Deferred IO also retains its outer registration. */
+    const ASTNode  *io_owner_ast;
+    uint32_t        io_owner_syntax_id;
+    uint32_t        io_defer_registration_syntax_id;
     AIRSyncClass    sync_class;
     bool            authority_required;
     bool            source_from_intent_default;
@@ -332,6 +338,8 @@ typedef struct {
 
 typedef struct AIRProgram
 {
+    uint32_t         source_program_syntax_id;
+    AIRSourceOriginWitness *source_origin;
     AIRIntentNode   *intents;
     size_t           intent_count;
     AIRBoundaryNode *boundaries;
@@ -427,6 +435,12 @@ AIRProgram *air_synthesize(const HIRProgram *hir,
                            const DIRProgram *dir,
                            const RIRProgram *rir,
                            char **error_message);
+bool        air_source_program_current(const AIRProgram *air,
+                                       const ASTNode *expected_program);
+bool        air_mir_source_current(const AIRProgram *air,
+                                   const MIRProgram *mir);
+bool        air_mir_evidence_binding_current(const AIRProgram *air,
+                                             const MIRProgram *mir);
 bool        air_validate(const AIRProgram *air, char **error_message);
 bool        air_verify(AIRProgram *air, char **error_message);
 bool        air_check_drift(AIRProgram *air, char **error_message);

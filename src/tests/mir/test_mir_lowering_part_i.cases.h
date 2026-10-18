@@ -647,6 +647,8 @@ test_mir_lowering_part_i(void)
         const MIRParallelCaptureDispositionRow *row = NULL;
         char *mir_error = NULL;
         bool rejected_unsealed = false;
+        bool rejected_boundary_count = false;
+        bool rejected_row_count = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
 
         if (ok && mir_parallel_capture_boundary_count(mir) == 1) {
@@ -660,11 +662,33 @@ test_mir_lowering_part_i(void)
                           "MIR parallel capture boundary[0] has invalid shape")
                     != NULL;
             boundary->sealed = true;
+            size_t saved_boundary_count =
+                mir->parallel_capture_boundary_count;
+            size_t saved_row_count = boundary->row_count;
+            mir->parallel_capture_boundary_count =
+                mir->parallel_capture_boundary_capacity + 1;
+            rejected_boundary_count =
+                mir_parallel_capture_boundary_at(mir, 0) == NULL
+                && mir_parallel_capture_boundary_find(
+                    mir, boundary->source_stable_id) == NULL
+                && !mir_validate_parallel_capture_facts(mir, NULL)
+                && !mir_validate(mir, NULL);
+            mir->parallel_capture_boundary_count = saved_boundary_count;
+            boundary->row_count = boundary->row_capacity + 1;
+            rejected_row_count =
+                mir_parallel_capture_disposition_find(
+                    boundary, "x", MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY) == NULL
+                && !mir_validate_parallel_capture_facts(mir, NULL)
+                && !mir_validate(mir, NULL);
+            boundary->row_count = saved_row_count;
         }
         EXPECT(ok
                && boundary != NULL
+               && mir->parallel_capture_boundary_capacity
+                    >= mir->parallel_capture_boundary_count
                && boundary->source_stable_id != 0
                && boundary->task_count == 2
+               && boundary->row_capacity >= boundary->row_count
                && boundary->row_count == 1
                && row != NULL
                && row->kind == MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
@@ -673,11 +697,176 @@ test_mir_lowering_part_i(void)
                     boundary, "seen", MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY)
                     == NULL
                && rejected_unsealed
+               && rejected_boundary_count
+               && rejected_row_count
                && mir_validate(mir, NULL));
         free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+    }
+
+    TEST("MIR import rejects semantic parallel capture counts beyond storage");
+    {
+        const char *src =
+            "func Main() -> Void {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
+            "    var x: Int = 1;\n"
+            "    var seen: Int = -1;\n"
+            "    parallel {\n"
+            "        { x = x + 41; ch <- 1; }\n"
+            "        { let go: Int = <- ch; seen = x + go - go; }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(src);
+        Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+        ASTNode *program = parser != NULL ? parser_parse_program(parser) : NULL;
+        SemanticResult *semantic = program != NULL
+            ? semantic_analyze(program) : NULL;
+        MIRProgram *imported = calloc(1, sizeof(*imported));
+        char *import_error = NULL;
+        bool setup = semantic != NULL && semantic->success
+            && semantic->parallel_capture_boundary_count == 1
+            && semantic->parallel_capture_boundary_capacity
+                >= semantic->parallel_capture_boundary_count
+            && semantic->parallel_capture_boundaries != NULL
+            && semantic->parallel_capture_boundaries[0].row_count == 1
+            && semantic->parallel_capture_boundaries[0].row_capacity
+                >= semantic->parallel_capture_boundaries[0].row_count
+            && imported != NULL;
+        bool rejected_boundary_count = false;
+        bool rejected_row_count = false;
+        bool rejected_missing_boundary_storage = false;
+        bool rejected_missing_row_storage = false;
+        bool initialized_capacity_tail = true;
+        bool restored_import = false;
+
+        if (setup) {
+            SemanticParallelCaptureBoundaryFact *boundary =
+                &semantic->parallel_capture_boundaries[0];
+            SemanticParallelCaptureBoundaryFact *saved_boundaries =
+                semantic->parallel_capture_boundaries;
+            SemanticParallelCaptureDispositionRow *saved_rows = boundary->rows;
+            size_t saved_boundary_count =
+                semantic->parallel_capture_boundary_count;
+            size_t saved_row_count = boundary->row_count;
+
+            for (size_t i = semantic->parallel_capture_boundary_count;
+                 i < semantic->parallel_capture_boundary_capacity; i++) {
+                const SemanticParallelCaptureBoundaryFact *tail =
+                    &semantic->parallel_capture_boundaries[i];
+                initialized_capacity_tail = initialized_capacity_tail
+                    && tail->source_stable_id == 0
+                    && tail->task_count == 0
+                    && !tail->sealed
+                    && tail->rows == NULL
+                    && tail->row_count == 0
+                    && tail->row_capacity == 0;
+            }
+            for (size_t i = boundary->row_count;
+                 i < boundary->row_capacity; i++) {
+                initialized_capacity_tail = initialized_capacity_tail
+                    && boundary->rows[i].name == NULL
+                    && boundary->rows[i].writer_task == 0;
+            }
+
+            semantic->parallel_capture_boundaries = NULL;
+            rejected_missing_boundary_storage =
+                !mir_import_parallel_capture_facts(
+                    imported, semantic, &import_error)
+                && imported->parallel_capture_boundaries == NULL
+                && imported->parallel_capture_boundary_count == 0
+                && imported->parallel_capture_boundary_capacity == 0
+                && !imported->parallel_capture_facts_imported;
+            free(import_error);
+            import_error = NULL;
+            semantic->parallel_capture_boundaries = saved_boundaries;
+
+            boundary->rows = NULL;
+            rejected_missing_row_storage =
+                !mir_import_parallel_capture_facts(
+                    imported, semantic, &import_error)
+                && imported->parallel_capture_boundaries == NULL
+                && imported->parallel_capture_boundary_count == 0
+                && imported->parallel_capture_boundary_capacity == 0
+                && !imported->parallel_capture_facts_imported;
+            free(import_error);
+            import_error = NULL;
+            boundary->rows = saved_rows;
+
+            semantic->parallel_capture_boundary_count =
+                semantic->parallel_capture_boundary_capacity + 1;
+            rejected_boundary_count =
+                semantic_result_parallel_capture_boundary_at(semantic, 0)
+                    == NULL
+                && !mir_import_parallel_capture_facts(
+                    imported, semantic, &import_error)
+                && imported->parallel_capture_boundaries == NULL
+                && imported->parallel_capture_boundary_count == 0
+                && imported->parallel_capture_boundary_capacity == 0;
+            free(import_error);
+            import_error = NULL;
+            semantic->parallel_capture_boundary_count = saved_boundary_count;
+
+            boundary->row_count = boundary->row_capacity + 1;
+            rejected_row_count = !mir_import_parallel_capture_facts(
+                    imported, semantic, &import_error)
+                && imported->parallel_capture_boundaries == NULL
+                && imported->parallel_capture_boundary_count == 0
+                && imported->parallel_capture_boundary_capacity == 0;
+            free(import_error);
+            import_error = NULL;
+            boundary->row_count = saved_row_count;
+
+            restored_import = mir_import_parallel_capture_facts(
+                    imported, semantic, &import_error)
+                && mir_validate_parallel_capture_facts(imported, NULL)
+                && imported->parallel_capture_boundary_count == 1
+                && imported->parallel_capture_boundary_capacity == 1
+                && imported->parallel_capture_boundaries[0].row_count == 1
+                && imported->parallel_capture_boundaries[0].row_capacity == 1;
+        }
+        EXPECT(setup && initialized_capacity_tail
+               && rejected_missing_boundary_storage
+               && rejected_missing_row_storage
+               && rejected_boundary_count && rejected_row_count
+               && restored_import);
+        free(import_error);
+        mir_parallel_capture_facts_clear(imported);
+        free(imported);
+        semantic_result_destroy(semantic);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("MIR empty parallel capture import is explicit and restartable");
+    {
+        SemanticResult semantic = {0};
+        MIRProgram imported = {0};
+        char *import_error = NULL;
+        bool first_import = mir_import_parallel_capture_facts(
+                &imported, &semantic, &import_error)
+            && imported.parallel_capture_facts_imported
+            && imported.parallel_capture_boundaries == NULL
+            && imported.parallel_capture_boundary_count == 0
+            && imported.parallel_capture_boundary_capacity == 0;
+        bool duplicate_rejected = !mir_import_parallel_capture_facts(
+                &imported, &semantic, &import_error)
+            && imported.parallel_capture_facts_imported
+            && imported.parallel_capture_boundaries == NULL
+            && imported.parallel_capture_boundary_count == 0
+            && imported.parallel_capture_boundary_capacity == 0;
+        free(import_error);
+        import_error = NULL;
+        mir_parallel_capture_facts_clear(&imported);
+        bool restarted = !imported.parallel_capture_facts_imported
+            && mir_import_parallel_capture_facts(
+                &imported, &semantic, &import_error)
+            && imported.parallel_capture_facts_imported;
+        EXPECT(first_import && duplicate_rejected && restarted);
+        free(import_error);
+        mir_parallel_capture_facts_clear(&imported);
     }
 
     TEST("MIR owns parallel join index and readonly capture facts");

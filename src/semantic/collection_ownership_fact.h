@@ -13,6 +13,10 @@ typedef struct PgyCollectionEffectSnapshot PgyCollectionEffectSnapshot;
 typedef struct {
     const ASTNode *decl, *body;
     uint32_t decl_id, body_id;
+    size_t independent_string_result_count;
+    size_t independent_string_write_count;
+    size_t independent_string_execution_count;
+    size_t independent_string_write_execution_count;
 } PgyCollectionEffectCaller;
 typedef struct {
     const ASTNode *call;
@@ -29,6 +33,7 @@ typedef struct {
     size_t string_definition_count;
     size_t string_write_count;
     size_t permanent_element_count;
+    size_t independent_string_result_count;
 } PgyCollectionEffectView;
 /* Moves existing caller claims after the last semantic consumer. No further
  * semantic queries may run after a successful take. This grants no permission. */
@@ -56,6 +61,15 @@ bool semantic_collection_effect_snapshot_source_value(const PgyCollectionEffectS
     uint32_t caller_id, const ASTNode *value);
 bool semantic_collection_effect_snapshot_source_evaluation(const PgyCollectionEffectSnapshot *snapshot,
     uint32_t caller_id, const ASTNode *value);
+/* A reusable String result has one original static executable CALL occurrence.
+ * Unrelated values return SIZE_MAX; callers consume an admitted ordinal once. */
+bool semantic_collection_effect_snapshot_source_occurrence(const PgyCollectionEffectSnapshot *snapshot,
+    uint32_t caller_id, const ASTNode *value, const ASTNode *execution_root, size_t *ordinal);
+/* After the synchronous snapshot boundary, executable visits must match the
+ * original required static ReadFile CALL and direct-definition set exactly. */
+bool semantic_collection_effect_snapshot_source_execution_complete(
+    const PgyCollectionEffectSnapshot *snapshot, uint32_t caller_id,
+    const bool *occurrences, size_t occurrence_count, const bool *writes, size_t write_count);
 bool semantic_collection_effect_snapshot_source_definition(const PgyCollectionEffectSnapshot *snapshot,
     uint32_t caller_id, uint32_t binding_id, bool initialization,
     const ASTNode *statement, const ASTNode *place, const ASTNode *value,
