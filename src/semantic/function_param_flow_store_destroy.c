@@ -112,11 +112,20 @@ bool function_param_flow_no_store_member_admitted(
 }
 /* The union is one admitted set in this demand, not copied per root. Replaying
  * it checks every premise, including edges into the set. An epoch alone is
- * never permission; current typed facts and exact membership must still join. */
+ * never permission; current typed facts and exact membership must still join.
+ * The set only grows within a demand and its typed inputs are sealed, so a
+ * query without a capture replays only the members added since the last
+ * complete replay in this demand. A capture needs every member, and
+ * PGY_VERIFY_FLOW_CURRENCY_MEMO replays all of them. */
 bool function_param_flow_no_store_admitted_current(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowInputCapture capture, void *user)
 {
-    for (size_t m = 0; m < store->admitted_no_store_count; m++) {
+    size_t first = capture == NULL && store->demand_epoch != 0 &&
+        store->admitted_no_store_replayed_epoch == store->demand_epoch &&
+        store->admitted_no_store_replayed_count <= store->admitted_no_store_count &&
+        getenv("PGY_VERIFY_FLOW_CURRENCY_MEMO") == NULL
+        ? store->admitted_no_store_replayed_count : 0;
+    for (size_t m = first; m < store->admitted_no_store_count; m++) {
         size_t ordinal = store->admitted_no_store_indexes[m];
         if (!function_param_flow_no_store_member_admitted(store, ordinal)) return false;
         FunctionParamFlowProgramPointIndex *index = &store->program_point_indexes[ordinal];
@@ -139,6 +148,10 @@ bool function_param_flow_no_store_admitted_current(FunctionParamFlowSummaryStore
                 store->program_point_indexes[target].function_decl != callee) return false;
             if (capture != NULL && !capture(store->ctx, decl, NULL, call, user)) return false;
         }
+    }
+    if (capture == NULL) {
+        store->admitted_no_store_replayed_epoch = store->demand_epoch;
+        store->admitted_no_store_replayed_count = store->admitted_no_store_count;
     }
     return true;
 }

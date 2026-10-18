@@ -44,6 +44,8 @@ typedef struct
     bool output_dependencies_ready;
     FunctionParamFlowOutputProducer output_producer;
     FunctionParamFlowSummaryState state;
+    /* Demand epoch of this completed entry's last successful output replay. */
+    size_t output_current_epoch;
 } FunctionParamFlowSummaryEntry;
 
 typedef struct {
@@ -248,6 +250,9 @@ struct FunctionParamFlowSummaryStore
     size_t demand_epoch;
     size_t *admitted_no_store_indexes;
     size_t admitted_no_store_count;
+    /* Prefix of the admitted set already replayed without a capture in this
+     * demand. The set only grows within a demand. */
+    size_t admitted_no_store_replayed_epoch, admitted_no_store_replayed_count;
     size_t indexed_statement_visits;
     size_t indexed_program_points;
 };

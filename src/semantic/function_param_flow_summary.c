@@ -146,7 +146,34 @@ static unsigned function_param_flow_evaluate(
     FunctionParamFlowSummaryStore *store,
     size_t index);
 
+static bool function_param_flow_output_replay(FunctionParamFlowSummaryStore *store,
+    size_t entry_index, bool pending_proof);
+
+/* A completed summary's output rests on sealed typed inputs and on frames
+ * that later evaluations in the same demand do not change, so one successful
+ * replay serves that demand. A new demand replays again. With
+ * PGY_VERIFY_FLOW_CURRENCY_MEMO set, every reuse also replays and a
+ * divergence fails the store closed. */
 bool function_param_flow_output_current(FunctionParamFlowSummaryStore *store, size_t entry_index, bool pending_proof)
+{
+    if (entry_index >= store->count) return false;
+    bool memo = !pending_proof && store->demand_epoch != 0 &&
+        store->entries[entry_index].state == FUNCTION_PARAM_FLOW_COMPLETE;
+    bool reused = memo && store->entries[entry_index].output_current_epoch == store->demand_epoch;
+    if (reused && getenv("PGY_VERIFY_FLOW_CURRENCY_MEMO") == NULL) return true;
+    bool current = function_param_flow_output_replay(store, entry_index, pending_proof);
+    if (reused && !current) {
+        function_param_flow_fail(store, store->entries[entry_index].function_decl,
+            "completed output currency memo diverged from its replay");
+        return false;
+    }
+    /* The replay may grow the entries array; reacquire by index. */
+    if (memo) store->entries[entry_index].output_current_epoch = current ? store->demand_epoch : 0;
+    return current;
+}
+
+static bool function_param_flow_output_replay(FunctionParamFlowSummaryStore *store,
+    size_t entry_index, bool pending_proof)
 {
     if (entry_index >= store->count) return false;
     if (store->entries[entry_index].analysis_unsupported) return function_param_flow_unproved_current(store, entry_index);

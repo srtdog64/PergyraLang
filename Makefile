@@ -2729,6 +2729,7 @@ compatibility-evolution-native-test-smoke: $(PGY)
 function-param-flow-summary-test-smoke: readonly-map-query-fact-phase-test
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
+	PGY_VERIFY_FLOW_CURRENCY_MEMO=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
 
 .PHONY: readonly-map-query-test-smoke
 readonly-map-query-test-smoke: $(PGY) $(BIN_DIR)/readonly_map_query_fact_phase_unit$(EXEEXT)
