@@ -1,0 +1,29 @@
+// A by-value zone copy shares the Array storage its subject holds, as a
+// struct copy does, so a `ref self` method may not return its zone.
+subject Keeper {
+    let names: Array<String>;
+    action Count(self) -> Void {
+        let n: Int = ArrayLength(names);
+    }
+}
+
+zone KeepZone {
+    subject slot keeper: Keeper
+    authority keeper
+}
+
+world KeepWorld {
+    zone keeping: KeepZone
+    activate keeping
+
+    func Zone(ref self) -> KeepZone {
+        return keeping;
+    }
+}
+
+func Main() -> Int {
+    let world: KeepWorld = KeepWorld(KeepZone(Keeper(["a"])));
+    let zone_copy: KeepZone = world.Zone();
+    Print("ok");
+    return 0;
+}

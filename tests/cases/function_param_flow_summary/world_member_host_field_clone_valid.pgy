@@ -1,0 +1,46 @@
+// A world member reads its zone through a host field. The field is the
+// method's `self` storage, so the request's flow through the clone and the
+// subject action is complete; the result carries only the request.
+struct Request {
+    names: Array<String>;
+}
+
+struct Taken {
+    names: Array<String>;
+    count: Int;
+}
+
+subject Holder {
+    let outcome: Option<Taken>;
+    action Take(self, request: Request) -> Void {
+        outcome = Some(Taken(request.names, ArrayLength(request.names)));
+    }
+}
+
+zone HolderZone {
+    subject slot holder: Holder
+    authority holder
+}
+
+world HolderWorld {
+    zone holding: HolderZone
+    activate holding
+
+    func Run(self, request: Request) -> Taken {
+        let copy: Holder = Clone(holding.holder);
+        copy.Take(request);
+        if !IsSome(copy.outcome) {
+            let empty: Array<String> = [];
+            return Taken(empty, 0);
+        }
+        return UnwrapOption(copy.outcome);
+    }
+}
+
+func Main() -> Int {
+    let world: HolderWorld = HolderWorld(HolderZone(Holder(None)));
+    let names: Array<String> = ["a", "b"];
+    let taken: Taken = world.Run(Request(names));
+    Print(ToString(taken.count));
+    return 0;
+}

@@ -192,6 +192,10 @@ type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
         return false;
 
     decl = semantic_host_decl_for_type(ctx, type);
+    /* A world or zone value is copied field by field, as a struct is, so a
+     * copy shares the storage its fields own. */
+    if (decl != NULL && (decl->type == AST_WORLD_DECL || decl->type == AST_ZONE_DECL))
+        return true;
     if (decl == NULL || decl->type != AST_CLASS_DECL)
         return false;
 

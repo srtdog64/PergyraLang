@@ -185,6 +185,10 @@ release_lifetime_refusals = {
         (*borrow_refusal, 13, 6), (*borrow_refusal, 13, 6),
         (*borrow_refusal, 13, 6),
         (*borrow_refusal, 14, 30), (*borrow_refusal, 20, 30)],
+    # A host field is `self` storage; these returns of it are refused as
+    # `self` escapes, not by an incomplete frame.
+    "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
+    "method_self_array_field_return_invalid": [(*borrow_refusal, 7, 10)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -650,6 +654,11 @@ paired = (
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),
     ("string_element_push_copy_landing_mixed_invalid", False),
+    ("world_ref_self_scalar_result_valid", True),
+    ("world_ref_self_member_return_invalid", False),
+    ("method_self_array_field_length_valid", True),
+    ("method_self_array_field_return_invalid", False),
+    ("world_member_host_field_clone_valid", True),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

@@ -26,6 +26,20 @@ bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *c
     return true;
 }
 
+/* The frame row of the binding an identifier names. A host field is a
+ * field of the routine's `self`, so its storage is the self parameter's. */
+static FunctionParamFlowBackingBinding *backing_identifier_row(ReturnedBacking *state, ASTNode *value)
+{
+    FunctionParamFlowBackingBinding *row = backing_binding(state,
+        semantic_param_publication_binding(state->store->ctx, value), false);
+    if (row != NULL || !ast_identifier_binding_is_host_field(value)) return row;
+    for (size_t p = 0; p < ast_func_param_count(state->decl); p++) {
+        FuncParam *param = ast_func_param(state->decl, p);
+        if (param != NULL && param->type == NULL && param->name != NULL && strcmp(param->name, "self") == 0)
+            return backing_binding(state, ast_func_param_stable_id(param), false);
+    }
+    return NULL;
+}
 static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
 {
     /* A stored value that carries none of this frame's origins moves none
@@ -71,8 +85,7 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         if (!published.ok) { state->fact->complete = false; return; }
         if ((state->checking_declared_result &&
             semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) || published.meta) return;
-        FunctionParamFlowBackingBinding *source = backing_binding(state,
-            semantic_param_publication_binding(state->store->ctx, value), false);
+        FunctionParamFlowBackingBinding *source = backing_identifier_row(state, value);
         if (source == NULL) { state->fact->complete = false; return; }
         source->destination_read_epoch = state->fact->epoch;
         backing_merge(state->fact->destination_words, destinations, source->destinations);
@@ -325,7 +338,7 @@ static const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
         if (semantic_param_publication_slot_token_operand(state->store->ctx, node) ||
             (value.ok && (value.meta || value.origin_ready))) return &zero;
         if (!value.ok || binding == 0) { fact->complete = false; return NULL; }
-        FunctionParamFlowBackingBinding *source = backing_binding(state, binding, false);
+        FunctionParamFlowBackingBinding *source = backing_identifier_row(state, node);
         if (source == NULL) { fact->complete = false; return NULL; }
         source->origin_read_epoch = fact->epoch;
         uint64_t bits = source->origins[0];

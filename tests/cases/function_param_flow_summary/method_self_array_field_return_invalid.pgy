@@ -1,0 +1,18 @@
+// A by-value `self` is a field-by-field copy of the receiver, so a host
+// Array field it returns still shares the receiver's storage: growing the
+// result could leave the receiver reading freed storage.
+class Bag {
+    let names: Array<String>;
+
+    func Names(self) -> Array<String> {
+        return names;
+    }
+}
+
+func Main() -> Int {
+    let bag: Bag = Bag(["a"]);
+    let names: Array<String> = bag.Names();
+    ArrayPush(names, "b");
+    Print(bag.names[0]);
+    return 0;
+}

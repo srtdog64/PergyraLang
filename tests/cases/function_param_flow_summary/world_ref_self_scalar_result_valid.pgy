@@ -1,0 +1,29 @@
+// A `ref self` method whose result is a scalar lets no self storage out.
+subject Keeper {
+    let names: Array<String>;
+    action Count(self) -> Void {
+        let n: Int = ArrayLength(names);
+    }
+}
+
+zone KeepZone {
+    subject slot keeper: Keeper
+    authority keeper
+}
+
+world KeepWorld {
+    zone keeping: KeepZone
+    activate keeping
+
+    func Width(ref self) -> Int {
+        return 7;
+    }
+}
+
+func Main() -> Int {
+    let world: KeepWorld = KeepWorld(KeepZone(Keeper(["a"])));
+    if world.Width() == 7 {
+        Print("ok");
+    }
+    return 0;
+}

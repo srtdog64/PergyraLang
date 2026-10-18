@@ -1,0 +1,17 @@
+// A by-value `self` method that only reads its host Array field returns
+// none of the receiver's storage.
+class Bag {
+    let names: Array<String>;
+
+    func Count(self) -> Int {
+        return ArrayLength(names);
+    }
+}
+
+func Main() -> Int {
+    let bag: Bag = Bag(["a"]);
+    if bag.Count() == 1 {
+        Print(bag.names[0]);
+    }
+    return 0;
+}

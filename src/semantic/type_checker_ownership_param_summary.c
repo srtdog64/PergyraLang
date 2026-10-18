@@ -160,7 +160,11 @@ semantic_check_param_summary_escapes(ASTNode *node,
         unsigned summary_mask;
         OwnershipTypeClass ownership_class;
 
-        if (param == NULL || param->name == NULL || param->type == NULL)
+        /* A method's `self` has no annotation; its resolved type is still
+         * the routine's, and its escapes are checked like any parameter's. */
+        bool self_param = param != NULL && param->type == NULL && param->name != NULL &&
+            strcmp(param->name, "self") == 0 && param_types[i] != NULL && param_types[i] != TYPE_UNKNOWN;
+        if (param == NULL || param->name == NULL || (param->type == NULL && !self_param))
             continue;
         if (array_result_borrowed_formal(function_type, param_types[i], param->mode, ctx)) {
             summary_mask = semantic_callable_param_escape_summary(node, i, ctx);
