@@ -129,6 +129,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 display_name != NULL ? display_name : "<variant>");
             return TYPE_UNKNOWN;
         }
+        /* The constructed value's type is the selected enum; its result
+         * relation receipt names that type, as a checked Clone does. */
+        if (ast_call_semantic_value_type_name(expr) == NULL &&
+            !ast_call_set_semantic_value_type_name_copy(expr, result->name)) {
+            semantic_error(ctx, expr, "Enum constructor result type snapshot allocation failed");
+            return TYPE_UNKNOWN;
+        }
     }
     if (ctx != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {

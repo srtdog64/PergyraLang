@@ -87,6 +87,11 @@ release_lifetime_refusals = {
     # stored field; without it only the assignment refusal would remain.
     "owned_param_field_store_ref_return_invalid": [
         (*borrow_refusal, 0, 0), (*borrow_refusal, 8, 6), (*borrow_refusal, 17, 44)],
+    # 22:6 is the enum payload carrying the ref input out of Route; an enum
+    # constructor without its result relation would lose it.
+    "enum_payload_constructor_ref_field_return_invalid": [
+        (*borrow_refusal, 18, 6), (*borrow_refusal, 22, 6),
+        (*borrow_refusal, 26, 30), (*borrow_refusal, 31, 34)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -633,6 +638,11 @@ paired = (
     ("inout_owned_param_self_flow_valid", True),
     ("inout_owned_param_input_return_moves_invalid", False),
     ("owned_param_field_store_ref_return_invalid", False),
+    ("string_element_read_only_named_call_valid", True),
+    ("string_element_returned_by_named_call_invalid", False),
+    ("string_element_inout_owner_named_call_invalid", False),
+    ("enum_payload_constructor_value_result_valid", True),
+    ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

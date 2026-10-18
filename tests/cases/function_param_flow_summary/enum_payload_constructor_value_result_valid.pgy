@@ -1,0 +1,37 @@
+// A payload enum constructor stores its argument in the value it returns,
+// as a struct constructor does, so a by-value input flows to the result.
+struct Refusal {
+    owner: String;
+    stage: String;
+}
+
+enum Payload {
+    Emitted(String),
+    Refused(Refusal),
+}
+
+struct Admission {
+    owner: String;
+    stage: String;
+}
+
+func RefusalOf(admission: Admission) -> Refusal {
+    return Refusal(admission.owner, admission.stage);
+}
+
+func Route(admission: Admission, count: Int) -> Payload {
+    if count == 3 {
+        return Emitted("emitted");
+    }
+    return Refused(RefusalOf(admission));
+}
+
+func Main() -> Int {
+    let admission: Admission = Admission("owner", "stage");
+    let payload: Payload = Route(admission, 1);
+    match payload {
+        case Emitted(text): Print(text);
+        case Refused(refusal): Print(refusal.owner);
+    }
+    return 0;
+}

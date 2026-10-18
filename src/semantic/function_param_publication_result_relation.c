@@ -14,6 +14,24 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
     if (row->nominal_result != NULL) {
         *result_depends = true; *external_retains = false; return true;
     }
+    if (row->declaration != 0 && row->value_type != NULL && row->value_type->kind == TYPE_KIND_ENUM) {
+        /* A payload enum constructor stores its arguments in the value it
+         * returns, as a struct constructor does, and keeps nothing else.
+         * Only the exact variant of the result's own enum qualifies. */
+        ASTNode *owner = semantic_host_decl_for_type((SemanticContext *)ctx, row->value_type);
+        size_t count = 0;
+        char **variants = owner != NULL && owner->type == AST_ENUM_DECL ? ast_enum_variants(owner, &count) : NULL;
+        bool variant = false;
+        for (size_t i = 0; variants != NULL && i < count; i++)
+            if (variants[i] != NULL && row->target_name != NULL && strcmp(variants[i], row->target_name) == 0 &&
+                ast_enum_variant_param_count(owner, i) == row->argument_count) variant = true;
+        const char *result_name = ast_call_semantic_value_type_name(call);
+        if (!variant || ast_node_stable_id(owner) != row->declaration || row->value_binding != 0 ||
+            row->stdlib || row->argument_count == 0 || ordinal >= row->argument_count ||
+            result_name == NULL || row->value_type->name == NULL ||
+            strcmp(result_name, row->value_type->name) != 0) return false;
+        *result_depends = true; *external_retains = false; return true;
+    }
     if (row->builtin == BUILTIN_CLONE) {
         /* C and LLVM lower Clone of an Array of physical scalars or Strings
          * to the runtime pgy_array_clone_<T>: new storage, every String
