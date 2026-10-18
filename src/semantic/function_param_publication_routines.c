@@ -242,15 +242,26 @@ bool semantic_param_publication_ref_call_current(const SemanticContext *ctx, con
         row->callee_id != ast_node_stable_id(row->callee) || row->caller == NULL ||
         row->caller_id != ast_node_stable_id(row->caller) || row->call_target != ast_call_callee(row->call) ||
         row->call_target_id != ast_node_stable_id(row->call_target) || row->argument_count != ast_call_arg_count(row->call) ||
-        !type_equals(row->type, TYPE_STRING) ||
         !semantic_param_publication_routine_inputs_current(ctx, row->caller, true) ||
         semantic_param_publication_callee(ctx, row->call, row->ordinal) != row->callee) return false;
     PublishedNode *actual = publication_current_value(ctx, row->site);
     PublishedNode *result = publication_current_value(ctx, row->call);
     const PendingRoutine *callee = publication_routine(ctx->function_param_publications, row->callee_id);
-    return actual != NULL && actual->string_value && result != NULL && result->string_value &&
-        callee != NULL && formal < callee->count && type_equals(callee->types[formal], TYPE_STRING) &&
-        type_equals(callee->return_type, TYPE_STRING);
+    if (actual == NULL || result == NULL || callee == NULL || formal >= callee->count) return false;
+    if (!semantic_param_publication_string_loan_type(callee->return_type) ||
+        !type_equals(result->value_type, callee->return_type)) return false;
+    if (type_equals(row->type, TYPE_STRING))
+        return actual->string_value && type_equals(callee->types[formal], TYPE_STRING);
+    /* A borrowed aggregate lends String data only through a String-valued
+     * result; the loan walk then proves the result as a `ref String`'s. */
+    return actual->category == (uint32_t)OWNERSHIP_TYPE_BORROW_TRACKED &&
+        type_equals(actual->value_type, row->type) && type_equals(callee->types[formal], row->type);
+}
+bool semantic_param_publication_string_loan_type(const Type *type)
+{
+    if (type_equals(type, TYPE_STRING)) return true;
+    return type_is_constructed_named(type, "Option") && type_constructed_arg_count(type) == 1 &&
+        type_equals(type_constructed_arg(type, 0), TYPE_STRING);
 }
 bool semantic_param_publication_record_body_call(SemanticContext *ctx, ASTNode *call)
 {

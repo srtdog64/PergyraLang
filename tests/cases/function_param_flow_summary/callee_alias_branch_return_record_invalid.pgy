@@ -5,7 +5,9 @@ func Alias(ref text: String) -> String {
     return alias_text;
 }
 func ReadRecord(ref record: TextRecord) -> String { return Alias(record.text); }
+func KeepRecord(ref record: TextRecord) -> TextRecord { return TextRecord(ReadRecord(record)); }
 func Main() -> Void {
     let record = TextRecord(Concat("heap", " text"));
-    Log(ReadRecord(record));
+    let kept = KeepRecord(record);
+    Log(kept.text);
 }

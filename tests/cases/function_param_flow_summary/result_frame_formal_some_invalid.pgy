@@ -8,8 +8,13 @@ func Leak(ref record: InputRecord) -> Option<String> {
     return Wrap(record.text);
 }
 
+func Keep(ref record: InputRecord) -> InputRecord {
+    let leaked = Leak(record);
+    return InputRecord(UnwrapOption(leaked));
+}
+
 func Main() -> Void {
     let record = InputRecord(Concat("heap", " text"));
-    let leaked = Leak(record);
-    Log(StringLength(UnwrapOption(leaked)));
+    let kept = Keep(record);
+    Log(StringLength(kept.text));
 }

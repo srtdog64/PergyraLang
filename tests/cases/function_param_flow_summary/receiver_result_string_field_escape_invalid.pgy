@@ -6,16 +6,21 @@ class Holder {
     }
 }
 
+struct Echoed {
+    text: String;
+}
+
 func EchoWrapper(ref holder: Holder) -> String {
     return holder.Echo();
 }
 
-func Inspect(ref holder: Holder) -> Option<Int> {
+func Inspect(ref holder: Holder) -> Echoed {
     let echoed = EchoWrapper(holder);
-    return Some(StringLength(echoed));
+    return Echoed(echoed);
 }
 
 func Main() -> Void {
     let holder = Holder(Concat("q", ""));
-    Log(UnwrapOption(Inspect(holder)));
+    let inspected = Inspect(holder);
+    Log(StringLength(inspected.text));
 }

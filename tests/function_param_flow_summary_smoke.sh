@@ -175,13 +175,13 @@ release_lifetime_refusals = {
     "nonowner_risk_safe_then_owned_invalid": [(*borrow_refusal, 16, 13)],
     "nonowner_risk_owned_then_safe_invalid": [(*borrow_refusal, 15, 13)],
     "nonowner_risk_lambda_capture_invalid": [(*borrow_refusal, 16, 56)],
-    # The String-field getter returns its receiver's storage: returning it
-    # from the borrowed holder is the escape (9:6), and passing the borrowed
-    # holder into that wrapper is refused at the call (14:30). Inspect only
-    # measures the String, so it and Main are not refused. Do not treat this
-    # as a physical-storage grant.
+    # The String-field getter returns its receiver's storage. EchoWrapper's
+    # String value lends it, a loan its callers prove; Inspect stores that
+    # loan in the struct it returns, which is the escape (17:6), refused
+    # again where Main passes its holder (24:29). Do not treat this as a
+    # physical-storage grant.
     "receiver_result_string_field_escape_invalid": [
-        (*borrow_refusal, 9, 6), (*borrow_refusal, 14, 30)],
+        (*borrow_refusal, 17, 6), (*borrow_refusal, 24, 29)],
     # A host field is `self` storage; these returns of it are refused as
     # `self` escapes, not by an incomplete frame.
     "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
@@ -206,6 +206,13 @@ release_lifetime_refusals = {
     # A Slice view is its receiver's storage: returning a view of a borrowed
     # Array is the one return escape, not every escape.
     "slice_view_ref_return_invalid": [(*borrow_refusal, 3, 6), (*borrow_refusal, 9, 35)],
+    # A String getter of a borrowed aggregate lends its result; the struct
+    # LabelOf returns carries that loan past the borrow.
+    "aggregate_string_loan_struct_escape_invalid": [(*borrow_refusal, 18, 6), (*borrow_refusal, 28, 32)],
+    # The loan's owner is Make's own aggregate, so its return is refused.
+    "aggregate_string_loan_local_owner_invalid": [(*borrow_refusal, 13, 5)],
+    # A loan used only in Main still needs an owner Main does not change.
+    "aggregate_string_loan_owner_mutated_invalid": [(*borrow_refusal, 14, 24)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -689,6 +696,11 @@ paired = (
     ("intent_step_unsupported_route_valid", True),
     ("slice_view_scalar_read_valid", True),
     ("slice_view_ref_return_invalid", False),
+    ("aggregate_string_loan_getter_valid", True),
+    ("aggregate_string_loan_struct_escape_invalid", False),
+    ("aggregate_string_loan_local_owner_invalid", False),
+    ("aggregate_string_loan_owner_mutated_invalid", False),
+    ("ref_string_option_loan_forward_valid", True),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:
@@ -805,10 +817,11 @@ for name, valid in paired:
             "direct_ref_string_alias_named_invalid": [(5, 14)],
             "recursive_record_wrapper_control_invalid": [(11, 6), (17, 23)],
             "nested_call_retaining_input_invalid": [(7, 6), (8, 24), (13, 17)],
-            # The returned formal is refused in the callee before any unsafe
-            # caller artifact is emitted or executed.
-            "result_frame_formal_return_invalid": [(7, 6), (13, 27)],
-            "result_frame_formal_some_invalid": [(7, 6), (8, 12), (13, 23)],
+            # Leak lends its record's String; Keep stores that loan in the
+            # record it returns, so Keep is refused before any unsafe caller
+            # artifact is emitted or executed.
+            "result_frame_formal_return_invalid": [(11, 6), (17, 21)],
+            "result_frame_formal_some_invalid": [(11, 6), (18, 21)],
             "result_frame_formal_nominal_invalid": [(8, 6), (9, 12), (14, 23)],
             "result_frame_formal_array_push_invalid": [(9, 6), (10, 12), (15, 23)],
             "physical_call_alias_nested_retain_invalid": [(16, 52), (22, 28)],
@@ -902,7 +915,9 @@ for name, valid in paired:
             "array_result_local_owned_element_index_assign_invalid": [(6, 27)],
             "array_result_local_owned_element_field_retention_invalid": [(8, 21)],
             "array_result_owned_element_inout_escape_invalid": [(10, 18), (8, 6), (17, 21)],
-            "array_result_owned_element_direct_return_invalid": [(10, 16), (8, 6), (16, 40)],
+            # CaptureDirect lends an element; Main drops the Array's Strings
+            # while that loan is still to be logged.
+            "array_result_owned_element_direct_return_invalid": [(10, 16), (16, 26)],
             "array_result_owned_element_tuple_direct_invalid": [(9, 33)],
             "array_result_owned_element_tuple_binding_invalid": [(9, 21)],
             "array_result_owned_element_tuple_return_invalid": [(8, 17), (7, 6), (13, 33)],

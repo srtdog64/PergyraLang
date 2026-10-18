@@ -1,0 +1,31 @@
+// The getter's String is a loan of the borrowed aggregate. Wrapping it in
+// a struct the caller returns lets the loan outlive the borrow.
+struct Facts {
+    names: Array<String>;
+}
+
+struct Label {
+    text: String;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> Option<String> {
+    if index < 0 || index >= ArrayLength(facts.names) {
+        return None;
+    }
+    return Some(facts.names[index]);
+}
+
+func LabelOf(ref facts: Facts) -> Label {
+    let name: Option<String> = NameAt(facts, 0);
+    if !IsSome(name) {
+        return Label("");
+    }
+    return Label(UnwrapOption(name));
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts(["abc"]);
+    let label: Label = LabelOf(facts);
+    Print(label.text);
+    return 0;
+}

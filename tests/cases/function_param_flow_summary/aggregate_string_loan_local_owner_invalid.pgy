@@ -1,0 +1,19 @@
+// The getter's String is a loan of its aggregate argument. Make owns that
+// aggregate, so returning the loan outlives the owner.
+struct Facts {
+    names: Array<String>;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> String {
+    return facts.names[index];
+}
+
+func Make(n: Int) -> String {
+    let facts: Facts = Facts([StringConcat("ab", ToString(n))]);
+    return NameAt(facts, 0);
+}
+
+func Main() -> Int {
+    Print(Make(7));
+    return 0;
+}

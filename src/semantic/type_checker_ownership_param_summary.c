@@ -33,6 +33,15 @@ static bool array_result_borrowed_formal(Type *function_type, const Type *formal
         semantic_classify_ownership_type(formal_type, ctx) == OWNERSHIP_TYPE_BORROW_TRACKED;
 }
 
+/* A routine whose value is a String, or an Option of one, can hand back
+ * only String data it borrows from a `ref` input: a loan its callers prove
+ * by the returned-loan walk, as for a `ref String` input. */
+static bool string_loan_result(const Type *function_type)
+{
+    return function_type != NULL &&
+        semantic_param_publication_string_loan_type(type_function_return_type(function_type));
+}
+
 bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticParamPublicationView *view)
 {
     if (!semantic_param_publication_view_current(ctx, view)) return false;
@@ -93,7 +102,13 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
         unsigned mask = semantic_callable_param_escape_summary(row->callee, formal, ctx);
         ctx->current_function_decl = row->caller;
         ctx->current_module_path = row->module;
-        bool retaining = type_equals(row->type, TYPE_STRING)
+        const PendingRoutine *callee = publication_routine(ctx->function_param_publications, row->callee_id);
+        /* A borrowed aggregate given to a routine whose value is a String
+         * comes back, if at all, as a String loan. */
+        bool string_loan = type_equals(row->type, TYPE_STRING) ||
+            (ast_func_body(row->callee) != NULL && callee != NULL && callee->decl == row->callee &&
+             string_loan_result(callee->function_type));
+        bool retaining = string_loan
             ? ast_func_body(row->callee) == NULL
                 || ((semantic_param_summary_has_call_escape(mask) || semantic_param_summary_has_channel_escape(mask))
                     && !semantic_param_publication_value_has_static_string_backing(ctx, row->site))
@@ -104,7 +119,7 @@ bool semantic_consume_param_publication(SemanticContext *ctx, const SemanticPara
             continue;
         }
         ASTNode *loan_escape = NULL;
-        bool escaped_loan = type_equals(row->type, TYPE_STRING) && !retaining &&
+        bool escaped_loan = string_loan && !retaining &&
             semantic_param_summary_has_return_escape(mask) &&
             !function_param_flow_return_loan_admitted(ctx, view, row, &loan_escape);
         if (escaped_loan)
@@ -207,7 +222,10 @@ semantic_check_param_summary_escapes(ASTNode *node,
                     OWNERSHIP_CONSUMER_HELPER_CALL, ast_declaration_name(node), NULL);
             continue;
         }
-        if (!string_ref && semantic_param_summary_has_return_escape(summary_mask)) {
+        /* A String value returned from a borrowed aggregate is a loan the
+         * callers prove, as a `ref String` input's is. */
+        if (!string_ref && !string_loan_result(function_type) &&
+            semantic_param_summary_has_return_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
@@ -331,6 +349,8 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
                 }
             }
             if (dependency == NULL) admitted = false;
+            /* A loan that stays here needs only an owner no write reaches. */
+            if (effects == 0) continue;
         } else if (value->type == AST_CALL) {
             bool found = false;
             for (size_t c = 0; c < view->call_count; c++) {
@@ -404,9 +424,14 @@ static bool sparse_loan_admitted(SemanticContext *ctx,
         for (size_t r = 0; r < root_count && fact.complete; r++) backing_consumers(&state, roots[r]);
     } while (fact.changed && fact.complete);
     if (state.escape_site != NULL) *escape_site = state.escape_site;
+    /* A String lent by a borrowed aggregate is that aggregate's storage, so
+     * even a loan used only here needs an owner this routine leaves
+     * unchanged: the source walk proves a `ref` formal or an unmutated local. */
+    bool owner_walk = return_loan != NULL && !type_equals(return_loan->type, TYPE_STRING);
     bool admitted = fact.complete && !fact.pending && state.loan_seed_seen && !store->failed &&
         function_param_flow_program_point_index_build(store, caller, &index) &&
-        (effects == 0 || (return_loan != NULL && returned_loan_sources_admitted(store, index, view, return_loan, effects)));
+        ((effects == 0 && !owner_walk) ||
+         (return_loan != NULL && returned_loan_sources_admitted(store, index, view, return_loan, effects)));
     for (size_t n = 0; n < fact.node_count; n++) free(fact.nodes[n].origins);
     for (size_t b = 0; b < fact.binding_count; b++) { free(fact.bindings[b].origins); free(fact.bindings[b].destinations); }
     free(fact.nodes); free(fact.bindings); free(fact.pending_relations);

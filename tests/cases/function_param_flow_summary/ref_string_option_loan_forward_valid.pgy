@@ -1,0 +1,18 @@
+// Wrap lends its `ref String` input through an Option, and Leak lends the
+// String field of its borrowed record through Wrap. Main only measures the
+// loan while it owns the record, so nothing outlives its owner.
+struct InputRecord { text: String; }
+
+func Wrap(ref input: String) -> Option<String> {
+    return Some(input);
+}
+
+func Leak(ref record: InputRecord) -> Option<String> {
+    return Wrap(record.text);
+}
+
+func Main() -> Void {
+    let record = InputRecord(Concat("heap", " text"));
+    let leaked = Leak(record);
+    Log(StringLength(UnwrapOption(leaked)));
+}

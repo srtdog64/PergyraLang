@@ -1,0 +1,32 @@
+// A getter returns a String element of a borrowed aggregate. Its value is a
+// String, so the element is a loan its callers prove: FirstName hands it
+// back as its own String value and NameLength only measures it.
+struct Facts {
+    names: Array<String>;
+}
+
+func NameAt(ref facts: Facts, index: Int) -> Option<String> {
+    if index < 0 || index >= ArrayLength(facts.names) {
+        return None;
+    }
+    return Some(facts.names[index]);
+}
+
+func FirstName(ref facts: Facts) -> String {
+    let name: Option<String> = NameAt(facts, 0);
+    if !IsSome(name) {
+        return "";
+    }
+    return UnwrapOption(name);
+}
+
+func NameLength(ref facts: Facts) -> Int {
+    return StringLength(FirstName(facts));
+}
+
+func Main() -> Int {
+    let facts: Facts = Facts(["abc"]);
+    Print(FirstName(facts));
+    Print(ToString(NameLength(facts)));
+    return 0;
+}

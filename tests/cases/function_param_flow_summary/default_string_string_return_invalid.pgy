@@ -2,7 +2,11 @@ struct TextRecord { text: String; }
 func ReadRecord(ref record: TextRecord, field: String) -> String {
     return record.text;
 }
+func KeepRecord(ref record: TextRecord) -> TextRecord {
+    return TextRecord(ReadRecord(record, "field"));
+}
 func Main() -> Void {
     let record = TextRecord(Concat("heap", " text"));
-    Log(ReadRecord(record, "field"));
+    let kept = KeepRecord(record);
+    Log(kept.text);
 }
