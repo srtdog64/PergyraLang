@@ -236,6 +236,10 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         break;
     case AST_CALL:
         if (!semantic_param_publication_checked_call(state->store->ctx, value)) { state->fact->complete = false; break; }
+        if (semantic_param_publication_slice_view_receiver(state->store->ctx, value) != NULL) {
+            backing_destination_value(state, semantic_param_publication_slice_view_receiver(state->store->ctx, value), destinations);
+            break;
+        }
         if (function_param_flow_backing_unsupported_call(state->store, state->fact, value)) break;
         if (state->checking_declared_result &&
             semantic_param_publication_direct_callee(state->store->ctx, value) != NULL &&
@@ -483,6 +487,14 @@ const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
     case AST_CALL:
         if (function_param_flow_backing_unsupported_call(state->store, fact, node)) break;
         if (receiver_return != NULL) backing_merge(state->fact->origin_words, origins, receiver_return);
+        ASTNode *viewed = semantic_param_publication_slice_view_receiver(state->store->ctx, node);
+        if (viewed != NULL) {
+            /* A Slice view is the receiver's storage. */
+            const uint64_t *bits = backing_origin(state, viewed);
+            if (bits == NULL) { fact->complete = false; break; }
+            backing_merge(state->fact->origin_words, origins, bits);
+            break;
+        }
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             if (!semantic_param_publication_checked_argument(state->store->ctx, node, i)) { fact->complete = false; break; }
             const uint64_t *bits = backing_origin(state, ast_call_argument(node, i));
@@ -633,6 +645,11 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
     case AST_CALL:
         ASTNode *direct = semantic_param_publication_direct_callee(state->store->ctx, node);
         if (direct == NULL && function_param_flow_intent_call(state, node)) break;
+        if (direct == NULL && semantic_param_publication_slice_view_receiver(state->store->ctx, node) != NULL) {
+            backing_consumers(state, semantic_param_publication_slice_view_receiver(state->store->ctx, node));
+            for (size_t p = 0; p < ast_call_arg_count(node); p++) backing_consumers(state, ast_call_argument(node, p));
+            break;
+        }
         if (direct == NULL && ast_call_semantic_callee_declared_callable(node) &&
             !semantic_param_publication_bodyless_selected_call_current(state->store->ctx, node)) {
             fact->complete = false; break;

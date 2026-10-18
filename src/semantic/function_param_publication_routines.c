@@ -448,7 +448,16 @@ bool semantic_param_publication_call_analysis_unmodelled(
         row->value_type != TYPE_VOID && !publication_physical_scalar(row->value_type) &&
         !row->origin_ready && !(row->string_value && semantic_indexed_string_independent_result(call, ctx)) &&
         !semantic_typed_map_query_fact_issued(ctx, call) &&
-        !semantic_typed_map_query_result_independent(ctx, call)) return true;
+        !semantic_typed_map_query_result_independent(ctx, call)) {
+        /* A checked relation for every argument models the call. */
+        bool related = row->argument_count != 0;
+        for (size_t i = 0; related && i < row->argument_count; i++) {
+            bool depends = false, retains = false;
+            related = semantic_param_publication_checked_backing_relation(ctx, call, i, &depends, &retains);
+        }
+        return !related;
+    }
+    if (semantic_param_publication_slice_view_receiver(ctx, call) != NULL) return false;
     if (row->target_shape == AST_MEMBER_ACCESS) {
         const ASTNode *receiver = ast_member_object(row->target);
         PublishedNode *value = publication_current_value(ctx, receiver);

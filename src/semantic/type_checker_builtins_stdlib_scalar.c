@@ -343,7 +343,14 @@ stdlib_scalar_check_string_split(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     stdlib_scalar_require_string_arg(expr, 0, ctx);
     stdlib_scalar_require_string_arg(expr, 1, ctx);
-    return type_create_constructed(TYPE_ARRAY, args, 1);
+    Type *result = type_create_constructed(TYPE_ARRAY, args, 1);
+    /* The parameter-flow result relation reads this sealed receipt. */
+    if (result == NULL || result->name == NULL ||
+        !ast_call_set_semantic_value_type_name_copy(expr, result->name)) {
+        semantic_error(ctx, expr, "Split result type receipt could not be recorded");
+        return TYPE_UNKNOWN;
+    }
+    return result;
 }
 
 /* ToInt and ToFloat parse text: the runtime reads the argument as a C

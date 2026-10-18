@@ -196,14 +196,16 @@ release_lifetime_refusals = {
     # A receiver the action changes follows its self formal's summary: the
     # action returns its subject's storage, so the borrowed world escapes.
     "subject_action_returns_self_ref_invalid": [(*borrow_refusal, 25, 6), (*borrow_refusal, 31, 28)],
-    # An action whose self summary is unsupported lets its receiver out every
-    # way (return, channel, call); the frame is unsupported, not incomplete.
-    "receiver_unsupported_ref_return_invalid": [
-        (*borrow_refusal, 26, 6), (*borrow_refusal, 26, 6), (*borrow_refusal, 26, 6),
-        (*borrow_refusal, 32, 28)],
+    # Split is modelled (every part copied), so the action's self summary is
+    # exact: it returns its subject's storage, which the borrowed world
+    # cannot hand out.
+    "receiver_unsupported_ref_return_invalid": [(*borrow_refusal, 26, 6), (*borrow_refusal, 32, 28)],
     # A unit enum constant carries no storage; the frame completes and the
     # returned Array still moves its argument.
     "unit_enum_constant_constructor_moves_invalid": [(*released_refusal, 20, 15)],
+    # A Slice view is its receiver's storage: returning a view of a borrowed
+    # Array is the one return escape, not every escape.
+    "slice_view_ref_return_invalid": [(*borrow_refusal, 3, 6), (*borrow_refusal, 9, 35)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -685,6 +687,8 @@ paired = (
     ("unit_enum_constant_constructor_valid", True),
     ("unit_enum_constant_constructor_moves_invalid", False),
     ("intent_step_unsupported_route_valid", True),
+    ("slice_view_scalar_read_valid", True),
+    ("slice_view_ref_return_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

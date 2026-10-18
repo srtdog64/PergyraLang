@@ -1,0 +1,12 @@
+// A Slice view is its receiver's storage, so returning a view of a borrowed
+// Array returns the borrow.
+func Window(ref rows: Array<Int>) -> Slice<Int> {
+    return rows.Slice(0, 1);
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [7, 8];
+    let view: Slice<Int> = Window(rows);
+    Print(ToString(view[0]));
+    return 0;
+}

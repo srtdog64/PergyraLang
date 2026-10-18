@@ -1,0 +1,14 @@
+// A Slice view is its receiver's storage. Reading one element of a view of
+// a borrowed Array returns a scalar, so nothing of the borrow escapes.
+func Peek(ref rows: Array<Int>) -> Int {
+    let view: Slice<Int> = rows.Slice(0, 1);
+    return view[0];
+}
+
+func Main() -> Int {
+    let rows: Array<Int> = [7, 8];
+    if Peek(rows) == 7 {
+        Print("seven");
+    }
+    return 0;
+}

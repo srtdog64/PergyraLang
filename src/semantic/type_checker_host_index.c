@@ -375,6 +375,28 @@ ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, co
         !semantic_param_publication_routine_inputs_current(ctx, row->decl, true)) return NULL;
     return row->decl;
 }
+/* The receiver of a checked `xs.Slice(start, len)` on an Array or Slice:
+ * the result is a view of the receiver's storage. NULL for any other call. */
+ASTNode *semantic_param_publication_slice_view_receiver(const SemanticContext *ctx, const ASTNode *call)
+{
+    if (!semantic_param_publication_checked_call(ctx, call)) return NULL;
+    PublishedNode *node = publication_node(ctx->function_param_publications, call, false);
+    if (node == NULL || node->target == NULL || node->target_shape != AST_MEMBER_ACCESS ||
+        node->target_name == NULL || strcmp(node->target_name, "Slice") != 0 ||
+        node->declaration != 0 || node->value_binding != 0 || node->selected_callable != NULL ||
+        node->argument_count != 2 || node->call_receiver == NULL ||
+        node->call_receiver != ast_member_object(node->target) ||
+        !type_is_constructed_named(node->value_type, "Slice")) return NULL;
+    PublishedNode *receiver = publication_current_value(ctx, node->call_receiver);
+    if (receiver == NULL || receiver->meta ||
+        (!type_is_constructed_named(receiver->value_type, "Array") &&
+         !type_is_constructed_named(receiver->value_type, "Slice"))) return NULL;
+    for (size_t a = 0; a < node->argument_count; a++) {
+        PublishedNode *arg = publication_current_value(ctx, node->arguments[a].node);
+        if (arg == NULL || arg->meta || !type_equals(arg->value_type, TYPE_INT)) return NULL;
+    }
+    return (ASTNode *)node->call_receiver;
+}
 /* The intent a checked call selects; NULL for every other call. */
 ASTNode *semantic_param_publication_intent_callee(const SemanticContext *ctx, const ASTNode *call)
 {
