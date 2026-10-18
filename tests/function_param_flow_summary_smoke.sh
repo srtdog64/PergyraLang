@@ -201,6 +201,9 @@ release_lifetime_refusals = {
     "receiver_unsupported_ref_return_invalid": [
         (*borrow_refusal, 26, 6), (*borrow_refusal, 26, 6), (*borrow_refusal, 26, 6),
         (*borrow_refusal, 32, 28)],
+    # A unit enum constant carries no storage; the frame completes and the
+    # returned Array still moves its argument.
+    "unit_enum_constant_constructor_moves_invalid": [(*released_refusal, 20, 15)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -679,6 +682,9 @@ paired = (
     ("world_member_subject_action_route_valid", True),
     ("subject_action_returns_self_ref_invalid", False),
     ("receiver_unsupported_ref_return_invalid", False),
+    ("unit_enum_constant_constructor_valid", True),
+    ("unit_enum_constant_constructor_moves_invalid", False),
+    ("intent_step_unsupported_route_valid", True),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

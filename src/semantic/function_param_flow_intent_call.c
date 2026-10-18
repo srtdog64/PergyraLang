@@ -153,6 +153,20 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
     }
 }
 
+bool function_param_flow_intent_step_call(SemanticContext *ctx, const ASTNode *call, const ASTNode *action)
+{
+    if (call == NULL || call->type != AST_CALL || action == NULL || action == call) return false;
+    ASTNode *intent = semantic_param_publication_intent_callee(ctx, call);
+    size_t count = 0;
+    ASTNode **steps = intent != NULL ? ast_intent_decl_steps(intent, &count) : NULL;
+    for (size_t s = 0; action != NULL && s < count; s++) {
+        size_t on = 0;
+        ASTNode **actions = steps[s] != NULL ? ast_intent_step_on_exprs(steps[s], &on) : NULL;
+        for (size_t a = 0; a < on; a++) if (actions[a] == action) return true;
+    }
+    return false;
+}
+
 ASTNode *function_param_flow_intent_action_callee(SemanticContext *ctx, ASTNode *call, size_t step)
 {
     ASTNode *intent = semantic_param_publication_intent_callee(ctx, call);

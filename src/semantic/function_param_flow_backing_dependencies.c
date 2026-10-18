@@ -4,6 +4,7 @@
 #include "function_param_publication_internal.h"
 #include "typed_map_query_fact_owner.h"
 #include "type_checker_internal.h"
+#include "type_checker_ownership_internal.h"
 #include "array_storage_release_owner.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -85,6 +86,14 @@ static FunctionParamFlowBackingBinding *backing_identifier_row(ReturnedBacking *
     }
     return NULL;
 }
+
+/* An enum value whose payloads hold no storage, such as a unit variant,
+ * carries no backing, whether it is a variable or a variant constant. */
+static bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue value)
+{
+    return value.ok && !value.meta && value.type != NULL && value.type->kind == TYPE_KIND_ENUM &&
+        semantic_classify_ownership_type(value.type, state->store->ctx) == OWNERSHIP_TYPE_COPY_ONLY;
+}
 void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
 {
     /* A stored value that carries none of this frame's origins moves none
@@ -131,6 +140,7 @@ static void backing_destination_value(ReturnedBacking *state, ASTNode *value, ui
         if ((state->checking_declared_result &&
             semantic_param_publication_value_is_physical_scalar(state->store->ctx, value)) || published.meta) return;
         FunctionParamFlowBackingBinding *source = backing_identifier_row(state, value);
+        if (source == NULL && backing_storage_free_enum(state, published)) return;
         if (source == NULL) { state->fact->complete = false; return; }
         source->destination_read_epoch = state->fact->epoch;
         backing_merge(state->fact->destination_words, destinations, source->destinations);
@@ -396,6 +406,7 @@ const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
             (value.ok && (value.meta || value.origin_ready))) return &zero;
         if (!value.ok || binding == 0) { fact->complete = false; return NULL; }
         FunctionParamFlowBackingBinding *source = backing_identifier_row(state, node);
+        if (source == NULL && backing_storage_free_enum(state, value)) return &zero;
         if (source == NULL) { fact->complete = false; return NULL; }
         source->origin_read_epoch = fact->epoch;
         uint64_t bits = source->origins[0];

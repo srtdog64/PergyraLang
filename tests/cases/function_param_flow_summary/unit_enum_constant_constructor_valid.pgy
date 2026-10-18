@@ -1,0 +1,22 @@
+// A unit enum variant carries no storage, so a constructor that takes one
+// next to a by-value Array returns only the Array's storage.
+enum Stage {
+    Begin,
+    Write,
+}
+
+struct Failure {
+    names: Array<String>;
+    stage: Stage;
+}
+
+func Reject(names: Array<String>) -> Failure {
+    return Failure(names, Begin);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let failure: Failure = Reject(names);
+    Print(failure.names[0]);
+    return 0;
+}

@@ -274,8 +274,10 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
             if (fact->analysis_unsupported) {
                 bool owned = false;
                 for (size_t n = 0; n < fact->node_count; n++)
-                    if (fact->nodes[n].node == fact->unsupported_relation.call &&
-                        fact->nodes[n].id == fact->unsupported_relation.call_id) owned = true;
+                    if ((fact->nodes[n].node == fact->unsupported_relation.call &&
+                         fact->nodes[n].id == fact->unsupported_relation.call_id) ||
+                        function_param_flow_intent_step_call(store->ctx, fact->nodes[n].node,
+                            fact->unsupported_relation.call)) owned = true;
                 if (!owned || fact->complete || fact->pending || fact->building ||
                     !unsupported_relation_current(store, &fact->unsupported_relation)) { valid = false; break; }
             }
@@ -285,7 +287,8 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 size_t formal = 0;
                 bool owned = false;
                 for (size_t n = 0; n < fact->node_count; n++)
-                    if (fact->nodes[n].node == edge->call && fact->nodes[n].id == edge->call_id) owned = true;
+                    if ((fact->nodes[n].node == edge->call && fact->nodes[n].id == edge->call_id) ||
+                        function_param_flow_intent_step_call(store->ctx, fact->nodes[n].node, edge->call)) owned = true;
                 valid = owned && edge->call != NULL && edge->call->type == AST_CALL && edge->call_id != 0 &&
                     edge->call_id == ast_node_stable_id(edge->call) && edge->callee_id != 0 &&
                     callee != NULL && edge->callee_id == ast_node_stable_id(callee) &&

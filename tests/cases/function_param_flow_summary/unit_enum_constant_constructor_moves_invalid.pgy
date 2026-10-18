@@ -1,0 +1,23 @@
+// The constructor returns the by-value Array next to a unit variant, so the
+// call moves the Array and growing it afterwards is refused.
+enum Stage {
+    Begin,
+    Write,
+}
+
+struct Failure {
+    names: Array<String>;
+    stage: Stage;
+}
+
+func Reject(names: Array<String>) -> Failure {
+    return Failure(names, Begin);
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let failure: Failure = Reject(names);
+    ArrayPush(names, "b");
+    Print(failure.names[0]);
+    return 0;
+}

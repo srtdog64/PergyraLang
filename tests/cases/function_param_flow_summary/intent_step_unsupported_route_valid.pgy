@@ -1,0 +1,48 @@
+// An intent's step action uses a stdlib call the analysis does not model,
+// so the action's formal is unsupported. The relation through the step
+// belongs to the frame that calls the intent, which is then unsupported: a
+// conservative summary, not a stale proof.
+struct Taken {
+    parts: Array<String>;
+}
+
+subject Runner {
+    var outcome: Option<Taken>;
+    action Run(self, path: String) -> Bool {
+        self.outcome = Some(Taken(Split(path, ",")));
+        return true;
+    }
+}
+
+zone RunZone {
+    subject slot runner: Runner
+    authority runner
+}
+
+intent RunPath(run_zone: RunZone, runner: Runner, path: String) {
+    exclusive;
+    step Run {
+        using: run_zone;
+        on ran: runner.Run(path);
+        expect: ran;
+    }
+    success: true;
+    failure: false;
+}
+
+func Route(zone: RunZone, runner: Runner, path: String) -> Taken {
+    let ran: Bool = RunPath(zone, runner, path);
+    if !ran || !IsSome(runner.outcome) {
+        let empty: Array<String> = [];
+        return Taken(empty);
+    }
+    return UnwrapOption(runner.outcome);
+}
+
+func Main() -> Int {
+    let zone: RunZone = RunZone(Runner(None));
+    let runner: Runner = Runner(None);
+    let taken: Taken = Route(zone, runner, "a,b");
+    Print(ToString(ArrayLength(taken.parts)));
+    return 0;
+}
