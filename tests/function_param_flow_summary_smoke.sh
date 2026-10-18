@@ -81,6 +81,12 @@ release_lifetime_refusals = {
     "default_aggregate_move_shared_field_return_invalid": [(*released_refusal, 17, 28)],
     # A field of a struct declared before the loop moves again next iteration.
     "collection_member_move_loop_outer_source_invalid": [(*released_refusal, 28, 41)],
+    # An inout fill of a by-value parameter from a second input moves it.
+    "inout_owned_param_input_return_moves_invalid": [(*released_refusal, 32, 38)],
+    # The 8:6 return escape is the by-value parameter carrying the ref input's
+    # stored field; without it only the assignment refusal would remain.
+    "owned_param_field_store_ref_return_invalid": [
+        (*borrow_refusal, 0, 0), (*borrow_refusal, 8, 6), (*borrow_refusal, 17, 44)],
     "array_local_owned_push_double_drop_invalid": [(*released_refusal, 5, 27)],
     "array_local_owned_push_use_after_drop_invalid": [
         (*released_refusal, 5, 21), (*builtin_refusal, 5, 21)],
@@ -624,6 +630,9 @@ paired = (
     ("recursive_ref_returned_input_invalid", False),
     ("collection_member_move_loop_local_source_valid", True),
     ("collection_member_move_loop_outer_source_invalid", False),
+    ("inout_owned_param_self_flow_valid", True),
+    ("inout_owned_param_input_return_moves_invalid", False),
+    ("owned_param_field_store_ref_return_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

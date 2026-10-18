@@ -1,0 +1,34 @@
+// A by-value parameter that an inout callee fills from a second by-value
+// input carries that input's storage; returning it moves the second
+// argument, so the caller cannot use it again.
+struct Rows {
+    values: Array<Int>;
+    count: Int;
+}
+
+struct Route {
+    ok: Bool;
+    rows: Rows;
+}
+
+func Fill(inout rows: Rows, other: Rows) -> Int {
+    rows = Rows(other.values, rows.count);
+    return rows.count;
+}
+
+func Build(rows: Rows, other: Rows) -> Route {
+    let count: Int = 0;
+    count = Fill(rows, other);
+    return Route(count >= 0, rows);
+}
+
+func Main() -> Int {
+    let empty: Array<Int> = [];
+    let values: Array<Int> = [1];
+    let rows: Rows = Rows(empty, 0);
+    let other: Rows = Rows(values, 1);
+    let route: Route = Build(rows, other);
+    ArrayPush(route.rows.values, 2);
+    Print(ToString(ArrayLength(other.values)));
+    return 0;
+}

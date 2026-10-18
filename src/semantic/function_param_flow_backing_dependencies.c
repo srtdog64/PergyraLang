@@ -40,7 +40,18 @@ static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_
     for (size_t p = 0; !replacement && p < state->fact->origin_count; p++) if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0)
         backing_merge(state->fact->destination_words, &state->fact->outputs[p * state->fact->destination_words], row->destinations);
     if (output) backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
-    if (row->local || replacement) {
+    /* A by-value or own parameter is this call's storage, as a local is: a
+     * write through it (an inout argument) keeps the backing in the frame,
+     * and a later return or escape of the parameter carries it. A declared
+     * result frame keeps its parameters free of origins. */
+    bool owned_parameter = false;
+    for (size_t p = 0; !row->local && !state->checking_declared_result &&
+         p < ast_func_param_count(state->decl); p++) {
+        FuncParam *param = ast_func_param(state->decl, p);
+        if (param != NULL && ast_func_param_stable_id(param) == row->binding &&
+            (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_OWN)) owned_parameter = true;
+    }
+    if (row->local || replacement || owned_parameter) {
         bool grew = backing_merge(state->fact->origin_words, row->origins, origins);
         state->fact->changed |= grew && row->origin_read_epoch == state->fact->epoch;
     }

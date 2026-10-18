@@ -1,0 +1,21 @@
+// A by-value parameter whose field is set from a ref input carries the
+// borrowed storage; returning the parameter lets that storage escape.
+struct Rows {
+    values: Array<Int>;
+    count: Int;
+}
+
+func Take(rows: Rows, ref source: Rows) -> Rows {
+    rows.values = source.values;
+    return rows;
+}
+
+func Main() -> Int {
+    let empty: Array<Int> = [];
+    let values: Array<Int> = [1];
+    let source: Rows = Rows(values, 1);
+    let taken: Rows = Take(Rows(empty, 0), source);
+    ArrayPush(taken.values, 2);
+    Print(ToString(source.values[0]));
+    return 0;
+}

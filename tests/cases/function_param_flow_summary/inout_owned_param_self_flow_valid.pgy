@@ -1,0 +1,31 @@
+// A by-value parameter passed to an inout callee that rebuilds it from its
+// own fields keeps that storage in this call; returning it moves the
+// caller's argument rather than leaving the frame unproved.
+struct Rows {
+    values: Array<Int>;
+    count: Int;
+}
+
+struct Route {
+    ok: Bool;
+    rows: Rows;
+}
+
+func Append(inout rows: Rows, value: Int) -> Option<Int> {
+    rows = Rows(rows.values, rows.count + value);
+    return Some(rows.count);
+}
+
+func Build(rows: Rows, n: Int) -> Route {
+    let count: Option<Int> = None;
+    count = Append(rows, n);
+    return Route(IsSome(count), rows);
+}
+
+func Main() -> Int {
+    let empty: Array<Int> = [];
+    let rows: Rows = Rows(empty, 0);
+    let route: Route = Build(rows, 3);
+    Print(ToString(ArrayLength(route.rows.values) + route.rows.count));
+    return 0;
+}
