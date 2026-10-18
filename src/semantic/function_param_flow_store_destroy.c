@@ -276,7 +276,9 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 if (binding->local || binding->origins == NULL || binding->destinations == NULL ||
                     (result_frame ? (binding->origins[0] != 0 || binding->destinations[0] != 0) :
                     ((p == input && binding->origins[0] != UINT64_C(1)) ||
-                     (p != input && param->mode != PARAM_MODE_DEFAULT && binding->origins[0] != 0) ||
+                     /* Only a parameter this call owns can be rebound to hold the input. */
+                     (p != input && param->mode != PARAM_MODE_DEFAULT && param->mode != PARAM_MODE_OWN &&
+                      binding->origins[0] != 0) ||
                      ((param->mode == PARAM_MODE_REF || param->mode == PARAM_MODE_MUT_REF) &&
                       (binding->destinations[p / 64] & (UINT64_C(1) << (p % 64))) == 0)))) valid = false;
             }

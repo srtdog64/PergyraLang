@@ -28,6 +28,9 @@ bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *c
 
 static void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
 {
+    /* A stored value that carries none of this frame's origins moves none
+     * of its backing, wherever it is stored. */
+    if (!backing_any_origin(state, origins)) return;
     FunctionParamFlowBackingBinding *row = backing_binding(state,
         function_param_flow_backing_place(state, target), false);
     if (row == NULL) { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; return; }

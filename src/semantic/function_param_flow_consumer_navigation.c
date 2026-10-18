@@ -1,7 +1,9 @@
 #include "function_param_flow_summary_internal.h"
 #include "../parser/ast_analysis.h"
 #include "function_param_publication_owner.h"
+#include "function_param_publication_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
+#include "type_checker_resolution_internal.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -359,6 +361,15 @@ bool function_param_flow_returned_backing_effects(FunctionParamFlowSummaryStore 
         .fact = fact, .private_stores_closed = private_stores_closed};
     if (!function_param_flow_backing_rows_current(store, decl)) return false;
     if (fact->building) { *pending = true; return false; }
+    /* A physical scalar input carries no backing: it reaches no output and
+     * has no escape, so its frame is complete without walking the body. */
+    FuncParam *input = ast_func_param(decl, ordinal);
+    const Type *input_type = input == NULL || input->type == NULL ? NULL :
+        semantic_type_resolution_lookup_metadata_type_ref(store->ctx, input->type);
+    if (fact->epoch == 0 && publication_physical_scalar(input_type)) {
+        fact->epoch = 1; fact->complete = true; fact->pending = false; fact->changed = false;
+        fact->evaluation_pass = store->fixed_point_passes + 1;
+    }
     if (fact->epoch == 0 || (fact->pending && fact->evaluation_pass != store->fixed_point_passes + 1)) {
         fact->building = true; fact->complete = true; fact->pending = false;
         free(fact->pending_relations); fact->pending_relations = NULL; fact->pending_relation_count = 0;

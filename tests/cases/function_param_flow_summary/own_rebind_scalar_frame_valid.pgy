@@ -1,0 +1,43 @@
+// An own parameter rebound from calls that store an Int argument, while a
+// ref parameter is only read. The Int carries no backing, the stores carry
+// none of the ref input's backing, and rebinding an own parameter is local.
+struct Build {
+    ok: Bool;
+    ids: Array<Int>;
+    current: Int;
+}
+
+struct SourceFacts {
+    names: Array<String>;
+}
+
+func AtBlock(build: Build, block: Int) -> Build {
+    return Build(build.ok, build.ids, block);
+}
+
+func AddBlock(build: Build) -> Build {
+    let ids: Array<Int> = build.ids;
+    ArrayPush(ids, ArrayLength(ids));
+    return Build(build.ok, ids, build.current);
+}
+
+func Append(own build: Build, ref input: SourceFacts, count: Int) -> Build {
+    let i: Int = 0;
+    while i < count && ArrayLength(input.names) > 0 {
+        let block: Int = ArrayLength(build.ids);
+        build = AddBlock(build);
+        build = AtBlock(build, block);
+        i = i + 1;
+    }
+    return build;
+}
+
+func Main() -> Int {
+    let names: Array<String> = ["a"];
+    let input: SourceFacts = SourceFacts(names);
+    let ids: Array<Int> = [];
+    let build: Build = Build(true, ids, 0);
+    build = Append(build, input, 3);
+    Print(ToString(ArrayLength(build.ids) + build.current));
+    return 0;
+}

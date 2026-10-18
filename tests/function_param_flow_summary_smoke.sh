@@ -610,6 +610,8 @@ paired = (
     ("default_aggregate_move_loop_reuse_invalid", False),
     ("default_aggregate_move_branch_use_invalid", False),
     ("default_aggregate_move_ref_param_invalid", False),
+    ("own_rebind_scalar_frame_valid", True),
+    ("own_rebind_ref_input_return_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

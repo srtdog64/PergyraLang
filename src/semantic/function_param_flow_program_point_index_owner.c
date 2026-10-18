@@ -453,7 +453,9 @@ bool function_param_flow_local_replacement(SemanticContext *ctx,
         FuncParam *param = ast_func_param(decl, p);
         if (param == NULL || ast_func_param_stable_id(param) != binding) continue;
         bool anchored;
-        if (param->mode != PARAM_MODE_DEFAULT || param->type == NULL ||
+        /* An own parameter belongs to this call as a by-value one does;
+         * reassigning either rebinds local storage, never the caller's. */
+        if ((param->mode != PARAM_MODE_DEFAULT && param->mode != PARAM_MODE_OWN) || param->type == NULL ||
             !semantic_param_publication_parameter_is_anchored_handle(ctx, decl, p, &anchored) || anchored)
             return false;
         const Type *type = semantic_type_resolution_lookup_metadata_type_ref(ctx, param->type);
