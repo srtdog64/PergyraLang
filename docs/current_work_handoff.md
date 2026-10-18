@@ -1,22 +1,98 @@
 # Current Work Handoff
 
+This page is a facade. It holds links, not facts. The current state and
+decisions live in [`docs/truth/`](truth/README.md). Executable gates override
+every document; update the owned state file rather than this entry point.
+
+## Active self-host context
+
+1. [Current blocker, exact plan and next step](truth/state/blocker.md)
+2. [Local/published main and CI](truth/state/main.md)
+3. [Progress gates and regression evidence](truth/state/gates.md)
+4. [Measurements](truth/state/measurements.md)
+5. [Decisions](truth/decisions/README.md)
+6. [Lane ownership](truth/lanes/)
+
+Resume from item 1. The material below this boundary is frozen lookup
+evidence, not an active work queue. Do not append or refresh its cards.
+
+## Frozen pre-truth navigation (2026-10-18)
+
+The following pre-integration card and archive are preserved during the
+docs-truth merge. Current facts now belong to the linked state files.
+
 Updated: 2026-10-18 KST. Navigation only; current owners and executable
 evidence override this card. Resume this card, not the archive below.
 
-## Active self-host context — approved permanent-literal receipt integration
+### Frozen former active card — checked ReadFile binding/storage review
 
-- HEAD main `e787bbe020faa889fca940299843429af292b17a`; implementation base
-  `fb54aed078a62f586bf1ac6bedae13e32fdc139f` remains the approved Option
-  checkpoint. Current literal-element code/tests have independent bounded
-  approval and are being committed. Preserve the unrelated dirty
-  `docs/01_intent_first_design.md`.
-- Active whole-chain plan:
-  `docs/agent_work_directives/indexed_string_literal_array_element_closure_2026-10-18.md`.
-  Three implementation scopes are frozen. Root integrated snapshot capture/MOVE,
-  reference membership, derived write ordinals and actual HIR/MIR consumers.
-  Root alone runs commands/builds/WSL/process/Git. One chain, main only, no
-  worktree. WSL is `Ubuntu-E-WSL -u root`, not the default distribution.
-- Current native SHA256
+- HEAD main `8404061d7`; ReadFile changes are uncommitted. Preserve unrelated
+  `docs/01_intent_first_design.md`, SHA256100AFB33... Main only; no worktree,
+  known-red push or new implementation track. Root runs builds/WSL/Git/processes.
+  A/B/C have disjoint edit scopes; read-only PowerShell inspection is allowed.
+- Objective/full reached chain:
+  `docs/agent_work_directives/indexed_string_readfile_result_closure_2026-10-18.md`.
+  Checked call -> immutable source snapshot -> original HIR execution census ->
+  DIR origin/RIR scope -> native MIR -> AIR late evidence/certificate ->
+  current collected-MIR inventory -> two final plans. This native prerequisite
+  is not Pergyra C-path substitution or whole-language memory safety.
+- V9 native SHA256
+  `71f5662c08039c1462642cf73a33aaed1008de77a37ce711dace818336c1a003`.
+  rs340M passes static/build, phase13422/0 and MIR681/0. EQEqJn passes AIR161/0,
+  RIR44/0 and DIR15/0; EhWqnU passes the standalone source-less row/ABI probe.
+  All original41 callable,14 owner/IO and24 hosted tuple controls are retained.
+- V8 is immutable HOLD: its collected MIR token was not checked by the final
+  planners and omitted surface/capture facts. GGkxq8 on unchanged60f confirms7
+  post-certificate mutations accepted by C/LLVM/parallel, original/restore PASS.
+  V9 uses the existing v2 binding token and one pure current-binding query,
+  including surface flags and complete parallel boundary/row payloads.
+  Fourteen mutation/missing binding/storage faults now refuse before output or
+  allocation, preserve inputs/outputs and pass exact restoration. No new
+  census, AST scan, semantic family, user annotation or reissuance.
+- YevXkb144/17 is retained: manual MIR test arrays omitted capacities. All
+  reached manual fixtures now state actual sizes, including negative controls
+  so their intended invariant is reached. Deliberate missing storage refuses
+  before collector-state mutation and accepts same-object exact restoration.
+  Source-less transpile tests now collect their actual MIR; the standalone
+  probe's empty-MIR test double is not native evidence.
+- LxVon5 passes complete strict C/LLVM, with the existing rejected slot-wrapper
+  fixture's secondary diagnostic disclosed. Abb9Yf passes semantic3230/0,
+  transpile1014/0, AIR161/0, currency6, Map24+58 analysis-only negatives and
+  all4 flow gates. Separate ASan+UBSan passes phase13422/MIR681 (Abb9Yf) and
+  AIR161/RIR44/DIR15 (sCo1lo); leak detection OFF, not leak freedom.
+- Independent V9 review is HOLD: raising capture boundary_count or row_count
+  beyond the allocation can read outside storage in the binding fingerprint
+  before a planner rejects it. V10's whole-chain plan in the directive covers
+  semantic allocation/capacity move -> MIR allocation/validation/accessors ->
+  AIR pre-traversal guards -> final plans and allocation-owned teardown. Root
+  first records two unchanged71f SAN falsifiers, then releases A storage,
+  B fingerprint, C behavioral tests. No new owner/family or user ceremony.
+- Portable9Bra9H rebuilds all5 units with PROJECT_ROOT=. and replays in a fresh
+  directory with20 inputs. Both missing-input cases refuse and exact restores
+  pass. V9 is frozen at `E:\\PergyraValidation\\readfile-result-20261018-v9`:
+  source252/evidence225 hashes independently matched. Next: V10 bounds repair,
+  same matrix/new immutable export, independent verdict and bounded local
+  commit. V1–V9 exports must not be overwritten.
+- Validation copy: WSL `Ubuntu-E-WSL -u root`,
+  `/root/pgy-nonowner-20261018.5t1W96`. Latest full unchanged canonical pair
+  YSfo5x on71f remains18435 errors+16 warnings/MIR0: fixed33.64s/1730224KiB,
+  current31.75s/1728480KiB. Observert9AMcV35.84s/1729804KiB first prior0 is
+  `diagnostic_owner.pgy573:39 ArrayPush(codes,found[j])`; later prior1 errors
+  are cascades. Concurrent timings are not a performance comparison. Refusal
+  precedes HIR allocation, not a compiler-scale census cost measurement.
+- Next D1 production is NOT open before this bounded review/commit. Read-only
+  survey confirms missing exact String element copy intent, native C/LLVM
+  spelling-based shallow push, and self-host receipt/emitter consumers.
+  Source0 grants no ownership/permanence/deep release. A whole-chain plan must
+  join actual byte copy and destination cleanup, not insert source Clone/drop.
+- Endpoint OPEN: unchanged canonical admission, bootstrap/gen2==gen3, installed
+  C/LLVM driver and required CI green on the same published SHA. Independent
+  V10 approval/local commit remain pending. No SoT row is declared CLOSED.
+
+## Previous bounded checkpoint — permanent literal Array result
+
+- Independently approved implementation main8404061d7; these are its base
+  receipts, not an active queue. Verified predecessor native SHA256
   `47ecd2f7f733aae04fb3ca98f602074d68b16dcc4bd47ebad05ea0c232081f4e`
   in `/root/pgy-nonowner-20261018.5t1W96`. Its identified predecessor is6a0316
   below. The returned literal bytes are permanent; descriptor/element ownership,
@@ -49,7 +125,8 @@ evidence override this card. Resume this card, not the archive below.
   Previous506:30 no longer fails immediately; that does not prove the full
   program's final deferred receipts. Survey the existing independent String
   result/typed-call publication/backing-flow/runtime/immutable consumer chain
-  before a next repair. No new production scope is open yet.
+  before a next repair. That survey is now complete and the new plan above
+  fixes the next bounded change set; publication-only source0 is insufficient.
 - Next falsifier: ezkPLF on47 admits a borrowed path passed to ReadFile
   (MIR9374) and a ReadFile result without a live Array risk (MIR6994), but
   refuses a literal-path ReadFile result forwarded to a named String reader

@@ -54,9 +54,22 @@ scope. The plan, the measurements and the current state are in
   authority. The SoT registry, active rung owner, protocol/ABI registry, and
   executable gates remain authoritative when a handoff and the current tree
   disagree.
-- Refresh the handoff after a material work session with the exact HEAD/dirty
-  state, active executable rung, last green gate, next falsifying fixture, and
-  any blocker. Do not record an inferred continuation as completed work.
+- After a material work session, refresh the files in `docs/truth/state/`
+  that your lane owns: exact HEAD/dirty state, active executable rung, last
+  green gate, next falsifying fixture and any blocker. Do not record an
+  inferred continuation as completed work.
+- `docs/current_work_handoff.md`'s top card is a facade. It links to
+  `docs/truth/` and holds no facts of its own. The rules are in
+  `docs/truth/README.md`:
+  - one fact in one place;
+  - `state/` is overwritten in place and kept at 60 lines or fewer per file;
+  - a decision gets its own dated file under `decisions/`;
+  - a run record goes under `evidence/` and is never edited;
+  - each lane edits only the files it owns.
+
+  Never append history to the facade or to a frozen document. A user
+  decision that is still pending goes in `docs/truth/decisions/` as an
+  OPEN file.
 
 ## Developer Experience Is A Core Invariant
 

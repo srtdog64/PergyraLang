@@ -186,4 +186,7 @@ if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
     done < <(find "$ROOT_DIR/examples" -type f -name '*.pgy' -print0)
 fi
 
-echo "[documentation-quality] UTF, docs index, async wording, and executable example surface ok"
+python3 "$ROOT_DIR/tests/test_docs_truth_size_gate.py"
+python3 "$ROOT_DIR/tests/docs_truth_size_gate.py"
+
+echo "[documentation-quality] UTF, docs index, async wording, executable example surface, and truth size ok"
