@@ -2,27 +2,33 @@
 
 Owner: Claude lane (main-line work since 2026-10-18,
 [decision](../decisions/2026-10-18_native_checker_in_v1.md)). Checked
-2026-10-19 KST at `73e3a3187` on branch `claude/p0-native-checker`.
+2026-10-19 KST at `ebf6f2742` on branch `claude/p0-native-checker`.
 
 The native checker still refuses the unchanged canonical driver input
 `src/self_hosted/compiler/driver_bootstrap_main.pgy`. Its parameter-flow
 analysis now completes for the whole program (no fail-closed summary);
-9730 downgraded refusals of other owners remain. Counts and history:
+8397 downgraded refusals of other owners remain (9730 before Split and
+Slice views were modelled in `ebf6f2742`). Counts and history:
 [flow complete](../evidence/2026-10-19_native_census_flow_complete.md).
 
 ## Open fronts, in order
 
-1. **Conservative summaries behind unmodelled stdlib calls.** About 8400
-   of the refusals are borrowed `ref` values escaping by call, return or
-   channel, mostly through summaries that are unsupported (every escape)
-   because a frame reaches `ToString`, `Split` or `xs.Slice`. Relations
-   for those three are written but not landed: once the C emitter's
-   recursive SCC (`EmitStmtList#5`) is supported, the row-currency check
-   refuses its declared-result edges while their callees are pending in
-   the same recursion, and the analysis fails closed earlier.
+1. **Borrowed String returns and `ToString`.** About 7100 of the
+   refusals are borrowed `ref` values escaping by call (5155), return
+   (1236) or channel (747). The callees most blamed are getters that
+   return a String element of a `ref` container, such as
+   `SemanticExpressionGraphNodeText` (`Some(facts.arena.node_texts[i])`):
+   a return-site owned-copy landing under the String decision would cut
+   that relation. `ToString` is still unmodelled: with its relation the
+   C emitter's recursive SCC (`EmitStmtList#5`) becomes supported, a
+   callee it reaches (`CompilerRuntimeCallAbiFactFromRowInput#0`) is
+   unproved during the solve and proved only at its last evaluation, and
+   the analysis fails closed at 4600 entries. Two solver relaxations did
+   not change that; both are kept in scratch.
 2. **Array storage and String owners.** 633 preserved-storage refusals,
    192 opaque String crossings, 131 released-element uses, 112 owned
-   pushes on escaped storage. String landings beyond `ArrayPush`
+   pushes on escaped storage (565 preserved-storage refusals since
+   `ebf6f2742`). String landings beyond `ArrayPush`
    (constructor field, plain store, `ArraySet`) are not landed.
 3. **World member storage, still open.** Stores into a host field fail
    closed; deep struct `Clone` is decided but not emitted; a by-value
