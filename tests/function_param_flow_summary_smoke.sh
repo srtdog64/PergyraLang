@@ -196,6 +196,11 @@ release_lifetime_refusals = {
     # A receiver the action changes follows its self formal's summary: the
     # action returns its subject's storage, so the borrowed world escapes.
     "subject_action_returns_self_ref_invalid": [(*borrow_refusal, 25, 6), (*borrow_refusal, 31, 28)],
+    # An action whose self summary is unsupported lets its receiver out every
+    # way (return, channel, call); the frame is unsupported, not incomplete.
+    "receiver_unsupported_ref_return_invalid": [
+        (*borrow_refusal, 26, 6), (*borrow_refusal, 26, 6), (*borrow_refusal, 26, 6),
+        (*borrow_refusal, 32, 28)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -673,6 +678,7 @@ paired = (
     ("match_payload_return_moves_invalid", False),
     ("world_member_subject_action_route_valid", True),
     ("subject_action_returns_self_ref_invalid", False),
+    ("receiver_unsupported_ref_return_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

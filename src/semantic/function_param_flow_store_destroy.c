@@ -21,10 +21,18 @@ static bool unsupported_relation_current(FunctionParamFlowSummaryStore *store, c
             !semantic_param_publication_value(store->ctx, ast_call_argument(edge->call, p)).ok) return false;
     if (edge->callee_id == 0)
         return edge->ordinal == SIZE_MAX && semantic_param_publication_call_analysis_unmodelled(store->ctx, edge->call);
-    ASTNode *callee = semantic_param_publication_callee(store->ctx, edge->call, edge->ordinal);
-    if (callee == NULL || edge->callee_id != ast_node_stable_id(callee)) return false;
+    ASTNode *callee, *receiver = NULL;
     size_t formal = 0;
-    if (!semantic_param_publication_formal_for_actual(store->ctx, edge->call, edge->ordinal, &formal)) return false;
+    if (edge->ordinal == FUNCTION_PARAM_FLOW_RECEIVER_ORDINAL) {
+        callee = semantic_param_publication_direct_callee(store->ctx, edge->call);
+        if (callee == NULL || !semantic_param_publication_instance_receiver(store->ctx, edge->call, &receiver) ||
+            receiver == NULL) return false;
+    } else {
+        callee = semantic_param_publication_callee(store->ctx, edge->call, edge->ordinal);
+        if (callee == NULL ||
+            !semantic_param_publication_formal_for_actual(store->ctx, edge->call, edge->ordinal, &formal)) return false;
+    }
+    if (edge->callee_id != ast_node_stable_id(callee)) return false;
     for (size_t i = 0; i < store->count; i++) {
         FunctionParamFlowSummaryEntry *entry = &store->entries[i];
         if (entry->function_decl != callee || entry->param_index != formal) continue;
@@ -379,9 +387,14 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 size_t edge_arity = ast_call_arg_count(edge_call);
                 bool result_edge = row->result_callee_id != 0;
                 bool receiver_edge = row->receiver != NULL;
-                for (size_t p = 0; p < edge_arity + result_edge + receiver_edge && valid; p++) {
+                /* An intent call depends on the actions its steps call. */
+                size_t call_edges = edge_arity + result_edge + receiver_edge, intent_edges = 0;
+                while (function_param_flow_intent_action_callee(store->ctx, edge_call, intent_edges) != NULL) intent_edges++;
+                for (size_t p = 0; p < call_edges + intent_edges && valid; p++) {
                     ASTNode *callee;
-                    if (receiver_edge && p == edge_arity + result_edge) {
+                    if (p >= call_edges) {
+                        callee = function_param_flow_intent_action_callee(store->ctx, edge_call, p - call_edges);
+                    } else if (receiver_edge && p == edge_arity + result_edge) {
                         ASTNode *received = NULL;
                         /* A summarized receiver is revalidated through its
                          * callee's rows, as an argument edge is. */
@@ -514,6 +527,23 @@ bool function_param_flow_callee_relation_pending(const SlotFunctionLookup *looku
                 (row->state != FUNCTION_PARAM_FLOW_COMPLETE && row->returned_backing_pending);
     }
     return false;
+}
+/* A receiver into a method whose receiver-formal summary is unsupported
+ * makes this frame unsupported, as an argument into an unsupported formal
+ * does in function_param_flow_callee_unfinished. */
+bool function_param_flow_receiver_unsupported(ReturnedBacking *state, ASTNode *call, ASTNode *decl)
+{
+    FunctionParamFlowBackingFact *fact = state->fact;
+    if (fact->analysis_unsupported) return true;
+    if (!fact->complete || decl == NULL) return false;
+    FunctionParamFlowPendingRelation unsupported = {call, ast_node_stable_id(call), ast_node_stable_id(decl),
+        FUNCTION_PARAM_FLOW_RECEIVER_ORDINAL};
+    if (!unsupported_relation_current(state->store, &unsupported)) return false;
+    fact->analysis_unsupported = true; fact->unsupported_relation = unsupported;
+    fact->complete = false; fact->pending = false;
+    free(fact->pending_relations); fact->pending_relations = NULL;
+    fact->pending_relation_count = fact->sealed_pending_relation_count = 0;
+    return true;
 }
 void function_param_flow_callee_unfinished(const SlotFunctionLookup *lookup,
     ASTNode *call, size_t ordinal, FunctionParamFlowBackingFact *fact)

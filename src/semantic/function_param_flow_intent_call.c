@@ -83,15 +83,34 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
     if (receiver != NULL) {
         size_t k = intent_binding_ordinal(intent, receiver);
         const uint64_t *bits = k == SIZE_MAX ? NULL : backing_origin(state, ast_call_argument(call, k));
-        /* A receiver carrying this frame's storage is followed only through
-         * an action that leaves its receiver unchanged. */
-        if (bits == NULL || (backing_any_origin(state, bits) &&
-            function_param_flow_receiver_readonly_current(state->store, action, true) == NULL)) {
-            fact->complete = false; return;
-        }
         SemanticPublishedValue value = semantic_param_publication_value(ctx, receiver);
-        if (!value.ok || value.meta) { fact->complete = false; return; }
+        if (bits == NULL || !value.ok || value.meta) { fact->complete = false; return; }
         if (type_is_subject_type(value.type, ctx)) keeper = ast_call_argument(call, k);
+        /* A receiver carrying this frame's storage into an action that may
+         * change it follows the action's summary for its self formal. */
+        if (backing_any_origin(state, bits) &&
+            function_param_flow_receiver_readonly_current(state->store, action, true) == NULL) {
+            size_t entry = function_param_flow_receiver_formal_summary(state, method);
+            FuncParam *self = ast_func_param(method, 0);
+            if (entry == SIZE_MAX) (void)function_param_flow_receiver_unsupported(state, action, method);
+            if (entry == SIZE_MAX || self == NULL) { fact->complete = false; return; }
+            unsigned mask = state->store->entries[entry].mask;
+            backing_effect(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE));
+            if ((mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 ||
+                self->mode == PARAM_MODE_OWN || self->mode == PARAM_MODE_MUT_REF)
+                backing_effect(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
+            for (size_t p = 0; p < ast_call_arg_count(action) && fact->complete; p++) {
+                size_t formal = 0, target = intent_binding_ordinal(intent, ast_call_argument(action, p));
+                ASTNode *arg = ast_call_argument(action, p);
+                if (arg != NULL && (arg->type == AST_STRING || arg->type == AST_NUMBER || arg->type == AST_BOOLEAN)) continue;
+                if (target == SIZE_MAX || !semantic_param_publication_formal_for_actual(ctx, action, p, &formal) ||
+                    formal >= state->store->entries[entry].output_count) { fact->complete = false; return; }
+                FuncParam *output = ast_func_param(method, formal);
+                if (output != NULL && (output->mode == PARAM_MODE_REF || output->mode == PARAM_MODE_MUT_REF) &&
+                    state->store->entries[entry].output_dependencies[formal])
+                    backing_store(state, ast_call_argument(call, target), bits, false);
+            }
+        }
     }
     size_t count = ast_call_arg_count(action);
     for (size_t i = 0; i < count && fact->complete; i++) {
@@ -132,6 +151,17 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
             else if (retained) backing_store(state, ast_call_argument(call, target), bits, false);
         }
     }
+}
+
+ASTNode *function_param_flow_intent_action_callee(SemanticContext *ctx, ASTNode *call, size_t step)
+{
+    ASTNode *intent = semantic_param_publication_intent_callee(ctx, call);
+    size_t count = 0, on = 0;
+    ASTNode **steps = intent != NULL ? ast_intent_decl_steps(intent, &count) : NULL;
+    if (step >= count || steps[step] == NULL) return NULL;
+    ASTNode **action = ast_intent_step_on_exprs(steps[step], &on);
+    return on == 1 && action[0] != NULL && action[0]->type == AST_CALL
+        ? semantic_param_publication_direct_callee(ctx, action[0]) : NULL;
 }
 
 bool function_param_flow_intent_call(ReturnedBacking *state, ASTNode *call)

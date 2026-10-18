@@ -26,20 +26,15 @@ bool function_param_flow_receiver_independent(ReturnedBacking *state, ASTNode *c
     return true;
 }
 
-/* A receiver the method may change or keep follows the method's summary
- * for its receiver formal. The edge is recorded on the call's row so the
- * currency check revalidates it. Returns that summary's entry, or SIZE_MAX
- * while it is not complete. */
-static size_t backing_receiver_summary(ReturnedBacking *state, ASTNode *call, ASTNode *receiver)
+/* The method's summary for its receiver formal, once that summary is
+ * complete: its entry, or SIZE_MAX. */
+size_t function_param_flow_receiver_formal_summary(ReturnedBacking *state, ASTNode *decl)
 {
     FunctionParamFlowSummaryStore *store = state->store;
-    ASTNode *decl = semantic_param_publication_direct_callee(store->ctx, call);
-    SemanticPublishedValue value = semantic_param_publication_value(store->ctx, receiver);
-    if (decl == NULL || !value.ok || value.meta) return SIZE_MAX;
+    if (decl == NULL) return SIZE_MAX;
     if (!store->validating_current) (void)function_param_flow_summary_demand(&state->lookup, decl, 0);
     size_t index = function_param_flow_find(store, ast_node_stable_id(decl), 0);
-    size_t at = backing_node(state, call);
-    if (store->failed || index == SIZE_MAX || at == SIZE_MAX) return SIZE_MAX;
+    if (store->failed || index == SIZE_MAX) return SIZE_MAX;
     const FunctionParamFlowSummaryEntry *entry = &store->entries[index];
     if (entry->function_decl != decl || entry->analysis_unsupported ||
         (entry->state != FUNCTION_PARAM_FLOW_COMPLETE &&
@@ -47,6 +42,23 @@ static size_t backing_receiver_summary(ReturnedBacking *state, ASTNode *call, AS
         entry->returned_backing_unproved || entry->returned_backing_pending ||
         !entry->output_dependencies_ready || entry->output_dependencies == NULL ||
         entry->output_count != ast_func_param_count(decl)) return SIZE_MAX;
+    return index;
+}
+
+/* A receiver the method may change or keep follows the method's summary
+ * for its receiver formal. The edge is recorded on the call's row so the
+ * currency check revalidates it. Returns that summary's entry, or SIZE_MAX
+ * while it is not complete; an unsupported summary makes the frame
+ * unsupported. */
+static size_t backing_receiver_summary(ReturnedBacking *state, ASTNode *call, ASTNode *receiver)
+{
+    ASTNode *decl = semantic_param_publication_direct_callee(state->store->ctx, call);
+    SemanticPublishedValue value = semantic_param_publication_value(state->store->ctx, receiver);
+    if (decl == NULL || !value.ok || value.meta) return SIZE_MAX;
+    size_t index = function_param_flow_receiver_formal_summary(state, decl);
+    if (index == SIZE_MAX) { (void)function_param_flow_receiver_unsupported(state, call, decl); return SIZE_MAX; }
+    size_t at = backing_node(state, call);
+    if (at == SIZE_MAX) return SIZE_MAX;
     FunctionParamFlowBackingNode *row = &state->fact->nodes[at];
     uint32_t id = ast_node_stable_id(receiver), formal = ast_func_param_stable_id(ast_func_param(decl, 0));
     if (id == 0 || formal == 0 || (row->receiver != NULL

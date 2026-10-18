@@ -1,0 +1,35 @@
+// An action whose self summary is unsupported counts as letting its
+// receiver's storage out every way, so a borrowed world cannot return
+// what the action returns.
+struct Taken {
+    parts: Array<String>;
+}
+
+subject Holder {
+    var outcome: Option<Taken>;
+    action Outcome(self, path: String) -> Taken {
+        self.outcome = Some(Taken(Split(path, ",")));
+        return UnwrapOption(self.outcome);
+    }
+}
+
+zone HoldZone {
+    subject slot holder: Holder
+    authority holder
+}
+
+world HoldWorld {
+    zone holding: HoldZone
+    activate holding
+}
+
+func Get(ref world: HoldWorld) -> Taken {
+    return world.holding.holder.Outcome("a,b");
+}
+
+func Main() -> Int {
+    let world: HoldWorld = HoldWorld(HoldZone(Holder(None)));
+    let taken: Taken = Get(world);
+    Print(taken.parts[0]);
+    return 0;
+}

@@ -124,6 +124,15 @@ void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *orig
 /* Applies an intent call's effect on its arguments' storage; false when the
  * call selects no intent. */
 bool function_param_flow_intent_call(ReturnedBacking *state, ASTNode *call);
+/* The callable each step action of the intent a call selects reaches, for
+ * the currency check; NULL past the last action or for any other call. */
+ASTNode *function_param_flow_intent_action_callee(SemanticContext *ctx, ASTNode *call, size_t step);
+size_t function_param_flow_receiver_formal_summary(ReturnedBacking *state, ASTNode *decl);
+/* The ordinal an unsupported relation records for a method's receiver. */
+#define FUNCTION_PARAM_FLOW_RECEIVER_ORDINAL (SIZE_MAX - 1)
+/* Marks the frame unsupported when the method's receiver-formal summary is;
+ * returns whether the frame is unsupported. */
+bool function_param_flow_receiver_unsupported(ReturnedBacking *state, ASTNode *call, ASTNode *decl);
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row,
     ASTNode **escape_site);
