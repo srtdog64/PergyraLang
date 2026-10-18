@@ -701,6 +701,7 @@ paired = (
     ("aggregate_string_loan_local_owner_invalid", False),
     ("aggregate_string_loan_owner_mutated_invalid", False),
     ("ref_string_option_loan_forward_valid", True),
+    ("tostring_interpolation_ref_valid", True),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:
@@ -965,8 +966,10 @@ print("[function-param-flow-summary] physical-return input/store pairs: PASS")
 
 # These calls must still refuse at the unsafe nested actual or alias-forwarding
 # site. Only compile and inspect diagnostics; the external Keep is never run.
+# ToString hands back its String argument, so Leak lends its record's String
+# and Keep's returned record carries that loan out.
 for name, site in (
-    ("stdlib_tostring_string_forward_invalid", (10, 27)),
+    ("stdlib_tostring_string_forward_invalid", (13, 6)),
     ("stdlib_replace_nested_retaining_invalid", (11, 45)),
     ("stdlib_substring_nested_retaining_invalid", (11, 41)),
 ):

@@ -434,13 +434,19 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                                 for (size_t s = 0; s < store->count; s++) {
                                     const FunctionParamFlowSummaryEntry *entry = &store->entries[s];
                                     if (entry->function_id != edge_callee_id || entry->param_index != formal) continue;
+                                    /* A reused frame is checked before this pass demands
+                                     * every callee it names, so an entry of the closure the
+                                     * pass has not reached yet answers by its last
+                                     * evaluation. A change there marks the closure changed,
+                                     * and the seal runs only after a pass with none. */
                                     if (entry->function_decl == callee && !entry->analysis_unsupported &&
                                         !entry->returned_backing_unproved && !entry->returned_backing_pending &&
                                         entry->output_producer == FUNCTION_PARAM_FLOW_OUTPUT_BACKING_FRAME &&
                                         entry->output_dependencies_ready && entry->output_dependencies != NULL &&
                                         entry->output_count == ast_func_param_count(callee) &&
                                         (entry->state == FUNCTION_PARAM_FLOW_COMPLETE ||
-                                         (store->solving && entry->state == FUNCTION_PARAM_FLOW_EVALUATED))) {
+                                         (store->solving && (entry->state == FUNCTION_PARAM_FLOW_EVALUATED ||
+                                          (entry->state == FUNCTION_PARAM_FLOW_UNSEEN && s >= store->active_start))))) {
                                         FunctionParamFlowProgramPointIndex *callee_index;
                                         if (!rows_capture_index(store, &seen, callee, &callee_index) ||
                                             callee_index->backing_frames == NULL || formal >= callee_index->backing_frame_count) break;

@@ -52,6 +52,20 @@ static bool publication_result_relation(const SemanticContext *ctx, const ASTNod
         return true;
     }
     if (row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib && row->target_name != NULL &&
+        strcmp(row->target_name, "ToString") == 0) {
+        /* ToString of a physical scalar makes a new String; of anything
+         * else, String interpolation parts included, its result may be the
+         * argument itself. It keeps nothing. */
+        PublishedNode *input = publication_current_value(ctx, row->arguments[ordinal].node);
+        if (!row->kind_present || row->declaration != 0 || row->value_binding != 0 ||
+            row->target_shape != AST_IDENTIFIER || row->target_binding != 0 ||
+            row->argument_count != 1 || input == NULL || input->node != ast_call_argument(call, ordinal) ||
+            !type_equals(row->value_type, TYPE_STRING)) return false;
+        *result_depends = !publication_physical_scalar(input->value_type);
+        *external_retains = false;
+        return true;
+    }
+    if (row->builtin == BUILTIN_NOT_BUILTIN && row->stdlib && row->target_name != NULL &&
         (strcmp(row->target_name, "Split") == 0 || strcmp(row->target_name, "StringSplit") == 0)) {
         /* Split copies every part into a new Array of new Strings (runtime
          * StringSplit) and keeps neither argument. */

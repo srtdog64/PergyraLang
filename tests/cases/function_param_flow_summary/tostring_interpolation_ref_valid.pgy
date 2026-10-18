@@ -1,0 +1,18 @@
+// String interpolation lowers to ToString of each String part, and
+// ToString hands back a String argument. Label's frame follows that: it
+// only measures the text it builds from its borrowed name, so Outer may
+// lend it the name.
+func Label(ref name: String) -> Int {
+    let text: String = "- ${name}";
+    return StringLength(text);
+}
+
+func Outer(ref name: String) -> Int {
+    return Label(name);
+}
+
+func Main() -> Int {
+    let name: String = Concat("ab", "c");
+    Print(ToString(Outer(name)));
+    return 0;
+}

@@ -306,6 +306,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         type_check_expression(arg0, ctx);
+        /* The parameter-flow result relation reads this sealed receipt. */
+        if (!ast_call_set_semantic_value_type_name_copy(expr, "String")) {
+            semantic_error(ctx, expr, "ToString result type receipt could not be recorded");
+            return TYPE_UNKNOWN;
+        }
         return TYPE_STRING;
 
     case STDLIB_BODY_CLAIM_QUBIT:
