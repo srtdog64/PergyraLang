@@ -93,6 +93,14 @@ scope. The plan, the measurements and the current state are in
   Do not make manual deep-drop, field carrier/restoration or additional own/ref
   annotations the default response to missing compiler inference. Preserve the
   actual safety boundary while fixing its fact producer and cleanup synthesis.
+- A default-mode aggregate parameter (a struct, Array or other collection
+  value) shares its storage with the caller. When the callee mutates that
+  storage in place or returns it, the call moves the argument: the caller may
+  pass a fresh value or reassign the binding from the result (`x = F(x)`),
+  and any other later use of the moved value is refused at that use. The
+  compiler infers the move from the callee's summary; there is no annotation,
+  and the diagnostic names the callee and parameter that moved the value
+  ([decision](docs/truth/decisions/2026-10-18_default_aggregate_move.md)).
 - Record any annotation/copy increase in the whole-chain plan with its real
   authority, transfer, interoperability or observable-cost reason, missing
   fact, last consumer and removal condition. Measure added/deleted ceremony
@@ -289,6 +297,13 @@ scope. The plan, the measurements and the current state are in
   semantic identity, evidence lifetime, fail-closed admission, and negative
   gates. Reuse admitted facts only within their validated generation; do not
   replace a raw boundary check with an unchecked assumption.
+- A currency check need not replay every premise on every read. Within one
+  validated generation (sealed typed inputs, one demand) a successful replay
+  may be reused, provided a verification mode replays every reuse and fails
+  closed on a divergence, and a gate runs in that mode.
+- A fail-closed analysis records the reason for its failure even when an
+  earlier error exists. A silent fail-closed store turns one defect into a
+  cascade whose cause cannot be found.
 - Do not expand into general benchmarking, cache/query architecture, parallel
   implementation, weaker safety conditions, smaller correctness inputs, or
   larger time/memory allowances to make the blocked gate appear green.

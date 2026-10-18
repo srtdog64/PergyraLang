@@ -10,3 +10,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-17 | [State and decisions live in docs/truth/](2026-10-17_docs_truth_facade.md) | in force |
 | 2026-10-17 | [Is the new native ownership checker part of V1?](2026-10-17_open_native_checker_scope.md) | answered 2026-10-18 |
 | 2026-10-18 | [The native ownership checker is part of V1](2026-10-18_native_checker_in_v1.md) | in force |
+| 2026-10-18 | [A call moves a default-mode aggregate the callee changes](2026-10-18_default_aggregate_move.md) | in force |
