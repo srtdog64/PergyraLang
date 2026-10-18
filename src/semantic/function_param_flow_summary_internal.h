@@ -62,6 +62,9 @@ typedef struct {
     const ASTNode *receiver;
     const Type *receiver_type;
     uint32_t receiver_id, receiver_callee_id, receiver_formal_id;
+    /* The receiver follows the method's receiver-formal summary instead of
+     * a read-only proof. */
+    bool receiver_summarized;
 } FunctionParamFlowBackingNode;
 typedef struct {
     uint32_t binding;

@@ -1,0 +1,34 @@
+// An action that returns what its subject holds returns its receiver's
+// storage, so a borrowed world cannot hand that result out.
+struct Taken {
+    names: Array<String>;
+}
+
+subject Holder {
+    var outcome: Option<Taken>;
+    action Outcome(self) -> Taken {
+        self.outcome = Some(UnwrapOption(self.outcome));
+        return UnwrapOption(self.outcome);
+    }
+}
+
+zone HoldZone {
+    subject slot holder: Holder
+    authority holder
+}
+
+world HoldWorld {
+    zone holding: HoldZone
+    activate holding
+}
+
+func Get(ref world: HoldWorld) -> Taken {
+    return world.holding.holder.Outcome();
+}
+
+func Main() -> Int {
+    let world: HoldWorld = HoldWorld(HoldZone(Holder(Some(Taken(["a"])))));
+    let taken: Taken = Get(world);
+    Print(taken.names[0]);
+    return 0;
+}

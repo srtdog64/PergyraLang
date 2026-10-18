@@ -175,16 +175,13 @@ release_lifetime_refusals = {
     "nonowner_risk_safe_then_owned_invalid": [(*borrow_refusal, 16, 13)],
     "nonowner_risk_owned_then_safe_invalid": [(*borrow_refusal, 15, 13)],
     "nonowner_risk_lambda_capture_invalid": [(*borrow_refusal, 16, 56)],
-    # The String-field getter is not receiver-independent. The first error is
-    # the summary's unproved backing relation; eight concrete borrow paths
-    # must also refuse it. Do not treat this as a physical-storage grant.
+    # The String-field getter returns its receiver's storage: returning it
+    # from the borrowed holder is the escape (9:6), and passing the borrowed
+    # holder into that wrapper is refused at the call (14:30). Inspect only
+    # measures the String, so it and Main are not refused. Do not treat this
+    # as a physical-storage grant.
     "receiver_result_string_field_escape_invalid": [
-        (None, None, 9, 6),
-        (*borrow_refusal, 9, 6), (*borrow_refusal, 9, 6),
-        (*borrow_refusal, 9, 6),
-        (*borrow_refusal, 13, 6), (*borrow_refusal, 13, 6),
-        (*borrow_refusal, 13, 6),
-        (*borrow_refusal, 14, 30), (*borrow_refusal, 20, 30)],
+        (*borrow_refusal, 9, 6), (*borrow_refusal, 14, 30)],
     # A host field is `self` storage; these returns of it are refused as
     # `self` escapes, not by an incomplete frame.
     "world_ref_self_member_return_invalid": [(*borrow_refusal, 19, 10)],
@@ -196,6 +193,9 @@ release_lifetime_refusals = {
     # A match binding carries the matched enum's storage; returning it moves
     # the by-value enum argument.
     "match_payload_return_moves_invalid": [(*released_refusal, 29, 28)],
+    # A receiver the action changes follows its self formal's summary: the
+    # action returns its subject's storage, so the borrowed world escapes.
+    "subject_action_returns_self_ref_invalid": [(*borrow_refusal, 25, 6), (*borrow_refusal, 31, 28)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -671,6 +671,8 @@ paired = (
     ("intent_subject_keeps_string_invalid", False),
     ("match_payload_return_valid", True),
     ("match_payload_return_moves_invalid", False),
+    ("world_member_subject_action_route_valid", True),
+    ("subject_action_returns_self_ref_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

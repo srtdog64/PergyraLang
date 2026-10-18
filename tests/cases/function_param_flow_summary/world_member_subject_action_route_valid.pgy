@@ -1,0 +1,44 @@
+// A world member calls an action on the subject its own zone holds. The
+// receiver carries the member's self storage, and the action changes it,
+// so the receiver follows the action's summary for its self formal.
+struct Taken {
+    path: String;
+    count: Int;
+}
+
+subject Runner {
+    var outcome: Option<Taken>;
+    action Run(self, path: String) -> Bool {
+        self.outcome = Some(Taken(path, 1));
+        return true;
+    }
+}
+
+zone RunZone {
+    subject slot runner: Runner
+    authority runner
+}
+
+world RunWorld {
+    zone running: RunZone
+    activate running
+
+    func Execute(self, path: String) -> Taken {
+        let ok: Bool = self.running.runner.Run(path);
+        if !ok || !IsSome(self.running.runner.outcome) {
+            return Taken(path, 0);
+        }
+        return UnwrapOption(self.running.runner.outcome);
+    }
+}
+
+func ExecuteThroughWorld(inout world: RunWorld, path: String) -> Taken {
+    return world.Execute(path);
+}
+
+func Main() -> Int {
+    var world: RunWorld = RunWorld(RunZone(Runner(None)));
+    let taken: Taken = ExecuteThroughWorld(world, "input.pgy");
+    Print(taken.path);
+    return 0;
+}

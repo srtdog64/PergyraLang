@@ -365,7 +365,7 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                 }
                 if ((row->result_callee_id == 0) != (row->result_type == NULL)) { valid = false; break; }
                 if (row->result_callee_id != 0 && row->node->type != AST_CALL) { valid = false; break; }
-                if (row->receiver == NULL ? (row->receiver_id != 0 || row->receiver_type != NULL || row->receiver_callee_id != 0 || row->receiver_formal_id != 0) : row->node->type != AST_CALL) { valid = false; break; }
+                if (row->receiver == NULL ? (row->receiver_id != 0 || row->receiver_type != NULL || row->receiver_callee_id != 0 || row->receiver_formal_id != 0 || row->receiver_summarized) : row->node->type != AST_CALL) { valid = false; break; }
                 if (row->result_callee_id == 0 ?
                     (row->result_argument_count != 0 || row->result_argument_kinds != NULL) :
                     (row->result_argument_count != ast_call_arg_count(row->node) ||
@@ -383,7 +383,11 @@ bool function_param_flow_backing_rows_capture(FunctionParamFlowSummaryStore *sto
                     ASTNode *callee;
                     if (receiver_edge && p == edge_arity + result_edge) {
                         ASTNode *received = NULL;
-                        callee = function_param_flow_receiver_readonly_current(store, edge_call, false);
+                        /* A summarized receiver is revalidated through its
+                         * callee's rows, as an argument edge is. */
+                        callee = row->receiver_summarized
+                            ? semantic_param_publication_direct_callee(store->ctx, edge_call)
+                            : function_param_flow_receiver_readonly_current(store, edge_call, false);
                         valid = callee != NULL && ast_node_stable_id(callee) == row->receiver_callee_id &&
                             semantic_param_publication_instance_receiver(store->ctx, edge_call, &received) &&
                             received == row->receiver && ast_node_stable_id(received) == row->receiver_id &&
