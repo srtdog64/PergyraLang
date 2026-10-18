@@ -1,0 +1,39 @@
+// A String element of a local Array pushed into a returned Array outlives
+// its owner, so the push lands as an owned copy (ArrayPushOwnedString).
+func Names(n: Int) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(out, ToString(i));
+        i = i + 1;
+    }
+    return out;
+}
+
+func Marked(path: String) -> Bool {
+    return path != "1";
+}
+
+func Selected(n: Int) -> Array<String> {
+    let entries: Array<String> = Names(n);
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if Marked(path) {
+            ArrayPush(rows, path);
+        }
+        i = i + 1;
+    }
+    return rows;
+}
+
+func Main() -> Int {
+    let rows: Array<String> = Selected(4);
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Print(rows[i]);
+        i = i + 1;
+    }
+    return 0;
+}

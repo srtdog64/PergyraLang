@@ -1,0 +1,39 @@
+// The landing is an owned push: a receiver that already holds borrowed
+// literals has no uniform element ownership to add an owned copy to.
+func Names(n: Int) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(out, ToString(i));
+        i = i + 1;
+    }
+    return out;
+}
+
+func Marked(path: String) -> Bool {
+    return path != "1";
+}
+
+func Selected(n: Int) -> Array<String> {
+    let entries: Array<String> = Names(n);
+    let rows: Array<String> = ["header"];
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if Marked(path) {
+            ArrayPush(rows, path);
+        }
+        i = i + 1;
+    }
+    return rows;
+}
+
+func Main() -> Int {
+    let rows: Array<String> = Selected(4);
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Print(rows[i]);
+        i = i + 1;
+    }
+    return 0;
+}

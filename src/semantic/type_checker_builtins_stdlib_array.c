@@ -245,8 +245,27 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
-        if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING))
-            semantic_indexed_string_borrow_call_argument(arg1, expr, NULL, 1, false, ctx);
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING)) {
+            bool copy_landing = false;
+            semantic_indexed_string_borrow_push_argument(arg1, expr, ctx, &copy_landing);
+            if (copy_landing) {
+                /* The push stores an owned copy of a String no owner proves
+                 * alive for the receiver: the call becomes ArrayPushOwnedString,
+                 * with that operation's receiver admission and effect. */
+                ASTNode *callee = ast_call_callee(expr);
+                if (!semantic_collection_admit_owned_string_push(arg0, ctx))
+                    return TYPE_UNKNOWN;
+                if (callee == NULL || callee->type != AST_IDENTIFIER ||
+                    !ast_replace_identifier_name_copy(callee, "ArrayPushOwnedString") ||
+                    !ast_call_set_semantic_callee_builtin_kind(expr,
+                        (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING)) {
+                    semantic_error(ctx, expr, "Owned String push landing could not be recorded");
+                    return TYPE_UNKNOWN;
+                }
+                kind = STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING;
+                op_name = "ArrayPushOwnedString";
+            }
+        }
         reject_borrowed_boundary_container_store(
             arg1, val, "array", op_name, ctx);
         if (!type_is_constructed_named(arr, "Array")) {

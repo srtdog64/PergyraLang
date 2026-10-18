@@ -1,3 +1,6 @@
+// Pushing an owned element of rows into copies would alias storage that
+// ArrayDropOwnedStrings frees; the push lands as an owned copy instead,
+// so copies[0] stays valid after the drop.
 func Main() -> Void
 {
     let rows: Array<String> = [];

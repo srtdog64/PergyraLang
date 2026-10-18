@@ -66,6 +66,13 @@ selected_call_targets = {
     "source_callable_enum_method_alias_valid": ("Route_Value", "method", "Route", "declared_callable"),
     "source_callable_enum_payload_method_alias_valid": ("Packet_Value", "method", "Packet", "declared_callable"),
 }
+# Positive fixtures whose String push lands as an owned copy: routine and the
+# number of ArrayPushOwnedString calls it must reach MIR with.
+owned_push_landings = {
+    "string_element_push_copy_landing_valid": ("Selected", 1),
+    "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
+    "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
+}
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
 builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch")
@@ -132,7 +139,6 @@ release_lifetime_refusals = {
     "named_string_identity_loop_reassignment_invalid": [(*borrow_refusal, 17, 27)],
     "named_string_identity_owned_element_retain_invalid": [
         (*borrow_refusal, 17, 20), (*borrow_refusal, 19, 27)],
-    "named_string_all_def0_branch_borrow_invalid": [(*borrow_refusal, 24, 22)],
     "named_string_field_make_nodes_drop_invalid": [
         (*borrow_refusal, 31, 34), (*borrow_refusal, 33, 27)],
     "named_string_field_forward_project_drop_invalid": [
@@ -316,7 +322,7 @@ paired = (
     ("array_result_owned_named_inout_shallow_push_invalid", False),
     ("array_result_owned_named_inout_shallow_set_invalid", False),
     ("array_result_owned_named_inout_index_assign_invalid", False),
-    ("array_result_local_owned_element_container_retention_invalid", False),
+    ("array_result_local_owned_element_container_copy_landing_valid", True),
     ("array_result_local_owned_element_index_assign_invalid", False),
     ("array_result_local_owned_element_field_retention_invalid", False),
     ("array_result_owned_element_inout_escape_invalid", False),
@@ -533,7 +539,7 @@ paired = (
     ("named_string_all_def0_branch_valid", True),
     ("named_string_all_def0_loop_concat_valid", True),
     ("named_string_all_def0_known_zero_valid", True),
-    ("named_string_all_def0_branch_borrow_invalid", False),
+    ("named_string_all_def0_branch_copy_landing_valid", True),
     ("named_string_field_empty_arena_valid", True),
     ("named_string_field_make_nodes_drop_invalid", False),
     ("named_string_field_forward_project_drop_invalid", False),
@@ -642,6 +648,8 @@ paired = (
     ("string_element_returned_by_named_call_invalid", False),
     ("string_element_inout_owner_named_call_invalid", False),
     ("enum_payload_constructor_value_result_valid", True),
+    ("string_element_push_copy_landing_valid", True),
+    ("string_element_push_copy_landing_mixed_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:
@@ -693,6 +701,18 @@ for name, valid in paired:
                     callee.get("binding_kind") != binding_kind or
                     callee.get("binding_syntax_id") != (target_id if binding_kind == "declared_callable" else 0)):
                 raise SystemExit(f"selected-callable {name} lost its exact target/leaf identity")
+        if name in owned_push_landings:
+            # The landed push must reach MIR as the owned-copy operation.
+            routine_name, landed = owned_push_landings[name]
+            document = json.loads(checked.stdout)
+            calls = [node.get("call_target_name") for row in document.get("routines", [])
+                     if row.get("name") == routine_name for block in row.get("blocks", [])
+                     for instruction in block.get("instructions", [])
+                     for lane in ("expr0_graph", "expr1_graph")
+                     if isinstance(instruction.get(lane), dict)
+                     for node in instruction[lane].get("nodes", []) if node.get("kind") == "call"]
+            if calls.count("ArrayPushOwnedString") != landed or "ArrayPush" in calls:
+                raise SystemExit(f"owned push landing {name} did not reach MIR as ArrayPushOwnedString: {calls}")
     else:
         output = (checked.stdout + checked.stderr).decode(errors="replace")
         try:
@@ -798,7 +818,6 @@ for name, valid in paired:
             "array_result_owned_retained_element_invalid": (7, 14),
             "array_result_local_owned_element_external_keep_invalid": (7, 14),
             "array_result_local_owned_element_constructor_invalid": (7, 31),
-            "array_result_local_owned_element_container_retention_invalid": (6, 27),
             "selector_member_effectful_receiver_invalid": (21, 15),
             "selector_array_effectful_index_invalid": (16, 15),
         }

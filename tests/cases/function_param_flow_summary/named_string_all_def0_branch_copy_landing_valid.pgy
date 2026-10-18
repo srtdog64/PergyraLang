@@ -1,3 +1,5 @@
+// A name that is either an element of rows or a fresh String has no one
+// owner proof, so pushing it into names lands as an owned copy.
 func OwnedRows() -> Array<String> {
     let rows: Array<String> = [];
     ArrayPushOwnedString(rows, Concat("owned", " value"));
