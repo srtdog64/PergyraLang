@@ -13,3 +13,4 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-18 | [A call moves a default-mode aggregate the callee changes](2026-10-18_default_aggregate_move.md) | in force |
 | 2026-10-18 | [The flow work cap counts closure entries, not frame nodes](2026-10-18_flow_budget_counts_closure_entries.md) | in force |
 | 2026-10-18 | [Copy or move a String the proof route cannot alias?](2026-10-18_open_string_push_landing.md) | OPEN |
+| 2026-10-19 | [Is Clone of a struct a deep copy?](2026-10-19_open_struct_clone_depth.md) | OPEN |
