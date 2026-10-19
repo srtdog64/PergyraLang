@@ -1,0 +1,24 @@
+// Rename's arena is inout, and Rename replaces the arena's atoms while the
+// loan AtomText took from it is still to be printed. An inout formal is
+// not lent, so the call is refused as a move of borrowed storage.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Rename(inout arena: Arena) -> Int {
+    let first: String = AtomText(arena, 0);
+    arena.atoms = [StringConcat("zz", "")];
+    Print(first);
+    return 0;
+}
+
+func Main() -> Int {
+    var arena: Arena = Arena([StringConcat("ab", "")]);
+    let done: Int = Rename(arena);
+    Print(arena.atoms[0]);
+    return done;
+}

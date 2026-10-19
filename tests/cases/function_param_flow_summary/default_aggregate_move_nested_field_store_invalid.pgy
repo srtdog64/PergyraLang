@@ -1,0 +1,23 @@
+// Grow pushes onto the Array of a Block it read out of its by-value graph.
+// That Array's storage is the one Main's graph names, so the call moves the
+// graph.
+struct Block {
+    ids: Array<Int>;
+}
+
+struct Graph {
+    blocks: Array<Block>;
+}
+
+func Grow(graph: Graph) -> Int {
+    let first: Block = graph.blocks[0];
+    ArrayPush(first.ids, 7);
+    return ArrayLength(first.ids);
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph([Block([1])]);
+    let grown: Int = Grow(graph);
+    Print(ToString(graph.blocks[0].ids[0] + grown));
+    return 0;
+}

@@ -1,0 +1,23 @@
+// TakeFirst only reads and returns from its by-value arena as far as its
+// summary says, but it also pushes onto the arena's atoms. That store changes
+// storage Describe's arena shares, so the call cannot lend the arena:
+// Describe's later use is refused.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func TakeFirst(arena: Arena) -> String {
+    ArrayPush(arena.atoms, StringConcat("zz", ""));
+    return arena.atoms[0];
+}
+
+func Describe(arena: Arena) -> String {
+    let first: String = TakeFirst(arena);
+    return Concat(first, ToString(ArrayLength(arena.atoms)));
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(Describe(arena));
+    return 0;
+}

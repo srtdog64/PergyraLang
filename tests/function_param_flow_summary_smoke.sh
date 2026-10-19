@@ -231,6 +231,32 @@ release_lifetime_refusals = {
     # calls in one return value still run in order (24:45).
     "array_handoff_return_value_loop_invalid": [(*borrow_refusal, 30, 20)],
     "array_handoff_same_return_value_invalid": [(*borrow_refusal, 24, 45)],
+    # A by-value formal lends what a read-and-return call takes from it when
+    # the routine uses it again, and only while the loan stays here and
+    # nothing changes it: a push of the loan into an inout Array (14:30), a
+    # replaced element (13:20) or a Grow that pushes onto the arena (19:27)
+    # makes the call a move again. A local is moved, never lent (15:38).
+    "by_value_getter_lend_returned_invalid": [(*released_refusal, 15, 38)],
+    "by_value_getter_lend_mutated_invalid": [(*released_refusal, 19, 27)],
+    "by_value_getter_lend_kept_invalid": [(*released_refusal, 14, 30)],
+    "by_value_getter_lend_owner_written_invalid": [(*released_refusal, 13, 20)],
+    # A store through an access path of a by-value aggregate changes storage
+    # the caller's aggregate shares, so the call moves the argument.
+    "default_aggregate_move_field_store_invalid": [(*released_refusal, 16, 22)],
+    "default_aggregate_move_field_alias_store_invalid": [(*released_refusal, 16, 22)],
+    "default_aggregate_move_field_set_invalid": [(*released_refusal, 15, 22)],
+    "default_aggregate_move_nested_field_store_invalid": [(*released_refusal, 21, 39)],
+    "default_aggregate_move_field_element_write_invalid": [(*released_refusal, 15, 22)],
+    "default_aggregate_move_nested_field_write_invalid": [(*released_refusal, 20, 27)],
+    # An element of a by-value Array formal is such a path too.
+    "default_aggregate_move_array_element_alias_store_invalid": [(*released_refusal, 17, 33)],
+    # TakeFirst returns a String of its arena but also pushes onto it, which
+    # the loan proof sees at the lending call itself (16:53). Make's arena is
+    # a local, so its first read-and-return call moves it (16:35).
+    "by_value_getter_lend_growing_invalid": [(*released_refusal, 16, 53)],
+    "by_value_getter_lend_local_transfer_invalid": [(*released_refusal, 16, 35)],
+    # An inout formal may change while the loan lives, so it is not lent.
+    "by_value_getter_lend_inout_owner_invalid": [(*borrow_refusal, 13, 34)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -736,6 +762,24 @@ paired = (
     ("array_handoff_return_value_loop_invalid", False),
     ("array_handoff_same_return_value_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
+    ("by_value_getter_lend_valid", True),
+    ("by_value_getter_lend_forward_valid", True),
+    ("by_value_getter_lend_returned_invalid", False),
+    ("by_value_getter_lend_mutated_invalid", False),
+    ("by_value_getter_lend_kept_invalid", False),
+    ("by_value_getter_lend_owner_written_invalid", False),
+    ("default_aggregate_move_field_read_valid", True),
+    ("default_aggregate_move_field_store_invalid", False),
+    ("default_aggregate_move_field_alias_store_invalid", False),
+    ("default_aggregate_move_field_set_invalid", False),
+    ("default_aggregate_move_nested_field_store_invalid", False),
+    ("default_aggregate_move_field_element_write_invalid", False),
+    ("default_aggregate_move_nested_field_write_invalid", False),
+    ("default_aggregate_move_array_element_alias_store_invalid", False),
+    ("default_aggregate_move_array_element_read_call_valid", True),
+    ("by_value_getter_lend_growing_invalid", False),
+    ("by_value_getter_lend_local_transfer_invalid", False),
+    ("by_value_getter_lend_inout_owner_invalid", False),
 )
 for name, valid in paired:
     source = root / "tests/cases/function_param_flow_summary" / (name + ".pgy")

@@ -1,0 +1,23 @@
+// Describe only reads its by-value arena: a field, a length, an element and
+// a Clone with new storage. Main may use its arena again.
+struct Arena {
+    name: String;
+    count: Int;
+    atoms: Array<String>;
+}
+
+func Describe(arena: Arena) -> Int {
+    let total: Int = arena.count + ArrayLength(arena.atoms) + StringLength(arena.name);
+    if total > 0 {
+        Print(arena.atoms[0]);
+    }
+    let copy: Array<String> = Clone(arena.atoms);
+    return total + ArrayLength(copy);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena("n", 1, [StringConcat("ab", "")]);
+    let total: Int = Describe(arena);
+    Print(arena.atoms[0]);
+    return total;
+}

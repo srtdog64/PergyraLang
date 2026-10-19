@@ -1,0 +1,22 @@
+// Rename assigns the name of a Block inside its by-value graph. The Block
+// lives in the blocks storage Main's graph shares, so the call moves the
+// graph.
+struct Block {
+    name: String;
+}
+
+struct Graph {
+    blocks: Array<Block>;
+}
+
+func Rename(graph: Graph) -> Int {
+    graph.blocks[0].name = StringConcat("zz", "");
+    return ArrayLength(graph.blocks);
+}
+
+func Main() -> Int {
+    let graph: Graph = Graph([Block(StringConcat("ab", ""))]);
+    let count: Int = Rename(graph);
+    Print(graph.blocks[0].name);
+    return count;
+}

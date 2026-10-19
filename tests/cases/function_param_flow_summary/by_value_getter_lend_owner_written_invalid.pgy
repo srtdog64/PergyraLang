@@ -1,0 +1,21 @@
+// AtomText lends Rename's by-value arena, and Rename replaces the lent
+// element before it uses the loan.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Rename(arena: Arena) -> Int {
+    let first: String = AtomText(arena, 0);
+    ArraySet(arena.atoms, 0, StringConcat("zz", ""));
+    return StringLength(first);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(ToString(Rename(arena)));
+    return 0;
+}

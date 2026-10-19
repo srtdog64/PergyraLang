@@ -1,0 +1,18 @@
+// Grow takes its arena by value and pushes onto the arena's Array field.
+// The copy shares that Array's storage with Main's arena, so the push can
+// move the storage Main's arena still names: the call moves the arena.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func Grow(arena: Arena) -> Int {
+    ArrayPush(arena.atoms, StringConcat("zz", ""));
+    return ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let grown: Int = Grow(arena);
+    Print(arena.atoms[0]);
+    return grown;
+}

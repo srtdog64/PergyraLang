@@ -1,0 +1,18 @@
+// Grow binds its arena's Array field to a local and pushes onto it. The
+// local shares the storage of Main's arena, so the call moves the arena.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func Grow(arena: Arena) -> Int {
+    let atoms: Array<String> = arena.atoms;
+    ArrayPush(atoms, StringConcat("zz", ""));
+    return ArrayLength(atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let grown: Int = Grow(arena);
+    Print(arena.atoms[0]);
+    return grown;
+}

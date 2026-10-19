@@ -1,0 +1,23 @@
+// AtomText only reads its by-value arena and returns one of its Strings.
+// Describe uses the arena again after the call, so the call lends the arena
+// instead of moving it: the loan stays in Describe and nothing changes the
+// arena while it lives.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Describe(arena: Arena) -> String {
+    let first: String = AtomText(arena, 0);
+    let count: Int = ArrayLength(arena.atoms);
+    return Concat(first, ToString(count));
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cd", "")]);
+    Print(Describe(arena));
+    return 0;
+}

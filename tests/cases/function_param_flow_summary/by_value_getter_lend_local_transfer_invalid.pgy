@@ -1,0 +1,24 @@
+// Make's arena is a local. Its last read-and-return call hands the arena to
+// the result Make returns, while the loan the first call took is still to
+// be printed. A local is never lent, so the first call moves the arena and
+// the second call is refused.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Make() -> String {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cd", "")]);
+    let first: String = AtomText(arena, 0);
+    let second: String = AtomText(arena, 1);
+    Print(first);
+    return second;
+}
+
+func Main() -> Int {
+    Print(Make());
+    return 0;
+}

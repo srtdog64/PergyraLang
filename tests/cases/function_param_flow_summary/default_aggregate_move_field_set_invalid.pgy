@@ -1,0 +1,17 @@
+// Rename replaces an element of its by-value arena's Array field. The
+// element lives in storage Main's arena shares, so the call moves the arena.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func Rename(arena: Arena) -> Int {
+    ArraySet(arena.atoms, 0, StringConcat("zz", ""));
+    return ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let count: Int = Rename(arena);
+    Print(arena.atoms[0]);
+    return count;
+}

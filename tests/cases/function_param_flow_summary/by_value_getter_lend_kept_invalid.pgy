@@ -1,0 +1,22 @@
+// AtomText lends Collect's by-value arena, and Collect keeps the loan in the
+// inout Array it was given before it uses the arena again.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Collect(arena: Arena, inout out: Array<String>) -> Int {
+    let first: String = AtomText(arena, 0);
+    ArrayPush(out, first);
+    return ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    var out: Array<String> = [];
+    Print(ToString(Collect(arena, out)));
+    return 0;
+}

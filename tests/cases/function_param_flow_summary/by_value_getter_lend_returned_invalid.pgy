@@ -1,0 +1,22 @@
+// Make's arena is a local, so the read-and-return call AtomText moves it:
+// only a formal is lent. Make's later use of the arena is refused, and with
+// it the loan Make would return past the arena it owns.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Make() -> String {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let first: String = AtomText(arena, 0);
+    Print(ToString(ArrayLength(arena.atoms)));
+    return first;
+}
+
+func Main() -> Int {
+    Print(Make());
+    return 0;
+}

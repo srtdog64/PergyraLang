@@ -1,0 +1,30 @@
+// Pick lends its by-value arena to AtomText (it uses the arena again) and
+// returns that loan: its own summary returns the arena, so Pick lends it on
+// in turn. Report uses its arena after Pick, and the loan Pick returned
+// stays in Report.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Pick(arena: Arena) -> String {
+    let first: String = AtomText(arena, 0);
+    if ArrayLength(arena.atoms) > 5 {
+        return "";
+    }
+    return first;
+}
+
+func Report(arena: Arena) -> String {
+    let picked: String = Pick(arena);
+    return Concat(picked, ToString(ArrayLength(arena.atoms)));
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cd", "")]);
+    Print(Report(arena));
+    return 0;
+}

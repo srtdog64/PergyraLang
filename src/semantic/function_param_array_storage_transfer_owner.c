@@ -4,6 +4,8 @@
 #include "type_checker_resolution_metadata_internal.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "typed_map_query_fact_owner.h"
 #include <string.h>
 
 bool publication_record_private_array_push(SemanticContext *ctx, ASTNode *call,
@@ -231,6 +233,22 @@ bool semantic_param_publication_private_physical_array_mutation(const SemanticCo
     return true;
 }
 
+/* An Array formal other than `own` is proved as a descriptor. A by-value or
+ * `ref` formal of any other type, `self` included, is proved through its
+ * access paths. An `own` or `inout` one is not proved. */
+static bool
+array_storage_formal_kind(const ASTNode *decl, size_t index, bool *paths)
+{
+    FuncParam *param = ast_func_param(decl, index);
+    if (param == NULL || param->mode == PARAM_MODE_OWN) return false;
+    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
+    *paths = type_name == NULL || strcmp(type_name, "Array") != 0;
+    if (!*paths) return true;
+    bool self_param = param->type == NULL && param->name != NULL && strcmp(param->name, "self") == 0;
+    return (param->type != NULL || self_param) &&
+        (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF);
+}
+
 static bool
 array_storage_formal(const ASTNode *node, const SlotSummaryOrigin *origin,
                      const SlotFunctionLookup *lookup)
@@ -244,7 +262,83 @@ array_storage_formal(const ASTNode *node, const SlotSummaryOrigin *origin,
 }
 
 static unsigned array_storage_use_unproved(ASTNode *node,
-    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, bool *payload_read);
+    const SlotSummaryOrigin *origin, const SlotFunctionLookup *lookup, bool *payload_read, bool paths);
+
+/* A formal that is not an Array holds its storage behind access paths:
+ * `arena.atoms`, `arena.blocks[i].ids`. Its by-value copy shares that
+ * storage with the caller, and a store through the copy's path changes the
+ * caller's storage without updating the caller's descriptors. An Array
+ * formal's elements are such paths too: `blocks[i].ids`. */
+static bool storage_path_step(const ASTNode *node)
+{
+    return node != NULL && (node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS);
+}
+
+static bool storage_path_rooted(const ASTNode *node, const SlotSummaryOrigin *origin)
+{
+    FuncParam *param = ast_func_param(origin->function_decl, origin->param_index);
+    uint32_t id = param == NULL ? 0 : ast_func_param_stable_id(param);
+    while (node != NULL && (node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS))
+        node = node->type == AST_MEMBER_ACCESS ? ast_member_object(node) : ast_array_access_array(node);
+    return id != 0 && node != NULL && node->type == AST_IDENTIFIER &&
+        ast_identifier_binding_syntax_id(node) == id;
+}
+
+/* A String or copy-only value read through a path carries no storage. */
+static bool storage_path_value_read(const ASTNode *node, const SlotFunctionLookup *lookup)
+{
+    SemanticPublishedValue value = semantic_param_publication_value(lookup->ctx, node);
+    return value.ok && !value.meta && (type_equals(value.type, TYPE_STRING) ||
+        semantic_classify_ownership_type(value.type, lookup->ctx) == OWNERSHIP_TYPE_COPY_ONLY);
+}
+
+/* Index expressions along a path are ordinary uses; an index step reads an
+ * element of the storage. */
+static unsigned storage_path_indices(ASTNode *node, const SlotSummaryOrigin *origin,
+    const SlotFunctionLookup *lookup, bool *payload_read, bool paths)
+{
+    unsigned bad = 0;
+    while (node != NULL && (node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS)) {
+        if (node->type == AST_MEMBER_ACCESS) { node = ast_member_object(node); continue; }
+        *payload_read = true;
+        bad |= array_storage_use_unproved(ast_array_access_index(node), origin, lookup, payload_read, paths);
+        if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) return bad;
+        node = ast_array_access_array(node);
+    }
+    return bad;
+}
+
+/* A path handed to a routine keeps its storage when the routine's formal
+ * keeps what it receives. A builtin writer stores through its receiver, and
+ * through this copy that store changes storage the caller's descriptor
+ * still names. Any other builtin keeps its storage when it only borrows the
+ * argument for the call, or keeps nothing and returns new storage, as Clone
+ * of an Array of Strings or scalars does. */
+static unsigned storage_path_call_argument_unproved(ASTNode *call, size_t ordinal,
+    const SlotFunctionLookup *lookup)
+{
+    SemanticContext *ctx = lookup->ctx;
+    if (!semantic_param_publication_checked_argument(ctx, call, ordinal))
+        return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    ASTNode *decl = semantic_param_publication_callee(ctx, call, ordinal);
+    size_t formal = 0;
+    if (decl != NULL)
+        return semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal)
+            ? function_param_flow_array_preservation_failures(ctx, decl, formal)
+            : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+    size_t stored = 0;
+    uint32_t kind = 0;
+    if (ordinal == 0 && (semantic_param_publication_checked_array_store(ctx, call, &stored) ||
+            semantic_param_publication_checked_slot_write(ctx, call) ||
+            (ast_call_semantic_callee_builtin_kind(call, &kind) &&
+             kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING)))
+        return FUNCTION_PARAM_ARRAY_DESCRIPTOR_UNPROVED;
+    if (semantic_typed_map_query_receiver_read(ctx, call, ordinal) ||
+        semantic_param_publication_argument_borrowed_for_call(ctx, call, ordinal)) return 0;
+    bool depends = true, retains = true;
+    return semantic_param_publication_checked_result_relation(ctx, call, ordinal, &depends, &retains) &&
+        !depends && !retains ? 0 : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+}
 
 static unsigned
 array_storage_call_argument_unproved(ASTNode *call, size_t ordinal,
@@ -268,11 +362,16 @@ array_storage_call_argument_unproved(ASTNode *call, size_t ordinal,
 
 static unsigned
 array_storage_use_unproved(ASTNode *node, const SlotSummaryOrigin *origin,
-                           const SlotFunctionLookup *lookup, bool *payload_read)
+                           const SlotFunctionLookup *lookup, bool *payload_read, bool paths)
 {
     if (node == NULL) return 0;
     unsigned bad = 0;
-#define USE(child) array_storage_use_unproved((child), origin, lookup, payload_read)
+    /* A path read in any other place copies what it names: a String or
+     * copy-only value shares nothing, anything else aliases the storage. */
+    if ((paths || storage_path_step(node)) && storage_path_rooted(node, origin))
+        return storage_path_value_read(node, lookup)
+            ? storage_path_indices(node, origin, lookup, payload_read, paths) : FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
+#define USE(child) array_storage_use_unproved((child), origin, lookup, payload_read, paths)
 #define FORMAL(child) array_storage_formal((child), origin, lookup)
 #define ADD(child) do { bad |= USE(child); if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) return bad; } while (0)
 #define EACH(count, child) do { for (size_t i = 0; i < (count); i++) { ADD(child); } return bad; } while (0)
@@ -300,9 +399,20 @@ array_storage_use_unproved(ASTNode *node, const SlotSummaryOrigin *origin,
         ADD(ast_match_case_pattern(node)); ADD(ast_match_case_guard(node)); ADD(ast_match_case_body(node)); return bad;
     case AST_ASSIGNMENT: {
         ASTNode *target = ast_assignment_target(node);
-        ADD(target); ADD(ast_assignment_value(node));
-        if (target != NULL && target->type == AST_ARRAY_ACCESS
-            && FORMAL(ast_array_access_array(target))) bad |= FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
+        if (!((paths || storage_path_step(target)) && storage_path_rooted(target, origin))) {
+            ADD(target); ADD(ast_assignment_value(node)); return bad;
+        }
+        ADD(ast_assignment_value(node));
+        bad |= storage_path_indices(target, origin, lookup, payload_read, paths);
+        if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) return bad;
+        /* Writing an Array formal's own element changes its elements only.
+         * A field of a by-value copy changes only the copy. Any other
+         * target below an index step is in the storage the copy shares. */
+        if (!paths && target->type == AST_ARRAY_ACCESS && FORMAL(ast_array_access_array(target)))
+            return bad | FUNCTION_PARAM_ARRAY_ELEMENTS_UNPROVED;
+        for (const ASTNode *step = target; storage_path_step(step);
+             step = step->type == AST_MEMBER_ACCESS ? ast_member_object(step) : ast_array_access_array(step))
+            if (step->type == AST_ARRAY_ACCESS) return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
         return bad;
     }
     case AST_BINARY: ADD(ast_binary_left(node)); ADD(ast_binary_right(node)); return bad;
@@ -310,7 +420,12 @@ array_storage_use_unproved(ASTNode *node, const SlotSummaryOrigin *origin,
     case AST_CAST: return USE(ast_cast_operand(node));
     case AST_TYPE_TEST: return USE(ast_type_test_operand(node));
     case AST_LET_DESTRUCTURE: return USE(ast_let_destructure_initializer(node));
-    case AST_RETURN: return USE(ast_return_value(node));
+    case AST_RETURN:
+        /* The summary's RETURN bit carries a returned path; the caller's
+         * loan proof follows the result. */
+        if (paths && storage_path_rooted(ast_return_value(node), origin))
+            return storage_path_indices(ast_return_value(node), origin, lookup, payload_read, paths);
+        return USE(ast_return_value(node));
     case AST_MEMBER_ACCESS: return USE(ast_member_object(node));
     case AST_ARRAY_ACCESS:
         if (FORMAL(ast_array_access_array(node))) *payload_read = true;
@@ -328,7 +443,12 @@ array_storage_use_unproved(ASTNode *node, const SlotSummaryOrigin *origin,
         ADD(ast_call_callee(node));
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             ASTNode *arg = ast_call_argument(node, i);
-            bad |= FORMAL(arg) ? array_storage_call_argument_unproved(node, i, lookup) : USE(arg);
+            if ((paths || storage_path_step(arg)) && storage_path_rooted(arg, origin)) {
+                bad |= storage_path_value_read(arg, lookup)
+                    ? storage_path_indices(arg, origin, lookup, payload_read, paths)
+                    : storage_path_call_argument_unproved(node, i, lookup) |
+                        storage_path_indices(arg, origin, lookup, payload_read, paths);
+            } else bad |= FORMAL(arg) ? array_storage_call_argument_unproved(node, i, lookup) : USE(arg);
             if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) break;
         }
         return bad;
@@ -349,16 +469,17 @@ function_param_array_storage_unproved_in_program_points(
     *payload_read = false;
     FuncParam *param = origin != NULL
         ? ast_func_param(origin->function_decl, origin->param_index) : NULL;
-    if (lookup == NULL || lookup->ctx == NULL || param == NULL || param->type == NULL
+    bool paths = false;
+    if (lookup == NULL || lookup->ctx == NULL || param == NULL
+        || !array_storage_formal_kind(origin->function_decl, origin->param_index, &paths)
         || ast_func_body(origin->function_decl) == NULL || origin->function_decl->is_async_decl
-        || ast_type_name(param->type) == NULL || strcmp(ast_type_name(param->type), "Array") != 0
-        || param->mode == PARAM_MODE_OWN || origin->param_name == NULL
+        || origin->param_name == NULL
         || ast_func_param_stable_id(param) == 0 || (roots == NULL && count != 0))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     unsigned bad = 0;
     for (size_t i = 0; i < count; i++) {
         bad |= roots[i] == NULL ? FUNCTION_PARAM_ARRAY_ALL_UNPROVED
-            : array_storage_use_unproved(roots[i], origin, lookup, payload_read);
+            : array_storage_use_unproved(roots[i], origin, lookup, payload_read, paths);
         if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) break;
     }
     return bad;
@@ -369,11 +490,10 @@ function_param_flow_array_preservation_failures(SemanticContext *ctx,
     ASTNode *function_decl, size_t param_index)
 {
     FuncParam *param = ast_func_param(function_decl, param_index);
+    bool paths = false;
     if (ctx == NULL || function_decl == NULL || param == NULL
         || ast_func_body(function_decl) == NULL || function_decl->is_async_decl
-        || param->mode == PARAM_MODE_OWN || param->type == NULL
-        || ast_type_name(param->type) == NULL
-        || strcmp(ast_type_name(param->type), "Array") != 0)
+        || !array_storage_formal_kind(function_decl, param_index, &paths))
         return FUNCTION_PARAM_ARRAY_ALL_UNPROVED;
     (void)function_param_flow_summary_for_param(ctx, function_decl, param_index);
     FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;

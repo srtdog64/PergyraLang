@@ -1,0 +1,21 @@
+// Count hands an element of its by-value Array of Blocks to BlockSize,
+// which only reads it. Count keeps the storage, and Main may use its blocks
+// again.
+struct Block {
+    ids: Array<Int>;
+}
+
+func BlockSize(block: Block) -> Int {
+    return ArrayLength(block.ids);
+}
+
+func Count(blocks: Array<Block>) -> Int {
+    return BlockSize(blocks[0]) + ArrayLength(blocks);
+}
+
+func Main() -> Int {
+    let blocks: Array<Block> = [Block([1, 2])];
+    let count: Int = Count(blocks);
+    Print(ToString(blocks[0].ids[0] + count));
+    return 0;
+}

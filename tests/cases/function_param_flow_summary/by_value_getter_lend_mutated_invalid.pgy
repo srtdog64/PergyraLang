@@ -1,0 +1,27 @@
+// AtomText lends Touch's by-value arena, and Touch hands the arena to Grow,
+// which pushes onto its atoms, while the loan is still to be read.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Grow(arena: Arena) -> Int {
+    let atoms: Array<String> = arena.atoms;
+    ArrayPush(atoms, StringConcat("zz", ""));
+    return ArrayLength(atoms);
+}
+
+func Touch(arena: Arena) -> Int {
+    let first: String = AtomText(arena, 0);
+    let grown: Int = Grow(arena);
+    return StringLength(first) + grown;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    Print(ToString(Touch(arena)));
+    return 0;
+}

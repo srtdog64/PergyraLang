@@ -1,0 +1,19 @@
+// Grow binds an element of its by-value Array of Blocks to a local and
+// pushes onto that Block's ids. The ids storage is the one Main's blocks
+// name, so the call moves the Array.
+struct Block {
+    ids: Array<Int>;
+}
+
+func Grow(blocks: Array<Block>) -> Int {
+    let first: Block = blocks[0];
+    ArrayPush(first.ids, 7);
+    return ArrayLength(first.ids);
+}
+
+func Main() -> Int {
+    let blocks: Array<Block> = [Block([1])];
+    let grown: Int = Grow(blocks);
+    Print(ToString(blocks[0].ids[0] + grown));
+    return 0;
+}

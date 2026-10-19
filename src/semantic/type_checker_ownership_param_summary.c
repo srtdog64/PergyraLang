@@ -20,7 +20,8 @@
 
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
-    uint32_t owner_slot_id, const PendingRefCall *return_loan, ASTNode **escape_site);
+    uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
+    ASTNode **escape_site);
 
 static bool array_result_borrowed_formal(Type *function_type, const Type *formal_type,
     ParamMode mode, SemanticContext *ctx)
@@ -277,6 +278,63 @@ static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
     return *root == NULL;
 }
 
+/* No assignment, writing call or move in `caller` reaches `binding`. The
+ * owner may still be lent on to a `ref` formal. When the owner is a formal
+ * of `caller` (`lends_on`), a by-value formal that only reads it and returns
+ * it or a part of it lends it on too; a local passed there is moved
+ * (2026-10-19_by_value_getter_lends_when_used_again). */
+static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
+    FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on)
+{
+    for (size_t c = 0; c < claims->count; c++) {
+        ASTNode *node = claims->rows[c].node;
+        if (node->type == AST_ASSIGNMENT) {
+            const ASTNode *target = NULL;
+            if (!returned_loan_storage_root(store, claims, caller, ast_assignment_target(node), &target) ||
+                (target != NULL && semantic_param_publication_binding(store->ctx, target) == binding)) return false;
+        }
+        if (node->type != AST_CALL) continue;
+        for (size_t p = 0; p < ast_call_arg_count(node); p++) {
+            if (!semantic_param_publication_checked_argument(store->ctx, node, p)) return false;
+            if (semantic_param_publication_string_argument_read_only(store->ctx, node, p) ||
+                semantic_typed_map_query_receiver_read(store->ctx, node, p)) continue;
+            const ASTNode *root = NULL;
+            if (!returned_loan_storage_root(store, claims, caller, ast_call_argument(node, p), &root)) return false;
+            if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
+            ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
+            size_t formal = 0;
+            /* A builtin that borrows its argument for the call only reads it,
+             * except the receivers the retention registry lists for writers:
+             * ArrayPush, ArraySet, ArrayPushOwnedString and Write. */
+            if (callee == NULL && semantic_param_publication_argument_borrowed_for_call(store->ctx, node, p)) {
+                size_t stored = 0;
+                uint32_t kind = 0;
+                if (p == 0 && (semantic_param_publication_checked_array_store(store->ctx, node, &stored) ||
+                        semantic_param_publication_checked_slot_write(store->ctx, node) ||
+                        (ast_call_semantic_callee_builtin_kind(node, &kind) &&
+                         kind == (uint32_t)BUILTIN_ARRAY_PUSH_OWNED_STRING))) return false;
+                continue;
+            }
+            if (callee == NULL || !semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal)) return false;
+            /* A write changes the owner under the loan; so does a move into an
+             * `own` formal, or into a by-value formal that keeps or releases
+             * it or stores into storage it holds. */
+            ParamMode mode = ast_func_param(callee, formal)->mode;
+            unsigned summary = function_param_flow_summary_for_call(
+                &(SlotFunctionLookup){store->ctx, store->program_root}, node, p);
+            SemanticPublishedValue argument = semantic_param_publication_value(store->ctx, ast_call_argument(node, p));
+            if (mode == PARAM_MODE_MUT_REF || mode == PARAM_MODE_OWN || (summary & SLOT_PARAM_SUMMARY_WRITE) != 0) return false;
+            unsigned moving = SLOT_PARAM_SUMMARY_RELEASE | SLOT_PARAM_SUMMARY_CALL_ESCAPE |
+                SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE | (lends_on ? 0u : SLOT_PARAM_SUMMARY_RETURN_ESCAPE);
+            bool storage = argument.ok && !type_equals(argument.type, TYPE_STRING) &&
+                semantic_classify_ownership_type(argument.type, store->ctx) != OWNERSHIP_TYPE_COPY_ONLY;
+            if (mode != PARAM_MODE_REF && ((summary & moving) != 0 || !argument.ok ||
+                (storage && !function_param_flow_preserves_array_storage(store->ctx, callee, formal)))) return false;
+        }
+    }
+    return true;
+}
+
 static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowProgramPointIndex *index, const SemanticParamPublicationView *view,
     const PendingRefCall *loan, unsigned effects)
@@ -319,38 +377,8 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
             for (size_t i = 0; !formal && i < local_count; i++) {
                 if (binding != 0 && binding == local_ids[i]) dependency = ast_let_initializer(locals[i]);
             }
-            for (size_t c = 0; (dependency != NULL || by_value_formal) && c < claims->count; c++) {
-                ASTNode *node = claims->rows[c].node;
-                if (node->type == AST_ASSIGNMENT) {
-                    const ASTNode *target = NULL;
-                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_assignment_target(node), &target) ||
-                        (target != NULL && semantic_param_publication_binding(store->ctx, target) == binding)) {
-                        admitted = false; break;
-                    }
-                }
-                if (node->type == AST_CALL) for (size_t p = 0; p < ast_call_arg_count(node); p++) {
-                    if (!semantic_param_publication_checked_argument(store->ctx, node, p)) { admitted = false; break; }
-                    if (semantic_param_publication_string_argument_read_only(store->ctx, node, p) ||
-                        semantic_typed_map_query_receiver_read(store->ctx, node, p)) continue;
-                    const ASTNode *root = NULL;
-                    if (!returned_loan_storage_root(store, claims, loan->caller, ast_call_argument(node, p), &root)) { admitted = false; break; }
-                    if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
-                    ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
-                    size_t formal = 0;
-                    if (callee == NULL || !semantic_param_publication_formal_for_actual(store->ctx, node, p, &formal)) {
-                        admitted = false; continue;
-                    }
-                    /* The owner may be lent on. A write changes it under the
-                     * loan; so does a move into an `own` formal or into a
-                     * by-value formal that keeps or releases it. */
-                    ParamMode mode = ast_func_param(callee, formal)->mode;
-                    unsigned summary = function_param_flow_summary_for_call(
-                        &(SlotFunctionLookup){store->ctx, store->program_root}, node, p);
-                    if (mode == PARAM_MODE_MUT_REF || mode == PARAM_MODE_OWN || (summary & SLOT_PARAM_SUMMARY_WRITE) != 0 ||
-                        (mode != PARAM_MODE_REF && (summary & (SLOT_PARAM_SUMMARY_RELEASE | SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
-                            SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE)) != 0)) admitted = false;
-                }
-            }
+            if ((dependency != NULL || by_value_formal) &&
+                !loan_owner_unchanged(store, claims, loan->caller, binding, by_value_formal)) admitted = false;
             if (dependency == NULL && !by_value_formal) admitted = false;
             /* A loan that stays here needs only an owner no write reaches. */
             if (effects == 0) continue;
@@ -392,7 +420,8 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
 
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
-    uint32_t owner_slot_id, const PendingRefCall *return_loan, ASTNode **escape_site)
+    uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
+    ASTNode **escape_site)
 {
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
@@ -433,7 +462,7 @@ static bool sparse_loan_admitted(SemanticContext *ctx,
     bool owner_walk = return_loan != NULL && !type_equals(return_loan->type, TYPE_STRING);
     bool admitted = fact.complete && !fact.pending && state.loan_seed_seen && !store->failed &&
         function_param_flow_program_point_index_build(store, caller, &index) &&
-        ((effects == 0 && !owner_walk) ||
+        (((effects & ~allowed_effects) == 0 && !owner_walk) ||
          (return_loan != NULL && returned_loan_sources_admitted(store, index, view, return_loan, effects)));
     for (size_t n = 0; n < fact.node_count; n++) free(fact.nodes[n].origins);
     for (size_t b = 0; b < fact.binding_count; b++) { free(fact.bindings[b].origins); free(fact.bindings[b].destinations); }
@@ -453,7 +482,32 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     if (!registered || (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
         !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal)) return false;
-    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, escape_site);
+    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site);
+}
+
+bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
+    ASTNode *caller, ASTNode *call, uint32_t owner)
+{
+    SemanticParamPublicationView view;
+    if (ctx == NULL || caller == NULL || call == NULL || owner == 0 ||
+        !semantic_param_publication_admitted_view(ctx, &view)) return false;
+    /* The move owner lends only a formal. A loan of it may be returned when
+     * the formal's own summary lends it on in turn. */
+    unsigned allowed = 0;
+    for (size_t p = 0; p < ast_func_param_count(caller); p++) {
+        FuncParam *param = ast_func_param(caller, p);
+        if (param != NULL && ast_func_param_stable_id(param) == owner &&
+            (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF))
+            allowed = function_param_flow_summary_for_param(ctx, caller, p) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+    }
+    ASTNode *escape = NULL;
+    if (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape)) return false;
+    SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
+    FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
+    FunctionParamFlowProgramPointIndex *index;
+    return store != NULL && !store->failed &&
+        function_param_flow_program_point_index_build(store, caller, &index) &&
+        loan_owner_unchanged(store, index->claims, caller, owner, true);
 }
 
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
@@ -467,5 +521,5 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     bool registered = false;
     for (size_t c = 0; c < view->read_loan_count; c++) if (&view->read_loans[c] == row) registered = true;
     return registered && sparse_loan_admitted(ctx, view, (ASTNode *)row->caller,
-        (ASTNode *)row->call, owner, NULL, escape_site);
+        (ASTNode *)row->call, owner, NULL, 0, escape_site);
 }

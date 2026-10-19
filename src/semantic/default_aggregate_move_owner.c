@@ -30,6 +30,8 @@ typedef struct {
     char *fields;          /* ".a.b" below the binding; "" is the whole value */
     const char *callee;
     const char *param;
+    /* The read-and-return call that lent this path, or NULL for a move. */
+    ASTNode *lending_call;
 } MovedPath;
 
 typedef struct {
@@ -44,6 +46,9 @@ typedef struct {
     /* Each refused use is reported once even though loops are walked twice. */
     const ASTNode **reported;
     size_t reported_count, reported_capacity;
+    /* Loan verdicts of lending calls, each checked once. */
+    struct { const ASTNode *call; bool admitted; } *lent;
+    size_t lent_count, lent_capacity;
 } MoveWalk;
 
 static void state_free(MoveState *state)
@@ -54,10 +59,14 @@ static void state_free(MoveState *state)
 }
 
 static bool state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const char *fields,
-    const char *callee, const char *param)
+    const char *callee, const char *param, ASTNode *lending_call)
 {
     for (size_t i = 0; i < state->count; i++)
-        if (state->rows[i].binding == binding && strcmp(state->rows[i].fields, fields) == 0) return true;
+        if (state->rows[i].binding == binding && strcmp(state->rows[i].fields, fields) == 0) {
+            /* A move on any path is a move, whatever lent it elsewhere. */
+            if (lending_call == NULL) state->rows[i].lending_call = NULL;
+            return true;
+        }
     if (state->count == state->capacity) {
         size_t capacity = state->capacity == 0 ? 8 : state->capacity * 2;
         MovedPath *grown = realloc(state->rows, capacity * sizeof(*grown));
@@ -67,7 +76,7 @@ static bool state_add(MoveWalk *walk, MoveState *state, uint32_t binding, const 
     char *copy = malloc(strlen(fields) + 1);
     if (copy == NULL) { walk->failed = true; return false; }
     strcpy(copy, fields);
-    state->rows[state->count++] = (MovedPath){binding, copy, callee, param};
+    state->rows[state->count++] = (MovedPath){binding, copy, callee, param, lending_call};
     return true;
 }
 
@@ -76,7 +85,7 @@ static bool state_copy(MoveWalk *walk, MoveState *out, const MoveState *in)
     *out = (MoveState){0};
     for (size_t i = 0; i < in->count; i++)
         if (!state_add(walk, out, in->rows[i].binding, in->rows[i].fields,
-                in->rows[i].callee, in->rows[i].param)) return false;
+                in->rows[i].callee, in->rows[i].param, in->rows[i].lending_call)) return false;
     return true;
 }
 
@@ -84,7 +93,7 @@ static bool state_union(MoveWalk *walk, MoveState *into, const MoveState *from)
 {
     for (size_t i = 0; i < from->count; i++)
         if (!state_add(walk, into, from->rows[i].binding, from->rows[i].fields,
-                from->rows[i].callee, from->rows[i].param)) return false;
+                from->rows[i].callee, from->rows[i].param, from->rows[i].lending_call)) return false;
     return true;
 }
 
@@ -129,9 +138,30 @@ static bool reported_once(MoveWalk *walk, const ASTNode *node)
     return true;
 }
 
+/* A path a read-and-return call lent may be used again when that loan stays
+ * in the routine, or leaves it only as the formal's own return, and nothing
+ * changes its owner. */
+static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
+{
+    if (moved->lending_call == NULL) return false;
+    for (size_t i = 0; i < walk->lent_count; i++)
+        if (walk->lent[i].call == moved->lending_call) return walk->lent[i].admitted;
+    bool admitted = function_param_flow_lent_argument_admitted(walk->ctx, walk->routine,
+        moved->lending_call, moved->binding);
+    if (walk->lent_count == walk->lent_capacity) {
+        size_t capacity = walk->lent_capacity == 0 ? 8 : walk->lent_capacity * 2;
+        void *grown = realloc(walk->lent, capacity * sizeof(*walk->lent));
+        if (grown == NULL) { walk->failed = true; return false; }
+        walk->lent = grown; walk->lent_capacity = capacity;
+    }
+    walk->lent[walk->lent_count].call = moved->lending_call;
+    walk->lent[walk->lent_count++].admitted = admitted;
+    return admitted;
+}
+
 static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
 {
-    if (!reported_once(walk, node)) return;
+    if (lent_use_admitted(walk, moved) || !reported_once(walk, node)) return;
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);
@@ -184,10 +214,10 @@ static bool aggregate_type(SemanticContext *ctx, const Type *type)
 /* The callee changes, keeps, returns or releases storage it receives through
  * this default-mode parameter. For an Array formal the descriptor-transfer
  * owner answers exactly: element values that escape (Strings are immutable)
- * are the String owners' concern, not a move. That owner proves nothing for
- * any other aggregate, so a struct, tuple or other constructed formal moves
- * unless its summary only reads it. A summary that is missing or not final
- * counts as a change. */
+ * are the String owners' concern, not a move. Any other aggregate moves
+ * unless its summary only reads it and the same owner proves that no store
+ * through its access paths changes the storage it shares with the caller.
+ * A summary that is missing or not final counts as a change. */
 static bool formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal)
 {
     FuncParam *param = ast_func_param(callee, formal);
@@ -201,7 +231,27 @@ static bool formal_moves(SemanticContext *ctx, ASTNode *callee, size_t formal)
     const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
     if (type_name != NULL && strcmp(type_name, "Array") == 0)
         return store->entries[index].array_storage_unproved;
-    return (mask & ~SLOT_PARAM_SUMMARY_READ) != 0;
+    return (mask & ~SLOT_PARAM_SUMMARY_READ) != 0 || store->entries[index].array_storage_unproved;
+}
+
+/* The callee only reads this default-mode argument and returns it or a part
+ * of it. A call the caller follows with another use of the argument lends
+ * it instead of moving it (2026-10-19_by_value_getter_lends_when_used_again).
+ * The loan proof refuses the lend when that call or a later one changes the
+ * storage. An Array formal keeps the descriptor-transfer answer. */
+static bool formal_lends(SemanticContext *ctx, ASTNode *callee, size_t formal)
+{
+    FuncParam *param = ast_func_param(callee, formal);
+    if (param == NULL || param->mode != PARAM_MODE_DEFAULT || ast_func_body(callee) == NULL) return false;
+    const char *type_name = param->type == NULL ? NULL : ast_type_name(param->type);
+    if (type_name != NULL && strcmp(type_name, "Array") == 0) return false;
+    FunctionParamFlowSummaryStore *store = ctx->function_param_flow_summaries;
+    if (store == NULL || store->failed) return false;
+    size_t index = function_param_flow_find(store, ast_node_stable_id(callee), formal);
+    if (index == SIZE_MAX || store->entries[index].state != FUNCTION_PARAM_FLOW_COMPLETE) return false;
+    unsigned mask = store->entries[index].mask;
+    return (mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
+        (mask & ~(SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) == 0;
 }
 
 static ParamMode routine_param_mode(const ASTNode *routine, uint32_t binding, bool *found)
@@ -234,6 +284,13 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         const char *param_name = param != NULL && param->name != NULL ? param->name : "parameter";
         bool parameter = false;
         ParamMode mode = routine_param_mode(walk->routine, binding, &parameter);
+        /* Only a formal is lent: this routine never hands it on while it
+         * runs. A local passed to a read-and-return callee is moved, so a
+         * later transfer of it never meets a live loan. */
+        bool lends = parameter && formal_lends(walk->ctx, callee, formal);
+        /* A `ref` formal can be lent on, never moved: nothing may change it
+         * while its loan lives. An `inout` one can change, so it is neither. */
+        if (parameter && mode == PARAM_MODE_REF && lends) continue;
         if (parameter && mode != PARAM_MODE_DEFAULT && mode != PARAM_MODE_OWN) {
             if (reported_once(walk, arg))
                 semantic_error_with_hints(walk->ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_BORROW_ESCAPE,
@@ -256,7 +313,7 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
                 break;
             }
         }
-        if (!state_add(walk, state, binding, fields, callee_name, param_name)) return;
+        if (!state_add(walk, state, binding, fields, callee_name, param_name, lends ? call : NULL)) return;
     }
 }
 
@@ -474,6 +531,7 @@ bool semantic_default_aggregate_move_finalize(SemanticContext *ctx)
         state_free(&state);
     }
     free(walk.reported);
+    free(walk.lent);
     ctx->current_function_decl = previous_decl;
     ctx->current_module_path = previous_module;
     if (walk.failed) semantic_error(ctx, ctx->program_root, "Default aggregate move check allocation failed");

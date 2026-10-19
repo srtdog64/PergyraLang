@@ -139,6 +139,12 @@ bool function_param_flow_receiver_unsupported(ReturnedBacking *state, ASTNode *c
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     const SemanticParamPublicationView *view, const PendingReadPayloadLoan *row,
     ASTNode **escape_site);
+/* A read-and-return callee lent `call`'s by-value argument, rooted at the
+ * formal `owner`, and `caller` uses that argument again: admitted when the
+ * loan stays in `caller`, or leaves it only as `caller`'s own summary returns
+ * the formal, and nothing in `caller` changes the owner. */
+bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
+    ASTNode *caller, ASTNode *call, uint32_t owner);
 typedef struct {
     ASTNode *node;
     uint32_t id, binding;
