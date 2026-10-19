@@ -261,6 +261,10 @@ ASTNode* ast_call_callee(const ASTNode* node);
 uint32_t ast_call_semantic_callee_decl_id(const ASTNode* node);
 bool ast_call_semantic_callee_is_stdlib(const ASTNode *node);
 bool ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib);
+/* The checker built this call: its callee names the builtin, whatever
+ * program declaration or binding is spelled the same way. */
+bool ast_call_compiler_builtin(const ASTNode *node);
+bool ast_call_set_compiler_builtin(ASTNode *node);
 /* A call statement whose type is Never: its path ends at the call. */
 bool ast_call_semantic_diverges(const ASTNode *node);
 bool ast_call_set_semantic_diverges(ASTNode *node, bool diverges);

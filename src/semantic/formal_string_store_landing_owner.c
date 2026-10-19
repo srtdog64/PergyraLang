@@ -96,7 +96,7 @@ bool semantic_formal_string_store_landing(ASTNode *call, size_t receiver_ordinal
     if (ctx->synthetic_stable_id_next == 0 || ctx->synthetic_stable_id_next > UINT32_MAX - 2) return false;
     ASTNode *callee = ast_create_identifier("Clone");
     ASTNode *clone = callee == NULL ? NULL : ast_create_call(callee);
-    if (clone == NULL) return false;
+    if (clone == NULL || !ast_call_set_compiler_builtin(clone)) return false;
     ast_add_argument(clone, value);
     if (ast_call_arg_count(clone) != 1) return false;
     callee->line = clone->line = value->line;

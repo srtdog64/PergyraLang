@@ -1,0 +1,36 @@
+// A method named Clone does not take over the copy a String store lands as
+// inside its class: the checker-built call is the builtin, not that
+// method.
+struct Rows {
+    labels: HashMap<String, String>;
+}
+
+struct Source {
+    title: String;
+    ids: Array<Int>;
+}
+
+class Labeler {
+    let prefix: String;
+
+    func Clone(self, text: String) -> String {
+        return "user";
+    }
+
+    func Label(self, rows: Rows, source: Source) -> Rows {
+        let labels: HashMap<String, String> = rows.labels;
+        MapSet(labels, "k", source.title);
+        return Rows(labels);
+    }
+}
+
+func Main() -> Int {
+    let labeler: Labeler = Labeler("p");
+    let source: Source = Source(StringConcat("t", ""), [1]);
+    let empty: HashMap<String, String> = MapNew();
+    let rows: Rows = labeler.Label(Rows(empty), source);
+    let labels: HashMap<String, String> = rows.labels;
+    Print(MapGet(labels, "k"));
+    Print(source.title);
+    return 0;
+}

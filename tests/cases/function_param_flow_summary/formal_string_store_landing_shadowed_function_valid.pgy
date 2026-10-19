@@ -1,0 +1,29 @@
+// A program function named Clone does not take over the copy a String
+// store into an inout output lands as: the checker-built call is the
+// builtin, so the stored String is the input's text, not the function's.
+struct Routines {
+    names: Array<String>;
+}
+
+func Collect(ref routines: Routines, inout names: Array<String>) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(routines.names) {
+        ArrayPush(names, routines.names[row]);
+        row = row + 1;
+    }
+    return ArrayLength(names);
+}
+
+func Clone(text: String) -> String {
+    return "user";
+}
+
+func Main() -> Int {
+    let routines: Routines = Routines([StringConcat("a", ""), StringConcat("b", "")]);
+    let names: Array<String> = [];
+    let count: Int = Collect(routines, names);
+    Print(ToString(count));
+    Print(names[1]);
+    Print(routines.names[0]);
+    return 0;
+}

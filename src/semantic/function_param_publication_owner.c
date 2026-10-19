@@ -212,7 +212,10 @@ bool semantic_param_publication_record_checked_call(SemanticContext *ctx, ASTNod
              receiver_type, row->caller, count, &formal_count))) return false;
     if (row->selected_callable != NULL &&
         formal_count != ast_func_param_count(row->selected_callable)) return false;
-    if (target->type == AST_IDENTIFIER && row->value_present && row->value_type != NULL) {
+    /* A checker-built builtin call names no program constructor; looking
+     * its callee up would bind the spelling to a program declaration. */
+    if (target->type == AST_IDENTIFIER && !ast_call_compiler_builtin(call) &&
+        row->value_present && row->value_type != NULL) {
         Symbol *symbol = lookup_identifier_symbol((ASTNode *)target, ctx);
         ASTNode *decl = symbol != NULL && symbol->kind == SYMBOL_CLASS
             ? semantic_constructor_decl_for_symbol_kind(ctx, symbol->kind, symbol->name) : NULL;

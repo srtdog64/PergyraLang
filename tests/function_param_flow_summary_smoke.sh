@@ -87,6 +87,9 @@ formal_store_landings = {
     "formal_string_store_landing_value_set_valid": {"Rename": 1},
     "formal_string_store_landing_value_map_valid": {"Label": 1},
     "mapnew_ref_string_value_copy_valid": {"Make": 1},
+    "formal_string_store_landing_shadowed_function_valid": {"Collect": 1},
+    "formal_string_store_landing_shadowed_struct_valid": {"Collect": 1},
+    "formal_string_store_landing_shadowed_method_valid": {"Label": 1},
     "private_array_push_nonempty_alias_landed_valid": {"Build": 1},
 }
 # The analyses a compile runs after the first to land selected String
@@ -819,6 +822,9 @@ paired = (
     ("formal_array_store_local_receiver_invalid", False),
     ("formal_array_store_field_take_invalid", False),
     ("formal_string_store_local_alias_set_invalid", False),
+    ("formal_string_store_landing_shadowed_function_valid", True),
+    ("formal_string_store_landing_shadowed_struct_valid", True),
+    ("formal_string_store_landing_shadowed_method_valid", True),
     ("struct_clone_array_field_copied_valid", True),
     ("struct_clone_option_payload_copied_valid", True),
     ("struct_clone_nested_field_copied_valid", True),
@@ -1522,6 +1528,9 @@ for name, expected in (
     ("struct_clone_ref_returned_valid", "1a"),
     ("struct_clone_option_field_ref_returned_valid", "l1"),
     ("struct_clone_subject_copied_valid", "13"),
+    ("formal_string_store_landing_shadowed_function_valid", "2ba"),
+    ("formal_string_store_landing_shadowed_struct_valid", "1a7"),
+    ("formal_string_store_landing_shadowed_method_valid", "tt"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

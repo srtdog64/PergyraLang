@@ -84,6 +84,20 @@ ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib)
 }
 
 bool
+ast_call_compiler_builtin(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL && node->data.call.compiler_builtin;
+}
+
+bool
+ast_call_set_compiler_builtin(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_CALL) return false;
+    node->data.call.compiler_builtin = true;
+    return true;
+}
+
+bool
 ast_call_semantic_diverges(const ASTNode *node)
 {
     return node != NULL && node->type == AST_CALL && node->data.call.semantic_diverges;

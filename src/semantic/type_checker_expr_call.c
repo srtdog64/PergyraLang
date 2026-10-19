@@ -116,11 +116,14 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
     if (callee->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(callee);
-        Symbol *sym = lookup_identifier_symbol(callee, ctx);
+        /* A call the checker built names the builtin: no program
+         * declaration or binding of the same spelling selects it. */
+        bool compiler_builtin = ast_call_compiler_builtin(expr);
+        Symbol *sym = compiler_builtin ? NULL : lookup_identifier_symbol(callee, ctx);
         bool value_binding = sym != NULL
             && (sym->kind == SYMBOL_VARIABLE || sym->kind == SYMBOL_SLOT
                 || sym->kind == SYMBOL_TOKEN);
-        bool user_class_overrides_builtin =
+        bool user_class_overrides_builtin = !compiler_builtin &&
             !value_binding && semantic_find_class_decl_by_name(ctx, name) != NULL;
         /* Option/Result variants retain their language-form precedence.
          * Otherwise the selected lexical symbol owns the spelling, even
@@ -133,7 +136,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
          * bare call reaches one before a builtin of the same spelling. A
          * reserved spelling means the builtin in every bare call; the
          * method stays reachable as self.Name(..). */
-        ASTNode *host_method = value_binding
+        ASTNode *host_method = value_binding || compiler_builtin
                 || semantic_builtin_name_reserved_family(name) != NULL
             ? NULL
             : expr_current_host_method_decl(ctx, name);
