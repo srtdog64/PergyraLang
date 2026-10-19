@@ -1,0 +1,19 @@
+// Count hands a Slice view of its by-value Array to First, which only
+// reads it. The view is the Array's storage, unchanged, so Main may use its
+// names again.
+func First(view: Slice<String>) -> Int {
+    return StringLength(view[0]);
+}
+
+func Count(names: Array<String>) -> Int {
+    return First(names.Slice(0, ArrayLength(names)));
+}
+
+func Main() -> Int {
+    let names: Array<String> = [StringConcat("ab", ""), StringConcat("cd", "")];
+    let count: Int = Count(names);
+    ArrayPush(names, StringConcat("ef", ""));
+    Print(ToString(count + ArrayLength(names)));
+    Print(names[0]);
+    return 0;
+}

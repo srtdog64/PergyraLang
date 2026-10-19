@@ -1,0 +1,18 @@
+// Window hands a Slice view of its by-value Array to Same, which returns
+// it, and returns the view. The view is storage Main's names share, so the
+// call moves names.
+func Same(view: Slice<String>) -> Slice<String> {
+    return view;
+}
+
+func Window(names: Array<String>) -> Slice<String> {
+    return Same(names.Slice(0, 1));
+}
+
+func Main() -> Int {
+    let names: Array<String> = [StringConcat("ab", ""), StringConcat("cd", "")];
+    let view: Slice<String> = Window(names);
+    ArrayPush(names, StringConcat("ef", ""));
+    Print(view[0]);
+    return 0;
+}

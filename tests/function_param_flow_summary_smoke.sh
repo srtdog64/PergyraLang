@@ -252,6 +252,9 @@ release_lifetime_refusals = {
     # A local that starts at None() and is then bound to a ref input's field
     # lends that input; Make returns the loan past its plan (29:5).
     "option_none_local_argument_kept_invalid": [(*borrow_refusal, 29, 5)],
+    # A Slice view of a by-value Array is its storage: handed to a routine
+    # that returns it and returned, the call moves the Array (15:15).
+    "array_slice_view_returned_invalid": [(*released_refusal, 15, 15)],
     # A local or loop variable that takes a path of the arena is an alias of
     # its storage: returned (22:35), handed to a routine that returns it
     # (27:35), or iterated and pushed onto (23:39, 19:33), the call moves.
@@ -766,6 +769,8 @@ paired = (
     ("option_none_ref_loan_returned_invalid", False),
     ("option_none_local_argument_valid", True),
     ("option_none_local_argument_kept_invalid", False),
+    ("array_slice_view_reader_valid", True),
+    ("array_slice_view_returned_invalid", False),
     ("default_aggregate_move_option_field_read_valid", True),
     ("default_aggregate_move_option_field_alias_store_invalid", False),
     ("default_aggregate_move_field_alias_read_valid", True),

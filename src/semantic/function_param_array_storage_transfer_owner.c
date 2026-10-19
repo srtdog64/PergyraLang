@@ -324,14 +324,27 @@ static bool storage_path_step(const ASTNode *node)
     return node != NULL && (node->type == AST_MEMBER_ACCESS || node->type == AST_ARRAY_ACCESS);
 }
 
+/* A checked `xs.Slice(start, len)` is a view of its receiver's storage: a
+ * path through it is an alias of that storage. */
+static ASTNode *storage_view_receiver(const ASTNode *node, const StorageWalk *walk)
+{
+    return node != NULL && node->type == AST_CALL
+        ? semantic_param_publication_slice_view_receiver(walk->lookup->ctx, node) : NULL;
+}
+
 static int storage_path_root(const ASTNode *node, const StorageWalk *walk)
 {
     FuncParam *param = ast_func_param(walk->origin->function_decl, walk->origin->param_index);
     uint32_t id = param == NULL ? 0 : ast_func_param_stable_id(param);
-    while (storage_path_step(node))
-        node = node->type == AST_MEMBER_ACCESS ? ast_member_object(node) : ast_array_access_array(node);
+    bool view = false;
+    for (;;) {
+        if (storage_path_step(node))
+            node = node->type == AST_MEMBER_ACCESS ? ast_member_object(node) : ast_array_access_array(node);
+        else if (storage_view_receiver(node, walk) != NULL) { node = storage_view_receiver(node, walk); view = true; }
+        else break;
+    }
     uint32_t binding = node != NULL && node->type == AST_IDENTIFIER ? ast_identifier_binding_syntax_id(node) : 0;
-    if (binding != 0 && binding == id) return STORAGE_ROOT_FORMAL;
+    if (binding != 0 && binding == id) return view ? STORAGE_ROOT_ALIAS : STORAGE_ROOT_FORMAL;
     for (size_t i = 0; binding != 0 && i < walk->alias_count; i++)
         if (walk->alias_ids[i] == binding) return STORAGE_ROOT_ALIAS;
     return STORAGE_ROOT_NONE;
@@ -353,12 +366,20 @@ static bool storage_path_value_read(const ASTNode *node, const SlotFunctionLooku
         semantic_classify_ownership_type(value.type, lookup->ctx) == OWNERSHIP_TYPE_COPY_ONLY);
 }
 
-/* Index expressions along a path are ordinary uses; an index step reads an
- * element of the storage. */
+/* Index expressions and a view's bounds along a path are ordinary uses; an
+ * index step reads an element of the storage. */
 static unsigned storage_path_indices(ASTNode *node, StorageWalk *walk)
 {
     unsigned bad = 0;
-    while (storage_path_step(node)) {
+    for (ASTNode *viewed; (viewed = storage_view_receiver(node, walk)) != NULL || storage_path_step(node);) {
+        if (viewed != NULL) {
+            for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+                bad |= array_storage_use_unproved(ast_call_argument(node, i), walk);
+                if (bad == FUNCTION_PARAM_ARRAY_ALL_UNPROVED) return bad;
+            }
+            node = viewed;
+            continue;
+        }
         if (node->type == AST_MEMBER_ACCESS) { node = ast_member_object(node); continue; }
         *walk->payload_read = true;
         bad |= array_storage_use_unproved(ast_array_access_index(node), walk);
