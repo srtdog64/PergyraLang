@@ -1,0 +1,29 @@
+// Outer binds None() to a local and hands it to Inner, which reads Plan
+// only through its ref formal. None() holds nothing a destination could
+// keep, so Outer's return relation is closed and Main may use its plan.
+struct Plan {
+    names: Array<String>;
+}
+
+struct Projection {
+    rows: Array<Int>;
+}
+
+func Inner(ref plan: Plan, extra: Option<Projection>) -> String {
+    if IsSome(extra) {
+        return "x";
+    }
+    return plan.names[0];
+}
+
+func Outer(ref plan: Plan) -> String {
+    let none: Option<Projection> = None();
+    return Inner(plan, none);
+}
+
+func Main() -> Int {
+    let plan: Plan = Plan([StringConcat("ab", "")]);
+    Print(Outer(plan));
+    Print(plan.names[0]);
+    return 0;
+}

@@ -451,6 +451,15 @@ bool semantic_param_publication_checked_argument(const SemanticContext *ctx, con
 {
     return semantic_param_publication_checked_call(ctx, call) && ordinal < ast_call_arg_count(call);
 }
+bool semantic_param_publication_checked_none(const SemanticContext *ctx, const ASTNode *call)
+{
+    PublishedNode *row = publication_result_current(ctx, call);
+    return row != NULL && row->nominal_result == NULL && !row->result_relation &&
+        row->target_shape == AST_IDENTIFIER && row->kind_present && row->stdlib &&
+        row->builtin == BUILTIN_NOT_BUILTIN && row->declaration == 0 && row->value_binding == 0 &&
+        row->argument_count == 0 && ast_call_arg_count(call) == 0 && row->target_name != NULL &&
+        strcmp(row->target_name, "None") == 0 && type_is_constructed_named(row->value_type, "Option");
+}
 bool semantic_param_publication_call_analysis_unmodelled(
     const SemanticContext *ctx, const ASTNode *call)
 {
@@ -463,12 +472,7 @@ bool semantic_param_publication_call_analysis_unmodelled(
     /* A store into a private local Array of scalars is modelled by its own
      * route, ArraySort's returned Array included. */
     if (semantic_param_publication_private_physical_array_mutation(ctx, call, NULL)) return false;
-    /* `None()` builds an Option with no payload: it carries no storage. */
-    if (row->target_shape == AST_IDENTIFIER && row->kind_present && row->stdlib &&
-        row->builtin == BUILTIN_NOT_BUILTIN && row->declaration == 0 && row->value_binding == 0 &&
-        row->argument_count == 0 && ast_call_arg_count(call) == 0 && row->target_name != NULL &&
-        strcmp(row->target_name, "None") == 0 && type_is_constructed_named(row->value_type, "Option"))
-        return false;
+    if (semantic_param_publication_checked_none(ctx, call)) return false;
     if (semantic_param_publication_checked_local_owner_constructor(ctx, call)) return false;
     if (row->selected_callable != NULL &&
         semantic_param_publication_direct_callee(ctx, call) != NULL) return false;

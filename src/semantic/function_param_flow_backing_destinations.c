@@ -166,7 +166,9 @@ void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t 
             break;
         }
         if (ast_call_arg_count(value) == 0) {
-            if (!semantic_param_publication_nominal_result_complete(state->store->ctx, value) &&
+            /* None() holds nothing a destination could keep. */
+            if (!semantic_param_publication_checked_none(state->store->ctx, value) &&
+                !semantic_param_publication_nominal_result_complete(state->store->ctx, value) &&
                 !function_param_flow_declared_result_closed(state->store, value, state->fact)) state->fact->complete = false;
             break;
         }

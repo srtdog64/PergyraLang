@@ -421,6 +421,8 @@ bool semantic_param_publication_result_lane_argument(const SemanticContext *ctx,
 bool semantic_param_publication_checked_readfile_independent(const SemanticContext *ctx, const ASTNode *call);
 bool semantic_param_publication_checked_local_owner_constructor(
     const SemanticContext *ctx, const ASTNode *call);
+/* `None()`: an Option built with no payload, which carries no storage. */
+bool semantic_param_publication_checked_none(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_direct_callee(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_intent_callee(const SemanticContext *ctx, const ASTNode *call);
 ASTNode *semantic_param_publication_slice_view_receiver(const SemanticContext *ctx, const ASTNode *call);

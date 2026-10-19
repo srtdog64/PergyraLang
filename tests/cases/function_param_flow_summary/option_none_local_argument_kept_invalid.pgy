@@ -1,0 +1,38 @@
+// Outer starts a local at None() and then binds it to its ref input's
+// Projection before handing it to Wrap, whose result holds it. The result
+// lends the ref input; Make returns it past the plan it owns.
+struct Projection {
+    rows: Array<Int>;
+}
+
+struct Plan {
+    projection: Projection;
+}
+
+struct Wrapped {
+    extra: Option<Projection>;
+}
+
+func Wrap(extra: Option<Projection>) -> Wrapped {
+    return Wrapped(extra);
+}
+
+func Outer(ref plan: Plan) -> Wrapped {
+    let extra: Option<Projection> = None();
+    extra = Some(plan.projection);
+    return Wrap(extra);
+}
+
+func Make() -> Wrapped {
+    let plan: Plan = Plan(Projection([1, 2]));
+    let wrapped: Wrapped = Outer(plan);
+    return wrapped;
+}
+
+func Main() -> Int {
+    let made: Wrapped = Make();
+    if IsSome(made.extra) {
+        Print(ToString(ArrayLength(UnwrapOption(made.extra).rows)));
+    }
+    return 0;
+}
