@@ -306,6 +306,14 @@ static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
             if (root == NULL || semantic_param_publication_binding(store->ctx, root) != binding) continue;
             ASTNode *callee = semantic_param_publication_callee(store->ctx, node, p);
             size_t formal = 0;
+            /* A String or copy-only value read through a path of the owner
+             * changes nothing of it, whoever receives it. A path is never an
+             * `inout` or `own` argument. */
+            ASTNode *argument_node = ast_call_argument(node, p);
+            SemanticPublishedValue read = semantic_param_publication_value(store->ctx, argument_node);
+            if ((argument_node->type == AST_MEMBER_ACCESS || argument_node->type == AST_ARRAY_ACCESS) &&
+                read.ok && !read.meta && (type_equals(read.type, TYPE_STRING) ||
+                    semantic_classify_ownership_type(read.type, store->ctx) == OWNERSHIP_TYPE_COPY_ONLY)) continue;
             /* A builtin that borrows its argument for the call only reads it,
              * except the receivers the retention registry lists for writers:
              * ArrayPush, ArraySet, ArrayPushOwnedString and Write. */

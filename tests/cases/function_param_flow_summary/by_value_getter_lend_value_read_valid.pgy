@@ -1,0 +1,39 @@
+// MakeFacts lends its by-value arena to FirstName and, while that loan
+// lives, hands the arena's count and a String field to a constructor and
+// to Concat. Values read from the owner change nothing of it, so the loan
+// holds and Main may use its arena again.
+struct Arena {
+    names: Array<String>;
+    title: String;
+    count: Int;
+}
+
+struct Facts {
+    count: Int;
+    label: String;
+}
+
+func FirstName(arena: Arena) -> Option<String> {
+    if ArrayLength(arena.names) == 0 {
+        return None();
+    }
+    return Some(arena.names[0]);
+}
+
+func MakeFacts(arena: Arena) -> Facts {
+    let name: Option<String> = FirstName(arena);
+    let label: String = Concat(arena.title, ":");
+    let facts: Facts = Facts(arena.count, label);
+    if IsSome(name) {
+        Print(UnwrapOption(name));
+    }
+    return facts;
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")], StringConcat("t", ""), 1);
+    let facts: Facts = MakeFacts(arena);
+    Print(facts.label);
+    Print(arena.names[0]);
+    return 0;
+}

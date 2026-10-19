@@ -776,6 +776,7 @@ paired = (
     ("string_element_clone_getter_owner_changed_valid", True),
     ("string_element_clone_ref_output_valid", True),
     ("string_element_tostring_returned_invalid", False),
+    ("by_value_getter_lend_value_read_valid", True),
     ("default_aggregate_move_option_field_read_valid", True),
     ("default_aggregate_move_option_field_alias_store_invalid", False),
     ("default_aggregate_move_field_alias_read_valid", True),
