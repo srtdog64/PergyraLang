@@ -73,6 +73,12 @@ owned_push_landings = {
     "array_result_local_owned_element_container_copy_landing_valid": ("Main", 2),
     "named_string_all_def0_branch_copy_landing_valid": ("Observe", 1),
 }
+# Positive fixtures whose formal String store lands as an owned copy: each
+# routine and the number of Clone calls it must reach MIR with.
+formal_store_landings = {
+    "formal_string_store_landing_ref_push_valid": {"Collect": 1},
+    "formal_string_store_landing_map_array_set_valid": {"Label": 1, "Put": 1},
+}
 borrow_refusal = ("PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape")
 released_refusal = ("PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released")
 builtin_refusal = ("PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch")
@@ -777,6 +783,10 @@ paired = (
     ("string_element_clone_ref_output_valid", True),
     ("string_element_tostring_returned_invalid", False),
     ("by_value_getter_lend_value_read_valid", True),
+    ("formal_string_store_landing_ref_push_valid", True),
+    ("formal_string_store_landing_map_array_set_valid", True),
+    ("formal_string_store_local_receiver_invalid", False),
+    ("formal_array_store_inout_output_invalid", False),
     ("default_aggregate_move_option_field_read_valid", True),
     ("default_aggregate_move_option_field_alias_store_invalid", False),
     ("default_aggregate_move_field_alias_read_valid", True),
@@ -899,6 +909,18 @@ for name, valid in paired:
                     callee.get("binding_kind") != binding_kind or
                     callee.get("binding_syntax_id") != (target_id if binding_kind == "declared_callable" else 0)):
                 raise SystemExit(f"selected-callable {name} lost its exact target/leaf identity")
+        if name in formal_store_landings:
+            # The landed store must reach MIR with its Clone of the String.
+            document = json.loads(checked.stdout)
+            for routine_name, landed in formal_store_landings[name].items():
+                calls = [node.get("call_target_name") for row in document.get("routines", [])
+                         if row.get("name") == routine_name for block in row.get("blocks", [])
+                         for instruction in block.get("instructions", [])
+                         for lane in ("expr0_graph", "expr1_graph")
+                         if isinstance(instruction.get(lane), dict)
+                         for node in instruction[lane].get("nodes", []) if node.get("kind") == "call"]
+                if calls.count("Clone") != landed:
+                    raise SystemExit(f"formal store landing {name} did not reach MIR with Clone in {routine_name}: {calls}")
         if name in owned_push_landings:
             # The landed push must reach MIR as the owned-copy operation.
             routine_name, landed = owned_push_landings[name]
@@ -1435,6 +1457,8 @@ for name, expected in (
     ("string_element_clone_returned_valid", "abefef"),
     ("string_element_clone_getter_owner_changed_valid", "abcd"),
     ("string_element_clone_ref_output_valid", "ababab1"),
+    ("formal_string_store_landing_ref_push_valid", "2ba"),
+    ("formal_string_store_landing_map_array_set_valid", "2tt"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

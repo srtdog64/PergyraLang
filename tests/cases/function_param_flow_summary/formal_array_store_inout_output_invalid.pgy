@@ -1,0 +1,18 @@
+// Keep pushes an Array field of its ref input into its inout output. Only a
+// String lands as a copy, so the ref input's storage escapes into rows.
+struct Routines {
+    ids: Array<Int>;
+}
+
+func Keep(ref routines: Routines, inout rows: Array<Array<Int>>) -> Int {
+    ArrayPush(rows, routines.ids);
+    return ArrayLength(rows);
+}
+
+func Main() -> Int {
+    let routines: Routines = Routines([1, 2]);
+    let rows: Array<Array<Int>> = [];
+    let n: Int = Keep(routines, rows);
+    Print(ToString(n + rows[0][1]));
+    return 0;
+}

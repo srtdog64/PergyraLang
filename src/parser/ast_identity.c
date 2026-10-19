@@ -687,6 +687,20 @@ ast_complete_stable_ids(ASTNode *root)
 }
 
 uint32_t
+ast_stable_id_ceiling(ASTNode *root)
+{
+    /* The first identity above every admitted one, formals included. */
+    AstIdentityState state = {
+        .next_id = 1, .preserve_existing = true, .inspect_only = true,
+    };
+    ast_assign_node(root, &state);
+    for (size_t i = 0; i < state.param_count; i++)
+        (void)ast_complete_id(&state, state.params[i]->stable_id);
+    free(state.params);
+    return state.exhausted || state.next_id > UINT32_MAX ? 0 : (uint32_t)state.next_id;
+}
+
+uint32_t
 ast_node_stable_id(const ASTNode *node)
 {
     return node != NULL ? node->stable_id : 0;

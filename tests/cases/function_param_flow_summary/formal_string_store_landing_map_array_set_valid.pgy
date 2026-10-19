@@ -1,0 +1,27 @@
+// Label stores a String field of its ref input as a map value and Put
+// stores one as an Array element of an inout output. Both land as owned
+// copies, so neither ref input escapes.
+struct Source {
+    title: String;
+}
+
+func Label(ref source: Source, inout labels: HashMap<String, String>) -> Int {
+    MapSet(labels, "first", source.title);
+    return MapSize(labels);
+}
+
+func Put(ref source: Source, inout names: Array<String>) -> Int {
+    ArraySet(names, 0, source.title);
+    return ArrayLength(names);
+}
+
+func Main() -> Int {
+    let labels: HashMap<String, String> = MapNew();
+    let source: Source = Source(StringConcat("t", ""));
+    let names: Array<String> = [StringConcat("x", "")];
+    let n: Int = Label(source, labels) + Put(source, names);
+    Print(ToString(n));
+    Print(MapGet(labels, "first"));
+    Print(names[0]);
+    return 0;
+}

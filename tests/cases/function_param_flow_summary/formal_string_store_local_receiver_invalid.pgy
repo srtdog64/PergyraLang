@@ -1,0 +1,19 @@
+// Gather pushes a String element of its ref input into a local Array and
+// returns it. The receiver is not an inout output, so no owned copy lands
+// and the ref input escapes through the result.
+struct Routines {
+    names: Array<String>;
+}
+
+func Gather(ref routines: Routines) -> Array<String> {
+    let out: Array<String> = [];
+    ArrayPush(out, routines.names[0]);
+    return out;
+}
+
+func Main() -> Int {
+    let routines: Routines = Routines([StringConcat("a", "")]);
+    let out: Array<String> = Gather(routines);
+    Print(out[0]);
+    return 0;
+}

@@ -5,6 +5,7 @@
  * Array and Slice stdlib builtin type contracts.
  */
 
+#include "formal_string_store_landing_owner.h"
 #include "type_checker_internal.h"
 #include "collection_owned_element_requirement_owner.h"
 #include "array_storage_release_owner.h"
@@ -243,6 +244,12 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
             && !semantic_collection_admit_owned_string_push(arg0, ctx))
             return TYPE_UNKNOWN;
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH &&
+            !semantic_formal_string_store_landing(expr, 0, 1, ctx)) {
+            semantic_error(ctx, expr, "Owned String store landing could not be recorded");
+            return TYPE_UNKNOWN;
+        }
+        arg1 = ast_call_argument(expr, 1);
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
         if (kind == STDLIB_COLLECTION_ARRAY_PUSH && type_equals(val, TYPE_STRING)) {
@@ -413,6 +420,11 @@ type_check_stdlib_array_call(ASTNode *expr,
         require_assignable(
             type_check_expression(arg1, ctx),
             TYPE_INT, arg1, ctx);
+        if (!semantic_formal_string_store_landing(expr, 0, 2, ctx)) {
+            semantic_error(ctx, expr, "Owned String store landing could not be recorded");
+            return TYPE_UNKNOWN;
+        }
+        arg2 = ast_call_argument(expr, 2);
         val = stdlib_array_normalize_type(
             type_check_expression(arg2, ctx));
         if (type_equals(val, TYPE_STRING))

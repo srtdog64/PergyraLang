@@ -5,6 +5,7 @@
  * Type Checker — HashMap stdlib builtin dispatch.
  */
 
+#include "formal_string_store_landing_owner.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -181,6 +182,10 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
             return TYPE_UNKNOWN;
         key_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 1), ctx));
+        if (!semantic_formal_string_store_landing(expr, 0, 2, ctx)) {
+            semantic_error(ctx, expr, "Owned String store landing could not be recorded");
+            return TYPE_UNKNOWN;
+        }
         value_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 2), ctx));
         reject_borrowed_boundary_container_store(

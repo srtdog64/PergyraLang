@@ -111,6 +111,7 @@ struct SemanticContext
 {
     Scope*       scope;          /* Current scope                  */
     ASTNode*     program_root;   /* Root AST for cross-decl lookup */
+    uint32_t     synthetic_stable_id_next; /* identities for checker-built nodes; 0 until first use */
     const char*  current_module_path; /* Origin module under analysis */
     ASTNode*     current_relation; /* Enclosing relation decl       */
     ASTNode*     current_effect;   /* Enclosing effect decl         */

@@ -14,6 +14,7 @@ ASTNode* ast_create_program(void);
 bool ast_assign_stable_ids(ASTNode* root);
 /* Assign only missing identities after growth; existing node/binder IDs stay fixed. */
 bool ast_complete_stable_ids(ASTNode* root);
+uint32_t ast_stable_id_ceiling(ASTNode* root);
 uint32_t ast_node_stable_id(const ASTNode* node);
 size_t ast_program_statement_count(const ASTNode* node);
 ASTNode** ast_program_statements(const ASTNode* node, size_t* count_out);
