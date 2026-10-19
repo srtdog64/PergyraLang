@@ -247,6 +247,12 @@ release_lifetime_refusals = {
     "default_aggregate_move_field_set_invalid": [(*released_refusal, 15, 22)],
     "default_aggregate_move_nested_field_store_invalid": [(*released_refusal, 21, 39)],
     "default_aggregate_move_field_element_write_invalid": [(*released_refusal, 15, 22)],
+    # A callee that returns its String element lends it: refused when the
+    # loan outlives the Array (a return, 19:24; an Array returned past it,
+    # 24:28) or the Array changes while it lives (19:24).
+    "string_element_returned_by_named_call_past_owner_invalid": [(*borrow_refusal, 19, 24)],
+    "string_element_returned_by_named_call_owner_changed_invalid": [(*borrow_refusal, 19, 24)],
+    "string_element_returned_in_result_loop_kept_invalid": [(*borrow_refusal, 24, 28)],
     "default_aggregate_move_nested_field_write_invalid": [(*released_refusal, 20, 27)],
     # An element of a by-value Array formal is such a path too.
     "default_aggregate_move_array_element_alias_store_invalid": [(*released_refusal, 17, 33)],
@@ -717,7 +723,12 @@ paired = (
     ("inout_owned_param_input_return_moves_invalid", False),
     ("owned_param_field_store_ref_return_invalid", False),
     ("string_element_read_only_named_call_valid", True),
-    ("string_element_returned_by_named_call_invalid", False),
+    ("string_element_returned_by_named_call_valid", True),
+    ("string_element_returned_by_named_call_past_owner_invalid", False),
+    ("string_element_returned_by_named_call_owner_changed_invalid", False),
+    ("string_element_returned_in_result_loop_valid", True),
+    ("string_element_returned_in_result_loop_kept_invalid", False),
+    ("string_element_returned_from_dir_walk_rows_valid", True),
     ("string_element_inout_owner_named_call_invalid", False),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),

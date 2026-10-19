@@ -1,0 +1,23 @@
+// Kept lends an element of names to kept, and Main replaces that element
+// before it prints the loan.
+func Names(n: Int) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(out, ToString(i));
+        i = i + 1;
+    }
+    return out;
+}
+
+func Kept(text: String) -> String {
+    return text;
+}
+
+func Main() -> Int {
+    let names: Array<String> = Names(3);
+    let kept: String = Kept(names[1]);
+    ArraySet(names, 1, ToString(9));
+    Print(kept);
+    return 0;
+}

@@ -1,0 +1,34 @@
+// TargetOf returns a String of rows inside a Target, and Main keeps every
+// Target in an Array it returns past rows.
+struct Target {
+    path: String;
+}
+
+func Rows() -> Array<String> {
+    let out: Array<String> = [];
+    ArrayPush(out, ToString(1));
+    ArrayPush(out, ToString(2));
+    return out;
+}
+
+func TargetOf(path: String) -> Target {
+    return Target(path);
+}
+
+func Collect() -> Array<Target> {
+    let rows: Array<String> = Rows();
+    let targets: Array<Target> = [];
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let path: String = rows[i];
+        ArrayPush(targets, TargetOf(path));
+        i = i + 1;
+    }
+    return targets;
+}
+
+func Main() -> Int {
+    let targets: Array<Target> = Collect();
+    Print(targets[0].path);
+    return 0;
+}

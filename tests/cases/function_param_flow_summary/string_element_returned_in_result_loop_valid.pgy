@@ -1,0 +1,32 @@
+// Each pass hands a String of rows to TargetOf, which returns it inside a
+// Target. The Target is read in the same pass and rows never changes, so
+// the call lends the element and is admitted.
+struct Target {
+    path: String;
+}
+
+func Rows() -> Array<String> {
+    let out: Array<String> = [];
+    ArrayPush(out, ToString(1));
+    ArrayPush(out, ToString(2));
+    return out;
+}
+
+func TargetOf(path: String) -> Target {
+    if path == "9" {
+        return Target("nine");
+    }
+    return Target(path);
+}
+
+func Main() -> Int {
+    let rows: Array<String> = Rows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let path: String = rows[i];
+        let target: Target = TargetOf(path);
+        Print(Concat(path, Concat(":", target.path)));
+        i = i + 1;
+    }
+    return 0;
+}

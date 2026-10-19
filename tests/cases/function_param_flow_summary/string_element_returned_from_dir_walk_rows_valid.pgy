@@ -1,0 +1,36 @@
+// Rows keeps the DirWalk paths it accepts. DirWalk makes a new Array of
+// new Strings and keeps nothing, so Rows' result has a closed source, and
+// Main's TargetOf call lends each element for the pass that reads it.
+struct Target {
+    path: String;
+}
+
+func Rows() -> Array<String> {
+    let entries: Array<String> = DirWalk("tests/cases/function_param_flow_summary");
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if StringLength(path) > 0 {
+            ArrayPush(rows, path);
+        }
+        i = i + 1;
+    }
+    return rows;
+}
+
+func TargetOf(path: String) -> Target {
+    return Target(path);
+}
+
+func Main() -> Int {
+    let rows: Array<String> = Rows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let path: String = rows[i];
+        let target: Target = TargetOf(path);
+        Log(Concat(path, Concat(":", target.path)));
+        i = i + 1;
+    }
+    return 0;
+}

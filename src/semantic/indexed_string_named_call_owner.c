@@ -6,7 +6,10 @@
  * typing records the argument here. A receipt is admitted when the callee
  * only reads the String formal (it neither keeps nor returns it), and every
  * other argument that could reach an Array is read-only or only returned:
- * the String's owner then stays alive and unchanged for the whole call.
+ * the String's owner then stays alive and unchanged for the whole call. A
+ * callee that also returns the String lends it to the call's result; an
+ * Array payload consumer admits that through the loan proof
+ * (semantic_indexed_string_named_call_lends).
  * A receipt that fails, or whose summary is missing or not final, is refused
  * with the diagnostic typing would have given. */
 
@@ -88,15 +91,10 @@ static bool formal_effects_within(SemanticContext *ctx, ASTNode *callee, size_t 
         (mask & ~allowed) == 0;
 }
 
-bool semantic_indexed_string_named_call_reads_only(SemanticContext *ctx,
-    ASTNode *call, ASTNode *callee, size_t ordinal)
+/* No argument other than `ordinal` can change or release an Array during
+ * the call: each is a scalar, a String, or only read or returned. */
+static bool other_arguments_read(SemanticContext *ctx, ASTNode *call, ASTNode *callee, size_t ordinal)
 {
-    if (ctx == NULL || call == NULL || call->type != AST_CALL || callee == NULL ||
-        callee->type != AST_FUNC_DECL || ordinal >= ast_call_arg_count(call) ||
-        ast_call_semantic_callee_decl_id(call) != ast_node_stable_id(callee)) return false;
-    size_t formal = 0;
-    if (!semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal) ||
-        !formal_effects_within(ctx, callee, formal, SLOT_PARAM_SUMMARY_READ)) return false;
     for (size_t p = 0; p < ast_call_arg_count(call); p++) {
         if (p == ordinal) continue;
         ASTNode *argument = ast_call_argument(call, p);
@@ -112,6 +110,35 @@ bool semantic_indexed_string_named_call_reads_only(SemanticContext *ctx,
                 SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE)) return false;
     }
     return true;
+}
+
+/* The String formal at `ordinal` shows at most `allowed` effects. */
+static bool string_formal_within(SemanticContext *ctx, ASTNode *call, ASTNode *callee, size_t ordinal,
+    unsigned allowed)
+{
+    if (ctx == NULL || call == NULL || call->type != AST_CALL || callee == NULL ||
+        callee->type != AST_FUNC_DECL || ordinal >= ast_call_arg_count(call) ||
+        ast_call_semantic_callee_decl_id(call) != ast_node_stable_id(callee)) return false;
+    size_t formal = 0;
+    return semantic_param_publication_formal_for_actual(ctx, call, ordinal, &formal) &&
+        formal_effects_within(ctx, callee, formal, allowed);
+}
+
+bool semantic_indexed_string_named_call_reads_only(SemanticContext *ctx,
+    ASTNode *call, ASTNode *callee, size_t ordinal)
+{
+    return string_formal_within(ctx, call, callee, ordinal, SLOT_PARAM_SUMMARY_READ) &&
+        other_arguments_read(ctx, call, callee, ordinal);
+}
+
+bool semantic_indexed_string_named_call_lends(SemanticContext *ctx, ASTNode *routine,
+    ASTNode *call, ASTNode *callee, size_t ordinal, uint32_t owner)
+{
+    return owner != 0 && routine != NULL &&
+        string_formal_within(ctx, call, callee, ordinal,
+            SLOT_PARAM_SUMMARY_READ | SLOT_PARAM_SUMMARY_RETURN_ESCAPE) &&
+        other_arguments_read(ctx, call, callee, ordinal) &&
+        function_param_flow_lent_argument_admitted(ctx, routine, call, owner);
 }
 
 static bool receipt_admitted(SemanticContext *ctx, const NamedCallReceipt *row)

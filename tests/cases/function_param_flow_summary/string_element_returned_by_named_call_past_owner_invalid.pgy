@@ -1,0 +1,26 @@
+// Pick's names is a local, and the String Kept lends from it is returned
+// past the Array that owns it.
+func Names(n: Int) -> Array<String> {
+    let out: Array<String> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(out, ToString(i));
+        i = i + 1;
+    }
+    return out;
+}
+
+func Kept(text: String) -> String {
+    return text;
+}
+
+func Pick() -> String {
+    let names: Array<String> = Names(3);
+    let kept: String = Kept(names[1]);
+    return kept;
+}
+
+func Main() -> Int {
+    Print(Pick());
+    return 0;
+}

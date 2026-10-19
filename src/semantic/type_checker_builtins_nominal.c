@@ -189,7 +189,14 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             Type *args[1] = { TYPE_STRING };
             semantic_record_builtin_effect(ctx, call, "DirWalk");
             semantic_record_capability(ctx, capability_for_builtin("DirWalk"));
-            return type_create_constructed(TYPE_ARRAY, args, 1);
+            Type *result = type_create_constructed(TYPE_ARRAY, args, 1);
+            /* The parameter-flow result relation reads this sealed receipt. */
+            if (result == NULL || result->name == NULL ||
+                !ast_call_set_semantic_value_type_name_copy(call, result->name)) {
+                semantic_error(ctx, call, "DirWalk result type receipt could not be recorded");
+                return TYPE_UNKNOWN;
+            }
+            return result;
         }
     case BUILTIN_FILE_EXISTS:
         if (check_call_arity(call, 1, "FileExists", ctx)) {

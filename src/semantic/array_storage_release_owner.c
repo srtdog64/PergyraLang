@@ -75,6 +75,13 @@ semantic_array_storage_pending_call_consumer_current(SemanticContext *ctx,
         semantic_indexed_string_named_call_reads_only(ctx, source->call,
             source->callee_decl, source->ordinal))
         return true;
+    /* One that returns it lends the element of this Array to the result. */
+    PublishedNode *row = source->payload && source->callee_decl != NULL
+        ? publication_result_current(ctx, source->call) : NULL;
+    if (row != NULL && row->caller != NULL &&
+        semantic_indexed_string_named_call_lends(ctx, (ASTNode *)row->caller, source->call,
+            source->callee_decl, source->ordinal, binding_id))
+        return true;
     return semantic_array_storage_pending_owned_elements(ctx, binding_id, sequence);
 }
 

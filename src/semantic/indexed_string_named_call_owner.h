@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct SemanticContext SemanticContext;
 typedef struct ASTNode ASTNode;
@@ -23,6 +24,12 @@ bool semantic_indexed_string_named_call_finalize(SemanticContext *ctx);
  * change or release an Array during the call. */
 bool semantic_indexed_string_named_call_reads_only(SemanticContext *ctx,
     ASTNode *call, ASTNode *callee, size_t ordinal);
+/* The declared callee only reads or returns the String at `ordinal`, which
+ * belongs to the Array bound to `owner`; no other argument can change an
+ * Array; and the loan proof admits the call's result as a loan of `owner`
+ * in `routine`. */
+bool semantic_indexed_string_named_call_lends(SemanticContext *ctx, ASTNode *routine,
+    ASTNode *call, ASTNode *callee, size_t ordinal, uint32_t owner);
 void semantic_indexed_string_named_call_destroy(IndexedStringNamedCallStore *store);
 
 #endif
