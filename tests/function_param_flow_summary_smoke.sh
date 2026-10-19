@@ -746,6 +746,8 @@ paired = (
     ("allocator_pool_read_after_destroy_invalid", False),
     ("allocator_pool_loan_returned_invalid", False),
     ("allocator_pool_loan_kept_outside_invalid", False),
+    ("private_array_sort_ref_reader_valid", True),
+    ("private_array_sort_alias_invalid", False),
     ("string_element_inout_owner_named_call_invalid", False),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),

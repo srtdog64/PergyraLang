@@ -1,0 +1,37 @@
+// IdsUnique copies its ref input's counts into a local Array it made from
+// a literal and sorts that Array in place. The sort permutes scalars in
+// storage only IdsUnique holds, so the ref input stays only read and Check
+// may pass its own ref input on.
+struct Index {
+    counts: Array<Int>;
+}
+
+func IdsUnique(ref index: Index) -> Bool {
+    let ids: Array<Int> = [];
+    let i: Int = 0;
+    while i < ArrayLength(index.counts) {
+        ArrayPush(ids, index.counts[i]);
+        i = i + 1;
+    }
+    ArraySort(ids);
+    let row: Int = 1;
+    while row < ArrayLength(ids) {
+        if ids[row] == ids[row - 1] {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func Check(ref index: Index) -> Bool {
+    return IdsUnique(index);
+}
+
+func Main() -> Int {
+    let index: Index = Index([3, 1, 2]);
+    if Check(index) {
+        Print("unique");
+    }
+    return 0;
+}

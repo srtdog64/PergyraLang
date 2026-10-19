@@ -1,0 +1,22 @@
+// Sorted binds its ref input's counts to a local and sorts it. That local
+// shares the caller's storage, so the sort is not private to Sorted.
+struct Index {
+    counts: Array<Int>;
+}
+
+func Sorted(ref index: Index) -> Int {
+    let ids: Array<Int> = index.counts;
+    ArraySort(ids);
+    return ids[0];
+}
+
+func Check(ref index: Index) -> Int {
+    return Sorted(index);
+}
+
+func Main() -> Int {
+    let index: Index = Index([3, 1, 2]);
+    Print(ToString(Check(index)));
+    Print(ToString(index.counts[0]));
+    return 0;
+}

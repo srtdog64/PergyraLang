@@ -130,8 +130,11 @@ bool semantic_param_publication_checked_array_store(const SemanticContext *ctx,
 bool publication_record_private_physical_array_mutation(SemanticContext *ctx,
     ASTNode *call, PublishedNode *row)
 {
+    /* ArraySort permutes the scalars in place, like a run of ArraySet. It
+     * also returns the Array, a result this route leaves unmodelled. */
     bool set = row->target_name != NULL && strcmp(row->target_name, "ArraySet") == 0;
-    bool pop = row->target_name != NULL && strcmp(row->target_name, "ArrayPop") == 0;
+    bool sort = row->target_name != NULL && strcmp(row->target_name, "ArraySort") == 0;
+    bool pop = sort || (row->target_name != NULL && strcmp(row->target_name, "ArrayPop") == 0);
     if (ctx->has_error || (!set && !pop) || row->argument_count != (set ? 3u : 1u) ||
         !row->stdlib || !row->kind_present || row->builtin != BUILTIN_NOT_BUILTIN ||
         row->declaration != 0 || row->value_binding != 0 || row->target_shape != AST_IDENTIFIER ||
@@ -156,7 +159,8 @@ bool publication_record_private_physical_array_mutation(SemanticContext *ctx,
         binding->has_exclusive_array_storage && !binding->has_escaped_array_storage &&
         !(binding->has_pending_inout_preservation || binding->has_pending_array_result) &&
         id == ast_identifier_binding_syntax_id(receiver) && row->deferred_syntax == NULL &&
-        row->caller != NULL && row->value_present && row->value_type == TYPE_VOID &&
+        row->caller != NULL && row->value_present &&
+        (row->value_type == TYPE_VOID || (sort && type_equals(row->value_type, array))) &&
         publication_physical_scalar(element) && type_equals(row->arguments[0].type, array) &&
         local != NULL && !ast_let_is_alias(local) && initial != NULL &&
         ast_let_type(local) != NULL && ast_let_type(local)->type == AST_TYPE &&
@@ -198,10 +202,12 @@ bool semantic_param_publication_private_physical_array_mutation(const SemanticCo
         row->private_escaped || row->private_pending || !row->stdlib || !row->kind_present ||
         row->builtin != BUILTIN_NOT_BUILTIN || row->declaration != 0 || row->value_binding != 0 ||
         row->target_shape != AST_IDENTIFIER || row->target_binding != 0 ||
-        row->target_name == NULL || row->value_type != TYPE_VOID || row->deferred_syntax == NULL ||
+        row->target_name == NULL || row->deferred_syntax == NULL ||
         !function_param_flow_syntax_claims_current(ctx, row->deferred_syntax)) return false;
     bool set = strcmp(row->target_name, "ArraySet") == 0;
-    if (!set && strcmp(row->target_name, "ArrayPop") != 0) return false;
+    bool sort = strcmp(row->target_name, "ArraySort") == 0;
+    if (!set && !sort && strcmp(row->target_name, "ArrayPop") != 0) return false;
+    if (row->value_type != TYPE_VOID && !(sort && type_equals(row->value_type, row->arguments[0].type))) return false;
     if (row->argument_count != (set ? 3u : 1u)) return false;
     const ASTNode *local = row->private_binding, *initial = row->private_initializer;
     const ASTNode *receiver = ast_call_argument(call, 0);
