@@ -224,6 +224,9 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     }
     roots = program_points->roots_by_param[store->entries[index].param_index];
     root_count = program_points->root_counts[store->entries[index].param_index];
+    /* Demands below may grow the index table and move `program_points`. */
+    ASTNode *const *statements = program_points->dependency_roots;
+    size_t statement_count = program_points->dependency_root_count;
     bool private_stores = program_points->private_local_stores;
     bool graph_required = private_stores || program_points->no_store_call_count != 0;
     bool graph_closed = !program_points->mutable_output_required &&
@@ -236,8 +239,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
     storage_unproved = function_param_array_storage_unproved_in_program_points(
-        program_points->dependency_roots, program_points->dependency_root_count,
-        roots, root_count, &origin, &lookup, &payload_read);
+        statements, statement_count, roots, root_count, &origin, &lookup, &payload_read);
     bool scalar_return = (candidate & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
         semantic_param_publication_routine_return_dependency_is_scalar(store->ctx, function_decl);
     bool anchored = false;
