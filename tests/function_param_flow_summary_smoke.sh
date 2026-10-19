@@ -771,6 +771,11 @@ paired = (
     ("option_none_local_argument_kept_invalid", False),
     ("array_slice_view_reader_valid", True),
     ("array_slice_view_returned_invalid", False),
+    ("string_element_clone_after_drop_valid", True),
+    ("string_element_clone_returned_valid", True),
+    ("string_element_clone_getter_owner_changed_valid", True),
+    ("string_element_clone_ref_output_valid", True),
+    ("string_element_tostring_returned_invalid", False),
     ("default_aggregate_move_option_field_read_valid", True),
     ("default_aggregate_move_option_field_alias_store_invalid", False),
     ("default_aggregate_move_field_alias_read_valid", True),
@@ -1425,6 +1430,10 @@ for name, expected in (
     ("return_loan_literal_slot_valid", "true\nstatic literal\n"),
     ("return_loan_read_static_local_valid", "14\n14\nstatic literal\n"),
     ("slot_read_payload_same_write_valid", "2\nkept\n"),
+    ("string_element_clone_after_drop_valid", "owned value"),
+    ("string_element_clone_returned_valid", "abefef"),
+    ("string_element_clone_getter_owner_changed_valid", "abcd"),
+    ("string_element_clone_ref_output_valid", "ababab1"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

@@ -1,0 +1,21 @@
+// Clone of a String element is a new String, so it may leave the routine
+// that owns the Array and enter another routine's result.
+func FirstName() -> String {
+    let names: Array<String> = [StringConcat("ab", ""), StringConcat("cd", "")];
+    return Clone(names[0]);
+}
+
+func Collect(names: Array<String>) -> Array<String> {
+    let out: Array<String> = [];
+    ArrayPush(out, Clone(names[0]));
+    return out;
+}
+
+func Main() -> Int {
+    Print(FirstName());
+    let names: Array<String> = [StringConcat("ef", "")];
+    let out: Array<String> = Collect(names);
+    Print(out[0]);
+    Print(names[0]);
+    return 0;
+}

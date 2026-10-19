@@ -1,0 +1,9 @@
+// Clone of a String element is a new String: Main reads the copy after
+// the owned Array that held the original is dropped.
+func Main() -> Void {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", " value"));
+    let copy: String = Clone(rows[0]);
+    ArrayDropOwnedStrings(rows);
+    Print(copy);
+}

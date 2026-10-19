@@ -92,6 +92,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return NULL;
         if (llvm_emit_array_clone_value(node, ctx, value, &clone))
             return clone;
+        /* Clone of a String is a new String with the same text. */
+        const char *clone_type = ast_call_semantic_value_type_name(node);
+        if (clone_type != NULL && strcmp(clone_type, "String") == 0) {
+            LLVMFuncEntry *concat = llvm_lookup_function(ctx, "StringConcat");
+            if (concat == NULL || LLVMTypeOf(value) != ctx->type_i8ptr)
+                return llvm_call_error_recovery(ctx, node,
+                    "LLVM String Clone requires runtime function 'StringConcat'");
+            LLVMValueRef args[] = { value,
+                LLVMBuildGlobalStringPtr(ctx->builder, "", llvm_tmp_name(ctx)) };
+            return LLVMBuildCall2(ctx->builder, concat->fn_type, concat->fn,
+                                  args, 2, llvm_tmp_name(ctx));
+        }
         return value;
     }
 

@@ -203,6 +203,14 @@ semantic_indexed_string_independent_result(const ASTNode *expression,
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
     name = ast_identifier_name(callee);
+    /* Clone of a String is StringConcat with "": a new String. */
+    if (builtin_kind == BUILTIN_CLONE) {
+        if (ast_call_arg_count(expression) != 1 || !publication_generation_ready(ctx)) return false;
+        PublishedNode *row = publication_node(ctx->function_param_publications, expression, false);
+        return row != NULL && row->node == expression && row->id != 0 &&
+            row->id == ast_node_stable_id(expression) && row->value_present &&
+            row->value_type == TYPE_STRING;
+    }
     /* A scalar ToString reads no String storage, so its result is no element
      * of any Array<String>. ToString(String) returns its input and stays out. */
     if (name != NULL && strcmp(name, "ToString") == 0) {

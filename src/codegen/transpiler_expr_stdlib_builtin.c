@@ -590,6 +590,12 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free(src);
                 return result;
             }
+            /* Clone of a String is a new String with the same text. */
+            if (tn != NULL && strcmp(tn, "String") == 0) {
+                char *result = strdup_fmt("StringConcat(%s, \"\")", src);
+                free(src);
+                return result;
+            }
             return src;
         }
         if (stdlib_op == TRANSPILER_STDLIB_OP_PRINT) {

@@ -1,0 +1,32 @@
+// Clone of a String element of a ref input is a new String: Keep may push
+// it into its inout output, and Main may grow the arena while it holds a copy.
+struct Arena {
+    names: Array<String>;
+}
+
+func FirstCopy(ref arena: Arena) -> String {
+    return Clone(arena.names[0]);
+}
+
+func Keep(ref arena: Arena, inout out: Array<String>) -> Int {
+    ArrayPush(out, Clone(arena.names[0]));
+    return ArrayLength(out);
+}
+
+func Make() -> String {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    return FirstCopy(arena);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let first: String = FirstCopy(arena);
+    let out: Array<String> = [];
+    let n: Int = Keep(arena, out);
+    ArrayPush(arena.names, StringConcat("cd", ""));
+    Print(first);
+    Print(Make());
+    Print(out[0]);
+    Print(ToString(n));
+    return 0;
+}

@@ -1,0 +1,19 @@
+// FirstCopy returns a Clone of an element of its by-value arena: a new
+// String, not a loan of the arena. Main may grow the arena's names while it
+// still holds the copy.
+struct Arena {
+    names: Array<String>;
+}
+
+func FirstCopy(arena: Arena) -> String {
+    return Clone(arena.names[0]);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    let first: String = FirstCopy(arena);
+    ArrayPush(arena.names, StringConcat("cd", ""));
+    Print(first);
+    Print(arena.names[1]);
+    return 0;
+}
