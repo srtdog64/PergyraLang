@@ -1,0 +1,34 @@
+// LabelsOf's Shelf holds Labels that lend its borrowed facts in a pushed
+// Array. MakeShelf returns that Shelf past the facts it owns.
+struct Facts {
+    names: Array<String>;
+}
+
+struct Label {
+    text: String;
+}
+
+struct Shelf {
+    labels: Array<Label>;
+}
+
+func LabelAt(ref facts: Facts, index: Int) -> Label {
+    return Label(facts.names[index]);
+}
+
+func LabelsOf(ref facts: Facts) -> Shelf {
+    let labels: Array<Label> = [];
+    ArrayPush(labels, LabelAt(facts, 0));
+    return Shelf(labels);
+}
+
+func MakeShelf() -> Shelf {
+    let facts: Facts = Facts([StringConcat("ab", "c")]);
+    return LabelsOf(facts);
+}
+
+func Main() -> Int {
+    let shelf: Shelf = MakeShelf();
+    Print(shelf.labels[0].text);
+    return 0;
+}

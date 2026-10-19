@@ -1,0 +1,30 @@
+// Collect pushes a loan of its borrowed facts into the inout Array it
+// was given: an output, so the push is a call escape. Fill owns the facts
+// and they die before Main reads the Array.
+struct Facts {
+    names: Array<String>;
+}
+
+struct Label {
+    text: String;
+}
+
+func LabelOf(ref facts: Facts) -> Label {
+    return Label(facts.names[0]);
+}
+
+func Collect(ref facts: Facts, inout out: Array<Label>) -> Void {
+    ArrayPush(out, LabelOf(facts));
+}
+
+func Fill(inout out: Array<Label>) -> Void {
+    let facts: Facts = Facts([StringConcat("ab", ToString(7))]);
+    Collect(facts, out);
+}
+
+func Main() -> Int {
+    var labels: Array<Label> = [];
+    Fill(labels);
+    Print(labels[0].text);
+    return 0;
+}

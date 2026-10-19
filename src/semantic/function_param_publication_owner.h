@@ -440,6 +440,10 @@ bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
     const ASTNode *call, const ASTNode *owner);
 bool semantic_param_publication_private_physical_array_mutation(const SemanticContext *ctx,
     const ASTNode *call, const ASTNode *owner);
+/* A current stdlib ArrayPush or ArraySet: the Array its first argument names
+ * holds the argument at *value_ordinal afterwards. */
+bool semantic_param_publication_checked_array_store(const SemanticContext *ctx,
+    const ASTNode *call, size_t *value_ordinal);
 ASTNode *semantic_param_publication_callee(const SemanticContext *ctx,
     const ASTNode *call, size_t ordinal);
 bool semantic_param_publication_formal_for_actual(const SemanticContext *ctx,

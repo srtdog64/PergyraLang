@@ -705,6 +705,32 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                 backing_consumers(state, ast_call_argument(node, p));
             break;
         }
+        size_t stored = 0;
+        bool array_store = semantic_param_publication_checked_array_store(state->store->ctx, node, &stored);
+        ASTNode *held_root = array_store ? ast_call_argument(node, 0) : NULL;
+        while (held_root != NULL && (held_root->type == AST_MEMBER_ACCESS || held_root->type == AST_ARRAY_ACCESS))
+            held_root = held_root->type == AST_MEMBER_ACCESS ? ast_member_object(held_root) : ast_array_access_array(held_root);
+        uint32_t held_id = held_root == NULL ? 0 : semantic_param_publication_binding(state->store->ctx, held_root);
+        FunctionParamFlowBackingBinding *holder = held_id == 0 ? NULL : backing_binding(state, held_id, false);
+        bool held = holder != NULL && holder->local;
+        for (size_t p = 0; holder != NULL && !held && p < ast_func_param_count(state->decl); p++) {
+            FuncParam *param = ast_func_param(state->decl, p);
+            held = param != NULL && ast_func_param_stable_id(param) == holder->binding && param->mode != PARAM_MODE_REF;
+        }
+        if (held) {
+            /* The pushed or set value lives in the Array afterwards, so its
+             * backing goes where that Array goes. The Array is a local or a
+             * parameter of this call; an inout one is an output, which the
+             * store reports as a call escape. */
+            for (size_t p = 0; p < ast_call_arg_count(node); p++)
+                if (!semantic_param_publication_checked_argument(state->store->ctx, node, p)) fact->complete = false;
+            const uint64_t *bits = fact->complete ? backing_origin(state, ast_call_argument(node, stored)) : NULL;
+            if (bits == NULL) { fact->complete = false; break; }
+            backing_store(state, ast_call_argument(node, 0), bits, false);
+            for (size_t p = 0; p < ast_call_arg_count(node); p++)
+                backing_consumers(state, ast_call_argument(node, p));
+            break;
+        }
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             if (!semantic_param_publication_checked_argument(state->store->ctx, node, i)) { fact->complete = false; break; }
             ASTNode *arg = ast_call_argument(node, i);

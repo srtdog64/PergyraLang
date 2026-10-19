@@ -218,6 +218,11 @@ release_lifetime_refusals = {
     # return of its own storage stays refused where it returns.
     "receiver_ref_self_local_return_invalid": [(*borrow_refusal, 19, 10)],
     "receiver_ref_self_string_return_invalid": [(*borrow_refusal, 6, 10)],
+    # A push stores its value in the Array it names: a local Array carries
+    # the loan where it goes (here past its owner, 27:5), and an inout Array
+    # is an output, a call escape of the loan (16:6, 22:13).
+    "array_push_loan_past_owner_invalid": [(*borrow_refusal, 27, 5)],
+    "array_push_loan_inout_invalid": [(*borrow_refusal, 16, 6), (*borrow_refusal, 22, 13)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -715,6 +720,9 @@ paired = (
     ("results_lend_array_result_valid", True),
     ("receiver_ref_self_local_return_invalid", False),
     ("receiver_ref_self_string_return_invalid", False),
+    ("array_push_loan_local_view_valid", True),
+    ("array_push_loan_past_owner_invalid", False),
+    ("array_push_loan_inout_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

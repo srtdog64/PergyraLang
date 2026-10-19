@@ -110,6 +110,21 @@ bool semantic_param_publication_private_array_push(const SemanticContext *ctx,
     return true;
 }
 
+bool semantic_param_publication_checked_array_store(const SemanticContext *ctx,
+    const ASTNode *call, size_t *value_ordinal)
+{
+    PublishedNode *row = publication_result_current(ctx, call);
+    if (value_ordinal == NULL || row == NULL || !row->stdlib || !row->kind_present ||
+        row->builtin != BUILTIN_NOT_BUILTIN || row->declaration != 0 || row->value_binding != 0 ||
+        row->target_binding != 0 || row->target_shape != AST_IDENTIFIER || row->target_name == NULL ||
+        row->value_type != TYPE_VOID || row->argument_count == 0 ||
+        !type_is_constructed_named(row->arguments[0].type, "Array")) return false;
+    if (strcmp(row->target_name, "ArrayPush") == 0 && row->argument_count == 2) *value_ordinal = 1;
+    else if (strcmp(row->target_name, "ArraySet") == 0 && row->argument_count == 3) *value_ordinal = 2;
+    else return false;
+    return ast_call_arg_count(call) == row->argument_count;
+}
+
 bool publication_record_private_physical_array_mutation(SemanticContext *ctx,
     ASTNode *call, PublishedNode *row)
 {
