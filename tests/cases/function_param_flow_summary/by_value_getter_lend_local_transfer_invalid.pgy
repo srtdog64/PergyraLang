@@ -1,7 +1,6 @@
 // Make's arena is a local. Its last read-and-return call hands the arena to
 // the result Make returns, while the loan the first call took is still to
-// be printed. A local is never lent, so the first call moves the arena and
-// the second call is refused.
+// be printed, so the first call's loan is refused at the second call.
 struct Arena {
     atoms: Array<String>;
 }

@@ -235,8 +235,8 @@ release_lifetime_refusals = {
     # the routine uses it again, and only while the loan stays here and
     # nothing changes it: a push of the loan into an inout Array (14:30), a
     # replaced element (13:20) or a Grow that pushes onto the arena (19:27)
-    # makes the call a move again. A local is moved, never lent (15:38).
-    "by_value_getter_lend_returned_invalid": [(*released_refusal, 15, 38)],
+    # makes the call a move again, as does a loan returned past a local (14:38).
+    "by_value_getter_lend_returned_invalid": [(*released_refusal, 14, 38)],
     "by_value_getter_lend_mutated_invalid": [(*released_refusal, 19, 27)],
     "by_value_getter_lend_kept_invalid": [(*released_refusal, 14, 30)],
     "by_value_getter_lend_owner_written_invalid": [(*released_refusal, 13, 20)],
@@ -266,10 +266,10 @@ release_lifetime_refusals = {
     # An element of a by-value Array formal is such a path too.
     "default_aggregate_move_array_element_alias_store_invalid": [(*released_refusal, 17, 33)],
     # TakeFirst returns a String of its arena but also pushes onto it, which
-    # the loan proof sees at the lending call itself (16:53). Make's arena is
-    # a local, so its first read-and-return call moves it (16:35).
+    # the loan proof sees at the lending call itself (16:53). Make hands its
+    # local arena on while the first loan lives (15:35).
     "by_value_getter_lend_growing_invalid": [(*released_refusal, 16, 53)],
-    "by_value_getter_lend_local_transfer_invalid": [(*released_refusal, 16, 35)],
+    "by_value_getter_lend_local_transfer_invalid": [(*released_refusal, 15, 35)],
     # An inout formal may change while the loan lives, so it is not lent.
     "by_value_getter_lend_inout_owner_invalid": [(*borrow_refusal, 13, 34)],
 }
@@ -791,6 +791,7 @@ paired = (
     ("array_handoff_same_return_value_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
     ("by_value_getter_lend_valid", True),
+    ("by_value_getter_lend_local_valid", True),
     ("by_value_getter_lend_forward_valid", True),
     ("by_value_getter_lend_returned_invalid", False),
     ("by_value_getter_lend_mutated_invalid", False),

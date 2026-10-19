@@ -279,13 +279,16 @@ static bool returned_loan_storage_root(FunctionParamFlowSummaryStore *store,
 }
 
 /* No assignment, writing call or move in `caller` reaches `binding`. The
- * owner may still be lent on to a `ref` formal. When the owner is a formal
- * of `caller` (`lends_on`), a by-value formal that only reads it and returns
- * it or a part of it lends it on too; a local passed there is moved
+ * owner may still be lent on to a `ref` formal. With `lends_on`, a by-value
+ * formal that only reads it and returns it or a part of it lends it on too,
+ * unless the owner is a local and that call's result leaves the routine
  * (2026-10-19_by_value_getter_lends_when_used_again). */
 static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
     FunctionParamFlowIndexClaims *claims, ASTNode *caller, uint32_t binding, bool lends_on)
 {
+    bool owner_formal = false;
+    for (size_t p = 0; p < ast_func_param_count(caller); p++)
+        if (ast_func_param_stable_id(ast_func_param(caller, p)) == binding) owner_formal = true;
     for (size_t c = 0; c < claims->count; c++) {
         ASTNode *node = claims->rows[c].node;
         if (node->type == AST_ASSIGNMENT) {
@@ -330,6 +333,11 @@ static bool loan_owner_unchanged(FunctionParamFlowSummaryStore *store,
                 semantic_classify_ownership_type(argument.type, store->ctx) != OWNERSHIP_TYPE_COPY_ONLY;
             if (mode != PARAM_MODE_REF && ((summary & moving) != 0 || !argument.ok ||
                 (storage && !function_param_flow_preserves_array_storage(store->ctx, callee, formal)))) return false;
+            /* A read-and-return call on a local whose result leaves the
+             * routine hands the local on: it changes the owner of every
+             * other loan of it. */
+            if (lends_on && mode != PARAM_MODE_REF && (summary & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0 &&
+                !owner_formal && !function_param_flow_call_result_stays(store->ctx, caller, node)) return false;
         }
     }
     return true;
@@ -491,8 +499,8 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
     SemanticParamPublicationView view;
     if (ctx == NULL || caller == NULL || call == NULL || owner == 0 ||
         !semantic_param_publication_admitted_view(ctx, &view)) return false;
-    /* The move owner lends only a formal. A loan of it may be returned when
-     * the formal's own summary lends it on in turn. */
+    /* A loan of a local stays in the routine. One of a formal may be
+     * returned when the formal's own summary lends it on in turn. */
     unsigned allowed = 0;
     for (size_t p = 0; p < ast_func_param_count(caller); p++) {
         FuncParam *param = ast_func_param(caller, p);

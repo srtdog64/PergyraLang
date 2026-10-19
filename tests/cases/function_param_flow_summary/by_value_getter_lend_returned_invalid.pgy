@@ -1,6 +1,5 @@
-// Make's arena is a local, so the read-and-return call AtomText moves it:
-// only a formal is lent. Make's later use of the arena is refused, and with
-// it the loan Make would return past the arena it owns.
+// AtomText lends Make's local arena, and Make returns the loan past the
+// arena it owns: the later use of the arena is refused.
 struct Arena {
     atoms: Array<String>;
 }

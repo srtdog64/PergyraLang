@@ -284,10 +284,10 @@ static void apply_call_moves(MoveWalk *walk, MoveState *state, ASTNode *call)
         const char *param_name = param != NULL && param->name != NULL ? param->name : "parameter";
         bool parameter = false;
         ParamMode mode = routine_param_mode(walk->routine, binding, &parameter);
-        /* Only a formal is lent: this routine never hands it on while it
-         * runs. A local passed to a read-and-return callee is moved, so a
-         * later transfer of it never meets a live loan. */
-        bool lends = parameter && formal_lends(walk->ctx, callee, formal);
+        /* A formal or a local is lent. The loan proof refuses a later use
+         * when the loan leaves the routine, or when another call hands a
+         * local on while the loan lives. */
+        bool lends = formal_lends(walk->ctx, callee, formal);
         /* A `ref` formal can be lent on, never moved: nothing may change it
          * while its loan lives. An `inout` one can change, so it is neither. */
         if (parameter && mode == PARAM_MODE_REF && lends) continue;

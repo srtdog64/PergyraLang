@@ -1,0 +1,18 @@
+// Main's arena is a local. AtomText only reads it and returns one of its
+// Strings, and Main uses the arena again: the call lends the arena, the
+// loan stays in Main, and nothing hands the arena on while it lives.
+struct Arena {
+    atoms: Array<String>;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", ""), StringConcat("cd", "")]);
+    let first: String = AtomText(arena, 0);
+    let second: String = AtomText(arena, 1);
+    Print(Concat(first, Concat(second, ToString(ArrayLength(arena.atoms)))));
+    return 0;
+}
