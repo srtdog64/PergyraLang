@@ -25,3 +25,5 @@ the one it replaces. OPEN files wait for the user.
 | 2026-10-19 | [A field taken out before an `own` hand-off?](2026-10-19_open_field_take_before_own_handoff.md) | OPEN |
 | 2026-10-19 | [A generated projection may change with its registry](2026-10-19_generated_projection_in_canonical.md) | in force |
 | 2026-10-19 | [A local or loop variable that takes a path is the formal's alias](2026-10-19_path_aliases_follow_the_formal.md) | in force |
+| 2026-10-20 | [A getter's loan that cannot be proved: copy or move?](2026-10-20_open_escaping_loan_copy_or_move.md) | answered 2026-10-20 |
+| 2026-10-20 | [An unprovable getter loan is copied where the proof fails](2026-10-20_escaping_loan_copies_where_it_fails.md) | in force |
