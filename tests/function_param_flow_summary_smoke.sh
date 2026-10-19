@@ -751,6 +751,8 @@ paired = (
     ("private_array_sort_alias_invalid", False),
     ("default_aggregate_move_map_field_read_valid", True),
     ("default_aggregate_move_map_field_set_invalid", False),
+    ("option_none_ref_reader_valid", True),
+    ("option_none_ref_loan_returned_invalid", False),
     ("string_element_inout_owner_named_call_invalid", False),
     ("enum_payload_constructor_value_result_valid", True),
     ("string_element_push_copy_landing_valid", True),

@@ -1,0 +1,32 @@
+// FirstPair reads its ref fact and returns None() or a Pair of new storage.
+// None() carries nothing, so the frame is supported and Check may pass its
+// own ref fact on.
+struct Fact {
+    present: Bool;
+    ids: Array<Int>;
+}
+
+struct Pair {
+    ids: Array<Int>;
+}
+
+func FirstPair(ref fact: Fact) -> Option<Pair> {
+    if !fact.present {
+        return None();
+    }
+    return Some(Pair(Clone(fact.ids)));
+}
+
+func Check(ref fact: Fact) -> Int {
+    let pair: Option<Pair> = FirstPair(fact);
+    if IsSome(pair) {
+        return ArrayLength(UnwrapOption(pair).ids);
+    }
+    return 0;
+}
+
+func Main() -> Int {
+    let fact: Fact = Fact(true, [1, 2]);
+    Print(ToString(Check(fact)));
+    return 0;
+}
