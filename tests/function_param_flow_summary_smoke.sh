@@ -223,6 +223,9 @@ release_lifetime_refusals = {
     # is an output, a call escape of the loan (16:6, 22:13).
     "array_push_loan_past_owner_invalid": [(*borrow_refusal, 27, 5)],
     "array_push_loan_inout_invalid": [(*borrow_refusal, 16, 6), (*borrow_refusal, 22, 13)],
+    # Report keeps the context and returns, so the later use reads a moved
+    # value; the same call to a Never routine ends that path instead.
+    "aggregate_move_void_call_invalid": [(*released_refusal, 26, 18)],
 }
 paired = (
     ("unit_enum_qualified_result_valid", True),
@@ -723,6 +726,8 @@ paired = (
     ("array_push_loan_local_view_valid", True),
     ("array_push_loan_past_owner_invalid", False),
     ("array_push_loan_inout_invalid", False),
+    ("aggregate_move_never_call_valid", True),
+    ("aggregate_move_void_call_invalid", False),
     ("enum_payload_constructor_ref_field_return_invalid", False),
 )
 for name, valid in paired:

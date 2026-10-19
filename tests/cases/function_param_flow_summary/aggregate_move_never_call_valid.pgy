@@ -1,0 +1,36 @@
+// Refuse moves its by-value context (it keeps the context in its sink) and
+// never returns. After `if n < 0 { Refuse(...) }` the context is only used on
+// the path where Refuse was not called, so nothing uses a moved value.
+struct Context {
+    name: String;
+    rows: Array<Int>;
+}
+
+func Describe(context: Context) -> String {
+    return context.name;
+}
+
+func Refuse(context: Context, inout sink: Array<Context>, code: String) -> Never {
+    ArrayPush(sink, context);
+    let report: String = Describe(context);
+    Print(Concat(report, code));
+    Exit(1);
+}
+
+func Count(context: Context) -> Int {
+    return ArrayLength(context.rows);
+}
+
+func Check(context: Context, inout sink: Array<Context>, n: Int) -> Int {
+    if n < 0 {
+        Refuse(context, sink, "negative");
+    }
+    return Count(context) + n;
+}
+
+func Main() -> Int {
+    let context: Context = Context(StringConcat("ctx", ""), [1, 2]);
+    var sink: Array<Context> = [];
+    Print(ToString(Check(context, sink, 1)));
+    return 0;
+}

@@ -392,6 +392,10 @@ static bool walk_node(MoveWalk *walk, MoveState *state, ASTNode *node, bool *ter
         for (size_t p = 0; p < ast_call_arg_count(node); p++)
             if (!walk_expression(walk, state, ast_call_argument(node, p))) return false;
         apply_call_moves(walk, state, node);
+        /* A call that never returns ends this path, as a return does: what
+         * it moved is never used after it. */
+        SemanticPublishedValue result = semantic_param_publication_value(walk->ctx, node);
+        if (result.ok && type_equals(result.type, TYPE_NEVER)) *terminated = true;
         return !walk->failed;
     }
     case AST_ASSIGNMENT:

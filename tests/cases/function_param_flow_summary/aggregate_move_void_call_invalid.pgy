@@ -1,0 +1,34 @@
+// Report moves its by-value context (it keeps the context in its sink) and
+// returns, so Check's later use of the context reads a moved value.
+struct Context {
+    name: String;
+    rows: Array<Int>;
+}
+
+func Describe(context: Context) -> String {
+    return context.name;
+}
+
+func Report(context: Context, inout sink: Array<Context>, code: String) -> Void {
+    ArrayPush(sink, context);
+    let report: String = Describe(context);
+    Print(Concat(report, code));
+}
+
+func Count(context: Context) -> Int {
+    return ArrayLength(context.rows);
+}
+
+func Check(context: Context, inout sink: Array<Context>, n: Int) -> Int {
+    if n < 0 {
+        Report(context, sink, "negative");
+    }
+    return Count(context) + n;
+}
+
+func Main() -> Int {
+    let context: Context = Context(StringConcat("ctx", ""), [1, 2]);
+    var sink: Array<Context> = [];
+    Print(ToString(Check(context, sink, 1)));
+    return 0;
+}
