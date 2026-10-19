@@ -1,0 +1,33 @@
+// AtomText lends Collect's by-value arena, and Collect hands the loan to
+// Hold, which keeps its String in the inout labels, before it uses the arena
+// again. The loan is copied where it leaves, as Hold(Clone(first), out).
+struct Arena {
+    atoms: Array<String>;
+}
+
+struct Labels {
+    label: String;
+}
+
+func AtomText(arena: Arena, index: Int) -> String {
+    return arena.atoms[index];
+}
+
+func Hold(name: String, inout out: Labels) -> Int {
+    out.label = name;
+    return 1;
+}
+
+func Collect(arena: Arena, inout out: Labels) -> Int {
+    let first: String = AtomText(arena, 0);
+    let n: Int = Hold(first, out);
+    return n + ArrayLength(arena.atoms);
+}
+
+func Main() -> Int {
+    let arena: Arena = Arena([StringConcat("ab", "")]);
+    var out: Labels = Labels(StringConcat("", ""));
+    Print(ToString(Collect(arena, out)));
+    Print(out.label);
+    return 0;
+}

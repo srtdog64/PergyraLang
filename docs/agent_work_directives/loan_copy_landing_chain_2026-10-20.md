@@ -121,9 +121,17 @@ Status: PLAN, Claude lane, single implementation lane. Base revision
   rule, seven move negatives such as `default_aggregate_move_reuse_invalid`
   were admitted. Cloning the result does not undo the growth in the
   caller's storage.
-- **Still open:** a loan that leaves the routine is still refused. Its copy
-  goes where it leaves, and that needs the escaping value, not the
-  consumer the loan walk reports.
+- **A loan that leaves is copied where it leaves.** The loan walk now
+  records the expression whose value carried the first escape
+  (`backing_effect_carried`), where a copy can stand in for it:
+  - a returned value;
+  - an argument the callee only receives (not `inout`);
+  - a value assigned to a place outside the routine;
+  - the value an Array store keeps.
+
+  The move owner selects that expression, and the next analysis wraps it in
+  Clone. A first exit no copy can stand in for (a receiver, an `inout`
+  argument, a builtin's other arguments) selects nothing.
 
 ## Application landed for formal String stores
 

@@ -1,5 +1,6 @@
 // AtomText lends Make's local arena, and Make returns the loan past the
-// arena it owns: the later use of the arena is refused.
+// arena it owns. The loan is copied where it leaves, as return Clone(first),
+// so Make may use the arena again.
 struct Arena {
     atoms: Array<String>;
 }

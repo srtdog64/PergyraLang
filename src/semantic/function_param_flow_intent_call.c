@@ -108,7 +108,7 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
                 FuncParam *output = ast_func_param(method, formal);
                 if (output != NULL && (output->mode == PARAM_MODE_REF || output->mode == PARAM_MODE_MUT_REF) &&
                     state->store->entries[entry].output_dependencies[formal])
-                    backing_store(state, ast_call_argument(call, target), bits, false);
+                    backing_store(state, ast_call_argument(call, target), bits, false, NULL);
             }
         }
     }
@@ -132,7 +132,7 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
             backing_effect(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
         if (!function_param_flow_callee_relation_ready(&state->lookup, action, i))
             function_param_flow_callee_unfinished(&state->lookup, action, i, fact);
-        if (keeper != NULL) backing_store(state, keeper, bits, false);
+        if (keeper != NULL) backing_store(state, keeper, bits, false, NULL);
         for (size_t p = 0; p < count && fact->complete; p++) {
             size_t output_formal = 0;
             if (!semantic_param_publication_formal_for_actual(ctx, action, p, &output_formal)) {
@@ -148,7 +148,7 @@ static void intent_action_effect(ReturnedBacking *state, const ASTNode *intent, 
             if (target == SIZE_MAX) { fact->complete = false; break; }
             if (!function_param_flow_output_dependency_for_call(&state->lookup, action, i, p, &retained))
                 function_param_flow_callee_unfinished(&state->lookup, action, i, fact);
-            else if (retained) backing_store(state, ast_call_argument(call, target), bits, false);
+            else if (retained) backing_store(state, ast_call_argument(call, target), bits, false, NULL);
         }
     }
 }

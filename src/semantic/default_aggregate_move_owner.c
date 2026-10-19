@@ -48,7 +48,7 @@ typedef struct {
     const ASTNode **reported;
     size_t reported_count, reported_capacity;
     /* Loan verdicts of lending calls, each checked once. */
-    struct { const ASTNode *call; bool admitted, owner_changed; } *lent;
+    struct { const ASTNode *call; bool admitted; FunctionParamFlowLoanFailure failure; } *lent;
     size_t lent_count, lent_capacity;
     /* Calls whose result a Clone copies into storage of its own. */
     const ASTNode **copied;
@@ -150,9 +150,9 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
     if (moved->lending_call == NULL) return false;
     for (size_t i = 0; i < walk->lent_count; i++)
         if (walk->lent[i].call == moved->lending_call) return walk->lent[i].admitted;
-    bool owner_changed = false;
+    FunctionParamFlowLoanFailure failure = {0};
     bool admitted = function_param_flow_lent_argument_admitted(walk->ctx, walk->routine,
-        moved->lending_call, moved->binding, &owner_changed);
+        moved->lending_call, moved->binding, &failure);
     if (walk->lent_count == walk->lent_capacity) {
         size_t capacity = walk->lent_capacity == 0 ? 8 : walk->lent_capacity * 2;
         void *grown = realloc(walk->lent, capacity * sizeof(*walk->lent));
@@ -160,7 +160,7 @@ static bool lent_use_admitted(MoveWalk *walk, const MovedPath *moved)
         walk->lent = grown; walk->lent_capacity = capacity;
     }
     walk->lent[walk->lent_count].call = moved->lending_call;
-    walk->lent[walk->lent_count].owner_changed = owner_changed;
+    walk->lent[walk->lent_count].failure = failure;
     walk->lent[walk->lent_count++].admitted = admitted;
     return admitted;
 }
@@ -191,10 +191,16 @@ static bool note_copied_argument(MoveWalk *walk, const ASTNode *call)
 static void refuse_use(MoveWalk *walk, const ASTNode *node, const MovedPath *moved)
 {
     if (lent_use_admitted(walk, moved) || !reported_once(walk, node)) return;
-    /* The refusal stands in this analysis; a next one copies the loan. */
-    for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++)
-        if (walk->lent[i].call == moved->lending_call && walk->lent[i].owner_changed &&
-            !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call)) walk->failed = true;
+    /* The refusal stands in this analysis; a next one copies the loan: where
+     * it is made when its owner changed, where it leaves when it left. */
+    for (size_t i = 0; moved->lending_call != NULL && i < walk->lent_count; i++) {
+        const FunctionParamFlowLoanFailure *failure = &walk->lent[i].failure;
+        if (walk->lent[i].call != moved->lending_call) continue;
+        if (failure->owner_changed && !semantic_loan_copy_landing_select(walk->ctx, moved->lending_call))
+            walk->failed = true;
+        if (failure->escape_carrier != NULL &&
+            !semantic_loan_copy_landing_select_carrier(walk->ctx, failure->escape_carrier)) walk->failed = true;
+    }
     const ASTNode *root = node;
     while (root != NULL && (root->type == AST_MEMBER_ACCESS || root->type == AST_ARRAY_ACCESS))
         root = root->type == AST_MEMBER_ACCESS ? ast_member_object(root) : ast_array_access_array(root);

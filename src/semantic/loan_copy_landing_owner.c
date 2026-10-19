@@ -31,12 +31,8 @@ static bool loan_call_preserves_storage(SemanticContext *ctx, const ASTNode *cal
     return true;
 }
 
-bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call)
+static bool loan_copy_landing_record(SemanticContext *ctx, uint32_t id)
 {
-    uint32_t id = ast_node_stable_id(call);
-    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
-    if (id == 0 || !result.ok || result.meta || !loan_call_preserves_storage(ctx, call) ||
-        !semantic_param_publication_clone_independent(ctx, result.type)) return true;
     for (size_t i = 0; i < ctx->loan_copy_landing_selected_count; i++)
         if (ctx->loan_copy_landing_selected[i] == id) return true;
     if (ctx->loan_copy_landing_selected_count == ctx->loan_copy_landing_selected_capacity) {
@@ -49,6 +45,24 @@ bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call
     }
     ctx->loan_copy_landing_selected[ctx->loan_copy_landing_selected_count++] = id;
     return true;
+}
+
+bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call)
+{
+    uint32_t id = ast_node_stable_id(call);
+    SemanticPublishedValue result = semantic_param_publication_value(ctx, call);
+    if (id == 0 || !result.ok || result.meta || !loan_call_preserves_storage(ctx, call) ||
+        !semantic_param_publication_clone_independent(ctx, result.type)) return true;
+    return loan_copy_landing_record(ctx, id);
+}
+
+bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier)
+{
+    uint32_t id = ast_node_stable_id(carrier);
+    SemanticPublishedValue value = semantic_param_publication_value(ctx, carrier);
+    if (id == 0 || !value.ok || value.meta ||
+        !semantic_param_publication_clone_independent(ctx, value.type)) return true;
+    return loan_copy_landing_record(ctx, id);
 }
 
 const ASTNode *semantic_loan_copy_landing_copied_call(SemanticContext *ctx, const ASTNode *call)

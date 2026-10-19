@@ -95,6 +95,10 @@ landed_clones = {
     "by_value_getter_lend_mutated_landed_valid": {"Touch": 1},
     "by_value_getter_lend_local_transfer_landed_valid": {"Make": 1},
     "by_value_getter_lend_owner_written_shadowed_landed_valid": {"Rename": 1},
+    "by_value_getter_lend_kept_landed_valid": {"Collect": 1},
+    "by_value_getter_lend_returned_landed_valid": {"Make": 1},
+    "by_value_getter_lend_passed_kept_landed_valid": {"Collect": 1},
+    "by_value_getter_lend_assigned_landed_valid": {"Collect": 1},
 }
 # The analyses a compile runs after the first to land what it selected: an
 # `inout` output lands in the first, a String store or getter loan selection
@@ -108,7 +112,10 @@ landing_rounds = {
     "formal_string_store_local_alias_set_invalid": 0,
     "by_value_getter_lend_owner_written_landed_valid": 1,
     "by_value_getter_lend_shared_result_owner_changed_invalid": 0,
-    "by_value_getter_lend_kept_invalid": 0,
+    "by_value_getter_lend_returned_landed_valid": 1,
+    "by_value_getter_lend_shared_result_returned_invalid": 0,
+    "by_value_getter_lend_inout_passed_invalid": 0,
+    "by_value_getter_lend_inout_then_returned_invalid": 0,
     "default_aggregate_move_reuse_invalid": 0,
     "default_aggregate_move_cloned_growth_invalid": 0,
     "formal_array_store_inout_output_invalid": 0,
@@ -281,8 +288,9 @@ release_lifetime_refusals = {
     # nothing changes it: a push of the loan into an inout Array (14:30), a
     # replaced element (13:20) or a Grow that pushes onto the arena (19:27)
     # makes the call a move again, as does a loan returned past a local (14:38).
-    "by_value_getter_lend_returned_invalid": [(*released_refusal, 14, 38)],
-    "by_value_getter_lend_kept_invalid": [(*released_refusal, 14, 30)],
+    "by_value_getter_lend_shared_result_returned_invalid": [(*released_refusal, 24, 38)],
+    "by_value_getter_lend_inout_passed_invalid": [(*released_refusal, 23, 38)],
+    "by_value_getter_lend_inout_then_returned_invalid": [(*released_refusal, 24, 46)],
     # A store through an access path of a by-value aggregate changes storage
     # the caller's aggregate shares, so the call moves the argument.
     "default_aggregate_move_field_store_invalid": [(*released_refusal, 16, 22)],
@@ -901,9 +909,14 @@ paired = (
     ("by_value_getter_lend_valid", True),
     ("by_value_getter_lend_local_valid", True),
     ("by_value_getter_lend_forward_valid", True),
-    ("by_value_getter_lend_returned_invalid", False),
+    ("by_value_getter_lend_returned_landed_valid", True),
     ("by_value_getter_lend_mutated_landed_valid", True),
-    ("by_value_getter_lend_kept_invalid", False),
+    ("by_value_getter_lend_kept_landed_valid", True),
+    ("by_value_getter_lend_passed_kept_landed_valid", True),
+    ("by_value_getter_lend_assigned_landed_valid", True),
+    ("by_value_getter_lend_shared_result_returned_invalid", False),
+    ("by_value_getter_lend_inout_passed_invalid", False),
+    ("by_value_getter_lend_inout_then_returned_invalid", False),
     ("by_value_getter_lend_owner_written_landed_valid", True),
     ("by_value_getter_lend_owner_written_shadowed_landed_valid", True),
     ("default_aggregate_move_field_read_valid", True),
@@ -1546,6 +1559,10 @@ for name, expected in (
     ("by_value_getter_lend_mutated_landed_valid", "4"),
     ("by_value_getter_lend_local_transfer_landed_valid", "abcd"),
     ("by_value_getter_lend_owner_written_shadowed_landed_valid", "2"),
+    ("by_value_getter_lend_kept_landed_valid", "1"),
+    ("by_value_getter_lend_returned_landed_valid", "1ab"),
+    ("by_value_getter_lend_passed_kept_landed_valid", "2ab"),
+    ("by_value_getter_lend_assigned_landed_valid", "1ab"),
 ):
     for backend in ("c", "llvm"):
         executable = runtime_dir / (name + "-" + backend + ".exe")

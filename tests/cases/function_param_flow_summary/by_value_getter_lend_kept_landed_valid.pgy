@@ -1,5 +1,6 @@
 // AtomText lends Collect's by-value arena, and Collect keeps the loan in the
-// inout Array it was given before it uses the arena again.
+// inout Array it was given before it uses the arena again. The loan is
+// copied where it leaves, as ArrayPush(out, Clone(first)).
 struct Arena {
     atoms: Array<String>;
 }

@@ -1,0 +1,31 @@
+// ShelfOf lends Make's local store, and Make returns the loan past the
+// store it owns. A Clone of the Shelf copies its Array of Box structs only
+// by value, so no copy is landed and the later use of the store is refused.
+struct Box {
+    items: Array<Int>;
+}
+
+struct Shelf {
+    boxes: Array<Box>;
+}
+
+struct Store {
+    shelf: Shelf;
+    names: Array<String>;
+}
+
+func ShelfOf(store: Store) -> Shelf {
+    return store.shelf;
+}
+
+func Make() -> Shelf {
+    let store: Store = Store(Shelf([Box([1])]), [StringConcat("ab", "")]);
+    let shelf: Shelf = ShelfOf(store);
+    Print(ToString(ArrayLength(store.names)));
+    return shelf;
+}
+
+func Main() -> Int {
+    Print(ToString(ArrayLength(Make().boxes)));
+    return 0;
+}

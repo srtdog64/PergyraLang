@@ -178,6 +178,13 @@ void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned ef
     for (size_t p = 0; p < state->fact->origin_count; p++)
         if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0) state->fact->effects[p] |= effect;
 }
+void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, unsigned effect,
+    ASTNode *carrier)
+{
+    bool first = state->escape_site == NULL;
+    backing_effect(state, origins, effect);
+    if (first && state->escape_site != NULL) state->escape_carrier = carrier;
+}
 bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins)
 {
     for (size_t w = 0; w < state->fact->origin_words; w++) if (origins[w] != 0) return true;

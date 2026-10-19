@@ -94,20 +94,21 @@ bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue va
     return value.ok && !value.meta && value.type != NULL && value.type->kind == TYPE_KIND_ENUM &&
         semantic_classify_ownership_type(value.type, state->store->ctx) == OWNERSHIP_TYPE_COPY_ONLY;
 }
-void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement)
+void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement,
+    ASTNode *carrier)
 {
     /* A stored value that carries none of this frame's origins moves none
      * of its backing, wherever it is stored. */
     if (!backing_any_origin(state, origins)) return;
     FunctionParamFlowBackingBinding *row = backing_binding(state,
         function_param_flow_backing_place(state, target), false);
-    if (row == NULL) { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; return; }
+    if (row == NULL) { backing_effect_carried(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier); state->fact->complete = false; return; }
     if (!replacement) row->destination_read_epoch = state->fact->epoch;
     bool output = false;
     for (size_t w = 0; !replacement && w < state->fact->destination_words; w++) output |= row->destinations[w] != 0;
     for (size_t p = 0; !replacement && p < state->fact->origin_count; p++) if ((origins[p / 64] & (UINT64_C(1) << (p % 64))) != 0)
         backing_merge(state->fact->destination_words, &state->fact->outputs[p * state->fact->destination_words], row->destinations);
-    if (output) backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
+    if (output) backing_effect_carried(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier);
     /* A by-value or own parameter is this call's storage, as a local is: a
      * write through it (an inout argument) keeps the backing in the frame,
      * and a later return or escape of the parameter carries it. A declared
@@ -123,7 +124,7 @@ void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *orig
         bool grew = backing_merge(state->fact->origin_words, row->origins, origins);
         state->fact->changed |= grew && row->origin_read_epoch == state->fact->epoch;
     }
-    else if (!output) { backing_effect(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE); state->fact->complete = false; }
+    else if (!output) { backing_effect_carried(state, origins, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier); state->fact->complete = false; }
 }
 const uint64_t *backing_origin(ReturnedBacking *state, ASTNode *node)
 {
@@ -373,7 +374,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
         bool indexed = function_param_flow_program_point_index_build(state->store, state->decl, &index);
         if (!indexed) fact->complete = false;
         bool replacement = indexed && function_param_flow_local_replacement(state->store->ctx, index, node);
-        if (bits != NULL) backing_store(state, target, bits, replacement);
+        if (bits != NULL) backing_store(state, target, bits, replacement, ast_assignment_value(node));
         backing_consumers(state, ast_assignment_value(node)); break;
     }
     case AST_CALL:
@@ -421,7 +422,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                         if (output == NULL) { fact->complete = false; break; }
                         if ((output->mode == PARAM_MODE_REF || output->mode == PARAM_MODE_MUT_REF) &&
                             state->store->entries[entry].output_dependencies[formal])
-                            backing_store(state, ast_call_argument(node, p), bits, false);
+                            backing_store(state, ast_call_argument(node, p), bits, false, NULL);
                     }
                 }
                 if (!fact->complete) break;
@@ -434,7 +435,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
             semantic_param_publication_private_array_push(state->store->ctx, node, state->decl))) {
             /* Physical mutation transfers no backing; String push still does. */
             const uint64_t *bits = physical_store ? NULL : backing_origin(state, ast_call_argument(node, 1));
-            if (bits != NULL) backing_store(state, ast_call_argument(node, 0), bits, false);
+            if (bits != NULL) backing_store(state, ast_call_argument(node, 0), bits, false, NULL);
             for (size_t p = 0; p < ast_call_arg_count(node); p++)
                 backing_consumers(state, ast_call_argument(node, p));
             break;
@@ -460,7 +461,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                 if (!semantic_param_publication_checked_argument(state->store->ctx, node, p)) fact->complete = false;
             const uint64_t *bits = fact->complete ? backing_origin(state, ast_call_argument(node, stored)) : NULL;
             if (bits == NULL) { fact->complete = false; break; }
-            backing_store(state, ast_call_argument(node, 0), bits, false);
+            backing_store(state, ast_call_argument(node, 0), bits, false, ast_call_argument(node, stored));
             for (size_t p = 0; p < ast_call_arg_count(node); p++)
                 backing_consumers(state, ast_call_argument(node, p));
             break;
@@ -498,9 +499,12 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                 else {
                     FuncParam *param = ast_func_param(callee, formal);
                     unsigned mask = function_param_flow_summary_for_call(&state->lookup, node, i);
-                    backing_effect(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE));
+                    /* A copy can stand in for an argument a callee only
+                     * receives; an inout one is the caller's own place. */
+                    ASTNode *carrier = param != NULL && param->mode != PARAM_MODE_MUT_REF ? arg : NULL;
+                    backing_effect_carried(state, bits, mask & (SLOT_PARAM_SUMMARY_CALL_ESCAPE | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE), carrier);
                     if (param == NULL || param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_MUT_REF)
-                        backing_effect(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE);
+                        backing_effect_carried(state, bits, SLOT_PARAM_SUMMARY_CALL_ESCAPE, carrier);
                     if (!function_param_flow_callee_relation_ready(&state->lookup, node, i))
                         function_param_flow_callee_unfinished(&state->lookup, node, i, fact);
                     for (size_t p = 0; p < ast_call_arg_count(node); p++) {
@@ -515,7 +519,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
                         bool retained = false;
                         if (!function_param_flow_output_dependency_for_call(&state->lookup, node, i, p, &retained))
                             function_param_flow_callee_unfinished(&state->lookup, node, i, fact);
-                        else if (retained) backing_store(state, ast_call_argument(node, p), bits, false);
+                        else if (retained) backing_store(state, ast_call_argument(node, p), bits, false, NULL);
                     }
                 }
             }
@@ -528,7 +532,7 @@ void backing_consumers(ReturnedBacking *state, ASTNode *node)
             if (ast_return_value(node) == NULL) fact->complete = false;
         }
         const uint64_t *bits = backing_origin(state, ast_return_value(node));
-        if (bits != NULL) backing_effect(state, bits, SLOT_PARAM_SUMMARY_RETURN_ESCAPE);
+        if (bits != NULL) backing_effect_carried(state, bits, SLOT_PARAM_SUMMARY_RETURN_ESCAPE, ast_return_value(node));
         backing_consumers(state, ast_return_value(node)); break;
     }
     case AST_CHANNEL_SEND: {

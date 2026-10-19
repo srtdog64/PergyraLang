@@ -21,7 +21,7 @@
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
-    ASTNode **escape_site);
+    ASTNode **escape_site, ASTNode **escape_carrier);
 
 static bool array_result_borrowed_formal(Type *function_type, const Type *formal_type,
     ParamMode mode, SemanticContext *ctx)
@@ -437,7 +437,7 @@ static bool returned_loan_sources_admitted(FunctionParamFlowSummaryStore *store,
 static bool sparse_loan_admitted(SemanticContext *ctx,
     const SemanticParamPublicationView *view, ASTNode *caller, ASTNode *seed,
     uint32_t owner_slot_id, const PendingRefCall *return_loan, unsigned allowed_effects,
-    ASTNode **escape_site)
+    ASTNode **escape_site, ASTNode **escape_carrier)
 {
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
@@ -472,6 +472,7 @@ static bool sparse_loan_admitted(SemanticContext *ctx,
         for (size_t r = 0; r < root_count && fact.complete; r++) backing_consumers(&state, roots[r]);
     } while (fact.changed && fact.complete);
     if (state.escape_site != NULL) *escape_site = state.escape_site;
+    if (escape_carrier != NULL) *escape_carrier = state.escape_carrier;
     /* A String lent by a borrowed aggregate is that aggregate's storage, so
      * even a loan used only here needs an owner this routine leaves
      * unchanged: the source walk proves a `ref` formal or an unmutated local. */
@@ -498,14 +499,14 @@ bool function_param_flow_return_loan_admitted(SemanticContext *ctx,
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     if (!registered || (function_param_flow_summary_for_call(&lookup, row->call, row->ordinal) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) == 0 ||
         !function_param_flow_callee_relation_ready(&lookup, row->call, row->ordinal)) return false;
-    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site);
+    return sparse_loan_admitted(ctx, view, row->caller, row->call, 0, row, 0, escape_site, NULL);
 }
 
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
-    ASTNode *caller, ASTNode *call, uint32_t owner, bool *owner_changed)
+    ASTNode *caller, ASTNode *call, uint32_t owner, FunctionParamFlowLoanFailure *failure)
 {
     SemanticParamPublicationView view;
-    if (owner_changed != NULL) *owner_changed = false;
+    if (failure != NULL) *failure = (FunctionParamFlowLoanFailure){0};
     if (ctx == NULL || caller == NULL || call == NULL || owner == 0 ||
         !semantic_param_publication_admitted_view(ctx, &view)) return false;
     /* A loan of a local stays in the routine. One of a formal may be
@@ -517,15 +518,18 @@ bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
             (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF))
             allowed = function_param_flow_summary_for_param(ctx, caller, p) & SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
     }
-    ASTNode *escape = NULL;
-    if (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape)) return false;
+    ASTNode *escape = NULL, *carrier = NULL;
+    if (!sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, allowed, &escape, &carrier)) {
+        if (failure != NULL) failure->escape_carrier = carrier;
+        return false;
+    }
     SlotFunctionLookup lookup = {ctx, ctx->function_param_publications->program};
     FunctionParamFlowSummaryStore *store = function_param_flow_store_get(&lookup);
     FunctionParamFlowProgramPointIndex *index;
     if (store == NULL || store->failed || !function_param_flow_program_point_index_build(store, caller, &index))
         return false;
     bool unchanged = loan_owner_unchanged(store, index->claims, caller, owner, true);
-    if (!unchanged && owner_changed != NULL) *owner_changed = true;
+    if (!unchanged && failure != NULL) failure->owner_changed = true;
     return unchanged;
 }
 
@@ -535,7 +539,7 @@ bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller
     ASTNode *escape = NULL;
     return ctx != NULL && caller != NULL && call != NULL &&
         semantic_param_publication_admitted_view(ctx, &view) &&
-        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape);
+        sparse_loan_admitted(ctx, &view, caller, call, 0, NULL, 0, &escape, NULL);
 }
 
 bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
@@ -549,5 +553,5 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
     bool registered = false;
     for (size_t c = 0; c < view->read_loan_count; c++) if (&view->read_loans[c] == row) registered = true;
     return registered && sparse_loan_admitted(ctx, view, (ASTNode *)row->caller,
-        (ASTNode *)row->call, owner, NULL, 0, escape_site);
+        (ASTNode *)row->call, owner, NULL, 0, escape_site, NULL);
 }

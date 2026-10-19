@@ -13,6 +13,12 @@ typedef struct SemanticContext SemanticContext;
  * with its caller. False only when the selection could not be recorded. */
 bool semantic_loan_copy_landing_select(SemanticContext *ctx, const ASTNode *call);
 
+/* A loan that leaves the routine is copied where it leaves: the expression
+ * `carrier` whose value takes it out is selected for a next analysis to
+ * take as `Clone(carrier)`, when that Clone copies it fully. False only
+ * when the selection could not be recorded. */
+bool semantic_loan_copy_landing_select_carrier(SemanticContext *ctx, const ASTNode *carrier);
+
 /* The call whose result the builtin Clone `call` copies fully, and which
  * changes no storage it shares with its caller, so that nothing of what it
  * read stays shared; NULL when `call` is no such Clone of such a call. */

@@ -107,6 +107,10 @@ typedef struct {
     FunctionParamFlowBackingFact *fact;
     bool private_stores_closed;
     ASTNode *loan_seed, *consumer, *escape_site;
+    /* The expression whose value carried a loan seed's first escape, where
+     * a copy can stand in for it; NULL where none can (a receiver, an
+     * inout argument). */
+    ASTNode *escape_carrier;
     uint32_t loan_owner_slot_id;
     size_t loan_work;
     bool loan_seed_seen;
@@ -114,6 +118,10 @@ typedef struct {
 } ReturnedBacking;
 bool backing_merge(size_t words, uint64_t *into, const uint64_t *from);
 void backing_effect(ReturnedBacking *state, const uint64_t *origins, unsigned effect);
+/* backing_effect for the value of `carrier`, recorded as the escape carrier
+ * when it is a loan seed's first escape. */
+void backing_effect_carried(ReturnedBacking *state, const uint64_t *origins, unsigned effect,
+    ASTNode *carrier);
 bool backing_any_origin(const ReturnedBacking *state, const uint64_t *origins);
 FunctionParamFlowBackingBinding *backing_binding(ReturnedBacking *state, uint32_t id, bool insert);
 size_t backing_node(ReturnedBacking *state, ASTNode *node);
@@ -127,7 +135,8 @@ bool backing_storage_free_enum(ReturnedBacking *state, SemanticPublishedValue va
 /* Where a value's backing goes: its destinations, or every alias `id` of it. */
 void backing_destination_value(ReturnedBacking *state, ASTNode *value, uint64_t *destinations);
 void backing_destination_alias(ReturnedBacking *state, ASTNode *value, uint32_t id);
-void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement);
+void backing_store(ReturnedBacking *state, ASTNode *target, const uint64_t *origins, bool replacement,
+    ASTNode *carrier);
 /* Applies an intent call's effect on its arguments' storage; false when the
  * call selects no intent. */
 bool function_param_flow_intent_call(ReturnedBacking *state, ASTNode *call);
@@ -150,10 +159,13 @@ bool function_param_flow_read_payload_no_escape(SemanticContext *ctx,
  * formal `owner`, and `caller` uses that argument again: admitted when the
  * loan stays in `caller`, or leaves it only as `caller`'s own summary returns
  * the formal, and nothing in `caller` changes the owner. When given,
- * `owner_changed` says that the loan itself was admitted and only a change
- * of its owner refused it. */
+ * `failure` says why a refused loan failed. */
+typedef struct {
+    bool owner_changed;      /* the loan stayed; only a change of its owner refused it */
+    ASTNode *escape_carrier; /* the expression whose value took the loan out, or NULL */
+} FunctionParamFlowLoanFailure;
 bool function_param_flow_lent_argument_admitted(SemanticContext *ctx,
-    ASTNode *caller, ASTNode *call, uint32_t owner, bool *owner_changed);
+    ASTNode *caller, ASTNode *call, uint32_t owner, FunctionParamFlowLoanFailure *failure);
 /* The backing `call`'s result carries never leaves `caller`. */
 bool function_param_flow_call_result_stays(SemanticContext *ctx, ASTNode *caller, ASTNode *call);
 typedef struct {
